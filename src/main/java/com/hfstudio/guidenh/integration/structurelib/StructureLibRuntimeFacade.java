@@ -41,6 +41,7 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.mojang.authlib.GameProfile;
 
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -459,7 +460,13 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
         StructureLibOrientationHelper.applyDefaultAlignment(controllerTile);
         StructureLibOrientationHelper.applyRequestedAlignment(controllerTile, request, warnings);
-        fakePlayer.configureForControllerFacing(StructureLibOrientationHelper.resolveControllerFacing(controllerTile));
+        ForgeDirection controllerFacing = StructureLibOrientationHelper.resolveControllerFacing(controllerTile);
+        fakePlayer.configureForControllerFacing(controllerFacing);
+        GuideDebugLog.warnAlways(
+            "[GuideNH][ImportStructureLib] controllerFacing={} facing={} tier={}",
+            controllerFacing,
+            request.getFacing(),
+            selection.getMasterTier());
         IConstructable constructable = resolveConstructable(controllerTile);
         if (constructable == null) {
             context.resetPreviewState();
@@ -468,6 +475,15 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
 
         ItemStack triggerStack = createTriggerStack(selection);
+        GuideDebugLog.warnAlways(
+            "[GuideNH][ImportStructureLib] controller={} tier={} hatchChannel={} survival={} fillHatches={} activeCtrl={} placeHatches={}",
+            request.getController(),
+            selection.getMasterTier(),
+            hasChannelData(triggerStack, "gt_hatch"),
+            selection.isIntegrationOptionEnabled(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION),
+            selection.isIntegrationOptionEnabled(StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION),
+            selection.isIntegrationOptionEnabled(StructureLibSceneOptions.GREGTECH_ACTIVE_CONTROLLER_OPTION),
+            selection.isIntegrationOptionEnabled(StructureLibSceneOptions.GREGTECH_PLACE_HATCHES_OPTION));
         Map<Long, IStructureElement<?>> visitedElementsByPos = Map.of();
         Object instrumentId = new Object();
         StructureLibStructureVisitCollector visitCollector = new StructureLibStructureVisitCollector(
@@ -493,12 +509,24 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 triggerStack,
                 fakePlayer,
                 selection,
+                warnings,
+                controllerTile);
+            int blockCount = level.getFilledBlocks()
+                .size();
+            GuideDebugLog.warnAlways(
+                "[GuideNH][ImportStructureLib] buildDone success={} blocks={} warnings={}",
+                buildResult.success,
+                blockCount,
                 warnings);
             if (!buildResult.success) {
                 context.resetPreviewState();
                 return PreparedPreviewWorld.failure(buildResult.errorMessage);
             }
             synchronizePreviewState(controllerTile, triggerStack, selection, warnings);
+            int blockCountAfterSync = level.getFilledBlocks()
+                .size();
+            GuideDebugLog.warnAlways("[GuideNH][ImportStructureLib] syncDone blocks={}", blockCountAfterSync);
+            logBlockStats(level, request.getController());
         } catch (Throwable t) {
             GuideDebugLog.warn("StructureLib construct() failed for controller {}", request.getController(), t);
             context.resetPreviewState();
@@ -631,27 +659,41 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     public static BuildAttemptResult buildConstructable(IConstructable constructable, ItemStack triggerStack,
-        PreviewFakePlayer fakePlayer, StructureLibPreviewSelection selection, List<String> warnings) {
+        PreviewFakePlayer fakePlayer, StructureLibPreviewSelection selection, List<String> warnings,
+        TileEntity controllerTile) {
         boolean useSurvivalConstruct = selection != null
             && selection.isIntegrationOptionEnabled(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION);
         if (useSurvivalConstruct && constructable instanceof ISurvivalConstructable survivalConstructable) {
             boolean fillEmptyHatchesOnly = selection
                 .isIntegrationOptionEnabled(StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION);
+            GuideDebugLog.warnAlways(
+                "[GuideNH][ImportStructureLib] buildConstructable survival={} fillHatches={} gtHatchChannel={}",
+                useSurvivalConstruct,
+                fillEmptyHatchesOnly,
+                hasChannelData(triggerStack, "gt_hatch"));
             if (fillEmptyHatchesOnly) {
-                constructable.construct(triggerStack.copy(), false);
-                ItemStack hatchTriggerStack = triggerStack.copy();
-                enablePreviewHatchPlacement(hatchTriggerStack, selection);
+                ItemStack constructStack = triggerStack.copy();
+                if (selection.isIntegrationOptionEnabled(StructureLibSceneOptions.GREGTECH_PLACE_HATCHES_OPTION)) {
+                    enablePreviewHatchPlacement(constructStack, selection);
+                }
                 BuildAttemptResult result = runSurvivalConstruct(
                     survivalConstructable,
-                    hatchTriggerStack,
+                    constructStack,
                     fakePlayer,
-                    warnings);
+                    warnings,
+                    controllerTile);
                 if (!result.success && warnings != null) {
-                    warnings.add(result.errorMessage + " Keeping the normal StructureLib construct() result.");
+                    warnings.add(result.errorMessage + " Falling back to creative construct.");
                 }
-                return BuildAttemptResult.success();
+                return result.success ? result
+                    : fallbackToCreativeConstruct(constructable, triggerStack, warnings, result.errorMessage);
             }
-            BuildAttemptResult result = runSurvivalConstruct(survivalConstructable, triggerStack, fakePlayer, warnings);
+            BuildAttemptResult result = runSurvivalConstruct(
+                survivalConstructable,
+                triggerStack,
+                fakePlayer,
+                warnings,
+                controllerTile);
             return result.success ? result
                 : fallbackToCreativeConstruct(constructable, triggerStack, warnings, result.errorMessage);
         }
@@ -660,7 +702,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     private static BuildAttemptResult runSurvivalConstruct(ISurvivalConstructable survivalConstructable,
-        ItemStack triggerStack, PreviewFakePlayer fakePlayer, List<String> warnings) {
+        ItemStack triggerStack, PreviewFakePlayer fakePlayer, List<String> warnings, TileEntity controllerTile) {
         try {
             ISurvivalBuildEnvironment environment = ISurvivalBuildEnvironment
                 .create(StructureLibPreviewItemSource.create(), fakePlayer);
@@ -674,6 +716,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 if (result == -2) {
                     break;
                 }
+                refreshControllerHatchList(controllerTile, triggerStack, warnings);
                 if (result <= 0) {
                     return BuildAttemptResult.failure("StructureLib survival construct made no progress.");
                 }
@@ -693,6 +736,16 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
         constructable.construct(triggerStack.copy(), false);
         return BuildAttemptResult.success();
+    }
+
+    private static void refreshControllerHatchList(TileEntity controllerTile, ItemStack triggerStack,
+        List<String> warnings) {
+        if (controllerTile == null) {
+            return;
+        }
+        try {
+            GregTechHelpers.refreshPreviewHatchList(controllerTile, triggerStack, warnings);
+        } catch (Throwable ignored) {}
     }
 
     private static void enablePreviewHatchPlacement(ItemStack triggerStack, StructureLibPreviewSelection selection) {
@@ -884,6 +937,40 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             }
         }
         return null;
+    }
+
+    private static boolean hasChannelData(ItemStack stack, String channel) {
+        if (stack == null) {
+            return false;
+        }
+        return ChannelDataAccessor.hasSubChannel(stack, channel)
+            && ChannelDataAccessor.getChannelData(stack, channel) > 0;
+    }
+
+    private static void logBlockStats(GuidebookLevel level, String controller) {
+        java.util.Map<String, Integer> blockCounts = new LinkedHashMap<>();
+        java.util.Map<String, Integer> tileCounts = new LinkedHashMap<>();
+        for (int[] pos : level.getFilledBlocks()) {
+            Block block = level.getBlock(pos[0], pos[1], pos[2]);
+            String blockName = block != null ? resolveBlockId(block) : "air";
+            if (blockName == null) {
+                blockName = block.getClass()
+                    .getSimpleName();
+            }
+            blockCounts.merge(blockName, 1, Integer::sum);
+            TileEntity tile = level.getTileEntity(pos[0], pos[1], pos[2]);
+            if (tile != null) {
+                tileCounts.merge(
+                    tile.getClass()
+                        .getSimpleName(),
+                    1,
+                    Integer::sum);
+            }
+        }
+        GuideDebugLog
+            .warnAlways("[GuideNH][ImportStructureLib] blockStats controller={} blocks={}", controller, blockCounts);
+        GuideDebugLog
+            .warnAlways("[GuideNH][ImportStructureLib] tileStats controller={} tiles={}", controller, tileCounts);
     }
 
     public static String sanitizeMessage(@Nullable String message) {

@@ -61,4 +61,8 @@ public class GuideGregTechTileSupport {
     public static String describeTile(@Nullable TileEntity tileEntity) {
         return GregTechHelpers.describeTile(tileEntity);
     }
+
+    public static void setActive(@Nullable TileEntity tileEntity, boolean active) {
+        GregTechHelpers.setActive(tileEntity, active);
+    }
 }
