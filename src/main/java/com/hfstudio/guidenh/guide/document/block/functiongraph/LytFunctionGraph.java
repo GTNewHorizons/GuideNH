@@ -43,6 +43,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private static final int MIN_SAMPLES = 64;
     private static final int MAX_SAMPLES = 1024;
     private static final float HIT_THRESHOLD_PX = 4f;
+    private static final float PRESET_HIT_RADIUS = 8f;
     private static final float HIGHLIGHT_LINE_BONUS = 1.0f;
     private static final int POINT_RADIUS = 3;
     private static final float POINT_OUTER_RING = 1f;
@@ -108,6 +109,16 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
 
     private int activePlotIndex = -1;
     private double activeDataX;
+    private float activeScreenX;
+    private int activeMarkedIndex = -1;
+    private double activeMarkedDataX;
+    private double activeMarkedDataY;
+    private int activeMarkedColor;
+    private int activeAutoPlotIndex = -1;
+    private double activeAutoDataX;
+    private double activeAutoDataY;
+    private int activeAutoColor;
+    private final List<double[]> autoPointHitCache = new ArrayList<>();
     private boolean isDragging;
     private int dragButton;
 
@@ -357,7 +368,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         renderMarkedPoints(context, plotRect);
         renderAutoPoints(context, plotRect);
 
-        if (activePlotIndex >= 0 && activePlotIndex < plots.size()) {
+        if ((activePlotIndex >= 0 && activePlotIndex < plots.size()) || activeMarkedIndex >= 0
+            || activeAutoPlotIndex >= 0) {
             renderActiveOverlay(context, plotRect);
         }
         renderCornerLegend(context, plotRect);
@@ -380,7 +392,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     @Override
     public void onMouseLeave() {
         if (!isDragging) {
-            activePlotIndex = -1;
+            clearActive();
         }
     }
 
@@ -392,13 +404,17 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (!plotRectCache.contains(documentX, documentY)) {
             return false;
         }
+        // Preset points do not support drag.
+        if (activeMarkedIndex >= 0 || activeAutoPlotIndex >= 0) {
+            return false;
+        }
         int hit = hitTest(documentX, documentY);
         if (hit < 0) {
             return false;
         }
         activePlotIndex = hit;
         activeDataX = unmapXToData(
-            documentX,
+            activeScreenX,
             plots.get(hit)
                 .isInverse());
         isDragging = true;
@@ -682,46 +698,13 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
 
     private void renderMarkedPoints(RenderContext context, LytRect plotRect) {
         for (MarkedPoint point : points) {
-            double dataX;
-            double dataY;
-            int color;
-            switch (point.getMode()) {
-                case MarkedPoint.MODE_EXPLICIT:
-                    dataX = point.getValueA();
-                    dataY = point.getValueB();
-                    color = point.getColor();
-                    break;
-                case MarkedPoint.MODE_PLOT_AT_X: {
-                    int pi = point.getPlotIndex();
-                    if (pi < 0 || pi >= plots.size()) {
-                        continue;
-                    }
-                    FunctionPlot plot = plots.get(pi);
-                    dataX = point.getValueA();
-                    dataY = plot.evaluate(dataX);
-                    color = point.isColorInherit() ? plot.getColor() : point.getColor();
-                    break;
-                }
-                case MarkedPoint.MODE_PLOT_AT_Y: {
-                    int pi = point.getPlotIndex();
-                    if (pi < 0 || pi >= plots.size()) {
-                        continue;
-                    }
-                    FunctionPlot plot = plots.get(pi);
-                    dataY = point.getValueA();
-                    dataX = solveForX(plot, dataY);
-                    color = point.isColorInherit() ? plot.getColor() : point.getColor();
-                    if (Double.isNaN(dataX)) {
-                        continue;
-                    }
-                    break;
-                }
-                default:
-                    continue;
-            }
-            if (!Double.isFinite(dataX) || !Double.isFinite(dataY)) {
+            double[] res = resolveMarkedPoint(point);
+            if (res == null) {
                 continue;
             }
+            double dataX = res[0];
+            double dataY = res[1];
+            int color = (int) res[2];
             float sx = (float) mapX(dataX);
             float sy = (float) mapY(dataY);
             if (sx < plotRect.x() - POINT_RADIUS || sx > plotRect.right() + POINT_RADIUS) {
@@ -735,8 +718,55 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         }
     }
 
+    /** Resolves a MarkedPoint to {dataX, dataY, color}, or null if unresolvable. */
+    private double[] resolveMarkedPoint(MarkedPoint point) {
+        double dataX;
+        double dataY;
+        int color;
+        switch (point.getMode()) {
+            case MarkedPoint.MODE_EXPLICIT:
+                dataX = point.getValueA();
+                dataY = point.getValueB();
+                color = point.getColor();
+                break;
+            case MarkedPoint.MODE_PLOT_AT_X: {
+                int pi = point.getPlotIndex();
+                if (pi < 0 || pi >= plots.size()) {
+                    return null;
+                }
+                FunctionPlot plot = plots.get(pi);
+                dataX = point.getValueA();
+                dataY = plot.evaluate(dataX);
+                color = point.isColorInherit() ? plot.getColor() : point.getColor();
+                break;
+            }
+            case MarkedPoint.MODE_PLOT_AT_Y: {
+                int pi = point.getPlotIndex();
+                if (pi < 0 || pi >= plots.size()) {
+                    return null;
+                }
+                FunctionPlot plot = plots.get(pi);
+                dataY = point.getValueA();
+                dataX = solveForX(plot, dataY);
+                if (Double.isNaN(dataX)) {
+                    return null;
+                }
+                color = point.isColorInherit() ? plot.getColor() : point.getColor();
+                break;
+            }
+            default:
+                return null;
+        }
+        if (!Double.isFinite(dataX) || !Double.isFinite(dataY)) {
+            return null;
+        }
+        return new double[] { dataX, dataY, (double) color };
+    }
+
     private void renderAutoPoints(RenderContext context, LytRect plotRect) {
-        for (FunctionPlot plot : plots) {
+        autoPointHitCache.clear();
+        for (int pi = 0; pi < plots.size(); pi++) {
+            FunctionPlot plot = plots.get(pi);
             AutoPointSpec spec = plot.getAutoPointSpec();
             if (spec == null || !spec.isEnabled()) {
                 continue;
@@ -744,16 +774,16 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             int color = spec.colorInherit() ? plot.getColor() : spec.color();
             int drawn = 0;
             if (!Double.isNaN(spec.everyX())) {
-                drawn = renderAutoPointsEveryX(context, plotRect, plot, spec, color, drawn);
+                drawn = renderAutoPointsEveryX(context, plotRect, plot, spec, color, drawn, pi);
             }
             if (!Double.isNaN(spec.everyY()) && drawn < AUTO_POINT_MAX_PER_PLOT) {
-                renderAutoPointsEveryY(context, plotRect, plot, spec, color, drawn);
+                renderAutoPointsEveryY(context, plotRect, plot, spec, color, drawn, pi);
             }
         }
     }
 
     private int renderAutoPointsEveryX(RenderContext context, LytRect plotRect, FunctionPlot plot, AutoPointSpec spec,
-        int color, int drawn) {
+        int color, int drawn, int plotIndex) {
         if (plot.isInverse()) {
             return renderAutoPointIntersectionsForAxis(
                 context,
@@ -765,7 +795,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 effectiveXMin,
                 effectiveXMax,
                 true,
-                drawn);
+                drawn,
+                plotIndex);
         }
         double min = effectiveXMin;
         double max = effectiveXMax;
@@ -775,7 +806,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         while (value <= max + 1e-9 && drawn < AUTO_POINT_MAX_PER_PLOT && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
             double dataX = value;
             double dataY = plot.evaluate(value);
-            if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode())) {
+            if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode(), plotIndex)) {
                 drawn++;
             }
             value += step;
@@ -785,7 +816,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     }
 
     private int renderAutoPointsEveryY(RenderContext context, LytRect plotRect, FunctionPlot plot, AutoPointSpec spec,
-        int color, int drawn) {
+        int color, int drawn, int plotIndex) {
         if (plot.isInverse()) {
             double step = spec.everyY();
             double value = Math.ceil(effectiveYMin / step) * step;
@@ -794,7 +825,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
                 double dataY = value;
                 double dataX = plot.evaluate(value);
-                if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode())) {
+                if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode(), plotIndex)) {
                     drawn++;
                 }
                 value += step;
@@ -817,7 +848,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 effectiveYMin,
                 effectiveYMax,
                 false,
-                drawn);
+                drawn,
+                plotIndex);
             value += step;
             targets++;
         }
@@ -825,7 +857,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     }
 
     private int renderAutoPointIntersectionsForAxis(RenderContext context, LytRect plotRect, FunctionPlot plot,
-        AutoPointSpec spec, int color, double target, double targetMin, double targetMax, boolean targetX, int drawn) {
+        AutoPointSpec spec, int color, double target, double targetMin, double targetMax, boolean targetX, int drawn,
+        int plotIndex) {
         double independentMin = plot.isInverse() ? effectiveYMin : effectiveXMin;
         double independentMax = plot.isInverse() ? effectiveYMax : effectiveXMax;
         double prevIndependent = independentMin;
@@ -851,7 +884,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                     prevValue = value;
                     continue;
                 }
-                if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode())) {
+                if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode(), plotIndex)) {
                     drawn++;
                 }
             }
@@ -886,7 +919,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     }
 
     private boolean drawAutoPoint(RenderContext context, LytRect plotRect, double dataX, double dataY, int color,
-        AutoPointLabelMode labelMode) {
+        AutoPointLabelMode labelMode, int plotIndex) {
         if (!Double.isFinite(dataX) || !Double.isFinite(dataY)) {
             return false;
         }
@@ -898,6 +931,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (sy < plotRect.y() - POINT_RADIUS || sy > plotRect.bottom() + POINT_RADIUS) {
             return false;
         }
+        autoPointHitCache.add(new double[] { sx, sy, dataX, dataY, (double) color, (double) plotIndex });
         context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF);
         context.fillCircle(sx, sy, POINT_RADIUS, color);
         if (labelMode != null && labelMode != AutoPointLabelMode.NONE) {
@@ -948,6 +982,17 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     }
 
     private void renderActiveOverlay(RenderContext context, LytRect plotRect) {
+        if (activeMarkedIndex >= 0) {
+            renderMarkedPointOverlay(context, plotRect);
+            return;
+        }
+        if (activeAutoPlotIndex >= 0) {
+            renderAutoPointOverlay(context, plotRect);
+            return;
+        }
+        if (activePlotIndex < 0 || activePlotIndex >= plots.size()) {
+            return;
+        }
         FunctionPlot plot = plots.get(activePlotIndex);
         double dataX = activeDataX;
         double dataY;
@@ -971,6 +1016,49 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         // Tooltip panel.
         String line1 = !isEmpty(plot.getLabel()) ? plot.getLabel() : plot.getExpressionText();
         String line2 = "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
+        renderTooltipBox(context, sx, sy, line1, line2);
+    }
+
+    private void renderMarkedPointOverlay(RenderContext context, LytRect plotRect) {
+        double dataX = activeMarkedDataX;
+        double dataY = activeMarkedDataY;
+        int color = activeMarkedColor;
+        float sx = (float) mapX(dataX);
+        float sy = (float) mapY(dataY);
+        if (sx < plotRect.x() || sx > plotRect.right() || sy < plotRect.y() || sy > plotRect.bottom()) {
+            return;
+        }
+        // Larger highlight for marked points.
+        context.fillCircle(sx, sy, POINT_RADIUS + 2f, 0xFFFFFFFF);
+        context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000);
+        context.fillCircle(sx, sy, POINT_RADIUS, color);
+
+        MarkedPoint point = points.get(activeMarkedIndex);
+        String line1 = !isEmpty(point.getLabel()) ? point.getLabel() : "Point";
+        String line2 = "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
+        renderTooltipBox(context, sx, sy, line1, line2);
+    }
+
+    private void renderAutoPointOverlay(RenderContext context, LytRect plotRect) {
+        double dataX = activeAutoDataX;
+        double dataY = activeAutoDataY;
+        int color = activeAutoColor;
+        float sx = (float) mapX(dataX);
+        float sy = (float) mapY(dataY);
+        if (sx < plotRect.x() || sx > plotRect.right() || sy < plotRect.y() || sy > plotRect.bottom()) {
+            return;
+        }
+        context.fillCircle(sx, sy, POINT_RADIUS + 2f, 0xFFFFFFFF);
+        context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000);
+        context.fillCircle(sx, sy, POINT_RADIUS, color);
+
+        FunctionPlot plot = plots.get(activeAutoPlotIndex);
+        String line1 = !isEmpty(plot.getLabel()) ? plot.getLabel() : plot.getExpressionText();
+        String line2 = "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
+        renderTooltipBox(context, sx, sy, line1, line2);
+    }
+
+    private void renderTooltipBox(RenderContext context, float sx, float sy, String line1, String line2) {
         int lineH = context.getLineHeight(TOOLTIP_BODY_STYLE);
         int textWidth = Math
             .max(context.getStringWidth(line1, TOOLTIP_TITLE_STYLE), context.getStringWidth(line2, TOOLTIP_BODY_STYLE));
@@ -978,11 +1066,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         int boxHeight = lineH * 2 + TOOLTIP_PADDING_Y * 2;
         int boxX = (int) sx - boxWidth / 2;
         int boxY = (int) sy - boxHeight - TOOLTIP_GAP;
-        // Flip below the point if the natural placement runs out of room above.
         if (boxY < bounds.y() + 2) {
             boxY = (int) sy + TOOLTIP_GAP;
         }
-        // Clamp horizontally to the block bounds so it never escapes the panel sideways.
         boxX = Math.clamp(boxX, bounds.x() + 2, bounds.right() - boxWidth - 2);
         boxY = Math.clamp(boxY, bounds.y() + 2, bounds.bottom() - boxHeight - 2);
 
@@ -1123,21 +1209,36 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
 
     private void updateHover(float x, float y) {
         if (plotRectCache.isEmpty()) {
-            activePlotIndex = -1;
+            clearActive();
             return;
         }
         if (!plotRectCache.contains((int) x, (int) y)) {
-            activePlotIndex = -1;
+            clearActive();
+            return;
+        }
+        activeMarkedIndex = -1;
+        activeAutoPlotIndex = -1;
+        activePlotIndex = -1;
+        // Preset points take priority over curve segments.
+        if (hitTestMarkedPoints(x, y)) {
+            return;
+        }
+        if (hitTestAutoPoints(x, y)) {
             return;
         }
         int hit = hitTest(x, y);
         if (hit < 0) {
-            activePlotIndex = -1;
             return;
         }
         activePlotIndex = hit;
         FunctionPlot plot = plots.get(hit);
-        activeDataX = unmapXToData(x, plot.isInverse());
+        activeDataX = unmapXToData(activeScreenX, plot.isInverse());
+    }
+
+    private void clearActive() {
+        activePlotIndex = -1;
+        activeMarkedIndex = -1;
+        activeAutoPlotIndex = -1;
     }
 
     private int hitTest(float x, float y) {
@@ -1146,6 +1247,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         }
         float bestDistSq = HIT_THRESHOLD_PX * HIT_THRESHOLD_PX;
         int bestIndex = -1;
+        float bestNearX = x;
         for (int i = 0; i < plots.size(); i++) {
             float[] xs = sampleXs[i];
             float[] ys = sampleYs[i];
@@ -1160,24 +1262,95 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 if (Float.isNaN(x1) || Float.isNaN(y1) || Float.isNaN(x2) || Float.isNaN(y2)) {
                     continue;
                 }
-                float distSq = pointSegmentDistSq(x, y, x1, y1, x2, y2);
-                if (distSq < bestDistSq) {
-                    bestDistSq = distSq;
+                float[] nr = nearestOnSegment(x, y, x1, y1, x2, y2);
+                if (nr[0] < bestDistSq) {
+                    bestDistSq = nr[0];
                     bestIndex = i;
+                    bestNearX = nr[1];
                 }
             }
+        }
+        if (bestIndex >= 0) {
+            activeScreenX = bestNearX;
         }
         return bestIndex;
     }
 
-    private static float pointSegmentDistSq(float px, float py, float x1, float y1, float x2, float y2) {
+    /** Scans MarkedPoints within {@link #PRESET_HIT_RADIUS} and sets the active marked state. */
+    private boolean hitTestMarkedPoints(float x, float y) {
+        if (points.isEmpty()) {
+            return false;
+        }
+        float bestDistSq = PRESET_HIT_RADIUS * PRESET_HIT_RADIUS;
+        int bestIndex = -1;
+        double bestDataX = 0d;
+        double bestDataY = 0d;
+        int bestColor = 0;
+        for (int i = 0; i < points.size(); i++) {
+            double[] res = resolveMarkedPoint(points.get(i));
+            if (res == null) {
+                continue;
+            }
+            float sx = (float) mapX(res[0]);
+            float sy = (float) mapY(res[1]);
+            float dx = x - sx;
+            float dy = y - sy;
+            float distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                bestIndex = i;
+                bestDataX = res[0];
+                bestDataY = res[1];
+                bestColor = (int) res[2];
+            }
+        }
+        if (bestIndex >= 0) {
+            activeMarkedIndex = bestIndex;
+            activeMarkedDataX = bestDataX;
+            activeMarkedDataY = bestDataY;
+            activeMarkedColor = bestColor;
+            return true;
+        }
+        return false;
+    }
+
+    /** Scans auto points (cached during render) within {@link #PRESET_HIT_RADIUS}. */
+    private boolean hitTestAutoPoints(float x, float y) {
+        if (autoPointHitCache.isEmpty()) {
+            return false;
+        }
+        float bestDistSq = PRESET_HIT_RADIUS * PRESET_HIT_RADIUS;
+        int bestIndex = -1;
+        for (int i = 0; i < autoPointHitCache.size(); i++) {
+            double[] entry = autoPointHitCache.get(i);
+            float dx = x - (float) entry[0];
+            float dy = y - (float) entry[1];
+            float distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                bestIndex = i;
+            }
+        }
+        if (bestIndex >= 0) {
+            double[] entry = autoPointHitCache.get(bestIndex);
+            activeAutoPlotIndex = (int) entry[5];
+            activeAutoDataX = entry[2];
+            activeAutoDataY = entry[3];
+            activeAutoColor = (int) entry[4];
+            return true;
+        }
+        return false;
+    }
+
+    /** Returns [distSq, nearestX, nearestY] for the closest point on segment (x1,y1)-(x2,y2). */
+    private static float[] nearestOnSegment(float px, float py, float x1, float y1, float x2, float y2) {
         float dx = x2 - x1;
         float dy = y2 - y1;
         float lenSq = dx * dx + dy * dy;
         if (lenSq < 1e-6f) {
             float ex = px - x1;
             float ey = py - y1;
-            return ex * ex + ey * ey;
+            return new float[] { ex * ex + ey * ey, x1, y1 };
         }
         float t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
         if (t < 0f) t = 0f;
@@ -1186,7 +1359,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         float qy = y1 + t * dy;
         float ex = px - qx;
         float ey = py - qy;
-        return ex * ex + ey * ey;
+        return new float[] { ex * ex + ey * ey, qx, qy };
     }
 
     /** Bisection solver used when a marked point only knows the y value. */
