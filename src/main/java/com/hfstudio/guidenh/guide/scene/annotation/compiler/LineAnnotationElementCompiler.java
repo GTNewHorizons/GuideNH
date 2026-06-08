@@ -17,7 +17,6 @@ import com.hfstudio.guidenh.guide.scene.annotation.LineAnnotationPointParser;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
-import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 /**
  * {@code <LineAnnotation from="x y z" to="x y z" color="..." thickness="..." alwaysOnTop />}銆?
@@ -122,46 +121,5 @@ public class LineAnnotationElementCompiler extends AnnotationTagCompiler {
             tooltipChildren.add(child);
         }
         return tooltipChildren;
-    }
-
-    public static String tooltipSource(PageCompiler compiler, MdxJsxElementFields el) {
-        String source = compiler.getBlockTagChildrenSource(el);
-        if (source == null || source.isEmpty()) {
-            return source;
-        }
-        List<? extends MdAstAnyContent> reparsedChildren = compiler.reparseBlockTagChildren(el);
-        StringBuilder builder = new StringBuilder(source.length());
-        boolean first = true;
-        for (MdAstAnyContent child : reparsedChildren) {
-            MdxJsxElementFields pointElement = BlockAnnotationTemplateElementCompiler.unwrapJsxElement(child);
-            if (pointElement != null && "LinePoint".equals(pointElement.name())) {
-                continue;
-            }
-            String childSource = sourceForNode(source, child.position());
-            if (childSource == null || childSource.isEmpty()) {
-                continue;
-            }
-            if (!first) {
-                builder.append('\n');
-            }
-            builder.append(childSource);
-            first = false;
-        }
-        return !builder.isEmpty() ? builder.toString() : null;
-    }
-
-    @Nullable
-    private static String sourceForNode(String source, @Nullable UnistPosition position) {
-        if (position == null || position.start() == null || position.end() == null) {
-            return null;
-        }
-        int start = position.start()
-            .offset();
-        int end = position.end()
-            .offset();
-        if (start < 0 || end <= start || end > source.length()) {
-            return null;
-        }
-        return source.substring(start, end);
     }
 }
