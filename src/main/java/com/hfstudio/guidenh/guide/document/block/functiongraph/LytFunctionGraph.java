@@ -43,7 +43,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private static final int MIN_SAMPLES = 64;
     private static final int MAX_SAMPLES = 1024;
     private static final float HIT_THRESHOLD_PX = 4f;
-    private static final float PRESET_HIT_RADIUS = 8f;
+    private static final float PRESET_HIT_RADIUS = 6f;
     private static final float HIGHLIGHT_LINE_BONUS = 1.0f;
     private static final int POINT_RADIUS = 3;
     private static final float POINT_OUTER_RING = 1f;
