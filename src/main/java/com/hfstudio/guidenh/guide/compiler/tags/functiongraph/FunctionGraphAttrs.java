@@ -122,7 +122,7 @@ public class FunctionGraphAttrs {
         String colorStr = MdxAttrs.getString(compiler, sink, el, "color", null);
         int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, FunctionGraphPalette.color(paletteIndex))
             : FunctionGraphPalette.color(paletteIndex);
-        String label = MdxAttrs.getString(compiler, sink, el, "label", null);
+        String label = MdxAttrs.getString(compiler, sink, el, "name", null);
         AutoPointSpec autoPointSpec = parseAutoPointSpec(
             MdxAttrs.getString(compiler, sink, el, "pointEveryX", null),
             MdxAttrs.getString(compiler, sink, el, "pointEveryY", null),
@@ -137,7 +137,7 @@ public class FunctionGraphAttrs {
         String colorStr = MdxAttrs.getString(compiler, sink, el, "color", null);
         boolean colorInherit = colorStr == null;
         int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, 0xFFFFFFFF) : 0xFFFFFFFF;
-        String label = MdxAttrs.getString(compiler, sink, el, "label", null);
+        String label = MdxAttrs.getString(compiler, sink, el, "name", null);
 
         double xValue = parseDouble(MdxAttrs.getString(compiler, sink, el, "x", null), Double.NaN);
         double yValue = parseDouble(MdxAttrs.getString(compiler, sink, el, "y", null), Double.NaN);

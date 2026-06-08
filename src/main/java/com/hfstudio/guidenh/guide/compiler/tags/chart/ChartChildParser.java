@@ -73,7 +73,12 @@ public class ChartChildParser {
             colorIdx++;
             if (usePoints) {
                 String points = MdxAttrs.getString(compiler, errorSink, childEl, "points", "");
-                double[][] arr = ChartAttrParser.parsePointArray(points);
+                double[][] arr;
+                if (!points.isEmpty()) {
+                    arr = ChartAttrParser.parsePointArray(points);
+                } else {
+                    arr = parseSeriesChildPoints(compiler, errorSink, childEl);
+                }
                 ChartSeries series = new ChartSeries(seriesName, color, arr[0], arr[1]);
                 applyIconAndTooltip(compiler, errorSink, childEl, series);
                 result.add(series);
@@ -114,7 +119,7 @@ public class ChartChildParser {
                 errorSink.appendError(compiler, "Expected <Slice> child but got <" + name + ">", child);
                 continue;
             }
-            String label = MdxAttrs.getString(compiler, errorSink, childEl, "label", "");
+            String label = MdxAttrs.getString(compiler, errorSink, childEl, "name", "");
             float value = MdxAttrs.getFloat(compiler, errorSink, childEl, "value", 0f);
             String colorStr = MdxAttrs.getString(compiler, errorSink, childEl, "color", null);
             int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ChartAttrParser.paletteColor(colorIdx))
@@ -277,5 +282,32 @@ public class ChartChildParser {
             errorSink.appendError(compiler, "Invalid icon image " + src + ": " + e.getMessage(), el);
             return null;
         }
+    }
+
+    /** Parse child {@code <Point x="..." y="..."/>} elements inside a {@code <Series>}. */
+    private static double[][] parseSeriesChildPoints(PageCompiler compiler, LytErrorSink errorSink,
+        MdxJsxElementFields seriesEl) {
+        List<Double> xs = new ArrayList<>();
+        List<Double> ys = new ArrayList<>();
+        for (MdAstAnyContent child : seriesEl.children()) {
+            MdxJsxElementFields pointEl = SceneTagCompiler.unwrapSceneElement(child);
+            if (pointEl == null || !"Point".equals(pointEl.name())) {
+                continue;
+            }
+            double x = MdxAttrs.getFloat(compiler, errorSink, pointEl, "x", Float.NaN);
+            double y = MdxAttrs.getFloat(compiler, errorSink, pointEl, "y", Float.NaN);
+            if (Double.isNaN(x) || Double.isNaN(y)) {
+                continue;
+            }
+            xs.add(x);
+            ys.add(y);
+        }
+        double[] xArr = new double[xs.size()];
+        double[] yArr = new double[ys.size()];
+        for (int i = 0; i < xs.size(); i++) {
+            xArr[i] = xs.get(i);
+            yArr[i] = ys.get(i);
+        }
+        return new double[][] { xArr, yArr };
     }
 }

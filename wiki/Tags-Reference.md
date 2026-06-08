@@ -685,7 +685,7 @@ Children:
 
 * `<Series name="..." color="#..." data="10,20,30"/>` for category-based charts (Column / Bar / categorical Line).
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` for numeric X (Line `numericX={true}`, Scatter).
-* `<Slice label="..." value="..." color="#..."/>` for `<PieChart>` only.
+* `<Slice name="..." value="..." color="#..."/>` for `<PieChart>` only.
 
 When `color` is omitted on a `<Series>` or `<Slice>`, GuideNH cycles through a built-in 16-color palette.
 
@@ -699,8 +699,8 @@ Example:
 
 ```mdx
 <PieChart title="Output share">
-  <Slice label="Iron" value="40" icon="minecraft:iron_ingot" tooltip="From smelting" />
-  <Slice label="Gold" value="15" icon="minecraft:gold_ingot" />
+  <Slice name="Iron" value="40" icon="minecraft:iron_ingot" tooltip="From smelting" />
+  <Slice name="Gold" value="15" icon="minecraft:gold_ingot" />
 </PieChart>
 ```
 
@@ -721,8 +721,8 @@ Extra attributes: `categories` (X-axis or Y-axis labels, comma separated), `barW
   <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
   <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
   <PieInset size="60" position="topRight" title="Total share">
-    <Slice label="Iron" value="225" color="#a0a0a0"/>
-    <Slice label="Gold" value="110" color="#e0c060"/>
+    <Slice name="Iron" value="225" color="#a0a0a0"/>
+    <Slice name="Gold" value="110" color="#e0c060"/>
   </PieInset>
 </ColumnChart>
 ```
