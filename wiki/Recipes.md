@@ -5,33 +5,39 @@ GuideNH can render crafting and NEI-backed recipes directly inside guide pages.
 ## Supported Tags
 
 - `<Recipe>`
+- `<Usage>`
 - `<RecipeFor>`
+- `<RecipeUsage>`
 - `<RecipesFor>`
+- `<RecipesUsage>`
 
 All three share the same compiler and attribute set.
 
 ## Tag Semantics
 
-| Tag | Behavior |
-| --- | --- |
-| `<Recipe>` | render a single recipe for the target item |
-| `<RecipeFor>` | same single-recipe behavior, more author-friendly name |
-| `<RecipesFor>` | render multiple matching recipes |
+| Tag              | Behavior                                               |
+|------------------|--------------------------------------------------------|
+| `<Recipe>`       | render a single recipe for the target item             |
+| `<Usage>`        | render a single recipe using the target item           |
+| `<RecipeFor>`    | same single-recipe behavior, more author-friendly name |
+| `<RecipeUsage>`  | same single-recipe behavior, more author-friendly name |
+| `<RecipesFor>`   | render multiple matching recipes                       |
+| `<RecipesUsage>` | render multiple matching recipes                       |
 
 If multiple recipes exist and you use the single-recipe forms, GuideNH renders only one result unless filters narrow it further.
 
 ## Common Attributes
 
-| Attribute | Required | Meaning |
-| --- | --- | --- |
-| `id` | yes | target item reference |
-| `fallbackText` | no | text shown when no usable recipe is found |
-| `handlerName` | no | case-insensitive substring filter on handler name |
-| `handlerId` | no | exact overlay/handler id filter, case-insensitive |
-| `handlerOrder` | no | 0-based index after handler filtering |
-| `input` | no | ingredient filter expression |
-| `output` | no | result filter expression |
-| `limit` | no | positive integer max number of rendered recipes |
+| Attribute      | Required | Meaning                                           |
+|----------------|----------|---------------------------------------------------|
+| `id`           | yes      | target item reference                             |
+| `fallbackText` | no       | text shown when no usable recipe is found         |
+| `handlerName`  | no       | case-insensitive substring filter on handler name |
+| `handlerId`    | no       | exact overlay/handler id filter, case-insensitive |
+| `handlerOrder` | no       | 0-based index after handler filtering             |
+| `input`        | no       | ingredient filter expression                      |
+| `output`       | no       | result filter expression                          |
+| `limit`        | no       | positive integer max number of rendered recipes   |
 
 ## Item Id Syntax
 

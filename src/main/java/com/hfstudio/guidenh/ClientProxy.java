@@ -194,12 +194,14 @@ public class ClientProxy extends CommonProxy {
         SceneScript sceneScript = new SceneScript();
         lytHost.registerScript("Scene", sceneScript);
         lytHost.registerScript("GameScene", sceneScript);
-        // Phase 3: RecipeScript handles Recipe, RecipeFor, RecipeUsage, RecipesFor
+        // Phase 3: RecipeScript handles Recipe, Usage, RecipeFor, RecipeUsage, RecipesFor, RecipesUsage
         RecipeScript recipeScript = new RecipeScript();
         lytHost.registerScript("Recipe", recipeScript);
+        lytHost.registerScript("Usage", recipeScript);
         lytHost.registerScript("RecipeFor", recipeScript);
         lytHost.registerScript("RecipeUsage", recipeScript);
         lytHost.registerScript("RecipesFor", recipeScript);
+        lytHost.registerScript("RecipesUsage", recipeScript);
 
         MinecraftForge.EVENT_BUS.register(this);
         GuideDebugLog.infoAlways(
