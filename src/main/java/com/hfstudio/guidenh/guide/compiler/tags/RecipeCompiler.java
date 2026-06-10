@@ -33,7 +33,8 @@ public class RecipeCompiler extends BlockTagCompiler {
 
     @Override
     public Set<String> getTagNames() {
-        return new HashSet<>(Arrays.asList("Recipe", "RecipeFor", "RecipeUsage", "RecipesFor"));
+        return new HashSet<>(
+            Arrays.asList("Recipe", "Usage", "RecipeFor", "RecipeUsage", "RecipesFor", "RecipesUsage"));
     }
 
     @Override
@@ -61,8 +62,8 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
 
         String tagName = el.name();
-        boolean multi = "RecipesFor".equals(tagName);
-        boolean usageQuery = "RecipeUsage".equals(tagName);
+        boolean multi = tagName != null && tagName.startsWith("Recipes");
+        boolean usageQuery = tagName != null && tagName.endsWith("Usage");
 
         String handlerNameFilter = trimToNull(MdxAttrs.getString(compiler, parent, el, "handlerName", null));
         String handlerIdFilter = trimToNull(MdxAttrs.getString(compiler, parent, el, "handlerId", null));
