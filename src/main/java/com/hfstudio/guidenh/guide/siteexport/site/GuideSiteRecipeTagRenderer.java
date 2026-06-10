@@ -343,8 +343,9 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             return fallbackParagraph(fallbackText);
         }
 
-        boolean multi = "RecipesFor".equals(element.name());
-        boolean usageQuery = "RecipeUsage".equals(element.name());
+        String tagName = element.name();
+        boolean multi = tagName != null && tagName.startsWith("Recipes");
+        boolean usageQuery = tagName != null && tagName.endsWith("Usage");
         int limit = multi ? Integer.MAX_VALUE : 1;
         if (parsedLimit != null && parsedLimit > 0) {
             limit = parsedLimit;
