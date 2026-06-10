@@ -109,10 +109,6 @@ public class ItemLinkScript implements LytScript {
         } else if (event.type() == EventType.MOUNT && node instanceof LytFlowContent fc) {
             // Node was already materialized (e.g. LytTooltipSpan from a previous
             // replacement). Cache it as-is so it isn't re-dispatched every mount.
-            String fcUid = fc.getNodeUid();
-            com.hfstudio.guidenh.guide.scene.support.GuideDebugLog.infoAlways(
-                "[ItemLinkDebug] onEvent caching non-LytFlowLink: class={} uid={}",
-                fc.getClass().getSimpleName(), fcUid);
             ctx.replace(fc);
         }
     }
@@ -206,8 +202,7 @@ public class ItemLinkScript implements LytScript {
 
     private static void removeExistingIcons(LytFlowSpan span) {
         span.getChildren()
-            .removeIf(child -> child instanceof LytFlowInlineBlock ib
-                && ib.getBlock() instanceof LytItemImage);
+            .removeIf(child -> child instanceof LytFlowInlineBlock ib && ib.getBlock() instanceof LytItemImage);
     }
 
     @Nullable

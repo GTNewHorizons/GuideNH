@@ -90,11 +90,11 @@ import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderSceneData;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
-import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityRayPicker;
 import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
+import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
@@ -1224,8 +1224,14 @@ public class LytGuidebookScene extends LytBlock {
                 int by = Math.clamp(placedBlock.getY() + binding.getRebuildOffsetY(), 0, sceneLevel.getHeight() - 1);
                 int bz = placedBlock.getZ() + binding.getRebuildOffsetZ();
                 GuidebookPreviewBlockPlacer.place(
-                    sceneLevel, bx, by, bz,
-                    block, placedBlock.getMeta(), placedBlock.getTileTag(), placedBlock.getBlockId());
+                    sceneLevel,
+                    bx,
+                    by,
+                    bz,
+                    block,
+                    placedBlock.getMeta(),
+                    placedBlock.getTileTag(),
+                    placedBlock.getBlockId());
                 ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
             }
         }

@@ -36,7 +36,8 @@ public class LineChartCompiler extends BlockTagCompiler {
         chart.setCategories(ChartAttrParser.parseStringArray(categories));
 
         boolean numericX = MdxAttrs.getBoolean(compiler, parent, el, "numericX", false);
-        if (!numericX && (categories == null || categories.trim().isEmpty())) {
+        if (!numericX && (categories == null || categories.trim()
+            .isEmpty())) {
             numericX = true;
         }
         chart.setNumericX(numericX);

@@ -127,7 +127,8 @@ public class NavigationState {
         PageAnchor anchorB = routeB.anchor();
         if (guideIdA == null || guideIdB == null || anchorA == null || anchorB == null) return false;
         return guideIdA.equals(guideIdB) && anchorA.pageId() != null
-            && anchorA.pageId().equals(anchorB.pageId());
+            && anchorA.pageId()
+                .equals(anchorB.pageId());
     }
 
     // ---- Legacy content state (delegates to page history) ----

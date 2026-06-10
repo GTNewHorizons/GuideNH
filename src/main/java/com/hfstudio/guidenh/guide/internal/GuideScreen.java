@@ -2193,7 +2193,8 @@ public class GuideScreen extends GuiContainer
     }
 
     private void navigateBackInHistory() {
-        NavigationState nav = ClientProxy.getLytHost().getNavigation();
+        NavigationState nav = ClientProxy.getLytHost()
+            .getNavigation();
         if (!nav.canGoBack()) {
             return;
         }
@@ -2208,7 +2209,8 @@ public class GuideScreen extends GuiContainer
     }
 
     private void navigateForwardInHistory() {
-        NavigationState nav = ClientProxy.getLytHost().getNavigation();
+        NavigationState nav = ClientProxy.getLytHost()
+            .getNavigation();
         if (!nav.canGoForward()) {
             return;
         }
@@ -2402,7 +2404,9 @@ public class GuideScreen extends GuiContainer
         scrollToCurrentAnchor();
         applyPendingRestoreScroll();
         if (pendingRestoreViewState == null) {
-            ClientProxy.getLytHost().getNavigation().recordPageHistory(captureCurrentViewState());
+            ClientProxy.getLytHost()
+                .getNavigation()
+                .recordPageHistory(captureCurrentViewState());
         }
         syncSearchFieldToCurrentRoute();
         if (loadedPage != null) {
@@ -4498,10 +4502,14 @@ public class GuideScreen extends GuiContainer
 
     private void updateToolbarButtonState() {
         if (btnBack != null) {
-            btnBack.enabled = ClientProxy.getLytHost().getNavigation().canGoBack();
+            btnBack.enabled = ClientProxy.getLytHost()
+                .getNavigation()
+                .canGoBack();
         }
         if (btnForward != null) {
-            btnForward.enabled = ClientProxy.getLytHost().getNavigation().canGoForward();
+            btnForward.enabled = ClientProxy.getLytHost()
+                .getNavigation()
+                .canGoForward();
         }
         if (btnSearch != null) {
             btnSearch.enabled = canSearchCurrentView();

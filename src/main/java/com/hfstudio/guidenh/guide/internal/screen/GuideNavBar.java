@@ -227,8 +227,8 @@ public class GuideNavBar {
     }
 
     public GuideNavBarState captureState() {
-        return GuideNavBarState.create(bookmarkGroupExpanded, new LinkedHashSet<ResourceLocation>(expandedPageIds),
-            scrollY);
+        return GuideNavBarState
+            .create(bookmarkGroupExpanded, new LinkedHashSet<ResourceLocation>(expandedPageIds), scrollY);
     }
 
     public void restoreState(GuideNavBarState state, GuideBookmarkState bookmarkState) {

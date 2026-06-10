@@ -197,23 +197,8 @@ class ScriptContextImpl implements ScriptContext {
 
     private void recordResult(Object result) {
         String uid = null;
-        if (node instanceof LytNode) uid = ((LytNode) node).getNodeUid();
-        else if (node instanceof LytFlowContent) uid = ((LytFlowContent) node).getNodeUid();
-        if (uid != null && uid.contains("::itemlink:")) {
-            String resultDesc;
-            if (result instanceof com.hfstudio.guidenh.guide.document.flow.LytFlowLink) {
-                com.hfstudio.guidenh.guide.document.flow.LytFlowLink l =
-                    (com.hfstudio.guidenh.guide.document.flow.LytFlowLink) result;
-                resultDesc = "LytFlowLink(itemId=" + l.getData("itemId")
-                    + " ore=" + l.getData("ore")
-                    + " icon=" + l.getData("showIcon") + ")";
-            } else {
-                resultDesc = result.getClass().getSimpleName();
-            }
-            com.hfstudio.guidenh.guide.scene.support.GuideDebugLog.infoAlways(
-                "[ItemLinkDebug] recordResult: page={} uid={} result={}",
-                host.currentPageId, uid, resultDesc);
-        }
+        if (node instanceof LytNode ln) uid = ln.getNodeUid();
+        else if (node instanceof LytFlowContent fc) uid = fc.getNodeUid();
         if (uid != null) {
             host.recordNodeResult(host.currentPageId, uid, result);
         }
