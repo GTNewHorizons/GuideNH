@@ -127,6 +127,7 @@ public class GuideTextNbtCodec {
             return;
         }
 
+        boolean[] gtCoverCapableStates = GtCoverIdNormalizer.resolveCoverCapableStates(root);
         NBTTagList blocks = root.getTagList("blocks", 10);
         for (int index = 0; index < blocks.tagCount(); index++) {
             NBTTagCompound blockTag = blocks.getCompoundTagAt(index);
@@ -135,7 +136,15 @@ public class GuideTextNbtCodec {
             }
 
             NBTTagCompound tileTag = blockTag.getCompoundTag("nbt");
-            blockTag.setTag("nbt", encode ? encodeCompound(tileTag) : decodeCompound(tileTag));
+            if (encode) {
+                GtCoverIdNormalizer.rewriteBlockTileTag(blockTag, tileTag, gtCoverCapableStates, true);
+                blockTag.setTag("nbt", encodeCompound(tileTag));
+                continue;
+            }
+
+            NBTTagCompound decodedTileTag = decodeCompound(tileTag);
+            GtCoverIdNormalizer.rewriteBlockTileTag(blockTag, decodedTileTag, gtCoverCapableStates, false);
+            blockTag.setTag("nbt", decodedTileTag);
         }
     }
 
