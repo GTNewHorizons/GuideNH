@@ -414,6 +414,23 @@ public class GregTechHelpers {
         }
     }
 
+    public static void setActive(@Nullable TileEntity tileEntity, boolean active) {
+        if (tileEntity == null || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            setActiveImpl(tileEntity, active);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static void setActiveImpl(TileEntity tileEntity, boolean active) {
+        if (tileEntity instanceof IGregTechTileEntity gtTile) {
+            gtTile.setActive(active);
+            gtTile.issueTextureUpdate();
+        }
+    }
+
     public static void enableHatchPreviewChannel(@Nullable ItemStack triggerStack) {
         if (triggerStack == null || !Mods.GregTech.isModLoaded()) {
             return;
@@ -426,6 +443,26 @@ public class GregTechHelpers {
     @Optional.Method(modid = "gregtech")
     private static void enableHatchPreviewChannelImpl(ItemStack triggerStack) {
         ChannelDataAccessor.setChannelData(triggerStack, GTStructureChannels.HATCH.get(), 1);
+    }
+
+    public static void refreshPreviewHatchList(@Nullable TileEntity controllerTile, @Nullable ItemStack triggerStack,
+        @Nullable List<String> warnings) {
+        if (controllerTile == null || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            refreshPreviewHatchListImpl(controllerTile, triggerStack, warnings);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "gregtech")
+    private static void refreshPreviewHatchListImpl(TileEntity controllerTile, ItemStack triggerStack,
+        List<String> warnings) {
+        if (!(controllerTile instanceof IGregTechTileEntity gtTile)) return;
+        IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
+        if (!(metaTileEntity instanceof MTEMultiBlockBase multiBlockBase)) return;
+        multiBlockBase.clearHatches();
+        multiBlockBase.checkMachine(gtTile, triggerStack);
     }
 
     public static void synchronizeMultiblockPreviewState(@Nullable TileEntity controllerTile,

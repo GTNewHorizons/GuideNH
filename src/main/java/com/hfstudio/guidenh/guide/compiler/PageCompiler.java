@@ -553,6 +553,8 @@ public class PageCompiler {
                 for (var nestedChild : el.children()) {
                     compileFlowContent(layoutParent, nestedChild);
                 }
+            } else if (child instanceof MdxJsxTextElement el) {
+                compileFlowContent(layoutParent, el);
             } else if (child instanceof MdAstParent<?>nestedParent) {
                 for (var nestedChild : nestedParent.children()) {
                     compileFlowContent(layoutParent, nestedChild);

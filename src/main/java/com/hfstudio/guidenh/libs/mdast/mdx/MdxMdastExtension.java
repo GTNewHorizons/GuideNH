@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.libs.mdast.mdx;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -25,6 +26,23 @@ public class MdxMdastExtension {
 
     public static final MdastContextProperty<List<Tag>> TAG_STACK = new MdastContextProperty<>();
     public static final MdastContextProperty<Tag> TAG = new MdastContextProperty<>();
+
+    // https://html.spec.whatwg.org/multipage/syntax.html#void-elements
+    private static final Set<String> HTML_VOID_ELEMENTS = Set.of(
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr");
 
     public static final MdastExtension INSTANCE = MdastExtension.builder()
         .canContainEol("mdxJsxTextElement")
@@ -257,6 +275,11 @@ public class MdxMdastExtension {
             }
 
             context.enter(node, token, MdxMdastExtension::onErrorRightIsTag);
+        }
+
+        // HTML void elements are always self-closing, even without `/`.
+        if (!tag.close && !tag.selfClosing && tag.name != null && HTML_VOID_ELEMENTS.contains(tag.name)) {
+            tag.selfClosing = true;
         }
 
         if (tag.selfClosing || tag.close) {

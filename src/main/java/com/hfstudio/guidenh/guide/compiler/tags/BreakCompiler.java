@@ -31,5 +31,10 @@ public class BreakCompiler extends FlowTagCompiler {
         }
 
         parent.append(br);
+
+        if (!el.children()
+            .isEmpty()) {
+            compiler.compileFlowContext(el.children(), parent);
+        }
     }
 }

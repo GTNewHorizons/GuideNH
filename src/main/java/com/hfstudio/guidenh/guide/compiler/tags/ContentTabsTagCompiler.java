@@ -45,7 +45,6 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
     }
 
     private ContentTabsSpec parseSpec(PageCompiler compiler, MdxJsxElementFields el) {
-        List<? extends MdAstAnyContent> children = resolveChildren(compiler, el);
         List<ContentTabsSpec.TabEntry> tabs = new ArrayList<>();
         List<ContentTabsSpec.ValidationIssue> issues = new ArrayList<>();
         String title = el.getAttributeString("title", null);
@@ -53,14 +52,16 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
         Integer defaultIndex = parseDefaultIndex(el, issues, el);
         String defaultTitle = el.getAttributeString("default", null);
         ColorValue accentColor = MdxAttrs.getColor(compiler, new ValidationIssueSink(issues), el, "color", null);
-        collectTabs(compiler, children, tabs, issues);
+        compiler.withBlockTagChildrenSourceContext(el, () -> {
+            List<? extends MdAstAnyContent> children = resolveChildren(compiler, el);
+            collectTabs(compiler, children, tabs, issues);
+        });
         validateDefaultTarget(defaultTitle, defaultIndex, tabs, issues, el);
         return new ContentTabsSpec(title, icon, defaultTitle, defaultIndex, accentColor, tabs, issues);
     }
 
     private List<? extends MdAstAnyContent> resolveChildren(PageCompiler compiler, MdxJsxElementFields el) {
-        String source = compiler.getBlockTagChildrenSource(el);
-        return source != null ? compiler.reparseBlockTagChildren(el) : el.children();
+        return compiler.reparseBlockTagChildren(el);
     }
 
     private void collectTabs(PageCompiler compiler, List<? extends MdAstAnyContent> children,
@@ -82,7 +83,9 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
             }
             LytVBox body = new LytVBox();
             body.setGap(4);
-            compiler.compileBlockContextInSourceContext(element.children(), body);
+            compiler.withBlockTagChildrenSourceContext(
+                element,
+                () -> { compiler.compileBlockContext(element.children(), body); });
             tabs.add(new ContentTabsSpec.TabEntry(title.trim(), body, element));
         }
     }

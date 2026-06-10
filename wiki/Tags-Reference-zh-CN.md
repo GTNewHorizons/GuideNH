@@ -631,7 +631,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 * `<Series name="..." color="#..." data="10,20,30"/>` — 用于按类别取值的图表（柱形/条形/类别 X 折线）。
 * `<Series name="..." color="#..." points="x:y,x:y,..."/>` — 用于数值 X（折线 `numericX={true}`、散点）。
-* `<Slice label="..." value="..." color="#..."/>` — 仅 `<PieChart>` 使用。
+* `<Slice name="..." value="..." color="#..."/>` — 仅 `<PieChart>` 使用。
 
 未指定 `color` 时按内置 16 色调色板循环分配。
 
@@ -645,8 +645,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 ```mdx
 <PieChart title="产出占比">
-  <Slice label="铁錠" value="40" icon="minecraft:iron_ingot" tooltip="来自冶炼烉" />
-  <Slice label="金錠" value="15" icon="minecraft:gold_ingot" />
+  <Slice name="铁錠" value="40" icon="minecraft:iron_ingot" tooltip="来自冶炼烉" />
+  <Slice name="金錠" value="15" icon="minecraft:gold_ingot" />
 </PieChart>
 ```
 
@@ -667,8 +667,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
   <Series name="金"  data="20,30,25,35"  color="#e0c060"/>
   <LineSeries name="合计" data="60,90,80,105" color="#ff5050"/>
   <PieInset size="60" position="topRight" title="合计占比">
-    <Slice label="铁" value="225" color="#a0a0a0"/>
-    <Slice label="金" value="110" color="#e0c060"/>
+    <Slice name="铁" value="225" color="#a0a0a0"/>
+    <Slice name="金" value="110" color="#e0c060"/>
   </PieInset>
 </ColumnChart>
 ```

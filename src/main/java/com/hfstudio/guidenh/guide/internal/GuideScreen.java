@@ -185,8 +185,7 @@ public class GuideScreen extends GuiContainer
     private int pageLoadRequestId;
     private int pendingPageLoadRequestId;
 
-    private final Deque<GuideScreenViewState> history = new ArrayDeque<>();
-    private final Deque<GuideScreenViewState> forwardHistory = new ArrayDeque<>();
+    // Page history is managed by NavigationState (survives screen close/reopen).
 
     private int scrollY;
     private float visualScrollY;
@@ -513,7 +512,7 @@ public class GuideScreen extends GuiContainer
         navBar.restoreState(
             ClientProxy.getLytHost()
                 .getNavigation()
-                .recallNavigationState(),
+                .recallNavigationState(route.guideId()),
             bookmarkState);
         ClientProxy.getLytHost()
             .setPreheatCompiler(pageId -> {
@@ -537,7 +536,7 @@ public class GuideScreen extends GuiContainer
     public static void openFromHomeHotkey() {
         GuideScreenViewState remembered = ClientProxy.getLytHost()
             .getNavigation()
-            .consumeValidLastContentState();
+            .getMostRecentPageHistory();
         open(remembered != null ? remembered : GuideScreenViewState.home(), false);
     }
 
@@ -576,7 +575,7 @@ public class GuideScreen extends GuiContainer
         if (anchor == null) {
             GuideScreenViewState remembered = ClientProxy.getLytHost()
                 .getNavigation()
-                .consumeValidLastContentState();
+                .getMostRecentPageHistory();
             if (remembered != null && remembered.route() != null) {
                 return remembered.route();
             }
@@ -718,7 +717,6 @@ public class GuideScreen extends GuiContainer
         expandNavigationParentsToCurrentPage();
         ensureLayout();
         scrollToCurrentAnchor();
-        applyPendingRestoreScroll();
         clampScroll();
         if (isGuideEditorActive()) {
             refreshGuideEditorDraft(true);
@@ -748,7 +746,6 @@ public class GuideScreen extends GuiContainer
             return;
         }
         recordHomeHistoryIfEligible();
-        applyPendingRestoreScroll();
     }
 
     private void rememberCurrentContentStateIfEligible() {
@@ -1112,7 +1109,7 @@ public class GuideScreen extends GuiContainer
         }
         GuideScreenViewState remembered = ClientProxy.getLytHost()
             .getNavigation()
-            .recallLastContentState();
+            .getMostRecentPageHistory();
         if (remembered != null && remembered.route() != null) {
             ResourceLocation rememberedGuideId = remembered.route()
                 .guideId();
@@ -2153,8 +2150,6 @@ public class GuideScreen extends GuiContainer
             if (isSearchPage()) {
                 return;
             } else if (currentRoute != null && currentRoute.isHome()) {
-                history.push(captureCurrentViewState());
-                forwardHistory.clear();
                 restoreViewState(GuideScreenViewState.of(GuideScreenRoute.homeSearch(""), 0));
                 focusSearchField();
             } else {
@@ -2167,8 +2162,6 @@ public class GuideScreen extends GuiContainer
             }
             confirmGuideEditorDirtyBefore(() -> {
                 rememberCurrentContentStateIfEligible();
-                history.push(captureCurrentViewState());
-                forwardHistory.clear();
                 restoreViewState(GuideScreenViewState.home());
                 rebuildToolbar();
             });
@@ -2200,28 +2193,34 @@ public class GuideScreen extends GuiContainer
     }
 
     private void navigateBackInHistory() {
-        if (history.isEmpty()) {
+        NavigationState nav = ClientProxy.getLytHost()
+            .getNavigation();
+        if (!nav.canGoBack()) {
             return;
         }
         confirmGuideEditorDirtyBefore(() -> {
             rememberCurrentContentStateIfEligible();
-            forwardHistory.push(captureCurrentViewState());
-            var prev = history.pop();
-            restoreViewState(prev);
-            rebuildToolbar();
+            var prev = nav.navigateBack();
+            if (prev != null) {
+                restoreViewState(prev);
+                rebuildToolbar();
+            }
         });
     }
 
     private void navigateForwardInHistory() {
-        if (forwardHistory.isEmpty()) {
+        NavigationState nav = ClientProxy.getLytHost()
+            .getNavigation();
+        if (!nav.canGoForward()) {
             return;
         }
         confirmGuideEditorDirtyBefore(() -> {
             rememberCurrentContentStateIfEligible();
-            history.push(captureCurrentViewState());
-            var next = forwardHistory.pop();
-            restoreViewState(next);
-            rebuildToolbar();
+            var next = nav.navigateForward();
+            if (next != null) {
+                restoreViewState(next);
+                rebuildToolbar();
+            }
         });
     }
 
@@ -2403,6 +2402,12 @@ public class GuideScreen extends GuiContainer
         }
         ensureLayout();
         scrollToCurrentAnchor();
+        applyPendingRestoreScroll();
+        if (pendingRestoreViewState == null) {
+            ClientProxy.getLytHost()
+                .getNavigation()
+                .recordPageHistory(captureCurrentViewState());
+        }
         syncSearchFieldToCurrentRoute();
         if (loadedPage != null) {
             queuePageSceneRegistrations(loadedPage);
@@ -4497,10 +4502,14 @@ public class GuideScreen extends GuiContainer
 
     private void updateToolbarButtonState() {
         if (btnBack != null) {
-            btnBack.enabled = !history.isEmpty();
+            btnBack.enabled = ClientProxy.getLytHost()
+                .getNavigation()
+                .canGoBack();
         }
         if (btnForward != null) {
-            btnForward.enabled = !forwardHistory.isEmpty();
+            btnForward.enabled = ClientProxy.getLytHost()
+                .getNavigation()
+                .canGoForward();
         }
         if (btnSearch != null) {
             btnSearch.enabled = canSearchCurrentView();
@@ -5961,8 +5970,6 @@ public class GuideScreen extends GuiContainer
         confirmGuideEditorDirtyBefore(() -> {
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
             rememberCurrentContentStateIfEligible();
-            history.push(captureCurrentViewState());
-            forwardHistory.clear();
             restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guide.getId(), anchor), 0));
             rebuildToolbar();
         });
@@ -5983,8 +5990,6 @@ public class GuideScreen extends GuiContainer
         confirmGuideEditorDirtyBefore(() -> {
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
             rememberCurrentContentStateIfEligible();
-            history.push(captureCurrentViewState());
-            forwardHistory.clear();
             restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guideId, anchor), 0));
             rebuildToolbar();
         });
@@ -6053,8 +6058,6 @@ public class GuideScreen extends GuiContainer
         cachedTitleViewport = null;
         cachedBottomBarText = null;
         cachedBottomBarPage = null;
-        history.clear();
-        forwardHistory.clear();
         registeredSceneLabels.clear();
         resetPendingSceneRegistrations();
         guideEditorPreviewPage = null;

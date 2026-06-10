@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.host;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -27,10 +25,9 @@ public class NavigationState {
     @Nullable
     private PageAnchor currentAnchor;
 
-    private final Deque<GuideScreenViewState> backStack = new ArrayDeque<>();
+    private final List<GuideScreenViewState> pageHistory = new ArrayList<>();
+    private int pageHistoryIndex = -1;
 
-    @Nullable
-    private GuideScreenViewState lastContentViewState;
     private final Map<ResourceLocation, GuideNavBarState> navBarStates = new LinkedHashMap<>();
 
     private final Set<ResourceLocation> bookmarks = new LinkedHashSet<>();
@@ -63,27 +60,85 @@ public class NavigationState {
         return currentAnchor;
     }
 
-    public void pushHistory(GuideScreenViewState state) {
-        backStack.push(state);
+    // ---- Page history (browser-style linear history with back/forward) ----
+
+    public void recordPageHistory(GuideScreenViewState state) {
+        if (state == null) return;
+        if (pageHistoryIndex >= 0 && pageHistoryIndex < pageHistory.size()
+            && isSamePage(pageHistory.get(pageHistoryIndex), state)) {
+            pageHistory.set(pageHistoryIndex, state);
+            return;
+        }
+        while (pageHistory.size() > pageHistoryIndex + 1) {
+            pageHistory.remove(pageHistory.size() - 1);
+        }
+        pageHistory.add(state);
+        pageHistoryIndex = pageHistory.size() - 1;
     }
 
     @Nullable
-    public GuideScreenViewState popHistory() {
-        return backStack.pollFirst();
+    public GuideScreenViewState navigateBack() {
+        if (pageHistoryIndex <= 0) return null;
+        pageHistoryIndex--;
+        return pageHistory.get(pageHistoryIndex);
     }
 
-    public Deque<GuideScreenViewState> backStack() {
-        return backStack;
+    @Nullable
+    public GuideScreenViewState navigateForward() {
+        if (pageHistoryIndex >= pageHistory.size() - 1) return null;
+        pageHistoryIndex++;
+        return pageHistory.get(pageHistoryIndex);
     }
 
-    public void rememberContentState(@Nullable GuideScreenViewState state) {
-        lastContentViewState = state;
+    public boolean canGoBack() {
+        return pageHistoryIndex > 0;
+    }
+
+    public boolean canGoForward() {
+        return pageHistoryIndex < pageHistory.size() - 1;
+    }
+
+    @Nullable
+    public GuideScreenViewState getMostRecentPageHistory() {
+        if (pageHistoryIndex < 0 || pageHistoryIndex >= pageHistory.size()) return null;
+        GuideScreenViewState state = pageHistory.get(pageHistoryIndex);
+        if (!isValidContentRoute(state.route())) return null;
+        return state;
     }
 
     @Nullable
     public GuideScreenViewState recallLastContentState() {
-        return lastContentViewState;
+        return getMostRecentPageHistory();
     }
+
+    @Nullable
+    public GuideScreenViewState consumeValidLastContentState() {
+        return getMostRecentPageHistory();
+    }
+
+    private static boolean isSamePage(GuideScreenViewState a, GuideScreenViewState b) {
+        GuideScreenRoute routeA = a.route();
+        GuideScreenRoute routeB = b.route();
+        if (routeA == null || routeB == null) return false;
+        if (!routeA.isContent() || !routeB.isContent()) return false;
+        ResourceLocation guideIdA = routeA.guideId();
+        ResourceLocation guideIdB = routeB.guideId();
+        PageAnchor anchorA = routeA.anchor();
+        PageAnchor anchorB = routeB.anchor();
+        if (guideIdA == null || guideIdB == null || anchorA == null || anchorB == null) return false;
+        return guideIdA.equals(guideIdB) && anchorA.pageId() != null
+            && anchorA.pageId()
+                .equals(anchorB.pageId());
+    }
+
+    // ---- Legacy content state (delegates to page history) ----
+
+    public void rememberContentState(@Nullable GuideScreenViewState state) {
+        if (!isRememberable(state)) return;
+        recordPageHistory(state);
+    }
+
+    // ---- Nav bar state ----
 
     public void rememberNavBarState(ResourceLocation guideId, GuideNavBarState state) {
         if (state != null) navBarStates.put(guideId, state);
@@ -93,6 +148,13 @@ public class NavigationState {
     public GuideNavBarState recallNavBarState(ResourceLocation guideId) {
         return navBarStates.get(guideId);
     }
+
+    public GuideNavBarState recallNavigationState(@Nullable ResourceLocation guideId) {
+        GuideNavBarState state = guideId != null ? navBarStates.get(guideId) : null;
+        return state != null ? state : GuideNavBarState.defaultState();
+    }
+
+    // ---- Bookmarks ----
 
     public boolean isBookmarked(ResourceLocation pageId) {
         return bookmarks.contains(pageId);
@@ -108,6 +170,8 @@ public class NavigationState {
         return bookmarks;
     }
 
+    // ---- Home history (for home page widget display) ----
+
     public void recordHomeHistory(ResourceLocation guideId, ResourceLocation pageId) {
         homeHistory.add(0, new HomeHistoryEntry(guideId, pageId));
     }
@@ -116,21 +180,7 @@ public class NavigationState {
         return homeHistory;
     }
 
-    public GuideNavBarState recallNavigationState() {
-        GuideNavBarState currentGuideState = currentGuideId != null ? navBarStates.get(currentGuideId) : null;
-        return currentGuideState != null ? currentGuideState : GuideNavBarState.defaultState();
-    }
-
-    @Nullable
-    public GuideScreenViewState consumeValidLastContentState() {
-        GuideScreenViewState state = lastContentViewState;
-        if (state == null) return null;
-        if (!isValidContentRoute(state.route())) {
-            lastContentViewState = null;
-            return null;
-        }
-        return state;
-    }
+    // ---- Validation ----
 
     public boolean isRememberable(@Nullable GuideScreenViewState state) {
         if (state == null) return false;
@@ -154,8 +204,8 @@ public class NavigationState {
     }
 
     public void clear() {
-        backStack.clear();
-        lastContentViewState = null;
+        pageHistory.clear();
+        pageHistoryIndex = -1;
         navBarStates.clear();
         bookmarks.clear();
         homeHistory.clear();

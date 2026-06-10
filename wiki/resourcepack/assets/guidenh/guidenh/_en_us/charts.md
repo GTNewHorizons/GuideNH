@@ -88,20 +88,20 @@ Extra: `numericX={true}` enables a numeric X axis; `showPoints={false}` hides po
 
 ```mdx
 <PieChart title="Resource Share" labelPosition="outside" legend="right">
-  <Slice label="Iron" value="45" color="#4E79A7"/>
-  <Slice label="Copper" value="25" color="#F28E2B"/>
-  <Slice label="Gold" value="15" color="#E15759"/>
-  <Slice label="Diamond" value="10"/>
-  <Slice label="Other" value="5"/>
+  <Slice name="Iron" value="45" color="#4E79A7"/>
+  <Slice name="Copper" value="25" color="#F28E2B"/>
+  <Slice name="Gold" value="15" color="#E15759"/>
+  <Slice name="Diamond" value="10"/>
+  <Slice name="Other" value="5"/>
 </PieChart>
 ```
 
 <PieChart title="Resource Share" labelPosition="outside" legend="right">
-  <Slice label="Iron" value="45" color="#4E79A7"/>
-  <Slice label="Copper" value="25" color="#F28E2B"/>
-  <Slice label="Gold" value="15" color="#E15759"/>
-  <Slice label="Diamond" value="10"/>
-  <Slice label="Other" value="5"/>
+  <Slice name="Iron" value="45" color="#4E79A7"/>
+  <Slice name="Copper" value="25" color="#F28E2B"/>
+  <Slice name="Gold" value="15" color="#E15759"/>
+  <Slice name="Diamond" value="10"/>
+  <Slice name="Other" value="5"/>
 </PieChart>
 
 Extra: `startAngle` (default -90, i.e. 12 o'clock); `clockwise={false}` to reverse direction.
@@ -134,8 +134,8 @@ Line overlays share hover/tooltip behavior with the underlying columns/bars: hov
   <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
   <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
   <PieInset size="60" position="right" title="Total share">
-    <Slice label="Iron" value="225" color="#a0a0a0"/>
-    <Slice label="Gold" value="110" color="#e0c060"/>
+    <Slice name="Iron" value="225" color="#a0a0a0"/>
+    <Slice name="Gold" value="110" color="#e0c060"/>
   </PieInset>
 </ColumnChart>
 ```
@@ -145,7 +145,7 @@ Line overlays share hover/tooltip behavior with the underlying columns/bars: hov
   <Series name="Gold"  data="20,30,25,35"  color="#e0c060"/>
   <LineSeries name="Total" data="60,90,80,105" color="#ff5050"/>
   <PieInset size="60" position="right" title="Total share">
-    <Slice label="Iron" value="225" color="#a0a0a0"/>
-    <Slice label="Gold" value="110" color="#e0c060"/>
+    <Slice name="Iron" value="225" color="#a0a0a0"/>
+    <Slice name="Gold" value="110" color="#e0c060"/>
   </PieInset>
 </ColumnChart>

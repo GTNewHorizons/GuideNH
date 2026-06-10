@@ -7,8 +7,10 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
 public class StructureLibSceneBinding {
 
@@ -23,6 +25,11 @@ public class StructureLibSceneBinding {
     private Consumer<StructureLibPreviewSelection> selectionChangeListener;
     @Nullable
     private StructureLibPreviewSelection pendingSelection;
+    private StructureLibSceneOptions rebuildOptions;
+    private int rebuildOffsetX, rebuildOffsetY, rebuildOffsetZ;
+    private boolean rebuildFormed;
+    private Map<String, Boolean> rebuildIntegrationOptions = Map.of();
+    private boolean hasRebuildRecipe;
 
     public StructureLibSceneBinding(@Nullable String name, String bindingKey) {
         this.name = StructureLibSceneCondition.normalizeStructureName(name);
@@ -135,5 +142,55 @@ public class StructureLibSceneBinding {
 
     public void setPendingSelection(@Nullable StructureLibPreviewSelection pendingSelection) {
         this.pendingSelection = pendingSelection;
+    }
+
+    public void setRebuildRecipe(StructureLibSceneOptions options, int offsetX, int offsetY, int offsetZ,
+        boolean formed, Map<String, Boolean> integrationOptions) {
+        this.rebuildOptions = options;
+        this.rebuildOffsetX = offsetX;
+        this.rebuildOffsetY = offsetY;
+        this.rebuildOffsetZ = offsetZ;
+        this.rebuildFormed = formed;
+        this.rebuildIntegrationOptions = integrationOptions != null ? Map.copyOf(integrationOptions) : Map.of();
+        this.hasRebuildRecipe = true;
+    }
+
+    public boolean hasRebuildRecipe() {
+        return hasRebuildRecipe;
+    }
+
+    public StructureLibImportRequest buildRebuildRequest() {
+        if (!hasRebuildRecipe || metadata == null) {
+            return null;
+        }
+        StructureLibPreviewSelection selection = getPreviewSelection();
+        for (Map.Entry<String, Boolean> entry : rebuildIntegrationOptions.entrySet()) {
+            selection = selection.withIntegrationOption(entry.getKey(), entry.getValue());
+        }
+        return new StructureLibImportRequest(
+            metadata.getController(),
+            metadata.getPiece(),
+            metadata.getFacing(),
+            metadata.getRotation(),
+            metadata.getFlip(),
+            Integer.valueOf(selection.getMasterTier()),
+            selection,
+            rebuildOptions);
+    }
+
+    public int getRebuildOffsetX() {
+        return rebuildOffsetX;
+    }
+
+    public int getRebuildOffsetY() {
+        return rebuildOffsetY;
+    }
+
+    public int getRebuildOffsetZ() {
+        return rebuildOffsetZ;
+    }
+
+    public boolean isRebuildFormed() {
+        return rebuildFormed;
     }
 }

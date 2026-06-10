@@ -1666,6 +1666,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         String title = readOptional(element, "title");
         String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
         boolean numericX = readBoolean(element, "numericX", false);
+        if (!numericX && (categories == null || categories.length == 0)) {
+            numericX = true;
+        }
         boolean showPoints = readBoolean(element, "showPoints", true);
         boolean showLegend = readBoolean(element, "showLegend", true);
         CornerLegendPosition cornerLegendPosition = ChartAttrParser
@@ -1787,7 +1790,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 String trimmed = selfExpr.trim();
                 boolean inverse = readBoolean(element, "inverse", false);
                 int color = parseArgbAttr(element, "color", FunctionGraphPalette.color(0));
-                String label = readOptional(element, "label");
+                String label = readOptional(element, "name");
                 DomainPredicate domain = DomainPredicate.parse(readOptional(element, "domain"));
                 AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
                     readOptional(element, "pointEveryX"),
@@ -1884,15 +1887,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             double[] xs;
             double[] ys;
             if ((rawData == null || rawData.isEmpty()) && rawPoints != null && !rawPoints.isEmpty()) {
-                // `points="x1:y1,x2:y2,..."` syntax - same as scatter but drawn as a line.
-                // This allows numericX line charts where each series carries its own X positions.
+                // `points="x1:y1,x2:y2,..."` syntax
                 double[][] pts = ChartAttrParser.parsePointArray(rawPoints);
                 xs = pts[0];
                 ys = pts[1];
-            } else {
+            } else if (rawData != null && !rawData.isEmpty()) {
                 ys = ChartAttrParser.parseDoubleArray(rawData);
                 xs = new double[ys.length];
                 for (int i = 0; i < xs.length; i++) xs[i] = i;
+            } else {
+                // Fallback: parse child <Point x="..." y="..."/> elements
+                double[][] pts = parseSeriesChildPoints(c);
+                xs = pts[0];
+                ys = pts[1];
             }
             String type = isLineSeries ? GuideSiteGraphRenderer.SeriesData.TYPE_LINE
                 : GuideSiteGraphRenderer.SeriesData.TYPE_COLUMN;
@@ -1900,6 +1907,33 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             idx++;
         }
         return result;
+    }
+
+    /** Parse child {@code <Point x="..." y="..."/>} elements inside a {@code <Series>}. */
+    private double[][] parseSeriesChildPoints(MdxJsxElementFields seriesEl) {
+        List<Double> xs = new ArrayList<>();
+        List<Double> ys = new ArrayList<>();
+        for (MdAstAnyContent child : seriesEl.children()) {
+            if (!(child instanceof MdxJsxElementFields pointEl) || !"Point".equals(pointEl.name())) {
+                continue;
+            }
+            String xsStr = readOptional(pointEl, "x");
+            String ysStr = readOptional(pointEl, "y");
+            if (xsStr == null || ysStr == null) {
+                continue;
+            }
+            try {
+                xs.add(Double.parseDouble(xsStr.trim()));
+                ys.add(Double.parseDouble(ysStr.trim()));
+            } catch (NumberFormatException ignored) {}
+        }
+        double[] xArr = new double[xs.size()];
+        double[] yArr = new double[ys.size()];
+        for (int i = 0; i < xs.size(); i++) {
+            xArr[i] = xs.get(i);
+            yArr[i] = ys.get(i);
+        }
+        return new double[][] { xArr, yArr };
     }
 
     /**
@@ -1938,14 +1972,20 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             String name = readOptional(c, "name");
             if (name == null) name = "Series " + (idx + 1);
             int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
-            double[][] pts = ChartAttrParser.parsePointArray(readOptional(c, "points"));
+            String pointsStr = readOptional(c, "points");
+            double[][] pts;
+            if (pointsStr != null && !pointsStr.isEmpty()) {
+                pts = ChartAttrParser.parsePointArray(pointsStr);
+            } else {
+                pts = parseSeriesChildPoints(c);
+            }
             result.add(new GuideSiteGraphRenderer.SeriesData(name, color, pts[0], pts[1]));
             idx++;
         }
         return result;
     }
 
-    /** Parse {@code <Slice label="..." value="0.5" color="...">} children for pie chart. */
+    /** Parse {@code <Slice name="..." value="0.5" color="...">} children for pie chart. */
     private List<GuideSiteGraphRenderer.SliceData> parseSliceChildren(MdxJsxElementFields element) {
         List<GuideSiteGraphRenderer.SliceData> result = new ArrayList<>();
         int idx = 0;
@@ -1956,7 +1996,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             if (!"Slice".equals(c.name())) {
                 continue;
             }
-            String label = readOptional(c, "label");
+            String label = readOptional(c, "name");
             if (label == null) label = "";
             double value = parseDoubleAttr(c, "value", 1.0);
             int color = parseArgbAttr(c, "color", ChartAttrParser.paletteColor(idx));
@@ -1966,7 +2006,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse {@code <Plot>expr</Plot>} or {@code <Function>expr</Function>} children. */
+    /** Parse {@code <Plot name="..." expr="...">} or {@code <Function name="..." expr="...">} children. */
     private List<FunctionPlot> parsePlotChildren(MdxJsxElementFields element) {
         List<FunctionPlot> result = new ArrayList<>();
         int idx = 0;
@@ -1992,7 +2032,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             }
             boolean inverse = readBoolean(c, "inverse", false);
             int color = parseArgbAttr(c, "color", FunctionGraphPalette.color(idx));
-            String label = readOptional(c, "label");
+            String label = readOptional(c, "name");
             DomainPredicate domain = DomainPredicate.parse(readOptional(c, "domain"));
             AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
                 readOptional(c, "pointEveryX"),
@@ -2024,7 +2064,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             if (!"Point".equals(c.name())) {
                 continue;
             }
-            String label = readOptional(c, "label");
+            String label = readOptional(c, "name");
             if (label == null) {
                 label = "";
             }

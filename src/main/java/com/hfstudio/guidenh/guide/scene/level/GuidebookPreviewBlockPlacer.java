@@ -129,6 +129,20 @@ public class GuidebookPreviewBlockPlacer {
         logLoadedTile("post-block-added", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
         level.setExplicitBlockId(x, y, z, explicitBlockId);
         StructureImportPipeline.apply(new ImportBlockContext(level, x, y, z, structureBlockCompound));
+        applyPreviewActiveState(tileEntity, previewTileTag);
+    }
+
+    private static void applyPreviewActiveState(@Nullable TileEntity tileEntity,
+        @Nullable NBTTagCompound previewTileTag) {
+        if (tileEntity == null || previewTileTag == null || !previewTileTag.hasKey("mActive")) {
+            return;
+        }
+        if (!previewTileTag.getBoolean("mActive")) {
+            return;
+        }
+        try {
+            GuideGregTechTileSupport.setActive(tileEntity, true);
+        } catch (Throwable ignored) {}
     }
 
     public static PlacementData resolvePlacementData(Block block, int requestedMeta, @Nullable NBTTagCompound tileTag) {

@@ -30,6 +30,7 @@ public class KeyBindScript implements LytScript {
             String display = mapping != null ? KeyBindTagCompiler.describeMapping(mapping) : "[" + bindId + "]";
             placeholder.setText(display);
             placeholder.setStyle(TextStyle.EMPTY);
+            ctx.replace(placeholder);
         }
     }
 }

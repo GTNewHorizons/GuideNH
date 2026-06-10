@@ -72,7 +72,7 @@ public final class MdAstToMdxConverter {
     }
 
     private static boolean isPhrasingParent(MdAstParent<?> parent) {
-        if (parent instanceof MdAstParagraph || parent instanceof MdxJsxTextElement) {
+        if (parent instanceof MdAstParagraph || parent instanceof MdxJsxTextElement || parent instanceof GfmTableCell) {
             return true;
         }
         // New MdxJsxFlowElement containers that hold phrasing/inline children

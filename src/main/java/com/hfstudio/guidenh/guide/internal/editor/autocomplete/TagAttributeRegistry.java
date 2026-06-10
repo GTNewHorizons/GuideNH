@@ -339,7 +339,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("tooltip", AttrType.STRING));
         register(
             "Slice",
-            new AttributeSpec("label", AttrType.STRING),
+            new AttributeSpec("name", AttrType.STRING),
             new AttributeSpec("value", AttrType.FLOAT),
             new AttributeSpec("color", AttrType.COLOR),
             new AttributeSpec("icon", AttrType.ITEM_ID),
@@ -361,7 +361,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("inverse", AttrType.BOOLEAN),
             new AttributeSpec("domain", AttrType.DOMAIN),
             new AttributeSpec("color", AttrType.COLOR),
-            new AttributeSpec("label", AttrType.STRING),
+            new AttributeSpec("name", AttrType.STRING),
             new AttributeSpec("pointEveryX", AttrType.FLOAT),
             new AttributeSpec("pointEveryY", AttrType.FLOAT),
             new AttributeSpec("autoPointLabel", AttrType.ENUM, AutoPointLabelMode.class),
@@ -371,7 +371,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("x", AttrType.FLOAT),
             new AttributeSpec("y", AttrType.FLOAT),
             new AttributeSpec("color", AttrType.COLOR),
-            new AttributeSpec("label", AttrType.STRING),
+            new AttributeSpec("name", AttrType.STRING),
             new AttributeSpec("plot", AttrType.INT),
             new AttributeSpec("atX", AttrType.FLOAT),
             new AttributeSpec("atY", AttrType.FLOAT));
@@ -447,7 +447,7 @@ public class TagAttributeRegistry {
             new AttributeSpec("inverse", AttrType.BOOLEAN),
             new AttributeSpec("domain", AttrType.DOMAIN),
             new AttributeSpec("color", AttrType.COLOR),
-            new AttributeSpec("label", AttrType.STRING),
+            new AttributeSpec("name", AttrType.STRING),
             new AttributeSpec("pointEveryX", AttrType.FLOAT),
             new AttributeSpec("pointEveryY", AttrType.FLOAT),
             new AttributeSpec("autoPointLabel", AttrType.ENUM, AutoPointLabelMode.class),

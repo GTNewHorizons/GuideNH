@@ -37,6 +37,7 @@ public class CommandLinkScript implements LytScript {
                         .displayGuiScreen(null);
                 }
             });
+            ctx.replace(link);
         }
     }
 }
