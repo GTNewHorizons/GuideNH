@@ -227,7 +227,8 @@ public class GuideNavBar {
     }
 
     public GuideNavBarState captureState() {
-        return GuideNavBarState.create(bookmarkGroupExpanded, new LinkedHashSet<ResourceLocation>(expandedPageIds));
+        return GuideNavBarState.create(bookmarkGroupExpanded, new LinkedHashSet<ResourceLocation>(expandedPageIds),
+            scrollY);
     }
 
     public void restoreState(GuideNavBarState state, GuideBookmarkState bookmarkState) {
@@ -238,6 +239,8 @@ public class GuideNavBar {
             effectiveState.expandedPageIds() != null ? effectiveState.expandedPageIds()
                 : Collections.<ResourceLocation>emptySet());
         lastExpandedStateHash = expandedPageIds.hashCode();
+        scrollY = effectiveState.scrollY();
+        visualScrollY.snapTo(scrollY);
         if (lastTree != null) {
             rebuildRows(lastTree, bookmarkState);
         }
