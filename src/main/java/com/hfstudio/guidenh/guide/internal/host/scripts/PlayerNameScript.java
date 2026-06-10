@@ -35,6 +35,7 @@ public class PlayerNameScript implements LytScript {
             }
             placeholder.setText(username);
             placeholder.setStyle(TextStyle.EMPTY);
+            ctx.replace(placeholder);
         }
     }
 }

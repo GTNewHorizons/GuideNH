@@ -238,6 +238,14 @@ public class LytHost {
             int seq = pageNodeCounters.computeIfAbsent(currentPageId, k -> new AtomicInteger())
                 .incrementAndGet();
             fc.setNodeUid(currentPageId + "::" + prefix + ":" + seq);
+            if ("itemlink".equals(prefix) && fc instanceof com.hfstudio.guidenh.guide.document.flow.LytFlowLink) {
+                com.hfstudio.guidenh.guide.document.flow.LytFlowLink l =
+                    (com.hfstudio.guidenh.guide.document.flow.LytFlowLink) fc;
+                com.hfstudio.guidenh.guide.scene.support.GuideDebugLog.infoAlways(
+                    "[ItemLinkDebug] allocateUid: page={} seq={} uid={} itemId={} ore={}",
+                    currentPageId, seq, fc.getNodeUid(),
+                    l.getData("itemId"), l.getData("ore"));
+            }
         }
         if (fc instanceof LytFlowSpan span) {
             for (var child : span.getChildren()) {
@@ -332,6 +340,11 @@ public class LytHost {
         String nodeUid = nodeUidOf(node);
         if (nodeUid != null) {
             Object cached = getNodeResult(currentPageId, nodeUid);
+            if (nodeUid.contains("::itemlink:")) {
+                com.hfstudio.guidenh.guide.scene.support.GuideDebugLog.infoAlways(
+                    "[ItemLinkDebug] dispatchScriptInPhase: page={} uid={} cached={} asyncPhase={}",
+                    currentPageId, nodeUid, cached != null ? "HIT" : "MISS", asyncPhase);
+            }
             if (cached != null) {
                 new ScriptContextImpl(node, this, document).replace(cached);
                 return;

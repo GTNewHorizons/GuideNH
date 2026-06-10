@@ -33,5 +33,6 @@ public class TooltipScript implements LytScript {
         if (content instanceof LytNode root) {
             ctx.dispatchSubtree(root);
         }
+        ctx.replace(span);
     }
 }

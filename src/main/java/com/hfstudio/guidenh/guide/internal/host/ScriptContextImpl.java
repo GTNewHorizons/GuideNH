@@ -67,6 +67,7 @@ class ScriptContextImpl implements ScriptContext {
         }
 
         if (node instanceof LytNode ln && newNode instanceof LytNode newLn) {
+            inheritUid(ln, newLn);
             LytNode parent = ln.getParent();
             if (parent != null) {
                 parent.replaceChild(ln, newLn);
@@ -75,6 +76,7 @@ class ScriptContextImpl implements ScriptContext {
             return;
         }
         if (node instanceof LytFlowContent fc && newNode instanceof LytFlowContent newFc) {
+            inheritUid(fc, newFc);
             LytFlowParent parent = fc.getParent();
             if (parent instanceof LytFlowSpan span) {
                 List<LytFlowContent> children = span.getChildren();
@@ -174,10 +176,44 @@ class ScriptContextImpl implements ScriptContext {
         return isComplete;
     }
 
+    /**
+     * When a node is replaced, the new node must carry the old node's UID so
+     * that the node-level result cache ({@link LytHost#recordNodeResult}) can
+     * find it on remount. Without this, the replacement gets a fresh UID on the
+     * next {@code allocateNodeUids} pass and all prior cache entries are orphaned.
+     */
+    private static void inheritUid(Object oldNode, Object newNode) {
+        String uid = null;
+        if (oldNode instanceof LytNode ln) uid = ln.getNodeUid();
+        else if (oldNode instanceof LytFlowContent fc) uid = fc.getNodeUid();
+        if (uid == null) return;
+
+        if (newNode instanceof LytNode newLn && newLn.getNodeUid() == null) {
+            newLn.setNodeUid(uid);
+        } else if (newNode instanceof LytFlowContent newFc && newFc.getNodeUid() == null) {
+            newFc.setNodeUid(uid);
+        }
+    }
+
     private void recordResult(Object result) {
         String uid = null;
-        if (node instanceof LytNode ln) uid = ln.getNodeUid();
-        else if (node instanceof LytFlowContent fc) uid = fc.getNodeUid();
+        if (node instanceof LytNode) uid = ((LytNode) node).getNodeUid();
+        else if (node instanceof LytFlowContent) uid = ((LytFlowContent) node).getNodeUid();
+        if (uid != null && uid.contains("::itemlink:")) {
+            String resultDesc;
+            if (result instanceof com.hfstudio.guidenh.guide.document.flow.LytFlowLink) {
+                com.hfstudio.guidenh.guide.document.flow.LytFlowLink l =
+                    (com.hfstudio.guidenh.guide.document.flow.LytFlowLink) result;
+                resultDesc = "LytFlowLink(itemId=" + l.getData("itemId")
+                    + " ore=" + l.getData("ore")
+                    + " icon=" + l.getData("showIcon") + ")";
+            } else {
+                resultDesc = result.getClass().getSimpleName();
+            }
+            com.hfstudio.guidenh.guide.scene.support.GuideDebugLog.infoAlways(
+                "[ItemLinkDebug] recordResult: page={} uid={} result={}",
+                host.currentPageId, uid, resultDesc);
+        }
         if (uid != null) {
             host.recordNodeResult(host.currentPageId, uid, result);
         }
