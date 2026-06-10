@@ -49,8 +49,8 @@ public class GtCoverIdNormalizer {
         return found ? coverCapableStates : new boolean[0];
     }
 
-    public static void rewriteBlockTileTag(NBTTagCompound blockTag, NBTTagCompound tileTag, boolean[] coverCapableStates,
-        boolean encode) {
+    public static void rewriteBlockTileTag(NBTTagCompound blockTag, NBTTagCompound tileTag,
+        boolean[] coverCapableStates, boolean encode) {
         if (coverCapableStates.length == 0 || !blockTag.hasKey(STATE_TAG, 99)) {
             return;
         }
