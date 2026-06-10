@@ -29,6 +29,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler.ScenePlaceholder;
@@ -272,12 +273,12 @@ public class SceneScript implements LytScript {
         scene.initializePonderTimelineBaseline();
         scene.captureInitialInteractiveState();
         scene.snapshotInitialCamera();
-        // NB: Phase 2 called configureStructureLibSelectionListeners() which set up
-        // rebuildSceneForStructureLibSelection() callbacks for interactive StructureLib
-        // preview variant switching. Phase 3 defers this — scene rebuild would need to
-        // re-invoke the full element compilation loop, which is impractical in a script.
-        // The interactive variant UI will not respond to selection changes until the
-        // page is re-mounted (navigate away and back).
+        scene.setStructureLibSelectionChangeListener(selection -> scene.rebuildStructureLib());
+        for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
+            if (binding.getName() != null && binding.hasRebuildRecipe()) {
+                binding.setSelectionChangeListener(selection -> scene.rebuildStructureLib());
+            }
+        }
         ctx.replace(scene);
     }
 

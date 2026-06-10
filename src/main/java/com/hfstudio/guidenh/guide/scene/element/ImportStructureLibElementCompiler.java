@@ -100,6 +100,9 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
             applyControllerDefaults(controller, selection, sceneOptions),
             sceneOptions);
         scene.setPendingStructureLibPreviewSelection(structureName, request.getPreviewSelection());
+        binding.setRebuildRecipe(
+            sceneOptions, offsetX, offsetY, offsetZ, formed,
+            request.getPreviewSelection().getIntegrationOptions());
 
         StructureLibImportResult result = importService.importScene(request);
         attachMetadata(scene, structureName, request, result);

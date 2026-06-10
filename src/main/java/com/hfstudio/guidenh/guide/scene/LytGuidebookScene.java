@@ -90,6 +90,7 @@ import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderSceneData;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
+import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityRayPicker;
@@ -101,7 +102,10 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.Ae2Helpers;
 import com.hfstudio.guidenh.integration.ae2.Ae2PonderSupport;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
@@ -1097,6 +1101,11 @@ public class LytGuidebookScene extends LytBlock {
         return selections;
     }
 
+    /**
+     * Returns the first registered binding. The primary binding drives the tier/channel
+     * slider UI. When a page has multiple {@code <ImportStructureLib>} elements, the page
+     * author is expected to list the main structure first so its binding becomes primary.
+     */
     @Nullable
     private StructureLibSceneBinding getPrimaryStructureLibBinding() {
         return structureLibPrimaryBindingKey != null ? structureLibBindings.get(structureLibPrimaryBindingKey) : null;
@@ -1176,10 +1185,49 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setStructureLibSceneMetadata(@Nullable String name,
         @Nullable StructureLibSceneMetadata structureLibSceneMetadata) {
-        StructureLibSceneBinding binding = registerStructureLibBinding(name);
+        StructureLibSceneBinding binding = resolveStructureLibBinding(name);
+        if (binding == null) {
+            binding = registerStructureLibBinding(name);
+        }
         binding.setMetadata(structureLibSceneMetadata);
-        if (binding == getPrimaryStructureLibBinding()) {
-            bindPrimaryStructureLibState(binding);
+        StructureLibSceneBinding primary = getPrimaryStructureLibBinding();
+        bindPrimaryStructureLibState(primary);
+    }
+
+    /**
+     * Rebuilds all StructureLib blocks in this scene by re-importing every binding
+     * that has a rebuild recipe with its current selection. Called when the user
+     * drags a tier or channel slider.
+     */
+    public void rebuildStructureLib() {
+        GuidebookLevel sceneLevel = getLevel();
+        sceneLevel.clear();
+        StructureLibSceneImportService importService = new StructureLibSceneImportService();
+        for (StructureLibSceneBinding binding : structureLibBindings.values()) {
+            if (!binding.hasRebuildRecipe()) {
+                continue;
+            }
+            StructureLibImportRequest request = binding.buildRebuildRequest();
+            if (request == null) {
+                continue;
+            }
+            StructureLibImportResult result = importService.importScene(request);
+            if (!result.isSuccess()) {
+                continue;
+            }
+            for (StructureLibImportResult.PlacedBlock placedBlock : result.getBlocks()) {
+                Block block = placedBlock.getBlock();
+                if (block == null || block == Blocks.air) {
+                    continue;
+                }
+                int bx = placedBlock.getX() + binding.getRebuildOffsetX();
+                int by = Math.clamp(placedBlock.getY() + binding.getRebuildOffsetY(), 0, sceneLevel.getHeight() - 1);
+                int bz = placedBlock.getZ() + binding.getRebuildOffsetZ();
+                GuidebookPreviewBlockPlacer.place(
+                    sceneLevel, bx, by, bz,
+                    block, placedBlock.getMeta(), placedBlock.getTileTag(), placedBlock.getBlockId());
+                ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
+            }
         }
     }
 
@@ -1374,8 +1422,10 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setPendingStructureLibPreviewSelection(@Nullable String structureName,
         @Nullable StructureLibPreviewSelection pendingSelection) {
-        StructureLibSceneBinding binding = pendingSelection != null ? registerStructureLibBinding(structureName)
-            : resolveStructureLibBinding(structureName);
+        StructureLibSceneBinding binding = resolveStructureLibBinding(structureName);
+        if (binding == null && pendingSelection != null) {
+            binding = registerStructureLibBinding(structureName);
+        }
         if (binding != null) {
             binding.setPendingSelection(pendingSelection);
         }
