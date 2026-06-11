@@ -15,10 +15,13 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.Frontmat
 public class FrontmatterValueProvider implements AutocompleteProvider {
 
     private static final Map<String, String[]> HINTS = new LinkedHashMap<>();
+
     static {
         HINTS.put(
             "navigation",
-            new String[] { "\n  title:", "\n  parent:", "\n  position:", "\n  icon:", "\n  icon_texture:" });
+            new String[] { "\n  title:", "\n  parent:", "\n  position:",
+                "\n  icon: minecraft:book:0:{display:{Name:\"Custom Icon\"}}",
+                "\n  icons:\n    - minecraft:book:0:{display:{Name:\"Cycling Icon\"}}", "\n  icon_texture:" });
         // TODO: integrate with BetterQuesting for dynamic quest UUID lookup
         HINTS.put("quest_ids", new String[] { "\n  - 00000000-0000-0000-0000-000000000000" });
     }

@@ -299,11 +299,10 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | `parent` | no | page id | Parent page id; omitted means top-level node |
 | `position` | no | integer | Sibling sort order; default `0`, larger values appear earlier |
 | `priority` | no | integer | Load priority for same-path page overrides; default `0`, higher wins, equal priority lets the later resource pack entry win |
-| `icon` | no | item id | Item icon shown in navigation/search. Accepts `modid:name`, `modid:name:meta` (colon-separated damage/subtype), `<modid:name:meta>` (strict form; meta `32767` matches all subtypes), or `modid:name meta` (space-separated, filter-expression style). |
-| `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`. When present takes priority over `icon`. |
+| `icon` | no | item id | Item icon shown in navigation/search. Accepts `modid:name`, `modid:name:meta`, or `modid:name:meta:{snbt}`. The inline SNBT tail is the preferred way to attach NBT such as a custom display name. |
+| `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`, including inline `:{snbt}` tails. When present takes priority over `icon`. |
 | `icon_texture` | no | asset path | Texture icon path resolved like any other asset link |
 | `icon_textures` | no | list of asset paths | List of texture icons for animated cycling (one per second). When present takes priority over `icon_texture`. |
-| `icon_components` | no | map | YAML map applied as NBT data to the navigation icon item. Equivalent of 1.7.10 item NBT (e.g. `display.Name` for custom item names). Applied to the `icon` field item; ignored when `icons` list is used. |
 
 ### Example Frontmatter
 
@@ -315,22 +314,15 @@ navigation:
   parent: index.md
   position: 10
   priority: 0
-  icon: minecraft:book
+  icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
   # Use meta/damage to select a specific subtype:
   # icon: minecraft:wool:1       (orange wool, colon form)
-  # icon: <minecraft:wool:1>     (strict colon form)
-  # icon: minecraft:wool 1       (space form, filter-expression style)
 
   # Cycling icons list — cycles one per second:
   # icons:
   #   - minecraft:wool:1
-  #   - minecraft:wool:4
+  #   - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
   #   - minecraft:wool:14
-
-  # Custom NBT on the icon item (only applies to single icon:, not icons:):
-  # icon_components:
-  #   display:
-  #     Name: "My Custom Book"
 
   icon_texture: test1.png
   # Cycling textures:

@@ -14,7 +14,6 @@ import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.NavigationIconEntry;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-import com.hfstudio.guidenh.guide.compiler.YamlNbtConverter;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
@@ -32,7 +31,7 @@ public class NavigationUtil {
 
         var iconTextureEntries = navigation.iconTextureEntries();
         if (iconTextureEntries != null && !iconTextureEntries.isEmpty()) {
-            List<GuidePageTexture> cycleTextures = new ArrayList<>();
+            List<GuidePageTexture> cycleTextures = new ArrayList<>(iconTextureEntries.size());
             List<ResourceLocation> cycleTextureIds = new ArrayList<>(iconTextureEntries);
             if (pages != null) {
                 for (ResourceLocation texId : iconTextureEntries) {
@@ -62,7 +61,7 @@ public class NavigationUtil {
 
         var iconEntries = navigation.iconEntries();
         if (iconEntries != null && !iconEntries.isEmpty()) {
-            List<ItemStack> cycleItems = new ArrayList<>();
+            List<ItemStack> cycleItems = new ArrayList<>(iconEntries.size());
             for (NavigationIconEntry entry : iconEntries) {
                 var stack = resolveItemStack(page, entry.itemId(), entry.meta(), entry.nbt());
                 if (stack != null) {
@@ -81,11 +80,7 @@ public class NavigationUtil {
             return null;
         }
 
-        var stack = resolveItemStack(
-            page,
-            navigation.iconItemId(),
-            navigation.iconItemMeta(),
-            navigation.iconComponents());
+        var stack = resolveItemStack(page, navigation.iconItemId(), navigation.iconItemMeta(), navigation.iconNbt());
         if (stack == null) return null;
         return GuidePageIcon.item(stack);
     }
@@ -104,7 +99,7 @@ public class NavigationUtil {
 
     @Nullable
     private static ItemStack resolveItemStack(ParsedGuidePage page, String itemId, int meta,
-        @Nullable java.util.Map<?, ?> nbt) {
+        @Nullable NBTTagCompound nbt) {
         var item = (Item) Item.itemRegistry.getObject(itemId);
         if (item == null) {
             GuideDebugLog
@@ -113,8 +108,7 @@ public class NavigationUtil {
         }
         var stack = new ItemStack(item, 1, meta);
         if (nbt != null) {
-            NBTTagCompound nbtTag = YamlNbtConverter.toNbt(nbt);
-            stack.setTagCompound(nbtTag);
+            stack.setTagCompound((NBTTagCompound) nbt.copy());
         }
         return stack;
     }

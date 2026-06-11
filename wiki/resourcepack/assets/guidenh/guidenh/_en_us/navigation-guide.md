@@ -109,7 +109,7 @@ An item ID shown next to the page title in the sidebar.
 ```yaml
 navigation:
   title: Recipes
-  icon: minecraft:crafting_table
+  icon: minecraft:crafting_table:0:{display:{Name:"Custom Crafting Table"}}
 ```
 
 ### `navigation.icon_texture`
@@ -131,7 +131,7 @@ navigation:
   title: Color Demo
   icons:
     - minecraft:wool:1
-    - minecraft:wool:4
+    - minecraft:wool:4:{display:{Name:"Custom Green Wool"}}
     - minecraft:wool:14
 ```
 

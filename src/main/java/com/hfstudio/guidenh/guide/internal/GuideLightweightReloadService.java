@@ -127,8 +127,8 @@ public class GuideLightweightReloadService {
     /**
      * Scans the guide folder tree and loads all markdown files under {@code assets/<namespace>/<folder>/_<lang>/...}.
      */
-    static Map<ResourceLocation, ParsedGuidePage> loadPages(IResourceManager resourceManager, ResourceLocation guideId,
-        String folder, String defaultLanguage, @Nullable String currentLanguage) {
+    public static Map<ResourceLocation, ParsedGuidePage> loadPages(IResourceManager resourceManager,
+        ResourceLocation guideId, String folder, String defaultLanguage, @Nullable String currentLanguage) {
         return loadPages(
             resourceManager,
             guideId,
@@ -139,8 +139,8 @@ public class GuideLightweightReloadService {
             DataDrivenGuideLoader.getActiveResourcePacks(resourceManager));
     }
 
-    static Map<ResourceLocation, ParsedGuidePage> loadPages(IResourceManager resourceManager, ResourceLocation guideId,
-        String folder, String defaultLanguage, @Nullable String currentLanguage,
+    public static Map<ResourceLocation, ParsedGuidePage> loadPages(IResourceManager resourceManager,
+        ResourceLocation guideId, String folder, String defaultLanguage, @Nullable String currentLanguage,
         Map<String, LinkedHashMap<String, LinkedHashSet<String>>> pagePathCache,
         Iterable<? extends IResourcePack> activeResourcePacks) {
         long startedAt = System.nanoTime();
