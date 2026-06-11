@@ -28,9 +28,10 @@ navigation:
 | `position` | Optional sibling ordering hint |
 | `recommend` | Optional home-page recommendation priority; absent means the page is not shown in the Recommended panel |
 | `priority` | Optional load priority for same-path page overrides; default `0` |
-| `icon` | Optional item icon |
+| `icon` | Optional single item icon; supports inline `mod:item:meta:{snbt}` tails |
+| `icons` | Optional cycling item icons list; entries may be plain item ids with optional inline `:{snbt}` or `{id, meta?, nbt?}` maps |
 | `icon_texture` | Optional texture icon resolved from guide assets |
-| `icon_components` | Parsed but not currently used by built-in rendering |
+| `icon_textures` | Optional cycling texture icon list |
 | `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
 | `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
 
@@ -110,9 +111,11 @@ resource-pack ordering.
 
 GuideNH chooses navigation/search icons in this order:
 
-1. `icon_texture` if the texture file loads successfully
-2. `icon` if the item exists
-3. no icon if neither is usable
+1. `icon_textures` if at least one texture entry is configured
+2. `icon_texture` if the texture file loads successfully
+3. `icons` if at least one configured item resolves successfully
+4. `icon` if the item exists
+5. no icon if neither is usable
 
 Texture icons are read from runtime assets, so relative page-local files such as `test1.png` work.
 

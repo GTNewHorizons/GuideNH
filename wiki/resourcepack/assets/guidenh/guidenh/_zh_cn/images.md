@@ -11,10 +11,8 @@ categories:
   #   - minecraft:wool:1
   #   - minecraft:wool:4
   #   - minecraft:wool:14
-  # icon_components 示例（为 icon: 物品附加 NBT）：
-  # icon_components:
-  #   display:
-  #     Name: "彩色羊毛演示"
+  # icon 物品内联 SNBT 示例：
+  # icon: minecraft:wool:1:{display:{Name:"彩色羊毛演示"}}
 ---
 
 # 图片

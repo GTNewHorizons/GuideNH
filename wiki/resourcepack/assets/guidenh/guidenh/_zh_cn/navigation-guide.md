@@ -106,7 +106,7 @@ TXLoader `forceload` 中的文件会由 TXLoader 放到更靠后的资源包优�
 ```yaml
 navigation:
   title: 配方
-  icon: minecraft:crafting_table
+  icon: minecraft:crafting_table:0:{display:{Name:"自定义工作台"}}
 ```
 
 ### `navigation.icon_texture`
@@ -128,7 +128,7 @@ navigation:
   title: 颜色演示
   icons:
     - minecraft:wool:1
-    - minecraft:wool:4
+    - minecraft:wool:4:{display:{Name:"自定义绿色羊毛"}}
     - minecraft:wool:14
 ```
 

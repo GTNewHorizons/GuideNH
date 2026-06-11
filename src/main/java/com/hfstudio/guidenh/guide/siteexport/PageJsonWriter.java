@@ -32,10 +32,9 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
  *       "title":       "...",
  *       "parent":      "guidenh:category",
  *       "position":    10,
- *       "iconItemId":  "minecraft:chest",
- *       "iconItemMeta": 0,
+ *       "icon":        "minecraft:chest:0:{display:{Name:\"Custom Chest\"}}",
  *       "iconTextureId":"guidenh:test1.png",
- *       "icons":       [{"itemId":"minecraft:wool","meta":1},{"itemId":"minecraft:wool","meta":14}],
+ *       "icons":       ["minecraft:wool:1:{display:{Name:\"Orange\"}}","minecraft:wool:14"],
  *       "iconTextures":["guidenh:tex1.png","guidenh:tex2.png"]
  *     },
  *     "extra": { … additionalProperties … }
@@ -91,8 +90,7 @@ public class PageJsonWriter {
                     : nav.parent()
                         .toString());
             n.put("position", nav.position());
-            n.put("iconItemId", nav.iconItemId());
-            n.put("iconItemMeta", nav.iconItemMeta());
+            n.put("icon", formatIconValue(nav.iconItemId(), nav.iconItemMeta(), nav.iconNbt()));
             n.put(
                 "iconTextureId",
                 nav.iconTextureId() == null ? null
@@ -101,12 +99,11 @@ public class PageJsonWriter {
 
             if (nav.iconEntries() != null && !nav.iconEntries()
                 .isEmpty()) {
-                List<Map<String, Object>> iconsList = new ArrayList<>();
+                List<String> iconsList = new ArrayList<>(
+                    nav.iconEntries()
+                        .size());
                 for (NavigationIconEntry entry : nav.iconEntries()) {
-                    Map<String, Object> e = new LinkedHashMap<>();
-                    e.put("itemId", entry.itemId());
-                    e.put("meta", entry.meta());
-                    iconsList.add(e);
+                    iconsList.add(formatIconValue(entry.itemId(), entry.meta(), entry.nbt()));
                 }
                 n.put("icons", iconsList);
             } else {
@@ -115,7 +112,9 @@ public class PageJsonWriter {
 
             if (nav.iconTextureEntries() != null && !nav.iconTextureEntries()
                 .isEmpty()) {
-                List<String> texList = new ArrayList<>();
+                List<String> texList = new ArrayList<>(
+                    nav.iconTextureEntries()
+                        .size());
                 for (var texId : nav.iconTextureEntries()) {
                     texList.add(texId.toString());
                 }
@@ -128,5 +127,21 @@ public class PageJsonWriter {
         }
         out.put("extra", fm.additionalProperties() == null ? new LinkedHashMap<>() : fm.additionalProperties());
         return out;
+    }
+
+    @Nullable
+    private static String formatIconValue(@Nullable String itemId, int meta, @Nullable Object nbt) {
+        if (itemId == null) {
+            return null;
+        }
+        StringBuilder value = new StringBuilder(itemId.length() + 16);
+        value.append(itemId)
+            .append(':')
+            .append(meta);
+        if (nbt != null) {
+            value.append(':')
+                .append(nbt);
+        }
+        return value.toString();
     }
 }

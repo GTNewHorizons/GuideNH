@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.compiler;
 
-import java.util.Map;
+import net.minecraft.nbt.NBTTagCompound;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -11,4 +11,4 @@ import com.github.bsideup.jabel.Desugar;
  * (mod ID casing preserved) used for item lookup.
  */
 @Desugar
-public record NavigationIconEntry(String itemId, int meta, @Nullable Map<?, ?> nbt) {}
+public record NavigationIconEntry(String itemId, int meta, @Nullable NBTTagCompound nbt) {}

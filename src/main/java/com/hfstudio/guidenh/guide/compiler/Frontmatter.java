@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import net.minecraft.nbt.JsonToNBT;
+import net.minecraft.nbt.NBTBase;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -80,54 +83,23 @@ public class Frontmatter {
             }
             var iconIdStr = getString(navigationMap, "icon");
             var iconTextureStr = getString(navigationMap, "icon_texture");
-            Map<?, ?> iconComponents = getCompound(navigationMap, "icon_components");
 
             ResourceLocation parentId = null;
             if (parentIdStr != null) {
                 parentId = IdUtils.resolveLink(parentIdStr, pageId);
             }
 
-            // Parse icon item id, supporting:
-            // modid:name - item with default damage 0
-            // modid:name:meta - item with explicit damage value
-            // <modid:name:meta> - strict form (angle brackets stripped)
-            // modid:name meta - space-separated damage (filter-expression style)
             int iconMeta = 0;
             String iconId = null;
+            NBTTagCompound iconNbt = null;
             if (iconIdStr != null) {
-                String s = iconIdStr.trim();
-                if (s.startsWith("<") && s.endsWith(">")) {
-                    s = s.substring(1, s.length() - 1)
-                        .trim();
+                var parsedIcon = parseIconEntryString(iconIdStr, pageId);
+                if (parsedIcon != null) {
+                    iconId = parsedIcon.itemId();
+                    iconMeta = parsedIcon.meta();
+                    iconNbt = parsedIcon.nbt();
                 }
-                // Space-separated damage comes first (e.g. "minecraft:potion 16384")
-                int spaceIdx = s.indexOf(' ');
-                if (spaceIdx >= 0) {
-                    String metaPart = s.substring(spaceIdx + 1)
-                        .trim();
-                    s = s.substring(0, spaceIdx)
-                        .trim();
-                    try {
-                        iconMeta = Integer.parseInt(metaPart);
-                    } catch (NumberFormatException ignored) {}
-                } else {
-                    // Colon-separated damage: "modid:name:meta"
-                    // ResourceLocation has exactly one colon; a second colon is the meta suffix.
-                    int firstColon = s.indexOf(':');
-                    if (firstColon >= 0) {
-                        int secondColon = s.indexOf(':', firstColon + 1);
-                        if (secondColon >= 0) {
-                            String metaPart = s.substring(secondColon + 1);
-                            try {
-                                iconMeta = Integer.parseInt(metaPart);
-                                s = s.substring(0, secondColon);
-                            } catch (NumberFormatException ignored) {}
-                        }
-                    }
-                }
-                iconId = IdUtils.rawRegistryKey(s, pageId.getResourceDomain());
             }
-
             ResourceLocation iconTextureId = null;
             if (iconTextureStr != null) {
                 iconTextureId = IdUtils.resolveLink(iconTextureStr, pageId);
@@ -136,9 +108,9 @@ public class Frontmatter {
             // Parse icons: list (cycling item icons, each entry uses same syntax as icon:)
             List<NavigationIconEntry> iconEntries = null;
             Object iconsObj = navigationMap.get("icons");
-            if (iconsObj instanceof List<?>) {
-                iconEntries = new ArrayList<>();
-                for (Object entry : (List<?>) iconsObj) {
+            if (iconsObj instanceof List<?>iconsList) {
+                iconEntries = new ArrayList<>(iconsList.size());
+                for (Object entry : iconsList) {
                     NavigationIconEntry parsed = parseIconEntry(entry, pageId);
                     if (parsed != null) {
                         iconEntries.add(parsed);
@@ -150,9 +122,9 @@ public class Frontmatter {
             // Parse icon_textures: list (cycling texture icons)
             List<ResourceLocation> iconTextureEntries = null;
             Object iconTexturesObj = navigationMap.get("icon_textures");
-            if (iconTexturesObj instanceof List<?>) {
-                iconTextureEntries = new ArrayList<>();
-                for (Object entry : (List<?>) iconTexturesObj) {
+            if (iconTexturesObj instanceof List<?>iconTexturesList) {
+                iconTextureEntries = new ArrayList<>(iconTexturesList.size());
+                for (Object entry : iconTexturesList) {
                     if (entry instanceof String) {
                         String texStr = ((String) entry).trim();
                         if (!texStr.isEmpty()) {
@@ -169,13 +141,19 @@ public class Frontmatter {
             String requiredModSingle = getString(navigationMap, "required_mod");
             Object requiredModsObj = navigationMap.get("required_mods");
             if (requiredModSingle != null || requiredModsObj != null) {
-                requiredMods = new ArrayList<>();
+                int expectedSize = requiredModSingle == null ? 0 : 1;
+                if (requiredModsObj instanceof List<?>requiredModsList) {
+                    expectedSize += requiredModsList.size();
+                } else if (requiredModsObj instanceof String) {
+                    expectedSize++;
+                }
+                requiredMods = new ArrayList<>(expectedSize);
                 if (requiredModSingle != null && !requiredModSingle.trim()
                     .isEmpty()) {
                     requiredMods.add(requiredModSingle.trim());
                 }
-                if (requiredModsObj instanceof List<?>) {
-                    for (Object entry : (List<?>) requiredModsObj) {
+                if (requiredModsObj instanceof List<?>requiredModsList) {
+                    for (Object entry : requiredModsList) {
                         if (entry instanceof String) {
                             String s = ((String) entry).trim();
                             if (!s.isEmpty()) {
@@ -199,7 +177,7 @@ public class Frontmatter {
                 recommend,
                 iconId,
                 iconMeta,
-                iconComponents,
+                iconNbt,
                 iconTextureId,
                 iconEntries,
                 iconTextureEntries,
@@ -249,6 +227,32 @@ public class Frontmatter {
             throw new IllegalArgumentException("Key " + key + " has to be a map!");
         }
         return mapValue;
+    }
+
+    @Nullable
+    public static NBTTagCompound parseNavigationNbt(@Nullable Object value, String key) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Map<?, ?>mapValue) {
+            return YamlNbtConverter.toNbt(mapValue);
+        }
+        if (value instanceof String stringValue) {
+            String text = stringValue.trim();
+            if (text.isEmpty()) {
+                return null;
+            }
+            try {
+                NBTBase parsed = JsonToNBT.func_150315_a(text);
+                if (parsed instanceof NBTTagCompound compound) {
+                    return compound;
+                }
+                throw new IllegalArgumentException("Key " + key + " string value has to decode to a compound tag!");
+            } catch (Exception exception) {
+                throw new IllegalArgumentException("Key " + key + " has invalid SNBT!", exception);
+            }
+        }
+        throw new IllegalArgumentException("Key " + key + " has to be a map or SNBT string!");
     }
 
     /**
@@ -310,7 +314,10 @@ public class Frontmatter {
             if (entryMap.containsKey("meta")) {
                 meta = getInt(entryMap, "meta");
             }
-            var nbt = getCompound(entryMap, "nbt");
+            NBTTagCompound nbt = parsed.nbt();
+            if (entryMap.containsKey("nbt")) {
+                nbt = parseNavigationNbt(entryMap.get("nbt"), "nbt");
+            }
             return new NavigationIconEntry(parsed.itemId(), meta, nbt);
         }
         return null;
@@ -324,30 +331,11 @@ public class Frontmatter {
             s = s.substring(1, s.length() - 1)
                 .trim();
         }
-        int meta = 0;
-        int spaceIdx = s.indexOf(' ');
-        if (spaceIdx >= 0) {
-            String metaPart = s.substring(spaceIdx + 1)
-                .trim();
-            s = s.substring(0, spaceIdx)
-                .trim();
-            try {
-                meta = Integer.parseInt(metaPart);
-            } catch (NumberFormatException ignored) {}
-        } else {
-            int firstColon = s.indexOf(':');
-            if (firstColon >= 0) {
-                int secondColon = s.indexOf(':', firstColon + 1);
-                if (secondColon >= 0) {
-                    String metaPart = s.substring(secondColon + 1);
-                    try {
-                        meta = Integer.parseInt(metaPart);
-                        s = s.substring(0, secondColon);
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
+        var parsed = IdUtils.parseItemRef(s, pageId.getResourceDomain());
+        if (parsed == null) {
+            return null;
         }
-        return new NavigationIconEntry(IdUtils.rawRegistryKey(s, pageId.getResourceDomain()), meta, null);
+        return new NavigationIconEntry(parsed.rawKey(), parsed.concreteMeta(), copyNbt(parsed.nbt()));
     }
 
     @Nullable
@@ -367,5 +355,10 @@ public class Frontmatter {
             }
         }
         return value.toString();
+    }
+
+    @Nullable
+    private static NBTTagCompound copyNbt(@Nullable NBTTagCompound nbt) {
+        return nbt == null ? null : (NBTTagCompound) nbt.copy();
     }
 }

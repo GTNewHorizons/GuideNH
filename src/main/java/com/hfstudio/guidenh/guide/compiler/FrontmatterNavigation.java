@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.compiler;
 
 import java.util.List;
-import java.util.Map;
 
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -24,7 +24,7 @@ public class FrontmatterNavigation {
     private final String iconItemId;
     private final int iconItemMeta;
     @Nullable
-    private final Map<?, ?> iconComponents;
+    private final NBTTagCompound iconNbt;
     @Nullable
     private final ResourceLocation iconTextureId;
     @Nullable
@@ -36,7 +36,7 @@ public class FrontmatterNavigation {
     private final int loadPriority;
 
     public FrontmatterNavigation(String title, @Nullable ResourceLocation parent, int position, int recommend,
-        @Nullable String iconItemId, int iconItemMeta, @Nullable Map<?, ?> iconComponents,
+        @Nullable String iconItemId, int iconItemMeta, @Nullable NBTTagCompound iconNbt,
         @Nullable ResourceLocation iconTextureId, @Nullable List<NavigationIconEntry> iconEntries,
         @Nullable List<ResourceLocation> iconTextureEntries, @Nullable List<String> requiredMods, int loadPriority) {
         this.title = title;
@@ -45,7 +45,7 @@ public class FrontmatterNavigation {
         this.recommend = recommend;
         this.iconItemId = iconItemId;
         this.iconItemMeta = iconItemMeta;
-        this.iconComponents = iconComponents;
+        this.iconNbt = iconNbt;
         this.iconTextureId = iconTextureId;
         this.iconEntries = iconEntries;
         this.iconTextureEntries = iconTextureEntries;
@@ -80,8 +80,8 @@ public class FrontmatterNavigation {
     }
 
     @Nullable
-    public Map<?, ?> iconComponents() {
-        return iconComponents;
+    public NBTTagCompound iconNbt() {
+        return iconNbt;
     }
 
     @Nullable
