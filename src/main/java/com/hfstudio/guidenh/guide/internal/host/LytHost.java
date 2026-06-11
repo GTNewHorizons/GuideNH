@@ -7,8 +7,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.minecraft.util.ResourceLocation;
+
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -19,6 +22,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 
 public class LytHost {
 
@@ -27,42 +31,16 @@ public class LytHost {
     @Nullable
     private PageCollection currentPageCollection;
     private final Map<String, LytScript> scripts = new HashMap<>();
-    private final Map<String, PageCacheEntry> cachedDocuments = new LinkedHashMap<>();
+    // Compiled pages are now in CompileWorker. LytHost only tracks node-level results.
+    private final Map<String, Map<String, Object>> nodeResults = new LinkedHashMap<>(16, 0.75f, true);
     private final Map<String, AtomicInteger> pageNodeCounters = new HashMap<>();
+    private static final int MAX_NODE_RESULT_CACHE = 32;
     String currentPageId;
-
-    private static final int MAX_CACHED_PAGES = 32;
-
-    static class PageCacheEntry {
-
-        final GuidePage guidePage;
-        final Map<String, Object> nodeResults = new HashMap<>();
-
-        PageCacheEntry(GuidePage guidePage) {
-            this.guidePage = guidePage;
-        }
-    }
 
     private final ViewportState viewport = new ViewportState();
     private final NavigationState nav = new NavigationState();
     private final Deque<LytEvent> eventQueue = new ArrayDeque<>();
     private final Deque<DeferredTask> taskQueue = new ArrayDeque<>();
-    private final Deque<String> preheatQueue = new ArrayDeque<>();
-    private final java.util.Set<String> preheatScheduled = new java.util.HashSet<>();
-
-    @FunctionalInterface
-    public interface PreheatCompiler {
-
-        @Nullable
-        GuidePage compile(String pageId);
-    }
-
-    @Nullable
-    private PreheatCompiler preheatCompiler;
-
-    public void setPreheatCompiler(@Nullable PreheatCompiler compiler) {
-        this.preheatCompiler = compiler;
-    }
 
     // ===== Document =====
 
@@ -77,6 +55,7 @@ public class LytHost {
         this.document = newDoc;
         if (newDoc != null) {
             pageNodeCounters.remove(currentPageId); // reset for stable UIDs
+            ensureNodeResultStore(currentPageId);
             allocateNodeUids(newDoc);
             newDoc.setLive(true); // onAttach cascade
             dispatchMountEvents(newDoc); // MOUNT events → scripts materialize placeholders
@@ -103,46 +82,43 @@ public class LytHost {
 
     @Nullable
     public GuidePage getCachedGuidePage(String pageId) {
-        PageCacheEntry entry = cachedDocuments.get(pageId);
-        return entry != null ? entry.guidePage : null;
+        CompileWorker worker = ClientProxy.getWorker();
+        if (worker == null) return null;
+        return worker.getCompiledPage(new ResourceLocation(pageId));
     }
 
     public void recordNodeResult(String pageId, String nodeUid, Object result) {
-        PageCacheEntry entry = cachedDocuments.get(pageId);
-        if (entry != null) {
-            entry.nodeResults.put(nodeUid, result);
+        Map<String, Object> results = nodeResults.get(pageId);
+        if (results != null) {
+            results.put(nodeUid, result);
         }
     }
 
     @Nullable
     Object getNodeResult(String pageId, String nodeUid) {
-        PageCacheEntry entry = cachedDocuments.get(pageId);
-        return entry != null ? entry.nodeResults.get(nodeUid) : null;
+        Map<String, Object> results = nodeResults.get(pageId);
+        return results != null ? results.get(nodeUid) : null;
     }
 
-    public void cachePage(String pageId, GuidePage guidePage) {
-        while (cachedDocuments.size() >= MAX_CACHED_PAGES) {
-            var oldest = cachedDocuments.keySet()
+    public void ensureNodeResultStore(String pageId) {
+        if (nodeResults.containsKey(pageId)) return;
+        while (nodeResults.size() >= MAX_NODE_RESULT_CACHE) {
+            String oldest = nodeResults.keySet()
                 .iterator()
                 .next();
-            cachedDocuments.remove(oldest);
-            pageNodeCounters.remove(oldest);
-            preheatScheduled.remove(oldest);
+            nodeResults.remove(oldest);
         }
-        cachedDocuments.put(pageId, new PageCacheEntry(guidePage));
+        nodeResults.put(pageId, new HashMap<>());
     }
 
     public void invalidatePage(String pageId) {
-        cachedDocuments.remove(pageId);
+        nodeResults.remove(pageId);
         pageNodeCounters.remove(pageId);
-        preheatScheduled.remove(pageId);
     }
 
     public void clearPageCaches() {
-        cachedDocuments.clear();
+        nodeResults.clear();
         pageNodeCounters.clear();
-        preheatQueue.clear();
-        preheatScheduled.clear();
     }
 
     public void setCurrentPageId(String pageId) {
@@ -156,50 +132,6 @@ public class LytHost {
     @Nullable
     public PageCollection getCurrentPageCollection() {
         return currentPageCollection;
-    }
-
-    public void requestPreheat(String pageId) {
-        if (preheatCompiler == null || pageId == null) return;
-        if (cachedDocuments.containsKey(pageId)) return;
-        if (preheatScheduled.add(pageId)) {
-            preheatQueue.addLast(pageId);
-        }
-    }
-
-    public void requestPreheatNeighbors(String currentPageId) {
-        PageCollection pc = currentPageCollection;
-        if (pc == null) return;
-        var nav = pc.getNavigationTree();
-        if (nav == null) return;
-        var node = nav.getNodeById(new net.minecraft.util.ResourceLocation(currentPageId));
-        if (node == null) return;
-        for (var child : node.children()) {
-            if (child.hasPage()) {
-                requestPreheat(
-                    child.pageId()
-                        .toString());
-            }
-        }
-    }
-
-    public boolean hasPreheatWork() {
-        return !preheatQueue.isEmpty() && preheatCompiler != null;
-    }
-
-    public void preheatStep(long deadlineNs) {
-        while (!preheatQueue.isEmpty() && System.nanoTime() < deadlineNs) {
-            String pageId = preheatQueue.pollFirst();
-            if (cachedDocuments.containsKey(pageId)) {
-                preheatScheduled.remove(pageId);
-                continue;
-            }
-            if (preheatCompiler == null) break;
-            GuidePage compiled = preheatCompiler.compile(pageId);
-            if (compiled != null) {
-                cachePage(pageId, compiled);
-            }
-            preheatScheduled.remove(pageId);
-        }
     }
 
     String allocateNodeUid(String pageId, String prefix) {
@@ -491,11 +423,9 @@ public class LytHost {
         document = null;
         currentPageCollection = null;
         scripts.clear();
-        cachedDocuments.clear();
+        nodeResults.clear();
         pageNodeCounters.clear();
         currentPageId = null;
-        preheatQueue.clear();
-        preheatScheduled.clear();
         eventQueue.clear();
         taskQueue.clear();
         nav.clear();

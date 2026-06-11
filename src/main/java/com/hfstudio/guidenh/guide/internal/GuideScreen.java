@@ -87,6 +87,7 @@ import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
+import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlayRenderer;
@@ -140,6 +141,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
+import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
@@ -239,6 +241,22 @@ public class GuideScreen extends GuiContainer
     private static final int NON_FULL_WIDTH_MIN_SIZE = 100;
     private static final float NARROW_READING_DISABLED_RATIO = 0.0f;
     private static final String[] LOADING_DOT_SUFFIXES = { "", ".", "..", "..." };
+
+    /** Minimal document shown while waiting for background compilation. */
+    private static final LytDocument LOADING_DOCUMENT = buildLoadingDocument();
+
+    private static LytDocument buildLoadingDocument() {
+        LytDocument doc = new LytDocument();
+        LytParagraph para = new LytParagraph();
+        para.setStyle(
+            TextStyle.builder()
+                .color(SymbolicColor.GRAY)
+                .build());
+        para.appendText("Loading...");
+        doc.append(para);
+        return doc;
+    }
+
     private boolean fullWidth;
 
     private final GuideNavBar navBar = new GuideNavBar();
@@ -514,15 +532,6 @@ public class GuideScreen extends GuiContainer
                 .getNavigation()
                 .recallNavigationState(route.guideId()),
             bookmarkState);
-        ClientProxy.getLytHost()
-            .setPreheatCompiler(pageId -> {
-                if (guide == null) return null;
-                try {
-                    return guide.getPage(new ResourceLocation(pageId));
-                } catch (Exception e) {
-                    return null;
-                }
-            });
     }
 
     public static void open(ResourceLocation guideId, @Nullable PageAnchor anchor) {
@@ -2369,52 +2378,55 @@ public class GuideScreen extends GuiContainer
         int requestId = pendingPageLoadRequestId;
         String pageIdStr = currentAnchor.pageId()
             .toString();
-        LytHost lytHost = ClientProxy.getLytHost();
-        GuidePage loadedPage;
+        ResourceLocation pageId = currentAnchor.pageId();
 
-        GuidePage cachedPage = lytHost.getCachedGuidePage(pageIdStr);
-        if (cachedPage != null) {
-            loadedPage = cachedPage;
-            loadedPage.prepareForDisplay();
-        } else {
-            try {
-                loadedPage = guide.getPage(currentAnchor.pageId());
-            } catch (Throwable t) {
-                GuideDebugLog.error("Failed to compile guide page {}", currentAnchor.pageId(), t);
-                loadedPage = null;
-            }
-            if (loadedPage != null) {
-                lytHost.cachePage(pageIdStr, loadedPage);
-            }
+        // 1. Check CompileWorker cache first
+        CompileWorker worker = ClientProxy.getWorker();
+        GuidePage loadedPage = null;
+        if (worker != null) {
+            loadedPage = worker.getCompiledPage(pageId);
         }
-        if (!pageLoadInProgress || requestId != pendingPageLoadRequestId) {
+
+        // 2. Also check MutableGuide internal cache for editor/synthetic pages
+        if (loadedPage == null && guide != null) {
+            loadedPage = guide.getCachedCompiledPage(pageId);
+        }
+
+        if (loadedPage != null) {
+            // Cache hit — mount immediately
+            loadedPage.prepareForDisplay();
+            LytHost lytHost = ClientProxy.getLytHost();
+            if (!pageLoadInProgress || requestId != pendingPageLoadRequestId) return;
+            currentPage = loadedPage;
+            document = loadedPage.document();
+            invalidateScrollbarOutline();
+            lytHost.setCurrentPageId(pageIdStr);
+            lytHost.setCurrentPageCollection(guide);
+            lytHost.mountDocument(document);
+            if (document != null && isSpecialPageWithSearchField()) {
+                applySpecialPageSearchQuery(queryFromCurrentAnchor());
+            }
+            ensureLayout();
+            scrollToCurrentAnchor();
+            applyPendingRestoreScroll();
+            syncSearchFieldToCurrentRoute();
+            queuePageSceneRegistrations(loadedPage);
+            pageLoadInProgress = false;
+            refreshCurrentPageTitle();
+            updateToolbarButtonState();
             return;
         }
-        currentPage = loadedPage;
-        document = loadedPage != null ? loadedPage.document() : null;
-        invalidateScrollbarOutline();
+
+        // 3. Not yet compiled — prioritize and show loading
+        if (worker != null) {
+            worker.prioritize(pageId);
+        }
+        if (!pageLoadInProgress || requestId != pendingPageLoadRequestId) return;
+        LytHost lytHost = ClientProxy.getLytHost();
         lytHost.setCurrentPageId(pageIdStr);
         lytHost.setCurrentPageCollection(guide);
-        lytHost.mountDocument(document);
-        lytHost.requestPreheatNeighbors(pageIdStr);
-        if (document != null && isSpecialPageWithSearchField()) {
-            applySpecialPageSearchQuery(queryFromCurrentAnchor());
-        }
-        ensureLayout();
-        scrollToCurrentAnchor();
-        applyPendingRestoreScroll();
-        if (pendingRestoreViewState == null) {
-            ClientProxy.getLytHost()
-                .getNavigation()
-                .recordPageHistory(captureCurrentViewState());
-        }
-        syncSearchFieldToCurrentRoute();
-        if (loadedPage != null) {
-            queuePageSceneRegistrations(loadedPage);
-        }
-        pageLoadInProgress = false;
-        refreshCurrentPageTitle();
-        updateToolbarButtonState();
+        lytHost.mountDocument(LOADING_DOCUMENT);
+        // pageLoadInProgress stays true — retry next tick
     }
 
     /** Register scenes created at MOUNT time into GuidePage.scenes() for tick dispatch. */

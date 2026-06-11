@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
@@ -96,6 +98,15 @@ public class GuideLightweightReloadService {
             GuideRegistry.updatePages(entry.getKey(), entry.getValue(), false);
         }
         GuideRegistry.invalidateMergedNavigationTree();
+        // Trigger background compilation of all loaded pages
+        CompileWorker worker = ClientProxy.getWorker();
+        var allPageIds = new ArrayList<ResourceLocation>();
+        for (var pages : guidePages.values()) {
+            allPageIds.addAll(pages.keySet());
+        }
+        if (!allPageIds.isEmpty()) {
+            worker.reset(allPageIds);
+        }
         long registryUpdateNs = System.nanoTime() - stageStartedAt;
 
         stageStartedAt = System.nanoTime();
