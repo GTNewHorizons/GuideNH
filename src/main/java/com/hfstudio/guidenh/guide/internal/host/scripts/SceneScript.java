@@ -119,9 +119,7 @@ public class SceneScript implements LytScript {
         // Create empty scene skeleton immediately so the user sees a frame.
         // Use same dimensions doCompile will compute from ph.
         var scene = new LytGuidebookScene();
-        scene.setSceneSize(
-            ph.width > 0 ? ph.width : 320,
-            ph.height > 0 ? ph.height : 180);
+        scene.setSceneSize(ph.width > 0 ? ph.width : 320, ph.height > 0 ? ph.height : 180);
         scene.setInteractive(ph.interactive);
         scene.setShowBackground(ph.showBackground);
         scene.setVisibleLayerSliderEnabled(ph.allowLayerSlider);
