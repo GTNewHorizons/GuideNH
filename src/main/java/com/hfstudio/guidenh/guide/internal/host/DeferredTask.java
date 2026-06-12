@@ -16,5 +16,4 @@ public interface DeferredTask {
 
     TaskResult step(long deadlineNs);
 
-    boolean isDone();
 }

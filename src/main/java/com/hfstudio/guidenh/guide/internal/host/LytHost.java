@@ -23,6 +23,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class LytHost {
 
@@ -56,10 +57,19 @@ public class LytHost {
         if (newDoc != null) {
             pageNodeCounters.remove(currentPageId); // reset for stable UIDs
             ensureNodeResultStore(currentPageId);
+            long tUid = System.nanoTime();
             allocateNodeUids(newDoc);
+            long tAttach = System.nanoTime();
             newDoc.setLive(true); // onAttach cascade
             dispatchMountEvents(newDoc); // MOUNT events → scripts materialize placeholders
+            long tMount = System.nanoTime();
             viewport.updateContent(newDoc.getAvailableWidth(), newDoc.getContentHeight());
+            long tViewport = System.nanoTime();
+            GuideDebugLog.infoAlways(
+                "[LytHost] mountDocument uidMs={} attachAndScriptMs={} viewportMs={}",
+                (tAttach - tUid) / 1_000_000L,
+                (tMount - tAttach) / 1_000_000L,
+                (tViewport - tMount) / 1_000_000L);
         }
     }
 
@@ -279,7 +289,8 @@ public class LytHost {
                     ScriptContextImpl ctx = new ScriptContextImpl(node, this, document);
                     script.onEvent(node, new LytEvent(EventType.MOUNT, node), ctx);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    GuideDebugLog
+                        .error("[LytHost] Sync script {} failed on node {}", script.styleClass(), nodeUidOf(node), e);
                 }
             }
         }
@@ -298,7 +309,6 @@ public class LytHost {
         private final Object node;
         private final ScriptContextImpl ctx;
         private final LytEvent event;
-        private boolean firstCall = true;
 
         MaterializeTask(LytScript script, Object node, ScriptContextImpl ctx) {
             this.script = script;
@@ -319,26 +329,17 @@ public class LytHost {
             try {
                 script.onEvent(node, event, ctx);
             } catch (Exception e) {
-                e.printStackTrace();
-                ctx.markComplete(); // don't retry on error
+                GuideDebugLog
+                    .error("[MaterializeTask] Script {} failed on node {}", script.styleClass(), nodeUidOf(node), e);
+                ctx.replaceError(e);
+                ctx.markComplete();
             }
             if (ctx.isComplete()) return TaskResult.DONE;
-            if (firstCall) {
-                firstCall = false;
-                // Script that yielded (called timeToYield which returned true): YIELD.
-                // Script that finished without yielding: auto-complete.
-                if (ctx.isYieldRequested()) return TaskResult.YIELD;
-                ctx.markComplete();
-                return TaskResult.DONE;
-            }
-            // Re-entry after yield — auto-complete on second call.
+            if (ctx.isYieldRequested()) return TaskResult.YIELD;
+            // Script returned without declaring complete or yield
+            // -> auto-complete (backward-compatible default for one-shot scripts)
             ctx.markComplete();
             return TaskResult.DONE;
-        }
-
-        @Override
-        public boolean isDone() {
-            return ctx.isComplete();
         }
     }
 

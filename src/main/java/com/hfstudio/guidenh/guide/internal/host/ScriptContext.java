@@ -31,10 +31,13 @@ public interface ScriptContext {
 
     void submitTask(DeferredTask task);
 
-    /** Whether the current MOUNT handler should yield for this tick to stay within budget. */
+    /** Explicitly yield. Next tick onEvent will be called again. */
+    void yield();
+
+    /** Whether time budget is exceeded. Pure check, no side effect. */
     boolean timeToYield();
 
-    /** Mark the async MOUNT handler as complete (no more onEvent calls needed). */
+    /** Mark this handler complete. No more onEvent calls needed. */
     void markComplete();
 
     /** Recursively dispatch MOUNT events into a detached subtree */

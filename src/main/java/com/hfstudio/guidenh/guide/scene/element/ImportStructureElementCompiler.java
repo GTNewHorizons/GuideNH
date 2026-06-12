@@ -81,18 +81,20 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             errorSink.appendError(compiler, "Invalid structure path: " + src, el);
             return;
         }
-        byte[] data = compiler.loadAsset(absSrc);
-        if (data == null) {
-            errorSink.appendError(compiler, "Missing structure file: " + absSrc, el);
-            return;
-        }
-
-        NBTTagCompound root;
-        try {
-            root = readStructureNbt(data);
-        } catch (Exception e) {
-            errorSink.appendError(compiler, "Couldn't read structure: " + e.getMessage(), el);
-            return;
+        // Check pre-parse cache (populated by AsyncWorker via SceneScript)
+        NBTTagCompound root = SnbtPreParseCache.get(absSrc);
+        if (root == null) {
+            var data = compiler.loadAsset(absSrc);
+            if (data == null) {
+                errorSink.appendError(compiler, "Missing structure file: " + absSrc, el);
+                return;
+            }
+            try {
+                root = readStructureNbt(data);
+            } catch (Exception e) {
+                errorSink.appendError(compiler, "Couldn't read structure: " + e.getMessage(), el);
+                return;
+            }
         }
 
         int offsetX = MdxAttrs.getString(compiler, errorSink, el, "offsetX", null) != null

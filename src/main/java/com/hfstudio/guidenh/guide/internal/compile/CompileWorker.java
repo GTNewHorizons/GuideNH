@@ -59,6 +59,10 @@ public class CompileWorker {
 
     private volatile boolean shutdown;
 
+    public CompileWorker() {
+        executor.submit(this::runLoop);
+    }
+
     /**
      * Start greedy compilation of the given pages. Called after world load or
      * F3+T resource reload. Any previously queued items are discarded.
@@ -70,7 +74,7 @@ public class CompileWorker {
             bulkQueue.clear();
             bulkQueue.addAll(pageIds);
         }
-        submitIfIdle();
+        GuideDebugLog.infoAlways("[CompileWorker] startBulk {} pages", pageIds.size());
     }
 
     /**
@@ -94,7 +98,6 @@ public class CompileWorker {
             return;
         }
         priorityId = pageId;
-        submitIfIdle();
     }
 
     /**
@@ -130,13 +133,6 @@ public class CompileWorker {
 
     // ---- internal -------------------------------------------------------
 
-    private void submitIfIdle() {
-        if (shutdown) {
-            return;
-        }
-        executor.submit(this::runLoop);
-    }
-
     private void runLoop() {
         while (!shutdown) {
             ResourceLocation target = null;
@@ -157,9 +153,16 @@ public class CompileWorker {
                 }
             }
 
-            // 3. Nothing to do — exit; will be resubmitted by prioritize/startBulk
+            // 3. Nothing to do — sleep briefly, then check again
             if (target == null) {
-                return;
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread()
+                        .interrupt();
+                    return;
+                }
+                continue;
             }
 
             // 4. Set current page id
@@ -193,12 +196,21 @@ public class CompileWorker {
             return;
         }
 
+        long t0 = System.nanoTime();
         // Parse (no-op if already parsed — getAstRoot is lazy + cached)
         parsed.getAstRoot();
+        long tParsed = System.nanoTime();
 
         // Compile
         GuidePage compiled = PageCompiler.compile(guide, guide.getExtensions(), parsed);
+        long tCompiled = System.nanoTime();
         compiledPages.put(pageId, compiled);
+
+        GuideDebugLog.infoAlways(
+            "[CompileWorker] Compiled page={} parseMs={} compileMs={}",
+            pageId,
+            (tParsed - t0) / 1_000_000L,
+            (tCompiled - tParsed) / 1_000_000L);
     }
 
     /**

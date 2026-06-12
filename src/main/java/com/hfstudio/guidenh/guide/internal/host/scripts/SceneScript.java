@@ -7,11 +7,14 @@ import java.util.Map;
 
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
@@ -20,6 +23,7 @@ import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
+import com.hfstudio.guidenh.guide.internal.AsyncWorker;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
 import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
@@ -36,15 +40,27 @@ import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
+import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
+import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public class SceneScript implements LytScript {
+
+    private static final String KEY_STATE = "scene.state";
+    private static final String STATE_SCAN = "SCAN";
+    private static final String STATE_POLL = "POLL";
+    private static final String STATE_COMPILE = "COMPILE";
+    private static final String KEY_AST = "scene.ast";
+    private static final String KEY_TICKETS = "scene.tickets";
 
     public SceneScript() {}
 
@@ -68,6 +84,134 @@ public class SceneScript implements LytScript {
         if (event.type() != EventType.MOUNT) return;
         if (!(node instanceof ScenePlaceholder ph)) return;
 
+        var state = (String) ctx.data()
+            .getOrDefault(KEY_STATE, STATE_SCAN);
+        switch (state) {
+            case STATE_SCAN -> doScan(ph, ctx);
+            case STATE_POLL -> doPoll(ph, ctx);
+            case STATE_COMPILE -> doCompile(ph, ctx);
+        }
+    }
+
+    private void doScan(ScenePlaceholder ph, ScriptContext ctx) {
+        if (ph.childrenSource == null || ph.childrenSource.trim()
+            .isEmpty()) {
+            ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
+            return;
+        }
+
+        // Parse AST once; cache in ctx.data() so it survives re-entry
+        var ast = ph.childrenAst;
+        if (ast == null) {
+            try {
+                ast = MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
+                MdAstToMdxConverter.convert(ast, Collections.emptyMap());
+                ctx.data()
+                    .put(KEY_AST, ast);
+            } catch (Exception e) {
+                GuideDebugLog.error("[SceneScript] Failed to parse scene children", e);
+                ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
+                return;
+            }
+        }
+
+        var pc = ctx.getPageCollection();
+        var tickets = new java.util.ArrayList<String>();
+
+        for (var child : ast.children()) {
+            var el = SceneTagCompiler.unwrapSceneElement(child);
+            if (el == null) continue;
+
+            switch (el.name()) {
+                case "ImportStructureLib" -> {
+                    var controller = el.getAttributeString("controller", null);
+                    if (controller == null || controller.trim()
+                        .isEmpty()) continue;
+                    controller = controller.trim();
+                    var request = buildImportRequest(ph, el);
+                    if (request != null) {
+                        var ticket = "lib:" + controller;
+                        AsyncWorker.submit(ticket, () -> { new StructureLibRuntimeFacade().importScene(request); });
+                        tickets.add(ticket);
+                    }
+                }
+                case "ImportStructure" -> {
+                    var src = el.getAttributeString("src", null);
+                    if (src == null || src.isEmpty()) continue;
+                    ResourceLocation absSrc;
+                    try {
+                        absSrc = IdUtils.resolveLink(src, new ResourceLocation(ph.pageDomain, ph.pagePath));
+                    } catch (IllegalArgumentException e) {
+                        continue;
+                    }
+                    var data = pc != null ? pc.loadAsset(absSrc) : null;
+                    if (data == null) continue;
+                    var ticket = "snbt:" + absSrc;
+                    AsyncWorker.submit(ticket, () -> {
+                        try {
+                            var root = ImportStructureElementCompiler.readStructureNbt(data);
+                            SnbtPreParseCache.put(absSrc, root);
+                        } catch (Exception e) {
+                            GuideDebugLog.warn("[SceneScript] SNBT pre-parse failed: {}", absSrc, e);
+                        }
+                    });
+                    tickets.add(ticket);
+                }
+            }
+        }
+
+        if (tickets.isEmpty()) {
+            ctx.data()
+                .put(KEY_STATE, STATE_COMPILE);
+            doCompile(ph, ctx);
+            return;
+        }
+
+        ctx.data()
+            .put(KEY_TICKETS, tickets);
+        ctx.data()
+            .put(KEY_STATE, STATE_POLL);
+        ctx.yield();
+    }
+
+    @Nullable
+    private static StructureLibImportRequest buildImportRequest(ScenePlaceholder ph, MdxJsxElementFields el) {
+        var controller = el.getAttributeString("controller", null);
+        if (controller == null || controller.trim()
+            .isEmpty()) return null;
+
+        return new StructureLibImportRequest(
+            controller.trim(),
+            el.getAttributeString("piece", null),
+            StructureLibSceneOptions.resolveFacing(el.getAttributeString("facing", null), null),
+            StructureLibSceneOptions.resolveRotation(el.getAttributeString("rotation", null), null),
+            StructureLibSceneOptions.resolveFlip(el.getAttributeString("flip", null), null),
+            1,
+            null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void doPoll(ScenePlaceholder ph, ScriptContext ctx) {
+        var tickets = (java.util.List<String>) ctx.data()
+            .get(KEY_TICKETS);
+        if (tickets == null) {
+            ctx.data()
+                .put(KEY_STATE, STATE_COMPILE);
+            doCompile(ph, ctx);
+            return;
+        }
+
+        if (tickets.stream()
+            .allMatch(AsyncWorker::isDone)) {
+            ctx.data()
+                .put(KEY_STATE, STATE_COMPILE);
+            doCompile(ph, ctx);
+        } else {
+            ctx.yield();
+        }
+    }
+
+    private void doCompile(ScenePlaceholder ph, ScriptContext ctx) {
         if (ph.childrenSource == null || ph.childrenSource.trim()
             .isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
@@ -107,18 +251,23 @@ public class SceneScript implements LytScript {
             ph.sourcePack,
             new ResourceLocation(ph.pageDomain, ph.pagePath),
             ph.childrenSource != null ? ph.childrenSource : "");
-        MdAstRoot ast;
-        try {
-            ast = ph.childrenAst != null ? ph.childrenAst
-                : MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
-            if (ph.childrenAst == null && ast != null) {
-                MdAstToMdxConverter.convert(ast, Collections.emptyMap());
-            }
-        } catch (Exception e) {
-            GuideDebugLog.error("[GuideNH] [SceneScript] Failed to parse scene children", e);
-            ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
-            return;
+        // Use cached AST from doScan if available, else parse from source
+        MdAstRoot ast = (MdAstRoot) ctx.data()
+            .get(KEY_AST);
+        if (ast == null) {
+            ast = ph.childrenAst;
         }
+        if (ast == null) {
+            try {
+                ast = MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
+                MdAstToMdxConverter.convert(ast, Collections.emptyMap());
+            } catch (Exception e) {
+                GuideDebugLog.error("[GuideNH] [SceneScript] Failed to parse scene children", e);
+                ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
+                return;
+            }
+        }
+        final MdAstRoot finalAst = ast;
 
         // Build element compiler map from placeholder (set at compile time by SceneTagCompiler)
         Map<String, SceneElementTagCompiler> elementCompilers = new HashMap<>();
@@ -156,7 +305,7 @@ public class SceneScript implements LytScript {
         final boolean[] blockStatsExplicitlySet = { false };
         try {
             GuideSceneStructureCompileScope.run(true, () -> {
-                for (UnistNode child : ast.children()) {
+                for (UnistNode child : finalAst.children()) {
                     MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
                     if (el == null) continue;
                     // Handle BlockStats — not a SceneElementTagCompiler, special-cased in Phase 2
@@ -280,6 +429,7 @@ public class SceneScript implements LytScript {
             }
         }
         ctx.replace(scene);
+        ctx.markComplete();
     }
 
     /**

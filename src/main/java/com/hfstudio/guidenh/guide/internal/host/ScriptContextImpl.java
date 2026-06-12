@@ -148,15 +148,24 @@ class ScriptContextImpl implements ScriptContext {
         host.dispatchToSubtree(root);
     }
 
+    void replaceError(Exception e) {
+        var msg = "[" + e.getClass()
+            .getSimpleName() + "] " + (e.getMessage() != null ? e.getMessage() : "Unknown error");
+        replace(LytParagraph.error(msg));
+    }
+
     void setYieldDeadline(long deadlineNs) {
         this.yieldDeadlineNs = deadlineNs;
     }
 
     @Override
+    public void yield() {
+        this.yieldRequested = true;
+    }
+
+    @Override
     public boolean timeToYield() {
-        boolean exceeded = System.nanoTime() >= yieldDeadlineNs;
-        if (exceeded) yieldRequested = true;
-        return exceeded;
+        return System.nanoTime() >= yieldDeadlineNs;
     }
 
     @Override
