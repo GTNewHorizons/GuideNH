@@ -83,7 +83,7 @@ public class DataDrivenGuideLoader {
         int discoveredLanguageCount = countDiscoveredLanguages(discoveredLanguages);
         long totalNs = System.nanoTime() - startedAt;
         if (ModConfig.debug.enableDebugMode) {
-            GuideDebugLog.infoAlways(
+            GuideDebugLog.info(
                 "[GuideNH] [DataDrivenGuideLoader] Loaded {} guides across {} languages from {} resource packs in {} ns (resourcePackResolveNs={}, scanNs={}, buildNs={})",
                 guides.size(),
                 discoveredLanguageCount,
@@ -134,7 +134,7 @@ public class DataDrivenGuideLoader {
 
         long totalNs = System.nanoTime() - startedAt;
         if (ModConfig.debug.enableDebugMode) {
-            GuideDebugLog.infoAlways(
+            GuideDebugLog.info(
                 "[GuideNH] [DataDrivenGuideLoader] Discovered {} page paths across {} namespaces for folder {} from {} resource packs in {} ns",
                 countDiscoveredPagePaths(pagePaths),
                 pagePaths.size(),

@@ -60,6 +60,7 @@ public class SceneScript implements LytScript {
     private static final String STATE_POLL = "POLL";
     private static final String STATE_COMPILE = "COMPILE";
     private static final String KEY_AST = "scene.ast";
+    private static final String KEY_SCENE = "scene.object";
     private static final String KEY_TICKETS = "scene.tickets";
 
     public SceneScript() {}
@@ -115,6 +116,18 @@ public class SceneScript implements LytScript {
             }
         }
 
+        // Create empty scene skeleton immediately so the user sees a frame.
+        // Use same dimensions doCompile will compute from ph.
+        var scene = new LytGuidebookScene();
+        scene.setSceneSize(
+            ph.width > 0 ? ph.width : 320,
+            ph.height > 0 ? ph.height : 180);
+        scene.setInteractive(ph.interactive);
+        scene.setShowBackground(ph.showBackground);
+        scene.setVisibleLayerSliderEnabled(ph.allowLayerSlider);
+        scene.setGridButtonEnabled(ph.gridButtonEnabled);
+        scene.setGridVisible(ph.showGrid);
+
         var pc = ctx.getPageCollection();
         var tickets = new java.util.ArrayList<String>();
 
@@ -163,14 +176,22 @@ public class SceneScript implements LytScript {
         if (tickets.isEmpty()) {
             ctx.data()
                 .put(KEY_STATE, STATE_COMPILE);
+            ctx.data()
+                .put(KEY_SCENE, scene);
             doCompile(ph, ctx);
             return;
         }
 
+        // Show placeholder immediately with progress bar
+        scene.setLoading(true);
+        scene.setLoadProgress(0, tickets.size());
+        ctx.data()
+            .put(KEY_SCENE, scene);
         ctx.data()
             .put(KEY_TICKETS, tickets);
         ctx.data()
             .put(KEY_STATE, STATE_POLL);
+        ctx.replace(scene);
         ctx.yield();
     }
 
@@ -194,15 +215,23 @@ public class SceneScript implements LytScript {
     private void doPoll(ScenePlaceholder ph, ScriptContext ctx) {
         var tickets = (java.util.List<String>) ctx.data()
             .get(KEY_TICKETS);
-        if (tickets == null) {
+        var scene = (LytGuidebookScene) ctx.data()
+            .get(KEY_SCENE);
+        if (tickets == null || scene == null) {
             ctx.data()
                 .put(KEY_STATE, STATE_COMPILE);
             doCompile(ph, ctx);
             return;
         }
 
-        if (tickets.stream()
-            .allMatch(AsyncWorker::isDone)) {
+        // Count completed tickets and update progress bar
+        int done = 0;
+        for (var ticket : tickets) {
+            if (AsyncWorker.isDone(ticket)) done++;
+        }
+        scene.setLoadProgress(done, tickets.size());
+
+        if (done >= tickets.size()) {
             ctx.data()
                 .put(KEY_STATE, STATE_COMPILE);
             doCompile(ph, ctx);
@@ -218,8 +247,26 @@ public class SceneScript implements LytScript {
             return;
         }
 
-        GuidebookLevel level = new GuidebookLevel();
-        CameraSettings camera = new CameraSettings();
+        // Reuse scene from doScan if available, else create fresh
+        var existingScene = (LytGuidebookScene) ctx.data()
+            .get(KEY_SCENE);
+        final var hadTickets = ctx.data()
+            .containsKey(KEY_TICKETS);
+        final LytGuidebookScene scene = existingScene != null ? existingScene : new LytGuidebookScene();
+        var level = scene.getLevel();
+        if (level == null) {
+            level = new GuidebookLevel();
+            scene.setLevel(level);
+        }
+        final GuidebookLevel finalLevel = level;
+        var camera = scene.getCamera();
+        if (camera == null) {
+            camera = new CameraSettings();
+            scene.setCamera(camera);
+        }
+        final CameraSettings finalCamera = camera;
+
+        // Apply camera settings from placeholder (if not already set by doScan)
         if (ph.perspective != null && !ph.perspective.trim()
             .isEmpty()) {
             camera.setPerspectivePreset(PerspectivePreset.fromSerializedName(ph.perspective.trim()));
@@ -240,6 +287,7 @@ public class SceneScript implements LytScript {
         int width = ph.width > 0 ? ph.width : 320;
         int height = ph.height > 0 ? ph.height : 180;
         camera.setViewportSize(width, height);
+        scene.setSceneSize(width, height);
 
         // Parse children source
         ExceptionCollector errorSink = new ExceptionCollector();
@@ -279,8 +327,7 @@ public class SceneScript implements LytScript {
             }
         }
 
-        // Create the scene EARLY so element compilers can access it via CURRENT_SCENE.
-        LytGuidebookScene scene = new LytGuidebookScene();
+        // Update scene properties (created in doScan for async path, or fresh here)
         scene.setLevel(level);
         scene.setCamera(camera);
         scene.setSceneSize(width, height);
@@ -316,7 +363,7 @@ public class SceneScript implements LytScript {
                     }
                     SceneElementTagCompiler ec = elementCompilers.get(el.name());
                     if (ec != null) {
-                        ec.compile(level, camera, runtimeCompiler, errorSink, el);
+                        ec.compile(finalLevel, finalCamera, runtimeCompiler, errorSink, el);
                     }
                 }
             });
@@ -428,7 +475,10 @@ public class SceneScript implements LytScript {
                 binding.setSelectionChangeListener(selection -> scene.rebuildStructureLib());
             }
         }
-        ctx.replace(scene);
+        scene.setLoading(false);
+        if (!hadTickets) {
+            ctx.replace(scene);
+        }
         ctx.markComplete();
     }
 
