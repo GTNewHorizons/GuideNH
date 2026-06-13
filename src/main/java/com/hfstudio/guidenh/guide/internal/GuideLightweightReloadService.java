@@ -173,8 +173,7 @@ public class GuideLightweightReloadService {
             ParsedGuidePage parsed = loadResult != null ? loadResult.page() : null;
             if (parsed == null) {
                 failedLoads++;
-                GuideDebugLog
-                    .warnAlways("[GuideNH] [GuideLightweightReloadService] Failed to load guide page {}", pageId);
+                GuideDebugLog.warn("[GuideNH] [GuideLightweightReloadService] Failed to load guide page {}", pageId);
                 continue;
             }
             switch (loadResult.kind()) {
