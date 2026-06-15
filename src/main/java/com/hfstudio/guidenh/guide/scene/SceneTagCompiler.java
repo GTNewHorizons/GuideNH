@@ -175,6 +175,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             compiler.getPageId()
                 .getResourcePath(),
             compiler.getSourcePack(),
+            compiler.getLanguage(),
             preParsedAst,
             sceneElementCompilers);
         placeholder.setStyleClass(styleClass);
@@ -229,13 +230,14 @@ public class SceneTagCompiler extends BlockTagCompiler {
         public final MdAstRoot childrenAst;
         @Nullable
         public final List<SceneElementTagCompiler> sceneElementCompilers;
+        public final String language;
 
         public ScenePlaceholder(int width, int height, boolean explicitWidth, boolean explicitHeight, float zoom,
             boolean explicitZoom, @Nullable String perspective, float rotateX, float rotateY, float rotateZ,
             float offsetX, float offsetY, boolean explicitOffsetX, boolean explicitOffsetY, float centerX,
             float centerY, float centerZ, boolean explicitCenter, boolean interactive, boolean showBackground,
             boolean allowLayerSlider, boolean gridButtonEnabled, boolean showGrid, @Nullable String childrenSource,
-            String pageDomain, String pagePath, String sourcePack, @Nullable MdAstRoot childrenAst,
+            String pageDomain, String pagePath, String sourcePack, String language, @Nullable MdAstRoot childrenAst,
             @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
             this.width = width;
             this.height = height;
@@ -264,6 +266,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             this.pageDomain = pageDomain;
             this.pagePath = pagePath;
             this.sourcePack = sourcePack;
+            this.language = language;
             this.childrenAst = childrenAst;
             this.sceneElementCompilers = sceneElementCompilers;
         }

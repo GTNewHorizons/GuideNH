@@ -295,6 +295,7 @@ public class SceneScript implements LytScript {
             pc != null ? pc : new StubPageCollection(),
             extensions,
             ph.sourcePack,
+            ph.language,
             new ResourceLocation(ph.pageDomain, ph.pagePath),
             ph.childrenSource != null ? ph.childrenSource : "");
         // Use cached AST from doScan if available, else parse from source
@@ -382,6 +383,10 @@ public class SceneScript implements LytScript {
                     ctx.dispatchSubtree(root);
                 }
             }
+        }
+        // Dispatch MOUNT events into text annotation rich-content subtrees (e.g. inline <ItemImage>)
+        for (LytParagraph rich : scene.collectTextAnnotationRichContent()) {
+            ctx.dispatchSubtree(rich);
         }
 
         if (level.isEmpty()) {
