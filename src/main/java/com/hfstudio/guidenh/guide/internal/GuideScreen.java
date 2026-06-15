@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedHashMap;
@@ -535,7 +536,20 @@ public class GuideScreen extends GuiContainer
                 .recallNavigationState(route.guideId()),
             null,
             bookmarkState,
-            route.isContent() && currentAnchor != null ? currentAnchor.pageId() : null);
+            route.isContent() && currentAnchor != null ? currentAnchor.pageId() : null,
+            null);
+        navBar.setOnExpansionToggled((toggledGuideId, pageId, expanded) -> {
+            if (toggledGuideId != null) {
+                updateSavedExpansionState(toggledGuideId, pageId, expanded);
+            }
+            ResourceLocation currentGuideId = guide != null ? guide.getId() : null;
+            if (!Objects.equals(currentGuideId, toggledGuideId)) {
+                rememberNavigationState();
+            }
+            if (toggledGuideId == null && currentGuideId != null) {
+                updateSavedExpansionState(null, pageId, expanded);
+            }
+        });
     }
 
     public static void open(ResourceLocation guideId, @Nullable PageAnchor anchor) {
@@ -728,7 +742,6 @@ public class GuideScreen extends GuiContainer
         scrollY = 0;
         snapVisualScrollToTarget();
         loadCurrentPage();
-        expandNavigationParentsToCurrentPage();
         ensureLayout();
         scrollToCurrentAnchor();
         clampScroll();
@@ -772,6 +785,25 @@ public class GuideScreen extends GuiContainer
         ClientProxy.getLytHost()
             .getNavigation()
             .rememberNavBarState(guide != null ? guide.getId() : null, navBar.captureState());
+    }
+
+    private void updateSavedExpansionState(@Nullable ResourceLocation guideId, ResourceLocation pageId,
+        boolean expanded) {
+        GuideNavBarState saved = ClientProxy.getLytHost()
+            .getNavigation()
+            .recallNavigationState(guideId);
+        LinkedHashSet<ResourceLocation> updated = new LinkedHashSet<>(
+            saved.expandedPageIds() != null ? saved.expandedPageIds() : Collections.<ResourceLocation>emptySet());
+        if (expanded) {
+            updated.add(pageId);
+        } else {
+            updated.remove(pageId);
+        }
+        ClientProxy.getLytHost()
+            .getNavigation()
+            .rememberNavBarState(
+                guideId,
+                GuideNavBarState.create(saved.bookmarkGroupExpanded(), updated, saved.scrollY()));
     }
 
     private boolean isNavigationNewPageButtonVisible() {
@@ -2177,8 +2209,13 @@ public class GuideScreen extends GuiContainer
                 rememberCurrentContentStateIfEligible();
                 rememberNavigationState();
                 restoreViewState(GuideScreenViewState.home());
-                navBar
-                    .activateGuide(null, GuideNavBarState.defaultState(), resolveNavigationTree(), bookmarkState, null);
+                navBar.activateGuide(
+                    null,
+                    GuideNavBarState.defaultState(),
+                    resolveNavigationTree(),
+                    bookmarkState,
+                    null,
+                    null);
                 rebuildToolbar();
             });
         } else if (btn == btnGuideEditorToggle) {
@@ -2223,6 +2260,7 @@ public class GuideScreen extends GuiContainer
                     .guideId() : null;
                 ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
                 boolean guideChanged = !java.util.Objects.equals(oldGuideId, prevGuideId);
+                Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
                 restoreViewState(prev);
                 if (guideChanged) {
                     navBar.activateGuide(
@@ -2237,7 +2275,8 @@ public class GuideScreen extends GuiContainer
                             && prev.route()
                                 .anchor() != null ? prev.route()
                                     .anchor()
-                                    .pageId() : null);
+                                    .pageId() : null,
+                        carryOver);
                 }
                 rebuildToolbar();
             }
@@ -2259,6 +2298,7 @@ public class GuideScreen extends GuiContainer
                     .guideId() : null;
                 ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
                 boolean guideChanged = !java.util.Objects.equals(oldGuideId, nextGuideId);
+                Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
                 restoreViewState(next);
                 if (guideChanged) {
                     navBar.activateGuide(
@@ -2273,7 +2313,8 @@ public class GuideScreen extends GuiContainer
                             && next.route()
                                 .anchor() != null ? next.route()
                                     .anchor()
-                                    .pageId() : null);
+                                    .pageId() : null,
+                        carryOver);
                 }
                 rebuildToolbar();
             }
@@ -6048,6 +6089,7 @@ public class GuideScreen extends GuiContainer
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
             rememberCurrentContentStateIfEligible();
             rememberNavigationState();
+            Set<ResourceLocation> carryOver = navBar.getExpandedPageIdsSnapshot();
             restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guideId, anchor), 0));
             navBar.activateGuide(
                 guideId,
@@ -6056,7 +6098,8 @@ public class GuideScreen extends GuiContainer
                     .recallNavigationState(guideId),
                 resolveNavigationTree(),
                 bookmarkState,
-                anchor.pageId());
+                anchor.pageId(),
+                carryOver);
             rebuildToolbar();
         });
     }

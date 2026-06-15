@@ -151,6 +151,11 @@ public class GuideNavBar {
     private static final int TITLE_SCROLL_INTERVAL_MILLIS = 80;
     private static final String TITLE_SCROLL_GAP = "     ";
 
+    public interface GuideExpansionListener {
+
+        void onExpansionToggled(@Nullable ResourceLocation guideId, ResourceLocation pageId, boolean expanded);
+    }
+
     private final List<Row> rows = new ArrayList<Row>();
     private final Set<ResourceLocation> expandedPageIds = new HashSet<ResourceLocation>();
     private final GuideNavProjection projection = new GuideNavProjection();
@@ -162,6 +167,8 @@ public class GuideNavBar {
     private int lastBookmarkStateVersion;
     private int lastExpandedStateHash;
     private boolean bookmarkGroupExpanded = true;
+    @Nullable
+    private GuideExpansionListener onExpansionToggled;
 
     private int x;
     private int y;
@@ -216,6 +223,10 @@ public class GuideNavBar {
         }
     }
 
+    public void setOnExpansionToggled(@Nullable GuideExpansionListener listener) {
+        this.onExpansionToggled = listener;
+    }
+
     public void update(int mouseX, int mouseY, @Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
         if (shouldRebuildRows(tree, bookmarkState)) {
             rebuildRows(tree, bookmarkState);
@@ -255,19 +266,34 @@ public class GuideNavBar {
      * Caller is responsible for saving the old guide's state before calling this.
      */
     public void activateGuide(@Nullable ResourceLocation guideId, GuideNavBarState savedState,
-        @Nullable NavigationTree tree, GuideBookmarkState bookmarkState, @Nullable ResourceLocation currentPageId) {
+        @Nullable NavigationTree tree, GuideBookmarkState bookmarkState, @Nullable ResourceLocation currentPageId,
+        Set<ResourceLocation> carryOverIds) {
 
         // 1. Replace with new guide's saved state
         expandedPageIds.clear();
         if (savedState.expandedPageIds() != null) {
             expandedPageIds.addAll(savedState.expandedPageIds());
         }
+
+        // 2. Merge carry-over IDs that exist in the new tree (captured before restoreViewState)
+        if (carryOverIds != null && tree != null) {
+            for (ResourceLocation id : carryOverIds) {
+                if (tree.getNodeById(id) != null) {
+                    expandedPageIds.add(id);
+                }
+            }
+        }
+
         bookmarkGroupExpanded = savedState.bookmarkGroupExpanded();
-        scrollY = savedState.scrollY();
-        visualScrollY.snapTo(scrollY);
+        // Only restore scroll position during initial screen setup.
+        // During cross-guide navigation, keep continuous scroll.
+        if (tree == null) {
+            scrollY = savedState.scrollY();
+            visualScrollY.snapTo(scrollY);
+        }
         activeGuideId = guideId;
 
-        // 2. Expand ancestors of current page (inline, single rebuild at end)
+        // 3. Expand ancestors of current page (inline, single rebuild at end)
         if (currentPageId != null && tree != null) {
             var path = tree.getPathTo(currentPageId);
             for (int i = 0; i < path.size() - 1; i++) {
@@ -279,10 +305,15 @@ public class GuideNavBar {
             }
         }
 
-        // 3. Single rebuild with final state
+        // 4. Single rebuild with final state
         if (tree != null) {
             rebuildRows(tree, bookmarkState);
         }
+    }
+
+    /** Snapshot of current expanded page IDs for carry-over before navigation. */
+    public Set<ResourceLocation> getExpandedPageIdsSnapshot() {
+        return new HashSet<ResourceLocation>(expandedPageIds);
     }
 
     public void expandParentsTo(@Nullable NavigationTree tree, @Nullable ResourceLocation pageId,
@@ -778,6 +809,9 @@ public class GuideNavBar {
             }
         }
         rebuildRows(lastTree, bookmarkState);
+        if (onExpansionToggled != null && row.pageId() != null) {
+            onExpansionToggled.onExpansionToggled(row.guideId(), row.pageId(), expandedPageIds.contains(row.pageId()));
+        }
     }
 
     public boolean contains(int mouseX, int mouseY) {
