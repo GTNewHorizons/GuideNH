@@ -157,6 +157,8 @@ public class GuideNavBar {
     private final StickyStack stickyStack = new StickyStack();
     @Nullable
     private NavigationTree lastTree;
+    @Nullable
+    private ResourceLocation activeGuideId;
     private int lastBookmarkStateVersion;
     private int lastExpandedStateHash;
     private boolean bookmarkGroupExpanded = true;
@@ -243,6 +245,43 @@ public class GuideNavBar {
         visualScrollY.snapTo(scrollY);
         if (lastTree != null) {
             rebuildRows(lastTree, bookmarkState);
+        }
+    }
+
+    /**
+     * Switch the nav bar to a different guide's expansion state.
+     * Replaces {@code expandedPageIds} with the saved state for the new guide,
+     * then expands ancestors of {@code currentPageId}.
+     * Caller is responsible for saving the old guide's state before calling this.
+     */
+    public void activateGuide(@Nullable ResourceLocation guideId, GuideNavBarState savedState,
+        @Nullable NavigationTree tree, GuideBookmarkState bookmarkState, @Nullable ResourceLocation currentPageId) {
+
+        // 1. Replace with new guide's saved state
+        expandedPageIds.clear();
+        if (savedState.expandedPageIds() != null) {
+            expandedPageIds.addAll(savedState.expandedPageIds());
+        }
+        bookmarkGroupExpanded = savedState.bookmarkGroupExpanded();
+        scrollY = savedState.scrollY();
+        visualScrollY.snapTo(scrollY);
+        activeGuideId = guideId;
+
+        // 2. Expand ancestors of current page (inline, single rebuild at end)
+        if (currentPageId != null && tree != null) {
+            var path = tree.getPathTo(currentPageId);
+            for (int i = 0; i < path.size() - 1; i++) {
+                ResourceLocation parentId = path.get(i)
+                    .pageId();
+                if (parentId != null) {
+                    expandedPageIds.add(parentId);
+                }
+            }
+        }
+
+        // 3. Single rebuild with final state
+        if (tree != null) {
+            rebuildRows(tree, bookmarkState);
         }
     }
 

@@ -48,6 +48,7 @@ import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.ResponsiveVisualSizing;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -1597,6 +1598,31 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setShowBackground(boolean showBackground) {
         this.showBackground = showBackground;
+    }
+
+    /**
+     * Collects all {@link com.hfstudio.guidenh.guide.document.block.LytParagraph} rich-content
+     * roots from text annotations across both static annotations and Ponder keyframe sets.
+     * Callers should dispatch MOUNT events into each returned paragraph so that inline
+     * placeholders (e.g. {@code <ItemImage>}) are materialized before first render.
+     */
+    public List<LytParagraph> collectTextAnnotationRichContent() {
+        List<LytParagraph> result = new ArrayList<>();
+        // Static annotations
+        for (SceneAnnotation a : annotations) {
+            if (a instanceof TextAnnotation ta && ta.getRichContent() != null) {
+                result.add(ta.getRichContent());
+            }
+        }
+        // Ponder keyframe annotation sets
+        for (List<SceneAnnotation> set : ponderKeyframeAnnotationSets) {
+            for (SceneAnnotation a : set) {
+                if (a instanceof TextAnnotation ta && ta.getRichContent() != null) {
+                    result.add(ta.getRichContent());
+                }
+            }
+        }
+        return result;
     }
 
     public List<SceneAnnotation> getAnnotations() {

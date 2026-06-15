@@ -78,6 +78,12 @@ public class GuideLightweightReloadService {
         var pagePathCache = new LinkedHashMap<String, LinkedHashMap<String, LinkedHashSet<String>>>();
 
         String language = LangUtil.getCurrentLanguage();
+        GuideDebugLog.warnAlways(
+            "[GuideNH] [GuideLightweightReloadService] reloadGuides currentLanguage='{}' (raw gameSettings.language='{}')",
+            language,
+            Minecraft.getMinecraft() != null && Minecraft.getMinecraft().gameSettings != null
+                ? Minecraft.getMinecraft().gameSettings.language
+                : "null");
 
         stageStartedAt = System.nanoTime();
         for (var guide : GuideRegistry.getAll()) {

@@ -116,6 +116,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar.ContextTarget;
+import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchResultDocumentBuilder;
@@ -527,11 +528,14 @@ public class GuideScreen extends GuiContainer
         } catch (Throwable ignored) {
             navBar.setPinned(false);
         }
-        navBar.restoreState(
+        navBar.activateGuide(
+            route.guideId(),
             ClientProxy.getLytHost()
                 .getNavigation()
                 .recallNavigationState(route.guideId()),
-            bookmarkState);
+            null,
+            bookmarkState,
+            route.isContent() && currentAnchor != null ? currentAnchor.pageId() : null);
     }
 
     public static void open(ResourceLocation guideId, @Nullable PageAnchor anchor) {
@@ -682,6 +686,7 @@ public class GuideScreen extends GuiContainer
         scrollToCurrentAnchor();
         finalizePendingViewState();
         clampScroll();
+        expandNavigationParentsToCurrentPage();
     }
 
     private void applyRoute(GuideScreenRoute route) {
@@ -764,10 +769,9 @@ public class GuideScreen extends GuiContainer
     }
 
     private void rememberNavigationState() {
-        if (guide == null) return;
         ClientProxy.getLytHost()
             .getNavigation()
-            .rememberNavBarState(guide.getId(), navBar.captureState());
+            .rememberNavBarState(guide != null ? guide.getId() : null, navBar.captureState());
     }
 
     private boolean isNavigationNewPageButtonVisible() {
@@ -1591,7 +1595,7 @@ public class GuideScreen extends GuiContainer
             }
             updateToolbarButtonState();
             if (ModConfig.debug.enableDebugMode) {
-                GuideDebugLog.infoAlways(
+                GuideDebugLog.info(
                     "[GuideNH] [GuideScreen] Saved guide editor draft for {} in {} ms (write: {} ms, parse: {} ms, stage: {} ms, reusedParsed={})",
                     currentAnchor.pageId(),
                     (System.nanoTime() - startedAt) / 1_000_000L,
@@ -2171,7 +2175,10 @@ public class GuideScreen extends GuiContainer
             }
             confirmGuideEditorDirtyBefore(() -> {
                 rememberCurrentContentStateIfEligible();
+                rememberNavigationState();
                 restoreViewState(GuideScreenViewState.home());
+                navBar
+                    .activateGuide(null, GuideNavBarState.defaultState(), resolveNavigationTree(), bookmarkState, null);
                 rebuildToolbar();
             });
         } else if (btn == btnGuideEditorToggle) {
@@ -2209,9 +2216,29 @@ public class GuideScreen extends GuiContainer
         }
         confirmGuideEditorDirtyBefore(() -> {
             rememberCurrentContentStateIfEligible();
+            rememberNavigationState();
             var prev = nav.navigateBack();
             if (prev != null) {
+                ResourceLocation prevGuideId = prev.route() != null ? prev.route()
+                    .guideId() : null;
+                ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
+                boolean guideChanged = !java.util.Objects.equals(oldGuideId, prevGuideId);
                 restoreViewState(prev);
+                if (guideChanged) {
+                    navBar.activateGuide(
+                        prevGuideId,
+                        ClientProxy.getLytHost()
+                            .getNavigation()
+                            .recallNavigationState(prevGuideId),
+                        resolveNavigationTree(),
+                        bookmarkState,
+                        prev.route()
+                            .isContent()
+                            && prev.route()
+                                .anchor() != null ? prev.route()
+                                    .anchor()
+                                    .pageId() : null);
+                }
                 rebuildToolbar();
             }
         });
@@ -2225,9 +2252,29 @@ public class GuideScreen extends GuiContainer
         }
         confirmGuideEditorDirtyBefore(() -> {
             rememberCurrentContentStateIfEligible();
+            rememberNavigationState();
             var next = nav.navigateForward();
             if (next != null) {
+                ResourceLocation nextGuideId = next.route() != null ? next.route()
+                    .guideId() : null;
+                ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
+                boolean guideChanged = !java.util.Objects.equals(oldGuideId, nextGuideId);
                 restoreViewState(next);
+                if (guideChanged) {
+                    navBar.activateGuide(
+                        nextGuideId,
+                        ClientProxy.getLytHost()
+                            .getNavigation()
+                            .recallNavigationState(nextGuideId),
+                        resolveNavigationTree(),
+                        bookmarkState,
+                        next.route()
+                            .isContent()
+                            && next.route()
+                                .anchor() != null ? next.route()
+                                    .anchor()
+                                    .pageId() : null);
+                }
                 rebuildToolbar();
             }
         });
@@ -2449,10 +2496,8 @@ public class GuideScreen extends GuiContainer
             }
         }
         if (found > 0) {
-            GuideDebugLog.infoAlways(
-                "[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}",
-                found,
-                list.size());
+            GuideDebugLog
+                .info("[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}", found, list.size());
         }
     }
 
@@ -6002,7 +6047,16 @@ public class GuideScreen extends GuiContainer
         confirmGuideEditorDirtyBefore(() -> {
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
             rememberCurrentContentStateIfEligible();
+            rememberNavigationState();
             restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guideId, anchor), 0));
+            navBar.activateGuide(
+                guideId,
+                ClientProxy.getLytHost()
+                    .getNavigation()
+                    .recallNavigationState(guideId),
+                resolveNavigationTree(),
+                bookmarkState,
+                anchor.pageId());
             rebuildToolbar();
         });
     }
