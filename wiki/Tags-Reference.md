@@ -621,18 +621,18 @@ Top-aligned with an upward nudge: <Latex formula="x^2" valign="top" offsetY="-1"
 <Latex formula="\begin{pmatrix} a & b \\ c & d \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax+by \\ cx+dy \end{pmatrix}" />
 ````
 
-#### `$$formula$$` shorthand
+#### `$formula$` / `$$formula$$` shorthand
 
-As a convenience you can write `$$formula$$` directly in Markdown text without using the `<Latex>` tag.
+As a convenience you can write `$formula$` directly in Markdown text for inline formulas, or `$$formula$$` as a standalone display formula, without using the `<Latex>` tag.
 All rendering parameters use their defaults (white colour, scale 1.0, no tooltip, baseline-aligned).
 
-- **Inline**: `$$formula$$` embedded inside a paragraph renders as an inline formula.
+- **Inline**: `$formula$` embedded inside a paragraph renders as an inline formula.
 - **Display**: a paragraph whose entire content is `$$formula$$` (with optional surrounding whitespace) renders as a centred display-mode block.
 
 ````md
-Inline shorthand: $$E=mc^2$$ and $$a^2+b^2=c^2$$
+Inline shorthand: $E=mc^2$ and $a^2+b^2=c^2$
 
-Inline fraction: $$\frac{a+b}{c-d}$$
+Inline fraction: $\frac{a+b}{c-d}$
 
 $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 
@@ -647,7 +647,7 @@ Notes:
 - `sourceScale` only affects render sharpness, not the displayed size. Values below `16` are clamped to `16`.
 - Tooltip priority is: rich child Markdown content, then `tooltip="..."`, then `showTooltip={true}` raw source fallback.
 - Child tooltip content is compiled as regular guide Markdown, so it can include bold text, lists, links, item tags, and nested `<Latex>` formulas.
-- The `$$formula$$` shorthand always uses default parameters. Use the `<Latex>` tag for custom colour, scale, alignment or tooltip.
+- The `$formula$` and `$$formula$$` shorthands always use default parameters. Use the `<Latex>` tag for custom colour, scale, alignment or tooltip.
 
 ### Scene Runtime Tags
 
