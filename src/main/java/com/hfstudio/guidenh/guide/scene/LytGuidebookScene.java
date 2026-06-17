@@ -48,6 +48,7 @@ import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.ResponsiveVisualSizing;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -134,6 +135,7 @@ public class LytGuidebookScene extends LytBlock {
     public static final float MAX_ZOOM = 10f;
     private static final int MIN_RESPONSIVE_SCENE_SIZE = 16;
     public static final int SCENE_SLIDER_AREA_HEIGHT = 14;
+    private static final int LOADING_FILL_COLOR = 0xAAFFC107;
     public static final int SCENE_SLIDER_SIDE_PADDING = 8;
     public static final float ORIGIN_AXIS_LENGTH = 1.5f;
     public static final float ORIGIN_AXIS_THICKNESS = 2.0f;
@@ -239,6 +241,9 @@ public class LytGuidebookScene extends LytBlock {
 
     private boolean sceneButtonsVisible = true;
     private boolean bottomControlsVisible = true;
+    private boolean isLoading;
+    private float loadProgress;
+    private String loadStatusText = "";
     private boolean reserveBottomControlArea = true;
     private boolean visibleLayerSliderEnabled;
     private boolean forceOriginAxesVisible;
@@ -1502,6 +1507,23 @@ public class LytGuidebookScene extends LytBlock {
         this.sceneButtonsVisible = sceneButtonsVisible;
     }
 
+    public boolean isLoading() {
+        return isLoading;
+    }
+
+    public void setLoading(boolean loading) {
+        this.isLoading = loading;
+    }
+
+    public float getLoadProgress() {
+        return loadProgress;
+    }
+
+    public void setLoadProgress(int done, int total) {
+        this.loadProgress = total > 0 ? (float) done / (float) total : 0f;
+        this.loadStatusText = "Loading import (" + done + "/" + total + ")...";
+    }
+
     public boolean isBottomControlsVisible() {
         return bottomControlsVisible;
     }
@@ -1576,6 +1598,31 @@ public class LytGuidebookScene extends LytBlock {
 
     public void setShowBackground(boolean showBackground) {
         this.showBackground = showBackground;
+    }
+
+    /**
+     * Collects all {@link com.hfstudio.guidenh.guide.document.block.LytParagraph} rich-content
+     * roots from text annotations across both static annotations and Ponder keyframe sets.
+     * Callers should dispatch MOUNT events into each returned paragraph so that inline
+     * placeholders (e.g. {@code <ItemImage>}) are materialized before first render.
+     */
+    public List<LytParagraph> collectTextAnnotationRichContent() {
+        List<LytParagraph> result = new ArrayList<>();
+        // Static annotations
+        for (SceneAnnotation a : annotations) {
+            if (a instanceof TextAnnotation ta && ta.getRichContent() != null) {
+                result.add(ta.getRichContent());
+            }
+        }
+        // Ponder keyframe annotation sets
+        for (List<SceneAnnotation> set : ponderKeyframeAnnotationSets) {
+            for (SceneAnnotation a : set) {
+                if (a instanceof TextAnnotation ta && ta.getRichContent() != null) {
+                    result.add(ta.getRichContent());
+                }
+            }
+        }
+        return result;
     }
 
     public List<SceneAnnotation> getAnnotations() {
@@ -2160,6 +2207,7 @@ public class LytGuidebookScene extends LytBlock {
             this.lastOuterH = outerH;
             this.cachedScreenRect = updateCachedRect(cachedScreenRect, absX, absY, w, h);
             renderSceneBackground(context, sceneRect);
+            drawLoadProgressOverlay(context, sceneRect);
             drawBottomControls(context, outerRect);
             drawBlockStatsOverlay(context, sceneRect, outerRect);
             renderSceneBorder(context, sceneRect);
@@ -2170,6 +2218,7 @@ public class LytGuidebookScene extends LytBlock {
         }
 
         renderSceneBackground(context, sceneRect);
+        drawLoadProgressOverlay(context, sceneRect);
         this.renderedContentClip = updateCachedRect(this.renderedContentClip, clipX, clipY, clipW, clipH);
 
         LytSize camOverride = cameraViewportOverride;
@@ -6465,6 +6514,33 @@ public class LytGuidebookScene extends LytBlock {
         }
         return GuideSliderRenderer.layout(trackRect.x(), trackRect.y(), trackRect.width(), getVisibleLayerFraction())
             .hitRect();
+    }
+
+    private void drawLoadProgressOverlay(RenderContext context, LytRect sceneRect) {
+        if (!isLoading || sceneRect.isEmpty()) return;
+
+        int barWidth = Math.max(24, sceneRect.width() * 3 / 5);
+        int barX = sceneRect.x() + (sceneRect.width() - barWidth) / 2;
+        int barY = sceneRect.y() + sceneRect.height() / 2 - 2;
+        int trackH = 4;
+
+        // Track
+        context.fillRect(new LytRect(barX, barY, barWidth, trackH), 0x6622262C);
+        // Fill (amber yellow)
+        int fillW = Math.round(barWidth * loadProgress);
+        if (fillW > 0) {
+            context.fillRect(new LytRect(barX, barY, fillW, trackH), LOADING_FILL_COLOR);
+        }
+        // Status text
+        if (loadStatusText != null && !loadStatusText.isEmpty()) {
+            var style = VISIBLE_LAYER_SLIDER_TEXT_STYLE;
+            float z = Math.max(0.0001f, lastDocZoom);
+            int textW = Math.round(context.getStringWidth(loadStatusText, style) / z);
+            int textH = Math.round(context.getLineHeight(style) / z);
+            int textX = barX + (barWidth - textW) / 2;
+            int textY = barY - textH - 4;
+            context.drawText(loadStatusText, textX, textY, style);
+        }
     }
 
     private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {

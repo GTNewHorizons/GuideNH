@@ -20,6 +20,9 @@ import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
 
 public class NavigationState {
 
+    /** Sentinel key for the home page's nav bar state (home has no guideId). */
+    static final ResourceLocation HOME_KEY = new ResourceLocation("guidenh", "_home");
+
     @Nullable
     private ResourceLocation currentGuideId;
     @Nullable
@@ -141,7 +144,10 @@ public class NavigationState {
     // ---- Nav bar state ----
 
     public void rememberNavBarState(ResourceLocation guideId, GuideNavBarState state) {
-        if (state != null) navBarStates.put(guideId, state);
+        if (state != null) {
+            ResourceLocation key = guideId != null ? guideId : HOME_KEY;
+            navBarStates.put(key, state);
+        }
     }
 
     @Nullable
@@ -150,7 +156,8 @@ public class NavigationState {
     }
 
     public GuideNavBarState recallNavigationState(@Nullable ResourceLocation guideId) {
-        GuideNavBarState state = guideId != null ? navBarStates.get(guideId) : null;
+        ResourceLocation key = guideId != null ? guideId : HOME_KEY;
+        GuideNavBarState state = navBarStates.get(key);
         return state != null ? state : GuideNavBarState.defaultState();
     }
 

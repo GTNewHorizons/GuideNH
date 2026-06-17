@@ -20,6 +20,7 @@ import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePackWatcher;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
+import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TagAttributeRegistry;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AnchorProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AttributeNameProvider;
@@ -68,7 +69,6 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.StructureScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.SubPagesScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.TooltipScript;
 import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
-import com.hfstudio.guidenh.guide.internal.scheduler.LytHostPreheatItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
 import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
@@ -96,9 +96,14 @@ import cpw.mods.fml.relauncher.Side;
 public class ClientProxy extends CommonProxy {
 
     private static final LytHost lytHost = new LytHost();
+    private static final CompileWorker compileWorker = new CompileWorker();
 
     public static LytHost getLytHost() {
         return lytHost;
+    }
+
+    public static CompileWorker getWorker() {
+        return compileWorker;
     }
 
     private final GuideNhRuntimeBridge runtimeBridge = new GuideNhRuntimeBridge();
@@ -165,8 +170,6 @@ public class ClientProxy extends CommonProxy {
         MasterScheduler.init();
         MasterScheduler.getInstance()
             .submit(new LytHostWorkItem(lytHost));
-        MasterScheduler.getInstance()
-            .submit(new LytHostPreheatItem(lytHost));
         MasterScheduler.getInstance()
             .submit(new SearchIndexWorkItem());
 

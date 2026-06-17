@@ -81,16 +81,14 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     private final MediaWikiSpecialPageRefreshController mediaWikiRefreshController = new MediaWikiSpecialPageRefreshController();
     private static final int MAX_STRONG_RUNTIME_PAGES = 64;
     private final Map<ParsedGuidePage, GuidePage> compiledPagesWeak = Collections.synchronizedMap(new WeakHashMap<>());
-    private final LinkedHashMap<ResourceLocation, GuidePage> compiledPagesStrong = new LinkedHashMap<>(
-        64,
-        0.75f,
-        true) {
+    private final Map<ResourceLocation, GuidePage> compiledPagesStrong = Collections
+        .synchronizedMap(new LinkedHashMap<ResourceLocation, GuidePage>(64, 0.75f, true) {
 
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
-            return size() > MAX_STRONG_RUNTIME_PAGES;
-        }
-    };
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
+                return size() > MAX_STRONG_RUNTIME_PAGES;
+            }
+        });
     private final ExtensionCollection extensions;
     private final boolean availableToOpenHotkey;
     private final GuideItemSettings itemSettings;
@@ -204,6 +202,15 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         }
         compiledPage.prepareForDisplay();
         return compiledPage;
+    }
+
+    /**
+     * Returns a previously-compiled page from the internal cache, or null.
+     * Thread-safe (reads from synchronizedMap). Does NOT trigger compilation.
+     */
+    @Nullable
+    public GuidePage getCachedCompiledPage(ResourceLocation pageId) {
+        return compiledPagesStrong.get(pageId);
     }
 
     @Override

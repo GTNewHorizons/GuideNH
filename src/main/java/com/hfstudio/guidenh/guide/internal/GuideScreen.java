@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedHashMap;
@@ -87,6 +88,7 @@ import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
+import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlayRenderer;
@@ -115,6 +117,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar.ContextTarget;
+import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchResultDocumentBuilder;
@@ -140,6 +143,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
+import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
@@ -239,6 +243,22 @@ public class GuideScreen extends GuiContainer
     private static final int NON_FULL_WIDTH_MIN_SIZE = 100;
     private static final float NARROW_READING_DISABLED_RATIO = 0.0f;
     private static final String[] LOADING_DOT_SUFFIXES = { "", ".", "..", "..." };
+
+    /** Minimal document shown while waiting for background compilation. */
+    private static final LytDocument LOADING_DOCUMENT = buildLoadingDocument();
+
+    private static LytDocument buildLoadingDocument() {
+        LytDocument doc = new LytDocument();
+        LytParagraph para = new LytParagraph();
+        para.setStyle(
+            TextStyle.builder()
+                .color(SymbolicColor.GRAY)
+                .build());
+        para.appendText("Loading...");
+        doc.append(para);
+        return doc;
+    }
+
     private boolean fullWidth;
 
     private final GuideNavBar navBar = new GuideNavBar();
@@ -509,20 +529,27 @@ public class GuideScreen extends GuiContainer
         } catch (Throwable ignored) {
             navBar.setPinned(false);
         }
-        navBar.restoreState(
+        navBar.activateGuide(
+            route.guideId(),
             ClientProxy.getLytHost()
                 .getNavigation()
                 .recallNavigationState(route.guideId()),
-            bookmarkState);
-        ClientProxy.getLytHost()
-            .setPreheatCompiler(pageId -> {
-                if (guide == null) return null;
-                try {
-                    return guide.getPage(new ResourceLocation(pageId));
-                } catch (Exception e) {
-                    return null;
-                }
-            });
+            null,
+            bookmarkState,
+            route.isContent() && currentAnchor != null ? currentAnchor.pageId() : null,
+            null);
+        navBar.setOnExpansionToggled((toggledGuideId, pageId, expanded) -> {
+            if (toggledGuideId != null) {
+                updateSavedExpansionState(toggledGuideId, pageId, expanded);
+            }
+            ResourceLocation currentGuideId = guide != null ? guide.getId() : null;
+            if (!Objects.equals(currentGuideId, toggledGuideId)) {
+                rememberNavigationState();
+            }
+            if (toggledGuideId == null && currentGuideId != null) {
+                updateSavedExpansionState(null, pageId, expanded);
+            }
+        });
     }
 
     public static void open(ResourceLocation guideId, @Nullable PageAnchor anchor) {
@@ -673,6 +700,7 @@ public class GuideScreen extends GuiContainer
         scrollToCurrentAnchor();
         finalizePendingViewState();
         clampScroll();
+        expandNavigationParentsToCurrentPage();
     }
 
     private void applyRoute(GuideScreenRoute route) {
@@ -714,7 +742,6 @@ public class GuideScreen extends GuiContainer
         scrollY = 0;
         snapVisualScrollToTarget();
         loadCurrentPage();
-        expandNavigationParentsToCurrentPage();
         ensureLayout();
         scrollToCurrentAnchor();
         clampScroll();
@@ -755,10 +782,28 @@ public class GuideScreen extends GuiContainer
     }
 
     private void rememberNavigationState() {
-        if (guide == null) return;
         ClientProxy.getLytHost()
             .getNavigation()
-            .rememberNavBarState(guide.getId(), navBar.captureState());
+            .rememberNavBarState(guide != null ? guide.getId() : null, navBar.captureState());
+    }
+
+    private void updateSavedExpansionState(@Nullable ResourceLocation guideId, ResourceLocation pageId,
+        boolean expanded) {
+        GuideNavBarState saved = ClientProxy.getLytHost()
+            .getNavigation()
+            .recallNavigationState(guideId);
+        LinkedHashSet<ResourceLocation> updated = new LinkedHashSet<>(
+            saved.expandedPageIds() != null ? saved.expandedPageIds() : Collections.<ResourceLocation>emptySet());
+        if (expanded) {
+            updated.add(pageId);
+        } else {
+            updated.remove(pageId);
+        }
+        ClientProxy.getLytHost()
+            .getNavigation()
+            .rememberNavBarState(
+                guideId,
+                GuideNavBarState.create(saved.bookmarkGroupExpanded(), updated, saved.scrollY()));
     }
 
     private boolean isNavigationNewPageButtonVisible() {
@@ -1582,7 +1627,7 @@ public class GuideScreen extends GuiContainer
             }
             updateToolbarButtonState();
             if (ModConfig.debug.enableDebugMode) {
-                GuideDebugLog.infoAlways(
+                GuideDebugLog.info(
                     "[GuideNH] [GuideScreen] Saved guide editor draft for {} in {} ms (write: {} ms, parse: {} ms, stage: {} ms, reusedParsed={})",
                     currentAnchor.pageId(),
                     (System.nanoTime() - startedAt) / 1_000_000L,
@@ -2162,7 +2207,15 @@ public class GuideScreen extends GuiContainer
             }
             confirmGuideEditorDirtyBefore(() -> {
                 rememberCurrentContentStateIfEligible();
+                rememberNavigationState();
                 restoreViewState(GuideScreenViewState.home());
+                navBar.activateGuide(
+                    null,
+                    GuideNavBarState.defaultState(),
+                    resolveNavigationTree(),
+                    bookmarkState,
+                    null,
+                    null);
                 rebuildToolbar();
             });
         } else if (btn == btnGuideEditorToggle) {
@@ -2200,9 +2253,31 @@ public class GuideScreen extends GuiContainer
         }
         confirmGuideEditorDirtyBefore(() -> {
             rememberCurrentContentStateIfEligible();
+            rememberNavigationState();
             var prev = nav.navigateBack();
             if (prev != null) {
+                ResourceLocation prevGuideId = prev.route() != null ? prev.route()
+                    .guideId() : null;
+                ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
+                boolean guideChanged = !java.util.Objects.equals(oldGuideId, prevGuideId);
+                Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
                 restoreViewState(prev);
+                if (guideChanged) {
+                    navBar.activateGuide(
+                        prevGuideId,
+                        ClientProxy.getLytHost()
+                            .getNavigation()
+                            .recallNavigationState(prevGuideId),
+                        resolveNavigationTree(),
+                        bookmarkState,
+                        prev.route()
+                            .isContent()
+                            && prev.route()
+                                .anchor() != null ? prev.route()
+                                    .anchor()
+                                    .pageId() : null,
+                        carryOver);
+                }
                 rebuildToolbar();
             }
         });
@@ -2216,9 +2291,31 @@ public class GuideScreen extends GuiContainer
         }
         confirmGuideEditorDirtyBefore(() -> {
             rememberCurrentContentStateIfEligible();
+            rememberNavigationState();
             var next = nav.navigateForward();
             if (next != null) {
+                ResourceLocation nextGuideId = next.route() != null ? next.route()
+                    .guideId() : null;
+                ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
+                boolean guideChanged = !java.util.Objects.equals(oldGuideId, nextGuideId);
+                Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
                 restoreViewState(next);
+                if (guideChanged) {
+                    navBar.activateGuide(
+                        nextGuideId,
+                        ClientProxy.getLytHost()
+                            .getNavigation()
+                            .recallNavigationState(nextGuideId),
+                        resolveNavigationTree(),
+                        bookmarkState,
+                        next.route()
+                            .isContent()
+                            && next.route()
+                                .anchor() != null ? next.route()
+                                    .anchor()
+                                    .pageId() : null,
+                        carryOver);
+                }
                 rebuildToolbar();
             }
         });
@@ -2369,52 +2466,55 @@ public class GuideScreen extends GuiContainer
         int requestId = pendingPageLoadRequestId;
         String pageIdStr = currentAnchor.pageId()
             .toString();
-        LytHost lytHost = ClientProxy.getLytHost();
-        GuidePage loadedPage;
+        ResourceLocation pageId = currentAnchor.pageId();
 
-        GuidePage cachedPage = lytHost.getCachedGuidePage(pageIdStr);
-        if (cachedPage != null) {
-            loadedPage = cachedPage;
-            loadedPage.prepareForDisplay();
-        } else {
-            try {
-                loadedPage = guide.getPage(currentAnchor.pageId());
-            } catch (Throwable t) {
-                GuideDebugLog.error("Failed to compile guide page {}", currentAnchor.pageId(), t);
-                loadedPage = null;
-            }
-            if (loadedPage != null) {
-                lytHost.cachePage(pageIdStr, loadedPage);
-            }
+        // 1. Check CompileWorker cache first
+        CompileWorker worker = ClientProxy.getWorker();
+        GuidePage loadedPage = null;
+        if (worker != null) {
+            loadedPage = worker.getCompiledPage(pageId);
         }
-        if (!pageLoadInProgress || requestId != pendingPageLoadRequestId) {
+
+        // 2. Also check MutableGuide internal cache for editor/synthetic pages
+        if (loadedPage == null && guide != null) {
+            loadedPage = guide.getCachedCompiledPage(pageId);
+        }
+
+        if (loadedPage != null) {
+            // Cache hit — mount immediately
+            loadedPage.prepareForDisplay();
+            LytHost lytHost = ClientProxy.getLytHost();
+            if (!pageLoadInProgress || requestId != pendingPageLoadRequestId) return;
+            currentPage = loadedPage;
+            document = loadedPage.document();
+            invalidateScrollbarOutline();
+            lytHost.setCurrentPageId(pageIdStr);
+            lytHost.setCurrentPageCollection(guide);
+            lytHost.mountDocument(document);
+            if (document != null && isSpecialPageWithSearchField()) {
+                applySpecialPageSearchQuery(queryFromCurrentAnchor());
+            }
+            ensureLayout();
+            scrollToCurrentAnchor();
+            applyPendingRestoreScroll();
+            syncSearchFieldToCurrentRoute();
+            queuePageSceneRegistrations(loadedPage);
+            pageLoadInProgress = false;
+            refreshCurrentPageTitle();
+            updateToolbarButtonState();
             return;
         }
-        currentPage = loadedPage;
-        document = loadedPage != null ? loadedPage.document() : null;
-        invalidateScrollbarOutline();
+
+        // 3. Not yet compiled — prioritize and show loading
+        if (worker != null) {
+            worker.prioritize(pageId);
+        }
+        if (!pageLoadInProgress || requestId != pendingPageLoadRequestId) return;
+        LytHost lytHost = ClientProxy.getLytHost();
         lytHost.setCurrentPageId(pageIdStr);
         lytHost.setCurrentPageCollection(guide);
-        lytHost.mountDocument(document);
-        lytHost.requestPreheatNeighbors(pageIdStr);
-        if (document != null && isSpecialPageWithSearchField()) {
-            applySpecialPageSearchQuery(queryFromCurrentAnchor());
-        }
-        ensureLayout();
-        scrollToCurrentAnchor();
-        applyPendingRestoreScroll();
-        if (pendingRestoreViewState == null) {
-            ClientProxy.getLytHost()
-                .getNavigation()
-                .recordPageHistory(captureCurrentViewState());
-        }
-        syncSearchFieldToCurrentRoute();
-        if (loadedPage != null) {
-            queuePageSceneRegistrations(loadedPage);
-        }
-        pageLoadInProgress = false;
-        refreshCurrentPageTitle();
-        updateToolbarButtonState();
+        lytHost.mountDocument(LOADING_DOCUMENT);
+        // pageLoadInProgress stays true — retry next tick
     }
 
     /** Register scenes created at MOUNT time into GuidePage.scenes() for tick dispatch. */
@@ -2437,10 +2537,8 @@ public class GuideScreen extends GuiContainer
             }
         }
         if (found > 0) {
-            GuideDebugLog.infoAlways(
-                "[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}",
-                found,
-                list.size());
+            GuideDebugLog
+                .info("[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}", found, list.size());
         }
     }
 
@@ -5990,7 +6088,18 @@ public class GuideScreen extends GuiContainer
         confirmGuideEditorDirtyBefore(() -> {
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
             rememberCurrentContentStateIfEligible();
+            rememberNavigationState();
+            Set<ResourceLocation> carryOver = navBar.getExpandedPageIdsSnapshot();
             restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guideId, anchor), 0));
+            navBar.activateGuide(
+                guideId,
+                ClientProxy.getLytHost()
+                    .getNavigation()
+                    .recallNavigationState(guideId),
+                resolveNavigationTree(),
+                bookmarkState,
+                anchor.pageId(),
+                carryOver);
             rebuildToolbar();
         });
     }
