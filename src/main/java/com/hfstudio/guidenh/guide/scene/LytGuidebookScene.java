@@ -588,6 +588,31 @@ public class LytGuidebookScene extends LytBlock {
         this.structureLibBaseState = structureLibBaseState;
     }
 
+    public void rebindPreviewRuntimeStates() {
+        for (var entry : structureLibPreviewStates.entrySet()) {
+            StructureLibPreviewRuntimeState state = entry.getValue();
+            // Find the matching post-restore binding by key suffix
+            for (StructureLibSceneBinding binding : structureLibBindings.values()) {
+                if (entry.getKey()
+                    .endsWith("::" + binding.getBindingKey())) {
+                    state.binding = binding;
+                    if (!binding.hasRebuildRecipe() && binding.getMetadata() != null && state.baseRequest != null) {
+                        StructureLibPreviewSelection baseSelection = state.baseRequest.getPreviewSelection();
+                        binding.setRebuildRecipe(
+                            state.baseRequest.getChannel(),
+                            state.baseRequest.getSceneOptions(),
+                            0,
+                            0,
+                            0,
+                            false,
+                            baseSelection != null ? baseSelection.getIntegrationOptions() : Map.of());
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     public void registerStructureLibPreviewRuntimeState(String bindingKey, StructureLibSceneBinding binding,
         StructureLibImportRequest request) {
         if (bindingKey == null || binding == null || request == null) {
@@ -622,6 +647,9 @@ public class LytGuidebookScene extends LytBlock {
         }
         binding.applyPreviewSelection(selection);
         binding.setPendingSelection(selection);
+        if (state.buildPending) {
+            return;
+        }
         StructureLibImportRequest rebuildRequest = binding.buildRebuildRequest();
         if (rebuildRequest == null) {
             return;
@@ -4807,6 +4835,11 @@ public class LytGuidebookScene extends LytBlock {
                 state.binding.setMetadata(updatedMetadata);
                 setStructureLibSceneMetadata(state.binding.getName(), updatedMetadata);
             }
+            // Force re-capture: the initial snapshot was taken before analysis
+            // completed and has 0 channels. Without this, restoreInto() on
+            // navigation-back restores the stale 0ch snapshot.
+            initialStructureState = null;
+            captureInitialStructureStateIfAbsent();
             return true;
         }
 
@@ -4827,6 +4860,13 @@ public class LytGuidebookScene extends LytBlock {
         restoreStructureLibBaseState();
         applyImportResultToLevel(state.binding, importResult);
         bindPrimaryStructureLibState(getPrimaryStructureLibBinding());
+        // If the user dragged the slider while this build was in flight,
+        // the pending selection may differ from what was just applied.
+        // Submit a catch-up build immediately.
+        StructureLibPreviewSelection pendingSelection = state.binding.getPendingSelection();
+        if (pendingSelection != null && !pendingSelection.equals(state.binding.getPreviewSelection())) {
+            queueStructureLibSelectionBuild(state.binding, pendingSelection);
+        }
         return true;
     }
 

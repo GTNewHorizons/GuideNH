@@ -66,6 +66,7 @@ public class GuideSceneStructureCacheEntry implements Serializable {
         for (StructureLibBindingEntry entry : structureLibBindings) {
             entry.restore(scene);
         }
+        scene.rebindPreviewRuntimeStates();
     }
 
     public static class StructureLibBindingEntry implements Serializable {
