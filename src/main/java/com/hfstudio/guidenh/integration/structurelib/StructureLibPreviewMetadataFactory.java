@@ -98,25 +98,36 @@ public class StructureLibPreviewMetadataFactory {
         Map<Long, StructureLibSceneMetadata.BlockTooltipData> tooltipDataByPos = new LinkedHashMap<>(
             absoluteBlocks.size());
         Object tooltipConstructable = constructable != null ? constructable : new Object();
+        IdentityHashMap<IStructureElement<?>, StructureLibElementTooltipResolver.TooltipDetails> resolveCache = new IdentityHashMap<>();
         for (AbsolutePreviewBlock block : absoluteBlocks) {
             IStructureElement<?> visitedElement = visitedElementsByPos != null
                 ? visitedElementsByPos.get(pack(block.getX(), block.getY(), block.getZ()))
                 : null;
-            StructureLibElementTooltipResolver.TooltipDetails details = visitedElement != null
-                ? tooltipResolver.resolve(
-                    tooltipConstructable,
-                    visitedElement,
-                    world,
-                    block.getX(),
-                    block.getY(),
-                    block.getZ(),
-                    trigger,
-                    actor,
-                    contextFingerprint)
-                : StructureLibElementTooltipResolver.TooltipDetails.empty();
-            tooltipDataByPos.put(
-                StructureLibSceneMetadata.packBlockPos(block.getX() - minX, block.getY() - minY, block.getZ() - minZ),
-                createTooltipData(details));
+            if (visitedElement != null) {
+                StructureLibElementTooltipResolver.TooltipDetails details = resolveCache.get(visitedElement);
+                if (details == null) {
+                    details = tooltipResolver.resolve(
+                        tooltipConstructable,
+                        visitedElement,
+                        world,
+                        block.getX(),
+                        block.getY(),
+                        block.getZ(),
+                        trigger,
+                        actor,
+                        contextFingerprint);
+                    resolveCache.put(visitedElement, details);
+                }
+                tooltipDataByPos.put(
+                    StructureLibSceneMetadata
+                        .packBlockPos(block.getX() - minX, block.getY() - minY, block.getZ() - minZ),
+                    createTooltipData(details));
+            } else {
+                tooltipDataByPos.put(
+                    StructureLibSceneMetadata
+                        .packBlockPos(block.getX() - minX, block.getY() - minY, block.getZ() - minZ),
+                    GENERIC_TOOLTIP_DATA);
+            }
         }
         return metadata.withBlockTooltips(tooltipDataByPos);
     }

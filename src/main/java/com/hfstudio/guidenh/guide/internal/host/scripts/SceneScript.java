@@ -165,6 +165,7 @@ public class SceneScript implements LytScript {
             .put(KEY_BINDINGS, bindingStates);
         ctx.data()
             .put(KEY_STATE, STATE_COMPILE);
+
         doCompile(ph, ctx);
     }
 
@@ -401,6 +402,13 @@ public class SceneScript implements LytScript {
             formed,
             effectiveSelection.getIntegrationOptions());
 
+        // Strip survival mode for the initial metadata-only build — the fake
+        // GuidebookLevel has no real inventory, so survivalConstruct always fails
+        // and falls back to creative, wasting ~2s of the ~3s build time.
+        StructureLibPreviewSelection previewOnlySelection = effectiveSelection
+            .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, false)
+            .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION, false);
+
         StructureLibImportRequest request = new StructureLibImportRequest(
             defaultRequest.getController(),
             defaultRequest.getPiece(),
@@ -408,7 +416,7 @@ public class SceneScript implements LytScript {
             defaultRequest.getRotation(),
             defaultRequest.getFlip(),
             defaultRequest.getChannel(),
-            effectiveSelection,
+            previewOnlySelection,
             sceneOptions);
         StructureLibImportResult defaultResult = new StructureLibRuntimeFacade().buildPreviewSelection(request, null);
         if (defaultResult.isSuccess()) {

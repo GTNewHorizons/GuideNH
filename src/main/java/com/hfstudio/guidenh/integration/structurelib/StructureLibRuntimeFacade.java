@@ -474,16 +474,16 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             context.resetPreviewState();
             return BuildSnapshot.failure("StructureLib preview did not place any blocks.");
         }
-        BuildSnapshot snapshot = BuildSnapshot.success(
+        String fingerprint = buildFingerprint(snapshotBlocks.blocks);
+        return BuildSnapshot.success(
             snapshotBlocks.blocks,
             snapshotBlocks.absoluteBlocks,
             prepared.visitedElementsByPos,
-            buildFingerprint(snapshotBlocks.blocks),
+            fingerprint,
             prepared.world,
             prepared.triggerStack,
             prepared.constructable,
             prepared.actor);
-        return snapshot;
     }
 
     public static BuildSnapshot getOrCreateAnalysisSnapshot(StructureLibImportRequest request,
