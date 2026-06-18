@@ -52,6 +52,7 @@ public class LytHost {
     public void mountDocument(@Nullable LytDocument newDoc) {
         if (this.document != null && this.document != newDoc) {
             this.document.setLive(false); // onDetach cascade on old doc
+            taskQueue.clear();
         }
         this.document = newDoc;
         if (newDoc != null) {

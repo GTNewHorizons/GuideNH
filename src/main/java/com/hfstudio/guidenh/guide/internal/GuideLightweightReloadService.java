@@ -68,6 +68,8 @@ public class GuideLightweightReloadService {
         StructureLibElementTooltipResolver.HATCH_CANDIDATE_CACHE.clear();
         ClientProxy.getLytHost()
             .clearPageCaches();
+        ClientProxy.getStructureLibPreviewWorker()
+            .reset();
 
         long stageStartedAt = System.nanoTime();
         GuideRegistry.setDataDriven(DataDrivenGuideLoader.load(activeResourcePacks));
@@ -113,6 +115,8 @@ public class GuideLightweightReloadService {
         if (!allPageIds.isEmpty()) {
             worker.reset(allPageIds);
         }
+        ClientProxy.getStructureLibPreviewBootstrap()
+            .scheduleReloadPrewarm();
         long registryUpdateNs = System.nanoTime() - stageStartedAt;
 
         stageStartedAt = System.nanoTime();

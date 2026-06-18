@@ -30,6 +30,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportServ
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public class ImportStructureLibElementCompiler implements SceneElementTagCompiler {
 
@@ -67,13 +68,15 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
             return;
         }
 
-        int requestedChannel = MdxAttrs.getInt(compiler, errorSink, el, "channel", Integer.MIN_VALUE);
         int offsetX = MdxAttrs.getInt(compiler, errorSink, el, "offsetX", 0);
         int offsetY = MdxAttrs.getInt(compiler, errorSink, el, "offsetY", 0);
         int offsetZ = MdxAttrs.getInt(compiler, errorSink, el, "offsetZ", 0);
-        StructureLibSceneOptions childOptions = StructureLibSceneOptionParser.parseChildren(compiler, errorSink, el);
-        StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser.parseAttributes(compiler, errorSink, el);
-        StructureLibSceneOptions sceneOptions = legacyOptions.merge(childOptions);
+        StructureLibImportRequest defaultRequest = buildDefaultPreviewRequest(compiler, errorSink, el);
+        if (defaultRequest == null) {
+            errorSink.appendError(compiler, "Missing controller attribute.", el);
+            return;
+        }
+        StructureLibSceneOptions sceneOptions = defaultRequest.getSceneOptions();
         boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
         String structureName = MdxAttrs.getString(compiler, errorSink, el, "name", null);
         StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
@@ -82,25 +85,22 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
             : scene.getPendingStructureLibPreviewSelection(structureName) != null
                 ? scene.getPendingStructureLibPreviewSelection(structureName)
                 : scene.getPendingStructureLibPreviewSelection();
-        StructureLibPreviewSelection defaultSelection = sceneOptions
-            .createSelection(requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel));
+        StructureLibPreviewSelection defaultSelection = defaultRequest.getPreviewSelection();
         StructureLibPreviewSelection selection = selectionOverride != null
             ? mergePersistentOptions(selectionOverride, defaultSelection, sceneOptions)
             : defaultSelection;
         StructureLibImportRequest request = new StructureLibImportRequest(
-            controller,
-            MdxAttrs.getString(compiler, errorSink, el, "piece", null),
-            StructureLibSceneOptions
-                .resolveFacing(MdxAttrs.getString(compiler, errorSink, el, "facing", null), sceneOptions),
-            StructureLibSceneOptions
-                .resolveRotation(MdxAttrs.getString(compiler, errorSink, el, "rotation", null), sceneOptions),
-            StructureLibSceneOptions
-                .resolveFlip(MdxAttrs.getString(compiler, errorSink, el, "flip", null), sceneOptions),
-            Integer.valueOf(selection.getMasterTier()),
+            defaultRequest.getController(),
+            defaultRequest.getPiece(),
+            defaultRequest.getFacing(),
+            defaultRequest.getRotation(),
+            defaultRequest.getFlip(),
+            defaultRequest.getChannel(),
             applyControllerDefaults(controller, selection, sceneOptions),
             sceneOptions);
         scene.setPendingStructureLibPreviewSelection(structureName, request.getPreviewSelection());
         binding.setRebuildRecipe(
+            defaultRequest.getChannel(),
             sceneOptions,
             offsetX,
             offsetY,
@@ -173,6 +173,40 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         return "StructureLib import failed for controller: " + controller;
     }
 
+    @Nullable
+    public static StructureLibImportRequest buildDefaultPreviewRequest(MdxJsxElementFields el) {
+        return buildDefaultPreviewRequest(null, NoopErrorSink.INSTANCE, el);
+    }
+
+    @Nullable
+    public static StructureLibImportRequest buildDefaultPreviewRequest(@Nullable PageCompiler compiler,
+        LytErrorSink errorSink, MdxJsxElementFields el) {
+        String controller = MdxAttrs.getString(compiler, errorSink, el, "controller", null);
+        if (controller == null || controller.trim()
+            .isEmpty()) {
+            return null;
+        }
+        int requestedChannel = MdxAttrs.getInt(compiler, errorSink, el, "channel", Integer.MIN_VALUE);
+        StructureLibSceneOptions childOptions = StructureLibSceneOptionParser.parseChildren(compiler, errorSink, el);
+        StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser.parseAttributes(compiler, errorSink, el);
+        StructureLibSceneOptions sceneOptions = legacyOptions.merge(childOptions);
+        StructureLibPreviewSelection defaultSelection = sceneOptions
+            .createSelection(requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel));
+        StructureLibPreviewSelection selection = applyControllerDefaults(controller, defaultSelection, sceneOptions);
+        return new StructureLibImportRequest(
+            controller,
+            MdxAttrs.getString(compiler, errorSink, el, "piece", null),
+            StructureLibSceneOptions
+                .resolveFacing(MdxAttrs.getString(compiler, errorSink, el, "facing", null), sceneOptions),
+            StructureLibSceneOptions
+                .resolveRotation(MdxAttrs.getString(compiler, errorSink, el, "rotation", null), sceneOptions),
+            StructureLibSceneOptions
+                .resolveFlip(MdxAttrs.getString(compiler, errorSink, el, "flip", null), sceneOptions),
+            requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel),
+            selection,
+            sceneOptions);
+    }
+
     public static StructureLibPreviewSelection mergePersistentOptions(StructureLibPreviewSelection selection,
         StructureLibPreviewSelection defaults, StructureLibSceneOptions options) {
         StructureLibPreviewSelection merged = new StructureLibPreviewSelection(
@@ -217,5 +251,13 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
             }
         } catch (Throwable ignored) {}
         return result;
+    }
+
+    private static class NoopErrorSink implements LytErrorSink {
+
+        private static final NoopErrorSink INSTANCE = new NoopErrorSink();
+
+        @Override
+        public void appendError(PageCompiler compiler, String text, UnistNode node) {}
     }
 }
