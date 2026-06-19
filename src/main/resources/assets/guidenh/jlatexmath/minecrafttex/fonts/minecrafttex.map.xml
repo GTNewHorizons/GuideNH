@@ -115,6 +115,7 @@
   <SymbolMapping name="nu" ch="957" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="o" ch="248" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="oe" ch="339" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
+  <SymbolMapping name="oint" ch="8750" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="omega" ch="969" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="omicron" ch="959" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="owns" ch="8715" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />

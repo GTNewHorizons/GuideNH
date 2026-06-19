@@ -4,9 +4,13 @@ import org.scilab.forge.jlatexmath.Char;
 import org.scilab.forge.jlatexmath.CharFont;
 import org.scilab.forge.jlatexmath.DefaultTeXFont;
 import org.scilab.forge.jlatexmath.Extension;
+import org.scilab.forge.jlatexmath.TeXConstants;
 import org.scilab.forge.jlatexmath.TeXFont;
 
 public class GuideLatexTeXFont implements TeXFont {
+
+    private static final String CONTOUR_INTEGRAL_SYMBOL = "oint";
+    private static final int CONTOUR_INTEGRAL_DISPLAY_EXTRA_STEPS = 0;
 
     private final DefaultTeXFont delegate;
 
@@ -73,7 +77,12 @@ public class GuideLatexTeXFont implements TeXFont {
 
     @Override
     public Char getChar(String symbolName, int style) {
-        return delegate.getChar(symbolName, style);
+        Char c = delegate.getChar(symbolName, style);
+        if (GuideLatexFontBootstrap.isInstalled() && CONTOUR_INTEGRAL_SYMBOL.equals(symbolName)
+            && style < TeXConstants.STYLE_TEXT) {
+            return promoteNextLarger(c, style, CONTOUR_INTEGRAL_DISPLAY_EXTRA_STEPS);
+        }
+        return c;
     }
 
     @Override
@@ -287,5 +296,13 @@ public class GuideLatexTeXFont implements TeXFont {
             case "mathbf" -> GuideLatexFontBootstrap.BOLD_TEXT_STYLE_NAME;
             default -> textStyle;
         };
+    }
+
+    private Char promoteNextLarger(Char c, int style, int steps) {
+        Char current = c;
+        for (int i = 0; i < steps && delegate.hasNextLarger(current); i++) {
+            current = delegate.getNextLarger(current, style);
+        }
+        return current;
     }
 }

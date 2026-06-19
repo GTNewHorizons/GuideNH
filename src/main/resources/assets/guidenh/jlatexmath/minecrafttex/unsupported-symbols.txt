@@ -267,7 +267,6 @@ odot
 og
 ogonek
 ogreaterthan
-oint
 olessthan
 ominus
 oplus
