@@ -18,7 +18,8 @@ public class GuideLatexIconFactory {
     public static TeXIcon createIcon(TeXFormula formula, int style, float size, Color foregroundColor) {
         GuideLatexFontBootstrap.ensureInstalled();
 
-        var font = new GuideLatexTeXFont(new DefaultTeXFont(size));
+        var baseFont = new DefaultTeXFont(size);
+        var font = GuideLatexFontBootstrap.isMinecraftTexActive() ? new GuideLatexTeXFont(baseFont) : baseFont;
         var environment = new TeXEnvironment(style, font);
         Box box = formula.root == null ? new HorizontalBox() : formula.root.createBox(environment);
         TeXIcon icon = new GuideNhTeXIconBridge(box, size);

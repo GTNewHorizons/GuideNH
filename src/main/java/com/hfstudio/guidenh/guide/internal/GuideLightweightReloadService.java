@@ -27,6 +27,8 @@ import com.hfstudio.guidenh.guide.internal.recipe.NeiAnimationTicker;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.latex.GuideLatexFontBootstrap;
+import com.hfstudio.guidenh.guide.latex.GuideLatexRenderer;
 import com.hfstudio.guidenh.guide.latex.GuideLatexTextureCache;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiTranslationStats;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
@@ -58,6 +60,8 @@ public class GuideLightweightReloadService {
         GuideResourceAccess.clearCache();
         GuidePageLanguageIndex.clear();
         GuideResourceLanguageIndex.clear();
+        GuideLatexFontBootstrap.reloadFromConfig();
+        GuideLatexRenderer.INSTANCE.clearCaches();
         GuideLatexTextureCache.INSTANCE.clearAll();
         GuideSceneStructureCache.global()
             .clear();

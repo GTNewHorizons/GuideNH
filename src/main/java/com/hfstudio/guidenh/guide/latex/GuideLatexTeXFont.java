@@ -69,7 +69,7 @@ public class GuideLatexTeXFont implements TeXFont {
 
     @Override
     public Char getChar(char c, String textStyle, int style) {
-        if (GuideLatexFontBootstrap.isInstalled()) {
+        if (GuideLatexFontBootstrap.isMinecraftTexActive()) {
             return delegate.getChar(c, resolveGuideTextStyle(textStyle), style);
         }
         return delegate.getChar(c, textStyle, style);
@@ -78,7 +78,7 @@ public class GuideLatexTeXFont implements TeXFont {
     @Override
     public Char getChar(String symbolName, int style) {
         Char c = delegate.getChar(symbolName, style);
-        if (GuideLatexFontBootstrap.isInstalled() && CONTOUR_INTEGRAL_SYMBOL.equals(symbolName)
+        if (GuideLatexFontBootstrap.isMinecraftTexActive() && CONTOUR_INTEGRAL_SYMBOL.equals(symbolName)
             && style < TeXConstants.STYLE_TEXT) {
             return promoteNextLarger(c, style, CONTOUR_INTEGRAL_DISPLAY_EXTRA_STEPS);
         }
@@ -92,7 +92,7 @@ public class GuideLatexTeXFont implements TeXFont {
 
     @Override
     public Char getDefaultChar(char c, int style) {
-        if (GuideLatexFontBootstrap.isInstalled()) {
+        if (GuideLatexFontBootstrap.isMinecraftTexActive()) {
             return delegate.getChar(c, GuideLatexFontBootstrap.TEXT_STYLE_NAME, style);
         }
         return delegate.getDefaultChar(c, style);

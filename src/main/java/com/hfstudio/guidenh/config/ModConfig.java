@@ -3,7 +3,9 @@ package com.hfstudio.guidenh.config;
 import com.gtnewhorizon.gtnhlib.config.Config;
 import com.gtnewhorizon.gtnhlib.config.Config.Comment;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultBoolean;
+import com.gtnewhorizon.gtnhlib.config.Config.DefaultEnum;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultFloat;
+import com.gtnewhorizon.gtnhlib.config.Config.DefaultString;
 import com.gtnewhorizon.gtnhlib.config.Config.RangeFloat;
 import com.gtnewhorizon.gtnhlib.config.Config.RequiresMcRestart;
 import com.gtnewhorizon.gtnhlib.config.Config.Sync;
@@ -57,6 +59,18 @@ public class ModConfig {
         @DefaultFloat(1.0f)
         @RangeFloat(min = 0.5f, max = 3.0f)
         public float contentZoom = 1.0f;
+
+        @Comment("LaTeX font mode used by GuideNH. MinecraftTeX uses the bundled GuideNH math font, JLaTeX uses the "
+            + "upstream JLaTeXMath fonts, ModFont uses Angelica or SmoothFont system font settings over JLaTeX, "
+            + "ModFontMinecraftTeX uses those mod font settings over MinecraftTeX, and Custom uses the configured "
+            + "custom font name. Reload resources after changing this option.")
+        @DefaultEnum("MinecraftTeX")
+        public LatexFontMode latexFontMode = LatexFontMode.MinecraftTeX;
+
+        @Comment("Custom system font family used when LaTeX Font Mode is Custom. Empty values fall back to the "
+            + "upstream JLaTeXMath fonts. Reload resources after changing this option.")
+        @DefaultString("")
+        public String latexCustomFontName = "";
 
         @Comment("Whether clicking external links in guide markdown should show a confirmation dialog first. "
             + "When false, external links open immediately. Default: true.")

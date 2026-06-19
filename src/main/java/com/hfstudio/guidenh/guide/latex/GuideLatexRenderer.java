@@ -74,6 +74,10 @@ public class GuideLatexRenderer {
         }
     }
 
+    public void clearCaches() {
+        refHeightCache.clear();
+    }
+
     /**
      * Returns the pixel dimensions {@code [widthPx, heightPx, depthPx]} of {@code formula} rendered at
      * {@code sourceScale}, or {@code null} if the formula is invalid/failed.
@@ -107,9 +111,10 @@ public class GuideLatexRenderer {
         }
 
         try {
-            TeXFormula texFormula = new TeXFormula(formula);
-            TeXIcon icon = GuideLatexIconFactory
-                .createDisplayIcon(texFormula, sourceScale, new Color(fillColorArgb, true));
+            TeXIcon icon = GuideLatexExternalFonts.withProfile(GuideLatexFontBootstrap.activeProfile(), () -> {
+                TeXFormula texFormula = new TeXFormula(formula);
+                return GuideLatexIconFactory.createDisplayIcon(texFormula, sourceScale, new Color(fillColorArgb, true));
+            });
             icon.setInsets(new Insets(2, 2, 2, 2));
             int w = icon.getIconWidth();
             int h = icon.getIconHeight();
@@ -152,9 +157,10 @@ public class GuideLatexRenderer {
         }
 
         try {
-            TeXFormula texFormula = new TeXFormula(formula);
-            TeXIcon icon = GuideLatexIconFactory
-                .createDisplayIcon(texFormula, sourceScale, new Color(fillColorArgb, true));
+            TeXIcon icon = GuideLatexExternalFonts.withProfile(GuideLatexFontBootstrap.activeProfile(), () -> {
+                TeXFormula texFormula = new TeXFormula(formula);
+                return GuideLatexIconFactory.createDisplayIcon(texFormula, sourceScale, new Color(fillColorArgb, true));
+            });
             icon.setInsets(new Insets(2, 2, 2, 2));
             icon.setForeground(new Color(fillColorArgb, true));
 

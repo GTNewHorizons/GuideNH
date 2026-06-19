@@ -972,7 +972,7 @@
    </Char>
    <Char code="8722" width="0.6" height="0.42" italic="0.08" />
    <Char code="8723" width="0.6" height="0.72" depth="0.02" italic="0.08" />
-   <Char code="8730" width="0.6" height="0.13" depth="0.61" italic="0.08" >
+   <Char code="8730" width="0.6" height="0.12" depth="0.62" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57486"/>
    </Char>
    <Char code="8731" width="0.8" height="0.72" depth="0.02" italic="0.08" />
@@ -1580,55 +1580,55 @@
    <Char code="57483" width="0.5" height="0.3" italic="0.08" />
    <Char code="57484" width="0.5" height="0.1" italic="0.08" />
    <Char code="57485" width="0.5" height="0.1" italic="0.08" />
-   <Char code="57486" width="0.6" height="0.13" depth="0.81" italic="0.08" >
+   <Char code="57486" width="0.6" height="0.12" depth="0.82" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57487"/>
    </Char>
-   <Char code="57487" width="0.6" height="0.13" depth="1.01" italic="0.08" >
+   <Char code="57487" width="0.6" height="0.12" depth="1.02" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57488"/>
    </Char>
-   <Char code="57488" width="0.6" height="0.13" depth="1.21" italic="0.08" >
+   <Char code="57488" width="0.6" height="0.12" depth="1.22" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57489"/>
    </Char>
-   <Char code="57489" width="0.6" height="0.13" depth="1.41" italic="0.08" >
+   <Char code="57489" width="0.6" height="0.12" depth="1.42" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57490"/>
    </Char>
-   <Char code="57490" width="0.6" height="0.13" depth="1.61" italic="0.08" >
+   <Char code="57490" width="0.6" height="0.12" depth="1.62" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57491"/>
    </Char>
-   <Char code="57491" width="0.6" height="0.13" depth="1.81" italic="0.08" >
+   <Char code="57491" width="0.6" height="0.12" depth="1.82" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57492"/>
    </Char>
-   <Char code="57492" width="0.6" height="0.13" depth="2.01" italic="0.08" >
+   <Char code="57492" width="0.6" height="0.12" depth="2.02" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57493"/>
    </Char>
-   <Char code="57493" width="0.6" height="0.13" depth="2.21" italic="0.08" >
+   <Char code="57493" width="0.6" height="0.12" depth="2.22" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57494"/>
    </Char>
-   <Char code="57494" width="0.6" height="0.13" depth="2.41" italic="0.08" >
+   <Char code="57494" width="0.6" height="0.12" depth="2.42" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57495"/>
    </Char>
-   <Char code="57495" width="0.6" height="0.13" depth="3.01" italic="0.08" >
+   <Char code="57495" width="0.6" height="0.12" depth="3.02" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57496"/>
    </Char>
-   <Char code="57496" width="0.6" height="0.13" depth="3.61" italic="0.08" >
+   <Char code="57496" width="0.6" height="0.12" depth="3.62" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57497"/>
    </Char>
-   <Char code="57497" width="0.6" height="0.13" depth="4.21" italic="0.08" >
+   <Char code="57497" width="0.6" height="0.12" depth="4.22" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57498"/>
    </Char>
-   <Char code="57498" width="0.6" height="0.13" depth="5.01" italic="0.08" >
+   <Char code="57498" width="0.6" height="0.12" depth="5.02" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57499"/>
    </Char>
-   <Char code="57499" width="0.6" height="0.13" depth="6.01" italic="0.08" >
+   <Char code="57499" width="0.6" height="0.12" depth="6.02" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57500"/>
    </Char>
-   <Char code="57500" width="0.6" height="0.13" depth="7.21" italic="0.08" >
+   <Char code="57500" width="0.6" height="0.12" depth="7.22" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57501"/>
    </Char>
-   <Char code="57501" width="0.6" height="0.13" depth="8.61" italic="0.08" >
+   <Char code="57501" width="0.6" height="0.12" depth="8.62" italic="0.08" >
      <NextLarger fontId="guidenh_minecrafttex_bi10" code="57502"/>
    </Char>
-   <Char code="57502" width="0.6" height="0.13" depth="10.01" italic="0.08" >
+   <Char code="57502" width="0.6" height="0.12" depth="10.02" italic="0.08" >
      <Extension top="57505" rep="57504" bot="57503" />
    </Char>
    <Char code="57503" width="0.6" height="0.3" italic="0.08" />

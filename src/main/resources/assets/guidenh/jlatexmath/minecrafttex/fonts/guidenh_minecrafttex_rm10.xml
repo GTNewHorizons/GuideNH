@@ -972,7 +972,7 @@
    </Char>
    <Char code="8722" width="0.6" height="0.4" />
    <Char code="8723" width="0.6" height="0.7" />
-   <Char code="8730" width="0.6" height="0.13" depth="0.57" >
+   <Char code="8730" width="0.6" height="0.12" depth="0.58" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57486"/>
    </Char>
    <Char code="8731" width="0.8" height="0.7" />
@@ -1580,55 +1580,55 @@
    <Char code="57483" width="0.5" height="0.3" />
    <Char code="57484" width="0.5" height="0.1" />
    <Char code="57485" width="0.5" height="0.1" />
-   <Char code="57486" width="0.6" height="0.13" depth="0.77" >
+   <Char code="57486" width="0.6" height="0.12" depth="0.78" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57487"/>
    </Char>
-   <Char code="57487" width="0.6" height="0.13" depth="0.97" >
+   <Char code="57487" width="0.6" height="0.12" depth="0.98" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57488"/>
    </Char>
-   <Char code="57488" width="0.6" height="0.13" depth="1.17" >
+   <Char code="57488" width="0.6" height="0.12" depth="1.18" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57489"/>
    </Char>
-   <Char code="57489" width="0.6" height="0.13" depth="1.37" >
+   <Char code="57489" width="0.6" height="0.12" depth="1.38" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57490"/>
    </Char>
-   <Char code="57490" width="0.6" height="0.13" depth="1.57" >
+   <Char code="57490" width="0.6" height="0.12" depth="1.58" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57491"/>
    </Char>
-   <Char code="57491" width="0.6" height="0.13" depth="1.77" >
+   <Char code="57491" width="0.6" height="0.12" depth="1.78" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57492"/>
    </Char>
-   <Char code="57492" width="0.6" height="0.13" depth="1.97" >
+   <Char code="57492" width="0.6" height="0.12" depth="1.98" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57493"/>
    </Char>
-   <Char code="57493" width="0.6" height="0.13" depth="2.17" >
+   <Char code="57493" width="0.6" height="0.12" depth="2.18" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57494"/>
    </Char>
-   <Char code="57494" width="0.6" height="0.13" depth="2.37" >
+   <Char code="57494" width="0.6" height="0.12" depth="2.38" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57495"/>
    </Char>
-   <Char code="57495" width="0.6" height="0.13" depth="2.97" >
+   <Char code="57495" width="0.6" height="0.12" depth="2.98" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57496"/>
    </Char>
-   <Char code="57496" width="0.6" height="0.13" depth="3.57" >
+   <Char code="57496" width="0.6" height="0.12" depth="3.58" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57497"/>
    </Char>
-   <Char code="57497" width="0.6" height="0.13" depth="4.17" >
+   <Char code="57497" width="0.6" height="0.12" depth="4.18" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57498"/>
    </Char>
-   <Char code="57498" width="0.6" height="0.13" depth="4.97" >
+   <Char code="57498" width="0.6" height="0.12" depth="4.98" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57499"/>
    </Char>
-   <Char code="57499" width="0.6" height="0.13" depth="5.97" >
+   <Char code="57499" width="0.6" height="0.12" depth="5.98" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57500"/>
    </Char>
-   <Char code="57500" width="0.6" height="0.13" depth="7.17" >
+   <Char code="57500" width="0.6" height="0.12" depth="7.18" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57501"/>
    </Char>
-   <Char code="57501" width="0.6" height="0.13" depth="8.57" >
+   <Char code="57501" width="0.6" height="0.12" depth="8.58" >
      <NextLarger fontId="guidenh_minecrafttex_rm10" code="57502"/>
    </Char>
-   <Char code="57502" width="0.6" height="0.13" depth="9.97" >
+   <Char code="57502" width="0.6" height="0.12" depth="9.98" >
      <Extension top="57505" rep="57504" bot="57503" />
    </Char>
    <Char code="57503" width="0.6" height="0.3" />
