@@ -250,6 +250,8 @@ public class LytGuidebookScene extends LytBlock {
     private boolean sceneButtonsVisible = true;
     private boolean bottomControlsVisible = true;
     private boolean isLoading;
+    private long loadingRequestedAt;
+    private static final int LOADING_DEBOUNCE_MS = 200;
     private boolean loadFailed;
     private float loadProgress;
     private String loadStatusText = "";
@@ -1622,10 +1624,13 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public boolean isLoading() {
-        return isLoading;
+        return isLoading && (System.nanoTime() - loadingRequestedAt) / 1_000_000L >= LOADING_DEBOUNCE_MS;
     }
 
     public void setLoading(boolean loading) {
+        if (loading) {
+            this.loadingRequestedAt = System.nanoTime();
+        }
         this.isLoading = loading;
         if (loading) {
             this.loadFailed = false;
@@ -1645,7 +1650,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void setLoadFailure(String message) {
-        this.isLoading = true;
+        setLoading(true);
         this.loadFailed = true;
         this.loadProgress = 0f;
         this.loadStatusText = message != null && !message.trim()
@@ -6859,7 +6864,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void drawLoadProgressOverlay(RenderContext context, LytRect sceneRect) {
-        if (!isLoading || sceneRect.isEmpty()) return;
+        if (!isLoading() || sceneRect.isEmpty()) return;
 
         int barWidth = Math.max(24, sceneRect.width() * 3 / 5);
         int barX = sceneRect.x() + (sceneRect.width() - barWidth) / 2;
