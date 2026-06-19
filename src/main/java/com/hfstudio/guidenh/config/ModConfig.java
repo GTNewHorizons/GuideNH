@@ -64,8 +64,8 @@ public class ModConfig {
             + "upstream JLaTeXMath fonts, ModFont uses Angelica or SmoothFont system font settings over JLaTeX, "
             + "ModFontMinecraftTeX uses those mod font settings over MinecraftTeX, and Custom uses the configured "
             + "custom font name. Reload resources after changing this option.")
-        @DefaultEnum("MinecraftTeX")
-        public LatexFontMode latexFontMode = LatexFontMode.MinecraftTeX;
+        @DefaultEnum("ModFontMinecraftTeX")
+        public LatexFontMode latexFontMode = LatexFontMode.ModFontMinecraftTeX;
 
         @Comment("Custom system font family used when LaTeX Font Mode is Custom. Empty values fall back to the "
             + "upstream JLaTeXMath fonts. Reload resources after changing this option.")
