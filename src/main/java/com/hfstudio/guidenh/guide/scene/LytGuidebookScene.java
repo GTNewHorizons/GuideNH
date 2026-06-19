@@ -4423,8 +4423,16 @@ public class LytGuidebookScene extends LytBlock {
             }
         } else {
             if (isPanButton(dragButton)) {
-                camera.setOffsetX(camera.getOffsetX() + dx);
-                camera.setOffsetY(camera.getOffsetY() - dy);
+                // Standard orbit camera pan: move target along camera right/up in world space.
+                // Screen (dx, dy) → world delta = R⁻¹ · (dx/s, -dy/s, 0)
+                float s = 10.0f * camera.getZoom();
+                org.joml.Vector3f delta = new org.joml.Vector3f(-dx / s, dy / s, 0);
+                new org.joml.Matrix4f().rotateY((float) Math.toRadians(-camera.getRotationY()))
+                    .rotateX((float) Math.toRadians(-camera.getRotationX()))
+                    .rotateZ((float) Math.toRadians(-camera.getRotationZ()))
+                    .transformPosition(delta);
+                var rc = camera.getRotationCenter();
+                camera.setRotationCenter(rc.x() + delta.x, rc.y() + delta.y, rc.z() + delta.z);
             } else if (isRotateButton(dragButton)) {
                 camera.setRotationY(camera.getRotationY() + dx * DRAG_ROTATE_SENSITIVITY);
                 camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
@@ -4434,6 +4442,14 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void endDrag() {
+        // Standard orbit camera: pan and rotate are orthogonal. No consolidation needed.
+        // Zero any residual offset from initialization.
+        if (camera.getOffsetX() != 0f || camera.getOffsetY() != 0f) {
+            camera.setOffsetX(0);
+            camera.setOffsetY(0);
+            visualCamOffX.snapTo(0);
+            visualCamOffY.snapTo(0);
+        }
         this.dragButton = -1;
         this.draggingVisibleLayerSlider = false;
         this.draggingStructureLibTierSlider = false;
