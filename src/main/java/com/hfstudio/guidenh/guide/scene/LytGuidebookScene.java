@@ -250,6 +250,8 @@ public class LytGuidebookScene extends LytBlock {
     private boolean sceneButtonsVisible = true;
     private boolean bottomControlsVisible = true;
     private boolean isLoading;
+    private long loadingRequestedAt;
+    private static final int LOADING_DEBOUNCE_MS = 200;
     private boolean loadFailed;
     private float loadProgress;
     private String loadStatusText = "";
@@ -588,6 +590,31 @@ public class LytGuidebookScene extends LytBlock {
         this.structureLibBaseState = structureLibBaseState;
     }
 
+    public void rebindPreviewRuntimeStates() {
+        for (var entry : structureLibPreviewStates.entrySet()) {
+            StructureLibPreviewRuntimeState state = entry.getValue();
+            // Find the matching post-restore binding by key suffix
+            for (StructureLibSceneBinding binding : structureLibBindings.values()) {
+                if (entry.getKey()
+                    .endsWith("::" + binding.getBindingKey())) {
+                    state.binding = binding;
+                    if (!binding.hasRebuildRecipe() && binding.getMetadata() != null && state.baseRequest != null) {
+                        StructureLibPreviewSelection baseSelection = state.baseRequest.getPreviewSelection();
+                        binding.setRebuildRecipe(
+                            state.baseRequest.getChannel(),
+                            state.baseRequest.getSceneOptions(),
+                            0,
+                            0,
+                            0,
+                            false,
+                            baseSelection != null ? baseSelection.getIntegrationOptions() : Map.of());
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     public void registerStructureLibPreviewRuntimeState(String bindingKey, StructureLibSceneBinding binding,
         StructureLibImportRequest request) {
         if (bindingKey == null || binding == null || request == null) {
@@ -622,6 +649,9 @@ public class LytGuidebookScene extends LytBlock {
         }
         binding.applyPreviewSelection(selection);
         binding.setPendingSelection(selection);
+        if (state.buildPending) {
+            return;
+        }
         StructureLibImportRequest rebuildRequest = binding.buildRebuildRequest();
         if (rebuildRequest == null) {
             return;
@@ -1594,10 +1624,13 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public boolean isLoading() {
-        return isLoading;
+        return isLoading && (System.nanoTime() - loadingRequestedAt) / 1_000_000L >= LOADING_DEBOUNCE_MS;
     }
 
     public void setLoading(boolean loading) {
+        if (loading) {
+            this.loadingRequestedAt = System.nanoTime();
+        }
         this.isLoading = loading;
         if (loading) {
             this.loadFailed = false;
@@ -1617,7 +1650,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void setLoadFailure(String message) {
-        this.isLoading = true;
+        setLoading(true);
         this.loadFailed = true;
         this.loadProgress = 0f;
         this.loadStatusText = message != null && !message.trim()
@@ -4390,8 +4423,16 @@ public class LytGuidebookScene extends LytBlock {
             }
         } else {
             if (isPanButton(dragButton)) {
-                camera.setOffsetX(camera.getOffsetX() + dx);
-                camera.setOffsetY(camera.getOffsetY() - dy);
+                // Standard orbit camera pan: move target along camera right/up in world space.
+                // Screen (dx, dy) → world delta = R⁻¹ · (dx/s, -dy/s, 0)
+                float s = 10.0f * camera.getZoom();
+                org.joml.Vector3f delta = new org.joml.Vector3f(-dx / s, dy / s, 0);
+                new org.joml.Matrix4f().rotateY((float) Math.toRadians(-camera.getRotationY()))
+                    .rotateX((float) Math.toRadians(-camera.getRotationX()))
+                    .rotateZ((float) Math.toRadians(-camera.getRotationZ()))
+                    .transformPosition(delta);
+                var rc = camera.getRotationCenter();
+                camera.setRotationCenter(rc.x() + delta.x, rc.y() + delta.y, rc.z() + delta.z);
             } else if (isRotateButton(dragButton)) {
                 camera.setRotationY(camera.getRotationY() + dx * DRAG_ROTATE_SENSITIVITY);
                 camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
@@ -4401,6 +4442,14 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void endDrag() {
+        // Standard orbit camera: pan and rotate are orthogonal. No consolidation needed.
+        // Zero any residual offset from initialization.
+        if (camera.getOffsetX() != 0f || camera.getOffsetY() != 0f) {
+            camera.setOffsetX(0);
+            camera.setOffsetY(0);
+            visualCamOffX.snapTo(0);
+            visualCamOffY.snapTo(0);
+        }
         this.dragButton = -1;
         this.draggingVisibleLayerSlider = false;
         this.draggingStructureLibTierSlider = false;
@@ -4807,6 +4856,11 @@ public class LytGuidebookScene extends LytBlock {
                 state.binding.setMetadata(updatedMetadata);
                 setStructureLibSceneMetadata(state.binding.getName(), updatedMetadata);
             }
+            // Force re-capture: the initial snapshot was taken before analysis
+            // completed and has 0 channels. Without this, restoreInto() on
+            // navigation-back restores the stale 0ch snapshot.
+            initialStructureState = null;
+            captureInitialStructureStateIfAbsent();
             return true;
         }
 
@@ -4827,6 +4881,13 @@ public class LytGuidebookScene extends LytBlock {
         restoreStructureLibBaseState();
         applyImportResultToLevel(state.binding, importResult);
         bindPrimaryStructureLibState(getPrimaryStructureLibBinding());
+        // If the user dragged the slider while this build was in flight,
+        // the pending selection may differ from what was just applied.
+        // Submit a catch-up build immediately.
+        StructureLibPreviewSelection pendingSelection = state.binding.getPendingSelection();
+        if (pendingSelection != null && !pendingSelection.equals(state.binding.getPreviewSelection())) {
+            queueStructureLibSelectionBuild(state.binding, pendingSelection);
+        }
         return true;
     }
 
@@ -6819,7 +6880,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void drawLoadProgressOverlay(RenderContext context, LytRect sceneRect) {
-        if (!isLoading || sceneRect.isEmpty()) return;
+        if (!isLoading() || sceneRect.isEmpty()) return;
 
         int barWidth = Math.max(24, sceneRect.width() * 3 / 5);
         int barX = sceneRect.x() + (sceneRect.width() - barWidth) / 2;

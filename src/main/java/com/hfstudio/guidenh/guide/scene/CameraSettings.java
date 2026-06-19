@@ -173,9 +173,10 @@ public class CameraSettings {
     public Matrix4f getViewMatrix() {
         if (viewDirty) {
             viewDirty = false;
+            // Standard orbit camera with optional screen-space offset.
+            // V = T(offset) · R · T(-rc) where R = Rz · Rx · Ry
             var result = reusableView.identity();
             result.translate(offsetX, offsetY, 0f);
-            result.translate(rotationCenter.x, rotationCenter.y, rotationCenter.z);
             result.rotateZ(DEG_TO_RAD * rotationZ);
             result.rotateX(DEG_TO_RAD * rotationX);
             result.rotateY(DEG_TO_RAD * rotationY);
@@ -190,11 +191,7 @@ public class CameraSettings {
             float s = 0.625f * 16f * zoom;
             reusableProjection.identity()
                 .setOrtho(viewport.x(), viewport.z(), viewport.y(), viewport.w(), -1000f, 3000f)
-                // Keep zoom out of the model-view matrix so fixed-function lighting is not
-                // skewed by our orthographic preview scale.
-                .translate(offsetX, offsetY, 0f)
-                .scale(s, s, 1f)
-                .translate(-offsetX, -offsetY, 0f);
+                .scale(s, s, 1f);
         }
         return reusableProjection;
     }
@@ -293,7 +290,6 @@ public class CameraSettings {
 
     private void markViewDirty() {
         viewDirty = true;
-        projectionDirty = true;
         combinedDirty = true;
         invertedDirty = true;
     }
