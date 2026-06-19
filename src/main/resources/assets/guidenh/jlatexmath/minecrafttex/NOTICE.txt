@@ -1,0 +1,21 @@
+MinecrafTeX
+===========
+
+The MinecrafTeX font (font/ source, and the built dist/*.ttf and *.woff2 files)
+is a derivative work based on:
+
+    Monocraft
+    Copyright (c) 2022, Idrees Hassan (https://github.com/IdreesInc/Monocraft)
+    Licensed under the SIL Open Font License, Version 1.1.
+
+In accordance with the SIL Open Font License:
+  * The MinecrafTeX font is itself distributed under the OFL 1.1 (see OFL.txt).
+  * "Monocraft" is a Reserved Font Name and is NOT used as the name of this
+    derivative font.
+
+This project is not affiliated with, endorsed by, or associated with Mojang
+Synergies AB or Microsoft. "Minecraft" is a trademark of Mojang/Microsoft. No
+Minecraft game assets are included in this project.
+
+The build tooling and the LaTeX/web integration code (font/src/*.py build
+scripts, latex/, web/, tests/) are licensed under the MIT License (see LICENSE).

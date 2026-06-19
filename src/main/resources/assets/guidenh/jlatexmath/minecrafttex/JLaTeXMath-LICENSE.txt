@@ -1,0 +1,9 @@
+JLaTeXMath font metric resources included in this bundle are derived from the
+JLaTeXMath project.
+
+Copyright (C) 2004-2007 Universiteit Gent
+Copyright (C) 2009 DENIZET Calixte
+
+JLaTeXMath is distributed under the GNU Lesser General Public License version 3
+with the additional permissions distributed by the project. Refer to the root
+GuideNH-NH LICENSE.txt for the complete license text that ships with this mod.

@@ -1,0 +1,1912 @@
+<?xml version='1.0'?>
+<Font name="MinecrafTeX-JLaTeXMath-Regular.ttf" id="guidenh_minecrafttex_rm10" unicode="4096" space="0.333334" xHeight="0.5" quad="1.0" boldVersion="guidenh_minecrafttex_bx10" itVersion="guidenh_minecrafttex_mi10">
+   <Char code="32" width="0.4" height="0" />
+   <Char code="33" width="0.2" height="0.7" />
+   <Char code="34" width="0.4" height="0.7" />
+   <Char code="35" width="0.6" height="0.7" />
+   <Char code="36" width="0.6" height="0.7" />
+   <Char code="37" width="0.6" height="0.7" />
+   <Char code="38" width="0.6" height="0.7" />
+   <Char code="39" width="0.3" height="0.7" />
+   <Char code="40" width="0.4" height="0.6" depth="0.1" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57344"/>
+   </Char>
+   <Char code="41" width="0.5" height="0.6" depth="0.1" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57364"/>
+   </Char>
+   <Char code="42" width="0.4" height="0.7" />
+   <Char code="43" width="0.6" height="0.6" />
+   <Char code="44" width="0.3" height="0.2" />
+   <Char code="45" width="0.6" height="0.4" />
+   <Char code="46" width="0.2" height="0.1" />
+   <Char code="47" width="0.6" height="0.7" />
+   <Char code="48" width="0.6" height="0.7" />
+   <Char code="49" width="0.6" height="0.7" />
+   <Char code="50" width="0.6" height="0.7" />
+   <Char code="51" width="0.6" height="0.7" />
+   <Char code="52" width="0.6" height="0.7" />
+   <Char code="53" width="0.6" height="0.7" />
+   <Char code="54" width="0.6" height="0.7" />
+   <Char code="55" width="0.6" height="0.7" />
+   <Char code="56" width="0.6" height="0.7" />
+   <Char code="57" width="0.6" height="0.7" />
+   <Char code="58" width="0.2" height="0.5" />
+   <Char code="59" width="0.3" height="0.5" depth="0.1" />
+   <Char code="60" width="0.5" height="0.7" />
+   <Char code="61" width="0.6" height="0.5" />
+   <Char code="62" width="0.5" height="0.7" />
+   <Char code="63" width="0.6" height="0.7" />
+   <Char code="64" width="0.6" height="0.6" depth="0.1" />
+   <Char code="65" width="0.6" height="0.7" />
+   <Char code="66" width="0.6" height="0.7" />
+   <Char code="67" width="0.6" height="0.7" />
+   <Char code="68" width="0.6" height="0.7" />
+   <Char code="69" width="0.6" height="0.7" />
+   <Char code="70" width="0.6" height="0.7" />
+   <Char code="71" width="0.6" height="0.7" />
+   <Char code="72" width="0.6" height="0.7" />
+   <Char code="73" width="0.4" height="0.7" />
+   <Char code="74" width="0.6" height="0.7" />
+   <Char code="75" width="0.6" height="0.7" />
+   <Char code="76" width="0.6" height="0.7" />
+   <Char code="77" width="0.6" height="0.7" />
+   <Char code="78" width="0.6" height="0.7" />
+   <Char code="79" width="0.6" height="0.7" />
+   <Char code="80" width="0.6" height="0.7" />
+   <Char code="81" width="0.6" height="0.7" />
+   <Char code="82" width="0.6" height="0.7" />
+   <Char code="83" width="0.6" height="0.7" />
+   <Char code="84" width="0.6" height="0.7" />
+   <Char code="85" width="0.6" height="0.7" />
+   <Char code="86" width="0.6" height="0.7" />
+   <Char code="87" width="0.6" height="0.7" />
+   <Char code="88" width="0.6" height="0.7" />
+   <Char code="89" width="0.6" height="0.7" />
+   <Char code="90" width="0.6" height="0.7" />
+   <Char code="91" width="0.4" height="0.6" depth="0.1" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57384"/>
+   </Char>
+   <Char code="92" width="0.6" height="0.7" />
+   <Char code="93" width="0.5" height="0.6" depth="0.1" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57404"/>
+   </Char>
+   <Char code="94" width="0.6" height="0.7" />
+   <Char code="95" width="0.6" height="0" depth="0.1" />
+   <Char code="96" width="0.3" height="0.7" />
+   <Char code="97" width="0.6" height="0.5" />
+   <Char code="98" width="0.6" height="0.7" />
+   <Char code="99" width="0.6" height="0.5" />
+   <Char code="100" width="0.6" height="0.7" />
+   <Char code="101" width="0.6" height="0.5" />
+   <Char code="102" width="0.5" height="0.7" />
+   <Char code="103" width="0.6" height="0.5" depth="0.1" />
+   <Char code="104" width="0.6" height="0.7" />
+   <Char code="105" width="0.5" height="0.7" />
+   <Char code="106" width="0.6" height="0.7" depth="0.1" />
+   <Char code="107" width="0.5" height="0.7" />
+   <Char code="108" width="0.5" height="0.7" />
+   <Char code="109" width="0.6" height="0.5" />
+   <Char code="110" width="0.6" height="0.5" />
+   <Char code="111" width="0.6" height="0.5" />
+   <Char code="112" width="0.6" height="0.5" depth="0.1" />
+   <Char code="113" width="0.6" height="0.5" depth="0.1" />
+   <Char code="114" width="0.6" height="0.5" />
+   <Char code="115" width="0.6" height="0.5" />
+   <Char code="116" width="0.5" height="0.7" />
+   <Char code="117" width="0.6" height="0.5" />
+   <Char code="118" width="0.6" height="0.5" />
+   <Char code="119" width="0.6" height="0.5" />
+   <Char code="120" width="0.6" height="0.5" />
+   <Char code="121" width="0.6" height="0.5" depth="0.1" />
+   <Char code="122" width="0.6" height="0.5" />
+   <Char code="123" width="0.5" height="0.6" depth="0.1" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57424"/>
+   </Char>
+   <Char code="124" width="0.4" height="0.6" depth="0.1" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57466"/>
+   </Char>
+   <Char code="125" width="0.5" height="0.6" depth="0.1" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57445"/>
+   </Char>
+   <Char code="126" width="0.6" height="0.5" />
+   <Char code="160" width="0.4" height="0" />
+   <Char code="161" width="0.2" height="0.6" depth="0.1" />
+   <Char code="162" width="0.6" height="0.6" depth="0.1" />
+   <Char code="163" width="0.6" height="0.7" />
+   <Char code="164" width="0.7" height="0.5" />
+   <Char code="165" width="0.6" height="0.7" />
+   <Char code="166" width="0.2" height="0.7" />
+   <Char code="167" width="0.6" height="0.7" />
+   <Char code="168" width="0.4" height="0.7" />
+   <Char code="169" width="0.7" height="0.7" />
+   <Char code="170" width="0.5" height="0.7" />
+   <Char code="171" width="0.7" height="0.6" />
+   <Char code="172" width="0.6" height="0.4" />
+   <Char code="174" width="0.7" height="0.7" />
+   <Char code="175" width="0.6" height="0.7" />
+   <Char code="176" width="0.5" height="0.7" />
+   <Char code="177" width="0.6" height="0.7" />
+   <Char code="178" width="0.5" height="0.7" />
+   <Char code="179" width="0.5" height="0.7" />
+   <Char code="180" width="0.3" height="0.7" />
+   <Char code="181" width="0.6" height="0.5" depth="0.1" />
+   <Char code="182" width="0.7" height="0.7" />
+   <Char code="183" width="0.2" height="0.4" />
+   <Char code="184" width="0.4" height="0.2" depth="0.1" />
+   <Char code="185" width="0.4" height="0.7" />
+   <Char code="186" width="0.5" height="0.7" />
+   <Char code="187" width="0.7" height="0.6" />
+   <Char code="188" width="0.7" height="0.8" />
+   <Char code="189" width="0.7" height="0.8" />
+   <Char code="190" width="0.7" height="0.8" />
+   <Char code="191" width="0.6" height="0.6" depth="0.1" />
+   <Char code="198" width="0.6" height="0.7" />
+   <Char code="199" width="0.6" height="0.7" depth="0.2" />
+   <Char code="208" width="0.7" height="0.7" />
+   <Char code="215" width="0.6" height="0.6" />
+   <Char code="216" width="0.6" height="0.7" />
+   <Char code="222" width="0.6" height="0.7" />
+   <Char code="223" width="0.6" height="0.7" depth="0.1" />
+   <Char code="230" width="0.6" height="0.5" />
+   <Char code="231" width="0.6" height="0.5" depth="0.2" />
+   <Char code="236" width="0.5" height="0.8" />
+   <Char code="237" width="0.5" height="0.8" />
+   <Char code="238" width="0.5" height="0.8" />
+   <Char code="239" width="0.5" height="0.7" />
+   <Char code="240" width="0.6" height="0.7" />
+   <Char code="247" width="0.6" height="0.6" />
+   <Char code="248" width="0.6" height="0.5" />
+   <Char code="254" width="0.6" height="0.7" depth="0.1" />
+   <Char code="260" width="0.6" height="0.7" depth="0.2" />
+   <Char code="261" width="0.6" height="0.5" depth="0.2" />
+   <Char code="271" width="0.7" height="0.7" />
+   <Char code="280" width="0.6" height="0.7" depth="0.2" />
+   <Char code="281" width="0.6" height="0.5" depth="0.2" />
+   <Char code="290" width="0.6" height="0.7" depth="0.2" />
+   <Char code="291" width="0.6" height="0.8" depth="0.1" />
+   <Char code="297" width="0.5" height="0.8" />
+   <Char code="299" width="0.5" height="0.7" />
+   <Char code="301" width="0.5" height="0.8" />
+   <Char code="305" width="0.5" height="0.5" />
+   <Char code="306" width="0.6" height="0.7" />
+   <Char code="307" width="0.5" height="0.7" depth="0.1" />
+   <Char code="309" width="0.6" height="0.8" depth="0.1" />
+   <Char code="310" width="0.6" height="0.7" depth="0.2" />
+   <Char code="311" width="0.5" height="0.7" depth="0.2" />
+   <Char code="312" width="0.5" height="0.5" />
+   <Char code="315" width="0.6" height="0.7" depth="0.2" />
+   <Char code="316" width="0.5" height="0.7" depth="0.2" />
+   <Char code="321" width="0.6" height="0.7" />
+   <Char code="322" width="0.5" height="0.7" />
+   <Char code="325" width="0.6" height="0.7" depth="0.2" />
+   <Char code="326" width="0.6" height="0.5" depth="0.2" />
+   <Char code="338" width="0.6" height="0.7" />
+   <Char code="339" width="0.6" height="0.5" />
+   <Char code="350" width="0.6" height="0.7" depth="0.2" />
+   <Char code="351" width="0.6" height="0.5" depth="0.2" />
+   <Char code="357" width="0.5" height="0.8" />
+   <Char code="383" width="0.4" height="0.7" />
+   <Char code="385" width="0.8" height="0.7" />
+   <Char code="388" width="0.7" height="0.7" />
+   <Char code="389" width="0.7" height="0.7" />
+   <Char code="390" width="0.6" height="0.7" />
+   <Char code="393" width="0.7" height="0.7" />
+   <Char code="398" width="0.6" height="0.7" />
+   <Char code="399" width="0.6" height="0.7" />
+   <Char code="400" width="0.6" height="0.7" />
+   <Char code="401" width="0.7" height="0.7" depth="0.1" />
+   <Char code="410" width="0.4" height="0.7" />
+   <Char code="411" width="0.6" height="0.7" />
+   <Char code="414" width="0.6" height="0.5" depth="0.1" />
+   <Char code="415" width="0.6" height="0.7" />
+   <Char code="423" width="0.6" height="0.7" />
+   <Char code="424" width="0.6" height="0.5" />
+   <Char code="425" width="0.6" height="0.7" />
+   <Char code="426" width="0.6" height="0.7" depth="0.1" />
+   <Char code="434" width="0.6" height="0.7" />
+   <Char code="439" width="0.6" height="0.7" depth="0.1" />
+   <Char code="440" width="0.6" height="0.7" depth="0.1" />
+   <Char code="441" width="0.6" height="0.5" depth="0.1" />
+   <Char code="443" width="0.6" height="0.7" />
+   <Char code="444" width="0.6" height="0.7" />
+   <Char code="445" width="0.6" height="0.5" />
+   <Char code="446" width="0.6" height="0.7" />
+   <Char code="447" width="0.6" height="0.5" depth="0.1" />
+   <Char code="448" width="0.2" height="0.7" />
+   <Char code="449" width="0.4" height="0.7" />
+   <Char code="450" width="0.6" height="0.7" />
+   <Char code="451" width="0.2" height="0.7" />
+   <Char code="457" width="0.8" height="0.7" depth="0.1" />
+   <Char code="464" width="0.5" height="0.8" />
+   <Char code="477" width="0.6" height="0.5" />
+   <Char code="496" width="0.6" height="0.8" depth="0.1" />
+   <Char code="503" width="0.6" height="0.7" depth="0.1" />
+   <Char code="536" width="0.6" height="0.7" depth="0.2" />
+   <Char code="537" width="0.6" height="0.5" depth="0.2" />
+   <Char code="538" width="0.6" height="0.7" depth="0.2" />
+   <Char code="539" width="0.5" height="0.7" depth="0.2" />
+   <Char code="540" width="0.6" height="0.7" depth="0.1" />
+   <Char code="541" width="0.6" height="0.5" depth="0.1" />
+   <Char code="544" width="0.6" height="0.7" depth="0.1" />
+   <Char code="545" width="0.8" height="0.7" depth="0.1" />
+   <Char code="548" width="0.6" height="0.7" depth="0.1" />
+   <Char code="549" width="0.6" height="0.5" depth="0.1" />
+   <Char code="564" width="0.4" height="0.7" depth="0.1" />
+   <Char code="565" width="0.8" height="0.5" depth="0.1" />
+   <Char code="566" width="0.5" height="0.7" />
+   <Char code="570" width="0.6" height="0.7" />
+   <Char code="571" width="0.6" height="0.7" />
+   <Char code="572" width="0.6" height="0.5" />
+   <Char code="573" width="0.7" height="0.7" />
+   <Char code="574" width="0.6" height="0.7" />
+   <Char code="577" width="0.6" height="0.7" />
+   <Char code="578" width="0.6" height="0.5" />
+   <Char code="579" width="0.7" height="0.7" />
+   <Char code="580" width="0.8" height="0.7" />
+   <Char code="581" width="0.6" height="0.7" />
+   <Char code="582" width="0.6" height="0.7" />
+   <Char code="583" width="0.7" height="0.5" />
+   <Char code="584" width="0.7" height="0.7" />
+   <Char code="585" width="0.7" height="0.7" depth="0.1" />
+   <Char code="586" width="0.7" height="0.7" depth="0.1" />
+   <Char code="587" width="0.7" height="0.5" depth="0.1" />
+   <Char code="588" width="0.7" height="0.7" />
+   <Char code="589" width="0.7" height="0.5" />
+   <Char code="590" width="0.8" height="0.7" />
+   <Char code="591" width="0.8" height="0.5" depth="0.1" />
+   <Char code="592" width="0.6" height="0.5" />
+   <Char code="593" width="0.6" height="0.5" />
+   <Char code="594" width="0.6" height="0.5" />
+   <Char code="595" width="0.6" height="0.7" />
+   <Char code="596" width="0.6" height="0.5" />
+   <Char code="597" width="0.6" height="0.5" depth="0.1" />
+   <Char code="598" width="0.7" height="0.7" depth="0.1" />
+   <Char code="599" width="0.7" height="0.7" />
+   <Char code="600" width="0.6" height="0.5" />
+   <Char code="601" width="0.6" height="0.5" />
+   <Char code="602" width="0.8" height="0.5" />
+   <Char code="603" width="0.6" height="0.5" />
+   <Char code="604" width="0.6" height="0.5" />
+   <Char code="605" width="0.8" height="0.5" />
+   <Char code="606" width="0.6" height="0.5" />
+   <Char code="607" width="0.5" height="0.6" depth="0.1" />
+   <Char code="608" width="0.7" height="0.7" depth="0.1" />
+   <Char code="609" width="0.6" height="0.5" depth="0.1" />
+   <Char code="610" width="0.6" height="0.5" />
+   <Char code="612" width="0.6" height="0.5" />
+   <Char code="613" width="0.6" height="0.6" depth="0.1" />
+   <Char code="614" width="0.6" height="0.7" />
+   <Char code="615" width="0.6" height="0.7" depth="0.1" />
+   <Char code="616" width="0.4" height="0.7" />
+   <Char code="618" width="0.4" height="0.5" />
+   <Char code="619" width="0.6" height="0.7" />
+   <Char code="620" width="0.5" height="0.7" />
+   <Char code="621" width="0.3" height="0.7" depth="0.1" />
+   <Char code="622" width="0.6" height="0.7" depth="0.1" />
+   <Char code="623" width="0.6" height="0.5" />
+   <Char code="624" width="0.6" height="0.5" depth="0.1" />
+   <Char code="625" width="0.6" height="0.5" depth="0.1" />
+   <Char code="626" width="0.7" height="0.5" depth="0.1" />
+   <Char code="627" width="0.7" height="0.5" depth="0.1" />
+   <Char code="628" width="0.6" height="0.5" />
+   <Char code="629" width="0.6" height="0.5" />
+   <Char code="631" width="0.8" height="0.5" />
+   <Char code="632" width="0.6" height="0.6" depth="0.1" />
+   <Char code="633" width="0.6" height="0.5" />
+   <Char code="634" width="0.6" height="0.7" />
+   <Char code="635" width="0.7" height="0.5" depth="0.1" />
+   <Char code="636" width="0.6" height="0.5" depth="0.1" />
+   <Char code="638" width="0.6" height="0.5" />
+   <Char code="639" width="0.6" height="0.5" depth="0.1" />
+   <Char code="640" width="0.6" height="0.5" />
+   <Char code="641" width="0.6" height="0.5" />
+   <Char code="644" width="0.7" height="0.7" depth="0.1" />
+   <Char code="645" width="0.6" height="0.5" depth="0.1" />
+   <Char code="646" width="0.7" height="0.7" depth="0.1" />
+   <Char code="647" width="0.4" height="0.6" depth="0.1" />
+   <Char code="648" width="0.4" height="0.7" depth="0.1" />
+   <Char code="649" width="0.8" height="0.5" />
+   <Char code="650" width="0.6" height="0.5" />
+   <Char code="651" width="0.6" height="0.5" />
+   <Char code="652" width="0.6" height="0.5" />
+   <Char code="653" width="0.6" height="0.5" />
+   <Char code="654" width="0.6" height="0.6" />
+   <Char code="655" width="0.6" height="0.5" />
+   <Char code="657" width="0.6" height="0.5" depth="0.1" />
+   <Char code="658" width="0.6" height="0.5" depth="0.1" />
+   <Char code="659" width="0.6" height="0.5" depth="0.1" />
+   <Char code="660" width="0.6" height="0.7" />
+   <Char code="661" width="0.6" height="0.7" />
+   <Char code="662" width="0.6" height="0.7" />
+   <Char code="663" width="0.6" height="0.5" depth="0.1" />
+   <Char code="664" width="0.6" height="0.7" />
+   <Char code="665" width="0.6" height="0.5" />
+   <Char code="666" width="0.6" height="0.5" />
+   <Char code="667" width="0.7" height="0.7" />
+   <Char code="668" width="0.6" height="0.5" />
+   <Char code="669" width="0.6" height="0.7" depth="0.1" />
+   <Char code="670" width="0.5" height="0.6" depth="0.1" />
+   <Char code="671" width="0.6" height="0.5" />
+   <Char code="672" width="0.7" height="0.7" depth="0.1" />
+   <Char code="673" width="0.6" height="0.7" />
+   <Char code="674" width="0.6" height="0.7" />
+   <Char code="684" width="0.6" height="0.7" />
+   <Char code="699" width="0.2" height="0.7" />
+   <Char code="716" width="0.2" height="0.1" depth="0.1" />
+   <Char code="729" width="0.2" height="0.6" />
+   <Char code="894" width="0.2" height="0.4" depth="0.1" />
+   <Char code="903" width="0.2" height="0.5" />
+   <Char code="913" width="0.6" height="0.7" />
+   <Char code="914" width="0.6" height="0.7" />
+   <Char code="915" width="0.6" height="0.7" />
+   <Char code="916" width="0.6" height="0.7" />
+   <Char code="917" width="0.6" height="0.7" />
+   <Char code="918" width="0.6" height="0.7" />
+   <Char code="919" width="0.6" height="0.7" />
+   <Char code="920" width="0.6" height="0.7" />
+   <Char code="921" width="0.4" height="0.7" />
+   <Char code="922" width="0.6" height="0.7" />
+   <Char code="923" width="0.6" height="0.7" />
+   <Char code="924" width="0.6" height="0.7" />
+   <Char code="925" width="0.6" height="0.7" />
+   <Char code="926" width="0.6" height="0.7" />
+   <Char code="927" width="0.6" height="0.7" />
+   <Char code="928" width="0.6" height="0.7" />
+   <Char code="929" width="0.6" height="0.7" />
+   <Char code="931" width="0.6" height="0.7" />
+   <Char code="932" width="0.6" height="0.7" />
+   <Char code="933" width="0.6" height="0.7" />
+   <Char code="934" width="0.6" height="0.7" />
+   <Char code="935" width="0.6" height="0.7" />
+   <Char code="936" width="0.6" height="0.7" />
+   <Char code="937" width="0.6" height="0.7" />
+   <Char code="945" width="0.6" height="0.5" />
+   <Char code="946" width="0.6" height="0.7" depth="0.1" />
+   <Char code="947" width="0.6" height="0.5" depth="0.1" />
+   <Char code="948" width="0.6" height="0.7" />
+   <Char code="949" width="0.6" height="0.5" />
+   <Char code="950" width="0.6" height="0.7" depth="0.1" />
+   <Char code="951" width="0.6" height="0.5" depth="0.1" />
+   <Char code="952" width="0.6" height="0.7" />
+   <Char code="953" width="0.3" height="0.5" />
+   <Char code="954" width="0.5" height="0.5" />
+   <Char code="955" width="0.6" height="0.7" />
+   <Char code="956" width="0.6" height="0.5" depth="0.1" />
+   <Char code="957" width="0.6" height="0.5" />
+   <Char code="958" width="0.6" height="0.7" depth="0.1" />
+   <Char code="959" width="0.6" height="0.5" />
+   <Char code="960" width="0.6" height="0.5" />
+   <Char code="961" width="0.6" height="0.5" depth="0.1" />
+   <Char code="962" width="0.6" height="0.5" depth="0.1" />
+   <Char code="963" width="0.7" height="0.5" />
+   <Char code="964" width="0.6" height="0.5" />
+   <Char code="965" width="0.6" height="0.5" />
+   <Char code="966" width="0.6" height="0.5" depth="0.1" />
+   <Char code="967" width="0.6" height="0.5" depth="0.1" />
+   <Char code="968" width="0.6" height="0.5" depth="0.1" />
+   <Char code="969" width="0.8" height="0.5" />
+   <Char code="987" width="0.6" height="0.7" />
+   <Char code="1026" width="0.6" height="0.7" />
+   <Char code="1027" width="0.6" height="0.7" />
+   <Char code="1028" width="0.6" height="0.7" />
+   <Char code="1030" width="0.4" height="0.7" />
+   <Char code="1033" width="0.7" height="0.7" />
+   <Char code="1034" width="0.6" height="0.7" />
+   <Char code="1035" width="0.6" height="0.7" />
+   <Char code="1037" width="0.6" height="0.7" />
+   <Char code="1038" width="0.6" height="0.7" />
+   <Char code="1039" width="0.6" height="0.7" depth="0.1" />
+   <Char code="1041" width="0.6" height="0.7" />
+   <Char code="1043" width="0.6" height="0.7" />
+   <Char code="1044" width="0.6" height="0.7" depth="0.1" />
+   <Char code="1046" width="0.6" height="0.7" />
+   <Char code="1047" width="0.6" height="0.7" />
+   <Char code="1048" width="0.6" height="0.7" />
+   <Char code="1051" width="0.6" height="0.7" />
+   <Char code="1055" width="0.6" height="0.7" />
+   <Char code="1059" width="0.6" height="0.7" />
+   <Char code="1060" width="0.6" height="0.7" depth="0.1" />
+   <Char code="1062" width="0.6" height="0.7" depth="0.1" />
+   <Char code="1063" width="0.6" height="0.7" />
+   <Char code="1064" width="0.6" height="0.7" />
+   <Char code="1065" width="0.7" height="0.7" depth="0.1" />
+   <Char code="1066" width="0.6" height="0.7" />
+   <Char code="1067" width="0.6" height="0.7" />
+   <Char code="1068" width="0.6" height="0.7" />
+   <Char code="1069" width="0.6" height="0.7" />
+   <Char code="1070" width="0.6" height="0.7" />
+   <Char code="1071" width="0.6" height="0.7" />
+   <Char code="1073" width="0.6" height="0.7" />
+   <Char code="1074" width="0.6" height="0.5" />
+   <Char code="1075" width="0.5" height="0.5" />
+   <Char code="1076" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1078" width="0.6" height="0.5" />
+   <Char code="1079" width="0.6" height="0.5" />
+   <Char code="1080" width="0.6" height="0.5" />
+   <Char code="1082" width="0.6" height="0.5" />
+   <Char code="1083" width="0.6" height="0.5" />
+   <Char code="1084" width="0.6" height="0.5" />
+   <Char code="1085" width="0.6" height="0.5" />
+   <Char code="1087" width="0.6" height="0.5" />
+   <Char code="1090" width="0.6" height="0.5" />
+   <Char code="1092" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1094" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1095" width="0.6" height="0.5" />
+   <Char code="1096" width="0.6" height="0.5" />
+   <Char code="1097" width="0.7" height="0.5" depth="0.1" />
+   <Char code="1098" width="0.6" height="0.5" />
+   <Char code="1099" width="0.6" height="0.5" />
+   <Char code="1100" width="0.6" height="0.5" />
+   <Char code="1101" width="0.6" height="0.5" />
+   <Char code="1102" width="0.6" height="0.5" />
+   <Char code="1103" width="0.6" height="0.5" />
+   <Char code="1106" width="0.6" height="0.8" />
+   <Char code="1108" width="0.6" height="0.5" />
+   <Char code="1113" width="0.7" height="0.5" />
+   <Char code="1114" width="0.6" height="0.5" />
+   <Char code="1115" width="0.6" height="0.7" />
+   <Char code="1119" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1122" width="0.7" height="0.7" />
+   <Char code="1123" width="0.7" height="0.6" />
+   <Char code="1138" width="0.6" height="0.7" />
+   <Char code="1139" width="0.6" height="0.5" />
+   <Char code="1140" width="0.7" height="0.7" />
+   <Char code="1141" width="0.7" height="0.5" />
+   <Char code="1168" width="0.6" height="0.9" />
+   <Char code="1169" width="0.6" height="0.7" />
+   <Char code="1170" width="0.7" height="0.7" />
+   <Char code="1171" width="0.6" height="0.5" />
+   <Char code="1174" width="0.9" height="0.7" depth="0.1" />
+   <Char code="1175" width="0.7" height="0.5" depth="0.1" />
+   <Char code="1178" width="0.7" height="0.7" depth="0.1" />
+   <Char code="1179" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1186" width="0.7" height="0.7" depth="0.1" />
+   <Char code="1187" width="0.7" height="0.5" depth="0.1" />
+   <Char code="1198" width="0.6" height="0.7" />
+   <Char code="1199" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1200" width="0.6" height="0.7" />
+   <Char code="1201" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1210" width="0.6" height="0.7" />
+   <Char code="1211" width="0.6" height="0.7" />
+   <Char code="1216" width="0.4" height="0.7" />
+   <Char code="1240" width="0.6" height="0.7" />
+   <Char code="1241" width="0.6" height="0.5" />
+   <Char code="1256" width="0.6" height="0.7" />
+   <Char code="1257" width="0.6" height="0.5" />
+   <Char code="1280" width="0.6" height="0.7" />
+   <Char code="1329" width="0.6" height="0.7" />
+   <Char code="1330" width="0.6" height="0.7" />
+   <Char code="1331" width="0.7" height="0.7" />
+   <Char code="1332" width="0.7" height="0.7" />
+   <Char code="1333" width="0.6" height="0.7" />
+   <Char code="1334" width="0.6" height="0.7" />
+   <Char code="1335" width="0.6" height="0.7" />
+   <Char code="1336" width="0.6" height="0.7" />
+   <Char code="1337" width="0.7" height="0.7" />
+   <Char code="1338" width="0.7" height="0.7" />
+   <Char code="1339" width="0.6" height="0.7" />
+   <Char code="1340" width="0.5" height="0.7" />
+   <Char code="1341" width="0.7" height="0.7" />
+   <Char code="1342" width="0.6" height="0.7" />
+   <Char code="1343" width="0.6" height="0.7" />
+   <Char code="1344" width="0.6" height="0.7" />
+   <Char code="1345" width="0.6" height="0.7" />
+   <Char code="1346" width="0.7" height="0.7" />
+   <Char code="1347" width="0.6" height="0.7" />
+   <Char code="1348" width="0.7" height="0.7" />
+   <Char code="1349" width="0.6" height="0.7" />
+   <Char code="1350" width="0.6" height="0.7" />
+   <Char code="1351" width="0.6" height="0.7" />
+   <Char code="1352" width="0.6" height="0.7" />
+   <Char code="1353" width="0.6" height="0.7" />
+   <Char code="1354" width="0.6" height="0.7" />
+   <Char code="1355" width="0.6" height="0.7" />
+   <Char code="1356" width="0.7" height="0.7" />
+   <Char code="1357" width="0.6" height="0.7" />
+   <Char code="1358" width="0.6" height="0.7" />
+   <Char code="1359" width="0.6" height="0.7" />
+   <Char code="1360" width="0.6" height="0.7" />
+   <Char code="1361" width="0.6" height="0.7" />
+   <Char code="1362" width="0.5" height="0.7" />
+   <Char code="1363" width="0.6" height="0.7" />
+   <Char code="1364" width="0.6" height="0.7" />
+   <Char code="1365" width="0.6" height="0.7" />
+   <Char code="1366" width="0.6" height="0.7" />
+   <Char code="1369" width="0.3" height="0.7" />
+   <Char code="1370" width="0.3" height="0.7" />
+   <Char code="1371" width="0.3" height="0.7" />
+   <Char code="1372" width="0.4" height="0.7" />
+   <Char code="1373" width="0.3" height="0.7" />
+   <Char code="1374" width="0.4" height="0.7" />
+   <Char code="1375" width="0.6" height="0.7" />
+   <Char code="1376" width="0.6" height="0.5" />
+   <Char code="1377" width="0.6" height="0.5" />
+   <Char code="1378" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1379" width="0.7" height="0.5" depth="0.1" />
+   <Char code="1380" width="0.7" height="0.5" depth="0.1" />
+   <Char code="1381" width="0.6" height="0.7" />
+   <Char code="1382" width="0.7" height="0.5" depth="0.1" />
+   <Char code="1383" width="0.5" height="0.7" depth="0.1" />
+   <Char code="1384" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1385" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1386" width="0.7" height="0.7" />
+   <Char code="1387" width="0.6" height="0.7" depth="0.1" />
+   <Char code="1388" width="0.3" height="0.5" depth="0.1" />
+   <Char code="1389" width="0.7" height="0.7" depth="0.1" />
+   <Char code="1390" width="0.6" height="0.7" />
+   <Char code="1391" width="0.6" height="0.7" depth="0.1" />
+   <Char code="1392" width="0.6" height="0.7" />
+   <Char code="1393" width="0.6" height="0.7" />
+   <Char code="1394" width="0.7" height="0.5" depth="0.1" />
+   <Char code="1395" width="0.6" height="0.7" />
+   <Char code="1396" width="0.7" height="0.7" />
+   <Char code="1397" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1398" width="0.7" height="0.7" />
+   <Char code="1399" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1400" width="0.6" height="0.5" />
+   <Char code="1401" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1402" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1403" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1404" width="0.6" height="0.5" />
+   <Char code="1405" width="0.6" height="0.5" />
+   <Char code="1406" width="0.7" height="0.7" depth="0.1" />
+   <Char code="1407" width="0.8" height="0.5" />
+   <Char code="1408" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1409" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1410" width="0.5" height="0.5" />
+   <Char code="1411" width="0.8" height="0.7" depth="0.1" />
+   <Char code="1412" width="0.7" height="0.5" depth="0.1" />
+   <Char code="1413" width="0.6" height="0.5" />
+   <Char code="1414" width="0.6" height="0.7" depth="0.1" />
+   <Char code="1415" width="0.7" height="0.7" />
+   <Char code="1416" width="0.7" height="0.5" depth="0.1" />
+   <Char code="1418" width="0.6" height="0.5" />
+   <Char code="1423" width="0.6" height="0.7" />
+   <Char code="1470" width="0.6" height="0.5" />
+   <Char code="1475" width="0.2" height="0.5" />
+   <Char code="1478" width="0.4" height="0.5" />
+   <Char code="1488" width="0.6" height="0.5" />
+   <Char code="1489" width="0.6" height="0.5" />
+   <Char code="1490" width="0.5" height="0.5" />
+   <Char code="1491" width="0.6" height="0.5" />
+   <Char code="1492" width="0.6" height="0.5" />
+   <Char code="1493" width="0.2" height="0.5" />
+   <Char code="1494" width="0.4" height="0.5" />
+   <Char code="1495" width="0.6" height="0.5" />
+   <Char code="1496" width="0.6" height="0.5" />
+   <Char code="1497" width="0.2" height="0.5" />
+   <Char code="1498" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1499" width="0.6" height="0.5" />
+   <Char code="1500" width="0.6" height="0.6" />
+   <Char code="1501" width="0.6" height="0.5" />
+   <Char code="1502" width="0.6" height="0.5" />
+   <Char code="1503" width="0.2" height="0.5" depth="0.1" />
+   <Char code="1504" width="0.4" height="0.5" />
+   <Char code="1505" width="0.6" height="0.5" />
+   <Char code="1506" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1507" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1508" width="0.6" height="0.5" />
+   <Char code="1509" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1510" width="0.6" height="0.5" />
+   <Char code="1511" width="0.6" height="0.5" depth="0.1" />
+   <Char code="1512" width="0.6" height="0.5" />
+   <Char code="1513" width="0.6" height="0.5" />
+   <Char code="1514" width="0.6" height="0.5" />
+   <Char code="1520" width="0.4" height="0.5" />
+   <Char code="1521" width="0.4" height="0.5" />
+   <Char code="1522" width="0.4" height="0.5" />
+   <Char code="1523" width="0.3" height="0.5" />
+   <Char code="1524" width="0.5" height="0.5" />
+   <Char code="1992" width="0.6" height="0.7" />
+   <Char code="4256" width="0.6" height="0.7" />
+   <Char code="4257" width="0.8" height="0.7" />
+   <Char code="4258" width="0.8" height="0.7" />
+   <Char code="4259" width="0.6" height="0.7" />
+   <Char code="4260" width="0.6" height="0.7" />
+   <Char code="4261" width="0.8" height="0.7" />
+   <Char code="4262" width="0.8" height="0.7" />
+   <Char code="4263" width="0.8" height="0.7" />
+   <Char code="4264" width="0.6" height="0.7" />
+   <Char code="4265" width="0.6" height="0.7" />
+   <Char code="4266" width="0.8" height="0.7" />
+   <Char code="4267" width="0.7" height="0.7" />
+   <Char code="4268" width="0.6" height="0.7" />
+   <Char code="4269" width="0.8" height="0.7" />
+   <Char code="4270" width="0.8" height="0.7" />
+   <Char code="4271" width="0.7" height="0.7" />
+   <Char code="4272" width="0.8" height="0.7" />
+   <Char code="4273" width="0.6" height="0.7" />
+   <Char code="4274" width="0.6" height="0.7" />
+   <Char code="4275" width="0.8" height="0.7" />
+   <Char code="4276" width="0.6" height="0.7" />
+   <Char code="4277" width="0.6" height="0.7" />
+   <Char code="4278" width="0.6" height="0.7" />
+   <Char code="4279" width="0.6" height="0.7" />
+   <Char code="4280" width="0.6" height="0.7" />
+   <Char code="4281" width="0.6" height="0.7" />
+   <Char code="4282" width="0.6" height="0.7" depth="0.1" />
+   <Char code="4283" width="0.8" height="0.7" />
+   <Char code="4284" width="0.6" height="0.7" />
+   <Char code="4285" width="0.6" height="0.7" />
+   <Char code="4286" width="0.6" height="0.7" />
+   <Char code="4287" width="0.6" height="0.7" depth="0.1" />
+   <Char code="4288" width="0.8" height="0.7" />
+   <Char code="4289" width="0.6" height="0.7" />
+   <Char code="4290" width="0.6" height="0.7" />
+   <Char code="4291" width="0.6" height="0.7" />
+   <Char code="4292" width="0.6" height="0.7" />
+   <Char code="4293" width="0.8" height="0.7" />
+   <Char code="4295" width="0.6" height="0.7" />
+   <Char code="4301" width="0.6" height="0.7" />
+   <Char code="4304" width="0.6" height="0.5" />
+   <Char code="4305" width="0.6" height="0.7" />
+   <Char code="4306" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4307" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4308" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4309" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4310" width="0.6" height="0.7" />
+   <Char code="4311" width="0.6" height="0.5" />
+   <Char code="4312" width="0.6" height="0.5" />
+   <Char code="4313" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4314" width="0.8" height="0.5" depth="0.1" />
+   <Char code="4315" width="0.6" height="0.7" />
+   <Char code="4316" width="0.6" height="0.7" />
+   <Char code="4317" width="0.6" height="0.5" />
+   <Char code="4318" width="0.6" height="0.7" depth="0.1" />
+   <Char code="4319" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4320" width="0.6" height="0.7" />
+   <Char code="4321" width="0.6" height="0.7" />
+   <Char code="4322" width="0.6" height="0.6" depth="0.1" />
+   <Char code="4323" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4324" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4325" width="0.6" height="0.7" depth="0.1" />
+   <Char code="4326" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4327" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4328" width="0.6" height="0.7" />
+   <Char code="4329" width="0.6" height="0.7" />
+   <Char code="4330" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4331" width="0.6" height="0.7" />
+   <Char code="4332" width="0.6" height="0.7" depth="0.1" />
+   <Char code="4333" width="0.6" height="0.7" depth="0.1" />
+   <Char code="4334" width="0.6" height="0.7" />
+   <Char code="4335" width="0.5" height="0.7" depth="0.1" />
+   <Char code="4336" width="0.6" height="0.7" />
+   <Char code="4337" width="0.7" height="0.7" />
+   <Char code="4338" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4339" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4340" width="0.6" height="0.7" depth="0.1" />
+   <Char code="4341" width="0.6" height="0.7" depth="0.1" />
+   <Char code="4342" width="0.6" height="0.7" depth="0.1" />
+   <Char code="4343" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4344" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4345" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4346" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4347" width="0.4" height="0.4" />
+   <Char code="4348" width="0.4" height="0.7" />
+   <Char code="4349" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4350" width="0.6" height="0.5" depth="0.1" />
+   <Char code="4351" width="0.6" height="0.5" />
+   <Char code="5601" width="0.6" height="0.7" />
+   <Char code="5626" width="0.6" height="0.7" />
+   <Char code="5652" width="0.6" height="0.7" />
+   <Char code="5792" width="0.5" height="0.7" />
+   <Char code="5794" width="0.6" height="0.7" />
+   <Char code="5795" width="0.6" height="0.7" />
+   <Char code="5796" width="0.6" height="0.7" />
+   <Char code="5797" width="0.6" height="0.7" />
+   <Char code="5798" width="0.5" height="0.7" />
+   <Char code="5799" width="0.5" height="0.7" />
+   <Char code="5800" width="0.4" height="0.7" />
+   <Char code="5801" width="0.5" height="0.7" />
+   <Char code="5802" width="0.5" height="0.7" />
+   <Char code="5803" width="0.5" height="0.7" />
+   <Char code="5804" width="0.6" height="0.7" />
+   <Char code="5805" width="0.4" height="0.7" />
+   <Char code="5806" width="0.4" height="0.7" />
+   <Char code="5807" width="0.6" height="0.7" />
+   <Char code="5808" width="0.6" height="0.7" />
+   <Char code="5809" width="0.5" height="0.7" />
+   <Char code="5810" width="0.4" height="0.6" />
+   <Char code="5811" width="0.5" height="0.7" />
+   <Char code="5812" width="0.5" height="0.7" />
+   <Char code="5814" width="0.6" height="0.7" />
+   <Char code="5815" width="0.6" height="0.7" />
+   <Char code="5816" width="0.6" height="0.7" />
+   <Char code="5817" width="0.5" height="0.7" />
+   <Char code="5818" width="0.6" height="0.7" />
+   <Char code="5819" width="0.6" height="0.7" />
+   <Char code="5820" width="0.6" height="0.7" />
+   <Char code="5821" width="0.4" height="0.7" />
+   <Char code="5822" width="0.6" height="0.7" />
+   <Char code="5823" width="0.4" height="0.7" />
+   <Char code="5824" width="0.6" height="0.7" />
+   <Char code="5825" width="0.2" height="0.7" />
+   <Char code="5826" width="0.4" height="0.7" />
+   <Char code="5827" width="0.7" height="0.7" />
+   <Char code="5828" width="0.6" height="0.7" />
+   <Char code="5829" width="0.6" height="0.7" />
+   <Char code="5830" width="0.4" height="0.7" />
+   <Char code="5831" width="0.6" height="0.7" />
+   <Char code="5832" width="0.5" height="0.7" />
+   <Char code="5833" width="0.6" height="0.7" />
+   <Char code="5834" width="0.4" height="0.7" />
+   <Char code="5835" width="0.6" height="0.7" />
+   <Char code="5836" width="0.2" height="0.7" />
+   <Char code="5837" width="0.4" height="0.7" />
+   <Char code="5838" width="0.6" height="0.7" />
+   <Char code="5839" width="0.6" height="0.7" />
+   <Char code="5840" width="0.4" height="0.7" />
+   <Char code="5841" width="0.5" height="0.7" />
+   <Char code="5842" width="0.5" height="0.7" />
+   <Char code="5843" width="0.4" height="0.7" />
+   <Char code="5844" width="0.5" height="0.7" />
+   <Char code="5845" width="0.5" height="0.7" />
+   <Char code="5846" width="0.6" height="0.7" />
+   <Char code="5847" width="0.6" height="0.7" />
+   <Char code="5848" width="0.6" height="0.7" />
+   <Char code="5849" width="0.4" height="0.7" />
+   <Char code="5850" width="0.4" height="0.7" />
+   <Char code="5851" width="0.5" height="0.7" />
+   <Char code="5852" width="0.6" height="0.6" />
+   <Char code="5853" width="0.6" height="0.7" />
+   <Char code="5854" width="0.6" height="0.7" />
+   <Char code="5855" width="0.6" height="0.7" />
+   <Char code="5856" width="0.8" height="0.7" />
+   <Char code="5857" width="0.6" height="0.7" />
+   <Char code="5858" width="0.8" height="0.7" />
+   <Char code="5859" width="0.6" height="0.7" />
+   <Char code="5860" width="0.6" height="0.7" />
+   <Char code="5861" width="0.6" height="0.7" />
+   <Char code="5862" width="0.6" height="0.7" />
+   <Char code="5863" width="0.2" height="0.3" />
+   <Char code="5864" width="0.6" height="0.7" />
+   <Char code="5865" width="0.5" height="0.7" />
+   <Char code="5866" width="0.8" height="0.7" />
+   <Char code="5867" width="0.3" height="0.4" />
+   <Char code="5868" width="0.2" height="0.5" />
+   <Char code="5869" width="0.6" height="0.6" />
+   <Char code="5870" width="0.6" height="0.7" />
+   <Char code="5871" width="0.6" height="0.7" />
+   <Char code="5872" width="0.6" height="0.7" />
+   <Char code="5873" width="0.6" height="0.7" />
+   <Char code="5874" width="0.6" height="0.7" />
+   <Char code="5875" width="0.8" height="0.7" />
+   <Char code="5876" width="0.5" height="0.7" />
+   <Char code="5877" width="0.3" height="0.7" />
+   <Char code="5878" width="0.6" height="0.7" />
+   <Char code="5879" width="0.6" height="0.7" />
+   <Char code="5880" width="0.6" height="0.7" />
+   <Char code="7424" width="0.6" height="0.5" />
+   <Char code="7428" width="0.6" height="0.5" />
+   <Char code="7429" width="0.6" height="0.5" />
+   <Char code="7431" width="0.6" height="0.5" />
+   <Char code="7433" width="0.2" height="0.6" depth="0.1" />
+   <Char code="7434" width="0.6" height="0.5" />
+   <Char code="7435" width="0.6" height="0.5" />
+   <Char code="7437" width="0.6" height="0.5" />
+   <Char code="7439" width="0.6" height="0.5" />
+   <Char code="7448" width="0.6" height="0.5" />
+   <Char code="7450" width="0.6" height="0.7" />
+   <Char code="7451" width="0.6" height="0.5" />
+   <Char code="7452" width="0.6" height="0.5" />
+   <Char code="7456" width="0.6" height="0.5" />
+   <Char code="7457" width="0.6" height="0.5" />
+   <Char code="7458" width="0.6" height="0.5" />
+   <Char code="7543" width="0.6" height="0.6" />
+   <Char code="7569" width="0.7" height="0.7" depth="0.1" />
+   <Char code="7836" width="0.5" height="0.7" />
+   <Char code="7837" width="0.5" height="0.7" />
+   <Char code="7838" width="0.6" height="0.7" />
+   <Char code="7839" width="0.6" height="0.7" />
+   <Char code="7932" width="0.6" height="0.7" />
+   <Char code="7933" width="0.5" height="0.7" />
+   <Char code="7934" width="0.6" height="0.7" />
+   <Char code="7935" width="0.7" height="0.5" depth="0.1" />
+   <Char code="8209" width="0.4" height="0.4" />
+   <Char code="8211" width="0.7" height="0.4" />
+   <Char code="8212" width="0.9" height="0.4" />
+   <Char code="8216" width="0.3" height="0.7" />
+   <Char code="8217" width="0.3" height="0.7" />
+   <Char code="8218" width="0.3" height="0.2" depth="0.1" />
+   <Char code="8220" width="0.5" height="0.7" />
+   <Char code="8221" width="0.5" height="0.7" />
+   <Char code="8222" width="0.5" height="0.2" depth="0.1" />
+   <Char code="8224" width="0.6" height="0.7" />
+   <Char code="8225" width="0.6" height="0.7" />
+   <Char code="8226" width="0.3" height="0.4" />
+   <Char code="8230" width="0.8" height="0.1" />
+   <Char code="8240" width="0.8" height="0.7" />
+   <Char code="8241" width="0.9" height="0.7" />
+   <Char code="8242" width="0.3" height="0.7" />
+   <Char code="8243" width="0.4" height="0.7" />
+   <Char code="8244" width="0.5" height="0.7" />
+   <Char code="8245" width="0.3" height="0.7" />
+   <Char code="8246" width="0.5" height="0.7" />
+   <Char code="8247" width="0.7" height="0.7" />
+   <Char code="8249" width="0.4" height="0.6" />
+   <Char code="8250" width="0.4" height="0.6" />
+   <Char code="8251" width="0.8" height="0.7" />
+   <Char code="8252" width="0.4" height="0.7" />
+   <Char code="8253" width="0.6" height="0.7" />
+   <Char code="8258" width="0.8" height="0.7" />
+   <Char code="8264" width="0.8" height="0.7" />
+   <Char code="8265" width="0.8" height="0.7" />
+   <Char code="8266" width="0.5" height="0.5" />
+   <Char code="8267" width="0.7" height="0.7" />
+   <Char code="8270" width="0.4" height="0.5" />
+   <Char code="8271" width="0.2" height="0.5" depth="0.1" />
+   <Char code="8273" width="0.4" height="0.7" />
+   <Char code="8274" width="0.4" height="0.7" />
+   <Char code="8279" width="0.9" height="0.7" />
+   <Char code="8304" width="0.5" height="0.7" />
+   <Char code="8305" width="0.2" height="0.7" />
+   <Char code="8308" width="0.5" height="0.7" />
+   <Char code="8309" width="0.5" height="0.7" />
+   <Char code="8310" width="0.5" height="0.7" />
+   <Char code="8311" width="0.5" height="0.7" />
+   <Char code="8312" width="0.5" height="0.7" />
+   <Char code="8313" width="0.5" height="0.7" />
+   <Char code="8314" width="0.4" height="0.6" />
+   <Char code="8315" width="0.4" height="0.5" />
+   <Char code="8316" width="0.4" height="0.6" />
+   <Char code="8317" width="0.3" height="0.7" />
+   <Char code="8318" width="0.3" height="0.7" />
+   <Char code="8320" width="0.5" height="0.4" depth="0.1" />
+   <Char code="8321" width="0.4" height="0.4" depth="0.1" />
+   <Char code="8322" width="0.5" height="0.4" depth="0.1" />
+   <Char code="8323" width="0.5" height="0.4" depth="0.1" />
+   <Char code="8324" width="0.5" height="0.4" depth="0.1" />
+   <Char code="8325" width="0.5" height="0.4" depth="0.1" />
+   <Char code="8326" width="0.5" height="0.4" depth="0.1" />
+   <Char code="8327" width="0.5" height="0.4" depth="0.1" />
+   <Char code="8328" width="0.5" height="0.4" depth="0.1" />
+   <Char code="8329" width="0.5" height="0.4" depth="0.1" />
+   <Char code="8330" width="0.4" height="0.3" />
+   <Char code="8331" width="0.4" height="0.2" />
+   <Char code="8332" width="0.4" height="0.3" />
+   <Char code="8333" width="0.3" height="0.4" depth="0.1" />
+   <Char code="8334" width="0.3" height="0.4" depth="0.1" />
+   <Char code="8352" width="0.6" height="0.7" />
+   <Char code="8353" width="0.6" height="0.5" depth="0.1" />
+   <Char code="8354" width="0.4" height="0" />
+   <Char code="8355" width="0.4" height="0" />
+   <Char code="8356" width="0.4" height="0" />
+   <Char code="8357" width="0.4" height="0" />
+   <Char code="8358" width="0.8" height="0.7" />
+   <Char code="8361" width="0.8" height="0.7" />
+   <Char code="8362" width="0.8" height="0.5" />
+   <Char code="8363" width="0.7" height="0.7" depth="0.1" />
+   <Char code="8364" width="0.6" height="0.7" />
+   <Char code="8365" width="0.7" height="0.7" />
+   <Char code="8366" width="0.6" height="0.7" />
+   <Char code="8368" width="0.6" height="0.7" depth="0.1" />
+   <Char code="8369" width="0.8" height="0.7" />
+   <Char code="8370" width="0.6" height="0.7" />
+   <Char code="8371" width="0.8" height="0.7" />
+   <Char code="8372" width="0.8" height="0.7" />
+   <Char code="8373" width="0.6" height="0.7" />
+   <Char code="8374" width="0.6" height="0.7" />
+   <Char code="8375" width="0.8" height="0.7" />
+   <Char code="8376" width="0.6" height="0.7" />
+   <Char code="8377" width="0.6" height="0.7" />
+   <Char code="8378" width="0.7" height="0.7" />
+   <Char code="8379" width="0.8" height="0.7" />
+   <Char code="8380" width="0.6" height="0.5" />
+   <Char code="8381" width="0.7" height="0.7" />
+   <Char code="8382" width="0.7" height="0.7" />
+   <Char code="8383" width="0.6" height="0.7" />
+   <Char code="8450" width="0.6" height="0.7" />
+   <Char code="8458" width="0.6" height="0.5" depth="0.1" />
+   <Char code="8459" width="0.6" height="0.7" />
+   <Char code="8460" width="0.6" height="0.7" />
+   <Char code="8461" width="0.6" height="0.7" />
+   <Char code="8462" width="0.6" height="0.7" />
+   <Char code="8464" width="0.4" height="0.7" />
+   <Char code="8465" width="0.4" height="0.7" />
+   <Char code="8466" width="0.6" height="0.7" />
+   <Char code="8469" width="0.6" height="0.7" />
+   <Char code="8471" width="0.8" height="0.7" />
+   <Char code="8473" width="0.6" height="0.7" />
+   <Char code="8474" width="0.6" height="0.7" />
+   <Char code="8475" width="0.6" height="0.7" />
+   <Char code="8476" width="0.6" height="0.7" />
+   <Char code="8477" width="0.6" height="0.7" />
+   <Char code="8482" width="0.9" height="0.7" />
+   <Char code="8484" width="0.6" height="0.7" />
+   <Char code="8488" width="0.6" height="0.7" />
+   <Char code="8492" width="0.6" height="0.7" />
+   <Char code="8493" width="0.6" height="0.7" />
+   <Char code="8495" width="0.6" height="0.5" />
+   <Char code="8496" width="0.6" height="0.7" />
+   <Char code="8497" width="0.6" height="0.7" />
+   <Char code="8498" width="0.6" height="0.7" />
+   <Char code="8499" width="0.6" height="0.7" />
+   <Char code="8500" width="0.6" height="0.5" />
+   <Char code="8513" width="0.6" height="0.7" />
+   <Char code="8516" width="0.6" height="0.7" />
+   <Char code="8523" width="0.6" height="0.7" />
+   <Char code="8528" width="0.9" height="0.7" />
+   <Char code="8529" width="0.9" height="0.7" />
+   <Char code="8531" width="0.9" height="0.7" />
+   <Char code="8532" width="0.9" height="0.7" />
+   <Char code="8533" width="0.9" height="0.7" />
+   <Char code="8534" width="0.9" height="0.7" />
+   <Char code="8535" width="0.9" height="0.7" />
+   <Char code="8537" width="0.8" height="0.7" />
+   <Char code="8538" width="0.8" height="0.7" />
+   <Char code="8539" width="0.9" height="0.7" />
+   <Char code="8540" width="0.9" height="0.7" />
+   <Char code="8541" width="0.9" height="0.7" />
+   <Char code="8542" width="0.9" height="0.7" />
+   <Char code="8543" width="0.7" height="0.7" />
+   <Char code="8585" width="0.9" height="0.7" />
+   <Char code="8592" width="0.6" height="0.6" />
+   <Char code="8593" width="0.6" height="0.6" />
+   <Char code="8594" width="0.6" height="0.6" />
+   <Char code="8595" width="0.6" height="0.6" />
+   <Char code="8596" width="0.9" height="0.6" />
+   <Char code="8644" width="0.8" height="0.7" />
+   <Char code="8655" width="0.9" height="0.6" />
+   <Char code="8656" width="0.6" height="0.6" />
+   <Char code="8657" width="0.6" height="0.6" />
+   <Char code="8658" width="0.6" height="0.6" />
+   <Char code="8659" width="0.6" height="0.6" />
+   <Char code="8660" width="0.9" height="0.6" />
+   <Char code="8693" width="0.7" height="0.7" />
+   <Char code="8704" width="0.6" height="0.7" />
+   <Char code="8705" width="0.5" height="0.7" />
+   <Char code="8706" width="0.6" height="0.7" />
+   <Char code="8707" width="0.6" height="0.7" />
+   <Char code="8708" width="0.6" height="0.7" depth="0.1" />
+   <Char code="8709" width="0.6" height="0.7" />
+   <Char code="8711" width="0.6" height="0.7" />
+   <Char code="8712" width="0.6" height="0.7" />
+   <Char code="8713" width="0.6" height="0.7" />
+   <Char code="8715" width="0.6" height="0.7" />
+   <Char code="8716" width="0.6" height="0.7" />
+   <Char code="8719" width="0.6" height="0.35" depth="0.35" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57508"/>
+   </Char>
+   <Char code="8721" width="0.6" height="0.35" depth="0.35" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57507"/>
+   </Char>
+   <Char code="8722" width="0.6" height="0.4" />
+   <Char code="8723" width="0.6" height="0.7" />
+   <Char code="8730" width="0.6" height="0.04" depth="0.66" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57486"/>
+   </Char>
+   <Char code="8731" width="0.8" height="0.7" />
+   <Char code="8732" width="0.8" height="0.7" />
+   <Char code="8733" width="0.7" height="0.5" />
+   <Char code="8734" width="0.8" height="0.5" />
+   <Char code="8741" width="0.4" height="0.7" />
+   <Char code="8743" width="0.6" height="0.6" />
+   <Char code="8744" width="0.6" height="0.6" />
+   <Char code="8745" width="0.6" height="0.7" />
+   <Char code="8746" width="0.6" height="0.7" />
+   <Char code="8747" width="0.6" height="0" depth="0.8" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57506"/>
+   </Char>
+   <Char code="8750" width="0.6" height="0" depth="0.8" />
+   <Char code="8756" width="0.6" height="0.6" />
+   <Char code="8757" width="0.6" height="0.6" />
+   <Char code="8759" width="0.6" height="0.6" />
+   <Char code="8764" width="0.6" height="0.5" />
+   <Char code="8776" width="0.6" height="0.6" />
+   <Char code="8788" width="0.8" height="0.5" />
+   <Char code="8800" width="0.6" height="0.6" />
+   <Char code="8802" width="0.7" height="0.7" />
+   <Char code="8804" width="0.6" height="0.7" />
+   <Char code="8805" width="0.6" height="0.7" />
+   <Char code="8834" width="0.6" height="0.7" />
+   <Char code="8835" width="0.6" height="0.7" />
+   <Char code="8836" width="0.6" height="0.7" />
+   <Char code="8837" width="0.6" height="0.7" />
+   <Char code="8838" width="0.6" height="0.7" />
+   <Char code="8839" width="0.6" height="0.7" />
+   <Char code="8866" width="0.6" height="0.6" />
+   <Char code="8868" width="0.6" height="0.6" />
+   <Char code="8869" width="0.6" height="0.6" />
+   <Char code="8872" width="0.6" height="0.6" />
+   <Char code="8891" width="0.6" height="0.6" />
+   <Char code="8892" width="0.6" height="0.6" />
+   <Char code="8893" width="0.6" height="0.6" />
+   <Char code="8899" width="0.6" height="0.7" />
+   <Char code="8901" width="0.4" height="0.4" />
+   <Char code="8902" width="0.4" height="0.5" />
+   <Char code="8960" width="0.8" height="0.7" />
+   <Char code="8962" width="0.8" height="0.7" />
+   <Char code="8984" width="0.8" height="0.7" />
+   <Char code="8986" width="0.8" height="0.7" />
+   <Char code="8987" width="0.8" height="0.7" />
+   <Char code="9167" width="0.6" height="0.6" />
+   <Char code="9193" width="0.7" height="0.6" />
+   <Char code="9194" width="0.7" height="0.6" />
+   <Char code="9197" width="0.8" height="0.6" />
+   <Char code="9198" width="0.8" height="0.6" />
+   <Char code="9199" width="0.7" height="0.6" />
+   <Char code="9203" width="0.6" height="0.7" />
+   <Char code="9204" width="0.4" height="0.6" />
+   <Char code="9205" width="0.4" height="0.6" />
+   <Char code="9206" width="0.6" height="0.5" />
+   <Char code="9207" width="0.6" height="0.5" />
+   <Char code="9208" width="0.4" height="0.6" />
+   <Char code="9209" width="0.6" height="0.6" />
+   <Char code="9210" width="0.6" height="0.6" />
+   <Char code="9211" width="0.8" height="0.7" />
+   <Char code="9212" width="0.8" height="0.7" />
+   <Char code="9213" width="0.2" height="0.7" />
+   <Char code="9633" width="0.6" height="0.6" />
+   <Char code="9650" width="0.6" height="0.7" />
+   <Char code="9651" width="0.6" height="0.7" />
+   <Char code="9654" width="0.7" height="0.6" />
+   <Char code="9655" width="0.7" height="0.6" />
+   <Char code="9660" width="0.6" height="0.7" />
+   <Char code="9661" width="0.6" height="0.7" />
+   <Char code="9664" width="0.7" height="0.6" />
+   <Char code="9665" width="0.7" height="0.6" />
+   <Char code="9670" width="0.6" height="0.6" />
+   <Char code="9671" width="0.6" height="0.6" />
+   <Char code="9675" width="0.6" height="0.6" />
+   <Char code="9678" width="0.8" height="0.7" />
+   <Char code="9679" width="0.5" height="0.5" />
+   <Char code="9688" width="0.4" height="0.5" />
+   <Char code="9702" width="0.4" height="0.5" />
+   <Char code="9728" width="0.9" height="0.7" depth="0.1" />
+   <Char code="9729" width="0.9" height="0.7" />
+   <Char code="9730" width="0.8" height="0.7" depth="0.1" />
+   <Char code="9731" width="0.8" height="0.7" depth="0.1" />
+   <Char code="9732" width="0.8" height="0.7" />
+   <Char code="9733" width="0.8" height="0.7" />
+   <Char code="9734" width="0.8" height="0.7" />
+   <Char code="9736" width="0.8" height="0.7" />
+   <Char code="9748" width="0.8" height="0.7" depth="0.1" />
+   <Char code="9760" width="0.8" height="0.7" />
+   <Char code="9776" width="0.6" height="0.6" />
+   <Char code="9777" width="0.6" height="0.6" />
+   <Char code="9778" width="0.6" height="0.6" />
+   <Char code="9779" width="0.6" height="0.6" />
+   <Char code="9780" width="0.6" height="0.6" />
+   <Char code="9781" width="0.6" height="0.6" />
+   <Char code="9782" width="0.6" height="0.6" />
+   <Char code="9783" width="0.6" height="0.6" />
+   <Char code="9785" width="0.6" height="0.6" />
+   <Char code="9786" width="0.6" height="0.6" />
+   <Char code="9787" width="0.7" height="0.7" />
+   <Char code="9789" width="0.9" height="0.7" depth="0.1" />
+   <Char code="9792" width="0.4" height="0.6" />
+   <Char code="9794" width="0.6" height="0.6" />
+   <Char code="9824" width="0.6" height="0.6" />
+   <Char code="9825" width="0.6" height="0.6" />
+   <Char code="9826" width="0.6" height="0.6" />
+   <Char code="9827" width="0.6" height="0.6" />
+   <Char code="9828" width="0.6" height="0.6" />
+   <Char code="9829" width="0.6" height="0.6" />
+   <Char code="9830" width="0.6" height="0.6" />
+   <Char code="9831" width="0.6" height="0.6" />
+   <Char code="9833" width="0.4" height="0.7" />
+   <Char code="9834" width="0.6" height="0.7" />
+   <Char code="9835" width="0.8" height="0.7" />
+   <Char code="9836" width="0.8" height="0.7" />
+   <Char code="9837" width="0.4" height="0.7" />
+   <Char code="9838" width="0.4" height="0.7" />
+   <Char code="9839" width="0.6" height="0.7" />
+   <Char code="9856" width="0.8" height="0.7" />
+   <Char code="9857" width="0.8" height="0.7" />
+   <Char code="9858" width="0.8" height="0.7" />
+   <Char code="9859" width="0.8" height="0.7" />
+   <Char code="9860" width="0.8" height="0.7" />
+   <Char code="9861" width="0.8" height="0.7" />
+   <Char code="9872" width="0.8" height="0.7" depth="0.1" />
+   <Char code="9873" width="0.7" height="0.7" />
+   <Char code="9875" width="0.8" height="0.7" depth="0.1" />
+   <Char code="9876" width="0.8" height="0.7" />
+   <Char code="9879" width="0.4" height="0" />
+   <Char code="9889" width="0.6" height="0.7" />
+   <Char code="9893" width="0.6" height="0.7" depth="0.1" />
+   <Char code="9924" width="0.7" height="0.7" depth="0.1" />
+   <Char code="9928" width="0.9" height="0.7" depth="0.1" />
+   <Char code="9935" width="0.9" height="0.7" depth="0.1" />
+   <Char code="9960" width="0.8" height="0.7" depth="0.1" />
+   <Char code="9986" width="0.9" height="0.7" depth="0.1" />
+   <Char code="9993" width="0.8" height="0.6" />
+   <Char code="9998" width="0.8" height="0.7" />
+   <Char code="10004" width="0.7" height="0.7" />
+   <Char code="10008" width="0.7" height="0.7" />
+   <Char code="10052" width="0.8" height="0.7" />
+   <Char code="10060" width="0.7" height="0.7" />
+   <Char code="10083" width="0.6" height="0.7" />
+   <Char code="10084" width="0.8" height="0.7" />
+   <Char code="10200" width="0.6" height="0.7" />
+   <Char code="10229" width="0.6" height="0.6" />
+   <Char code="10230" width="0.6" height="0.6" />
+   <Char code="10231" width="0.9" height="0.6" />
+   <Char code="10232" width="0.6" height="0.6" />
+   <Char code="10233" width="0.6" height="0.6" />
+   <Char code="10234" width="0.9" height="0.6" />
+   <Char code="10589" width="0.6" height="0.7" />
+   <Char code="10696" width="0.8" height="0.7" />
+   <Char code="11088" width="0.8" height="0.7" />
+   <Char code="11096" width="0.8" height="0.7" />
+   <Char code="11242" width="0.8" height="0.7" />
+   <Char code="11243" width="0.8" height="0.7" />
+   <Char code="11365" width="0.7" height="0.5" />
+   <Char code="11366" width="0.6" height="0.7" />
+   <Char code="11373" width="0.6" height="0.7" />
+   <Char code="11375" width="0.6" height="0.7" />
+   <Char code="11377" width="0.8" height="0.5" />
+   <Char code="11520" width="0.6" height="0.5" />
+   <Char code="11521" width="0.7" height="0.5" depth="0.1" />
+   <Char code="11522" width="0.7" height="0.5" depth="0.1" />
+   <Char code="11523" width="0.6" height="0.7" />
+   <Char code="11524" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11525" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11526" width="0.7" height="0.7" />
+   <Char code="11527" width="0.6" height="0.5" />
+   <Char code="11528" width="0.6" height="0.5" />
+   <Char code="11529" width="0.6" height="0.7" depth="0.1" />
+   <Char code="11530" width="0.6" height="0.5" />
+   <Char code="11531" width="0.6" height="0.7" />
+   <Char code="11532" width="0.6" height="0.7" />
+   <Char code="11533" width="0.6" height="0.5" />
+   <Char code="11534" width="0.7" height="0.5" />
+   <Char code="11535" width="0.7" height="0.7" depth="0.1" />
+   <Char code="11536" width="0.6" height="0.7" />
+   <Char code="11537" width="0.6" height="0.7" />
+   <Char code="11538" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11539" width="0.6" height="0.7" depth="0.1" />
+   <Char code="11540" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11541" width="0.6" height="0.7" depth="0.1" />
+   <Char code="11542" width="0.6" height="0.5" />
+   <Char code="11543" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11544" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11545" width="0.6" height="0.7" depth="0.1" />
+   <Char code="11546" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11547" width="0.6" height="0.7" />
+   <Char code="11548" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11549" width="0.7" height="0.5" depth="0.1" />
+   <Char code="11550" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11551" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11552" width="0.6" height="0.5" />
+   <Char code="11553" width="0.6" height="0.7" depth="0.1" />
+   <Char code="11554" width="0.6" height="0.5" />
+   <Char code="11555" width="0.6" height="0.7" depth="0.1" />
+   <Char code="11556" width="0.6" height="0.5" depth="0.1" />
+   <Char code="11557" width="0.6" height="0.7" />
+   <Char code="11800" width="0.6" height="0.6" depth="0.1" />
+   <Char code="11822" width="0.6" height="0.7" />
+   <Char code="11829" width="0.2" height="0.7" />
+   <Char code="11832" width="0.6" height="0.7" />
+   <Char code="11841" width="0.2" height="0.1" depth="0.1" />
+   <Char code="11851" width="0.6" height="0.7" />
+   <Char code="12306" width="0.6" height="0.6" />
+   <Char code="12581" width="0.6" height="0.7" />
+   <Char code="42790" width="0.6" height="0.7" depth="0.1" />
+   <Char code="42791" width="0.6" height="0.7" depth="0.1" />
+   <Char code="42792" width="0.8" height="0.7" depth="0.1" />
+   <Char code="42793" width="0.7" height="0.7" depth="0.1" />
+   <Char code="42800" width="0.6" height="0.5" />
+   <Char code="42801" width="0.6" height="0.5" />
+   <Char code="42809" width="0.9" height="0.5" />
+   <Char code="42811" width="0.9" height="0.5" />
+   <Char code="42842" width="0.6" height="0.7" />
+   <Char code="42843" width="0.5" height="0.5" />
+   <Char code="42873" width="0.6" height="0.7" />
+   <Char code="42880" width="0.6" height="0.7" />
+   <Char code="42881" width="0.3" height="0.6" depth="0.1" />
+   <Char code="42920" width="0.7" height="0.7" />
+   <Char code="42921" width="0.6" height="0.5" />
+   <Char code="42927" width="0.6" height="0.5" />
+   <Char code="42928" width="0.6" height="0.7" />
+   <Char code="57344" width="0.5" height="0.45" depth="0.45" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57345"/>
+   </Char>
+   <Char code="57345" width="0.5" height="0.55" depth="0.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57346"/>
+   </Char>
+   <Char code="57346" width="0.5" height="0.65" depth="0.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57347"/>
+   </Char>
+   <Char code="57347" width="0.5" height="0.75" depth="0.75" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57348"/>
+   </Char>
+   <Char code="57348" width="0.5" height="0.85" depth="0.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57349"/>
+   </Char>
+   <Char code="57349" width="0.5" height="0.95" depth="0.95" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57350"/>
+   </Char>
+   <Char code="57350" width="0.5" height="1.05" depth="1.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57351"/>
+   </Char>
+   <Char code="57351" width="0.5" height="1.15" depth="1.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57352"/>
+   </Char>
+   <Char code="57352" width="0.5" height="1.25" depth="1.25" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57353"/>
+   </Char>
+   <Char code="57353" width="0.5" height="1.55" depth="1.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57354"/>
+   </Char>
+   <Char code="57354" width="0.5" height="1.85" depth="1.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57355"/>
+   </Char>
+   <Char code="57355" width="0.5" height="2.15" depth="2.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57356"/>
+   </Char>
+   <Char code="57356" width="0.5" height="2.55" depth="2.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57357"/>
+   </Char>
+   <Char code="57357" width="0.5" height="3.05" depth="3.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57358"/>
+   </Char>
+   <Char code="57358" width="0.5" height="3.65" depth="3.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57359"/>
+   </Char>
+   <Char code="57359" width="0.5" height="4.35" depth="4.35" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57360"/>
+   </Char>
+   <Char code="57360" width="0.5" height="5.05" depth="5.05" >
+     <Extension top="57363" rep="57362" bot="57361" />
+   </Char>
+   <Char code="57361" width="0.5" height="0.3" />
+   <Char code="57362" width="0.5" height="0.1" />
+   <Char code="57363" width="0.5" height="0.1" />
+   <Char code="57364" width="0.5" height="0.45" depth="0.45" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57365"/>
+   </Char>
+   <Char code="57365" width="0.5" height="0.55" depth="0.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57366"/>
+   </Char>
+   <Char code="57366" width="0.5" height="0.65" depth="0.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57367"/>
+   </Char>
+   <Char code="57367" width="0.5" height="0.75" depth="0.75" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57368"/>
+   </Char>
+   <Char code="57368" width="0.5" height="0.85" depth="0.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57369"/>
+   </Char>
+   <Char code="57369" width="0.5" height="0.95" depth="0.95" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57370"/>
+   </Char>
+   <Char code="57370" width="0.5" height="1.05" depth="1.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57371"/>
+   </Char>
+   <Char code="57371" width="0.5" height="1.15" depth="1.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57372"/>
+   </Char>
+   <Char code="57372" width="0.5" height="1.25" depth="1.25" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57373"/>
+   </Char>
+   <Char code="57373" width="0.5" height="1.55" depth="1.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57374"/>
+   </Char>
+   <Char code="57374" width="0.5" height="1.85" depth="1.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57375"/>
+   </Char>
+   <Char code="57375" width="0.5" height="2.15" depth="2.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57376"/>
+   </Char>
+   <Char code="57376" width="0.5" height="2.55" depth="2.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57377"/>
+   </Char>
+   <Char code="57377" width="0.5" height="3.05" depth="3.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57378"/>
+   </Char>
+   <Char code="57378" width="0.5" height="3.65" depth="3.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57379"/>
+   </Char>
+   <Char code="57379" width="0.5" height="4.35" depth="4.35" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57380"/>
+   </Char>
+   <Char code="57380" width="0.5" height="5.05" depth="5.05" >
+     <Extension top="57383" rep="57382" bot="57381" />
+   </Char>
+   <Char code="57381" width="0.5" height="0.3" />
+   <Char code="57382" width="0.5" height="0.1" />
+   <Char code="57383" width="0.5" height="0.1" />
+   <Char code="57384" width="0.5" height="0.45" depth="0.45" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57385"/>
+   </Char>
+   <Char code="57385" width="0.5" height="0.55" depth="0.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57386"/>
+   </Char>
+   <Char code="57386" width="0.5" height="0.65" depth="0.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57387"/>
+   </Char>
+   <Char code="57387" width="0.5" height="0.75" depth="0.75" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57388"/>
+   </Char>
+   <Char code="57388" width="0.5" height="0.85" depth="0.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57389"/>
+   </Char>
+   <Char code="57389" width="0.5" height="0.95" depth="0.95" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57390"/>
+   </Char>
+   <Char code="57390" width="0.5" height="1.05" depth="1.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57391"/>
+   </Char>
+   <Char code="57391" width="0.5" height="1.15" depth="1.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57392"/>
+   </Char>
+   <Char code="57392" width="0.5" height="1.25" depth="1.25" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57393"/>
+   </Char>
+   <Char code="57393" width="0.5" height="1.55" depth="1.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57394"/>
+   </Char>
+   <Char code="57394" width="0.5" height="1.85" depth="1.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57395"/>
+   </Char>
+   <Char code="57395" width="0.5" height="2.15" depth="2.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57396"/>
+   </Char>
+   <Char code="57396" width="0.5" height="2.55" depth="2.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57397"/>
+   </Char>
+   <Char code="57397" width="0.5" height="3.05" depth="3.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57398"/>
+   </Char>
+   <Char code="57398" width="0.5" height="3.65" depth="3.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57399"/>
+   </Char>
+   <Char code="57399" width="0.5" height="4.35" depth="4.35" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57400"/>
+   </Char>
+   <Char code="57400" width="0.5" height="5.05" depth="5.05" >
+     <Extension top="57403" rep="57402" bot="57401" />
+   </Char>
+   <Char code="57401" width="0.5" height="0.3" />
+   <Char code="57402" width="0.5" height="0.1" />
+   <Char code="57403" width="0.5" height="0.1" />
+   <Char code="57404" width="0.5" height="0.45" depth="0.45" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57405"/>
+   </Char>
+   <Char code="57405" width="0.5" height="0.55" depth="0.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57406"/>
+   </Char>
+   <Char code="57406" width="0.5" height="0.65" depth="0.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57407"/>
+   </Char>
+   <Char code="57407" width="0.5" height="0.75" depth="0.75" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57408"/>
+   </Char>
+   <Char code="57408" width="0.5" height="0.85" depth="0.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57409"/>
+   </Char>
+   <Char code="57409" width="0.5" height="0.95" depth="0.95" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57410"/>
+   </Char>
+   <Char code="57410" width="0.5" height="1.05" depth="1.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57411"/>
+   </Char>
+   <Char code="57411" width="0.5" height="1.15" depth="1.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57412"/>
+   </Char>
+   <Char code="57412" width="0.5" height="1.25" depth="1.25" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57413"/>
+   </Char>
+   <Char code="57413" width="0.5" height="1.55" depth="1.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57414"/>
+   </Char>
+   <Char code="57414" width="0.5" height="1.85" depth="1.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57415"/>
+   </Char>
+   <Char code="57415" width="0.5" height="2.15" depth="2.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57416"/>
+   </Char>
+   <Char code="57416" width="0.5" height="2.55" depth="2.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57417"/>
+   </Char>
+   <Char code="57417" width="0.5" height="3.05" depth="3.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57418"/>
+   </Char>
+   <Char code="57418" width="0.5" height="3.65" depth="3.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57419"/>
+   </Char>
+   <Char code="57419" width="0.5" height="4.35" depth="4.35" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57420"/>
+   </Char>
+   <Char code="57420" width="0.5" height="5.05" depth="5.05" >
+     <Extension top="57423" rep="57422" bot="57421" />
+   </Char>
+   <Char code="57421" width="0.5" height="0.3" />
+   <Char code="57422" width="0.5" height="0.1" />
+   <Char code="57423" width="0.5" height="0.1" />
+   <Char code="57424" width="0.5" height="0.45" depth="0.45" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57425"/>
+   </Char>
+   <Char code="57425" width="0.5" height="0.55" depth="0.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57426"/>
+   </Char>
+   <Char code="57426" width="0.5" height="0.65" depth="0.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57427"/>
+   </Char>
+   <Char code="57427" width="0.5" height="0.75" depth="0.75" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57428"/>
+   </Char>
+   <Char code="57428" width="0.5" height="0.85" depth="0.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57429"/>
+   </Char>
+   <Char code="57429" width="0.5" height="0.95" depth="0.95" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57430"/>
+   </Char>
+   <Char code="57430" width="0.5" height="1.05" depth="1.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57431"/>
+   </Char>
+   <Char code="57431" width="0.5" height="1.15" depth="1.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57432"/>
+   </Char>
+   <Char code="57432" width="0.5" height="1.25" depth="1.25" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57433"/>
+   </Char>
+   <Char code="57433" width="0.5" height="1.55" depth="1.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57434"/>
+   </Char>
+   <Char code="57434" width="0.5" height="1.85" depth="1.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57435"/>
+   </Char>
+   <Char code="57435" width="0.5" height="2.15" depth="2.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57436"/>
+   </Char>
+   <Char code="57436" width="0.5" height="2.55" depth="2.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57437"/>
+   </Char>
+   <Char code="57437" width="0.5" height="3.05" depth="3.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57438"/>
+   </Char>
+   <Char code="57438" width="0.5" height="3.65" depth="3.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57439"/>
+   </Char>
+   <Char code="57439" width="0.5" height="4.35" depth="4.35" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57440"/>
+   </Char>
+   <Char code="57440" width="0.5" height="5.05" depth="5.05" >
+     <Extension top="57443" mid="57444" rep="57442" bot="57441" />
+   </Char>
+   <Char code="57441" width="0.5" height="0.3" />
+   <Char code="57442" width="0.5" height="0.1" />
+   <Char code="57443" width="0.5" height="0.1" />
+   <Char code="57444" width="0.5" height="0.3" />
+   <Char code="57445" width="0.5" height="0.45" depth="0.45" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57446"/>
+   </Char>
+   <Char code="57446" width="0.5" height="0.55" depth="0.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57447"/>
+   </Char>
+   <Char code="57447" width="0.5" height="0.65" depth="0.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57448"/>
+   </Char>
+   <Char code="57448" width="0.5" height="0.75" depth="0.75" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57449"/>
+   </Char>
+   <Char code="57449" width="0.5" height="0.85" depth="0.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57450"/>
+   </Char>
+   <Char code="57450" width="0.5" height="0.95" depth="0.95" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57451"/>
+   </Char>
+   <Char code="57451" width="0.5" height="1.05" depth="1.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57452"/>
+   </Char>
+   <Char code="57452" width="0.5" height="1.15" depth="1.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57453"/>
+   </Char>
+   <Char code="57453" width="0.5" height="1.25" depth="1.25" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57454"/>
+   </Char>
+   <Char code="57454" width="0.5" height="1.55" depth="1.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57455"/>
+   </Char>
+   <Char code="57455" width="0.5" height="1.85" depth="1.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57456"/>
+   </Char>
+   <Char code="57456" width="0.5" height="2.15" depth="2.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57457"/>
+   </Char>
+   <Char code="57457" width="0.5" height="2.55" depth="2.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57458"/>
+   </Char>
+   <Char code="57458" width="0.5" height="3.05" depth="3.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57459"/>
+   </Char>
+   <Char code="57459" width="0.5" height="3.65" depth="3.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57460"/>
+   </Char>
+   <Char code="57460" width="0.5" height="4.35" depth="4.35" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57461"/>
+   </Char>
+   <Char code="57461" width="0.5" height="5.05" depth="5.05" >
+     <Extension top="57464" mid="57465" rep="57463" bot="57462" />
+   </Char>
+   <Char code="57462" width="0.5" height="0.3" />
+   <Char code="57463" width="0.5" height="0.1" />
+   <Char code="57464" width="0.5" height="0.1" />
+   <Char code="57465" width="0.5" height="0.3" />
+   <Char code="57466" width="0.5" height="0.45" depth="0.45" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57467"/>
+   </Char>
+   <Char code="57467" width="0.5" height="0.55" depth="0.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57468"/>
+   </Char>
+   <Char code="57468" width="0.5" height="0.65" depth="0.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57469"/>
+   </Char>
+   <Char code="57469" width="0.5" height="0.75" depth="0.75" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57470"/>
+   </Char>
+   <Char code="57470" width="0.5" height="0.85" depth="0.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57471"/>
+   </Char>
+   <Char code="57471" width="0.5" height="0.95" depth="0.95" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57472"/>
+   </Char>
+   <Char code="57472" width="0.5" height="1.05" depth="1.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57473"/>
+   </Char>
+   <Char code="57473" width="0.5" height="1.15" depth="1.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57474"/>
+   </Char>
+   <Char code="57474" width="0.5" height="1.25" depth="1.25" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57475"/>
+   </Char>
+   <Char code="57475" width="0.5" height="1.55" depth="1.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57476"/>
+   </Char>
+   <Char code="57476" width="0.5" height="1.85" depth="1.85" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57477"/>
+   </Char>
+   <Char code="57477" width="0.5" height="2.15" depth="2.15" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57478"/>
+   </Char>
+   <Char code="57478" width="0.5" height="2.55" depth="2.55" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57479"/>
+   </Char>
+   <Char code="57479" width="0.5" height="3.05" depth="3.05" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57480"/>
+   </Char>
+   <Char code="57480" width="0.5" height="3.65" depth="3.65" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57481"/>
+   </Char>
+   <Char code="57481" width="0.5" height="4.35" depth="4.35" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57482"/>
+   </Char>
+   <Char code="57482" width="0.5" height="5.05" depth="5.05" >
+     <Extension top="57485" rep="57484" bot="57483" />
+   </Char>
+   <Char code="57483" width="0.5" height="0.3" />
+   <Char code="57484" width="0.5" height="0.1" />
+   <Char code="57485" width="0.5" height="0.1" />
+   <Char code="57486" width="0.6" height="0.04" depth="0.86" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57487"/>
+   </Char>
+   <Char code="57487" width="0.6" height="0.04" depth="1.06" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57488"/>
+   </Char>
+   <Char code="57488" width="0.6" height="0.04" depth="1.26" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57489"/>
+   </Char>
+   <Char code="57489" width="0.6" height="0.04" depth="1.46" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57490"/>
+   </Char>
+   <Char code="57490" width="0.6" height="0.04" depth="1.66" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57491"/>
+   </Char>
+   <Char code="57491" width="0.6" height="0.04" depth="1.86" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57492"/>
+   </Char>
+   <Char code="57492" width="0.6" height="0.04" depth="2.06" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57493"/>
+   </Char>
+   <Char code="57493" width="0.6" height="0.04" depth="2.26" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57494"/>
+   </Char>
+   <Char code="57494" width="0.6" height="0.04" depth="2.46" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57495"/>
+   </Char>
+   <Char code="57495" width="0.6" height="0.04" depth="3.06" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57496"/>
+   </Char>
+   <Char code="57496" width="0.6" height="0.04" depth="3.66" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57497"/>
+   </Char>
+   <Char code="57497" width="0.6" height="0.04" depth="4.26" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57498"/>
+   </Char>
+   <Char code="57498" width="0.6" height="0.04" depth="5.06" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57499"/>
+   </Char>
+   <Char code="57499" width="0.6" height="0.04" depth="6.06" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57500"/>
+   </Char>
+   <Char code="57500" width="0.6" height="0.04" depth="7.26" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57501"/>
+   </Char>
+   <Char code="57501" width="0.6" height="0.04" depth="8.66" >
+     <NextLarger fontId="guidenh_minecrafttex_rm10" code="57502"/>
+   </Char>
+   <Char code="57502" width="0.6" height="0.04" depth="10.06" >
+     <Extension top="57505" rep="57504" bot="57503" />
+   </Char>
+   <Char code="57503" width="0.6" height="0.3" />
+   <Char code="57504" width="0.6" height="0.1" />
+   <Char code="57505" width="0.6" height="0.1" />
+   <Char code="57506" width="0.6" height="0" depth="1.5" />
+   <Char code="57507" width="1" height="0.45" depth="0.45" />
+   <Char code="57508" width="0.8" height="0.45" depth="0.45" />
+   <Char code="57509" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57510" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57511" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57512" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57513" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57514" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57515" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57516" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57517" width="0.4" height="0.72" depth="0.02" />
+   <Char code="57518" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57519" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57520" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57521" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57522" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57523" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57524" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57525" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57526" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57527" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57528" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57529" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57530" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57531" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57532" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57533" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57534" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57535" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57536" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57537" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57538" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57539" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57540" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57541" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57542" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57543" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57544" width="0.6" height="0.72" depth="0.12" />
+   <Char code="57545" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57546" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57547" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57548" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57549" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57550" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57551" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57552" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57553" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57554" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57555" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57556" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57557" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57558" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57559" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57560" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57561" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57562" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57563" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57564" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57565" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57566" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57567" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57568" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57569" width="0.4" height="0.72" depth="0.02" />
+   <Char code="57570" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57571" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57572" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57573" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57574" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57575" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57576" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57577" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57578" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57579" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57580" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57581" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57582" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57583" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57584" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57585" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57586" width="0.6" height="0.72" />
+   <Char code="57587" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57588" width="0.6" height="0.72" depth="0.12" />
+   <Char code="57589" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57590" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57591" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57592" width="0.6" height="0.72" depth="0.12" />
+   <Char code="57593" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57594" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57595" width="0.3" height="0.52" depth="0.02" />
+   <Char code="57596" width="0.5" height="0.52" depth="0.02" />
+   <Char code="57597" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57598" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57599" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57600" width="0.6" height="0.72" depth="0.12" />
+   <Char code="57601" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57602" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57603" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57604" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57605" width="0.7" height="0.52" depth="0.02" />
+   <Char code="57606" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57607" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57608" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57609" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57610" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57611" width="0.8" height="0.52" depth="0.02" />
+   <Char code="57612" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57613" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57614" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57615" width="0.5" height="0.52" depth="0.02" />
+   <Char code="57616" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57617" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57618" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57619" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57620" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57621" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57622" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57623" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57624" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57625" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57626" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57627" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57628" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57629" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57630" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57631" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57632" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57633" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57634" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57635" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57636" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57637" width="0.4" height="0.72" depth="0.02" />
+   <Char code="57638" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57639" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57640" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57641" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57642" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57643" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57644" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57645" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57646" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57647" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57648" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57649" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57650" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57651" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57652" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57653" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57654" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57655" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57656" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57657" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57658" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57659" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57660" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57661" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57662" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57663" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57664" width="0.6" height="0.72" depth="0.12" />
+   <Char code="57665" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57666" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57667" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57668" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57669" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57670" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57671" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57672" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57673" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57674" width="0.5" height="0.72" depth="0.02" />
+   <Char code="57675" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57676" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57677" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57678" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57679" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57680" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57681" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57682" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57683" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57684" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57685" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57686" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57687" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57688" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57689" width="0.4" height="0.72" depth="0.02" />
+   <Char code="57690" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57691" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57692" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57693" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57694" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57695" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57696" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57697" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57698" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57699" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57700" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57701" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57702" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57703" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57704" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57705" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57706" width="0.6" height="0.72" />
+   <Char code="57707" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57708" width="0.6" height="0.72" depth="0.12" />
+   <Char code="57709" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57710" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57711" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57712" width="0.6" height="0.72" depth="0.12" />
+   <Char code="57713" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57714" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57715" width="0.3" height="0.52" depth="0.02" />
+   <Char code="57716" width="0.5" height="0.52" depth="0.02" />
+   <Char code="57717" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57718" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57719" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57720" width="0.6" height="0.72" depth="0.12" />
+   <Char code="57721" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57722" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57723" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57724" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57725" width="0.7" height="0.52" depth="0.02" />
+   <Char code="57726" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57727" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57728" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57729" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57730" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57731" width="0.8" height="0.52" depth="0.02" />
+   <Char code="57732" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57733" width="0.6" height="0.52" depth="0.02" />
+   <Char code="57734" width="0.6" height="0.72" depth="0.02" />
+   <Char code="57735" width="0.5" height="0.52" depth="0.02" />
+   <Char code="57736" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57737" width="0.6" height="0.52" depth="0.12" />
+   <Char code="57738" width="0.6" height="0.52" depth="0.02" />
+   <Char code="60224" width="0.6" height="0.7" />
+   <Char code="60225" width="0.6" height="0.7" />
+   <Char code="60226" width="0.3" height="0.7" />
+   <Char code="60227" width="0.6" height="0.7" />
+   <Char code="60228" width="0.6" height="0.7" />
+   <Char code="60229" width="0.6" height="0.7" />
+   <Char code="60230" width="0.4" height="0.7" />
+   <Char code="60231" width="0.6" height="0.7" />
+   <Char code="60232" width="0.2" height="0.7" />
+   <Char code="60233" width="0.2" height="0.7" />
+   <Char code="60234" width="0.6" height="0.7" />
+   <Char code="60235" width="0.4" height="0.7" />
+   <Char code="60236" width="0.6" height="0.7" />
+   <Char code="60237" width="0.5" height="0.7" />
+   <Char code="60238" width="0.5" height="0.7" />
+   <Char code="60239" width="0.4" height="0.7" />
+   <Char code="60240" width="0.6" height="0.7" />
+   <Char code="60241" width="0.5" height="0.7" />
+   <Char code="60242" width="0.3" height="0.7" />
+   <Char code="60243" width="0.6" height="0.7" />
+   <Char code="60244" width="0.6" height="0.5" />
+   <Char code="60245" width="0.6" height="0.7" />
+   <Char code="60246" width="0.6" height="0.5" />
+   <Char code="60247" width="0.6" height="0.7" />
+   <Char code="60248" width="0.4" height="0.7" />
+   <Char code="60249" width="0.6" height="0.7" />
+   <Char code="64256" width="0.8" height="0.7" />
+   <Char code="64257" width="0.6" height="0.7" />
+   <Char code="64258" width="0.7" height="0.7" />
+   <Char code="64259" width="0.9" height="0.7" />
+   <Char code="64261" width="0.6" height="0.7" />
+   <Char code="64285" width="0.2" height="0.5" />
+   <Char code="64287" width="0.4" height="0.5" />
+   <Char code="64299" width="0.6" height="0.7" />
+   <Char code="64305" width="0.6" height="0.5" />
+   <Char code="64309" width="0.4" height="0.5" />
+   <Char code="64315" width="0.5" height="0.5" />
+   <Char code="64324" width="0.6" height="0.5" />
+   <Char code="64330" width="0.6" height="0.5" />
+   <Char code="64331" width="0.3" height="0.7" />
+   <Char code="64332" width="0.6" height="0.7" />
+   <Char code="64334" width="0.6" height="0.7" />
+   <Char code="65291" width="0.6" height="0.5" />
+   <Char code="65533" width="0.8" height="0.7" depth="0.1" />
+</Font>

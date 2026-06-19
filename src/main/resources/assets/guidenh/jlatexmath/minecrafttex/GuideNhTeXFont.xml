@@ -1,0 +1,50 @@
+<?xml version='1.0'?>
+<TeXFont>
+  <Parameters num1="0.7" num2="0.4" num3="0.45" denom1="0.7" denom2="0.35"
+    sup1="0.42" sup2="0.36" sup3="0.29" sub1="0.15" sub2="0.25" supdrop="0.38"
+    subdrop="0.05" axisheight="0.35" defaultrulethickness="0.12" bigopspacing1="0.11"
+    bigopspacing2="0.17" bigopspacing3="0.2" bigopspacing4="0.6" bigopspacing5="0.1" />
+  <GeneralSettings mufontid="guidenh_minecrafttex_rm10" spacefontid="guidenh_minecrafttex_rm10"
+    scriptfactor="0.7" scriptscriptfactor="0.5" />
+  <TextStyleMappings>
+    <TextStyleMapping name="guidenh_minecrafttex_mathnormal">
+      <MapRange code="numbers" fontId="guidenh_minecrafttex_rm10" start="48"/>
+      <MapRange code="capitals" fontId="guidenh_minecrafttex_mi10" start="65"/>
+      <MapRange code="small" fontId="guidenh_minecrafttex_mi10" start="97"/>
+      <MapRange code="unicode" fontId="guidenh_minecrafttex_rm10" start="0"/>
+    </TextStyleMapping>
+    <TextStyleMapping name="guidenh_minecrafttex_mathrm">
+      <MapRange code="numbers" fontId="guidenh_minecrafttex_rm10" start="48"/>
+      <MapRange code="capitals" fontId="guidenh_minecrafttex_rm10" start="65"/>
+      <MapRange code="small" fontId="guidenh_minecrafttex_rm10" start="97"/>
+      <MapRange code="unicode" fontId="guidenh_minecrafttex_rm10" start="0"/>
+    </TextStyleMapping>
+    <TextStyleMapping name="guidenh_minecrafttex_mathit">
+      <MapRange code="numbers" fontId="guidenh_minecrafttex_mi10" start="48"/>
+      <MapRange code="capitals" fontId="guidenh_minecrafttex_mi10" start="65"/>
+      <MapRange code="small" fontId="guidenh_minecrafttex_mi10" start="97"/>
+      <MapRange code="unicode" fontId="guidenh_minecrafttex_mi10" start="0"/>
+    </TextStyleMapping>
+    <TextStyleMapping name="guidenh_minecrafttex_mathbf">
+      <MapRange code="numbers" fontId="guidenh_minecrafttex_bx10" start="48"/>
+      <MapRange code="capitals" fontId="guidenh_minecrafttex_bx10" start="65"/>
+      <MapRange code="small" fontId="guidenh_minecrafttex_bx10" start="97"/>
+      <MapRange code="unicode" fontId="guidenh_minecrafttex_bx10" start="0"/>
+    </TextStyleMapping>
+  </TextStyleMappings>
+  <DefaultTextStyleMapping>
+    <MapStyle code="numbers" textStyle="guidenh_minecrafttex_mathnormal"/>
+    <MapStyle code="capitals" textStyle="guidenh_minecrafttex_mathnormal"/>
+    <MapStyle code="small" textStyle="guidenh_minecrafttex_mathnormal"/>
+    <MapStyle code="unicode" textStyle="guidenh_minecrafttex_mathnormal"/>
+  </DefaultTextStyleMapping>
+  <SymbolMappings>
+    <Mapping include="/assets/guidenh/jlatexmath/minecrafttex/fonts/minecrafttex.map.xml" />
+  </SymbolMappings>
+  <FontDescriptions>
+    <Metrics include="/assets/guidenh/jlatexmath/minecrafttex/fonts/guidenh_minecrafttex_rm10.xml" />
+    <Metrics include="/assets/guidenh/jlatexmath/minecrafttex/fonts/guidenh_minecrafttex_mi10.xml" />
+    <Metrics include="/assets/guidenh/jlatexmath/minecrafttex/fonts/guidenh_minecrafttex_bx10.xml" />
+    <Metrics include="/assets/guidenh/jlatexmath/minecrafttex/fonts/guidenh_minecrafttex_bi10.xml" />
+  </FontDescriptions>
+</TeXFont>

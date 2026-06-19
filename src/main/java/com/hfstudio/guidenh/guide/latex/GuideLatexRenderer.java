@@ -13,7 +13,6 @@ import net.minecraft.client.renderer.Tessellator;
 
 import org.lwjgl.opengl.GL11;
 import org.scilab.forge.jlatexmath.ParseException;
-import org.scilab.forge.jlatexmath.TeXConstants;
 import org.scilab.forge.jlatexmath.TeXFormula;
 import org.scilab.forge.jlatexmath.TeXIcon;
 
@@ -43,14 +42,13 @@ public class GuideLatexRenderer {
      * @return pixel height of a lower-case "x" glyph at the given scale
      */
     public int calibrateRefHeight(float sourceScale) {
+        GuideLatexFontBootstrap.ensureInstalled();
         String key = GuideLatexTextureCache.buildScaleKey(sourceScale);
         Integer height = refHeightCache.computeIfAbsent(key, k -> {
             try {
                 TeXFormula formula = new TeXFormula(CALIBRATION_FORMULA);
-                TeXIcon icon = formula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
-                    .setSize(sourceScale)
-                    .setFGColor(new Color(DEFAULT_FILL_COLOR_ARGB, true))
-                    .build();
+                TeXIcon icon = GuideLatexIconFactory
+                    .createDisplayIcon(formula, sourceScale, new Color(DEFAULT_FILL_COLOR_ARGB, true));
                 icon.setInsets(new Insets(2, 2, 2, 2));
                 int h = icon.getIconHeight();
                 return Math.max(1, h);
@@ -94,6 +92,7 @@ public class GuideLatexRenderer {
      * @return [widthPx, heightPx, depthPx] or null on parse failure
      */
     public int[] measureSize(String formula, int fillColorArgb, float sourceScale) {
+        GuideLatexFontBootstrap.ensureInstalled();
         if (formula == null || formula.isEmpty()) {
             return null;
         }
@@ -109,10 +108,8 @@ public class GuideLatexRenderer {
 
         try {
             TeXFormula texFormula = new TeXFormula(formula);
-            TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
-                .setSize(sourceScale)
-                .setFGColor(new Color(fillColorArgb, true))
-                .build();
+            TeXIcon icon = GuideLatexIconFactory
+                .createDisplayIcon(texFormula, sourceScale, new Color(fillColorArgb, true));
             icon.setInsets(new Insets(2, 2, 2, 2));
             int w = icon.getIconWidth();
             int h = icon.getIconHeight();
@@ -140,6 +137,7 @@ public class GuideLatexRenderer {
      * @return [textureId, widthPx, heightPx] or null on failure
      */
     public int[] getOrCreateTexture(String formula, int fillColorArgb, float sourceScale) {
+        GuideLatexFontBootstrap.ensureInstalled();
         if (formula == null || formula.isEmpty()) {
             return null;
         }
@@ -155,10 +153,8 @@ public class GuideLatexRenderer {
 
         try {
             TeXFormula texFormula = new TeXFormula(formula);
-            TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
-                .setSize(sourceScale)
-                .setFGColor(new Color(fillColorArgb, true))
-                .build();
+            TeXIcon icon = GuideLatexIconFactory
+                .createDisplayIcon(texFormula, sourceScale, new Color(fillColorArgb, true));
             icon.setInsets(new Insets(2, 2, 2, 2));
             icon.setForeground(new Color(fillColorArgb, true));
 
