@@ -181,6 +181,11 @@ public interface RenderContext {
         }
     }
 
+    default void fillTexturedRect(LytRect rect, GuidePageTexture texture, int sourceX, int sourceY, int sourceWidth,
+        int sourceHeight) {
+        fillTexturedRect(rect, texture);
+    }
+
     /**
      * Set up the GL modelview so that raw OpenGL calls (Tessellator, direct
      * {@code Gui.drawRect}, etc.) operate in this context's coordinate space.
