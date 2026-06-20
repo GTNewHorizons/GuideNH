@@ -29,6 +29,12 @@ public class LytImage extends LytBlock implements InteractiveElement {
 
     private int explicitWidth = -1;
     private int explicitHeight = -1;
+    private int cropX;
+    private int cropY;
+    private int cropWidth = -1;
+    private int cropHeight = -1;
+    private double scaleX = 1.0d;
+    private double scaleY = 1.0d;
 
     private final List<ImageRegionAnnotation> annotations = new ArrayList<>();
     @Nullable
@@ -68,12 +74,28 @@ public class LytImage extends LytBlock implements InteractiveElement {
         this.texture = texture != null ? texture : GuidePageTexture.missing();
     }
 
+    public GuidePageTexture getTexture() {
+        return texture;
+    }
+
     public void setExplicitWidth(int width) {
         this.explicitWidth = width > 0 ? width : -1;
     }
 
     public void setExplicitHeight(int height) {
         this.explicitHeight = height > 0 ? height : -1;
+    }
+
+    public void setCropRect(int cropX, int cropY, int cropWidth, int cropHeight) {
+        this.cropX = Math.max(0, cropX);
+        this.cropY = Math.max(0, cropY);
+        this.cropWidth = cropWidth > 0 ? cropWidth : -1;
+        this.cropHeight = cropHeight > 0 ? cropHeight : -1;
+    }
+
+    public void setScale(double scaleX, double scaleY) {
+        this.scaleX = scaleX > 0.0d ? scaleX : 1.0d;
+        this.scaleY = scaleY > 0.0d ? scaleY : 1.0d;
     }
 
     @Override
@@ -83,23 +105,16 @@ public class LytImage extends LytBlock implements InteractiveElement {
         }
 
         var size = texture.getSize();
-        int natW = Math.max(1, size.width());
-        int natH = Math.max(1, size.height());
-
+        int sourceWidth = Math.max(1, cropWidth > 0 ? cropWidth : size.width());
+        int sourceHeight = Math.max(1, cropHeight > 0 ? cropHeight : size.height());
         int width;
         int height;
-        if (explicitWidth > 0 && explicitHeight > 0) {
-            width = explicitWidth;
-            height = explicitHeight;
-        } else if (explicitWidth > 0) {
-            width = explicitWidth;
-            height = Math.max(1, Math.round(explicitWidth * (natH / (float) natW)));
-        } else if (explicitHeight > 0) {
-            height = explicitHeight;
-            width = Math.max(1, Math.round(explicitHeight * (natW / (float) natH)));
+        if (explicitWidth > 0 || explicitHeight > 0) {
+            width = explicitWidth > 0 ? explicitWidth : Math.max(1, (int) Math.round(sourceWidth * scaleX));
+            height = explicitHeight > 0 ? explicitHeight : Math.max(1, (int) Math.round(sourceHeight * scaleY));
         } else {
-            width = natW / 4;
-            height = natH / 4;
+            width = Math.max(1, (int) Math.round(sourceWidth * scaleX));
+            height = Math.max(1, (int) Math.round(sourceHeight * scaleY));
         }
 
         float visualScale = context.getVisualScale();
@@ -130,7 +145,13 @@ public class LytImage extends LytBlock implements InteractiveElement {
         if (texture == null) {
             context.fillIcon(getBounds(), GuiAssets.MISSING_TEXTURE);
         } else {
-            context.fillTexturedRect(getBounds(), texture);
+            context.fillTexturedRect(
+                getBounds(),
+                texture,
+                cropX,
+                cropY,
+                getEffectiveSourceWidth(),
+                getEffectiveSourceHeight());
         }
         drawAnnotationBorders(context);
     }
@@ -145,16 +166,8 @@ public class LytImage extends LytBlock implements InteractiveElement {
         if (dispW <= 0 || dispH <= 0) {
             return;
         }
-        int natW;
-        int natH;
-        if (texture != null && !texture.isMissing()) {
-            var size = texture.getSize();
-            natW = Math.max(1, size.width());
-            natH = Math.max(1, size.height());
-        } else {
-            natW = dispW;
-            natH = dispH;
-        }
+        int natW = texture != null && !texture.isMissing() ? getEffectiveSourceWidth() : dispW;
+        int natH = texture != null && !texture.isMissing() ? getEffectiveSourceHeight() : dispH;
         for (var ann : annotations) {
             if (!ann.isShowBorder()) {
                 continue;
@@ -216,9 +229,8 @@ public class LytImage extends LytBlock implements InteractiveElement {
         if (dispW <= 0 || dispH <= 0) {
             return Optional.empty();
         }
-        var size = texture.getSize();
-        int natW = Math.max(1, size.width());
-        int natH = Math.max(1, size.height());
+        int natW = getEffectiveSourceWidth();
+        int natH = getEffectiveSourceHeight();
         float localX = x - bounds.x();
         float localY = y - bounds.y();
         float imgPx = localX * natW / dispW;
@@ -295,12 +307,33 @@ public class LytImage extends LytBlock implements InteractiveElement {
             || y >= bounds.bottom()) {
             return null;
         }
-        var size = texture.getSize();
-        int natW = Math.max(1, size.width());
-        int natH = Math.max(1, size.height());
+        int natW = getEffectiveSourceWidth();
+        int natH = getEffectiveSourceHeight();
         float localX = x - bounds.x();
         float localY = y - bounds.y();
         return new ImagePoint(localX * natW / dispW, localY * natH / dispH);
+    }
+
+    private int getEffectiveSourceWidth() {
+        if (cropWidth > 0) {
+            return cropWidth;
+        }
+        return texture != null ? Math.max(
+            1,
+            texture.getSize()
+                .width())
+            : 1;
+    }
+
+    private int getEffectiveSourceHeight() {
+        if (cropHeight > 0) {
+            return cropHeight;
+        }
+        return texture != null ? Math.max(
+            1,
+            texture.getSize()
+                .height())
+            : 1;
     }
 
     public static class ImagePoint {

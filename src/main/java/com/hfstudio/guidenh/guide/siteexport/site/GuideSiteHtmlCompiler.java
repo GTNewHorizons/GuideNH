@@ -833,26 +833,51 @@ public class GuideSiteHtmlCompiler {
         }
         String title = element.getAttributeString("title", null);
         String alt = element.getAttributeString("alt", title != null ? title : "");
-        Integer width = parsePositiveInt(element.getAttributeString("width", null));
-        Integer height = parsePositiveInt(element.getAttributeString("height", null));
+        String widthValue = element.getAttributeString("width", null);
+        String widthAlias = element.getAttributeString("w", null);
+        String heightValue = element.getAttributeString("height", null);
+        String heightAlias = element.getAttributeString("h", null);
+        if (widthValue != null && widthAlias != null) {
+            return renderExportError("FloatingImage cannot use both width and w.");
+        }
+        if (heightValue != null && heightAlias != null) {
+            return renderExportError("FloatingImage cannot use both height and h.");
+        }
+        Integer cropX = parsePositiveOrZeroInt(element.getAttributeString("x", null));
+        Integer cropY = parsePositiveOrZeroInt(element.getAttributeString("y", null));
+        Integer cropWidth = parseAliasedPositiveInt(element, "width", "w");
+        Integer cropHeight = parseAliasedPositiveInt(element, "height", "h");
+        Double scaleX = parsePositiveDouble(element.getAttributeString("scaleX", null), 1.0d);
+        Double scaleY = parsePositiveDouble(element.getAttributeString("scaleY", null), 1.0d);
+        if (cropX == null || cropY == null || cropWidth == null || cropHeight == null) {
+            return renderExportError(
+                "FloatingImage requires non-negative x and y, plus positive width or w and height or h.");
+        }
+        if (scaleX == null || scaleY == null) {
+            return renderExportError("FloatingImage scaleX and scaleY must be positive numbers.");
+        }
         String src = resolveImageSource(rawSrc, currentPageId);
 
-        StringBuilder style = new StringBuilder();
-        if ("right".equals(element.getAttributeString("align", "left"))) {
-            style.append("float:right;margin:0 0 5px 5px;");
+        double displayWidth = cropWidth * scaleX;
+        double displayHeight = cropHeight * scaleY;
+        boolean inlineWrap = "inline".equals(element.getAttributeString("wrap", null));
+        String align = element.getAttributeString("align", "left");
+        if (!inlineWrap && !"left".equals(align) && !"right".equals(align)) {
+            return renderExportError("FloatingImage align must be left or right unless wrap=\"inline\".");
+        }
+        StringBuilder wrapperStyle = new StringBuilder();
+        if (inlineWrap) {
+            wrapperStyle.append("display:inline-block;vertical-align:middle;");
+        } else if ("right".equals(align)) {
+            wrapperStyle.append("float:right;margin:0 0 5px 5px;");
         } else {
-            style.append("float:left;margin:0 5px 5px 0;");
+            wrapperStyle.append("float:left;margin:0 5px 5px 0;");
         }
-        if (width != null) {
-            style.append("width:")
-                .append(width)
-                .append("px;");
-        }
-        if (height != null) {
-            style.append("height:")
-                .append(height)
-                .append("px;");
-        }
+        wrapperStyle.append("width:")
+            .append(toCssNumber(displayWidth))
+            .append("px;height:")
+            .append(toCssNumber(displayHeight))
+            .append("px;");
 
         List<ImageAnnotationExport> annotations = collectImageAnnotations(
             element,
@@ -860,46 +885,21 @@ public class GuideSiteHtmlCompiler {
             defaultNamespace,
             currentPageId,
             sceneResolver,
-            width,
-            height);
-        if (annotations.isEmpty()) {
-            return buildImageTag("guide-image guide-floating-image", src, alt, title, style.toString(), width, height);
-        }
-
-        StringBuilder html = new StringBuilder();
-        html.append("<span class=\"guide-floating-image-wrap\" style=\"")
-            .append(escapeAttribute(style.toString()))
-            .append("\">");
-        html.append(buildImageTag("guide-image guide-floating-image", src, alt, title, null, width, height));
-        for (ImageAnnotationExport annotation : annotations) {
-            html.append("<span class=\"guide-image-annotation");
-            if (annotation.templateId != null) {
-                html.append(" guide-tooltip");
-            }
-            html.append("\"");
-            if (annotation.templateId != null) {
-                html.append(" data-template=\"")
-                    .append(escapeAttribute(annotation.templateId))
-                    .append("\"");
-            }
-            if (annotation.sound != null) {
-                GuideSiteSoundExport.appendDataAttributes(
-                    html,
-                    annotation.sound,
-                    annotation.soundTrigger,
-                    annotation.soundSrc,
-                    this::escapeAttribute);
-            }
-            appendOptionalDataAttribute(html, "data-source-x", annotation.sourceX);
-            appendOptionalDataAttribute(html, "data-source-y", annotation.sourceY);
-            appendOptionalDataAttribute(html, "data-source-width", annotation.sourceWidth);
-            appendOptionalDataAttribute(html, "data-source-height", annotation.sourceHeight);
-            html.append(" style=\"")
-                .append(escapeAttribute(annotation.style))
-                .append("\"></span>");
-        }
-        html.append("</span>");
-        return html.toString();
+            cropWidth,
+            cropHeight);
+        return buildCroppedFloatingImageHtml(
+            src,
+            alt,
+            title,
+            wrapperStyle.toString(),
+            cropX,
+            cropY,
+            cropWidth,
+            cropHeight,
+            scaleX,
+            scaleY,
+            inlineWrap,
+            annotations);
     }
 
     private List<ImageAnnotationExport> collectImageAnnotations(MdxJsxElementFields element,
@@ -1008,6 +1008,71 @@ public class GuideSiteHtmlCompiler {
             .append("=\"")
             .append(value)
             .append("\"");
+    }
+
+    private String buildCroppedFloatingImageHtml(String src, String alt, @Nullable String title, String wrapperStyle,
+        int cropX, int cropY, int cropWidth, int cropHeight, double scaleX, double scaleY, boolean inlineWrap,
+        List<ImageAnnotationExport> annotations) {
+        StringBuilder html = new StringBuilder();
+        html.append("<span class=\"guide-floating-image-wrap");
+        if (inlineWrap) {
+            html.append(" guide-floating-image-inline");
+        }
+        html.append("\" style=\"")
+            .append(escapeAttribute(wrapperStyle))
+            .append("\">");
+        html.append("<img class=\"guide-image guide-floating-image\" src=\"")
+            .append(escapeAttribute(src))
+            .append("\" alt=\"")
+            .append(escapeAttribute(alt != null ? alt : ""))
+            .append("\"");
+        if (title != null && !title.isEmpty()) {
+            html.append(" title=\"")
+                .append(escapeAttribute(title))
+                .append("\"");
+        }
+        html.append(" data-crop-x=\"")
+            .append(cropX)
+            .append("\" data-crop-y=\"")
+            .append(cropY)
+            .append("\" data-crop-width=\"")
+            .append(cropWidth)
+            .append("\" data-crop-height=\"")
+            .append(cropHeight)
+            .append("\" data-scale-x=\"")
+            .append(toCssNumber(scaleX))
+            .append("\" data-scale-y=\"")
+            .append(toCssNumber(scaleY))
+            .append("\" loading=\"lazy\" decoding=\"async\">");
+        for (ImageAnnotationExport annotation : annotations) {
+            html.append("<span class=\"guide-image-annotation");
+            if (annotation.templateId != null) {
+                html.append(" guide-tooltip");
+            }
+            html.append("\"");
+            if (annotation.templateId != null) {
+                html.append(" data-template=\"")
+                    .append(escapeAttribute(annotation.templateId))
+                    .append("\"");
+            }
+            if (annotation.sound != null) {
+                GuideSiteSoundExport.appendDataAttributes(
+                    html,
+                    annotation.sound,
+                    annotation.soundTrigger,
+                    annotation.soundSrc,
+                    this::escapeAttribute);
+            }
+            appendOptionalDataAttribute(html, "data-source-x", annotation.sourceX);
+            appendOptionalDataAttribute(html, "data-source-y", annotation.sourceY);
+            appendOptionalDataAttribute(html, "data-source-width", annotation.sourceWidth);
+            appendOptionalDataAttribute(html, "data-source-height", annotation.sourceHeight);
+            html.append(" style=\"")
+                .append(escapeAttribute(annotation.style))
+                .append("\"></span>");
+        }
+        html.append("</span>");
+        return html.toString();
     }
 
     private String compileLatex(MdxJsxElementFields element, boolean display, GuideSiteTemplateRegistry templates) {
@@ -1433,6 +1498,30 @@ public class GuideSiteHtmlCompiler {
         }
     }
 
+    @Nullable
+    private Integer parseAliasedPositiveInt(MdxJsxElementFields element, String primaryName, String aliasName) {
+        String primaryValue = element.getAttributeString(primaryName, null);
+        String aliasValue = element.getAttributeString(aliasName, null);
+        if (primaryValue != null && aliasValue != null) {
+            return null;
+        }
+        return parsePositiveInt(primaryValue != null ? primaryValue : aliasValue);
+    }
+
+    @Nullable
+    private Double parsePositiveDouble(@Nullable String raw, double fallback) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return fallback;
+        }
+        try {
+            double value = Double.parseDouble(raw.trim());
+            return value > 0.0d ? value : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     private float parseFloat(@Nullable String raw, float fallback) {
         if (raw == null || raw.trim()
             .isEmpty()) {
@@ -1443,6 +1532,25 @@ public class GuideSiteHtmlCompiler {
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private String toCssNumber(double value) {
+        long integral = Math.round(value);
+        if (Math.abs(value - integral) < 0.000001d) {
+            return Long.toString(integral);
+        }
+        String text = Double.toString(value);
+        if (!text.contains(".")) {
+            return text;
+        }
+        int trimIndex = text.length();
+        while (trimIndex > 0 && text.charAt(trimIndex - 1) == '0') {
+            trimIndex--;
+        }
+        if (trimIndex > 0 && text.charAt(trimIndex - 1) == '.') {
+            trimIndex--;
+        }
+        return text.substring(0, trimIndex);
     }
 
     private boolean readBoolean(MdxJsxElementFields element, String name, boolean fallback) {

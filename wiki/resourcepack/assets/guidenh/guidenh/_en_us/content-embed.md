@@ -84,12 +84,12 @@ The placed-block preview is centred horizontally. No text flows to the sides.
 
 ## FloatingImage with wrap / align
 
-<FloatingImage src="test1.png" wrap="square" align="left" width="64" title="Float left" />
+<FloatingImage src="test1.png" wrap="square" align="left" x="0" y="0" width="128" height="128" scaleX="0.5" scaleY="0.5" title="Float left" />
 
 Text to the right of a floating image using the new `wrap` + `align` syntax.
-This is equivalent to the legacy `align="left"` attribute on `<FloatingImage>`.
+This keeps the floating behavior, but the image size now comes from the cropped rectangle plus `scaleX` / `scaleY`.
 
-<FloatingImage src="test1.png" wrap="square" align="right" width="64" title="Float right" />
+<FloatingImage src="test1.png" wrap="square" align="right" x="0" y="0" width="128" height="128" scaleX="0.5" scaleY="0.5" title="Float right" />
 
 Text to the left of a floating image using `wrap="square" align="right"`.
 

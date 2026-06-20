@@ -19,6 +19,12 @@ public class LytImageBlock extends LytParagraph {
     private String title;
     private int explicitWidth = -1;
     private int explicitHeight = -1;
+    private int cropX;
+    private int cropY;
+    private int cropWidth = -1;
+    private int cropHeight = -1;
+    private double scaleX = 1.0d;
+    private double scaleY = 1.0d;
     @Nullable
     private String align;
     private final List<ImageRegionAnnotation> annotations = new ArrayList<>();
@@ -50,6 +56,10 @@ public class LytImageBlock extends LytParagraph {
         this.title = title;
     }
 
+    public int getCropX() {
+        return cropX;
+    }
+
     public int getExplicitWidth() {
         return explicitWidth;
     }
@@ -64,6 +74,50 @@ public class LytImageBlock extends LytParagraph {
 
     public void setExplicitHeight(int explicitHeight) {
         this.explicitHeight = explicitHeight > 0 ? explicitHeight : -1;
+    }
+
+    public void setCropX(int cropX) {
+        this.cropX = Math.max(0, cropX);
+    }
+
+    public int getCropY() {
+        return cropY;
+    }
+
+    public void setCropY(int cropY) {
+        this.cropY = Math.max(0, cropY);
+    }
+
+    public int getCropWidth() {
+        return cropWidth;
+    }
+
+    public void setCropWidth(int cropWidth) {
+        this.cropWidth = cropWidth > 0 ? cropWidth : -1;
+    }
+
+    public int getCropHeight() {
+        return cropHeight;
+    }
+
+    public void setCropHeight(int cropHeight) {
+        this.cropHeight = cropHeight > 0 ? cropHeight : -1;
+    }
+
+    public double getScaleX() {
+        return scaleX;
+    }
+
+    public void setScaleX(double scaleX) {
+        this.scaleX = scaleX > 0.0d ? scaleX : 1.0d;
+    }
+
+    public double getScaleY() {
+        return scaleY;
+    }
+
+    public void setScaleY(double scaleY) {
+        this.scaleY = scaleY > 0.0d ? scaleY : 1.0d;
     }
 
     @Nullable
