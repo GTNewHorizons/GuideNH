@@ -22,6 +22,8 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 public class LytImage extends LytBlock implements InteractiveElement {
 
+    public static final double DEFAULT_LAYOUT_SCALE = 0.25d;
+
     private ResourceLocation imageId;
     private GuidePageTexture texture = GuidePageTexture.missing();
     private String title;
@@ -113,8 +115,8 @@ public class LytImage extends LytBlock implements InteractiveElement {
             width = explicitWidth > 0 ? explicitWidth : Math.max(1, (int) Math.round(sourceWidth * scaleX));
             height = explicitHeight > 0 ? explicitHeight : Math.max(1, (int) Math.round(sourceHeight * scaleY));
         } else {
-            width = Math.max(1, (int) Math.round(sourceWidth * scaleX));
-            height = Math.max(1, (int) Math.round(sourceHeight * scaleY));
+            width = Math.max(1, (int) Math.round(sourceWidth * DEFAULT_LAYOUT_SCALE * scaleX));
+            height = Math.max(1, (int) Math.round(sourceHeight * DEFAULT_LAYOUT_SCALE * scaleY));
         }
 
         float visualScale = context.getVisualScale();
