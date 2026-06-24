@@ -144,6 +144,8 @@ public class GuideSiteExportTask {
             for (Map.Entry<String, List<GuideSitePageVariant>> entry : allVariantsByLanguage.entrySet()) {
                 String language = entry.getKey();
                 List<GuideSitePageVariant> languageVariants = entry.getValue();
+                switchMinecraftLanguage(language);
+                writer.writeExternalLinkPage(outDir, language);
                 contextsByLanguage.put(
                     language,
                     buildLanguageExportContext(guidesById, languageVariants, resourceManager, language, assets));
@@ -311,7 +313,8 @@ public class GuideSiteExportTask {
             writer.writeSearchIndex(outDir, entry.getKey(), GSON.toJson(entry.getValue()));
         }
 
-        writer.writeLandingPage(outDir, firstPageUrl, "GuideNH Static Export");
+        GuideSiteLocalizedText landingPageText = GuideSiteLocalizedText.resolve();
+        writer.writeLandingPage(outDir, firstPageUrl, "GuideNH Static Export", landingPageText);
 
         return new Result(guidesExported, pagesExported, pagesFailed, outDir);
     }

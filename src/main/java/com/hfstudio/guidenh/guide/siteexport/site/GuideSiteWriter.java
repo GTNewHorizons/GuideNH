@@ -13,7 +13,6 @@ import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -25,6 +24,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
@@ -100,7 +100,6 @@ public class GuideSiteWriter {
         writeResource(
             outDir.resolve("_site/textures/listitem.svg"),
             "/assets/guidenh/siteexport/textures/listitem.svg");
-        writeExternalLinkPage(outDir);
         GuideSiteLocalServerJarWriter.writeTo(outDir.resolve("_site/guidenh-site-server.jar"));
         writeStartScripts(outDir);
     }
@@ -156,8 +155,8 @@ public class GuideSiteWriter {
         Files.writeString(outDir.resolve("export-report.json"), json);
     }
 
-    public void writeLandingPage(Path outDir, @Nullable String firstPageUrl, String title) throws Exception {
-        SiteUiText uiText = SiteUiText.forLanguage("en_us");
+    public void writeLandingPage(Path outDir, @Nullable String firstPageUrl, String title,
+        GuideSiteLocalizedText uiText) throws Exception {
         String html;
         if (firstPageUrl == null || firstPageUrl.isEmpty()) {
             html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>" + escapeHtml(title)
@@ -180,14 +179,13 @@ public class GuideSiteWriter {
         Files.writeString(outDir.resolve("index.html"), html);
     }
 
-    public void writeExternalLinkPage(Path outDir) throws Exception {
-        Path pagePath = outDir.resolve(Paths.get("_site", "external-link.html"));
+    public void writeExternalLinkPage(Path outDir, String language) throws Exception {
+        Path pagePath = outDir.resolve(Paths.get(GuideSiteLocalizedText.externalLinkPagePath(language)));
         Files.createDirectories(pagePath.getParent());
-        SiteUiText english = SiteUiText.forLanguage("en_us");
-        SiteUiText chinese = SiteUiText.forLanguage("zh_cn");
+        GuideSiteLocalizedText uiText = GuideSiteLocalizedText.resolve();
         String html = """
             <!doctype html>
-            <html lang="en">
+            <html lang="{{lang}}">
             <head>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -209,18 +207,8 @@ public class GuideSiteWriter {
                 var params = new URLSearchParams(window.location.search);
                 var target = params.get("target") || "";
                 var label = params.get("label") || target;
-                var lang = (params.get("lang") || "en_us").toLowerCase();
-                var zh = lang.indexOf("zh") === 0;
-                var title = zh ? '{{zh_title}}' : '{{en_title}}';
-                var message = zh ? '{{zh_message}}' : '{{en_message}}';
-                var openText = zh ? '{{zh_open}}' : '{{en_open}}';
-                var backText = zh ? '{{zh_back}}' : '{{en_back}}';
-                document.title = title;
-                document.getElementById("guide-external-title").textContent = title;
-                document.getElementById("guide-external-message").textContent = message;
                 document.getElementById("guide-external-target").textContent = label || target;
                 var open = document.getElementById("guide-external-open");
-                open.textContent = openText;
                 if (target) {
                   open.href = target;
                   open.rel = "noopener noreferrer";
@@ -228,23 +216,15 @@ public class GuideSiteWriter {
                 } else {
                   open.removeAttribute("href");
                 }
-                document.querySelector(".guide-site-external-cancel").textContent = backText;
               }());
               </script>
             </body>
             </html>
-            """.replace("{{title}}", escapeHtml(english.externalLinkTitle()))
-            .replace("{{message}}", escapeHtml(english.externalLinkMessage()))
-            .replace("{{open}}", escapeHtml(english.externalLinkOpen()))
-            .replace("{{back}}", escapeHtml(english.externalLinkBack()))
-            .replace("{{en_title}}", escapeJsString(english.externalLinkTitle()))
-            .replace("{{en_message}}", escapeJsString(english.externalLinkMessage()))
-            .replace("{{en_open}}", escapeJsString(english.externalLinkOpen()))
-            .replace("{{en_back}}", escapeJsString(english.externalLinkBack()))
-            .replace("{{zh_title}}", escapeJsString(chinese.externalLinkTitle()))
-            .replace("{{zh_message}}", escapeJsString(chinese.externalLinkMessage()))
-            .replace("{{zh_open}}", escapeJsString(chinese.externalLinkOpen()))
-            .replace("{{zh_back}}", escapeJsString(chinese.externalLinkBack()));
+            """.replace("{{lang}}", escapeHtml(normalizeLanguage(language)))
+            .replace("{{title}}", escapeHtml(uiText.externalLinkTitle()))
+            .replace("{{message}}", escapeHtml(uiText.externalLinkMessage()))
+            .replace("{{open}}", escapeHtml(uiText.externalLinkOpen()))
+            .replace("{{back}}", escapeHtml(uiText.externalLinkBack()));
         Files.writeString(pagePath, html);
     }
 
@@ -272,7 +252,7 @@ public class GuideSiteWriter {
     }
 
     public String renderLanguageSwitcher(String language, @Nullable List<GuideSiteLanguageLink> languageLinks) {
-        SiteUiText uiText = SiteUiText.forLanguage(language);
+        GuideSiteLocalizedText uiText = GuideSiteLocalizedText.resolve();
         StringBuilder html = new StringBuilder();
         appendLanguageSwitcher(html, language, languageLinks, uiText);
         return html.toString();
@@ -296,7 +276,7 @@ public class GuideSiteWriter {
         ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver, @Nullable List<GuideSiteLanguageLink> languageLinks,
         @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
-        SiteUiText uiText = SiteUiText.forLanguage(language);
+        GuideSiteLocalizedText uiText = GuideSiteLocalizedText.resolve();
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-sidebar-tools\">");
         // Language switching is offered in the page header; avoid duplicating it inside the sidebar.
@@ -521,7 +501,7 @@ public class GuideSiteWriter {
     }
 
     private void appendLanguageSwitcher(StringBuilder html, String currentLanguage,
-        @Nullable List<GuideSiteLanguageLink> languageLinks, SiteUiText uiText) {
+        @Nullable List<GuideSiteLanguageLink> languageLinks, GuideSiteLocalizedText uiText) {
         if (languageLinks == null || languageLinks.size() < 2) {
             return;
         }
@@ -553,12 +533,12 @@ public class GuideSiteWriter {
                     .append(
                         escapeHtml(
                             uiText.fallbackTitle(
-                                link.sourceLanguage() != null ? displayLanguage(link.sourceLanguage(), currentLanguage)
+                                link.sourceLanguage() != null ? uiText.languageLabel(link.sourceLanguage())
                                     : uiText.sharedPageLabel())))
                     .append("\"");
             }
             html.append("><span class=\"guide-language-link-label\">")
-                .append(escapeHtml(displayLanguage(link.language(), currentLanguage)))
+                .append(escapeHtml(uiText.languageLabel(link.language())))
                 .append("</span>");
             if (link.fallbackUsed()) {
                 html.append("<span class=\"guide-language-link-badge\">")
@@ -757,23 +737,8 @@ public class GuideSiteWriter {
         return relative.isEmpty() ? "." : relative;
     }
 
-    private String displayLanguage(String language, String currentLanguage) {
-        String normalized = normalizeLanguage(language);
-        boolean chineseUi = normalizeLanguage(currentLanguage).startsWith("zh");
-        return switch (normalized) {
-            case "en_us" -> "English";
-            case "zh_cn" -> chineseUi ? "简体中文" : "Simplified Chinese";
-            case "zh_tw" -> chineseUi ? "繁體中文" : "Traditional Chinese";
-            case "ja_jp" -> chineseUi ? "日本語" : "Japanese";
-            case "ko_kr" -> chineseUi ? "한국어" : "Korean";
-            case "ru_ru" -> chineseUi ? "Русский" : "Russian";
-            default -> normalized.replace('_', '-')
-                .toLowerCase(Locale.ROOT);
-        };
-    }
-
     private String normalizeLanguage(String language) {
-        return language == null ? "" : language.toLowerCase(Locale.ROOT);
+        return language == null ? "" : LangUtil.normalizeLanguage(language);
     }
 
     private String escapeHtml(String text) {
@@ -788,124 +753,6 @@ public class GuideSiteWriter {
             .replace("'", "\\'")
             .replace("\r", "")
             .replace("\n", "\\n");
-    }
-
-    private static final class SiteUiText {
-
-        private final String searchLabel;
-        private final String searchPlaceholder;
-        private final String searchEmptyTemplate;
-        private final String languagesLabel;
-        private final String fallbackBadge;
-        private final String fallbackPrefix;
-        private final String siteExportNoPages;
-        private final String siteExportOpenGuide;
-        private final String externalLinkTitle;
-        private final String externalLinkMessage;
-        private final String externalLinkOpen;
-        private final String externalLinkBack;
-
-        private SiteUiText(String searchLabel, String searchPlaceholder, String searchEmptyTemplate,
-            String languagesLabel, String fallbackBadge, String fallbackPrefix, String siteExportNoPages,
-            String siteExportOpenGuide, String externalLinkTitle, String externalLinkMessage, String externalLinkOpen,
-            String externalLinkBack) {
-            this.searchLabel = searchLabel;
-            this.searchPlaceholder = searchPlaceholder;
-            this.searchEmptyTemplate = searchEmptyTemplate;
-            this.languagesLabel = languagesLabel;
-            this.fallbackBadge = fallbackBadge;
-            this.fallbackPrefix = fallbackPrefix;
-            this.siteExportNoPages = siteExportNoPages;
-            this.siteExportOpenGuide = siteExportOpenGuide;
-            this.externalLinkTitle = externalLinkTitle;
-            this.externalLinkMessage = externalLinkMessage;
-            this.externalLinkOpen = externalLinkOpen;
-            this.externalLinkBack = externalLinkBack;
-        }
-
-        private static SiteUiText forLanguage(String language) {
-            String normalized = language != null ? language.toLowerCase(Locale.ROOT) : "";
-            if (normalized.startsWith("zh")) {
-                return new SiteUiText(
-                    "搜索",
-                    "搜索页面",
-                    "没有找到“{{query}}”的匹配项",
-                    "语言",
-                    "回退",
-                    "回退自",
-                    "没有导出任何指南页面。",
-                    "打开导出的指南",
-                    "外部链接",
-                    "你即将打开一个外部链接。",
-                    "继续打开",
-                    "返回");
-            }
-            return new SiteUiText(
-                "Search",
-                "Search pages",
-                "No matches for \"{{query}}\"",
-                "Languages",
-                "Fallback",
-                "Fallback from",
-                "No guide pages were exported.",
-                "Open exported guide",
-                "External Link",
-                "You are about to open an external link.",
-                "Open Link",
-                "Back");
-        }
-
-        private String searchLabel() {
-            return searchLabel;
-        }
-
-        private String searchPlaceholder() {
-            return searchPlaceholder;
-        }
-
-        private String searchEmptyTemplate() {
-            return searchEmptyTemplate;
-        }
-
-        private String languagesLabel() {
-            return languagesLabel;
-        }
-
-        private String fallbackBadge() {
-            return fallbackBadge;
-        }
-
-        private String fallbackTitle(String sourceLanguage) {
-            return fallbackPrefix + " " + sourceLanguage;
-        }
-
-        private String sharedPageLabel() {
-            return "Fallback from".equals(fallbackPrefix) ? "Shared page" : "共享页面";
-        }
-
-        private String siteExportNoPages() {
-            return siteExportNoPages;
-        }
-
-        private String siteExportOpenGuide() {
-            return siteExportOpenGuide;
-        }
-
-        private String externalLinkTitle() {
-            return externalLinkTitle;
-        }
-
-        private String externalLinkMessage() {
-            return externalLinkMessage;
-        }
-
-        private String externalLinkOpen() {
-            return externalLinkOpen;
-        }
-
-        private String externalLinkBack() {
-            return externalLinkBack;
-        }
     }
 
     private void writeResource(Path target, String resourcePath) throws Exception {

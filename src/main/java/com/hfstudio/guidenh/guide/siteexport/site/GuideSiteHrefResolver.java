@@ -81,18 +81,19 @@ public class GuideSiteHrefResolver {
             return "";
         }
         String normalizedUrl = externalUri.toString();
-        StringBuilder href = new StringBuilder(resolveSitePath(currentPageId, "_site/external-link.html"));
+        String exportLanguage = "en_us";
+        ExportContext exportContext = EXPORT_CONTEXT.get();
+        if (exportContext != null && exportContext.language != null && !exportContext.language.isEmpty()) {
+            exportLanguage = exportContext.language;
+        }
+        StringBuilder href = new StringBuilder(
+            resolveSitePath(currentPageId, GuideSiteLocalizedText.externalLinkPagePath(exportLanguage)));
         href.append("?target=")
             .append(urlEncode(normalizedUrl));
         if (label != null && !label.trim()
             .isEmpty()) {
             href.append("&label=")
                 .append(urlEncode(label.trim()));
-        }
-        ExportContext exportContext = EXPORT_CONTEXT.get();
-        if (exportContext != null && exportContext.language != null && !exportContext.language.isEmpty()) {
-            href.append("&lang=")
-                .append(urlEncode(exportContext.language));
         }
         return href.toString();
     }
