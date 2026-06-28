@@ -61,6 +61,7 @@
 ## **DefaultGuide**
 
 GuideNH 会在客户端自动创建 `config/guidenh/DefaultGuide/`。
+它还支持把 `config/guidenh/DefaultGuide.zip` 作为标准完整资源包加载，并且当 zip 与目录同时存在时优先使用 zip。
 
 这个目录使用原生命名空间根布局：
 
@@ -77,6 +78,18 @@ config/guidenh/DefaultGuide/
 ```
 
 该目录默认为空。需要客户端默认指南源时，请把你自己的页面和资源放在这里。
+
+如果你使用 `DefaultGuide.zip`，请采用标准完整资源包布局：
+
+```text
+config/guidenh/DefaultGuide.zip
+`-- assets/
+    `-- <modid>/
+        `-- guidenh/
+            |-- assets/
+            |-- _en_us/
+            `-- _zh_cn/
+```
 
 `wiki/resourcepack/` 仍然是仓库内的示例资源包。它保留外层 `assets/` 目录，用于文档说明和内置示例。
 
@@ -129,6 +142,21 @@ config/guidenh/DefaultGuide/
         |   `-- index.md
         `-- _zh_cn/
             `-- index.md
+```
+
+### **DefaultGuide Zip**
+
+```text
+config/guidenh/DefaultGuide.zip
+`-- assets/
+    `-- <modid>/
+        `-- guidenh/
+            |-- assets/
+            |   `-- shared_structure.snbt
+            |-- _en_us/
+            |   `-- index.md
+            `-- _zh_cn/
+                `-- index.md
 ```
 
 ### **注册指南**

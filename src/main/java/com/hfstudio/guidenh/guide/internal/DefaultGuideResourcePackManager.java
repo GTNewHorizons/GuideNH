@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.FileResourcePack;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.client.resources.ResourcePackRepository;
 
@@ -19,8 +20,9 @@ import cpw.mods.fml.client.FMLClientHandler;
 public class DefaultGuideResourcePackManager {
 
     private static final String DEFAULT_GUIDE_FOLDER = "config/guidenh/DefaultGuide";
+    private static final String DEFAULT_GUIDE_ZIP = "config/guidenh/DefaultGuide.zip";
     private static final String PACK_NAME = "GuideNH DefaultGuide";
-    private static DirectoryResourcePack defaultGuidePack;
+    private static IResourcePack defaultGuidePack;
     private static boolean reloadPending;
 
     private DefaultGuideResourcePackManager() {}
@@ -31,9 +33,10 @@ public class DefaultGuideResourcePackManager {
             return;
         }
 
-        DirectoryResourcePack pack = ensureDefaultGuidePack(minecraft);
+        IResourcePack pack = ensureDefaultGuidePack(minecraft);
         if (inject(pack, minecraft)) {
-            GuideDebugLog.infoAlways("Registered DefaultGuide resource pack at {}", pack.getRoot());
+            File packFile = DataDrivenGuideLoader.getLooseResourcePackRoot(pack);
+            GuideDebugLog.infoAlways("Registered DefaultGuide resource pack at {}", packFile);
             reloadPending = true;
         }
     }
@@ -61,8 +64,17 @@ public class DefaultGuideResourcePackManager {
         }
     }
 
-    private static DirectoryResourcePack ensureDefaultGuidePack(Minecraft minecraft) {
+    private static IResourcePack ensureDefaultGuidePack(Minecraft minecraft) {
         if (defaultGuidePack != null) {
+            return defaultGuidePack;
+        }
+
+        Path zipPath = minecraft.mcDataDir.toPath()
+            .resolve(DEFAULT_GUIDE_ZIP)
+            .toAbsolutePath()
+            .normalize();
+        if (Files.isRegularFile(zipPath)) {
+            defaultGuidePack = new NamedFileResourcePack(PACK_NAME, zipPath.toFile());
             return defaultGuidePack;
         }
 
@@ -75,10 +87,11 @@ public class DefaultGuideResourcePackManager {
         return defaultGuidePack;
     }
 
-    private static boolean inject(DirectoryResourcePack pack, Minecraft minecraft) {
+    private static boolean inject(IResourcePack pack, Minecraft minecraft) {
         List<IResourcePack> basePacks = ((AccessorFMLClientHandler) FMLClientHandler.instance())
             .guidenh$getResourcePackList();
-        if (basePacks == null || containsPack(basePacks, pack.getRoot())) {
+        File packFile = DataDrivenGuideLoader.getLooseResourcePackRoot(pack);
+        if (basePacks == null || packFile == null || containsPack(basePacks, packFile.toPath())) {
             return false;
         }
         int index = resolveInsertIndex(basePacks, minecraft);
@@ -117,5 +130,20 @@ public class DefaultGuideResourcePackManager {
             }
         }
         return false;
+    }
+
+    private static class NamedFileResourcePack extends FileResourcePack {
+
+        private final String packName;
+
+        public NamedFileResourcePack(String packName, File file) {
+            super(file);
+            this.packName = packName;
+        }
+
+        @Override
+        public String getPackName() {
+            return packName;
+        }
     }
 }

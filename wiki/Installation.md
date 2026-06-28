@@ -7,6 +7,9 @@ This page covers the repository layout and the development flow for the built-in
 GuideNH also creates `config/guidenh/DefaultGuide/` on the client as an empty runtime-loaded directory for your own
 guide content.
 
+GuideNH also accepts `config/guidenh/DefaultGuide.zip` as a normal full resource pack. If both the zip and the
+directory exist, the zip is preferred.
+
 The runtime guide is authored from `wiki/resourcepack/`, not from `src/main/resources/assets/...`.
 
 The built-in example guide now lives directly under:
@@ -44,6 +47,21 @@ config/guidenh/DefaultGuide/
 
 Use `DefaultGuide` for client-local runtime content. Use `wiki/resourcepack/` when editing the repository example pack
 that gets bundled into the jar.
+
+`DefaultGuide.zip` uses the standard full resource-pack layout with an outer `assets/` directory:
+
+```text
+config/guidenh/DefaultGuide.zip
+`-- assets/
+    `-- <modid>/
+        `-- guidenh/
+            |-- assets/
+            |   `-- example_structure.snbt
+            |-- _en_us/
+            |   `-- index.md
+            `-- _zh_cn/
+                `-- index.md
+```
 
 ## Development Loop
 

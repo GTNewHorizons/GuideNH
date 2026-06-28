@@ -8,6 +8,8 @@
 
 GuideNH 还会在客户端自动创建 `config/guidenh/DefaultGuide/`，作为一个默认为空的运行时加载目录，供你放置自己的指南内容。
 
+GuideNH 也接受 `config/guidenh/DefaultGuide.zip` 作为普通完整资源包。如果 zip 与目录同时存在，则优先使用 zip。
+
 运行时指南内容应从 `wiki/resourcepack/` 编写，而不是从 `src/main/resources/assets/...` 编写。
 
 当前内置示例指南直接位于：
@@ -44,6 +46,21 @@ config/guidenh/DefaultGuide/
 ```
 
 `DefaultGuide` 适合放客户端本地运行时内容；`wiki/resourcepack/` 则用于编辑会被打包进 jar 的仓库示例资源包。
+
+`DefaultGuide.zip` 使用带外层 `assets/` 目录的标准完整资源包布局：
+
+```text
+config/guidenh/DefaultGuide.zip
+`-- assets/
+    `-- <modid>/
+        `-- guidenh/
+            |-- assets/
+            |   `-- example_structure.snbt
+            |-- _en_us/
+            |   `-- index.md
+            `-- _zh_cn/
+                `-- index.md
+```
 
 ## 开发循环
 
