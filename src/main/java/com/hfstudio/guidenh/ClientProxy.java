@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.client.hotkey.OpenGuideHomeHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.internal.DefaultGuideResourcePackManager;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePackWatcher;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
@@ -130,6 +131,7 @@ public class ClientProxy extends CommonProxy {
         super.init(event);
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(new GuideReloadListener());
+        DefaultGuideResourcePackManager.init();
         ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
         StructureExportBootstrap.registerClientCommands();
         GuideNhClientBridgeController.init();
@@ -238,6 +240,7 @@ public class ClientProxy extends CommonProxy {
         GuideDevelopmentResourcePackWatcher.init();
         MasterScheduler.getInstance()
             .submit(new DevWatchWorkItem());
+        DefaultGuideResourcePackManager.refreshIfPending();
         GuideOnStartup.init();
     }
 

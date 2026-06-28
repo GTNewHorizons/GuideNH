@@ -58,6 +58,29 @@ In game:
 * Hold `G` while hovering an indexed item to jump to its guide entry.
 * Press `F3+T` to reload edited guide resources.
 
+## **DefaultGuide**
+
+GuideNH automatically creates `config/guidenh/DefaultGuide/` on the client.
+
+This directory uses a native namespace-root layout:
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- shared_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
+```
+
+The directory starts empty. Add your own pages and assets there when you want a client-side default guide source.
+
+`wiki/resourcepack/` remains the repository example resource pack. It keeps the outer `assets/` directory because it is
+used for documentation and bundled examples.
+
 ## **Authoring Example**
 
 ```md
@@ -93,6 +116,20 @@ assets/<modid>/guidenh/
 `-- _zh_cn/
     |-- index.md
     `-- machines.md
+```
+
+### **DefaultGuide Folder**
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- shared_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
 ```
 
 ### **Register A Guide**

@@ -58,6 +58,28 @@
 * 鼠标悬停在已建立索引的物品上并按住 `G`，可以跳转到对应指南页面。
 * 按 `F3+T` 可以重新加载已编辑的指南资源。
 
+## **DefaultGuide**
+
+GuideNH 会在客户端自动创建 `config/guidenh/DefaultGuide/`。
+
+这个目录使用原生命名空间根布局：
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- shared_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
+```
+
+该目录默认为空。需要客户端默认指南源时，请把你自己的页面和资源放在这里。
+
+`wiki/resourcepack/` 仍然是仓库内的示例资源包。它保留外层 `assets/` 目录，用于文档说明和内置示例。
+
 ## **编写示例**
 
 ```md
@@ -93,6 +115,20 @@ assets/<modid>/guidenh/
 `-- _zh_cn/
     |-- index.md
     `-- machines.md
+```
+
+### **DefaultGuide 目录**
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- shared_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
 ```
 
 ### **注册指南**

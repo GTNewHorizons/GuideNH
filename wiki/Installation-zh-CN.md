@@ -6,6 +6,8 @@
 
 ## 运行时指南源目录
 
+GuideNH 还会在客户端自动创建 `config/guidenh/DefaultGuide/`，作为一个默认为空的运行时加载目录，供你放置自己的指南内容。
+
 运行时指南内容应从 `wiki/resourcepack/` 编写，而不是从 `src/main/resources/assets/...` 编写。
 
 当前内置示例指南直接位于：
@@ -25,19 +27,23 @@
 - `assets/guidenh/guidenh/_zh_cn/index.md`
 - `assets/guidenh/guidenh/assets/example_structure.snbt`
 
-## TXLoader 原生布局
+## DefaultGuide 布局
 
-TXLoader 的 `config/txloader/load/` 和 `config/txloader/forceload/` 目录使用自己的原生布局：
-`<namespace>/<resource path>`。不要把外层 `assets/` 目录复制进 TXLoader。
+`DefaultGuide` 使用原生命名空间根布局，而不是最外层带 `assets/` 的结构：
 
-对于 GuideNH 指南，应使用如下路径：
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- example_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
+```
 
-- `config/txloader/load/guidenh/guidenh/_zh_cn/index.md`
-- `config/txloader/load/guidenh/guidenh/assets/example_structure.snbt`
-- `config/txloader/load/guidenh/textures/guide/my_icon.png`
-
-`config/txloader/forceload/` 下使用同样的布局。`forceload` 中的文件保留 TXLoader 的强制资源包优先级，
-因此可以覆盖相同 GuideNH 页面或资源路径的文件。
+`DefaultGuide` 适合放客户端本地运行时内容；`wiki/resourcepack/` 则用于编辑会被打包进 jar 的仓库示例资源包。
 
 ## 开发循环
 

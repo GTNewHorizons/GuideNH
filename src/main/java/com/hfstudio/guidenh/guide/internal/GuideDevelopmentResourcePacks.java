@@ -10,11 +10,11 @@ import net.minecraft.util.ResourceLocation;
 
 public class GuideDevelopmentResourcePacks {
 
-    private static final List<GuideDevelopmentResourcePack> CONFIGURED_PACKS = loadConfiguredPacks();
+    private static final List<DirectoryResourcePack> CONFIGURED_PACKS = loadConfiguredPacks();
 
     private GuideDevelopmentResourcePacks() {}
 
-    public static List<GuideDevelopmentResourcePack> getConfiguredPacks() {
+    public static List<DirectoryResourcePack> getConfiguredPacks() {
         return CONFIGURED_PACKS;
     }
 
@@ -26,8 +26,8 @@ public class GuideDevelopmentResourcePacks {
         return readBytesFromPacks(getConfiguredPacks(), resourceLocation);
     }
 
-    static byte[] readBytesFromPacks(List<GuideDevelopmentResourcePack> packs, ResourceLocation resourceLocation) {
-        for (GuideDevelopmentResourcePack pack : packs) {
+    static byte[] readBytesFromPacks(List<DirectoryResourcePack> packs, ResourceLocation resourceLocation) {
+        for (DirectoryResourcePack pack : packs) {
             byte[] bytes = pack.readBytes(resourceLocation);
             if (bytes != null) {
                 return bytes;
@@ -36,11 +36,11 @@ public class GuideDevelopmentResourcePacks {
         return null;
     }
 
-    private static List<GuideDevelopmentResourcePack> loadConfiguredPacks() {
-        var packs = new ArrayList<GuideDevelopmentResourcePack>();
+    private static List<DirectoryResourcePack> loadConfiguredPacks() {
+        var packs = new ArrayList<DirectoryResourcePack>();
         for (Path root : parseConfiguredRoots()) {
             if (Files.isDirectory(root)) {
-                packs.add(new GuideDevelopmentResourcePack(root));
+                packs.add(new DirectoryResourcePack("GuideNH Development Resources (" + root + ")", root));
             }
         }
         return List.copyOf(packs);

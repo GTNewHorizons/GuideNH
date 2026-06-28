@@ -4,6 +4,9 @@ This page covers the repository layout and the development flow for the built-in
 
 ## Runtime Guide Source
 
+GuideNH also creates `config/guidenh/DefaultGuide/` on the client as an empty runtime-loaded directory for your own
+guide content.
+
 The runtime guide is authored from `wiki/resourcepack/`, not from `src/main/resources/assets/...`.
 
 The built-in example guide now lives directly under:
@@ -23,19 +26,24 @@ During `processResources`, the project copies everything under `wiki/resourcepac
 - `assets/guidenh/guidenh/_zh_cn/index.md`
 - `assets/guidenh/guidenh/assets/example_structure.snbt`
 
-## TXLoader Native Layout
+## DefaultGuide Layout
 
-TXLoader's `config/txloader/load/` and `config/txloader/forceload/` folders use their own native layout:
-`<namespace>/<resource path>`. Do not copy the outer `assets/` folder into TXLoader.
+`DefaultGuide` uses a native namespace-root layout instead of an outer `assets/` directory:
 
-For a GuideNH guide, use paths such as:
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- example_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
+```
 
-- `config/txloader/load/guidenh/guidenh/_en_us/index.md`
-- `config/txloader/load/guidenh/guidenh/assets/example_structure.snbt`
-- `config/txloader/load/guidenh/textures/guide/my_icon.png`
-
-The same layout works under `config/txloader/forceload/`. Files in `forceload` keep TXLoader's forced
-resource-pack priority, so they can override files with the same GuideNH page or asset path.
+Use `DefaultGuide` for client-local runtime content. Use `wiki/resourcepack/` when editing the repository example pack
+that gets bundled into the jar.
 
 ## Development Loop
 

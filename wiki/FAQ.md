@@ -4,6 +4,11 @@
 
 Under `wiki/resourcepack/`. The old loose source tree under `src/main/resources/assets/...` is no longer the authored source of truth for runtime guide pages.
 
+## Where should I put a client-local guide that is not bundled into the jar?
+
+Under `config/guidenh/DefaultGuide/<modid>/guidenh/`. This runtime directory is created automatically on the client
+and uses the native namespace-root layout without an outer `assets/` folder.
+
 ## Why does this repository have both wiki pages and runtime markdown pages?
 
 The files under `wiki/*.md` are human-facing GitHub Wiki documentation. The files under `wiki/resourcepack/...` are the in-game guide pages consumed by GuideNH itself.
