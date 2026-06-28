@@ -46,7 +46,7 @@ public class GuideResourceAccess {
 
     private static Optional<byte[]> readFallbackBytes(ResourceLocation id) {
         for (var resourcePack : DataDrivenGuideLoader.getLastActiveResourcePacks()) {
-            byte[] bytes = DataDrivenGuideLoader.readLooseBytes(resourcePack, id);
+            byte[] bytes = DataDrivenGuideLoader.readBytes(resourcePack, id);
             if (bytes != null) {
                 return Optional.of(bytes);
             }

@@ -9,6 +9,16 @@ GuideNH 支持本地化的指南页面与本地化的指南资源。
 运行时本地化基于目录：
 
 ```text
+config/guidenh/DefaultGuide/<modid>/guidenh/
+|-- _en_us/
+|   `-- index.md
+`-- _zh_cn/
+    `-- index.md
+```
+
+仓库示例资源包则保留文档里的外层 `assets/` 结构：
+
+```text
 wiki/resourcepack/assets/<modid>/guidenh/
 |-- _en_us/
 |   `-- index.md
@@ -108,6 +118,15 @@ GuideNH 本身没有再额外给这类页面 key 施加字符上限。Minecraft 
 GuideNH 目前没有提供全局“忽略翻译”开关。如果你希望某个 guide 回退到非英文语言，请在代码里显式设置该 guide 的 `defaultLanguage`。
 
 ## 示例
+
+```text
+config/guidenh/DefaultGuide/guidenh/guidenh/_en_us/index.md
+config/guidenh/DefaultGuide/guidenh/guidenh/_zh_cn/index.md
+config/guidenh/DefaultGuide/guidenh/guidenh/_en_us/test1.png
+config/guidenh/DefaultGuide/guidenh/guidenh/_zh_cn/test1.png
+```
+
+仓库示例资源包中的对应路径：
 
 ```text
 wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md

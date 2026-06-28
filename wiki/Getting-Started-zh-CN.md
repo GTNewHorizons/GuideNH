@@ -2,9 +2,31 @@
 
 # 快速开始
 
-本页展示一个最小但实用的 GuideNH 运行时指南目录结构，以及你可以编写的第一个页面。
+本页展示 `DefaultGuide` 运行时目录的最小可用结构、仓库示例资源包结构，以及你可以编写的第一张页面。
 
-## 最小运行时结构
+## DefaultGuide 运行时布局
+
+GuideNH 会在客户端自动创建 `config/guidenh/DefaultGuide/`。该目录默认为空，并使用原生命名空间根布局：
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- example_structure.snbt
+        `-- _en_us/
+            `-- index.md
+```
+
+例如：
+
+```text
+config/guidenh/DefaultGuide/guidenh/guidenh/_zh_cn/index.md
+```
+
+## 仓库示例资源包
+
+当前仓库内置示例指南仍然使用面向文档的资源包结构：
 
 ```text
 wiki/resourcepack/
@@ -22,24 +44,6 @@ wiki/resourcepack/
 ```text
 wiki/resourcepack/assets/guidenh/guidenh/
 ```
-
-## TXLoader 原生布局
-
-如果通过 TXLoader 部署同一批文件，需要去掉外层 `assets/` 目录，因为 TXLoader 在 `load` 和
-`forceload` 下使用 `<namespace>/<resource path>` 形式保存资源：
-
-```text
-config/txloader/load/
-`-- <modid>/
-    `-- guidenh/
-        |-- assets/
-        |   `-- example_structure.snbt
-        `-- _zh_cn/
-            `-- index.md
-```
-
-例如，标准资源包路径 `assets/guidenh/guidenh/_zh_cn/index.md` 在 TXLoader 中应写成
-`config/txloader/load/guidenh/guidenh/_zh_cn/index.md`。`config/txloader/forceload/` 下也使用同样的原生布局。
 
 ## 指南发现机制
 
