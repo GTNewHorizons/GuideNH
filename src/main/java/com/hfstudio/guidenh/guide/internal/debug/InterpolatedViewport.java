@@ -11,17 +11,17 @@ package com.hfstudio.guidenh.guide.internal.debug;
  * <p>
  * Implementing this interface allows:
  * <ul>
- *   <li>Debug overlays to position element frames correctly during scrolling animations</li>
- *   <li>Hit-testing to account for animated viewport transformations</li>
- *   <li>Child elements to query their container's current visual state</li>
+ * <li>Debug overlays to position element frames correctly during scrolling animations</li>
+ * <li>Hit-testing to account for animated viewport transformations</li>
+ * <li>Child elements to query their container's current visual state</li>
  * </ul>
  *
  * <p>
  * Common use cases:
  * <ul>
- *   <li>Scrollable containers (CodeBlock, DetailsBlock, SizeBox) - return vertical scroll offset</li>
- *   <li>Pannable canvases (MermaidCanvas) - return pan offset and zoom (handled separately)</li>
- *   <li>Multi-axis scrollable areas - return both horizontal and vertical offsets</li>
+ * <li>Scrollable containers (CodeBlock, DetailsBlock, SizeBox) - return vertical scroll offset</li>
+ * <li>Pannable canvases (MermaidCanvas) - return pan offset and zoom (handled separately)</li>
+ * <li>Multi-axis scrollable areas - return both horizontal and vertical offsets</li>
  * </ul>
  */
 public interface InterpolatedViewport {

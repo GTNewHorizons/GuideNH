@@ -44,7 +44,8 @@ public class ElementHoverDetector {
         if (bounds != null && bounds.contains(mouseX, mouseY)) {
             HoveredElementInfo info = createElementInfo(node, bounds, parentInfo);
 
-            // Inherit cumulative scroll offset from parent and add this node's offset if it has an interpolated viewport
+            // Inherit cumulative scroll offset from parent and add this node's offset if it has an interpolated
+            // viewport
             float cumulativeScrollX = parentInfo != null ? parentInfo.getCumulativeScrollOffsetX() : 0f;
             float cumulativeScrollY = parentInfo != null ? parentInfo.getCumulativeScrollOffsetY() : 0f;
 
