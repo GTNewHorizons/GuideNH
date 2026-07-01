@@ -338,7 +338,7 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
         }
     }
 
-    // ===== DebugComponent Implementation =====
+    // Debug implementation
 
     @Override
     public List<ComponentEntry> getDebugComponents() {

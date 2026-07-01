@@ -116,10 +116,10 @@ public final class MdAstToMdxConverter {
         return (List<MdAstAnyContent>) (List<?>) children;
     }
 
-    // -----------------------------------------------------------------------
+    
     // Phrasing (inline) children conversion — also handles block nodes that
     // may appear inside phrasing containers (e.g. MdAstParagraph inside <td>).
-    // -----------------------------------------------------------------------
+    
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static void convertPhrasingChildren(List<?> children, Map<String, MdAstDefinition> definitions) {
@@ -208,9 +208,9 @@ public final class MdAstToMdxConverter {
         }
     }
 
-    // -----------------------------------------------------------------------
+    
     // Flow (block) children conversion
-    // -----------------------------------------------------------------------
+    
 
     private static void convertFlowChildren(List<MdAstAnyContent> children, Map<String, MdAstDefinition> definitions) {
         for (int i = 0; i < children.size(); i++) {
@@ -300,9 +300,9 @@ public final class MdAstToMdxConverter {
         }
     }
 
-    // -----------------------------------------------------------------------
+    
     // Factory helpers
-    // -----------------------------------------------------------------------
+    
 
     /**
      * Creates a flow element with the given tag name and children.

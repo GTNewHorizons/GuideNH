@@ -93,7 +93,7 @@ public class PreCompiler extends BlockTagCompiler {
         parent.append(codeBlock);
     }
 
-    // ---- CSV code block compilation ----
+    
 
     private LytBlock compileCsvCodeBlock(PageCompiler compiler, String source, @Nullable String meta) {
         List<List<String>> rows = CsvTableParser.parse(source);
@@ -181,7 +181,7 @@ public class PreCompiler extends BlockTagCompiler {
     @Desugar
     private record CsvFenceMeta(boolean header, List<Integer> widthHints) {}
 
-    // ---- Mermaid ----
+    
 
     private @Nullable LytMermaidMindmap tryCompileMermaidMindmap(String source) {
         try {
@@ -199,7 +199,7 @@ public class PreCompiler extends BlockTagCompiler {
         }
     }
 
-    // ---- Static helpers (copied from PageCompiler) ----
+    
 
     private static boolean isFileTreeFence(@Nullable String fenceLanguage) {
         if (fenceLanguage == null) {

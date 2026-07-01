@@ -188,7 +188,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         return MdxAttrs.getBoolean(compiler, parent, el, "showBackground", true);
     }
 
-    // ---- Scene data holder ----
+    
 
     /**
      * Placeholder block that stores all extracted scene configuration for deferred scene creation
@@ -272,7 +272,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
         }
     }
 
-    // ---- Utility methods (pure, kept for script use) ----
+    
 
     public static MdxJsxElementFields unwrapSceneElement(UnistNode node) {
         if (node instanceof MdxJsxElementFields elementFields) {

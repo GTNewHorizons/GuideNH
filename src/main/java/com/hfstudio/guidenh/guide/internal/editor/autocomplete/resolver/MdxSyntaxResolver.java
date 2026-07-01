@@ -96,7 +96,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolvePlainTextWord(text, cursorIndex);
     }
 
-    // ---- YAML frontmatter ----
+    
 
     @Nullable
     private TextSyntaxContext resolveFrontmatter(MdAstYamlFrontmatter yaml, String text, int cursorIndex) {
@@ -217,7 +217,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return i > 0 && i < trimmed.length() && (trimmed.charAt(i) == '.' || trimmed.charAt(i) == ')');
     }
 
-    // ---- Code fence language ----
+    
 
     @Nullable
     private TextSyntaxContext resolveFenceLanguage(MdAstCode code, String text, int cursorIndex) {
@@ -245,7 +245,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new FenceLanguageContext(langStart, cursorIndex, partial));
     }
 
-    // ---- Markdown link/image URL ----
+    
 
     @Nullable
     private MdAstResource findEnclosingLink(UnistNode node, int cursorIndex) {
@@ -281,7 +281,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new MdxValueContext(tagName, "url", urlStart, urlEnd, partial, '\0'));
     }
 
-    // ---- Tag start ----
+    
 
     @Nullable
     private TextSyntaxContext resolveTagStart(String text, int cursorIndex, @Nullable String parentTagName) {
@@ -339,7 +339,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return Character.isLetterOrDigit(c) || c == '-';
     }
 
-    // ---- MDX element ----
+    
 
     @Nullable
     private MdxJsxElementFields findEnclosingMdxElement(UnistNode node, int cursorIndex) {
@@ -418,7 +418,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolvePlainTextWord(text, cursorIndex);
     }
 
-    // ---- Generic AST search ----
+    
 
     @SuppressWarnings("unchecked")
     @Nullable
@@ -447,7 +447,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return null;
     }
 
-    // ---- Attribute resolution utilities ----
+    
 
     private TextSyntaxContext resolvePlainTextWord(String text, int cursorIndex) {
         return SyntaxUtils.resolveWord(text, cursorIndex);
@@ -501,7 +501,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new MdxAttrNameContext(tagName, nameStart, nameEnd, partial));
     }
 
-    // ---- Text scanning helpers ----
+    
 
     private static int findOpeningTagEnd(String text, int tagStart) {
         boolean inSingle = false;

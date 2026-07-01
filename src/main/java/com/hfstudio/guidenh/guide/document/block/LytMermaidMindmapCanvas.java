@@ -1725,7 +1725,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         }
     }
 
-    // ===== DebugComponent Implementation =====
+    // Debug implementation
 
     @Override
     public List<ComponentEntry> getDebugComponents() {

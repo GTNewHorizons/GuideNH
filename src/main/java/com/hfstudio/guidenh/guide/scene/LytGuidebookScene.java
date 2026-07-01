@@ -6914,7 +6914,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return Math.min(value, maxValue);
     }
 
-    // ===== DebugComponent Implementation =====
+    // Debug implementation
 
     @Override
     public List<ComponentEntry> getDebugComponents() {

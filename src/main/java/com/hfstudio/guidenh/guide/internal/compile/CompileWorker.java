@@ -131,7 +131,7 @@ public class CompileWorker {
         executor.shutdownNow();
     }
 
-    // ---- internal -------------------------------------------------------
+    
 
     private void runLoop() {
         while (!shutdown) {

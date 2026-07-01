@@ -242,7 +242,7 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
         return paragraph;
     }
 
-    // ===== DebugFlowContainer Implementation =====
+    // Debug implementation
 
     @Override
     @Nullable

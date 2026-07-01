@@ -195,7 +195,7 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
             .getTooltipExtra();
     }
 
-    // ===== DebugComponent Implementation =====
+    // Debug implementation
 
     @Override
     public List<ComponentEntry> getDebugComponents() {
