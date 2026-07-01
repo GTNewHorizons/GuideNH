@@ -205,36 +205,88 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
             return components;
         }
 
-        // Calculate approximate bounds for each slice
+        // Use precise sector hit-testing for each slice
         double angle = Math.toRadians(startAngleDeg);
         double dir = clockwise ? 1d : -1d;
 
         for (int i = 0; i < slices.size(); i++) {
             PieSlice slice = slices.get(i);
             double sweep = (slice.getValue() / totalCache) * Math.PI * 2d * dir;
-            double mid = angle + sweep / 2d;
 
-            // Approximate slice bounds as a rectangle from center to arc
-            float offsetX = (float) (Math.cos(mid) * radiusCache * 0.5f);
-            float offsetY = (float) (Math.sin(mid) * radiusCache * 0.5f);
-            float sliceSize = radiusCache * 0.4f;
+            // Create a custom ComponentEntry that uses sector hit-testing
+            int sliceIndex = i;
+            ComponentEntry sliceEntry = new ComponentEntry() {
 
-            LytRect sliceBounds = new LytRect(
-                (int) (cxCache + offsetX - sliceSize / 2),
-                (int) (cyCache + offsetY - sliceSize / 2),
-                (int) sliceSize,
-                (int) sliceSize);
+                @Override
+                public String getName() {
+                    String label = slice.getLabel();
+                    if (label == null || label.isEmpty()) {
+                        label = "Slice" + (sliceIndex + 1);
+                    }
+                    return "Slice:" + label;
+                }
 
-            String label = slice.getLabel();
-            if (label == null || label.isEmpty()) {
-                label = "Slice" + (i + 1);
-            }
+                @Override
+                public LytRect getBounds() {
+                    // Return bounding box of the sector
+                    double startAngle = Math.toRadians(startAngleDeg);
+                    double currentAngle = startAngle;
+                    for (int j = 0; j < sliceIndex; j++) {
+                        currentAngle += (slices.get(j)
+                            .getValue() / totalCache) * Math.PI * 2d * dir;
+                    }
+                    double sweepLocal = (slice.getValue() / totalCache) * Math.PI * 2d * dir;
 
-            double percent = (slice.getValue() / totalCache) * 100;
-            String extra = String.format("Value: %.1f (%.1f%%)", slice.getValue(), percent);
+                    // Calculate bounding box of sector
+                    float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+                    float maxX = Float.MIN_VALUE, maxY = Float.MIN_VALUE;
 
-            components.add(new SimpleComponentEntry("Slice:" + label, sliceBounds, extra, 15));
+                    // Include center point
+                    minX = Math.min(minX, cxCache);
+                    minY = Math.min(minY, cyCache);
+                    maxX = Math.max(maxX, cxCache);
+                    maxY = Math.max(maxY, cyCache);
 
+                    // Sample points along the arc
+                    int samples = 16;
+                    for (int k = 0; k <= samples; k++) {
+                        double a = currentAngle + sweepLocal * (k / (double) samples);
+                        float x = cxCache + (float) Math.cos(a) * (radiusCache + HOVER_OFFSET);
+                        float y = cyCache + (float) Math.sin(a) * (radiusCache + HOVER_OFFSET);
+                        minX = Math.min(minX, x);
+                        minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x);
+                        maxY = Math.max(maxY, y);
+                    }
+
+                    return new LytRect(
+                        (int) Math.floor(minX),
+                        (int) Math.floor(minY),
+                        (int) Math.ceil(maxX - minX),
+                        (int) Math.ceil(maxY - minY));
+                }
+
+                @Override
+                public String getExtraInfo() {
+                    double percent = (slice.getValue() / totalCache) * 100;
+                    return String.format("Value: %.1f (%.1f%%)", slice.getValue(), percent);
+                }
+
+                @Override
+                public int getPriority() {
+                    return 15;
+                }
+
+                /**
+                 * Override contains check to use precise sector hit-testing
+                 */
+                public boolean containsPoint(int x, int y) {
+                    // Use the chart's built-in hitTest which has precise sector detection
+                    return hitTest(x, y) == sliceIndex;
+                }
+            };
+
+            components.add(sliceEntry);
             angle += sweep;
         }
 

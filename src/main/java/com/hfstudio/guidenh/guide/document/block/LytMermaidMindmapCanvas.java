@@ -1735,29 +1735,34 @@ public class LytMermaidMindmapCanvas extends LytBlock
             return components;
         }
 
+        LytRect viewport = getInnerViewport();
+        float activeZoom = visualZoom.value();
+        int baseX = viewport.x() + visualContentOffsetX.rounded()
+            - Math.round(
+                layout.contentBounds()
+                    .x() * activeZoom);
+        int baseY = viewport.y() + visualContentOffsetY.rounded()
+            - Math.round(
+                layout.contentBounds()
+                    .y() * activeZoom);
+
         // Collect all nodes from the layout
-        collectNodeComponents(layout.root(), components, 0, 0);
+        collectNodeComponents(layout.root(), components, baseX, baseY, activeZoom);
 
         return components;
     }
 
-    private void collectNodeComponents(NodeLayout node, List<ComponentEntry> components, int baseX, int baseY) {
+    private void collectNodeComponents(NodeLayout node, List<ComponentEntry> components, int baseX, int baseY,
+        float activeZoom) {
         if (node == null) {
             return;
         }
 
-        // Calculate node bounds in canvas space
-        float zoom = visualZoom.value();
-        float offsetX = visualContentOffsetX.value();
-        float offsetY = visualContentOffsetY.value();
-
-        int canvasX = (int) bounds.x();
-        int canvasY = (int) bounds.y();
-
-        int nodeScreenX = canvasX + (int) ((node.x + baseX) * zoom + offsetX);
-        int nodeScreenY = canvasY + (int) ((node.y + baseY) * zoom + offsetY);
-        int nodeScreenW = (int) (node.width * zoom);
-        int nodeScreenH = (int) (node.height * zoom);
+        // Calculate node bounds using the same formula as renderNodes
+        int nodeScreenX = scaled(baseX, node.x, activeZoom);
+        int nodeScreenY = scaled(baseY, node.y, activeZoom);
+        int nodeScreenW = Math.max(1, Math.round(node.width * activeZoom));
+        int nodeScreenH = Math.max(1, Math.round(node.height * activeZoom));
 
         LytRect nodeBounds = new LytRect(nodeScreenX, nodeScreenY, nodeScreenW, nodeScreenH);
 
@@ -1771,16 +1776,48 @@ public class LytMermaidMindmapCanvas extends LytBlock
         if (node.children.size() > 0) {
             extra += ", Children: " + node.children.size();
         }
-        if (node.showBadge && node.badgeText != null) {
-            extra += ", Badge: " + node.badgeText;
-        }
 
         int priority = 20 - node.depth;
         components.add(new SimpleComponentEntry("Node:" + nodeName, nodeBounds, extra, priority));
 
+        // Add badge as separate component if present
+        if (node.showBadge && node.badgeText != null) {
+            int paddingX = Math.max(1, Math.round(NODE_PADDING_X * activeZoom));
+            int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * activeZoom));
+            int badgePaddingX = Math.max(2, Math.round(4 * activeZoom));
+            int badgePaddingY = Math.max(1, Math.round(2 * activeZoom));
+            ResolvedTextStyle badgeStyle = scaleStyle(ICON_TEXT_STYLE, activeZoom);
+
+            // Calculate badge bounds (simplified from renderNodes)
+            int badgeWidth = Math.max(1, 100 + badgePaddingX * 2); // Approximate
+            int badgeHeight = Math.max(1, 10 + badgePaddingY * 2); // Approximate
+            LytRect badgeBounds = new LytRect(nodeScreenX + paddingX, nodeScreenY + paddingY, badgeWidth, badgeHeight);
+
+            components.add(
+                new SimpleComponentEntry("Badge:" + node.badgeText, badgeBounds, "Node: " + nodeName, priority + 5));
+        }
+
+        // Add node content as separate component if present
+        if (node.contentLayout != null) {
+            int paddingX = Math.max(1, Math.round(NODE_PADDING_X * activeZoom));
+            int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * activeZoom));
+            int iconGapY = Math.max(1, Math.round(ICON_GAP_Y * activeZoom));
+            int contentY = nodeScreenY + paddingY;
+
+            if (node.showBadge && node.badgeText != null) {
+                int badgePaddingY = Math.max(1, Math.round(2 * activeZoom));
+                int badgeHeight = Math.max(1, 10 + badgePaddingY * 2); // Approximate
+                contentY += badgeHeight + iconGapY;
+            }
+
+            LytRect contentRect = resolveNodeContentRect(node, nodeBounds, paddingX, contentY, activeZoom);
+            components.add(
+                new SimpleComponentEntry("NodeContent", contentRect, "Block content for: " + nodeName, priority + 3));
+        }
+
         // Recursively collect children
         for (NodeLayout child : node.children) {
-            collectNodeComponents(child, components, baseX, baseY);
+            collectNodeComponents(child, components, baseX, baseY, activeZoom);
         }
     }
 }

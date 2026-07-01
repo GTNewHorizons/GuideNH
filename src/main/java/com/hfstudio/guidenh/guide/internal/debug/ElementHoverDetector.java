@@ -68,8 +68,7 @@ public class ElementHoverDetector {
         HoveredElementInfo parentInfo, int parentDepth, List<HoveredCandidate> candidates) {
 
         for (DebugComponent.ComponentEntry component : debugComponent.getDebugComponents()) {
-            if (component.getBounds()
-                .contains(mouseX, mouseY)) {
+            if (component.containsPoint(mouseX, mouseY)) {
                 String className = parentInfo.getClassName() + "$" + component.getName();
                 HoveredElementInfo info = new HoveredElementInfo(
                     className,

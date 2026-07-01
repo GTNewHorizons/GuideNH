@@ -55,6 +55,14 @@ public interface DebugComponent {
         default int getPriority() {
             return 0;
         }
+
+        /**
+         * Optional custom hit-testing. If not overridden, uses getBounds().contains(x, y).
+         * Use this for non-rectangular shapes like pie chart slices.
+         */
+        default boolean containsPoint(int x, int y) {
+            return getBounds().contains(x, y);
+        }
     }
 
     /**
