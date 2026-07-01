@@ -6,13 +6,14 @@ import java.util.List;
 import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 /**
  * Pie chart. On hover the hovered slice is offset outward along its angle bisector.
  */
-public class LytPieChart extends LytChartBase {
+public class LytPieChart extends LytChartBase implements DebugComponent {
 
     private static final int CIRCLE_SEGMENTS = 32;
     private static final float HOVER_OFFSET = 4f;
@@ -192,5 +193,51 @@ public class LytPieChart extends LytChartBase {
         if (key < 0 || key >= slices.size()) return null;
         return slices.get(key)
             .getTooltipExtra();
+    }
+
+    // ===== DebugComponent Implementation =====
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> components = new ArrayList<>();
+
+        if (slices.isEmpty() || totalCache <= 0 || bounds == null) {
+            return components;
+        }
+
+        // Calculate approximate bounds for each slice
+        double angle = Math.toRadians(startAngleDeg);
+        double dir = clockwise ? 1d : -1d;
+
+        for (int i = 0; i < slices.size(); i++) {
+            PieSlice slice = slices.get(i);
+            double sweep = (slice.getValue() / totalCache) * Math.PI * 2d * dir;
+            double mid = angle + sweep / 2d;
+
+            // Approximate slice bounds as a rectangle from center to arc
+            float offsetX = (float) (Math.cos(mid) * radiusCache * 0.5f);
+            float offsetY = (float) (Math.sin(mid) * radiusCache * 0.5f);
+            float sliceSize = radiusCache * 0.4f;
+
+            LytRect sliceBounds = new LytRect(
+                (int) (cxCache + offsetX - sliceSize / 2),
+                (int) (cyCache + offsetY - sliceSize / 2),
+                (int) sliceSize,
+                (int) sliceSize);
+
+            String label = slice.getLabel();
+            if (label == null || label.isEmpty()) {
+                label = "Slice" + (i + 1);
+            }
+
+            double percent = (slice.getValue() / totalCache) * 100;
+            String extra = String.format("Value: %.1f (%.1f%%)", slice.getValue(), percent);
+
+            components.add(new SimpleComponentEntry("Slice:" + label, sliceBounds, extra, 15));
+
+            angle += sweep;
+        }
+
+        return components;
     }
 }

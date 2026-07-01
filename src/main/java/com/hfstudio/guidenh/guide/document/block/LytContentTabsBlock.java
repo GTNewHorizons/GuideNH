@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
@@ -23,7 +24,7 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public class LytContentTabsBlock extends LytBlock implements InteractiveElement {
+public class LytContentTabsBlock extends LytBlock implements InteractiveElement, DebugComponent {
 
     private static final int ACCENT_WIDTH = 3;
     private static final int CONTAINER_PAD_X = 10;
@@ -335,5 +336,34 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement 
         private ResolvedTextStyle style(boolean selected) {
             return selected ? SELECTED_STYLE : IDLE_STYLE;
         }
+    }
+
+    // ===== DebugComponent Implementation =====
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> components = new ArrayList<>();
+
+        if (tabs.isEmpty() || headerBounds == null) {
+            return components;
+        }
+
+        // Each tab button
+        int tabWidth = (int) (headerBounds.width() / tabs.size());
+        for (int i = 0; i < tabs.size(); i++) {
+            TabState tab = tabs.get(i);
+            int tabX = (int) headerBounds.x() + (i * tabWidth);
+            LytRect tabBounds = new LytRect(tabX, (int) headerBounds.y(), tabWidth, (int) headerBounds.height());
+
+            String extra = "Index: " + i;
+            if (i == selectedIndex) {
+                extra += ", Active";
+            }
+
+            int priority = (i == selectedIndex) ? 20 : 15;
+            components.add(new SimpleComponentEntry("Tab:" + tab.title, tabBounds, extra, priority));
+        }
+
+        return components;
     }
 }

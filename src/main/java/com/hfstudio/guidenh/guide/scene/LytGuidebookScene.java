@@ -53,6 +53,7 @@ import com.hfstudio.guidenh.guide.document.block.ResponsiveVisualSizing;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -112,7 +113,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentB
 
 import lombok.Getter;
 
-public class LytGuidebookScene extends LytBlock {
+public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     public static class PonderWeatherColumnReservation {
 
@@ -6911,5 +6912,28 @@ public class LytGuidebookScene extends LytBlock {
             return minValue;
         }
         return Math.min(value, maxValue);
+    }
+
+    // ===== DebugComponent Implementation =====
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> components = new ArrayList<>();
+
+        // Timeline slider (bottom area when ponder active)
+        if (ponderSceneData != null && bounds != null) {
+            int sliderHeight = SCENE_SLIDER_AREA_HEIGHT;
+            int sliderY = (int) (bounds.y() + bounds.height() - sliderHeight);
+            LytRect sliderBounds = new LytRect((int) bounds.x(), sliderY, (int) bounds.width(), sliderHeight);
+            String state = ponderPaused ? "Paused" : "Playing";
+            components.add(
+                new SimpleComponentEntry(
+                    "TimelineSlider",
+                    sliderBounds,
+                    "Tick: " + ponderCurrentTick + ", " + state,
+                    10));
+        }
+
+        return components;
     }
 }

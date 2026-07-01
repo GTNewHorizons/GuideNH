@@ -24,6 +24,7 @@ import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapsh
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapLayoutMode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
@@ -40,7 +41,8 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTarget, InteractiveElement {
+public class LytMermaidMindmapCanvas extends LytBlock
+    implements DocumentDragTarget, InteractiveElement, DebugComponent {
 
     private static final int CANVAS_PADDING = 10;
     private static final int MIN_WIDTH = 96;
@@ -1720,6 +1722,65 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
 
         public int centerY() {
             return y + height / 2;
+        }
+    }
+
+    // ===== DebugComponent Implementation =====
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> components = new ArrayList<>();
+
+        if (layout == null || bounds == null) {
+            return components;
+        }
+
+        // Collect all nodes from the layout
+        collectNodeComponents(layout.root(), components, 0, 0);
+
+        return components;
+    }
+
+    private void collectNodeComponents(NodeLayout node, List<ComponentEntry> components, int baseX, int baseY) {
+        if (node == null) {
+            return;
+        }
+
+        // Calculate node bounds in canvas space
+        float zoom = visualZoom.value();
+        float offsetX = visualContentOffsetX.value();
+        float offsetY = visualContentOffsetY.value();
+
+        int canvasX = (int) bounds.x();
+        int canvasY = (int) bounds.y();
+
+        int nodeScreenX = canvasX + (int) ((node.x + baseX) * zoom + offsetX);
+        int nodeScreenY = canvasY + (int) ((node.y + baseY) * zoom + offsetY);
+        int nodeScreenW = (int) (node.width * zoom);
+        int nodeScreenH = (int) (node.height * zoom);
+
+        LytRect nodeBounds = new LytRect(nodeScreenX, nodeScreenY, nodeScreenW, nodeScreenH);
+
+        // Node info
+        String nodeName = String.join(" ", node.lines);
+        if (nodeName.length() > 30) {
+            nodeName = nodeName.substring(0, 27) + "...";
+        }
+
+        String extra = "Depth: " + node.depth;
+        if (node.children.size() > 0) {
+            extra += ", Children: " + node.children.size();
+        }
+        if (node.showBadge && node.badgeText != null) {
+            extra += ", Badge: " + node.badgeText;
+        }
+
+        int priority = 20 - node.depth;
+        components.add(new SimpleComponentEntry("Node:" + nodeName, nodeBounds, extra, priority));
+
+        // Recursively collect children
+        for (NodeLayout child : node.children) {
+            collectNodeComponents(child, components, baseX, baseY);
         }
     }
 }
