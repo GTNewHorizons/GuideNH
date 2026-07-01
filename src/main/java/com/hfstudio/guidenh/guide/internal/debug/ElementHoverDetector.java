@@ -44,15 +44,10 @@ public class ElementHoverDetector {
         if (bounds != null && bounds.contains(mouseX, mouseY)) {
             HoveredElementInfo info = createElementInfo(node, bounds, parentInfo);
 
-            // Inherit cumulative scroll offset from parent and add this node's offset if it has an interpolated
-            // viewport
+            // The current node inherits scroll offset from its parent, but NOT from itself.
+            // Only the node's children will be affected by the node's own scroll offset.
             float cumulativeScrollX = parentInfo != null ? parentInfo.getCumulativeScrollOffsetX() : 0f;
             float cumulativeScrollY = parentInfo != null ? parentInfo.getCumulativeScrollOffsetY() : 0f;
-
-            if (node instanceof InterpolatedViewport viewport) {
-                cumulativeScrollX += viewport.getVisualScrollOffsetX();
-                cumulativeScrollY += viewport.getVisualScrollOffsetY();
-            }
 
             info.setCumulativeScrollOffset(cumulativeScrollX, cumulativeScrollY);
 
@@ -67,16 +62,37 @@ public class ElementHoverDetector {
                 collectFlowContent(flowContainer, mouseX, mouseY, info, depth, candidates);
             }
 
-            // Adjust mouse coordinates for scrolled children
+            // Calculate cumulative scroll offset for children: parent's cumulative + this node's offset
+            float childCumulativeScrollX = cumulativeScrollX;
+            float childCumulativeScrollY = cumulativeScrollY;
             int adjustedMouseX = mouseX;
             int adjustedMouseY = mouseY;
+
             if (node instanceof InterpolatedViewport viewport) {
-                adjustedMouseX += Math.round(viewport.getVisualScrollOffsetX());
-                adjustedMouseY += Math.round(viewport.getVisualScrollOffsetY());
+                float nodeScrollX = viewport.getVisualScrollOffsetX();
+                float nodeScrollY = viewport.getVisualScrollOffsetY();
+                childCumulativeScrollX += nodeScrollX;
+                childCumulativeScrollY += nodeScrollY;
+                adjustedMouseX += Math.round(nodeScrollX);
+                adjustedMouseY += Math.round(nodeScrollY);
+            }
+
+            // Pass child cumulative offset by creating a temporary info wrapper for children
+            HoveredElementInfo childParentInfo = info;
+            if (node instanceof InterpolatedViewport) {
+                // Create a wrapper info with the child cumulative offset
+                childParentInfo = new HoveredElementInfo(
+                    info.getClassName(),
+                    info.getX(),
+                    info.getY(),
+                    info.getWidth(),
+                    info.getHeight(),
+                    info.getParent());
+                childParentInfo.setCumulativeScrollOffset(childCumulativeScrollX, childCumulativeScrollY);
             }
 
             for (LytNode child : node.getChildren()) {
-                collectHoveredNodes(child, adjustedMouseX, adjustedMouseY, info, candidates);
+                collectHoveredNodes(child, adjustedMouseX, adjustedMouseY, childParentInfo, candidates);
             }
         } else if (bounds == null) {
             for (LytNode child : node.getChildren()) {
@@ -102,6 +118,11 @@ public class ElementHoverDetector {
                     (int) component.getBounds()
                         .height(),
                     parentInfo);
+
+                // Inherit cumulative scroll offset from parent (debug components are children of the parent node)
+                info.setCumulativeScrollOffset(
+                    parentInfo.getCumulativeScrollOffsetX(),
+                    parentInfo.getCumulativeScrollOffsetY());
 
                 info.addExtraInfo("Component: " + component.getName());
                 if (component.getExtraInfo() != null) {
@@ -138,6 +159,11 @@ public class ElementHoverDetector {
                 (int) entry.bounds()
                     .height(),
                 parentInfo);
+
+            // Inherit cumulative scroll offset from parent (flow content is child of the parent node)
+            info.setCumulativeScrollOffset(
+                parentInfo.getCumulativeScrollOffsetX(),
+                parentInfo.getCumulativeScrollOffsetY());
 
             FlowContentInfoExtractor.extract(entry.content(), info);
 

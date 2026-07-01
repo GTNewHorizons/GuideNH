@@ -11,7 +11,6 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
-import com.hfstudio.guidenh.guide.internal.debug.InterpolatedViewport;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -19,8 +18,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public class LytDetailsBlock extends LytBlock
-    implements InteractiveElement, LytBlockContainer, DocumentDragTarget, InterpolatedViewport {
+public class LytDetailsBlock extends LytBlock implements InteractiveElement, LytBlockContainer, DocumentDragTarget {
 
     private static final ConstantColor SUMMARY_COLOR = new ConstantColor(0xFFE2E6ED);
     private static final String SUMMARY_OPEN_MARKER = "v";
@@ -437,12 +435,5 @@ public class LytDetailsBlock extends LytBlock
     private void updateVisualScroll() {
         visualContentScrollOffsetY
             .updateTowards(contentScrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, contentViewportHeight * 2f));
-    }
-
-    // InterpolatedViewport implementation
-
-    @Override
-    public float getVisualScrollOffsetY() {
-        return visualContentScrollOffsetY.value();
     }
 }

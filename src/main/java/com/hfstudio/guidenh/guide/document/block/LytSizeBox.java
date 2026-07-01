@@ -4,13 +4,12 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
-import com.hfstudio.guidenh.guide.internal.debug.InterpolatedViewport;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
-public class LytSizeBox extends LytVBox implements DocumentDragTarget, InterpolatedViewport {
+public class LytSizeBox extends LytVBox implements DocumentDragTarget {
 
     private static final int SCROLLBAR_WIDTH = 5;
     private static final int SCROLLBAR_GAP = 4;
@@ -294,12 +293,5 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget, Interpola
         for (LytBlock child : children) {
             child.moveLayoutPos(0, deltaY);
         }
-    }
-
-    // InterpolatedViewport implementation
-
-    @Override
-    public float getVisualScrollOffsetY() {
-        return visualScrollOffsetY.value();
     }
 }
