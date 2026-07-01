@@ -102,11 +102,18 @@ public class GuideDebugOverlay {
 
     /**
      * Adjust element coordinates from document space to screen space.
+     * Applies cumulative scroll offsets from all ancestor scrollable containers.
      */
     private void adjustCoordinatesForRendering(HoveredElementInfo info, int contentX, int contentY, int scrollY,
         float zoom) {
+        // Apply global scroll and zoom
         int screenX = contentX + Math.round(info.getX() * zoom);
         int screenY = contentY + Math.round((info.getY() - scrollY) * zoom);
+
+        // Apply cumulative container scroll offsets (interpolated for smooth animation)
+        screenX -= Math.round(info.getCumulativeScrollOffsetX() * zoom);
+        screenY -= Math.round(info.getCumulativeScrollOffsetY() * zoom);
+
         int screenW = Math.round(info.getWidth() * zoom);
         int screenH = Math.round(info.getHeight() * zoom);
 

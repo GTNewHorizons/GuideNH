@@ -43,6 +43,18 @@ public class ElementHoverDetector {
 
         if (bounds != null && bounds.contains(mouseX, mouseY)) {
             HoveredElementInfo info = createElementInfo(node, bounds, parentInfo);
+
+            // Inherit cumulative scroll offset from parent and add this node's offset if it has an interpolated viewport
+            float cumulativeScrollX = parentInfo != null ? parentInfo.getCumulativeScrollOffsetX() : 0f;
+            float cumulativeScrollY = parentInfo != null ? parentInfo.getCumulativeScrollOffsetY() : 0f;
+
+            if (node instanceof InterpolatedViewport viewport) {
+                cumulativeScrollX += viewport.getVisualScrollOffsetX();
+                cumulativeScrollY += viewport.getVisualScrollOffsetY();
+            }
+
+            info.setCumulativeScrollOffset(cumulativeScrollX, cumulativeScrollY);
+
             int depth = calculateDepth(node);
             candidates.add(new HoveredCandidate(info, depth, bounds.width() * bounds.height()));
 
@@ -54,8 +66,16 @@ public class ElementHoverDetector {
                 collectFlowContent(flowContainer, mouseX, mouseY, info, depth, candidates);
             }
 
+            // Adjust mouse coordinates for scrolled children
+            int adjustedMouseX = mouseX;
+            int adjustedMouseY = mouseY;
+            if (node instanceof InterpolatedViewport viewport) {
+                adjustedMouseX += Math.round(viewport.getVisualScrollOffsetX());
+                adjustedMouseY += Math.round(viewport.getVisualScrollOffsetY());
+            }
+
             for (LytNode child : node.getChildren()) {
-                collectHoveredNodes(child, mouseX, mouseY, info, candidates);
+                collectHoveredNodes(child, adjustedMouseX, adjustedMouseY, info, candidates);
             }
         } else if (bounds == null) {
             for (LytNode child : node.getChildren()) {

@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.internal.debug.InterpolatedViewport;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguage;
 import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightMode;
@@ -23,7 +24,7 @@ import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public class LytCodeBlock extends LytVBox implements InteractiveElement, DocumentDragTarget {
+public class LytCodeBlock extends LytVBox implements InteractiveElement, DocumentDragTarget, InterpolatedViewport {
 
     private static final CodeHighlightTheme CODE_THEME = CodeHighlightTheme.GITHUB_DARK_DEFAULT;
     private static final CodeHighlighter CODE_HIGHLIGHTER = new CodeHighlighter();
@@ -439,5 +440,12 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     private void updateVisualScroll() {
         visualBodyScrollOffsetY
             .updateTowards(bodyScrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, bodyViewportHeight * 2f));
+    }
+
+    // InterpolatedViewport implementation
+
+    @Override
+    public float getVisualScrollOffsetY() {
+        return visualBodyScrollOffsetY.value();
     }
 }

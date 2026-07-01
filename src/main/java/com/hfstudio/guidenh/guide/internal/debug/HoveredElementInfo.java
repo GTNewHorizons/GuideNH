@@ -22,6 +22,8 @@ public class HoveredElementInfo {
     private int screenY;
     private int screenWidth;
     private int screenHeight;
+    private float cumulativeScrollOffsetX;
+    private float cumulativeScrollOffsetY;
 
     public HoveredElementInfo(String className, int x, int y, int width, int height,
         @Nullable HoveredElementInfo parent) {
@@ -47,6 +49,19 @@ public class HoveredElementInfo {
         this.screenY = screenY;
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
+    }
+
+    public void setCumulativeScrollOffset(float offsetX, float offsetY) {
+        this.cumulativeScrollOffsetX = offsetX;
+        this.cumulativeScrollOffsetY = offsetY;
+    }
+
+    public float getCumulativeScrollOffsetX() {
+        return cumulativeScrollOffsetX;
+    }
+
+    public float getCumulativeScrollOffsetY() {
+        return cumulativeScrollOffsetY;
     }
 
     public String getClassName() {
