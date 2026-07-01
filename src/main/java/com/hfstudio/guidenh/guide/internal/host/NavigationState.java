@@ -63,8 +63,6 @@ public class NavigationState {
         return currentAnchor;
     }
 
-    
-
     public void recordPageHistory(GuideScreenViewState state) {
         if (state == null) return;
         if (pageHistoryIndex >= 0 && pageHistoryIndex < pageHistory.size()
@@ -134,14 +132,10 @@ public class NavigationState {
                 .equals(anchorB.pageId());
     }
 
-    
-
     public void rememberContentState(@Nullable GuideScreenViewState state) {
         if (!isRememberable(state)) return;
         recordPageHistory(state);
     }
-
-    
 
     public void rememberNavBarState(ResourceLocation guideId, GuideNavBarState state) {
         if (state != null) {
@@ -161,8 +155,6 @@ public class NavigationState {
         return state != null ? state : GuideNavBarState.defaultState();
     }
 
-    
-
     public boolean isBookmarked(ResourceLocation pageId) {
         return bookmarks.contains(pageId);
     }
@@ -177,8 +169,6 @@ public class NavigationState {
         return bookmarks;
     }
 
-    
-
     public void recordHomeHistory(ResourceLocation guideId, ResourceLocation pageId) {
         homeHistory.add(0, new HomeHistoryEntry(guideId, pageId));
     }
@@ -186,8 +176,6 @@ public class NavigationState {
     public List<HomeHistoryEntry> homeHistory() {
         return homeHistory;
     }
-
-    
 
     public boolean isRememberable(@Nullable GuideScreenViewState state) {
         if (state == null) return false;

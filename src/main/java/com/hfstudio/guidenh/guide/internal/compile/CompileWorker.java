@@ -131,8 +131,6 @@ public class CompileWorker {
         executor.shutdownNow();
     }
 
-    
-
     private void runLoop() {
         while (!shutdown) {
             ResourceLocation target = null;
