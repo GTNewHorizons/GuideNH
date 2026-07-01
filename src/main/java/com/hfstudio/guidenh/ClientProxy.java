@@ -71,9 +71,11 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.TooltipScript;
 import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
 import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
+import com.hfstudio.guidenh.guide.scene.concurrent.ConcurrentSceneCacheManager;
+import com.hfstudio.guidenh.guide.scene.concurrent.GameSceneConcurrentManager;
+import com.hfstudio.guidenh.guide.scene.concurrent.GameScenePrewarmBootstrap;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewBootstrap;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewWorker;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
@@ -100,7 +102,6 @@ public class ClientProxy extends CommonProxy {
     private static final LytHost lytHost = new LytHost();
     private static final CompileWorker compileWorker = new CompileWorker();
     private static final StructureLibPreviewWorker structureLibPreviewWorker = new StructureLibPreviewWorker();
-    private static final StructureLibPreviewBootstrap structureLibPreviewBootstrap = new StructureLibPreviewBootstrap();
 
     public static LytHost getLytHost() {
         return lytHost;
@@ -114,8 +115,16 @@ public class ClientProxy extends CommonProxy {
         return structureLibPreviewWorker;
     }
 
-    public static StructureLibPreviewBootstrap getStructureLibPreviewBootstrap() {
-        return structureLibPreviewBootstrap;
+    public static GameScenePrewarmBootstrap getGameScenePrewarmBootstrap() {
+        return GameScenePrewarmBootstrap.getInstance();
+    }
+
+    public static GameSceneConcurrentManager getGameSceneConcurrentManager() {
+        return GameSceneConcurrentManager.getInstance();
+    }
+
+    public static ConcurrentSceneCacheManager getConcurrentSceneCacheManager() {
+        return ConcurrentSceneCacheManager.getInstance();
     }
 
     private final GuideNhRuntimeBridge runtimeBridge = new GuideNhRuntimeBridge();

@@ -96,6 +96,7 @@ import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewResult;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewTask;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewTask.Priority;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewWorker;
+import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPreparePipeline;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
@@ -4831,6 +4832,15 @@ public class LytGuidebookScene extends LytBlock {
     private boolean applyStructureLibPreviewResult(StructureLibPreviewRuntimeState state,
         StructureLibPreviewResult result) {
         if (result.getType() == StructureLibPreviewTask.Type.ANALYZE_LIMITS) {
+            // Check if this analysis result is stale
+            if (result.getRequestVersion() < state.analysisVersion) {
+                GuideDebugLog.info(
+                    "[LytGuidebookScene] Discarding stale analysis result version={} latest={}",
+                    result.getRequestVersion(),
+                    state.analysisVersion);
+                return false;
+            }
+
             state.analysisPending = false;
             if (!result.isSuccess() || result.getControlAnalysis() == null) {
                 setLoadFailure(
@@ -4862,6 +4872,16 @@ public class LytGuidebookScene extends LytBlock {
             initialStructureState = null;
             captureInitialStructureStateIfAbsent();
             return true;
+        }
+
+        // BUILD_SELECTION type - check if this build result is stale
+        if (result.getRequestVersion() < state.buildVersion) {
+            GuideDebugLog.info(
+                "[LytGuidebookScene] Discarding stale build result version={} latest={} selection={}",
+                result.getRequestVersion(),
+                state.buildVersion,
+                result.getSelectionKey());
+            return false;
         }
 
         state.buildPending = false;
@@ -4926,6 +4946,7 @@ public class LytGuidebookScene extends LytBlock {
                 placedBlock.getBlockId());
             ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
         }
+        PreviewPreparePipeline.prepare(sceneLevel);
     }
 
     private void updateStructureLibLoadingState() {

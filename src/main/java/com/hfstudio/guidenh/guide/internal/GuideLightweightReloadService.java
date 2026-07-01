@@ -115,7 +115,7 @@ public class GuideLightweightReloadService {
         if (!allPageIds.isEmpty()) {
             worker.reset(allPageIds);
         }
-        ClientProxy.getStructureLibPreviewBootstrap()
+        ClientProxy.getGameScenePrewarmBootstrap()
             .scheduleReloadPrewarm();
         long registryUpdateNs = System.nanoTime() - stageStartedAt;
 

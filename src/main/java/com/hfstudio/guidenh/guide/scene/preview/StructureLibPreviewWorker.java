@@ -10,6 +10,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
@@ -19,22 +22,31 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportServ
 
 public class StructureLibPreviewWorker {
 
-    private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
-        Thread thread = new Thread(r, "guidenh-structurelib-preview");
-        thread.setDaemon(true);
-        return thread;
-    });
+    private static final int WORKER_THREADS = 4;
+    private static final int QUEUE_POLL_SLEEP_MS = 25;
 
+    private final ExecutorService executor;
     private final Deque<StructureLibPreviewTask> queue = new ArrayDeque<>();
     private final Deque<StructureLibPreviewResult> completedResults = new ArrayDeque<>();
     private final ConcurrentHashMap<String, Integer> latestSelectionVersionByBinding = new ConcurrentHashMap<>();
-    private final StructureLibSceneImportService importService = new StructureLibSceneImportService();
+    private final ConcurrentHashMap<String, StructureLibPreviewTask> runningTasksByBinding = new ConcurrentHashMap<>();
+    private final ReentrantLock queueLock = new ReentrantLock();
+    private final ReentrantLock resultsLock = new ReentrantLock();
 
     private volatile boolean shutdown;
-    private volatile StructureLibPreviewTask currentTask;
+    private final AtomicInteger activeThreadCount = new AtomicInteger(0);
 
     public StructureLibPreviewWorker() {
-        executor.submit(this::runLoop);
+        ThreadFactory threadFactory = r -> {
+            Thread thread = new Thread(r, "guidenh-structurelib-preview-" + System.nanoTime());
+            thread.setDaemon(true);
+            thread.setPriority(Thread.NORM_PRIORITY - 1);
+            return thread;
+        };
+        executor = Executors.newFixedThreadPool(WORKER_THREADS, threadFactory);
+        for (int i = 0; i < WORKER_THREADS; i++) {
+            executor.submit(this::runLoop);
+        }
     }
 
     public void submit(StructureLibPreviewTask task) {
@@ -44,12 +56,15 @@ public class StructureLibPreviewWorker {
         if (task.isSelectionBuild()) {
             latestSelectionVersionByBinding.put(task.getBindingKey(), task.getRequestVersion());
         }
-        synchronized (queue) {
+        queueLock.lock();
+        try {
             if (task.getPriority() == StructureLibPreviewTask.Priority.HIGH) {
                 queue.addFirst(task);
             } else {
                 queue.addLast(task);
             }
+        } finally {
+            queueLock.unlock();
         }
         GuideDebugLog.infoAlways(
             "[StructureLibPreviewWorker] queued type={} binding={} version={} selection={}",
@@ -67,7 +82,8 @@ public class StructureLibPreviewWorker {
             }
         }
         List<StructureLibPreviewResult> drained = new ArrayList<>();
-        synchronized (completedResults) {
+        resultsLock.lock();
+        try {
             if (acceptedBindingKeys.isEmpty() || completedResults.isEmpty()) {
                 return drained;
             }
@@ -81,19 +97,27 @@ public class StructureLibPreviewWorker {
                 }
             }
             completedResults.addAll(retained);
+        } finally {
+            resultsLock.unlock();
         }
         return drained;
     }
 
     public void reset() {
-        synchronized (queue) {
+        queueLock.lock();
+        try {
             queue.clear();
+        } finally {
+            queueLock.unlock();
         }
-        synchronized (completedResults) {
+        resultsLock.lock();
+        try {
             completedResults.clear();
+        } finally {
+            resultsLock.unlock();
         }
         latestSelectionVersionByBinding.clear();
-        currentTask = null;
+        runningTasksByBinding.clear();
     }
 
     public void shutdown() {
@@ -103,7 +127,20 @@ public class StructureLibPreviewWorker {
     }
 
     public StructureLibPreviewTask getCurrentTask() {
-        return currentTask;
+        return null;
+    }
+
+    public int getActiveThreadCount() {
+        return activeThreadCount.get();
+    }
+
+    public int getQueueSize() {
+        queueLock.lock();
+        try {
+            return queue.size();
+        } finally {
+            queueLock.unlock();
+        }
     }
 
     private void runLoop() {
@@ -120,7 +157,8 @@ public class StructureLibPreviewWorker {
                     task.getRequestVersion());
                 continue;
             }
-            currentTask = task;
+            runningTasksByBinding.put(task.getBindingKey(), task);
+            activeThreadCount.incrementAndGet();
             try {
                 publishIfFresh(execute(task));
             } catch (Throwable throwable) {
@@ -138,14 +176,18 @@ public class StructureLibPreviewWorker {
                         StructureLibSceneImportService.resolveFailureMessage(throwable),
                         throwable.getMessage()));
             } finally {
-                currentTask = null;
+                activeThreadCount.decrementAndGet();
+                runningTasksByBinding.remove(task.getBindingKey());
             }
         }
     }
 
     private StructureLibPreviewTask pollTask() {
-        synchronized (queue) {
+        queueLock.lock();
+        try {
             return queue.pollFirst();
+        } finally {
+            queueLock.unlock();
         }
     }
 
@@ -172,8 +214,11 @@ public class StructureLibPreviewWorker {
                 return;
             }
         }
-        synchronized (completedResults) {
+        resultsLock.lock();
+        try {
             completedResults.addLast(result);
+        } finally {
+            resultsLock.unlock();
         }
     }
 
@@ -226,7 +271,7 @@ public class StructureLibPreviewWorker {
 
     private void sleepQuietly() {
         try {
-            Thread.sleep(25L);
+            Thread.sleep(QUEUE_POLL_SLEEP_MS);
         } catch (InterruptedException interruptedException) {
             Thread.currentThread()
                 .interrupt();

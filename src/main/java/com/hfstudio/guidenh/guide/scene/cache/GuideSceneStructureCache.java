@@ -8,9 +8,14 @@ import java.io.ObjectOutputStream;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Thread-safe scene structure cache with read-write lock optimization.
+ */
 public class GuideSceneStructureCache {
 
     private static final GuideSceneStructureCache INSTANCE = new GuideSceneStructureCache();
@@ -19,32 +24,61 @@ public class GuideSceneStructureCache {
 
     private final Map<GuideSceneStructureCacheKey, byte[]> cache = new LinkedHashMap<>(16, 0.75f, true);
     private long totalBytes;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public static GuideSceneStructureCache global() {
         return INSTANCE;
     }
 
     @Nullable
-    public synchronized GuideSceneStructureCacheEntry restore(GuideSceneStructureCacheKey key) {
-        byte[] payload = cache.get(key);
-        return payload != null ? deserialize(payload) : null;
+    public GuideSceneStructureCacheEntry restore(GuideSceneStructureCacheKey key) {
+        lock.readLock()
+            .lock();
+        try {
+            byte[] payload = cache.get(key);
+            return payload != null ? deserialize(payload) : null;
+        } finally {
+            lock.readLock()
+                .unlock();
+        }
     }
 
-    public synchronized void put(GuideSceneStructureCacheKey key, GuideSceneStructureCacheEntry entry) {
-        putPayload(key, serialize(entry));
+    public void put(GuideSceneStructureCacheKey key, GuideSceneStructureCacheEntry entry) {
+        lock.writeLock()
+            .lock();
+        try {
+            putPayload(key, serialize(entry));
+        } finally {
+            lock.writeLock()
+                .unlock();
+        }
     }
 
-    public synchronized void clear() {
-        cache.clear();
-        totalBytes = 0L;
+    public void clear() {
+        lock.writeLock()
+            .lock();
+        try {
+            cache.clear();
+            totalBytes = 0L;
+        } finally {
+            lock.writeLock()
+                .unlock();
+        }
     }
 
-    public synchronized GuideSceneStructureCacheStats snapshotStats() {
-        return new GuideSceneStructureCacheStats(
-            cache.size(),
-            totalBytes,
-            DEFAULT_MAX_ENTRY_COUNT,
-            DEFAULT_MAX_TOTAL_BYTES);
+    public GuideSceneStructureCacheStats snapshotStats() {
+        lock.readLock()
+            .lock();
+        try {
+            return new GuideSceneStructureCacheStats(
+                cache.size(),
+                totalBytes,
+                DEFAULT_MAX_ENTRY_COUNT,
+                DEFAULT_MAX_TOTAL_BYTES);
+        } finally {
+            lock.readLock()
+                .unlock();
+        }
     }
 
     private byte[] serialize(GuideSceneStructureCacheEntry entry) {

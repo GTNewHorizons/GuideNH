@@ -29,11 +29,13 @@ import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 
 import appeng.api.AEApi;
+import appeng.api.implementations.parts.IPartCable;
 import appeng.api.networking.IGridHost;
 import appeng.api.parts.IFacadePart;
 import appeng.api.parts.IPart;
 import appeng.api.parts.PartItemStack;
 import appeng.api.util.AECableType;
+import appeng.api.util.AEColor;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
 import appeng.parts.CableBusContainer;
@@ -468,6 +470,8 @@ public class Ae2Helpers {
         int y = tile.yCoord;
         int z = tile.zCoord;
 
+        AEColor sourceCableColor = getCableColorFromContainer(container);
+
         int cs = 0;
         for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
             TileEntity adj = level.getTileEntity(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ);
@@ -479,6 +483,7 @@ public class Ae2Helpers {
             boolean neighborFaceBlockedByPart = false;
             boolean neighborBlocked = false;
             boolean neighborAcceptsSide = true;
+            AEColor neighborCableColor = null;
 
             if (adjContainer != null) {
                 ForgeDirection opposite = dir.getOpposite();
@@ -486,6 +491,7 @@ public class Ae2Helpers {
                 neighborFaceBlockedByPart = Ae2CableConnectionRules
                     .facePartBlocksAdjacentCable(adjContainer.getPart(opposite) != null, neighborCanConnect);
                 neighborBlocked = isBlocked(adjContainer, opposite);
+                neighborCableColor = getCableColorFromContainer(adjContainer);
             } else if (adj instanceof IGridHost adjHost) {
                 ForgeDirection opposite = dir.getOpposite();
                 neighborCanConnect = adjHost.getCableConnectionType(opposite) != AECableType.NONE;
@@ -511,7 +517,9 @@ public class Ae2Helpers {
                 neighborCanConnect,
                 neighborFaceBlockedByPart,
                 neighborBlocked,
-                neighborAcceptsSide)) {
+                neighborAcceptsSide,
+                sourceCableColor,
+                neighborCableColor)) {
                 continue;
             }
             cs |= (1 << dir.ordinal());
@@ -540,6 +548,21 @@ public class Ae2Helpers {
         } catch (Throwable ignored) {
             return false;
         }
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    @Nullable
+    private static AEColor getCableColorFromContainer(@Nullable CableBusContainer container) {
+        if (container == null) {
+            return null;
+        }
+        try {
+            IPart centerPart = container.getPart(ForgeDirection.UNKNOWN);
+            if (centerPart instanceof IPartCable cable) {
+                return cable.getCableColor();
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 
     @Optional.Method(modid = "appliedenergistics2")
