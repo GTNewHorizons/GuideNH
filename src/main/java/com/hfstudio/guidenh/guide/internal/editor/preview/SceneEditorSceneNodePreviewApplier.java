@@ -256,7 +256,7 @@ public class SceneEditorSceneNodePreviewApplier {
             StructureLibSceneOptions.resolveFacing(node.getAttribute("facing"), options),
             StructureLibSceneOptions.resolveRotation(node.getAttribute("rotation"), options),
             StructureLibSceneOptions.resolveFlip(node.getAttribute("flip"), options),
-            Integer.valueOf(selection.getMasterTier()),
+            requestedChannel,
             ImportStructureLibElementCompiler.applyControllerDefaults(controller, selection, options),
             options);
         scene.setPendingStructureLibPreviewSelection(structureName, request.getPreviewSelection());

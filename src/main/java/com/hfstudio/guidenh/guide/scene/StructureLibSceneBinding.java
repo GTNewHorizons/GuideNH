@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
@@ -26,10 +27,14 @@ public class StructureLibSceneBinding {
     @Nullable
     private StructureLibPreviewSelection pendingSelection;
     private StructureLibSceneOptions rebuildOptions;
+    @Nullable
+    private Integer rebuildRequestedChannel;
     private int rebuildOffsetX, rebuildOffsetY, rebuildOffsetZ;
     private boolean rebuildFormed;
     private Map<String, Boolean> rebuildIntegrationOptions = Map.of();
     private boolean hasRebuildRecipe;
+    @Nullable
+    private StructureLibImportResult lastSuccessfulImportResult;
 
     public StructureLibSceneBinding(@Nullable String name, String bindingKey) {
         this.name = StructureLibSceneCondition.normalizeStructureName(name);
@@ -144,8 +149,9 @@ public class StructureLibSceneBinding {
         this.pendingSelection = pendingSelection;
     }
 
-    public void setRebuildRecipe(StructureLibSceneOptions options, int offsetX, int offsetY, int offsetZ,
-        boolean formed, Map<String, Boolean> integrationOptions) {
+    public void setRebuildRecipe(@Nullable Integer requestedChannel, StructureLibSceneOptions options, int offsetX,
+        int offsetY, int offsetZ, boolean formed, Map<String, Boolean> integrationOptions) {
+        this.rebuildRequestedChannel = requestedChannel;
         this.rebuildOptions = options;
         this.rebuildOffsetX = offsetX;
         this.rebuildOffsetY = offsetY;
@@ -173,7 +179,7 @@ public class StructureLibSceneBinding {
             metadata.getFacing(),
             metadata.getRotation(),
             metadata.getFlip(),
-            Integer.valueOf(selection.getMasterTier()),
+            rebuildRequestedChannel,
             selection,
             rebuildOptions);
     }
@@ -192,5 +198,16 @@ public class StructureLibSceneBinding {
 
     public boolean isRebuildFormed() {
         return rebuildFormed;
+    }
+
+    @Nullable
+    public StructureLibImportResult getLastSuccessfulImportResult() {
+        return lastSuccessfulImportResult;
+    }
+
+    public void setLastSuccessfulImportResult(@Nullable StructureLibImportResult lastSuccessfulImportResult) {
+        this.lastSuccessfulImportResult = lastSuccessfulImportResult != null && lastSuccessfulImportResult.isSuccess()
+            ? lastSuccessfulImportResult
+            : null;
     }
 }

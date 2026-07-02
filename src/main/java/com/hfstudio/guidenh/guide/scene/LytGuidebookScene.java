@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -42,6 +43,7 @@ import org.joml.Vector3f;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
@@ -75,6 +77,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneFloorGridAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheEntry;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureSnapshot;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityStateSupport;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
@@ -90,6 +93,10 @@ import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeParticle;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeTileNbtOperation;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderSceneData;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewResult;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewTask;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewTask.Priority;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewWorker;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
@@ -107,6 +114,7 @@ import com.hfstudio.guidenh.integration.ae2.Ae2PonderSupport;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
@@ -243,8 +251,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private boolean sceneButtonsVisible = true;
     private boolean bottomControlsVisible = true;
     private boolean isLoading;
+    private boolean loadFailed;
     private float loadProgress;
     private String loadStatusText = "";
+    private int loadStatusColor = 0xFFFFFFFF;
     private boolean reserveBottomControlArea = true;
     private boolean visibleLayerSliderEnabled;
     private boolean forceOriginAxesVisible;
@@ -369,6 +379,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     @Nullable
     private StructureLibPreviewSelection pendingStructureLibPreviewSelection;
     private final LinkedHashMap<String, StructureLibPreviewSelection> seededStructureLibPreviewSelections = new LinkedHashMap<>();
+    private final LinkedHashMap<String, StructureLibPreviewRuntimeState> structureLibPreviewStates = new LinkedHashMap<>();
+    @Nullable
+    private GuideSceneStructureSnapshot structureLibBaseState;
     private boolean initialStateCaptured;
     private boolean initialAnnotationsVisible = true;
     @Nullable
@@ -398,6 +411,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private final List<SceneBlockStatsEntry> cachedBlockStatsEntries = new ArrayList<>();
     private boolean blockStatsDirty = true;
     private boolean blockStatsWidthsDirty = true;
+    private int cachedBottomControlGeometryHash;
     private int cachedBlockStatsItemWidth = BLOCK_STATS_ITEM_SIZE;
     private int cachedBlockStatsContentWidth;
     private int blockStatsMaxWidth = BLOCK_STATS_DEFAULT_MAX_WIDTH;
@@ -571,6 +585,61 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (initialStructureState == null && !level.isEmpty()) {
             initialStructureState = GuideSceneStructureCacheEntry.capture(this);
         }
+    }
+
+    public void setStructureLibBaseState(@Nullable GuideSceneStructureSnapshot structureLibBaseState) {
+        this.structureLibBaseState = structureLibBaseState;
+    }
+
+    public void registerStructureLibPreviewRuntimeState(String bindingKey, StructureLibSceneBinding binding,
+        StructureLibImportRequest request) {
+        if (bindingKey == null || binding == null || request == null) {
+            return;
+        }
+        StructureLibPreviewRuntimeState state = structureLibPreviewStates
+            .computeIfAbsent(bindingKey, ignored -> new StructureLibPreviewRuntimeState(bindingKey, binding, request));
+        state.binding = binding;
+        state.baseRequest = request;
+    }
+
+    public void submitStructureLibAnalyze(String bindingKey) {
+        StructureLibPreviewRuntimeState state = structureLibPreviewStates.get(bindingKey);
+        if (state == null) {
+            return;
+        }
+        state.analysisVersion++;
+        state.analysisPending = true;
+        ClientProxy.getStructureLibPreviewWorker()
+            .submit(StructureLibPreviewTask.analyzeLimits(state.bindingKey, state.analysisVersion, state.baseRequest));
+        updateStructureLibLoadingState();
+    }
+
+    public void queueStructureLibSelectionBuild(StructureLibSceneBinding binding,
+        @Nullable StructureLibPreviewSelection selection) {
+        if (binding == null || selection == null) {
+            return;
+        }
+        StructureLibPreviewRuntimeState state = structureLibPreviewStates.get(resolvePreviewBindingKey(binding));
+        if (state == null) {
+            return;
+        }
+        binding.applyPreviewSelection(selection);
+        binding.setPendingSelection(selection);
+        StructureLibImportRequest rebuildRequest = binding.buildRebuildRequest();
+        if (rebuildRequest == null) {
+            return;
+        }
+        state.buildVersion++;
+        state.buildPending = true;
+        ClientProxy.getStructureLibPreviewWorker()
+            .submit(
+                StructureLibPreviewTask.buildSelection(
+                    state.bindingKey,
+                    state.buildVersion,
+                    rebuildRequest,
+                    Priority.HIGH,
+                    state.controlAnalysis));
+        updateStructureLibLoadingState();
     }
 
     public void resetInteractiveState() {
@@ -1142,6 +1211,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private void bindPrimaryStructureLibState(@Nullable StructureLibSceneBinding binding) {
+        int previousBottomControlGeometryHash = bottomControlGeometryHash();
         this.structureLibSceneMetadata = binding != null ? binding.getMetadata() : null;
         this.structureLibChannelOverrides.clear();
         this.selectableStructureLibChannels.clear();
@@ -1151,6 +1221,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             this.structureLibHatchHighlightEnabled = false;
             this.hoveredStructureLibHatch = null;
             this.pendingStructureLibPreviewSelection = null;
+            invalidateBottomControlLayoutIfNeeded(previousBottomControlGeometryHash);
             return;
         }
         this.structureLibCurrentTier = binding.getCurrentTier();
@@ -1177,6 +1248,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         binding.setSelectionChangeListener(structureLibSelectionChangeListener);
         pendingStructureLibPreviewSelection = binding.getPendingSelection();
+        invalidateBottomControlLayoutIfNeeded(previousBottomControlGeometryHash);
     }
 
     public void setStructureLibSceneMetadata(@Nullable StructureLibSceneMetadata structureLibSceneMetadata) {
@@ -1200,6 +1272,20 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         binding.setMetadata(structureLibSceneMetadata);
         StructureLibSceneBinding primary = getPrimaryStructureLibBinding();
         bindPrimaryStructureLibState(primary);
+    }
+
+    public void setStructureLibImportResult(@Nullable String name, @Nullable StructureLibImportResult importResult) {
+        StructureLibSceneBinding binding = resolveStructureLibBinding(name);
+        if (binding == null) {
+            binding = registerStructureLibBinding(name);
+        }
+        binding.setLastSuccessfulImportResult(importResult);
+    }
+
+    @Nullable
+    public StructureLibImportResult getStructureLibImportResult(@Nullable String name) {
+        StructureLibSceneBinding binding = resolveStructureLibBinding(name);
+        return binding != null ? binding.getLastSuccessfulImportResult() : null;
     }
 
     /**
@@ -1516,6 +1602,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     public void setLoading(boolean loading) {
         this.isLoading = loading;
+        if (loading) {
+            this.loadFailed = false;
+            this.loadStatusColor = 0xFFFFFFFF;
+        }
     }
 
     public float getLoadProgress() {
@@ -1525,6 +1615,25 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public void setLoadProgress(int done, int total) {
         this.loadProgress = total > 0 ? (float) done / (float) total : 0f;
         this.loadStatusText = "Loading import (" + done + "/" + total + ")...";
+        this.loadStatusColor = 0xFFFFFFFF;
+        this.loadFailed = false;
+    }
+
+    public void setLoadFailure(String message) {
+        this.isLoading = true;
+        this.loadFailed = true;
+        this.loadProgress = 0f;
+        this.loadStatusText = message != null && !message.trim()
+            .isEmpty() ? message.trim() : "StructureLib preview failed";
+        this.loadStatusColor = 0xFFFF5555;
+    }
+
+    public void clearLoadState() {
+        this.isLoading = false;
+        this.loadFailed = false;
+        this.loadProgress = 0f;
+        this.loadStatusText = "";
+        this.loadStatusColor = 0xFFFFFFFF;
     }
 
     public boolean isBottomControlsVisible() {
@@ -1532,10 +1641,12 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     public void setBottomControlsVisible(boolean bottomControlsVisible) {
+        int previousBottomControlGeometryHash = bottomControlGeometryHash();
         this.bottomControlsVisible = bottomControlsVisible;
         clearCachedVisibleLayerSliderRects();
         clearCachedTierSliderRects();
         clearCachedChannelSliderRects();
+        invalidateBottomControlLayoutIfNeeded(previousBottomControlGeometryHash);
     }
 
     public boolean isReserveBottomControlArea() {
@@ -1687,6 +1798,32 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return ponderControlAreaHeight() + visibleLayerSliderAreaHeight()
             + structureLibTierSliderAreaHeight()
             + structureLibChannelSliderAreaHeight();
+    }
+
+    private int bottomControlGeometryHash() {
+        return Objects.hash(
+            interactive,
+            bottomControlsVisible,
+            ponderSceneData != null,
+            visibleLayerSliderEnabled,
+            hasVisibleLayerData(),
+            hasStructureLibTierData(),
+            selectableStructureLibChannels.size());
+    }
+
+    private void invalidateBottomControlLayoutIfNeeded(int previousBottomControlGeometryHash) {
+        int currentBottomControlGeometryHash = bottomControlGeometryHash();
+        if (cachedBottomControlGeometryHash == 0) {
+            cachedBottomControlGeometryHash = currentBottomControlGeometryHash;
+        }
+        if (previousBottomControlGeometryHash == currentBottomControlGeometryHash) {
+            return;
+        }
+        cachedBottomControlGeometryHash = currentBottomControlGeometryHash;
+        clearCachedVisibleLayerSliderRects();
+        clearCachedTierSliderRects();
+        clearCachedChannelSliderRects();
+        invalidateDocumentLayout();
     }
 
     public boolean hasStructureLibHatchData() {
@@ -4589,6 +4726,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     public void ponderTick() {
+        pollStructureLibPreviewWorker();
         sceneAnimationTick++;
         if (ponderSceneData == null || ponderPaused || ponderFinished) {
             if (sceneAnimationTick % 100 == 1) {
@@ -4629,6 +4767,170 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             }
         }
         updatePonderState();
+    }
+
+    private void pollStructureLibPreviewWorker() {
+        if (structureLibPreviewStates.isEmpty()) {
+            return;
+        }
+        StructureLibPreviewWorker worker = ClientProxy.getStructureLibPreviewWorker();
+        List<StructureLibPreviewResult> results = worker.drainResultsFor(structureLibPreviewStates.keySet());
+        boolean changed = false;
+        for (StructureLibPreviewResult result : results) {
+            StructureLibPreviewRuntimeState state = structureLibPreviewStates.get(result.getBindingKey());
+            if (state == null) {
+                continue;
+            }
+            changed |= applyStructureLibPreviewResult(state, result);
+        }
+        if (changed) {
+            captureInitialStructureStateIfAbsent();
+        }
+        updateStructureLibLoadingState();
+    }
+
+    private boolean applyStructureLibPreviewResult(StructureLibPreviewRuntimeState state,
+        StructureLibPreviewResult result) {
+        if (result.getType() == StructureLibPreviewTask.Type.ANALYZE_LIMITS) {
+            state.analysisPending = false;
+            if (!result.isSuccess() || result.getControlAnalysis() == null) {
+                setLoadFailure(
+                    result.getUserMessage() != null ? result.getUserMessage() : "StructureLib analyze failed");
+                return false;
+            }
+            state.controlAnalysis = result.getControlAnalysis();
+            StructureLibSceneMetadata currentMetadata = state.binding.getMetadata();
+            if (currentMetadata != null) {
+                StructureLibSceneMetadata updatedMetadata = currentMetadata.withTierData(
+                    1,
+                    state.controlAnalysis.getMaxTotalTier(),
+                    state.binding.getCurrentTier(),
+                    state.binding.getCurrentTier());
+                for (Map.Entry<String, Integer> entry : state.controlAnalysis.getChannelMaxTierMap()
+                    .entrySet()) {
+                    updatedMetadata = updatedMetadata.withChannelData(
+                        entry.getKey(),
+                        entry.getKey(),
+                        entry.getValue(),
+                        state.binding.getChannelValue(entry.getKey()));
+                }
+                state.binding.setMetadata(updatedMetadata);
+                setStructureLibSceneMetadata(state.binding.getName(), updatedMetadata);
+            }
+            return true;
+        }
+
+        state.buildPending = false;
+        if (!result.isSuccess() || result.getImportResult() == null) {
+            setLoadFailure(result.getUserMessage() != null ? result.getUserMessage() : "StructureLib preview failed");
+            return false;
+        }
+
+        StructureLibImportResult importResult = result.getImportResult();
+        StructureLibSceneMetadata metadata = importResult.getMetadata();
+        if (metadata != null) {
+            state.binding.setMetadata(metadata);
+            setStructureLibSceneMetadata(state.binding.getName(), metadata);
+        }
+        state.binding.setLastSuccessfulImportResult(importResult);
+        setStructureLibImportResult(state.binding.getName(), importResult);
+        restoreStructureLibBaseState();
+        applyImportResultToLevel(state.binding, importResult);
+        bindPrimaryStructureLibState(getPrimaryStructureLibBinding());
+        return true;
+    }
+
+    private void restoreStructureLibBaseState() {
+        if (structureLibBaseState == null) {
+            GuidebookLevel sceneLevel = getLevel();
+            if (sceneLevel != null) {
+                sceneLevel.clear();
+            }
+            return;
+        }
+        setLevel(structureLibBaseState.restoreLevel());
+    }
+
+    private void applyImportResultToLevel(StructureLibSceneBinding binding, StructureLibImportResult result) {
+        GuidebookLevel sceneLevel = getLevel();
+        if (sceneLevel == null || binding == null || result == null || !result.isSuccess()) {
+            return;
+        }
+        for (StructureLibImportResult.PlacedBlock placedBlock : result.getBlocks()) {
+            Block block = placedBlock.getBlock();
+            if (block == null || block == Blocks.air) {
+                continue;
+            }
+            int bx = placedBlock.getX() + binding.getRebuildOffsetX();
+            int by = Math.clamp(placedBlock.getY() + binding.getRebuildOffsetY(), 0, sceneLevel.getHeight() - 1);
+            int bz = placedBlock.getZ() + binding.getRebuildOffsetZ();
+            GuidebookPreviewBlockPlacer.place(
+                sceneLevel,
+                bx,
+                by,
+                bz,
+                block,
+                placedBlock.getMeta(),
+                placedBlock.getTileTag(),
+                placedBlock.getBlockId());
+            ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
+        }
+    }
+
+    private void updateStructureLibLoadingState() {
+        if (structureLibPreviewStates.isEmpty()) {
+            clearLoadState();
+            return;
+        }
+        int total = structureLibPreviewStates.size();
+        int done = 0;
+        boolean anyPending = false;
+        for (StructureLibPreviewRuntimeState state : structureLibPreviewStates.values()) {
+            boolean pending = state.analysisPending || state.buildPending;
+            anyPending |= pending;
+            if (!state.analysisPending) {
+                done++;
+            }
+        }
+        if (anyPending) {
+            setLoading(true);
+            setLoadProgress(done, Math.max(1, total));
+        } else if (!loadFailed) {
+            clearLoadState();
+        }
+    }
+
+    @Nullable
+    private String resolvePreviewBindingKey(StructureLibSceneBinding binding) {
+        if (binding == null) {
+            return null;
+        }
+        for (Map.Entry<String, StructureLibPreviewRuntimeState> entry : structureLibPreviewStates.entrySet()) {
+            if (entry.getValue().binding == binding) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private static class StructureLibPreviewRuntimeState {
+
+        private final String bindingKey;
+        private StructureLibSceneBinding binding;
+        private StructureLibImportRequest baseRequest;
+        @Nullable
+        private StructureLibRuntimeFacade.ControlAnalysis controlAnalysis;
+        private int analysisVersion;
+        private int buildVersion;
+        private boolean analysisPending;
+        private boolean buildPending;
+
+        private StructureLibPreviewRuntimeState(String bindingKey, StructureLibSceneBinding binding,
+            StructureLibImportRequest baseRequest) {
+            this.bindingKey = bindingKey;
+            this.binding = binding;
+            this.baseRequest = baseRequest;
+        }
     }
 
     public void ponderTogglePlay() {
@@ -6535,21 +6837,37 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         int trackH = 4;
 
         // Track
-        context.fillRect(new LytRect(barX, barY, barWidth, trackH), 0x6622262C);
+        context.fillRect(new LytRect(barX, barY, barWidth, trackH), loadFailed ? 0x66AA2222 : 0x6622262C);
         // Fill (amber yellow)
         int fillW = Math.round(barWidth * loadProgress);
         if (fillW > 0) {
-            context.fillRect(new LytRect(barX, barY, fillW, trackH), LOADING_FILL_COLOR);
+            context.fillRect(new LytRect(barX, barY, fillW, trackH), loadFailed ? 0xFFFF5555 : LOADING_FILL_COLOR);
         }
         // Status text
         if (loadStatusText != null && !loadStatusText.isEmpty()) {
             var style = VISIBLE_LAYER_SLIDER_TEXT_STYLE;
+            var coloredStyle = new ResolvedTextStyle(
+                style.fontScale(),
+                style.bold(),
+                style.italic(),
+                style.underlined(),
+                style.wavyUnderline(),
+                style.dottedUnderline(),
+                style.strikethrough(),
+                style.obfuscated(),
+                style.font(),
+                new ConstantColor(loadStatusColor),
+                style.whiteSpace(),
+                style.alignment(),
+                style.dropShadow(),
+                style.backgroundColor(),
+                style.inlineCode());
             float z = Math.max(0.0001f, lastDocZoom);
-            int textW = Math.round(context.getStringWidth(loadStatusText, style) / z);
-            int textH = Math.round(context.getLineHeight(style) / z);
+            int textW = Math.round(context.getStringWidth(loadStatusText, coloredStyle) / z);
+            int textH = Math.round(context.getLineHeight(coloredStyle) / z);
             int textX = barX + (barWidth - textW) / 2;
             int textY = barY - textH - 4;
-            context.drawText(loadStatusText, textX, textY, style);
+            context.drawText(loadStatusText, textX, textY, coloredStyle);
         }
     }
 
