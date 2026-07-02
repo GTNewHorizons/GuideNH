@@ -74,6 +74,8 @@ import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
 import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewBootstrap;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewWorker;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
 import com.hfstudio.guidenh.integration.Mods;
@@ -98,6 +100,8 @@ public class ClientProxy extends CommonProxy {
 
     private static final LytHost lytHost = new LytHost();
     private static final CompileWorker compileWorker = new CompileWorker();
+    private static final StructureLibPreviewWorker structureLibPreviewWorker = new StructureLibPreviewWorker();
+    private static final StructureLibPreviewBootstrap structureLibPreviewBootstrap = new StructureLibPreviewBootstrap();
 
     public static LytHost getLytHost() {
         return lytHost;
@@ -105,6 +109,14 @@ public class ClientProxy extends CommonProxy {
 
     public static CompileWorker getWorker() {
         return compileWorker;
+    }
+
+    public static StructureLibPreviewWorker getStructureLibPreviewWorker() {
+        return structureLibPreviewWorker;
+    }
+
+    public static StructureLibPreviewBootstrap getStructureLibPreviewBootstrap() {
+        return structureLibPreviewBootstrap;
     }
 
     private final GuideNhRuntimeBridge runtimeBridge = new GuideNhRuntimeBridge();

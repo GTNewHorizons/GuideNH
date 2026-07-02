@@ -17,6 +17,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
@@ -494,21 +495,40 @@ public class GregTechHelpers {
         try {
             boolean activeBefore = gtTile.isActive();
             Boolean machineBefore = readPreviewMachineState(multiBlockBase);
-            multiBlockBase.clearHatches();
-            boolean valid = multiBlockBase.checkMachine(gtTile, triggerStack);
-            boolean machineApplied = applyPreviewMachineState(multiBlockBase, valid);
-            Boolean machineAfter = readPreviewMachineState(multiBlockBase);
-            if (!valid) {
-                logInfoOnce(
-                    "preview-state-sync-invalid:" + describeTile(controllerTile),
-                    "GregTech preview state sync kept invalid structure state for {}",
-                    describeTile(controllerTile));
-            }
-            if (shouldActivatePreviewController(activeController, valid)) {
+            boolean valid;
+            boolean machineApplied;
+            if (triggerStack != null && triggerStack.stackSize > 0) {
+                // Import flow: the structure was just built correctly by StructureLib.
+                // Inject state from the known-correct trigger stack instead of relying
+                // on checkMachine (reverse inference) which fails in the guidebook world.
+                applyTierFromTriggerStack(metaTileEntity, triggerStack);
+                applyPreviewMachineState(multiBlockBase, true);
                 gtTile.setActive(true);
                 gtTile.issueTextureUpdate();
                 applyPreviewTextureUpdate(metaTileEntity);
+                refreshHatchTexturesInWorld(controllerTile, metaTileEntity);
+                valid = true;
+                machineApplied = true;
+            } else {
+                // prepareForPreview flow: re-validate existing structure in scene level.
+                multiBlockBase.clearHatches();
+                valid = multiBlockBase.checkMachine(gtTile, triggerStack);
+                machineApplied = applyPreviewMachineState(multiBlockBase, valid);
+                if (!valid) {
+                    logInfoOnce(
+                        "preview-state-sync-invalid:" + describeTile(controllerTile),
+                        "GregTech preview state sync kept invalid structure state for {}",
+                        describeTile(controllerTile));
+                }
+                if (shouldActivatePreviewController(activeController, valid)) {
+                    gtTile.setActive(true);
+                }
+                if (activeController) {
+                    gtTile.issueTextureUpdate();
+                    applyPreviewTextureUpdate(metaTileEntity);
+                }
             }
+            Boolean machineAfter = readPreviewMachineState(multiBlockBase);
             GuideDebugLog.info(
                 "GregTech preview sync controller={} meta={} facing={} valid={} activeRequested={} activeBefore={} activeAfter={} machineBefore={} machineAfter={} machineApplied={}",
                 describeTile(controllerTile),
@@ -526,6 +546,54 @@ public class GregTechHelpers {
                 "preview-state-sync-failed:" + describeTile(controllerTile),
                 "GregTech preview state sync could not finish for {}",
                 describeTile(controllerTile));
+        }
+    }
+
+    private static void refreshHatchTexturesInWorld(TileEntity controllerTile, Object metaTileEntity) {
+        if (controllerTile == null || metaTileEntity == null) return;
+        int casingTextureId = -1;
+        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
+            try {
+                java.lang.reflect.Method method = type.getDeclaredMethod("getCasingTextureId");
+                method.setAccessible(true);
+                casingTextureId = (int) method.invoke(metaTileEntity);
+                break;
+            } catch (NoSuchMethodException ignored) {} catch (Throwable ignored) {
+                return;
+            }
+        }
+        if (casingTextureId < 0) return;
+        World world;
+        try {
+            world = controllerTile.getWorldObj();
+        } catch (Throwable ignored) {
+            return;
+        }
+        if (!(world instanceof GuidebookFakeWorld fakeWorld)) return;
+        GuidebookLevel level = fakeWorld.getGuidebookLevel();
+        if (level == null) return;
+        for (TileEntity tileEntity : level.getTileEntities()) {
+            if (!isGregTechTileEntity(tileEntity)) continue;
+            IMetaTileEntity mte = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            if (mte instanceof MTEHatch hatch) {
+                hatch.updateTexture(casingTextureId);
+            }
+        }
+    }
+
+    private static void applyTierFromTriggerStack(Object metaTileEntity, ItemStack triggerStack) {
+        int tier = triggerStack.stackSize;
+        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
+            for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+                if (field.getType() != Integer.TYPE) continue;
+                if (!field.getName()
+                    .toLowerCase(java.util.Locale.ROOT)
+                    .matches(".*(?:tier|casing).*")) continue;
+                try {
+                    field.setAccessible(true);
+                    field.setInt(metaTileEntity, tier);
+                } catch (Throwable ignored) {}
+            }
         }
     }
 
