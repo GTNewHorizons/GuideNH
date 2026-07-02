@@ -7,6 +7,9 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
+@Getter
 public class StructureLibPreviewSelection {
 
     public static final int DEFAULT_MASTER_TIER = 1;
@@ -39,18 +42,6 @@ public class StructureLibPreviewSelection {
 
     public static StructureLibPreviewSelection ofMasterTier(int masterTier) {
         return new StructureLibPreviewSelection(masterTier, Map.of());
-    }
-
-    public int getMasterTier() {
-        return masterTier;
-    }
-
-    public Map<String, Integer> getChannelOverrides() {
-        return channelOverrides;
-    }
-
-    public Map<String, Boolean> getIntegrationOptions() {
-        return integrationOptions;
     }
 
     public boolean hasChannelOverride(String channelId) {

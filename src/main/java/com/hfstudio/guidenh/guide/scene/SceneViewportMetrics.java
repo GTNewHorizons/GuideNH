@@ -73,6 +73,6 @@ public class SceneViewportMetrics {
 
     /** Auto-size: clamps dimension between 64 and 512 with 16px padding. */
     public static int clampDimension(float span) {
-        return Math.max(64, Math.min(512, (int) Math.ceil(span) + 16));
+        return Math.clamp((int) Math.ceil(span) + 16, 64, 512);
     }
 }

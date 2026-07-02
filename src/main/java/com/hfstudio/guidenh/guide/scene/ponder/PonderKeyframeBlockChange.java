@@ -51,9 +51,4 @@ public class PonderKeyframeBlockChange {
     public boolean shouldSpawnParticles() {
         return particles == null || particles;
     }
-
-    /**
-     * Optional SNBT tile-entity tag to apply after placing the block.
-     * When present the tag is parsed and loaded into the block's {@link TileEntity}.
-     */
 }

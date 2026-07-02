@@ -19,6 +19,9 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class LytItemImage extends LytBlock implements InteractiveElement {
 
     public static final int BASE_SIZE = 16;
@@ -29,14 +32,35 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     public static int DEFAULT_TEXT_INLINE_Y_OFFSET = 0;
     public static int DEFAULT_INLINE_Y_OFFSET = 0;
 
+    @Getter
     protected ItemStack stack;
+    @Getter
     private float scale = 1f;
+    /**
+     * -- SETTER --
+     * Controls whether hovering over this element shows an item tooltip. Default
+     * .
+     */
+    @Setter
     private boolean showTooltip = true;
+    /**
+     * -- SETTER --
+     * Flag this image as being laid out inline with text. Inline images can be vertically adjusted
+     * relative to their centered line position.
+     */
+    @Getter
+    @Setter
     private boolean inline = false;
     @Nullable
     private Integer inlineYOffsetOverride = null;
     @Nullable
     private Integer labelYOffsetOverride = null;
+    /**
+     * -- SETTER --
+     * Controls whether the item icon graphic is rendered. Default
+     * .
+     */
+    @Setter
     private boolean showIcon = true;
     @Nullable
     private String labelPosition = null;
@@ -56,23 +80,9 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         this.scale = Math.max(0.125f, scale);
     }
 
-    public float getScale() {
-        return scale;
-    }
-
     /** Kept for backward compatibility. Prefer {@link #setShowTooltip(boolean)}. */
     public void setTooltipSuppressed(boolean suppressed) {
         this.showTooltip = !suppressed;
-    }
-
-    /** Controls whether hovering over this element shows an item tooltip. Default {@code true}. */
-    public void setShowTooltip(boolean show) {
-        this.showTooltip = show;
-    }
-
-    /** Controls whether the item icon graphic is rendered. Default {@code true}. */
-    public void setShowIcon(boolean show) {
-        this.showIcon = show;
     }
 
     public boolean isShowingIcon() {
@@ -98,18 +108,6 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         this.cachedLabelTemplate = null;
     }
 
-    /**
-     * Flag this image as being laid out inline with text. Inline images can be vertically adjusted
-     * relative to their centered line position.
-     */
-    public void setInline(boolean inline) {
-        this.inline = inline;
-    }
-
-    public boolean isInline() {
-        return inline;
-    }
-
     public void setInlineYOffsetOverride(@Nullable Integer override) {
         this.inlineYOffsetOverride = override;
     }
@@ -128,10 +126,6 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     /** Overrides the default inline Y offset for the label text only. Does not affect the icon. */
     public void setLabelYOffsetOverride(@Nullable Integer override) {
         this.labelYOffsetOverride = override;
-    }
-
-    public ItemStack getStack() {
-        return stack;
     }
 
     @Override

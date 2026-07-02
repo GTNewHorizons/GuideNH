@@ -40,6 +40,8 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Getter;
+
 public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTarget, InteractiveElement {
 
     private static final int CANVAS_PADDING = 10;
@@ -110,6 +112,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         null,
         false);
 
+    @Getter
     private final MermaidMindmapDocument mindmap;
     private final Map<String, LytBlock> nodeContentBlocks;
 
@@ -147,10 +150,6 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         }
     }
 
-    public MermaidMindmapDocument getMindmap() {
-        return mindmap;
-    }
-
     public void setPreferredSize(int width, int height) {
         preferredWidth = Math.max(0, width);
         preferredHeight = Math.max(0, height);
@@ -163,14 +162,14 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         int previousContentOffsetY = contentOffsetY;
         int previousViewportWidth = Math.max(1, bounds.width() - CANVAS_PADDING * 2);
         int previousViewportHeight = Math.max(1, bounds.height() - CANVAS_PADDING * 2);
-        int safeWidth = preferredWidth > 0 ? Math.max(1, Math.min(preferredWidth, availableWidth))
+        int safeWidth = preferredWidth > 0 ? Math.clamp(preferredWidth, 1, availableWidth)
             : Math.max(1, availableWidth);
         layout = buildLayout(context, safeWidth);
         int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
         int viewportHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
-            : Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
+            : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
         if (preferredHeight > 0 && safeWidth < resolvePreferredViewportWidth()) {
-            viewportHeight = Math.max(viewportHeight, Math.min(MAX_HEIGHT, desiredHeight));
+            viewportHeight = Math.clamp(desiredHeight, viewportHeight, MAX_HEIGHT);
         }
         int viewportWidth = Math.max(1, safeWidth - CANVAS_PADDING * 2);
         int innerViewportHeight = Math.max(1, viewportHeight - CANVAS_PADDING * 2);
@@ -1327,6 +1326,7 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         private final LytRect viewport;
         private final int originX;
         private final int originY;
+        @Getter
         private final float scale;
         private final Map<ResolvedTextStyle, ResolvedTextStyle> scaledStyleCache = new IdentityHashMap<>();
 
@@ -1361,10 +1361,6 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         @Override
         public int getDocumentOriginY() {
             return originY;
-        }
-
-        public float getScale() {
-            return scale;
         }
 
         @Override

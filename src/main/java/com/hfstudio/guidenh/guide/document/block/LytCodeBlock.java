@@ -23,6 +23,8 @@ import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Getter;
+
 public class LytCodeBlock extends LytVBox implements InteractiveElement, DocumentDragTarget {
 
     private static final CodeHighlightTheme CODE_THEME = CodeHighlightTheme.GITHUB_DARK_DEFAULT;
@@ -38,25 +40,37 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     private final LytCodeBlockToolbar toolbar = new LytCodeBlockToolbar();
     private final LytParagraph body = new LytParagraph();
 
+    @Getter
     private String codeText = "";
     private String normalizedCodeText = "";
+    @Getter
     private String languageFenceName = "";
+    @Getter
     private String languageDisplayName = "Text";
+    @Getter
     private String detectedLanguageId = "text";
+    @Getter
     private int preferredBodyWidth;
+    @Getter
     private int forcedBodyHeight;
+    @Getter
     private int bodyContentHeight;
     private int bodyViewportX;
     private int bodyViewportY;
     private int bodyViewportWidth;
+    @Getter
     private int bodyViewportHeight;
+    @Getter
     private int bodyScrollOffsetY;
     private final SmoothFloatState visualBodyScrollOffsetY = new SmoothFloatState();
+    @Getter
     private boolean draggingBody;
     private int dragLastDocumentY;
+    @Getter
     private boolean draggingScrollbar;
     private int scrollbarGrabOffsetY;
     private int lastBodyLineCount;
+    @Getter
     private CodeHighlightResult highlightResult = new CodeHighlightResult("text", CodeHighlightMode.PLAIN, List.of());
     private List<LytFlowSpan> highlightedLines = List.of();
 
@@ -81,16 +95,8 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         syncToolbar();
     }
 
-    public String getCodeText() {
-        return codeText;
-    }
-
     public void setCodeText(String codeText) {
         setCodeContent(languageFenceName, codeText);
-    }
-
-    public String getLanguageFenceName() {
-        return languageFenceName;
     }
 
     public void setLanguageFenceName(String languageFenceName) {
@@ -113,22 +119,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         }
     }
 
-    public String getLanguageDisplayName() {
-        return languageDisplayName;
-    }
-
     public void setLanguageDisplayName(String languageDisplayName) {
         this.languageDisplayName = languageDisplayName != null && !languageDisplayName.isEmpty() ? languageDisplayName
             : "Text";
         syncToolbar();
-    }
-
-    public String getDetectedLanguageId() {
-        return detectedLanguageId;
-    }
-
-    public CodeHighlightResult getHighlightResult() {
-        return highlightResult;
     }
 
     public void applyLanguage(CodeBlockLanguage language) {
@@ -141,14 +135,6 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         setLanguageDisplayName(language.displayName());
     }
 
-    public int getForcedBodyHeight() {
-        return forcedBodyHeight;
-    }
-
-    public int getPreferredBodyWidth() {
-        return preferredBodyWidth;
-    }
-
     public void setPreferredBodyWidth(int preferredBodyWidth) {
         this.preferredBodyWidth = Math.max(0, preferredBodyWidth);
         setFullWidth(this.preferredBodyWidth <= 0);
@@ -156,18 +142,6 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     public void setForcedBodyHeight(int forcedBodyHeight) {
         this.forcedBodyHeight = Math.max(0, forcedBodyHeight);
-    }
-
-    public int getBodyScrollOffsetY() {
-        return bodyScrollOffsetY;
-    }
-
-    public int getBodyViewportHeight() {
-        return bodyViewportHeight;
-    }
-
-    public int getBodyContentHeight() {
-        return bodyContentHeight;
     }
 
     public int getBodyLineCount() {
@@ -228,14 +202,6 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         draggingScrollbar = false;
     }
 
-    public boolean isDraggingBody() {
-        return draggingBody;
-    }
-
-    public boolean isDraggingScrollbar() {
-        return draggingScrollbar;
-    }
-
     @Override
     public boolean scroll(int documentX, int documentY, int wheelDelta) {
         if (wheelDelta == 0 || !getBodyViewportBounds().contains(documentX, documentY) || getMaxBodyScroll() <= 0) {
@@ -248,7 +214,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int safeWidth = preferredBodyWidth > 0 ? Math.max(1, Math.min(availableWidth, preferredBodyWidth))
+        int safeWidth = preferredBodyWidth > 0 ? Math.clamp(availableWidth, 1, preferredBodyWidth)
             : Math.max(1, availableWidth);
         toolbar.setPreferredWidth(safeWidth);
         LytRect toolbarBounds = toolbar.layout(context, x, y, safeWidth);

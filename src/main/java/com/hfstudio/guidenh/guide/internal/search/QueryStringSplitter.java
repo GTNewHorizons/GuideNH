@@ -33,7 +33,7 @@ public class QueryStringSplitter {
                     currentTerm.append(ch); // Keep spaces inside quotes
                 } else {
                     // We found a space outside quotes
-                    if (currentTerm.length() != 0) {
+                    if (!currentTerm.isEmpty()) {
                         terms.add(currentTerm.toString());
                         currentTerm.setLength(0); // Reset the current term
                     }
@@ -47,7 +47,7 @@ public class QueryStringSplitter {
         }
 
         // Add the last term if there's any remaining text
-        if (currentTerm.length() != 0) {
+        if (!currentTerm.isEmpty()) {
             terms.add(currentTerm.toString());
         }
 

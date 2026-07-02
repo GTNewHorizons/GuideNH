@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class GuideStructureMemoryStore {
 
     private final GuideStructurePlacementService placementService;
@@ -53,7 +55,9 @@ public class GuideStructureMemoryStore {
 
     public static class Entry {
 
+        @Getter
         private final String label;
+        @Getter
         private final GuideStructureData data;
         @Nullable
         private volatile String structureText;
@@ -64,10 +68,6 @@ public class GuideStructureMemoryStore {
             this.data = data;
         }
 
-        public String getLabel() {
-            return label;
-        }
-
         public String getStructureText() {
             if (structureText == null) {
                 structureText = GuideTextNbtCodec.writeStructureSnbt(data.getRoot());
@@ -75,8 +75,5 @@ public class GuideStructureMemoryStore {
             return structureText;
         }
 
-        public GuideStructureData getData() {
-            return data;
-        }
     }
 }

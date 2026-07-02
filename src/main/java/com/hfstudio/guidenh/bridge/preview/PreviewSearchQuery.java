@@ -3,6 +3,9 @@ package com.hfstudio.guidenh.bridge.preview;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import lombok.Getter;
+
+@Getter
 public class PreviewSearchQuery {
 
     private final String capability;
@@ -19,23 +22,4 @@ public class PreviewSearchQuery {
         this.filters = filters == null || filters.isEmpty() ? Map.of() : Map.copyOf(new LinkedHashMap<>(filters));
     }
 
-    public String getCapability() {
-        return capability;
-    }
-
-    public String getCursor() {
-        return cursor;
-    }
-
-    public int getLimit() {
-        return limit;
-    }
-
-    public String getPrefix() {
-        return prefix;
-    }
-
-    public Map<String, String> getFilters() {
-        return filters;
-    }
 }

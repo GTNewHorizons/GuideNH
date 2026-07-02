@@ -20,13 +20,22 @@ import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class LytImage extends LytBlock implements InteractiveElement {
 
     public static final double DEFAULT_LAYOUT_SCALE = 0.25d;
 
+    @Getter
     private ResourceLocation imageId;
+    @Getter
     private GuidePageTexture texture = GuidePageTexture.missing();
+    @Getter
+    @Setter
     private String title;
+    @Getter
+    @Setter
     private String alt;
 
     private int explicitWidth = -1;
@@ -38,29 +47,10 @@ public class LytImage extends LytBlock implements InteractiveElement {
     private double scaleX = 1.0d;
     private double scaleY = 1.0d;
 
+    @Getter
     private final List<ImageRegionAnnotation> annotations = new ArrayList<>();
     @Nullable
     private ImageRegionAnnotation hoveredSoundAnnotation;
-
-    public ResourceLocation getImageId() {
-        return imageId;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getAlt() {
-        return alt;
-    }
-
-    public void setAlt(String alt) {
-        this.alt = alt;
-    }
 
     public void setImage(ResourceLocation id, byte @Nullable [] imageData) {
         this.imageId = id;
@@ -74,10 +64,6 @@ public class LytImage extends LytBlock implements InteractiveElement {
     public void setTexture(@Nullable ResourceLocation id, @Nullable GuidePageTexture texture) {
         this.imageId = id;
         this.texture = texture != null ? texture : GuidePageTexture.missing();
-    }
-
-    public GuidePageTexture getTexture() {
-        return texture;
     }
 
     public void setExplicitWidth(int width) {
@@ -210,10 +196,6 @@ public class LytImage extends LytBlock implements InteractiveElement {
         if (annotation != null) {
             annotations.add(annotation);
         }
-    }
-
-    public List<ImageRegionAnnotation> getAnnotations() {
-        return annotations;
     }
 
     @Override

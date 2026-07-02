@@ -59,6 +59,8 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportServ
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
+import lombok.Getter;
+
 public class SceneEditorSceneNodePreviewApplier {
 
     private final Path workingRoot;
@@ -186,7 +188,6 @@ public class SceneEditorSceneNodePreviewApplier {
                 appendAnnotation(scene, node.getAnnotationElement());
                 return;
             default:
-                return;
         }
     }
 
@@ -516,6 +517,7 @@ public class SceneEditorSceneNodePreviewApplier {
         return true;
     }
 
+    @Getter
     private static class PreviewApplyResult {
 
         private final boolean structureCacheable;
@@ -524,9 +526,6 @@ public class SceneEditorSceneNodePreviewApplier {
             this.structureCacheable = structureCacheable;
         }
 
-        public boolean isStructureCacheable() {
-            return structureCacheable;
-        }
     }
 
     private List<SceneAnnotation> toRuntimeAnnotations(SceneEditorElementModel element) {
@@ -762,7 +761,7 @@ public class SceneEditorSceneNodePreviewApplier {
 
     public static boolean parseBooleanAttribute(@Nullable String value) {
         String normalized = normalizeAttribute(value);
-        return normalized != null && Boolean.parseBoolean(normalized);
+        return Boolean.parseBoolean(normalized);
     }
 
     private static int parseIntegerAttributeOrDefault(@Nullable String value, int defaultValue) {

@@ -9,6 +9,8 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 public class LytTable extends LytBlock {
 
     /**
@@ -17,6 +19,7 @@ public class LytTable extends LytBlock {
     public static final int CELL_BORDER = 1;
     private final List<LytTableRow> rows = new ArrayList<>();
 
+    @Getter
     private final List<LytTableColumn> columns = new ArrayList<>();
 
     @Override
@@ -83,10 +86,6 @@ public class LytTable extends LytBlock {
         var row = new LytTableRow(this);
         rows.add(row);
         return row;
-    }
-
-    public List<LytTableColumn> getColumns() {
-        return columns;
     }
 
     public LytTableColumn getOrCreateColumn(int index) {

@@ -18,10 +18,13 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 
+import lombok.Getter;
+
 /**
  * Universal GameScene prewarm system that preloads and caches all scene data including StructureLib.
  * Runs in background after resource reload without blocking the game.
  */
+@Getter
 public class GameScenePrewarmBootstrap {
 
     private static final GameScenePrewarmBootstrap INSTANCE = new GameScenePrewarmBootstrap();
@@ -178,10 +181,6 @@ public class GameScenePrewarmBootstrap {
             .analyzeControls(request, controller);
         facade.buildPreviewSelection(request, analysis);
         facade.importScene(request);
-    }
-
-    public boolean isPrewarming() {
-        return isPrewarming;
     }
 
     private enum PrewarmTaskType {

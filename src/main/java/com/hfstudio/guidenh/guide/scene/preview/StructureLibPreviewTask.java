@@ -10,6 +10,8 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 
+import lombok.Getter;
+
 public class StructureLibPreviewTask {
 
     public enum Type {
@@ -22,12 +24,17 @@ public class StructureLibPreviewTask {
         HIGH
     }
 
+    @Getter
     private final Type type;
+    @Getter
     private final String bindingKey;
+    @Getter
     private final int requestVersion;
     @Nullable
     private final String selectionKey;
+    @Getter
     private final Priority priority;
+    @Getter
     private final StructureLibImportRequest request;
     @Nullable
     private final StructureLibRuntimeFacade.ControlAnalysis controlAnalysis;
@@ -69,29 +76,9 @@ public class StructureLibPreviewTask {
             controlAnalysis);
     }
 
-    public Type getType() {
-        return type;
-    }
-
-    public String getBindingKey() {
-        return bindingKey;
-    }
-
-    public int getRequestVersion() {
-        return requestVersion;
-    }
-
     @Nullable
     public String getSelectionKey() {
         return selectionKey;
-    }
-
-    public Priority getPriority() {
-        return priority;
-    }
-
-    public StructureLibImportRequest getRequest() {
-        return request;
     }
 
     @Nullable

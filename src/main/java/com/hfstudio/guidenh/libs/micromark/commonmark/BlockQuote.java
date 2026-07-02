@@ -23,14 +23,12 @@ public class BlockQuote {
         blockQuote.name = "blockQuote";
         blockQuote.tokenize = (context, effects, ok, nok) -> new StateMachine(context, effects, ok, nok)::start;
         blockQuote.continuation = new Construct();
-        blockQuote.continuation.tokenize = (context, effects, ok, nok) -> {
-            return FactorySpace.create(
-                effects,
-                effects.attempt.hook(blockQuote, ok, nok),
-                Types.linePrefix,
-                context.getParser().constructs.nullDisable.contains("codeIndented") ? Integer.MAX_VALUE
-                    : Constants.tabSize);
-        };
+        blockQuote.continuation.tokenize = (context, effects, ok, nok) -> FactorySpace.create(
+            effects,
+            effects.attempt.hook(blockQuote, ok, nok),
+            Types.linePrefix,
+            context.getParser().constructs.nullDisable.contains("codeIndented") ? Integer.MAX_VALUE
+                : Constants.tabSize);
         blockQuote.exit = BlockQuote::exit;
     }
 

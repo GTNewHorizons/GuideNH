@@ -15,13 +15,24 @@ import com.hfstudio.guidenh.guide.layout.flow.FlowBuilder;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class LytParagraph extends LytBlock implements LytFlowContainer {
 
     protected final FlowBuilder content = new FlowBuilder();
 
+    @Getter
+    @Setter
     protected int paddingLeft;
+    @Getter
+    @Setter
     protected int paddingTop;
+    @Getter
+    @Setter
     protected int paddingRight;
+    @Getter
+    @Setter
     protected int paddingBottom;
 
     @Nullable
@@ -148,38 +159,6 @@ public class LytParagraph extends LytBlock implements LytFlowContainer {
 
     public void clearContent() {
         content.clear();
-    }
-
-    public int getPaddingLeft() {
-        return paddingLeft;
-    }
-
-    public void setPaddingLeft(int paddingLeft) {
-        this.paddingLeft = paddingLeft;
-    }
-
-    public int getPaddingTop() {
-        return paddingTop;
-    }
-
-    public void setPaddingTop(int paddingTop) {
-        this.paddingTop = paddingTop;
-    }
-
-    public int getPaddingRight() {
-        return paddingRight;
-    }
-
-    public void setPaddingRight(int paddingRight) {
-        this.paddingRight = paddingRight;
-    }
-
-    public int getPaddingBottom() {
-        return paddingBottom;
-    }
-
-    public void setPaddingBottom(int paddingBottom) {
-        this.paddingBottom = paddingBottom;
     }
 
     /**

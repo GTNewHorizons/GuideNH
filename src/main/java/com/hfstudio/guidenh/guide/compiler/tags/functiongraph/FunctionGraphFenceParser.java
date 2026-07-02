@@ -89,7 +89,7 @@ public class FunctionGraphFenceParser {
             if (line.startsWith(key + "=") || line.startsWith(key + " =")) {
                 return true;
             }
-            if (line.indexOf(' ' + key + '=') >= 0) {
+            if (line.contains(' ' + key + '=')) {
                 return true;
             }
         }
@@ -257,15 +257,13 @@ public class FunctionGraphFenceParser {
                 i++;
             }
             if (i < n && text.charAt(i) == '=') {
-                i++;
-                while (i < n && Character.isWhitespace(text.charAt(i))) {
+                do {
                     i++;
-                }
+                } while (i < n && Character.isWhitespace(text.charAt(i)));
                 if (i < n && text.charAt(i) == '"') {
-                    i++;
-                    while (i < n && text.charAt(i) != '"') {
+                    do {
                         i++;
-                    }
+                    } while (i < n && text.charAt(i) != '"');
                     if (i < n) {
                         i++;
                     }
@@ -413,10 +411,9 @@ public class FunctionGraphFenceParser {
                 i++;
             }
             if (i < n && text.charAt(i) == '=') {
-                i++;
-                while (i < n && Character.isWhitespace(text.charAt(i))) {
+                do {
                     i++;
-                }
+                } while (i < n && Character.isWhitespace(text.charAt(i)));
                 if (i < n && (text.charAt(i) == '"' || text.charAt(i) == '\'')) {
                     char quote = text.charAt(i);
                     i++;

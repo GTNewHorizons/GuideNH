@@ -34,7 +34,7 @@ public class HomePageLayout {
         int safeLogoHeight = Math.max(1, logoHeight);
         int preferredLogoW = Math.max(MIN_LOGO_WIDTH, Math.round(panelW * LOGO_WIDTH_RATIO));
         int preferredLogoH = Math.round((float) preferredLogoW * safeLogoHeight / safeLogoWidth);
-        int logoH = Math.clamp(preferredLogoH, MIN_LOGO_HEIGHT, Math.min(MAX_LOGO_HEIGHT, Math.max(1, shellH / 3)));
+        int logoH = Math.clamp(preferredLogoH, MIN_LOGO_HEIGHT, Math.clamp(shellH / 3, 1, MAX_LOGO_HEIGHT));
         int logoW = Math.max(1, Math.round((float) logoH * safeLogoWidth / safeLogoHeight));
         if (logoW > panelW) {
             logoW = panelW;

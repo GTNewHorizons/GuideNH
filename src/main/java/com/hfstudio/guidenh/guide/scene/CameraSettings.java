@@ -7,21 +7,30 @@ import org.joml.Vector4f;
 
 import com.hfstudio.guidenh.guide.document.LytSize;
 
+import lombok.Getter;
+
 public class CameraSettings {
 
+    @Getter
     private float zoom = 1f;
 
     private final Vector4f viewport = new Vector4f();
 
+    @Getter
     private float rotationX;
+    @Getter
     private float rotationY;
+    @Getter
     private float rotationZ;
 
     private final Vector3f rotationCenter = new Vector3f();
 
+    @Getter
     private float offsetX;
+    @Getter
     private float offsetY;
 
+    @Getter
     private LytSize viewportSize = LytSize.empty();
 
     public CameraSettings() {
@@ -41,10 +50,6 @@ public class CameraSettings {
             viewport.set(-halfWidth, -halfHeight, halfWidth, halfHeight);
             markProjectionDirty();
         }
-    }
-
-    public LytSize getViewportSize() {
-        return viewportSize;
     }
 
     public void setPerspectivePreset(PerspectivePreset preset) {
@@ -72,19 +77,11 @@ public class CameraSettings {
         }
     }
 
-    public float getZoom() {
-        return zoom;
-    }
-
     public void setZoom(float zoom) {
         if (this.zoom != zoom) {
             this.zoom = zoom;
             markProjectionDirty();
         }
-    }
-
-    public float getRotationX() {
-        return rotationX;
     }
 
     public void setRotationX(float rotationX) {
@@ -94,19 +91,11 @@ public class CameraSettings {
         }
     }
 
-    public float getRotationY() {
-        return rotationY;
-    }
-
     public void setRotationY(float rotationY) {
         if (this.rotationY != rotationY) {
             this.rotationY = rotationY;
             markViewDirty();
         }
-    }
-
-    public float getRotationZ() {
-        return rotationZ;
     }
 
     public void setRotationZ(float rotationZ) {
@@ -131,19 +120,11 @@ public class CameraSettings {
         return rotationCenter;
     }
 
-    public float getOffsetX() {
-        return offsetX;
-    }
-
     public void setOffsetX(float offsetX) {
         if (this.offsetX != offsetX) {
             this.offsetX = offsetX;
             markViewDirty();
         }
-    }
-
-    public float getOffsetY() {
-        return offsetY;
     }
 
     public void setOffsetY(float offsetY) {

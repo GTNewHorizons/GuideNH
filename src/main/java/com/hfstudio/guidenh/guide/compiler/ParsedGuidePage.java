@@ -9,13 +9,20 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
+import lombok.Getter;
+
 public class ParsedGuidePage {
 
+    @Getter
     private final String sourcePack;
+    @Getter
     private final ResourceLocation id;
+    @Getter
     private final String source;
     private volatile MdAstRoot astRoot;
+    @Getter
     private final Frontmatter frontmatter;
+    @Getter
     private final String language;
     private final @Nullable String parseFailureMessage;
     private final @Nullable UnistPoint parseFailureFrom;
@@ -51,18 +58,6 @@ public class ParsedGuidePage {
         this.parseFailureTo = parseFailureTo;
     }
 
-    public String getSourcePack() {
-        return sourcePack;
-    }
-
-    public ResourceLocation getId() {
-        return id;
-    }
-
-    public Frontmatter getFrontmatter() {
-        return frontmatter;
-    }
-
     public MdAstRoot getAstRoot() {
         MdAstRoot r = astRoot;
         if (r != null) {
@@ -77,14 +72,6 @@ public class ParsedGuidePage {
             astRoot = full.astRoot;
             return astRoot;
         }
-    }
-
-    public String getLanguage() {
-        return language;
-    }
-
-    public String getSource() {
-        return source;
     }
 
     public @Nullable String getParseFailureMessage() {

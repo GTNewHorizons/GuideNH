@@ -671,9 +671,7 @@ public class GuidebookLevelRenderer {
                 centerZ,
                 billboardAxes,
                 GuidebookSceneWeatherType.SNOW);
-            if (!drewRain && !drewSnow) {
-                return;
-            }
+            if (!drewRain && !drewSnow) {}
         } finally {
             GL11.glPopAttrib();
         }

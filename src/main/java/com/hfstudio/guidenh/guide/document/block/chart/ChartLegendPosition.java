@@ -15,22 +15,14 @@ public enum ChartLegendPosition {
         if (s == null) {
             return def;
         }
-        switch (s.trim()
+        return switch (s.trim()
             .toLowerCase()) {
-            case "none":
-            case "off":
-            case "false":
-                return NONE;
-            case "top":
-                return TOP;
-            case "bottom":
-                return BOTTOM;
-            case "left":
-                return LEFT;
-            case "right":
-                return RIGHT;
-            default:
-                return def;
-        }
+            case "none", "off", "false" -> NONE;
+            case "top" -> TOP;
+            case "bottom" -> BOTTOM;
+            case "left" -> LEFT;
+            case "right" -> RIGHT;
+            default -> def;
+        };
     }
 }

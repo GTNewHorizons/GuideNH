@@ -17,9 +17,12 @@ import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
+import lombok.Getter;
+
 public class GuideScreenEditorFileStore {
 
     private final Path resourcePacksRoot;
+    @Getter
     private final Path packRoot;
     private final Path packMetaPath;
 
@@ -34,10 +37,6 @@ public class GuideScreenEditorFileStore {
             .resolve("resourcepacks");
         Path packRoot = resourcePacks.resolve("NewGuide");
         return new GuideScreenEditorFileStore(resourcePacks, packRoot);
-    }
-
-    public Path getPackRoot() {
-        return packRoot;
     }
 
     public Path resolvePagePath(MutableGuide guide, ResourceLocation pageId, String language) {
@@ -244,11 +243,14 @@ public class GuideScreenEditorFileStore {
     }
 
     private String buildPackMeta() {
-        return "{\n" + "  \"pack\": {\n"
-            + "    \"pack_format\": 1,\n"
-            + "    \"description\": \"NewGuide\"\n"
-            + "  }\n"
-            + "}\n";
+        return """
+            {
+              "pack": {
+                "pack_format": 1,
+                "description": "NewGuide"
+              }
+            }
+            """;
     }
 
     private String normalizePageFileName(String pagePath) {

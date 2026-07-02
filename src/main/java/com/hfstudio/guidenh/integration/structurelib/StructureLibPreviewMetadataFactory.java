@@ -20,6 +20,8 @@ import org.jetbrains.annotations.Nullable;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.IStructureElementChain;
 
+import lombok.Getter;
+
 public class StructureLibPreviewMetadataFactory {
 
     public static final String GENERIC_STRUCTURELIB_DESCRIPTION = "StructureLib";
@@ -283,6 +285,7 @@ public class StructureLibPreviewMetadataFactory {
         return (((long) x & 0x3FFFFFFL) << 38) | (((long) z & 0x3FFFFFFL) << 12) | ((long) y & 0xFFFL);
     }
 
+    @Getter
     public static class AbsolutePreviewBlock {
 
         private final int x;
@@ -295,17 +298,6 @@ public class StructureLibPreviewMetadataFactory {
             this.z = z;
         }
 
-        public int getX() {
-            return x;
-        }
-
-        public int getY() {
-            return y;
-        }
-
-        public int getZ() {
-            return z;
-        }
     }
 
 }

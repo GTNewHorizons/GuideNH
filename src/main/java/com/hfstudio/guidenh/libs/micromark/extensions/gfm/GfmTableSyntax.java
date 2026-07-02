@@ -328,7 +328,7 @@ public class GfmTableSyntax extends Extension {
                     effects.consume(code);
                     effects.exit("tableDelimiterAlignment");
 
-                    align.set(align.size() - 1, align.get(align.size() - 1) == Align.LEFT ? Align.CENTER : Align.RIGHT);
+                    align.set(align.size() - 1, align.getLast() == Align.LEFT ? Align.CENTER : Align.RIGHT);
 
                     return this::afterRightAlignment;
                 }

@@ -39,6 +39,7 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
@@ -120,6 +121,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 import lombok.Getter;
+import lombok.Setter;
 
 public class LytGuidebookScene extends LytBlock {
 
@@ -246,20 +248,32 @@ public class LytGuidebookScene extends LytBlock {
     private int cachedPonderBtnScreenW;
     private int cachedPonderBtnScreenH;
 
+    @Getter
     private boolean interactive = true;
 
+    @Getter
+    @Setter
     private boolean sceneButtonsVisible = true;
+    @Getter
     private boolean bottomControlsVisible = true;
     private boolean isLoading;
     private long loadingRequestedAt;
     private static final int LOADING_DEBOUNCE_MS = 200;
     private boolean loadFailed;
+    @Getter
     private float loadProgress;
     private String loadStatusText = "";
     private int loadStatusColor = 0xFFFFFFFF;
+    @Getter
+    @Setter
     private boolean reserveBottomControlArea = true;
+    @Getter
     private boolean visibleLayerSliderEnabled;
+    @Getter
+    @Setter
     private boolean forceOriginAxesVisible;
+    @Getter
+    @Setter
     private boolean forceHideOriginAxes;
 
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
@@ -286,15 +300,24 @@ public class LytGuidebookScene extends LytBlock {
     public static final int DEFAULT_WIDTH = 256;
     public static final int DEFAULT_HEIGHT = 192;
 
+    @Getter
     private GuidebookLevel level = new GuidebookLevel();
+    @Getter
     private CameraSettings camera = new CameraSettings();
     private int width = DEFAULT_WIDTH;
     private int height = DEFAULT_HEIGHT;
+    @Getter
+    @Setter
     private int sceneBackgroundColor = SCENE_BG_COLOR;
+    @Getter
+    @Setter
     private int sceneBorderColor = SCENE_BORDER_COLOR;
+    @Getter
+    @Setter
     private boolean showBackground = true;
     @Nullable
     private LytSize cameraViewportOverride;
+    @Getter
     private final List<SceneAnnotation> annotations = new ArrayList<>();
 
     // Reuse annotation partitions instead of allocating new lists every frame.
@@ -360,6 +383,7 @@ public class LytGuidebookScene extends LytBlock {
     private boolean cachedBlockStatsButtonEnabled = true;
     private GuideIconButton.Role[] cachedSceneButtonRoles = SCENE_BUTTONS_SHOWN;
 
+    @Getter
     private boolean annotationsVisible = true;
     @Nullable
     private Integer visibleLayerOverride;
@@ -394,6 +418,7 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private GuideSceneStructureCacheEntry initialStructureState;
     private boolean gridButtonEnabled = true;
+    @Getter
     private boolean gridVisible = false;
     private boolean initialGridVisible = false;
     private boolean blockStatsEnabled = false;
@@ -459,6 +484,7 @@ public class LytGuidebookScene extends LytBlock {
     private AxisAlignedBB hoveredEntityBounds;
     @Nullable
     private MovingObjectPosition hoveredEntityHitResult;
+    @Setter
     private int @Nullable [] hoveredStructureLibHatch;
     private int currentMouseAbsX = -1;
     private int currentMouseAbsY = -1;
@@ -1612,18 +1638,6 @@ public class LytGuidebookScene extends LytBlock {
         soundCues.clear();
     }
 
-    public boolean isInteractive() {
-        return interactive;
-    }
-
-    public boolean isSceneButtonsVisible() {
-        return sceneButtonsVisible;
-    }
-
-    public void setSceneButtonsVisible(boolean sceneButtonsVisible) {
-        this.sceneButtonsVisible = sceneButtonsVisible;
-    }
-
     public boolean isLoading() {
         return isLoading && (System.nanoTime() - loadingRequestedAt) / 1_000_000L >= LOADING_DEBOUNCE_MS;
     }
@@ -1637,10 +1651,6 @@ public class LytGuidebookScene extends LytBlock {
             this.loadFailed = false;
             this.loadStatusColor = 0xFFFFFFFF;
         }
-    }
-
-    public float getLoadProgress() {
-        return loadProgress;
     }
 
     public void setLoadProgress(int done, int total) {
@@ -1667,10 +1677,6 @@ public class LytGuidebookScene extends LytBlock {
         this.loadStatusColor = 0xFFFFFFFF;
     }
 
-    public boolean isBottomControlsVisible() {
-        return bottomControlsVisible;
-    }
-
     public void setBottomControlsVisible(boolean bottomControlsVisible) {
         int previousBottomControlGeometryHash = bottomControlGeometryHash();
         this.bottomControlsVisible = bottomControlsVisible;
@@ -1680,73 +1686,13 @@ public class LytGuidebookScene extends LytBlock {
         invalidateBottomControlLayoutIfNeeded(previousBottomControlGeometryHash);
     }
 
-    public boolean isReserveBottomControlArea() {
-        return reserveBottomControlArea;
-    }
-
-    public void setReserveBottomControlArea(boolean reserveBottomControlArea) {
-        this.reserveBottomControlArea = reserveBottomControlArea;
-    }
-
-    public boolean isVisibleLayerSliderEnabled() {
-        return visibleLayerSliderEnabled;
-    }
-
     public void setVisibleLayerSliderEnabled(boolean visibleLayerSliderEnabled) {
         this.visibleLayerSliderEnabled = visibleLayerSliderEnabled;
         clearCachedVisibleLayerSliderRects();
     }
 
-    public boolean isForceOriginAxesVisible() {
-        return forceOriginAxesVisible;
-    }
-
-    public void setForceOriginAxesVisible(boolean forceOriginAxesVisible) {
-        this.forceOriginAxesVisible = forceOriginAxesVisible;
-    }
-
-    public boolean isForceHideOriginAxes() {
-        return forceHideOriginAxes;
-    }
-
-    public void setForceHideOriginAxes(boolean forceHideOriginAxes) {
-        this.forceHideOriginAxes = forceHideOriginAxes;
-    }
-
-    public GuidebookLevel getLevel() {
-        return level;
-    }
-
-    public CameraSettings getCamera() {
-        return camera;
-    }
-
-    public int getSceneBackgroundColor() {
-        return sceneBackgroundColor;
-    }
-
-    public void setSceneBackgroundColor(int sceneBackgroundColor) {
-        this.sceneBackgroundColor = sceneBackgroundColor;
-    }
-
-    public int getSceneBorderColor() {
-        return sceneBorderColor;
-    }
-
-    public void setSceneBorderColor(int sceneBorderColor) {
-        this.sceneBorderColor = sceneBorderColor;
-    }
-
-    public boolean isShowBackground() {
-        return showBackground;
-    }
-
-    public void setShowBackground(boolean showBackground) {
-        this.showBackground = showBackground;
-    }
-
     /**
-     * Collects all {@link com.hfstudio.guidenh.guide.document.block.LytParagraph} rich-content
+     * Collects all {@link LytParagraph} rich-content
      * roots from text annotations across both static annotations and Ponder keyframe sets.
      * Callers should dispatch MOUNT events into each returned paragraph so that inline
      * placeholders (e.g. {@code <ItemImage>}) are materialized before first render.
@@ -1770,25 +1716,9 @@ public class LytGuidebookScene extends LytBlock {
         return result;
     }
 
-    public List<SceneAnnotation> getAnnotations() {
-        return annotations;
-    }
-
-    public boolean isAnnotationsVisible() {
-        return annotationsVisible;
-    }
-
-    public boolean isGridVisible() {
-        return gridVisible;
-    }
-
     public void setGridVisible(boolean gridVisible) {
         this.gridVisible = gridVisible;
         cachedSceneButtonRolesDirty = true;
-    }
-
-    public void setHoveredStructureLibHatch(int @Nullable [] hoveredStructureLibHatch) {
-        this.hoveredStructureLibHatch = hoveredStructureLibHatch;
     }
 
     private void notifyStructureLibSelectionChanged() {
@@ -2185,7 +2115,7 @@ public class LytGuidebookScene extends LytBlock {
         int rowsOrColumns = Math.max(1, maxMain / rowHeight);
         int lines = (count + rowsOrColumns - 1) / rowsOrColumns;
         int cross = lines * blockStatsDockEntryWidthForLayout() + BLOCK_STATS_PADDING_X * 2;
-        return Math.max(BLOCK_STATS_MIN_WIDTH, Math.min(blockStatsMaxWidth, cross));
+        return Math.clamp(blockStatsMaxWidth, BLOCK_STATS_MIN_WIDTH, cross);
     }
 
     private int blockStatsDockHeightForLayout() {
@@ -2204,19 +2134,16 @@ public class LytGuidebookScene extends LytBlock {
             int maxMain = Math.max(entryWidth, width);
             int columns = Math.max(1, maxMain / entryWidth);
             int rows = (count + columns - 1) / columns;
-            return Math.max(
-                BLOCK_STATS_MIN_HEIGHT,
-                Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
+            return Math
+                .clamp(blockStatsMaxHeight, BLOCK_STATS_MIN_HEIGHT, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2);
         }
-        int rows = Math.min(count, Math.max(1, height / rowHeight));
-        return Math
-            .max(BLOCK_STATS_MIN_HEIGHT, Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
+        int rows = Math.clamp(height / rowHeight, 1, count);
+        return Math.clamp(blockStatsMaxHeight, BLOCK_STATS_MIN_HEIGHT, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2);
     }
 
     private int blockStatsDockEntryWidthForLayout() {
         int itemWidth = blockStatsItemWidthForLayout();
-        return blockStatsShowNames ? Math.max(96, Math.min(blockStatsMaxWidth, itemWidth + BLOCK_STATS_GAP + 72))
-            : itemWidth;
+        return blockStatsShowNames ? Math.clamp(blockStatsMaxWidth, 96, itemWidth + BLOCK_STATS_GAP + 72) : itemWidth;
     }
 
     private int blockStatsItemWidthForLayout() {
@@ -2269,7 +2196,7 @@ public class LytGuidebookScene extends LytBlock {
             ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP
             : 0;
         int totalDesired = targetSceneWidth + reserve + leftDock + rightDock;
-        int w = Math.min(totalDesired, Math.max(reserve + MIN_RESPONSIVE_SCENE_SIZE, availableWidth));
+        int w = Math.clamp(reserve + MIN_RESPONSIVE_SCENE_SIZE, availableWidth, totalDesired);
         int availableForDocks = Math.max(0, w - reserve - targetSceneWidth);
         if (leftDock + rightDock > availableForDocks) {
             if (leftDock > 0 && rightDock > 0) {
@@ -2942,9 +2869,9 @@ public class LytGuidebookScene extends LytBlock {
         boolean reserveVerticalScrollbar = blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2 > maxHeight;
         int preferredWidth = rowContentWidth + BLOCK_STATS_PADDING_X * 2
             + (reserveVerticalScrollbar ? BLOCK_STATS_SCROLLBAR_SIZE : 0);
-        int boxWidth = Math.min(maxWidth, Math.max(BLOCK_STATS_MIN_WIDTH, preferredWidth));
+        int boxWidth = Math.clamp(preferredWidth, BLOCK_STATS_MIN_WIDTH, maxWidth);
         int boxHeight = Math
-            .min(maxHeight, Math.max(BLOCK_STATS_MIN_HEIGHT, blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2));
+            .clamp(blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2, BLOCK_STATS_MIN_HEIGHT, maxHeight);
 
         int innerWidth = Math.max(1, boxWidth - BLOCK_STATS_PADDING_X * 2);
         int innerHeight = Math.max(1, boxHeight - BLOCK_STATS_PADDING_Y * 2);
@@ -3023,15 +2950,14 @@ public class LytGuidebookScene extends LytBlock {
         int maxWidth = verticalDock ? blockStatsMaxWidth : Math.min(blockStatsMaxWidth, sceneRect.width());
         int maxHeight = verticalDock ? Math.min(blockStatsMaxHeight, sceneRect.height()) : blockStatsMaxHeight;
         if (blockStatsDock == BlockStatsDock.LEFT) {
-            maxWidth = Math.min(maxWidth, Math.max(0, sceneRect.x() - getBounds().x() - BLOCK_STATS_DOCK_GAP));
+            maxWidth = Math.clamp(sceneRect.x() - getBounds().x() - BLOCK_STATS_DOCK_GAP, 0, maxWidth);
         } else if (blockStatsDock == BlockStatsDock.RIGHT) {
             int rightStart = outerRect.right() + buttonColumnReserve() + BLOCK_STATS_DOCK_GAP;
-            maxWidth = Math.min(maxWidth, Math.max(0, getBounds().right() - rightStart));
+            maxWidth = Math.clamp(getBounds().right() - rightStart, 0, maxWidth);
         } else if (blockStatsDock == BlockStatsDock.TOP) {
-            maxHeight = Math.min(maxHeight, Math.max(0, sceneRect.y() - getBounds().y() - BLOCK_STATS_DOCK_GAP));
+            maxHeight = Math.clamp(sceneRect.y() - getBounds().y() - BLOCK_STATS_DOCK_GAP, 0, maxHeight);
         } else if (blockStatsDock == BlockStatsDock.BOTTOM) {
-            maxHeight = Math
-                .min(maxHeight, Math.max(0, getBounds().bottom() - outerRect.bottom() - BLOCK_STATS_DOCK_GAP));
+            maxHeight = Math.clamp(getBounds().bottom() - outerRect.bottom() - BLOCK_STATS_DOCK_GAP, 0, maxHeight);
         }
         if (maxWidth < BLOCK_STATS_MIN_WIDTH || maxHeight < BLOCK_STATS_MIN_HEIGHT) {
             clearBlockStatsGeometry();
@@ -3044,7 +2970,7 @@ public class LytGuidebookScene extends LytBlock {
         int maxColumnsToFit = Math.max(1, maxContentWidth / Math.max(1, entryWidth));
         if (verticalDock) {
             int minRowsToFitWidth = Math.max(1, (entries.size() + maxColumnsToFit - 1) / maxColumnsToFit);
-            alongSlots = Math.min(entries.size(), Math.max(alongSlots, minRowsToFitWidth));
+            alongSlots = Math.clamp(alongSlots, minRowsToFitWidth, entries.size());
         } else {
             alongSlots = Math.min(alongSlots, maxColumnsToFit);
         }
@@ -3053,13 +2979,13 @@ public class LytGuidebookScene extends LytBlock {
         blockStatsContentWidth = verticalDock ? wrappedLines * entryWidth : usedAlongSlots * entryWidth;
         blockStatsContentHeight = verticalDock ? usedAlongSlots * rowStride - BLOCK_STATS_ROW_GAP
             : wrappedLines * rowStride - BLOCK_STATS_ROW_GAP;
-        maxHeight = Math.min(maxHeight, Math.max(BLOCK_STATS_MIN_HEIGHT, blockStatsContentHeight));
+        maxHeight = Math.clamp(blockStatsContentHeight, BLOCK_STATS_MIN_HEIGHT, maxHeight);
         boolean reserveVerticalScrollbar = blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2 > maxHeight;
         int preferredWidth = blockStatsContentWidth + BLOCK_STATS_PADDING_X * 2
             + (reserveVerticalScrollbar ? BLOCK_STATS_SCROLLBAR_SIZE : 0);
-        int boxWidth = Math.max(BLOCK_STATS_MIN_WIDTH, Math.min(maxWidth, preferredWidth));
+        int boxWidth = Math.clamp(maxWidth, BLOCK_STATS_MIN_WIDTH, preferredWidth);
         int boxHeight = Math
-            .max(BLOCK_STATS_MIN_HEIGHT, Math.min(maxHeight, blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2));
+            .clamp(maxHeight, BLOCK_STATS_MIN_HEIGHT, blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2);
         int innerWidth = Math.max(1, boxWidth - BLOCK_STATS_PADDING_X * 2);
         int innerHeight = Math.max(1, boxHeight - BLOCK_STATS_PADDING_Y * 2);
         boolean verticalNeeded = blockStatsContentHeight > innerHeight;
@@ -3084,15 +3010,12 @@ public class LytGuidebookScene extends LytBlock {
         int x = switch (blockStatsDock) {
             case LEFT -> sceneRect.x() - BLOCK_STATS_DOCK_GAP - boxWidth;
             case RIGHT -> outerRect.right() + buttonColumnReserve() + BLOCK_STATS_DOCK_GAP;
-            case TOP -> sceneRect.x();
-            case BOTTOM -> sceneRect.x();
-            case INSIDE -> sceneRect.x();
+            case TOP, INSIDE, BOTTOM -> sceneRect.x();
         };
         int y = switch (blockStatsDock) {
-            case LEFT, RIGHT -> sceneRect.y();
+            case LEFT, RIGHT, INSIDE -> sceneRect.y();
             case TOP -> sceneRect.y() - BLOCK_STATS_DOCK_GAP - boxHeight;
             case BOTTOM -> outerRect.bottom() + BLOCK_STATS_DOCK_GAP;
-            case INSIDE -> sceneRect.y();
         };
         LytRect box = cachedBlockStatsBoxRect = updateCachedRect(cachedBlockStatsBoxRect, x, y, boxWidth, boxHeight);
         LytRect viewport = cachedBlockStatsViewportRect = updateCachedRect(
@@ -4427,8 +4350,8 @@ public class LytGuidebookScene extends LytBlock {
                 // Standard orbit camera pan: move target along camera right/up in world space.
                 // Screen (dx, dy) → world delta = R⁻¹ · (dx/s, -dy/s, 0)
                 float s = 10.0f * camera.getZoom();
-                org.joml.Vector3f delta = new org.joml.Vector3f(-dx / s, dy / s, 0);
-                new org.joml.Matrix4f().rotateY((float) Math.toRadians(-camera.getRotationY()))
+                Vector3f delta = new Vector3f(-dx / s, dy / s, 0);
+                new Matrix4f().rotateY((float) Math.toRadians(-camera.getRotationY()))
                     .rotateX((float) Math.toRadians(-camera.getRotationX()))
                     .rotateZ((float) Math.toRadians(-camera.getRotationZ()))
                     .transformPosition(delta);

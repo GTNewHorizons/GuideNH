@@ -65,6 +65,6 @@ public class ListUtils {
         if (listStack.isEmpty()) {
             return null;
         }
-        return listStack.remove(listStack.size() - 1);
+        return listStack.removeLast();
     }
 }

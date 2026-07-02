@@ -52,7 +52,6 @@ public class FactorySpace {
             return ok.step(code);
         }
 
-        ;
     }
 
 }

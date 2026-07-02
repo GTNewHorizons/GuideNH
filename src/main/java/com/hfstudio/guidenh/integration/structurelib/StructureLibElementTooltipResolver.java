@@ -27,6 +27,8 @@ import com.gtnewhorizon.structurelib.structure.IStructureElementChain;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
+import lombok.Getter;
+
 public class StructureLibElementTooltipResolver {
 
     public static final int MAX_TIER_SCAN = 50;
@@ -429,6 +431,7 @@ public class StructureLibElementTooltipResolver {
 
     public static class HatchDetails {
 
+        @Getter
         private final int hintDot;
         @Nullable
         private final String hintText;
@@ -438,16 +441,13 @@ public class StructureLibElementTooltipResolver {
             this.hintText = hintText;
         }
 
-        public int getHintDot() {
-            return hintDot;
-        }
-
         @Nullable
         public String getHintText() {
             return hintText;
         }
     }
 
+    @Getter
     public static class TooltipDetails {
 
         public static final TooltipDetails EMPTY = new TooltipDetails(List.of(), List.of(), List.of());
@@ -467,17 +467,6 @@ public class StructureLibElementTooltipResolver {
             return EMPTY;
         }
 
-        public List<ItemStack> getBlockCandidates() {
-            return blockCandidates;
-        }
-
-        public List<StructureLibHatchDescriptionLine> getHatchDescriptionLines() {
-            return hatchDescriptionLines;
-        }
-
-        public List<ItemStack> getHatchCandidates() {
-            return hatchCandidates;
-        }
     }
 
     public static class HatchLeafMatch {
@@ -531,9 +520,7 @@ public class StructureLibElementTooltipResolver {
             if (!trigger.hasTagCompound()) {
                 return "";
             }
-            StringBuilder builder = new StringBuilder(32);
-            builder.append(trigger.stackTagCompound.toString());
-            return builder.toString();
+            return trigger.stackTagCompound.toString();
         }
 
         public static String normalizeContextFingerprint(@Nullable String contextFingerprint) {

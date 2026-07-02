@@ -13,13 +13,17 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelectio
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
+import lombok.Getter;
+
 public class StructureLibSceneBinding {
 
     @Nullable
     private final String name;
+    @Getter
     private final String bindingKey;
     @Nullable
     private StructureLibSceneMetadata metadata;
+    @Getter
     private int currentTier = StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
     private final LinkedHashMap<String, Integer> channelOverrides = new LinkedHashMap<>();
     @Nullable
@@ -29,7 +33,13 @@ public class StructureLibSceneBinding {
     private StructureLibSceneOptions rebuildOptions;
     @Nullable
     private Integer rebuildRequestedChannel;
-    private int rebuildOffsetX, rebuildOffsetY, rebuildOffsetZ;
+    @Getter
+    private int rebuildOffsetX;
+    @Getter
+    private int rebuildOffsetY;
+    @Getter
+    private int rebuildOffsetZ;
+    @Getter
     private boolean rebuildFormed;
     private Map<String, Boolean> rebuildIntegrationOptions = Map.of();
     private boolean hasRebuildRecipe;
@@ -44,10 +54,6 @@ public class StructureLibSceneBinding {
     @Nullable
     public String getName() {
         return name;
-    }
-
-    public String getBindingKey() {
-        return bindingKey;
     }
 
     @Nullable
@@ -74,10 +80,6 @@ public class StructureLibSceneBinding {
         if (preservedSelection != null) {
             applyPreviewSelection(preservedSelection);
         }
-    }
-
-    public int getCurrentTier() {
-        return currentTier;
     }
 
     public void setCurrentTier(int currentTier) {
@@ -182,22 +184,6 @@ public class StructureLibSceneBinding {
             rebuildRequestedChannel,
             selection,
             rebuildOptions);
-    }
-
-    public int getRebuildOffsetX() {
-        return rebuildOffsetX;
-    }
-
-    public int getRebuildOffsetY() {
-        return rebuildOffsetY;
-    }
-
-    public int getRebuildOffsetZ() {
-        return rebuildOffsetZ;
-    }
-
-    public boolean isRebuildFormed() {
-        return rebuildFormed;
     }
 
     @Nullable

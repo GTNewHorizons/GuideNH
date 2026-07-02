@@ -22,6 +22,8 @@ import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.element.ImportPonderElementCompiler;
 
+import lombok.Getter;
+
 /**
  * Speech-bubble text label rendered as a 2D overlay anchored to a world position or at a fixed
  * screen-space offset. Supports optional word-wrapping via a {@code maxWidth} pixel limit, and
@@ -41,15 +43,25 @@ public class TextAnnotation extends OverlayAnnotation {
     public static final int DEFAULT_BACKGROUND_ALPHA = 0xCC;
     private static final int BACKGROUND_RGB = 0x0E0E20;
 
+    @Getter
     private final Vector3f worldPos;
+    @Getter
     private final String text;
+    @Getter
     private final int maxWidth;
+    @Getter
     private final ColorValue borderColor;
+    @Getter
     private final boolean independent;
+    @Getter
     private final float screenYOffset;
+    @Getter
     private ConnectorSide connectorSide = ConnectorSide.BOTTOM;
+    @Getter
     private int connectorOffset;
+    @Getter
     private int connectorLength = CONNECTOR_HEIGHT;
+    @Getter
     private int backgroundAlpha = DEFAULT_BACKGROUND_ALPHA;
 
     @Nullable
@@ -124,10 +136,6 @@ public class TextAnnotation extends OverlayAnnotation {
         this.cachedMeasureWrapWidth = Integer.MIN_VALUE;
     }
 
-    public int getBackgroundAlpha() {
-        return backgroundAlpha;
-    }
-
     public void setBackgroundAlpha(int backgroundAlpha) {
         this.backgroundAlpha = clampAlpha(backgroundAlpha);
     }
@@ -136,42 +144,6 @@ public class TextAnnotation extends OverlayAnnotation {
         this.connectorSide = connectorSide != null ? connectorSide : ConnectorSide.BOTTOM;
         this.connectorOffset = connectorOffset;
         this.connectorLength = Math.max(0, connectorLength);
-    }
-
-    public ColorValue getBorderColor() {
-        return borderColor;
-    }
-
-    public Vector3f getWorldPos() {
-        return worldPos;
-    }
-
-    public boolean isIndependent() {
-        return independent;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public int getMaxWidth() {
-        return maxWidth;
-    }
-
-    public float getScreenYOffset() {
-        return screenYOffset;
-    }
-
-    public ConnectorSide getConnectorSide() {
-        return connectorSide;
-    }
-
-    public int getConnectorOffset() {
-        return connectorOffset;
-    }
-
-    public int getConnectorLength() {
-        return connectorLength;
     }
 
     @Nullable
@@ -405,8 +377,8 @@ public class TextAnnotation extends OverlayAnnotation {
         int constrainedY = bubble.y();
         int maxX = viewport.right() - bubble.width();
         int maxY = viewport.bottom() - bubble.height();
-        constrainedX = Math.max(viewport.x(), Math.min(maxX, constrainedX));
-        constrainedY = Math.max(viewport.y(), Math.min(maxY, constrainedY));
+        constrainedX = Math.clamp(constrainedX, viewport.x(), maxX);
+        constrainedY = Math.clamp(constrainedY, viewport.y(), maxY);
         return new LytRect(constrainedX, constrainedY, bubble.width(), bubble.height());
     }
 

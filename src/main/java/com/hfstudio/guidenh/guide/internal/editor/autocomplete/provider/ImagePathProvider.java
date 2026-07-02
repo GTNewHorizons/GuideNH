@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -29,16 +28,14 @@ import cpw.mods.fml.client.FMLClientHandler;
  */
 public class ImagePathProvider implements AutocompleteProvider {
 
-    private static final Set<AutocompleteKey> KEYS = Collections.unmodifiableSet(
-        new HashSet<>(
-            Arrays.asList(
-                AutocompleteKey.forValue("FloatingImage", "src"),
-                AutocompleteKey.forValue("ImportStructure", "src"),
-                AutocompleteKey.forValue("ImportPonder", "src"),
-                AutocompleteKey.forValue("Mermaid", "src"),
-                AutocompleteKey.forValue("CsvTable", "src"),
-                AutocompleteKey.forValue("*", "icon_texture"),
-                AutocompleteKey.forValue("image", "url"))));
+    private static final Set<AutocompleteKey> KEYS = Set.of(
+        AutocompleteKey.forValue("FloatingImage", "src"),
+        AutocompleteKey.forValue("ImportStructure", "src"),
+        AutocompleteKey.forValue("ImportPonder", "src"),
+        AutocompleteKey.forValue("Mermaid", "src"),
+        AutocompleteKey.forValue("CsvTable", "src"),
+        AutocompleteKey.forValue("*", "icon_texture"),
+        AutocompleteKey.forValue("image", "url"));
 
     private static final String[] EXTENSIONS = { ".png", ".jpg", ".jpeg", ".gif", ".snbt", ".nbt", ".csv", ".json",
         ".mmd", ".md" };

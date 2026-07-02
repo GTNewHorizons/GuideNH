@@ -542,9 +542,7 @@ public class GregTechHelpers {
                 field.setAccessible(true);
                 field.setBoolean(multiBlockController, formed);
                 return true;
-            } catch (NoSuchFieldException ignored) {
-                continue;
-            } catch (Throwable ignored) {
+            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
                 return false;
             }
         }
@@ -580,9 +578,7 @@ public class GregTechHelpers {
                 }
                 field.setAccessible(true);
                 return field.getBoolean(multiBlockController);
-            } catch (NoSuchFieldException ignored) {
-                continue;
-            } catch (Throwable ignored) {
+            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
                 return null;
             }
         }
@@ -861,12 +857,12 @@ public class GregTechHelpers {
                     continue;
                 }
                 if (isSamePipeType(metaPipe, adj)) {
-                    connections |= dir.flag;
+                    connections |= (byte) dir.flag;
                     continue;
                 }
                 try {
                     if (metaPipe.canConnect(dir, adj)) {
-                        connections |= dir.flag;
+                        connections |= (byte) dir.flag;
                     }
                 } catch (Throwable ignored) {}
             }

@@ -105,7 +105,7 @@ public class CartesianChartRenderer {
                 int tx = (int) x - sw / 2;
                 // Allow at most half the label to extend past the plot edge so neighbouring text
                 // does not collide with the chart border.
-                tx = Math.max(plotRect.x() - sw / 2, Math.min(plotRect.right() - sw / 2, tx));
+                tx = Math.clamp(tx, plotRect.x() - sw / 2, plotRect.right() - sw / 2);
                 context.drawText(s, tx, plotRect.bottom() + 3, xLabelStyle);
             }
         } else if (xCategories != null && xCategories.length > 0) {

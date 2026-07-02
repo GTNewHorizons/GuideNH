@@ -243,7 +243,7 @@ public class GuidebookSceneParticleFactory {
         int maxAmountPerBlockFromBudget = Math.max(1, (int) (MAX_INDICATOR_TOTAL_PARTICLES / targetBlockCount));
         resolvedAmountPerBlock = Math.min(resolvedAmountPerBlock, maxAmountPerBlockFromBudget);
         long total = targetBlockCount * resolvedAmountPerBlock;
-        return (int) Math.min(MAX_INDICATOR_TOTAL_PARTICLES, Math.max(1L, total));
+        return (int) Math.clamp(total, 1L, MAX_INDICATOR_TOTAL_PARTICLES);
     }
 
     public static void appendIndicatorPreset(List<GuidebookSceneParticle> out, Random rng, int[] xValues, int[] yValues,

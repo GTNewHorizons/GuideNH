@@ -201,7 +201,7 @@ public class AutoLink {
 
         /**
          * In the label, where `.` and `>` are *not* allowed.
-         *
+         * <p>
          * Though, this is also used in `email_label` to parse other values.
          *
          * <pre>

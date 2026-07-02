@@ -96,23 +96,18 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
 import cpw.mods.fml.relauncher.Side;
+import lombok.Getter;
 
 public class ClientProxy extends CommonProxy {
 
+    @Getter
     private static final LytHost lytHost = new LytHost();
     private static final CompileWorker compileWorker = new CompileWorker();
+    @Getter
     private static final StructureLibPreviewWorker structureLibPreviewWorker = new StructureLibPreviewWorker();
-
-    public static LytHost getLytHost() {
-        return lytHost;
-    }
 
     public static CompileWorker getWorker() {
         return compileWorker;
-    }
-
-    public static StructureLibPreviewWorker getStructureLibPreviewWorker() {
-        return structureLibPreviewWorker;
     }
 
     public static GameScenePrewarmBootstrap getGameScenePrewarmBootstrap() {

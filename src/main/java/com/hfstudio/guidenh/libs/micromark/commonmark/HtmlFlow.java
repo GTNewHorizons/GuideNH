@@ -416,7 +416,7 @@ public class HtmlFlow {
         }
 
         private State htmlLineEnd(TokenizeContext context, Tokenizer.Effects effects, State ok, State nok) {
-            State lineStart = (int code) -> { return context.isOnLazyLine() ? nok.step(code) : ok.step(code); };
+            State lineStart = (int code) -> context.isOnLazyLine() ? nok.step(code) : ok.step(code);
 
             return (int code) -> {
                 Assert.check(CharUtil.markdownLineEnding(code), "expected eol");

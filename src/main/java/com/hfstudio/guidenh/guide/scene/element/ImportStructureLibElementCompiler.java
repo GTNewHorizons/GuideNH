@@ -191,7 +191,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser.parseAttributes(compiler, errorSink, el);
         StructureLibSceneOptions sceneOptions = legacyOptions.merge(childOptions);
         StructureLibPreviewSelection defaultSelection = sceneOptions
-            .createSelection(requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel));
+            .createSelection(requestedChannel == Integer.MIN_VALUE ? null : requestedChannel);
         StructureLibPreviewSelection selection = applyControllerDefaults(controller, defaultSelection, sceneOptions);
         return new StructureLibImportRequest(
             controller,
@@ -202,7 +202,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
                 .resolveRotation(MdxAttrs.getString(compiler, errorSink, el, "rotation", null), sceneOptions),
             StructureLibSceneOptions
                 .resolveFlip(MdxAttrs.getString(compiler, errorSink, el, "flip", null), sceneOptions),
-            requestedChannel == Integer.MIN_VALUE ? null : Integer.valueOf(requestedChannel),
+            requestedChannel == Integer.MIN_VALUE ? null : requestedChannel,
             selection,
             sceneOptions);
     }
@@ -235,14 +235,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         try {
             StructureLibRuntimeFacade.ResolvedController resolvedController = StructureLibRuntimeFacade
                 .resolveController(
-                    new StructureLibImportRequest(
-                        controller,
-                        null,
-                        null,
-                        null,
-                        null,
-                        Integer.valueOf(result.getMasterTier()),
-                        result));
+                    new StructureLibImportRequest(controller, null, null, null, null, result.getMasterTier(), result));
             if (GregTechHelpers
                 .getMachineControllerBaseMeta(resolvedController.getBlock(), resolvedController.getMeta()) != null) {
                 result = result.withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);

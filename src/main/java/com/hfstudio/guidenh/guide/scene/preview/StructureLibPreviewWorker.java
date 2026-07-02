@@ -264,7 +264,7 @@ public class StructureLibPreviewWorker {
             return "StructureLib preview failed";
         }
         String message = importResult.getErrors()
-            .get(0);
+            .getFirst();
         return message != null && !message.trim()
             .isEmpty() ? message : "StructureLib preview failed";
     }

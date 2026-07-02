@@ -343,14 +343,13 @@ public class GuidebookPreviewPlayerSkinResolver {
     }
 
     private static Map<String, ResolvedPreviewPlayerSkin> createResolvedSkinCache() {
-        return Collections
-            .synchronizedMap(new LinkedHashMap<String, ResolvedPreviewPlayerSkin>(MAX_RESOLVED_SKINS + 1, 0.75f, true) {
+        return Collections.synchronizedMap(new LinkedHashMap<>(MAX_RESOLVED_SKINS + 1, 0.75f, true) {
 
-                @Override
-                protected boolean removeEldestEntry(Entry<String, ResolvedPreviewPlayerSkin> eldest) {
-                    return size() > MAX_RESOLVED_SKINS;
-                }
-            });
+            @Override
+            protected boolean removeEldestEntry(Entry<String, ResolvedPreviewPlayerSkin> eldest) {
+                return size() > MAX_RESOLVED_SKINS;
+            }
+        });
     }
 
     public static class ResolvedPreviewPlayerSkin {

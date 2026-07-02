@@ -3,13 +3,12 @@ package com.hfstudio.guidenh.guide.document.block;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 
+import lombok.Getter;
+
+@Getter
 public class LytWidthBox extends LytVBox {
 
     private int preferredWidth;
-
-    public int getPreferredWidth() {
-        return preferredWidth;
-    }
 
     public void setPreferredWidth(int preferredWidth) {
         this.preferredWidth = Math.max(0, preferredWidth);

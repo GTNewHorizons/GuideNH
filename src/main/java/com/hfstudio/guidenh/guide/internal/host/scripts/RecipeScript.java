@@ -52,7 +52,6 @@ public class RecipeScript implements LytScript {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
 
@@ -130,7 +129,7 @@ public class RecipeScript implements LytScript {
                 Object handler = handlers.get(hi);
                 int num = GuideNhIntegrationRegistry.global()
                     .lookupRecipeHandlerRecipeCount(handler);
-                int recipeStart = ph.recipeIndex >= 0 ? ph.recipeIndex : 0;
+                int recipeStart = Math.max(ph.recipeIndex, 0);
                 int recipeEnd = ph.recipeIndex >= 0 ? Math.min(num, ph.recipeIndex + 1) : num;
                 for (int ri = recipeStart; ri < recipeEnd && boxes.size() < limit; ri++) {
                     if (hasRecipeFilter
@@ -161,12 +160,12 @@ public class RecipeScript implements LytScript {
         }
 
         // Integration recipe entries
-        List<RecipeEntry> recipeEntries = usageQuery ? Collections.<RecipeEntry>emptyList()
+        List<RecipeEntry> recipeEntries = usageQuery ? Collections.emptyList()
             : GuideNhIntegrationRegistry.global()
                 .findCraftingRecipeEntries(targetStack);
         if (!recipeEntries.isEmpty()) {
             List<LytStandardRecipeBox> boxes = new ArrayList<>();
-            int entryStart = ph.recipeIndex >= 0 ? ph.recipeIndex : 0;
+            int entryStart = Math.max(ph.recipeIndex, 0);
             int entryEnd = ph.recipeIndex >= 0 ? Math.min(recipeEntries.size(), ph.recipeIndex + 1)
                 : recipeEntries.size();
             for (int i = entryStart; i < entryEnd && boxes.size() < limit; i++) {
@@ -183,7 +182,7 @@ public class RecipeScript implements LytScript {
                         .isEmpty()) flat.set(
                             idx,
                             slot.stacks()
-                                .get(0));
+                                .getFirst());
                     idx++;
                 }
                 ItemStack resultStack = e.result()
@@ -192,7 +191,7 @@ public class RecipeScript implements LytScript {
                         .stacks()
                         .isEmpty() ? e.result()
                             .stacks()
-                            .get(0) : null;
+                            .getFirst() : null;
                 if (resultStack != null) boxes.add(LytStandardRecipeBox.shapeless(flat, resultStack));
             }
             if (!boxes.isEmpty()) {
@@ -202,15 +201,14 @@ public class RecipeScript implements LytScript {
         }
 
         // Vanilla recipe fallback
-        List<RecipeLookup.Entry> entries = usageQuery ? Collections.<RecipeLookup.Entry>emptyList()
-            : RecipeLookup.findByOutput(item);
+        List<RecipeLookup.Entry> entries = usageQuery ? Collections.emptyList() : RecipeLookup.findByOutput(item);
         if (entries.isEmpty()) {
             showFallback(ctx, ph, "No recipe found for " + ph.idStr);
             return;
         }
 
         List<LytStandardRecipeBox> boxes = new ArrayList<>();
-        int vanillaStart = ph.recipeIndex >= 0 ? ph.recipeIndex : 0;
+        int vanillaStart = Math.max(ph.recipeIndex, 0);
         int vanillaEnd = ph.recipeIndex >= 0 ? Math.min(entries.size(), ph.recipeIndex + 1) : entries.size();
         for (int i = vanillaStart; i < vanillaEnd && boxes.size() < limit; i++) {
             var e = entries.get(i);
@@ -232,7 +230,7 @@ public class RecipeScript implements LytScript {
     }
 
     private static LytBlock buildResultTyped(List<LytBlock> boxes) {
-        if (boxes.size() == 1) return boxes.get(0);
+        if (boxes.size() == 1) return boxes.getFirst();
         var row = new LytHBox();
         row.setGap(RecipeCompiler.MULTI_GAP);
         for (var b : boxes) row.append(b);

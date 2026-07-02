@@ -9,11 +9,16 @@ import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.style.Styleable;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class LytFlowContent implements Styleable {
 
     private TextStyle style = TextStyle.EMPTY;
     private TextStyle hoverStyle = TextStyle.EMPTY;
 
+    @Getter
+    @Setter
     private LytFlowParent parent;
 
     @Nullable
@@ -22,15 +27,8 @@ public class LytFlowContent implements Styleable {
     @Nullable
     private String nodeUid;
 
+    @Getter
     private final Map<String, Object> data = new HashMap<>();
-
-    public LytFlowParent getParent() {
-        return parent;
-    }
-
-    public void setParent(LytFlowParent parent) {
-        this.parent = parent;
-    }
 
     /**
      * Gets the parent of this flow content that is itself flow content. Null if the parent is null or not flow content.
@@ -121,7 +119,4 @@ public class LytFlowContent implements Styleable {
         data.put(key, value);
     }
 
-    public Map<String, Object> getData() {
-        return data;
-    }
 }

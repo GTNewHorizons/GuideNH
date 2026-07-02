@@ -9,6 +9,9 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Pie chart. On hover the hovered slice is offset outward along its angle bisector.
  */
@@ -17,8 +20,11 @@ public class LytPieChart extends LytChartBase {
     private static final int CIRCLE_SEGMENTS = 32;
     private static final float HOVER_OFFSET = 4f;
 
+    @Getter
     private List<PieSlice> slices = new ArrayList<>();
+    @Setter
     private float startAngleDeg = -90f;
+    @Setter
     private boolean clockwise = true;
 
     private float cxCache;
@@ -28,18 +34,6 @@ public class LytPieChart extends LytChartBase {
 
     public void setSlices(List<PieSlice> slices) {
         this.slices = slices != null ? slices : new ArrayList<>();
-    }
-
-    public List<PieSlice> getSlices() {
-        return slices;
-    }
-
-    public void setStartAngleDeg(float startAngleDeg) {
-        this.startAngleDeg = startAngleDeg;
-    }
-
-    public void setClockwise(boolean clockwise) {
-        this.clockwise = clockwise;
     }
 
     @Override
@@ -94,8 +88,8 @@ public class LytPieChart extends LytChartBase {
                 float tx = cx + (float) Math.cos(mid) * labelR - tw / 2f;
                 float ty = cy + (float) Math.sin(mid) * labelR - lh / 2f;
                 // Clamp label inside the plot rectangle so OUTSIDE labels do not overflow the chart frame.
-                int clampedTx = Math.max(plotRect.x(), Math.min(plotRect.right() - tw, (int) tx));
-                int clampedTy = Math.max(plotRect.y(), Math.min(plotRect.bottom() - lh, (int) ty));
+                int clampedTx = Math.clamp(plotRect.right() - tw, plotRect.x(), (int) tx);
+                int clampedTy = Math.clamp(plotRect.bottom() - lh, plotRect.y(), (int) ty);
                 context.drawText(text, clampedTx, clampedTy, labelStyle);
             }
             angle += sweep;

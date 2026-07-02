@@ -11,8 +11,11 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class StructureLibSceneMetadata {
 
+    @Getter
     private final String controller;
     @Nullable
     private final String piece;
@@ -24,10 +27,13 @@ public class StructureLibSceneMetadata {
     private final String flip;
     @Nullable
     private final TierData tierData;
+    @Getter
     private final List<ChannelData> channelDataList;
     private final Map<String, ChannelData> channelDataById;
     private final Map<Long, BlockTooltipData> blockTooltipDataByPos;
+    @Getter
     private final List<BlockTooltipEntry> hatchTooltipEntries;
+    @Getter
     private final Set<Long> hatchTooltipPositions;
     private final boolean hasHatchTooltipData;
 
@@ -51,10 +57,6 @@ public class StructureLibSceneMetadata {
         this.hatchTooltipEntries = computeHatchTooltipEntries(this.blockTooltipDataByPos);
         this.hatchTooltipPositions = computeHatchTooltipPositions(this.hatchTooltipEntries);
         this.hasHatchTooltipData = !this.hatchTooltipEntries.isEmpty();
-    }
-
-    public String getController() {
-        return controller;
     }
 
     public StructureLibSceneMetadata withBlockTooltip(int x, int y, int z, @Nullable BlockTooltipData tooltipData) {
@@ -128,21 +130,9 @@ public class StructureLibSceneMetadata {
         return hasHatchTooltipData;
     }
 
-    public List<BlockTooltipEntry> getHatchTooltipEntries() {
-        return hatchTooltipEntries;
-    }
-
-    public Set<Long> getHatchTooltipPositions() {
-        return hatchTooltipPositions;
-    }
-
     @Nullable
     public TierData getTierData() {
         return tierData;
-    }
-
-    public List<ChannelData> getChannelDataList() {
-        return channelDataList;
     }
 
     @Nullable
@@ -292,6 +282,7 @@ public class StructureLibSceneMetadata {
         return (int) (packedPos << 26 >> 38);
     }
 
+    @Getter
     public static class BlockTooltipEntry {
 
         private final int x;
@@ -306,29 +297,17 @@ public class StructureLibSceneMetadata {
             this.tooltipData = tooltipData;
         }
 
-        public int getX() {
-            return x;
-        }
-
-        public int getY() {
-            return y;
-        }
-
-        public int getZ() {
-            return z;
-        }
-
-        public BlockTooltipData getTooltipData() {
-            return tooltipData;
-        }
     }
 
     public static class BlockTooltipData {
 
         @Nullable
         private final String structureLibDescription;
+        @Getter
         private final List<ItemStack> blockCandidates;
+        @Getter
         private final List<StructureLibHatchDescriptionLine> hatchDescriptionLines;
+        @Getter
         private final List<ItemStack> hatchCandidates;
 
         public BlockTooltipData(@Nullable String structureLibDescription, List<ItemStack> blockCandidates,
@@ -342,18 +321,6 @@ public class StructureLibSceneMetadata {
         @Nullable
         public String getStructureLibDescription() {
             return structureLibDescription;
-        }
-
-        public List<ItemStack> getBlockCandidates() {
-            return blockCandidates;
-        }
-
-        public List<StructureLibHatchDescriptionLine> getHatchDescriptionLines() {
-            return hatchDescriptionLines;
-        }
-
-        public List<ItemStack> getHatchCandidates() {
-            return hatchCandidates;
         }
 
         public boolean hasAdditionalTooltipContent() {
@@ -394,6 +361,7 @@ public class StructureLibSceneMetadata {
         }
     }
 
+    @Getter
     public static class TierData {
 
         private final int minValue;
@@ -410,27 +378,12 @@ public class StructureLibSceneMetadata {
             this.currentValue = clamp(currentValue, normalizedMin, normalizedMax);
         }
 
-        public int getMinValue() {
-            return minValue;
-        }
-
-        public int getMaxValue() {
-            return maxValue;
-        }
-
-        public int getDefaultValue() {
-            return defaultValue;
-        }
-
-        public int getCurrentValue() {
-            return currentValue;
-        }
-
         public boolean isSelectable() {
             return maxValue > minValue;
         }
     }
 
+    @Getter
     public static class ChannelData {
 
         private final String channelId;
@@ -450,28 +403,8 @@ public class StructureLibSceneMetadata {
             this.currentValue = clamp(currentValue, 0, normalizedMax);
         }
 
-        public String getChannelId() {
-            return channelId;
-        }
-
-        public String getLabel() {
-            return label;
-        }
-
         public int getMinValue() {
             return 0;
-        }
-
-        public int getMaxValue() {
-            return maxValue;
-        }
-
-        public int getDefaultValue() {
-            return defaultValue;
-        }
-
-        public int getCurrentValue() {
-            return currentValue;
         }
 
         public boolean isSelectable() {

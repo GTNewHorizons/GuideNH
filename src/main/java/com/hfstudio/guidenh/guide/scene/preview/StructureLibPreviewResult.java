@@ -5,11 +5,17 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 
+import lombok.Getter;
+
 public class StructureLibPreviewResult {
 
+    @Getter
     private final StructureLibPreviewTask.Type type;
+    @Getter
     private final StructureLibPreviewStatus status;
+    @Getter
     private final String bindingKey;
+    @Getter
     private final int requestVersion;
     @Nullable
     private final String selectionKey;
@@ -78,22 +84,6 @@ public class StructureLibPreviewResult {
             null,
             userMessage,
             technicalMessage);
-    }
-
-    public StructureLibPreviewTask.Type getType() {
-        return type;
-    }
-
-    public StructureLibPreviewStatus getStatus() {
-        return status;
-    }
-
-    public String getBindingKey() {
-        return bindingKey;
-    }
-
-    public int getRequestVersion() {
-        return requestVersion;
     }
 
     @Nullable

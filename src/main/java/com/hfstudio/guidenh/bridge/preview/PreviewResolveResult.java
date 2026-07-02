@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.bridge.preview;
 
 import java.util.List;
 
+import lombok.Getter;
+
+@Getter
 public class PreviewResolveResult {
 
     private final String capability;
@@ -34,51 +37,4 @@ public class PreviewResolveResult {
         this.pixelHeight = pixelHeight;
     }
 
-    public String getCapability() {
-        return capability;
-    }
-
-    public String getPreviewKey() {
-        return previewKey;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public String getDetail() {
-        return detail;
-    }
-
-    public Integer getMeta() {
-        return meta;
-    }
-
-    public Integer getCount() {
-        return count;
-    }
-
-    public String getNbt() {
-        return nbt;
-    }
-
-    public List<String> getTooltipLines() {
-        return tooltipLines;
-    }
-
-    public String getIconPngBase64() {
-        return iconPngBase64;
-    }
-
-    public int getPixelWidth() {
-        return pixelWidth;
-    }
-
-    public int getPixelHeight() {
-        return pixelHeight;
-    }
 }

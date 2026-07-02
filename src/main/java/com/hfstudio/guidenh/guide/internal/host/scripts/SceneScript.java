@@ -495,7 +495,7 @@ public class SceneScript implements LytScript {
                     float zX = spanX > 0.5f ? (float) width / spanX : Float.MAX_VALUE;
                     float zY = spanY > 0.5f ? (float) height / spanY : Float.MAX_VALUE;
                     float autoZoom = Math.min(zX, zY) * 0.85f;
-                    autoZoom = Math.max(LytGuidebookScene.MIN_ZOOM, Math.min(LytGuidebookScene.MAX_ZOOM, autoZoom));
+                    autoZoom = Math.clamp(autoZoom, LytGuidebookScene.MIN_ZOOM, LytGuidebookScene.MAX_ZOOM);
                     camera.setZoom(autoZoom);
                 }
             }
@@ -631,7 +631,7 @@ public class SceneScript implements LytScript {
             return "StructureLib preview failed";
         }
         String first = result.getErrors()
-            .get(0);
+            .getFirst();
         return first != null && !first.trim()
             .isEmpty() ? first.trim() : "StructureLib preview failed";
     }

@@ -13,6 +13,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 /**
  * Thread-safe scene structure cache with read-write lock optimization.
  */
@@ -120,6 +122,7 @@ public class GuideSceneStructureCache {
         }
     }
 
+    @Getter
     public static class GuideSceneStructureCacheStats {
 
         private final int entryCount;
@@ -134,20 +137,5 @@ public class GuideSceneStructureCache {
             this.maxTotalBytes = maxTotalBytes;
         }
 
-        public int getEntryCount() {
-            return entryCount;
-        }
-
-        public long getTotalBytes() {
-            return totalBytes;
-        }
-
-        public int getMaxEntryCount() {
-            return maxEntryCount;
-        }
-
-        public long getMaxTotalBytes() {
-            return maxTotalBytes;
-        }
     }
 }

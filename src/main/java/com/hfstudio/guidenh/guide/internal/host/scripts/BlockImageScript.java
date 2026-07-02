@@ -44,7 +44,6 @@ public class BlockImageScript implements LytScript {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
 
@@ -82,8 +81,8 @@ public class BlockImageScript implements LytScript {
             try {
                 NBTTagCompound explicitTag = GuideTextNbtCodec.readTextSafeCompound(ph.nbt.trim());
                 if (tileTag != null) {
-                    for (Object key : explicitTag.func_150296_c()) {
-                        tileTag.setTag((String) key, explicitTag.getTag((String) key));
+                    for (String key : explicitTag.func_150296_c()) {
+                        tileTag.setTag(key, explicitTag.getTag(key));
                     }
                 } else {
                     tileTag = explicitTag;
@@ -153,7 +152,7 @@ public class BlockImageScript implements LytScript {
     }
 
     private static float clampZoom(float zoom) {
-        return Math.max(LytGuidebookScene.MIN_ZOOM, Math.min(LytGuidebookScene.MAX_ZOOM, zoom <= 0 ? 1f : zoom));
+        return Math.clamp(zoom <= 0 ? 1f : zoom, LytGuidebookScene.MIN_ZOOM, LytGuidebookScene.MAX_ZOOM);
     }
 
 }

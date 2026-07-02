@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.document.interaction;
 
+import lombok.Getter;
+
+@Getter
 public class TextTooltip implements GuideTooltip {
 
     private final String text;
@@ -8,7 +11,4 @@ public class TextTooltip implements GuideTooltip {
         this.text = text;
     }
 
-    public String getText() {
-        return text;
-    }
 }

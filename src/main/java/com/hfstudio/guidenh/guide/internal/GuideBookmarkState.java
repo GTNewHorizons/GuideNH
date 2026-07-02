@@ -7,6 +7,8 @@ import java.util.Set;
 
 import net.minecraft.util.ResourceLocation;
 
+import org.jspecify.annotations.NonNull;
+
 public class GuideBookmarkState {
 
     private static GuideBookmarkState sharedInstance;
@@ -19,11 +21,11 @@ public class GuideBookmarkState {
     }
 
     private final GuideBookmarkStore store;
-    private final Set<ResourceLocation> bookmarks = new LinkedHashSet<ResourceLocation>();
-    private final Set<ResourceLocation> bookmarkView = new AbstractSet<ResourceLocation>() {
+    private final Set<ResourceLocation> bookmarks = new LinkedHashSet<>();
+    private final Set<ResourceLocation> bookmarkView = new AbstractSet<>() {
 
         @Override
-        public Iterator<ResourceLocation> iterator() {
+        public @NonNull Iterator<ResourceLocation> iterator() {
             return Set.copyOf(bookmarks)
                 .iterator();
         }

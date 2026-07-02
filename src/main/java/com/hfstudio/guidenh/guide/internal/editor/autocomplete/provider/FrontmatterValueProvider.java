@@ -43,8 +43,7 @@ public class FrontmatterValueProvider implements AutocompleteProvider {
 
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
-        if (!(ctx instanceof FrontmatterContext)) return Collections.emptyList();
-        FrontmatterContext fmc = (FrontmatterContext) ctx;
+        if (!(ctx instanceof FrontmatterContext fmc)) return Collections.emptyList();
         String[] suggestions = HINTS.getOrDefault(fmc.getKey(), new String[0]);
         String partial = fmc.getPartialText()
             .toLowerCase();

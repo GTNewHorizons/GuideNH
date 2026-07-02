@@ -232,7 +232,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      */
     public static class FilterExpr {
 
-        private static final FilterExpr EMPTY = new FilterExpr(Collections.<List<FilterTerm>>emptyList());
+        private static final FilterExpr EMPTY = new FilterExpr(Collections.emptyList());
         private final List<List<FilterTerm>> orGroups;
 
         private FilterExpr(List<List<FilterTerm>> orGroups) {
@@ -516,13 +516,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     public static FilterExpr parseFilterExpr(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el,
         String attr, String defaultNs) {
         String raw = trimToNull(MdxAttrs.getString(compiler, parent, el, attr, null));
-        return parseFilterExpr(raw, attr, defaultNs, new Consumer<String>() {
-
-            @Override
-            public void accept(String message) {
-                parent.appendError(compiler, message, el);
-            }
-        });
+        return parseFilterExpr(raw, attr, defaultNs, message -> parent.appendError(compiler, message, el));
     }
 
     public static FilterExpr parseFilterExpr(@Nullable String raw, String defaultNs) {

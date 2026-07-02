@@ -12,7 +12,7 @@ import com.slprime.chromatictooltips.component.DyncamicTextComponent;
 
 public class GuideChromaticTooltipCompat {
 
-    private static final String COMPONENT_PREFIX = "\u00A7z";
+    private static final String COMPONENT_PREFIX = "§z";
 
     protected GuideChromaticTooltipCompat() {}
 

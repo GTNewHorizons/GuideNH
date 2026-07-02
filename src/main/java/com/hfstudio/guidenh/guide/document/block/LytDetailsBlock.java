@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -9,7 +8,6 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
-import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
@@ -17,6 +15,8 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
+
+import lombok.Getter;
 
 public class LytDetailsBlock extends LytBlock implements InteractiveElement, LytBlockContainer, DocumentDragTarget {
 
@@ -40,10 +40,13 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     private final BorderRenderer borderRenderer = new BorderRenderer();
     private final SmoothFloatState visualContentScrollOffsetY = new SmoothFloatState();
 
+    @Getter
     private boolean open;
     @Nullable
     private String fallbackSummaryText;
+    @Getter
     private int preferredWidth;
+    @Getter
     private int preferredContentHeight;
     private int contentHeight;
     private int contentViewportX;
@@ -85,17 +88,9 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         syncContentVisibility();
     }
 
-    public int getPreferredWidth() {
-        return preferredWidth;
-    }
-
     public void setPreferredWidth(int preferredWidth) {
         this.preferredWidth = Math.max(0, preferredWidth);
         setFullWidth(this.preferredWidth <= 0);
-    }
-
-    public int getPreferredContentHeight() {
-        return preferredContentHeight;
     }
 
     public void setPreferredContentHeight(int preferredContentHeight) {
@@ -109,10 +104,6 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     public void setFallbackSummaryText(@Nullable String fallbackSummaryText) {
         this.fallbackSummaryText = fallbackSummaryText;
         syncSummaryFallback();
-    }
-
-    public boolean isOpen() {
-        return open;
     }
 
     public void setOpen(boolean open) {
@@ -172,7 +163,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int safeWidth = preferredWidth > 0 ? Math.max(1, Math.min(availableWidth, preferredWidth))
+        int safeWidth = preferredWidth > 0 ? Math.clamp(availableWidth, 1, preferredWidth)
             : Math.max(1, availableWidth);
         int innerX = x + PADDING + BORDER_WIDTH;
         int innerY = y + PADDING + BORDER_WIDTH;
@@ -328,11 +319,6 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
             return node != null ? node : this;
         }
         return this;
-    }
-
-    @Override
-    public Optional<GuideTooltip> getTooltip(float x, float y) {
-        return Optional.empty();
     }
 
     private void renderScrollbar(RenderContext context) {

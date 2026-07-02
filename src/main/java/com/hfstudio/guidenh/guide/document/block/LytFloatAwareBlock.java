@@ -8,6 +8,8 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 /**
  * Wraps a block and constrains it to the currently available horizontal lane after document
  * floats have claimed space on the left or right side.
@@ -17,6 +19,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
  * not participate in inline flow layout. Paragraphs already consult {@link LayoutContext}
  * directly, so they do not need this wrapper.
  */
+@Getter
 public class LytFloatAwareBlock extends LytBlock {
 
     private final LytBlock inner;
@@ -24,10 +27,6 @@ public class LytFloatAwareBlock extends LytBlock {
     public LytFloatAwareBlock(LytBlock inner) {
         this.inner = inner;
         inner.parent = this;
-    }
-
-    public LytBlock getInner() {
-        return inner;
     }
 
     @Override

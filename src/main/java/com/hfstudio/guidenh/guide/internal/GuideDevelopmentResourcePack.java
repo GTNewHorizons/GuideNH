@@ -15,8 +15,11 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class GuideDevelopmentResourcePack implements IResourcePack {
 
+    @Getter
     private final Path root;
     private final Set<String> resourceDomains;
 
@@ -24,10 +27,6 @@ public class GuideDevelopmentResourcePack implements IResourcePack {
         this.root = root.toAbsolutePath()
             .normalize();
         this.resourceDomains = discoverResourceDomains(this.root);
-    }
-
-    public Path getRoot() {
-        return root;
     }
 
     @Override
@@ -50,13 +49,12 @@ public class GuideDevelopmentResourcePack implements IResourcePack {
     }
 
     @Override
-    public BufferedImage getPackImage() throws IOException {
+    public BufferedImage getPackImage() {
         return null;
     }
 
     @Override
-    public IMetadataSection getPackMetadata(IMetadataSerializer metadataSerializer, String metadataSectionName)
-        throws IOException {
+    public IMetadataSection getPackMetadata(IMetadataSerializer metadataSerializer, String metadataSectionName) {
         return null;
     }
 

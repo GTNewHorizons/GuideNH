@@ -73,7 +73,7 @@ public class NavigationState {
             return;
         }
         while (pageHistory.size() > pageHistoryIndex + 1) {
-            pageHistory.remove(pageHistory.size() - 1);
+            pageHistory.removeLast();
         }
         pageHistory.add(state);
         pageHistoryIndex = pageHistory.size() - 1;
@@ -180,7 +180,7 @@ public class NavigationState {
     // ---- Home history (for home page widget display) ----
 
     public void recordHomeHistory(ResourceLocation guideId, ResourceLocation pageId) {
-        homeHistory.add(0, new HomeHistoryEntry(guideId, pageId));
+        homeHistory.addFirst(new HomeHistoryEntry(guideId, pageId));
     }
 
     public List<HomeHistoryEntry> homeHistory() {
@@ -194,7 +194,7 @@ public class NavigationState {
         GuideScreenRoute route = state.route();
         if (route == null || !route.isContent()) return false;
         PageAnchor anchor = route.anchor();
-        return anchor != null && isSupportedContentAnchor(anchor) && isValidContentRoute(route);
+        return isSupportedContentAnchor(anchor) && isValidContentRoute(route);
     }
 
     public static boolean isSupportedContentAnchor(@Nullable PageAnchor anchor) {

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.mixins;
 
+import org.jspecify.annotations.NonNull;
+
 import com.gtnewhorizon.gtnhmixins.builders.IMixins;
 import com.gtnewhorizon.gtnhmixins.builders.ITargetMod;
 import com.gtnewhorizon.gtnhmixins.builders.MixinBuilder;
@@ -48,7 +50,7 @@ public enum Mixins implements IMixins {
     }
 
     @Override
-    public MixinBuilder getBuilder() {
+    public @NonNull MixinBuilder getBuilder() {
         return builder;
     }
 }

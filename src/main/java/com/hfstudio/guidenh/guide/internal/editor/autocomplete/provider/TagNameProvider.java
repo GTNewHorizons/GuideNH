@@ -2,16 +2,18 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
 
+import lombok.Setter;
+
 public class TagNameProvider implements AutocompleteProvider {
 
     private static final Set<AutocompleteKey> KEYS = buildKeys();
+    @Setter
     private static volatile boolean enabled = true;
 
     private static final String[] TAG_NAMES = { "a", "br", "Tooltip", "ItemImage", "ItemLink", "BlockImage", "Color",
@@ -31,15 +33,7 @@ public class TagNameProvider implements AutocompleteProvider {
         "GregTechPlaceHatches", "GtPlaceHatches" };
 
     private static Set<AutocompleteKey> buildKeys() {
-        Set<AutocompleteKey> keys = new HashSet<>();
-        keys.add(AutocompleteKey.forTag());
-        keys.add(AutocompleteKey.forTag("GameScene"));
-        keys.add(AutocompleteKey.forTag("Scene"));
-        return Collections.unmodifiableSet(keys);
-    }
-
-    public static void setEnabled(boolean value) {
-        enabled = value;
+        return Set.of(AutocompleteKey.forTag(), AutocompleteKey.forTag("GameScene"), AutocompleteKey.forTag("Scene"));
     }
 
     @Override

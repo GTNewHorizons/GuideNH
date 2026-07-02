@@ -35,12 +35,11 @@ public final class ExpVertexFormat extends Table {
         return this;
     }
 
-    public guideme.flatbuffers.scene.ExpVertexFormatElement elements(int j) {
-        return elements(new guideme.flatbuffers.scene.ExpVertexFormatElement(), j);
+    public ExpVertexFormatElement elements(int j) {
+        return elements(new ExpVertexFormatElement(), j);
     }
 
-    public guideme.flatbuffers.scene.ExpVertexFormatElement elements(
-        guideme.flatbuffers.scene.ExpVertexFormatElement obj, int j) {
+    public ExpVertexFormatElement elements(ExpVertexFormatElement obj, int j) {
         int o = __offset(4);
         return o != 0 ? obj.__assign(__vector(o) + j * 7, bb) : null;
     }
@@ -50,12 +49,11 @@ public final class ExpVertexFormat extends Table {
         return o != 0 ? __vector_len(o) : 0;
     }
 
-    public guideme.flatbuffers.scene.ExpVertexFormatElement.Vector elementsVector() {
-        return elementsVector(new guideme.flatbuffers.scene.ExpVertexFormatElement.Vector());
+    public ExpVertexFormatElement.Vector elementsVector() {
+        return elementsVector(new ExpVertexFormatElement.Vector());
     }
 
-    public guideme.flatbuffers.scene.ExpVertexFormatElement.Vector elementsVector(
-        guideme.flatbuffers.scene.ExpVertexFormatElement.Vector obj) {
+    public ExpVertexFormatElement.Vector elementsVector(ExpVertexFormatElement.Vector obj) {
         int o = __offset(4);
         return o != 0 ? obj.__assign(__vector(o), 7, bb) : null;
     }

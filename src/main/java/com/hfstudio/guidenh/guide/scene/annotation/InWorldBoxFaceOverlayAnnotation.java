@@ -4,10 +4,13 @@ import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 
+import lombok.Setter;
+
 public class InWorldBoxFaceOverlayAnnotation extends InWorldAnnotation {
 
     private final Vector3f min;
     private final Vector3f max;
+    @Setter
     private ColorValue color;
 
     public InWorldBoxFaceOverlayAnnotation(Vector3f min, Vector3f max, ColorValue color) {
@@ -31,10 +34,6 @@ public class InWorldBoxFaceOverlayAnnotation extends InWorldAnnotation {
 
     public ColorValue color() {
         return color;
-    }
-
-    public void setColor(ColorValue color) {
-        this.color = color;
     }
 
     public void setBounds(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {

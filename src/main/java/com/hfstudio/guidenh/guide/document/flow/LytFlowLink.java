@@ -48,11 +48,6 @@ public class LytFlowLink extends LytTooltipSpan {
         return false;
     }
 
-    @Override
-    public boolean mouseReleased(GuideUiHost screen, int x, int y, int button) {
-        return false;
-    }
-
     public void setClickSoundSpec(@Nullable GuideSoundSpec clickSoundSpec) {
         this.clickSoundSpec = clickSoundSpec;
     }

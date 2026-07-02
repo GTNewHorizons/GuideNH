@@ -102,19 +102,19 @@ public class FileTreeParser {
     }
 
     private static boolean isVerticalChar(char c) {
-        return c == '\u2502' || c == '|';
+        return c == '│' || c == '|';
     }
 
     private static boolean isBranchChar(char c) {
-        return c == '\u251C' || c == '+' || c == '|';
+        return c == '├' || c == '+' || c == '|';
     }
 
     private static boolean isLastBranchChar(char c) {
-        return c == '\u2514' || c == '\\';
+        return c == '└' || c == '\\';
     }
 
     private static boolean isHorizontalChar(char c) {
-        return c == '\u2500' || c == '-';
+        return c == '─' || c == '-';
     }
 
     private static IconExtraction extractIcon(String payload) {

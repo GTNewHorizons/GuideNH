@@ -29,6 +29,8 @@ import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
+import lombok.Getter;
+
 public class GuideNavBar {
 
     public static class NavigationTarget {
@@ -156,8 +158,8 @@ public class GuideNavBar {
         void onExpansionToggled(@Nullable ResourceLocation guideId, ResourceLocation pageId, boolean expanded);
     }
 
-    private final List<Row> rows = new ArrayList<Row>();
-    private final Set<ResourceLocation> expandedPageIds = new HashSet<ResourceLocation>();
+    private final List<Row> rows = new ArrayList<>();
+    private final Set<ResourceLocation> expandedPageIds = new HashSet<>();
     private final GuideNavProjection projection = new GuideNavProjection();
     private final StickyStack stickyStack = new StickyStack();
     @Nullable
@@ -174,8 +176,10 @@ public class GuideNavBar {
     private int y;
     private int height;
     private boolean open;
+    @Getter
     private boolean pinned;
     private boolean contextMenuOpen;
+    @Getter
     private int openWidth = WIDTH_OPEN;
     private int scrollY;
     private final SmoothFloatState visualScrollY = new SmoothFloatState();
@@ -193,20 +197,12 @@ public class GuideNavBar {
         this.openWidth = Math.max(WIDTH_CLOSED, openWidth);
     }
 
-    public int getOpenWidth() {
-        return openWidth;
-    }
-
     public int currentWidth() {
         return (open || pinned) ? openWidth : WIDTH_CLOSED;
     }
 
     public boolean isOpen() {
         return open || pinned;
-    }
-
-    public boolean isPinned() {
-        return pinned;
     }
 
     public void setPinned(boolean pinned) {
@@ -240,8 +236,7 @@ public class GuideNavBar {
     }
 
     public GuideNavBarState captureState() {
-        return GuideNavBarState
-            .create(bookmarkGroupExpanded, new LinkedHashSet<ResourceLocation>(expandedPageIds), scrollY);
+        return GuideNavBarState.create(bookmarkGroupExpanded, new LinkedHashSet<>(expandedPageIds), scrollY);
     }
 
     public void restoreState(GuideNavBarState state, GuideBookmarkState bookmarkState) {
@@ -249,8 +244,7 @@ public class GuideNavBar {
         bookmarkGroupExpanded = effectiveState.bookmarkGroupExpanded();
         expandedPageIds.clear();
         expandedPageIds.addAll(
-            effectiveState.expandedPageIds() != null ? effectiveState.expandedPageIds()
-                : Collections.<ResourceLocation>emptySet());
+            effectiveState.expandedPageIds() != null ? effectiveState.expandedPageIds() : Collections.emptySet());
         lastExpandedStateHash = expandedPageIds.hashCode();
         scrollY = effectiveState.scrollY();
         visualScrollY.snapTo(scrollY);
@@ -313,7 +307,7 @@ public class GuideNavBar {
 
     /** Snapshot of current expanded page IDs for carry-over before navigation. */
     public Set<ResourceLocation> getExpandedPageIdsSnapshot() {
-        return new HashSet<ResourceLocation>(expandedPageIds);
+        return new HashSet<>(expandedPageIds);
     }
 
     public void expandParentsTo(@Nullable NavigationTree tree, @Nullable ResourceLocation pageId,
@@ -398,7 +392,7 @@ public class GuideNavBar {
             StickyStack stickyRows = computeStickyStack(bodyY);
             int firstVisibleRow = getFirstVisibleRowIndex();
             int stickyPointer = 0;
-            int nextStickyRowIndex = stickyRows.size() > 0 ? stickyRows.rowIndexAt(0) : Integer.MAX_VALUE;
+            int nextStickyRowIndex = !stickyRows.isEmpty() ? stickyRows.rowIndexAt(0) : Integer.MAX_VALUE;
             boolean titleScrollActive = false;
             for (int rowIndex = firstVisibleRow; rowIndex < rows.size(); rowIndex++) {
                 Row row = rows.get(rowIndex);
@@ -602,7 +596,7 @@ public class GuideNavBar {
         if (titleW > 0) {
             String title = GuidebookText.NavigationTitle.text();
             String renderedTitle = fr.getStringWidth(title) > titleW
-                ? fr.trimStringToWidth(title, Math.max(0, titleW - 4)) + "\u2026"
+                ? fr.trimStringToWidth(title, Math.max(0, titleW - 4)) + "…"
                 : title;
             fr.drawString(renderedTitle, titleX, y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1, 0xFFE8E8E8, false);
         }
@@ -1115,8 +1109,7 @@ public class GuideNavBar {
                 return cachedTitle;
             }
             String title = displayRow.title();
-            cachedTitle = getTitleWidth(fr) > maxTw ? fr.trimStringToWidth(title, Math.max(0, maxTw - 4)) + "\u2026"
-                : title;
+            cachedTitle = getTitleWidth(fr) > maxTw ? fr.trimStringToWidth(title, Math.max(0, maxTw - 4)) + "…" : title;
             cachedMaxTw = maxTw;
             return cachedTitle;
         }
@@ -1146,7 +1139,7 @@ public class GuideNavBar {
 
     private static class StickyStack {
 
-        private final List<Row> rows = new ArrayList<Row>();
+        private final List<Row> rows = new ArrayList<>();
         private int[] rowYs = new int[0];
         private int[] rowIndices = new int[0];
 

@@ -402,12 +402,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     rowLayout.bounds()
                         .x(),
                     contentTop,
-                    Math.max(
+                    Math.clamp(
+                        rowLayout.bounds()
+                            .width(),
                         LIST_MARKER_SIZE + LIST_MARKER_GAP,
-                        Math.min(
-                            rowLayout.bounds()
-                                .width(),
-                            clickableWidth)),
+                        clickableWidth),
                     Math.max(ICON_SIZE, clickableHeight)) : LytRect.empty());
         }
     }
@@ -496,10 +495,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 .name())) {
             return 2;
         }
-        if (visibleResult.kind() == MediaWikiSpecialPageKind.GROUPED
-            || visibleResult.kind() == MediaWikiSpecialPageKind.GROUP_INDEX) {
-            return Math.max(1, rows);
-        }
         return Math.max(1, rows);
     }
 
@@ -551,7 +546,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         List<MediaWikiSpecialListEntry> entries = visibleResult.flatEntries() != null ? visibleResult.flatEntries()
             : List.of();
         if (entries.isEmpty()) {
-            columns.get(0)
+            columns.getFirst()
                 .add(new GroupLayout(null, List.of()));
             return columns;
         }

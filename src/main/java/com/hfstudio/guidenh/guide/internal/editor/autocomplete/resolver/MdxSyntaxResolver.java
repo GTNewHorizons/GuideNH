@@ -380,8 +380,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         if (tagName == null) return resolvePlainTextWord(text, cursorIndex);
 
         for (var attrNode : element.attributes()) {
-            if (!(attrNode instanceof MdxJsxAttribute)) continue;
-            MdxJsxAttribute attr = (MdxJsxAttribute) attrNode;
+            if (!(attrNode instanceof MdxJsxAttribute attr)) continue;
             if (attr.name == null || attr.name.isEmpty()) continue;
 
             UnistPosition pos = attrNode.position();
@@ -543,10 +542,9 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                 pos++;
                 continue;
             }
-            pos++;
-            while (pos < tagEnd && isAttributeNameChar(text.charAt(pos))) {
+            do {
                 pos++;
-            }
+            } while (pos < tagEnd && isAttributeNameChar(text.charAt(pos)));
             int afterName = skipSpaces(text, pos, tagEnd);
             if (afterName >= tagEnd || text.charAt(afterName) != '=') {
                 pos = afterName;

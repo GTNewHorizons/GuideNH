@@ -2,7 +2,9 @@ package com.hfstudio.guidenh.network;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 
+@Getter
 public class GuideNhRegionExportRequestMessage implements IMessage {
 
     private int requestId;
@@ -28,42 +30,6 @@ public class GuideNhRegionExportRequestMessage implements IMessage {
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
         this.includeEntities = includeEntities;
-    }
-
-    public int getRequestId() {
-        return requestId;
-    }
-
-    public int getDimensionId() {
-        return dimensionId;
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public int getZ() {
-        return z;
-    }
-
-    public int getSizeX() {
-        return sizeX;
-    }
-
-    public int getSizeY() {
-        return sizeY;
-    }
-
-    public int getSizeZ() {
-        return sizeZ;
-    }
-
-    public boolean isIncludeEntities() {
-        return includeEntities;
     }
 
     @Override

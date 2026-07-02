@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.guide.scene.concurrent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -14,16 +16,18 @@ import java.util.function.Function;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
+import lombok.Getter;
+
 /**
  * Central manager for all GameScene concurrent operations.
- *
+ * <p>
  * IMPORTANT: OpenGL rendering MUST happen on the main thread.
  * This manager handles:
  * - Data preparation and computation in parallel
  * - Structure analysis and cache operations
  * - Block/entity metadata collection
  * - Scene loading and initialization
- *
+ * <p>
  * Actual OpenGL calls remain on the main thread.
  */
 public class GameSceneConcurrentManager {
@@ -34,6 +38,11 @@ public class GameSceneConcurrentManager {
     private static final int ANALYSIS_BATCH_SIZE = 256;
 
     private final ExecutorService dataPrepExecutor;
+    /**
+     * -- GETTER --
+     * Get the analysis executor for direct access (used by prewarm system).
+     */
+    @Getter
     private final ExecutorService analysisExecutor;
     private final AtomicInteger activeDataPrepTasks = new AtomicInteger(0);
     private final AtomicInteger activeAnalysisTasks = new AtomicInteger(0);
@@ -137,7 +146,7 @@ public class GameSceneConcurrentManager {
 
             return futures.stream()
                 .map(CompletableFuture::join)
-                .filter(r -> r != null)
+                .filter(Objects::nonNull)
                 .toList();
         });
     }
@@ -185,12 +194,12 @@ public class GameSceneConcurrentManager {
                     }
                 }, analysisExecutor);
 
-                futures.add(batchFuture.thenApply(list -> list.isEmpty() ? null : list.get(0)));
+                futures.add(batchFuture.thenApply(list -> list.isEmpty() ? null : list.getFirst()));
             }
 
             return futures.stream()
                 .map(CompletableFuture::join)
-                .filter(r -> r != null)
+                .filter(Objects::nonNull)
                 .toList();
         });
     }
@@ -221,7 +230,7 @@ public class GameSceneConcurrentManager {
      * @param <T>  Result type
      * @return CompletableFuture with result
      */
-    public <T> CompletableFuture<T> executeSceneLoadWithResult(java.util.concurrent.Callable<T> task) {
+    public <T> CompletableFuture<T> executeSceneLoadWithResult(Callable<T> task) {
         return CompletableFuture.supplyAsync(() -> {
             activeAnalysisTasks.incrementAndGet();
             try {
@@ -281,13 +290,6 @@ public class GameSceneConcurrentManager {
      */
     public void clearCache() {
         preparedDataCache.clear();
-    }
-
-    /**
-     * Get the analysis executor for direct access (used by prewarm system).
-     */
-    public java.util.concurrent.ExecutorService getAnalysisExecutor() {
-        return analysisExecutor;
     }
 
     /**
@@ -363,6 +365,7 @@ public class GameSceneConcurrentManager {
             ANALYSIS_BATCH_SIZE);
     }
 
+    @Getter
     public static class ConcurrentStats {
 
         private final int activeDataPrepTasks;
@@ -382,28 +385,5 @@ public class GameSceneConcurrentManager {
             this.analysisBatchSize = analysisBatchSize;
         }
 
-        public int getActiveDataPrepTasks() {
-            return activeDataPrepTasks;
-        }
-
-        public int getActiveAnalysisTasks() {
-            return activeAnalysisTasks;
-        }
-
-        public int getCachedDataCount() {
-            return cachedDataCount;
-        }
-
-        public int getWorkerThreads() {
-            return workerThreads;
-        }
-
-        public int getDataPrepBatchSize() {
-            return dataPrepBatchSize;
-        }
-
-        public int getAnalysisBatchSize() {
-            return analysisBatchSize;
-        }
     }
 }

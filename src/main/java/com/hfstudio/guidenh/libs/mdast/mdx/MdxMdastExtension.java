@@ -123,25 +123,19 @@ public class MdxMdastExtension {
     public static void enterMdxJsxTagClosingMarker(MdastContext context, Token token) {
         var stack = getStack(context);
 
-        if (stack.isEmpty()) {
-            return;
-        }
+        if (stack.isEmpty()) {}
     }
 
     public static void enterMdxJsxTagAnyAttribute(MdastContext context, Token token) {
         var tag = getTag(context);
 
-        if (tag.close) {
-            return;
-        }
+        if (tag.close) {}
     }
 
     public static void enterMdxJsxTagSelfClosingMarker(MdastContext context, Token token) {
         var tag = getTag(context);
 
-        if (tag.close) {
-            return;
-        }
+        if (tag.close) {}
     }
 
     public static void exitMdxJsxTagClosingMarker(MdastContext context, Token token) {
@@ -183,7 +177,7 @@ public class MdxMdastExtension {
 
     public static void exitMdxJsxTagExpressionAttribute(MdastContext context, Token token) {
         var tag = getTag(context);
-        var tail = (MdxJsxExpressionAttribute) tag.attributes.get(tag.attributes.size() - 1);
+        var tail = (MdxJsxExpressionAttribute) tag.attributes.getLast();
         tail.value = context.resume();
         if (tail.position != null) {
             tail.position.end = token.end;
@@ -192,7 +186,7 @@ public class MdxMdastExtension {
 
     public static void exitMdxJsxTagAttributeNamePrimary(MdastContext context, Token token) {
         var tag = getTag(context);
-        var node = (MdxJsxAttribute) tag.attributes.get(tag.attributes.size() - 1);
+        var node = (MdxJsxAttribute) tag.attributes.getLast();
         node.name = context.sliceSerialize(token);
         if (node.position != null) {
             node.position.end = token.end;
@@ -201,7 +195,7 @@ public class MdxMdastExtension {
 
     public static void exitMdxJsxTagAttributeNameLocal(MdastContext context, Token token) {
         var tag = getTag(context);
-        var node = (MdxJsxAttribute) tag.attributes.get(tag.attributes.size() - 1);
+        var node = (MdxJsxAttribute) tag.attributes.getLast();
         node.name += ':' + context.sliceSerialize(token);
         if (node.position != null) {
             node.position.end = token.end;
@@ -212,7 +206,7 @@ public class MdxMdastExtension {
         var tag = getTag(context);
         var value = ParseEntities.parseEntities(context.resume());
 
-        var lastAttr = tag.attributes.get(tag.attributes.size() - 1);
+        var lastAttr = tag.attributes.getLast();
         if (lastAttr instanceof MdxJsxAttribute attribute) {
             attribute.setValue(value);
             if (attribute.position != null) {
@@ -230,7 +224,7 @@ public class MdxMdastExtension {
 
     public static void exitMdxJsxTagAttributeValueExpression(MdastContext context, Token token) {
         var tag = getTag(context);
-        var tail = (MdxJsxAttribute) tag.attributes.get(tag.attributes.size() - 1);
+        var tail = (MdxJsxAttribute) tag.attributes.getLast();
         tail.setExpression(context.resume());
         if (tail.position != null) {
             tail.position.end = token.end;
@@ -251,7 +245,7 @@ public class MdxMdastExtension {
             tag.recovered = true;
         }
         var stack = getStack(context);
-        var tail = stack.isEmpty() ? null : stack.get(stack.size() - 1);
+        var tail = stack.isEmpty() ? null : stack.getLast();
 
         if (tag.close && tail != null && !Objects.equals(tail.name, tag.name)) {
             // Mismatched closing tag — ignore and continue.

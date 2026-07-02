@@ -23,13 +23,11 @@ public class GuideMarkdownDefinitions {
         Map<String, MdAstDefinition> definitions = new HashMap<>();
         for (MdAstAnyContent child : children) {
             // Pre-conversion: raw MdAstDefinition
-            if (child instanceof MdAstDefinition && ((MdAstDefinition) child).identifier != null) {
-                MdAstDefinition definition = (MdAstDefinition) child;
+            if (child instanceof MdAstDefinition definition && definition.identifier != null) {
                 definitions.putIfAbsent(definition.identifier, definition);
             }
             // Post-conversion: <definition> element
-            if (child instanceof MdxJsxFlowElement && "definition".equals(((MdxJsxFlowElement) child).name())) {
-                MdxJsxFlowElement el = (MdxJsxFlowElement) child;
+            if (child instanceof MdxJsxFlowElement el && "definition".equals(el.name())) {
                 String identifier = el.getAttributeString("identifier", null);
                 if (identifier != null) {
                     MdAstDefinition def = new MdAstDefinition();

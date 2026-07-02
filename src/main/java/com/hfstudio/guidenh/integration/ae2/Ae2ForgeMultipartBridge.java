@@ -11,6 +11,7 @@ import appeng.parts.CableBusContainer;
 import codechicken.multipart.TMultiPart;
 import codechicken.multipart.TileMultipart;
 import cpw.mods.fml.common.Optional;
+import scala.collection.Iterator;
 
 public class Ae2ForgeMultipartBridge {
 
@@ -23,7 +24,7 @@ public class Ae2ForgeMultipartBridge {
             return null;
         }
         try {
-            scala.collection.Iterator<TMultiPart> iterator = multipart.partList()
+            Iterator<TMultiPart> iterator = multipart.partList()
                 .iterator();
             while (iterator.hasNext()) {
                 TMultiPart part = iterator.next();

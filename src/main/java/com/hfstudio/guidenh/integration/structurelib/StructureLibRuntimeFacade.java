@@ -15,7 +15,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.stats.StatBase;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.DamageSource;
@@ -45,6 +44,7 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.mojang.authlib.GameProfile;
 
 import cpw.mods.fml.common.registry.GameRegistry;
+import lombok.Getter;
 
 public class StructureLibRuntimeFacade implements StructureLibFacade {
 
@@ -1026,8 +1026,8 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     }
 
     private static void logBlockStats(GuidebookLevel level, String controller) {
-        java.util.Map<String, Integer> blockCounts = new LinkedHashMap<>();
-        java.util.Map<String, Integer> tileCounts = new LinkedHashMap<>();
+        Map<String, Integer> blockCounts = new LinkedHashMap<>();
+        Map<String, Integer> tileCounts = new LinkedHashMap<>();
         for (int[] pos : level.getFilledBlocks()) {
             Block block = level.getBlock(pos[0], pos[1], pos[2]);
             String blockName = block != null ? resolveBlockId(block) : "air";
@@ -1156,6 +1156,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
+    @Getter
     public static class ControlAnalysis {
 
         private final int maxTotalTier;
@@ -1164,14 +1165,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         private ControlAnalysis(int maxTotalTier, Map<String, Integer> channelMaxTierMap) {
             this.maxTotalTier = Math.max(MIN_TIER, maxTotalTier);
             this.channelMaxTierMap = immutableChannelMaxTierMap(channelMaxTierMap);
-        }
-
-        public int getMaxTotalTier() {
-            return maxTotalTier;
-        }
-
-        public Map<String, Integer> getChannelMaxTierMap() {
-            return channelMaxTierMap;
         }
 
         public StructureLibPreviewSelection clampSelection(StructureLibPreviewSelection selection) {
@@ -1286,6 +1279,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
+    @Getter
     public static class ResolvedController {
 
         private final String blockId;
@@ -1298,19 +1292,9 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             this.meta = meta;
         }
 
-        public String getBlockId() {
-            return blockId;
-        }
-
-        public Block getBlock() {
-            return block;
-        }
-
-        public int getMeta() {
-            return meta;
-        }
     }
 
+    @Getter
     public static class BuildContext {
 
         private final GuidebookLevel level;
@@ -1321,18 +1305,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             level = new GuidebookLevel();
             world = level.getOrCreateFakeWorld();
             fakePlayer = new PreviewFakePlayer(world);
-        }
-
-        public GuidebookLevel getLevel() {
-            return level;
-        }
-
-        public World getWorld() {
-            return world;
-        }
-
-        public PreviewFakePlayer getFakePlayer() {
-            return fakePlayer;
         }
 
         public void resetPreviewState() {
@@ -1607,12 +1579,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         public ChunkCoordinates getPlayerCoordinates() {
             return new ChunkCoordinates(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z);
         }
-
-        @Override
-        public void addChatComponentMessage(IChatComponent message) {}
-
-        @Override
-        public void addStat(StatBase par1StatBase, int par2) {}
 
         @Override
         public void openGui(Object mod, int modGuiId, World world, int x, int y, int z) {}

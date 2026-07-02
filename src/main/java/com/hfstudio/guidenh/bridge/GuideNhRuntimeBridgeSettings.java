@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.bridge;
 
+import lombok.Getter;
+
+@Getter
 public class GuideNhRuntimeBridgeSettings {
 
     private final boolean enabled;
@@ -29,39 +32,4 @@ public class GuideNhRuntimeBridgeSettings {
         return enabled && !host.isEmpty() && port > 0 && port <= 65535 && !token.isEmpty();
     }
 
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public int getMaxMessageBytes() {
-        return maxMessageBytes;
-    }
-
-    public int getMaxPageSize() {
-        return maxPageSize;
-    }
-
-    public int getMaxSubscriptions() {
-        return maxSubscriptions;
-    }
-
-    public int getMaxConnections() {
-        return maxConnections;
-    }
-
-    public int getMaxDeltaEntries() {
-        return maxDeltaEntries;
-    }
 }

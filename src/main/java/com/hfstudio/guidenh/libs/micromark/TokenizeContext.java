@@ -44,7 +44,7 @@ public interface TokenizeContext {
             view.addAll(chunks.subList(startIndex, endIndex));
 
             if (startBufferIndex > -1) {
-                view.set(0, ((String) view.get(0)).substring(startBufferIndex));
+                view.set(0, ((String) view.getFirst()).substring(startBufferIndex));
             }
 
             if (endBufferIndex > 0) {
