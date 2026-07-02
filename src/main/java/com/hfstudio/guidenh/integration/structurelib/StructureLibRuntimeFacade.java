@@ -90,6 +90,84 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         }
     }
 
+    public StructureLibImportResult buildPreviewSelection(StructureLibImportRequest request,
+        @Nullable ControlAnalysis controlAnalysis) {
+        try {
+            BuildContext context = new BuildContext();
+            try {
+                return buildPreviewSelection(request, controlAnalysis, context);
+            } finally {
+                context.clear();
+            }
+        } catch (Throwable t) {
+            GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib preview", t);
+            return StructureLibImportResult.failure("StructureLib preview requires an active client world.");
+        }
+    }
+
+    public StructureLibImportResult buildPreviewSelection(StructureLibImportRequest request,
+        @Nullable ControlAnalysis controlAnalysis, BuildContext context) {
+        List<String> warnings = new ArrayList<>();
+        ResolvedController controller;
+        try {
+            controller = resolveController(request);
+        } catch (IllegalArgumentException e) {
+            return StructureLibImportResult.failure(e.getMessage(), warnings, null);
+        }
+
+        if (request.getPiece() != null) {
+            warnings.add(
+                "StructureLib runtime preview currently uses the controller's default constructable and ignores piece selection.");
+        }
+
+        try {
+            StructureLibPreviewSelection requestedSelection = request.getPreviewSelection();
+            ControlAnalysis effectiveAnalysis = controlAnalysis != null ? controlAnalysis
+                : new ControlAnalysis(
+                    Math.max(MIN_TIER, requestedSelection.getMasterTier()),
+                    mergeChannelMaxTierMap(Map.of(), requestedSelection));
+            StructureLibPreviewSelection effectiveSelection = effectiveAnalysis.clampSelection(requestedSelection);
+            StructureLibImportCacheKey importCacheKey = new StructureLibImportCacheKey(
+                request.getController(),
+                request.getPiece(),
+                request.getFacing(),
+                request.getRotation(),
+                request.getFlip(),
+                request.getChannel(),
+                effectiveSelection);
+            StructureLibImportResult cached = IMPORT_RESULT_CACHE.get(importCacheKey);
+            if (cached != null) {
+                return cached.withWarnings(mergeWarnings(warnings, cached.getWarnings()));
+            }
+            BuildSnapshot snapshot = buildSnapshot(request, controller, effectiveSelection, warnings, context);
+            if (!snapshot.success) {
+                return StructureLibImportResult.failure(snapshot.errorMessage, warnings, null);
+            }
+
+            StructureLibSceneMetadata metadata = PREVIEW_METADATA_FACTORY.createMetadata(
+                request,
+                effectiveSelection,
+                Math.max(effectiveAnalysis.maxTotalTier, effectiveSelection.getMasterTier()),
+                mergeChannelMaxTierMap(effectiveAnalysis.channelMaxTierMap, effectiveSelection),
+                snapshot.absoluteBlocks,
+                snapshot.visitedElementsByPos,
+                snapshot.triggerStack,
+                snapshot.world,
+                snapshot.fingerprint,
+                snapshot.constructable,
+                snapshot.actor);
+            StructureLibImportResult result = StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
+            IMPORT_RESULT_CACHE.put(importCacheKey, result);
+            return result;
+        } catch (Throwable t) {
+            GuideDebugLog.warn("StructureLib preview build failed for controller {}", request.getController(), t);
+            return StructureLibImportResult
+                .failure("StructureLib preview failed: " + sanitizeMessage(t.getMessage()), warnings, null);
+        } finally {
+            context.clear();
+        }
+    }
+
     public StructureLibImportResult importScene(StructureLibImportRequest request, BuildContext context) {
         List<String> warnings = new ArrayList<>();
         ResolvedController controller;
