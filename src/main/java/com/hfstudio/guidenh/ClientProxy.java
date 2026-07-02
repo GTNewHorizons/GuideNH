@@ -77,7 +77,6 @@ import com.hfstudio.guidenh.guide.scene.concurrent.GameSceneConcurrentManager;
 import com.hfstudio.guidenh.guide.scene.concurrent.GameScenePrewarmBootstrap;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewBootstrap;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewWorker;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
@@ -107,8 +106,6 @@ public class ClientProxy extends CommonProxy {
     private static final CompileWorker compileWorker = new CompileWorker();
     @Getter
     private static final StructureLibPreviewWorker structureLibPreviewWorker = new StructureLibPreviewWorker();
-    @Getter
-    private static final StructureLibPreviewBootstrap structureLibPreviewBootstrap = new StructureLibPreviewBootstrap();
 
     public static CompileWorker getWorker() {
         return compileWorker;
