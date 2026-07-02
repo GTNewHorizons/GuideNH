@@ -88,8 +88,8 @@ public class LytPieChart extends LytChartBase {
                 float tx = cx + (float) Math.cos(mid) * labelR - tw / 2f;
                 float ty = cy + (float) Math.sin(mid) * labelR - lh / 2f;
                 // Clamp label inside the plot rectangle so OUTSIDE labels do not overflow the chart frame.
-                int clampedTx = Math.clamp(plotRect.right() - tw, plotRect.x(), (int) tx);
-                int clampedTy = Math.clamp(plotRect.bottom() - lh, plotRect.y(), (int) ty);
+                int clampedTx = Math.max(plotRect.x(), Math.min(plotRect.right() - tw, (int) tx));
+                int clampedTy = Math.max(plotRect.y(), Math.min(plotRect.bottom() - lh, (int) ty));
                 context.drawText(text, clampedTx, clampedTy, labelStyle);
             }
             angle += sweep;

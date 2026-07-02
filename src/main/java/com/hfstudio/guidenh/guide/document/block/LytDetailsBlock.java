@@ -163,7 +163,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int safeWidth = preferredWidth > 0 ? Math.clamp(availableWidth, 1, preferredWidth)
+        int safeWidth = preferredWidth > 0 ? Math.max(1, Math.min(availableWidth, preferredWidth))
             : Math.max(1, availableWidth);
         int innerX = x + PADDING + BORDER_WIDTH;
         int innerY = y + PADDING + BORDER_WIDTH;

@@ -152,7 +152,7 @@ public class BlockImageScript implements LytScript {
     }
 
     private static float clampZoom(float zoom) {
-        return Math.clamp(zoom <= 0 ? 1f : zoom, LytGuidebookScene.MIN_ZOOM, LytGuidebookScene.MAX_ZOOM);
+        return Math.max(LytGuidebookScene.MIN_ZOOM, Math.min(LytGuidebookScene.MAX_ZOOM, zoom <= 0 ? 1f : zoom));
     }
 
 }

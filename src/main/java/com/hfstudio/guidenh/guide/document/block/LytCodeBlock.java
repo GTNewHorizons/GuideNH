@@ -214,7 +214,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int safeWidth = preferredBodyWidth > 0 ? Math.clamp(availableWidth, 1, preferredBodyWidth)
+        int safeWidth = preferredBodyWidth > 0 ? Math.max(1, Math.min(availableWidth, preferredBodyWidth))
             : Math.max(1, availableWidth);
         toolbar.setPreferredWidth(safeWidth);
         LytRect toolbarBounds = toolbar.layout(context, x, y, safeWidth);

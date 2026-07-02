@@ -432,9 +432,9 @@ public class SceneEditorHandleOverlay {
         float uy = dy / length;
         float px = -uy;
         float py = ux;
-        float arrowLength = Math.clamp(length * 0.55f, 3f, ARROW_LENGTH);
+        float arrowLength = Math.min(ARROW_LENGTH, Math.max(3f, length * 0.55f));
         arrowLength = Math.min(arrowLength, length);
-        float arrowHalfWidth = Math.clamp(arrowLength * 0.5f, 2f, ARROW_HALF_WIDTH);
+        float arrowHalfWidth = Math.min(ARROW_HALF_WIDTH, Math.max(2f, arrowLength * 0.5f));
         float baseX = to.x - ux * arrowLength;
         float baseY = to.y - uy * arrowLength;
         float tipZ = 0.08f;

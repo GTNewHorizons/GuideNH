@@ -454,7 +454,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (key == sampleCacheKey && sampleXs != null) {
             return;
         }
-        int sampleCount = Math.clamp(plotRect.width() * 2L, MIN_SAMPLES, MAX_SAMPLES);
+        int sampleCount = Math.clamp(plotRect.width() * 2, MIN_SAMPLES, MAX_SAMPLES);
         sampleXs = new float[plots.size()][];
         sampleYs = new float[plots.size()][];
         for (int i = 0; i < plots.size(); i++) {

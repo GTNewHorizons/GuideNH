@@ -4334,9 +4334,9 @@ public class GuideScreen extends GuiContainer
             boxTop = anchorLayout.boxBottom() + gap;
         }
         int maxBoxLeft = Math.max(bounds.x() + margin, bounds.right() - margin - boxWidth);
-        boxLeft = Math.clamp(boxLeft, bounds.x() + margin, maxBoxLeft);
+        boxLeft = Math.max(bounds.x() + margin, Math.min(boxLeft, maxBoxLeft));
         int maxBoxTop = Math.max(bounds.y() + margin, bounds.bottom() - margin - boxHeight);
-        boxTop = Math.clamp(boxTop, bounds.y() + margin, maxBoxTop);
+        boxTop = Math.max(bounds.y() + margin, Math.min(boxTop, maxBoxTop));
 
         int textX = boxLeft + 3;
         int textY = boxTop + 4;
@@ -6925,7 +6925,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private int withAlpha(int argb, int alpha) {
-        int clampedAlpha = Math.clamp(alpha, 0, 255);
+        int clampedAlpha = Math.max(0, Math.min(255, alpha));
         return (argb & 0x00FFFFFF) | (clampedAlpha << 24);
     }
 

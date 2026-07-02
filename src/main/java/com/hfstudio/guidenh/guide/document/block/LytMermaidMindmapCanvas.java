@@ -162,14 +162,14 @@ public class LytMermaidMindmapCanvas extends LytBlock implements DocumentDragTar
         int previousContentOffsetY = contentOffsetY;
         int previousViewportWidth = Math.max(1, bounds.width() - CANVAS_PADDING * 2);
         int previousViewportHeight = Math.max(1, bounds.height() - CANVAS_PADDING * 2);
-        int safeWidth = preferredWidth > 0 ? Math.clamp(preferredWidth, 1, availableWidth)
+        int safeWidth = preferredWidth > 0 ? Math.max(1, Math.min(preferredWidth, availableWidth))
             : Math.max(1, availableWidth);
         layout = buildLayout(context, safeWidth);
         int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
         int viewportHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
-            : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
+            : Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
         if (preferredHeight > 0 && safeWidth < resolvePreferredViewportWidth()) {
-            viewportHeight = Math.clamp(desiredHeight, viewportHeight, MAX_HEIGHT);
+            viewportHeight = Math.max(viewportHeight, Math.min(MAX_HEIGHT, desiredHeight));
         }
         int viewportWidth = Math.max(1, safeWidth - CANVAS_PADDING * 2);
         int innerViewportHeight = Math.max(1, viewportHeight - CANVAS_PADDING * 2);

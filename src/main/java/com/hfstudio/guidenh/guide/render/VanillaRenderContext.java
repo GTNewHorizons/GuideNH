@@ -145,7 +145,7 @@ public class VanillaRenderContext implements RenderContext {
 
     @Override
     public void fillRoundedRect(LytRect rect, int argbColor, int radius) {
-        int clampedRadius = Math.clamp(radius, 0, Math.min(rect.width(), rect.height()) / 2);
+        int clampedRadius = Math.max(0, Math.min(radius, Math.min(rect.width(), rect.height()) / 2));
         if (clampedRadius == 0) {
             fillRect(rect, argbColor);
             return;
@@ -166,7 +166,7 @@ public class VanillaRenderContext implements RenderContext {
 
     @Override
     public void drawRoundedBorder(LytRect rect, int argbColor, int thickness, int radius) {
-        int clampedRadius = Math.clamp(radius, 0, Math.min(rect.width(), rect.height()) / 2);
+        int clampedRadius = Math.max(0, Math.min(radius, Math.min(rect.width(), rect.height()) / 2));
         if (clampedRadius == 0) {
             drawBorder(rect, argbColor, thickness);
             return;

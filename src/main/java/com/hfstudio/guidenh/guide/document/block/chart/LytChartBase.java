@@ -99,7 +99,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         int width = preferredWidth();
         width = ResponsiveVisualSizing.scaleWidth(width, context.getVisualScale(), 64);
         int height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT;
-        width = Math.clamp(width, 1, availableWidth);
+        width = Math.max(1, Math.min(width, availableWidth));
         height = ResponsiveVisualSizing.scaleBodyHeightForWidth(
             preferredWidth(),
             height,

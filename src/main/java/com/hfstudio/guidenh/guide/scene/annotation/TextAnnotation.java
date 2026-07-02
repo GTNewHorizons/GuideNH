@@ -377,8 +377,8 @@ public class TextAnnotation extends OverlayAnnotation {
         int constrainedY = bubble.y();
         int maxX = viewport.right() - bubble.width();
         int maxY = viewport.bottom() - bubble.height();
-        constrainedX = Math.clamp(constrainedX, viewport.x(), maxX);
-        constrainedY = Math.clamp(constrainedY, viewport.y(), maxY);
+        constrainedX = Math.max(viewport.x(), Math.min(maxX, constrainedX));
+        constrainedY = Math.max(viewport.y(), Math.min(maxY, constrainedY));
         return new LytRect(constrainedX, constrainedY, bubble.width(), bubble.height());
     }
 

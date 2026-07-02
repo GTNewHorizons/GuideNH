@@ -495,7 +495,7 @@ public class SceneScript implements LytScript {
                     float zX = spanX > 0.5f ? (float) width / spanX : Float.MAX_VALUE;
                     float zY = spanY > 0.5f ? (float) height / spanY : Float.MAX_VALUE;
                     float autoZoom = Math.min(zX, zY) * 0.85f;
-                    autoZoom = Math.clamp(autoZoom, LytGuidebookScene.MIN_ZOOM, LytGuidebookScene.MAX_ZOOM);
+                    autoZoom = Math.max(LytGuidebookScene.MIN_ZOOM, Math.min(LytGuidebookScene.MAX_ZOOM, autoZoom));
                     camera.setZoom(autoZoom);
                 }
             }

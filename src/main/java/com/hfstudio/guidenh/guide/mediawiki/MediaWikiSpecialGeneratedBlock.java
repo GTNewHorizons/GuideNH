@@ -402,11 +402,12 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     rowLayout.bounds()
                         .x(),
                     contentTop,
-                    Math.clamp(
-                        rowLayout.bounds()
-                            .width(),
+                    Math.max(
                         LIST_MARKER_SIZE + LIST_MARKER_GAP,
-                        clickableWidth),
+                        Math.min(
+                            rowLayout.bounds()
+                                .width(),
+                            clickableWidth)),
                     Math.max(ICON_SIZE, clickableHeight)) : LytRect.empty());
         }
     }

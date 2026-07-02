@@ -1349,11 +1349,12 @@ public class SceneEditorMultilineTextArea {
     }
 
     private int getCursorPixelOnLine(int cursorIndex, SceneEditorMultilineTextLayoutCache.VisualLine line) {
-        int charCount = Math.clamp(
-            cursorIndex - line.startIndex(),
+        int charCount = Math.max(
             0,
-            line.text()
-                .length());
+            Math.min(
+                cursorIndex - line.startIndex(),
+                line.text()
+                    .length()));
         return fontRenderer.getStringWidth(
             line.text()
                 .substring(0, charCount));

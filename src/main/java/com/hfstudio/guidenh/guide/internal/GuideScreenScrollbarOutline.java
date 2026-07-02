@@ -226,7 +226,7 @@ public class GuideScreenScrollbarOutline {
         List<HeadingEntry> mapped = new ArrayList<>(anchorEntries.size());
         for (var anchor : anchorEntries) {
             int markerWidth = markerWidth(anchor.depth());
-            int clampedDocumentY = Math.clamp(anchor.documentY(), 0, bounds.maxScroll());
+            int clampedDocumentY = Math.max(0, Math.min(anchor.documentY(), bounds.maxScroll()));
             int markerY = bounds.y()
                 + (bounds.maxScroll() > 0 ? (int) ((long) track * clampedDocumentY / bounds.maxScroll()) : 0);
             int markerX = barRight - markerWidth - 1;

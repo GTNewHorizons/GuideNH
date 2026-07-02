@@ -2115,7 +2115,7 @@ public class LytGuidebookScene extends LytBlock {
         int rowsOrColumns = Math.max(1, maxMain / rowHeight);
         int lines = (count + rowsOrColumns - 1) / rowsOrColumns;
         int cross = lines * blockStatsDockEntryWidthForLayout() + BLOCK_STATS_PADDING_X * 2;
-        return Math.clamp(blockStatsMaxWidth, BLOCK_STATS_MIN_WIDTH, cross);
+        return Math.max(BLOCK_STATS_MIN_WIDTH, Math.min(blockStatsMaxWidth, cross));
     }
 
     private int blockStatsDockHeightForLayout() {
@@ -2134,16 +2134,19 @@ public class LytGuidebookScene extends LytBlock {
             int maxMain = Math.max(entryWidth, width);
             int columns = Math.max(1, maxMain / entryWidth);
             int rows = (count + columns - 1) / columns;
-            return Math
-                .clamp(blockStatsMaxHeight, BLOCK_STATS_MIN_HEIGHT, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2);
+            return Math.max(
+                BLOCK_STATS_MIN_HEIGHT,
+                Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
         }
-        int rows = Math.clamp(height / rowHeight, 1, count);
-        return Math.clamp(blockStatsMaxHeight, BLOCK_STATS_MIN_HEIGHT, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2);
+        int rows = Math.min(count, Math.max(1, height / rowHeight));
+        return Math
+            .max(BLOCK_STATS_MIN_HEIGHT, Math.min(blockStatsMaxHeight, rows * rowHeight + BLOCK_STATS_PADDING_Y * 2));
     }
 
     private int blockStatsDockEntryWidthForLayout() {
         int itemWidth = blockStatsItemWidthForLayout();
-        return blockStatsShowNames ? Math.clamp(blockStatsMaxWidth, 96, itemWidth + BLOCK_STATS_GAP + 72) : itemWidth;
+        return blockStatsShowNames ? Math.max(96, Math.min(blockStatsMaxWidth, itemWidth + BLOCK_STATS_GAP + 72))
+            : itemWidth;
     }
 
     private int blockStatsItemWidthForLayout() {
@@ -2196,7 +2199,7 @@ public class LytGuidebookScene extends LytBlock {
             ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP
             : 0;
         int totalDesired = targetSceneWidth + reserve + leftDock + rightDock;
-        int w = Math.clamp(reserve + MIN_RESPONSIVE_SCENE_SIZE, availableWidth, totalDesired);
+        int w = Math.min(totalDesired, Math.max(reserve + MIN_RESPONSIVE_SCENE_SIZE, availableWidth));
         int availableForDocks = Math.max(0, w - reserve - targetSceneWidth);
         if (leftDock + rightDock > availableForDocks) {
             if (leftDock > 0 && rightDock > 0) {
@@ -2869,9 +2872,9 @@ public class LytGuidebookScene extends LytBlock {
         boolean reserveVerticalScrollbar = blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2 > maxHeight;
         int preferredWidth = rowContentWidth + BLOCK_STATS_PADDING_X * 2
             + (reserveVerticalScrollbar ? BLOCK_STATS_SCROLLBAR_SIZE : 0);
-        int boxWidth = Math.clamp(preferredWidth, BLOCK_STATS_MIN_WIDTH, maxWidth);
+        int boxWidth = Math.min(maxWidth, Math.max(BLOCK_STATS_MIN_WIDTH, preferredWidth));
         int boxHeight = Math
-            .clamp(blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2, BLOCK_STATS_MIN_HEIGHT, maxHeight);
+            .min(maxHeight, Math.max(BLOCK_STATS_MIN_HEIGHT, blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2));
 
         int innerWidth = Math.max(1, boxWidth - BLOCK_STATS_PADDING_X * 2);
         int innerHeight = Math.max(1, boxHeight - BLOCK_STATS_PADDING_Y * 2);
@@ -2950,14 +2953,15 @@ public class LytGuidebookScene extends LytBlock {
         int maxWidth = verticalDock ? blockStatsMaxWidth : Math.min(blockStatsMaxWidth, sceneRect.width());
         int maxHeight = verticalDock ? Math.min(blockStatsMaxHeight, sceneRect.height()) : blockStatsMaxHeight;
         if (blockStatsDock == BlockStatsDock.LEFT) {
-            maxWidth = Math.clamp(sceneRect.x() - getBounds().x() - BLOCK_STATS_DOCK_GAP, 0, maxWidth);
+            maxWidth = Math.min(maxWidth, Math.max(0, sceneRect.x() - getBounds().x() - BLOCK_STATS_DOCK_GAP));
         } else if (blockStatsDock == BlockStatsDock.RIGHT) {
             int rightStart = outerRect.right() + buttonColumnReserve() + BLOCK_STATS_DOCK_GAP;
-            maxWidth = Math.clamp(getBounds().right() - rightStart, 0, maxWidth);
+            maxWidth = Math.min(maxWidth, Math.max(0, getBounds().right() - rightStart));
         } else if (blockStatsDock == BlockStatsDock.TOP) {
-            maxHeight = Math.clamp(sceneRect.y() - getBounds().y() - BLOCK_STATS_DOCK_GAP, 0, maxHeight);
+            maxHeight = Math.min(maxHeight, Math.max(0, sceneRect.y() - getBounds().y() - BLOCK_STATS_DOCK_GAP));
         } else if (blockStatsDock == BlockStatsDock.BOTTOM) {
-            maxHeight = Math.clamp(getBounds().bottom() - outerRect.bottom() - BLOCK_STATS_DOCK_GAP, 0, maxHeight);
+            maxHeight = Math
+                .min(maxHeight, Math.max(0, getBounds().bottom() - outerRect.bottom() - BLOCK_STATS_DOCK_GAP));
         }
         if (maxWidth < BLOCK_STATS_MIN_WIDTH || maxHeight < BLOCK_STATS_MIN_HEIGHT) {
             clearBlockStatsGeometry();
@@ -2970,7 +2974,7 @@ public class LytGuidebookScene extends LytBlock {
         int maxColumnsToFit = Math.max(1, maxContentWidth / Math.max(1, entryWidth));
         if (verticalDock) {
             int minRowsToFitWidth = Math.max(1, (entries.size() + maxColumnsToFit - 1) / maxColumnsToFit);
-            alongSlots = Math.clamp(alongSlots, minRowsToFitWidth, entries.size());
+            alongSlots = Math.min(entries.size(), Math.max(alongSlots, minRowsToFitWidth));
         } else {
             alongSlots = Math.min(alongSlots, maxColumnsToFit);
         }
@@ -2979,13 +2983,13 @@ public class LytGuidebookScene extends LytBlock {
         blockStatsContentWidth = verticalDock ? wrappedLines * entryWidth : usedAlongSlots * entryWidth;
         blockStatsContentHeight = verticalDock ? usedAlongSlots * rowStride - BLOCK_STATS_ROW_GAP
             : wrappedLines * rowStride - BLOCK_STATS_ROW_GAP;
-        maxHeight = Math.clamp(blockStatsContentHeight, BLOCK_STATS_MIN_HEIGHT, maxHeight);
+        maxHeight = Math.min(maxHeight, Math.max(BLOCK_STATS_MIN_HEIGHT, blockStatsContentHeight));
         boolean reserveVerticalScrollbar = blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2 > maxHeight;
         int preferredWidth = blockStatsContentWidth + BLOCK_STATS_PADDING_X * 2
             + (reserveVerticalScrollbar ? BLOCK_STATS_SCROLLBAR_SIZE : 0);
-        int boxWidth = Math.clamp(maxWidth, BLOCK_STATS_MIN_WIDTH, preferredWidth);
+        int boxWidth = Math.max(BLOCK_STATS_MIN_WIDTH, Math.min(maxWidth, preferredWidth));
         int boxHeight = Math
-            .clamp(maxHeight, BLOCK_STATS_MIN_HEIGHT, blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2);
+            .max(BLOCK_STATS_MIN_HEIGHT, Math.min(maxHeight, blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2));
         int innerWidth = Math.max(1, boxWidth - BLOCK_STATS_PADDING_X * 2);
         int innerHeight = Math.max(1, boxHeight - BLOCK_STATS_PADDING_Y * 2);
         boolean verticalNeeded = blockStatsContentHeight > innerHeight;
