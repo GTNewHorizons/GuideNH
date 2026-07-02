@@ -25,7 +25,7 @@ import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
-import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePack;
+import com.hfstudio.guidenh.guide.internal.DirectoryResourcePack;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePacks;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
@@ -457,8 +457,8 @@ public class DataDrivenGuideLoader {
     }
 
     public static File getResourcePackFile(IResourcePack resourcePack) {
-        if (resourcePack instanceof GuideDevelopmentResourcePack) {
-            return ((GuideDevelopmentResourcePack) resourcePack).getRoot()
+        if (resourcePack instanceof DirectoryResourcePack) {
+            return ((DirectoryResourcePack) resourcePack).getRoot()
                 .toFile();
         }
 

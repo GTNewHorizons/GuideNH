@@ -117,6 +117,8 @@ public class GuideLightweightReloadService {
         }
         ClientProxy.getGameScenePrewarmBootstrap()
             .scheduleReloadPrewarm();
+        ClientProxy.getStructureLibPreviewBootstrap()
+            .scheduleReloadPrewarm();
         long registryUpdateNs = System.nanoTime() - stageStartedAt;
 
         stageStartedAt = System.nanoTime();

@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.client.hotkey.OpenGuideHomeHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.internal.DefaultGuideResourcePackManager;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePackWatcher;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
@@ -76,6 +77,7 @@ import com.hfstudio.guidenh.guide.scene.concurrent.GameSceneConcurrentManager;
 import com.hfstudio.guidenh.guide.scene.concurrent.GameScenePrewarmBootstrap;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewBootstrap;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewWorker;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
@@ -105,6 +107,8 @@ public class ClientProxy extends CommonProxy {
     private static final CompileWorker compileWorker = new CompileWorker();
     @Getter
     private static final StructureLibPreviewWorker structureLibPreviewWorker = new StructureLibPreviewWorker();
+    @Getter
+    private static final StructureLibPreviewBootstrap structureLibPreviewBootstrap = new StructureLibPreviewBootstrap();
 
     public static CompileWorker getWorker() {
         return compileWorker;
@@ -146,6 +150,7 @@ public class ClientProxy extends CommonProxy {
         super.init(event);
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(new GuideReloadListener());
+        DefaultGuideResourcePackManager.init();
         ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
         StructureExportBootstrap.registerClientCommands();
         GuideNhClientBridgeController.init();
@@ -252,6 +257,7 @@ public class ClientProxy extends CommonProxy {
     public void completeInit(FMLLoadCompleteEvent event) {
         super.completeInit(event);
         GuideDevelopmentResourcePackWatcher.init();
+        DefaultGuideResourcePackManager.refreshIfPending();
         MasterScheduler.getInstance()
             .submit(new DevWatchWorkItem());
         GuideOnStartup.init();

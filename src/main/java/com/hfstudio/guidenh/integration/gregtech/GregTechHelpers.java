@@ -1,10 +1,12 @@
 package com.hfstudio.guidenh.integration.gregtech;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.block.Block;
@@ -18,6 +20,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
@@ -496,23 +499,37 @@ public class GregTechHelpers {
         try {
             boolean activeBefore = gtTile.isActive();
             Boolean machineBefore = readPreviewMachineState(multiBlockBase);
-            multiBlockBase.clearHatches();
-            List<StructureError> structureErrors = checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
-            boolean valid = structureErrors.isEmpty();
-            boolean machineApplied = applyPreviewMachineState(multiBlockBase, valid);
-            Boolean machineAfter = readPreviewMachineState(multiBlockBase);
-            if (!valid) {
-                appendPreviewStructureWarning(warnings, structureErrors);
-                logInfoOnce(
-                    "preview-state-sync-invalid:" + describeTile(controllerTile),
-                    "GregTech preview state sync kept invalid structure state for {}",
-                    describeTile(controllerTile));
-            }
-            if (shouldActivatePreviewController(activeController, valid)) {
+            boolean valid;
+            boolean machineApplied;
+            if (triggerStack != null && triggerStack.stackSize > 0) {
+                applyTierFromTriggerStack(metaTileEntity, triggerStack);
+                machineApplied = applyPreviewMachineState(multiBlockBase, true);
                 gtTile.setActive(true);
                 gtTile.issueTextureUpdate();
                 applyPreviewTextureUpdate(metaTileEntity);
+                refreshHatchTexturesInWorld(controllerTile, metaTileEntity);
+                valid = true;
+            } else {
+                multiBlockBase.clearHatches();
+                List<StructureError> structureErrors = checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
+                valid = structureErrors.isEmpty();
+                machineApplied = applyPreviewMachineState(multiBlockBase, valid);
+                if (!valid) {
+                    appendPreviewStructureWarning(warnings, structureErrors);
+                    logInfoOnce(
+                        "preview-state-sync-invalid:" + describeTile(controllerTile),
+                        "GregTech preview state sync kept invalid structure state for {}",
+                        describeTile(controllerTile));
+                }
+                if (shouldActivatePreviewController(activeController, valid)) {
+                    gtTile.setActive(true);
+                }
+                if (activeController) {
+                    gtTile.issueTextureUpdate();
+                    applyPreviewTextureUpdate(metaTileEntity);
+                }
             }
+            Boolean machineAfter = readPreviewMachineState(multiBlockBase);
             GuideDebugLog.info(
                 "GregTech preview sync controller={} meta={} facing={} valid={} activeRequested={} activeBefore={} activeAfter={} machineBefore={} machineAfter={} machineApplied={}",
                 describeTile(controllerTile),
@@ -530,6 +547,54 @@ public class GregTechHelpers {
                 "preview-state-sync-failed:" + describeTile(controllerTile),
                 "GregTech preview state sync could not finish for {}",
                 describeTile(controllerTile));
+        }
+    }
+
+    private static void refreshHatchTexturesInWorld(TileEntity controllerTile, Object metaTileEntity) {
+        if (controllerTile == null || metaTileEntity == null) return;
+        int casingTextureId = -1;
+        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
+            try {
+                Method method = type.getDeclaredMethod("getCasingTextureId");
+                method.setAccessible(true);
+                casingTextureId = (int) method.invoke(metaTileEntity);
+                break;
+            } catch (NoSuchMethodException ignored) {} catch (Throwable ignored) {
+                return;
+            }
+        }
+        if (casingTextureId < 0) return;
+        World world;
+        try {
+            world = controllerTile.getWorldObj();
+        } catch (Throwable ignored) {
+            return;
+        }
+        if (!(world instanceof GuidebookFakeWorld fakeWorld)) return;
+        GuidebookLevel level = fakeWorld.getGuidebookLevel();
+        if (level == null) return;
+        for (TileEntity tileEntity : level.getTileEntities()) {
+            if (!isGregTechTileEntity(tileEntity)) continue;
+            IMetaTileEntity metaTile = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            if (metaTile instanceof MTEHatch hatch) {
+                hatch.updateTexture(casingTextureId);
+            }
+        }
+    }
+
+    private static void applyTierFromTriggerStack(Object metaTileEntity, ItemStack triggerStack) {
+        int tier = triggerStack.stackSize;
+        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
+            for (Field field : type.getDeclaredFields()) {
+                if (field.getType() != Integer.TYPE) continue;
+                if (!field.getName()
+                    .toLowerCase(Locale.ROOT)
+                    .matches(".*(?:tier|casing).*")) continue;
+                try {
+                    field.setAccessible(true);
+                    field.setInt(metaTileEntity, tier);
+                } catch (Throwable ignored) {}
+            }
         }
     }
 

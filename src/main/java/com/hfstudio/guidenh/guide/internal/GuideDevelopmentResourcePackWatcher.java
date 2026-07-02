@@ -54,19 +54,19 @@ public class GuideDevelopmentResourcePackWatcher implements AutoCloseable {
             .register(watcher);
     }
 
-    public static GuideDevelopmentResourcePackWatcher createForTests(List<GuideDevelopmentResourcePack> packs) {
+    public static GuideDevelopmentResourcePackWatcher createForTests(List<DirectoryResourcePack> packs) {
         return createForTests(packs, () -> {});
     }
 
-    public static GuideDevelopmentResourcePackWatcher createForTests(List<GuideDevelopmentResourcePack> packs,
+    public static GuideDevelopmentResourcePackWatcher createForTests(List<DirectoryResourcePack> packs,
         Runnable reloadAction) {
         var watcher = new GuideDevelopmentResourcePackWatcher(reloadAction);
         watcher.start(packs);
         return watcher;
     }
 
-    private void start(List<GuideDevelopmentResourcePack> packs) {
-        for (GuideDevelopmentResourcePack pack : packs) {
+    private void start(List<DirectoryResourcePack> packs) {
+        for (DirectoryResourcePack pack : packs) {
             Path root = pack.getRoot();
             if (!Files.isDirectory(root)) {
                 continue;
