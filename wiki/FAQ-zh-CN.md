@@ -6,6 +6,10 @@
 
 在 `wiki/resourcepack/` 下。旧的 `src/main/resources/assets/...` 松散源树已经不再是运行时指南页面的编写真源。
 
+## 如果我想放一个不会打包进 jar 的客户端本地指南，应该放在哪里？
+
+放在 `config/guidenh/DefaultGuide/<modid>/guidenh/` 下。这个运行时目录会在客户端自动创建，并且使用不带外层 `assets/` 的原生命名空间根布局。
+
 ## 为什么这个仓库同时有 wiki 页面和运行时 Markdown 页面？
 
 `wiki/*.md` 下的文件是面向人的 GitHub Wiki 文档。`wiki/resourcepack/...` 下的文件则是 GuideNH 游戏内实际消费的运行时指南页面。

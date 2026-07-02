@@ -81,12 +81,12 @@ categories:
 
 ## FloatingImage 使用 wrap / align
 
-<FloatingImage src="test1.png" wrap="square" align="left" width="64" title="左浮动" />
+<FloatingImage src="test1.png" wrap="square" align="left" x="0" y="0" width="128" height="128" scaleX="0.5" scaleY="0.5" title="左浮动" />
 
 图片左浮动，右侧文字环绕——使用新的 `wrap` + `align` 语法，
-效果等同于 `<FloatingImage>` 的旧版 `align="left"` 属性。
+浮动行为保持一致，但现在图片尺寸由裁剪区域和 `scaleX` / `scaleY` 共同决定。
 
-<FloatingImage src="test1.png" wrap="square" align="right" width="64" title="右浮动" />
+<FloatingImage src="test1.png" wrap="square" align="right" x="0" y="0" width="128" height="128" scaleX="0.5" scaleY="0.5" title="右浮动" />
 
 图片右浮动，左侧文字环绕——使用 `wrap="square" align="right"`。
 

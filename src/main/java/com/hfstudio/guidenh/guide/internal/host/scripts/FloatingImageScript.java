@@ -65,8 +65,22 @@ public class FloatingImageScript implements LytScript {
         } else if (imageData == null) {
             image.setTitle("Missing image: " + src);
         }
-        image.setExplicitWidth(placeholder.getExplicitWidth());
-        image.setExplicitHeight(placeholder.getExplicitHeight());
+        if (imageData != null) {
+            var size = image.getTexture()
+                .getSize();
+            int cropRight = placeholder.getCropX() + placeholder.getCropWidth();
+            int cropBottom = placeholder.getCropY() + placeholder.getCropHeight();
+            if (cropRight > size.width() || cropBottom > size.height()) {
+                replaceFlowError(ctx, isWrapped, "[FloatingImage] Crop rectangle exceeds source image bounds: " + src);
+                return;
+            }
+        }
+        image.setCropRect(
+            placeholder.getCropX(),
+            placeholder.getCropY(),
+            placeholder.getCropWidth(),
+            placeholder.getCropHeight());
+        image.setScale(placeholder.getScaleX(), placeholder.getScaleY());
         image.setMarginTop(placeholder.getMarginTop());
         image.setMarginLeft(placeholder.getMarginLeft());
         image.setMarginRight(placeholder.getMarginRight());

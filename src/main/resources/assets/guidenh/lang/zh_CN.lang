@@ -556,6 +556,21 @@ guidenh.mediawiki.special.searchtranslations=按语言搜索页面
 guidenh.mediawiki.special.translationstatistics=翻译进度
 guidenh.mediawiki.special.contribute=贡献者列表
 
+# Site export
+guidenh.siteexport.search.label=搜索
+guidenh.siteexport.search.placeholder=搜索页面
+guidenh.siteexport.search.emptyTemplate=没有找到“{{query}}”的匹配项
+guidenh.siteexport.languages.label=语言
+guidenh.siteexport.languages.fallbackBadge=回退
+guidenh.siteexport.languages.fallbackPrefix=回退自
+guidenh.siteexport.languages.sharedPage=共享页面
+guidenh.siteexport.language.en_us=英语
+guidenh.siteexport.language.zh_cn=简体中文
+guidenh.siteexport.language.zh_tw=繁體中文
+guidenh.siteexport.language.ja_jp=日本語
+guidenh.siteexport.language.ko_kr=한국어
+guidenh.siteexport.language.ru_ru=Русский
+
 # BetterQuesting 兼容
 guidenh.compat.bq.hidden=[隐藏任务]
 guidenh.compat.bq.locked=[未解锁任务]

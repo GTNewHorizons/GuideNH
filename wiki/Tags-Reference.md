@@ -55,7 +55,7 @@ Inline markdown also supports action links for sound playback:
 | `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` or `<ItemIcon ore="..."/>` |
 | `<BlockImage>` | non-interactive 3D single-block preview | `id` or `ore`, `scale`, `float`, `perspective`, `nbt` |
-| `<FloatingImage>` | floated image block | `src`, `align`, `title`, `width`, `height` |
+| `<FloatingImage>` | cropped image block with float or true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `wrap`, `align`, `title` |
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
 | `<Category>` | list pages from a category | `name`, `rows` |
 | `<Special>` | list built-in MediaWiki special pages | `name`, `rows` |
@@ -503,6 +503,14 @@ Notes:
 ### `<FloatingImage>`
 
 See [Images And Assets](Images-And-Assets) for the full behavior.
+
+Quick rules:
+
+- `src` supports relative paths, rooted paths, and explicit `modid:path` texture ids
+- `x`, `y`, `width` / `w`, and `height` / `h` define the crop rectangle on the original image and must all be present
+- `scaleX` and `scaleY` resize the cropped result and support independent horizontal / vertical stretching
+- `wrap="inline"` places the image truly inline inside text flow; in that mode `align` is ignored
+- old content that used `width` / `height` as final display size must be migrated manually
 
 ### `<SubPages>`, `<Category>`, And `<Special>`
 

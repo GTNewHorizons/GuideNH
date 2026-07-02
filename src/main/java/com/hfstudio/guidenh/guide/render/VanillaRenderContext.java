@@ -453,6 +453,52 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
+    public void fillTexturedRect(LytRect rect, GuidePageTexture texture, int sourceX, int sourceY, int sourceWidth,
+        int sourceHeight) {
+        if (texture == null || texture.isMissing()) {
+            fillRect(rect, 0xFF333333);
+            drawBorder(rect, 0xFFFF00FF, 1);
+            return;
+        }
+        ResourceLocation resolvedTexture = texture.getTexture();
+        if (resolvedTexture == null) {
+            fillRect(rect, 0xFF333333);
+            drawBorder(rect, 0xFFFF00FF, 1);
+            return;
+        }
+        int naturalWidth = Math.max(
+            1,
+            texture.getSize()
+                .width());
+        int naturalHeight = Math.max(
+            1,
+            texture.getSize()
+                .height());
+        float u0 = sourceX / (float) naturalWidth;
+        float v0 = sourceY / (float) naturalHeight;
+        float u1 = (sourceX + sourceWidth) / (float) naturalWidth;
+        float v1 = (sourceY + sourceHeight) / (float) naturalHeight;
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .bindTexture(resolvedTexture);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+        int x = rect.x();
+        int y = rect.y();
+        int w = rect.width();
+        int h = rect.height();
+        var tess = Tessellator.instance;
+        tess.startDrawingQuads();
+        tess.addVertexWithUV(x, y + h, 0, u0, v1);
+        tess.addVertexWithUV(x + w, y + h, 0, u1, v1);
+        tess.addVertexWithUV(x + w, y, 0, u1, v0);
+        tess.addVertexWithUV(x, y, 0, u0, v0);
+        tess.draw();
+    }
+
+    @Override
     public void pushScissor(LytRect rect) {
         LytRect effective;
         if (!scissorStack.isEmpty()) {

@@ -94,10 +94,9 @@ navigation:
   priority: 100
 ```
 
-TXLoader 也遵循同样的规则。请把 GuideNH 页面放在 TXLoader 原生布局下，例如
-`config/txloader/load/guidenh/guidenh/_zh_cn/index.md` 或
-`config/txloader/forceload/guidenh/guidenh/_zh_cn/index.md`，不要额外套一层 `assets/` 目录。
-TXLoader `forceload` 中的文件会由 TXLoader 放到更靠后的资源包优先级，因此可以覆盖 `load` 中的同路径文件。
+`DefaultGuide` 也使用同样的原生命名空间根布局。请把 GuideNH 页面放在
+`config/guidenh/DefaultGuide/guidenh/guidenh/_zh_cn/index.md` 这样的路径下，不要额外套一层 `assets/` 目录。
+这些页面仍然遵循普通资源包优先级，因此后面更高优先级的资源来源仍然可以覆盖同路径文件。
 
 ### `navigation.icon`
 

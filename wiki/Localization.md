@@ -7,6 +7,16 @@ GuideNH supports localized guide pages and localized guide assets.
 Runtime localization is folder-based:
 
 ```text
+config/guidenh/DefaultGuide/<modid>/guidenh/
+|-- _en_us/
+|   `-- index.md
+`-- _zh_cn/
+    `-- index.md
+```
+
+The repository example resource pack keeps its documented outer `assets/` layer:
+
+```text
 wiki/resourcepack/assets/<modid>/guidenh/
 |-- _en_us/
 |   `-- index.md
@@ -109,6 +119,15 @@ Search documents store both the raw Minecraft language and the analyzer language
 GuideNH does not expose a global "ignore translations" switch. If you want a guide to fall back to a non-English language, set that guide's `defaultLanguage` explicitly in code.
 
 ## Example
+
+```text
+config/guidenh/DefaultGuide/guidenh/guidenh/_en_us/index.md
+config/guidenh/DefaultGuide/guidenh/guidenh/_zh_cn/index.md
+config/guidenh/DefaultGuide/guidenh/guidenh/_en_us/test1.png
+config/guidenh/DefaultGuide/guidenh/guidenh/_zh_cn/test1.png
+```
+
+Repository example pack equivalent:
 
 ```text
 wiki/resourcepack/assets/guidenh/guidenh/_en_us/index.md
