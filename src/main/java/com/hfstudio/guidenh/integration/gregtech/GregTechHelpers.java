@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.integration.gregtech;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ import gregtech.api.metatileentity.BaseMetaPipeEntity;
 import gregtech.api.metatileentity.MetaPipeEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
+import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.HatchElementBuilder;
 import gregtech.common.blocks.ItemMachines;
@@ -462,7 +464,7 @@ public class GregTechHelpers {
         IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
         if (!(metaTileEntity instanceof MTEMultiBlockBase multiBlockBase)) return;
         multiBlockBase.clearHatches();
-        multiBlockBase.checkMachine(gtTile, triggerStack);
+        checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
     }
 
     public static void synchronizeMultiblockPreviewState(@Nullable TileEntity controllerTile,
@@ -495,10 +497,12 @@ public class GregTechHelpers {
             boolean activeBefore = gtTile.isActive();
             Boolean machineBefore = readPreviewMachineState(multiBlockBase);
             multiBlockBase.clearHatches();
-            boolean valid = multiBlockBase.checkMachine(gtTile, triggerStack);
+            List<StructureError> structureErrors = checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
+            boolean valid = structureErrors.isEmpty();
             boolean machineApplied = applyPreviewMachineState(multiBlockBase, valid);
             Boolean machineAfter = readPreviewMachineState(multiBlockBase);
             if (!valid) {
+                appendPreviewStructureWarning(warnings, structureErrors);
                 logInfoOnce(
                     "preview-state-sync-invalid:" + describeTile(controllerTile),
                     "GregTech preview state sync kept invalid structure state for {}",
@@ -526,6 +530,58 @@ public class GregTechHelpers {
                 "preview-state-sync-failed:" + describeTile(controllerTile),
                 "GregTech preview state sync could not finish for {}",
                 describeTile(controllerTile));
+        }
+    }
+
+    private static List<StructureError> checkPreviewMachine(MTEMultiBlockBase multiBlockBase,
+        IGregTechTileEntity gtTile, @Nullable ItemStack triggerStack) {
+        List<StructureError> errors = new ArrayList<>();
+        multiBlockBase.checkMachine(gtTile, triggerStack, errors);
+        return errors;
+    }
+
+    private static void appendPreviewStructureWarning(@Nullable List<String> warnings, List<StructureError> errors) {
+        if (warnings == null || errors.isEmpty()) {
+            return;
+        }
+        String details = describeStructureErrors(errors);
+        String warning = "GregTech structure check reported: " + details;
+        if (!warnings.contains(warning)) {
+            warnings.add(warning);
+        }
+    }
+
+    private static String describeStructureErrors(List<StructureError> errors) {
+        StringBuilder builder = new StringBuilder();
+        for (StructureError error : errors) {
+            String description = describeStructureError(error);
+            if (description.isEmpty()) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append("; ");
+            }
+            builder.append(description);
+        }
+        return builder.isEmpty() ? "unknown structure error" : builder.toString();
+    }
+
+    private static String describeStructureError(@Nullable StructureError error) {
+        if (error == null) {
+            return "";
+        }
+        try {
+            String displayString = error.getDisplayString();
+            if (displayString != null && !displayString.trim()
+                .isEmpty()) {
+                return displayString.trim();
+            }
+        } catch (Throwable ignored) {}
+        try {
+            return error.getId()
+                .name();
+        } catch (Throwable ignored) {
+            return "unknown structure error";
         }
     }
 
