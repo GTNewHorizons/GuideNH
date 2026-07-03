@@ -5,11 +5,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.elk.core.RecursiveGraphLayoutEngine;
+import org.eclipse.elk.core.options.CoreOptions;
+import org.eclipse.elk.core.options.Direction;
+import org.eclipse.elk.core.util.NullElkProgressMonitor;
+import org.eclipse.elk.graph.ElkEdge;
+import org.eclipse.elk.graph.ElkEdgeSection;
+import org.eclipse.elk.graph.ElkNode;
+import org.eclipse.elk.graph.util.ElkGraphUtil;
+
 public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
     private static final int NODE_WIDTH = 120;
     private static final int NODE_HEIGHT = 40;
-    private static final int GAP = 20;
     private static final int PADDING = 20;
 
     @Override
@@ -24,54 +32,90 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             return new FlowchartLayoutResult(Map.of(), List.of(), 0, 0);
         }
 
-        FlowchartDirection direction = document.getDirection();
-        List<String> nodeOrder = document.getNodeOrder();
-        Map<String, FlowchartLayoutResult.NodePosition> positions = new LinkedHashMap<>();
-        List<FlowchartLayoutResult.EdgePath> edgePaths = new ArrayList<>();
+        ElkNode root = ElkGraphUtil.createGraph();
+        root.setProperty(CoreOptions.ALGORITHM, "org.eclipse.elk.layered");
+        root.setProperty(CoreOptions.SPACING_NODE_NODE, 20.0);
+        root.setProperty(CoreOptions.SPACING_EDGE_NODE, 20.0);
+        root.setProperty(CoreOptions.PADDING, new org.eclipse.elk.core.math.ElkPadding(20));
 
-        int maxW = 0;
-        int maxH = 0;
+        switch (document.getDirection()) {
+            case LR -> root.setProperty(CoreOptions.DIRECTION, Direction.RIGHT);
+            case RL -> root.setProperty(CoreOptions.DIRECTION, Direction.LEFT);
+            case BT -> root.setProperty(CoreOptions.DIRECTION, Direction.UP);
+            default -> root.setProperty(CoreOptions.DIRECTION, Direction.DOWN);
+        }
 
-        for (int i = 0; i < nodeOrder.size(); i++) {
-            String id = nodeOrder.get(i);
-            if (!nodes.containsKey(id)) continue;
-
-            int x, y;
-            switch (direction) {
-                case LR:
-                    x = PADDING + i * (NODE_WIDTH + GAP);
-                    y = PADDING;
-                    break;
-                case RL:
-                    x = PADDING + (nodeOrder.size() - 1 - i) * (NODE_WIDTH + GAP);
-                    y = PADDING;
-                    break;
-                case BT:
-                    x = PADDING;
-                    y = PADDING + (nodeOrder.size() - 1 - i) * (NODE_HEIGHT + GAP);
-                    break;
-                default: // TB
-                    x = PADDING;
-                    y = PADDING + i * (NODE_HEIGHT + GAP);
-                    break;
-            }
-
-            positions.put(id, new FlowchartLayoutResult.NodePosition(x, y, NODE_WIDTH, NODE_HEIGHT));
-            maxW = Math.max(maxW, x + NODE_WIDTH);
-            maxH = Math.max(maxH, y + NODE_HEIGHT);
+        Map<String, ElkNode> elkNodeMap = new LinkedHashMap<>();
+        for (FlowchartNode node : nodes.values()) {
+            ElkNode elkNode = ElkGraphUtil.createNode(root);
+            elkNode.setWidth(NODE_WIDTH);
+            elkNode.setHeight(NODE_HEIGHT);
+            elkNodeMap.put(node.getId(), elkNode);
         }
 
         for (FlowchartEdge edge : document.getEdges()) {
-            FlowchartLayoutResult.NodePosition from = positions.get(edge.getFrom());
-            FlowchartLayoutResult.NodePosition to = positions.get(edge.getTo());
-            if (from == null || to == null) continue;
-
-            List<FlowchartLayoutResult.Point> points = new ArrayList<>();
-            points.add(new FlowchartLayoutResult.Point(from.getCenterX(), from.getCenterY()));
-            points.add(new FlowchartLayoutResult.Point(to.getCenterX(), to.getCenterY()));
-            edgePaths.add(new FlowchartLayoutResult.EdgePath(edge.getFrom(), edge.getTo(), points));
+            ElkNode source = elkNodeMap.get(edge.getFrom());
+            ElkNode target = elkNodeMap.get(edge.getTo());
+            if (source == null || target == null) continue;
+            ElkGraphUtil.createSimpleEdge(source, target);
         }
 
-        return new FlowchartLayoutResult(positions, edgePaths, maxW + PADDING, maxH + PADDING);
+        RecursiveGraphLayoutEngine engine = new RecursiveGraphLayoutEngine();
+        engine.layout(root, new NullElkProgressMonitor());
+
+        Map<String, FlowchartLayoutResult.NodePosition> positions = new LinkedHashMap<>();
+        int maxX = 0;
+        int maxY = 0;
+        for (FlowchartNode node : nodes.values()) {
+            ElkNode elkNode = elkNodeMap.get(node.getId());
+            if (elkNode == null) continue;
+            int x = PADDING + (int) Math.round(elkNode.getX());
+            int y = PADDING + (int) Math.round(elkNode.getY());
+            int w = Math.max(1, (int) Math.round(elkNode.getWidth()));
+            int h = Math.max(1, (int) Math.round(elkNode.getHeight()));
+            positions.put(node.getId(), new FlowchartLayoutResult.NodePosition(x, y, w, h));
+            maxX = Math.max(maxX, x + w);
+            maxY = Math.max(maxY, y + h);
+        }
+
+        List<FlowchartLayoutResult.EdgePath> edgePaths = new ArrayList<>();
+        for (FlowchartEdge edge : document.getEdges()) {
+            ElkNode source = elkNodeMap.get(edge.getFrom());
+            ElkNode target = elkNodeMap.get(edge.getTo());
+            if (source == null || target == null) continue;
+
+            ElkEdge elkEdge = findElkEdge(source, target);
+            if (elkEdge == null) continue;
+
+            List<FlowchartLayoutResult.Point> points = new ArrayList<>();
+            for (ElkEdgeSection section : elkEdge.getSections()) {
+                points.add(new FlowchartLayoutResult.Point(
+                    PADDING + (int) Math.round(section.getStartX()),
+                    PADDING + (int) Math.round(section.getStartY())));
+                for (var bp : section.getBendPoints()) {
+                    points.add(new FlowchartLayoutResult.Point(
+                        PADDING + (int) Math.round(bp.getX()),
+                        PADDING + (int) Math.round(bp.getY())));
+                }
+                points.add(new FlowchartLayoutResult.Point(
+                    PADDING + (int) Math.round(section.getEndX()),
+                    PADDING + (int) Math.round(section.getEndY())));
+            }
+            if (!points.isEmpty()) {
+                edgePaths.add(new FlowchartLayoutResult.EdgePath(edge.getFrom(), edge.getTo(), points));
+            }
+        }
+
+        return new FlowchartLayoutResult(positions, edgePaths, maxX + PADDING, maxY + PADDING);
+    }
+
+    private static ElkEdge findElkEdge(ElkNode source, ElkNode target) {
+        for (ElkEdge edge : source.getOutgoingEdges()) {
+            if (!edge.getTargets().isEmpty()
+                && ElkGraphUtil.connectableShapeToNode(edge.getTargets().get(0)) == target) {
+                return edge;
+            }
+        }
+        return null;
     }
 }

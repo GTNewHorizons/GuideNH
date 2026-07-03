@@ -25,6 +25,10 @@ tasks.named<ShadowJar>("shadowJar") {
         exclude(dependency("org.apache.lucene:lucene-queryparser:.*"))
         exclude(dependency("org.apache.lucene:lucene-highlighter:.*"))
         exclude(dependency("org.scilab.forge:jlatexmath:.*"))
+        exclude(dependency("org.eclipse.elk:org.eclipse.elk.core:.*"))
+        exclude(dependency("org.eclipse.elk:org.eclipse.elk.alg.common:.*"))
+        exclude(dependency("org.eclipse.elk:org.eclipse.elk.alg.layered:.*"))
+        exclude(dependency("org.eclipse.xtext:org.eclipse.xtext.xbase.lib:.*"))
     }
 }
 
