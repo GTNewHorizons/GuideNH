@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
@@ -21,9 +23,14 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
     private final LytMermaidFlowchartCanvas canvas;
 
     public LytMermaidFlowchart(FlowchartDocument flowchart, String sourceText) {
+        this(flowchart, sourceText, Collections.emptyMap());
+    }
+
+    public LytMermaidFlowchart(FlowchartDocument flowchart, String sourceText, Map<String, LytBlock> nodeContent) {
         this.flowchart = flowchart;
         this.sourceText = sourceText != null ? sourceText : "";
-        this.canvas = new LytMermaidFlowchartCanvas(flowchart);
+        this.canvas = new LytMermaidFlowchartCanvas(flowchart,
+            nodeContent != null ? nodeContent : Collections.emptyMap());
 
         setPadding(6);
         setGap(4);
