@@ -10,6 +10,54 @@ guideme.configuration.title=GuideNH 配置
 guideme.gui.config.debug=调试
 guideme.gui.config.debug.enabledebugmode=启用调试模式
 guideme.gui.config.debug.enabledebugmode.tooltip=启用指南开发时使用的额外调试日志和叠加显示。
+guideme.gui.config.debug.guidebugmode=GUI 调试覆盖层
+guideme.gui.config.debug.guidebugmode.tooltip=在指南界面启用调试覆盖层。使用 C+CTRL+SHIFT+ALT 切换。
+guideme.gui.config.debug.showhoveredinfo=显示悬停元素信息
+guideme.gui.config.debug.showhoveredinfo.tooltip=显示当前悬停元素的信息。
+guideme.gui.config.debug.showhoveredposition=显示悬停位置
+guideme.gui.config.debug.showhoveredposition.tooltip=显示悬停元素的位置坐标。
+guideme.gui.config.debug.showhoveredsize=显示悬停尺寸
+guideme.gui.config.debug.showhoveredsize.tooltip=显示悬停元素的宽度和高度。
+guideme.gui.config.debug.showhoveredtheme=显示悬停主题
+guideme.gui.config.debug.showhoveredtheme.tooltip=显示悬停元素的主题和类信息。
+guideme.gui.config.debug.showhoveredextra=显示悬停额外信息
+guideme.gui.config.debug.showhoveredextra.tooltip=显示元素特定的额外信息。
+guideme.gui.config.debug.showhoveredoutline=显示悬停轮廓
+guideme.gui.config.debug.showhoveredoutline.tooltip=在悬停元素周围显示动画边框轮廓。
+guideme.gui.config.debug.showparentinfo=显示父元素信息
+guideme.gui.config.debug.showparentinfo.tooltip=显示悬停元素的父元素信息。
+guideme.gui.config.debug.showparentposition=显示父元素位置
+guideme.gui.config.debug.showparentposition.tooltip=显示父元素的位置坐标。
+guideme.gui.config.debug.showparentsize=显示父元素尺寸
+guideme.gui.config.debug.showparentsize.tooltip=显示父元素的宽度和高度。
+guideme.gui.config.debug.showparenttheme=显示父元素主题
+guideme.gui.config.debug.showparenttheme.tooltip=显示父元素的主题和类信息。
+guideme.gui.config.debug.showparentoutline=显示父元素轮廓
+guideme.gui.config.debug.showparentoutline.tooltip=在父元素周围显示动画边框轮廓。
+guideme.gui.config.debug.showfps=显示 FPS 计数器
+guideme.gui.config.debug.showfps.tooltip=在调试覆盖层显示每秒帧数。
+guideme.gui.config.debug.showmemory=显示内存使用
+guideme.gui.config.debug.showmemory.tooltip=在调试覆盖层显示内存使用统计。
+guideme.gui.config.debug.showmouseposition=显示鼠标位置
+guideme.gui.config.debug.showmouseposition.tooltip=在调试覆盖层显示当前鼠标坐标。
+guideme.gui.config.debug.debugtextcolor=调试文本颜色
+guideme.gui.config.debug.debugtextcolor.tooltip=调试文本覆盖层的 ARGB 颜色值。
+guideme.gui.config.debug.debugoutlinecolor=调试轮廓颜色
+guideme.gui.config.debug.debugoutlinecolor.tooltip=元素轮廓的 ARGB 颜色值（0 表示镜像文本颜色）。
+guideme.gui.config.debug.debugcursorcolor=调试光标颜色
+guideme.gui.config.debug.debugcursorcolor.tooltip=光标点指示器的 ARGB 颜色值。
+guideme.gui.config.debug.debugtextscale=调试文本缩放
+guideme.gui.config.debug.debugtextscale.tooltip=调试文本渲染的缩放因子。
+guideme.gui.config.debug.debugoutlinethickness=调试轮廓厚度
+guideme.gui.config.debug.debugoutlinethickness.tooltip=元素轮廓边框的线条厚度。
+guideme.gui.config.debug.debugdashanimationcyclems=虚线动画周期
+guideme.gui.config.debug.debugdashanimationcyclems.tooltip=一个完整虚线动画周期的持续时间（毫秒）。
+guideme.gui.config.debug.debugdashwidth=虚线边框宽度
+guideme.gui.config.debug.debugdashwidth.tooltip=虚线边框线条的宽度（像素）。
+guideme.gui.config.debug.debugdashonlength=虚线段长度
+guideme.gui.config.debug.debugdashonlength.tooltip=可见虚线段的长度（像素）。
+guideme.gui.config.debug.debugdashofflength=虚线间隙长度
+guideme.gui.config.debug.debugdashofflength.tooltip=虚线段之间间隙的长度（像素）。
 guideme.gui.config.ui=用户界面
 guideme.gui.config.ui.confirmexternallinks=外链打开前确认
 guideme.gui.config.ui.confirmexternallinks.tooltip=控制点击指南 Markdown 中的外部链接时，是否先弹出确认窗口再打开浏览器。
@@ -571,7 +619,7 @@ guidenh.siteexport.language.ja_jp=日本語
 guidenh.siteexport.language.ko_kr=한국어
 guidenh.siteexport.language.ru_ru=Русский
 
-# BetterQuesting 兼容
+# BetterQuesting compatibility
 guidenh.compat.bq.hidden=[隐藏任务]
 guidenh.compat.bq.locked=[未解锁任务]
 guidenh.compat.bq.missing=[未知任务]
@@ -580,3 +628,40 @@ guidenh.compat.bq.open_guide_page=打开 GuideNH 页面
 
 guidenh.mediawiki.contributor.abkqpo.name=ABKQPO
 guidenh.mediawiki.contributor.abkqpo.role=拥有者
+
+# Debug Mode
+guidenh.debug.enabled=调试模式已启用
+guidenh.debug.disabled=调试模式已禁用
+
+# Debug Menu
+guidenh.debug.menu.print_trees=打印文档树
+guidenh.debug.menu.options=调试选项
+guidenh.debug.menu.hovered_info=悬停元素信息
+guidenh.debug.menu.hovered_info.show_any=显示任意
+guidenh.debug.menu.hovered_info.show_position=显示位置
+guidenh.debug.menu.hovered_info.show_size=显示尺寸
+guidenh.debug.menu.hovered_info.show_theme=显示主题
+guidenh.debug.menu.hovered_info.show_extra=显示额外信息
+guidenh.debug.menu.hovered_info.show_outline=显示轮廓
+guidenh.debug.menu.parent_info=父元素信息
+guidenh.debug.menu.parent_info.show_any=显示任意
+guidenh.debug.menu.parent_info.show_position=显示位置
+guidenh.debug.menu.parent_info.show_size=显示尺寸
+guidenh.debug.menu.parent_info.show_theme=显示主题
+guidenh.debug.menu.parent_info.show_outline=显示轮廓
+guidenh.debug.menu.display_options=显示选项
+guidenh.debug.menu.display_options.show_fps=显示 FPS
+guidenh.debug.menu.display_options.show_memory=显示内存
+guidenh.debug.menu.display_options.show_mouse=显示鼠标位置
+guidenh.debug.menu.recompile_page=重新编译当前页面
+guidenh.debug.menu.export_debug_data=导出调试数据
+
+# Debug Info Panel
+guidenh.debug.info.mouse_pos=鼠标: %s, %s
+guidenh.debug.info.fps=FPS: %s
+guidenh.debug.info.memory=内存: %sMB / %sMB (%s%%)
+guidenh.debug.info.hovered_element=悬停元素:
+guidenh.debug.info.parent_element=父元素:
+guidenh.debug.info.class_name=类: %s
+guidenh.debug.info.size=尺寸: %s x %s
+guidenh.debug.info.position=位置: %s, %s

@@ -188,8 +188,6 @@ public class SceneTagCompiler extends BlockTagCompiler {
         return MdxAttrs.getBoolean(compiler, parent, el, "showBackground", true);
     }
 
-    // ---- Scene data holder ----
-
     /**
      * Placeholder block that stores all extracted scene configuration for deferred scene creation
      * by {@code SceneScript}. Extends LytParagraph so it lives in the LytNode tree and can receive
@@ -271,8 +269,6 @@ public class SceneTagCompiler extends BlockTagCompiler {
             this.sceneElementCompilers = sceneElementCompilers;
         }
     }
-
-    // ---- Utility methods (pure, kept for script use) ----
 
     public static MdxJsxElementFields unwrapSceneElement(UnistNode node) {
         if (node instanceof MdxJsxElementFields elementFields) {

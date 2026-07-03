@@ -55,6 +55,7 @@ import com.hfstudio.guidenh.guide.document.block.ResponsiveVisualSizing;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -120,7 +121,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentB
 
 import lombok.Getter;
 
-public class LytGuidebookScene extends LytBlock {
+public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     public static class PonderWeatherColumnReservation {
 
@@ -349,6 +350,8 @@ public class LytGuidebookScene extends LytBlock {
     private int sceneButtonsAbsY;
     private int lastBtnScreenSize;
     private int lastBtnScreenStep;
+    private final List<LytRect> cachedSceneButtonBounds = new ArrayList<>();
+    private final List<GuideIconButton.Role> cachedSceneButtonBoundRoles = new ArrayList<>();
     private boolean cachedSceneButtonRolesDirty = true;
     private boolean cachedSceneButtonsVisible = true;
     private boolean cachedSceneHasAnnotations = true;
@@ -3468,6 +3471,9 @@ public class LytGuidebookScene extends LytBlock {
             screenRect.width(),
             screenRect.height());
 
+        cachedSceneButtonBounds.clear();
+        cachedSceneButtonBoundRoles.clear();
+
         // Draw each button in layout coords wrapped in the context's GL transform.
         int layoutGap = BTN_OUTSIDE_GAP;
         int layoutSize = BTN_SIZE;
@@ -3502,6 +3508,10 @@ public class LytGuidebookScene extends LytBlock {
                 && mx < btnScreen.right()
                 && my < btnScreen.bottom();
             drawOneSceneButton(bx, by, layoutSize, role, hover);
+
+            cachedSceneButtonBounds.add(btnScreen);
+            cachedSceneButtonBoundRoles.add(role);
+
             if (role == roles[0]) {
                 sceneButtonsAbsX = btnScreen.x();
                 sceneButtonsAbsY = btnScreen.y();
@@ -7229,5 +7239,55 @@ public class LytGuidebookScene extends LytBlock {
             return minValue;
         }
         return Math.min(value, maxValue);
+    }
+
+    // Debug implementation
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> components = new ArrayList<>();
+
+        // Timeline slider (bottom area when ponder active)
+        if (ponderSceneData != null && bounds != null) {
+            int sliderHeight = SCENE_SLIDER_AREA_HEIGHT;
+            int sliderY = (int) (bounds.y() + bounds.height() - sliderHeight);
+            LytRect sliderBounds = new LytRect((int) bounds.x(), sliderY, (int) bounds.width(), sliderHeight);
+            String state = ponderPaused ? "Paused" : "Playing";
+            components.add(
+                new SimpleComponentEntry(
+                    "TimelineSlider",
+                    sliderBounds,
+                    "Tick: " + ponderCurrentTick + ", " + state,
+                    10));
+        }
+
+        // Scene buttons (zoom in/out, reset view, toggle annotations, etc.)
+        for (int i = 0; i < cachedSceneButtonBounds.size(); i++) {
+            LytRect btnBounds = cachedSceneButtonBounds.get(i);
+            GuideIconButton.Role role = cachedSceneButtonBoundRoles.get(i);
+            String roleName = role.name()
+                .replace("_", " ");
+            boolean active = isSceneButtonActive(role);
+            String extra = active ? "Active" : "Inactive";
+            components.add(new SimpleComponentEntry("SceneBtn:" + roleName, btnBounds, extra, 15));
+        }
+
+        // Ponder buttons (prev, play/pause, restart)
+        if (ponderSceneData != null && cachedPonderBtnScreenW > 0 && cachedPonderBtnScreenH > 0) {
+            GuideIconButton.Role[] ponderRoles = PONDER_BUTTON_ROLES;
+            for (int i = 0; i < ponderRoles.length; i++) {
+                int bx = cachedPonderBtnAbsX + i * cachedPonderBtnScreenW;
+                LytRect btnBounds = new LytRect(
+                    bx,
+                    cachedPonderBtnAbsY,
+                    cachedPonderBtnScreenW,
+                    cachedPonderBtnScreenH);
+                String roleName = ponderRoles[i].name()
+                    .replace("_", " ");
+                components.add(new SimpleComponentEntry("PonderBtn:" + roleName, btnBounds, "Button " + i, 15));
+            }
+        }
+
+        return components;
     }
 }

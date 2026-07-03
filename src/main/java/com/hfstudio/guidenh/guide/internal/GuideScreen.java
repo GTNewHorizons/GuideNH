@@ -91,7 +91,7 @@ import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
-import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlayRenderer;
+import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorActionRegistry;
@@ -268,7 +268,7 @@ public class GuideScreen extends GuiContainer
     private final HomePageController homePageController = new HomePageController();
     private final MinecraftFontMetrics layoutFontMetrics = new MinecraftFontMetrics();
     private final CodeBlockClipboardService codeBlockClipboardService = new CodeBlockClipboardService();
-    private final GuideDebugOverlayRenderer debugOverlayRenderer = new GuideDebugOverlayRenderer();
+    private final GuideDebugOverlay debugOverlay = new GuideDebugOverlay();
     private final GuideScreenScrollbarOutline scrollbarOutline = new GuideScreenScrollbarOutline();
     private final GuideScreenEditorFileStore guideEditorFileStore = GuideScreenEditorFileStore.createDefault();
     private final Map<Integer, GuideIconButton> guideEditorActionButtons = new LinkedHashMap<>();
@@ -2844,7 +2844,20 @@ public class GuideScreen extends GuiContainer
             GuideScreenNeiBridge.drawNativeNeiTooltip(this, mouseX, mouseY);
         }
         drawButtonTooltip(mouseX, mouseY);
-        debugOverlayRenderer.render(mc, partialTicks, mouseX, mouseY);
+        debugOverlay.onFrameStart();
+        debugOverlay.render(
+            width,
+            height,
+            mouseX,
+            mouseY,
+            contentX,
+            getDocumentViewportY(),
+            contentW,
+            getDocumentViewportHeight(),
+            Math.round(visualScrollY),
+            currentZoom,
+            layoutDocument,
+            fontRendererObj);
     }
 
     private void drawGuideButtons(int mouseX, int mouseY) {
@@ -4864,6 +4877,9 @@ public class GuideScreen extends GuiContainer
     protected void mouseClicked(int mouseX, int mouseY, int button) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
+        if (debugOverlay.handleMouseClick(mouseX, mouseY, button)) {
+            return;
+        }
         if (handleNavBarContextMenuClick(mouseX, mouseY, button)) {
             return;
         }
@@ -6040,6 +6056,9 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean handleDebugHudToggleKey(int keyCode) {
+        if (debugOverlay.handleKeyPress((char) 0, keyCode)) {
+            return true;
+        }
         if (keyCode != Keyboard.KEY_F3 || !ModConfig.debug.enableDebugMode || mc == null || mc.gameSettings == null) {
             return false;
         }

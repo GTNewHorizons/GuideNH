@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.jetbrains.annotations.Nullable;
@@ -10,12 +12,14 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
+import com.hfstudio.guidenh.guide.internal.debug.DebugFlowContainer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.flow.FlowBuilder;
+import com.hfstudio.guidenh.guide.layout.flow.LineElement;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 
-public class LytParagraph extends LytBlock implements LytFlowContainer {
+public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlowContainer {
 
     protected final FlowBuilder content = new FlowBuilder();
 
@@ -236,5 +240,27 @@ public class LytParagraph extends LytBlock implements LytFlowContainer {
         paragraph.setStyle(ERROR_STYLE);
         paragraph.appendText(text);
         return paragraph;
+    }
+
+    // Debug implementation
+
+    @Override
+    @Nullable
+    public FlowContentEntry pickFlowContent(int x, int y) {
+        LineElement element = content.pick(x, y);
+        if (element != null) {
+            return new FlowContentEntry(element.getFlowContent(), element.bounds);
+        }
+        return null;
+    }
+
+    @Override
+    public List<FlowContentEntry> getAllFlowContent() {
+        List<FlowContentEntry> entries = new ArrayList<>();
+        for (LytFlowContent flowContent : getContent()) {
+            content.enumerateContentBounds(flowContent)
+                .forEach(bounds -> { entries.add(new FlowContentEntry(flowContent, bounds)); });
+        }
+        return entries;
     }
 }
