@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.internal.debug;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.util.ChatComponentText;
 
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
@@ -16,6 +17,10 @@ import com.hfstudio.guidenh.guide.document.block.LytDocument;
  * Optimized for zero overhead when disabled.
  */
 public class GuideDebugOverlay {
+
+    public static final float OVERLAY_Z = 500.0F;
+    public static final float ATTACHED_LABEL_Z = 10.0F;
+    public static final float INFO_PANEL_Z = 20.0F;
 
     private final PerformanceMonitor performanceMonitor;
     private final DashedBorderRenderer borderRenderer;
@@ -76,6 +81,7 @@ public class GuideDebugOverlay {
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+            GL11.glTranslatef(0.0F, 0.0F, OVERLAY_Z);
 
             HoveredElementInfo hoveredInfo = null;
             if (document != null) {
@@ -160,8 +166,7 @@ public class GuideDebugOverlay {
         ModConfig.debug.guiDebugMode = !ModConfig.debug.guiDebugMode;
         ModConfig.save();
         Minecraft.getMinecraft().thePlayer.addChatMessage(
-            new net.minecraft.util.ChatComponentText(
-                "Debug Mode: " + (ModConfig.debug.guiDebugMode ? "§aEnabled" : "§cDisabled")));
+            new ChatComponentText("Debug Mode: " + (ModConfig.debug.guiDebugMode ? "§aEnabled" : "§cDisabled")));
     }
 
     private void renderCursorDot(int mouseX, int mouseY) {

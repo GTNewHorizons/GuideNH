@@ -54,17 +54,17 @@ public class DebugInfoPanel {
             }
         }
 
-        renderLines(lines, screenHeight, fontRenderer);
-
-        if (hoveredInfo != null && ModConfig.debug.showHoveredOutline) {
-            renderHoveredOutline(hoveredInfo);
-        }
-
         if (hoveredInfo != null && hoveredInfo.hasParent()
             && ModConfig.debug.showParentInfo
             && ModConfig.debug.showParentOutline) {
             renderParentOutline(hoveredInfo.getParent());
         }
+
+        if (hoveredInfo != null && ModConfig.debug.showHoveredOutline) {
+            renderHoveredOutline(hoveredInfo, screenWidth);
+        }
+
+        renderLines(lines, screenHeight, fontRenderer);
 
         GL11.glPopAttrib();
     }
@@ -95,7 +95,7 @@ public class DebugInfoPanel {
         lines.add(translate("guidenh.debug.info.hovered_element"));
 
         if (ModConfig.debug.showHoveredTheme) {
-            lines.add("  " + translate("guidenh.debug.info.class_name", simplifyClassName(info.getClassName())));
+            lines.add("  " + translate("guidenh.debug.info.class_name", displayClassName(info.getClassName())));
         }
 
         if (ModConfig.debug.showHoveredSize) {
@@ -118,7 +118,7 @@ public class DebugInfoPanel {
         lines.add(translate("guidenh.debug.info.parent_element"));
 
         if (ModConfig.debug.showParentTheme) {
-            lines.add("  " + translate("guidenh.debug.info.class_name", simplifyClassName(parent.getClassName())));
+            lines.add("  " + translate("guidenh.debug.info.class_name", displayClassName(parent.getClassName())));
         }
 
         if (ModConfig.debug.showParentSize) {
@@ -135,6 +135,7 @@ public class DebugInfoPanel {
         int textColor = ModConfig.debug.debugTextColor;
 
         GL11.glPushMatrix();
+        GL11.glTranslatef(0.0F, 0.0F, GuideDebugOverlay.INFO_PANEL_Z);
         GL11.glScalef(scale, scale, scale);
 
         int scaledLeftMargin = (int) (LEFT_MARGIN / scale);
@@ -154,7 +155,7 @@ public class DebugInfoPanel {
         GL11.glPopMatrix();
     }
 
-    private void renderHoveredOutline(HoveredElementInfo info) {
+    private void renderHoveredOutline(HoveredElementInfo info, int screenWidth) {
         int color = ModConfig.debug.debugOutlineColor;
         if (color == 0) {
             color = ModConfig.debug.debugTextColor;
@@ -165,7 +166,7 @@ public class DebugInfoPanel {
             info.getScreenWidth(),
             info.getScreenHeight(),
             color);
-        renderClassNameLabel(info.getScreenX(), info.getScreenY(), info.getClassName());
+        renderClassNameLabel(info.getScreenX(), info.getScreenY(), info.getClassName(), screenWidth);
     }
 
     private void renderParentOutline(HoveredElementInfo parent) {
@@ -182,19 +183,21 @@ public class DebugInfoPanel {
             alphaColor);
     }
 
-    private void renderClassNameLabel(int x, int y, String className) {
-        String simpleName = simplifyClassName(className);
+    private void renderClassNameLabel(int x, int y, String className, int screenWidth) {
+        String displayName = displayClassName(className);
         FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
-        int textWidth = fontRenderer.getStringWidth(simpleName);
+        int textWidth = fontRenderer.getStringWidth(displayName);
         int textHeight = fontRenderer.FONT_HEIGHT;
 
-        int labelX = x + 2;
+        int labelX = Math.clamp(x + 2, 0, Math.max(0, screenWidth - textWidth - 2));
         int labelY = y - textHeight - 2;
 
         if (labelY < 0) {
             labelY = y + 2;
         }
 
+        GL11.glPushMatrix();
+        GL11.glTranslatef(0.0F, 0.0F, GuideDebugOverlay.ATTACHED_LABEL_Z);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -202,7 +205,8 @@ public class DebugInfoPanel {
         drawRect(labelX - 2, labelY - 1, textWidth + 4, textHeight + 2, 0xD0000000);
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        fontRenderer.drawStringWithShadow(simpleName, labelX, labelY, 0xFFFFFFFF);
+        fontRenderer.drawStringWithShadow(displayName, labelX, labelY, 0xFFFFFFFF);
+        GL11.glPopMatrix();
     }
 
     private void drawRect(int x, int y, int width, int height, int color) {
@@ -220,12 +224,11 @@ public class DebugInfoPanel {
         GL11.glEnd();
     }
 
-    private String simplifyClassName(String fullClassName) {
-        if (fullClassName == null) {
+    private String displayClassName(String className) {
+        if (className == null || className.isEmpty()) {
             return "Unknown";
         }
-        int lastDot = fullClassName.lastIndexOf('.');
-        return lastDot >= 0 ? fullClassName.substring(lastDot + 1) : fullClassName;
+        return className;
     }
 
     private String translate(String key, Object... args) {

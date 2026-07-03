@@ -147,7 +147,7 @@ public class ElementHoverDetector {
             .contains(mouseX, mouseY)) {
             String className = entry.content()
                 .getClass()
-                .getSimpleName();
+                .getName();
             HoveredElementInfo info = new HoveredElementInfo(
                 className,
                 (int) entry.bounds()

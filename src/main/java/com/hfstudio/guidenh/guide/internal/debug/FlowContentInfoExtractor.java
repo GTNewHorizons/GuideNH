@@ -33,7 +33,7 @@ public class FlowContentInfoExtractor {
             } else {
                 info.addExtraInfo(
                     "Type: " + content.getClass()
-                        .getSimpleName());
+                        .getName());
             }
 
             if (content.getStyleClass() != null) {
@@ -56,7 +56,7 @@ public class FlowContentInfoExtractor {
         }
 
         String blockType = block.getClass()
-            .getSimpleName();
+            .getName();
         info.addExtraInfo("Type: " + blockType);
 
         if (block instanceof LytItemImage itemImage) {

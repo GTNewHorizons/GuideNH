@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.internal.debug;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.StatCollector;
@@ -118,7 +117,7 @@ public class DebugControlPanel {
         drawRoundedRect(panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT, 0x80000000, 0xFFAAAAAA);
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        String label = Minecraft.getMinecraft().fontRenderer.trimStringToWidth("Debug Options", PANEL_WIDTH - 4);
+        String label = fontRenderer.trimStringToWidth(translateKey("guidenh.debug.menu.options"), PANEL_WIDTH - 4);
         fontRenderer.drawStringWithShadow(
             label,
             panelX + (PANEL_WIDTH - fontRenderer.getStringWidth(label)) / 2,
