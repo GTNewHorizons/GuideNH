@@ -19,7 +19,6 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
-import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -31,7 +30,6 @@ import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
-import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuiSprite;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -41,8 +39,8 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public class LytMermaidMindmapCanvas extends LytBlock
-    implements DocumentDragTarget, InteractiveElement, DebugComponent {
+public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapCanvas>
+    implements DebugComponent {
 
     private static final int CANVAS_PADDING = 10;
     private static final int MIN_WIDTH = 96;
@@ -116,22 +114,8 @@ public class LytMermaidMindmapCanvas extends LytBlock
     private final Map<String, LytBlock> nodeContentBlocks;
 
     private DiagramLayout layout;
-    private int contentOffsetX;
-    private int contentOffsetY;
-    private final SmoothFloatState visualContentOffsetX = new SmoothFloatState();
-    private final SmoothFloatState visualContentOffsetY = new SmoothFloatState();
-    private float zoom = 1f;
-    private final SmoothFloatState visualZoom = new SmoothFloatState();
     private int preferredWidth;
     private int preferredHeight;
-    private float scaledStyleZoom = Float.NaN;
-    private ResolvedTextStyle scaledRootTextStyle;
-    private ResolvedTextStyle scaledNodeTextStyle;
-    private ResolvedTextStyle scaledIconTextStyle;
-
-    private boolean dragging;
-    private int dragLastDocumentX;
-    private int dragLastDocumentY;
     private int lastPickDocX;
     private int lastPickDocY;
     private boolean lastPickValid;
@@ -149,6 +133,24 @@ public class LytMermaidMindmapCanvas extends LytBlock
         }
     }
 
+    @Override
+    public int canvasPadding() { return CANVAS_PADDING; }
+
+    @Override
+    public int contentWidth() { return layout != null ? layout.diagramWidth() : 0; }
+
+    @Override
+    public int contentHeight() { return layout != null ? layout.diagramHeight() : 0; }
+
+    @Override
+    public int contentOriginX() { return layout != null ? layout.contentBounds().x() : 0; }
+
+    @Override
+    public int contentOriginY() { return layout != null ? layout.contentBounds().y() : 0; }
+
+    @Override
+    public boolean diagramReady() { return layout != null; }
+
     public MindmapDocument getMindmap() {
         return mindmap;
     }
@@ -160,9 +162,8 @@ public class LytMermaidMindmapCanvas extends LytBlock
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        DiagramLayout previousLayout = layout;
-        int previousContentOffsetX = contentOffsetX;
-        int previousContentOffsetY = contentOffsetY;
+        int previousContentOffsetX = getRawOffsetX();
+        int previousContentOffsetY = getRawOffsetY();
         int previousViewportWidth = Math.max(1, bounds.width() - CANVAS_PADDING * 2);
         int previousViewportHeight = Math.max(1, bounds.height() - CANVAS_PADDING * 2);
         int safeWidth = preferredWidth > 0 ? Math.max(1, Math.min(preferredWidth, availableWidth))
@@ -177,7 +178,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         int viewportWidth = Math.max(1, safeWidth - CANVAS_PADDING * 2);
         int innerViewportHeight = Math.max(1, viewportHeight - CANVAS_PADDING * 2);
         restoreViewportAfterLayout(
-            previousLayout,
+            layout,
             previousContentOffsetX,
             previousContentOffsetY,
             previousViewportWidth,
@@ -191,34 +192,20 @@ public class LytMermaidMindmapCanvas extends LytBlock
     protected void onLayoutMoved(int deltaX, int deltaY) {}
 
     @Override
-    public void render(RenderContext context) {
-        if (layout == null) {
-            return;
-        }
-        updateVisualState();
-        ensureScaledStyles(visualZoom.value());
+    protected void onPreRender() {
+        refreshFlowHover();
+    }
 
+    @Override
+    protected void renderPanel(RenderContext context) {
         context.fillRect(bounds, PANEL_BACKGROUND);
         context.drawBorder(bounds, context.resolveColor(PANEL_BORDER), 1);
+    }
 
-        LytRect viewport = getInnerViewport();
-        int baseX = viewport.x() + visualContentOffsetX.rounded()
-            - Math.round(
-                layout.contentBounds()
-                    .x() * visualZoom.value());
-        int baseY = viewport.y() + visualContentOffsetY.rounded()
-            - Math.round(
-                layout.contentBounds()
-                    .y() * visualZoom.value());
-
-        context.pushLocalScissor(viewport);
-        try {
-            refreshFlowHover();
-            renderConnectors(context, layout.root(), baseX, baseY);
-            renderNodes(context, layout.root(), baseX, baseY);
-        } finally {
-            context.popScissor();
-        }
+    @Override
+    protected void renderDiagram(RenderContext context, int baseX, int baseY, float activeZoom) {
+        renderConnectors(context, layout.root(), baseX, baseY);
+        renderNodes(context, layout.root(), baseX, baseY);
     }
 
     @Override
@@ -234,63 +221,6 @@ public class LytMermaidMindmapCanvas extends LytBlock
     @Override
     public List<? extends LytNode> getChildren() {
         return new ArrayList<>(nodeContentBlocks.values());
-    }
-
-    @Override
-    public boolean beginDrag(int documentX, int documentY, int button) {
-        if (button != 0 || layout == null) return false;
-        LytRect viewport = getInnerViewport();
-        if (!viewport.contains(documentX, documentY)) return false;
-        dragging = true;
-        dragLastDocumentX = documentX;
-        dragLastDocumentY = documentY;
-        return true;
-    }
-
-    @Override
-    public void dragTo(int documentX, int documentY) {
-        if (!dragging || layout == null) return;
-        int dx = documentX - dragLastDocumentX;
-        int dy = documentY - dragLastDocumentY;
-        dragLastDocumentX = documentX;
-        dragLastDocumentY = documentY;
-        contentOffsetX += dx;
-        contentOffsetY += dy;
-        clampOffsets();
-    }
-
-    @Override
-    public void endDrag() {
-        dragging = false;
-    }
-
-    @Override
-    public boolean scroll(int documentX, int documentY, int wheelDelta) {
-        if (wheelDelta == 0 || layout == null || !getInnerViewport().contains(documentX, documentY)) return false;
-        LytRect viewport = getInnerViewport();
-        int previousOffsetX = contentOffsetX;
-        int previousOffsetY = contentOffsetY;
-        float previousZoom = zoom;
-        if (wheelDelta > 0) {
-            zoom = Math.min(MAX_ZOOM, zoom * ZOOM_STEP);
-        } else {
-            zoom = Math.max(MIN_ZOOM, zoom / ZOOM_STEP);
-        }
-        if (Math.abs(previousZoom - zoom) < 0.0001f) {
-            return false;
-        }
-        float anchorX = layout.contentBounds()
-            .x() + (documentX - viewport.x() - previousOffsetX) / Math.max(previousZoom, 0.0001f);
-        float anchorY = layout.contentBounds()
-            .y() + (documentY - viewport.y() - previousOffsetY) / Math.max(previousZoom, 0.0001f);
-        contentOffsetX = Math.round(
-            (documentX - viewport.x()) - (anchorX - layout.contentBounds()
-                .x()) * zoom);
-        contentOffsetY = Math.round(
-            (documentY - viewport.y()) - (anchorY - layout.contentBounds()
-                .y()) * zoom);
-        clampOffsets();
-        return true;
     }
 
     @Override
@@ -613,7 +543,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
     }
 
     private void renderConnectors(RenderContext context, NodeLayout node, int baseX, int baseY) {
-        float activeZoom = visualZoom.value();
+        float activeZoom = getActiveZoom();
         for (NodeLayout child : node.children) {
             if (mindmap.getLayoutMode() == MindmapLayoutMode.TIDY_TREE) {
                 drawVerticalConnector(
@@ -640,7 +570,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
     }
 
     private void renderNodes(RenderContext context, NodeLayout node, int baseX, int baseY) {
-        float activeZoom = visualZoom.value();
+        float activeZoom = getActiveZoom();
         LytRect rect = new LytRect(
             scaled(baseX, node.x, activeZoom),
             scaled(baseY, node.y, activeZoom),
@@ -652,8 +582,9 @@ public class LytMermaidMindmapCanvas extends LytBlock
         context.drawBorder(boxRect, colors.border, node.node.getShape() == MermaidNodeShape.BANG ? 2 : 1);
         context.fillRect(new LytRect(boxRect.x(), boxRect.y(), 3, boxRect.height()), colors.accent);
 
-        ResolvedTextStyle style = node.depth == 0 ? scaledRootTextStyle : scaledNodeTextStyle;
-        ResolvedTextStyle badgeStyle = scaledIconTextStyle;
+        ResolvedTextStyle style = getOrScaleStyle(
+            node.depth == 0 ? ROOT_TEXT_STYLE : NODE_TEXT_STYLE, activeZoom);
+        ResolvedTextStyle badgeStyle = getOrScaleStyle( ICON_TEXT_STYLE, activeZoom);
         int paddingX = Math.max(1, Math.round(NODE_PADDING_X * activeZoom));
         int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * activeZoom));
         int iconGapY = Math.max(1, Math.round(ICON_GAP_Y * activeZoom));
@@ -695,9 +626,9 @@ public class LytMermaidMindmapCanvas extends LytBlock
         if (node.contentLayout == null) {
             return;
         }
-        LytRect viewport = getInnerViewport();
+        LytRect innerViewport = getInnerViewport();
         LytRect contentViewport = resolveNodeContentRect(node, rect, paddingX, contentY, activeZoom);
-        LytRect clip = intersect(viewport, contentViewport);
+        LytRect clip = intersect(innerViewport, contentViewport);
         if (clip == null) {
             return;
         }
@@ -828,16 +759,12 @@ public class LytMermaidMindmapCanvas extends LytBlock
         if (layout == null) {
             return null;
         }
-        LytRect viewport = getInnerViewport();
-        float activeZoom = visualZoom.value();
-        int baseX = viewport.x() + visualContentOffsetX.rounded()
-            - Math.round(
-                layout.contentBounds()
-                    .x() * activeZoom);
-        int baseY = viewport.y() + visualContentOffsetY.rounded()
-            - Math.round(
-                layout.contentBounds()
-                    .y() * activeZoom);
+        LytRect innerViewport = getInnerViewport();
+        float activeZoom = getActiveZoom();
+        int baseX = innerViewport.x() + getVisualOffsetX()
+            - getScaledOriginX();
+        int baseY = innerViewport.y() + getVisualOffsetY()
+            - getScaledOriginY();
         List<NodeLayout> contentNodes = layout.contentNodes();
         for (int index = contentNodes.size() - 1; index >= 0; index--) {
             NodeLayout node = contentNodes.get(index);
@@ -895,8 +822,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         if (!node.showBadge || node.badgeText == null) {
             return 0;
         }
-        ensureScaledStyles(activeZoom);
-        ResolvedTextStyle badgeStyle = scaledIconTextStyle;
+        ResolvedTextStyle badgeStyle = getOrScaleStyle( ICON_TEXT_STYLE, activeZoom);
         int badgePaddingY = Math.max(1, Math.round(2 * activeZoom));
         int iconGapY = Math.max(1, Math.round(ICON_GAP_Y * activeZoom));
         return contextLineHeight(badgeStyle) + badgePaddingY * 2 + iconGapY;
@@ -918,22 +844,21 @@ public class LytMermaidMindmapCanvas extends LytBlock
     }
 
     private void restoreViewportAfterLayout(@Nullable DiagramLayout previousLayout, int previousOffsetX,
-        int previousOffsetY, int previousViewportWidth, int previousViewportHeight, int viewportWidth,
-        int viewportHeight) {
+        int previousOffsetY, int previousViewportWidth, int previousViewportHeight,
+        int viewportWidth, int viewportHeight) {
         if (previousLayout == null) {
-            centerDiagram(viewportWidth + CANVAS_PADDING * 2, viewportHeight + CANVAS_PADDING * 2);
+            centerDiagram(viewportWidth, viewportHeight,
+                layout.diagramWidth(), layout.diagramHeight());
             return;
         }
+        float curZoom = getRawZoom();
         float anchorX = previousLayout.contentBounds()
-            .x() + (previousViewportWidth * 0.5f - previousOffsetX) / Math.max(zoom, 0.0001f);
+            .x() + (previousViewportWidth * 0.5f - previousOffsetX) / Math.max(curZoom, 0.0001f);
         float anchorY = previousLayout.contentBounds()
-            .y() + (previousViewportHeight * 0.5f - previousOffsetY) / Math.max(zoom, 0.0001f);
-        contentOffsetX = Math.round(
-            viewportWidth * 0.5f - (anchorX - layout.contentBounds()
-                .x()) * zoom);
-        contentOffsetY = Math.round(
-            viewportHeight * 0.5f - (anchorY - layout.contentBounds()
-                .y()) * zoom);
+            .y() + (previousViewportHeight * 0.5f - previousOffsetY) / Math.max(curZoom, 0.0001f);
+        setContentOffset(
+            Math.round(viewportWidth * 0.5f - (anchorX - layout.contentBounds().x()) * curZoom),
+            Math.round(viewportHeight * 0.5f - (anchorY - layout.contentBounds().y()) * curZoom));
         clampOffsets();
     }
 
@@ -1177,91 +1102,8 @@ public class LytMermaidMindmapCanvas extends LytBlock
         return index + 1;
     }
 
-    private void centerDiagram(int viewportWidth, int viewportHeight) {
-        if (layout == null) {
-            return;
-        }
-        int innerWidth = Math.max(1, viewportWidth - CANVAS_PADDING * 2);
-        int innerHeight = Math.max(1, viewportHeight - CANVAS_PADDING * 2);
-        contentOffsetX = (innerWidth - Math.round(layout.diagramWidth * zoom)) / 2;
-        contentOffsetY = (innerHeight - Math.round(layout.diagramHeight * zoom)) / 2;
-        visualContentOffsetX.snapTo(contentOffsetX);
-        visualContentOffsetY.snapTo(contentOffsetY);
-        visualZoom.snapTo(zoom);
-        clampOffsets();
-    }
-
-    private void clampOffsets() {
-        if (layout == null || bounds == null) {
-            return;
-        }
-        int innerWidth = Math.max(1, bounds.width() - CANVAS_PADDING * 2);
-        int innerHeight = Math.max(1, bounds.height() - CANVAS_PADDING * 2);
-
-        contentOffsetX = clampAxis(contentOffsetX, innerWidth, Math.round(layout.diagramWidth * zoom));
-        contentOffsetY = clampAxis(contentOffsetY, innerHeight, Math.round(layout.diagramHeight * zoom));
-    }
-
-    private void updateVisualState() {
-        visualContentOffsetX.updateTowards(contentOffsetX, 26f, 0.05f, 0.01f, Math.max(128f, bounds.width() * 2f));
-        visualContentOffsetY.updateTowards(contentOffsetY, 26f, 0.05f, 0.01f, Math.max(128f, bounds.height() * 2f));
-        visualZoom.updateTowards(zoom, 24f, 0.05f, 0.0001f, 4f);
-    }
-
-    private int clampAxis(int offset, int viewportSize, int contentSize) {
-        if (contentSize <= viewportSize) {
-            return (viewportSize - contentSize) / 2;
-        }
-        int min = viewportSize - contentSize;
-        int max = 0;
-        return Math.clamp(offset, min, max);
-    }
-
-    private LytRect getInnerViewport() {
-        return new LytRect(
-            bounds.x() + CANVAS_PADDING,
-            bounds.y() + CANVAS_PADDING,
-            Math.max(1, bounds.width() - CANVAS_PADDING * 2),
-            Math.max(1, bounds.height() - CANVAS_PADDING * 2));
-    }
-
     private int resolvePreferredViewportWidth() {
         return preferredWidth > 0 ? preferredWidth : MIN_WIDTH;
-    }
-
-    private int scaled(int base, int value, float activeZoom) {
-        return base + Math.round(value * activeZoom);
-    }
-
-    private ResolvedTextStyle scaleStyle(ResolvedTextStyle baseStyle, float activeZoom) {
-        return new ResolvedTextStyle(
-            baseStyle.fontScale() * activeZoom,
-            baseStyle.bold(),
-            baseStyle.italic(),
-            baseStyle.underlined(),
-            baseStyle.wavyUnderline(),
-            baseStyle.dottedUnderline(),
-            baseStyle.strikethrough(),
-            baseStyle.obfuscated(),
-            baseStyle.font(),
-            baseStyle.color(),
-            baseStyle.whiteSpace(),
-            baseStyle.alignment(),
-            baseStyle.dropShadow(),
-            baseStyle.backgroundColor(),
-            baseStyle.inlineCode());
-    }
-
-    private void ensureScaledStyles(float activeZoom) {
-        if (Float.compare(scaledStyleZoom, activeZoom) == 0 && scaledRootTextStyle != null
-            && scaledNodeTextStyle != null
-            && scaledIconTextStyle != null) {
-            return;
-        }
-        scaledStyleZoom = activeZoom;
-        scaledRootTextStyle = scaleStyle(ROOT_TEXT_STYLE, activeZoom);
-        scaledNodeTextStyle = scaleStyle(NODE_TEXT_STYLE, activeZoom);
-        scaledIconTextStyle = scaleStyle(ICON_TEXT_STYLE, activeZoom);
     }
 
     LytRect getContentBoundsForTesting() {
@@ -1735,16 +1577,12 @@ public class LytMermaidMindmapCanvas extends LytBlock
             return components;
         }
 
-        LytRect viewport = getInnerViewport();
-        float activeZoom = visualZoom.value();
-        int baseX = viewport.x() + visualContentOffsetX.rounded()
-            - Math.round(
-                layout.contentBounds()
-                    .x() * activeZoom);
-        int baseY = viewport.y() + visualContentOffsetY.rounded()
-            - Math.round(
-                layout.contentBounds()
-                    .y() * activeZoom);
+        LytRect innerViewport = getInnerViewport();
+        float activeZoom = getActiveZoom();
+        int baseX = innerViewport.x() + getVisualOffsetX()
+            - getScaledOriginX();
+        int baseY = innerViewport.y() + getVisualOffsetY()
+            - getScaledOriginY();
 
         // Collect all nodes from the layout
         collectNodeComponents(layout.root(), components, baseX, baseY, activeZoom);
@@ -1786,7 +1624,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
             int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * activeZoom));
             int badgePaddingX = Math.max(2, Math.round(4 * activeZoom));
             int badgePaddingY = Math.max(1, Math.round(2 * activeZoom));
-            ResolvedTextStyle badgeStyle = scaleStyle(ICON_TEXT_STYLE, activeZoom);
+            ResolvedTextStyle badgeStyle = getOrScaleStyle( ICON_TEXT_STYLE, activeZoom);
 
             // Calculate badge bounds (simplified from renderNodes)
             int badgeWidth = Math.max(1, 100 + badgePaddingX * 2); // Approximate
