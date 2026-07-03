@@ -63,3 +63,12 @@ date: 2024-01-01
 <BlockImage id="minecraft:crafting_table" />
 
 <ItemLink id="minecraft:stick" />
+
+## BetterQuesting 描述链接
+
+安装 BetterQuesting 时，任务描述可以用兼容 BQ 换行和点击热区的方式打开 GuideNH 页面：
+
+```text
+[guide]guidenh:navigation-guide[/guide]
+[guide page=guidenh:navigation-guide]打开导航指南[/guide]
+```
