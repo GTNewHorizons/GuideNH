@@ -6,42 +6,38 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
+import org.jetbrains.annotations.Nullable;
+
 public class FlowchartDocument {
 
+    @Getter
     private final FlowchartDirection direction;
+    @Getter
     private final Map<String, FlowchartNode> nodes;
+    @Getter
     private final List<FlowchartEdge> edges;
+    @Getter
     private final List<FlowchartSubgraph> subgraphs;
+    @Getter
     private final List<String> nodeOrder;
+    @Getter
+    private final FlowchartLayoutMode layoutMode;
 
     public FlowchartDocument(FlowchartDirection direction, Map<String, FlowchartNode> nodes, List<FlowchartEdge> edges,
         List<FlowchartSubgraph> subgraphs) {
+        this(direction, nodes, edges, subgraphs, null);
+    }
+
+    public FlowchartDocument(FlowchartDirection direction, Map<String, FlowchartNode> nodes, List<FlowchartEdge> edges,
+        List<FlowchartSubgraph> subgraphs, @Nullable FlowchartLayoutMode layoutMode) {
         this.direction = direction != null ? direction : FlowchartDirection.TB;
         Map<String, FlowchartNode> src = nodes != null ? nodes : Map.of();
         this.nodes = Map.copyOf(new LinkedHashMap<>(src));
         this.edges = List.copyOf(new ArrayList<>(edges != null ? edges : List.of()));
         this.subgraphs = List.copyOf(new ArrayList<>(subgraphs != null ? subgraphs : List.of()));
+        this.layoutMode = layoutMode != null ? layoutMode : FlowchartLayoutMode.BUILTIN;
         List<String> order = new ArrayList<>(src.keySet());
         this.nodeOrder = Collections.unmodifiableList(order);
-    }
-
-    public FlowchartDirection getDirection() {
-        return direction;
-    }
-
-    public Map<String, FlowchartNode> getNodes() {
-        return nodes;
-    }
-
-    public List<FlowchartEdge> getEdges() {
-        return edges;
-    }
-
-    public List<FlowchartSubgraph> getSubgraphs() {
-        return subgraphs;
-    }
-
-    public List<String> getNodeOrder() {
-        return nodeOrder;
     }
 }

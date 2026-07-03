@@ -66,7 +66,7 @@ public class FlowchartParser {
 
     private static FlowchartDocument parseLines(List<String> lines) {
         FlowchartDirection direction = FlowchartDirection.TB;
-        boolean layoutElkWarned = false;
+        FlowchartLayoutMode layoutMode = FlowchartLayoutMode.BUILTIN;
 
         int index = 0;
         if (!lines.isEmpty() && MermaidSourceExtractor.isFrontmatterDelimiter(lines.getFirst())) {
@@ -74,9 +74,7 @@ public class FlowchartParser {
             if (end > 0) {
                 List<String> frontmatter = lines.subList(1, end);
                 direction = parseFrontmatterDirection(frontmatter, direction);
-                if (hasLayoutElk(frontmatter)) {
-                    layoutElkWarned = true;
-                }
+                layoutMode = parseFrontmatterLayout(frontmatter);
                 index = end + 1;
             }
         }
@@ -335,13 +333,13 @@ public class FlowchartParser {
         applyStyleOverrides(nodes, styleOverrides);
         applyClassDefs(nodes, classDefs);
 
-        if (layoutElkWarned) {
+        if (layoutMode == FlowchartLayoutMode.ELK) {
             System.err.println(
                 "[FlowchartParser] Warning: 'layout: elk' is not supported yet. "
                     + "Using built-in orthogonal layout.");
         }
 
-        return new FlowchartDocument(direction, nodes, edges, subgraphs);
+        return new FlowchartDocument(direction, nodes, edges, subgraphs, layoutMode);
     }
 
     private static FlowchartDirection parseFrontmatterDirection(List<String> lines, FlowchartDirection fallback) {
@@ -358,20 +356,19 @@ public class FlowchartParser {
         return fallback;
     }
 
-    private static boolean hasLayoutElk(List<String> lines) {
+    @Nullable
+    private static FlowchartLayoutMode parseFrontmatterLayout(List<String> lines) {
         for (String line : lines) {
             String trimmed = line.trim();
             int colon = trimmed.indexOf(':');
             if (colon <= 0) continue;
             String key = trimmed.substring(0, colon)
                 .trim();
-            String value = trimmed.substring(colon + 1)
-                .trim();
-            if ("layout".equalsIgnoreCase(key) && "elk".equalsIgnoreCase(value)) {
-                return true;
+            if ("layout".equalsIgnoreCase(key)) {
+                return FlowchartLayoutMode.fromConfigValue(trimmed.substring(colon + 1));
             }
         }
-        return false;
+        return FlowchartLayoutMode.BUILTIN;
     }
 
     private static boolean isSubgraphLocalDirective(String trimmed) {
