@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser;
@@ -305,7 +306,13 @@ public class FlowchartParser {
                         fromId,
                         toId,
                         restLabel != null ? MermaidParser.normalizeLabel(restLabel) : null,
-                        edge.getStyle());
+                        edge.getStyle(),
+                        edge.isArrowFwd(),
+                        edge.isArrowRev(),
+                        edge.getForwardHead(),
+                        edge.getReverseHead(),
+                        null,
+                        0);
                     processLine = rest;
                 }
                 continue;
@@ -725,13 +732,23 @@ public class FlowchartParser {
         if (toId == null) return null;
 
         String edgeLabel = label != null ? MermaidParser.normalizeLabel(label) : null;
-        FlowchartEdge edge = new FlowchartEdge(fromId, toId, edgeLabel, matched.style, edgeId, length);
-
-        if (matched.arrowRev && !matched.arrowFwd) {
-            edge = new FlowchartEdge(toId, fromId, edgeLabel, matched.style, edgeId, length);
-        }
+        MermaidArrowHead fwdHead = deriveHeadType(matched.syntax, true);
+        MermaidArrowHead revHead = deriveHeadType(matched.syntax, false);
+        FlowchartEdge edge = new FlowchartEdge(fromId, toId, edgeLabel, matched.style,
+            matched.arrowFwd, matched.arrowRev, fwdHead, revHead, edgeId, length);
 
         return edge;
+    }
+
+    private static MermaidArrowHead deriveHeadType(String syntax, boolean forward) {
+        if (syntax == null || syntax.isEmpty()) return MermaidArrowHead.NONE;
+        char c = forward ? syntax.charAt(syntax.length() - 1) : syntax.charAt(0);
+        return switch (c) {
+            case '>' -> MermaidArrowHead.TRIANGLE;
+            case 'o' -> MermaidArrowHead.CIRCLE;
+            case 'x' -> MermaidArrowHead.CROSS;
+            default -> MermaidArrowHead.NONE;
+        };
     }
 
     private static void applyStyleOverrides(Map<String, FlowchartNode> nodes, Map<String, String> styleOverrides) {

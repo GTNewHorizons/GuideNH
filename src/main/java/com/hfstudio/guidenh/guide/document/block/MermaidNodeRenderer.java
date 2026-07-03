@@ -8,6 +8,7 @@ import java.util.Map;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.guide.layout.FontMetrics;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -159,6 +160,19 @@ public final class MermaidNodeRenderer {
     }
 
     // ---- Text wrapping ----
+
+    public static List<String> wrapText(RenderContext context, ResolvedTextStyle style, String text, int maxWidth) {
+        return wrapText(new LayoutContext(new FontMetrics() {
+            @Override
+            public float getAdvance(int codePoint, ResolvedTextStyle s) {
+                return context.getStringWidth(new String(Character.toChars(codePoint)), s);
+            }
+            @Override
+            public int getLineHeight(ResolvedTextStyle s) {
+                return context.getLineHeight(s);
+            }
+        }), style, text, maxWidth);
+    }
 
     public static List<String> wrapText(LayoutContext context, ResolvedTextStyle style, String text, int maxWidth) {
         List<String> result = new ArrayList<>();
