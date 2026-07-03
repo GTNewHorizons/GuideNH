@@ -15,8 +15,9 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeContentExtractor;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 
@@ -55,9 +56,9 @@ public class MermaidCompiler extends BlockTagCompiler {
             // is not consumed by markdown parsing. PR #24.
             String rawSource = compiler.getBlockTagChildrenSource(el);
             if (rawSource != null) {
-                sourceText = MermaidMindmapParser.normalize(stripNodeContentBlocks(rawSource));
+                sourceText = normalizeSource(stripNodeContentBlocks(rawSource));
             } else {
-                sourceText = MermaidMindmapNodeContentExtractor.extractDiagramSource(el.children());
+                sourceText = MermaidSourceExtractor.extractDiagramSource(el.children());
             }
         }
 
@@ -67,12 +68,16 @@ public class MermaidCompiler extends BlockTagCompiler {
             return;
         }
 
+        MermaidDiagramType diagramType = sourceText != null ? MermaidDiagramType.detect(sourceText)
+            : MermaidDiagramType.UNKNOWN;
+
         int width = MdxAttrs.getInt(compiler, parent, el, "width", 0);
         int height = MdxAttrs.getInt(compiler, parent, el, "height", 0);
 
         Map<String, LytBlock> nodeContentBlocks = compileNodeContentBlocks(compiler, parent, el);
 
-        MermaidPlaceholder placeholder = new MermaidPlaceholder(src, sourceText, width, height, nodeContentBlocks);
+        MermaidPlaceholder placeholder = new MermaidPlaceholder(diagramType, src, sourceText, width, height,
+            nodeContentBlocks);
         placeholder.appendText("[Mermaid]");
         parent.append(placeholder);
     }
@@ -95,7 +100,7 @@ public class MermaidCompiler extends BlockTagCompiler {
             sink.appendText(el, src);
             sink.appendBreak();
         } else {
-            String inlineSource = MermaidMindmapNodeContentExtractor.extractDiagramSource(el.children());
+            String inlineSource = MermaidSourceExtractor.extractDiagramSource(el.children());
             if (inlineSource != null && !inlineSource.trim()
                 .isEmpty()) {
                 sink.appendText(el, inlineSource);
@@ -112,9 +117,9 @@ public class MermaidCompiler extends BlockTagCompiler {
         // (MOUNT time), so cross-validation must happen at runtime. See MermaidScript for the
         // runtime counterpart.
         Map<String, LytBlock> result = new LinkedHashMap<>();
-        for (MdxJsxFlowElement child : MermaidMindmapNodeContentExtractor
+        for (MdxJsxFlowElement child : MermaidSourceExtractor
             .collectNodeContentElements(mermaidElement.children())) {
-            String id = MermaidMindmapNodeContentExtractor.readNodeContentId(child);
+            String id = MermaidSourceExtractor.readNodeContentId(child);
             if (id == null) {
                 parent.appendError(compiler, "Mermaid <NodeContent> requires a non-empty id attribute.", child);
                 continue;
@@ -141,14 +146,16 @@ public class MermaidCompiler extends BlockTagCompiler {
 
     public static class MermaidPlaceholder extends LytParagraph {
 
+        public final MermaidDiagramType diagramType;
         public final String src;
         public final String sourceText;
         public final int width;
         public final int height;
         public final Map<String, LytBlock> nodeContentBlocks;
 
-        public MermaidPlaceholder(String src, String sourceText, int width, int height,
+        public MermaidPlaceholder(MermaidDiagramType diagramType, String src, String sourceText, int width, int height,
             Map<String, LytBlock> nodeContentBlocks) {
+            this.diagramType = diagramType != null ? diagramType : MermaidDiagramType.UNKNOWN;
             this.src = src;
             this.sourceText = sourceText;
             this.width = width;
@@ -157,6 +164,10 @@ public class MermaidCompiler extends BlockTagCompiler {
             setStyleClass("Mermaid");
             setStyle(LytParagraph.PLACEHOLDER_STYLE);
         }
+    }
+
+    private static String normalizeSource(String source) {
+        return GuideStringLines.normalizeLineEndings(source);
     }
 
     private static String stripNodeContentBlocks(String source) {

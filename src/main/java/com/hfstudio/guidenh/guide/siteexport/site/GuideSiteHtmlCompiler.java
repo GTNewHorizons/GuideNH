@@ -25,8 +25,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -543,7 +543,7 @@ public class GuideSiteHtmlCompiler {
         }
         if ("mermaid".equals(lang)) {
             try {
-                MermaidMindmapDocument doc = MermaidMindmapParser.parse(codeText);
+                MindmapDocument doc = MindmapParser.parse(codeText);
                 return GuideSiteGraphRenderer.renderMermaidTree(doc);
             } catch (Exception ignored) {
                 return CODE_BLOCK_RENDERER.render("mermaid", codeText, width, height);

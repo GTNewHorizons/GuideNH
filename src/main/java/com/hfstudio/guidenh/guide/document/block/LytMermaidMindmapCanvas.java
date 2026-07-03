@@ -25,10 +25,10 @@ import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapLayoutMode;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapLayoutMode;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNodeShape;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
@@ -112,7 +112,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         null,
         false);
 
-    private final MermaidMindmapDocument mindmap;
+    private final MindmapDocument mindmap;
     private final Map<String, LytBlock> nodeContentBlocks;
 
     private DiagramLayout layout;
@@ -140,7 +140,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
     @Nullable
     private LytFlowContent lastFlowHoverContent;
 
-    public LytMermaidMindmapCanvas(MermaidMindmapDocument mindmap, Map<String, LytBlock> nodeContentBlocks) {
+    public LytMermaidMindmapCanvas(MindmapDocument mindmap, Map<String, LytBlock> nodeContentBlocks) {
         this.mindmap = mindmap;
         this.nodeContentBlocks = nodeContentBlocks == null ? Collections.emptyMap()
             : new LinkedHashMap<>(nodeContentBlocks);
@@ -149,7 +149,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         }
     }
 
-    public MermaidMindmapDocument getMindmap() {
+    public MindmapDocument getMindmap() {
         return mindmap;
     }
 
@@ -341,7 +341,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         int maxNodeTextWidth = Math.clamp(innerWidth / 3, 72, 180);
         NodeLayout root = prepareLayout(context, mindmap.getRoot(), 0, maxNodeTextWidth);
 
-        if (mindmap.getLayoutMode() == MermaidMindmapLayoutMode.TIDY_TREE) {
+        if (mindmap.getLayoutMode() == MindmapLayoutMode.TIDY_TREE) {
             measureTopDown(root);
             layoutTopDown(root, 0, 0);
             return buildDiagramLayout(root);
@@ -435,7 +435,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         return result;
     }
 
-    private NodeLayout prepareLayout(LayoutContext context, MermaidMindmapNode node, int depth, int maxNodeTextWidth) {
+    private NodeLayout prepareLayout(LayoutContext context, MindmapNode node, int depth, int maxNodeTextWidth) {
         String badgeText = simplifyIcon(node.getIcon());
         String primaryText = node.getText();
         boolean showBadge = badgeText != null && !badgeText.isEmpty()
@@ -504,13 +504,13 @@ public class LytMermaidMindmapCanvas extends LytBlock
         }
 
         NodeLayout layout = new NodeLayout(node, depth, lines, badgeText, showBadge, contentLayout, width, height);
-        for (MermaidMindmapNode child : node.getChildren()) {
+        for (MindmapNode child : node.getChildren()) {
             layout.children.add(prepareLayout(context, child, depth + 1, maxNodeTextWidth));
         }
         return layout;
     }
 
-    private @Nullable NodeContentLayout prepareNodeContentLayout(LayoutContext context, MermaidMindmapNode node,
+    private @Nullable NodeContentLayout prepareNodeContentLayout(LayoutContext context, MindmapNode node,
         int maxNodeTextWidth) {
         LytBlock block = nodeContentBlocks.get(node.getId());
         if (block == null) {
@@ -615,7 +615,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
     private void renderConnectors(RenderContext context, NodeLayout node, int baseX, int baseY) {
         float activeZoom = visualZoom.value();
         for (NodeLayout child : node.children) {
-            if (mindmap.getLayoutMode() == MermaidMindmapLayoutMode.TIDY_TREE) {
+            if (mindmap.getLayoutMode() == MindmapLayoutMode.TIDY_TREE) {
                 drawVerticalConnector(
                     context,
                     scaled(baseX, node.centerX(), activeZoom),
@@ -649,7 +649,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         LytRect boxRect = rect;
         NodeColors colors = resolveColors(node.node);
         context.fillRect(boxRect, colors.background);
-        context.drawBorder(boxRect, colors.border, node.node.getShape() == MermaidMindmapNodeShape.BANG ? 2 : 1);
+        context.drawBorder(boxRect, colors.border, node.node.getShape() == MindmapNodeShape.BANG ? 2 : 1);
         context.fillRect(new LytRect(boxRect.x(), boxRect.y(), 3, boxRect.height()), colors.accent);
 
         ResolvedTextStyle style = node.depth == 0 ? scaledRootTextStyle : scaledNodeTextStyle;
@@ -989,7 +989,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         return bounds;
     }
 
-    private NodeColors resolveColors(MermaidMindmapNode node) {
+    private NodeColors resolveColors(MindmapNode node) {
         int accent = 0xFF7AA2F7;
         for (String className : node.getClasses()) {
             String lower = className.toLowerCase();
@@ -1680,7 +1680,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
 
     public static class NodeLayout {
 
-        private final MermaidMindmapNode node;
+        private final MindmapNode node;
         private final int depth;
         private final List<String> lines;
         private final String badgeText;
@@ -1696,8 +1696,8 @@ public class LytMermaidMindmapCanvas extends LytBlock
         private int subtreeWidth;
         private int subtreeHeight;
 
-        public NodeLayout(MermaidMindmapNode node, int depth, List<String> lines, String badgeText, boolean showBadge,
-            @Nullable NodeContentLayout contentLayout, int width, int height) {
+        public NodeLayout(MindmapNode node, int depth, List<String> lines, String badgeText, boolean showBadge,
+                          @Nullable NodeContentLayout contentLayout, int width, int height) {
             this.node = node;
             this.depth = depth;
             this.lines = lines;
