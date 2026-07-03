@@ -28,7 +28,7 @@ import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapLayoutMode;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
-import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNodeShape;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
@@ -649,7 +649,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         LytRect boxRect = rect;
         NodeColors colors = resolveColors(node.node);
         context.fillRect(boxRect, colors.background);
-        context.drawBorder(boxRect, colors.border, node.node.getShape() == MindmapNodeShape.BANG ? 2 : 1);
+        context.drawBorder(boxRect, colors.border, node.node.getShape() == MermaidNodeShape.BANG ? 2 : 1);
         context.fillRect(new LytRect(boxRect.x(), boxRect.y(), 3, boxRect.height()), colors.accent);
 
         ResolvedTextStyle style = node.depth == 0 ? scaledRootTextStyle : scaledNodeTextStyle;

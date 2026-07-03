@@ -24,7 +24,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
-import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNodeShape;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 
 /**
  * Generates static HTML and SVG markup for chart, function-graph, file-tree,
@@ -271,8 +271,8 @@ public class GuideSiteGraphRenderer {
         }
     }
 
-    private static String escapeShapeClass(@Nullable MindmapNodeShape shape) {
-        return switch (shape != null ? shape : MindmapNodeShape.DEFAULT) {
+    private static String escapeShapeClass(@Nullable MermaidNodeShape shape) {
+        return switch (shape != null ? shape : MermaidNodeShape.DEFAULT) {
             case ROUNDED -> "rounded";
             case CIRCLE -> "circle";
             case HEXAGON -> "hexagon";

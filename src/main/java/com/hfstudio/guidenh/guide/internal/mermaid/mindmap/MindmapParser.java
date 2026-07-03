@@ -9,6 +9,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser.NodeShapePattern;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser.ShapeMatch;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 
 public class MindmapParser {
@@ -32,10 +37,8 @@ public class MindmapParser {
         MindmapLayoutMode layoutMode = MindmapLayoutMode.MINDMAP;
         int index = 0;
 
-        if (!lines.isEmpty() && "---".equals(
-            lines.get(0)
-                .trim())) {
-            int end = findFrontmatterEnd(lines);
+        if (!lines.isEmpty() && MermaidSourceExtractor.isFrontmatterDelimiter(lines.getFirst())) {
+            int end = MermaidSourceExtractor.findFrontmatterEnd(lines);
             if (end > 0) {
                 layoutMode = parseFrontmatter(lines.subList(1, end));
                 index = end + 1;
@@ -96,17 +99,6 @@ public class MindmapParser {
     private static boolean shouldSkipPreamble(String line) {
         String trimmed = line != null ? line.trim() : "";
         return trimmed.isEmpty() || trimmed.startsWith("%%");
-    }
-
-    private static int findFrontmatterEnd(List<String> lines) {
-        for (int i = 1; i < lines.size(); i++) {
-            if ("---".equals(
-                lines.get(i)
-                    .trim())) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     private static MindmapLayoutMode parseFrontmatter(List<String> lines) {
@@ -172,12 +164,12 @@ public class MindmapParser {
             working = "";
         }
 
-        ShapeParseResult parsedShape = tryParseShape(working);
-        String id = parsedShape != null ? parsedShape.id() : "";
+        ShapeMatch parsedShape = NodeShapePattern.tryParseShape(working);
+        String id = parsedShape != null ? parsedShape.prefix() : "";
         String label = parsedShape != null ? parsedShape.label() : working;
-        MindmapNodeShape shape = parsedShape != null ? parsedShape.shape() : MindmapNodeShape.DEFAULT;
+        MermaidNodeShape shape = parsedShape != null ? parsedShape.shape() : MermaidNodeShape.DEFAULT;
 
-        String labelSource = normalizeLabelSource(label);
+        String labelSource = MermaidParser.normalizeLabel(label);
         String plainText = toPlainText(labelSource);
         if (plainText.isEmpty() && icon != null && !icon.isEmpty()) {
             labelSource = formatIconLabel(icon);
@@ -210,61 +202,6 @@ public class MindmapParser {
         return result;
     }
 
-    private static ShapeParseResult tryParseShape(String text) {
-        ShapeParseResult parsed = parseShape(text, "{{", "}}", MindmapNodeShape.HEXAGON);
-        if (parsed != null) {
-            return parsed;
-        }
-
-        parsed = parseShape(text, "))", "((", MindmapNodeShape.BANG);
-        if (parsed != null) {
-            return parsed;
-        }
-
-        parsed = parseShape(text, "((", "))", MindmapNodeShape.CIRCLE);
-        if (parsed != null) {
-            return parsed;
-        }
-
-        parsed = parseShape(text, ")", "(", MindmapNodeShape.CLOUD);
-        if (parsed != null) {
-            return parsed;
-        }
-
-        parsed = parseShape(text, "[", "]", MindmapNodeShape.SQUARE);
-        if (parsed != null) {
-            return parsed;
-        }
-
-        return parseShape(text, "(", ")", MindmapNodeShape.ROUNDED);
-    }
-
-    private static ShapeParseResult parseShape(String text, String open, String close, MindmapNodeShape shape) {
-        if (text == null || text.isEmpty()) {
-            return null;
-        }
-        int openIndex = text.indexOf(open);
-        if (openIndex < 0 || !text.endsWith(close) || openIndex + open.length() > text.length() - close.length()) {
-            return null;
-        }
-
-        String prefix = text.substring(0, openIndex)
-            .trim();
-        String label = text.substring(openIndex + open.length(), text.length() - close.length());
-        return new ShapeParseResult(prefix, stripWrappingQuotes(label.trim()), shape);
-    }
-
-    private static String normalizeLabelSource(String text) {
-        String normalized = text != null ? text : "";
-        normalized = normalized.replace("<br/>", "\n")
-            .replace("<br />", "\n")
-            .replace("<br>", "\n")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace("&amp;", "&");
-        return stripWrappingQuotes(normalized.trim());
-    }
-
     private static String toPlainText(String text) {
         if (text == null || text.isEmpty()) {
             return "";
@@ -281,18 +218,9 @@ public class MindmapParser {
             .replace("::", "")
             .replace("`", "");
         normalized = normalized.replaceAll("</?[a-zA-Z]+[^>]*>", "");
-        return stripWrappingQuotes(normalized.trim());
+        return MermaidParser.stripWrappingQuotes(normalized.trim());
     }
 
-    private static String stripWrappingQuotes(String text) {
-        if (text == null || text.length() < 2) {
-            return text != null ? text : "";
-        }
-        if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
-            return text.substring(1, text.length() - 1);
-        }
-        return text;
-    }
 
     private static String formatIconLabel(String icon) {
         if (icon == null || icon.trim()
@@ -351,9 +279,6 @@ public class MindmapParser {
         }
         return indent;
     }
-
-    @Desugar
-    public record ShapeParseResult(String id, String label, MindmapNodeShape shape) {}
 
     @Desugar
     public record StackEntry(int indent, MindmapNode node) {}

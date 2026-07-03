@@ -10,10 +10,6 @@ public enum MermaidDiagramType {
     FLOWCHART,
     UNKNOWN;
 
-    private static boolean isFrontmatterDelimiter(String line) {
-        return "---".equals(line.trim());
-    }
-
     public static MermaidDiagramType detect(String source) {
         if (source == null || source.isEmpty()) {
             return UNKNOWN;
@@ -23,12 +19,9 @@ public enum MermaidDiagramType {
 
         int i = 0;
 
-        if (!lines.isEmpty() && isFrontmatterDelimiter(lines.getFirst())) {
-            i++;
-            while (i < lines.size() && !isFrontmatterDelimiter(lines.get(i))) {
-                i++;
-            }
-            i++;
+        if (!lines.isEmpty() && MermaidSourceExtractor.isFrontmatterDelimiter(lines.getFirst())) {
+            int end = MermaidSourceExtractor.findFrontmatterEnd(lines);
+            i = end > 0 ? end + 1 : lines.size();
         }
 
         for (; i < lines.size(); i++) {
