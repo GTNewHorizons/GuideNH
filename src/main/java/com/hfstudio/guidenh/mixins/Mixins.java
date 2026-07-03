@@ -34,6 +34,10 @@ public enum Mixins implements IMixins {
     WR_CBE_UNLOADED_JAM_STATE(Side.CLIENT, Phase.LATE, Mods.WirelessRedstoneCore,
         "compat.wirelessredstone.MixinRedstoneEther"),
 
+    BLOCK_RENDERER_6343(Side.CLIENT, Phase.LATE, Mods.BlockRenderer6343,
+        "compat.blockrenderer6343.AccessorConstructableData",
+        "compat.blockrenderer6343.AccessorGTNEIMultiblockHandler"),
+
     ;
 
     private final MixinBuilder builder;

@@ -903,7 +903,9 @@ public class DataDrivenGuideLoader {
     }
 
     private static List<NamespaceRoot> discoverNativeNamespaceRoots(File resourcePackRoot) {
-        Path key = resourcePackRoot.toPath().toAbsolutePath().normalize();
+        Path key = resourcePackRoot.toPath()
+            .toAbsolutePath()
+            .normalize();
         List<NamespaceRoot> cached = nativeNamespaceRootsCache.get(key);
         if (cached != null) {
             return cached;

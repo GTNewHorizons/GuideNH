@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.integration.structurelib;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -36,9 +37,9 @@ public class StructureLibElementTooltipResolver {
     public static final String LAZY_ELEMENT_CLASS_NAME = "com.gtnewhorizon.structurelib.structure.LazyStructureElement";
     public static final IItemSource EMPTY_ITEM_SOURCE = (predicate, simulate, count) -> Map.of();
     public static final Map<Class<?>, List<Field>> CAPTURED_ELEMENT_FIELDS_CACHE = new ConcurrentHashMap<>();
-    public static final StructureLibBoundedCache<CandidateCacheKey, List<ItemStack>> BLOCK_CANDIDATE_CACHE = new StructureLibBoundedCache<>(
+    public static final Map<CandidateCacheKey, List<ItemStack>> BLOCK_CANDIDATE_CACHE = createBoundedCache(
         MAX_CANDIDATE_CACHE_ENTRIES);
-    public static final StructureLibBoundedCache<CandidateCacheKey, List<ItemStack>> HATCH_CANDIDATE_CACHE = new StructureLibBoundedCache<>(
+    public static final Map<CandidateCacheKey, List<ItemStack>> HATCH_CANDIDATE_CACHE = createBoundedCache(
         MAX_CANDIDATE_CACHE_ENTRIES);
 
     private final HatchSupport hatchSupport;
@@ -410,6 +411,20 @@ public class StructureLibElementTooltipResolver {
             return List.of();
         }
         return List.copyOf(candidatesByKey.values());
+    }
+
+    /**
+     * Creates a thread-safe bounded cache using a synchronized LRU-linked map.
+     */
+    public static <K, V> Map<K, V> createBoundedCache(int maxEntries) {
+        int capacity = Math.max(1, maxEntries);
+        return Collections.synchronizedMap(new LinkedHashMap<K, V>(capacity, 0.75F, true) {
+
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+                return size() > capacity;
+            }
+        });
     }
 
     @SuppressWarnings("unchecked")

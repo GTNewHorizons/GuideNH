@@ -54,7 +54,6 @@ public class StructureLibControllerDiscovery {
             }
         } finally {
             context.clear();
-            StructureLibRuntimeFacade.CONTROL_ANALYSIS_CACHE.clear();
         }
         controllers.sort(
             Comparator.comparing(StructureLibControllerSpec::getBlockId)

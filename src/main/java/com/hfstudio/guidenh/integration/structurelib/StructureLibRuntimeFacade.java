@@ -1,12 +1,12 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,12 +38,15 @@ import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.mojang.authlib.GameProfile;
 
+import blockrenderer6343.client.utils.ConstructableData;
 import cpw.mods.fml.common.registry.GameRegistry;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import lombok.Getter;
 
 public class StructureLibRuntimeFacade implements StructureLibFacade {
@@ -55,18 +58,9 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     public static final int MAX_TIER = 50;
     public static final int SURVIVAL_BUILD_BUDGET = 512;
     public static final int SURVIVAL_BUILD_MAX_ROUNDS = 256;
-    public static final int MAX_CONTROL_ANALYSIS_CACHE_ENTRIES = 128;
-    public static final int MAX_ANALYSIS_SNAPSHOT_CACHE_ENTRIES = 512;
-    public static final int MAX_IMPORT_RESULT_CACHE_ENTRIES = 64;
     public static final int MAX_STABLE_ANALYSIS_FINGERPRINT_RUN = 2;
     public static final StructureLibPreviewMetadataFactory PREVIEW_METADATA_FACTORY = new StructureLibPreviewMetadataFactory(
         new StructureLibElementTooltipResolver());
-    public static final StructureLibBoundedCache<AnalysisKey, ControlAnalysis> CONTROL_ANALYSIS_CACHE = new StructureLibBoundedCache<>(
-        MAX_CONTROL_ANALYSIS_CACHE_ENTRIES);
-    public static final StructureLibBoundedCache<AnalysisSnapshotKey, AnalysisSnapshot> ANALYSIS_SNAPSHOT_CACHE = new StructureLibBoundedCache<>(
-        MAX_ANALYSIS_SNAPSHOT_CACHE_ENTRIES);
-    public static final StructureLibBoundedCache<StructureLibImportCacheKey, StructureLibImportResult> IMPORT_RESULT_CACHE = new StructureLibBoundedCache<>(
-        MAX_IMPORT_RESULT_CACHE_ENTRIES);
 
     public StructureLibRuntimeFacade() {}
 
@@ -127,18 +121,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                     Math.max(MIN_TIER, requestedSelection.getMasterTier()),
                     mergeChannelMaxTierMap(Map.of(), requestedSelection));
             StructureLibPreviewSelection effectiveSelection = effectiveAnalysis.clampSelection(requestedSelection);
-            StructureLibImportCacheKey importCacheKey = new StructureLibImportCacheKey(
-                request.getController(),
-                request.getPiece(),
-                request.getFacing(),
-                request.getRotation(),
-                request.getFlip(),
-                request.getChannel(),
-                effectiveSelection);
-            StructureLibImportResult cached = IMPORT_RESULT_CACHE.get(importCacheKey);
-            if (cached != null) {
-                return cached.withWarnings(mergeWarnings(warnings, cached.getWarnings()));
-            }
             BuildSnapshot snapshot = buildSnapshot(request, controller, effectiveSelection, warnings, context);
             if (!snapshot.success) {
                 return StructureLibImportResult.failure(snapshot.errorMessage, warnings, null);
@@ -156,9 +138,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 snapshot.fingerprint,
                 snapshot.constructable,
                 snapshot.actor);
-            StructureLibImportResult result = StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
-            IMPORT_RESULT_CACHE.put(importCacheKey, result);
-            return result;
+            return StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
         } catch (Throwable t) {
             GuideDebugLog.warn("StructureLib preview build failed for controller {}", request.getController(), t);
             return StructureLibImportResult
@@ -195,19 +175,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                         + " for preview generation.");
             }
 
-            StructureLibImportCacheKey importCacheKey = new StructureLibImportCacheKey(
-                request.getController(),
-                request.getPiece(),
-                request.getFacing(),
-                request.getRotation(),
-                request.getFlip(),
-                requestedChannel,
-                effectiveSelection);
-            StructureLibImportResult cached = IMPORT_RESULT_CACHE.get(importCacheKey);
-            if (cached != null) {
-                return cached.withWarnings(mergeWarnings(warnings, cached.getWarnings()));
-            }
-
             BuildSnapshot snapshot = buildSnapshot(request, controller, effectiveSelection, warnings, context);
             if (!snapshot.success) {
                 return StructureLibImportResult.failure(snapshot.errorMessage, warnings, null);
@@ -226,9 +193,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 snapshot.constructable,
                 snapshot.actor);
 
-            StructureLibImportResult result = StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
-            IMPORT_RESULT_CACHE.put(importCacheKey, result);
-            return result;
+            return StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
         } catch (Throwable t) {
             GuideDebugLog.warn("StructureLib import failed for controller {}", request.getController(), t);
             return StructureLibImportResult
@@ -254,27 +219,36 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     public static ControlAnalysis analyzeControls(StructureLibImportRequest request, ResolvedController controller,
         BuildContext context) {
-        AnalysisKey key = new AnalysisKey(
-            request.getController(),
-            request.getPiece(),
-            request.getFacing(),
-            request.getRotation(),
-            request.getFlip());
-        ControlAnalysis cached = CONTROL_ANALYSIS_CACHE.get(key);
-        if (cached != null) {
-            return cached;
+
+        // 1. Resolve IConstructable from controller
+        IConstructable constructable = resolveConstructableFromController(controller);
+        if (constructable == null) {
+            return new ControlAnalysis(1, Collections.emptyMap());
         }
 
-        LinkedHashSet<String> discoveredChannels = new LinkedHashSet<>();
-        int maxTotalTier = estimateMaxTotalTier(request, controller, discoveredChannels, context);
-        LinkedHashMap<String, Integer> channelMaxTierMap = estimateChannelMaxTiers(
-            request,
-            controller,
-            discoveredChannels,
-            context);
-        ControlAnalysis created = new ControlAnalysis(maxTotalTier, channelMaxTierMap);
-        CONTROL_ANALYSIS_CACHE.put(key, created);
-        return created;
+        // 2. Read ConstructableData from DefinitionCache
+        StructureLibDefinitionCache cache = StructureLibDefinitionCache.getInstance();
+        ConstructableData data = cache.getConstructableData(constructable);
+
+        // 3. Map ConstructableData to ControlAnalysis
+        int maxTotalTier = data.getMaxTotalTier();
+
+        Map<String, Integer> channelMaxTierMap = new LinkedHashMap<>();
+        Object2IntMap<String> channelData = data.getChannelData();
+        if (channelData != null) {
+            for (Object2IntMap.Entry<String> entry : channelData.object2IntEntrySet()) {
+                channelMaxTierMap.put(entry.getKey(), entry.getIntValue());
+            }
+        }
+
+        return new ControlAnalysis(maxTotalTier, channelMaxTierMap);
+    }
+
+    @Nullable
+    private static IConstructable resolveConstructableFromController(ResolvedController controller) {
+        String blockId = controller.getBlockId();
+        StructureLibDefinitionCache cache = StructureLibDefinitionCache.getInstance();
+        return cache.findConstructable(blockId);
     }
 
     public static int estimateMaxTotalTier(StructureLibImportRequest request, ResolvedController controller,
@@ -488,22 +462,7 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     public static BuildSnapshot getOrCreateAnalysisSnapshot(StructureLibImportRequest request,
         ResolvedController controller, StructureLibPreviewSelection selection, BuildContext context) {
-        AnalysisSnapshotKey key = new AnalysisSnapshotKey(
-            request.getController(),
-            request.getPiece(),
-            request.getFacing(),
-            request.getRotation(),
-            request.getFlip(),
-            selection);
-        AnalysisSnapshot cached = ANALYSIS_SNAPSHOT_CACHE.get(key);
-        if (cached != null) {
-            return cached.toBuildSnapshot();
-        }
-
-        BuildSnapshot built = buildAnalysisSnapshot(request, controller, selection, context);
-        AnalysisSnapshot snapshot = AnalysisSnapshot.fromBuildSnapshot(built);
-        ANALYSIS_SNAPSHOT_CACHE.put(key, snapshot);
-        return snapshot.toBuildSnapshot();
+        return buildAnalysisSnapshot(request, controller, selection, context);
     }
 
     public static BuildSnapshot buildAnalysisSnapshot(StructureLibImportRequest request, ResolvedController controller,
@@ -1115,47 +1074,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         return Math.min(value, maxValue);
     }
 
-    public static class AnalysisKey {
-
-        private final String controller;
-        @Nullable
-        private final String piece;
-        @Nullable
-        private final String facing;
-        @Nullable
-        private final String rotation;
-        @Nullable
-        private final String flip;
-
-        private AnalysisKey(String controller, @Nullable String piece, @Nullable String facing,
-            @Nullable String rotation, @Nullable String flip) {
-            this.controller = controller;
-            this.piece = piece;
-            this.facing = facing;
-            this.rotation = rotation;
-            this.flip = flip;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof AnalysisKey other)) {
-                return false;
-            }
-            return controller.equals(other.controller) && Objects.equals(piece, other.piece)
-                && Objects.equals(facing, other.facing)
-                && Objects.equals(rotation, other.rotation)
-                && Objects.equals(flip, other.flip);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(controller, piece, facing, rotation, flip);
-        }
-    }
-
     @Getter
     public static class ControlAnalysis {
 
@@ -1200,82 +1118,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
                 normalized.put(channelId, value);
             }
             return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
-        }
-    }
-
-    public static class AnalysisSnapshotKey {
-
-        private final String controller;
-        @Nullable
-        private final String piece;
-        @Nullable
-        private final String facing;
-        @Nullable
-        private final String rotation;
-        @Nullable
-        private final String flip;
-        private final StructureLibPreviewSelection selection;
-
-        public AnalysisSnapshotKey(String controller, @Nullable String piece, @Nullable String facing,
-            @Nullable String rotation, @Nullable String flip, StructureLibPreviewSelection selection) {
-            this.controller = controller;
-            this.piece = piece;
-            this.facing = facing;
-            this.rotation = rotation;
-            this.flip = flip;
-            this.selection = selection != null ? selection : StructureLibPreviewSelection.defaultSelection();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof AnalysisSnapshotKey other)) {
-                return false;
-            }
-            return controller.equals(other.controller) && Objects.equals(piece, other.piece)
-                && Objects.equals(facing, other.facing)
-                && Objects.equals(rotation, other.rotation)
-                && Objects.equals(flip, other.flip)
-                && selection.equals(other.selection);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(controller, piece, facing, rotation, flip, selection);
-        }
-    }
-
-    public static class AnalysisSnapshot {
-
-        private final boolean success;
-        private final Set<String> channelIds;
-        private final String fingerprint;
-        @Nullable
-        private final String errorMessage;
-
-        public AnalysisSnapshot(boolean success, Set<String> channelIds, String fingerprint,
-            @Nullable String errorMessage) {
-            this.success = success;
-            this.channelIds = channelIds != null ? Set.copyOf(new LinkedHashSet<>(channelIds)) : Set.of();
-            this.fingerprint = fingerprint != null ? fingerprint : "";
-            this.errorMessage = errorMessage;
-        }
-
-        public static AnalysisSnapshot fromBuildSnapshot(BuildSnapshot snapshot) {
-            return new AnalysisSnapshot(
-                snapshot.success,
-                snapshot.channelIds,
-                snapshot.fingerprint,
-                snapshot.errorMessage);
-        }
-
-        public BuildSnapshot toBuildSnapshot() {
-            if (!success) {
-                return BuildSnapshot.failure(errorMessage);
-            }
-            return BuildSnapshot.analysis(fingerprint, channelIds);
         }
     }
 

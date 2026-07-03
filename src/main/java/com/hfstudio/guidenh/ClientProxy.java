@@ -77,7 +77,6 @@ import com.hfstudio.guidenh.guide.scene.concurrent.GameSceneConcurrentManager;
 import com.hfstudio.guidenh.guide.scene.concurrent.GameScenePrewarmBootstrap;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewWorker;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
 import com.hfstudio.guidenh.integration.Mods;
@@ -104,8 +103,6 @@ public class ClientProxy extends CommonProxy {
     @Getter
     private static final LytHost lytHost = new LytHost();
     private static final CompileWorker compileWorker = new CompileWorker();
-    @Getter
-    private static final StructureLibPreviewWorker structureLibPreviewWorker = new StructureLibPreviewWorker();
 
     public static CompileWorker getWorker() {
         return compileWorker;

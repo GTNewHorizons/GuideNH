@@ -45,7 +45,6 @@ import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
-import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureSnapshot;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
@@ -53,17 +52,21 @@ import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
 import com.hfstudio.guidenh.guide.scene.element.StructureLibSceneOptionParser;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
+
+import blockrenderer6343.client.utils.ConstructableData;
 
 public class SceneScript implements LytScript {
 
@@ -135,19 +138,17 @@ public class SceneScript implements LytScript {
                 StructureBindingState bindingState = registerDefaultStructureBinding(ph, scene, el, sceneKey);
                 if (bindingState != null) {
                     bindingStates.put(bindingState.bindingKey, bindingState);
-                    if (bindingState.defaultResult != null && bindingState.defaultResult.isSuccess()) {
-                        scene.setStructureLibSceneMetadata(
-                            bindingState.binding.getName(),
-                            bindingState.defaultResult.getMetadata());
-                        scene.setStructureLibImportResult(bindingState.binding.getName(), bindingState.defaultResult);
+                    StructureLibSceneMetadata metadata = bindingState.binding.getMetadata();
+                    if (metadata != null) {
+                        scene.setStructureLibSceneMetadata(bindingState.binding.getName(), metadata);
+                        if (bindingState.defaultResult != null && bindingState.defaultResult.isSuccess()) {
+                            scene.setStructureLibImportResult(
+                                bindingState.binding.getName(),
+                                bindingState.defaultResult);
+                        }
                     } else if (bindingState.defaultFailureMessage != null) {
                         scene.setLoadFailure(bindingState.defaultFailureMessage);
                     }
-                    scene.registerStructureLibPreviewRuntimeState(
-                        bindingState.bindingKey,
-                        bindingState.binding,
-                        bindingState.request);
-                    scene.submitStructureLibAnalyze(bindingState.bindingKey);
                 }
                 continue;
             }
@@ -262,7 +263,6 @@ public class SceneScript implements LytScript {
         }
 
         dispatchSceneSubtrees(scene, ctx);
-        GuideSceneStructureSnapshot structureLibBaseState = GuideSceneStructureSnapshot.capture(level);
         @SuppressWarnings("unchecked")
         LinkedHashMap<String, StructureBindingState> bindingStates = (LinkedHashMap<String, StructureBindingState>) ctx
             .data()
@@ -274,7 +274,6 @@ public class SceneScript implements LytScript {
                 }
             }
         }
-        scene.setStructureLibBaseState(structureLibBaseState);
         if (level.isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Scene has no supported elements"));
             return;
@@ -291,7 +290,6 @@ public class SceneScript implements LytScript {
         scene.initializePonderTimelineBaseline();
         scene.captureInitialInteractiveState();
         scene.snapshotInitialCamera();
-        scene.captureInitialStructureStateIfAbsent();
         if (bindingStates != null && !bindingStates.isEmpty()) {
             scene.setLoading(true);
             scene.setLoadProgress(0, bindingStates.size());
@@ -402,9 +400,21 @@ public class SceneScript implements LytScript {
             formed,
             effectiveSelection.getIntegrationOptions());
 
-        // Strip survival mode for the initial metadata-only build — the fake
-        // GuidebookLevel has no real inventory, so survivalConstruct always fails
-        // and falls back to creative, wasting ~2s of the ~3s build time.
+        // Try to get metadata from DefinitionCache first (avoids blocking construct())
+        StructureLibSceneMetadata metadata = null;
+        StructureLibDefinitionCache cache = StructureLibDefinitionCache.getInstance();
+        if (cache.isAvailable()) {
+            com.gtnewhorizon.structurelib.alignment.constructable.IConstructable constructable = cache
+                .findConstructable(controller);
+            if (constructable != null) {
+                ConstructableData data = cache.getConstructableData(constructable);
+                if (data != null) {
+                    metadata = buildMetadataFromConstructableData(data, controller);
+                }
+            }
+        }
+
+        // Build request for later rebuilds (metadata-only; strip survival mode for speed)
         StructureLibPreviewSelection previewOnlySelection = effectiveSelection
             .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, false)
             .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION, false);
@@ -418,10 +428,19 @@ public class SceneScript implements LytScript {
             defaultRequest.getChannel(),
             previewOnlySelection,
             sceneOptions);
-        StructureLibImportResult defaultResult = new StructureLibRuntimeFacade().buildPreviewSelection(request, null);
-        if (defaultResult.isSuccess()) {
-            binding.setMetadata(defaultResult.getMetadata());
-            binding.setLastSuccessfulImportResult(defaultResult);
+        StructureLibImportResult defaultResult = null;
+
+        // Fallback: if cache unavailable, use blocking construct() path
+        if (metadata == null) {
+            defaultResult = new StructureLibRuntimeFacade().buildPreviewSelection(request, null);
+            if (defaultResult.isSuccess()) {
+                metadata = defaultResult.getMetadata();
+                binding.setLastSuccessfulImportResult(defaultResult);
+            }
+        }
+
+        if (metadata != null) {
+            binding.setMetadata(metadata);
         }
 
         StructureBindingState state = new StructureBindingState(
@@ -429,7 +448,7 @@ public class SceneScript implements LytScript {
             binding,
             request);
         state.defaultResult = defaultResult;
-        if (!defaultResult.isSuccess()) {
+        if (defaultResult != null && !defaultResult.isSuccess()) {
             state.defaultFailureMessage = firstError(defaultResult);
         }
         return state;
@@ -634,6 +653,24 @@ public class SceneScript implements LytScript {
             .getFirst();
         return first != null && !first.trim()
             .isEmpty() ? first.trim() : "StructureLib preview failed";
+    }
+
+    /**
+     * Map ConstructableData to StructureLibSceneMetadata (mapping in caller, not in cache layer).
+     */
+    private static StructureLibSceneMetadata buildMetadataFromConstructableData(ConstructableData data,
+        String controllerBlockId) {
+        int maxTier = data.getMaxTotalTier();
+        StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(controllerBlockId, null, null, null, null);
+        metadata = metadata.withTierData(1, maxTier, 1, maxTier);
+        it.unimi.dsi.fastutil.objects.Object2IntMap<String> channelData = data.getChannelData();
+        if (channelData != null) {
+            for (it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<String> entry : channelData.object2IntEntrySet()) {
+                int maxValue = entry.getIntValue();
+                metadata = metadata.withChannelData(entry.getKey(), entry.getKey(), maxValue, maxValue);
+            }
+        }
+        return metadata;
     }
 
     private static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {

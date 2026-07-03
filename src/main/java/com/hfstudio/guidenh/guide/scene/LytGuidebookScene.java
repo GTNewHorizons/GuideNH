@@ -44,7 +44,6 @@ import org.joml.Vector3f;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
@@ -76,7 +75,6 @@ import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneFloorGridAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
-import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheEntry;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureSnapshot;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityStateSupport;
@@ -93,11 +91,6 @@ import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeParticle;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeTileNbtOperation;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderSceneData;
-import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewResult;
-import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewTask;
-import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewTask.Priority;
-import com.hfstudio.guidenh.guide.scene.preview.StructureLibPreviewWorker;
-import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPreparePipeline;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
@@ -115,11 +108,12 @@ import com.hfstudio.guidenh.integration.ae2.Ae2PonderSupport;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -403,9 +397,12 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private StructureLibPreviewSelection pendingStructureLibPreviewSelection;
     private final LinkedHashMap<String, StructureLibPreviewSelection> seededStructureLibPreviewSelections = new LinkedHashMap<>();
-    private final LinkedHashMap<String, StructureLibPreviewRuntimeState> structureLibPreviewStates = new LinkedHashMap<>();
-    @Nullable
-    private GuideSceneStructureSnapshot structureLibBaseState;
+    /**
+     * Per-binding footprint: which positions each binding last wrote to.
+     * Key = bindingKey, Value = packed positions (GuidebookLevel.packPos(x,y,z)).
+     * When rebuilding a binding, its old footprint is cleared before new blocks are placed.
+     */
+    private final java.util.LinkedHashMap<String, LongSet> bindingFootprints = new java.util.LinkedHashMap<>();
     private boolean initialStateCaptured;
     private boolean initialAnnotationsVisible = true;
     @Nullable
@@ -415,8 +412,6 @@ public class LytGuidebookScene extends LytBlock {
     private final LinkedHashMap<String, StructureLibPreviewSelection> initialStructureLibSelectionsByBinding = new LinkedHashMap<>();
     private final LinkedHashMap<String, StructureLibPreviewSelection> initialPendingStructureLibSelectionsByBinding = new LinkedHashMap<>();
     private boolean initialStructureLibHatchHighlightEnabled;
-    @Nullable
-    private GuideSceneStructureCacheEntry initialStructureState;
     private boolean gridButtonEnabled = true;
     @Getter
     private boolean gridVisible = false;
@@ -607,93 +602,135 @@ public class LytGuidebookScene extends LytBlock {
         initialBlockStatsVisible = blockStatsVisible;
     }
 
-    public void captureInitialStructureStateIfAbsent() {
-        if (initialStructureState == null && !level.isEmpty()) {
-            initialStructureState = GuideSceneStructureCacheEntry.capture(this);
-        }
-    }
+    public void captureInitialStructureStateIfAbsent() {}
 
-    public void setStructureLibBaseState(@Nullable GuideSceneStructureSnapshot structureLibBaseState) {
-        this.structureLibBaseState = structureLibBaseState;
-    }
+    public void setStructureLibBaseState(@Nullable GuideSceneStructureSnapshot structureLibBaseState) {}
 
-    public void rebindPreviewRuntimeStates() {
-        for (var entry : structureLibPreviewStates.entrySet()) {
-            StructureLibPreviewRuntimeState state = entry.getValue();
-            // Find the matching post-restore binding by key suffix
-            for (StructureLibSceneBinding binding : structureLibBindings.values()) {
-                if (entry.getKey()
-                    .endsWith("::" + binding.getBindingKey())) {
-                    state.binding = binding;
-                    if (!binding.hasRebuildRecipe() && binding.getMetadata() != null && state.baseRequest != null) {
-                        StructureLibPreviewSelection baseSelection = state.baseRequest.getPreviewSelection();
-                        binding.setRebuildRecipe(
-                            state.baseRequest.getChannel(),
-                            state.baseRequest.getSceneOptions(),
-                            0,
-                            0,
-                            0,
-                            false,
-                            baseSelection != null ? baseSelection.getIntegrationOptions() : Map.of());
-                    }
-                    break;
-                }
-            }
-        }
-    }
+    public void rebindPreviewRuntimeStates() {}
 
     public void registerStructureLibPreviewRuntimeState(String bindingKey, StructureLibSceneBinding binding,
-        StructureLibImportRequest request) {
-        if (bindingKey == null || binding == null || request == null) {
-            return;
-        }
-        StructureLibPreviewRuntimeState state = structureLibPreviewStates
-            .computeIfAbsent(bindingKey, ignored -> new StructureLibPreviewRuntimeState(bindingKey, binding, request));
-        state.binding = binding;
-        state.baseRequest = request;
-    }
+        StructureLibImportRequest request) {}
 
-    public void submitStructureLibAnalyze(String bindingKey) {
-        StructureLibPreviewRuntimeState state = structureLibPreviewStates.get(bindingKey);
-        if (state == null) {
-            return;
-        }
-        state.analysisVersion++;
-        state.analysisPending = true;
-        ClientProxy.getStructureLibPreviewWorker()
-            .submit(StructureLibPreviewTask.analyzeLimits(state.bindingKey, state.analysisVersion, state.baseRequest));
-        updateStructureLibLoadingState();
-    }
+    public void submitStructureLibAnalyze(String bindingKey) {}
 
     public void queueStructureLibSelectionBuild(StructureLibSceneBinding binding,
         @Nullable StructureLibPreviewSelection selection) {
-        if (binding == null || selection == null) {
-            return;
+        executeStructureBuild(binding, selection);
+    }
+
+    private void executeStructureBuild(StructureLibSceneBinding binding,
+        @Nullable StructureLibPreviewSelection selection) {
+
+        if (binding == null) return;
+
+        // 1. Apply selection to binding
+        if (selection != null) {
+            binding.applyPreviewSelection(selection);
         }
-        StructureLibPreviewRuntimeState state = structureLibPreviewStates.get(resolvePreviewBindingKey(binding));
-        if (state == null) {
-            return;
-        }
-        binding.applyPreviewSelection(selection);
-        binding.setPendingSelection(selection);
-        if (state.buildPending) {
-            return;
-        }
+
+        // 2. Build rebuild request
         StructureLibImportRequest rebuildRequest = binding.buildRebuildRequest();
-        if (rebuildRequest == null) {
+        if (rebuildRequest == null) return;
+
+        // 3. Synchronous construct via local service
+        StructureLibSceneImportService importService = new StructureLibSceneImportService();
+        StructureLibImportResult result;
+        try {
+            result = importService.importScene(rebuildRequest);
+        } catch (Exception e) {
+            GuideDebugLog.warnAlways("StructureLib build failed for {}", binding.getBindingKey(), e);
             return;
         }
-        state.buildVersion++;
-        state.buildPending = true;
-        ClientProxy.getStructureLibPreviewWorker()
-            .submit(
-                StructureLibPreviewTask.buildSelection(
-                    state.bindingKey,
-                    state.buildVersion,
-                    rebuildRequest,
-                    Priority.HIGH,
-                    state.controlAnalysis));
-        updateStructureLibLoadingState();
+
+        if (!result.isSuccess()) {
+            GuideDebugLog.warnAlways(
+                "StructureLib build returned failure: {}",
+                result.getErrors() != null && !result.getErrors()
+                    .isEmpty() ? result.getErrors()
+                        .get(0) : "unknown");
+            return;
+        }
+
+        // 4. Clear old footprint for this binding
+        clearFootprint(binding.getBindingKey());
+
+        // 5. Write new blocks to level + record new footprint
+        applyBlocksToLevel(binding.getBindingKey(), result.getBlocks());
+
+        // 6. Update binding metadata
+        if (result.getMetadata() != null) {
+            binding.setMetadata(result.getMetadata());
+        }
+        binding.setLastSuccessfulImportResult(result);
+
+        // 7. Mark render dirty
+        invalidateDocumentLayout();
+    }
+
+    private void clearFootprint(String bindingKey) {
+        LongSet oldPositions = bindingFootprints.remove(bindingKey);
+        if (oldPositions == null || oldPositions.isEmpty()) return;
+
+        Block air = Blocks.air;
+        for (long packed : oldPositions) {
+            int x = (int) (packed << 38 >> 38);
+            int y = (int) (packed >>> 52);
+            int z = (int) (packed << 12 >> 38);
+            level.setBlock(x, y, z, air, 0);
+        }
+    }
+
+    private void applyBlocksToLevel(String bindingKey, List<StructureLibImportResult.PlacedBlock> blocks) {
+
+        GuidebookLevel sceneLevel = level;
+        if (sceneLevel == null) return;
+
+        LongSet footprint = new LongOpenHashSet();
+
+        for (StructureLibImportResult.PlacedBlock block : blocks) {
+            int x = block.getX();
+            int y = block.getY();
+            int z = block.getZ();
+
+            if (y < 0 || y >= sceneLevel.getHeight()) continue;
+
+            sceneLevel.setBlock(x, y, z, block.getBlock(), block.getMeta());
+
+            if (block.getTileTag() != null) {
+                TileEntity tile = sceneLevel.getTileEntity(x, y, z);
+                if (tile != null) {
+                    try {
+                        tile.readFromNBT(block.getTileTag());
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            footprint.add(GuidebookLevel.packPos(x, y, z));
+        }
+
+        bindingFootprints.put(bindingKey, footprint);
+    }
+
+    public void resetSceneToInitialState() {
+        GuidebookLevel sceneLevel = level;
+        if (sceneLevel == null || sceneLevel.isEmpty()) return;
+
+        // Clear all StructureLib footprints
+        for (String bindingKey : bindingFootprints.keySet()) {
+            clearFootprint(bindingKey);
+        }
+        bindingFootprints.clear();
+
+        // Reconstruct all bindings with default tier
+        for (StructureLibSceneBinding binding : structureLibBindings.values()) {
+            StructureLibSceneMetadata metadata = binding.getMetadata();
+            if (metadata != null && metadata.getTierData() != null) {
+                int defaultTier = metadata.getTierData()
+                    .getDefaultValue();
+                StructureLibPreviewSelection defaultSelection = StructureLibPreviewSelection.ofMasterTier(defaultTier);
+                executeStructureBuild(binding, defaultSelection);
+            }
+        }
     }
 
     public void resetInteractiveState() {
@@ -711,11 +748,7 @@ public class LytGuidebookScene extends LytBlock {
         hoveredStructureLibHatch = null;
         clearAnnotationHover();
         if (initialStateCaptured) {
-            float[] capturedInitialCam = initialCam.clone();
-            if (initialStructureState != null) {
-                initialStructureState.restoreInto(this);
-                initialCam = capturedInitialCam;
-            }
+            resetSceneToInitialState();
             annotationsVisible = initialAnnotationsVisible;
             visibleLayerOverride = initialVisibleLayerOverride;
             structureLibCurrentTier = initialStructureLibCurrentTier;
@@ -4693,7 +4726,6 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void ponderTick() {
-        pollStructureLibPreviewWorker();
         sceneAnimationTick++;
         if (ponderSceneData == null || ponderPaused || ponderFinished) {
             if (sceneAnimationTick % 100 == 1) {
@@ -4736,200 +4768,9 @@ public class LytGuidebookScene extends LytBlock {
         updatePonderState();
     }
 
-    private void pollStructureLibPreviewWorker() {
-        if (structureLibPreviewStates.isEmpty()) {
-            return;
-        }
-        StructureLibPreviewWorker worker = ClientProxy.getStructureLibPreviewWorker();
-        List<StructureLibPreviewResult> results = worker.drainResultsFor(structureLibPreviewStates.keySet());
-        boolean changed = false;
-        for (StructureLibPreviewResult result : results) {
-            StructureLibPreviewRuntimeState state = structureLibPreviewStates.get(result.getBindingKey());
-            if (state == null) {
-                continue;
-            }
-            changed |= applyStructureLibPreviewResult(state, result);
-        }
-        if (changed) {
-            captureInitialStructureStateIfAbsent();
-        }
-        updateStructureLibLoadingState();
-    }
-
-    private boolean applyStructureLibPreviewResult(StructureLibPreviewRuntimeState state,
-        StructureLibPreviewResult result) {
-        if (result.getType() == StructureLibPreviewTask.Type.ANALYZE_LIMITS) {
-            // Check if this analysis result is stale
-            if (result.getRequestVersion() < state.analysisVersion) {
-                GuideDebugLog.info(
-                    "[LytGuidebookScene] Discarding stale analysis result version={} latest={}",
-                    result.getRequestVersion(),
-                    state.analysisVersion);
-                return false;
-            }
-
-            state.analysisPending = false;
-            if (!result.isSuccess() || result.getControlAnalysis() == null) {
-                setLoadFailure(
-                    result.getUserMessage() != null ? result.getUserMessage() : "StructureLib analyze failed");
-                return false;
-            }
-            state.controlAnalysis = result.getControlAnalysis();
-            StructureLibSceneMetadata currentMetadata = state.binding.getMetadata();
-            if (currentMetadata != null) {
-                StructureLibSceneMetadata updatedMetadata = currentMetadata.withTierData(
-                    1,
-                    state.controlAnalysis.getMaxTotalTier(),
-                    state.binding.getCurrentTier(),
-                    state.binding.getCurrentTier());
-                for (Map.Entry<String, Integer> entry : state.controlAnalysis.getChannelMaxTierMap()
-                    .entrySet()) {
-                    updatedMetadata = updatedMetadata.withChannelData(
-                        entry.getKey(),
-                        entry.getKey(),
-                        entry.getValue(),
-                        state.binding.getChannelValue(entry.getKey()));
-                }
-                state.binding.setMetadata(updatedMetadata);
-                setStructureLibSceneMetadata(state.binding.getName(), updatedMetadata);
-            }
-            // Force re-capture: the initial snapshot was taken before analysis
-            // completed and has 0 channels. Without this, restoreInto() on
-            // navigation-back restores the stale 0ch snapshot.
-            initialStructureState = null;
-            captureInitialStructureStateIfAbsent();
-            return true;
-        }
-
-        // BUILD_SELECTION type - check if this build result is stale
-        if (result.getRequestVersion() < state.buildVersion) {
-            GuideDebugLog.info(
-                "[LytGuidebookScene] Discarding stale build result version={} latest={} selection={}",
-                result.getRequestVersion(),
-                state.buildVersion,
-                result.getSelectionKey());
-            return false;
-        }
-
-        state.buildPending = false;
-        if (!result.isSuccess() || result.getImportResult() == null) {
-            setLoadFailure(result.getUserMessage() != null ? result.getUserMessage() : "StructureLib preview failed");
-            return false;
-        }
-
-        StructureLibImportResult importResult = result.getImportResult();
-        StructureLibSceneMetadata metadata = importResult.getMetadata();
-        if (metadata != null) {
-            state.binding.setMetadata(metadata);
-            setStructureLibSceneMetadata(state.binding.getName(), metadata);
-        }
-        state.binding.setLastSuccessfulImportResult(importResult);
-        setStructureLibImportResult(state.binding.getName(), importResult);
-        restoreStructureLibBaseState();
-        applyImportResultToLevel(state.binding, importResult);
-        bindPrimaryStructureLibState(getPrimaryStructureLibBinding());
-        // If the user dragged the slider while this build was in flight,
-        // the pending selection may differ from what was just applied.
-        // Submit a catch-up build immediately.
-        StructureLibPreviewSelection pendingSelection = state.binding.getPendingSelection();
-        if (pendingSelection != null && !pendingSelection.equals(state.binding.getPreviewSelection())) {
-            queueStructureLibSelectionBuild(state.binding, pendingSelection);
-        }
-        return true;
-    }
-
-    private void restoreStructureLibBaseState() {
-        if (structureLibBaseState == null) {
-            GuidebookLevel sceneLevel = getLevel();
-            if (sceneLevel != null) {
-                sceneLevel.clear();
-            }
-            return;
-        }
-        setLevel(structureLibBaseState.restoreLevel());
-    }
-
-    private void applyImportResultToLevel(StructureLibSceneBinding binding, StructureLibImportResult result) {
-        GuidebookLevel sceneLevel = getLevel();
-        if (sceneLevel == null || binding == null || result == null || !result.isSuccess()) {
-            return;
-        }
-        for (StructureLibImportResult.PlacedBlock placedBlock : result.getBlocks()) {
-            Block block = placedBlock.getBlock();
-            if (block == null || block == Blocks.air) {
-                continue;
-            }
-            int bx = placedBlock.getX() + binding.getRebuildOffsetX();
-            int by = Math.clamp(placedBlock.getY() + binding.getRebuildOffsetY(), 0, sceneLevel.getHeight() - 1);
-            int bz = placedBlock.getZ() + binding.getRebuildOffsetZ();
-            GuidebookPreviewBlockPlacer.place(
-                sceneLevel,
-                bx,
-                by,
-                bz,
-                block,
-                placedBlock.getMeta(),
-                placedBlock.getTileTag(),
-                placedBlock.getBlockId());
-            ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
-        }
-        PreviewPreparePipeline.prepare(sceneLevel);
-    }
-
-    private void updateStructureLibLoadingState() {
-        if (structureLibPreviewStates.isEmpty()) {
-            clearLoadState();
-            return;
-        }
-        int total = structureLibPreviewStates.size();
-        int done = 0;
-        boolean anyPending = false;
-        for (StructureLibPreviewRuntimeState state : structureLibPreviewStates.values()) {
-            boolean pending = state.analysisPending || state.buildPending;
-            anyPending |= pending;
-            if (!state.analysisPending) {
-                done++;
-            }
-        }
-        if (anyPending) {
-            setLoading(true);
-            setLoadProgress(done, Math.max(1, total));
-        } else if (!loadFailed) {
-            clearLoadState();
-        }
-    }
-
     @Nullable
     private String resolvePreviewBindingKey(StructureLibSceneBinding binding) {
-        if (binding == null) {
-            return null;
-        }
-        for (Map.Entry<String, StructureLibPreviewRuntimeState> entry : structureLibPreviewStates.entrySet()) {
-            if (entry.getValue().binding == binding) {
-                return entry.getKey();
-            }
-        }
-        return null;
-    }
-
-    private static class StructureLibPreviewRuntimeState {
-
-        private final String bindingKey;
-        private StructureLibSceneBinding binding;
-        private StructureLibImportRequest baseRequest;
-        @Nullable
-        private StructureLibRuntimeFacade.ControlAnalysis controlAnalysis;
-        private int analysisVersion;
-        private int buildVersion;
-        private boolean analysisPending;
-        private boolean buildPending;
-
-        private StructureLibPreviewRuntimeState(String bindingKey, StructureLibSceneBinding binding,
-            StructureLibImportRequest baseRequest) {
-            this.bindingKey = bindingKey;
-            this.binding = binding;
-            this.baseRequest = baseRequest;
-        }
+        return binding != null ? binding.getBindingKey() : null;
     }
 
     public void ponderTogglePlay() {

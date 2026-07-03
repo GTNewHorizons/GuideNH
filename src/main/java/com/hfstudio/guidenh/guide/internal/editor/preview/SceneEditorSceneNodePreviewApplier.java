@@ -81,8 +81,7 @@ public class SceneEditorSceneNodePreviewApplier {
 
     void apply(SceneEditorSession session, LytGuidebookScene scene,
         @Nullable StructureLibPreviewSelection structureLibSelectionOverride) {
-        GuideSceneStructureCacheKey cacheKey = structureFingerprintResolver
-            .buildForPreview(session, workingRoot, structureLibSelectionOverride);
+        GuideSceneStructureCacheKey cacheKey = structureFingerprintResolver.buildForPreview(session, workingRoot);
         if (cacheKey == null) {
             applySceneContent(session, scene, structureLibSelectionOverride, true);
             return;

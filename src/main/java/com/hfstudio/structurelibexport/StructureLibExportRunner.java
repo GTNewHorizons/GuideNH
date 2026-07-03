@@ -12,7 +12,6 @@ import net.minecraft.util.ChatComponentText;
 
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.BuildContext;
 
 public class StructureLibExportRunner {
@@ -199,7 +198,6 @@ public class StructureLibExportRunner {
         if (buildContext != null) {
             buildContext.clear();
         }
-        StructureLibRuntimeFacade.CONTROL_ANALYSIS_CACHE.clear();
         System.gc();
     }
 
