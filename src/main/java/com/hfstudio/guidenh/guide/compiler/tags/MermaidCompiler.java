@@ -137,9 +137,7 @@ public class MermaidCompiler extends BlockTagCompiler {
             return null;
         }
         LytVBox box = new LytVBox();
-        compiler.withBlockTagChildrenSourceContext(
-            explicitContent,
-            () -> compiler.compileBlockContext(explicitContent.children(), box));
+        compiler.compileBlockTagChildren(explicitContent, box);
         return box.getChildren()
             .isEmpty() ? null : box;
     }
