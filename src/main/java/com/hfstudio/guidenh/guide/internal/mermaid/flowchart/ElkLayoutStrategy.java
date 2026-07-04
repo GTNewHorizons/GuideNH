@@ -26,7 +26,8 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
     }
 
     @Override
-    public FlowchartLayoutResult layout(FlowchartDocument document) {
+    public FlowchartLayoutResult layout(FlowchartDocument document,
+        Map<String, FlowchartLayoutResult.NodeMinSize> nodeMinSizes) {
         Map<String, FlowchartNode> nodes = document.getNodes();
         if (nodes.isEmpty()) {
             return new FlowchartLayoutResult(Map.of(), List.of(), 0, 0);
@@ -48,8 +49,12 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         Map<String, ElkNode> elkNodeMap = new LinkedHashMap<>();
         for (FlowchartNode node : nodes.values()) {
             ElkNode elkNode = ElkGraphUtil.createNode(root);
-            elkNode.setWidth(NODE_WIDTH);
-            elkNode.setHeight(NODE_HEIGHT);
+            FlowchartLayoutResult.NodeMinSize minSize = nodeMinSizes != null
+                ? nodeMinSizes.get(node.getId()) : null;
+            elkNode.setWidth(minSize != null
+                ? Math.max(NODE_WIDTH, minSize.width()) : NODE_WIDTH);
+            elkNode.setHeight(minSize != null
+                ? Math.max(NODE_HEIGHT, minSize.height()) : NODE_HEIGHT);
             elkNodeMap.put(node.getId(), elkNode);
         }
 

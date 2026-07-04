@@ -43,8 +43,6 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     protected void onPreRender() {}
 
-    // ---- Viewport API ----
-
     public float getActiveZoom() {
         return visualZoom.value();
     }
@@ -182,8 +180,6 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         contentOffsetX = clampAxis(contentOffsetX, innerWidth, Math.round(contentWidth() * zoom));
         contentOffsetY = clampAxis(contentOffsetY, innerHeight, Math.round(contentHeight() * zoom));
     }
-
-    // ---- Shared render template ----
 
     @Override
     public void render(RenderContext context) {

@@ -10,6 +10,13 @@ import org.jetbrains.annotations.Nullable;
 
 public class FlowchartLayoutResult {
 
+    public record NodeMinSize(int width, int height) {
+        public NodeMinSize {
+            width = Math.max(0, width);
+            height = Math.max(0, height);
+        }
+    }
+
     private final Map<String, NodePosition> nodePositions;
     private final List<EdgePath> edgePaths;
     private final int width;
