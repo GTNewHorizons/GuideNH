@@ -20,6 +20,28 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
     private static final int NODE_HEIGHT = 40;
     private static final int PADDING = 20;
 
+    private static volatile boolean warmedUp;
+
+    public static void warmup() {
+        if (warmedUp) return;
+        warmedUp = true;
+        try {
+            ElkNode root = ElkGraphUtil.createGraph();
+            root.setProperty(CoreOptions.ALGORITHM, "org.eclipse.elk.layered");
+            root.setProperty(CoreOptions.DIRECTION, Direction.DOWN);
+            ElkNode a = ElkGraphUtil.createNode(root);
+            a.setWidth(80);
+            a.setHeight(30);
+            ElkNode b = ElkGraphUtil.createNode(root);
+            b.setWidth(80);
+            b.setHeight(30);
+            ElkGraphUtil.createSimpleEdge(a, b);
+            RecursiveGraphLayoutEngine engine = new RecursiveGraphLayoutEngine();
+            engine.layout(root, new NullElkProgressMonitor());
+        } catch (Exception ignored) {
+        }
+    }
+
     @Override
     public String getName() {
         return "elk";

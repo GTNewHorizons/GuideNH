@@ -59,6 +59,8 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.ItemImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.ItemLinkScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.KeyBindScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.MermaidScript;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.ElkLayoutStrategy;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.ElkWarmupWorkItem;
 import com.hfstudio.guidenh.guide.internal.host.scripts.PlayerNameScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.QuestCardScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.QuestLinkScript;
@@ -186,6 +188,8 @@ public class ClientProxy extends CommonProxy {
             .submit(new LytHostWorkItem(lytHost));
         MasterScheduler.getInstance()
             .submit(new SearchIndexWorkItem());
+        MasterScheduler.getInstance()
+            .submit(new ElkWarmupWorkItem());
 
         // Phase 3: LytScript registrations
         lytHost.registerScript("CommandLink", new CommandLinkScript());
