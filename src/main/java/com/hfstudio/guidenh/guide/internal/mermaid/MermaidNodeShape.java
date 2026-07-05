@@ -13,6 +13,7 @@ public enum MermaidNodeShape {
     HEXAGON,
     CIRCLE,
     DOUBLE_CIRCLE,
+    ELLIPSE,
     BANG,
     CLOUD;
 
