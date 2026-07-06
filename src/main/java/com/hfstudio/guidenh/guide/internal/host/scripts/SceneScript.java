@@ -8,8 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -45,28 +43,24 @@ import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureSnapshot;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
 import com.hfstudio.guidenh.guide.scene.element.StructureLibSceneOptionParser;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
-
-import blockrenderer6343.client.utils.ConstructableData;
 
 public class SceneScript implements LytScript {
 
@@ -138,15 +132,7 @@ public class SceneScript implements LytScript {
                 StructureBindingState bindingState = registerDefaultStructureBinding(ph, scene, el, sceneKey);
                 if (bindingState != null) {
                     bindingStates.put(bindingState.bindingKey, bindingState);
-                    StructureLibSceneMetadata metadata = bindingState.binding.getMetadata();
-                    if (metadata != null) {
-                        scene.setStructureLibSceneMetadata(bindingState.binding.getName(), metadata);
-                        if (bindingState.defaultResult != null && bindingState.defaultResult.isSuccess()) {
-                            scene.setStructureLibImportResult(
-                                bindingState.binding.getName(),
-                                bindingState.defaultResult);
-                        }
-                    } else if (bindingState.defaultFailureMessage != null) {
+                    if (bindingState.defaultFailureMessage != null) {
                         scene.setLoadFailure(bindingState.defaultFailureMessage);
                     }
                 }
@@ -262,15 +248,26 @@ public class SceneScript implements LytScript {
             }
         }
 
-        dispatchSceneSubtrees(scene, ctx);
         @SuppressWarnings("unchecked")
         LinkedHashMap<String, StructureBindingState> bindingStates = (LinkedHashMap<String, StructureBindingState>) ctx
             .data()
             .get(KEY_BINDINGS);
+
+        dispatchSceneSubtrees(scene, ctx);
+
+        // Only rebuild if there are StructureLib bindings.
+        // Scenes without bindings rely on element-compiler-placed blocks (ImportStructure).
+        if (bindingStates != null && !bindingStates.isEmpty()) {
+            scene.rebuildStructureLib();
+        }
+        // Set metadata on scene from binding results
+        bindingStates = (LinkedHashMap<String, StructureBindingState>) ctx.data()
+            .get(KEY_BINDINGS);
         if (bindingStates != null) {
             for (StructureBindingState bindingState : bindingStates.values()) {
-                if (bindingState.defaultResult != null && bindingState.defaultResult.isSuccess()) {
-                    applyImportResult(level, bindingState.binding, bindingState.defaultResult);
+                StructureLibSceneMetadata metadata = bindingState.binding.getMetadata();
+                if (metadata != null) {
+                    scene.setStructureLibSceneMetadata(bindingState.binding.getName(), metadata);
                 }
             }
         }
@@ -286,14 +283,12 @@ public class SceneScript implements LytScript {
         }
 
         finalizeSceneGeometry(ph, scene, level, camera);
+        scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
+        scene.clearLoadState();
         attachSelectionListeners(scene, ctx);
         scene.initializePonderTimelineBaseline();
         scene.captureInitialInteractiveState();
         scene.snapshotInitialCamera();
-        if (bindingStates != null && !bindingStates.isEmpty()) {
-            scene.setLoading(true);
-            scene.setLoadProgress(0, bindingStates.size());
-        }
 
         ctx.replace(scene);
         ctx.markComplete();
@@ -400,57 +395,41 @@ public class SceneScript implements LytScript {
             formed,
             effectiveSelection.getIntegrationOptions());
 
-        // Try to get metadata from DefinitionCache first (avoids blocking construct())
-        StructureLibSceneMetadata metadata = null;
+        // Verify IConstructable exists and build initial metadata from ConstructableData
         StructureLibDefinitionCache cache = StructureLibDefinitionCache.getInstance();
-        if (cache.isAvailable()) {
-            com.gtnewhorizon.structurelib.alignment.constructable.IConstructable constructable = cache
-                .findConstructable(controller);
-            if (constructable != null) {
-                ConstructableData data = cache.getConstructableData(constructable);
-                if (data != null) {
-                    metadata = buildMetadataFromConstructableData(data, controller);
-                }
-            }
+        com.gtnewhorizon.structurelib.alignment.constructable.IConstructable constructable = cache
+            .findConstructable(controller);
+        if (constructable == null) {
+            StructureBindingState state = new StructureBindingState(sceneKey + "::" + binding.getBindingKey(), binding);
+            state.defaultFailureMessage = "NEI加载未成功";
+            return state;
         }
 
-        // Build request for later rebuilds (metadata-only; strip survival mode for speed)
-        StructureLibPreviewSelection previewOnlySelection = effectiveSelection
-            .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, false)
-            .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION, false);
-
-        StructureLibImportRequest request = new StructureLibImportRequest(
-            defaultRequest.getController(),
+        // Build minimal metadata so rebuildStructureLib can call buildRebuildRequest()
+        blockrenderer6343.client.utils.ConstructableData data = cache.getConstructableData(constructable);
+        StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(
+            controller,
             defaultRequest.getPiece(),
             defaultRequest.getFacing(),
             defaultRequest.getRotation(),
-            defaultRequest.getFlip(),
-            defaultRequest.getChannel(),
-            previewOnlySelection,
-            sceneOptions);
-        StructureLibImportResult defaultResult = null;
-
-        // Fallback: if cache unavailable, use blocking construct() path
-        if (metadata == null) {
-            defaultResult = new StructureLibRuntimeFacade().buildPreviewSelection(request, null);
-            if (defaultResult.isSuccess()) {
-                metadata = defaultResult.getMetadata();
-                binding.setLastSuccessfulImportResult(defaultResult);
+            defaultRequest.getFlip());
+        int maxTier = data.getMaxTotalTier();
+        metadata = metadata
+            .withTierData(1, maxTier, effectiveSelection.getMasterTier(), effectiveSelection.getMasterTier());
+        it.unimi.dsi.fastutil.objects.Object2IntMap<String> channelData = data.getChannelData();
+        if (channelData != null) {
+            for (it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<String> entry : channelData.object2IntEntrySet()) {
+                int channelMax = entry.getIntValue();
+                int currentValue = effectiveSelection.getChannelOverrides() != null
+                    ? effectiveSelection.getChannelOverrides()
+                        .getOrDefault(entry.getKey(), channelMax)
+                    : channelMax;
+                metadata = metadata.withChannelData(entry.getKey(), entry.getKey(), channelMax, currentValue);
             }
         }
+        binding.setMetadata(metadata);
 
-        if (metadata != null) {
-            binding.setMetadata(metadata);
-        }
-
-        StructureBindingState state = new StructureBindingState(
-            sceneKey + "::" + binding.getBindingKey(),
-            binding,
-            request);
-        state.defaultResult = defaultResult;
-        if (defaultResult != null && !defaultResult.isSuccess()) {
-            state.defaultFailureMessage = firstError(defaultResult);
-        }
+        StructureBindingState state = new StructureBindingState(sceneKey + "::" + binding.getBindingKey(), binding);
         return state;
     }
 
@@ -550,6 +529,7 @@ public class SceneScript implements LytScript {
             camera.setOffsetX(-screenCenter.x);
             camera.setOffsetY(screenCenter.y);
         }
+
     }
 
     private void dispatchSceneSubtrees(LytGuidebookScene scene, ScriptContext ctx) {
@@ -585,32 +565,6 @@ public class SceneScript implements LytScript {
             }
             scene.queueStructureLibSelectionBuild(primaryBinding, selection);
         });
-    }
-
-    private static void applyImportResult(GuidebookLevel level, StructureLibSceneBinding binding,
-        StructureLibImportResult result) {
-        if (level == null || binding == null || result == null || !result.isSuccess()) {
-            return;
-        }
-        for (StructureLibImportResult.PlacedBlock placedBlock : result.getBlocks()) {
-            Block block = placedBlock.getBlock();
-            if (block == null || block == Blocks.air) {
-                continue;
-            }
-            int bx = placedBlock.getX() + binding.getRebuildOffsetX();
-            int by = Math.clamp(placedBlock.getY() + binding.getRebuildOffsetY(), 0, level.getHeight() - 1);
-            int bz = placedBlock.getZ() + binding.getRebuildOffsetZ();
-            GuidebookPreviewBlockPlacer.place(
-                level,
-                bx,
-                by,
-                bz,
-                block,
-                placedBlock.getMeta(),
-                placedBlock.getTileTag(),
-                placedBlock.getBlockId());
-            ScenePreviewFormedState.updateAfterPlacement(level, bx, by, bz, binding.isRebuildFormed());
-        }
     }
 
     private static int parseIntAttribute(MdxJsxElementFields el, String name, int defaultValue) {
@@ -655,24 +609,6 @@ public class SceneScript implements LytScript {
             .isEmpty() ? first.trim() : "StructureLib preview failed";
     }
 
-    /**
-     * Map ConstructableData to StructureLibSceneMetadata (mapping in caller, not in cache layer).
-     */
-    private static StructureLibSceneMetadata buildMetadataFromConstructableData(ConstructableData data,
-        String controllerBlockId) {
-        int maxTier = data.getMaxTotalTier();
-        StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(controllerBlockId, null, null, null, null);
-        metadata = metadata.withTierData(1, maxTier, 1, maxTier);
-        it.unimi.dsi.fastutil.objects.Object2IntMap<String> channelData = data.getChannelData();
-        if (channelData != null) {
-            for (it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<String> entry : channelData.object2IntEntrySet()) {
-                int maxValue = entry.getIntValue();
-                metadata = metadata.withChannelData(entry.getKey(), entry.getKey(), maxValue, maxValue);
-            }
-        }
-        return metadata;
-    }
-
     private static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {
         String visibleStr = el.getAttributeString("visible", null);
         if (visibleStr != null) scene.setBlockStatsVisible(Boolean.parseBoolean(visibleStr));
@@ -682,25 +618,14 @@ public class SceneScript implements LytScript {
 
     private static class StructureBindingState {
 
-        private final String bindingKey;
-        private final StructureLibSceneBinding binding;
-        private final StructureLibImportRequest request;
+        final String bindingKey;
+        final StructureLibSceneBinding binding;
         @Nullable
-        private StructureLibRuntimeFacade.ControlAnalysis controlAnalysis;
-        @Nullable
-        private StructureLibImportResult defaultResult;
-        @Nullable
-        private String defaultFailureMessage;
-        private int analysisVersion;
-        private int buildVersion;
-        private boolean analysisPending;
-        private boolean buildPending;
+        String defaultFailureMessage;
 
-        private StructureBindingState(String bindingKey, StructureLibSceneBinding binding,
-            StructureLibImportRequest request) {
+        private StructureBindingState(String bindingKey, StructureLibSceneBinding binding) {
             this.bindingKey = bindingKey;
             this.binding = binding;
-            this.request = request;
         }
     }
 

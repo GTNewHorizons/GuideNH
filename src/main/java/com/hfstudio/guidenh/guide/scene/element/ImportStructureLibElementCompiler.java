@@ -21,11 +21,9 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
-import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
@@ -226,23 +224,9 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         StructureLibPreviewSelection selection, StructureLibSceneOptions options) {
         StructureLibPreviewSelection result = selection != null ? selection
             : StructureLibPreviewSelection.defaultSelection();
-        if (options != null && options.isGregTechPlaceHatches()) {
-            result = result.withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
-            result = result
-                .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION, false);
-            return result;
-        }
-        try {
-            StructureLibRuntimeFacade.ResolvedController resolvedController = StructureLibRuntimeFacade
-                .resolveController(
-                    new StructureLibImportRequest(controller, null, null, null, null, result.getMasterTier(), result));
-            if (GregTechHelpers
-                .getMachineControllerBaseMeta(resolvedController.getBlock(), resolvedController.getMeta()) != null) {
-                result = result.withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
-                result = result
-                    .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION, true);
-            }
-        } catch (Throwable ignored) {}
+        // Always use survival construct for ISurvivalConstructable machines.
+        // Hatch placement is controlled separately via GREGTECH_PLACE_HATCHES_OPTION.
+        result = result.withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
         return result;
     }
 

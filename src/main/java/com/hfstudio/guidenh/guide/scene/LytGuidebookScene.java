@@ -112,8 +112,6 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportServ
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -384,6 +382,9 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private StructureLibSceneMetadata structureLibSceneMetadata;
     private final LinkedHashMap<String, StructureLibSceneBinding> structureLibBindings = new LinkedHashMap<>();
+    private final LinkedHashMap<String, it.unimi.dsi.fastutil.longs.LongSet> bindingFootprints = new LinkedHashMap<>();
+    @Nullable
+    private GuideSceneStructureSnapshot initialLevelSnapshot;
     private final List<StructureLibSceneMetadata.ChannelData> selectableStructureLibChannels = new ArrayList<>();
     @Getter
     private int structureLibCurrentTier = 1;
@@ -397,13 +398,6 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private StructureLibPreviewSelection pendingStructureLibPreviewSelection;
     private final LinkedHashMap<String, StructureLibPreviewSelection> seededStructureLibPreviewSelections = new LinkedHashMap<>();
-    /**
-     * Per-binding footprint: which positions each binding last wrote to.
-     * Key = bindingKey, Value = packed positions (GuidebookLevel.packPos(x,y,z)).
-     * When rebuilding a binding, its old footprint is cleared before new blocks are placed.
-     */
-    private final java.util.LinkedHashMap<String, LongSet> bindingFootprints = new java.util.LinkedHashMap<>();
-    private boolean initialStateCaptured;
     private boolean initialAnnotationsVisible = true;
     @Nullable
     private Integer initialVisibleLayerOverride;
@@ -581,7 +575,6 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void captureInitialInteractiveState() {
-        initialStateCaptured = true;
         initialAnnotationsVisible = annotationsVisible;
         initialVisibleLayerOverride = visibleLayerOverride;
         initialStructureLibCurrentTier = structureLibCurrentTier;
@@ -602,17 +595,6 @@ public class LytGuidebookScene extends LytBlock {
         initialBlockStatsVisible = blockStatsVisible;
     }
 
-    public void captureInitialStructureStateIfAbsent() {}
-
-    public void setStructureLibBaseState(@Nullable GuideSceneStructureSnapshot structureLibBaseState) {}
-
-    public void rebindPreviewRuntimeStates() {}
-
-    public void registerStructureLibPreviewRuntimeState(String bindingKey, StructureLibSceneBinding binding,
-        StructureLibImportRequest request) {}
-
-    public void submitStructureLibAnalyze(String bindingKey) {}
-
     public void queueStructureLibSelectionBuild(StructureLibSceneBinding binding,
         @Nullable StructureLibPreviewSelection selection) {
         executeStructureBuild(binding, selection);
@@ -623,114 +605,30 @@ public class LytGuidebookScene extends LytBlock {
 
         if (binding == null) return;
 
-        // 1. Apply selection to binding
         if (selection != null) {
             binding.applyPreviewSelection(selection);
         }
 
-        // 2. Build rebuild request
-        StructureLibImportRequest rebuildRequest = binding.buildRebuildRequest();
-        if (rebuildRequest == null) return;
-
-        // 3. Synchronous construct via local service
-        StructureLibSceneImportService importService = new StructureLibSceneImportService();
-        StructureLibImportResult result;
-        try {
-            result = importService.importScene(rebuildRequest);
-        } catch (Exception e) {
-            GuideDebugLog.warnAlways("StructureLib build failed for {}", binding.getBindingKey(), e);
-            return;
-        }
-
-        if (!result.isSuccess()) {
-            GuideDebugLog.warnAlways(
-                "StructureLib build returned failure: {}",
-                result.getErrors() != null && !result.getErrors()
-                    .isEmpty() ? result.getErrors()
-                        .get(0) : "unknown");
-            return;
-        }
-
-        // 4. Clear old footprint for this binding
-        clearFootprint(binding.getBindingKey());
-
-        // 5. Write new blocks to level + record new footprint
-        applyBlocksToLevel(binding.getBindingKey(), result.getBlocks());
-
-        // 6. Update binding metadata
-        if (result.getMetadata() != null) {
-            binding.setMetadata(result.getMetadata());
-        }
-        binding.setLastSuccessfulImportResult(result);
-
-        // 7. Mark render dirty
-        invalidateDocumentLayout();
+        rebuildStructureLib();
     }
 
-    private void clearFootprint(String bindingKey) {
-        LongSet oldPositions = bindingFootprints.remove(bindingKey);
-        if (oldPositions == null || oldPositions.isEmpty()) return;
-
-        Block air = Blocks.air;
-        for (long packed : oldPositions) {
-            int x = (int) (packed << 38 >> 38);
-            int y = (int) (packed >>> 52);
-            int z = (int) (packed << 12 >> 38);
-            level.setBlock(x, y, z, air, 0);
-        }
-    }
-
-    private void applyBlocksToLevel(String bindingKey, List<StructureLibImportResult.PlacedBlock> blocks) {
-
-        GuidebookLevel sceneLevel = level;
-        if (sceneLevel == null) return;
-
-        LongSet footprint = new LongOpenHashSet();
-
-        for (StructureLibImportResult.PlacedBlock block : blocks) {
-            int x = block.getX();
-            int y = block.getY();
-            int z = block.getZ();
-
-            if (y < 0 || y >= sceneLevel.getHeight()) continue;
-
-            sceneLevel.setBlock(x, y, z, block.getBlock(), block.getMeta());
-
-            if (block.getTileTag() != null) {
-                TileEntity tile = sceneLevel.getTileEntity(x, y, z);
-                if (tile != null) {
-                    try {
-                        tile.readFromNBT(block.getTileTag());
-                    } catch (Exception ignored) {}
-                }
-            }
-
-            footprint.add(GuidebookLevel.packPos(x, y, z));
-        }
-
-        bindingFootprints.put(bindingKey, footprint);
+    public void setInitialLevelSnapshot(@Nullable GuideSceneStructureSnapshot snapshot) {
+        this.initialLevelSnapshot = snapshot;
     }
 
     public void resetSceneToInitialState() {
-        GuidebookLevel sceneLevel = level;
-        if (sceneLevel == null || sceneLevel.isEmpty()) return;
-
-        // Clear all StructureLib footprints
-        for (String bindingKey : bindingFootprints.keySet()) {
-            clearFootprint(bindingKey);
+        if (initialLevelSnapshot != null) {
+            setLevel(initialLevelSnapshot.restoreLevel());
         }
-        bindingFootprints.clear();
-
-        // Reconstruct all bindings with default tier
         for (StructureLibSceneBinding binding : structureLibBindings.values()) {
             StructureLibSceneMetadata metadata = binding.getMetadata();
             if (metadata != null && metadata.getTierData() != null) {
                 int defaultTier = metadata.getTierData()
                     .getDefaultValue();
-                StructureLibPreviewSelection defaultSelection = StructureLibPreviewSelection.ofMasterTier(defaultTier);
-                executeStructureBuild(binding, defaultSelection);
+                binding.applyPreviewSelection(StructureLibPreviewSelection.ofMasterTier(defaultTier));
             }
         }
+        rebuildStructureLib();
     }
 
     public void resetInteractiveState() {
@@ -747,26 +645,24 @@ public class LytGuidebookScene extends LytBlock {
         hoveredEntityHitResult = null;
         hoveredStructureLibHatch = null;
         clearAnnotationHover();
-        if (initialStateCaptured) {
-            resetSceneToInitialState();
-            annotationsVisible = initialAnnotationsVisible;
-            visibleLayerOverride = initialVisibleLayerOverride;
-            structureLibCurrentTier = initialStructureLibCurrentTier;
-            structureLibChannelOverrides.clear();
-            structureLibChannelOverrides.putAll(initialStructureLibChannelOverrides);
-            for (Map.Entry<String, StructureLibSceneBinding> entry : structureLibBindings.entrySet()) {
-                StructureLibSceneBinding binding = entry.getValue();
-                StructureLibPreviewSelection selection = initialStructureLibSelectionsByBinding.get(entry.getKey());
-                if (selection != null) {
-                    binding.applyPreviewSelection(selection);
-                }
-                binding.setPendingSelection(initialPendingStructureLibSelectionsByBinding.get(entry.getKey()));
+        resetSceneToInitialState();
+        annotationsVisible = initialAnnotationsVisible;
+        visibleLayerOverride = initialVisibleLayerOverride;
+        structureLibCurrentTier = initialStructureLibCurrentTier;
+        structureLibChannelOverrides.clear();
+        structureLibChannelOverrides.putAll(initialStructureLibChannelOverrides);
+        for (Map.Entry<String, StructureLibSceneBinding> entry : structureLibBindings.entrySet()) {
+            StructureLibSceneBinding binding = entry.getValue();
+            StructureLibPreviewSelection selection = initialStructureLibSelectionsByBinding.get(entry.getKey());
+            if (selection != null) {
+                binding.applyPreviewSelection(selection);
             }
-            bindPrimaryStructureLibState(getPrimaryStructureLibBinding());
-            structureLibHatchHighlightEnabled = initialStructureLibHatchHighlightEnabled;
-            gridVisible = initialGridVisible;
-            resetBlockStatsInteractiveState();
+            binding.setPendingSelection(initialPendingStructureLibSelectionsByBinding.get(entry.getKey()));
         }
+        bindPrimaryStructureLibState(getPrimaryStructureLibBinding());
+        structureLibHatchHighlightEnabled = initialStructureLibHatchHighlightEnabled;
+        gridVisible = initialGridVisible;
+        resetBlockStatsInteractiveState();
         if (ponderSceneData != null) {
             ponderCurrentTick = 0;
             ponderPaused = true;
@@ -1382,7 +1278,6 @@ public class LytGuidebookScene extends LytBlock {
      */
     public void rebuildStructureLib() {
         GuidebookLevel sceneLevel = getLevel();
-        sceneLevel.clear();
         StructureLibSceneImportService importService = new StructureLibSceneImportService();
         for (StructureLibSceneBinding binding : structureLibBindings.values()) {
             if (!binding.hasRebuildRecipe()) {
@@ -1393,17 +1288,38 @@ public class LytGuidebookScene extends LytBlock {
                 continue;
             }
             StructureLibImportResult result = importService.importScene(request);
-            if (!result.isSuccess()) {
+            if (result == null || !result.isSuccess()) {
                 continue;
             }
+            if (result.getBlocks() == null || result.getBlocks()
+                .isEmpty()) {
+                continue;
+            }
+            // Clear old footprint for this binding
+            LongSet oldFootprint = bindingFootprints.remove(binding.getBindingKey());
+            if (oldFootprint != null) {
+                Block air = Blocks.air;
+                for (long packed : oldFootprint) {
+                    sceneLevel.setBlock(
+                        com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata.unpackBlockPosX(packed),
+                        com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata.unpackBlockPosY(packed),
+                        com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata.unpackBlockPosZ(packed),
+                        air,
+                        0);
+                }
+            }
+            int offsetX = binding.getRebuildOffsetX();
+            int offsetY = binding.getRebuildOffsetY();
+            int offsetZ = binding.getRebuildOffsetZ();
+            LongSet newFootprint = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
             for (StructureLibImportResult.PlacedBlock placedBlock : result.getBlocks()) {
                 Block block = placedBlock.getBlock();
                 if (block == null || block == Blocks.air) {
                     continue;
                 }
-                int bx = placedBlock.getX() + binding.getRebuildOffsetX();
-                int by = Math.clamp(placedBlock.getY() + binding.getRebuildOffsetY(), 0, sceneLevel.getHeight() - 1);
-                int bz = placedBlock.getZ() + binding.getRebuildOffsetZ();
+                int bx = placedBlock.getX() + offsetX;
+                int by = Math.clamp(placedBlock.getY() + offsetY, 0, sceneLevel.getHeight() - 1);
+                int bz = placedBlock.getZ() + offsetZ;
                 GuidebookPreviewBlockPlacer.place(
                     sceneLevel,
                     bx,
@@ -1414,7 +1330,9 @@ public class LytGuidebookScene extends LytBlock {
                     placedBlock.getTileTag(),
                     placedBlock.getBlockId());
                 ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
+                newFootprint.add(GuidebookLevel.packPos(bx, by, bz));
             }
+            bindingFootprints.put(binding.getBindingKey(), newFootprint);
         }
     }
 

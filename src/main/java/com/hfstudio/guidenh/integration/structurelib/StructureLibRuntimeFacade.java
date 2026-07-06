@@ -58,7 +58,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
     public static final int MAX_TIER = 50;
     public static final int SURVIVAL_BUILD_BUDGET = 512;
     public static final int SURVIVAL_BUILD_MAX_ROUNDS = 256;
-    public static final int MAX_STABLE_ANALYSIS_FINGERPRINT_RUN = 2;
     public static final StructureLibPreviewMetadataFactory PREVIEW_METADATA_FACTORY = new StructureLibPreviewMetadataFactory(
         new StructureLibElementTooltipResolver());
 
@@ -81,70 +80,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         } catch (Throwable t) {
             GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib preview", t);
             return StructureLibImportResult.failure("StructureLib preview requires an active client world.");
-        }
-    }
-
-    public StructureLibImportResult buildPreviewSelection(StructureLibImportRequest request,
-        @Nullable ControlAnalysis controlAnalysis) {
-        try {
-            BuildContext context = new BuildContext();
-            try {
-                return buildPreviewSelection(request, controlAnalysis, context);
-            } finally {
-                context.clear();
-            }
-        } catch (Throwable t) {
-            GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib preview", t);
-            return StructureLibImportResult.failure("StructureLib preview requires an active client world.");
-        }
-    }
-
-    public StructureLibImportResult buildPreviewSelection(StructureLibImportRequest request,
-        @Nullable ControlAnalysis controlAnalysis, BuildContext context) {
-        List<String> warnings = new ArrayList<>();
-        ResolvedController controller;
-        try {
-            controller = resolveController(request);
-        } catch (IllegalArgumentException e) {
-            return StructureLibImportResult.failure(e.getMessage(), warnings, null);
-        }
-
-        if (request.getPiece() != null) {
-            warnings.add(
-                "StructureLib runtime preview currently uses the controller's default constructable and ignores piece selection.");
-        }
-
-        try {
-            StructureLibPreviewSelection requestedSelection = request.getPreviewSelection();
-            ControlAnalysis effectiveAnalysis = controlAnalysis != null ? controlAnalysis
-                : new ControlAnalysis(
-                    Math.max(MIN_TIER, requestedSelection.getMasterTier()),
-                    mergeChannelMaxTierMap(Map.of(), requestedSelection));
-            StructureLibPreviewSelection effectiveSelection = effectiveAnalysis.clampSelection(requestedSelection);
-            BuildSnapshot snapshot = buildSnapshot(request, controller, effectiveSelection, warnings, context);
-            if (!snapshot.success) {
-                return StructureLibImportResult.failure(snapshot.errorMessage, warnings, null);
-            }
-
-            StructureLibSceneMetadata metadata = PREVIEW_METADATA_FACTORY.createMetadata(
-                request,
-                effectiveSelection,
-                Math.max(effectiveAnalysis.maxTotalTier, effectiveSelection.getMasterTier()),
-                mergeChannelMaxTierMap(effectiveAnalysis.channelMaxTierMap, effectiveSelection),
-                snapshot.absoluteBlocks,
-                snapshot.visitedElementsByPos,
-                snapshot.triggerStack,
-                snapshot.world,
-                snapshot.fingerprint,
-                snapshot.constructable,
-                snapshot.actor);
-            return StructureLibImportResult.success(snapshot.blocks, warnings, metadata);
-        } catch (Throwable t) {
-            GuideDebugLog.warn("StructureLib preview build failed for controller {}", request.getController(), t);
-            return StructureLibImportResult
-                .failure("StructureLib preview failed: " + sanitizeMessage(t.getMessage()), warnings, null);
-        } finally {
-            context.clear();
         }
     }
 
@@ -246,130 +181,14 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
 
     @Nullable
     private static IConstructable resolveConstructableFromController(ResolvedController controller) {
+        // Use full controller ID (registryName:meta) to disambiguate between different GT machines
+        // that share the same Item (e.g., all use "gregtech:gt.blockmachines").
         String blockId = controller.getBlockId();
+        int meta = controller.getMeta();
+        String fullId = meta > 0 ? blockId + ":" + meta : blockId;
         StructureLibDefinitionCache cache = StructureLibDefinitionCache.getInstance();
-        return cache.findConstructable(blockId);
-    }
-
-    public static int estimateMaxTotalTier(StructureLibImportRequest request, ResolvedController controller,
-        Set<String> discoveredChannels) {
-        try {
-            BuildContext context = new BuildContext();
-            try {
-                return estimateMaxTotalTier(request, controller, discoveredChannels, context);
-            } finally {
-                context.clear();
-            }
-        } catch (Throwable t) {
-            GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib tier analysis", t);
-            return MIN_TIER;
-        }
-    }
-
-    public static int estimateMaxTotalTier(StructureLibImportRequest request, ResolvedController controller,
-        Set<String> discoveredChannels, BuildContext context) {
-        BuildSnapshot previous = getOrCreateAnalysisSnapshot(
-            request,
-            controller,
-            StructureLibPreviewSelection.ofMasterTier(MIN_TIER),
-            context);
-        if (!previous.success) {
-            return MIN_TIER;
-        }
-        collectChannelIds(previous, discoveredChannels);
-        String previousFingerprint = previous.fingerprint;
-        int stableFingerprintRun = 0;
-        for (int tier = MIN_TIER + 1; tier <= MAX_TIER; tier++) {
-            BuildSnapshot current = getOrCreateAnalysisSnapshot(
-                request,
-                controller,
-                StructureLibPreviewSelection.ofMasterTier(tier),
-                context);
-            if (!current.success) {
-                return Math.max(MIN_TIER, tier - 1);
-            }
-            collectChannelIds(current, discoveredChannels);
-            if (previousFingerprint.equals(current.fingerprint)) {
-                stableFingerprintRun++;
-                if (stableFingerprintRun >= MAX_STABLE_ANALYSIS_FINGERPRINT_RUN) {
-                    return Math.max(MIN_TIER, tier - stableFingerprintRun);
-                }
-                continue;
-            }
-            previousFingerprint = current.fingerprint;
-            stableFingerprintRun = 0;
-        }
-        return MAX_TIER;
-    }
-
-    public static LinkedHashMap<String, Integer> estimateChannelMaxTiers(StructureLibImportRequest request,
-        ResolvedController controller, Set<String> discoveredChannels) {
-        try {
-            BuildContext context = new BuildContext();
-            try {
-                return estimateChannelMaxTiers(request, controller, discoveredChannels, context);
-            } finally {
-                context.clear();
-            }
-        } catch (Throwable t) {
-            GuideDebugLog.warn("Failed to create Guidebook fake world for StructureLib channel analysis", t);
-            return new LinkedHashMap<>();
-        }
-    }
-
-    public static LinkedHashMap<String, Integer> estimateChannelMaxTiers(StructureLibImportRequest request,
-        ResolvedController controller, Set<String> discoveredChannels, BuildContext context) {
-        LinkedHashMap<String, Integer> resolved = new LinkedHashMap<>();
-        List<String> channelsToProcess = new ArrayList<>(discoveredChannels);
-        for (int index = 0; index < channelsToProcess.size(); index++) {
-            String channelId = StructureLibPreviewSelection.normalizeChannelId(channelsToProcess.get(index));
-            if (channelId == null || resolved.containsKey(channelId)) {
-                continue;
-            }
-
-            StructureLibPreviewSelection baseSelection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
-                .withChannelOverride(channelId, MIN_TIER);
-            BuildSnapshot previous = getOrCreateAnalysisSnapshot(request, controller, baseSelection, context);
-            if (!previous.success) {
-                continue;
-            }
-
-            collectChannelIds(previous, discoveredChannels);
-            if (discoveredChannels.size() > channelsToProcess.size()) {
-                channelsToProcess = new ArrayList<>(discoveredChannels);
-            }
-
-            int maxTier = MIN_TIER;
-            String previousFingerprint = previous.fingerprint;
-            int stableFingerprintRun = 0;
-            for (int tier = MIN_TIER + 1; tier <= MAX_TIER; tier++) {
-                StructureLibPreviewSelection selection = StructureLibPreviewSelection.ofMasterTier(MIN_TIER)
-                    .withChannelOverride(channelId, tier);
-                BuildSnapshot current = getOrCreateAnalysisSnapshot(request, controller, selection, context);
-                if (!current.success) {
-                    break;
-                }
-                collectChannelIds(current, discoveredChannels);
-                if (discoveredChannels.size() > channelsToProcess.size()) {
-                    channelsToProcess = new ArrayList<>(discoveredChannels);
-                }
-                if (previousFingerprint.equals(current.fingerprint)) {
-                    stableFingerprintRun++;
-                    if (stableFingerprintRun >= MAX_STABLE_ANALYSIS_FINGERPRINT_RUN) {
-                        break;
-                    }
-                    continue;
-                }
-                previousFingerprint = current.fingerprint;
-                stableFingerprintRun = 0;
-                maxTier = tier;
-            }
-
-            if (maxTier > 0) {
-                resolved.put(channelId, maxTier);
-            }
-        }
-        return resolved;
+        IConstructable found = cache.findConstructable(fullId);
+        return found;
     }
 
     public static Map<String, Integer> mergeChannelMaxTierMap(Map<String, Integer> base,
@@ -458,27 +277,6 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
             prepared.triggerStack,
             prepared.constructable,
             prepared.actor);
-    }
-
-    public static BuildSnapshot getOrCreateAnalysisSnapshot(StructureLibImportRequest request,
-        ResolvedController controller, StructureLibPreviewSelection selection, BuildContext context) {
-        return buildAnalysisSnapshot(request, controller, selection, context);
-    }
-
-    public static BuildSnapshot buildAnalysisSnapshot(StructureLibImportRequest request, ResolvedController controller,
-        StructureLibPreviewSelection selection, BuildContext context) {
-        PreparedPreviewWorld prepared = preparePreviewWorld(request, controller, selection, new ArrayList<>(), context);
-        if (!prepared.success) {
-            return BuildSnapshot.failure(prepared.errorMessage);
-        }
-        String fingerprint = buildLevelFingerprint(prepared.level);
-        if (fingerprint.isEmpty()) {
-            context.resetPreviewState();
-            return BuildSnapshot.failure("StructureLib preview did not place any blocks.");
-        }
-        LinkedHashSet<String> channelIds = new LinkedHashSet<>();
-        collectChannelIds(prepared.visitedElementsByPos, channelIds);
-        return BuildSnapshot.analysis(fingerprint, channelIds);
     }
 
     public static PreparedPreviewWorld preparePreviewWorld(StructureLibImportRequest request,
@@ -701,6 +499,11 @@ public class StructureLibRuntimeFacade implements StructureLibFacade {
         boolean useSurvivalConstruct = selection != null
             && selection.isIntegrationOptionEnabled(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION);
         if (useSurvivalConstruct && constructable instanceof ISurvivalConstructable survivalConstructable) {
+            // Set HATCH channel if placeHatches is enabled (like BlockRenderer6343 does)
+            if (selection.isIntegrationOptionEnabled(StructureLibSceneOptions.GREGTECH_PLACE_HATCHES_OPTION)
+                && !hasChannelData(triggerStack, "gt_hatch")) {
+                ChannelDataAccessor.setChannelData(triggerStack, "gt_hatch", 1);
+            }
             boolean fillEmptyHatchesOnly = selection
                 .isIntegrationOptionEnabled(StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION);
             GuideDebugLog.warnAlways(
