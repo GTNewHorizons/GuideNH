@@ -635,22 +635,6 @@ public class LytGuidebookScene extends LytBlock {
         hoveredEntityHitResult = null;
         hoveredStructureLibHatch = null;
         clearAnnotationHover();
-        annotationsVisible = initialAnnotationsVisible;
-        visibleLayerOverride = initialVisibleLayerOverride;
-        structureLibCurrentTier = initialStructureLibCurrentTier;
-        structureLibChannelOverrides.clear();
-        structureLibChannelOverrides.putAll(initialStructureLibChannelOverrides);
-        for (Map.Entry<String, StructureLibSceneBinding> entry : structureLibBindings.entrySet()) {
-            StructureLibSceneBinding binding = entry.getValue();
-            StructureLibPreviewSelection selection = initialStructureLibSelectionsByBinding.get(entry.getKey());
-            if (selection != null) {
-                binding.applyPreviewSelection(selection);
-            }
-            binding.setPendingSelection(initialPendingStructureLibSelectionsByBinding.get(entry.getKey()));
-        }
-        bindPrimaryStructureLibState(getPrimaryStructureLibBinding());
-        structureLibHatchHighlightEnabled = initialStructureLibHatchHighlightEnabled;
-        gridVisible = initialGridVisible;
         resetBlockStatsInteractiveState();
         if (ponderSceneData != null) {
             ponderCurrentTick = 0;
