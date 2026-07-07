@@ -621,23 +621,6 @@ public class LytGuidebookScene extends LytBlock {
         this.initialLevelSnapshot = snapshot;
     }
 
-    public void resetSceneToInitialState() {
-        // Clear all blocks — will rebuild from scratch
-        clear();
-
-        for (StructureLibSceneBinding binding : structureLibBindings.values()) {
-            StructureLibSceneMetadata metadata = binding.getMetadata();
-            if (metadata != null && metadata.getTierData() != null) {
-                int defaultTier = metadata.getTierData()
-                    .getDefaultValue();
-                binding.applyPreviewSelection(StructureLibPreviewSelection.ofMasterTier(defaultTier));
-            }
-        }
-
-        // Rebuild everything from registered placements and bindings
-        build();
-    }
-
     public void resetInteractiveState() {
         dragButton = -1;
         draggingVisibleLayerSlider = false;
@@ -652,7 +635,6 @@ public class LytGuidebookScene extends LytBlock {
         hoveredEntityHitResult = null;
         hoveredStructureLibHatch = null;
         clearAnnotationHover();
-        resetSceneToInitialState();
         annotationsVisible = initialAnnotationsVisible;
         visibleLayerOverride = initialVisibleLayerOverride;
         structureLibCurrentTier = initialStructureLibCurrentTier;
