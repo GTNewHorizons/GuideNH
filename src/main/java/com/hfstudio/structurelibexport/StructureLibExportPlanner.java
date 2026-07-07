@@ -9,6 +9,8 @@ import net.minecraft.command.CommandException;
 
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 
+import blockrenderer6343.client.utils.ConstructableData;
+
 public class StructureLibExportPlanner {
 
     public static final int DEFAULT_MAX_TASKS = 512;
@@ -99,7 +101,7 @@ public class StructureLibExportPlanner {
         }
     }
 
-    private int resolveUnifiedMaxTier(blockrenderer6343.client.utils.ConstructableData data) {
+    private int resolveUnifiedMaxTier(ConstructableData data) {
         int maxTier = Math.max(1, data.getMaxTotalTier());
         if (data.getChannelData() != null) {
             for (var entry : data.getChannelData()

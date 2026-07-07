@@ -2,11 +2,14 @@ package com.hfstudio.guidenh.guide.scene;
 
 import net.minecraft.util.ResourceLocation;
 
+import lombok.Getter;
+
 /**
  * Records the placement configuration for a single {@code <ImportStructure>} element.
  * Symmetric to {@link StructureLibSceneBinding} — the compiler registers placement configs,
  * and {@link LytGuidebookScene#build()} uses them to place blocks.
  */
+@Getter
 public class SnbtPlacement {
 
     private final ResourceLocation src;
@@ -23,23 +26,4 @@ public class SnbtPlacement {
         this.formed = formed;
     }
 
-    public ResourceLocation getSrc() {
-        return src;
-    }
-
-    public int getOffsetX() {
-        return offsetX;
-    }
-
-    public int getOffsetY() {
-        return offsetY;
-    }
-
-    public int getOffsetZ() {
-        return offsetZ;
-    }
-
-    public boolean isFormed() {
-        return formed;
-    }
 }

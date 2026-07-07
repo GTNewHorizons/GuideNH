@@ -8,7 +8,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 /**
  * Interface for paragraphs or flow containers that can expose their flow content
  * with bounds for fine-grained debug hover detection.
- *
+ * <p>
  * Implementations should provide a way to pick individual flow elements
  * (ItemImage, ItemLink, Latex, Text, etc.) by coordinates.
  */

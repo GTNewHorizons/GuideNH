@@ -117,6 +117,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelectio
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
+import it.unimi.dsi.fastutil.longs.LongSet;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -389,7 +390,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     @Nullable
     private StructureLibSceneMetadata structureLibSceneMetadata;
     private final LinkedHashMap<String, StructureLibSceneBinding> structureLibBindings = new LinkedHashMap<>();
-    private final LinkedHashMap<String, it.unimi.dsi.fastutil.longs.LongSet> bindingFootprints = new LinkedHashMap<>();
+    private final LinkedHashMap<String, LongSet> bindingFootprints = new LinkedHashMap<>();
     private final List<SnbtPlacement> snbtPlacements = new ArrayList<>();
     @Nullable
     private GuideSceneStructureSnapshot initialLevelSnapshot;
@@ -7028,8 +7029,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         // Timeline slider (bottom area when ponder active)
         if (ponderSceneData != null && bounds != null) {
             int sliderHeight = SCENE_SLIDER_AREA_HEIGHT;
-            int sliderY = (int) (bounds.y() + bounds.height() - sliderHeight);
-            LytRect sliderBounds = new LytRect((int) bounds.x(), sliderY, (int) bounds.width(), sliderHeight);
+            int sliderY = bounds.y() + bounds.height() - sliderHeight;
+            LytRect sliderBounds = new LytRect(bounds.x(), sliderY, bounds.width(), sliderHeight);
             String state = ponderPaused ? "Paused" : "Playing";
             components.add(
                 new SimpleComponentEntry(

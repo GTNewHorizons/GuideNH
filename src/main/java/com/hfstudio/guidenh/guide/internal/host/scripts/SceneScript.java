@@ -470,7 +470,7 @@ public class SceneScript implements LytScript {
         for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
             binding.setSelectionChangeListener(selection -> scene.rebuild());
         }
-        scene.setStructureLibSelectionChangeListener(selection -> { scene.rebuild(); });
+        scene.setStructureLibSelectionChangeListener(selection -> scene.rebuild());
     }
 
     private static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {

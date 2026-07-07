@@ -34,9 +34,13 @@ public class StructureLibSceneBinding {
 
     // Rebuild recipe — set once during compile
     private StructureLibBuildRequest rebuildRequestTemplate;
+    @Getter
     private int rebuildOffsetX;
+    @Getter
     private int rebuildOffsetY;
+    @Getter
     private int rebuildOffsetZ;
+    @Getter
     private boolean rebuildFormed;
     private boolean hasRebuildRecipe;
     @Nullable
@@ -142,22 +146,6 @@ public class StructureLibSceneBinding {
 
     public boolean hasRebuildRecipe() {
         return hasRebuildRecipe;
-    }
-
-    public int getRebuildOffsetX() {
-        return rebuildOffsetX;
-    }
-
-    public int getRebuildOffsetY() {
-        return rebuildOffsetY;
-    }
-
-    public int getRebuildOffsetZ() {
-        return rebuildOffsetZ;
-    }
-
-    public boolean isRebuildFormed() {
-        return rebuildFormed;
     }
 
     @Nullable

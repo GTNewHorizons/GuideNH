@@ -118,13 +118,13 @@ public class TreePrinter {
         var bounds = node.getBounds();
         if (bounds != null) {
             sb.append(" {x=")
-                .append((int) bounds.x())
+                .append(bounds.x())
                 .append(", y=")
-                .append((int) bounds.y())
+                .append(bounds.y())
                 .append(", w=")
-                .append((int) bounds.width())
+                .append(bounds.width())
                 .append(", h=")
-                .append((int) bounds.height())
+                .append(bounds.height())
                 .append('}');
         }
 

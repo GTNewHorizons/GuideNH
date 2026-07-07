@@ -13,7 +13,7 @@ import com.hfstudio.guidenh.guide.document.block.LytNode;
 /**
  * Detects hovered elements in GuideNH screens and extracts debug information.
  * Uses interface-based system for extensible info extraction.
- *
+ * <p>
  * Supports:
  * - Deep-first traversal for finest-grained element detection
  * - DebugComponent interface for sub-component detection (sliders, buttons, tabs)
@@ -109,13 +109,13 @@ public class ElementHoverDetector {
                 String className = parentInfo.getClassName() + "$" + component.getName();
                 HoveredElementInfo info = new HoveredElementInfo(
                     className,
-                    (int) component.getBounds()
+                    component.getBounds()
                         .x(),
-                    (int) component.getBounds()
+                    component.getBounds()
                         .y(),
-                    (int) component.getBounds()
+                    component.getBounds()
                         .width(),
-                    (int) component.getBounds()
+                    component.getBounds()
                         .height(),
                     parentInfo);
 
@@ -150,13 +150,13 @@ public class ElementHoverDetector {
                 .getName();
             HoveredElementInfo info = new HoveredElementInfo(
                 className,
-                (int) entry.bounds()
+                entry.bounds()
                     .x(),
-                (int) entry.bounds()
+                entry.bounds()
                     .y(),
-                (int) entry.bounds()
+                entry.bounds()
                     .width(),
-                (int) entry.bounds()
+                entry.bounds()
                     .height(),
                 parentInfo);
 
@@ -207,10 +207,10 @@ public class ElementHoverDetector {
             .getName();
         HoveredElementInfo info = new HoveredElementInfo(
             className,
-            (int) bounds.x(),
-            (int) bounds.y(),
-            (int) bounds.width(),
-            (int) bounds.height(),
+            bounds.x(),
+            bounds.y(),
+            bounds.width(),
+            bounds.height(),
             parentInfo);
 
         addBasicInfo(node, info);

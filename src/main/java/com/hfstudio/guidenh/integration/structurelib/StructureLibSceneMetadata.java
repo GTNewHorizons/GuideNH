@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.item.ItemStack;
 
@@ -93,8 +94,8 @@ public class StructureLibSceneMetadata {
         return List.of();
     }
 
-    public java.util.Set<Long> getHatchTooltipPositions() {
-        return java.util.Set.of();
+    public Set<Long> getHatchTooltipPositions() {
+        return Set.of();
     }
 
     public boolean hasHatchTooltipData() {

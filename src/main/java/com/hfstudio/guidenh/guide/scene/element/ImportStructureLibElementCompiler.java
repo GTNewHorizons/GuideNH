@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
@@ -22,6 +23,8 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
+
+import blockrenderer6343.client.utils.ConstructableData;
 
 /**
  * Compiler for &lt;ImportStructureLib&gt; MDX tags. Pure parse — no world operations.
@@ -91,9 +94,8 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         binding.setRebuildRecipe(request, offsetX, offsetY, offsetZ, formed);
 
         // Build initial metadata from ConstructableData (not a world operation).
-        com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache cache = com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache
-            .getInstance();
-        blockrenderer6343.client.utils.ConstructableData data = cache.getConstructableDataFor(controller);
+        StructureLibDefinitionCache cache = StructureLibDefinitionCache.getInstance();
+        ConstructableData data = cache.getConstructableDataFor(controller);
         if (data != null) {
             StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(
                 controller,
@@ -106,8 +108,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
             var channelData = data.getChannelData();
             if (channelData != null) {
                 for (var entry : channelData.object2IntEntrySet()) {
-                    String ch = com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection
-                        .normalizeChannelId(entry.getKey());
+                    String ch = StructureLibPreviewSelection.normalizeChannelId(entry.getKey());
                     if (ch != null) {
                         int cv = selection.getChannelOverrides()
                             .getOrDefault(ch, -1);

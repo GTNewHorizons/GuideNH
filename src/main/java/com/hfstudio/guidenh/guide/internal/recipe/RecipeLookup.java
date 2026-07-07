@@ -118,8 +118,8 @@ public class RecipeLookup {
     @Nullable
     public static ItemStack resolveOre(Object o) {
         if (o == null) return null;
-        if (o instanceof ItemStack) {
-            return copy((ItemStack) o);
+        if (o instanceof ItemStack stack) {
+            return copy(stack);
         }
         if (o instanceof List<?>list) {
             if (!list.isEmpty() && list.getFirst() instanceof ItemStack) {

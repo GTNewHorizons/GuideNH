@@ -23,12 +23,14 @@ import com.gtnewhorizon.structurelib.alignment.constructable.IConstructableProvi
 import com.gtnewhorizon.structurelib.alignment.constructable.IMultiblockInfoContainer;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
+import com.gtnewhorizon.structurelib.structure.IItemSource;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
+import blockrenderer6343.api.utils.CreativeItemSource;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 public class StructureLibBuildService {
@@ -219,8 +221,8 @@ public class StructureLibBuildService {
         } catch (Throwable ignored) {}
     }
 
-    private static com.gtnewhorizon.structurelib.structure.IItemSource createItemSource() {
-        return blockrenderer6343.api.utils.CreativeItemSource.instance;
+    private static IItemSource createItemSource() {
+        return CreativeItemSource.instance;
     }
 
     // ========== Preview state sync ==========

@@ -1769,7 +1769,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         }
 
         String extra = "Depth: " + node.depth;
-        if (node.children.size() > 0) {
+        if (!node.children.isEmpty()) {
             extra += ", Children: " + node.children.size();
         }
 

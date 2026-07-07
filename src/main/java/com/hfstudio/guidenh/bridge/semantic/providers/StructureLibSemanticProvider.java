@@ -22,6 +22,9 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
 import com.hfstudio.structurelibexport.StructureLibControllerDiscovery;
 import com.hfstudio.structurelibexport.StructureLibControllerSpec;
 
+import blockrenderer6343.client.utils.ConstructableData;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+
 public class StructureLibSemanticProvider implements SemanticProvider {
 
     @Override
@@ -82,7 +85,7 @@ public class StructureLibSemanticProvider implements SemanticProvider {
             StructureLibBuildService.ResolvedController resolved = StructureLibBuildService
                 .resolveController(controller);
             String fullId = resolved.meta() > 0 ? resolved.blockId() + ":" + resolved.meta() : resolved.blockId();
-            blockrenderer6343.client.utils.ConstructableData data = StructureLibDefinitionCache.getInstance()
+            ConstructableData data = StructureLibDefinitionCache.getInstance()
                 .getConstructableDataFor(fullId);
             if (data == null) return List.of();
             int maxTier = data.getMaxTotalTier();
@@ -240,7 +243,7 @@ public class StructureLibSemanticProvider implements SemanticProvider {
     }
 
     private String describeTierRange(StructureLibBuildService.ResolvedController controller, int maxTier,
-        it.unimi.dsi.fastutil.objects.Object2IntMap<String> channelData) {
+        Object2IntMap<String> channelData) {
         StringBuilder detail = new StringBuilder();
         String controllerId = controller.blockId() + ":" + controller.meta();
         detail.append("Preview tier for ")

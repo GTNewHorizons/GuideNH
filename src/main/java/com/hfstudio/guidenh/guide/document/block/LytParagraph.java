@@ -238,7 +238,7 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
         List<FlowContentEntry> entries = new ArrayList<>();
         for (LytFlowContent flowContent : getContent()) {
             content.enumerateContentBounds(flowContent)
-                .forEach(bounds -> { entries.add(new FlowContentEntry(flowContent, bounds)); });
+                .forEach(bounds -> entries.add(new FlowContentEntry(flowContent, bounds)));
         }
         return entries;
     }

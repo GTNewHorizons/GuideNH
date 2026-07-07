@@ -32,7 +32,7 @@ public class GameScenePrewarmBootstrap {
 
         isPrewarming = true;
         CompletableFuture.runAsync(
-            () -> runPrewarm(),
+            this::runPrewarm,
             GameSceneConcurrentManager.getInstance()
                 .getAnalysisExecutor())
             .whenComplete((v, throwable) -> {
