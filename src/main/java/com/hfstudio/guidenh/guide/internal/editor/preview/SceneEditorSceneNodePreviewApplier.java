@@ -31,7 +31,6 @@ import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageInd
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
-import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
@@ -44,7 +43,6 @@ import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheEntry;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheKey;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
-import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
@@ -235,11 +233,8 @@ public class SceneEditorSceneNodePreviewApplier {
         Integer requestedChannel = parseIntegerAttribute(node.getAttribute("channel"));
         String structureName = normalizeAttribute(node.getAttribute("name"));
         StructureLibSceneOptions options = readStructureLibSceneOptions(node);
-        StructureLibPreviewSelection selection = structureLibSelectionOverride != null
-            ? structureLibSelectionOverride
+        StructureLibPreviewSelection selection = structureLibSelectionOverride != null ? structureLibSelectionOverride
             : options.createSelection(requestedChannel);
-        selection = selection.withIntegrationOption(
-            StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
 
         StructureLibImportRequest request = new StructureLibImportRequest(
             controller,

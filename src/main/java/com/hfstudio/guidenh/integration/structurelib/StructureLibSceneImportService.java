@@ -44,9 +44,12 @@ public class StructureLibSceneImportService {
             req.getFacing(),
             req.getRotation(),
             req.getFlip(),
-            req.getPreviewSelection() != null ? req.getPreviewSelection().getMasterTier() : 1,
-            req.getPreviewSelection() != null ? req.getPreviewSelection().getChannelOverrides() : Map.of(),
-            req.getPreviewSelection() != null ? req.getPreviewSelection().getIntegrationOptions() : Map.of());
+            req.getPreviewSelection() != null ? req.getPreviewSelection()
+                .getMasterTier() : 1,
+            req.getPreviewSelection() != null ? req.getPreviewSelection()
+                .getChannelOverrides() : Map.of(),
+            req.getPreviewSelection() != null ? req.getPreviewSelection()
+                .getIntegrationOptions() : Map.of());
     }
 
     @Nullable
@@ -58,8 +61,15 @@ public class StructureLibSceneImportService {
         List<StructureLibBuildResult.PlacedBlock> src = result.blocks();
         List<StructureLibImportResult.PlacedBlock> dst = new ArrayList<>(src.size());
         for (StructureLibBuildResult.PlacedBlock pb : src) {
-            dst.add(new StructureLibImportResult.PlacedBlock(
-                pb.x(), pb.y(), pb.z(), pb.block(), pb.meta(), pb.tileTag(), pb.blockId()));
+            dst.add(
+                new StructureLibImportResult.PlacedBlock(
+                    pb.x(),
+                    pb.y(),
+                    pb.z(),
+                    pb.block(),
+                    pb.meta(),
+                    pb.tileTag(),
+                    pb.blockId()));
         }
         return StructureLibImportResult.success(dst, List.of(), null);
     }

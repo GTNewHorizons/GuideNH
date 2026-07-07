@@ -401,8 +401,7 @@ public class SceneScript implements LytScript {
             defaultRequest.rotation(),
             defaultRequest.flip());
         int maxTier = data.getMaxTotalTier();
-        metadata = metadata
-            .withTierData(1, maxTier, defaultRequest.tier(), defaultRequest.tier());
+        metadata = metadata.withTierData(1, maxTier, defaultRequest.tier(), defaultRequest.tier());
         it.unimi.dsi.fastutil.objects.Object2IntMap<String> channelData = data.getChannelData();
         if (channelData != null) {
             for (it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<String> entry : channelData.object2IntEntrySet()) {
@@ -540,12 +539,9 @@ public class SceneScript implements LytScript {
             return;
         }
         for (StructureBindingState bindingState : bindingStates.values()) {
-            bindingState.binding.setSelectionChangeListener(
-                selection -> scene.rebuildStructureLib());
+            bindingState.binding.setSelectionChangeListener(selection -> scene.rebuildStructureLib());
         }
-        scene.setStructureLibSelectionChangeListener(selection -> {
-            scene.rebuildStructureLib();
-        });
+        scene.setStructureLibSelectionChangeListener(selection -> { scene.rebuildStructureLib(); });
     }
 
     private static int parseIntAttribute(MdxJsxElementFields el, String name, int defaultValue) {

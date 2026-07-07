@@ -4,14 +4,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-public record StructureLibBuildRequest(
-    String controllerId,
-    @Nullable String piece,
-    @Nullable String facing,
-    @Nullable String rotation,
-    @Nullable String flip,
-    int tier,
-    Map<String, Integer> channels,
+public record StructureLibBuildRequest(String controllerId, @Nullable String piece, @Nullable String facing,
+    @Nullable String rotation, @Nullable String flip, int tier, Map<String, Integer> channels,
     Map<String, Boolean> options) {
 
     public StructureLibBuildRequest {

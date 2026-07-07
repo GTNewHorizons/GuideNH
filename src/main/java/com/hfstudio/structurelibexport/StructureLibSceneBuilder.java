@@ -11,7 +11,6 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
@@ -51,7 +50,6 @@ public class StructureLibSceneBuilder {
                 StructureLibSceneOptions.GREGTECH_ACTIVE_CONTROLLER_OPTION,
                 task.isGtActiveController())
             .withIntegrationOption(StructureLibSceneOptions.GREGTECH_PLACE_HATCHES_OPTION, task.isGtPlaceHatches())
-            .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, useSurvivalConstruct)
             .withIntegrationOption(
                 StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION,
                 useSurvivalConstruct && !task.isGtPlaceHatches());

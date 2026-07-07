@@ -20,7 +20,6 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
-
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 
@@ -50,7 +49,8 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         }
 
         String controller = MdxAttrs.getString(compiler, errorSink, el, "controller", null);
-        if (controller == null || controller.trim().isEmpty()) {
+        if (controller == null || controller.trim()
+            .isEmpty()) {
             errorSink.appendError(compiler, "Missing controller attribute.", el);
             return;
         }
@@ -65,33 +65,42 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser.parseAttributes(compiler, errorSink, el);
         StructureLibSceneOptions mergedOptions = legacyOptions.merge(childOptions);
 
-        String facing = StructureLibSceneOptions.resolveFacing(
-            MdxAttrs.getString(compiler, errorSink, el, "facing", null), mergedOptions);
-        String rotation = StructureLibSceneOptions.resolveRotation(
-            MdxAttrs.getString(compiler, errorSink, el, "rotation", null), mergedOptions);
-        String flip = StructureLibSceneOptions.resolveFlip(
-            MdxAttrs.getString(compiler, errorSink, el, "flip", null), mergedOptions);
+        String facing = StructureLibSceneOptions
+            .resolveFacing(MdxAttrs.getString(compiler, errorSink, el, "facing", null), mergedOptions);
+        String rotation = StructureLibSceneOptions
+            .resolveRotation(MdxAttrs.getString(compiler, errorSink, el, "rotation", null), mergedOptions);
+        String flip = StructureLibSceneOptions
+            .resolveFlip(MdxAttrs.getString(compiler, errorSink, el, "flip", null), mergedOptions);
 
         int requestedChannel = MdxAttrs.getInt(compiler, errorSink, el, "channel", Integer.MIN_VALUE);
-        StructureLibPreviewSelection selection = mergedOptions.createSelection(
-            requestedChannel == Integer.MIN_VALUE ? null : requestedChannel);
+        StructureLibPreviewSelection selection = mergedOptions
+            .createSelection(requestedChannel == Integer.MIN_VALUE ? null : requestedChannel);
         int tier = selection.getMasterTier();
-        selection = selection.withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
 
         StructureLibBuildRequest request = new StructureLibBuildRequest(
-            controller, /* piece */ null, facing, rotation, flip, tier,
-            selection.getChannelOverrides(), selection.getIntegrationOptions());
+            controller,
+            /* piece */ null,
+            facing,
+            rotation,
+            flip,
+            tier,
+            selection.getChannelOverrides(),
+            selection.getIntegrationOptions());
 
         StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
         binding.setRebuildRecipe(request, offsetX, offsetY, offsetZ, formed);
 
         // Build initial metadata from ConstructableData (not a world operation).
-        com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache cache =
-            com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache.getInstance();
+        com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache cache = com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache
+            .getInstance();
         blockrenderer6343.client.utils.ConstructableData data = cache.getConstructableDataFor(controller);
         if (data != null) {
             StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(
-                controller, null, facing, rotation, flip);
+                controller,
+                null,
+                facing,
+                rotation,
+                flip);
             int maxTier = Math.max(1, data.getMaxTotalTier());
             metadata = metadata.withTierData(1, maxTier, tier, tier);
             var channelData = data.getChannelData();
@@ -100,7 +109,8 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
                     String ch = com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection
                         .normalizeChannelId(entry.getKey());
                     if (ch != null) {
-                        int cv = selection.getChannelOverrides().getOrDefault(ch, -1);
+                        int cv = selection.getChannelOverrides()
+                            .getOrDefault(ch, -1);
                         metadata = metadata.withChannelData(ch, ch, entry.getIntValue(), cv);
                     }
                 }
@@ -121,7 +131,8 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
     public static StructureLibBuildRequest buildDefaultPreviewRequest(@Nullable PageCompiler compiler,
         LytErrorSink errorSink, MdxJsxElementFields el) {
         String controller = MdxAttrs.getString(compiler, errorSink, el, "controller", null);
-        if (controller == null || controller.trim().isEmpty()) return null;
+        if (controller == null || controller.trim()
+            .isEmpty()) return null;
 
         String facing = MdxAttrs.getString(compiler, errorSink, el, "facing", null);
         String rotation = MdxAttrs.getString(compiler, errorSink, el, "rotation", null);
@@ -130,12 +141,12 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         StructureLibSceneOptions childOptions = StructureLibSceneOptionParser.parseChildren(compiler, errorSink, el);
         StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser.parseAttributes(compiler, errorSink, el);
         StructureLibSceneOptions merged = legacyOptions.merge(childOptions);
-        StructureLibPreviewSelection selection = merged.createSelection(
-            requestedChannel == Integer.MIN_VALUE ? null : requestedChannel);
-        selection = selection.withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
+        StructureLibPreviewSelection selection = merged
+            .createSelection(requestedChannel == Integer.MIN_VALUE ? null : requestedChannel);
 
         return new StructureLibBuildRequest(
-            controller, MdxAttrs.getString(compiler, errorSink, el, "piece", null),
+            controller,
+            MdxAttrs.getString(compiler, errorSink, el, "piece", null),
             StructureLibSceneOptions.resolveFacing(facing, merged),
             StructureLibSceneOptions.resolveRotation(rotation, merged),
             StructureLibSceneOptions.resolveFlip(flip, merged),
@@ -147,13 +158,16 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
     public static String resolveFailureMessage(List<String> errors, String controller) {
         if (errors != null && !errors.isEmpty()) {
             String first = errors.getFirst();
-            if (first != null && !first.trim().isEmpty()) return first;
+            if (first != null && !first.trim()
+                .isEmpty()) return first;
         }
         return "StructureLib import failed for controller: " + controller;
     }
 
     private static class NoopErrorSink implements LytErrorSink {
+
         static final NoopErrorSink INSTANCE = new NoopErrorSink();
+
         @Override
         public void appendError(PageCompiler compiler, String text, UnistNode node) {}
     }

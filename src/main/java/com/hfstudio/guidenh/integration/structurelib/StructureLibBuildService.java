@@ -13,7 +13,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
-
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
@@ -26,9 +25,9 @@ import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructa
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -67,12 +66,14 @@ public class StructureLibBuildService {
         TileEntity controllerTile = placeController(level, world, controller);
         if (controllerTile == null) {
             return new StructureLibBuildResult(
-                List.of(), false, "Failed to place controller: " + request.controllerId());
+                List.of(),
+                false,
+                "Failed to place controller: " + request.controllerId());
         }
 
         StructureLibOrientationHelper.applyDefaultAlignment(controllerTile);
-        StructureLibOrientationHelper.applyRequestedAlignment(
-            controllerTile, request.facing(), request.rotation(), request.flip());
+        StructureLibOrientationHelper
+            .applyRequestedAlignment(controllerTile, request.facing(), request.rotation(), request.flip());
 
         ForgeDirection controllerFacing = StructureLibOrientationHelper.resolveControllerFacing(controllerTile);
         fakePlayer.configureForControllerFacing(controllerFacing);
@@ -80,10 +81,13 @@ public class StructureLibBuildService {
         IConstructable constructable = resolveConstructable(controllerTile);
         if (constructable == null) {
             return new StructureLibBuildResult(
-                List.of(), false, "Controller not constructable: " + request.controllerId());
+                List.of(),
+                false,
+                "Controller not constructable: " + request.controllerId());
         }
 
         ItemStack trigger = createTrigger(request);
+
         buildStructure(constructable, trigger, fakePlayer, request, controllerTile);
         syncPreviewState(controllerTile, trigger, request);
 
@@ -105,16 +109,18 @@ public class StructureLibBuildService {
 
     @Nullable
     public static TileEntity placeController(GuidebookLevel level, World world, ResolvedController controller) {
-        for (StructureLibControllerPlacementIntegration integration :
-            StructureLibControllerIntegrationRegistry.global().placementIntegrations()) {
+        for (StructureLibControllerPlacementIntegration integration : StructureLibControllerIntegrationRegistry.global()
+            .placementIntegrations()) {
             TileEntity tile = integration.placeController(level, world, controller);
             if (tile != null) return tile;
         }
 
         TileEntity tile = null;
         try {
-            if (controller.block().hasTileEntity(controller.meta())) {
-                tile = controller.block().createTileEntity(world, controller.meta());
+            if (controller.block()
+                .hasTileEntity(controller.meta())) {
+                tile = controller.block()
+                    .createTileEntity(world, controller.meta());
             }
         } catch (Throwable t) {
             return null;
@@ -154,17 +160,16 @@ public class StructureLibBuildService {
     // ========== Trigger stack ==========
 
     public static ItemStack createTrigger(StructureLibBuildRequest request) {
-        ItemStack stack = new ItemStack(
-            StructureLibAPI.getDefaultHologramItem(),
-            Math.max(MIN_TIER, request.tier()));
-        for (Map.Entry<String, Integer> entry : request.channels().entrySet()) {
+        ItemStack stack = new ItemStack(StructureLibAPI.getDefaultHologramItem(), Math.max(MIN_TIER, request.tier()));
+        for (Map.Entry<String, Integer> entry : request.channels()
+            .entrySet()) {
             Integer value = entry.getValue();
             if (value != null && value > 0) {
                 ChannelDataAccessor.setChannelData(stack, entry.getKey(), value);
             }
         }
-        for (StructureLibPreviewItemProvider provider :
-            StructureLibControllerIntegrationRegistry.global().previewItemProviders()) {
+        for (StructureLibPreviewItemProvider provider : StructureLibControllerIntegrationRegistry.global()
+            .previewItemProviders()) {
             provider.configureTrigger(stack, request);
         }
         return stack;
@@ -172,8 +177,8 @@ public class StructureLibBuildService {
 
     // ========== Structure construction ==========
 
-    private static void buildStructure(IConstructable constructable, ItemStack trigger,
-        PreviewFakePlayer fakePlayer, StructureLibBuildRequest request, TileEntity controllerTile) {
+    private static void buildStructure(IConstructable constructable, ItemStack trigger, PreviewFakePlayer fakePlayer,
+        StructureLibBuildRequest request, TileEntity controllerTile) {
         previewHook(controllerTile, trigger, true);
         boolean useSurvival = constructable instanceof ISurvivalConstructable;
         if (useSurvival) {
@@ -197,10 +202,14 @@ public class StructureLibBuildService {
 
     private static void previewHook(TileEntity tile, ItemStack trigger, boolean before) {
         try {
-            Object mte = tile.getClass().getMethod("getMetaTileEntity").invoke(tile);
+            Object mte = tile.getClass()
+                .getMethod("getMetaTileEntity")
+                .invoke(tile);
             if (mte == null) return;
             String method = before ? "onPreviewConstruct" : "onPreviewStructureComplete";
-            mte.getClass().getMethod(method, ItemStack.class).invoke(mte, trigger);
+            mte.getClass()
+                .getMethod(method, ItemStack.class)
+                .invoke(mte, trigger);
         } catch (Throwable ignored) {}
     }
 
@@ -210,39 +219,16 @@ public class StructureLibBuildService {
         } catch (Throwable ignored) {}
     }
 
-    @SuppressWarnings("deprecation")
     private static com.gtnewhorizon.structurelib.structure.IItemSource createItemSource() {
-        return new com.gtnewhorizon.structurelib.structure.IItemSource() {
-            public java.util.Map<net.minecraft.item.ItemStack, Integer> take(
-                    java.util.function.Predicate<net.minecraft.item.ItemStack> p, boolean sim, int cnt) {
-                net.minecraft.item.ItemStack found = find(p);
-                return found != null ? java.util.Map.of(found, cnt) : java.util.Map.of();
-            }
-            public boolean takeOne(net.minecraft.item.ItemStack s, boolean sim) { return true; }
-            public boolean takeAll(net.minecraft.item.ItemStack s, boolean sim) { return true; }
-            public net.minecraft.item.ItemStack takeOne(
-                    java.util.function.Predicate<net.minecraft.item.ItemStack> p, boolean sim) {
-                net.minecraft.item.ItemStack found = find(p);
-                return found != null ? found.copy() : null;
-            }
-            private net.minecraft.item.ItemStack find(java.util.function.Predicate<net.minecraft.item.ItemStack> p) {
-                for (Object obj : net.minecraft.item.Item.itemRegistry) {
-                    if (obj instanceof net.minecraft.item.Item item) {
-                        net.minecraft.item.ItemStack s = new net.minecraft.item.ItemStack(item, 1, 0);
-                        if (p.test(s)) return s;
-                    }
-                }
-                return null;
-            }
-        };
+        return blockrenderer6343.api.utils.CreativeItemSource.instance;
     }
 
     // ========== Preview state sync ==========
 
     private static void syncPreviewState(TileEntity controllerTile, ItemStack trigger,
         StructureLibBuildRequest request) {
-        for (StructureLibPreviewStateSynchronizer synchronizer :
-            StructureLibControllerIntegrationRegistry.global().previewStateSynchronizers()) {
+        for (StructureLibPreviewStateSynchronizer synchronizer : StructureLibControllerIntegrationRegistry.global()
+            .previewStateSynchronizers()) {
             synchronizer.synchronizePreviewState(controllerTile, trigger, request);
         }
     }
@@ -252,6 +238,18 @@ public class StructureLibBuildService {
     public static List<StructureLibBuildResult.PlacedBlock> snapshotBlocks(GuidebookLevel level) {
         List<int[]> filledBlocks = new ArrayList<>(level.getFilledBlocks());
         if (filledBlocks.isEmpty()) return List.of();
+
+        // First pass: find min corner (matching old StructureLibRuntimeFacade behavior)
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        for (int[] pos : filledBlocks) {
+            if (pos[0] < minX) minX = pos[0];
+            if (pos[1] < minY) minY = pos[1];
+            if (pos[2] < minZ) minZ = pos[2];
+        }
+        // Use CONTROLLER position as fallback when min corner is higher (e.g. only controller above ground)
+        if (minY > CONTROLLER_Y) minY = CONTROLLER_Y;
+        if (minX > CONTROLLER_X) minX = CONTROLLER_X;
+        if (minZ > CONTROLLER_Z) minZ = CONTROLLER_Z;
 
         List<StructureLibBuildResult.PlacedBlock> result = new ArrayList<>(filledBlocks.size());
         for (int[] pos : filledBlocks) {
@@ -263,14 +261,21 @@ public class StructureLibBuildService {
             TileEntity tile = level.getTileEntity(x, y, z);
             String blockId = resolvePlacedBlockId(level, x, y, z, block);
 
-            result.add(new StructureLibBuildResult.PlacedBlock(
-                x - CONTROLLER_X, y - CONTROLLER_Y, z - CONTROLLER_Z,
-                block, meta, serializeTile(tile), blockId));
+            result.add(
+                new StructureLibBuildResult.PlacedBlock(
+                    x - minX,
+                    y - minY,
+                    z - minZ,
+                    block,
+                    meta,
+                    serializeTile(tile),
+                    blockId));
         }
 
-        result.sort(Comparator.comparingInt(StructureLibBuildResult.PlacedBlock::x)
-            .thenComparingInt(StructureLibBuildResult.PlacedBlock::y)
-            .thenComparingInt(StructureLibBuildResult.PlacedBlock::z));
+        result.sort(
+            Comparator.comparingInt(StructureLibBuildResult.PlacedBlock::x)
+                .thenComparingInt(StructureLibBuildResult.PlacedBlock::y)
+                .thenComparingInt(StructureLibBuildResult.PlacedBlock::z));
         return result;
     }
 
@@ -302,11 +307,9 @@ public class StructureLibBuildService {
         if (blockId == null) return null;
         String trimmed = blockId.trim();
         if (trimmed.isEmpty()) return null;
-        if (trimmed.startsWith("tile.") && trimmed.length() > 5)
-            return "minecraft:" + trimmed.substring(5);
+        if (trimmed.startsWith("tile.") && trimmed.length() > 5) return "minecraft:" + trimmed.substring(5);
         int idx = trimmed.indexOf(":tile.");
-        if (idx >= 0)
-            return trimmed.substring(0, idx + 1) + trimmed.substring(idx + 6);
+        if (idx >= 0) return trimmed.substring(0, idx + 1) + trimmed.substring(idx + 6);
         return trimmed.indexOf(':') >= 0 ? trimmed : "minecraft:" + trimmed;
     }
 

@@ -57,9 +57,14 @@ public class StructureLibSceneMetadata {
 
     public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue) {
         return new StructureLibSceneMetadata(
-            controller, piece, facing, rotation, flip,
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
             new TierData(minValue, maxValue, defaultValue, currentValue),
-            channelDataList, blockTooltipDataByPos);
+            channelDataList,
+            blockTooltipDataByPos);
     }
 
     public StructureLibSceneMetadata withChannelData(String channelId, String label, int maxValue, int currentValue) {
@@ -67,8 +72,14 @@ public class StructureLibSceneMetadata {
         ChannelData next = new ChannelData(channelId, label, maxValue, 0, currentValue);
         updated.put(next.getChannelId(), next);
         return new StructureLibSceneMetadata(
-            controller, piece, facing, rotation, flip, tierData,
-            new ArrayList<>(updated.values()), blockTooltipDataByPos);
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            tierData,
+            new ArrayList<>(updated.values()),
+            blockTooltipDataByPos);
     }
 
     // ========== Tooltip data (deprecated — always empty) ==========
@@ -111,16 +122,24 @@ public class StructureLibSceneMetadata {
     }
 
     @Nullable
-    public String getPiece() { return piece; }
+    public String getPiece() {
+        return piece;
+    }
 
     @Nullable
-    public String getFacing() { return facing; }
+    public String getFacing() {
+        return facing;
+    }
 
     @Nullable
-    public String getRotation() { return rotation; }
+    public String getRotation() {
+        return rotation;
+    }
 
     @Nullable
-    public String getFlip() { return flip; }
+    public String getFlip() {
+        return flip;
+    }
 
     // ========== Position encoding ==========
 
@@ -181,6 +200,7 @@ public class StructureLibSceneMetadata {
 
     @Getter
     public static class BlockTooltipEntry {
+
         private final int x;
         private final int y;
         private final int z;
@@ -195,6 +215,7 @@ public class StructureLibSceneMetadata {
     }
 
     public static class BlockTooltipData {
+
         @Nullable
         private final String structureLibDescription;
         @Getter
@@ -213,11 +234,14 @@ public class StructureLibSceneMetadata {
         }
 
         @Nullable
-        public String getStructureLibDescription() { return structureLibDescription; }
+        public String getStructureLibDescription() {
+            return structureLibDescription;
+        }
 
         public boolean hasAdditionalTooltipContent() {
             return structureLibDescription != null || !blockCandidates.isEmpty()
-                || !hatchDescriptionLines.isEmpty() || !hatchCandidates.isEmpty();
+                || !hatchDescriptionLines.isEmpty()
+                || !hatchCandidates.isEmpty();
         }
 
         public boolean hasHatchDetails() {
@@ -246,6 +270,7 @@ public class StructureLibSceneMetadata {
 
     @Getter
     public static class TierData {
+
         private final int minValue;
         private final int maxValue;
         private final int defaultValue;
@@ -260,11 +285,14 @@ public class StructureLibSceneMetadata {
             this.currentValue = clamp(currentValue, normalizedMin, normalizedMax);
         }
 
-        public boolean isSelectable() { return maxValue > minValue; }
+        public boolean isSelectable() {
+            return maxValue > minValue;
+        }
     }
 
     @Getter
     public static class ChannelData {
+
         private final String channelId;
         private final String label;
         private final int maxValue;
@@ -282,7 +310,12 @@ public class StructureLibSceneMetadata {
             this.currentValue = clamp(currentValue, 0, normalizedMax);
         }
 
-        public int getMinValue() { return 0; }
-        public boolean isSelectable() { return maxValue > 0; }
+        public int getMinValue() {
+            return 0;
+        }
+
+        public boolean isSelectable() {
+            return maxValue > 0;
+        }
     }
 }

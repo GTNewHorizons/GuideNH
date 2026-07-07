@@ -105,14 +105,12 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.Ae2Helpers;
 import com.hfstudio.guidenh.integration.ae2.Ae2PonderSupport;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 import lombok.Getter;
@@ -1288,7 +1286,8 @@ public class LytGuidebookScene extends LytBlock {
             StructureLibBuildRequest request = binding.buildRebuildRequest();
             if (request == null) continue;
             StructureLibBuildResult result = svc.build(request);
-            if (!result.success() || result.blocks().isEmpty()) continue;
+            if (!result.success() || result.blocks()
+                .isEmpty()) continue;
 
             int offsetX = binding.getRebuildOffsetX();
             int offsetY = binding.getRebuildOffsetY();
@@ -1299,8 +1298,7 @@ public class LytGuidebookScene extends LytBlock {
                 int bx = pb.x() + offsetX;
                 int by = Math.clamp(pb.y() + offsetY, 0, sceneLevel.getHeight() - 1);
                 int bz = pb.z() + offsetZ;
-                GuidebookPreviewBlockPlacer.place(
-                    sceneLevel, bx, by, bz, block, pb.meta(), pb.tileTag(), pb.blockId());
+                GuidebookPreviewBlockPlacer.place(sceneLevel, bx, by, bz, block, pb.meta(), pb.tileTag(), pb.blockId());
                 ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
             }
         }

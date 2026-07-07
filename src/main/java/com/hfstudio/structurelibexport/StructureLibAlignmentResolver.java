@@ -12,9 +12,9 @@ import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibOrientationHelper;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibOrientationHelper;
 
 public class StructureLibAlignmentResolver {
 
@@ -67,8 +67,7 @@ public class StructureLibAlignmentResolver {
                 controller.getBlockId(),
                 controller.getBlock(),
                 controller.getMeta());
-            TileEntity tile = StructureLibBuildService
-                .placeController(level, level.getOrCreateFakeWorld(), resolved);
+            TileEntity tile = StructureLibBuildService.placeController(level, level.getOrCreateFakeWorld(), resolved);
             if (tile == null) return null;
             IAlignment alignment = StructureLibBuildService.resolveAlignment(tile);
             if (alignment != null) {

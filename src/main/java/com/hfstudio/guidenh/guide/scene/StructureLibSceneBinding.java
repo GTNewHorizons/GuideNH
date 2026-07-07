@@ -11,7 +11,6 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
 import lombok.Getter;
 
@@ -49,10 +48,14 @@ public class StructureLibSceneBinding {
     }
 
     @Nullable
-    public String getName() { return name; }
+    public String getName() {
+        return name;
+    }
 
     @Nullable
-    public StructureLibSceneMetadata getMetadata() { return metadata; }
+    public StructureLibSceneMetadata getMetadata() {
+        return metadata;
+    }
 
     public void setMetadata(@Nullable StructureLibSceneMetadata metadata) {
         this.metadata = metadata;
@@ -72,8 +75,7 @@ public class StructureLibSceneBinding {
 
     public void setCurrentTier(int tier) {
         StructureLibSceneMetadata.TierData td = metadata != null ? metadata.getTierData() : null;
-        this.currentTier = td != null
-            ? StructureLibSceneMetadata.clamp(tier, td.getMinValue(), td.getMaxValue())
+        this.currentTier = td != null ? StructureLibSceneMetadata.clamp(tier, td.getMinValue(), td.getMaxValue())
             : Math.max(1, tier);
     }
 
@@ -86,8 +88,7 @@ public class StructureLibSceneBinding {
         String normalized = StructureLibPreviewSelection.normalizeChannelId(channelId);
         if (normalized == null) return;
         StructureLibSceneMetadata.ChannelData cd = metadata != null ? metadata.getChannelData(normalized) : null;
-        int next = cd != null
-            ? StructureLibSceneMetadata.clamp(value, cd.getMinValue(), cd.getMaxValue())
+        int next = cd != null ? StructureLibSceneMetadata.clamp(value, cd.getMinValue(), cd.getMaxValue())
             : Math.max(0, value);
         if (next > 0) channelOverrides.put(normalized, next);
         else channelOverrides.remove(normalized);
@@ -107,7 +108,9 @@ public class StructureLibSceneBinding {
     private StructureLibPreviewSelection pendingSelection;
 
     @Nullable
-    public StructureLibPreviewSelection getPendingSelection() { return pendingSelection; }
+    public StructureLibPreviewSelection getPendingSelection() {
+        return pendingSelection;
+    }
 
     public void setPendingSelection(@Nullable StructureLibPreviewSelection pendingSelection) {
         this.pendingSelection = pendingSelection;
@@ -119,7 +122,8 @@ public class StructureLibSceneBinding {
         if (selection == null) return;
         setCurrentTier(selection.getMasterTier());
         channelOverrides.clear();
-        for (Map.Entry<String, Integer> entry : selection.getChannelOverrides().entrySet()) {
+        for (Map.Entry<String, Integer> entry : selection.getChannelOverrides()
+            .entrySet()) {
             setChannelValue(entry.getKey(), entry.getValue());
         }
     }
@@ -136,17 +140,30 @@ public class StructureLibSceneBinding {
         this.hasRebuildRecipe = true;
     }
 
-    public boolean hasRebuildRecipe() { return hasRebuildRecipe; }
+    public boolean hasRebuildRecipe() {
+        return hasRebuildRecipe;
+    }
 
-    public int getRebuildOffsetX() { return rebuildOffsetX; }
-    public int getRebuildOffsetY() { return rebuildOffsetY; }
-    public int getRebuildOffsetZ() { return rebuildOffsetZ; }
-    public boolean isRebuildFormed() { return rebuildFormed; }
+    public int getRebuildOffsetX() {
+        return rebuildOffsetX;
+    }
+
+    public int getRebuildOffsetY() {
+        return rebuildOffsetY;
+    }
+
+    public int getRebuildOffsetZ() {
+        return rebuildOffsetZ;
+    }
+
+    public boolean isRebuildFormed() {
+        return rebuildFormed;
+    }
 
     @Nullable
     public StructureLibBuildRequest buildRebuildRequest() {
         if (!hasRebuildRecipe || metadata == null || rebuildRequestTemplate == null) return null;
-        return new StructureLibBuildRequest(
+        StructureLibBuildRequest req = new StructureLibBuildRequest(
             metadata.getController(),
             rebuildRequestTemplate.piece(),
             rebuildRequestTemplate.facing(),
@@ -155,6 +172,7 @@ public class StructureLibSceneBinding {
             currentTier,
             channelOverrides,
             rebuildRequestTemplate.options());
+        return req;
     }
 
     // ========== Selection listener ==========

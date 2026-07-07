@@ -18,11 +18,11 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerCandidate;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerDiscoveryIntegration;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerIntegrationRegistry;
-import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
 
 public class StructureLibControllerDiscovery {
 
@@ -141,9 +141,12 @@ public class StructureLibControllerDiscovery {
         level.clear();
         try {
             TileEntity tile = StructureLibBuildService.placeController(
-                level, level.getOrCreateFakeWorld(),
+                level,
+                level.getOrCreateFakeWorld(),
                 new StructureLibBuildService.ResolvedController(
-                    controller.getBlockId(), controller.getBlock(), controller.getMeta()));
+                    controller.getBlockId(),
+                    controller.getBlock(),
+                    controller.getMeta()));
             if (tile == null) return null;
             IConstructable constructable = StructureLibBuildService.resolveConstructable(tile);
             return constructable != null ? new ResolvedConstructableController(tile, constructable) : null;

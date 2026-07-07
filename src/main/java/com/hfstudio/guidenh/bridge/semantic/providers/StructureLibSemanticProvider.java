@@ -81,9 +81,7 @@ public class StructureLibSemanticProvider implements SemanticProvider {
         try {
             StructureLibBuildService.ResolvedController resolved = StructureLibBuildService
                 .resolveController(controller);
-            String fullId = resolved.meta() > 0
-                ? resolved.blockId() + ":" + resolved.meta()
-                : resolved.blockId();
+            String fullId = resolved.meta() > 0 ? resolved.blockId() + ":" + resolved.meta() : resolved.blockId();
             blockrenderer6343.client.utils.ConstructableData data = StructureLibDefinitionCache.getInstance()
                 .getConstructableDataFor(fullId);
             if (data == null) return List.of();
@@ -186,8 +184,7 @@ public class StructureLibSemanticProvider implements SemanticProvider {
                 controller.getBlockId(),
                 controller.getBlock(),
                 controller.getMeta());
-            TileEntity tile = StructureLibBuildService
-                .placeController(level, level.getOrCreateFakeWorld(), resolved);
+            TileEntity tile = StructureLibBuildService.placeController(level, level.getOrCreateFakeWorld(), resolved);
             if (tile == null) return List.of();
             IAlignment alignment = StructureLibBuildService.resolveAlignment(tile);
             if (alignment == null) return List.of();
@@ -242,11 +239,15 @@ public class StructureLibSemanticProvider implements SemanticProvider {
         return "facing".equals(attribute) || "rotation".equals(attribute) || "flip".equals(attribute);
     }
 
-    private String describeTierRange(StructureLibBuildService.ResolvedController controller,
-        int maxTier, it.unimi.dsi.fastutil.objects.Object2IntMap<String> channelData) {
+    private String describeTierRange(StructureLibBuildService.ResolvedController controller, int maxTier,
+        it.unimi.dsi.fastutil.objects.Object2IntMap<String> channelData) {
         StringBuilder detail = new StringBuilder();
         String controllerId = controller.blockId() + ":" + controller.meta();
-        detail.append("Preview tier for ").append(controllerId).append(" (max ").append(maxTier).append(')');
+        detail.append("Preview tier for ")
+            .append(controllerId)
+            .append(" (max ")
+            .append(maxTier)
+            .append(')');
         if (channelData == null || channelData.isEmpty()) return detail.toString();
 
         detail.append(" | Channel caps: ");
@@ -256,7 +257,9 @@ public class StructureLibSemanticProvider implements SemanticProvider {
             int maxValue = entry.getIntValue();
             if (channelId == null || maxValue <= 0) continue;
             if (!first) detail.append(", ");
-            detail.append(channelId).append('=').append(maxValue);
+            detail.append(channelId)
+                .append('=')
+                .append(maxValue);
             first = false;
         }
         return detail.toString();

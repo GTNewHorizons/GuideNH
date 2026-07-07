@@ -60,8 +60,8 @@ public class GregTechStructureLibControllerIntegration implements StructureLibCo
         Integer baseMeta = GregTechHelpers.getMachineControllerBaseMeta(controller.block(), controller.meta());
         if (baseMeta == null) return null;
 
-        TileEntity tile = GregTechHelpers.createMachineControllerTile(
-            world, controller.block(), controller.meta(), null);
+        TileEntity tile = GregTechHelpers
+            .createMachineControllerTile(world, controller.block(), controller.meta(), null);
         if (tile == null) return null;
 
         level.setBlock(
@@ -105,9 +105,12 @@ public class GregTechStructureLibControllerIntegration implements StructureLibCo
 
     @Override
     public void configureTrigger(ItemStack triggerStack, StructureLibBuildRequest request) {
-        boolean placeHatches = Boolean.TRUE.equals(request.options().get(PLACE_HATCHES_OPTION));
-        boolean forceHatch = Boolean.TRUE.equals(request.options().get(
-            "structurelib.force_hatch_placement"));
+        boolean placeHatches = Boolean.TRUE.equals(
+            request.options()
+                .get(PLACE_HATCHES_OPTION));
+        boolean forceHatch = Boolean.TRUE.equals(
+            request.options()
+                .get("structurelib.force_hatch_placement"));
         if (placeHatches || forceHatch) {
             GregTechHelpers.enableHatchPreviewChannel(triggerStack);
         }
@@ -117,9 +120,9 @@ public class GregTechStructureLibControllerIntegration implements StructureLibCo
     public void synchronizePreviewState(TileEntity controllerTile, ItemStack triggerStack,
         StructureLibBuildRequest request) {
         boolean activeController = Boolean.TRUE.equals(
-            request.options().get(ACTIVE_CONTROLLER_OPTION));
-        GregTechHelpers.synchronizeMultiblockPreviewState(
-            controllerTile, triggerStack, activeController, null);
+            request.options()
+                .get(ACTIVE_CONTROLLER_OPTION));
+        GregTechHelpers.synchronizeMultiblockPreviewState(controllerTile, triggerStack, activeController, null);
     }
 
     public static class GregTechControllerIdentity {

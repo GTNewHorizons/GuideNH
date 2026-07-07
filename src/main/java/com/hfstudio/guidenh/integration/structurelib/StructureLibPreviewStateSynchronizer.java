@@ -5,6 +5,5 @@ import net.minecraft.tileentity.TileEntity;
 
 public interface StructureLibPreviewStateSynchronizer {
 
-    void synchronizePreviewState(TileEntity controllerTile, ItemStack triggerStack,
-        StructureLibBuildRequest request);
+    void synchronizePreviewState(TileEntity controllerTile, ItemStack triggerStack, StructureLibBuildRequest request);
 }

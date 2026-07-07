@@ -8,7 +8,6 @@ import java.util.Map;
 import net.minecraft.command.CommandException;
 
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
 
 public class StructureLibExportPlanner {
 
@@ -79,13 +78,15 @@ public class StructureLibExportPlanner {
         }
         try {
             String fullId = controller.getControllerArgument();
-            var data = StructureLibDefinitionCache.getInstance().getConstructableDataFor(fullId);
+            var data = StructureLibDefinitionCache.getInstance()
+                .getConstructableDataFor(fullId);
             if (data == null) {
                 return new AutoTierPlan(1, Map.of());
             }
             Map<String, Integer> channelMaxTierMap = new LinkedHashMap<>();
             if (data.getChannelData() != null) {
-                for (var entry : data.getChannelData().object2IntEntrySet()) {
+                for (var entry : data.getChannelData()
+                    .object2IntEntrySet()) {
                     channelMaxTierMap.put(entry.getKey(), entry.getIntValue());
                 }
             }
@@ -101,7 +102,8 @@ public class StructureLibExportPlanner {
     private int resolveUnifiedMaxTier(blockrenderer6343.client.utils.ConstructableData data) {
         int maxTier = Math.max(1, data.getMaxTotalTier());
         if (data.getChannelData() != null) {
-            for (var entry : data.getChannelData().object2IntEntrySet()) {
+            for (var entry : data.getChannelData()
+                .object2IntEntrySet()) {
                 maxTier = Math.max(maxTier, entry.getIntValue());
             }
         }
