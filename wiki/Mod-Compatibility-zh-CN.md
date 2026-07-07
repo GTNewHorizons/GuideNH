@@ -36,6 +36,30 @@ GuideNH 会优先按紧凑 quest id 解码，失败后再回退到标准 UUID �
 
 一旦某个任务 id 被某页索引，`<QuestLink>` 与 `<QuestCard>` 的点击行为会改为跳转到该指南页，而不是直接打开 BetterQuesting 的任务 GUI。
 
+### 从 BetterQuesting 描述链接到 GuideNH 页面
+
+BetterQuesting 任务描述可以通过 `[guide]` 标签跳回 GuideNH 页面。该标签只在 BetterQuesting 已加载时由 GuideNH 解析，并会转成 BetterQuesting 原生的 hyperlink-aware 文本框渲染，因此 BQ 自己的换行、滚动和点击热区仍保持兼容。
+
+目标写页面 ID：
+
+```text
+[guide]guidenh:navigation-guide[/guide]
+```
+
+如果目标页面存在，显示文本会替换为该指南页面的标题。`.md` 后缀可省略，因此当 `guidenh:navigation-guide.md` 存在时，`guidenh:navigation-guide` 也会指向它。
+
+需要自定义显示文本时使用 `page=`：
+
+```text
+[guide page=guidenh:navigation-guide]打开导航指南[/guide]
+```
+
+该链接会使用 BetterQuesting 原生链接的蓝色与下划线样式，鼠标悬停时显示 GuideNH tooltip，点击后打开目标 GuideNH 页面。也支持页面锚点：
+
+```text
+[guide page=guidenh:navigation-guide#navigation-fields]导航字段[/guide]
+```
+
 ### `<QuestLink>` 与 `<QuestCard>`
 
 两个标签都通过 `id` 接收 BetterQuesting 任务 id，并在编译时根据玩家进度决定外观：
@@ -87,5 +111,6 @@ GuideNH 永不渲染处于 `HIDDEN` 或 `SECRET` 状态且仍处于锁定的任�
 - `<QuestLink>` 与 `<QuestCard>` 不会注册；使用了它们的页面会以标准“未知标签”错误形式呈现，直到你移除这些标签。
 - `quest_ids` 仍会被解析并存入 `additionalProperties`，但不会被读取。
 - 快捷键的任务悬停分支变为空操作。
+- BetterQuesting 描述中的 `[guide]...[/guide]` 链接不会被解析，因为 BetterQuesting 文本框和相关 mixin 都不会加载。
 
 这意味着面向 BetterQuesting 的指南只需编写一次，即可在没有 BetterQuesting 的环境下静默降级。

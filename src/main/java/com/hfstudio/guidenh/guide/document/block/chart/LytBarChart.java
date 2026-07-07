@@ -6,6 +6,7 @@ import java.util.List;
 import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
@@ -20,7 +21,7 @@ import lombok.Setter;
  * the same X axis (each line point sits at the cluster center of its category); {@link #setPieInset}
  * draws a small pie chart in a corner of the plot area.
  */
-public class LytBarChart extends LytChartBase {
+public class LytBarChart extends LytChartBase implements DebugComponent {
 
     private static final int LINE_THICKNESS = 1;
     private static final int LINE_POINT_RADIUS = 2;
@@ -435,5 +436,55 @@ public class LytBarChart extends LytChartBase {
         if (si < 0 || si >= series.size()) return null;
         return series.get(si)
             .getTooltipExtra();
+    }
+
+    // Debug implementation
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> components = new ArrayList<>();
+
+        if (series.isEmpty() || plotCache.isEmpty() || xRangeCache == null) {
+            return components;
+        }
+
+        int categoryCount = Math.max(categories.length, maxSeriesLength());
+        int seriesCount = series.size();
+        float categoryHeight = (float) plotCache.height() / categoryCount;
+        float clusterHeight = categoryHeight * barWidthRatio;
+        float barHeight = clusterHeight / seriesCount;
+        float baselineX = CartesianChartRenderer.mapX(0d, xRangeCache, plotCache);
+
+        for (int ci = 0; ci < categoryCount; ci++) {
+            float clusterCenter = plotCache.y() + categoryHeight * (ci + 0.5f);
+            float clusterTop = clusterCenter - clusterHeight / 2f;
+
+            for (int si = 0; si < seriesCount; si++) {
+                ChartSeries s = series.get(si);
+                if (ci >= s.getYs().length) continue;
+
+                double v = s.getYs()[ci];
+                float endX = CartesianChartRenderer.mapX(v, xRangeCache, plotCache);
+                float y0 = clusterTop + barHeight * si;
+                float y1 = y0 + barHeight - 0.5f;
+
+                float xLeft = Math.min(endX, baselineX);
+                float xRight = Math.max(endX, baselineX);
+
+                LytRect barBounds = new LytRect(
+                    (int) xLeft,
+                    (int) y0,
+                    Math.max(1, (int) (xRight - xLeft)),
+                    Math.max(1, (int) (y1 - y0)));
+
+                String cat = ci < categories.length ? categories[ci] : Integer.toString(ci + 1);
+                String label = s.getName() + "[" + cat + "]";
+                String extra = String.format("Value: %.1f", v);
+
+                components.add(new SimpleComponentEntry("Bar:" + label, barBounds, extra, 15));
+            }
+        }
+
+        return components;
     }
 }

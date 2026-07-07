@@ -1,0 +1,25 @@
+package com.hfstudio.guidenh.guide.internal.debug;
+
+/**
+ * Actions available in the debug control panel menu.
+ */
+public enum DebugMenuAction {
+    NONE,
+    PRINT_TREES,
+    TOGGLE_HOVERED_INFO,
+    TOGGLE_HOVERED_POSITION,
+    TOGGLE_HOVERED_SIZE,
+    TOGGLE_HOVERED_THEME,
+    TOGGLE_HOVERED_EXTRA,
+    TOGGLE_HOVERED_OUTLINE,
+    TOGGLE_PARENT_INFO,
+    TOGGLE_PARENT_POSITION,
+    TOGGLE_PARENT_SIZE,
+    TOGGLE_PARENT_THEME,
+    TOGGLE_PARENT_OUTLINE,
+    TOGGLE_FPS,
+    TOGGLE_MEMORY,
+    TOGGLE_MOUSE_POSITION,
+    RECOMPILE_PAGE,
+    EXPORT_DEBUG_DATA
+}

@@ -18,7 +18,8 @@ public enum Mixins implements IMixins {
         "forge.AccessorShapelessOreRecipe", "minecraft.MixinModelRendererSceneExportCapture",
         "minecraft.MixinTessellatorSceneExportCapture"),
 
-    BQ_PANEL_HOVER(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.MixinPanelButtonQuest"),
+    BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.MixinPanelButtonQuest", "compat.MixinPanelTextBox",
+        "compat.AccessorPanelTextBox", "compat.AccessorPanelTextBoxHotZone"),
 
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
 

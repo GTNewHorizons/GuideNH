@@ -48,7 +48,7 @@ public class LytHost {
     private final Deque<LytEvent> eventQueue = new ArrayDeque<>();
     private final Deque<DeferredTask> taskQueue = new ArrayDeque<>();
 
-    // ===== Document =====
+    // Debug implementation
 
     /**
      * Full processing: UID allocation, onAttach, MOUNT dispatch. Resets the node counter so the
@@ -341,7 +341,7 @@ public class LytHost {
         }
     }
 
-    // ===== Sync events =====
+    // Debug implementation
 
     public void pushEvent(LytEvent event) {
         eventQueue.addLast(event);
@@ -385,7 +385,7 @@ public class LytHost {
         }
     }
 
-    // ===== Async tasks =====
+    // Debug implementation
 
     public void submitTask(DeferredTask task) {
         taskQueue.addLast(task);

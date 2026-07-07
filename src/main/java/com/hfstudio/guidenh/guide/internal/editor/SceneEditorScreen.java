@@ -37,7 +37,7 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
-import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlayRenderer;
+import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorDraftTextController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorElementContextMenuController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorElementController;
@@ -207,7 +207,7 @@ public class SceneEditorScreen extends GuiScreen {
     private final Random elementColorRandom;
     private final SceneEditorHoverMenuState addElementMenuState;
     private final SceneEditorMarkdownPanelState markdownPanelState;
-    private final GuideDebugOverlayRenderer debugOverlayRenderer;
+    private final GuideDebugOverlay debugOverlay;
 
     private GuideIconButton closeButton;
     private GuideIconButton resetPreviewButton;
@@ -359,7 +359,7 @@ public class SceneEditorScreen extends GuiScreen {
         this.elementPanelScrollState = new SceneEditorScrollState();
         this.addElementMenuState = new SceneEditorHoverMenuState();
         this.markdownPanelState = SceneEditorMarkdownPanelState.fromConfig(false);
-        this.debugOverlayRenderer = new GuideDebugOverlayRenderer();
+        this.debugOverlay = new GuideDebugOverlay();
         this.previewScene = null;
         this.activePreviewScene = null;
         this.activePointDrag = null;
@@ -680,6 +680,9 @@ public class SceneEditorScreen extends GuiScreen {
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
+        if (debugOverlay.handleKeyPress(typedChar, keyCode)) {
+            return;
+        }
         if (closeConfirmDialogOpen) {
             if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_E) {
                 closeConfirmDialogOpen = false;
@@ -777,7 +780,8 @@ public class SceneEditorScreen extends GuiScreen {
 
         if (closeConfirmDialogOpen) {
             drawCloseConfirmDialog(mouseX, mouseY);
-            debugOverlayRenderer.render(mc, partialTicks, mouseX, mouseY);
+            debugOverlay.onFrameStart();
+            debugOverlay.render(width, height, mouseX, mouseY, 0, 0, width, height, 0, 1.0f, null, fontRendererObj);
             return;
         }
 
@@ -805,7 +809,8 @@ public class SceneEditorScreen extends GuiScreen {
         } else {
             drawPreviewSceneHoverTooltip(mouseX, mouseY);
         }
-        debugOverlayRenderer.render(mc, partialTicks, mouseX, mouseY);
+        debugOverlay.onFrameStart();
+        debugOverlay.render(width, height, mouseX, mouseY, 0, 0, width, height, 0, 1.0f, null, fontRendererObj);
     }
 
     @Override
@@ -860,6 +865,9 @@ public class SceneEditorScreen extends GuiScreen {
     protected void mouseClicked(int mouseX, int mouseY, int button) {
         activeMouseDragButton = button;
         activeMouseDragStartedAt = Minecraft.getSystemTime();
+        if (debugOverlay.handleMouseClick(mouseX, mouseY, button)) {
+            return;
+        }
         if (closeConfirmDialogOpen) {
             handleCloseConfirmDialogClick(mouseX, mouseY, button);
             return;
