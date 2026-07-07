@@ -33,7 +33,6 @@ import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibElementTooltipResolver;
 
 public class GuideLightweightReloadService {
 
@@ -63,8 +62,6 @@ public class GuideLightweightReloadService {
             .clear();
         StructureLibDefinitionCache.getInstance()
             .refresh();
-        StructureLibElementTooltipResolver.BLOCK_CANDIDATE_CACHE.clear();
-        StructureLibElementTooltipResolver.HATCH_CANDIDATE_CACHE.clear();
         ClientProxy.getLytHost()
             .clearPageCaches();
 

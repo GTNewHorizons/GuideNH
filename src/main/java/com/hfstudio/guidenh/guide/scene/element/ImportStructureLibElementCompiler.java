@@ -4,9 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import net.minecraft.block.Block;
-import net.minecraft.init.Blocks;
-
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -18,29 +15,23 @@ import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
-import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
+
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 
+/**
+ * Compiler for &lt;ImportStructureLib&gt; MDX tags. Pure parse — no world operations.
+ * Registers a binding and sets its rebuild recipe; actual block placement
+ * happens later in {@link LytGuidebookScene#rebuildStructureLib()}.
+ */
 public class ImportStructureLibElementCompiler implements SceneElementTagCompiler {
 
-    private final StructureLibSceneImportService importService;
-
-    public ImportStructureLibElementCompiler() {
-        this(new StructureLibSceneImportService());
-    }
-
-    public ImportStructureLibElementCompiler(StructureLibSceneImportService importService) {
-        this.importService = importService != null ? importService : new StructureLibSceneImportService();
-    }
+    public ImportStructureLibElementCompiler() {}
 
     @Override
     public Set<String> getTagNames() {
@@ -50,9 +41,8 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
     @Override
     public void compile(GuidebookLevel level, CameraSettings camera, PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el) {
-        if (!GuideSceneStructureCompileScope.isStructureMutationEnabled()) {
-            return;
-        }
+        if (!GuideSceneStructureCompileScope.isStructureMutationEnabled()) return;
+
         LytGuidebookScene scene = AnnotationTagCompiler.CURRENT_SCENE.get();
         if (scene == null) {
             errorSink.appendError(compiler, "ImportStructureLib used outside <GameScene>", el);
@@ -60,8 +50,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         }
 
         String controller = MdxAttrs.getString(compiler, errorSink, el, "controller", null);
-        if (controller == null || controller.trim()
-            .isEmpty()) {
+        if (controller == null || controller.trim().isEmpty()) {
             errorSink.appendError(compiler, "Missing controller attribute.", el);
             return;
         }
@@ -69,171 +58,102 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         int offsetX = MdxAttrs.getInt(compiler, errorSink, el, "offsetX", 0);
         int offsetY = MdxAttrs.getInt(compiler, errorSink, el, "offsetY", 0);
         int offsetZ = MdxAttrs.getInt(compiler, errorSink, el, "offsetZ", 0);
-        StructureLibImportRequest defaultRequest = buildDefaultPreviewRequest(compiler, errorSink, el);
-        if (defaultRequest == null) {
-            errorSink.appendError(compiler, "Missing controller attribute.", el);
-            return;
-        }
-        StructureLibSceneOptions sceneOptions = defaultRequest.getSceneOptions();
         boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
         String structureName = MdxAttrs.getString(compiler, errorSink, el, "name", null);
+
+        StructureLibSceneOptions childOptions = StructureLibSceneOptionParser.parseChildren(compiler, errorSink, el);
+        StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser.parseAttributes(compiler, errorSink, el);
+        StructureLibSceneOptions mergedOptions = legacyOptions.merge(childOptions);
+
+        String facing = StructureLibSceneOptions.resolveFacing(
+            MdxAttrs.getString(compiler, errorSink, el, "facing", null), mergedOptions);
+        String rotation = StructureLibSceneOptions.resolveRotation(
+            MdxAttrs.getString(compiler, errorSink, el, "rotation", null), mergedOptions);
+        String flip = StructureLibSceneOptions.resolveFlip(
+            MdxAttrs.getString(compiler, errorSink, el, "flip", null), mergedOptions);
+
+        int requestedChannel = MdxAttrs.getInt(compiler, errorSink, el, "channel", Integer.MIN_VALUE);
+        StructureLibPreviewSelection selection = mergedOptions.createSelection(
+            requestedChannel == Integer.MIN_VALUE ? null : requestedChannel);
+        int tier = selection.getMasterTier();
+        selection = selection.withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
+
+        StructureLibBuildRequest request = new StructureLibBuildRequest(
+            controller, /* piece */ null, facing, rotation, flip, tier,
+            selection.getChannelOverrides(), selection.getIntegrationOptions());
+
         StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
-        StructureLibPreviewSelection selectionOverride = binding.getPendingSelection() != null
-            ? binding.getPendingSelection()
-            : scene.getPendingStructureLibPreviewSelection(structureName) != null
-                ? scene.getPendingStructureLibPreviewSelection(structureName)
-                : scene.getPendingStructureLibPreviewSelection();
-        StructureLibPreviewSelection defaultSelection = defaultRequest.getPreviewSelection();
-        StructureLibPreviewSelection selection = selectionOverride != null
-            ? mergePersistentOptions(selectionOverride, defaultSelection, sceneOptions)
-            : defaultSelection;
-        StructureLibImportRequest request = new StructureLibImportRequest(
-            defaultRequest.getController(),
-            defaultRequest.getPiece(),
-            defaultRequest.getFacing(),
-            defaultRequest.getRotation(),
-            defaultRequest.getFlip(),
-            defaultRequest.getChannel(),
-            applyControllerDefaults(controller, selection, sceneOptions),
-            sceneOptions);
-        scene.setPendingStructureLibPreviewSelection(structureName, request.getPreviewSelection());
-        binding.setRebuildRecipe(
-            defaultRequest.getChannel(),
-            sceneOptions,
-            offsetX,
-            offsetY,
-            offsetZ,
-            formed,
-            request.getPreviewSelection()
-                .getIntegrationOptions());
+        binding.setRebuildRecipe(request, offsetX, offsetY, offsetZ, formed);
 
-        StructureLibImportResult result = importService.importScene(request);
-        attachMetadata(scene, structureName, request, result);
-
-        if (!result.isSuccess()) {
-            errorSink.appendError(compiler, resolveFailureMessage(result.getErrors(), request.getController()), el);
-            return;
-        }
-
-        for (StructureLibImportResult.PlacedBlock placedBlock : result.getBlocks()) {
-            Block block = placedBlock.getBlock();
-            if (block == null || block == Blocks.air) {
-                continue;
+        // Build initial metadata from ConstructableData (not a world operation).
+        com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache cache =
+            com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache.getInstance();
+        blockrenderer6343.client.utils.ConstructableData data = cache.getConstructableDataFor(controller);
+        if (data != null) {
+            StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(
+                controller, null, facing, rotation, flip);
+            int maxTier = Math.max(1, data.getMaxTotalTier());
+            metadata = metadata.withTierData(1, maxTier, tier, tier);
+            var channelData = data.getChannelData();
+            if (channelData != null) {
+                for (var entry : channelData.object2IntEntrySet()) {
+                    String ch = com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection
+                        .normalizeChannelId(entry.getKey());
+                    if (ch != null) {
+                        int cv = selection.getChannelOverrides().getOrDefault(ch, -1);
+                        metadata = metadata.withChannelData(ch, ch, entry.getIntValue(), cv);
+                    }
+                }
             }
-            int clampedY = Math.clamp(placedBlock.getY() + offsetY, 0, level.getHeight() - 1);
-
-            GuidebookPreviewBlockPlacer.place(
-                level,
-                placedBlock.getX() + offsetX,
-                clampedY,
-                placedBlock.getZ() + offsetZ,
-                block,
-                placedBlock.getMeta(),
-                placedBlock.getTileTag(),
-                placedBlock.getBlockId());
-            ScenePreviewFormedState.updateAfterPlacement(
-                level,
-                placedBlock.getX() + offsetX,
-                clampedY,
-                placedBlock.getZ() + offsetZ,
-                formed);
-        }
-    }
-
-    public static void attachMetadata(LytGuidebookScene scene, @Nullable String structureName,
-        StructureLibImportRequest request, StructureLibImportResult result) {
-        StructureLibSceneMetadata metadata = result.getMetadata();
-        if (metadata != null) {
+            binding.setMetadata(metadata);
             scene.setStructureLibSceneMetadata(structureName, metadata);
-            return;
-        }
-
-        if (result.isSuccess()) {
-            scene.setStructureLibSceneMetadata(
-                structureName,
-                new StructureLibSceneMetadata(
-                    request.getController(),
-                    request.getPiece(),
-                    request.getFacing(),
-                    request.getRotation(),
-                    request.getFlip()));
         }
     }
 
-    public static String resolveFailureMessage(List<String> errors, String controller) {
-        if (errors != null && !errors.isEmpty()) {
-            String firstError = errors.getFirst();
-            if (firstError != null && !firstError.trim()
-                .isEmpty()) {
-                return firstError;
-            }
-        }
-        return "StructureLib import failed for controller: " + controller;
-    }
+    // ========== Utility for callers that need to replicate parsing ==========
 
     @Nullable
-    public static StructureLibImportRequest buildDefaultPreviewRequest(MdxJsxElementFields el) {
+    public static StructureLibBuildRequest buildDefaultPreviewRequest(MdxJsxElementFields el) {
         return buildDefaultPreviewRequest(null, NoopErrorSink.INSTANCE, el);
     }
 
     @Nullable
-    public static StructureLibImportRequest buildDefaultPreviewRequest(@Nullable PageCompiler compiler,
+    public static StructureLibBuildRequest buildDefaultPreviewRequest(@Nullable PageCompiler compiler,
         LytErrorSink errorSink, MdxJsxElementFields el) {
         String controller = MdxAttrs.getString(compiler, errorSink, el, "controller", null);
-        if (controller == null || controller.trim()
-            .isEmpty()) {
-            return null;
-        }
+        if (controller == null || controller.trim().isEmpty()) return null;
+
+        String facing = MdxAttrs.getString(compiler, errorSink, el, "facing", null);
+        String rotation = MdxAttrs.getString(compiler, errorSink, el, "rotation", null);
+        String flip = MdxAttrs.getString(compiler, errorSink, el, "flip", null);
         int requestedChannel = MdxAttrs.getInt(compiler, errorSink, el, "channel", Integer.MIN_VALUE);
         StructureLibSceneOptions childOptions = StructureLibSceneOptionParser.parseChildren(compiler, errorSink, el);
         StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser.parseAttributes(compiler, errorSink, el);
-        StructureLibSceneOptions sceneOptions = legacyOptions.merge(childOptions);
-        StructureLibPreviewSelection defaultSelection = sceneOptions
-            .createSelection(requestedChannel == Integer.MIN_VALUE ? null : requestedChannel);
-        StructureLibPreviewSelection selection = applyControllerDefaults(controller, defaultSelection, sceneOptions);
-        return new StructureLibImportRequest(
-            controller,
-            MdxAttrs.getString(compiler, errorSink, el, "piece", null),
-            StructureLibSceneOptions
-                .resolveFacing(MdxAttrs.getString(compiler, errorSink, el, "facing", null), sceneOptions),
-            StructureLibSceneOptions
-                .resolveRotation(MdxAttrs.getString(compiler, errorSink, el, "rotation", null), sceneOptions),
-            StructureLibSceneOptions
-                .resolveFlip(MdxAttrs.getString(compiler, errorSink, el, "flip", null), sceneOptions),
-            requestedChannel == Integer.MIN_VALUE ? null : requestedChannel,
-            selection,
-            sceneOptions);
-    }
+        StructureLibSceneOptions merged = legacyOptions.merge(childOptions);
+        StructureLibPreviewSelection selection = merged.createSelection(
+            requestedChannel == Integer.MIN_VALUE ? null : requestedChannel);
+        selection = selection.withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
 
-    public static StructureLibPreviewSelection mergePersistentOptions(StructureLibPreviewSelection selection,
-        StructureLibPreviewSelection defaults, StructureLibSceneOptions options) {
-        StructureLibPreviewSelection merged = new StructureLibPreviewSelection(
+        return new StructureLibBuildRequest(
+            controller, MdxAttrs.getString(compiler, errorSink, el, "piece", null),
+            StructureLibSceneOptions.resolveFacing(facing, merged),
+            StructureLibSceneOptions.resolveRotation(rotation, merged),
+            StructureLibSceneOptions.resolveFlip(flip, merged),
             selection.getMasterTier(),
             selection.getChannelOverrides(),
-            defaults.getIntegrationOptions());
-        if (options != null && options.isGregTechActiveController()) {
-            merged = merged.withIntegrationOption(StructureLibSceneOptions.GREGTECH_ACTIVE_CONTROLLER_OPTION, true);
-        }
-        if (options != null && options.isGregTechPlaceHatches()) {
-            merged = merged.withIntegrationOption(StructureLibSceneOptions.GREGTECH_PLACE_HATCHES_OPTION, true);
-        }
-        return merged;
+            selection.getIntegrationOptions());
     }
 
-    public static StructureLibPreviewSelection applyControllerDefaults(String controller,
-        StructureLibPreviewSelection selection, StructureLibSceneOptions options) {
-        StructureLibPreviewSelection result = selection != null ? selection
-            : StructureLibPreviewSelection.defaultSelection();
-        // Always use survival construct for ISurvivalConstructable machines.
-        // Hatch placement is controlled separately via GREGTECH_PLACE_HATCHES_OPTION.
-        result = result.withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
-        return result;
+    public static String resolveFailureMessage(List<String> errors, String controller) {
+        if (errors != null && !errors.isEmpty()) {
+            String first = errors.getFirst();
+            if (first != null && !first.trim().isEmpty()) return first;
+        }
+        return "StructureLib import failed for controller: " + controller;
     }
 
     private static class NoopErrorSink implements LytErrorSink {
-
-        private static final NoopErrorSink INSTANCE = new NoopErrorSink();
-
+        static final NoopErrorSink INSTANCE = new NoopErrorSink();
         @Override
         public void appendError(PageCompiler compiler, String text, UnistNode node) {}
     }

@@ -2,10 +2,8 @@ package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import net.minecraft.item.ItemStack;
 
@@ -13,6 +11,10 @@ import org.jetbrains.annotations.Nullable;
 
 import lombok.Getter;
 
+/**
+ * Metadata about a StructureLib preview — controller identity, tier/channel ranges, per-block tooltip data.
+ * Tooltip data (hatch info, block candidates) is no longer produced; fields remain for backward compat.
+ */
 public class StructureLibSceneMetadata {
 
     @Getter
@@ -31,11 +33,6 @@ public class StructureLibSceneMetadata {
     private final List<ChannelData> channelDataList;
     private final Map<String, ChannelData> channelDataById;
     private final Map<Long, BlockTooltipData> blockTooltipDataByPos;
-    @Getter
-    private final List<BlockTooltipEntry> hatchTooltipEntries;
-    @Getter
-    private final Set<Long> hatchTooltipPositions;
-    private final boolean hasHatchTooltipData;
 
     public StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip) {
@@ -53,57 +50,16 @@ public class StructureLibSceneMetadata {
         this.tierData = tierData;
         this.channelDataList = immutableChannels(channelDataList);
         this.channelDataById = indexChannels(this.channelDataList);
-        this.blockTooltipDataByPos = immutableCopy(blockTooltipDataByPos);
-        this.hatchTooltipEntries = computeHatchTooltipEntries(this.blockTooltipDataByPos);
-        this.hatchTooltipPositions = computeHatchTooltipPositions(this.hatchTooltipEntries);
-        this.hasHatchTooltipData = !this.hatchTooltipEntries.isEmpty();
+        this.blockTooltipDataByPos = blockTooltipDataByPos != null ? blockTooltipDataByPos : Map.of();
     }
 
-    public StructureLibSceneMetadata withBlockTooltip(int x, int y, int z, @Nullable BlockTooltipData tooltipData) {
-        Map<Long, BlockTooltipData> updated = new LinkedHashMap<>(blockTooltipDataByPos);
-        long key = packBlockPos(x, y, z);
-        if (tooltipData == null || !tooltipData.hasAdditionalTooltipContent()) {
-            updated.remove(key);
-        } else {
-            updated.put(key, tooltipData);
-        }
-        return new StructureLibSceneMetadata(
-            controller,
-            piece,
-            facing,
-            rotation,
-            flip,
-            tierData,
-            channelDataList,
-            updated);
-    }
-
-    public StructureLibSceneMetadata withBlockTooltips(@Nullable Map<Long, BlockTooltipData> tooltipDataByPos) {
-        Map<Long, BlockTooltipData> filtered = filterTooltipData(tooltipDataByPos);
-        if (filtered.isEmpty() && blockTooltipDataByPos.isEmpty()) {
-            return this;
-        }
-        return new StructureLibSceneMetadata(
-            controller,
-            piece,
-            facing,
-            rotation,
-            flip,
-            tierData,
-            channelDataList,
-            filtered);
-    }
+    // ========== Fluent factories (for programmatic construction) ==========
 
     public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue) {
         return new StructureLibSceneMetadata(
-            controller,
-            piece,
-            facing,
-            rotation,
-            flip,
+            controller, piece, facing, rotation, flip,
             new TierData(minValue, maxValue, defaultValue, currentValue),
-            channelDataList,
-            blockTooltipDataByPos);
+            channelDataList, blockTooltipDataByPos);
     }
 
     public StructureLibSceneMetadata withChannelData(String channelId, String label, int maxValue, int currentValue) {
@@ -111,24 +67,30 @@ public class StructureLibSceneMetadata {
         ChannelData next = new ChannelData(channelId, label, maxValue, 0, currentValue);
         updated.put(next.getChannelId(), next);
         return new StructureLibSceneMetadata(
-            controller,
-            piece,
-            facing,
-            rotation,
-            flip,
-            tierData,
-            new ArrayList<>(updated.values()),
-            blockTooltipDataByPos);
+            controller, piece, facing, rotation, flip, tierData,
+            new ArrayList<>(updated.values()), blockTooltipDataByPos);
     }
+
+    // ========== Tooltip data (deprecated — always empty) ==========
 
     @Nullable
     public BlockTooltipData getBlockTooltipData(int x, int y, int z) {
-        return blockTooltipDataByPos.get(packBlockPos(x, y, z));
+        return null;
+    }
+
+    public List<BlockTooltipEntry> getHatchTooltipEntries() {
+        return List.of();
+    }
+
+    public java.util.Set<Long> getHatchTooltipPositions() {
+        return java.util.Set.of();
     }
 
     public boolean hasHatchTooltipData() {
-        return hasHatchTooltipData;
+        return false;
     }
+
+    // ========== Getters ==========
 
     @Nullable
     public TierData getTierData() {
@@ -142,132 +104,28 @@ public class StructureLibSceneMetadata {
     }
 
     public boolean hasSelectableChannels() {
-        for (ChannelData channelData : channelDataList) {
-            if (channelData.isSelectable()) {
-                return true;
-            }
+        for (ChannelData cd : channelDataList) {
+            if (cd.isSelectable()) return true;
         }
         return false;
     }
 
     @Nullable
-    public String getPiece() {
-        return piece;
-    }
+    public String getPiece() { return piece; }
 
     @Nullable
-    public String getFacing() {
-        return facing;
-    }
+    public String getFacing() { return facing; }
 
     @Nullable
-    public String getRotation() {
-        return rotation;
-    }
+    public String getRotation() { return rotation; }
 
     @Nullable
-    public String getFlip() {
-        return flip;
-    }
+    public String getFlip() { return flip; }
 
-    public static String requireController(@Nullable String controller) {
-        if (controller == null) {
-            throw new IllegalArgumentException("StructureLib metadata controller cannot be null");
-        }
-        String trimmed = controller.trim();
-        if (trimmed.isEmpty()) {
-            throw new IllegalArgumentException("StructureLib metadata controller cannot be empty");
-        }
-        return trimmed;
-    }
-
-    @Nullable
-    public static String normalizeOptional(@Nullable String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    public static List<ChannelData> immutableChannels(@Nullable List<ChannelData> source) {
-        if (source == null || source.isEmpty()) {
-            return List.of();
-        }
-        LinkedHashMap<String, ChannelData> deduplicated = new LinkedHashMap<>(source.size());
-        for (ChannelData channelData : source) {
-            if (channelData != null) {
-                deduplicated.put(channelData.getChannelId(), channelData);
-            }
-        }
-        return deduplicated.isEmpty() ? List.of() : List.copyOf(deduplicated.values());
-    }
-
-    public static Map<String, ChannelData> indexChannels(List<ChannelData> channels) {
-        if (channels.isEmpty()) {
-            return Map.of();
-        }
-        LinkedHashMap<String, ChannelData> indexed = new LinkedHashMap<>(channels.size());
-        for (ChannelData channelData : channels) {
-            indexed.put(channelData.getChannelId(), channelData);
-        }
-        return Map.copyOf(indexed);
-    }
-
-    public static Map<Long, BlockTooltipData> immutableCopy(@Nullable Map<Long, BlockTooltipData> source) {
-        if (source == null || source.isEmpty()) {
-            return Map.of();
-        }
-        return Map.copyOf(new LinkedHashMap<>(source));
-    }
-
-    public static Map<Long, BlockTooltipData> filterTooltipData(@Nullable Map<Long, BlockTooltipData> source) {
-        if (source == null || source.isEmpty()) {
-            return Map.of();
-        }
-        LinkedHashMap<Long, BlockTooltipData> filtered = new LinkedHashMap<>(source.size());
-        for (Map.Entry<Long, BlockTooltipData> entry : source.entrySet()) {
-            BlockTooltipData value = entry.getValue();
-            if (entry.getKey() != null && value != null && value.hasAdditionalTooltipContent()) {
-                filtered.put(entry.getKey(), value);
-            }
-        }
-        return filtered.isEmpty() ? Map.of() : filtered;
-    }
-
-    public static List<BlockTooltipEntry> computeHatchTooltipEntries(
-        Map<Long, BlockTooltipData> blockTooltipDataByPos) {
-        if (blockTooltipDataByPos.isEmpty()) {
-            return List.of();
-        }
-        List<BlockTooltipEntry> entries = new ArrayList<>();
-        for (Map.Entry<Long, BlockTooltipData> entry : blockTooltipDataByPos.entrySet()) {
-            BlockTooltipData value = entry.getValue();
-            if (value != null && value.hasHatchDetails()) {
-                entries.add(
-                    new BlockTooltipEntry(
-                        unpackBlockPosX(entry.getKey()),
-                        unpackBlockPosY(entry.getKey()),
-                        unpackBlockPosZ(entry.getKey()),
-                        value));
-            }
-        }
-        return entries.isEmpty() ? List.of() : List.copyOf(entries);
-    }
+    // ========== Position encoding ==========
 
     public static long packBlockPos(int x, int y, int z) {
         return (((long) x & 0x3FFFFFFL) << 38) | (((long) z & 0x3FFFFFFL) << 12) | ((long) y & 0xFFFL);
-    }
-
-    public static Set<Long> computeHatchTooltipPositions(List<BlockTooltipEntry> hatchTooltipEntries) {
-        if (hatchTooltipEntries.isEmpty()) {
-            return Set.of();
-        }
-        Set<Long> positions = new LinkedHashSet<>(hatchTooltipEntries.size());
-        for (BlockTooltipEntry entry : hatchTooltipEntries) {
-            positions.add(packBlockPos(entry.getX(), entry.getY(), entry.getZ()));
-        }
-        return Set.copyOf(positions);
     }
 
     public static int unpackBlockPosX(long packedPos) {
@@ -282,25 +140,61 @@ public class StructureLibSceneMetadata {
         return (int) (packedPos << 26 >> 38);
     }
 
+    // ========== Statics ==========
+
+    public static String requireController(@Nullable String controller) {
+        if (controller == null) throw new IllegalArgumentException("StructureLib metadata controller cannot be null");
+        String trimmed = controller.trim();
+        if (trimmed.isEmpty()) throw new IllegalArgumentException("StructureLib metadata controller cannot be empty");
+        return trimmed;
+    }
+
+    @Nullable
+    public static String normalizeOptional(@Nullable String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    public static List<ChannelData> immutableChannels(@Nullable List<ChannelData> source) {
+        if (source == null || source.isEmpty()) return List.of();
+        LinkedHashMap<String, ChannelData> dedup = new LinkedHashMap<>(source.size());
+        for (ChannelData cd : source) {
+            if (cd != null) dedup.put(cd.getChannelId(), cd);
+        }
+        return dedup.isEmpty() ? List.of() : List.copyOf(dedup.values());
+    }
+
+    public static Map<String, ChannelData> indexChannels(List<ChannelData> channels) {
+        if (channels.isEmpty()) return Map.of();
+        LinkedHashMap<String, ChannelData> indexed = new LinkedHashMap<>(channels.size());
+        for (ChannelData cd : channels) indexed.put(cd.getChannelId(), cd);
+        return Map.copyOf(indexed);
+    }
+
+    public static int clamp(int value, int minValue, int maxValue) {
+        if (value < minValue) return minValue;
+        return Math.min(value, maxValue);
+    }
+
+    // ========== Inner types ==========
+
     @Getter
     public static class BlockTooltipEntry {
-
         private final int x;
         private final int y;
         private final int z;
         private final BlockTooltipData tooltipData;
 
-        private BlockTooltipEntry(int x, int y, int z, BlockTooltipData tooltipData) {
+        public BlockTooltipEntry(int x, int y, int z, BlockTooltipData tooltipData) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.tooltipData = tooltipData;
         }
-
     }
 
     public static class BlockTooltipData {
-
         @Nullable
         private final String structureLibDescription;
         @Getter
@@ -319,43 +213,32 @@ public class StructureLibSceneMetadata {
         }
 
         @Nullable
-        public String getStructureLibDescription() {
-            return structureLibDescription;
-        }
+        public String getStructureLibDescription() { return structureLibDescription; }
 
         public boolean hasAdditionalTooltipContent() {
             return structureLibDescription != null || !blockCandidates.isEmpty()
-                || !hatchDescriptionLines.isEmpty()
-                || !hatchCandidates.isEmpty();
+                || !hatchDescriptionLines.isEmpty() || !hatchCandidates.isEmpty();
         }
 
         public boolean hasHatchDetails() {
             return !hatchDescriptionLines.isEmpty() || !hatchCandidates.isEmpty();
         }
 
-        public static List<ItemStack> immutableStacks(@Nullable List<ItemStack> stacks) {
-            if (stacks == null || stacks.isEmpty()) {
-                return List.of();
-            }
+        static List<ItemStack> immutableStacks(@Nullable List<ItemStack> stacks) {
+            if (stacks == null || stacks.isEmpty()) return List.of();
             List<ItemStack> copied = new ArrayList<>(stacks.size());
-            for (ItemStack stack : stacks) {
-                if (stack != null && stack.stackSize > 0) {
-                    copied.add(stack.copy());
-                }
+            for (ItemStack s : stacks) {
+                if (s != null && s.stackSize > 0) copied.add(s.copy());
             }
             return copied.isEmpty() ? List.of() : List.copyOf(copied);
         }
 
-        public static List<StructureLibHatchDescriptionLine> immutableLines(
+        static List<StructureLibHatchDescriptionLine> immutableLines(
             @Nullable List<StructureLibHatchDescriptionLine> lines) {
-            if (lines == null || lines.isEmpty()) {
-                return List.of();
-            }
+            if (lines == null || lines.isEmpty()) return List.of();
             List<StructureLibHatchDescriptionLine> copied = new ArrayList<>(lines.size());
             for (StructureLibHatchDescriptionLine line : lines) {
-                if (line != null) {
-                    copied.add(line);
-                }
+                if (line != null) copied.add(line);
             }
             return copied.isEmpty() ? List.of() : List.copyOf(copied);
         }
@@ -363,13 +246,12 @@ public class StructureLibSceneMetadata {
 
     @Getter
     public static class TierData {
-
         private final int minValue;
         private final int maxValue;
         private final int defaultValue;
         private final int currentValue;
 
-        private TierData(int minValue, int maxValue, int defaultValue, int currentValue) {
+        public TierData(int minValue, int maxValue, int defaultValue, int currentValue) {
             int normalizedMin = Math.max(1, minValue);
             int normalizedMax = Math.max(normalizedMin, maxValue);
             this.minValue = normalizedMin;
@@ -378,21 +260,18 @@ public class StructureLibSceneMetadata {
             this.currentValue = clamp(currentValue, normalizedMin, normalizedMax);
         }
 
-        public boolean isSelectable() {
-            return maxValue > minValue;
-        }
+        public boolean isSelectable() { return maxValue > minValue; }
     }
 
     @Getter
     public static class ChannelData {
-
         private final String channelId;
         private final String label;
         private final int maxValue;
         private final int defaultValue;
         private final int currentValue;
 
-        private ChannelData(String channelId, String label, int maxValue, int defaultValue, int currentValue) {
+        public ChannelData(String channelId, String label, int maxValue, int defaultValue, int currentValue) {
             String normalizedChannelId = StructureLibPreviewSelection.normalizeChannelId(channelId);
             String normalizedLabel = normalizeOptional(label);
             int normalizedMax = Math.max(0, maxValue);
@@ -403,19 +282,7 @@ public class StructureLibSceneMetadata {
             this.currentValue = clamp(currentValue, 0, normalizedMax);
         }
 
-        public int getMinValue() {
-            return 0;
-        }
-
-        public boolean isSelectable() {
-            return maxValue > 0;
-        }
-    }
-
-    public static int clamp(int value, int minValue, int maxValue) {
-        if (value < minValue) {
-            return minValue;
-        }
-        return Math.min(value, maxValue);
+        public int getMinValue() { return 0; }
+        public boolean isSelectable() { return maxValue > 0; }
     }
 }

@@ -11,7 +11,7 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.BuildContext;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
@@ -34,11 +34,11 @@ public class StructureLibSceneBuilder {
         return build(task, null);
     }
 
-    public StructureLibSceneBuildResult build(StructureLibExportTaskSpec task, BuildContext context) {
-        return build(task, context, null);
+    public StructureLibSceneBuildResult build(StructureLibExportTaskSpec task, GuidebookLevel buildContext) {
+        return build(task, buildContext, null);
     }
 
-    public StructureLibSceneBuildResult build(StructureLibExportTaskSpec task, BuildContext context,
+    public StructureLibSceneBuildResult build(StructureLibExportTaskSpec task, GuidebookLevel context,
         GuidebookLevel targetLevel) {
         boolean useSurvivalConstruct = task.isGtPlaceHatches() || GregTechHelpers.getMachineControllerBaseMeta(
             task.getController()
@@ -67,8 +67,7 @@ public class StructureLibSceneBuilder {
                 .getFlip(),
             task.getTier(),
             selection);
-        StructureLibImportResult result = context != null ? importService.importScene(request, context)
-            : importService.importScene(request);
+        StructureLibImportResult result = importService.importScene(request);
         ArrayList<String> warnings = new ArrayList<>(task.getWarnings());
         warnings.addAll(result.getWarnings());
         if (!result.isSuccess()) {

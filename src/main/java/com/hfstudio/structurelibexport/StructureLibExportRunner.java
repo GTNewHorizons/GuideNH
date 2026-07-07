@@ -12,7 +12,6 @@ import net.minecraft.util.ChatComponentText;
 
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.BuildContext;
 
 public class StructureLibExportRunner {
 
@@ -55,7 +54,7 @@ public class StructureLibExportRunner {
             List<StructureLibControllerSpec> controllers = controllerDiscovery.resolveControllers(options);
             StructureLibExportManifest manifest = new StructureLibExportManifest();
             StructureLibExportFileNamer fileNamer = new StructureLibExportFileNamer();
-            BuildContext buildContext = new BuildContext();
+            GuidebookLevel buildContext = new GuidebookLevel();
             GuidebookLevel renderLevel = new GuidebookLevel();
             int successCount = 0;
             int failureCount = 0;
@@ -182,7 +181,7 @@ public class StructureLibExportRunner {
     }
 
     private void checkpointManifest(ICommandSender sender, Path outputDirectory, StructureLibExportManifest manifest,
-        StructureLibExportOptions options, BuildContext buildContext) throws Exception {
+        StructureLibExportOptions options, GuidebookLevel buildContext) throws Exception {
         int entries = manifest.getEntries()
             .size();
         if (entries > 0 && entries % options.getBatchSize() == 0) {
@@ -194,7 +193,7 @@ public class StructureLibExportRunner {
         }
     }
 
-    private void releaseControllerMemory(BuildContext buildContext) {
+    private void releaseControllerMemory(GuidebookLevel buildContext) {
         if (buildContext != null) {
             buildContext.clear();
         }

@@ -13,9 +13,8 @@ import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibOrientationHelper;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.BuildContext;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.ResolvedController;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
 
 public class StructureLibAlignmentResolver {
 
@@ -62,15 +61,16 @@ public class StructureLibAlignmentResolver {
     }
 
     private IAlignmentLimits resolveLimits(StructureLibControllerSpec controller, List<String> warnings) {
-        BuildContext context = new BuildContext();
+        GuidebookLevel level = new GuidebookLevel();
         try {
-            ResolvedController resolvedController = new ResolvedController(
+            StructureLibBuildService.ResolvedController resolved = new StructureLibBuildService.ResolvedController(
                 controller.getBlockId(),
                 controller.getBlock(),
                 controller.getMeta());
-            TileEntity tile = StructureLibRuntimeFacade
-                .placeControllerDirectly(context.getLevel(), context.getWorld(), resolvedController, warnings);
-            IAlignment alignment = StructureLibRuntimeFacade.resolveAlignment(tile);
+            TileEntity tile = StructureLibBuildService
+                .placeController(level, level.getOrCreateFakeWorld(), resolved);
+            if (tile == null) return null;
+            IAlignment alignment = StructureLibBuildService.resolveAlignment(tile);
             if (alignment != null) {
                 IAlignmentLimits limits = alignment.getAlignmentLimits();
                 return limits != null ? limits : alignment;
@@ -79,8 +79,6 @@ public class StructureLibAlignmentResolver {
             warnings.add(
                 "Could not inspect StructureLib alignment limits for " + controller.getControllerArgument()
                     + "; requested orientations will be validated during import.");
-        } finally {
-            context.clear();
         }
         return null;
     }

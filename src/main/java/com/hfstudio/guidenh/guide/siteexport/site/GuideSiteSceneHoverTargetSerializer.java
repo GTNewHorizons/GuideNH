@@ -31,7 +31,6 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 public class GuideSiteSceneHoverTargetSerializer {
 
@@ -296,21 +295,8 @@ public class GuideSiteSceneHoverTargetSerializer {
     @Nullable
     private static GuideTooltip resolveStructureLibTooltip(List<StructureLibSceneMetadata> structureLibMetadataList,
         int x, int y, int z, @Nullable String blockName) {
-        for (StructureLibSceneMetadata metadata : structureLibMetadataList) {
-            StructureLibSceneMetadata.BlockTooltipData tooltipData = metadata.getBlockTooltipData(x, y, z);
-            if (tooltipData == null || !tooltipData.hasAdditionalTooltipContent()) {
-                continue;
-            }
-            ContentTooltip tooltip = StructureLibTooltipContentBuilder.build(
-                blockName != null && !blockName.trim()
-                    .isEmpty() ? blockName : "Block",
-                tooltipData.getStructureLibDescription(),
-                false,
-                tooltipData.getBlockCandidates(),
-                tooltipData.getHatchDescriptionLines(),
-                tooltipData.getHatchCandidates());
-            return tooltip;
-        }
+        // Tooltip data (block candidates, hatch descriptions) is no longer provided.
+        // Structure blocks fall through to the default block name tooltip.
         return null;
     }
 

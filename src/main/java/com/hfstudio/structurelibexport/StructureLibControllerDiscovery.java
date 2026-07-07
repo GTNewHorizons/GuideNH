@@ -21,9 +21,8 @@ import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerCandidate;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerDiscoveryIntegration;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerIntegrationRegistry;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.BuildContext;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.ResolvedController;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
 
 public class StructureLibControllerDiscovery {
 
@@ -44,16 +43,16 @@ public class StructureLibControllerDiscovery {
     public List<StructureLibControllerSpec> discoverAllControllers() {
         ArrayList<StructureLibControllerSpec> controllers = new ArrayList<>();
         Set<DiscoveredControllerKey> discoveredKeys = new HashSet<>();
-        BuildContext context = new BuildContext();
+        GuidebookLevel level = new GuidebookLevel();
         try {
             for (StructureLibControllerSpec candidate : discoverControllerCandidates()) {
-                ResolvedConstructableController resolved = resolveConstructableController(candidate, context);
+                ResolvedConstructableController resolved = resolveConstructableController(candidate, level);
                 if (resolved != null && discoveredKeys.add(resolveDiscoveredKey(candidate, resolved))) {
                     controllers.add(candidate);
                 }
             }
         } finally {
-            context.clear();
+            level.clear();
         }
         controllers.sort(
             Comparator.comparing(StructureLibControllerSpec::getBlockId)
@@ -138,23 +137,20 @@ public class StructureLibControllerDiscovery {
     }
 
     private ResolvedConstructableController resolveConstructableController(StructureLibControllerSpec controller,
-        BuildContext context) {
-        context.clear();
+        GuidebookLevel level) {
+        level.clear();
         try {
-            TileEntity tile = StructureLibRuntimeFacade.placeControllerDirectly(
-                context.getLevel(),
-                context.getWorld(),
-                new ResolvedController(controller.getBlockId(), controller.getBlock(), controller.getMeta()),
-                new ArrayList<>());
-            if (tile == null) {
-                return null;
-            }
-            IConstructable constructable = StructureLibRuntimeFacade.resolveConstructable(tile);
+            TileEntity tile = StructureLibBuildService.placeController(
+                level, level.getOrCreateFakeWorld(),
+                new StructureLibBuildService.ResolvedController(
+                    controller.getBlockId(), controller.getBlock(), controller.getMeta()));
+            if (tile == null) return null;
+            IConstructable constructable = StructureLibBuildService.resolveConstructable(tile);
             return constructable != null ? new ResolvedConstructableController(tile, constructable) : null;
         } catch (Throwable ignored) {
             return null;
         } finally {
-            context.clear();
+            level.clear();
         }
     }
 

@@ -234,21 +234,12 @@ public class SceneEditorSceneNodePreviewApplier {
         boolean formed = parseBooleanAttribute(node.getAttribute("formed"));
         Integer requestedChannel = parseIntegerAttribute(node.getAttribute("channel"));
         String structureName = normalizeAttribute(node.getAttribute("name"));
-        StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
         StructureLibSceneOptions options = readStructureLibSceneOptions(node);
-        StructureLibPreviewSelection defaultSelection = options.createSelection(requestedChannel);
         StructureLibPreviewSelection selection = structureLibSelectionOverride != null
-            ? ImportStructureLibElementCompiler
-                .mergePersistentOptions(structureLibSelectionOverride, defaultSelection, options)
-            : binding.getPendingSelection() != null
-                ? ImportStructureLibElementCompiler
-                    .mergePersistentOptions(binding.getPendingSelection(), defaultSelection, options)
-                : scene.getPendingStructureLibPreviewSelection(structureName) != null
-                    ? ImportStructureLibElementCompiler.mergePersistentOptions(
-                        scene.getPendingStructureLibPreviewSelection(structureName),
-                        defaultSelection,
-                        options)
-                    : defaultSelection;
+            ? structureLibSelectionOverride
+            : options.createSelection(requestedChannel);
+        selection = selection.withIntegrationOption(
+            StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, true);
 
         StructureLibImportRequest request = new StructureLibImportRequest(
             controller,
@@ -257,9 +248,8 @@ public class SceneEditorSceneNodePreviewApplier {
             StructureLibSceneOptions.resolveRotation(node.getAttribute("rotation"), options),
             StructureLibSceneOptions.resolveFlip(node.getAttribute("flip"), options),
             requestedChannel,
-            ImportStructureLibElementCompiler.applyControllerDefaults(controller, selection, options),
+            selection,
             options);
-        scene.setPendingStructureLibPreviewSelection(structureName, request.getPreviewSelection());
         StructureLibImportResult result = structureLibImportService.importScene(request);
         attachStructureLibMetadata(scene, structureName, request, result);
         if (!result.isSuccess()) {

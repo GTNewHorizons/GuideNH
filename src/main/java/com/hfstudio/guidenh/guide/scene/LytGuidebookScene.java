@@ -110,6 +110,9 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildResult;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 import lombok.Getter;
@@ -1278,61 +1281,28 @@ public class LytGuidebookScene extends LytBlock {
      */
     public void rebuildStructureLib() {
         GuidebookLevel sceneLevel = getLevel();
-        StructureLibSceneImportService importService = new StructureLibSceneImportService();
+        sceneLevel.clear();
+        StructureLibBuildService svc = new StructureLibBuildService();
         for (StructureLibSceneBinding binding : structureLibBindings.values()) {
-            if (!binding.hasRebuildRecipe()) {
-                continue;
-            }
-            StructureLibImportRequest request = binding.buildRebuildRequest();
-            if (request == null) {
-                continue;
-            }
-            StructureLibImportResult result = importService.importScene(request);
-            if (result == null || !result.isSuccess()) {
-                continue;
-            }
-            if (result.getBlocks() == null || result.getBlocks()
-                .isEmpty()) {
-                continue;
-            }
-            // Clear old footprint for this binding
-            LongSet oldFootprint = bindingFootprints.remove(binding.getBindingKey());
-            if (oldFootprint != null) {
-                Block air = Blocks.air;
-                for (long packed : oldFootprint) {
-                    sceneLevel.setBlock(
-                        com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata.unpackBlockPosX(packed),
-                        com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata.unpackBlockPosY(packed),
-                        com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata.unpackBlockPosZ(packed),
-                        air,
-                        0);
-                }
-            }
+            if (!binding.hasRebuildRecipe()) continue;
+            StructureLibBuildRequest request = binding.buildRebuildRequest();
+            if (request == null) continue;
+            StructureLibBuildResult result = svc.build(request);
+            if (!result.success() || result.blocks().isEmpty()) continue;
+
             int offsetX = binding.getRebuildOffsetX();
             int offsetY = binding.getRebuildOffsetY();
             int offsetZ = binding.getRebuildOffsetZ();
-            LongSet newFootprint = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
-            for (StructureLibImportResult.PlacedBlock placedBlock : result.getBlocks()) {
-                Block block = placedBlock.getBlock();
-                if (block == null || block == Blocks.air) {
-                    continue;
-                }
-                int bx = placedBlock.getX() + offsetX;
-                int by = Math.clamp(placedBlock.getY() + offsetY, 0, sceneLevel.getHeight() - 1);
-                int bz = placedBlock.getZ() + offsetZ;
+            for (StructureLibBuildResult.PlacedBlock pb : result.blocks()) {
+                Block block = pb.block();
+                if (block == null || block == Blocks.air) continue;
+                int bx = pb.x() + offsetX;
+                int by = Math.clamp(pb.y() + offsetY, 0, sceneLevel.getHeight() - 1);
+                int bz = pb.z() + offsetZ;
                 GuidebookPreviewBlockPlacer.place(
-                    sceneLevel,
-                    bx,
-                    by,
-                    bz,
-                    block,
-                    placedBlock.getMeta(),
-                    placedBlock.getTileTag(),
-                    placedBlock.getBlockId());
+                    sceneLevel, bx, by, bz, block, pb.meta(), pb.tileTag(), pb.blockId());
                 ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
-                newFootprint.add(GuidebookLevel.packPos(bx, by, bz));
             }
-            bindingFootprints.put(binding.getBindingKey(), newFootprint);
         }
     }
 

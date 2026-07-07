@@ -52,9 +52,8 @@ import com.hfstudio.guidenh.guide.scene.element.StructureLibSceneOptionParser;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
@@ -372,28 +371,16 @@ public class SceneScript implements LytScript {
         StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser
             .parseAttributes(null, NoopErrorSink.INSTANCE, el);
         StructureLibSceneOptions sceneOptions = legacyOptions.merge(childOptions);
-        StructureLibImportRequest defaultRequest = ImportStructureLibElementCompiler.buildDefaultPreviewRequest(el);
+        StructureLibBuildRequest defaultRequest = ImportStructureLibElementCompiler.buildDefaultPreviewRequest(el);
         if (defaultRequest == null) {
             return null;
         }
-        StructureLibPreviewSelection defaultSelection = defaultRequest.getPreviewSelection();
-        StructureLibPreviewSelection effectiveSelection = ImportStructureLibElementCompiler
-            .applyControllerDefaults(controller, defaultSelection, sceneOptions);
-        binding.applyPreviewSelection(effectiveSelection);
-        binding.setPendingSelection(effectiveSelection);
 
         int offsetX = parseIntAttribute(el, "offsetX", 0);
         int offsetY = parseIntAttribute(el, "offsetY", 0);
         int offsetZ = parseIntAttribute(el, "offsetZ", 0);
         boolean formed = parseBooleanAttribute(el, "formed", false);
-        binding.setRebuildRecipe(
-            defaultRequest.getChannel(),
-            sceneOptions,
-            offsetX,
-            offsetY,
-            offsetZ,
-            formed,
-            effectiveSelection.getIntegrationOptions());
+        binding.setRebuildRecipe(defaultRequest, offsetX, offsetY, offsetZ, formed);
 
         // Verify IConstructable exists and build initial metadata from ConstructableData
         StructureLibDefinitionCache cache = StructureLibDefinitionCache.getInstance();
@@ -409,21 +396,19 @@ public class SceneScript implements LytScript {
         blockrenderer6343.client.utils.ConstructableData data = cache.getConstructableData(constructable);
         StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(
             controller,
-            defaultRequest.getPiece(),
-            defaultRequest.getFacing(),
-            defaultRequest.getRotation(),
-            defaultRequest.getFlip());
+            defaultRequest.piece(),
+            defaultRequest.facing(),
+            defaultRequest.rotation(),
+            defaultRequest.flip());
         int maxTier = data.getMaxTotalTier();
         metadata = metadata
-            .withTierData(1, maxTier, effectiveSelection.getMasterTier(), effectiveSelection.getMasterTier());
+            .withTierData(1, maxTier, defaultRequest.tier(), defaultRequest.tier());
         it.unimi.dsi.fastutil.objects.Object2IntMap<String> channelData = data.getChannelData();
         if (channelData != null) {
             for (it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<String> entry : channelData.object2IntEntrySet()) {
                 int channelMax = entry.getIntValue();
-                int currentValue = effectiveSelection.getChannelOverrides() != null
-                    ? effectiveSelection.getChannelOverrides()
-                        .getOrDefault(entry.getKey(), channelMax)
-                    : channelMax;
+                int currentValue = defaultRequest.channels()
+                    .getOrDefault(entry.getKey(), 0);
                 metadata = metadata.withChannelData(entry.getKey(), entry.getKey(), channelMax, currentValue);
             }
         }
@@ -556,14 +541,10 @@ public class SceneScript implements LytScript {
         }
         for (StructureBindingState bindingState : bindingStates.values()) {
             bindingState.binding.setSelectionChangeListener(
-                selection -> scene.queueStructureLibSelectionBuild(bindingState.binding, selection));
+                selection -> scene.rebuildStructureLib());
         }
         scene.setStructureLibSelectionChangeListener(selection -> {
-            StructureLibSceneBinding primaryBinding = scene.resolveStructureLibBinding(null);
-            if (primaryBinding == null) {
-                return;
-            }
-            scene.queueStructureLibSelectionBuild(primaryBinding, selection);
+            scene.rebuildStructureLib();
         });
     }
 

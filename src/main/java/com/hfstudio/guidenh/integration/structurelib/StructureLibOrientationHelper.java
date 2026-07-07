@@ -18,6 +18,21 @@ public class StructureLibOrientationHelper {
 
     protected StructureLibOrientationHelper() {}
 
+    public static void applyRequestedAlignment(@Nullable TileEntity controllerTile, @Nullable String facing,
+        @Nullable String rotation, @Nullable String flip) {
+        if (facing == null && rotation == null && flip == null) return;
+        IAlignment alignment = resolveAlignment(controllerTile);
+        if (alignment == null) return;
+
+        ForgeDirection direction = parseDirection(facing);
+        Rotation rot = parseRotation(rotation);
+        Flip flp = parseFlip(flip);
+        ExtendedFacing requested = ExtendedFacing.of(direction, rot, flp);
+        if (!alignment.checkedSetExtendedFacing(requested)) {
+            applyDefaultAlignment(controllerTile);
+        }
+    }
+
     public static void applyRequestedAlignment(@Nullable TileEntity controllerTile, StructureLibImportRequest request,
         List<String> warnings) {
         if (request == null
@@ -86,6 +101,41 @@ public class StructureLibOrientationHelper {
             return provider.getAlignment();
         }
         return null;
+    }
+
+    public static ForgeDirection parseDirection(@Nullable String rawFacing) {
+        if (rawFacing == null || rawFacing.trim()
+            .isEmpty()) {
+            return ForgeDirection.NORTH;
+        }
+        String normalized = rawFacing.trim()
+            .toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "down" -> ForgeDirection.DOWN;
+            case "up" -> ForgeDirection.UP;
+            case "north" -> ForgeDirection.NORTH;
+            case "south" -> ForgeDirection.SOUTH;
+            case "west" -> ForgeDirection.WEST;
+            default -> ForgeDirection.NORTH;
+        };
+    }
+
+    public static Rotation parseRotation(@Nullable String rawRotation) {
+        if (rawRotation == null || rawRotation.trim()
+            .isEmpty()) {
+            return Rotation.NORMAL;
+        }
+        Rotation rotation = Rotation.byName(normalizeRotation(rawRotation));
+        return rotation != null ? rotation : Rotation.NORMAL;
+    }
+
+    public static Flip parseFlip(@Nullable String rawFlip) {
+        if (rawFlip == null || rawFlip.trim()
+            .isEmpty()) {
+            return Flip.NONE;
+        }
+        Flip flip = Flip.byName(normalizeFlip(rawFlip));
+        return flip != null ? flip : Flip.NONE;
     }
 
     public static ForgeDirection parseDirection(@Nullable String rawFacing, List<String> warnings) {
