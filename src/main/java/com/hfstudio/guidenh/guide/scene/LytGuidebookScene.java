@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -78,6 +79,8 @@ import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureSnapshot;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityStateSupport;
+import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
+import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
@@ -384,6 +387,7 @@ public class LytGuidebookScene extends LytBlock {
     private StructureLibSceneMetadata structureLibSceneMetadata;
     private final LinkedHashMap<String, StructureLibSceneBinding> structureLibBindings = new LinkedHashMap<>();
     private final LinkedHashMap<String, it.unimi.dsi.fastutil.longs.LongSet> bindingFootprints = new LinkedHashMap<>();
+    private final List<SnbtPlacement> snbtPlacements = new ArrayList<>();
     @Nullable
     private GuideSceneStructureSnapshot initialLevelSnapshot;
     private final List<StructureLibSceneMetadata.ChannelData> selectableStructureLibChannels = new ArrayList<>();
@@ -610,7 +614,7 @@ public class LytGuidebookScene extends LytBlock {
             binding.applyPreviewSelection(selection);
         }
 
-        rebuildStructureLib();
+        rebuild();
     }
 
     public void setInitialLevelSnapshot(@Nullable GuideSceneStructureSnapshot snapshot) {
@@ -618,9 +622,9 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void resetSceneToInitialState() {
-        if (initialLevelSnapshot != null) {
-            setLevel(initialLevelSnapshot.restoreLevel());
-        }
+        // Clear all blocks — will rebuild from scratch
+        clear();
+
         for (StructureLibSceneBinding binding : structureLibBindings.values()) {
             StructureLibSceneMetadata metadata = binding.getMetadata();
             if (metadata != null && metadata.getTierData() != null) {
@@ -629,7 +633,9 @@ public class LytGuidebookScene extends LytBlock {
                 binding.applyPreviewSelection(StructureLibPreviewSelection.ofMasterTier(defaultTier));
             }
         }
-        rebuildStructureLib();
+
+        // Rebuild everything from registered placements and bindings
+        build();
     }
 
     public void resetInteractiveState() {
@@ -1272,14 +1278,56 @@ public class LytGuidebookScene extends LytBlock {
         return binding != null ? binding.getLastSuccessfulImportResult() : null;
     }
 
+    // ========== SNBT placements (ImportStructure) ==========
+
+    public void addSnbtPlacement(SnbtPlacement placement) {
+        snbtPlacements.add(placement);
+    }
+
+    public void setSnbtPlacements(List<SnbtPlacement> placements) {
+        snbtPlacements.clear();
+        snbtPlacements.addAll(placements);
+    }
+
+    public List<SnbtPlacement> getSnbtPlacements() {
+        return Collections.unmodifiableList(snbtPlacements);
+    }
+
+    public void clearSnbtPlacements() {
+        snbtPlacements.clear();
+    }
+
+    // ========== Unified build / clear / rebuild ==========
+
     /**
-     * Rebuilds all StructureLib blocks in this scene by re-importing every binding
-     * that has a rebuild recipe with its current selection. Called when the user
-     * drags a tier or channel slider.
+     * Build all blocks in the scene from registered SNBT placements and StructureLib bindings.
+     * Called after element compilers have registered their configs,
+     * and on every rebuild (slider change, reset, etc.).
      */
-    public void rebuildStructureLib() {
+    public void build() {
         GuidebookLevel sceneLevel = getLevel();
-        sceneLevel.clear();
+        if (sceneLevel == null) return;
+
+        // Phase 1: SNBT static placements (ImportStructure)
+        for (SnbtPlacement p : snbtPlacements) {
+            NBTTagCompound root = SnbtPreParseCache.get(p.getSrc());
+            if (root == null) {
+                GuideDebugLog.warn("[Scene] SNBT cache miss for {} during build", p.getSrc());
+                continue;
+            }
+            ImportStructureElementCompiler.placeStructure(
+                sceneLevel,
+                root,
+                p.getOffsetX(),
+                p.getOffsetY(),
+                p.getOffsetZ(),
+                p.isFormed(),
+                null,
+                null,
+                p.getSrc());
+        }
+
+        // Phase 2: StructureLib dynamic structures
         StructureLibBuildService svc = new StructureLibBuildService();
         for (StructureLibSceneBinding binding : structureLibBindings.values()) {
             if (!binding.hasRebuildRecipe()) continue;
@@ -1302,6 +1350,34 @@ public class LytGuidebookScene extends LytBlock {
                 ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
             }
         }
+    }
+
+    /**
+     * Clear all blocks from the scene level.
+     */
+    public void clear() {
+        GuidebookLevel sceneLevel = getLevel();
+        if (sceneLevel != null) {
+            sceneLevel.clear();
+        }
+    }
+
+    /**
+     * Rebuild the entire scene: clear all blocks and build from scratch.
+     * Replaces the old {@link #rebuildStructureLib()} which only handled StructureLib.
+     */
+    public void rebuild() {
+        clear();
+        build();
+    }
+
+    /**
+     * @deprecated Use {@link #rebuild()} instead. This method now clears the entire level
+     *             and rebuilds all block sources (SNBT + StructureLib).
+     */
+    @Deprecated
+    public void rebuildStructureLib() {
+        rebuild();
     }
 
     @Nullable

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,17 +44,11 @@ import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompile
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureSnapshot;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
-import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
-import com.hfstudio.guidenh.guide.scene.element.StructureLibSceneOptionParser;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
@@ -64,12 +57,12 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 public class SceneScript implements LytScript {
 
     private static final String KEY_STATE = "scene.state";
-    private static final String STATE_SCAN = "SCAN";
-    private static final String STATE_COMPILE = "COMPILE";
+    private static final String STATE_INIT = "INIT";
+    private static final String STATE_AWAIT_SNBT = "AWAIT_SNBT";
+    private static final String STATE_BUILD = "BUILD";
     private static final String KEY_AST = "scene.ast";
     private static final String KEY_SCENE = "scene.object";
     private static final String KEY_TICKETS = "scene.tickets";
-    private static final String KEY_BINDINGS = "scene.structurelib.bindings";
 
     public SceneScript() {}
 
@@ -94,15 +87,16 @@ public class SceneScript implements LytScript {
         if (!(node instanceof ScenePlaceholder ph)) return;
 
         var state = (String) ctx.data()
-            .getOrDefault(KEY_STATE, STATE_SCAN);
+            .getOrDefault(KEY_STATE, STATE_INIT);
         switch (state) {
-            case STATE_SCAN -> doScan(ph, ctx);
-            case STATE_COMPILE -> doCompile(ph, ctx);
+            case STATE_INIT -> doInit(ph, ctx);
+            case STATE_AWAIT_SNBT -> doAwaitSnbt(ph, ctx);
+            case STATE_BUILD -> doBuild(ph, ctx);
             default -> ctx.replace(LytParagraph.error("[Scene] Unknown async state: " + state));
         }
     }
 
-    private void doScan(ScenePlaceholder ph, ScriptContext ctx) {
+    private void doInit(ScenePlaceholder ph, ScriptContext ctx) {
         if (ph.childrenSource == null || ph.childrenSource.trim()
             .isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
@@ -115,56 +109,67 @@ public class SceneScript implements LytScript {
             return;
         }
 
-        LytGuidebookScene scene = createSceneShell(ph);
-        PageCollection pageCollection = ctx.getPageCollection();
         List<String> tickets = new ArrayList<>();
-        LinkedHashMap<String, StructureBindingState> bindingStates = new LinkedHashMap<>();
-        String sceneKey = sceneKeyOf(ph, scene);
 
+        // Walk children, kick off async SNBT preparse for ImportStructure
         for (UnistNode child : ast.children()) {
             MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
             if (el == null) {
                 continue;
             }
 
-            if ("ImportStructureLib".equals(el.name())) {
-                StructureBindingState bindingState = registerDefaultStructureBinding(ph, scene, el, sceneKey);
-                if (bindingState != null) {
-                    bindingStates.put(bindingState.bindingKey, bindingState);
-                    if (bindingState.defaultFailureMessage != null) {
-                        scene.setLoadFailure(bindingState.defaultFailureMessage);
-                    }
-                }
-                continue;
-            }
-
             if ("ImportStructure".equals(el.name())) {
-                queueSnbtPreparse(ph, pageCollection, el, tickets);
+                queueSnbtPreparse(ph, ctx.getPageCollection(), el, tickets);
             }
+            // ImportStructureLib / BlockStats — handled in BUILD phase by their compilers
         }
 
         ctx.data()
-            .put(KEY_SCENE, scene);
-        ctx.data()
             .put(KEY_TICKETS, tickets);
         ctx.data()
-            .put(KEY_BINDINGS, bindingStates);
-        ctx.data()
-            .put(KEY_STATE, STATE_COMPILE);
-
-        doCompile(ph, ctx);
+            .put(KEY_STATE, STATE_AWAIT_SNBT);
+        ctx.yield();
     }
 
-    private void doCompile(ScenePlaceholder ph, ScriptContext ctx) {
+    private void doAwaitSnbt(ScenePlaceholder ph, ScriptContext ctx) {
+        @SuppressWarnings("unchecked")
+        List<String> tickets = (List<String>) ctx.data()
+            .get(KEY_TICKETS);
+
+        if (tickets == null || tickets.isEmpty()) {
+            ctx.data()
+                .put(KEY_STATE, STATE_BUILD);
+            doBuild(ph, ctx);
+            return;
+        }
+
+        boolean allDone = true;
+        for (String ticket : tickets) {
+            if (!AsyncWorker.isDone(ticket)) {
+                allDone = false;
+                break;
+            }
+        }
+
+        if (!allDone) {
+            ctx.yield();
+            return;
+        }
+
+        // All tickets complete — proceed to BUILD
+        ctx.data()
+            .put(KEY_STATE, STATE_BUILD);
+        doBuild(ph, ctx);
+    }
+
+    private void doBuild(ScenePlaceholder ph, ScriptContext ctx) {
         if (ph.childrenSource == null || ph.childrenSource.trim()
             .isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
             return;
         }
 
-        LytGuidebookScene existingScene = (LytGuidebookScene) ctx.data()
-            .get(KEY_SCENE);
-        LytGuidebookScene scene = existingScene != null ? existingScene : new LytGuidebookScene();
+        LytGuidebookScene scene = createSceneShell(ph);
         GuidebookLevel level = scene.getLevel();
         if (level == null) {
             level = new GuidebookLevel();
@@ -200,12 +205,10 @@ public class SceneScript implements LytScript {
             }
         }
 
+        // Setup element compilers — ALL of them, including ImportStructureLib
         Map<String, SceneElementTagCompiler> elementCompilers = new HashMap<>();
         if (ph.sceneElementCompilers != null) {
             for (SceneElementTagCompiler compiler : ph.sceneElementCompilers) {
-                if (compiler instanceof ImportStructureLibElementCompiler) {
-                    continue;
-                }
                 for (String name : compiler.getTagNames()) {
                     elementCompilers.put(name, compiler);
                 }
@@ -213,26 +216,30 @@ public class SceneScript implements LytScript {
         }
 
         boolean[] blockStatsExplicitlySet = { false };
-        final GuidebookLevel compileLevel = level;
-        final CameraSettings compileCamera = camera;
-        final MdAstRoot compileAst = ast;
         LytGuidebookScene previousScene = AnnotationTagCompiler.CURRENT_SCENE.get();
         AnnotationTagCompiler.CURRENT_SCENE.set(scene);
         try {
+            final GuidebookLevel compileLevel = level;
+            final CameraSettings compileCamera = camera;
+            final MdAstRoot compileAst = ast;
             GuideSceneStructureCompileScope.run(true, () -> {
                 for (UnistNode child : compileAst.children()) {
                     MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
                     if (el == null) {
                         continue;
                     }
-                    if ("ImportStructureLib".equals(el.name())) {
-                        continue;
+
+                    if (ctx.timeToYield()) {
+                        ctx.yield();
+                        return;
                     }
+
                     if ("BlockStats".equals(el.name())) {
                         applyBlockStatsConfig(scene, el);
                         blockStatsExplicitlySet[0] = true;
                         continue;
                     }
+
                     SceneElementTagCompiler compiler = elementCompilers.get(el.name());
                     if (compiler != null) {
                         compiler.compile(compileLevel, compileCamera, runtimeCompiler, errorSink, el);
@@ -247,29 +254,19 @@ public class SceneScript implements LytScript {
             }
         }
 
-        @SuppressWarnings("unchecked")
-        LinkedHashMap<String, StructureBindingState> bindingStates = (LinkedHashMap<String, StructureBindingState>) ctx
-            .data()
-            .get(KEY_BINDINGS);
-
         dispatchSceneSubtrees(scene, ctx);
 
-        // Only rebuild if there are StructureLib bindings.
-        // Scenes without bindings rely on element-compiler-placed blocks (ImportStructure).
-        if (bindingStates != null && !bindingStates.isEmpty()) {
-            scene.rebuildStructureLib();
-        }
+        // Unified build — places both SNBT and StructureLib blocks
+        scene.build();
+
         // Set metadata on scene from binding results
-        bindingStates = (LinkedHashMap<String, StructureBindingState>) ctx.data()
-            .get(KEY_BINDINGS);
-        if (bindingStates != null) {
-            for (StructureBindingState bindingState : bindingStates.values()) {
-                StructureLibSceneMetadata metadata = bindingState.binding.getMetadata();
-                if (metadata != null) {
-                    scene.setStructureLibSceneMetadata(bindingState.binding.getName(), metadata);
-                }
+        for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
+            StructureLibSceneMetadata metadata = binding.getMetadata();
+            if (metadata != null) {
+                scene.setStructureLibSceneMetadata(binding.getName(), metadata);
             }
         }
+
         if (level.isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Scene has no supported elements"));
             return;
@@ -284,7 +281,7 @@ public class SceneScript implements LytScript {
         finalizeSceneGeometry(ph, scene, level, camera);
         scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
         scene.clearLoadState();
-        attachSelectionListeners(scene, ctx);
+        attachSelectionListeners(scene);
         scene.initializePonderTimelineBaseline();
         scene.captureInitialInteractiveState();
         scene.snapshotInitialCamera();
@@ -354,67 +351,6 @@ public class SceneScript implements LytScript {
             }
         });
         tickets.add(ticket);
-    }
-
-    @Nullable
-    private StructureBindingState registerDefaultStructureBinding(ScenePlaceholder ph, LytGuidebookScene scene,
-        MdxJsxElementFields el, String sceneKey) {
-        String controller = el.getAttributeString("controller", null);
-        if (controller == null || controller.trim()
-            .isEmpty()) {
-            return null;
-        }
-        String structureName = el.getAttributeString("name", null);
-        StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
-        StructureLibSceneOptions childOptions = StructureLibSceneOptionParser
-            .parseChildren(null, NoopErrorSink.INSTANCE, el);
-        StructureLibSceneOptions legacyOptions = StructureLibSceneOptionParser
-            .parseAttributes(null, NoopErrorSink.INSTANCE, el);
-        StructureLibSceneOptions sceneOptions = legacyOptions.merge(childOptions);
-        StructureLibBuildRequest defaultRequest = ImportStructureLibElementCompiler.buildDefaultPreviewRequest(el);
-        if (defaultRequest == null) {
-            return null;
-        }
-
-        int offsetX = parseIntAttribute(el, "offsetX", 0);
-        int offsetY = parseIntAttribute(el, "offsetY", 0);
-        int offsetZ = parseIntAttribute(el, "offsetZ", 0);
-        boolean formed = parseBooleanAttribute(el, "formed", false);
-        binding.setRebuildRecipe(defaultRequest, offsetX, offsetY, offsetZ, formed);
-
-        // Verify IConstructable exists and build initial metadata from ConstructableData
-        StructureLibDefinitionCache cache = StructureLibDefinitionCache.getInstance();
-        com.gtnewhorizon.structurelib.alignment.constructable.IConstructable constructable = cache
-            .findConstructable(controller);
-        if (constructable == null) {
-            StructureBindingState state = new StructureBindingState(sceneKey + "::" + binding.getBindingKey(), binding);
-            state.defaultFailureMessage = "NEI加载未成功";
-            return state;
-        }
-
-        // Build minimal metadata so rebuildStructureLib can call buildRebuildRequest()
-        blockrenderer6343.client.utils.ConstructableData data = cache.getConstructableData(constructable);
-        StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(
-            controller,
-            defaultRequest.piece(),
-            defaultRequest.facing(),
-            defaultRequest.rotation(),
-            defaultRequest.flip());
-        int maxTier = data.getMaxTotalTier();
-        metadata = metadata.withTierData(1, maxTier, defaultRequest.tier(), defaultRequest.tier());
-        it.unimi.dsi.fastutil.objects.Object2IntMap<String> channelData = data.getChannelData();
-        if (channelData != null) {
-            for (it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<String> entry : channelData.object2IntEntrySet()) {
-                int channelMax = entry.getIntValue();
-                int currentValue = defaultRequest.channels()
-                    .getOrDefault(entry.getKey(), 0);
-                metadata = metadata.withChannelData(entry.getKey(), entry.getKey(), channelMax, currentValue);
-            }
-        }
-        binding.setMetadata(metadata);
-
-        StructureBindingState state = new StructureBindingState(sceneKey + "::" + binding.getBindingKey(), binding);
-        return state;
     }
 
     private void applyCameraAndViewport(ScenePlaceholder ph, LytGuidebookScene scene, GuidebookLevel level,
@@ -530,60 +466,11 @@ public class SceneScript implements LytScript {
         }
     }
 
-    private void attachSelectionListeners(LytGuidebookScene scene, ScriptContext ctx) {
-        @SuppressWarnings("unchecked")
-        LinkedHashMap<String, StructureBindingState> bindingStates = (LinkedHashMap<String, StructureBindingState>) ctx
-            .data()
-            .get(KEY_BINDINGS);
-        if (bindingStates == null || bindingStates.isEmpty()) {
-            return;
+    private void attachSelectionListeners(LytGuidebookScene scene) {
+        for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
+            binding.setSelectionChangeListener(selection -> scene.rebuild());
         }
-        for (StructureBindingState bindingState : bindingStates.values()) {
-            bindingState.binding.setSelectionChangeListener(selection -> scene.rebuildStructureLib());
-        }
-        scene.setStructureLibSelectionChangeListener(selection -> { scene.rebuildStructureLib(); });
-    }
-
-    private static int parseIntAttribute(MdxJsxElementFields el, String name, int defaultValue) {
-        String value = el.getAttributeString(name, null);
-        if (value == null || value.trim()
-            .isEmpty()) {
-            return defaultValue;
-        }
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException ignored) {
-            return defaultValue;
-        }
-    }
-
-    private static boolean parseBooleanAttribute(MdxJsxElementFields el, String name, boolean defaultValue) {
-        String value = el.getAttributeString(name, null);
-        if (value == null) {
-            return defaultValue;
-        }
-        String normalized = value.trim()
-            .toLowerCase();
-        return switch (normalized) {
-            case "", "true", "1", "yes", "on" -> true;
-            case "false", "0", "no", "off" -> false;
-            default -> defaultValue;
-        };
-    }
-
-    private static String sceneKeyOf(ScenePlaceholder ph, LytGuidebookScene scene) {
-        return ph.pageDomain + ":" + ph.pagePath + "::scene@" + System.identityHashCode(scene);
-    }
-
-    private static String firstError(StructureLibImportResult result) {
-        if (result == null || result.getErrors()
-            .isEmpty()) {
-            return "StructureLib preview failed";
-        }
-        String first = result.getErrors()
-            .getFirst();
-        return first != null && !first.trim()
-            .isEmpty() ? first.trim() : "StructureLib preview failed";
+        scene.setStructureLibSelectionChangeListener(selection -> { scene.rebuild(); });
     }
 
     private static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {
@@ -593,33 +480,12 @@ public class SceneScript implements LytScript {
         if (enabledStr != null) scene.setBlockStatsButtonEnabled(Boolean.parseBoolean(enabledStr));
     }
 
-    private static class StructureBindingState {
-
-        final String bindingKey;
-        final StructureLibSceneBinding binding;
-        @Nullable
-        String defaultFailureMessage;
-
-        private StructureBindingState(String bindingKey, StructureLibSceneBinding binding) {
-            this.bindingKey = bindingKey;
-            this.binding = binding;
-        }
-    }
-
     private static class ExceptionCollector implements LytErrorSink {
 
         @Override
         public void appendError(PageCompiler compiler, String text, UnistNode node) {
             GuideDebugLog.warnAlways("[GuideNH] [SceneScript] {}", text);
         }
-    }
-
-    private static class NoopErrorSink implements LytErrorSink {
-
-        private static final NoopErrorSink INSTANCE = new NoopErrorSink();
-
-        @Override
-        public void appendError(PageCompiler compiler, String text, UnistNode node) {}
     }
 
     private static class StubPageCollection implements PageCollection {
