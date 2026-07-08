@@ -200,6 +200,8 @@ public class StructureLibSemanticProvider implements SemanticProvider {
             return allowedFacings;
         } catch (Throwable ignored) {
             return List.of();
+        } finally {
+            level.clear();
         }
     }
 

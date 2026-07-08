@@ -187,7 +187,7 @@ public class StructureLibBuildService {
             ISurvivalConstructable sc = (ISurvivalConstructable) constructable;
             ISurvivalBuildEnvironment env = ISurvivalBuildEnvironment.create(createItemSource(), fakePlayer);
             int rounds = 0;
-            while (rounds++ < SURVIVAL_BUDGET) {
+            while (rounds++ < SURVIVAL_MAX_ROUNDS) {
                 int result = sc.survivalConstruct(trigger, SURVIVAL_BUDGET, env);
                 if (result == -1) {
                     previewHook(controllerTile, trigger, false);

@@ -166,7 +166,7 @@ public class GameSceneConcurrentManager {
         }
 
         return CompletableFuture.supplyAsync(() -> {
-            List<CompletableFuture<T>> futures = new ArrayList<>();
+            List<CompletableFuture<List<T>>> futures = new ArrayList<>();
             int batchSize = ANALYSIS_BATCH_SIZE;
             int totalBatches = (blocks.size() + batchSize - 1) / batchSize;
 
@@ -194,12 +194,12 @@ public class GameSceneConcurrentManager {
                     }
                 }, analysisExecutor);
 
-                futures.add(batchFuture.thenApply(list -> list.isEmpty() ? null : list.getFirst()));
+                futures.add(batchFuture);
             }
 
             return futures.stream()
                 .map(CompletableFuture::join)
-                .filter(Objects::nonNull)
+                .flatMap(List::stream)
                 .toList();
         });
     }

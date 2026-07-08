@@ -34,13 +34,16 @@ public class GuideSceneStructureCache {
 
     @Nullable
     public GuideSceneStructureCacheEntry restore(GuideSceneStructureCacheKey key) {
-        lock.readLock()
+        // LinkedHashMap with access-order=true: get() moves the entry to the tail (structural
+        // modification). A readLock would allow concurrent mutations, corrupting the linked list.
+        // Use writeLock to serialise access.
+        lock.writeLock()
             .lock();
         try {
             byte[] payload = cache.get(key);
             return payload != null ? deserialize(payload) : null;
         } finally {
-            lock.readLock()
+            lock.writeLock()
                 .unlock();
         }
     }

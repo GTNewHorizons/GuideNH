@@ -72,7 +72,6 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.TooltipScript;
 import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
 import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
-import com.hfstudio.guidenh.guide.scene.concurrent.ConcurrentSceneCacheManager;
 import com.hfstudio.guidenh.guide.scene.concurrent.GameSceneConcurrentManager;
 import com.hfstudio.guidenh.guide.scene.concurrent.GameScenePrewarmBootstrap;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
@@ -114,10 +113,6 @@ public class ClientProxy extends CommonProxy {
 
     public static GameSceneConcurrentManager getGameSceneConcurrentManager() {
         return GameSceneConcurrentManager.getInstance();
-    }
-
-    public static ConcurrentSceneCacheManager getConcurrentSceneCacheManager() {
-        return ConcurrentSceneCacheManager.getInstance();
     }
 
     private final GuideNhRuntimeBridge runtimeBridge = new GuideNhRuntimeBridge();

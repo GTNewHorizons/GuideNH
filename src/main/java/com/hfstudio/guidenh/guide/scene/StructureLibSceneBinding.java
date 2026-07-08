@@ -68,6 +68,7 @@ public class StructureLibSceneBinding {
             channelOverrides.clear();
             return;
         }
+        channelOverrides.clear();
         StructureLibSceneMetadata.TierData td = metadata.getTierData();
         currentTier = td != null ? td.getCurrentValue() : StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
         for (StructureLibSceneMetadata.ChannelData cd : metadata.getChannelDataList()) {
