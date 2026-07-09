@@ -162,6 +162,10 @@ public class ModConfig {
         @DefaultBoolean(true)
         public boolean confirmExternalLinks = true;
 
+        @Comment("Whether the first-open welcome popup is shown per player and save.")
+        @DefaultBoolean(true)
+        public boolean welcomePopupEnabled = true;
+
         @Comment("Whether mouse wheel scroll zooms the 3D scene preview (while cursor is over it). "
             + "When false, scroll always goes to page scroll. Default: true.")
         @DefaultBoolean(true)
