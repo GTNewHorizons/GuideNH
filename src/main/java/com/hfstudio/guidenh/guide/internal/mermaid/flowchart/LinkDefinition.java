@@ -169,27 +169,41 @@ public enum LinkDefinition {
         }
         if (best == null) return null;
 
+        int actualPos = bestPos;
         int actualLen = bestLen;
+
         if (best.isVariableLength()) {
-            int count = 0;
-            for (int i = bestPos; i < text.length(); i++) {
-                if (text.charAt(i) == best.repeatChar) count++;
-                else break;
+            // Count repeat chars both backward and forward from the pattern position,
+            // so that extra dashes/equals/tildes before bestPos are included.
+            int forwardCount = 0;
+            for (int i = bestPos; i < text.length() && text.charAt(i) == best.repeatChar; i++) {
+                forwardCount++;
             }
-            actualLen = Math.max(actualLen, bestPos + count - bestPos);
+            int backwardCount = 0;
+            for (int i = bestPos - 1; i >= 0 && text.charAt(i) == best.repeatChar; i--) {
+                backwardCount++;
+            }
+            int totalRepeat = forwardCount + backwardCount;
+            actualPos = bestPos - backwardCount;
+            actualLen = bestLen - best.minRepeat + totalRepeat;
         }
 
         // handle dotted/dashed length (".-")
         if (best.repeatChar == '.') {
-            int dotCount = 0;
-            for (int i = bestPos; i < text.length(); i++) {
-                if (text.charAt(i) == '.') dotCount++;
-                else break;
+            int dotBackward = 0;
+            for (int i = bestPos - 1; i >= 0 && text.charAt(i) == '.'; i--) {
+                dotBackward++;
             }
-            actualLen = best.syntax.length() + Math.max(0, dotCount - 1);
+            int dotForward = 0;
+            for (int i = bestPos; i < text.length() && text.charAt(i) == '.'; i++) {
+                dotForward++;
+            }
+            int totalDots = dotBackward + dotForward;
+            actualPos = bestPos - dotBackward;
+            actualLen = best.syntax.length() + Math.max(0, totalDots - 1);
         }
 
-        return new MatchResult(best, bestPos, actualLen);
+        return new MatchResult(best, actualPos, actualLen);
     }
 
     /**

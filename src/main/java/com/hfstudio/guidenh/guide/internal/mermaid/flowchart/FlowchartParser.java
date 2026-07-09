@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
@@ -26,6 +28,8 @@ import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 
 public class FlowchartParser {
 
+    private static final Logger LOGGER = LogManager.getLogger("GuideNH-Mermaid");
+
     private final FlowchartGraphBuilder builder = new FlowchartGraphBuilder();
     private final List<String> lines;
 
@@ -34,6 +38,7 @@ public class FlowchartParser {
     private static final Pattern CLASS_PATTERN = Pattern.compile("([\\w,-]+)\\s+(\\S+)");
     private static final Pattern LINK_STYLE_PATTERN = Pattern.compile("(\\S+)\\s+(.+)");
     private static final Pattern ID_PATTERN = Pattern.compile("^[\\w-]+");
+    private static final Pattern EDGE_ID_PREFIX_PATTERN = Pattern.compile("(.*?)([-=.~]{2,})(\\S+)@$");
     private static final Pattern PIPED_LABEL_PATTERN = Pattern.compile("\\s*\\|([^|]*)\\|");
     private static final Pattern GRAPH_KW_PATTERN = Pattern
         .compile("^(flowchart-elk|flowchart|graph|swimlane-beta)\\b");
@@ -458,6 +463,7 @@ public class FlowchartParser {
         String label = id;
         @Nullable
         String icon = null;
+        boolean markdownLabel = false;
 
         NodeShapeDefinition.MatchResult shapeResult = NodeShapeDefinition.match(rest);
         if (shapeResult != null) {
@@ -469,10 +475,32 @@ public class FlowchartParser {
             if (icon != null) {
                 label = stripIconFromLabel(label);
                 if (label.isEmpty()) label = id;
+                LOGGER.warn("Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
+                    id, icon);
+            }
+
+            int mdStart = -1, mdEnd = -1;
+            if (label.startsWith("\"`") && label.endsWith("`\"")) {
+                mdStart = 2;
+                mdEnd = label.length() - 2;
+            } else if (label.startsWith("`\"") && label.endsWith("\"`")) {
+                mdStart = 2;
+                mdEnd = label.length() - 2;
+            } else if (label.startsWith("`") && label.endsWith("`")) {
+                mdStart = 1;
+                mdEnd = label.length() - 1;
+            }
+            if (mdStart >= 0 && mdEnd > mdStart) {
+                String inner = label.substring(mdStart, mdEnd);
+                if (!inner.isEmpty()) {
+                    label = inner;
+                    markdownLabel = true;
+                    LOGGER.warn("Node '{}' has markdownLabel=true — markdown text rendering is not implemented; falling back to plain text", id);
+                }
             }
         }
 
-        return new NodeSpec(id, label, shape, classes, icon, false, null);
+        return new NodeSpec(id, label, shape, classes, icon, markdownLabel, null);
     }
 
     private NodeSpec parseExtendedNode(String id, String rest) {
@@ -508,7 +536,13 @@ public class FlowchartParser {
                     if (s != null) shape = s;
                 }
                 case "label" -> label = value.isEmpty() ? id : value;
-                case "icon" -> icon = value.isEmpty() ? null : value;
+                case "icon" -> {
+                    icon = value.isEmpty() ? null : value;
+                    if (icon != null) {
+                        LOGGER.warn("Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
+                            id, icon);
+                    }
+                }
                 default -> {
                     if (extra == null) extra = new LinkedHashMap<>();
                     extra.put(key, value);
@@ -540,7 +574,8 @@ public class FlowchartParser {
         return new PipedLabel(label, m.end());
     }
 
-    void registerEdge(String fromId, String toId, LinkDefinition.MatchResult match, @Nullable String label) {
+    void registerEdge(String fromId, String toId, LinkDefinition.MatchResult match, @Nullable String label,
+        @Nullable String edgeId) {
         LinkDefinition def = match.definition();
         String normalizedLabel = label != null ? normalizeLabel(label) : null;
         builder.addLink(
@@ -552,7 +587,7 @@ public class FlowchartParser {
             def.forwardHead(),
             def.reverseHead(),
             normalizedLabel,
-            null,
+            edgeId,
             Math.max(1, match.length()));
     }
 
@@ -609,12 +644,23 @@ public class FlowchartParser {
             if (piped != null) {
                 linkEnd = piped.endPosition();
             }
+            String edgeId = null;
             if (match.position() > lastEnd) {
-                tokens.add(
-                    line.substring(lastEnd, match.position())
-                        .trim());
+                String before = line.substring(lastEnd, match.position())
+                    .trim();
+                Matcher edgeIdMatcher = EDGE_ID_PREFIX_PATTERN.matcher(before);
+                if (edgeIdMatcher.matches()) {
+                    edgeId = edgeIdMatcher.group(3);
+                    String nodePart = edgeIdMatcher.group(1)
+                        .trim();
+                    if (!nodePart.isEmpty()) {
+                        tokens.add(nodePart);
+                    }
+                } else {
+                    tokens.add(before);
+                }
             }
-            tokens.add(new TokenLink(match, label));
+            tokens.add(new TokenLink(match, label, edgeId));
             lastEnd = linkEnd;
         }
         if (lastEnd < line.length()) {
@@ -635,7 +681,7 @@ public class FlowchartParser {
         List<String> leftNodeIds = new ArrayList<>();
         for (int i = 0; i < tokens.size(); i++) {
             Object token = tokens.get(i);
-            if (token instanceof TokenLink(LinkDefinition.MatchResult match, String label)) {
+            if (token instanceof TokenLink(LinkDefinition.MatchResult match, String label, String edgeId)) {
                 String rightText = "";
                 if (i + 1 < tokens.size() && tokens.get(i + 1) instanceof String s) {
                     rightText = s;
@@ -646,7 +692,7 @@ public class FlowchartParser {
                     NodeSpec right = rightNodes.getFirst();
                     ensureNode(right);
                     for (String fromId : leftNodeIds) {
-                        registerEdge(fromId, right.id(), match, label);
+                        registerEdge(fromId, right.id(), match, label, edgeId);
                     }
                     leftNodeIds.clear();
                     leftNodeIds.add(right.id());
@@ -857,7 +903,7 @@ public class FlowchartParser {
     record PipedLabel(@Nullable String label, int endPosition) {}
 
     @Desugar
-    record TokenLink(LinkDefinition.MatchResult match, @Nullable String label) {}
+    record TokenLink(LinkDefinition.MatchResult match, @Nullable String label, @Nullable String edgeId) {}
 
     static class FlowchartGraphBuilder {
 
@@ -1001,9 +1047,37 @@ public class FlowchartParser {
 
         FlowchartDocument build() {
             resolveClassStyles();
+            applyExtendedProperties();
             applyLinkStyles();
             var cfg = new FlowchartDocument.FlowchartConfig(nodeSpacing, rankSpacing, canvasPadding);
             return new FlowchartDocument(direction, nodes, edges, subgraphs, layoutMode, cfg, copyValue);
+        }
+
+        private void applyExtendedProperties() {
+            for (Map.Entry<String, FlowchartNode> entry : nodes.entrySet()) {
+                String nodeId = entry.getKey();
+                FlowchartNode node = entry.getValue();
+                Map<String, String> props = node.getExtendedProperties();
+                if (props == null || props.isEmpty()) continue;
+                StringBuilder css = new StringBuilder();
+                for (Map.Entry<String, String> prop : props.entrySet()) {
+                    if (!css.isEmpty()) css.append(',');
+                    css.append(prop.getKey()).append(':').append(prop.getValue());
+                }
+                String existing = node.getStyleOverride();
+                String merged = existing != null ? existing + "," + css : css.toString();
+                nodes.put(
+                    nodeId,
+                    new FlowchartNode(
+                        node.getId(),
+                        node.getLabel(),
+                        node.getShape(),
+                        node.getClasses(),
+                        merged,
+                        node.getIcon(),
+                        node.isMarkdownLabel(),
+                        node.getExtendedProperties()));
+            }
         }
 
         private void resolveClassStyles() {
@@ -1049,7 +1123,19 @@ public class FlowchartParser {
                             if (idx >= 0 && idx < edges.size()) {
                                 edges.set(idx, applyEntryToEdge(edges.get(idx), entry));
                             }
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            int matched = 0;
+                            for (int i = 0; i < edges.size(); i++) {
+                                if (idxStr.equals(edges.get(i).getEdgeId())) {
+                                    edges.set(i, applyEntryToEdge(edges.get(i), entry));
+                                    matched++;
+                                }
+                            }
+                            if (matched == 0) {
+                                LOGGER.warn("linkStyle index '{}' is neither a numeric edge index nor a known edgeId",
+                                    idxStr);
+                            }
+                        }
                     }
                 }
             }

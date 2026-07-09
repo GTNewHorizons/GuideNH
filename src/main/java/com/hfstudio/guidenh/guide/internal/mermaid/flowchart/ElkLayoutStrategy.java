@@ -112,6 +112,9 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         // through every compound ancestor so ELK can route each segment within
         // a single layout run. The chain is later stitched back into one path.
         List<SplitChain> splitChains = new ArrayList<>();
+        Set<String> dummyNodeIds = new LinkedHashSet<>();
+        List<DummyChain> dummyChains = new ArrayList<>();
+        int[] dummyCounter = {0};
 
         for (FlowchartEdge edge : document.getEdges()) {
             ElkNode source = elkNodeMap.get(edge.getFrom());
@@ -141,7 +144,31 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
             if (commonLen == srcChain.size() && commonLen == tgtChain.size()) {
                 // Both nodes share the same deepest compound → simple edge
-                ElkGraphUtil.createSimpleEdge(source, target);
+                int edgeLength = edge.getLength();
+                int dummyCount = Math.max(0, edgeLength - 3);
+                if (dummyCount > 0) {
+                    ElkNode parent = source.getParent();
+                    List<ElkNode> dummies = new ArrayList<>();
+                    List<ElkEdge> chainEdges = new ArrayList<>();
+                    for (int i = 0; i < dummyCount; i++) {
+                        ElkNode dummy = ElkGraphUtil.createNode(parent);
+                        String dummyId = "__dummy_" + (dummyCounter[0]++);
+                        dummy.setIdentifier(dummyId);
+                        dummy.setWidth(1);
+                        dummy.setHeight(1);
+                        dummyNodeIds.add(dummyId);
+                        dummies.add(dummy);
+                    }
+                    ElkConnectableShape prev = source;
+                    for (ElkNode dummy : dummies) {
+                        chainEdges.add(ElkGraphUtil.createSimpleEdge(prev, dummy));
+                        prev = dummy;
+                    }
+                    chainEdges.add(ElkGraphUtil.createSimpleEdge(prev, target));
+                    dummyChains.add(new DummyChain(edge.getFrom(), edge.getTo(), chainEdges));
+                } else {
+                    ElkGraphUtil.createSimpleEdge(source, target);
+                }
                 continue;
             }
 
@@ -191,7 +218,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         // ---- Extract and stitch edge paths ----
         List<FlowchartLayoutResult.EdgePath> edgePaths = new ArrayList<>();
 
-        // Collect all edges created by split chains so we can skip them in collectRemainingEdges
+        // Collect all edges created by split chains and dummy chains so we can skip them in collectRemainingEdges
         Set<ElkEdge> splitEdges = new LinkedHashSet<>();
 
         // Stitch split edges from stored port chains.
@@ -263,7 +290,25 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             }
         }
 
-        // Collect unsplit edges from the whole tree (skip hierarchical edges)
+        // Stitch dummy chain edges into single paths.
+        for (DummyChain dc : dummyChains) {
+            splitEdges.addAll(dc.chainEdges);
+            List<FlowchartLayoutResult.Point> merged = new ArrayList<>();
+            for (ElkEdge subEdge : dc.chainEdges) {
+                List<FlowchartLayoutResult.Point> pts = edgePoints(subEdge, root, cfg.canvasPadding());
+                if (pts.isEmpty()) continue;
+                if (merged.isEmpty()) {
+                    merged.addAll(pts);
+                } else {
+                    merged.addAll(pts.subList(1, pts.size()));
+                }
+            }
+            if (!merged.isEmpty()) {
+                edgePaths.add(new FlowchartLayoutResult.EdgePath(dc.sourceId, dc.targetId, merged));
+            }
+        }
+
+        // Collect unsplit edges from the whole tree (skip hierarchical and chain edges)
         collectRemainingEdges(root, 0, 0, cfg.canvasPadding(), edgePaths, splitEdges);
 
         int maxX = 0;
@@ -564,4 +609,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
     private record SplitChain(String sourceId, String targetId, List<ElkPort> srcPorts, List<ElkPort> tgtPorts,
         ElkEdge externalEdge, List<ElkEdge> srcEdges, List<ElkEdge> tgtEdges) {}
+
+    private record DummyChain(String sourceId, String targetId, List<ElkEdge> chainEdges) {}
 }
