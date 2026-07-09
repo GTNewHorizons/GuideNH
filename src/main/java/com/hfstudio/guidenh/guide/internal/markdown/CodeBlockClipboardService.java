@@ -1,13 +1,10 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
-import java.awt.Toolkit;
-import java.awt.datatransfer.StringSelection;
+import net.minecraft.client.gui.GuiScreen;
 
 public class CodeBlockClipboardService {
 
-    public void copy(String text) throws Exception {
-        Toolkit.getDefaultToolkit()
-            .getSystemClipboard()
-            .setContents(new StringSelection(text), null);
+    public void copy(String text) {
+        GuiScreen.setClipboardString(text);
     }
 }
