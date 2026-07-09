@@ -735,6 +735,11 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         }
 
         @Override
+        public void fillEllipse(float cx, float cy, float rx, float ry, int argbColor) {
+            delegate.fillEllipse(scaleFloatX(cx), scaleFloatY(cy), rx * scale, ry * scale, argbColor);
+        }
+
+        @Override
         public void drawCircleOutline(float cx, float cy, float radius, float thickness, int argbColor) {
             delegate.drawCircleOutline(
                 scaleFloatX(cx),

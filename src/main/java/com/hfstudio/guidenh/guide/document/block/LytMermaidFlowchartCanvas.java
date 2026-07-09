@@ -619,7 +619,9 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 List<String> lines = MermaidNodeRenderer.wrapText(context, style, label, visibleWidth);
                 int lineHeight = context.getLineHeight(style);
                 int totalTextHeight = lines.size() * lineHeight;
-                int baseTextY = contentArea.y() + Math.max(0, (visibleHeight - totalTextHeight) / 2);
+                int textAreaTop = textY;
+                int textAreaHeight = contentArea.y() + visibleHeight - textAreaTop;
+                int baseTextY = textAreaTop + Math.max(0, (textAreaHeight - totalTextHeight) / 2);
                 for (int i = 0; i < lines.size(); i++) {
                     int lineWidth = context.getStringWidth(lines.get(i), style);
                     int textX = contentArea.x() + Math.max(0, (visibleWidth - lineWidth) / 2);

@@ -8,7 +8,7 @@ public class StadiumShape implements ShapeRenderer {
     @Override
     public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
         int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
-        int r = Math.min(w, h) / 2;
+        int r = h / 2;
         float cy = y + h / 2f;
 
         context.fillRect(x + r, y, w - r * 2, h, borderColor);
