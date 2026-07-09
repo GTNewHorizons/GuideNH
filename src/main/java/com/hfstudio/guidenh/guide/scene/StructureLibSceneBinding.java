@@ -7,31 +7,41 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
+import lombok.Getter;
+
+/**
+ * Per-structure binding holding slider state (tier, channels) and rebuild recipe.
+ * Single source of truth for the current preview selection.
+ */
 public class StructureLibSceneBinding {
 
     @Nullable
     private final String name;
+    @Getter
     private final String bindingKey;
     @Nullable
     private StructureLibSceneMetadata metadata;
+    @Getter
     private int currentTier = StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
     private final LinkedHashMap<String, Integer> channelOverrides = new LinkedHashMap<>();
     @Nullable
     private Consumer<StructureLibPreviewSelection> selectionChangeListener;
-    @Nullable
-    private StructureLibPreviewSelection pendingSelection;
-    private StructureLibSceneOptions rebuildOptions;
-    @Nullable
-    private Integer rebuildRequestedChannel;
-    private int rebuildOffsetX, rebuildOffsetY, rebuildOffsetZ;
+
+    // Rebuild recipe — set once during compile
+    private StructureLibBuildRequest rebuildRequestTemplate;
+    @Getter
+    private int rebuildOffsetX;
+    @Getter
+    private int rebuildOffsetY;
+    @Getter
+    private int rebuildOffsetZ;
+    @Getter
     private boolean rebuildFormed;
-    private Map<String, Boolean> rebuildIntegrationOptions = Map.of();
     private boolean hasRebuildRecipe;
     @Nullable
     private StructureLibImportResult lastSuccessfulImportResult;
@@ -46,99 +56,61 @@ public class StructureLibSceneBinding {
         return name;
     }
 
-    public String getBindingKey() {
-        return bindingKey;
-    }
-
     @Nullable
     public StructureLibSceneMetadata getMetadata() {
         return metadata;
     }
 
     public void setMetadata(@Nullable StructureLibSceneMetadata metadata) {
-        StructureLibPreviewSelection preservedSelection = pendingSelection != null ? pendingSelection
-            : this.metadata != null ? getPreviewSelection() : null;
         this.metadata = metadata;
-        channelOverrides.clear();
         if (metadata == null) {
             currentTier = StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
+            channelOverrides.clear();
             return;
         }
-        StructureLibSceneMetadata.TierData tierData = metadata.getTierData();
-        currentTier = tierData != null ? tierData.getCurrentValue() : StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
-        for (StructureLibSceneMetadata.ChannelData channelData : metadata.getChannelDataList()) {
-            if (channelData != null && channelData.getCurrentValue() > 0) {
-                channelOverrides.put(channelData.getChannelId(), channelData.getCurrentValue());
+        channelOverrides.clear();
+        StructureLibSceneMetadata.TierData td = metadata.getTierData();
+        currentTier = td != null ? td.getCurrentValue() : StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
+        for (StructureLibSceneMetadata.ChannelData cd : metadata.getChannelDataList()) {
+            if (cd != null && cd.getCurrentValue() > 0) {
+                channelOverrides.put(cd.getChannelId(), cd.getCurrentValue());
             }
         }
-        if (preservedSelection != null) {
-            applyPreviewSelection(preservedSelection);
-        }
     }
 
-    public int getCurrentTier() {
-        return currentTier;
-    }
-
-    public void setCurrentTier(int currentTier) {
-        StructureLibSceneMetadata.TierData tierData = metadata != null ? metadata.getTierData() : null;
-        if (tierData == null) {
-            this.currentTier = Math.max(1, currentTier);
-            return;
-        }
-        this.currentTier = StructureLibSceneMetadata.clamp(currentTier, tierData.getMinValue(), tierData.getMaxValue());
+    public void setCurrentTier(int tier) {
+        StructureLibSceneMetadata.TierData td = metadata != null ? metadata.getTierData() : null;
+        this.currentTier = td != null ? StructureLibSceneMetadata.clamp(tier, td.getMinValue(), td.getMaxValue())
+            : Math.max(1, tier);
     }
 
     public int getChannelValue(String channelId) {
-        Integer value = channelOverrides.get(StructureLibPreviewSelection.normalizeChannelId(channelId));
-        return value != null ? value : 0;
+        Integer v = channelOverrides.get(StructureLibPreviewSelection.normalizeChannelId(channelId));
+        return v != null ? v : 0;
     }
 
     public void setChannelValue(String channelId, int value) {
         String normalized = StructureLibPreviewSelection.normalizeChannelId(channelId);
-        if (normalized == null) {
-            return;
-        }
-        StructureLibSceneMetadata.ChannelData channelData = metadata != null ? metadata.getChannelData(normalized)
-            : null;
-        int nextValue = channelData != null
-            ? StructureLibSceneMetadata.clamp(value, channelData.getMinValue(), channelData.getMaxValue())
+        if (normalized == null) return;
+        StructureLibSceneMetadata.ChannelData cd = metadata != null ? metadata.getChannelData(normalized) : null;
+        int next = cd != null ? StructureLibSceneMetadata.clamp(value, cd.getMinValue(), cd.getMaxValue())
             : Math.max(0, value);
-        if (nextValue > 0) {
-            channelOverrides.put(normalized, nextValue);
-        } else {
-            channelOverrides.remove(normalized);
-        }
+        if (next > 0) channelOverrides.put(normalized, next);
+        else channelOverrides.remove(normalized);
     }
 
     public StructureLibPreviewSelection getPreviewSelection() {
         return new StructureLibPreviewSelection(currentTier, channelOverrides);
     }
 
-    public void applyPreviewSelection(@Nullable StructureLibPreviewSelection previewSelection) {
-        if (previewSelection == null) {
-            return;
-        }
-        setCurrentTier(previewSelection.getMasterTier());
-        channelOverrides.clear();
-        for (Map.Entry<String, Integer> entry : previewSelection.getChannelOverrides()
-            .entrySet()) {
-            setChannelValue(entry.getKey(), entry.getValue());
-        }
-    }
-
     public Map<String, Integer> getChannelOverrides() {
         return channelOverrides;
     }
 
-    @Nullable
-    public Consumer<StructureLibPreviewSelection> getSelectionChangeListener() {
-        return selectionChangeListener;
-    }
+    // ========== Pending selection (UI state across page reloads) ==========
 
-    public void setSelectionChangeListener(@Nullable Consumer<StructureLibPreviewSelection> selectionChangeListener) {
-        this.selectionChangeListener = selectionChangeListener;
-    }
+    @Nullable
+    private StructureLibPreviewSelection pendingSelection;
 
     @Nullable
     public StructureLibPreviewSelection getPendingSelection() {
@@ -149,15 +121,27 @@ public class StructureLibSceneBinding {
         this.pendingSelection = pendingSelection;
     }
 
-    public void setRebuildRecipe(@Nullable Integer requestedChannel, StructureLibSceneOptions options, int offsetX,
-        int offsetY, int offsetZ, boolean formed, Map<String, Boolean> integrationOptions) {
-        this.rebuildRequestedChannel = requestedChannel;
-        this.rebuildOptions = options;
+    // ========== Apply selection (convenience for scene to restore state) ==========
+
+    public void applyPreviewSelection(StructureLibPreviewSelection selection) {
+        if (selection == null) return;
+        setCurrentTier(selection.getMasterTier());
+        channelOverrides.clear();
+        for (Map.Entry<String, Integer> entry : selection.getChannelOverrides()
+            .entrySet()) {
+            setChannelValue(entry.getKey(), entry.getValue());
+        }
+    }
+
+    // ========== Rebuild recipe ==========
+
+    public void setRebuildRecipe(StructureLibBuildRequest request, int offsetX, int offsetY, int offsetZ,
+        boolean formed) {
+        this.rebuildRequestTemplate = request;
         this.rebuildOffsetX = offsetX;
         this.rebuildOffsetY = offsetY;
         this.rebuildOffsetZ = offsetZ;
         this.rebuildFormed = formed;
-        this.rebuildIntegrationOptions = integrationOptions != null ? Map.copyOf(integrationOptions) : Map.of();
         this.hasRebuildRecipe = true;
     }
 
@@ -165,49 +149,40 @@ public class StructureLibSceneBinding {
         return hasRebuildRecipe;
     }
 
-    public StructureLibImportRequest buildRebuildRequest() {
-        if (!hasRebuildRecipe || metadata == null) {
-            return null;
-        }
-        StructureLibPreviewSelection selection = getPreviewSelection();
-        for (Map.Entry<String, Boolean> entry : rebuildIntegrationOptions.entrySet()) {
-            selection = selection.withIntegrationOption(entry.getKey(), entry.getValue());
-        }
-        return new StructureLibImportRequest(
+    @Nullable
+    public StructureLibBuildRequest buildRebuildRequest() {
+        if (!hasRebuildRecipe || metadata == null || rebuildRequestTemplate == null) return null;
+        StructureLibBuildRequest req = new StructureLibBuildRequest(
             metadata.getController(),
-            metadata.getPiece(),
-            metadata.getFacing(),
-            metadata.getRotation(),
-            metadata.getFlip(),
-            rebuildRequestedChannel,
-            selection,
-            rebuildOptions);
+            rebuildRequestTemplate.piece(),
+            rebuildRequestTemplate.facing(),
+            rebuildRequestTemplate.rotation(),
+            rebuildRequestTemplate.flip(),
+            currentTier,
+            channelOverrides,
+            rebuildRequestTemplate.options());
+        return req;
     }
 
-    public int getRebuildOffsetX() {
-        return rebuildOffsetX;
+    // ========== Selection listener ==========
+
+    @Nullable
+    public Consumer<StructureLibPreviewSelection> getSelectionChangeListener() {
+        return selectionChangeListener;
     }
 
-    public int getRebuildOffsetY() {
-        return rebuildOffsetY;
+    public void setSelectionChangeListener(@Nullable Consumer<StructureLibPreviewSelection> listener) {
+        this.selectionChangeListener = listener;
     }
 
-    public int getRebuildOffsetZ() {
-        return rebuildOffsetZ;
-    }
-
-    public boolean isRebuildFormed() {
-        return rebuildFormed;
-    }
+    // ========== Import result cache (deprecated — prefer BuildResult) ==========
 
     @Nullable
     public StructureLibImportResult getLastSuccessfulImportResult() {
         return lastSuccessfulImportResult;
     }
 
-    public void setLastSuccessfulImportResult(@Nullable StructureLibImportResult lastSuccessfulImportResult) {
-        this.lastSuccessfulImportResult = lastSuccessfulImportResult != null && lastSuccessfulImportResult.isSuccess()
-            ? lastSuccessfulImportResult
-            : null;
+    public void setLastSuccessfulImportResult(@Nullable StructureLibImportResult result) {
+        this.lastSuccessfulImportResult = result != null && result.isSuccess() ? result : null;
     }
 }

@@ -4,14 +4,21 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
+import lombok.Getter;
+
 public class SceneEditorUndoSnapshot {
 
+    @Getter
     private final String rawText;
+    @Getter
     private final String lastAppliedText;
+    @Getter
     private final SceneEditorSceneModel sceneModel;
+    @Getter
     private final SceneEditorTextSyncController.ValidationKind validationKind;
     @Nullable
     private final String validationMessage;
+    @Getter
     private final SceneEditorUndoUiState uiState;
 
     public SceneEditorUndoSnapshot(String rawText, String lastAppliedText, SceneEditorSceneModel sceneModel,
@@ -30,28 +37,9 @@ public class SceneEditorUndoSnapshot {
         this.uiState = uiState != null ? uiState : SceneEditorUndoUiState.empty();
     }
 
-    public String getRawText() {
-        return rawText;
-    }
-
-    public String getLastAppliedText() {
-        return lastAppliedText;
-    }
-
-    public SceneEditorSceneModel getSceneModel() {
-        return sceneModel;
-    }
-
-    public SceneEditorTextSyncController.ValidationKind getValidationKind() {
-        return validationKind;
-    }
-
     @Nullable
     public String getValidationMessage() {
         return validationMessage;
     }
 
-    public SceneEditorUndoUiState getUiState() {
-        return uiState;
-    }
 }

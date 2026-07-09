@@ -32,6 +32,8 @@ import com.mojang.authlib.GameProfileRepository;
 import com.mojang.authlib.ProfileLookupCallback;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 
+import lombok.Getter;
+
 public class GuidebookSceneEntityLoader {
 
     public static final int MAX_PREVIEW_PLAYER_PROFILE_CACHE_ENTRIES = 256;
@@ -198,10 +200,7 @@ public class GuidebookSceneEntityLoader {
         }
 
         if (uniqueSimpleMatches.size() == 1) {
-            addCandidateForms(
-                candidates,
-                uniqueSimpleMatches.iterator()
-                    .next());
+            addCandidateForms(candidates, uniqueSimpleMatches.getFirst());
         }
     }
 
@@ -636,6 +635,7 @@ public class GuidebookSceneEntityLoader {
         }
     }
 
+    @Getter
     public static class GameProfileSpec {
 
         private final UUID uuid;
@@ -646,12 +646,5 @@ public class GuidebookSceneEntityLoader {
             this.name = name;
         }
 
-        public UUID getUuid() {
-            return uuid;
-        }
-
-        public String getName() {
-            return name;
-        }
     }
 }

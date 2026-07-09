@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.bridge.preview;
 
+import lombok.Getter;
+
+@Getter
 public class PreviewSearchEntry {
 
     private final String id;
@@ -16,23 +19,4 @@ public class PreviewSearchEntry {
         this.matchKind = matchKind;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public String getDetail() {
-        return detail;
-    }
-
-    public String getPreviewKey() {
-        return previewKey;
-    }
-
-    public String getMatchKind() {
-        return matchKind;
-    }
 }

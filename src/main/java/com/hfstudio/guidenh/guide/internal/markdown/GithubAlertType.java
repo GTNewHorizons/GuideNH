@@ -7,11 +7,11 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
 public enum GithubAlertType {
 
-    NOTE(GuidebookText.MarkdownAlertNote, "\u24d8", new ConstantColor(0xFF638EF1)),
-    TIP(GuidebookText.MarkdownAlertTip, "\u2726", new ConstantColor(0xFF61B75D)),
-    IMPORTANT(GuidebookText.MarkdownAlertImportant, "\u27a4", new ConstantColor(0xFF8755DD)),
-    WARNING(GuidebookText.MarkdownAlertWarning, "\u26a0", new ConstantColor(0xFFC79D3E)),
-    CAUTION(GuidebookText.MarkdownAlertCaution, "\u2622", new ConstantColor(0xFFE46150));
+    NOTE(GuidebookText.MarkdownAlertNote, "ⓘ", new ConstantColor(0xFF638EF1)),
+    TIP(GuidebookText.MarkdownAlertTip, "✦", new ConstantColor(0xFF61B75D)),
+    IMPORTANT(GuidebookText.MarkdownAlertImportant, "➤", new ConstantColor(0xFF8755DD)),
+    WARNING(GuidebookText.MarkdownAlertWarning, "⚠", new ConstantColor(0xFFC79D3E)),
+    CAUTION(GuidebookText.MarkdownAlertCaution, "☢", new ConstantColor(0xFFE46150));
 
     private final GuidebookText label;
     private final String symbol;

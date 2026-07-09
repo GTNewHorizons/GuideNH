@@ -10,6 +10,9 @@ import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Pie chart. On hover the hovered slice is offset outward along its angle bisector.
  */
@@ -18,8 +21,11 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
     private static final int CIRCLE_SEGMENTS = 32;
     private static final float HOVER_OFFSET = 4f;
 
+    @Getter
     private List<PieSlice> slices = new ArrayList<>();
+    @Setter
     private float startAngleDeg = -90f;
+    @Setter
     private boolean clockwise = true;
 
     private float cxCache;
@@ -29,18 +35,6 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
 
     public void setSlices(List<PieSlice> slices) {
         this.slices = slices != null ? slices : new ArrayList<>();
-    }
-
-    public List<PieSlice> getSlices() {
-        return slices;
-    }
-
-    public void setStartAngleDeg(float startAngleDeg) {
-        this.startAngleDeg = startAngleDeg;
-    }
-
-    public void setClockwise(boolean clockwise) {
-        this.clockwise = clockwise;
     }
 
     @Override

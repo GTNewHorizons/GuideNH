@@ -8,13 +8,22 @@ import net.minecraft.util.AxisAlignedBB;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class SceneBlockStatsEntry {
 
+    @Getter
     private final String key;
+    @Getter
     private final ItemStack stack;
+    @Getter
     private final String label;
     private final List<BlockStatsPlacement> placements = new ArrayList<>();
+    @Getter
     private int count;
+    @Getter
+    @Setter
     private int cachedTextWidth = -1;
     private int cachedEllipsizedTextMaxWidth = -1;
     private String cachedEllipsizedSource = "";
@@ -26,22 +35,6 @@ public class SceneBlockStatsEntry {
         this.label = label != null ? label : "";
         this.count = Math.max(0, count);
         updateStackDisplayCount();
-    }
-
-    public String getKey() {
-        return key;
-    }
-
-    public ItemStack getStack() {
-        return stack;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public int getCount() {
-        return count;
     }
 
     public void addCount(int delta) {
@@ -87,14 +80,6 @@ public class SceneBlockStatsEntry {
             total += placement.count();
         }
         return total;
-    }
-
-    public int getCachedTextWidth() {
-        return cachedTextWidth;
-    }
-
-    public void setCachedTextWidth(int cachedTextWidth) {
-        this.cachedTextWidth = cachedTextWidth;
     }
 
     public String getCachedEllipsizedText(String source, int maxWidth) {

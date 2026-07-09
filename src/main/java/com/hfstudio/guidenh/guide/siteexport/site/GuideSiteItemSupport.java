@@ -66,7 +66,7 @@ public class GuideSiteItemSupport {
         StringBuilder cleaned = new StringBuilder(text.length());
         for (int i = 0; i < text.length(); i++) {
             char ch = text.charAt(i);
-            if (ch == '\u00A7' && i + 1 < text.length()) {
+            if (ch == '§' && i + 1 < text.length()) {
                 i++;
                 continue;
             }

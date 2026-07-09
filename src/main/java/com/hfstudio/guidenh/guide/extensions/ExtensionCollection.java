@@ -5,6 +5,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
+
 /**
  * A collection of extensions registered to modify the guidebook.
  */
@@ -12,6 +14,12 @@ public class ExtensionCollection {
 
     public static final ExtensionCollection EMPTY = new ExtensionCollection(Map.of());
 
+    /**
+     * -- GETTER --
+     *
+     * @return The extension points for which this collection contains extensions.
+     */
+    @Getter
     private final List<ExtensionPoint<?>> extensionPoints;
     private final Map<ExtensionPoint<?>, List<Object>> extensions;
 
@@ -49,13 +57,6 @@ public class ExtensionCollection {
             return List.of();
         }
         return (List<T>) (Object) extensions;
-    }
-
-    /**
-     * @return The extension points for which this collection contains extensions.
-     */
-    public List<ExtensionPoint<?>> getExtensionPoints() {
-        return extensionPoints;
     }
 
     public static Builder builder() {

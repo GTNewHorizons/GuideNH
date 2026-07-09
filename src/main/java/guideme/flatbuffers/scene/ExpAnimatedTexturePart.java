@@ -151,12 +151,11 @@ public final class ExpAnimatedTexturePart extends Table {
         }
     }
 
-    public guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame frames(int j) {
-        return frames(new guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame(), j);
+    public ExpAnimatedTexturePartFrame frames(int j) {
+        return frames(new ExpAnimatedTexturePartFrame(), j);
     }
 
-    public guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame frames(
-        guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame obj, int j) {
+    public ExpAnimatedTexturePartFrame frames(ExpAnimatedTexturePartFrame obj, int j) {
         int o = __offset(20);
         return o != 0 ? obj.__assign(__vector(o) + j * 4, bb) : null;
     }
@@ -166,12 +165,11 @@ public final class ExpAnimatedTexturePart extends Table {
         return o != 0 ? __vector_len(o) : 0;
     }
 
-    public guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame.Vector framesVector() {
-        return framesVector(new guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame.Vector());
+    public ExpAnimatedTexturePartFrame.Vector framesVector() {
+        return framesVector(new ExpAnimatedTexturePartFrame.Vector());
     }
 
-    public guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame.Vector framesVector(
-        guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame.Vector obj) {
+    public ExpAnimatedTexturePartFrame.Vector framesVector(ExpAnimatedTexturePartFrame.Vector obj) {
         int o = __offset(20);
         return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
     }

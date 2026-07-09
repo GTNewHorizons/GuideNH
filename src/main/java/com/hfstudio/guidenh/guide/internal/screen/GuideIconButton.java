@@ -9,6 +9,11 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class GuideIconButton extends GuiButton {
 
     public static final int WIDTH = 16;
@@ -28,22 +33,6 @@ public class GuideIconButton extends GuiButton {
         super(id, x, y, WIDTH, HEIGHT, "");
         this.role = role;
         this.active = false;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
     }
 
     public String getTooltip() {

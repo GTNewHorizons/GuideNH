@@ -10,15 +10,27 @@ import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorUndoUiState;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSelectionState;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class SceneEditorSession {
 
+    @Getter
     private SceneEditorSceneModel sceneModel;
+    @Getter
     private final boolean blankSession;
+    @Getter
     private final SceneEditorSelectionState selectionState;
+    @Getter
     private final SceneEditorUndoHistory undoHistory;
+    @Getter
     private String lastSynchronizedText;
+    @Getter
+    @Setter
     private String lastAppliedText;
+    @Getter
     private String rawText;
+    @Getter
     private boolean dirty;
     @Nullable
     private String importedStructureSnbt;
@@ -43,50 +55,14 @@ public class SceneEditorSession {
         return new SceneEditorSession(SceneEditorSceneModel.withStructureSource(structureSource), false);
     }
 
-    public SceneEditorSceneModel getSceneModel() {
-        return sceneModel;
-    }
-
     public void setSceneModel(SceneEditorSceneModel sceneModel) {
         this.sceneModel = sceneModel;
         this.dirty = true;
     }
 
-    public boolean isBlankSession() {
-        return blankSession;
-    }
-
-    public SceneEditorSelectionState getSelectionState() {
-        return selectionState;
-    }
-
-    public SceneEditorUndoHistory getUndoHistory() {
-        return undoHistory;
-    }
-
-    public String getLastSynchronizedText() {
-        return lastSynchronizedText;
-    }
-
-    public String getLastAppliedText() {
-        return lastAppliedText;
-    }
-
-    public void setLastAppliedText(String lastAppliedText) {
-        this.lastAppliedText = lastAppliedText;
-    }
-
-    public String getRawText() {
-        return rawText;
-    }
-
     public void setRawText(String rawText) {
         this.rawText = rawText;
         this.dirty = !rawText.equals(this.lastSynchronizedText);
-    }
-
-    public boolean isDirty() {
-        return dirty;
     }
 
     public void markDirty() {

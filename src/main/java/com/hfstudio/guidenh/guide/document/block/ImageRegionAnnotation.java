@@ -7,6 +7,8 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 
+import lombok.Getter;
+
 /**
  * An annotation attached to a rectangular region of an image (in image-pixel coordinates).
  * When the mouse hovers over the region, a rich-text tooltip is shown.
@@ -14,19 +16,28 @@ import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
  */
 public class ImageRegionAnnotation {
 
+    @Getter
     private final int imgX;
+    @Getter
     private final int imgY;
+    @Getter
     private final int imgW;
+    @Getter
     private final int imgH;
+    @Getter
     private final boolean wholeImage;
+    @Getter
     private final boolean showBorder;
+    @Getter
     private final ColorValue borderColor;
+    @Getter
     private final int borderThickness;
 
     @Nullable
     private GuideTooltip tooltip;
     @Nullable
     private GuideSoundSpec sound;
+    @Getter
     private GuideSoundTrigger soundTrigger = GuideSoundTrigger.CLICK;
 
     /**
@@ -70,38 +81,6 @@ public class ImageRegionAnnotation {
         this.borderThickness = Math.max(1, borderThickness);
     }
 
-    public boolean isWholeImage() {
-        return wholeImage;
-    }
-
-    public int getImgX() {
-        return imgX;
-    }
-
-    public int getImgY() {
-        return imgY;
-    }
-
-    public int getImgW() {
-        return imgW;
-    }
-
-    public int getImgH() {
-        return imgH;
-    }
-
-    public boolean isShowBorder() {
-        return showBorder;
-    }
-
-    public ColorValue getBorderColor() {
-        return borderColor;
-    }
-
-    public int getBorderThickness() {
-        return borderThickness;
-    }
-
     @Nullable
     public GuideTooltip getTooltip() {
         return tooltip;
@@ -118,10 +97,6 @@ public class ImageRegionAnnotation {
 
     public void setSound(@Nullable GuideSoundSpec sound) {
         this.sound = sound;
-    }
-
-    public GuideSoundTrigger getSoundTrigger() {
-        return soundTrigger;
     }
 
     public void setSoundTrigger(GuideSoundTrigger soundTrigger) {

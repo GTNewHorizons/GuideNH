@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
@@ -208,11 +208,7 @@ public class GuideSiteHrefResolver {
     }
 
     private static String urlEncode(String value) {
-        try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("UTF-8 should always be supported", e);
-        }
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     public static class ContextScope implements AutoCloseable {

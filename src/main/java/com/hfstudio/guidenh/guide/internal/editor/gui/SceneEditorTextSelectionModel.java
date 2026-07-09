@@ -1,8 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
+import lombok.Getter;
+
 public class SceneEditorTextSelectionModel {
 
+    @Getter
     private String text;
+    @Getter
     private int cursorIndex;
     private int selectionAnchor;
     private boolean selectionActive;
@@ -23,14 +27,6 @@ public class SceneEditorTextSelectionModel {
                 selectionActive = false;
             }
         }
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public int getCursorIndex() {
-        return cursorIndex;
     }
 
     public void setCursorIndex(int cursorIndex) {

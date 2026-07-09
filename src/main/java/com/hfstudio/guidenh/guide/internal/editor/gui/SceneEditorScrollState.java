@@ -1,31 +1,22 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
+import lombok.Getter;
+
+@Getter
 public class SceneEditorScrollState {
 
     private int offsetPixels;
     private int viewportPixels;
     private int contentPixels;
 
-    public int getOffsetPixels() {
-        return offsetPixels;
-    }
-
     public void setOffsetPixels(int offsetPixels) {
         this.offsetPixels = offsetPixels;
         clamp();
     }
 
-    public int getViewportPixels() {
-        return viewportPixels;
-    }
-
     public void setViewportPixels(int viewportPixels) {
         this.viewportPixels = Math.max(0, viewportPixels);
         clamp();
-    }
-
-    public int getContentPixels() {
-        return contentPixels;
     }
 
     public void setContentPixels(int contentPixels) {

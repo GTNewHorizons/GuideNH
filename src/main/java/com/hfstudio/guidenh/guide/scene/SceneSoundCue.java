@@ -5,26 +5,27 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class SceneSoundCue {
 
+    @Getter
     private final GuideSoundTrigger trigger;
+    @Getter
     private final GuideSoundSpec sound;
     @Nullable
     private StructureLibSceneCondition structureLibCondition;
+    @Getter
+    @Setter
     private boolean entered;
+    @Getter
+    @Setter
     private boolean hovered;
 
     public SceneSoundCue(GuideSoundTrigger trigger, GuideSoundSpec sound) {
         this.trigger = trigger != null ? trigger : GuideSoundTrigger.CLICK;
         this.sound = sound;
-    }
-
-    public GuideSoundTrigger getTrigger() {
-        return trigger;
-    }
-
-    public GuideSoundSpec getSound() {
-        return sound;
     }
 
     @Nullable
@@ -34,22 +35,6 @@ public class SceneSoundCue {
 
     public void setStructureLibCondition(@Nullable StructureLibSceneCondition structureLibCondition) {
         this.structureLibCondition = structureLibCondition;
-    }
-
-    public boolean isEntered() {
-        return entered;
-    }
-
-    public void setEntered(boolean entered) {
-        this.entered = entered;
-    }
-
-    public boolean isHovered() {
-        return hovered;
-    }
-
-    public void setHovered(boolean hovered) {
-        this.hovered = hovered;
     }
 
     public boolean matches(GuideSoundTrigger trigger) {

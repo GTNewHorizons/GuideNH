@@ -9,12 +9,15 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 
+import lombok.Getter;
+
 public class StructureLibSceneCondition {
 
     @Nullable
     private final String structureName;
     @Nullable
     private final StructureLibValueCondition tierCondition;
+    @Getter
     private final Map<String, StructureLibValueCondition> channelConditions;
 
     public StructureLibSceneCondition(@Nullable String structureName,
@@ -44,10 +47,6 @@ public class StructureLibSceneCondition {
     @Nullable
     public StructureLibValueCondition getTierCondition() {
         return tierCondition;
-    }
-
-    public Map<String, StructureLibValueCondition> getChannelConditions() {
-        return channelConditions;
     }
 
     public boolean hasAnyConstraint() {

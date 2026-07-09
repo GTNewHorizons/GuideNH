@@ -78,7 +78,7 @@ public class BlockquoteCompiler extends BlockTagCompiler {
         if (!directive.children()
             .isEmpty() && directive.firstParagraph() != null
             && directive.children()
-                .get(0) == directive.firstParagraph()
+                .getFirst() == directive.firstParagraph()
             && directive.remainingText() != null
             && !directive.remainingText()
                 .isEmpty()) {
@@ -101,19 +101,18 @@ public class BlockquoteCompiler extends BlockTagCompiler {
     private void normalizeBlockMargins(LytNode box) {
         var boxChildren = box.getChildren();
         if (!boxChildren.isEmpty()) {
-            if (boxChildren.get(0) instanceof LytParagraph) {
-                ((LytParagraph) boxChildren.get(0)).setMarginTop(0);
+            if (boxChildren.getFirst() instanceof LytParagraph) {
+                ((LytParagraph) boxChildren.getFirst()).setMarginTop(0);
             }
-            if (boxChildren.get(boxChildren.size() - 1) instanceof LytParagraph) {
-                ((LytParagraph) boxChildren.get(boxChildren.size() - 1)).setMarginBottom(0);
+            if (boxChildren.getLast() instanceof LytParagraph) {
+                ((LytParagraph) boxChildren.getLast()).setMarginBottom(0);
             }
         }
     }
 
     private void shiftFirstParagraphDown(LytNode box, int pixels) {
         var boxChildren = box.getChildren();
-        if (!boxChildren.isEmpty() && boxChildren.get(0) instanceof LytParagraph) {
-            LytParagraph first = (LytParagraph) boxChildren.get(0);
+        if (!boxChildren.isEmpty() && boxChildren.getFirst() instanceof LytParagraph first) {
             first.setPaddingTop(first.getPaddingTop() + pixels);
         }
     }

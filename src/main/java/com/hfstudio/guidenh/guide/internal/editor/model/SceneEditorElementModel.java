@@ -8,27 +8,63 @@ import java.util.UUID;
 
 import org.joml.Vector3f;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class SceneEditorElementModel {
 
+    @Getter
     private final UUID id;
+    @Getter
     private final SceneEditorElementType type;
+    @Getter
+    @Setter
     private float primaryX;
+    @Getter
+    @Setter
     private float primaryY;
+    @Getter
+    @Setter
     private float primaryZ;
+    @Getter
+    @Setter
     private float secondaryX;
+    @Getter
+    @Setter
     private float secondaryY;
+    @Getter
+    @Setter
     private float secondaryZ;
+    @Getter
+    @Setter
     private String colorLiteral;
+    @Getter
+    @Setter
     private float thickness;
+    @Getter
+    @Setter
     private boolean visible;
+    @Getter
+    @Setter
     private boolean alwaysOnTop;
+    @Getter
+    @Setter
     private String tooltipMarkdown;
+    @Getter
     private String textKey;
+    @Getter
+    @Setter
     private String textMarkdown;
+    @Getter
     private String showWhenStructure;
+    @Getter
     private String showWhenTier;
+    @Getter
     private String showWhenChannels;
+    @Getter
+    @Setter
     private int maxWidth;
+    @Getter
     private int backgroundAlpha;
     private final List<Vector3f> linePoints;
     private final Map<String, String> extraAttributes;
@@ -58,62 +94,6 @@ public class SceneEditorElementModel {
         this.extraAttributes = new LinkedHashMap<>();
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public SceneEditorElementType getType() {
-        return type;
-    }
-
-    public float getPrimaryX() {
-        return primaryX;
-    }
-
-    public void setPrimaryX(float primaryX) {
-        this.primaryX = primaryX;
-    }
-
-    public float getPrimaryY() {
-        return primaryY;
-    }
-
-    public void setPrimaryY(float primaryY) {
-        this.primaryY = primaryY;
-    }
-
-    public float getPrimaryZ() {
-        return primaryZ;
-    }
-
-    public void setPrimaryZ(float primaryZ) {
-        this.primaryZ = primaryZ;
-    }
-
-    public float getSecondaryX() {
-        return secondaryX;
-    }
-
-    public void setSecondaryX(float secondaryX) {
-        this.secondaryX = secondaryX;
-    }
-
-    public float getSecondaryY() {
-        return secondaryY;
-    }
-
-    public void setSecondaryY(float secondaryY) {
-        this.secondaryY = secondaryY;
-    }
-
-    public float getSecondaryZ() {
-        return secondaryZ;
-    }
-
-    public void setSecondaryZ(float secondaryZ) {
-        this.secondaryZ = secondaryZ;
-    }
-
     public List<Vector3f> getLinePoints() {
         return List.copyOf(linePoints);
     }
@@ -130,96 +110,20 @@ public class SceneEditorElementModel {
         }
     }
 
-    public String getColorLiteral() {
-        return colorLiteral;
-    }
-
-    public void setColorLiteral(String colorLiteral) {
-        this.colorLiteral = colorLiteral;
-    }
-
-    public float getThickness() {
-        return thickness;
-    }
-
-    public void setThickness(float thickness) {
-        this.thickness = thickness;
-    }
-
-    public boolean isVisible() {
-        return visible;
-    }
-
-    public void setVisible(boolean visible) {
-        this.visible = visible;
-    }
-
-    public boolean isAlwaysOnTop() {
-        return alwaysOnTop;
-    }
-
-    public void setAlwaysOnTop(boolean alwaysOnTop) {
-        this.alwaysOnTop = alwaysOnTop;
-    }
-
-    public String getTooltipMarkdown() {
-        return tooltipMarkdown;
-    }
-
-    public void setTooltipMarkdown(String tooltipMarkdown) {
-        this.tooltipMarkdown = tooltipMarkdown;
-    }
-
-    public String getTextKey() {
-        return textKey;
-    }
-
     public void setTextKey(String textKey) {
         this.textKey = textKey != null ? textKey : "";
-    }
-
-    public String getTextMarkdown() {
-        return textMarkdown;
-    }
-
-    public void setTextMarkdown(String textMarkdown) {
-        this.textMarkdown = textMarkdown;
-    }
-
-    public String getShowWhenStructure() {
-        return showWhenStructure;
     }
 
     public void setShowWhenStructure(String showWhenStructure) {
         this.showWhenStructure = showWhenStructure != null ? showWhenStructure : "";
     }
 
-    public String getShowWhenTier() {
-        return showWhenTier;
-    }
-
     public void setShowWhenTier(String showWhenTier) {
         this.showWhenTier = showWhenTier != null ? showWhenTier : "";
     }
 
-    public String getShowWhenChannels() {
-        return showWhenChannels;
-    }
-
     public void setShowWhenChannels(String showWhenChannels) {
         this.showWhenChannels = showWhenChannels != null ? showWhenChannels : "";
-    }
-
-    public int getMaxWidth() {
-        return maxWidth;
-    }
-
-    public void setMaxWidth(int maxWidth) {
-        this.maxWidth = maxWidth;
-    }
-
-    public int getBackgroundAlpha() {
-        return backgroundAlpha;
     }
 
     public void setBackgroundAlpha(int backgroundAlpha) {

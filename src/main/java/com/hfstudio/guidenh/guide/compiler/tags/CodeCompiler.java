@@ -25,7 +25,7 @@ public class CodeCompiler extends FlowTagCompiler {
         if (!el.children()
             .isEmpty()
             && el.children()
-                .get(0) instanceof MdAstText t) {
+                .getFirst() instanceof MdAstText t) {
             value = t.value;
         }
         text.setText(value);

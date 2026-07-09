@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * An in-world annotation that renders a flat grid on a horizontal plane (typically Y=0),
  * covering the structure's XZ footprint extended by one block in each direction.
@@ -10,6 +13,7 @@ package com.hfstudio.guidenh.guide.scene.annotation;
  * cardinal direction initials (N/S/E/W) are additionally rendered in 3D world space, flat
  * on the ground plane — exactly like the Ponder editor mode overlay.
  */
+@Getter
 public class SceneFloorGridAnnotation extends InWorldAnnotation {
 
     private final int minX;
@@ -17,6 +21,7 @@ public class SceneFloorGridAnnotation extends InWorldAnnotation {
     private final int maxX;
     private final int maxZ;
     private final float y;
+    @Setter
     private boolean showDebugLabels;
 
     /**
@@ -35,31 +40,4 @@ public class SceneFloorGridAnnotation extends InWorldAnnotation {
         setAlwaysOnTop(false);
     }
 
-    public int getMinX() {
-        return minX;
-    }
-
-    public int getMinZ() {
-        return minZ;
-    }
-
-    public int getMaxX() {
-        return maxX;
-    }
-
-    public int getMaxZ() {
-        return maxZ;
-    }
-
-    public float getY() {
-        return y;
-    }
-
-    public boolean isShowDebugLabels() {
-        return showDebugLabels;
-    }
-
-    public void setShowDebugLabels(boolean showDebugLabels) {
-        this.showDebugLabels = showDebugLabels;
-    }
 }

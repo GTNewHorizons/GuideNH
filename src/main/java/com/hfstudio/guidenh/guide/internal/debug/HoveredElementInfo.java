@@ -5,24 +5,38 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 /**
  * Contains debug information about a hovered GUI element.
  */
 public class HoveredElementInfo {
 
+    @Getter
     private final String className;
+    @Getter
     private final int x;
+    @Getter
     private final int y;
+    @Getter
     private final int width;
+    @Getter
     private final int height;
+    @Getter
     private final List<String> extraInfo;
     private final HoveredElementInfo parent;
 
+    @Getter
     private int screenX;
+    @Getter
     private int screenY;
+    @Getter
     private int screenWidth;
+    @Getter
     private int screenHeight;
+    @Getter
     private float cumulativeScrollOffsetX;
+    @Getter
     private float cumulativeScrollOffsetY;
 
     public HoveredElementInfo(String className, int x, int y, int width, int height,
@@ -54,54 +68,6 @@ public class HoveredElementInfo {
     public void setCumulativeScrollOffset(float offsetX, float offsetY) {
         this.cumulativeScrollOffsetX = offsetX;
         this.cumulativeScrollOffsetY = offsetY;
-    }
-
-    public float getCumulativeScrollOffsetX() {
-        return cumulativeScrollOffsetX;
-    }
-
-    public float getCumulativeScrollOffsetY() {
-        return cumulativeScrollOffsetY;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
-    public int getScreenX() {
-        return screenX;
-    }
-
-    public int getScreenY() {
-        return screenY;
-    }
-
-    public int getScreenWidth() {
-        return screenWidth;
-    }
-
-    public int getScreenHeight() {
-        return screenHeight;
-    }
-
-    public List<String> getExtraInfo() {
-        return extraInfo;
     }
 
     @Nullable

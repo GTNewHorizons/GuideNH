@@ -24,12 +24,14 @@ import com.hfstudio.guidenh.guide.internal.util.NavigationUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import cpw.mods.fml.common.Loader;
+import lombok.Getter;
 
 public class NavigationTree {
 
     private final Map<ResourceLocation, NavigationNode> nodeIndex;
     private final Map<ResourceLocation, ResourceLocation> parentIndex;
 
+    @Getter
     private final List<NavigationNode> rootNodes;
 
     public NavigationTree(Map<ResourceLocation, NavigationNode> nodeIndex,
@@ -43,10 +45,6 @@ public class NavigationTree {
         this.nodeIndex = Map.of();
         this.parentIndex = Map.of();
         this.rootNodes = List.of();
-    }
-
-    public List<NavigationNode> getRootNodes() {
-        return rootNodes;
     }
 
     @Nullable

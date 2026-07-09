@@ -16,10 +16,14 @@ import com.hfstudio.guidenh.bridge.semantic.SemanticCapability;
 import com.hfstudio.guidenh.bridge.semantic.SemanticProvider;
 import com.hfstudio.guidenh.bridge.semantic.SemanticQuery;
 import com.hfstudio.guidenh.bridge.semantic.SemanticQueryResult;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
 import com.hfstudio.structurelibexport.StructureLibControllerDiscovery;
 import com.hfstudio.structurelibexport.StructureLibControllerSpec;
+
+import blockrenderer6343.client.utils.ConstructableData;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 
 public class StructureLibSemanticProvider implements SemanticProvider {
 
@@ -78,18 +82,17 @@ public class StructureLibSemanticProvider implements SemanticProvider {
             return List.of();
         }
         try {
-            StructureLibImportRequest request = new StructureLibImportRequest(controller, null, null, null, null, null);
-            StructureLibRuntimeFacade.ResolvedController resolvedController = StructureLibRuntimeFacade
-                .resolveController(request);
-            StructureLibRuntimeFacade.ControlAnalysis analysis = StructureLibRuntimeFacade
-                .analyzeControls(request, resolvedController);
-            int maxTier = analysis.getMaxTotalTier();
-            if (maxTier <= 0) {
-                return List.of();
-            }
+            StructureLibBuildService.ResolvedController resolved = StructureLibBuildService
+                .resolveController(controller);
+            String fullId = resolved.meta() > 0 ? resolved.blockId() + ":" + resolved.meta() : resolved.blockId();
+            ConstructableData data = StructureLibDefinitionCache.getInstance()
+                .getConstructableDataFor(fullId);
+            if (data == null) return List.of();
+            int maxTier = data.getMaxTotalTier();
+            if (maxTier <= 0) return List.of();
 
             List<Map<String, String>> entries = new ArrayList<>();
-            String detail = describeTierRange(controller, analysis);
+            String detail = describeTierRange(resolved, maxTier, data.getChannelData());
             for (int value = 1; value <= maxTier; value++) {
                 entries.add(createEntry(Integer.toString(value), "StructureLib preview tier", detail));
             }
@@ -178,21 +181,16 @@ public class StructureLibSemanticProvider implements SemanticProvider {
 
     private List<ExtendedFacing> findAllowedFacings(StructureLibControllerSpec controller) {
         List<ExtendedFacing> allowedFacings = new ArrayList<>();
-        StructureLibRuntimeFacade.BuildContext context = new StructureLibRuntimeFacade.BuildContext();
+        GuidebookLevel level = new GuidebookLevel();
         try {
-            StructureLibRuntimeFacade.ResolvedController resolvedController = new StructureLibRuntimeFacade.ResolvedController(
+            StructureLibBuildService.ResolvedController resolved = new StructureLibBuildService.ResolvedController(
                 controller.getBlockId(),
                 controller.getBlock(),
                 controller.getMeta());
-            TileEntity tile = StructureLibRuntimeFacade
-                .placeControllerDirectly(context.getLevel(), context.getWorld(), resolvedController, new ArrayList<>());
-            if (tile == null) {
-                return List.of();
-            }
-            IAlignment alignment = StructureLibRuntimeFacade.resolveAlignment(tile);
-            if (alignment == null) {
-                return List.of();
-            }
+            TileEntity tile = StructureLibBuildService.placeController(level, level.getOrCreateFakeWorld(), resolved);
+            if (tile == null) return List.of();
+            IAlignment alignment = StructureLibBuildService.resolveAlignment(tile);
+            if (alignment == null) return List.of();
             for (ExtendedFacing facing : ExtendedFacing.VALUES) {
                 if (alignment.getAlignmentLimits() != null ? alignment.getAlignmentLimits()
                     .isNewExtendedFacingValid(facing) : alignment.checkedSetExtendedFacing(facing)) {
@@ -203,7 +201,7 @@ public class StructureLibSemanticProvider implements SemanticProvider {
         } catch (Throwable ignored) {
             return List.of();
         } finally {
-            context.clear();
+            level.clear();
         }
     }
 
@@ -246,30 +244,24 @@ public class StructureLibSemanticProvider implements SemanticProvider {
         return "facing".equals(attribute) || "rotation".equals(attribute) || "flip".equals(attribute);
     }
 
-    private String describeTierRange(String controller, StructureLibRuntimeFacade.ControlAnalysis analysis) {
+    private String describeTierRange(StructureLibBuildService.ResolvedController controller, int maxTier,
+        Object2IntMap<String> channelData) {
         StringBuilder detail = new StringBuilder();
+        String controllerId = controller.blockId() + ":" + controller.meta();
         detail.append("Preview tier for ")
-            .append(controller)
+            .append(controllerId)
             .append(" (max ")
-            .append(analysis.getMaxTotalTier())
+            .append(maxTier)
             .append(')');
-        if (analysis.getChannelMaxTierMap()
-            .isEmpty()) {
-            return detail.toString();
-        }
+        if (channelData == null || channelData.isEmpty()) return detail.toString();
 
         detail.append(" | Channel caps: ");
         boolean first = true;
-        for (Map.Entry<String, Integer> entry : analysis.getChannelMaxTierMap()
-            .entrySet()) {
+        for (var entry : channelData.object2IntEntrySet()) {
             String channelId = normalizeValue(entry.getKey());
-            Integer maxValue = entry.getValue();
-            if (channelId == null || maxValue == null || maxValue <= 0) {
-                continue;
-            }
-            if (!first) {
-                detail.append(", ");
-            }
+            int maxValue = entry.getIntValue();
+            if (channelId == null || maxValue <= 0) continue;
+            if (!first) detail.append(", ");
             detail.append(channelId)
                 .append('=')
                 .append(maxValue);

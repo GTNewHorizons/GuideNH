@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.scene;
 
+import lombok.Getter;
+
+@Getter
 public enum PerspectivePreset {
 
     ISOMETRIC_NORTH_EAST("isometric-north-east"),
@@ -10,10 +13,6 @@ public enum PerspectivePreset {
 
     PerspectivePreset(String serializedName) {
         this.serializedName = serializedName;
-    }
-
-    public String getSerializedName() {
-        return serializedName;
     }
 
     public static PerspectivePreset fromSerializedName(String name) {

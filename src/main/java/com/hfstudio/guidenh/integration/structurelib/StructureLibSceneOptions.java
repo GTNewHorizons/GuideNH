@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class StructureLibSceneOptions {
 
     public static final String GREGTECH_ACTIVE_CONTROLLER_OPTION = "gregtech.active_controller";
@@ -19,8 +21,11 @@ public class StructureLibSceneOptions {
     private final String flip;
     @Nullable
     private final Integer tier;
+    @Getter
     private final Map<String, Integer> channelOverrides;
+    @Getter
     private final boolean gregTechActiveController;
+    @Getter
     private final boolean gregTechPlaceHatches;
 
     public StructureLibSceneOptions(@Nullable String facing, @Nullable String rotation, @Nullable String flip,
@@ -61,18 +66,6 @@ public class StructureLibSceneOptions {
     @Nullable
     public Integer getTier() {
         return tier;
-    }
-
-    public Map<String, Integer> getChannelOverrides() {
-        return channelOverrides;
-    }
-
-    public boolean isGregTechActiveController() {
-        return gregTechActiveController;
-    }
-
-    public boolean isGregTechPlaceHatches() {
-        return gregTechPlaceHatches;
     }
 
     public boolean hasOverrides() {

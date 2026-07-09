@@ -2,8 +2,11 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 
+import lombok.Getter;
+
 public class MdxAttrNameContext implements AutocompleteContext {
 
+    @Getter
     private final String tagName;
     private final int replaceStart;
     private final int replaceEnd;
@@ -14,10 +17,6 @@ public class MdxAttrNameContext implements AutocompleteContext {
         this.replaceStart = replaceStart;
         this.replaceEnd = replaceEnd;
         this.partialText = partialText;
-    }
-
-    public String getTagName() {
-        return tagName;
     }
 
     @Override

@@ -9,9 +9,9 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 /**
  * Interface for nodes that contain sub-components (UI controls, interactive elements)
  * which should be debuggable but are not necessarily part of the LytNode tree.
- *
+ * <p>
  * Implementations expose their internal components in a structured, extensible way.
- *
+ * <p>
  * Examples:
  * - GameScene: timeline slider, play/pause button, reset button, layer sliders
  * - ContentTabs: individual tab buttons with bounds and state

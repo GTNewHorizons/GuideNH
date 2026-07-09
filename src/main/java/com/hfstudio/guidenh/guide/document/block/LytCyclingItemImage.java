@@ -16,7 +16,7 @@ public class LytCyclingItemImage extends LytItemImage {
     private int cachedIdx = 0;
 
     public LytCyclingItemImage(List<ItemStack> stacks) {
-        super(stacks.get(0));
+        super(stacks.getFirst());
         this.stacks = stacks;
     }
 

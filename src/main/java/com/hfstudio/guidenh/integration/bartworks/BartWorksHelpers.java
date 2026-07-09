@@ -14,7 +14,7 @@ public class BartWorksHelpers {
     public BartWorksHelpers() {}
 
     public static boolean isRotorBlock(@Nullable TileEntity tileEntity) {
-        return tileEntity != null && Mods.BartWorks.isModLoaded() && isRotorBlockImpl(tileEntity);
+        return Mods.BartWorks.isModLoaded() && isRotorBlockImpl(tileEntity);
     }
 
     @Optional.Method(modid = "bartworks")

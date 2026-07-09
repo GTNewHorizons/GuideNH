@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
+import lombok.Getter;
+
+@Getter
 public class AttributeSpec {
 
     private final String name;
@@ -16,15 +19,4 @@ public class AttributeSpec {
         this.enumClass = enumClass;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public AttrType getType() {
-        return type;
-    }
-
-    public Class<? extends Enum<?>> getEnumClass() {
-        return enumClass;
-    }
 }

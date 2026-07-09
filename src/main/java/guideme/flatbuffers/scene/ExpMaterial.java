@@ -63,7 +63,7 @@ public final class ExpMaterial extends Table {
 
     public boolean disableCulling() {
         int o = __offset(8);
-        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+        return o != 0 && 0 != bb.get(o + bb_pos);
     }
 
     public boolean mutateDisableCulling(boolean disable_culling) {
@@ -106,11 +106,11 @@ public final class ExpMaterial extends Table {
         }
     }
 
-    public guideme.flatbuffers.scene.ExpSampler samplers(int j) {
-        return samplers(new guideme.flatbuffers.scene.ExpSampler(), j);
+    public ExpSampler samplers(int j) {
+        return samplers(new ExpSampler(), j);
     }
 
-    public guideme.flatbuffers.scene.ExpSampler samplers(guideme.flatbuffers.scene.ExpSampler obj, int j) {
+    public ExpSampler samplers(ExpSampler obj, int j) {
         int o = __offset(14);
         return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
     }
@@ -120,11 +120,11 @@ public final class ExpMaterial extends Table {
         return o != 0 ? __vector_len(o) : 0;
     }
 
-    public guideme.flatbuffers.scene.ExpSampler.Vector samplersVector() {
-        return samplersVector(new guideme.flatbuffers.scene.ExpSampler.Vector());
+    public ExpSampler.Vector samplersVector() {
+        return samplersVector(new ExpSampler.Vector());
     }
 
-    public guideme.flatbuffers.scene.ExpSampler.Vector samplersVector(guideme.flatbuffers.scene.ExpSampler.Vector obj) {
+    public ExpSampler.Vector samplersVector(ExpSampler.Vector obj) {
         int o = __offset(14);
         return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
     }

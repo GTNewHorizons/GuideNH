@@ -10,6 +10,9 @@ import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Horizontal bar chart (X numeric, Y categorical).
  *
@@ -27,8 +30,12 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
     /** Extra horizontal space reserved on the chart's right side when pie inset is RIGHT_OUTSIDE. */
     private static final int PIE_OUTSIDE_GAP = 6;
 
+    @Getter
     private List<ChartSeries> series = new ArrayList<>();
+    @Getter
     private List<ChartSeries> lineOverlays = new ArrayList<>();
+    @Getter
+    @Setter
     private PieInsetSpec pieInset;
     private String[] categories = new String[0];
     private ChartAxisOptions xAxis = new ChartAxisOptions();
@@ -42,24 +49,8 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         this.series = series != null ? series : new ArrayList<>();
     }
 
-    public List<ChartSeries> getSeries() {
-        return series;
-    }
-
     public void setLineOverlays(List<ChartSeries> overlays) {
         this.lineOverlays = overlays != null ? overlays : new ArrayList<>();
-    }
-
-    public List<ChartSeries> getLineOverlays() {
-        return lineOverlays;
-    }
-
-    public void setPieInset(PieInsetSpec pieInset) {
-        this.pieInset = pieInset;
-    }
-
-    public PieInsetSpec getPieInset() {
-        return pieInset;
     }
 
     public void setCategories(String[] categories) {

@@ -13,6 +13,8 @@ import com.hfstudio.guidenh.guide.document.block.LytSlotGrid;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 public class LytStandardRecipeBox extends LytBox {
 
     public static final ResourceLocation CRAFTING_TEXTURE = new ResourceLocation(
@@ -27,6 +29,7 @@ public class LytStandardRecipeBox extends LytBox {
 
     private final LytSlotGrid inputs;
     private final LytSlot output;
+    @Getter
     private final boolean shapeless;
 
     public LytStandardRecipeBox(LytSlotGrid inputs, ItemStack resultStack, boolean shapeless) {
@@ -61,10 +64,6 @@ public class LytStandardRecipeBox extends LytBox {
             }
         }
         return new LytStandardRecipeBox(grid, result, true);
-    }
-
-    public boolean isShapeless() {
-        return shapeless;
     }
 
     @Override

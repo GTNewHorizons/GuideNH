@@ -9,6 +9,8 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorScreenshotFormat;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 
+import lombok.Getter;
+
 public class SceneEditorScreenshotMenuController {
 
     public static final int MAX_SCREENSHOT_SCALE = 64;
@@ -23,8 +25,11 @@ public class SceneEditorScreenshotMenuController {
     private final Consumer<SceneEditorScreenshotFormat> formatApplier;
     private final IntConsumer scaleApplier;
     private final SceneEditorNumericFieldController scaleController;
+    @Getter
     private SceneEditorScreenshotFormat format;
+    @Getter
     private boolean open;
+    @Getter
     private boolean showOriginAxes;
 
     public SceneEditorScreenshotMenuController(SceneEditorScreenshotFormat initialFormat, int initialScale,
@@ -37,10 +42,6 @@ public class SceneEditorScreenshotMenuController {
             1f,
             (float) MAX_SCREENSHOT_SCALE,
             value -> this.scaleApplier.accept(Math.round(value)));
-    }
-
-    public boolean isOpen() {
-        return open;
     }
 
     public void toggleOpen() {
@@ -57,10 +58,6 @@ public class SceneEditorScreenshotMenuController {
         }
     }
 
-    public SceneEditorScreenshotFormat getFormat() {
-        return format;
-    }
-
     public int getScale() {
         return Math.round(scaleController.getValue());
     }
@@ -75,10 +72,6 @@ public class SceneEditorScreenshotMenuController {
 
     public boolean hasScaleValidationError() {
         return scaleController.hasValidationError();
-    }
-
-    public boolean isShowOriginAxes() {
-        return showOriginAxes;
     }
 
     public void toggleShowOriginAxes() {

@@ -50,10 +50,9 @@ public class YamlTokenizer implements LanguageTokenizer {
         }
         if (index < content.length() && content.charAt(index) == '-') {
             TokenizerSupport.appendToken(tokens, "-", CodeTokenType.PUNCTUATION);
-            index++;
-            while (index < content.length() && Character.isWhitespace(content.charAt(index))) {
+            do {
                 index++;
-            }
+            } while (index < content.length() && Character.isWhitespace(content.charAt(index)));
         }
 
         int colonIndex = content.indexOf(':', index);

@@ -5,17 +5,14 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class LytTaskListItem extends LytListItem {
 
     private boolean checked;
-
-    public boolean isChecked() {
-        return checked;
-    }
-
-    public void setChecked(boolean checked) {
-        this.checked = checked;
-    }
 
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {

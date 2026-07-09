@@ -64,7 +64,7 @@ public class GuideSearchResultDocumentBuilder {
         return document != null && document.getBlocks()
             .size() == 1
             && document.getBlocks()
-                .get(0) instanceof CenteredStateBlock;
+                .getFirst() instanceof CenteredStateBlock;
     }
 
     public static CenteredStateBlock buildCenteredMessage(String message) {

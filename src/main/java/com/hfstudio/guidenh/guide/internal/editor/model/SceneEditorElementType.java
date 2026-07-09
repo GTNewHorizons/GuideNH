@@ -10,6 +10,8 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 
+import lombok.Getter;
+
 public class SceneEditorElementType {
 
     public static final Map<String, SceneEditorElementType> TYPES_BY_ID = new LinkedHashMap<>();
@@ -91,13 +93,19 @@ public class SceneEditorElementType {
             .defaultBackgroundAlpha(TextAnnotation.DEFAULT_BACKGROUND_ALPHA)
             .build());
 
+    @Getter
     public final String id;
+    @Getter
     public final String tagName;
+    @Getter
     public final GuidebookText textKey;
     @Nullable
     public final String iconPngPath;
+    @Getter
     public final char fallbackGlyph;
+    @Getter
     public final int accentColor;
+    @Getter
     public final PointHandleMode pointHandleMode;
     public final boolean includePrimaryVector;
     public final boolean includeSecondaryVector;
@@ -107,13 +115,19 @@ public class SceneEditorElementType {
     public final boolean includeText;
     public final boolean includeMaxWidth;
     public final boolean includeBackgroundAlpha;
+    @Getter
     public final GuidebookText primaryVectorLabel;
     @Nullable
     public final GuidebookText secondaryVectorLabel;
+    @Getter
     public final String defaultColorLiteral;
+    @Getter
     public final float defaultThickness;
+    @Getter
     public final String defaultText;
+    @Getter
     public final int defaultMaxWidth;
+    @Getter
     public final int defaultBackgroundAlpha;
 
     public SceneEditorElementType(Builder builder) {
@@ -172,37 +186,13 @@ public class SceneEditorElementType {
         return TYPES_BY_TAG_NAME.get(tagName);
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getTagName() {
-        return tagName;
-    }
-
     public String getDisplayText() {
         return textKey.text();
-    }
-
-    public GuidebookText getTextKey() {
-        return textKey;
     }
 
     @Nullable
     public String getIconPngPath() {
         return iconPngPath;
-    }
-
-    public char getFallbackGlyph() {
-        return fallbackGlyph;
-    }
-
-    public int getAccentColor() {
-        return accentColor;
-    }
-
-    public PointHandleMode getPointHandleMode() {
-        return pointHandleMode;
     }
 
     public boolean supportsPointHandles() {
@@ -241,33 +231,9 @@ public class SceneEditorElementType {
         return includeBackgroundAlpha;
     }
 
-    public GuidebookText getPrimaryVectorLabel() {
-        return primaryVectorLabel;
-    }
-
     @Nullable
     public GuidebookText getSecondaryVectorLabel() {
         return secondaryVectorLabel;
-    }
-
-    public String getDefaultColorLiteral() {
-        return defaultColorLiteral;
-    }
-
-    public float getDefaultThickness() {
-        return defaultThickness;
-    }
-
-    public String getDefaultText() {
-        return defaultText;
-    }
-
-    public int getDefaultMaxWidth() {
-        return defaultMaxWidth;
-    }
-
-    public int getDefaultBackgroundAlpha() {
-        return defaultBackgroundAlpha;
     }
 
     @Override

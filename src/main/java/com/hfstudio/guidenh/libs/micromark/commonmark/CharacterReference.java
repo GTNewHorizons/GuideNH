@@ -124,7 +124,7 @@ public class CharacterReference {
         /**
          * Inside a character reference value, after the markers (`&#x`, `&#`, or `&`) that define its kind, but before
          * the `;`.
-         *
+         * <p>
          * The character reference kind defines what and how many characters are allowed.
          *
          * <pre>

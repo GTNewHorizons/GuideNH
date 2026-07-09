@@ -6,6 +6,8 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 /**
  * Wraps a single inner block and positions it horizontally according to a {@link ContentAlign}
  * value within the available width.
@@ -25,6 +27,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
  * }
  * </pre>
  */
+@Getter
 public class LytAlignedBlock extends LytBlock {
 
     private LytBlock inner;
@@ -38,14 +41,6 @@ public class LytAlignedBlock extends LytBlock {
         this.inner = inner;
         inner.parent = this;
         this.align = align;
-    }
-
-    public LytBlock getInner() {
-        return inner;
-    }
-
-    public ContentAlign getAlign() {
-        return align;
     }
 
     @Override

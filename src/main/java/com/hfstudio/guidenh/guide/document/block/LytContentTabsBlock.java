@@ -349,11 +349,11 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
         }
 
         // Each tab button
-        int tabWidth = (int) (headerBounds.width() / tabs.size());
+        int tabWidth = headerBounds.width() / tabs.size();
         for (int i = 0; i < tabs.size(); i++) {
             TabState tab = tabs.get(i);
-            int tabX = (int) headerBounds.x() + (i * tabWidth);
-            LytRect tabBounds = new LytRect(tabX, (int) headerBounds.y(), tabWidth, (int) headerBounds.height());
+            int tabX = headerBounds.x() + (i * tabWidth);
+            LytRect tabBounds = new LytRect(tabX, headerBounds.y(), tabWidth, headerBounds.height());
 
             String extra = "Index: " + i;
             if (i == selectedIndex) {

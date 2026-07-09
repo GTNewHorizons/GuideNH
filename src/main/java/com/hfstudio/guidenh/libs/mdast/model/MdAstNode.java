@@ -25,9 +25,12 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
+import lombok.Setter;
+
 public abstract class MdAstNode implements UnistNode {
 
     private final String type;
+    @Setter
     public Object data;
     public MdAstPosition position;
 
@@ -48,10 +51,6 @@ public abstract class MdAstNode implements UnistNode {
     @Override
     public @Nullable UnistPosition position() {
         return position;
-    }
-
-    public void setData(Object data) {
-        this.data = data;
     }
 
     public abstract void toText(StringBuilder buffer);

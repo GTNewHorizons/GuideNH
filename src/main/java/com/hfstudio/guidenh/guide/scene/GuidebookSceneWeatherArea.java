@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.scene;
 
+import lombok.Getter;
+
+@Getter
 public class GuidebookSceneWeatherArea {
 
     private final int minX;
@@ -12,22 +15,6 @@ public class GuidebookSceneWeatherArea {
         this.minZ = minZ;
         this.maxX = maxX;
         this.maxZ = maxZ;
-    }
-
-    public int getMinX() {
-        return minX;
-    }
-
-    public int getMinZ() {
-        return minZ;
-    }
-
-    public int getMaxX() {
-        return maxX;
-    }
-
-    public int getMaxZ() {
-        return maxZ;
     }
 
     public float getCenterX() {

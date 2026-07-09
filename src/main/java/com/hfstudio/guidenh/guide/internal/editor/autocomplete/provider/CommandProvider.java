@@ -22,7 +22,6 @@ public class CommandProvider implements AutocompleteProvider {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
         String partial = ctx.getPartialText()
             .toLowerCase();
@@ -30,8 +29,7 @@ public class CommandProvider implements AutocompleteProvider {
         for (Object cmdObj : ClientCommandHandler.instance.getCommands()
             .values()) {
             if (results.size() >= limit) break;
-            if (cmdObj instanceof ICommand) {
-                ICommand cmd = (ICommand) cmdObj;
+            if (cmdObj instanceof ICommand cmd) {
                 String name = cmd.getCommandName();
                 if (partial.isEmpty() || name.toLowerCase()
                     .contains(partial)) {

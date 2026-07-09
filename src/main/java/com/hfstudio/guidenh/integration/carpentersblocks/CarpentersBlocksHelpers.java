@@ -36,7 +36,7 @@ public class CarpentersBlocksHelpers {
     }
 
     public static boolean isCarpentersTile(@Nullable TileEntity tileEntity) {
-        return tileEntity != null && Mods.CarpentersBlocks.isModLoaded() && isCarpentersTileImpl(tileEntity);
+        return Mods.CarpentersBlocks.isModLoaded() && isCarpentersTileImpl(tileEntity);
     }
 
     @Optional.Method(modid = "CarpentersBlocks")

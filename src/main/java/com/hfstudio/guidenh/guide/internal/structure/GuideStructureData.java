@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.guide.internal.structure;
 
 import net.minecraft.nbt.NBTTagCompound;
 
+import lombok.Getter;
+
+@Getter
 public class GuideStructureData {
 
     private final NBTTagCompound root;
@@ -16,19 +19,4 @@ public class GuideStructureData {
         this.sizeZ = sizeZ;
     }
 
-    public NBTTagCompound getRoot() {
-        return root;
-    }
-
-    public int getSizeX() {
-        return sizeX;
-    }
-
-    public int getSizeY() {
-        return sizeY;
-    }
-
-    public int getSizeZ() {
-        return sizeZ;
-    }
 }

@@ -13,12 +13,19 @@ import com.hfstudio.guidenh.guide.internal.debug.extractors.MermaidInfoExtractor
 import com.hfstudio.guidenh.guide.internal.debug.extractors.ParagraphInfoExtractor;
 import com.hfstudio.guidenh.guide.internal.debug.extractors.SceneInfoExtractor;
 
+import lombok.Getter;
+
 /**
  * Initializes and registers all built-in debug info extractors.
  * This class should be called once during client initialization.
  */
 public class DebugInfoExtractorInit {
 
+    /**
+     * -- GETTER --
+     * Check if extractors have been initialized.
+     */
+    @Getter
     private static boolean initialized = false;
 
     /**
@@ -46,10 +53,4 @@ public class DebugInfoExtractorInit {
         initialized = true;
     }
 
-    /**
-     * Check if extractors have been initialized.
-     */
-    public static boolean isInitialized() {
-        return initialized;
-    }
 }

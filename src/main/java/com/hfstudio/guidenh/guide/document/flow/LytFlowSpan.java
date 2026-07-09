@@ -6,16 +6,15 @@ import java.util.List;
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.style.Styleable;
 
+import lombok.Getter;
+
 /**
  * Attaches properties to a span of {@link LytFlowContent}, such as links or formatting.
  */
+@Getter
 public class LytFlowSpan extends LytFlowContent implements LytFlowParent, Styleable {
 
     private final List<LytFlowContent> children = new ArrayList<>();
-
-    public List<LytFlowContent> getChildren() {
-        return children;
-    }
 
     public void append(LytFlowContent child) {
         if (child.getParent() != null) {

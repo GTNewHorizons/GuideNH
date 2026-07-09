@@ -19,9 +19,9 @@ public class MermaidInfoExtractor implements DebugInfoExtractor {
 
         var canvas = mermaid.getCanvas();
         if (canvas != null && canvas.getBounds() != null) {
-            int canvasWidth = (int) canvas.getBounds()
+            int canvasWidth = canvas.getBounds()
                 .width();
-            int canvasHeight = (int) canvas.getBounds()
+            int canvasHeight = canvas.getBounds()
                 .height();
             if (canvasWidth > 0 || canvasHeight > 0) {
                 info.addExtraInfo("Canvas: " + canvasWidth + "x" + canvasHeight);
