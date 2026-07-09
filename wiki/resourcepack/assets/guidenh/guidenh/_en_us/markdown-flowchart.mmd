@@ -1,0 +1,39 @@
+---
+config:
+  flowchart:
+    padding: 40
+    nodeSpacing: 50
+    rankSpacing: 70
+---
+%% GuideNH Flowchart — Shape Showcase
+flowchart TB
+
+  classDef primary fill:#7aa2f7,stroke:#2f3b54,color:#fff
+
+  Start@{ shape: stadium, label: "Start" }:::primary
+  Input@{ shape: rounded, label: "Load", icon: "fa:fa-cog" }:::primary
+  Check{Valid?}
+  Accept[Accept]
+  Fix["Retry"]
+  Store@{ shape: cylinder, label: "Save" }
+  Report@{ shape: subprocess, label: "Report" }
+  End@{ shape: double-circle, label: "Done" }
+  Audit[Audit]
+  Craft@{ shape: rect, label: "Crafting Table" }
+
+  Start --> Input
+  Input --> Check
+
+  subgraph Decide["Decision (direction LR)"]
+    direction LR
+    Check --> Accept
+    Check --> Fix
+  end
+
+  Accept --> Store
+  Store --> Report
+  Report --> End
+  Store --> Audit
+  Store --> Craft
+
+  linkStyle 0 stroke:#9ece6a,stroke-width:3px
