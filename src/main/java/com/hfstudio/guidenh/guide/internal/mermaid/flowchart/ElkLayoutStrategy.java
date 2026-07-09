@@ -114,7 +114,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         List<SplitChain> splitChains = new ArrayList<>();
         Set<String> dummyNodeIds = new LinkedHashSet<>();
         List<DummyChain> dummyChains = new ArrayList<>();
-        int[] dummyCounter = {0};
+        int[] dummyCounter = { 0 };
 
         for (FlowchartEdge edge : document.getEdges()) {
             ElkNode source = elkNodeMap.get(edge.getFrom());

@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -11,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
-import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
@@ -532,7 +529,11 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         float activeZoom) {
         if (node.contentLayout == null) return;
         LytRect contentViewport = resolveNodeContentRect(node.contentLayout, rect, paddingX, contentY, activeZoom);
-        renderNodeContent(context, node.contentLayout.block(), contentViewport, node.contentLayout.visualBounds(),
+        renderNodeContent(
+            context,
+            node.contentLayout.block(),
+            contentViewport,
+            node.contentLayout.visualBounds(),
             activeZoom);
     }
 
@@ -891,7 +892,12 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
                 contentY += badgeHeight + iconGapY;
             }
 
-            LytRect contentRect = resolveNodeContentRect(node.contentLayout, nodeBounds, paddingX, contentY, activeZoom);
+            LytRect contentRect = resolveNodeContentRect(
+                node.contentLayout,
+                nodeBounds,
+                paddingX,
+                contentY,
+                activeZoom);
             components.add(
                 new SimpleComponentEntry("NodeContent", contentRect, "Block content for: " + nodeName, priority + 3));
         }

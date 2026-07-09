@@ -20,7 +20,6 @@ import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
-import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
@@ -69,8 +68,7 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     protected LytFlowContent lastFlowHoverContent;
 
     protected void initNodeContentBlocks(@Nullable Map<String, LytBlock> blocks) {
-        this.nodeContentBlocks = blocks == null ? Collections.emptyMap()
-            : new LinkedHashMap<>(blocks);
+        this.nodeContentBlocks = blocks == null ? Collections.emptyMap() : new LinkedHashMap<>(blocks);
         for (LytBlock block : this.nodeContentBlocks.values()) {
             block.parent = this;
         }
@@ -510,8 +508,16 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         return new LytRect(
             nodeRect.x() + paddingX,
             contentY,
-            Math.max(1, Math.round(contentLayout.visualBounds().width() * activeZoom)),
-            Math.max(1, Math.round(contentLayout.visualBounds().height() * activeZoom)));
+            Math.max(
+                1,
+                Math.round(
+                    contentLayout.visualBounds()
+                        .width() * activeZoom)),
+            Math.max(
+                1,
+                Math.round(
+                    contentLayout.visualBounds()
+                        .height() * activeZoom)));
     }
 
     // ---- Shared inner types ----

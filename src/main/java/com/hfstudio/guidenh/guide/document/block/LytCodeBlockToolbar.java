@@ -57,9 +57,7 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
         copySourceButton = new LytButton(COPY_SPRITE, new LytSize(16, 16));
         copySourceButton.setColor(toolbarText);
         copySourceButton.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
-        copySourceButton.setOnClick(screen -> {
-            if (screen.copyCodeBlock(copyText)) markCopied();
-        });
+        copySourceButton.setOnClick(screen -> { if (screen.copyCodeBlock(copyText)) markCopied(); });
         copySourceButton.setTooltipSupplier(this::getCopyTooltipText);
 
         languageLabel.setMarginTop(0);
@@ -144,7 +142,8 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
             height = Math.max(height, btnBounds.height());
             btnX -= 20;
         }
-        languageLabel.setLayoutPos(new LytPoint(labelBounds.x(), y + (height - labelBounds.height()) / 2f + TEXT_CENTERING_OFFSET_Y));
+        languageLabel.setLayoutPos(
+            new LytPoint(labelBounds.x(), y + (height - labelBounds.height()) / 2f + TEXT_CENTERING_OFFSET_Y));
         return new LytRect(x, y, toolbarWidth, height);
     }
 

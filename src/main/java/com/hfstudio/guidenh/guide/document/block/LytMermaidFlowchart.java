@@ -45,9 +45,7 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
         toolbar.setCopyButtonVisible(true);
         String copyValue = flowchart.getCopyValue();
         if (copyValue != null && !copyValue.isEmpty()) {
-            LytButton btn = new LytButton(
-                LytCodeBlockToolbar.COPY_SPRITE,
-                new LytSize(16, 16));
+            LytButton btn = new LytButton(LytCodeBlockToolbar.COPY_SPRITE, new LytSize(16, 16));
             btn.setOnClick(screen -> screen.copyCodeBlock(copyValue));
             btn.setTooltipText("Copy Plan");
             btn.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);

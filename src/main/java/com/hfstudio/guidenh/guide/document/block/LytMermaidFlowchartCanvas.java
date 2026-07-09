@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -636,8 +635,16 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         LytRect rawViewport = new LytRect(
             contentArea.x(),
             contentArea.y(),
-            Math.max(1, Math.round(contentLayout.visualBounds().width() * activeZoom)),
-            Math.max(1, Math.round(contentLayout.visualBounds().height() * activeZoom)));
+            Math.max(
+                1,
+                Math.round(
+                    contentLayout.visualBounds()
+                        .width() * activeZoom)),
+            Math.max(
+                1,
+                Math.round(
+                    contentLayout.visualBounds()
+                        .height() * activeZoom)));
 
         int cvpX = rawViewport.x();
         int cvpY = rawViewport.y();

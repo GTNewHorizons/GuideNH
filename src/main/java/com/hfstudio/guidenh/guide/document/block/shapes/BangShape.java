@@ -1,9 +1,10 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
-import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.render.RenderContext;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class BangShape implements ShapeRenderer {
 
@@ -55,22 +56,12 @@ public class BangShape implements ShapeRenderer {
     private static float[] buildBangPolygon(float w, float h) {
         float r = 0.15f * w;
 
-        float[][] arcs = {
-            { 0.25f * w, -0.10f * h, r,     r,     1, 0 },
-            { 0.25f * w,  0,         r,     r,     1, 0 },
-            { 0.25f * w,  0,         r,     r,     1, 0 },
-            { 0.25f * w,  0.10f * h, r,     r,     1, 0 },
-            { 0.15f * w,  0.33f * h, r,     r,     1, 0 },
-            { 0,          0.34f * h, r*0.8f, r*0.8f, 1, 0 },
-            {-0.15f * w,  0.33f * h, r,     r,     1, 0 },
-            {-0.25f * w,  0.15f * h, r,     r,     1, 0 },
-            {-0.25f * w,  0,         r,     r,     1, 0 },
-            {-0.25f * w,  0,         r,     r,     1, 0 },
-            {-0.25f * w, -0.15f * h, r,     r,     1, 0 },
-            {-0.10f * w, -0.33f * h, r,     r,     1, 0 },
-            { 0,         -0.34f * h, r*0.8f, r*0.8f, 1, 0 },
-            { 0.10f * w, -0.33f * h, r,     r,     1, 0 },
-        };
+        float[][] arcs = { { 0.25f * w, -0.10f * h, r, r, 1, 0 }, { 0.25f * w, 0, r, r, 1, 0 },
+            { 0.25f * w, 0, r, r, 1, 0 }, { 0.25f * w, 0.10f * h, r, r, 1, 0 }, { 0.15f * w, 0.33f * h, r, r, 1, 0 },
+            { 0, 0.34f * h, r * 0.8f, r * 0.8f, 1, 0 }, { -0.15f * w, 0.33f * h, r, r, 1, 0 },
+            { -0.25f * w, 0.15f * h, r, r, 1, 0 }, { -0.25f * w, 0, r, r, 1, 0 }, { -0.25f * w, 0, r, r, 1, 0 },
+            { -0.25f * w, -0.15f * h, r, r, 1, 0 }, { -0.10f * w, -0.33f * h, r, r, 1, 0 },
+            { 0, -0.34f * h, r * 0.8f, r * 0.8f, 1, 0 }, { 0.10f * w, -0.33f * h, r, r, 1, 0 }, };
 
         List<Float> pts = new ArrayList<>();
         float cx = 0, cy = 0;

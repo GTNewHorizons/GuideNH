@@ -475,8 +475,10 @@ public class FlowchartParser {
             if (icon != null) {
                 label = stripIconFromLabel(label);
                 if (label.isEmpty()) label = id;
-                LOGGER.warn("Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
-                    id, icon);
+                LOGGER.warn(
+                    "Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
+                    id,
+                    icon);
             }
 
             int mdStart = -1, mdEnd = -1;
@@ -495,7 +497,9 @@ public class FlowchartParser {
                 if (!inner.isEmpty()) {
                     label = inner;
                     markdownLabel = true;
-                    LOGGER.warn("Node '{}' has markdownLabel=true — markdown text rendering is not implemented; falling back to plain text", id);
+                    LOGGER.warn(
+                        "Node '{}' has markdownLabel=true — markdown text rendering is not implemented; falling back to plain text",
+                        id);
                 }
             }
         }
@@ -539,8 +543,10 @@ public class FlowchartParser {
                 case "icon" -> {
                     icon = value.isEmpty() ? null : value;
                     if (icon != null) {
-                        LOGGER.warn("Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
-                            id, icon);
+                        LOGGER.warn(
+                            "Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
+                            id,
+                            icon);
                     }
                 }
                 default -> {
@@ -1062,7 +1068,9 @@ public class FlowchartParser {
                 StringBuilder css = new StringBuilder();
                 for (Map.Entry<String, String> prop : props.entrySet()) {
                     if (!css.isEmpty()) css.append(',');
-                    css.append(prop.getKey()).append(':').append(prop.getValue());
+                    css.append(prop.getKey())
+                        .append(':')
+                        .append(prop.getValue());
                 }
                 String existing = node.getStyleOverride();
                 String merged = existing != null ? existing + "," + css : css.toString();
@@ -1126,13 +1134,16 @@ public class FlowchartParser {
                         } catch (NumberFormatException e) {
                             int matched = 0;
                             for (int i = 0; i < edges.size(); i++) {
-                                if (idxStr.equals(edges.get(i).getEdgeId())) {
+                                if (idxStr.equals(
+                                    edges.get(i)
+                                        .getEdgeId())) {
                                     edges.set(i, applyEntryToEdge(edges.get(i), entry));
                                     matched++;
                                 }
                             }
                             if (matched == 0) {
-                                LOGGER.warn("linkStyle index '{}' is neither a numeric edge index nor a known edgeId",
+                                LOGGER.warn(
+                                    "linkStyle index '{}' is neither a numeric edge index nor a known edgeId",
                                     idxStr);
                             }
                         }
