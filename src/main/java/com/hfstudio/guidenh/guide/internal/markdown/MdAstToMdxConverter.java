@@ -1,8 +1,11 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -88,8 +91,8 @@ public final class MdAstToMdxConverter {
     }
 
     // Containers whose children are inline/phrasing content only
-    private static final java.util.Set<String> PHRASING_CONTAINER_NAMES = new java.util.HashSet<>(
-        java.util.Arrays.asList(
+    private static final Set<String> PHRASING_CONTAINER_NAMES = new HashSet<>(
+        Arrays.asList(
             "p",
             "h1",
             "h2",
@@ -113,7 +116,7 @@ public final class MdAstToMdxConverter {
 
     @SuppressWarnings("unchecked")
     private static List<MdAstAnyContent> castAnyChildren(List<?> children) {
-        return (List<MdAstAnyContent>) (List<?>) children;
+        return (List<MdAstAnyContent>) children;
     }
 
     // Phrasing (inline) children conversion — also handles block nodes that
@@ -314,9 +317,7 @@ public final class MdAstToMdxConverter {
         MdxJsxFlowElement element = new MdxJsxFlowElement();
         element.setName(name);
         List rawChildren = element.children();
-        for (MdAstAnyContent child : children) {
-            rawChildren.add(child);
-        }
+        rawChildren.addAll(children);
         return element;
     }
 
@@ -328,9 +329,7 @@ public final class MdAstToMdxConverter {
         MdxJsxTextElement element = new MdxJsxTextElement();
         element.setName(name);
         List rawChildren = element.children();
-        for (MdAstPhrasingContent child : children) {
-            rawChildren.add(child);
-        }
+        rawChildren.addAll(children);
         return element;
     }
 
@@ -395,7 +394,7 @@ public final class MdAstToMdxConverter {
         if (p.children()
             .size() != 1) return null;
         if (!(p.children()
-            .get(0) instanceof MdAstText t)) return null;
+            .getFirst() instanceof MdAstText t)) return null;
         String v = t.value.trim();
         if (v.startsWith("{:") && v.endsWith("}")) return v;
         return null;

@@ -3,6 +3,9 @@ package com.hfstudio.guidenh.libs.micromark;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstPosition;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
+import lombok.Getter;
+
+@Getter
 public class ParseException extends RuntimeException {
 
     private final UnistPoint from;
@@ -27,15 +30,4 @@ public class ParseException extends RuntimeException {
         this.code = code;
     }
 
-    public UnistPoint getFrom() {
-        return from;
-    }
-
-    public UnistPoint getTo() {
-        return to;
-    }
-
-    public String getCode() {
-        return code;
-    }
 }

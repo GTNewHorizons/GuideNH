@@ -8,6 +8,7 @@ import java.util.Map;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
+import lombok.Getter;
 
 public class MasterScheduler {
 
@@ -19,11 +20,8 @@ public class MasterScheduler {
     private final Map<WorkItem, WorkItem> medium = new LinkedHashMap<>();
     private final Map<WorkItem, WorkItem> low = new LinkedHashMap<>();
 
+    @Getter
     private static MasterScheduler instance;
-
-    public static MasterScheduler getInstance() {
-        return instance;
-    }
 
     public static void init() {
         instance = new MasterScheduler();
@@ -62,14 +60,11 @@ public class MasterScheduler {
     }
 
     private Map<WorkItem, WorkItem> queueFor(Priority p) {
-        switch (p) {
-            case HIGH:
-                return high;
-            case MEDIUM:
-                return medium;
-            default:
-                return low;
-        }
+        return switch (p) {
+            case HIGH -> high;
+            case MEDIUM -> medium;
+            default -> low;
+        };
     }
 
     private void processPriority(Map<WorkItem, WorkItem> queue, long deadlineNs) {

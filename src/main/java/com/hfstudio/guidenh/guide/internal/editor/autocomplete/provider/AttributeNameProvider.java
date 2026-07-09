@@ -10,6 +10,8 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteConte
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TagAttributeRegistry;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxAttrNameContext;
 
+import lombok.Setter;
+
 public class AttributeNameProvider implements AutocompleteProvider {
 
     private static final Set<AutocompleteKey> KEYS = Collections.singleton(AutocompleteKey.forAttr("*"));
@@ -19,17 +21,13 @@ public class AttributeNameProvider implements AutocompleteProvider {
         return KEYS;
     }
 
+    @Setter
     private static volatile boolean enabled = true;
-
-    public static void setEnabled(boolean value) {
-        enabled = value;
-    }
 
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
         if (!enabled) return Collections.emptyList();
-        if (!(ctx instanceof MdxAttrNameContext)) return Collections.emptyList();
-        MdxAttrNameContext mdx = (MdxAttrNameContext) ctx;
+        if (!(ctx instanceof MdxAttrNameContext mdx)) return Collections.emptyList();
 
         List<AttributeSpec> specs = TagAttributeRegistry.get(mdx.getTagName());
         String partial = mdx.getPartialText()

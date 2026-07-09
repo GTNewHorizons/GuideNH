@@ -5,18 +5,25 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class GuidebookSceneWeatherEffect {
 
     public static final int INFINITE_DURATION = -1;
 
+    @Getter
     private final GuidebookSceneWeatherType weatherType;
     private final int @Nullable [] xValues;
     private final int @Nullable [] zValues;
     @Nullable
     private final List<GuidebookSceneWeatherArea> areas;
+    @Getter
     private final int startTick;
+    @Getter
     private final int durationTicks;
+    @Getter
     private final int density;
+    @Getter
     private final boolean transitionEnabled;
     private int @Nullable [] cachedBounds;
     @Nullable
@@ -43,26 +50,6 @@ public class GuidebookSceneWeatherEffect {
         this.durationTicks = durationTicks == INFINITE_DURATION ? INFINITE_DURATION : Math.max(1, durationTicks);
         this.density = Math.max(1, density);
         this.transitionEnabled = transitionEnabled;
-    }
-
-    public GuidebookSceneWeatherType getWeatherType() {
-        return weatherType;
-    }
-
-    public int getStartTick() {
-        return startTick;
-    }
-
-    public int getDurationTicks() {
-        return durationTicks;
-    }
-
-    public int getDensity() {
-        return density;
-    }
-
-    public boolean isTransitionEnabled() {
-        return transitionEnabled;
     }
 
     public boolean isInfinite() {

@@ -8,6 +8,7 @@ import java.util.List;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 
 public class GuideNhRegionExportReplyMessage implements IMessage {
 
@@ -15,9 +16,13 @@ public class GuideNhRegionExportReplyMessage implements IMessage {
     public static final byte ACTION_CHUNK = 1;
     public static final byte ACTION_ERROR = 2;
 
+    @Getter
     private byte action;
+    @Getter
     private int requestId;
+    @Getter
     private int chunkIndex;
+    @Getter
     private int chunkCount;
     private byte[] payload;
 
@@ -64,22 +69,6 @@ public class GuideNhRegionExportReplyMessage implements IMessage {
             0,
             0,
             (message != null ? message : "").getBytes(StandardCharsets.UTF_8));
-    }
-
-    public byte getAction() {
-        return action;
-    }
-
-    public int getRequestId() {
-        return requestId;
-    }
-
-    public int getChunkIndex() {
-        return chunkIndex;
-    }
-
-    public int getChunkCount() {
-        return chunkCount;
     }
 
     public byte[] getPayloadBytes() {

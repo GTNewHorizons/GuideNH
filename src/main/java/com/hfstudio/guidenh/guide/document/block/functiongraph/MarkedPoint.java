@@ -1,9 +1,12 @@
 package com.hfstudio.guidenh.guide.document.block.functiongraph;
 
+import lombok.Getter;
+
 /**
  * Marker drawn on top of the curves. A point either has explicit {@code (x, y)} coordinates, or it
  * references a {@link FunctionPlot} index plus a known-axis value to be solved for the other axis.
  */
+@Getter
 public class MarkedPoint {
 
     /** Explicit (x, y). */
@@ -32,31 +35,4 @@ public class MarkedPoint {
         this.label = label;
     }
 
-    public int getMode() {
-        return mode;
-    }
-
-    public int getPlotIndex() {
-        return plotIndex;
-    }
-
-    public double getValueA() {
-        return valueA;
-    }
-
-    public double getValueB() {
-        return valueB;
-    }
-
-    public int getColor() {
-        return color;
-    }
-
-    public boolean isColorInherit() {
-        return colorInherit;
-    }
-
-    public String getLabel() {
-        return label;
-    }
 }

@@ -26,6 +26,7 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialGroupedEntry;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialListEntry;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageKind;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageQuery;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResolver;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResult;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -145,7 +146,7 @@ public class MediaWikiTagCompilerSupport {
     }
 
     public static LytBlock createSpecialBlock(MediaWikiSpecialPageResult result, int rows, MediaWikiListContext context,
-        MediaWikiSpecialPageQuery query, com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResolver resolver) {
+        MediaWikiSpecialPageQuery query, MediaWikiSpecialPageResolver resolver) {
         var block = (MediaWikiSpecialGeneratedBlock) createSpecialBlock(result, rows);
         if (result != null && context != null && resolver != null) {
             block.setResolverContext(context, result.definition(), resolver, query != null ? query.parameters() : null);

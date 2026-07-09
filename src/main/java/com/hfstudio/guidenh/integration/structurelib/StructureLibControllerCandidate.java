@@ -5,10 +5,15 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class StructureLibControllerCandidate {
 
+    @Getter
     private final String blockId;
+    @Getter
     private final Block block;
+    @Getter
     private final int meta;
     @Nullable
     private final ItemStack displayStack;
@@ -18,18 +23,6 @@ public class StructureLibControllerCandidate {
         this.block = block;
         this.meta = meta;
         this.displayStack = displayStack != null ? displayStack.copy() : null;
-    }
-
-    public String getBlockId() {
-        return blockId;
-    }
-
-    public Block getBlock() {
-        return block;
-    }
-
-    public int getMeta() {
-        return meta;
     }
 
     @Nullable

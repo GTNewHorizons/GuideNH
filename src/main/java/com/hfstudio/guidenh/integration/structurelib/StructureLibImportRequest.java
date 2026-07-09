@@ -4,8 +4,11 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class StructureLibImportRequest {
 
+    @Getter
     private final String controller;
     @Nullable
     private final String piece;
@@ -17,7 +20,9 @@ public class StructureLibImportRequest {
     private final String flip;
     @Nullable
     private final Integer channel;
+    @Getter
     private final StructureLibPreviewSelection previewSelection;
+    @Getter
     private final StructureLibSceneOptions sceneOptions;
 
     public StructureLibImportRequest(String controller, @Nullable String piece, @Nullable String facing,
@@ -54,10 +59,6 @@ public class StructureLibImportRequest {
         this.sceneOptions = sceneOptions != null ? sceneOptions : StructureLibSceneOptions.empty();
     }
 
-    public String getController() {
-        return controller;
-    }
-
     @Nullable
     public String getPiece() {
         return piece;
@@ -81,14 +82,6 @@ public class StructureLibImportRequest {
     @Nullable
     public Integer getChannel() {
         return channel;
-    }
-
-    public StructureLibPreviewSelection getPreviewSelection() {
-        return previewSelection;
-    }
-
-    public StructureLibSceneOptions getSceneOptions() {
-        return sceneOptions;
     }
 
     @Override

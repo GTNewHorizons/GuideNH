@@ -77,7 +77,7 @@ public class FunctionExprParser {
                 pos++;
                 FunctionExpr right = parseMultiplicative();
                 left = new FunctionExpr.Binary(FunctionExpr.Binary.ADD, left, right);
-            } else if (c == '-' || c == '\u2212') {
+            } else if (c == '-' || c == '−') {
                 pos++;
                 FunctionExpr right = parseMultiplicative();
                 left = new FunctionExpr.Binary(FunctionExpr.Binary.SUB, left, right);
@@ -95,11 +95,11 @@ public class FunctionExprParser {
                 return left;
             }
             char c = src.charAt(pos);
-            if (c == '*' || c == '\u00D7' || c == '\u22C5') {
+            if (c == '*' || c == '×' || c == '⋅') {
                 pos++;
                 FunctionExpr right = parseUnary();
                 left = new FunctionExpr.Binary(FunctionExpr.Binary.MUL, left, right);
-            } else if (c == '/' || c == '\u00F7') {
+            } else if (c == '/' || c == '÷') {
                 pos++;
                 FunctionExpr right = parseUnary();
                 left = new FunctionExpr.Binary(FunctionExpr.Binary.DIV, left, right);
@@ -124,7 +124,7 @@ public class FunctionExprParser {
         if (c == '(') {
             return true;
         }
-        return Character.isLetter(c) || c == '\u221A' || c == '\u221B';
+        return Character.isLetter(c) || c == '√' || c == '∛';
     }
 
     private FunctionExpr parseUnary() {
@@ -137,15 +137,15 @@ public class FunctionExprParser {
             pos++;
             return parseUnary();
         }
-        if (c == '-' || c == '\u2212') {
+        if (c == '-' || c == '−') {
             pos++;
             return new FunctionExpr.Neg(parseUnary());
         }
-        if (c == '\u221A') {
+        if (c == '√') {
             pos++;
             return new FunctionExpr.Call("sqrt", new FunctionExpr[] { parseUnary() });
         }
-        if (c == '\u221B') {
+        if (c == '∛') {
             pos++;
             return new FunctionExpr.Call("cbrt", new FunctionExpr[] { parseUnary() });
         }
@@ -157,17 +157,17 @@ public class FunctionExprParser {
         skipWhitespace();
         if (pos < src.length()) {
             char c = src.charAt(pos);
-            if (c == '^' || c == '\u2227') {
+            if (c == '^' || c == '∧') {
                 pos++;
                 // Right associative.
                 FunctionExpr exponent = parseUnary();
                 return new FunctionExpr.Binary(FunctionExpr.Binary.POW, base, exponent);
             }
-            if (c == '\u00B2') {
+            if (c == '²') {
                 pos++;
                 return new FunctionExpr.Binary(FunctionExpr.Binary.POW, base, new FunctionExpr.Constant(2d));
             }
-            if (c == '\u00B3') {
+            if (c == '³') {
                 pos++;
                 return new FunctionExpr.Binary(FunctionExpr.Binary.POW, base, new FunctionExpr.Constant(3d));
             }
@@ -221,7 +221,7 @@ public class FunctionExprParser {
         if (Character.isDigit(c) || c == '.') {
             return parseNumber();
         }
-        if (Character.isLetter(c) || c == '_' || c == '\u03C0' || c == '\u03C4') {
+        if (Character.isLetter(c) || c == '_' || c == 'π' || c == 'τ') {
             return parseIdentifierOrCall();
         }
         throw new RuntimeException("unexpected character '" + c + "'");
@@ -260,11 +260,11 @@ public class FunctionExprParser {
         int start = pos;
         // Handle bare Unicode pi / tau as constants.
         char first = src.charAt(pos);
-        if (first == '\u03C0') {
+        if (first == 'π') {
             pos++;
             return new FunctionExpr.Constant(Math.PI);
         }
-        if (first == '\u03C4') {
+        if (first == 'τ') {
             pos++;
             return new FunctionExpr.Constant(2d * Math.PI);
         }

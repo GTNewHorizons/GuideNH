@@ -86,6 +86,8 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
+import lombok.Getter;
+
 public class PageCompiler {
 
     /**
@@ -102,9 +104,17 @@ public class PageCompiler {
         Collections.emptyList());
 
     private final PageCollection pages;
+    @Getter
     private final ExtensionCollection extensions;
+    @Getter
     private final String sourcePack;
+    @Getter
     private final String language;
+    /**
+     * -- GETTER --
+     * Get the current page id.
+     */
+    @Getter
     private final ResourceLocation pageId;
     private final String pageContent;
     private final Map<String, MdAstDefinition> definitions = new HashMap<>();
@@ -383,10 +393,6 @@ public class PageCompiler {
         return null;
     }
 
-    public ExtensionCollection getExtensions() {
-        return extensions;
-    }
-
     public <T extends Extension> List<T> getExtensions(ExtensionPoint<T> extensionPoint) {
         return extensions.get(extensionPoint);
     }
@@ -604,8 +610,7 @@ public class PageCompiler {
 
     public void compileBlockContext(List<? extends MdAstAnyContent> children, LytBlockContainer layoutParent) {
         LytBlock previousLayoutChild = null;
-        for (int i = 0; i < children.size(); i++) {
-            var child = children.get(i);
+        for (MdAstAnyContent child : children) {
             LytBlock layoutChild = null;
 
             if (child instanceof MdxJsxFlowElement el) {
@@ -671,7 +676,7 @@ public class PageCompiler {
 
     private void compileParagraphBlock(MdAstParagraph astParagraph, LytBlockContainer parent) {
         var children = astParagraph.children();
-        if (children.size() == 1 && children.get(0) instanceof MdAstText soleText) {
+        if (children.size() == 1 && children.getFirst() instanceof MdAstText soleText) {
             String formula = MarkdownLatexShorthand.extractSoleDisplayFormula(soleText.value);
             if (formula != null) {
                 var displayBlock = new LytLatexDisplayBlock(
@@ -764,7 +769,7 @@ public class PageCompiler {
     private @Nullable String getTableRowText(GfmTableRow row) {
         StringBuilder sb = new StringBuilder();
         for (var cell : row.children()) {
-            if (sb.length() > 0) {
+            if (!sb.isEmpty()) {
                 sb.append(' ');
             }
             sb.append(cell.toText());
@@ -951,7 +956,7 @@ public class PageCompiler {
                 continue;
             }
             if (Character.isWhitespace(ch) && !inQuotes) {
-                if (current.length() > 0) {
+                if (!current.isEmpty()) {
                     tokens.add(current.toString());
                     current.setLength(0);
                 }
@@ -959,7 +964,7 @@ public class PageCompiler {
             }
             current.append(ch);
         }
-        if (current.length() > 0) {
+        if (!current.isEmpty()) {
             tokens.add(current.toString());
         }
         return tokens;
@@ -1055,23 +1060,8 @@ public class PageCompiler {
         return IdUtils.resolveId(idText, pageId.getResourceDomain());
     }
 
-    /**
-     * Get the current page id.
-     */
-    public ResourceLocation getPageId() {
-        return pageId;
-    }
-
     public ResourceLocation getGuideId() {
         return pages.getId();
-    }
-
-    public String getLanguage() {
-        return language;
-    }
-
-    public String getSourcePack() {
-        return sourcePack;
     }
 
     public PageCollection getPageCollection() {
@@ -1129,7 +1119,7 @@ public class PageCompiler {
     public String getCurrentSourceText() {
         List<SourceSlice> sourceSlices = getCompilerState(SOURCE_SLICE_STACK);
         if (!sourceSlices.isEmpty()) {
-            return sourceSlices.get(sourceSlices.size() - 1)
+            return sourceSlices.getLast()
                 .source();
         }
         return pageContent;

@@ -5,12 +5,19 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class MermaidMindmapNode {
 
+    @Getter
     private final String id;
+    @Getter
     private final String labelSource;
+    @Getter
     private final String text;
+    @Getter
     private final MermaidMindmapNodeShape shape;
+    @Getter
     private final List<String> classes;
     @Nullable
     private final String icon;
@@ -31,26 +38,6 @@ public class MermaidMindmapNode {
             .isEmpty() ? icon.trim() : null;
         this.x = x;
         this.y = y;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getLabelSource() {
-        return labelSource;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public MermaidMindmapNodeShape getShape() {
-        return shape;
-    }
-
-    public List<String> getClasses() {
-        return classes;
     }
 
     public @Nullable String getIcon() {

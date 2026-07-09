@@ -4,12 +4,15 @@ import java.util.List;
 
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
+import lombok.Getter;
+
 public enum SceneEditorSettingsTab {
 
     CAMERA(GuidebookText.SceneEditorTabCamera, 0, 6),
     ROTATION(GuidebookText.SceneEditorTabRotation, 6, 9),
     PREVIEW(GuidebookText.SceneEditorTabPreview, 9, 12);
 
+    @Getter
     private final GuidebookText textKey;
     private final int startIndex;
     private final int endExclusive;
@@ -18,10 +21,6 @@ public enum SceneEditorSettingsTab {
         this.textKey = textKey;
         this.startIndex = startIndex;
         this.endExclusive = endExclusive;
-    }
-
-    public GuidebookText getTextKey() {
-        return textKey;
     }
 
     public int rowCount() {

@@ -9,12 +9,18 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 
+import lombok.Getter;
+
 public class StructureLibControllerSpec {
 
+    @Getter
     private final String blockId;
+    @Getter
     private final Block block;
+    @Getter
     private final int meta;
     private final ItemStack displayStack;
+    @Getter
     private final String displayName;
 
     public StructureLibControllerSpec(String blockId, Block block, int meta) {
@@ -41,24 +47,8 @@ public class StructureLibControllerSpec {
             matcher.getMeta() != null ? matcher.getMeta() : 0);
     }
 
-    public String getBlockId() {
-        return blockId;
-    }
-
-    public Block getBlock() {
-        return block;
-    }
-
-    public int getMeta() {
-        return meta;
-    }
-
     public ItemStack getDisplayStack() {
         return displayStack.copy();
-    }
-
-    public String getDisplayName() {
-        return displayName;
     }
 
     public String getControllerArgument() {

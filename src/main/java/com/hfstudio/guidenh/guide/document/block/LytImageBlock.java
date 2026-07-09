@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 /**
  * A placeholder block for images that will be materialized by a LytScript.
  * The styleClass (e.g., "Img" or "FloatingImage") tells LytHost which script handles it.
@@ -17,16 +19,25 @@ public class LytImageBlock extends LytParagraph {
     private String alt;
     @Nullable
     private String title;
+    @Getter
     private int explicitWidth = -1;
+    @Getter
     private int explicitHeight = -1;
+    @Getter
     private int cropX;
+    @Getter
     private int cropY;
+    @Getter
     private int cropWidth = -1;
+    @Getter
     private int cropHeight = -1;
+    @Getter
     private double scaleX = 1.0d;
+    @Getter
     private double scaleY = 1.0d;
     @Nullable
     private String align;
+    @Getter
     private final List<ImageRegionAnnotation> annotations = new ArrayList<>();
 
     @Nullable
@@ -56,20 +67,8 @@ public class LytImageBlock extends LytParagraph {
         this.title = title;
     }
 
-    public int getCropX() {
-        return cropX;
-    }
-
-    public int getExplicitWidth() {
-        return explicitWidth;
-    }
-
     public void setExplicitWidth(int explicitWidth) {
         this.explicitWidth = explicitWidth > 0 ? explicitWidth : -1;
-    }
-
-    public int getExplicitHeight() {
-        return explicitHeight;
     }
 
     public void setExplicitHeight(int explicitHeight) {
@@ -80,40 +79,20 @@ public class LytImageBlock extends LytParagraph {
         this.cropX = Math.max(0, cropX);
     }
 
-    public int getCropY() {
-        return cropY;
-    }
-
     public void setCropY(int cropY) {
         this.cropY = Math.max(0, cropY);
-    }
-
-    public int getCropWidth() {
-        return cropWidth;
     }
 
     public void setCropWidth(int cropWidth) {
         this.cropWidth = cropWidth > 0 ? cropWidth : -1;
     }
 
-    public int getCropHeight() {
-        return cropHeight;
-    }
-
     public void setCropHeight(int cropHeight) {
         this.cropHeight = cropHeight > 0 ? cropHeight : -1;
     }
 
-    public double getScaleX() {
-        return scaleX;
-    }
-
     public void setScaleX(double scaleX) {
         this.scaleX = scaleX > 0.0d ? scaleX : 1.0d;
-    }
-
-    public double getScaleY() {
-        return scaleY;
     }
 
     public void setScaleY(double scaleY) {
@@ -135,7 +114,4 @@ public class LytImageBlock extends LytParagraph {
         }
     }
 
-    public List<ImageRegionAnnotation> getAnnotations() {
-        return annotations;
-    }
 }

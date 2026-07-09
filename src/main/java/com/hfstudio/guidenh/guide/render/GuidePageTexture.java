@@ -23,6 +23,7 @@ import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import cpw.mods.fml.relauncher.ReflectionHelper;
+import lombok.Getter;
 
 public class GuidePageTexture {
 
@@ -36,6 +37,7 @@ public class GuidePageTexture {
 
     @Nullable
     private final ResourceLocation sourceId;
+    @Getter
     private final LytSize size;
     private byte @Nullable [] imageData;
     @Nullable
@@ -199,10 +201,6 @@ public class GuidePageTexture {
                 t);
             return null;
         }
-    }
-
-    public LytSize getSize() {
-        return size;
     }
 
     @Nullable

@@ -1,9 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.editor.guide;
 
+import lombok.Getter;
+
 public class GuideScreenEditorTextActions {
 
     private GuideScreenEditorTextActions() {}
 
+    @Getter
     public static class Result {
 
         private final String text;
@@ -16,17 +19,6 @@ public class GuideScreenEditorTextActions {
             this.selectionEnd = Math.max(this.selectionStart, selectionEnd);
         }
 
-        public String getText() {
-            return text;
-        }
-
-        public int getSelectionStart() {
-            return selectionStart;
-        }
-
-        public int getSelectionEnd() {
-            return selectionEnd;
-        }
     }
 
     public static Result apply(GuideScreenEditorAction action, String text, int selectionStart, int selectionEnd) {
@@ -345,7 +337,7 @@ public class GuideScreenEditorTextActions {
                 mdxIndent++;
             }
         }
-        if (formatted.length() > 0 && formatted.charAt(formatted.length() - 1) == '\n' && !source.endsWith("\n")) {
+        if (!formatted.isEmpty() && formatted.charAt(formatted.length() - 1) == '\n' && !source.endsWith("\n")) {
             formatted.setLength(formatted.length() - 1);
         }
         return formatted.toString();
@@ -383,9 +375,7 @@ public class GuideScreenEditorTextActions {
     }
 
     private static void appendSpaces(StringBuilder out, int count) {
-        for (int i = 0; i < count; i++) {
-            out.append(' ');
-        }
+        out.repeat(" ", Math.max(0, count));
     }
 
     private static Result applyRecipeTag(String source, int start, int end, String tagName, String extraAttributes) {
@@ -1056,9 +1046,10 @@ public class GuideScreenEditorTextActions {
         String body = source.substring(range.start, range.end)
             .trim();
         if (body.isEmpty()) {
-            body = "title=\"Function\" width=360 height=220 xRange=-6..6 yRange=-3..3\n"
-                + "sin(x) | color=#ff5566 label=\"sin x\"\n"
-                + ":0,0 label=\"Origin\"";
+            body = """
+                title="Function" width=360 height=220 xRange=-6..6 yRange=-3..3
+                sin(x) | color=#ff5566 label="sin x"
+                :0,0 label="Origin\"""";
         }
         String replacement = "```funcgraph\n" + body + "\n```";
         int caretStart = range.start + replacement.indexOf(body);

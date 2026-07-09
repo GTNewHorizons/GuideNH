@@ -7,10 +7,9 @@ import java.util.Map;
 
 import net.minecraft.command.CommandException;
 
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.ControlAnalysis;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.ResolvedController;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
+
+import blockrenderer6343.client.utils.ConstructableData;
 
 public class StructureLibExportPlanner {
 
@@ -80,20 +79,20 @@ public class StructureLibExportPlanner {
             return AutoTierPlan.empty();
         }
         try {
-            StructureLibImportRequest request = new StructureLibImportRequest(
-                controller.getControllerArgument(),
-                null,
-                orientation.getFacing(),
-                orientation.getRotation(),
-                orientation.getFlip(),
-                1,
-                null);
-            ResolvedController resolvedController = new ResolvedController(
-                controller.getBlockId(),
-                controller.getBlock(),
-                controller.getMeta());
-            ControlAnalysis analysis = StructureLibRuntimeFacade.analyzeControls(request, resolvedController);
-            return new AutoTierPlan(resolveUnifiedMaxTier(analysis), analysis.getChannelMaxTierMap());
+            String fullId = controller.getControllerArgument();
+            var data = StructureLibDefinitionCache.getInstance()
+                .getConstructableDataFor(fullId);
+            if (data == null) {
+                return new AutoTierPlan(1, Map.of());
+            }
+            Map<String, Integer> channelMaxTierMap = new LinkedHashMap<>();
+            if (data.getChannelData() != null) {
+                for (var entry : data.getChannelData()
+                    .object2IntEntrySet()) {
+                    channelMaxTierMap.put(entry.getKey(), entry.getIntValue());
+                }
+            }
+            return new AutoTierPlan(resolveUnifiedMaxTier(data), channelMaxTierMap);
         } catch (Throwable t) {
             warnings.add(
                 "Could not inspect StructureLib tier/channel ranges for " + controller.getControllerArgument()
@@ -102,12 +101,12 @@ public class StructureLibExportPlanner {
         }
     }
 
-    private int resolveUnifiedMaxTier(ControlAnalysis analysis) {
-        int maxTier = Math.max(1, analysis.getMaxTotalTier());
-        for (Integer channelMaxTier : analysis.getChannelMaxTierMap()
-            .values()) {
-            if (channelMaxTier != null) {
-                maxTier = Math.max(maxTier, channelMaxTier);
+    private int resolveUnifiedMaxTier(ConstructableData data) {
+        int maxTier = Math.max(1, data.getMaxTotalTier());
+        if (data.getChannelData() != null) {
+            for (var entry : data.getChannelData()
+                .object2IntEntrySet()) {
+                maxTier = Math.max(maxTier, entry.getIntValue());
             }
         }
         return maxTier;

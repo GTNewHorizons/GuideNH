@@ -25,6 +25,9 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class LytHost {
 
     @Nullable
@@ -36,8 +39,11 @@ public class LytHost {
     private final Map<String, Map<String, Object>> nodeResults = new LinkedHashMap<>(16, 0.75f, true);
     private final Map<String, AtomicInteger> pageNodeCounters = new HashMap<>();
     private static final int MAX_NODE_RESULT_CACHE = 32;
+    @Getter
+    @Setter
     String currentPageId;
 
+    @Getter
     private final ViewportState viewport = new ViewportState();
     private final NavigationState nav = new NavigationState();
     private final Deque<LytEvent> eventQueue = new ArrayDeque<>();
@@ -77,10 +83,6 @@ public class LytHost {
     @Nullable
     public LytDocument getDocument() {
         return document;
-    }
-
-    public ViewportState getViewport() {
-        return viewport;
     }
 
     public NavigationState getNavigation() {
@@ -130,15 +132,6 @@ public class LytHost {
     public void clearPageCaches() {
         nodeResults.clear();
         pageNodeCounters.clear();
-    }
-
-    public void setCurrentPageId(String pageId) {
-        this.currentPageId = pageId;
-    }
-
-    @Nullable
-    public String getCurrentPageId() {
-        return currentPageId;
     }
 
     public void setCurrentPageCollection(@Nullable PageCollection pageCollection) {

@@ -51,7 +51,7 @@ public class GuideSliderRenderer {
         if (fraction < 0f) {
             return 0f;
         }
-        return fraction > 1f ? 1f : fraction;
+        return Math.min(fraction, 1f);
     }
 
     public static void drawRect(RectDrawer drawer, LytRect rect, int color) {

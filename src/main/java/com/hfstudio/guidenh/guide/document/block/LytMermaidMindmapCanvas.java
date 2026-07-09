@@ -41,6 +41,8 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Getter;
+
 public class LytMermaidMindmapCanvas extends LytBlock
     implements DocumentDragTarget, InteractiveElement, DebugComponent {
 
@@ -112,6 +114,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         null,
         false);
 
+    @Getter
     private final MermaidMindmapDocument mindmap;
     private final Map<String, LytBlock> nodeContentBlocks;
 
@@ -147,10 +150,6 @@ public class LytMermaidMindmapCanvas extends LytBlock
         for (LytBlock block : this.nodeContentBlocks.values()) {
             block.parent = this;
         }
-    }
-
-    public MermaidMindmapDocument getMindmap() {
-        return mindmap;
     }
 
     public void setPreferredSize(int width, int height) {
@@ -1329,6 +1328,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         private final LytRect viewport;
         private final int originX;
         private final int originY;
+        @Getter
         private final float scale;
         private final Map<ResolvedTextStyle, ResolvedTextStyle> scaledStyleCache = new IdentityHashMap<>();
 
@@ -1363,10 +1363,6 @@ public class LytMermaidMindmapCanvas extends LytBlock
         @Override
         public int getDocumentOriginY() {
             return originY;
-        }
-
-        public float getScale() {
-            return scale;
         }
 
         @Override
@@ -1773,7 +1769,7 @@ public class LytMermaidMindmapCanvas extends LytBlock
         }
 
         String extra = "Depth: " + node.depth;
-        if (node.children.size() > 0) {
+        if (!node.children.isEmpty()) {
             extra += ", Children: " + node.children.size();
         }
 

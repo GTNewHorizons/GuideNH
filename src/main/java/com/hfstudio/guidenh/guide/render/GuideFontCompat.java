@@ -8,11 +8,11 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public class GuideFontCompat {
 
-    public static final char FORMATTING_CHAR = '\u00a7';
-    private static final String FORMAT_BOLD = "\u00a7l";
-    private static final String FORMAT_ITALIC = "\u00a7o";
-    private static final String FORMAT_STRIKETHROUGH = "\u00a7m";
-    private static final String FORMAT_OBFUSCATED = "\u00a7k";
+    public static final char FORMATTING_CHAR = '§';
+    private static final String FORMAT_BOLD = "§l";
+    private static final String FORMAT_ITALIC = "§o";
+    private static final String FORMAT_STRIKETHROUGH = "§m";
+    private static final String FORMAT_OBFUSCATED = "§k";
 
     protected GuideFontCompat() {}
 

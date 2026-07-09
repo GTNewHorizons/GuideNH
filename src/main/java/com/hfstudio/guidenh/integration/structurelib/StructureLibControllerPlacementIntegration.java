@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
-import java.util.List;
-
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
@@ -13,5 +11,5 @@ public interface StructureLibControllerPlacementIntegration {
 
     @Nullable
     TileEntity placeController(GuidebookLevel level, World world,
-        StructureLibRuntimeFacade.ResolvedController controller, List<String> warnings);
+        StructureLibBuildService.ResolvedController controller);
 }

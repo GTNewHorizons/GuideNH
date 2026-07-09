@@ -104,7 +104,7 @@ public class GuideMarkSyntax extends Extension {
 
             State start(int code) {
                 Assert.check(code == Codes.equalsTo, "expected equals code");
-                if (previous == Codes.equalsTo && !events.get(events.size() - 1)
+                if (previous == Codes.equalsTo && !events.getLast()
                     .token().type.equals(Types.characterEscape)) {
                     return nok.step(code);
                 }

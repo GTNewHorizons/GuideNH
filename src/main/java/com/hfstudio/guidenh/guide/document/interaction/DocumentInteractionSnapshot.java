@@ -90,13 +90,16 @@ public record DocumentInteractionSnapshot(@Nullable LytNode node, FlowInteractio
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof DocumentInteractionSnapshot snapshot && Objects.equals(node, snapshot.node)
-            && Objects.equals(flowPath, snapshot.flowPath)
-            && Objects.equals(primaryHoverTarget, snapshot.primaryHoverTarget)
-            && Objects.equals(primaryClickTarget, snapshot.primaryClickTarget)
-            && Objects.equals(tooltipTargets, snapshot.tooltipTargets)
-            && Objects.equals(revealTargets, snapshot.revealTargets)
-            && Objects.equals(activeSpoiler, snapshot.activeSpoiler);
+        return other instanceof DocumentInteractionSnapshot(
+                LytNode node1, FlowInteractionPath path, LytFlowContent hoverTarget, LytFlowContent clickTarget,
+                List<LytFlowContent> targets, List<LytFlowContent> revealTargets1, LytSpoilerSpan spoiler
+        ) && Objects.equals(node, node1)
+            && Objects.equals(flowPath, path)
+            && Objects.equals(primaryHoverTarget, hoverTarget)
+            && Objects.equals(primaryClickTarget, clickTarget)
+            && Objects.equals(tooltipTargets, targets)
+            && Objects.equals(revealTargets, revealTargets1)
+            && Objects.equals(activeSpoiler, spoiler);
     }
 
     @Override

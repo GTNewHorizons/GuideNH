@@ -10,13 +10,19 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Setter;
+
 public abstract class LytBox extends LytBlock implements LytBlockContainer {
 
     protected final List<LytBlock> children = new ArrayList<>();
 
+    @Setter
     protected int paddingLeft;
+    @Setter
     protected int paddingTop;
+    @Setter
     protected int paddingRight;
+    @Setter
     protected int paddingBottom;
 
     private final BorderRenderer borderRenderer = new BorderRenderer();
@@ -45,10 +51,8 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
 
     @Override
     public void replaceChild(LytNode oldChild, LytNode newChild) {
-        if (!(oldChild instanceof LytBlock)) return;
-        if (!(newChild instanceof LytBlock)) return;
-        LytBlock oldBlock = (LytBlock) oldChild;
-        LytBlock newBlock = (LytBlock) newChild;
+        if (!(oldChild instanceof LytBlock oldBlock)) return;
+        if (!(newChild instanceof LytBlock newBlock)) return;
         int idx = children.indexOf(oldBlock);
         if (idx < 0) return;
         if (isAttached()) LytDocument.notifyDetach(oldBlock);
@@ -107,22 +111,6 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
         paddingTop = padding;
         paddingRight = padding;
         paddingBottom = padding;
-    }
-
-    public void setPaddingLeft(int paddingLeft) {
-        this.paddingLeft = paddingLeft;
-    }
-
-    public void setPaddingTop(int paddingTop) {
-        this.paddingTop = paddingTop;
-    }
-
-    public void setPaddingRight(int paddingRight) {
-        this.paddingRight = paddingRight;
-    }
-
-    public void setPaddingBottom(int paddingBottom) {
-        this.paddingBottom = paddingBottom;
     }
 
     public @Nullable SymbolicColor getBackgroundColor() {

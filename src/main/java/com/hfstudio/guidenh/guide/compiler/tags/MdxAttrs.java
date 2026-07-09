@@ -18,6 +18,8 @@ import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
+import lombok.Getter;
+
 public class MdxAttrs {
 
     public static final Pattern COLOR_PATTERN = Pattern.compile("^#([0-9a-fA-F]{2}){3,4}$");
@@ -301,6 +303,7 @@ public class MdxAttrs {
         throw new AttributeException(name, "Unrecognized option for attribute " + name + ": " + stringValue);
     }
 
+    @Getter
     public static class AttributeException extends RuntimeException {
 
         private final String attribute;
@@ -310,8 +313,5 @@ public class MdxAttrs {
             this.attribute = attribute;
         }
 
-        public String getAttribute() {
-            return attribute;
-        }
     }
 }

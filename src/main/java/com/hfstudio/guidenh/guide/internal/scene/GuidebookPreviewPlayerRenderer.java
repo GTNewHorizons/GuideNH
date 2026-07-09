@@ -14,6 +14,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.util.StringUtils;
+import net.minecraftforge.client.IItemRenderer;
+import net.minecraftforge.client.MinecraftForgeClient;
+import net.minecraftforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.common.MinecraftForge;
 
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
@@ -118,11 +122,8 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
     @Override
     protected void renderEquippedItems(AbstractClientPlayer p_77029_1_, float p_77029_2_) {
         useResolvedMainModel(p_77029_1_);
-        net.minecraftforge.client.event.RenderPlayerEvent.Specials.Pre event = new net.minecraftforge.client.event.RenderPlayerEvent.Specials.Pre(
-            p_77029_1_,
-            this,
-            p_77029_2_);
-        if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event)) return;
+        RenderPlayerEvent.Specials.Pre event = new RenderPlayerEvent.Specials.Pre(p_77029_1_, this, p_77029_2_);
+        if (MinecraftForge.EVENT_BUS.post(event)) return;
         GL11.glColor3f(1.0F, 1.0F, 1.0F);
         super.renderArrowsStuckInEntity(p_77029_1_, p_77029_2_);
         ItemStack itemstack = p_77029_1_.inventory.armorItemInSlot(3);
@@ -135,12 +136,12 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
             float f1;
 
             if (itemstack.getItem() instanceof ItemBlock) {
-                net.minecraftforge.client.IItemRenderer customRenderer = net.minecraftforge.client.MinecraftForgeClient
-                    .getItemRenderer(itemstack, net.minecraftforge.client.IItemRenderer.ItemRenderType.EQUIPPED);
+                IItemRenderer customRenderer = MinecraftForgeClient
+                    .getItemRenderer(itemstack, IItemRenderer.ItemRenderType.EQUIPPED);
                 boolean is3D = customRenderer != null && customRenderer.shouldUseRenderHelper(
-                    net.minecraftforge.client.IItemRenderer.ItemRenderType.EQUIPPED,
+                    IItemRenderer.ItemRenderType.EQUIPPED,
                     itemstack,
-                    net.minecraftforge.client.IItemRenderer.ItemRendererHelper.BLOCK_3D);
+                    IItemRenderer.ItemRendererHelper.BLOCK_3D);
 
                 if (is3D || RenderBlocks.renderItemIn3d(
                     Block.getBlockFromItem(itemstack.getItem())
@@ -230,12 +231,12 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
                 enumaction = itemstack1.getItemUseAction();
             }
 
-            net.minecraftforge.client.IItemRenderer customRenderer = net.minecraftforge.client.MinecraftForgeClient
-                .getItemRenderer(itemstack1, net.minecraftforge.client.IItemRenderer.ItemRenderType.EQUIPPED);
+            IItemRenderer customRenderer = MinecraftForgeClient
+                .getItemRenderer(itemstack1, IItemRenderer.ItemRenderType.EQUIPPED);
             boolean is3D = customRenderer != null && customRenderer.shouldUseRenderHelper(
-                net.minecraftforge.client.IItemRenderer.ItemRenderType.EQUIPPED,
+                IItemRenderer.ItemRenderType.EQUIPPED,
                 itemstack1,
-                net.minecraftforge.client.IItemRenderer.ItemRendererHelper.BLOCK_3D);
+                IItemRenderer.ItemRendererHelper.BLOCK_3D);
 
             if (is3D || itemstack1.getItem() instanceof ItemBlock && RenderBlocks.renderItemIn3d(
                 Block.getBlockFromItem(itemstack1.getItem())
@@ -312,8 +313,7 @@ public class GuidebookPreviewPlayerRenderer extends RenderPlayer {
 
             GL11.glPopMatrix();
         }
-        net.minecraftforge.common.MinecraftForge.EVENT_BUS
-            .post(new net.minecraftforge.client.event.RenderPlayerEvent.Specials.Post(p_77029_1_, this, p_77029_2_));
+        MinecraftForge.EVENT_BUS.post(new RenderPlayerEvent.Specials.Post(p_77029_1_, this, p_77029_2_));
     }
 
     private void renderPreviewCape(AbstractClientPlayer player) {

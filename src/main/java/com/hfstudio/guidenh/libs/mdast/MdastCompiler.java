@@ -223,7 +223,7 @@ public class MdastCompiler implements MdastContext {
         }
 
         if (!tokenStack.isEmpty()) {
-            var tail = tokenStack.get(tokenStack.size() - 1);
+            var tail = tokenStack.getLast();
             MdastContext.OnEnterError handler = tail.onError() != null ? tail.onError() : this::defaultOnError;
             handler.error(this, null, tail.token());
         }
@@ -231,7 +231,7 @@ public class MdastCompiler implements MdastContext {
         // Figure out `root` position.
         tree.position = new MdAstPosition().withStart(
             point(
-                !events.isEmpty() ? events.get(0)
+                !events.isEmpty() ? events.getFirst()
                     .token().start : makePoint(1, 1, 0)))
             .withEnd(
                 point(
@@ -262,33 +262,32 @@ public class MdastCompiler implements MdastContext {
             var event = events.get(index);
             var tokenType = event.token().type;
 
-            if (tokenType.equals(Types.listUnordered) || tokenType.equals(Types.listOrdered)
-                || tokenType.equals(Types.blockQuote)) {
-                if (event.isEnter()) {
-                    containerBalance++;
-                } else {
-                    containerBalance--;
-                }
-
-                atMarker = false;
-            } else if (tokenType.equals(Types.lineEndingBlank)) {
-                if (event.isEnter()) {
-                    if (listItem != null && !atMarker
-                        && containerBalance == 0
-                        && (firstBlankLineIndex == null || firstBlankLineIndex == 0)) {
-                        firstBlankLineIndex = index;
+            switch (tokenType) {
+                case Types.listUnordered, Types.listOrdered, Types.blockQuote -> {
+                    if (event.isEnter()) {
+                        containerBalance++;
+                    } else {
+                        containerBalance--;
                     }
 
                     atMarker = false;
                 }
-            } else if (tokenType.equals(Types.linePrefix) || tokenType.equals(Types.listItemValue)
-                || tokenType.equals(Types.listItemMarker)
-                || tokenType.equals(Types.listItemPrefix)
-                || tokenType.equals(Types.listItemPrefixWhitespace)) {
-                    // Empty.
-                } else {
-                    atMarker = false;
+                case Types.lineEndingBlank -> {
+                    if (event.isEnter()) {
+                        if (listItem != null && !atMarker
+                            && containerBalance == 0
+                            && (firstBlankLineIndex == null || firstBlankLineIndex == 0)) {
+                            firstBlankLineIndex = index;
+                        }
+
+                        atMarker = false;
+                    }
                 }
+                case Types.linePrefix, Types.listItemValue, Types.listItemMarker, Types.listItemPrefix, Types.listItemPrefixWhitespace -> {
+                    // Empty.
+                }
+                default -> atMarker = false;
+            }
 
             if ((containerBalance == 0 && event.isEnter() && tokenType.equals(Types.listItemPrefix))
                 || (containerBalance == -1 && event.isExit()
@@ -370,11 +369,11 @@ public class MdastCompiler implements MdastContext {
     }
 
     MdastExtension.Handler opener(Supplier<MdAstNode> create) {
-        return (ctx, token) -> { enter(create.get(), token); };
+        return (ctx, token) -> enter(create.get(), token);
     }
 
     MdastExtension.Handler opener(Function<Token, MdAstNode> create) {
-        return (ctx, token) -> { enter(create.apply(token), token); };
+        return (ctx, token) -> enter(create.apply(token), token);
     }
 
     MdastExtension.Handler opener(Supplier<MdAstNode> create, MdastExtension.Handler and) {
@@ -430,7 +429,7 @@ public class MdastCompiler implements MdastContext {
 
     @Override
     public <N extends MdAstNode> N enter(N node, Token token, OnEnterError errorHandler) {
-        var parent = (MdAstParent<?>) this.stack.get(this.stack.size() - 1);
+        var parent = (MdAstParent<?>) this.stack.getLast();
         Assert.check(parent != null, "expected `parent`");
         parent.addChild(node);
         this.stack.add(node);
@@ -441,7 +440,7 @@ public class MdastCompiler implements MdastContext {
     }
 
     private MdastExtension.Handler closer() {
-        return (context, token) -> { exit(token); };
+        return (context, token) -> exit(token);
     }
 
     private MdastExtension.Handler closer(Runnable and) {
@@ -525,13 +524,13 @@ public class MdastCompiler implements MdastContext {
 
     private void onexitcodefencedfenceinfo() {
         var data = this.resume();
-        var node = (MdAstCode) (stack.get(stack.size() - 1));
+        var node = (MdAstCode) (stack.getLast());
         node.lang = data;
     }
 
     private void onexitcodefencedfencemeta() {
         var data = this.resume();
-        var node = (MdAstCode) (stack.get(stack.size() - 1));
+        var node = (MdAstCode) (stack.getLast());
         node.meta = data;
     }
 
@@ -546,7 +545,7 @@ public class MdastCompiler implements MdastContext {
 
     private void onexitcodefenced() {
         var data = this.resume();
-        var node = (MdAstCode) (stack.get(stack.size() - 1));
+        var node = (MdAstCode) (stack.getLast());
 
         // Removes the first and last newline in the string
         node.value = START_END_NEWLINE.matcher(data)
@@ -557,7 +556,7 @@ public class MdastCompiler implements MdastContext {
 
     private void onexitcodeindented() {
         var data = this.resume();
-        var node = (MdAstCode) (stack.get(stack.size() - 1));
+        var node = (MdAstCode) (stack.getLast());
 
         node.value = data.replaceAll("(\\r?\\n|\\r)$", "");
     }
@@ -565,7 +564,7 @@ public class MdastCompiler implements MdastContext {
     private void onexitdefinitionlabelstring(MdastContext context, Token token) {
         // Discard label, use the source content instead.
         var label = this.resume();
-        var node = (MdAstDefinition) (stack.get(stack.size() - 1));
+        var node = (MdAstDefinition) (stack.getLast());
         node.label = label;
         node.identifier = NormalizeIdentifier.normalizeIdentifier(this.sliceSerialize(token))
             .toLowerCase();
@@ -573,18 +572,18 @@ public class MdastCompiler implements MdastContext {
 
     private void onexitdefinitiontitlestring() {
         var data = this.resume();
-        var node = (MdAstDefinition) (stack.get(stack.size() - 1));
+        var node = (MdAstDefinition) (stack.getLast());
         node.title = data;
     }
 
     private void onexitdefinitiondestinationstring() {
         var data = this.resume();
-        var node = (MdAstDefinition) (stack.get(stack.size() - 1));
+        var node = (MdAstDefinition) (stack.getLast());
         node.url = data;
     }
 
     private void onexitatxheadingsequence(MdastContext context, Token token) {
-        var node = (MdAstHeading) (stack.get(stack.size() - 1));
+        var node = (MdAstHeading) (stack.getLast());
         if (node.depth == 0) {
             var depth = this.sliceSerialize(token)
                 .length();
@@ -602,7 +601,7 @@ public class MdastCompiler implements MdastContext {
     }
 
     private void onexitsetextheadinglinesequence(MdastContext context, Token token) {
-        var node = (MdAstHeading) (stack.get(stack.size() - 1));
+        var node = (MdAstHeading) (stack.getLast());
 
         node.depth = this.sliceSerialize(token)
             .charAt(0) == Codes.equalsTo ? 1 : 2;
@@ -620,9 +619,7 @@ public class MdastCompiler implements MdastContext {
         if (!parent.children()
             .isEmpty()) {
             tail = (MdAstNode) parent.children()
-                .get(
-                    parent.children()
-                        .size() - 1);
+                .getLast();
         }
 
         if (tail == null || !tail.type()
@@ -653,7 +650,7 @@ public class MdastCompiler implements MdastContext {
         if (stack.isEmpty()) {
             return;
         }
-        var context = stack.get(stack.size() - 1);
+        var context = stack.getLast();
         Assert.check(context != null, "expected `node`");
 
         // If we’re at a hard break, include the line ending in there.
@@ -662,9 +659,7 @@ public class MdastCompiler implements MdastContext {
                 throw new IllegalStateException("expected `parent`");
             }
             var tail = (MdAstNode) parent.children()
-                .get(
-                    parent.children()
-                        .size() - 1);
+                .getLast();
             Assert.check(tail.position != null, "expected tail to have a starting position");
             tail.position.end = point(token.end);
             atHardBreak = false;
@@ -683,24 +678,24 @@ public class MdastCompiler implements MdastContext {
 
     private void onexithtmlflow() {
         var data = this.resume();
-        var node = (MdAstHTML) (stack.get(stack.size() - 1));
+        var node = (MdAstHTML) (stack.getLast());
         node.value = data;
     }
 
     private void onexithtmltext() {
         var data = this.resume();
-        var node = (MdAstHTML) (stack.get(stack.size() - 1));
+        var node = (MdAstHTML) (stack.getLast());
         node.value = data;
     }
 
     private void onexitcodetext() {
         var data = this.resume();
-        var node = (MdAstInlineCode) (stack.get(stack.size() - 1));
+        var node = (MdAstInlineCode) (stack.getLast());
         node.value = data;
     }
 
     private void onexitlink() {
-        if (!(stack.get(stack.size() - 1) instanceof LinkOrLinkReference context)) {
+        if (!(stack.getLast() instanceof LinkOrLinkReference context)) {
             // This indicates unbalanced tags and will crash later
             return;
         }
@@ -731,7 +726,7 @@ public class MdastCompiler implements MdastContext {
     }
 
     private void onexitimage() {
-        var context = stack.get(stack.size() - 1);
+        var context = stack.getLast();
         if (!(context instanceof ImageOrImageReference closedImageOrRef)) {
             return;
         }
@@ -800,9 +795,9 @@ public class MdastCompiler implements MdastContext {
     }
 
     private void onexitlabel() {
-        var fragment = stack.get(stack.size() - 1);
+        var fragment = stack.getLast();
         var value = this.resume();
-        var node = stack.get(stack.size() - 1);
+        var node = stack.getLast();
 
         // Assume a reference.
         inReference = true;
@@ -819,7 +814,7 @@ public class MdastCompiler implements MdastContext {
 
     private void onexitresourcedestinationstring() {
         var data = this.resume();
-        var node = stack.get(stack.size() - 1);
+        var node = stack.getLast();
         if (node instanceof MdAstLink link) {
             link.url = data;
         } else if (node instanceof MdAstImage image) {
@@ -830,7 +825,7 @@ public class MdastCompiler implements MdastContext {
 
     private void onexitresourcetitlestring() {
         var data = this.resume();
-        var node = (stack.get(stack.size() - 1));
+        var node = (stack.getLast());
 
         if (node instanceof MdAstLink link) {
             link.title = data;
@@ -851,7 +846,7 @@ public class MdastCompiler implements MdastContext {
 
     private void onexitreferencestring(MdastContext context, Token token) {
         var label = this.resume();
-        var node = stack.get(stack.size() - 1);
+        var node = stack.getLast();
 
         if (node instanceof LinkOrLinkReference ref) {
             ref.label = label;
@@ -907,13 +902,13 @@ public class MdastCompiler implements MdastContext {
 
     private void onexitautolinkprotocol(MdastContext context, Token token) {
         onexitdata(this, token);
-        var node = (MdAstLink) (stack.get(stack.size() - 1));
+        var node = (MdAstLink) (stack.getLast());
         node.url = this.sliceSerialize(token);
     }
 
     private void onexitautolinkemail(MdastContext context, Token token) {
         onexitdata(this, token);
-        var node = (MdAstLink) (stack.get(stack.size() - 1));
+        var node = (MdAstLink) (stack.getLast());
         node.url = "mailto:" + this.sliceSerialize(token);
     }
 

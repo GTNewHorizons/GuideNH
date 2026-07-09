@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.item;
 
+import lombok.Getter;
+
 public enum RegionWandExportMode {
 
     SNBT("snbt", false, "snbt"),
@@ -7,8 +9,10 @@ public enum RegionWandExportMode {
     BLOCKS("blocks", false, "blocks"),
     BLOCKS_ENTITIES("blocks_e", true, "blocks+entities");
 
+    @Getter
     private final String cliValue;
     private final boolean includeEntities;
+    @Getter
     private final String displayName;
 
     RegionWandExportMode(String cliValue, boolean includeEntities, String displayName) {
@@ -17,16 +21,8 @@ public enum RegionWandExportMode {
         this.displayName = displayName;
     }
 
-    public String getCliValue() {
-        return cliValue;
-    }
-
     public boolean includeEntities() {
         return includeEntities;
-    }
-
-    public String getDisplayName() {
-        return displayName;
     }
 
     public RegionWandExportMode next() {

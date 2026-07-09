@@ -3,8 +3,6 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
-import com.hfstudio.guidenh.guide.compiler.IndexingContext;
-import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
@@ -32,8 +30,4 @@ public class SoundLinkCompiler extends FlowTagCompiler {
         parent.append(link);
     }
 
-    @Override
-    public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
-        indexer.indexContent(el.children(), sink);
-    }
 }

@@ -29,7 +29,6 @@ public class StructureScript implements LytScript {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() == EventType.MOUNT && node instanceof StructurePlaceholder ph) {
             LytStructureView view = new LytStructureView();
@@ -50,7 +49,6 @@ public class StructureScript implements LytScript {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private static ItemStack resolveEntry(String idSpec) {
         if (idSpec == null || idSpec.isEmpty()) return null;
         ParsedItemRef ref = IdUtils.parseItemRef(idSpec, "minecraft");

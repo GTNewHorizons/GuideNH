@@ -62,19 +62,16 @@ public class AutocompleteProviders {
 
     private static List<AutocompleteProvider> resolveProviders(AutocompleteContext ctx) {
         Set<AutocompleteProvider> matched = new LinkedHashSet<>();
-        if (ctx instanceof MdxValueContext) {
-            MdxValueContext mdx = (MdxValueContext) ctx;
+        if (ctx instanceof MdxValueContext mdx) {
             addValueProviders(matched, mdx.getTagName(), mdx.getAttrName());
             return preserveRegistrationOrder(matched);
         }
-        if (ctx instanceof MdxAttrNameContext) {
-            MdxAttrNameContext mdx = (MdxAttrNameContext) ctx;
+        if (ctx instanceof MdxAttrNameContext mdx) {
             addProviders(matched, AutocompleteKey.MatchType.ATTR_NAME, mdx.getTagName(), null);
             addProviders(matched, AutocompleteKey.MatchType.ATTR_NAME, "*", null);
             return preserveRegistrationOrder(matched);
         }
-        if (ctx instanceof TagStartContext) {
-            TagStartContext tagCtx = (TagStartContext) ctx;
+        if (ctx instanceof TagStartContext tagCtx) {
             addProviders(matched, AutocompleteKey.MatchType.TAG_NAME, null, null);
             String parent = tagCtx.getParentTagName();
             if (parent != null) {
@@ -86,8 +83,7 @@ public class AutocompleteProviders {
             addProviders(matched, AutocompleteKey.MatchType.FENCE_LANGUAGE, null, null);
             return preserveRegistrationOrder(matched);
         }
-        if (ctx instanceof FrontmatterContext) {
-            FrontmatterContext fmc = (FrontmatterContext) ctx;
+        if (ctx instanceof FrontmatterContext fmc) {
             String attr = fmc.isValue() ? fmc.getKey() : "fm_key";
             addValueProviders(matched, "*", attr);
             return preserveRegistrationOrder(matched);

@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.ponder;
 
 import java.util.Locale;
+import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -99,13 +100,10 @@ public class PonderKeyframeParticle {
     }
 
     public int getLifetimeTicks(int defaultValue) {
-        if (lifetime != null) {
-            return clampInt(lifetime, 1, MAX_LIFETIME_TICKS);
-        }
-        if (time != null) {
-            return clampInt(time, 1, MAX_LIFETIME_TICKS);
-        }
-        return clampInt(defaultValue, 1, MAX_LIFETIME_TICKS);
+        return clampInt(
+            Objects.requireNonNullElseGet(lifetime, () -> Objects.requireNonNullElse(time, defaultValue)),
+            1,
+            MAX_LIFETIME_TICKS);
     }
 
     public float getPower(float defaultValue) {

@@ -7,10 +7,15 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class SceneEditorSceneNodeModel {
 
+    @Getter
     private final SceneEditorSceneNodeType type;
+    @Getter
     private final Map<String, String> attributes;
+    @Getter
     private final List<SceneEditorElementModel> templateElements;
     @Nullable
     private SceneEditorElementModel annotationElement;
@@ -24,10 +29,6 @@ public class SceneEditorSceneNodeModel {
         this.annotationElement = null;
     }
 
-    public SceneEditorSceneNodeType getType() {
-        return type;
-    }
-
     public void setAttribute(String name, String value) {
         attributes.put(name, value);
     }
@@ -35,14 +36,6 @@ public class SceneEditorSceneNodeModel {
     @Nullable
     public String getAttribute(String name) {
         return attributes.get(name);
-    }
-
-    public Map<String, String> getAttributes() {
-        return attributes;
-    }
-
-    public List<SceneEditorElementModel> getTemplateElements() {
-        return templateElements;
     }
 
     public void addTemplateElement(SceneEditorElementModel element) {

@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.scene;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Objects;
 
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.entity.EntityLivingBase;
@@ -54,11 +55,8 @@ public class GuidebookPreviewPlayerCompat {
 
         Boolean integrationSlimArms = GuideNhClientIntegrationRegistry.global()
             .resolveSlimArms(player);
-        if (integrationSlimArms != null) {
-            return integrationSlimArms;
-        }
+        return Objects.requireNonNullElse(integrationSlimArms, false);
 
-        return false;
     }
 
     public static boolean isSimpleSkinBackportAvailable() {

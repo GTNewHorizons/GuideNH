@@ -1,14 +1,20 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * A single slice of a pie chart.
  */
+@Getter
 public class PieSlice {
 
     private final String label;
     private final double value;
     private final int color;
+    @Setter
     private ChartIcon icon;
+    @Setter
     private String tooltipExtra;
 
     public PieSlice(String label, double value, int color) {
@@ -17,31 +23,4 @@ public class PieSlice {
         this.color = color;
     }
 
-    public String getLabel() {
-        return label;
-    }
-
-    public double getValue() {
-        return value;
-    }
-
-    public int getColor() {
-        return color;
-    }
-
-    public ChartIcon getIcon() {
-        return icon;
-    }
-
-    public void setIcon(ChartIcon icon) {
-        this.icon = icon;
-    }
-
-    public String getTooltipExtra() {
-        return tooltipExtra;
-    }
-
-    public void setTooltipExtra(String tooltipExtra) {
-        this.tooltipExtra = tooltipExtra;
-    }
 }

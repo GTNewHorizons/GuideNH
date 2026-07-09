@@ -7,6 +7,9 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
+@Getter
 public class StructureLibValueCondition {
 
     private final List<ValueRange> includeRanges;
@@ -77,14 +80,6 @@ public class StructureLibValueCondition {
         return !excludeRanges.isEmpty();
     }
 
-    public List<ValueRange> getIncludeRanges() {
-        return includeRanges;
-    }
-
-    public List<ValueRange> getExcludeRanges() {
-        return excludeRanges;
-    }
-
     public Map<String, Object> toSiteExportData() {
         LinkedHashMap<String, Object> data = new LinkedHashMap<>();
         if (!includeRanges.isEmpty()) {
@@ -117,6 +112,7 @@ public class StructureLibValueCondition {
         return copied.isEmpty() ? List.of() : List.copyOf(copied);
     }
 
+    @Getter
     public static class ValueRange {
 
         private final int minValue;
@@ -159,12 +155,5 @@ public class StructureLibValueCondition {
             return value >= minValue && value <= maxValue;
         }
 
-        public int getMinValue() {
-            return minValue;
-        }
-
-        public int getMaxValue() {
-            return maxValue;
-        }
     }
 }

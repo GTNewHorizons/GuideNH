@@ -14,6 +14,11 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class LytFlowInlineBlock extends LytFlowContent implements InteractiveElement {
 
     private static final ThreadLocal<LayoutContext> MEASURE_LAYOUT_CONTEXT = ThreadLocal
@@ -22,22 +27,6 @@ public class LytFlowInlineBlock extends LytFlowContent implements InteractiveEle
     private LytBlock block;
 
     private InlineBlockAlignment alignment = InlineBlockAlignment.INLINE;
-
-    public LytBlock getBlock() {
-        return block;
-    }
-
-    public void setBlock(LytBlock block) {
-        this.block = block;
-    }
-
-    public InlineBlockAlignment getAlignment() {
-        return alignment;
-    }
-
-    public void setAlignment(InlineBlockAlignment alignment) {
-        this.alignment = alignment;
-    }
 
     public LytSize getPreferredSize(int lineWidth) {
         return measurePreferredBounds(lineWidth).size();

@@ -1,114 +1,86 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
-import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
 
 import cpw.mods.fml.common.Optional;
 
+/**
+ * Thin backward-compatible wrapper. New code should use {@link StructureLibBuildService} directly.
+ */
 public class StructureLibSceneImportService {
 
-    private final StructureLibFacade facade;
+    private final StructureLibBuildService buildService;
 
     public StructureLibSceneImportService() {
-        this((Supplier<StructureLibFacade>) null);
+        this(resolveBuildService());
     }
 
-    public StructureLibSceneImportService(@Nullable Supplier<StructureLibFacade> facadeFactory) {
-        this(resolveFacade(facadeFactory));
-    }
-
-    public StructureLibSceneImportService(@Nullable StructureLibFacade facade) {
-        this.facade = facade != null ? facade : createDefaultFacade();
+    public StructureLibSceneImportService(@Nullable StructureLibBuildService buildService) {
+        this.buildService = buildService != null ? buildService : resolveBuildService();
     }
 
     public boolean isAvailable() {
-        try {
-            return facade.isAvailable();
-        } catch (Throwable t) {
-            GuideDebugLog.warn("StructureLib facade availability check failed", t);
-            return false;
-        }
+        return Mods.StructureLib.isModLoaded();
     }
 
+    @Nullable
     public StructureLibImportResult importScene(@Nullable StructureLibImportRequest request) {
-        if (request == null) {
-            return StructureLibImportResult.failure("StructureLib import request cannot be null");
-        }
-
-        try {
-            StructureLibImportResult result = facade.importScene(request);
-            if (result != null) {
-                return result;
-            }
-            return StructureLibImportResult.failure("StructureLib facade returned no import result");
-        } catch (Throwable t) {
-            GuideDebugLog.warn("StructureLib import failed for controller {}", request.getController(), t);
-            return StructureLibImportResult.failure(resolveFailureMessage(t));
-        }
+        if (request == null) return null;
+        StructureLibBuildRequest buildReq = convert(request);
+        StructureLibBuildResult result = buildService.build(buildReq);
+        return convert(result);
     }
 
-    public StructureLibImportResult importScene(@Nullable StructureLibImportRequest request,
-        StructureLibRuntimeFacade.BuildContext context) {
-        if (request == null) {
-            return StructureLibImportResult.failure("StructureLib import request cannot be null");
-        }
-        if (context == null || !(facade instanceof StructureLibRuntimeFacade runtimeFacade)) {
-            return importScene(request);
-        }
-
-        try {
-            StructureLibImportResult result = runtimeFacade.importScene(request, context);
-            if (result != null) {
-                return result;
-            }
-            return StructureLibImportResult.failure("StructureLib facade returned no import result");
-        } catch (Throwable t) {
-            GuideDebugLog.warn("StructureLib import failed for controller {}", request.getController(), t);
-            return StructureLibImportResult.failure(resolveFailureMessage(t));
-        }
+    private static StructureLibBuildRequest convert(StructureLibImportRequest req) {
+        return new StructureLibBuildRequest(
+            req.getController(),
+            req.getPiece(),
+            req.getFacing(),
+            req.getRotation(),
+            req.getFlip(),
+            req.getPreviewSelection() != null ? req.getPreviewSelection()
+                .getMasterTier() : 1,
+            req.getPreviewSelection() != null ? req.getPreviewSelection()
+                .getChannelOverrides() : Map.of(),
+            req.getPreviewSelection() != null ? req.getPreviewSelection()
+                .getIntegrationOptions() : Map.of());
     }
 
-    public static String resolveFailureMessage(Throwable throwable) {
-        String message = throwable.getMessage();
-        if (message == null || message.trim()
-            .isEmpty()) {
-            return "StructureLib import failed";
+    @Nullable
+    private static StructureLibImportResult convert(StructureLibBuildResult result) {
+        if (result == null) return null;
+        if (!result.success()) {
+            return StructureLibImportResult.failure(result.error());
         }
-        return "StructureLib import failed: " + message.trim();
+        List<StructureLibBuildResult.PlacedBlock> src = result.blocks();
+        List<StructureLibImportResult.PlacedBlock> dst = new ArrayList<>(src.size());
+        for (StructureLibBuildResult.PlacedBlock pb : src) {
+            dst.add(
+                new StructureLibImportResult.PlacedBlock(
+                    pb.x(),
+                    pb.y(),
+                    pb.z(),
+                    pb.block(),
+                    pb.meta(),
+                    pb.tileTag(),
+                    pb.blockId()));
+        }
+        return StructureLibImportResult.success(dst, List.of(), null);
     }
 
-    public static StructureLibFacade resolveFacade(@Nullable Supplier<StructureLibFacade> facadeFactory) {
-        if (facadeFactory == null) {
-            return createDefaultFacade();
-        }
-        try {
-            StructureLibFacade facade = facadeFactory.get();
-            return facade != null ? facade : createDefaultFacade();
-        } catch (Throwable t) {
-            GuideDebugLog.warn("StructureLib facade factory failed, falling back to default facade", t);
-            return createDefaultFacade();
-        }
-    }
-
-    public static StructureLibFacade createDefaultFacade() {
-        if (!Mods.StructureLib.isModLoaded()) {
-            return new StructureLibUnavailableFacade();
-        }
-        try {
-            return createRuntimeFacade();
-        } catch (Throwable t) {
-            GuideDebugLog
-                .warn("Failed to initialize StructureLib runtime facade, falling back to unavailable facade", t);
-            return new StructureLibUnavailableFacade();
-        }
+    private static StructureLibBuildService resolveBuildService() {
+        if (!Mods.StructureLib.isModLoaded()) return null;
+        return createService();
     }
 
     @Optional.Method(modid = "structurelib")
-    private static StructureLibFacade createRuntimeFacade() {
-        return new StructureLibRuntimeFacade();
+    private static StructureLibBuildService createService() {
+        return new StructureLibBuildService();
     }
 }

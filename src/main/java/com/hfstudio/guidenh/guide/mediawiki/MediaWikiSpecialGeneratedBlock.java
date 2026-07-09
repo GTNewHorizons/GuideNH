@@ -496,10 +496,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 .name())) {
             return 2;
         }
-        if (visibleResult.kind() == MediaWikiSpecialPageKind.GROUPED
-            || visibleResult.kind() == MediaWikiSpecialPageKind.GROUP_INDEX) {
-            return Math.max(1, rows);
-        }
         return Math.max(1, rows);
     }
 
@@ -551,7 +547,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         List<MediaWikiSpecialListEntry> entries = visibleResult.flatEntries() != null ? visibleResult.flatEntries()
             : List.of();
         if (entries.isEmpty()) {
-            columns.get(0)
+            columns.getFirst()
                 .add(new GroupLayout(null, List.of()));
             return columns;
         }

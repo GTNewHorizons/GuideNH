@@ -9,6 +9,9 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Line chart. Each series is defined by X / Y value arrays. The X axis can use categories (see
  * {@link #setCategories}).
@@ -21,11 +24,14 @@ public class LytLineChart extends LytChartBase {
     private static final int POINT_RADIUS = 2;
     private static final int LINE_THICKNESS = 1;
 
+    @Getter
     private List<ChartSeries> series = new ArrayList<>();
     private String[] categories = new String[0];
     private ChartAxisOptions xAxis = new ChartAxisOptions();
     private ChartAxisOptions yAxis = new ChartAxisOptions();
+    @Setter
     private boolean numericX = false;
+    @Setter
     private boolean showPoints = true;
 
     private LytRect plotCache = LytRect.empty();
@@ -34,10 +40,6 @@ public class LytLineChart extends LytChartBase {
 
     public void setSeries(List<ChartSeries> series) {
         this.series = series != null ? series : new ArrayList<>();
-    }
-
-    public List<ChartSeries> getSeries() {
-        return series;
     }
 
     public void setCategories(String[] categories) {
@@ -50,14 +52,6 @@ public class LytLineChart extends LytChartBase {
 
     public void setYAxis(ChartAxisOptions yAxis) {
         if (yAxis != null) this.yAxis = yAxis;
-    }
-
-    public void setNumericX(boolean numericX) {
-        this.numericX = numericX;
-    }
-
-    public void setShowPoints(boolean showPoints) {
-        this.showPoints = showPoints;
     }
 
     @Override

@@ -29,7 +29,7 @@ public class GuideTextNbtCodec {
 
     private static final int MAX_TEXT_SAFE_COMPOUND_CACHE_SIZE = 512;
     private static final Map<String, NBTTagCompound> TEXT_SAFE_COMPOUND_CACHE = Collections
-        .synchronizedMap(new LinkedHashMap<String, NBTTagCompound>(256, 0.75f, true) {
+        .synchronizedMap(new LinkedHashMap<>(256, 0.75f, true) {
 
             @Override
             protected boolean removeEldestEntry(Map.Entry<String, NBTTagCompound> eldest) {

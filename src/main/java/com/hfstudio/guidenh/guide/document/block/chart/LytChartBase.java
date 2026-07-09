@@ -20,6 +20,9 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Common base class for all 5 chart types: handles common attributes (title, size, background, legend
  * position, etc.), layout, and hover state management.
@@ -35,111 +38,60 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     protected static final int LEGEND_ENTRY_GAP = 12;
     protected static final int MIN_PLOT_HEIGHT = 72;
 
+    @Getter
+    @Setter
     private String title;
     private int explicitWidth = -1;
     private int explicitHeight = -1;
+    @Getter
+    @Setter
     private int backgroundColor = 0xFF1B1F23;
+    @Getter
+    @Setter
     private int borderColor = 0xFF3A4047;
+    @Getter
+    @Setter
     private int titleColor = 0xFFE6E6E6;
+    @Getter
     private ChartLegendPosition legendPosition = ChartLegendPosition.TOP;
+    @Getter
     private ChartLabelPosition labelPosition = ChartLabelPosition.NONE;
+    @Getter
+    @Setter
     private int labelColor = 0xFFEEEEEE;
+    @Getter
     private CornerLegendPosition cornerLegendPosition = CornerLegendPosition.NONE;
+    @Getter
     private int cornerLegendWidth = CornerLegendRenderer.DEFAULT_WIDTH;
+    @Getter
     private int cornerLegendHeight = CornerLegendRenderer.DEFAULT_HEIGHT;
+    @Getter
+    @Setter
     private int cornerLegendBackgroundColor = CornerLegendRenderer.DEFAULT_BACKGROUND;
 
     /** Currently hovered hit key; {@code -1} means none. The exact semantics is decided by each subclass. */
     protected int hoveredKey = -1;
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
 
     public void setExplicitSize(int width, int height) {
         this.explicitWidth = width > 0 ? width : -1;
         this.explicitHeight = height > 0 ? height : -1;
     }
 
-    public int getBackgroundColor() {
-        return backgroundColor;
-    }
-
-    public void setBackgroundColor(int backgroundColor) {
-        this.backgroundColor = backgroundColor;
-    }
-
-    public int getBorderColor() {
-        return borderColor;
-    }
-
-    public void setBorderColor(int borderColor) {
-        this.borderColor = borderColor;
-    }
-
-    public int getTitleColor() {
-        return titleColor;
-    }
-
-    public void setTitleColor(int titleColor) {
-        this.titleColor = titleColor;
-    }
-
-    public ChartLegendPosition getLegendPosition() {
-        return legendPosition;
-    }
-
     public void setLegendPosition(ChartLegendPosition legendPosition) {
         this.legendPosition = legendPosition != null ? legendPosition : ChartLegendPosition.NONE;
-    }
-
-    public ChartLabelPosition getLabelPosition() {
-        return labelPosition;
     }
 
     public void setLabelPosition(ChartLabelPosition labelPosition) {
         this.labelPosition = labelPosition != null ? labelPosition : ChartLabelPosition.NONE;
     }
 
-    public int getLabelColor() {
-        return labelColor;
-    }
-
-    public void setLabelColor(int labelColor) {
-        this.labelColor = labelColor;
-    }
-
-    public CornerLegendPosition getCornerLegendPosition() {
-        return cornerLegendPosition;
-    }
-
     public void setCornerLegendPosition(CornerLegendPosition cornerLegendPosition) {
         this.cornerLegendPosition = cornerLegendPosition != null ? cornerLegendPosition : CornerLegendPosition.NONE;
-    }
-
-    public int getCornerLegendWidth() {
-        return cornerLegendWidth;
-    }
-
-    public int getCornerLegendHeight() {
-        return cornerLegendHeight;
     }
 
     public void setCornerLegendSize(int width, int height) {
         this.cornerLegendWidth = width > 0 ? width : CornerLegendRenderer.DEFAULT_WIDTH;
         this.cornerLegendHeight = height > 0 ? height : CornerLegendRenderer.DEFAULT_HEIGHT;
-    }
-
-    public int getCornerLegendBackgroundColor() {
-        return cornerLegendBackgroundColor;
-    }
-
-    public void setCornerLegendBackgroundColor(int cornerLegendBackgroundColor) {
-        this.cornerLegendBackgroundColor = cornerLegendBackgroundColor;
     }
 
     @Override

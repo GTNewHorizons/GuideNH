@@ -44,7 +44,6 @@ public class BlockImageScript implements LytScript {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void onEvent(Object node, LytEvent event, ScriptContext ctx) {
         if (event.type() != EventType.MOUNT) return;
 
@@ -82,8 +81,8 @@ public class BlockImageScript implements LytScript {
             try {
                 NBTTagCompound explicitTag = GuideTextNbtCodec.readTextSafeCompound(ph.nbt.trim());
                 if (tileTag != null) {
-                    for (Object key : explicitTag.func_150296_c()) {
-                        tileTag.setTag((String) key, explicitTag.getTag((String) key));
+                    for (String key : explicitTag.func_150296_c()) {
+                        tileTag.setTag(key, explicitTag.getTag(key));
                     }
                 } else {
                     tileTag = explicitTag;

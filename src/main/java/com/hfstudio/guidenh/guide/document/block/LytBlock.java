@@ -6,6 +6,9 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public abstract class LytBlock extends LytNode {
 
     /**
@@ -13,19 +16,37 @@ public abstract class LytBlock extends LytNode {
      */
     protected LytRect bounds = LytRect.empty();
 
+    @Getter
+    @Setter
     private int marginTop;
+    @Getter
+    @Setter
     private int marginLeft;
+    @Getter
+    @Setter
     private int marginRight;
+    @Getter
+    @Setter
     private int marginBottom;
 
+    @Getter
+    @Setter
     private BorderStyle borderTop = BorderStyle.NONE;
+    @Getter
+    @Setter
     private BorderStyle borderLeft = BorderStyle.NONE;
+    @Getter
+    @Setter
     private BorderStyle borderRight = BorderStyle.NONE;
+    @Getter
+    @Setter
     private BorderStyle borderBottom = BorderStyle.NONE;
 
     /**
      * Always expand this block to the full available width.
      */
+    @Getter
+    @Setter
     private boolean fullWidth;
 
     @Override
@@ -68,38 +89,6 @@ public abstract class LytBlock extends LytNode {
         return bounds;
     }
 
-    public int getMarginTop() {
-        return marginTop;
-    }
-
-    public void setMarginTop(int marginTop) {
-        this.marginTop = marginTop;
-    }
-
-    public int getMarginLeft() {
-        return marginLeft;
-    }
-
-    public void setMarginLeft(int marginLeft) {
-        this.marginLeft = marginLeft;
-    }
-
-    public int getMarginRight() {
-        return marginRight;
-    }
-
-    public void setMarginRight(int marginRight) {
-        this.marginRight = marginRight;
-    }
-
-    public int getMarginBottom() {
-        return marginBottom;
-    }
-
-    public void setMarginBottom(int marginBottom) {
-        this.marginBottom = marginBottom;
-    }
-
     public int getMarginStart(LytAxis axis) {
         return switch (axis) {
             case HORIZONTAL -> getMarginLeft();
@@ -114,51 +103,11 @@ public abstract class LytBlock extends LytNode {
         };
     }
 
-    public BorderStyle getBorderTop() {
-        return borderTop;
-    }
-
-    public void setBorderTop(BorderStyle borderTop) {
-        this.borderTop = borderTop;
-    }
-
-    public BorderStyle getBorderLeft() {
-        return borderLeft;
-    }
-
-    public void setBorderLeft(BorderStyle borderLeft) {
-        this.borderLeft = borderLeft;
-    }
-
-    public BorderStyle getBorderRight() {
-        return borderRight;
-    }
-
-    public void setBorderRight(BorderStyle borderRight) {
-        this.borderRight = borderRight;
-    }
-
-    public BorderStyle getBorderBottom() {
-        return borderBottom;
-    }
-
-    public void setBorderBottom(BorderStyle borderBottom) {
-        this.borderBottom = borderBottom;
-    }
-
     public void setBorder(BorderStyle style) {
         setBorderTop(style);
         setBorderLeft(style);
         setBorderRight(style);
         setBorderBottom(style);
-    }
-
-    public boolean isFullWidth() {
-        return fullWidth;
-    }
-
-    public void setFullWidth(boolean fullWidth) {
-        this.fullWidth = fullWidth;
     }
 
     protected abstract LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth);

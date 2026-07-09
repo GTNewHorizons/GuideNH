@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.ZipFile;
 
 import net.minecraft.client.Minecraft;
@@ -48,6 +49,7 @@ public class DataDrivenGuideLoader {
     private static volatile Map<IResourcePack, Set<String>> lastResourceManagerDomainsByPack = Map.of();
     private static volatile GuideLanguageDiscoverySnapshot lastGuideLanguageDiscovery = GuideLanguageDiscoverySnapshot
         .empty();
+    private static final ConcurrentHashMap<Path, List<NamespaceRoot>> nativeNamespaceRootsCache = new ConcurrentHashMap<>();
 
     private DataDrivenGuideLoader() {}
 
@@ -901,6 +903,14 @@ public class DataDrivenGuideLoader {
     }
 
     private static List<NamespaceRoot> discoverNativeNamespaceRoots(File resourcePackRoot) {
+        Path key = resourcePackRoot.toPath()
+            .toAbsolutePath()
+            .normalize();
+        List<NamespaceRoot> cached = nativeNamespaceRootsCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
         var roots = new LinkedHashMap<Path, NamespaceRoot>();
         var nativeNamespaceDirs = resourcePackRoot.listFiles(File::isDirectory);
         if (nativeNamespaceDirs != null) {
@@ -914,7 +924,9 @@ public class DataDrivenGuideLoader {
                 }
             }
         }
-        return List.copyOf(roots.values());
+        List<NamespaceRoot> result = List.copyOf(roots.values());
+        nativeNamespaceRootsCache.put(key, result);
+        return result;
     }
 
     private static void addNamespaceRoot(LinkedHashMap<Path, NamespaceRoot> roots, NamespaceRoot namespaceRoot) {
@@ -961,6 +973,7 @@ public class DataDrivenGuideLoader {
 
     public static void clearCaches() {
         lastGuideLanguageDiscovery = GuideLanguageDiscoverySnapshot.empty();
+        nativeNamespaceRootsCache.clear();
     }
 
     private static Map<ResourceLocation, Set<String>> freezeDiscoveredLanguages(

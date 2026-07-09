@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
+import lombok.Getter;
+
+@Getter
 public class SceneEditorSnapModes {
 
     public static final SceneEditorSnapModes DEFAULT = new SceneEditorSnapModes(true, false, false, false);
@@ -18,22 +21,6 @@ public class SceneEditorSnapModes {
 
     public static SceneEditorSnapModes defaultModes() {
         return DEFAULT;
-    }
-
-    public boolean isPointEnabled() {
-        return pointEnabled;
-    }
-
-    public boolean isLineEnabled() {
-        return lineEnabled;
-    }
-
-    public boolean isFaceEnabled() {
-        return faceEnabled;
-    }
-
-    public boolean isCenterEnabled() {
-        return centerEnabled;
     }
 
     public boolean hasEnabledMode() {

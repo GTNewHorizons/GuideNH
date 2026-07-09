@@ -113,16 +113,10 @@ public class AutocompleteCommitService {
     }
 
     private static boolean shouldUseBraceValue(AttrType type) {
-        switch (type) {
-            case INT:
-            case FLOAT:
-            case VECTOR3:
-            case SNBT:
-            case EXPRESSION:
-                return true;
-            default:
-                return false;
-        }
+        return switch (type) {
+            case INT, FLOAT, VECTOR3, SNBT, EXPRESSION -> true;
+            default -> false;
+        };
     }
 
     private static boolean shouldQuoteAttributeValue(MdxValueContext context) {
@@ -130,17 +124,10 @@ public class AutocompleteCommitService {
         if (spec == null) {
             return false;
         }
-        switch (spec.getType()) {
-            case INT:
-            case FLOAT:
-            case BOOLEAN:
-            case VECTOR3:
-            case SNBT:
-            case EXPRESSION:
-                return false;
-            default:
-                return true;
-        }
+        return switch (spec.getType()) {
+            case INT, FLOAT, BOOLEAN, VECTOR3, SNBT, EXPRESSION -> false;
+            default -> true;
+        };
     }
 
     private static Replacement createFrontmatterReplacement(String source, FrontmatterContext context, String rawText) {
@@ -189,10 +176,7 @@ public class AutocompleteCommitService {
         if (value < min) {
             return min;
         }
-        if (value > max) {
-            return max;
-        }
-        return value;
+        return Math.min(value, max);
     }
 
     private static class Replacement {

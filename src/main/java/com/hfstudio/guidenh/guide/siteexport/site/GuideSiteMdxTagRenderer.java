@@ -697,40 +697,40 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String applyFormatMarkersHtml(String format, String escapedText) {
-        String open = "";
-        String close = "";
+        StringBuilder open = new StringBuilder();
+        StringBuilder close = new StringBuilder();
         String s = format;
         boolean changed = true;
         while (changed) {
             changed = false;
             if (isHtmlWrapped(s, "~~")) {
-                open = "<s>" + open;
-                close = close + "</s>";
+                open.insert(0, "<s>");
+                close.append("</s>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "**")) {
-                open = "<strong>" + open;
-                close = close + "</strong>";
+                open.insert(0, "<strong>");
+                close.append("</strong>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "__") || isHtmlWrapped(s, "++")) {
-                open = "<u>" + open;
-                close = close + "</u>";
+                open.insert(0, "<u>");
+                close.append("</u>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "^^")) {
-                open = "<span style=\"text-decoration:underline wavy\">" + open;
-                close = close + "</span>";
+                open.insert(0, "<span style=\"text-decoration:underline wavy\">");
+                close.append("</span>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "::")) {
-                open = "<span style=\"text-decoration:underline dotted\">" + open;
-                close = close + "</span>";
+                open.insert(0, "<span style=\"text-decoration:underline dotted\">");
+                close.append("</span>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "*") || isHtmlWrapped(s, "_")) {
-                open = "<em>" + open;
-                close = close + "</em>";
+                open.insert(0, "<em>");
+                close.append("</em>");
                 s = s.substring(1, s.length() - 1);
                 changed = true;
             }

@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.client.command;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -21,6 +22,7 @@ import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureImportS
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureRuntime;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureData;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
+import com.hfstudio.guidenh.guide.internal.structure.GuideStructureMemoryStore;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
 import com.hfstudio.guidenh.network.GuideNhRegionExportRequestMessage;
@@ -86,7 +88,7 @@ public class GuideNhClientBridgeController {
             return;
         }
         pendingImportRequest = new PendingImportRequest(x, y, z);
-        pendingImport = structureImportService.importFromPathAsync(java.nio.file.Paths.get(filePath));
+        pendingImport = structureImportService.importFromPathAsync(Paths.get(filePath));
     }
 
     public void placeAllStructures(int x, int y, int z) {
@@ -257,8 +259,7 @@ public class GuideNhClientBridgeController {
         }
     }
 
-    private void syncEntryToServerIfAvailable(
-        com.hfstudio.guidenh.guide.internal.structure.GuideStructureMemoryStore.Entry entry) {
+    private void syncEntryToServerIfAvailable(GuideStructureMemoryStore.Entry entry) {
         if (!isServerStructureCommandsAvailable()) {
             return;
         }

@@ -85,7 +85,7 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
             body.setGap(4);
             compiler.withBlockTagChildrenSourceContext(
                 element,
-                () -> { compiler.compileBlockContext(element.children(), body); });
+                () -> compiler.compileBlockContext(element.children(), body));
             tabs.add(new ContentTabsSpec.TabEntry(title.trim(), body, element));
         }
     }

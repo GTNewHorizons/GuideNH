@@ -6,10 +6,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonWriter;
 import com.hfstudio.guidenh.libs.unist.UnistLiteral;
 
+import lombok.Setter;
+
 /**
  * Literal (UnistLiteral) represents an abstract public interface in mdast containing a value.
  * Its value field is a string.
  */
+@Setter
 public abstract class MdAstLiteral extends MdAstNode implements UnistLiteral {
 
     public String value = "";
@@ -26,10 +29,6 @@ public abstract class MdAstLiteral extends MdAstNode implements UnistLiteral {
     @Override
     public String value() {
         return this.value;
-    }
-
-    public void setValue(String value) {
-        this.value = value;
     }
 
     @Override

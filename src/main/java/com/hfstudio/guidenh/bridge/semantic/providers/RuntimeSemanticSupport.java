@@ -72,6 +72,7 @@ import net.minecraft.command.server.CommandTestFor;
 import net.minecraft.command.server.CommandTestForBlock;
 import net.minecraft.command.server.CommandWhitelist;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.EntityList;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
@@ -324,7 +325,7 @@ public class RuntimeSemanticSupport {
 
     public static void addEntityEntries(List<Map<String, String>> entries) {
         LinkedHashSet<String> entityIds = new LinkedHashSet<>();
-        for (Object rawId : net.minecraft.entity.EntityList.stringToClassMapping.keySet()) {
+        for (Object rawId : EntityList.stringToClassMapping.keySet()) {
             if (rawId instanceof String entityId) {
                 GuidebookSceneEntityLoader.addCandidateForms(entityIds, entityId);
             }
@@ -621,7 +622,7 @@ public class RuntimeSemanticSupport {
             builder.append(current);
             previous = current;
         }
-        if (builder.length() == 0) {
+        if (builder.isEmpty()) {
             return value;
         }
         builder.setCharAt(0, Character.toUpperCase(builder.charAt(0)));
@@ -780,7 +781,7 @@ public class RuntimeSemanticSupport {
             builder.append(current);
             previous = current;
         }
-        if (builder.length() == 0) {
+        if (builder.isEmpty()) {
             return simpleToken;
         }
         builder.setCharAt(0, Character.toUpperCase(builder.charAt(0)));

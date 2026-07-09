@@ -124,15 +124,13 @@ public class MarkdownRuntimeBlocks {
     @Nullable
     private static FirstParagraphText findFirstParagraphText(MdxJsxElementFields blockquote) {
         for (Object child : blockquote.children()) {
-            if (child instanceof MdxJsxFlowElement && "p".equals(((MdxJsxFlowElement) child).name())) {
-                MdxJsxFlowElement p = (MdxJsxFlowElement) child;
+            if (child instanceof MdxJsxFlowElement p && "p".equals(p.name())) {
                 String text = getLeadingParagraphText(p);
                 if (text != null && !text.trim()
                     .isEmpty()) {
                     return new FirstParagraphText(p, text);
                 }
-            } else if (child instanceof MdAstText) {
-                MdAstText text = (MdAstText) child;
+            } else if (child instanceof MdAstText text) {
                 if (!text.value.trim()
                     .isEmpty()) {
                     return new FirstParagraphText(null, text.value);
@@ -145,16 +143,14 @@ public class MarkdownRuntimeBlocks {
     @Nullable
     private static String getLeadingParagraphText(MdxJsxFlowElement paragraph) {
         for (Object child : paragraph.children()) {
-            if (child instanceof MdAstText) {
-                MdAstText text = (MdAstText) child;
+            if (child instanceof MdAstText text) {
                 if (!text.value.trim()
                     .isEmpty()) {
                     return text.value;
                 }
             }
-            if (child instanceof MdxJsxFlowElement && "code".equals(((MdxJsxFlowElement) child).name())) {
+            if (child instanceof MdxJsxFlowElement code && "code".equals(code.name())) {
                 // Extract text from <code> element
-                MdxJsxFlowElement code = (MdxJsxFlowElement) child;
                 for (Object codeChild : code.children()) {
                     if (codeChild instanceof MdAstText) {
                         return ((MdAstText) codeChild).value;

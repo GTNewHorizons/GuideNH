@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.structure;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class GuideNhStructureRuntime {
 
     public static final GuideStructurePlacementService PLACEMENT_SERVICE = new GuideStructurePlacementService();
@@ -8,7 +11,11 @@ public class GuideNhStructureRuntime {
     public static final GuideStructureServerSessionStore SERVER_SESSION_STORE = new GuideStructureServerSessionStore(
         PLACEMENT_SERVICE);
 
+    @Getter
+    @Setter
     public static volatile boolean serverStructureCommandsAvailable = false;
+    @Getter
+    @Setter
     public static volatile boolean clientStructureSyncNeeded = false;
 
     private GuideNhStructureRuntime() {}
@@ -25,19 +32,4 @@ public class GuideNhStructureRuntime {
         return SERVER_SESSION_STORE;
     }
 
-    public static boolean isServerStructureCommandsAvailable() {
-        return serverStructureCommandsAvailable;
-    }
-
-    public static void setServerStructureCommandsAvailable(boolean available) {
-        serverStructureCommandsAvailable = available;
-    }
-
-    public static boolean isClientStructureSyncNeeded() {
-        return clientStructureSyncNeeded;
-    }
-
-    public static void setClientStructureSyncNeeded(boolean needed) {
-        clientStructureSyncNeeded = needed;
-    }
 }

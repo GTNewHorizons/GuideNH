@@ -35,7 +35,7 @@ public class BqGuidePageLinks {
     private BqGuidePageLinks() {}
 
     public static String replaceGuideTags(String text) {
-        if (text == null || text.indexOf("[guide") < 0) {
+        if (text == null || !text.contains("[guide")) {
             return text;
         }
 

@@ -63,7 +63,7 @@ public final class ExpSampler extends Table {
 
     public boolean linearFiltering() {
         int o = __offset(8);
-        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+        return o != 0 && 0 != bb.get(o + bb_pos);
     }
 
     public boolean mutateLinearFiltering(boolean linear_filtering) {
@@ -78,7 +78,7 @@ public final class ExpSampler extends Table {
 
     public boolean useMipmaps() {
         int o = __offset(10);
-        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+        return o != 0 && 0 != bb.get(o + bb_pos);
     }
 
     public boolean mutateUseMipmaps(boolean use_mipmaps) {

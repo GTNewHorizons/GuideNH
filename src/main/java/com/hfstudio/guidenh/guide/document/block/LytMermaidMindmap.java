@@ -11,6 +11,9 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Getter;
+
+@Getter
 public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
 
     private final MermaidMindmapDocument mindmap;
@@ -41,22 +44,6 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
 
         append(toolbar);
         append(canvas);
-    }
-
-    public MermaidMindmapDocument getMindmap() {
-        return mindmap;
-    }
-
-    public String getSourceText() {
-        return sourceText;
-    }
-
-    public LytCodeBlockToolbar getToolbar() {
-        return toolbar;
-    }
-
-    public LytMermaidMindmapCanvas getCanvas() {
-        return canvas;
     }
 
     public void setPreferredSize(int width, int height) {

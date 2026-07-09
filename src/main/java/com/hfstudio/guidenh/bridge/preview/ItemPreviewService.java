@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.bridge.preview;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -242,7 +243,7 @@ public class ItemPreviewService {
     }
 
     private BufferedImage readPixels(int iconSize) {
-        java.nio.ByteBuffer buffer = BufferUtils.createByteBuffer(iconSize * iconSize * 4);
+        ByteBuffer buffer = BufferUtils.createByteBuffer(iconSize * iconSize * 4);
         GL11.glReadPixels(0, 0, iconSize, iconSize, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
 
         BufferedImage image = new BufferedImage(iconSize, iconSize, BufferedImage.TYPE_INT_ARGB);
