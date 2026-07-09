@@ -46,7 +46,6 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
         append(canvas);
     }
 
-
     public void setPreferredSize(int width, int height) {
         canvas.setPreferredSize(width, height);
         toolbar.setPreferredWidth(width);

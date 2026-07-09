@@ -725,8 +725,6 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         float getAdvance(int codePoint, ResolvedTextStyle style);
     }
 
-
-
     private interface WordVisitor {
 
         boolean accept(String word);

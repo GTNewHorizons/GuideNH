@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import lombok.Getter;
 
 public class MindmapNode {
+
     @Getter
     private final String id;
     @Getter
