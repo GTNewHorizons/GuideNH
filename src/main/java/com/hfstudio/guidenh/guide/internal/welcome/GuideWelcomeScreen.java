@@ -6,7 +6,6 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.List;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiConfirmOpenLink;
 import net.minecraft.client.gui.GuiScreen;
@@ -57,13 +56,13 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private static final int SCROLL_STEP = 36;
     private static final float SCROLL_LERP = 0.35F;
     private static final float SCROLL_SNAP_EPSILON = 0.35F;
-    private static final int CLOSE_MARGIN = 7;
+    private static final int CLOSE_RIGHT_MARGIN = 7;
+    private static final int CLOSE_TOP_MARGIN = 3;
     private static final int EXTERNAL_LINK_CONFIRM_ID = 0;
     private static final String TITLE_KEY = "guidenh.welcome.title";
     private static final String CLOSE_HINT_KEY = "guidenh.welcome.close_hint";
 
     private final GuiScreen parent;
-    private final GuideWelcomeState state;
     private final GuideWelcomeContent.LoadedContent content;
     private final VanillaRenderContext renderContext = new VanillaRenderContext(
         LightDarkMode.DARK_MODE,
@@ -92,9 +91,8 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     @Nullable
     private URI pendingExternalUri;
 
-    public GuideWelcomeScreen(GuiScreen parent, GuideWelcomeState state, GuideWelcomeContent.LoadedContent content) {
+    public GuideWelcomeScreen(GuiScreen parent, GuideWelcomeContent.LoadedContent content) {
         this.parent = parent;
-        this.state = state;
         this.content = content;
         this.pageCollection = resolvePageCollection();
         this.page = compilePage(content);
@@ -116,7 +114,9 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
-        close();
+        if (keyCode == Keyboard.KEY_SPACE) {
+            close();
+        }
     }
 
     @Override
@@ -184,7 +184,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
         drawCenteredString(
             fontRendererObj,
-            translate(TITLE_KEY, "Welcome to GuideNH, %s", playerName()),
+            translate(TITLE_KEY, "Welcome to GuideNH"),
             width / 2,
             panelY + 10,
             0xFFF0F0F0);
@@ -198,7 +198,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
         drawCenteredString(
             fontRendererObj,
-            translate(CLOSE_HINT_KEY, "Press any key or click the top-right button to close"),
+            translate(CLOSE_HINT_KEY, "Press Space or click the top-right button to close"),
             width / 2,
             panelBottom - 14,
             0xFFB8C0CC);
@@ -212,7 +212,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     @Override
     public void navigateTo(PageAnchor anchor) {
         if (parent instanceof GuideUiHost host) {
-            closeToParent(true);
+            closeToParent();
             host.navigateTo(anchor);
         }
     }
@@ -220,14 +220,14 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     @Override
     public void navigateTo(ResourceLocation guideId, PageAnchor anchor) {
         if (parent instanceof GuideUiHost host) {
-            closeToParent(true);
+            closeToParent();
             host.navigateTo(guideId, anchor);
         }
     }
 
     @Override
     public void close() {
-        closeToParent(true);
+        closeToParent();
     }
 
     @Override
@@ -260,15 +260,20 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         return parent instanceof GuideUiHost host && host.copyCodeBlock(text);
     }
 
-    private void closeToParent(boolean markSeen) {
-        if (markSeen) {
-            state.markSeen();
-        }
+    private void closeToParent() {
+        markWelcomeClosed();
         if (document != null) {
             document.setHoveredElement(null);
         }
         restoreHostState();
         mc.displayGuiScreen(parent);
+    }
+
+    private void markWelcomeClosed() {
+        if (ModConfig.ui.welcomePopupEnabled) {
+            ModConfig.ui.welcomePopupEnabled = false;
+            ModConfig.save();
+        }
     }
 
     private void layoutDocument() {
@@ -551,11 +556,11 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     }
 
     private int closeX(int panelRight) {
-        return panelRight - CLOSE_MARGIN - GuideIconButton.WIDTH;
+        return panelRight - CLOSE_RIGHT_MARGIN - GuideIconButton.WIDTH;
     }
 
     private int closeY(int panelY) {
-        return panelY + CLOSE_MARGIN;
+        return panelY + CLOSE_TOP_MARGIN;
     }
 
     private void drawScrollbar(int x, int top, int bottom) {
@@ -596,18 +601,4 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         return key.equals(translated) ? fallback : translated;
     }
 
-    private static String translate(String key, String fallback, Object... args) {
-        String translated = StatCollector.translateToLocalFormatted(key, args);
-        return key.equals(translated) ? String.format(fallback, args) : translated;
-    }
-
-    private static String playerName() {
-        try {
-            return Minecraft.getMinecraft()
-                .getSession()
-                .getUsername();
-        } catch (Exception e) {
-            return "<?>";
-        }
-    }
 }

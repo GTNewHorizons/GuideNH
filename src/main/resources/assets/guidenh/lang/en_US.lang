@@ -166,8 +166,8 @@ guideme.gui.config.runtimebridge.maxdeltaentries=Maximum Delta Entries
 guideme.gui.config.runtimebridge.maxdeltaentries.tooltip=Maximum semantic delta entries sent in one runtime bridge message.
 
 # Guidebook UI
-guidenh.welcome.title=Welcome to GuideNH, %s
-guidenh.welcome.close_hint=Press any key or click the top-right button to close
+guidenh.welcome.title=Welcome to GuideNH
+guidenh.welcome.close_hint=Press Space or click the top-right button to close
 guideme.guidebook.Close=Close
 guideme.guidebook.CloseFullWidthView=Close Full Width View
 guideme.guidebook.OpenRecipeInNei=Open This Recipe in NEI

@@ -162,7 +162,7 @@ public class ModConfig {
         @DefaultBoolean(true)
         public boolean confirmExternalLinks = true;
 
-        @Comment("Whether the first-open welcome popup is shown per player and save.")
+        @Comment("Whether the first-open welcome popup should be shown.")
         @DefaultBoolean(true)
         public boolean welcomePopupEnabled = true;
 

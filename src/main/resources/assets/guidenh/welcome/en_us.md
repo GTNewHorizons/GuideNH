@@ -4,7 +4,7 @@ Welcome, <PlayerName />.
 
 You are reading this page through <ItemImage id="guidenh:guide" /> **GuideNH**, an in-game guide framework designed for rich, data-driven documentation.
 
-GuideNH is more than a plain book. It can combine Markdown text, item links, recipes, images, keybind hints, tooltips, and interactive scene previews into a single guide interface.
+GuideNH is more than a simple guide. It can combine Markdown text, item links, recipes, images, keybind hints, tooltips, and interactive scene previews into a single guide interface.
 
 ## Getting Around
 
@@ -12,7 +12,7 @@ Use the **navigation panel** on the left to browse guide pages.
 
 Use the buttons in the top-right corner to search, return home, move backward or forward, and close the guide.
 
-When a page is linked to an item, you can hover that item in your inventory and press <KeyBind id="key.guidenh.open_guide" /> to jump directly to its guide entry.
+When a page is indexed to an item, hover over that item in your inventory and press <KeyBind id="key.guidenh.open_guide" /> to jump directly to the related page.
 
 <Tooltip text="Some pages may include item links, recipes, structures, diagrams, or interactive previews.">
   Hover here for a quick tip.

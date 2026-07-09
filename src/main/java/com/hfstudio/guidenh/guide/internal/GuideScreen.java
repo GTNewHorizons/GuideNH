@@ -129,7 +129,6 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeContent;
 import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeScreen;
-import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
@@ -596,11 +595,6 @@ public class GuideScreen extends GuiContainer
             return;
         }
 
-        GuideWelcomeState state = GuideWelcomeState.current();
-        if (state == null || state.isSeen()) {
-            return;
-        }
-
         GuideWelcomeContent.LoadedContent content = GuideWelcomeContent.load();
         if (content.source()
             .trim()
@@ -609,7 +603,7 @@ public class GuideScreen extends GuiContainer
         }
 
         Minecraft.getMinecraft()
-            .displayGuiScreen(new GuideWelcomeScreen(parent, state, content));
+            .displayGuiScreen(new GuideWelcomeScreen(parent, content));
     }
 
     private static GuideScreenViewState contentState(ResourceLocation guideId, @Nullable PageAnchor anchor) {

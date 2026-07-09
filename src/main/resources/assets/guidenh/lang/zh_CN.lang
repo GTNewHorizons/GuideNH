@@ -166,8 +166,8 @@ guideme.gui.config.runtimebridge.maxdeltaentries=最大增量条目数
 guideme.gui.config.runtimebridge.maxdeltaentries.tooltip=运行时桥接单条消息最多发送的语义增量条目数。
 
 # Guidebook UI
-guidenh.welcome.title=欢迎使用 GuideNH，%s
-guidenh.welcome.close_hint=按任意键或点击右上角按钮关闭
+guidenh.welcome.title=欢迎使用 GuideNH
+guidenh.welcome.close_hint=按空格键或点击右上角按钮关闭
 guideme.guidebook.Close=关闭
 guideme.guidebook.CloseFullWidthView=关闭全宽视图
 guideme.guidebook.OpenRecipeInNei=在 NEI 中打开此配方
