@@ -15,6 +15,8 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
+import lombok.Getter;
+
 /**
  * Create a tokenizer. Tokenizers deal with one type of data (e.g., containers, flow, text). The parser is the object
  * dealing with it all. `initialize` works like other constructs, except that only its `tokenize` function is used, in
@@ -25,6 +27,7 @@ public class Tokenizer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(Tokenizer.class);
 
+    @Getter
     private final ParseContext parser;
     final InitialConstruct initialize;
 
@@ -80,10 +83,6 @@ public class Tokenizer {
         return new Tokenizer(parser, initialize, from).context;
     }
 
-    public ParseContext getParser() {
-        return parser;
-    }
-
     /**
      * Tools used for tokenizing. A context object to transition the state machine.
      */
@@ -107,7 +106,8 @@ public class Tokenizer {
             if (code == Codes.eof) {
                 Assert.check(
                     context.getEvents()
-                        .size() == 0 || context.getLastEvent()
+                        .isEmpty()
+                        || context.getLastEvent()
                             .isExit(),
                     "expected last token to be open");
             } else {
@@ -328,9 +328,9 @@ public class Tokenizer {
      * Factory to attempt/check/interrupt.
      */
     private Hook constructFactory(ReturnHandle onreturn, @Nullable Map<String, Object> fields) {
-        return (constructs, returnState, bogusState) -> {
-            return new HookStateMachineFactory(onreturn, constructs, returnState, bogusState, fields).createFirst();
-        };
+        return (constructs, returnState,
+            bogusState) -> new HookStateMachineFactory(onreturn, constructs, returnState, bogusState, fields)
+                .createFirst();
     }
 
     private class HookStateMachineFactory {
@@ -440,9 +440,7 @@ public class Tokenizer {
         if (!construct.partial && !context.getEvents()
             .isEmpty()
             && context.getEvents()
-                .get(
-                    context.getEvents()
-                        .size() - 1)
+                .getLast()
                 .type() != EventType.EXIT) {
             throw new IllegalStateException("expected last token to end");
         }

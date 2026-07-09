@@ -9,12 +9,17 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.SnbtPlacement;
+import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
@@ -108,8 +113,36 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             : MdxAttrs.getInt(compiler, errorSink, el, "z", 0);
         boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
 
+        // Register placement on scene; fall back to direct placement if no scene context
+        LytGuidebookScene scene = AnnotationTagCompiler.CURRENT_SCENE.get();
+        if (scene != null) {
+            scene.addSnbtPlacement(new SnbtPlacement(absSrc, offsetX, offsetY, offsetZ, formed));
+        } else {
+            placeStructure(level, root, offsetX, offsetY, offsetZ, formed, compiler, errorSink, absSrc);
+        }
+    }
+
+    /**
+     * Place blocks from an already-parsed SNBT structure into the level.
+     * Used by both the element compiler and {@link LytGuidebookScene#build()}.
+     *
+     * @param level     the target level
+     * @param root      parsed SNBT structure (must have {@code palette} and {@code blocks} keys)
+     * @param offsetX   global x offset
+     * @param offsetY   global y offset
+     * @param offsetZ   global z offset
+     * @param formed    whether the structure is in "formed" state
+     * @param compiler  page compiler for asset resolution; may be null when called from build()
+     * @param errorSink error reporter; a no-op replacement is used when null
+     * @param src       source identifier, used for error messages
+     */
+    public static void placeStructure(GuidebookLevel level, NBTTagCompound root, int offsetX, int offsetY, int offsetZ,
+        boolean formed, @Nullable PageCompiler compiler, LytErrorSink errorSink, ResourceLocation src) {
+        if (errorSink == null) {
+            errorSink = (c, text, node) -> {};
+        }
         if (!root.hasKey("palette") || !root.hasKey("blocks")) {
-            errorSink.appendError(compiler, "Unsupported structure format (missing palette/blocks)", el);
+            errorSink.appendError(compiler, "Unsupported structure format (missing palette/blocks)", null);
             return;
         }
 
@@ -137,7 +170,6 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             int pz = offsetZ + pos[2];
 
             int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
-
             NBTTagCompound tileTag = b.hasKey("nbt", 10) ? b.getCompoundTag("nbt") : null;
             GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, name, b);
             ScenePreviewFormedState.updateAfterPlacement(level, px, py, pz, formed);
@@ -145,7 +177,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
         }
 
         if (placed == 0) {
-            errorSink.appendError(compiler, "Structure had no placeable blocks: " + absSrc, el);
+            errorSink.appendError(compiler, "Structure had no placeable blocks: " + src, null);
         }
 
         // Spawn entities stored by the region-wand exporter (snbt+entities mode).

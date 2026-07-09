@@ -19,7 +19,6 @@ import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
-import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
@@ -37,7 +36,6 @@ public class SceneTagCompiler extends BlockTagCompiler {
     private static final int SCENE_HEAVY_ELEMENT_THRESHOLD = 8;
 
     private Map<String, SceneElementTagCompiler> elementCompilers = Collections.emptyMap();
-    private final GuideSceneStructureFingerprintResolver structureFingerprintResolver = new GuideSceneStructureFingerprintResolver();
 
     private static final int DEFAULT_WIDTH = 320;
     private static final int DEFAULT_HEIGHT = 180;

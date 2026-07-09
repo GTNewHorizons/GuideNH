@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.scene.level;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 
+import lombok.Getter;
+
 public class GuidebookChunk {
 
     public final int chunkX;
@@ -17,6 +19,7 @@ public class GuidebookChunk {
     // a side array; for the synthetic preview chunk we just keep the full int.
     private final int[] metas = new int[16 * 16 * 256];
 
+    @Getter
     private int filledCount = 0;
 
     public GuidebookChunk(int chunkX, int chunkZ) {
@@ -58,10 +61,6 @@ public class GuidebookChunk {
 
     public boolean isEmpty() {
         return filledCount == 0;
-    }
-
-    public int getFilledCount() {
-        return filledCount;
     }
 
     public void forEachBlock(BlockIterator it) {

@@ -4,10 +4,15 @@ import java.util.Set;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 
+import lombok.Getter;
+
 public class InWorldBlockFaceOverlayAnnotation extends InWorldBoxFaceOverlayAnnotation {
 
+    @Getter
     private final int blockX;
+    @Getter
     private final int blockY;
+    @Getter
     private final int blockZ;
     private final Set<Long> groupedPositions;
 
@@ -18,18 +23,6 @@ public class InWorldBlockFaceOverlayAnnotation extends InWorldBoxFaceOverlayAnno
         this.blockY = blockY;
         this.blockZ = blockZ;
         this.groupedPositions = groupedPositions;
-    }
-
-    public int getBlockX() {
-        return blockX;
-    }
-
-    public int getBlockY() {
-        return blockY;
-    }
-
-    public int getBlockZ() {
-        return blockZ;
     }
 
     @Override

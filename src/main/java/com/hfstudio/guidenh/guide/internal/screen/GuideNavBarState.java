@@ -16,9 +16,8 @@ public class GuideNavBarState {
 
     public GuideNavBarState(boolean bookmarkGroupExpanded, Set<ResourceLocation> expandedPageIds, int scrollY) {
         this.bookmarkGroupExpanded = bookmarkGroupExpanded;
-        this.expandedPageIds = Set.copyOf(
-            expandedPageIds == null ? new LinkedHashSet<ResourceLocation>()
-                : new LinkedHashSet<ResourceLocation>(expandedPageIds));
+        this.expandedPageIds = Set
+            .copyOf(expandedPageIds == null ? new LinkedHashSet<>() : new LinkedHashSet<>(expandedPageIds));
         this.scrollY = Math.max(0, scrollY);
     }
 

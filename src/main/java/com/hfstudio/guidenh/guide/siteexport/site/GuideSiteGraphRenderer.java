@@ -107,20 +107,20 @@ public class GuideSiteGraphRenderer {
             for (SlotKind slot : entry.slots()) {
                 switch (slot) {
                     case VERTICAL:
-                        prefix.append("\u2502   ");
+                        prefix.append("│   ");
                         break;
                     case BRANCH:
-                        prefix.append("\u251C\u2500\u2500 ");
+                        prefix.append("├── ");
                         break;
                     case LAST_BRANCH:
-                        prefix.append("\u2514\u2500\u2500 ");
+                        prefix.append("└── ");
                         break;
                     default:
                         prefix.append("    ");
                         break;
                 }
             }
-            if (prefix.length() > 0) {
+            if (!prefix.isEmpty()) {
                 html.append("<span class=\"guide-file-tree-prefix\">")
                     .append(esc(prefix.toString()))
                     .append("</span>");
@@ -207,7 +207,7 @@ public class GuideSiteGraphRenderer {
             doc.getRoot(),
             null,
             true,
-            nodeHtmlById != null ? nodeHtmlById : new LinkedHashMap<String, String>());
+            nodeHtmlById != null ? nodeHtmlById : new LinkedHashMap<>());
         StringBuilder html = new StringBuilder();
         html.append(
             "<div class=\"guide-mermaid-pan\" data-guide-pannable><div class=\"guide-mermaid-stage\" data-guide-mermaid-stage>");
@@ -353,7 +353,7 @@ public class GuideSiteGraphRenderer {
         int start = 0;
         if (hasHeader) {
             html.append("<thead><tr>");
-            for (String cell : rows.get(0)) {
+            for (String cell : rows.getFirst()) {
                 html.append("<th>")
                     .append(esc(cell))
                     .append("</th>");
@@ -592,12 +592,12 @@ public class GuideSiteGraphRenderer {
                 if (ci < 0 || ci >= nCat) continue;
                 double cx = left + (ci + 0.5) * clusterW;
                 double cy = bottom - (s.ys[di] - yMin) / (yMax - yMin) * plotH;
-                if (linePts.length() > 0) linePts.append(" ");
+                if (!linePts.isEmpty()) linePts.append(" ");
                 linePts.append(fmtD(cx))
                     .append(",")
                     .append(fmtD(cy));
             }
-            if (linePts.length() > 0) {
+            if (!linePts.isEmpty()) {
                 svg.append("<polyline class=\"guide-chart-shape\" points=\"")
                     .append(linePts)
                     .append("\" stroke=\"")
@@ -632,28 +632,28 @@ public class GuideSiteGraphRenderer {
             int pr = pieInset.size / 2;
             int pcx, pcy;
             String position = normalizePieInsetPosition(pieInset.position);
-            switch (position) {
-                case "left":
+            pcy = switch (position) {
+                case "left" -> {
                     pcx = left + pr + 4;
-                    pcy = top + pr + 4;
-                    break;
-                case "right":
+                    yield top + pr + 4;
+                }
+                case "right" -> {
                     pcx = w - PADDING - pr;
-                    pcy = top + Math.max(pr, plotH / 2);
-                    break;
-                case "bottom-right":
+                    yield top + Math.max(pr, plotH / 2);
+                }
+                case "bottom-right" -> {
                     pcx = right - pr - 4;
-                    pcy = bottom - pr - 4;
-                    break;
-                case "bottom-left":
+                    yield bottom - pr - 4;
+                }
+                case "bottom-left" -> {
                     pcx = left + pr + 4;
-                    pcy = bottom - pr - 4;
-                    break;
-                default:
+                    yield bottom - pr - 4;
+                }
+                default -> {
                     pcx = right - pr - 4;
-                    pcy = top + pr + 4;
-                    break;
-            }
+                    yield top + pr + 4;
+                }
+            };
             // Semi-transparent backing circle
             svg.append("<circle cx=\"")
                 .append(pcx)
@@ -1633,7 +1633,7 @@ public class GuideSiteGraphRenderer {
                 double x = xMin + (xMax - xMin) * i / N_SAMPLES;
                 double y = plot.evaluate(x);
                 if (!Double.isFinite(y)) {
-                    if (inSeg && pts.length() > 0) {
+                    if (inSeg && !pts.isEmpty()) {
                         flushPolyline(svg, pts, stroke, tip);
                         pts.setLength(0);
                         inSeg = false;
@@ -1650,7 +1650,7 @@ public class GuideSiteGraphRenderer {
                     .append(py);
                 inSeg = true;
             }
-            if (inSeg && pts.length() > 0) {
+            if (inSeg && !pts.isEmpty()) {
                 flushPolyline(svg, pts, stroke, tip);
             }
         }
@@ -2023,13 +2023,11 @@ public class GuideSiteGraphRenderer {
         height = Math.min(height, visible.size() * CORNER_LEGEND_ROW_H + CORNER_LEGEND_PADDING_Y * 2);
         int x = switch (position) {
             case TOP_LEFT, BOTTOM_LEFT -> left + CORNER_LEGEND_GAP;
-            case TOP_RIGHT, BOTTOM_RIGHT -> right - width - CORNER_LEGEND_GAP;
-            case NONE -> right - width - CORNER_LEGEND_GAP;
+            case TOP_RIGHT, BOTTOM_RIGHT, NONE -> right - width - CORNER_LEGEND_GAP;
         };
         int y = switch (position) {
-            case TOP_LEFT, TOP_RIGHT -> top + CORNER_LEGEND_GAP;
+            case TOP_LEFT, TOP_RIGHT, NONE -> top + CORNER_LEGEND_GAP;
             case BOTTOM_LEFT, BOTTOM_RIGHT -> bottom - height - CORNER_LEGEND_GAP;
-            case NONE -> top + CORNER_LEGEND_GAP;
         };
         x = clamp(x, left, right - width);
         y = clamp(y, top, bottom - height);
@@ -2104,13 +2102,11 @@ public class GuideSiteGraphRenderer {
         height = Math.min(height, visible.size() * CORNER_LEGEND_ROW_H + CORNER_LEGEND_PADDING_Y * 2);
         int x = switch (position) {
             case TOP_LEFT, BOTTOM_LEFT -> left + CORNER_LEGEND_GAP;
-            case TOP_RIGHT, BOTTOM_RIGHT -> right - width - CORNER_LEGEND_GAP;
-            case NONE -> right - width - CORNER_LEGEND_GAP;
+            case TOP_RIGHT, BOTTOM_RIGHT, NONE -> right - width - CORNER_LEGEND_GAP;
         };
         int y = switch (position) {
-            case TOP_LEFT, TOP_RIGHT -> top + CORNER_LEGEND_GAP;
+            case TOP_LEFT, TOP_RIGHT, NONE -> top + CORNER_LEGEND_GAP;
             case BOTTOM_LEFT, BOTTOM_RIGHT -> bottom - height - CORNER_LEGEND_GAP;
-            case NONE -> top + CORNER_LEGEND_GAP;
         };
         x = clamp(x, left, right - width);
         y = clamp(y, top, bottom - height);
@@ -2196,12 +2192,12 @@ public class GuideSiteGraphRenderer {
             sb.append(category);
         }
         if (series != null && !series.isEmpty()) {
-            if (sb.length() > 0) {
+            if (!sb.isEmpty()) {
                 sb.append(" - ");
             }
             sb.append(series);
         }
-        if (sb.length() > 0) {
+        if (!sb.isEmpty()) {
             sb.append(": ");
         }
         sb.append(formatNum(value));

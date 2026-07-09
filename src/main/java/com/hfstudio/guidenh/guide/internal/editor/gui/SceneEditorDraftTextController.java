@@ -3,12 +3,15 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import lombok.Getter;
+
 public class SceneEditorDraftTextController {
 
     private final Supplier<String> appliedValueSupplier;
     private final boolean emptyMeansRestoreAppliedValue;
     private final Predicate<String> draftCommitHandler;
 
+    @Getter
     private String draftText;
     private boolean validationError;
 
@@ -19,10 +22,6 @@ public class SceneEditorDraftTextController {
         this.draftCommitHandler = draftCommitHandler;
         this.draftText = safeText(appliedValueSupplier.get());
         this.validationError = false;
-    }
-
-    public String getDraftText() {
-        return draftText;
     }
 
     public void setDraftText(String draftText) {

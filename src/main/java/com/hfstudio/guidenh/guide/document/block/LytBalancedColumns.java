@@ -4,11 +4,16 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.Layouts;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Places children into up to two columns, always preferring the left-most column when it has the
  * same or more free vertical space than the right column. Falls back to a normal vertical stack
  * when any child cannot fit inside a half-width column.
  */
+@Getter
+@Setter
 public class LytBalancedColumns extends LytBox {
 
     private static final int DEFAULT_COLUMN_COUNT = 2;
@@ -72,14 +77,6 @@ public class LytBalancedColumns extends LytBox {
         }
 
         return new LytRect(x, y, contentWidth, contentHeight);
-    }
-
-    public int getGap() {
-        return gap;
-    }
-
-    public void setGap(int gap) {
-        this.gap = gap;
     }
 
     private LytRect verticalFallback(LayoutContext context, int x, int y, int availableWidth) {

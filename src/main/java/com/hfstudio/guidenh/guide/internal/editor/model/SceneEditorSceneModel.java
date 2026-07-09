@@ -9,27 +9,60 @@ import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class SceneEditorSceneModel {
 
     @Nullable
     private String structureSource;
     @Nullable
     private String perspectivePreset;
+    @Getter
+    @Setter
     private int previewWidth;
+    @Getter
+    @Setter
     private int previewHeight;
+    @Getter
+    @Setter
     private float rotationX;
+    @Getter
+    @Setter
     private float rotationY;
+    @Getter
+    @Setter
     private float rotationZ;
+    @Getter
+    @Setter
     private float offsetX;
+    @Getter
+    @Setter
     private float offsetY;
+    @Getter
+    @Setter
     private float zoom;
+    @Getter
+    @Setter
     private boolean interactive;
+    @Getter
+    @Setter
     private boolean showBackground;
+    @Getter
+    @Setter
     private boolean allowLayerSlider;
+    @Getter
+    @Setter
     private float centerX;
+    @Getter
+    @Setter
     private float centerY;
+    @Getter
+    @Setter
     private float centerZ;
+    @Getter
     private final List<SceneEditorSceneNodeModel> sceneNodes;
+    @Getter
     private final List<SceneEditorElementModel> elements;
 
     private SceneEditorSceneModel(@Nullable String structureSource) {
@@ -131,46 +164,6 @@ public class SceneEditorSceneModel {
         this.perspectivePreset = perspectivePreset;
     }
 
-    public int getPreviewWidth() {
-        return previewWidth;
-    }
-
-    public void setPreviewWidth(int previewWidth) {
-        this.previewWidth = previewWidth;
-    }
-
-    public int getPreviewHeight() {
-        return previewHeight;
-    }
-
-    public void setPreviewHeight(int previewHeight) {
-        this.previewHeight = previewHeight;
-    }
-
-    public float getRotationX() {
-        return rotationX;
-    }
-
-    public void setRotationX(float rotationX) {
-        this.rotationX = rotationX;
-    }
-
-    public float getRotationY() {
-        return rotationY;
-    }
-
-    public void setRotationY(float rotationY) {
-        this.rotationY = rotationY;
-    }
-
-    public float getRotationZ() {
-        return rotationZ;
-    }
-
-    public void setRotationZ(float rotationZ) {
-        this.rotationZ = rotationZ;
-    }
-
     public boolean hasExplicitRotationX() {
         return !Float.isNaN(rotationX);
     }
@@ -181,78 +174,6 @@ public class SceneEditorSceneModel {
 
     public boolean hasExplicitRotationZ() {
         return !Float.isNaN(rotationZ);
-    }
-
-    public float getOffsetX() {
-        return offsetX;
-    }
-
-    public void setOffsetX(float offsetX) {
-        this.offsetX = offsetX;
-    }
-
-    public float getOffsetY() {
-        return offsetY;
-    }
-
-    public void setOffsetY(float offsetY) {
-        this.offsetY = offsetY;
-    }
-
-    public float getZoom() {
-        return zoom;
-    }
-
-    public void setZoom(float zoom) {
-        this.zoom = zoom;
-    }
-
-    public boolean isInteractive() {
-        return interactive;
-    }
-
-    public void setInteractive(boolean interactive) {
-        this.interactive = interactive;
-    }
-
-    public boolean isShowBackground() {
-        return showBackground;
-    }
-
-    public void setShowBackground(boolean showBackground) {
-        this.showBackground = showBackground;
-    }
-
-    public boolean isAllowLayerSlider() {
-        return allowLayerSlider;
-    }
-
-    public void setAllowLayerSlider(boolean allowLayerSlider) {
-        this.allowLayerSlider = allowLayerSlider;
-    }
-
-    public float getCenterX() {
-        return centerX;
-    }
-
-    public void setCenterX(float centerX) {
-        this.centerX = centerX;
-    }
-
-    public float getCenterY() {
-        return centerY;
-    }
-
-    public void setCenterY(float centerY) {
-        this.centerY = centerY;
-    }
-
-    public float getCenterZ() {
-        return centerZ;
-    }
-
-    public void setCenterZ(float centerZ) {
-        this.centerZ = centerZ;
     }
 
     public boolean hasExplicitOffsetX() {
@@ -283,10 +204,6 @@ public class SceneEditorSceneModel {
         return hasExplicitCenterX() || hasExplicitCenterY() || hasExplicitCenterZ();
     }
 
-    public List<SceneEditorSceneNodeModel> getSceneNodes() {
-        return sceneNodes;
-    }
-
     public void addSceneNode(SceneEditorSceneNodeModel sceneNode) {
         sceneNodes.add(sceneNode);
         if (sceneNode.getType() == SceneEditorSceneNodeType.IMPORT_STRUCTURE && this.structureSource == null) {
@@ -298,10 +215,6 @@ public class SceneEditorSceneModel {
         if (sceneNode.getType() == SceneEditorSceneNodeType.ANNOTATION && sceneNode.getAnnotationElement() != null) {
             elements.add(sceneNode.getAnnotationElement());
         }
-    }
-
-    public List<SceneEditorElementModel> getElements() {
-        return elements;
     }
 
     public void addElement(SceneEditorElementModel element) {

@@ -23,7 +23,7 @@ public class HeadingInfoExtractor implements DebugInfoExtractor {
         }
     }
 
-    private String extractText(Iterable<? extends Object> contents) {
+    private String extractText(Iterable<?> contents) {
         StringBuilder sb = new StringBuilder();
         for (Object content : contents) {
             String text = String.valueOf(content);

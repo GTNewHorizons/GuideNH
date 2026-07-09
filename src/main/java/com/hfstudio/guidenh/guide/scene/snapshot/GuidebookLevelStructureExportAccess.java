@@ -2,9 +2,6 @@ package com.hfstudio.guidenh.guide.scene.snapshot;
 
 import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.World;
-
-import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
@@ -38,9 +35,4 @@ public class GuidebookLevelStructureExportAccess implements StructureExportAcces
             : Block.blockRegistry.getNameForObject(block);
     }
 
-    @Override
-    @Nullable
-    public World getSourceWorld() {
-        return null;
-    }
 }

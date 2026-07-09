@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
+import lombok.Getter;
+
+@Getter
 public class AutocompleteCommit {
 
     private final String text;
@@ -12,15 +15,4 @@ public class AutocompleteCommit {
         this.selectionEnd = selectionEnd;
     }
 
-    public String getText() {
-        return text;
-    }
-
-    public int getSelectionStart() {
-        return selectionStart;
-    }
-
-    public int getSelectionEnd() {
-        return selectionEnd;
-    }
 }

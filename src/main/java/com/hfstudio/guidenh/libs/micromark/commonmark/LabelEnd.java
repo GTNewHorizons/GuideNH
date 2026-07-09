@@ -119,7 +119,7 @@ public class LabelEnd {
             .token().type.equals(Types.labelLink) ? Types.link : Types.image;
         group.start = events.get(open)
             .token().start;
-        group.end = events.get(events.size() - 1)
+        group.end = events.getLast()
             .token().end;
 
         var label = new Token();

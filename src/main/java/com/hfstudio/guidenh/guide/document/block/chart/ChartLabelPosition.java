@@ -16,27 +16,15 @@ public enum ChartLabelPosition {
         if (s == null) {
             return def;
         }
-        switch (s.trim()
+        return switch (s.trim()
             .toLowerCase()) {
-            case "none":
-                return NONE;
-            case "inside":
-            case "in":
-                return INSIDE;
-            case "outside":
-            case "out":
-                return OUTSIDE;
-            case "above":
-            case "top":
-                return ABOVE;
-            case "below":
-            case "bottom":
-                return BELOW;
-            case "center":
-            case "middle":
-                return CENTER;
-            default:
-                return def;
-        }
+            case "none" -> NONE;
+            case "inside", "in" -> INSIDE;
+            case "outside", "out" -> OUTSIDE;
+            case "above", "top" -> ABOVE;
+            case "below", "bottom" -> BELOW;
+            case "center", "middle" -> CENTER;
+            default -> def;
+        };
     }
 }

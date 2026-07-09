@@ -9,6 +9,8 @@ import java.util.Map;
 
 import com.hfstudio.guidenh.bridge.semantic.providers.RuntimeSemanticSupport;
 
+import lombok.Getter;
+
 public class ItemPreviewSearchService {
 
     public PreviewSearchResult search(PreviewSearchQuery query) {
@@ -415,6 +417,7 @@ public class ItemPreviewSearchService {
         return !value.isEmpty();
     }
 
+    @Getter
     public static class RankedPreviewSearchEntry {
 
         private final int score;
@@ -435,24 +438,5 @@ public class ItemPreviewSearchService {
             this.pathLength = path == null ? Integer.MAX_VALUE : path.length();
         }
 
-        public int getScore() {
-            return score;
-        }
-
-        public PreviewSearchEntry getEntry() {
-            return entry;
-        }
-
-        public int getStructuredSpecificity() {
-            return structuredSpecificity;
-        }
-
-        public int getFamilySize() {
-            return familySize;
-        }
-
-        public int getPathLength() {
-            return pathLength;
-        }
     }
 }

@@ -45,7 +45,7 @@ public class PreCompiler extends BlockTagCompiler {
         // Extract code text from children — should be a single MdAstText child
         String codeText = "";
         var children = el.children();
-        if (!children.isEmpty() && children.get(0) instanceof MdAstText text) {
+        if (!children.isEmpty() && children.getFirst() instanceof MdAstText text) {
             codeText = text.value;
         }
 
@@ -155,7 +155,7 @@ public class PreCompiler extends BlockTagCompiler {
                 continue;
             }
             if (Character.isWhitespace(ch) && !inQuotes) {
-                if (current.length() > 0) {
+                if (!current.isEmpty()) {
                     tokens.add(current.toString());
                     current.setLength(0);
                 }
@@ -163,7 +163,7 @@ public class PreCompiler extends BlockTagCompiler {
             }
             current.append(ch);
         }
-        if (current.length() > 0) {
+        if (!current.isEmpty()) {
             tokens.add(current.toString());
         }
         return tokens;

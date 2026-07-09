@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.bridge.preview;
 
 import java.util.Objects;
 
+import lombok.Getter;
+
+@Getter
 public class ItemPreviewCacheKey {
 
     private final String capability;
@@ -18,30 +21,6 @@ public class ItemPreviewCacheKey {
         this.count = count;
         this.nbt = nbt == null ? "" : nbt;
         this.renderVariant = renderVariant == null ? "default" : renderVariant;
-    }
-
-    public String getCapability() {
-        return capability;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public int getMeta() {
-        return meta;
-    }
-
-    public int getCount() {
-        return count;
-    }
-
-    public String getNbt() {
-        return nbt;
-    }
-
-    public String getRenderVariant() {
-        return renderVariant;
     }
 
     public String toPreviewKey() {

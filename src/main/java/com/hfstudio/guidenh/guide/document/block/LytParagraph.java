@@ -19,13 +19,24 @@ import com.hfstudio.guidenh.guide.layout.flow.LineElement;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlowContainer {
 
     protected final FlowBuilder content = new FlowBuilder();
 
+    @Getter
+    @Setter
     protected int paddingLeft;
+    @Getter
+    @Setter
     protected int paddingTop;
+    @Getter
+    @Setter
     protected int paddingRight;
+    @Getter
+    @Setter
     protected int paddingBottom;
 
     @Nullable
@@ -154,38 +165,6 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
         content.clear();
     }
 
-    public int getPaddingLeft() {
-        return paddingLeft;
-    }
-
-    public void setPaddingLeft(int paddingLeft) {
-        this.paddingLeft = paddingLeft;
-    }
-
-    public int getPaddingTop() {
-        return paddingTop;
-    }
-
-    public void setPaddingTop(int paddingTop) {
-        this.paddingTop = paddingTop;
-    }
-
-    public int getPaddingRight() {
-        return paddingRight;
-    }
-
-    public void setPaddingRight(int paddingRight) {
-        this.paddingRight = paddingRight;
-    }
-
-    public int getPaddingBottom() {
-        return paddingBottom;
-    }
-
-    public void setPaddingBottom(int paddingBottom) {
-        this.paddingBottom = paddingBottom;
-    }
-
     /**
      * Quick shorthand to create a paragrpah of plain text.
      */
@@ -259,7 +238,7 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
         List<FlowContentEntry> entries = new ArrayList<>();
         for (LytFlowContent flowContent : getContent()) {
             content.enumerateContentBounds(flowContent)
-                .forEach(bounds -> { entries.add(new FlowContentEntry(flowContent, bounds)); });
+                .forEach(bounds -> entries.add(new FlowContentEntry(flowContent, bounds)));
         }
         return entries;
     }

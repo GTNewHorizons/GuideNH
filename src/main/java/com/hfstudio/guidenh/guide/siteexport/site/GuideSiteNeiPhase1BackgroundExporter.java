@@ -36,7 +36,7 @@ public class GuideSiteNeiPhase1BackgroundExporter {
      * {@link NeiRecipeLookup#lookupHandlerWidth}/{@link NeiRecipeLookup#lookupHandlerHeight};
      * a flush viewport clips top/right bezel lines and truncates footer text unless we pad here. Site overlays use the
      * same
-     * inset 闁?see {@link com.hfstudio.guidenh.guide.siteexport.site.GuideSiteRecipeExporter#renderNeiPositionedSlots}.
+     * inset 闁?see {@link GuideSiteRecipeExporter#renderNeiPositionedSlots}.
      */
     public static final int VIEWPORT_MARGIN_PX = 6;
 

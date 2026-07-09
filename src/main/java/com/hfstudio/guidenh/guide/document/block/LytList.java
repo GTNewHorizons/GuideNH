@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import lombok.Getter;
+
+@Getter
 public class LytList extends LytVBox {
 
     private final boolean ordered;
@@ -20,11 +23,4 @@ public class LytList extends LytVBox {
         return depth;
     }
 
-    public boolean isOrdered() {
-        return ordered;
-    }
-
-    public int getStart() {
-        return start;
-    }
 }

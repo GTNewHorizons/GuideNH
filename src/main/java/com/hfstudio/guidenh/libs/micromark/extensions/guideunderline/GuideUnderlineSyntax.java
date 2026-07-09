@@ -147,7 +147,7 @@ public class GuideUnderlineSyntax extends Extension {
             State start(int code) {
                 Assert.check(code == markerCode, "expected marker code");
 
-                if (previous == markerCode && !events.get(events.size() - 1)
+                if (previous == markerCode && !events.getLast()
                     .token().type.equals(Types.characterEscape)) {
                     return nok.step(code);
                 }

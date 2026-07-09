@@ -17,7 +17,6 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeType;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -31,27 +30,21 @@ public class GuideSceneStructureFingerprintResolver {
 
     @Nullable
     public GuideSceneStructureCacheKey buildForGameScene(PageCompiler compiler,
-        List<? extends MdAstAnyContent> children,
-        @Nullable Map<String, StructureLibPreviewSelection> structureLibSelections) {
+        List<? extends MdAstAnyContent> children) {
         GuideSceneStructureFingerprintBuilder builder = new GuideSceneStructureFingerprintBuilder();
-        Map<String, StructureLibPreviewSelection> selections = structureLibSelections != null ? structureLibSelections
-            : Map.of();
         int structuralIndex = 0;
-        int structureLibIndex = 0;
         for (MdAstAnyContent child : children) {
             MdxJsxElementFields element = unwrapSceneElement(child);
             if (element == null || !isStructuralSceneElement(element.name())) {
                 continue;
             }
-            int currentStructureLibIndex = "ImportStructureLib".equals(element.name()) ? structureLibIndex++ : -1;
-            appendGameSceneElement(builder, compiler, element, selections, structuralIndex++, currentStructureLibIndex);
+            appendGameSceneElement(builder, compiler, element, structuralIndex++);
         }
         return builder.isEmpty() ? null : builder.build();
     }
 
     @Nullable
-    public GuideSceneStructureCacheKey buildForPreview(SceneEditorSession session, Path workingRoot,
-        @Nullable StructureLibPreviewSelection structureLibSelectionOverride) {
+    public GuideSceneStructureCacheKey buildForPreview(SceneEditorSession session, Path workingRoot) {
         SceneEditorSceneModel model = session.getSceneModel();
         GuideSceneStructureFingerprintBuilder builder = new GuideSceneStructureFingerprintBuilder();
         if (model.getSceneNodes()
@@ -64,7 +57,7 @@ public class GuideSceneStructureFingerprintResolver {
             if (!isStructuralPreviewNode(node.getType())) {
                 continue;
             }
-            appendPreviewNode(builder, session, workingRoot, node, structureLibSelectionOverride, structuralIndex++);
+            appendPreviewNode(builder, session, workingRoot, node, structuralIndex++);
         }
         return builder.isEmpty() ? null : builder.build();
     }
@@ -72,16 +65,13 @@ public class GuideSceneStructureFingerprintResolver {
     public boolean isStructuralSceneElement(@Nullable String name) {
         return "Block".equals(name) || "Entity".equals(name)
             || "ImportStructure".equals(name)
-            || "ImportStructureLib".equals(name)
             || "PlaceBlock".equals(name)
             || "RemoveBlocks".equals(name)
             || "ReplaceBlock".equals(name);
     }
 
     public boolean isStructuralPreviewNode(SceneEditorSceneNodeType type) {
-        return type == SceneEditorSceneNodeType.IMPORT_STRUCTURE
-            || type == SceneEditorSceneNodeType.IMPORT_STRUCTURE_LIB
-            || type == SceneEditorSceneNodeType.REMOVE_BLOCKS
+        return type == SceneEditorSceneNodeType.IMPORT_STRUCTURE || type == SceneEditorSceneNodeType.REMOVE_BLOCKS
             || type == SceneEditorSceneNodeType.OPAQUE;
     }
 
@@ -91,30 +81,15 @@ public class GuideSceneStructureFingerprintResolver {
     }
 
     private void appendGameSceneElement(GuideSceneStructureFingerprintBuilder builder, PageCompiler compiler,
-        MdxJsxElementFields element, Map<String, StructureLibPreviewSelection> structureLibSelections,
-        int structuralIndex, int structureLibIndex) {
+        MdxJsxElementFields element, int structuralIndex) {
         String name = element.name();
         if (name == null) {
             return;
         }
         String prefix = structuralIndex + ":" + name;
-        appendAttributes(
-            builder,
-            prefix,
-            element.attributes(),
-            attributeNode -> shouldIncludeSceneAttribute(name, attributeNode));
+        appendAttributes(builder, prefix, element.attributes());
         if ("ImportStructure".equals(name)) {
             appendImportedStructureAsset(builder, prefix, compiler, element.getAttributeString("src", null));
-            return;
-        }
-        if ("ImportStructureLib".equals(name)) {
-            appendStructureLibSelection(
-                builder,
-                prefix,
-                element.getAttributeString("name", null),
-                structureLibSelections,
-                structureLibIndex,
-                element.getAttributeString("channel", null));
         }
     }
 
@@ -127,8 +102,7 @@ public class GuideSceneStructureFingerprintResolver {
     }
 
     private void appendPreviewNode(GuideSceneStructureFingerprintBuilder builder, SceneEditorSession session,
-        Path workingRoot, SceneEditorSceneNodeModel node,
-        @Nullable StructureLibPreviewSelection structureLibSelectionOverride, int structuralIndex) {
+        Path workingRoot, SceneEditorSceneNodeModel node, int structuralIndex) {
         String prefix = structuralIndex + ":"
             + node.getType()
                 .name();
@@ -142,10 +116,6 @@ public class GuideSceneStructureFingerprintResolver {
         appendAttributes(builder, prefix, node.getType(), node.getAttributes());
         if (node.getType() == SceneEditorSceneNodeType.IMPORT_STRUCTURE) {
             appendPreviewStructureText(builder, prefix, session, workingRoot, node.getAttribute("src"));
-            return;
-        }
-        if (node.getType() == SceneEditorSceneNodeType.IMPORT_STRUCTURE_LIB) {
-            appendStructureLibSelection(builder, prefix, structureLibSelectionOverride, node.getAttribute("channel"));
         }
     }
 
@@ -184,66 +154,10 @@ public class GuideSceneStructureFingerprintResolver {
             }
     }
 
-    private void appendStructureLibSelection(GuideSceneStructureFingerprintBuilder builder, String prefix,
-        @Nullable String structureName, Map<String, StructureLibPreviewSelection> structureLibSelections,
-        int structureLibIndex, @Nullable String requestedChannel) {
-        String normalizedName = normalize(structureName);
-        StructureLibPreviewSelection selection = normalizedName != null ? structureLibSelections.get(normalizedName)
-            : structureLibSelections.get("structurelib#" + Math.max(0, structureLibIndex));
-        appendStructureLibSelection(builder, prefix, selection, requestedChannel);
-    }
-
-    private void appendStructureLibSelection(GuideSceneStructureFingerprintBuilder builder, String prefix,
-        @Nullable StructureLibPreviewSelection selection, @Nullable String requestedChannel) {
-        StructureLibPreviewSelection effectiveSelection = resolveEffectiveSelection(selection, requestedChannel);
-        if (effectiveSelection != null) {
-            builder.add(prefix + ":selection:tier", effectiveSelection.getMasterTier());
-            List<Map.Entry<String, Integer>> channelEntries = new ArrayList<>(
-                effectiveSelection.getChannelOverrides()
-                    .entrySet());
-            channelEntries.sort(Map.Entry.comparingByKey());
-            for (Map.Entry<String, Integer> entry : channelEntries) {
-                builder.add(prefix + ":selection:channel:" + entry.getKey(), entry.getValue());
-            }
-            List<Map.Entry<String, Boolean>> optionEntries = new ArrayList<>(
-                effectiveSelection.getIntegrationOptions()
-                    .entrySet());
-            optionEntries.sort(Map.Entry.comparingByKey());
-            for (Map.Entry<String, Boolean> entry : optionEntries) {
-                builder.add(prefix + ":selection:option:" + entry.getKey(), entry.getValue());
-            }
-            return;
-        }
-        if (requestedChannel != null && !requestedChannel.trim()
-            .isEmpty()) {
-            builder.add(prefix + ":selection:requestedChannel", requestedChannel.trim());
-        }
-    }
-
-    @Nullable
-    private StructureLibPreviewSelection resolveEffectiveSelection(@Nullable StructureLibPreviewSelection selection,
-        @Nullable String requestedChannel) {
-        if (selection != null) {
-            return selection;
-        }
-        String normalizedRequestedChannel = normalize(requestedChannel);
-        if (normalizedRequestedChannel == null) {
-            return StructureLibPreviewSelection.defaultSelection();
-        }
-        try {
-            return StructureLibPreviewSelection.ofMasterTier(Integer.parseInt(normalizedRequestedChannel));
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
     private void appendAttributes(GuideSceneStructureFingerprintBuilder builder, String prefix,
-        List<MdxJsxAttributeNode> attributes, SceneAttributeInclusionPredicate inclusionPredicate) {
+        List<MdxJsxAttributeNode> attributes) {
         List<String> rendered = new ArrayList<>();
         for (MdxJsxAttributeNode attributeNode : attributes) {
-            if (!inclusionPredicate.shouldInclude(attributeNode)) {
-                continue;
-            }
             rendered.add(renderAttribute(attributeNode));
         }
         rendered.sort(NULL_SAFE_STRING_COMPARATOR);
@@ -257,9 +171,6 @@ public class GuideSceneStructureFingerprintResolver {
         List<Map.Entry<String, String>> entries = new ArrayList<>(attributes.entrySet());
         entries.sort(Map.Entry.comparingByKey(NULL_SAFE_STRING_COMPARATOR));
         for (Map.Entry<String, String> entry : entries) {
-            if (!shouldIncludePreviewAttribute(nodeType, entry.getKey())) {
-                continue;
-            }
             builder.add(prefix + ":attr:" + entry.getKey(), String.valueOf(entry.getValue()));
         }
     }
@@ -278,33 +189,6 @@ public class GuideSceneStructureFingerprintResolver {
             return "..." + expressionAttribute.value;
         }
         return attributeNode.type();
-    }
-
-    private boolean shouldIncludeSceneAttribute(String elementName, MdxJsxAttributeNode attributeNode) {
-        if (!"ImportStructureLib".equals(elementName)) {
-            return true;
-        }
-        if (!(attributeNode instanceof MdxJsxAttribute attribute)) {
-            return true;
-        }
-        String attributeName = normalize(attribute.name);
-        if (attributeName == null) {
-            return true;
-        }
-        return !"name".equals(attributeName);
-    }
-
-    private boolean shouldIncludePreviewAttribute(SceneEditorSceneNodeType nodeType, @Nullable String attributeName) {
-        if (nodeType != SceneEditorSceneNodeType.IMPORT_STRUCTURE_LIB) {
-            return true;
-        }
-        String normalizedName = normalize(attributeName);
-        return !"name".equals(normalizedName);
-    }
-
-    private interface SceneAttributeInclusionPredicate {
-
-        boolean shouldInclude(MdxJsxAttributeNode attributeNode);
     }
 
     @Nullable

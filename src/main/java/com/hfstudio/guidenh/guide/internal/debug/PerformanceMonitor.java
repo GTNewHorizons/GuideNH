@@ -8,6 +8,8 @@ import net.minecraft.client.Minecraft;
 
 import com.hfstudio.guidenh.config.ModConfig;
 
+import lombok.Getter;
+
 /**
  * Tracks FPS and memory usage for debug overlay.
  * Optimized for zero overhead when debug mode is disabled.
@@ -23,7 +25,9 @@ public class PerformanceMonitor {
     private static final long FPS_UPDATE_INTERVAL_MS = 500;
 
     private final MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+    @Getter
     private long usedMemoryMB = 0;
+    @Getter
     private long maxMemoryMB = 0;
     private long lastMemoryUpdate = 0;
     private static final long MEMORY_UPDATE_INTERVAL_MS = 1000;
@@ -75,18 +79,10 @@ public class PerformanceMonitor {
 
     public int getFps() {
         if (!ModConfig.debug.guiDebugMode) {
-            return Minecraft.getMinecraft().debug.split(" ")[0].equals("") ? 0
+            return Minecraft.getMinecraft().debug.split(" ")[0].isEmpty() ? 0
                 : Integer.parseInt(Minecraft.getMinecraft().debug.split(" ")[0]);
         }
         return calculatedFps;
-    }
-
-    public long getUsedMemoryMB() {
-        return usedMemoryMB;
-    }
-
-    public long getMaxMemoryMB() {
-        return maxMemoryMB;
     }
 
     public int getMemoryPercentage() {

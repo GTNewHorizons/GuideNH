@@ -134,6 +134,11 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         return mindmap;
     }
 
+    public void setPreferredSize(int width, int height) {
+        preferredWidth = Math.max(0, width);
+        preferredHeight = Math.max(0, height);
+    }
+
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int previousContentOffsetX = getRawOffsetX();
@@ -715,6 +720,18 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         return layout != null ? layout.contentBounds() : LytRect.empty();
     }
 
+    public interface AdvanceFunction {
+
+        float getAdvance(int codePoint, ResolvedTextStyle style);
+    }
+
+
+
+    private interface WordVisitor {
+
+        boolean accept(String word);
+    }
+
     public static class DiagramLayout {
 
         private final NodeLayout root;
@@ -855,7 +872,7 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         }
 
         String extra = "Depth: " + node.depth;
-        if (node.children.size() > 0) {
+        if (!node.children.isEmpty()) {
             extra += ", Children: " + node.children.size();
         }
 

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.util;
 
+import lombok.Setter;
+
 /**
  * Models transitions for numeric values.
  */
@@ -19,6 +21,7 @@ public class Transition {
     private final ValueGetter getter;
     private final ValueSetter setter;
 
+    @Setter
     private Ticker ticker = Ticker.SYSTEM;
 
     private double lastUpdated = Double.NaN;
@@ -96,10 +99,6 @@ public class Transition {
     public interface ValueSetter {
 
         void set(double value);
-    }
-
-    public void setTicker(Ticker ticker) {
-        this.ticker = ticker;
     }
 
     public static boolean equal(double a, double b) {

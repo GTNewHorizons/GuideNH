@@ -18,6 +18,8 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 
+import lombok.Getter;
+
 /**
  * Renders a mouse-input icon (LMB, RMB, or scroll wheel) anchored to a world position,
  * ported from Ponder's InputWindowElement.
@@ -51,7 +53,9 @@ public class PonderInputAnnotation extends OverlayAnnotation {
 
     private static final RenderItem ITEM_RENDERER = new RenderItem();
 
+    @Getter
     private final Vector3f worldPos;
+    @Getter
     private final InputType inputType;
     @Nullable
     private String modifier;
@@ -71,14 +75,6 @@ public class PonderInputAnnotation extends OverlayAnnotation {
     public PonderInputAnnotation setItemStack(@Nullable ItemStack item) {
         this.item = item;
         return this;
-    }
-
-    public Vector3f getWorldPos() {
-        return worldPos;
-    }
-
-    public InputType getInputType() {
-        return inputType;
     }
 
     @Nullable

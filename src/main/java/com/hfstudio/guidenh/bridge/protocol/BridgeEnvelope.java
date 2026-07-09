@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.bridge.protocol;
 
 import com.google.gson.JsonObject;
 
+import lombok.Getter;
+
+@Getter
 public class BridgeEnvelope {
 
     private String id;
@@ -9,26 +12,6 @@ public class BridgeEnvelope {
     private String method;
     private int protocol;
     private JsonObject payload;
-
-    public String getId() {
-        return id;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public String getMethod() {
-        return method;
-    }
-
-    public int getProtocol() {
-        return protocol;
-    }
-
-    public JsonObject getPayload() {
-        return payload;
-    }
 
     public static BridgeEnvelope response(String id, String method, JsonObject payload) {
         BridgeEnvelope envelope = new BridgeEnvelope();

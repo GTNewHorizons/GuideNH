@@ -53,7 +53,6 @@ public class ChartIcon {
         return icon;
     }
 
-    @SuppressWarnings("deprecation")
     private void resolve() {
         if (resolved) return;
         resolved = true;

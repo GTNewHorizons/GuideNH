@@ -35,6 +35,7 @@ dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Baubles-Expanded:2.2.21-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.25-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botanic-horizons:1.12.9-GTNH:dev")
+    compileOnlyApi("com.github.GTNewHorizons:BlockRenderer6343:1.4.14:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.14:dev") { transitive = false }
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 

@@ -404,10 +404,9 @@ public class GuideSiteExportTask {
                 pw.println();
             }
             Files.createDirectories(outDir);
-            Files.write(
+            Files.writeString(
                 outDir.resolve("export-failures.log"),
-                sw.toString()
-                    .getBytes(StandardCharsets.UTF_8),
+                sw.toString(),
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND);
         } catch (IOException ioException) {
@@ -971,7 +970,7 @@ public class GuideSiteExportTask {
     }
 
     private void appendCssPx(StringBuilder style, String property, int value) {
-        if (style.length() > 0) {
+        if (!style.isEmpty()) {
             style.append(';');
         }
         style.append(property)
@@ -1119,7 +1118,7 @@ public class GuideSiteExportTask {
             LinkedHashMap<String, Object> visibleLayerControl = new LinkedHashMap<>();
             visibleLayerControl.put("label", GuidebookText.SceneVisibleLayerLabel.text());
             visibleLayerControl.put("allLabel", GuidebookText.SceneAll.text());
-            visibleLayerControl.put("max", visibleLayers.get(visibleLayers.size() - 1));
+            visibleLayerControl.put("max", visibleLayers.getLast());
             controls.put("visibleLayer", visibleLayerControl);
         }
         if (scene.hasPonderData() && !ponderTicks.isEmpty()) {
@@ -1351,7 +1350,7 @@ public class GuideSiteExportTask {
         for (Integer value : channelValues.get(channelIndex)) {
             currentChannels.add(value);
             appendStructureVariantStates(states, tiers, channelIds, channelValues, channelIndex + 1, currentChannels);
-            currentChannels.remove(currentChannels.size() - 1);
+            currentChannels.removeLast();
         }
     }
 
@@ -1579,8 +1578,8 @@ public class GuideSiteExportTask {
             if (tiers.size() > 1) {
                 LinkedHashMap<String, Object> tierControl = new LinkedHashMap<>();
                 tierControl.put("label", GuidebookText.SceneStructureLibTierLabel.text());
-                tierControl.put("min", tiers.get(0));
-                tierControl.put("max", tiers.get(tiers.size() - 1));
+                tierControl.put("min", tiers.getFirst());
+                tierControl.put("max", tiers.getLast());
                 control.put("tier", tierControl);
             }
             if (!selectableChannels.isEmpty()) {

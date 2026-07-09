@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -578,11 +577,6 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static Set<String> createKnownGregTechByteArrayKeys() {
-        LinkedHashSet<String> keys = new LinkedHashSet<>();
-        keys.add("mRedstoneSided");
-        keys.add("eyeOfHarmonyOutputoutputEU_BigInt");
-        keys.add("eyeOfHarmonyOutputusedEU");
-        keys.add("powerTally");
         return Set.copyOf(
             List.of("mRedstoneSided", "eyeOfHarmonyOutputoutputEU_BigInt", "eyeOfHarmonyOutputusedEU", "powerTally"));
     }

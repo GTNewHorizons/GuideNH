@@ -22,6 +22,8 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 
+import lombok.Getter;
+
 public class SceneEditorScreenshotExportService {
 
     public static final int OPAQUE_BACKGROUND_RGB = 0x121216;
@@ -253,6 +255,7 @@ public class SceneEditorScreenshotExportService {
 
     public static final class ExportResult {
 
+        @Getter
         private final boolean success;
         @Nullable
         private final Path savedPath;
@@ -271,10 +274,6 @@ public class SceneEditorScreenshotExportService {
 
         public static ExportResult failure(Throwable error) {
             return new ExportResult(false, null, error);
-        }
-
-        public boolean isSuccess() {
-            return success;
         }
 
         public @Nullable Path getSavedPath() {

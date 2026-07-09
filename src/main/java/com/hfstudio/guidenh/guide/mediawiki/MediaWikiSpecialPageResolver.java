@@ -114,14 +114,12 @@ public class MediaWikiSpecialPageResolver {
             case MediaWikiSpecialPageIds.DOWNLOAD_GUIDENH_EXTENSION -> MediaWikiSpecialPageModels.info(definition, "");
             case MediaWikiSpecialPageIds.ALL_TRANSLATIONS -> MediaWikiSpecialPageModels
                 .grouped(definition, buildAllTranslations(context, effectiveQuery), effectiveQuery);
-            case MediaWikiSpecialPageIds.LANGUAGE_STATISTICS -> MediaWikiSpecialPageModels
+            case MediaWikiSpecialPageIds.LANGUAGE_STATISTICS, MediaWikiSpecialPageIds.TRANSLATION_STATISTICS -> MediaWikiSpecialPageModels
                 .grouped(definition, buildLanguageStatisticsGroups(context), effectiveQuery);
             case MediaWikiSpecialPageIds.PAGE_TRANSLATION -> MediaWikiSpecialPageModels
                 .grouped(definition, buildPageTranslationGroups(context, effectiveQuery), effectiveQuery);
             case MediaWikiSpecialPageIds.SEARCH_TRANSLATIONS -> MediaWikiSpecialPageModels
                 .grouped(definition, buildLanguageSearchGroups(context, effectiveQuery), effectiveQuery);
-            case MediaWikiSpecialPageIds.TRANSLATION_STATISTICS -> MediaWikiSpecialPageModels
-                .grouped(definition, buildLanguageStatisticsGroups(context), effectiveQuery);
             case MediaWikiSpecialPageIds.CONTRIBUTE -> MediaWikiSpecialPageModels
                 .flat(definition, buildContributorEntries(context), effectiveQuery);
             default -> MediaWikiSpecialPageModels

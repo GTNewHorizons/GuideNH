@@ -2,9 +2,14 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 
 import java.util.IllegalFormatException;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Cartesian chart axis configuration. All numeric fields use boxed types; {@code null} means auto.
  */
+@Getter
+@Setter
 public class ChartAxisOptions {
 
     private String label;
@@ -17,86 +22,6 @@ public class ChartAxisOptions {
     private int gridColor = 0x33FFFFFF;
     private int axisColor = 0xFF7A7A7A;
     private int labelColor = 0xFFCCCCCC;
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
-
-    public Double getMin() {
-        return min;
-    }
-
-    public void setMin(Double min) {
-        this.min = min;
-    }
-
-    public Double getMax() {
-        return max;
-    }
-
-    public void setMax(Double max) {
-        this.max = max;
-    }
-
-    public Double getStep() {
-        return step;
-    }
-
-    public void setStep(Double step) {
-        this.step = step;
-    }
-
-    public String getTickFormat() {
-        return tickFormat;
-    }
-
-    public void setTickFormat(String tickFormat) {
-        this.tickFormat = tickFormat;
-    }
-
-    public String getUnit() {
-        return unit;
-    }
-
-    public void setUnit(String unit) {
-        this.unit = unit;
-    }
-
-    public boolean isGridVisible() {
-        return gridVisible;
-    }
-
-    public void setGridVisible(boolean gridVisible) {
-        this.gridVisible = gridVisible;
-    }
-
-    public int getGridColor() {
-        return gridColor;
-    }
-
-    public void setGridColor(int gridColor) {
-        this.gridColor = gridColor;
-    }
-
-    public int getAxisColor() {
-        return axisColor;
-    }
-
-    public void setAxisColor(int axisColor) {
-        this.axisColor = axisColor;
-    }
-
-    public int getLabelColor() {
-        return labelColor;
-    }
-
-    public void setLabelColor(int labelColor) {
-        this.labelColor = labelColor;
-    }
 
     /**
      * Format a numeric value using the configured tickFormat and unit; when tickFormat is unspecified,

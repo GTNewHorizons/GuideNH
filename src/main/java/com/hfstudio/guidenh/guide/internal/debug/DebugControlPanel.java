@@ -11,6 +11,8 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
 
+import lombok.Setter;
+
 /**
  * Debug control panel displayed at center-bottom of the screen.
  * Provides buttons and dropdown menus for debug options.
@@ -29,6 +31,7 @@ public class DebugControlPanel {
     private DebugMenuItem expandedMenu = null;
 
     private final List<DebugMenuItem> menuItems = new ArrayList<>();
+    @Setter
     private GuideDebugOverlay debugOverlay;
 
     public DebugControlPanel() {
@@ -93,10 +96,6 @@ public class DebugControlPanel {
             "guidenh.debug.menu.export_debug_data",
             DebugMenuAction.EXPORT_DEBUG_DATA);
         menuItems.add(exportDebug);
-    }
-
-    public void setDebugOverlay(GuideDebugOverlay debugOverlay) {
-        this.debugOverlay = debugOverlay;
     }
 
     public void updatePosition(int screenWidth, int screenHeight) {

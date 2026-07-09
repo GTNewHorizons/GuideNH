@@ -4,13 +4,12 @@ import java.util.Objects;
 
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 
+import lombok.Getter;
+
+@Getter
 public class LytFlowText extends LytFlowContent {
 
     private String text = "";
-
-    public String getText() {
-        return text;
-    }
 
     public void setText(String text) {
         this.text = Objects.requireNonNull(text, "text");

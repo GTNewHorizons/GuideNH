@@ -32,6 +32,8 @@ import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge.EditorAccess;
 import com.hfstudio.guidenh.integration.nei.NeiGuideNavigation;
 import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
 
+import lombok.Getter;
+
 /**
  * A document block that frames and renders a single NEI recipe using the handler's own
  * {@code drawBackground/drawForeground/drawExtras}. Layout:
@@ -67,7 +69,9 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     private static final int GREGTECH_WINDOW_TOP_BLEED = 11;
     private static final Set<String> WARNED_RECIPE_RENDER_FAILURES = Collections.synchronizedSet(new HashSet<>());
 
+    @Getter
     private final Object handler;
+    @Getter
     private final int recipeIndex;
     private final String handlerName;
     private final @Nullable ItemStack iconStack;
@@ -133,14 +137,6 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
     public static String stripFormatting(String s) {
         return s == null ? "" : EnumChatFormatting.getTextWithoutFormattingCodes(s);
-    }
-
-    public Object getHandler() {
-        return handler;
-    }
-
-    public int getRecipeIndex() {
-        return recipeIndex;
     }
 
     @Override

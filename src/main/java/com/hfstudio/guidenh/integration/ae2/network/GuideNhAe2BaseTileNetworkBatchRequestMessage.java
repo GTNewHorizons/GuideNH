@@ -2,8 +2,10 @@ package com.hfstudio.guidenh.integration.ae2.network;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 
 /** Client asks server for AE2 AEBaseTile description {@code X} payloads (eligible non-cable tiles) at world coords. */
+@Getter
 public class GuideNhAe2BaseTileNetworkBatchRequestMessage implements IMessage {
 
     public static final int MAX_POSITIONS = 64;
@@ -22,18 +24,6 @@ public class GuideNhAe2BaseTileNetworkBatchRequestMessage implements IMessage {
         this.corrId = corrId;
         this.dim = dim;
         this.xyz = xyz != null ? xyz : new int[0];
-    }
-
-    public long getCorrId() {
-        return corrId;
-    }
-
-    public int getDim() {
-        return dim;
-    }
-
-    public int[] getXyz() {
-        return xyz;
     }
 
     public int positionCount() {

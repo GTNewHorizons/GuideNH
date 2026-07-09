@@ -2,14 +2,19 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 
+import lombok.Getter;
+
 /** Replaces the old MdxAutocompleteContext. Carries tag name, attribute name, and replacement range. */
 public class MdxValueContext implements AutocompleteContext {
 
+    @Getter
     private final String tagName;
+    @Getter
     private final String attrName;
     private final int replaceStart;
     private final int replaceEnd;
     private final String partialText;
+    @Getter
     private final char missingValueTerminator;
 
     public MdxValueContext(String tagName, String attrName, int replaceStart, int replaceEnd, String partialText) {
@@ -24,14 +29,6 @@ public class MdxValueContext implements AutocompleteContext {
         this.replaceEnd = replaceEnd;
         this.partialText = partialText;
         this.missingValueTerminator = missingValueTerminator;
-    }
-
-    public String getTagName() {
-        return tagName;
-    }
-
-    public String getAttrName() {
-        return attrName;
     }
 
     @Override
@@ -49,7 +46,4 @@ public class MdxValueContext implements AutocompleteContext {
         return partialText;
     }
 
-    public char getMissingValueTerminator() {
-        return missingValueTerminator;
-    }
 }

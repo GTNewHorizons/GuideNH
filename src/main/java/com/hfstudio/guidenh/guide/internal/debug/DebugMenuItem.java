@@ -3,9 +3,12 @@ package com.hfstudio.guidenh.guide.internal.debug;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+
 /**
  * Represents a menu item in the debug control panel.
  */
+@Getter
 public class DebugMenuItem {
 
     private final String translationKey;
@@ -22,19 +25,8 @@ public class DebugMenuItem {
         submenuItems.add(item);
     }
 
-    public String getTranslationKey() {
-        return translationKey;
-    }
-
-    public DebugMenuAction getAction() {
-        return action;
-    }
-
     public boolean hasSubmenu() {
         return !submenuItems.isEmpty();
     }
 
-    public List<DebugMenuItem> getSubmenuItems() {
-        return submenuItems;
-    }
 }

@@ -57,7 +57,7 @@ public class GuideSiteLocalServer {
         this.stateFile = stateFile;
     }
 
-    public static void main(String[] args) throws Exception {
+    static void main(String[] args) throws Exception {
         int exitCode = execute(args);
         if (exitCode != 0) {
             System.exit(exitCode);

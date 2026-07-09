@@ -7,9 +7,12 @@ import java.util.OptionalInt;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
+import lombok.Getter;
+
 public class LayoutContext implements FontMetrics {
 
     private final FontMetrics fontMetrics;
+    @Getter
     private float visualScale = 1.0f;
 
     private final List<LytRect> leftFloats = new ArrayList<>();
@@ -27,10 +30,6 @@ public class LayoutContext implements FontMetrics {
     public LayoutContext withVisualScale(float visualScale) {
         this.visualScale = Math.clamp(visualScale, 0.1f, 1.0f);
         return this;
-    }
-
-    public float getVisualScale() {
-        return visualScale;
     }
 
     public LayoutContext resetTransientState() {

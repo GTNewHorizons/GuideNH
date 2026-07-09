@@ -21,18 +21,15 @@ public class MarkdownListSemantics {
         if (children.size() != 1) {
             return null;
         }
-        MdAstAnyContent firstChild = children.get(0);
+        MdAstAnyContent firstChild = children.getFirst();
         // Post-conversion: <p> element wrapping the task text
-        if (firstChild instanceof MdxJsxFlowElement && "p".equals(((MdxJsxFlowElement) firstChild).name())) {
-            MdxJsxFlowElement p = (MdxJsxFlowElement) firstChild;
+        if (firstChild instanceof MdxJsxFlowElement p && "p".equals(p.name())) {
             if (p.children()
                 .isEmpty()) {
                 return null;
             }
             if (p.children()
-                .get(0) instanceof MdAstText) {
-                MdAstText text = (MdAstText) p.children()
-                    .get(0);
+                .getFirst() instanceof MdAstText text) {
                 Matcher matcher = TASK_PATTERN.matcher(text.value);
                 if (matcher.matches()) {
                     return new TaskMarker(!" ".equals(matcher.group(1)), matcher.group(2), text);

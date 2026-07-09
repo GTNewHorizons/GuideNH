@@ -11,6 +11,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 /**
  * A block that renders a file tree as a stack of rows where each row carries a configurable depth
  * of connector lines drawn directly with {@link RenderContext#fillRect}, an optional icon block
@@ -30,7 +32,9 @@ public class LytFileTree extends LytBlock {
 
     private final List<Row> rows = new ArrayList<>();
     private final List<LytNode> childNodes = new ArrayList<>();
+    @Getter
     private int indentPx = DEFAULT_INDENT_PX;
+    @Getter
     private int rowGapPx = DEFAULT_ROW_GAP_PX;
     private int iconBoxPx = DEFAULT_ICON_BOX_PX;
     private int iconGapPx = DEFAULT_ICON_GAP_PX;
@@ -54,14 +58,6 @@ public class LytFileTree extends LytBlock {
 
     public void setRowGapPx(int rowGapPx) {
         this.rowGapPx = Math.max(0, rowGapPx);
-    }
-
-    public int getIndentPx() {
-        return indentPx;
-    }
-
-    public int getRowGapPx() {
-        return rowGapPx;
     }
 
     public boolean isEmpty() {

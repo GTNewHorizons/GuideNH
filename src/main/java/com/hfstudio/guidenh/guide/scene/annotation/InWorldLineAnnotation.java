@@ -9,6 +9,8 @@ import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 
+import lombok.Setter;
+
 public class InWorldLineAnnotation extends InWorldAnnotation {
 
     public static float DEFAULT_THICKNESS = 1f;
@@ -18,8 +20,10 @@ public class InWorldLineAnnotation extends InWorldAnnotation {
     private final ColorValue color;
     private final float thickness;
     private Arrow arrow = Arrow.NONE;
+    @Setter
     private boolean showPoints;
     private ColorValue pointColor;
+    @Setter
     private float pointSize;
     private final List<PointStyle> pointStyles = new ArrayList<>();
 
@@ -47,11 +51,11 @@ public class InWorldLineAnnotation extends InWorldAnnotation {
     }
 
     public Vector3f from() {
-        return points.get(0);
+        return points.getFirst();
     }
 
     public Vector3f to() {
-        return points.get(points.size() - 1);
+        return points.getLast();
     }
 
     public List<Vector3f> points() {
@@ -78,10 +82,6 @@ public class InWorldLineAnnotation extends InWorldAnnotation {
         return showPoints;
     }
 
-    public void setShowPoints(boolean showPoints) {
-        this.showPoints = showPoints;
-    }
-
     public ColorValue pointColor() {
         return pointColor;
     }
@@ -92,10 +92,6 @@ public class InWorldLineAnnotation extends InWorldAnnotation {
 
     public float pointSize() {
         return pointSize;
-    }
-
-    public void setPointSize(float pointSize) {
-        this.pointSize = pointSize;
     }
 
     public void addPointStyle(PointStyle style) {

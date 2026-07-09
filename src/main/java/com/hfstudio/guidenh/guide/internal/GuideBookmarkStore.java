@@ -25,7 +25,7 @@ public class GuideBookmarkStore {
             .isEmpty()) {
             return Set.of();
         }
-        Set<ResourceLocation> result = new LinkedHashSet<ResourceLocation>();
+        Set<ResourceLocation> result = new LinkedHashSet<>();
         String[] tokens = raw.split("\\|");
         for (String token : tokens) {
             String value = token.trim();
@@ -43,14 +43,14 @@ public class GuideBookmarkStore {
         if (pageIds == null || pageIds.isEmpty()) {
             return "";
         }
-        var ordered = new ArrayList<ResourceLocation>(pageIds);
+        var ordered = new ArrayList<>(pageIds);
         ordered.sort(Comparator.comparing(ResourceLocation::toString));
         StringBuilder builder = new StringBuilder();
         for (ResourceLocation pageId : ordered) {
             if (pageId == null) {
                 continue;
             }
-            if (builder.length() > 0) {
+            if (!builder.isEmpty()) {
                 builder.append('|');
             }
             builder.append(pageId);

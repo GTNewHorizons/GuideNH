@@ -793,7 +793,7 @@ public class GuideScreen extends GuiContainer
             .getNavigation()
             .recallNavigationState(guideId);
         LinkedHashSet<ResourceLocation> updated = new LinkedHashSet<>(
-            saved.expandedPageIds() != null ? saved.expandedPageIds() : Collections.<ResourceLocation>emptySet());
+            saved.expandedPageIds() != null ? saved.expandedPageIds() : Collections.emptySet());
         if (expanded) {
             updated.add(pageId);
         } else {
@@ -896,11 +896,6 @@ public class GuideScreen extends GuiContainer
             return;
         }
         guideEditorSuppressTextFocusUntilGuideHotkeyRelease = false;
-    }
-
-    @Override
-    public boolean doesGuiPauseGame() {
-        return false;
     }
 
     @Override
@@ -1921,7 +1916,6 @@ public class GuideScreen extends GuiContainer
                 runGuideEditorTextMutation(
                     () -> guideEditorTextArea
                         .applyEdit(result.getText(), result.getSelectionStart(), result.getSelectionEnd()));
-                return;
         }
     }
 
@@ -2192,9 +2186,7 @@ public class GuideScreen extends GuiContainer
             ensureLayout();
             clampScroll();
         } else if (btn == btnSearch) {
-            if (isSearchPage()) {
-                return;
-            } else if (currentRoute != null && currentRoute.isHome()) {
+            if (isSearchPage()) {} else if (currentRoute != null && currentRoute.isHome()) {
                 restoreViewState(GuideScreenViewState.of(GuideScreenRoute.homeSearch(""), 0));
                 focusSearchField();
             } else {
@@ -2259,7 +2251,7 @@ public class GuideScreen extends GuiContainer
                 ResourceLocation prevGuideId = prev.route() != null ? prev.route()
                     .guideId() : null;
                 ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
-                boolean guideChanged = !java.util.Objects.equals(oldGuideId, prevGuideId);
+                boolean guideChanged = !Objects.equals(oldGuideId, prevGuideId);
                 Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
                 restoreViewState(prev);
                 if (guideChanged) {
@@ -2297,7 +2289,7 @@ public class GuideScreen extends GuiContainer
                 ResourceLocation nextGuideId = next.route() != null ? next.route()
                     .guideId() : null;
                 ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
-                boolean guideChanged = !java.util.Objects.equals(oldGuideId, nextGuideId);
+                boolean guideChanged = !Objects.equals(oldGuideId, nextGuideId);
                 Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
                 restoreViewState(next);
                 if (guideChanged) {
@@ -2521,8 +2513,8 @@ public class GuideScreen extends GuiContainer
     private static void registerRuntimeScenes(GuidePage page) {
         LytDocument doc = page.document();
         if (doc == null) return;
-        java.util.List<LytGuidebookScene> list = page.scenes();
-        java.util.ArrayDeque<LytNode> pending = new java.util.ArrayDeque<>();
+        List<LytGuidebookScene> list = page.scenes();
+        ArrayDeque<LytNode> pending = new ArrayDeque<>();
         pending.add(doc);
         int found = 0;
         while (!pending.isEmpty()) {
@@ -3872,14 +3864,10 @@ public class GuideScreen extends GuiContainer
      */
     private static String formatBottomBar(String sourceDisplay, String authorsStr, @Nullable String dateVal,
         @Nullable String updatedVal) {
-        String authorPart = authorsStr.isEmpty() ? ""
-            : GuidebookText.PageMetaAuthor.text("\u00A7o" + authorsStr + "\u00A7r\u00A77");
-        String datePart = dateVal != null ? GuidebookText.PageMetaDate.text("\u00A7o" + dateVal + "\u00A7r\u00A77")
-            : "";
-        String updatedPart = updatedVal != null
-            ? GuidebookText.PageMetaUpdated.text("\u00A7o" + updatedVal + "\u00A7r\u00A77")
-            : "";
-        return GuidebookText.PageMetaContentFrom.text("\u00A7o" + sourceDisplay + "\u00A7r\u00A77") + authorPart
+        String authorPart = authorsStr.isEmpty() ? "" : GuidebookText.PageMetaAuthor.text("§o" + authorsStr + "§r§7");
+        String datePart = dateVal != null ? GuidebookText.PageMetaDate.text("§o" + dateVal + "§r§7") : "";
+        String updatedPart = updatedVal != null ? GuidebookText.PageMetaUpdated.text("§o" + updatedVal + "§r§7") : "";
+        return GuidebookText.PageMetaContentFrom.text("§o" + sourceDisplay + "§r§7") + authorPart
             + datePart
             + updatedPart;
     }
@@ -4283,7 +4271,7 @@ public class GuideScreen extends GuiContainer
         FontRenderer itemFont = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
         LytRect bounds = resolveTooltipBounds(interaction);
         TooltipLayout itemLayout = computeHoveringTextLayout(itemLines, mouseX, mouseY, itemFont, bounds);
-        String coordText = "\u00a76" + pos[0] + ", " + pos[1] + ", " + pos[2];
+        String coordText = "§6" + pos[0] + ", " + pos[1] + ", " + pos[2];
         // §6 = gold color; the coordinate tooltip renders above the main block tooltip.
         // drawHoveringText(list, x, y, font) draws starting at (x+12, y-12).
         // We want the debug tooltip to appear above the default position (mouseY - 12).
@@ -5002,7 +4990,7 @@ public class GuideScreen extends GuiContainer
             }
             Integer markerTarget = scrollbarOutline.findJumpTarget(mouseX, mouseY);
             if (markerTarget != null) {
-                scrollY = markerTarget.intValue();
+                scrollY = markerTarget;
                 clampScroll();
                 snapVisualScrollToTarget();
                 return;
@@ -5779,9 +5767,7 @@ public class GuideScreen extends GuiContainer
             draggingDocument = false;
             return;
         }
-        if (state == 0) {
-            return;
-        }
+        if (state == 0) {}
     }
 
     @Nullable

@@ -21,6 +21,8 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Setter;
+
 public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
 
     static final GuiSprite COPY_SPRITE = new GuiSprite(
@@ -51,6 +53,7 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
     private boolean copied;
     private long copiedUntilMillis;
     private int preferredWidth;
+    @Setter
     private boolean copyButtonVisible = true;
 
     public LytCodeBlockToolbar() {
@@ -92,10 +95,6 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
 
     public void setPreferredWidth(int preferredWidth) {
         this.preferredWidth = Math.max(0, preferredWidth);
-    }
-
-    public void setCopyButtonVisible(boolean copyButtonVisible) {
-        this.copyButtonVisible = copyButtonVisible;
     }
 
     public void setToolbarBackground(ColorValue toolbarBackground) {
@@ -166,10 +165,6 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
             return copySourceButton.getTooltip(x, y);
         }
         return Optional.empty();
-    }
-
-    public void setPaddingBottom(int paddingBottom) {
-        this.paddingBottom = paddingBottom;
     }
 
     @Override

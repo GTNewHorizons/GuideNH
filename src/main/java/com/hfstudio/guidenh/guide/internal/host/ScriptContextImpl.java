@@ -42,7 +42,6 @@ class ScriptContextImpl implements ScriptContext {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void replace(Object newNode) {
         //
         // Flow-content wrapping penetration
@@ -93,8 +92,7 @@ class ScriptContextImpl implements ScriptContext {
             // Handle LytParagraph and other LytFlowContainer parents
             if (parent instanceof LytParagraph para) {
                 Iterable<LytFlowContent> iterable = para.getContent();
-                if (iterable instanceof List) {
-                    List<LytFlowContent> list = (List<LytFlowContent>) iterable;
+                if (iterable instanceof List<LytFlowContent>list) {
                     int idx = list.indexOf(fc);
                     if (idx >= 0) {
                         fc.setParent(null);
@@ -126,7 +124,6 @@ class ScriptContextImpl implements ScriptContext {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <T extends PageIndex> T getIndex(Class<T> indexClass) {
         PageCollection pc = host.getCurrentPageCollection();
         return pc != null ? pc.getIndex(indexClass) : null;

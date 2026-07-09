@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.guide.internal.host;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class ViewportState {
 
     private int scrollY;
@@ -9,6 +12,8 @@ public class ViewportState {
     private int viewportHeight;
     private int contentWidth;
     private int contentHeight;
+    @Getter
+    @Setter
     private boolean layoutDirty;
 
     public void updateViewport(int width, int height) {
@@ -36,8 +41,7 @@ public class ViewportState {
     private int clampScroll(int y) {
         int max = getMaxScrollY();
         if (y < 0) return 0;
-        if (y > max) return max;
-        return y;
+        return Math.min(y, max);
     }
 
     public void clampScroll() {
@@ -50,14 +54,6 @@ public class ViewportState {
 
     public LytRect getRect() {
         return new LytRect(0, scrollY, viewportWidth, viewportHeight);
-    }
-
-    public boolean isLayoutDirty() {
-        return layoutDirty;
-    }
-
-    public void setLayoutDirty(boolean dirty) {
-        this.layoutDirty = dirty;
     }
 
     public int viewportWidth() {

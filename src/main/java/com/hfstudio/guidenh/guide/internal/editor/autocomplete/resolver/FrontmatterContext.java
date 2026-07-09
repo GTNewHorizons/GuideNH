@@ -2,9 +2,13 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 
+import lombok.Getter;
+
 public class FrontmatterContext implements AutocompleteContext {
 
+    @Getter
     private final String key;
+    @Getter
     private final boolean isValue;
     private final int replaceStart;
     private final int replaceEnd;
@@ -16,14 +20,6 @@ public class FrontmatterContext implements AutocompleteContext {
         this.replaceStart = replaceStart;
         this.replaceEnd = replaceEnd;
         this.partialText = partialText;
-    }
-
-    public String getKey() {
-        return key;
-    }
-
-    public boolean isValue() {
-        return isValue;
     }
 
     @Override

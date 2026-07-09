@@ -6,6 +6,8 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class StructureLibHatchDescriptionLine {
 
     private static final Map<String, Kind> KINDS = new LinkedHashMap<>();
@@ -13,7 +15,9 @@ public class StructureLibHatchDescriptionLine {
     public static final Kind HINT_BLOCK = registerKind("guidenh:structurelib_hint_block");
     public static final Kind VALID_HATCHES = registerKind("guidenh:structurelib_valid_hatches");
 
+    @Getter
     private final Kind kind;
+    @Getter
     private final int hintDot;
     @Nullable
     private final String text;
@@ -57,14 +61,6 @@ public class StructureLibHatchDescriptionLine {
         return Map.copyOf(new LinkedHashMap<>(KINDS));
     }
 
-    public Kind getKind() {
-        return kind;
-    }
-
-    public int getHintDot() {
-        return hintDot;
-    }
-
     @Nullable
     public String getText() {
         return text;
@@ -89,7 +85,7 @@ public class StructureLibHatchDescriptionLine {
     @Nullable
     public static String normalizeKindIdOrNull(@Nullable String id) {
         String normalized = normalize(id);
-        return normalized != null ? normalized : null;
+        return normalized;
     }
 
     public static class Kind {

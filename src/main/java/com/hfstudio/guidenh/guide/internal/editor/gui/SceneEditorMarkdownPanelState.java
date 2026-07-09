@@ -2,8 +2,13 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import com.hfstudio.guidenh.config.ModConfig;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
 public class SceneEditorMarkdownPanelState {
 
+    @Setter
     private boolean expanded;
     private int openWidth;
     private boolean wrapEnabled;
@@ -21,18 +26,6 @@ public class SceneEditorMarkdownPanelState {
             ModConfig.ui.sceneEditorMarkdownWrapEnabled);
     }
 
-    public boolean isExpanded() {
-        return expanded;
-    }
-
-    public void setExpanded(boolean expanded) {
-        this.expanded = expanded;
-    }
-
-    public int getOpenWidth() {
-        return openWidth;
-    }
-
     public void setOpenWidth(int openWidth, int minWidth, int maxWidth) {
         this.openWidth = clamp(openWidth, minWidth, maxWidth);
     }
@@ -43,10 +36,6 @@ public class SceneEditorMarkdownPanelState {
         }
         ModConfig.ui.sceneEditorMarkdownPanelWidth = this.openWidth;
         ModConfig.save();
-    }
-
-    public boolean isWrapEnabled() {
-        return wrapEnabled;
     }
 
     public void setWrapEnabled(boolean wrapEnabled) {

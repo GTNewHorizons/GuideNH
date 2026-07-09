@@ -88,29 +88,25 @@ public class MediaWikiSyntheticPageFactory {
     }
 
     private static String buildCategorySource(String categoryName) {
-        StringBuilder source = new StringBuilder();
-        source.append("# ")
-            .append(MediaWikiPageIds.toCategoryTitle(categoryName))
-            .append("\n\n")
-            .append("<Category name=\"")
-            .append(escapeAttribute(categoryName))
-            .append("\" rows=\"")
-            .append(MediaWikiListPlanner.DEFAULT_ROWS)
-            .append("\" />\n");
-        return source.toString();
+        String source = "# " + MediaWikiPageIds.toCategoryTitle(categoryName)
+            + "\n\n"
+            + "<Category name=\""
+            + escapeAttribute(categoryName)
+            + "\" rows=\""
+            + MediaWikiListPlanner.DEFAULT_ROWS
+            + "\" />\n";
+        return source;
     }
 
     private static String buildSpecialSource(String specialName) {
-        StringBuilder source = new StringBuilder();
-        source.append("# ")
-            .append(MediaWikiPageTitleResolver.resolveSpecialTitle(specialName))
-            .append("\n\n")
-            .append("<Special name=\"")
-            .append(specialName)
-            .append("\" rows=\"")
-            .append(resolveSpecialRows(specialName))
-            .append("\" />\n");
-        return source.toString();
+        String source = "# " + MediaWikiPageTitleResolver.resolveSpecialTitle(specialName)
+            + "\n\n"
+            + "<Special name=\""
+            + specialName
+            + "\" rows=\""
+            + resolveSpecialRows(specialName)
+            + "\" />\n";
+        return source;
     }
 
     private static int resolveSpecialRows(String specialName) {

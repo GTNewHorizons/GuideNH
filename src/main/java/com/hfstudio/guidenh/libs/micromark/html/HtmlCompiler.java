@@ -73,7 +73,7 @@ public class HtmlCompiler {
      * Same as `mediaStack` for tightness, which is specific to lists. We need to track if we’re currently in a tight or
      * loose container.
      */
-    private final List<Boolean> tightStack = new ArrayList<Boolean>();
+    private final List<Boolean> tightStack = new ArrayList<>();
 
     private final HtmlExtension defaultHandlers = HtmlExtension.builder()
         .enter("blockQuote", this::onenterblockquote)
@@ -254,7 +254,7 @@ public class HtmlCompiler {
                 if (event.isEnter()) {
                     listStack.add(index);
                 } else {
-                    prepareList(ListUtils.slice(events, listStack.remove(listStack.size() - 1), index));
+                    prepareList(ListUtils.slice(events, listStack.removeLast(), index));
                 }
             }
 
@@ -297,7 +297,7 @@ public class HtmlCompiler {
         if (handlers.exitDocument != null) {
             handlers.exitDocument.handle(context);
         }
-        return String.join("", buffers.get(0));
+        return String.join("", buffers.getFirst());
     }
 
     class Context implements HtmlContext {
@@ -427,7 +427,7 @@ public class HtmlCompiler {
                 }
             }
         }
-        slice.get(0)
+        slice.getFirst()
             .token()._loose = loose;
     }
 
@@ -436,20 +436,20 @@ public class HtmlCompiler {
     }
 
     private String resume() {
-        var buf = buffers.remove(buffers.size() - 1);
+        var buf = buffers.removeLast();
         return String.join("", buf);
     }
 
     private void tag(String value) {
         if (!tags) return;
         data.lastWasTag = true;
-        buffers.get(buffers.size() - 1)
+        buffers.getLast()
             .add(value);
     }
 
     private void raw(String value) {
         data.lastWasTag = false;
-        buffers.get(buffers.size() - 1)
+        buffers.getLast()
             .add(value);
     }
 
@@ -458,8 +458,8 @@ public class HtmlCompiler {
     }
 
     private void lineEndingIfNeeded() {
-        var buffer = buffers.get(buffers.size() - 1);
-        var slice = !buffer.isEmpty() ? buffer.get(buffer.size() - 1) : null;
+        var buffer = buffers.getLast();
+        var slice = !buffer.isEmpty() ? buffer.getLast() : null;
         var previous = slice != null ? slice.charAt(slice.length() - 1) : null;
         if (previous == null || previous == 10 || previous == 13) {
             return;
@@ -513,14 +513,14 @@ public class HtmlCompiler {
 
     private void onexitlistordered() {
         onexitlistitem();
-        tightStack.remove(tightStack.size() - 1);
+        tightStack.removeLast();
         lineEnding();
         tag("</ol>");
     }
 
     private void onexitlistunordered() {
         onexitlistitem();
-        tightStack.remove(tightStack.size() - 1);
+        tightStack.removeLast();
         lineEnding();
         tag("</ul>");
     }
@@ -540,14 +540,14 @@ public class HtmlCompiler {
     }
 
     private void onexitblockquote() {
-        tightStack.remove(tightStack.size() - 1);
+        tightStack.removeLast();
         lineEndingIfNeeded();
         tag("</blockquote>");
         data.slurpAllLineEndings = false;
     }
 
     private void onenterparagraph() {
-        if (tightStack.isEmpty() || !tightStack.get(tightStack.size() - 1)) {
+        if (tightStack.isEmpty() || !tightStack.getLast()) {
             lineEndingIfNeeded();
             tag("<p>");
         }
@@ -555,7 +555,7 @@ public class HtmlCompiler {
     }
 
     private void onexitparagraph() {
-        if (!tightStack.isEmpty() && tightStack.get(tightStack.size() - 1)) {
+        if (!tightStack.isEmpty() && tightStack.getLast()) {
             data.slurpAllLineEndings = true;
         } else {
             tag("</p>");
@@ -623,20 +623,20 @@ public class HtmlCompiler {
     }
 
     private void onexitlabeltext(HtmlContext context, Token token) {
-        mediaStack.get(mediaStack.size() - 1).labelId = context.sliceSerialize(token);
+        mediaStack.getLast().labelId = context.sliceSerialize(token);
     }
 
     private void onexitlabel() {
-        mediaStack.get(mediaStack.size() - 1).label = resume();
+        mediaStack.getLast().label = resume();
     }
 
     private void onexitreferencestring(HtmlContext context, Token token) {
-        mediaStack.get(mediaStack.size() - 1).referenceId = context.sliceSerialize(token);
+        mediaStack.getLast().referenceId = context.sliceSerialize(token);
     }
 
     private void onenterresource() {
         buffer(); // We can have line endings in the resource, ignore them.
-        mediaStack.get(mediaStack.size() - 1).destination = "";
+        mediaStack.getLast().destination = "";
     }
 
     private void onenterresourcedestinationstring() {
@@ -647,12 +647,12 @@ public class HtmlCompiler {
     }
 
     private void onexitresourcedestinationstring() {
-        mediaStack.get(mediaStack.size() - 1).destination = resume();
+        mediaStack.getLast().destination = resume();
         data.ignoreEncode = false;
     }
 
     private void onexitresourcetitlestring() {
-        mediaStack.get(mediaStack.size() - 1).title = resume();
+        mediaStack.getLast().title = resume();
     }
 
     private void onexitmedia() {
@@ -690,7 +690,7 @@ public class HtmlCompiler {
             raw(media.label);
             tag("</a>");
         }
-        mediaStack.remove(mediaStack.size() - 1);
+        mediaStack.removeLast();
     }
 
     private void onenterdefinition() {
@@ -701,7 +701,7 @@ public class HtmlCompiler {
     private void onexitdefinitionlabelstring(HtmlContext context, Token token) {
         // Discard label, use the source content instead.
         resume();
-        mediaStack.get(mediaStack.size() - 1).labelId = context.sliceSerialize(token);
+        mediaStack.getLast().labelId = context.sliceSerialize(token);
     }
 
     private void onenterdefinitiondestinationstring() {
@@ -710,22 +710,22 @@ public class HtmlCompiler {
     }
 
     private void onexitdefinitiondestinationstring() {
-        mediaStack.get(mediaStack.size() - 1).destination = resume();
+        mediaStack.getLast().destination = resume();
         data.ignoreEncode = false;
     }
 
     private void onexitdefinitiontitlestring() {
-        mediaStack.get(mediaStack.size() - 1).title = resume();
+        mediaStack.getLast().title = resume();
     }
 
     private void onexitdefinition() {
-        var media = mediaStack.get(mediaStack.size() - 1);
+        var media = mediaStack.getLast();
         var id = NormalizeIdentifier.normalizeIdentifier(media.labelId);
         resume();
         if (!definitions.containsKey(id)) {
-            definitions.put(id, mediaStack.get(mediaStack.size() - 1));
+            definitions.put(id, mediaStack.getLast());
         }
-        mediaStack.remove(mediaStack.size() - 1);
+        mediaStack.removeLast();
     }
 
     private void onentercontent() {

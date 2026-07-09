@@ -30,7 +30,7 @@ public class Preprocessor {
         buffer = "";
 
         if (start) {
-            if (value.length() > 0 && value.charAt(0) == Codes.byteOrderMarker) {
+            if (!value.isEmpty() && value.charAt(0) == Codes.byteOrderMarker) {
                 startPosition++;
             }
 

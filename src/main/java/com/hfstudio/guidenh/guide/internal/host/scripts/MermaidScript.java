@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -86,7 +87,7 @@ public class MermaidScript implements LytScript {
             LytMermaidMindmap block = new LytMermaidMindmap(
                 document,
                 sourceText,
-                ph.nodeContentBlocks != null ? ph.nodeContentBlocks : java.util.Collections.emptyMap());
+                ph.nodeContentBlocks != null ? ph.nodeContentBlocks : Collections.emptyMap());
             if (ph.width > 0 || ph.height > 0) {
                 block.setPreferredSize(ph.width, ph.height);
             }

@@ -37,7 +37,6 @@ public class LytTableRow extends LytNode {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void replaceChild(LytNode oldChild, LytNode newChild) {
         if (!(newChild instanceof LytTableCell)) return;
         int idx = cells.indexOf(oldChild);

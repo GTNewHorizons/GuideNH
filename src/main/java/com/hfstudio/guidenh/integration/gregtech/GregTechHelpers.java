@@ -1,9 +1,12 @@
 package com.hfstudio.guidenh.integration.gregtech;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.block.Block;
@@ -31,6 +34,7 @@ import gregtech.api.metatileentity.BaseMetaPipeEntity;
 import gregtech.api.metatileentity.MetaPipeEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
+import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.HatchElementBuilder;
 import gregtech.common.blocks.ItemMachines;
@@ -463,7 +467,7 @@ public class GregTechHelpers {
         IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
         if (!(metaTileEntity instanceof MTEMultiBlockBase multiBlockBase)) return;
         multiBlockBase.clearHatches();
-        multiBlockBase.checkMachine(gtTile, triggerStack);
+        checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
     }
 
     public static void synchronizeMultiblockPreviewState(@Nullable TileEntity controllerTile,
@@ -498,23 +502,20 @@ public class GregTechHelpers {
             boolean valid;
             boolean machineApplied;
             if (triggerStack != null && triggerStack.stackSize > 0) {
-                // Import flow: the structure was just built correctly by StructureLib.
-                // Inject state from the known-correct trigger stack instead of relying
-                // on checkMachine (reverse inference) which fails in the guidebook world.
                 applyTierFromTriggerStack(metaTileEntity, triggerStack);
-                applyPreviewMachineState(multiBlockBase, true);
+                machineApplied = applyPreviewMachineState(multiBlockBase, true);
                 gtTile.setActive(true);
                 gtTile.issueTextureUpdate();
                 applyPreviewTextureUpdate(metaTileEntity);
                 refreshHatchTexturesInWorld(controllerTile, metaTileEntity);
                 valid = true;
-                machineApplied = true;
             } else {
-                // prepareForPreview flow: re-validate existing structure in scene level.
                 multiBlockBase.clearHatches();
-                valid = multiBlockBase.checkMachine(gtTile, triggerStack);
+                List<StructureError> structureErrors = checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
+                valid = structureErrors.isEmpty();
                 machineApplied = applyPreviewMachineState(multiBlockBase, valid);
                 if (!valid) {
+                    appendPreviewStructureWarning(warnings, structureErrors);
                     logInfoOnce(
                         "preview-state-sync-invalid:" + describeTile(controllerTile),
                         "GregTech preview state sync kept invalid structure state for {}",
@@ -554,7 +555,7 @@ public class GregTechHelpers {
         int casingTextureId = -1;
         for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
             try {
-                java.lang.reflect.Method method = type.getDeclaredMethod("getCasingTextureId");
+                Method method = type.getDeclaredMethod("getCasingTextureId");
                 method.setAccessible(true);
                 casingTextureId = (int) method.invoke(metaTileEntity);
                 break;
@@ -574,8 +575,8 @@ public class GregTechHelpers {
         if (level == null) return;
         for (TileEntity tileEntity : level.getTileEntities()) {
             if (!isGregTechTileEntity(tileEntity)) continue;
-            IMetaTileEntity mte = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
-            if (mte instanceof MTEHatch hatch) {
+            IMetaTileEntity metaTile = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            if (metaTile instanceof MTEHatch hatch) {
                 hatch.updateTexture(casingTextureId);
             }
         }
@@ -584,16 +585,68 @@ public class GregTechHelpers {
     private static void applyTierFromTriggerStack(Object metaTileEntity, ItemStack triggerStack) {
         int tier = triggerStack.stackSize;
         for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
-            for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+            for (Field field : type.getDeclaredFields()) {
                 if (field.getType() != Integer.TYPE) continue;
                 if (!field.getName()
-                    .toLowerCase(java.util.Locale.ROOT)
+                    .toLowerCase(Locale.ROOT)
                     .matches(".*(?:tier|casing).*")) continue;
                 try {
                     field.setAccessible(true);
                     field.setInt(metaTileEntity, tier);
                 } catch (Throwable ignored) {}
             }
+        }
+    }
+
+    private static List<StructureError> checkPreviewMachine(MTEMultiBlockBase multiBlockBase,
+        IGregTechTileEntity gtTile, @Nullable ItemStack triggerStack) {
+        List<StructureError> errors = new ArrayList<>();
+        multiBlockBase.checkMachine(gtTile, triggerStack, errors);
+        return errors;
+    }
+
+    private static void appendPreviewStructureWarning(@Nullable List<String> warnings, List<StructureError> errors) {
+        if (warnings == null || errors.isEmpty()) {
+            return;
+        }
+        String details = describeStructureErrors(errors);
+        String warning = "GregTech structure check reported: " + details;
+        if (!warnings.contains(warning)) {
+            warnings.add(warning);
+        }
+    }
+
+    private static String describeStructureErrors(List<StructureError> errors) {
+        StringBuilder builder = new StringBuilder();
+        for (StructureError error : errors) {
+            String description = describeStructureError(error);
+            if (description.isEmpty()) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append("; ");
+            }
+            builder.append(description);
+        }
+        return builder.isEmpty() ? "unknown structure error" : builder.toString();
+    }
+
+    private static String describeStructureError(@Nullable StructureError error) {
+        if (error == null) {
+            return "";
+        }
+        try {
+            String displayString = error.getDisplayString();
+            if (displayString != null && !displayString.trim()
+                .isEmpty()) {
+                return displayString.trim();
+            }
+        } catch (Throwable ignored) {}
+        try {
+            return error.getId()
+                .name();
+        } catch (Throwable ignored) {
+            return "unknown structure error";
         }
     }
 
@@ -610,9 +663,7 @@ public class GregTechHelpers {
                 field.setAccessible(true);
                 field.setBoolean(multiBlockController, formed);
                 return true;
-            } catch (NoSuchFieldException ignored) {
-                continue;
-            } catch (Throwable ignored) {
+            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
                 return false;
             }
         }
@@ -648,9 +699,7 @@ public class GregTechHelpers {
                 }
                 field.setAccessible(true);
                 return field.getBoolean(multiBlockController);
-            } catch (NoSuchFieldException ignored) {
-                continue;
-            } catch (Throwable ignored) {
+            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
                 return null;
             }
         }
@@ -929,12 +978,12 @@ public class GregTechHelpers {
                     continue;
                 }
                 if (isSamePipeType(metaPipe, adj)) {
-                    connections |= dir.flag;
+                    connections |= (byte) dir.flag;
                     continue;
                 }
                 try {
                     if (metaPipe.canConnect(dir, adj)) {
-                        connections |= dir.flag;
+                        connections |= (byte) dir.flag;
                     }
                 } catch (Throwable ignored) {}
             }

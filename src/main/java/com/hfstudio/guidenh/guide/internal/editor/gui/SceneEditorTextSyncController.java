@@ -10,6 +10,8 @@ import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownElementR
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownParseResult;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 
+import lombok.Getter;
+
 public class SceneEditorTextSyncController {
 
     public enum ValidationKind {
@@ -28,6 +30,7 @@ public class SceneEditorTextSyncController {
     private final SceneEditorMarkdownCodec codec;
     private SceneEditorMarkdownElementRangeIndex appliedRangeIndex;
     private SceneEditorMarkdownElementRangeIndex draftRangeIndex;
+    @Getter
     private ValidationKind validationKind;
     @Nullable
     private String validationMessage;
@@ -197,10 +200,6 @@ public class SceneEditorTextSyncController {
                 mergeKey,
                 session.captureContentSnapshot(validationKind, validationMessage, uiState),
                 keepOpen);
-    }
-
-    public ValidationKind getValidationKind() {
-        return validationKind;
     }
 
     public void restoreSnapshot(SceneEditorUndoSnapshot snapshot) {

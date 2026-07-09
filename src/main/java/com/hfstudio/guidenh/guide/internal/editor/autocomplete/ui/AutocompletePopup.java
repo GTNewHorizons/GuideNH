@@ -17,6 +17,8 @@ import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 
+import lombok.Getter;
+
 public class AutocompletePopup {
 
     public static final int MAX_VISIBLE_ITEMS = 5;
@@ -31,6 +33,7 @@ public class AutocompletePopup {
     /** Gap between popup and cursor when flipped above (roughly FONT_HEIGHT + cursor gap). */
     private static final int FLIP_GAP = 22;
 
+    @Getter
     private boolean open;
     private List<AutocompleteCandidate> candidates = Collections.emptyList();
     private List<String> lastCandidateKeys = Collections.emptyList();
@@ -39,10 +42,6 @@ public class AutocompletePopup {
     private final SmoothFloatState visualScrollY = new SmoothFloatState();
     private int x, y, width, height;
     private int viewportWidth, viewportHeight;
-
-    public boolean isOpen() {
-        return open;
-    }
 
     public void show(List<AutocompleteCandidate> candidates, int anchorX, int anchorY, int viewportWidth,
         int viewportHeight, FontRenderer fontRenderer) {
