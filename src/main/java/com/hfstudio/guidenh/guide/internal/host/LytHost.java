@@ -136,6 +136,11 @@ public class LytHost {
         this.currentPageId = pageId;
     }
 
+    @Nullable
+    public String getCurrentPageId() {
+        return currentPageId;
+    }
+
     public void setCurrentPageCollection(@Nullable PageCollection pageCollection) {
         this.currentPageCollection = pageCollection;
     }

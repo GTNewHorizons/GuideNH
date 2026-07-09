@@ -9,27 +9,28 @@ import net.minecraft.util.ResourceLocation;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.GuideNH;
+import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideWelcomeContent {
 
-    private static final ResourceLocation FALLBACK_RESOURCE = new ResourceLocation(GuideNH.MODID, "welcome.txt");
+    private static final String CONTENT_ROOT_FOLDER = "welcome";
+    private static final ResourceLocation PAGE_ID = new ResourceLocation(GuideNH.MODID, "welcome.md");
 
     private GuideWelcomeContent() {}
 
     public static LoadedContent load() {
-        String language = LangUtil.getCurrentLanguage();
-        ResourceLocation[] candidates = new ResourceLocation[] { localizedResource(language, "lang"),
-            localizedResource(language, "txt"), localizedResource(LangUtil.ENGLISH_LANGUAGE, "lang"),
-            localizedResource(LangUtil.ENGLISH_LANGUAGE, "txt"), FALLBACK_RESOURCE };
+        String language = LangUtil.normalizeLanguage(LangUtil.getCurrentLanguage());
+        LoadedContent content = load(language);
+        if (content != null) {
+            return content;
+        }
 
-        for (ResourceLocation resource : candidates) {
-            String content = load(resource);
+        if (!LangUtil.ENGLISH_LANGUAGE.equals(language)) {
+            content = load(LangUtil.ENGLISH_LANGUAGE);
             if (content != null) {
-                String normalizedLanguage = resource.getResourcePath()
-                    .contains("/" + LangUtil.normalizeLanguage(language) + ".") ? language : LangUtil.ENGLISH_LANGUAGE;
-                return new LoadedContent(resource.toString(), LangUtil.normalizeLanguage(normalizedLanguage), content);
+                return content;
             }
         }
 
@@ -37,8 +38,21 @@ public class GuideWelcomeContent {
         return new LoadedContent(GuideNH.MODID, LangUtil.ENGLISH_LANGUAGE, "");
     }
 
-    private static ResourceLocation localizedResource(String language, String extension) {
-        return new ResourceLocation(GuideNH.MODID, "welcome/" + LangUtil.normalizeLanguage(language) + "." + extension);
+    private static LoadedContent load(String language) {
+        ResourceLocation resource = localizedResource(language);
+        String content = load(resource);
+        if (content == null) {
+            return null;
+        }
+        GuideLocalizedPageSourceResolver.ResolvedGuidePageSource resolved = GuideLocalizedPageSourceResolver
+            .resolve(language, CONTENT_ROOT_FOLDER, PAGE_ID, content.getBytes(StandardCharsets.UTF_8));
+        String sourcePack = resolved.localized() ? GuideNH.MODID + ":" + CONTENT_ROOT_FOLDER + "#" + resolved.langKey()
+            : resource.toString();
+        return new LoadedContent(sourcePack, LangUtil.normalizeLanguage(language), resolved.source());
+    }
+
+    private static ResourceLocation localizedResource(String language) {
+        return new ResourceLocation(GuideNH.MODID, "welcome/" + LangUtil.normalizeLanguage(language) + ".md");
     }
 
     private static String load(ResourceLocation resource) {

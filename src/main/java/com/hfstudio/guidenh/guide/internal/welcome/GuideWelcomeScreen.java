@@ -1,23 +1,31 @@
 package com.hfstudio.guidenh.guide.internal.welcome;
 
+import java.awt.Desktop;
 import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.List;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.GuiConfirmOpenLink;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.GuideNH;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -28,9 +36,9 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
-import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
+import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
@@ -38,7 +46,7 @@ import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
+public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYesNoCallback {
 
     private static final ResourceLocation PAGE_ID = new ResourceLocation(GuideNH.MODID, "welcome_popup");
     private static final int PANEL_MAX_WIDTH = 420;
@@ -49,8 +57,8 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
     private static final int SCROLL_STEP = 36;
     private static final float SCROLL_LERP = 0.35F;
     private static final float SCROLL_SNAP_EPSILON = 0.35F;
-    private static final int CLOSE_SIZE = 14;
     private static final int CLOSE_MARGIN = 7;
+    private static final int EXTERNAL_LINK_CONFIRM_ID = 0;
     private static final String TITLE_KEY = "guidenh.welcome.title";
     private static final String CLOSE_HINT_KEY = "guidenh.welcome.close_hint";
 
@@ -69,9 +77,20 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
     private GuidePage page;
     @Nullable
     private LytDocument document;
+    @Nullable
+    private GuideIconButton closeButton;
     private int layoutWidth = -1;
     private float scrollY;
     private float targetScrollY;
+    private boolean hostStateSaved;
+    @Nullable
+    private LytDocument parentDocument;
+    @Nullable
+    private PageCollection parentPageCollection;
+    @Nullable
+    private String parentPageId;
+    @Nullable
+    private URI pendingExternalUri;
 
     public GuideWelcomeScreen(GuiScreen parent, GuideWelcomeState state, GuideWelcomeContent.LoadedContent content) {
         this.parent = parent;
@@ -87,8 +106,10 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
 
     @Override
     public void initGui() {
+        buttonList.clear();
         layoutDocument();
         mountDocument();
+        updateCloseButton();
         targetScrollY = clampScroll(targetScrollY);
         scrollY = clampScroll(scrollY);
     }
@@ -125,14 +146,17 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        if (mouseButton == 0 && isCloseHovered(mouseX, mouseY)) {
-            close();
-            return;
-        }
         if (handleDocumentClick(mouseX, mouseY, mouseButton)) {
             return;
         }
         super.mouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
+    protected void actionPerformed(GuiButton button) {
+        if (button == closeButton) {
+            close();
+        }
     }
 
     @Override
@@ -160,7 +184,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
 
         drawCenteredString(
             fontRendererObj,
-            translate(TITLE_KEY, "Welcome to GuideNH"),
+            translate(TITLE_KEY, "Welcome to GuideNH, %s", playerName()),
             width / 2,
             panelY + 10,
             0xFFF0F0F0);
@@ -174,7 +198,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
 
         drawCenteredString(
             fontRendererObj,
-            translate(CLOSE_HINT_KEY, "Press any key or click X to close"),
+            translate(CLOSE_HINT_KEY, "Press any key or click the top-right button to close"),
             width / 2,
             panelBottom - 14,
             0xFFB8C0CC);
@@ -188,7 +212,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
     @Override
     public void navigateTo(PageAnchor anchor) {
         if (parent instanceof GuideUiHost host) {
-            closeToParent(false);
+            closeToParent(true);
             host.navigateTo(anchor);
         }
     }
@@ -196,7 +220,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
     @Override
     public void navigateTo(ResourceLocation guideId, PageAnchor anchor) {
         if (parent instanceof GuideUiHost host) {
-            closeToParent(false);
+            closeToParent(true);
             host.navigateTo(guideId, anchor);
         }
     }
@@ -208,9 +232,27 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
 
     @Override
     public void openExternalUrl(URI uri) {
-        if (parent instanceof GuideUiHost host) {
-            host.openExternalUrl(uri);
+        if (ModConfig.ui.confirmExternalLinks) {
+            pendingExternalUri = uri;
+            mc.displayGuiScreen(createExternalLinkConfirmScreen(uri));
+            return;
         }
+
+        browseExternalUrl(uri);
+    }
+
+    @Override
+    public void confirmClicked(boolean result, int id) {
+        if (id != EXTERNAL_LINK_CONFIRM_ID) {
+            return;
+        }
+
+        URI uri = pendingExternalUri;
+        pendingExternalUri = null;
+        if (result && uri != null) {
+            browseExternalUrl(uri);
+        }
+        mc.displayGuiScreen(this);
     }
 
     @Override
@@ -225,9 +267,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
         if (document != null) {
             document.setHoveredElement(null);
         }
-        if (parent instanceof GuideScreen guideScreen) {
-            guideScreen.reloadPage();
-        }
+        restoreHostState();
         mc.displayGuiScreen(parent);
     }
 
@@ -250,9 +290,31 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
             return;
         }
         LytHost host = ClientProxy.getLytHost();
+        saveHostState(host);
         host.setCurrentPageId(PAGE_ID.toString());
         host.setCurrentPageCollection(pageCollection);
         host.mountDocument(document);
+    }
+
+    private void saveHostState(LytHost host) {
+        if (hostStateSaved) {
+            return;
+        }
+        parentDocument = host.getDocument();
+        parentPageCollection = host.getCurrentPageCollection();
+        parentPageId = host.getCurrentPageId();
+        hostStateSaved = true;
+    }
+
+    private void restoreHostState() {
+        if (!hostStateSaved) {
+            return;
+        }
+        LytHost host = ClientProxy.getLytHost();
+        host.setCurrentPageId(parentPageId);
+        host.setCurrentPageCollection(parentPageCollection);
+        host.mountDocument(parentDocument);
+        hostStateSaved = false;
     }
 
     private void tickScenes() {
@@ -461,31 +523,35 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
     }
 
     private void drawCloseButton(int mouseX, int mouseY, int panelRight, int panelY) {
-        int closeX = closeX(panelRight);
-        int closeY = closeY(panelY);
-        boolean hovered = isCloseHovered(mouseX, mouseY);
-        drawRect(closeX, closeY, closeX + CLOSE_SIZE, closeY + CLOSE_SIZE, hovered ? 0x55FFFFFF : 0x22101010);
-        drawRect(closeX, closeY, closeX + CLOSE_SIZE, closeY + 1, 0x88586170);
-        drawRect(closeX, closeY + CLOSE_SIZE - 1, closeX + CLOSE_SIZE, closeY + CLOSE_SIZE, 0x88586170);
-        drawRect(closeX, closeY, closeX + 1, closeY + CLOSE_SIZE, 0x88586170);
-        drawRect(closeX + CLOSE_SIZE - 1, closeY, closeX + CLOSE_SIZE, closeY + CLOSE_SIZE, 0x88586170);
-        drawCenteredString(
-            fontRendererObj,
-            translate("guidenh.welcome.close", "X"),
-            closeX + CLOSE_SIZE / 2,
-            closeY + 3,
-            hovered ? 0xFFFFFFFF : 0xFFB8C0CC);
+        updateCloseButton(panelRight, panelY);
+        if (closeButton != null) {
+            closeButton.drawButton(mc, mouseX, mouseY);
+        }
     }
 
-    private boolean isCloseHovered(int mouseX, int mouseY) {
+    private void updateCloseButton() {
         int panelRight = (width + panelWidth()) / 2;
+        updateCloseButton(panelRight, panelY());
+    }
+
+    private void updateCloseButton(int panelRight, int panelY) {
         int closeX = closeX(panelRight);
-        int closeY = closeY(panelY());
-        return mouseX >= closeX && mouseX < closeX + CLOSE_SIZE && mouseY >= closeY && mouseY < closeY + CLOSE_SIZE;
+        int closeY = closeY(panelY);
+        if (closeButton == null) {
+            closeButton = new GuideIconButton(0, closeX, closeY, GuideIconButton.Role.CLOSE);
+        } else {
+            closeButton.xPosition = closeX;
+            closeButton.yPosition = closeY;
+            closeButton.setRole(GuideIconButton.Role.CLOSE);
+            closeButton.visible = true;
+        }
+        if (!buttonList.contains(closeButton)) {
+            buttonList.add(closeButton);
+        }
     }
 
     private int closeX(int panelRight) {
-        return panelRight - CLOSE_MARGIN - CLOSE_SIZE;
+        return panelRight - CLOSE_MARGIN - GuideIconButton.WIDTH;
     }
 
     private int closeY(int panelY) {
@@ -502,8 +568,46 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost {
         drawRect(x, thumbY, x + 3, thumbY + thumbHeight, 0x99B8C0CC);
     }
 
+    private GuiConfirmOpenLink createExternalLinkConfirmScreen(URI uri) {
+        return new GuiConfirmOpenLink(this, uri.toString(), EXTERNAL_LINK_CONFIRM_ID, false) {
+
+            @Override
+            protected void keyTyped(char typedChar, int keyCode) {
+                if (keyCode == Keyboard.KEY_ESCAPE) {
+                    GuideWelcomeScreen.this.confirmClicked(false, EXTERNAL_LINK_CONFIRM_ID);
+                    return;
+                }
+                super.keyTyped(typedChar, keyCode);
+            }
+        };
+    }
+
+    private void browseExternalUrl(URI uri) {
+        try {
+            Desktop.getDesktop()
+                .browse(uri);
+        } catch (Exception e) {
+            GuideDebugLog.warnAlways("[GuideNH] Failed to open external welcome link {}", uri, e);
+        }
+    }
+
     private static String translate(String key, String fallback) {
         String translated = StatCollector.translateToLocal(key);
         return key.equals(translated) ? fallback : translated;
+    }
+
+    private static String translate(String key, String fallback, Object... args) {
+        String translated = StatCollector.translateToLocalFormatted(key, args);
+        return key.equals(translated) ? String.format(fallback, args) : translated;
+    }
+
+    private static String playerName() {
+        try {
+            return Minecraft.getMinecraft()
+                .getSession()
+                .getUsername();
+        } catch (Exception e) {
+            return "<?>";
+        }
     }
 }
