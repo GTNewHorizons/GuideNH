@@ -362,6 +362,8 @@ public class FlowchartParser {
                     builder.setLayoutMode(mode);
                 } else if (parsed instanceof Integer intVal) {
                     applyLayoutConfig(key, intVal);
+                } else if (fk == FrontmatterKey.COPY_VALUE && parsed instanceof String str) {
+                    builder.copyValue = str;
                 }
                 continue;
             }
@@ -867,6 +869,8 @@ public class FlowchartParser {
         int nodeSpacing = 20;
         int rankSpacing = 20;
         int canvasPadding = 20;
+        @Nullable
+        String copyValue;
 
         private final Map<String, List<String>> classDefs = new LinkedHashMap<>();
         private final List<LinkStyleEntry> linkStyleEntries = new ArrayList<>();
@@ -999,7 +1003,7 @@ public class FlowchartParser {
             resolveClassStyles();
             applyLinkStyles();
             var cfg = new FlowchartDocument.FlowchartConfig(nodeSpacing, rankSpacing, canvasPadding);
-            return new FlowchartDocument(direction, nodes, edges, subgraphs, layoutMode, cfg);
+            return new FlowchartDocument(direction, nodes, edges, subgraphs, layoutMode, cfg, copyValue);
         }
 
         private void resolveClassStyles() {

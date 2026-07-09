@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
@@ -42,6 +43,16 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
         toolbar.setLanguageDisplayName("Flowchart");
         toolbar.setCopyText(this.sourceText);
         toolbar.setCopyButtonVisible(true);
+        String copyValue = flowchart.getCopyValue();
+        if (copyValue != null && !copyValue.isEmpty()) {
+            LytButton btn = new LytButton(
+                LytCodeBlockToolbar.COPY_SPRITE,
+                new LytSize(16, 16));
+            btn.setOnClick(screen -> screen.copyCodeBlock(copyValue));
+            btn.setTooltipText("Copy Plan");
+            btn.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
+            toolbar.addButton(btn);
+        }
 
         append(toolbar);
         append(canvas);

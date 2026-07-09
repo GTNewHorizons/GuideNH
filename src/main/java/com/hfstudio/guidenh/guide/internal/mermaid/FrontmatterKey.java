@@ -13,7 +13,8 @@ import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutMode
 public enum FrontmatterKey {
 
     DIRECTION("direction", FlowchartDirection::fromString),
-    LAYOUT("layout", FlowchartLayoutMode::fromConfigValue);
+    LAYOUT("layout", FlowchartLayoutMode::fromConfigValue),
+    COPY_VALUE("copyValue", s -> s);
 
     private final String key;
     private final Function<String, Object> parser;

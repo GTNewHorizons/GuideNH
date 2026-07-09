@@ -10,22 +10,18 @@ import org.jetbrains.annotations.Nullable;
 
 import lombok.Getter;
 
+@Getter
 public class FlowchartDocument {
 
-    @Getter
     private final FlowchartDirection direction;
-    @Getter
     private final Map<String, FlowchartNode> nodes;
-    @Getter
     private final List<FlowchartEdge> edges;
-    @Getter
     private final List<FlowchartSubgraph> subgraphs;
-    @Getter
     private final List<String> nodeOrder;
-    @Getter
     private final FlowchartLayoutMode layoutMode;
-    @Getter
     private final FlowchartConfig config;
+    @Nullable
+    private final String copyValue;
 
     public record FlowchartConfig(int nodeSpacing, int rankSpacing, int canvasPadding) {
 
@@ -34,11 +30,12 @@ public class FlowchartDocument {
 
     public FlowchartDocument(FlowchartDirection direction, Map<String, FlowchartNode> nodes, List<FlowchartEdge> edges,
         List<FlowchartSubgraph> subgraphs) {
-        this(direction, nodes, edges, subgraphs, null, null);
+        this(direction, nodes, edges, subgraphs, null, null, null);
     }
 
     public FlowchartDocument(FlowchartDirection direction, Map<String, FlowchartNode> nodes, List<FlowchartEdge> edges,
-        List<FlowchartSubgraph> subgraphs, @Nullable FlowchartLayoutMode layoutMode, @Nullable FlowchartConfig config) {
+        List<FlowchartSubgraph> subgraphs, @Nullable FlowchartLayoutMode layoutMode, @Nullable FlowchartConfig config,
+        @Nullable String copyValue) {
         this.direction = direction != null ? direction : FlowchartDirection.TB;
         Map<String, FlowchartNode> src = nodes != null ? nodes : Map.of();
         this.nodes = Map.copyOf(new LinkedHashMap<>(src));
@@ -46,6 +43,7 @@ public class FlowchartDocument {
         this.subgraphs = List.copyOf(new ArrayList<>(subgraphs != null ? subgraphs : List.of()));
         this.layoutMode = layoutMode != null ? layoutMode : FlowchartLayoutMode.BUILTIN;
         this.config = config != null ? config : FlowchartConfig.DEFAULT;
+        this.copyValue = copyValue;
         List<String> order = new ArrayList<>(src.keySet());
         this.nodeOrder = Collections.unmodifiableList(order);
     }
