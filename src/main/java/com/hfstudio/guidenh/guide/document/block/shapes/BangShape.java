@@ -49,19 +49,20 @@ public class BangShape implements ShapeRenderer {
             }
         }
 
-        context.fillPolygon(xs, ys, borderColor);
-        context.fillPolygon(ixs, iys, backgroundColor);
+        ShapeUtils.fillPolygonCentered(context, xs, ys, borderColor);
+        ShapeUtils.fillPolygonCentered(context, ixs, iys, backgroundColor);
     }
 
     private static float[] buildBangPolygon(float w, float h) {
         float r = 0.15f * w;
 
-        float[][] arcs = { { 0.25f * w, -0.10f * h, r, r, 1, 0 }, { 0.25f * w, 0, r, r, 1, 0 },
-            { 0.25f * w, 0, r, r, 1, 0 }, { 0.25f * w, 0.10f * h, r, r, 1, 0 }, { 0.15f * w, 0.33f * h, r, r, 1, 0 },
-            { 0, 0.34f * h, r * 0.8f, r * 0.8f, 1, 0 }, { -0.15f * w, 0.33f * h, r, r, 1, 0 },
-            { -0.25f * w, 0.15f * h, r, r, 1, 0 }, { -0.25f * w, 0, r, r, 1, 0 }, { -0.25f * w, 0, r, r, 1, 0 },
-            { -0.25f * w, -0.15f * h, r, r, 1, 0 }, { -0.10f * w, -0.33f * h, r, r, 1, 0 },
-            { 0, -0.34f * h, r * 0.8f, r * 0.8f, 1, 0 }, { 0.10f * w, -0.33f * h, r, r, 1, 0 }, };
+        // SVG arc: a rx ry xAxisRot largeArc sweep dx dy
+        float[][] arcs = { { 0.25f * w, -0.10f * h, r, r, 0, 0 }, { 0.25f * w, 0, r, r, 0, 0 },
+            { 0.25f * w, 0, r, r, 0, 0 }, { 0.25f * w, 0.10f * h, r, r, 0, 0 }, { 0.15f * w, 0.33f * h, r, r, 0, 0 },
+            { 0, 0.34f * h, r * 0.8f, r * 0.8f, 0, 0 }, { -0.15f * w, 0.33f * h, r, r, 0, 0 },
+            { -0.25f * w, 0.15f * h, r, r, 0, 0 }, { -0.25f * w, 0, r, r, 0, 0 }, { -0.25f * w, 0, r, r, 0, 0 },
+            { -0.25f * w, -0.15f * h, r, r, 0, 0 }, { -0.10f * w, -0.33f * h, r, r, 0, 0 },
+            { 0, -0.34f * h, r * 0.8f, r * 0.8f, 0, 0 }, { 0.10f * w, -0.33f * h, r, r, 0, 0 }, };
 
         List<Float> pts = new ArrayList<>();
         float cx = 0, cy = 0;

@@ -361,17 +361,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         return new double[] { ox, oy };
     }
 
-    private static int[] nodeOffset(ElkNode node, ElkNode root) {
-        int ox = 0, oy = 0;
-        ElkNode cur = node;
-        while (cur != null && cur != root) {
-            ox += (int) Math.round(cur.getX());
-            oy += (int) Math.round(cur.getY());
-            cur = cur.getParent();
-        }
-        return new int[] { ox, oy };
-    }
-
     private static void collectRemainingEdges(ElkNode node, double offsetX, double offsetY, int padding,
         List<FlowchartLayoutResult.EdgePath> edgePaths, Set<ElkEdge> splitEdges) {
         double absX = offsetX + node.getX();

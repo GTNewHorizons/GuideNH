@@ -14,25 +14,56 @@ public class CylinderShape implements ShapeRenderer {
         int bodyTop = y + ry;
         int bodyBottom = y + h - ry;
 
-        context.fillRect(new LytRect(x, bodyTop, w, bodyBottom - bodyTop), borderColor);
-        context.fillEllipse(cx, bodyTop, rx, ry, borderColor);
-        context.fillEllipse(cx, bodyBottom, rx, ry, borderColor);
+        int segments = 24;
+        int arcPts = segments + 1;
+        int n = arcPts * 2;
+        float[] oxs = new float[n];
+        float[] oys = new float[n];
+        int idx = 0;
+        // Upper arc (back arc, top rim): angle π → 2π (left to right, upper half)
+        for (int i = 0; i < arcPts; i++) {
+            double a = Math.PI + Math.PI * i / segments;
+            oxs[idx] = cx + (float) (Math.cos(a) * rx);
+            oys[idx] = bodyTop + (float) (Math.sin(a) * ry);
+            idx++;
+        }
+        // Lower arc (front arc, bottom rim): angle 0 → π (right to left)
+        for (int i = 0; i < arcPts; i++) {
+            double a = Math.PI * i / segments;
+            oxs[idx] = cx + (float) (Math.cos(a) * rx);
+            oys[idx] = bodyBottom + (float) (Math.sin(a) * ry);
+            idx++;
+        }
 
-        int irx = Math.max(rx - 1, 0);
-        int iry = Math.max(ry - 1, 0);
-        context.fillRect(new LytRect(x + 1, bodyTop + 1, w - 2, bodyBottom - bodyTop - 2), backgroundColor);
-        context.fillEllipse(cx, bodyTop, irx, iry, backgroundColor);
-        context.fillEllipse(cx, bodyBottom, irx, iry, backgroundColor);
+        float centerX = cx;
+        float centerY = (bodyTop + bodyBottom) / 2f;
+        float[] ixs = new float[n];
+        float[] iys = new float[n];
+        for (int i = 0; i < n; i++) {
+            float dx = oxs[i] - centerX;
+            float dy = oys[i] - centerY;
+            float d = (float) Math.sqrt(dx * dx + dy * dy);
+            if (d > 1) {
+                float s = (d - 1) / d;
+                ixs[i] = centerX + dx * s;
+                iys[i] = centerY + dy * s;
+            } else {
+                ixs[i] = oxs[i];
+                iys[i] = oys[i];
+            }
+        }
+
+        ShapeUtils.fillPolygonCentered(context, oxs, oys, borderColor);
+        ShapeUtils.fillPolygonCentered(context, ixs, iys, backgroundColor);
 
         drawEllipseFrontArc(context, cx, bodyTop, rx, ry, borderColor);
-        drawEllipseFrontArc(context, cx, bodyBottom, rx, ry, borderColor);
     }
 
     private static void drawEllipseFrontArc(RenderContext context, float cx, float cy, float rx, float ry, int color) {
         int segments = 20;
         for (int i = 0; i < segments; i++) {
-            double a1 = Math.PI + (Math.PI * i / segments);
-            double a2 = Math.PI + (Math.PI * (i + 1) / segments);
+            double a1 = Math.PI * i / segments;
+            double a2 = Math.PI * (i + 1) / segments;
             float x1 = cx + (float) (Math.cos(a1) * rx);
             float y1 = cy + (float) (Math.sin(a1) * ry);
             float x2 = cx + (float) (Math.cos(a2) * rx);
@@ -45,15 +76,19 @@ public class CylinderShape implements ShapeRenderer {
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int rx = nodeRect.width() / 2;
         int ry = Math.max(1, rx / 3);
-        int top = nodeRect.y() + ry;
-        int bodyH = nodeRect.height() - 2 * ry;
-        return new LytRect(nodeRect.x() + padX, top + padY, nodeRect.width() - 2 * padX, bodyH - 2 * padY);
+        int extraV = Math.max(2, ry / 3);
+        int top = nodeRect.y() + 2 * ry + padY + extraV;
+        int bodyH = nodeRect.height() - 3 * ry - 2 * padY - 2 * extraV;
+        return new LytRect(nodeRect.x() + padX, top, nodeRect.width() - 2 * padX, bodyH);
     }
 
     @Override
     public LytRect minNodeRect(int cw, int ch, int padX, int padY) {
         int pw = cw + 2 * padX;
         int ph = ch + 2 * padY;
-        return new LytRect(0, 0, pw, ph * 2);
+        int estRy = Math.max(1, pw / 6);
+        int estExtra = Math.max(2, estRy / 3);
+        int minH = 3 * estRy + ch + 2 * padY + 2 * estExtra;
+        return new LytRect(0, 0, pw, Math.max(ph * 2, minH));
     }
 }

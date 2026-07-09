@@ -49,8 +49,8 @@ public class CloudShape implements ShapeRenderer {
             }
         }
 
-        context.fillPolygon(xs, ys, borderColor);
-        context.fillPolygon(ixs, iys, backgroundColor);
+        ShapeUtils.fillPolygonCentered(context, xs, ys, borderColor);
+        ShapeUtils.fillPolygonCentered(context, ixs, iys, backgroundColor);
     }
 
     private static float[] buildCloudPolygon(float w, float h) {
@@ -59,11 +59,12 @@ public class CloudShape implements ShapeRenderer {
         float r3 = 0.35f * w;
         float r4 = 0.20f * w;
 
-        float[][] arcs = { { 0.25f * w, -0.10f * w, r1, r1, 0, 1 }, { 0.40f * w, -0.10f * w, r3, r3, 1, 1 },
-            { 0.35f * w, 0.20f * w, r2, r2, 1, 1 }, { 0.15f * w, 0.35f * h, r1, r1, 1, 1 },
-            { -0.15f * w, 0.65f * h, r4, r4, 1, 1 }, { -0.25f * w, 0.15f * w, r2, r1, 1, 1 },
-            { -0.50f * w, 0, r3, r3, 1, 1 }, { -0.25f * w, -0.15f * w, r1, r1, 1, 1 },
-            { -0.10f * w, -0.35f * h, r1, r1, 1, 1 }, { 0.10f * w, -0.65f * h, r4, r4, 1, 1 }, };
+        // SVG arc: a rx ry xAxisRot largeArc sweep dx dy
+        float[][] arcs = { { 0.25f * w, -0.10f * w, r1, r1, 0, 1 }, { 0.40f * w, -0.10f * w, r3, r3, 0, 1 },
+            { 0.35f * w, 0.20f * w, r2, r2, 0, 1 }, { 0.15f * w, 0.35f * h, r1, r1, 0, 1 },
+            { -0.15f * w, 0.65f * h, r4, r4, 0, 1 }, { -0.25f * w, 0.15f * w, r2, r1, 0, 1 },
+            { -0.50f * w, 0, r3, r3, 0, 1 }, { -0.25f * w, -0.15f * w, r1, r1, 0, 1 },
+            { -0.10f * w, -0.35f * h, r1, r1, 0, 1 }, { 0.10f * w, -0.65f * h, r4, r4, 0, 1 }, };
 
         List<Float> pts = new ArrayList<>();
         float cx = 0, cy = 0;
