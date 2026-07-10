@@ -163,11 +163,10 @@ public class GuideLightweightReloadService {
         ResourceLocation guideId, String folder, String defaultLanguage, @Nullable String currentLanguage) {
         // Runtime fallback: scan paths for this specific guide only (not all packs)
         var activePacks = DataDrivenGuideLoader.getActiveResourcePacks(resourceManager);
+        var paths = DataDrivenGuideLoader.discoverPagePaths(guideId, folder, activePacks);
         var singleGuidePaths = new LinkedHashMap<String, LinkedHashSet<String>>();
-        LinkedHashSet<String> paths = DataDrivenGuideLoader.discoverPagePaths(folder, activePacks)
-            .get(guideId.getResourceDomain());
-        if (paths != null) {
-            singleGuidePaths.put(guideId.getResourceDomain(), paths);
+        if (!paths.isEmpty()) {
+            singleGuidePaths.put(guideId.getResourceDomain(), new LinkedHashSet<>(paths));
         }
         return loadPages(
             resourceManager,
