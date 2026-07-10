@@ -713,7 +713,9 @@ public class DataDrivenGuideLoader {
             }
         }
 
-        Path cacheKey = resourcePackRoot.toPath().toAbsolutePath().normalize();
+        Path cacheKey = resourcePackRoot.toPath()
+            .toAbsolutePath()
+            .normalize();
         List<NamespaceRoot> cached = nativeNamespaceRootsCache.get(cacheKey);
         if (cached != null) {
             for (var nr : cached) {
