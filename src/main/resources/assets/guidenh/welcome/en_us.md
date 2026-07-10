@@ -4,7 +4,7 @@ Welcome, <PlayerName />.
 
 You are reading this page through <ItemImage id="guidenh:guide" /> **GuideNH**, an in-game guide framework designed for rich, data-driven documentation.
 
-GuideNH is more than a simple guide. It can combine Markdown text, item links, recipes, images, keybind hints, tooltips, and interactive scene previews into a single guide interface.
+GuideNH is far more than a simple guide. It brings multiple features together in a single guide interface: Markdown text, item links, crafting recipes, keybind hints, tooltips, and interactive scene previews.
 
 ## Getting Around
 
@@ -12,7 +12,7 @@ Use the **navigation panel** on the left to browse guide pages.
 
 Use the buttons in the top-right corner to search, return home, move backward or forward, and close the guide.
 
-When a page is indexed to an item, hover over that item in your inventory and press <KeyBind id="key.guidenh.open_guide" /> to jump directly to the related page.
+When a page has an item index, hover over the corresponding item in your inventory and hold <KeyBind id="key.guidenh.open_guide" /> to jump directly to the related page.
 
 <Tooltip text="Some pages may include item links, recipes, structures, diagrams, or interactive previews.">
   Hover here for a quick tip.
@@ -47,18 +47,18 @@ Start with the navigation panel, then search for the item, machine, or concept y
 
 If you are not sure where to begin, try opening the recommended pages on the home screen once they become available.
 
-<Color color="#ffcc66">Tip:</Color> GuideNH works best when pages are written as small, connected entries instead of one very long document.
+<Color color="#ffcc66">Tip:</Color> GuideNH usually splits content into multiple small, connected pages instead of turning everything into one overly long document.
 
 ## For Authors
 
 GuideNH pages are written as Markdown files with frontmatter metadata.
 
-Authors can use GuideNH-specific tags such as <ItemImage id="minecraft:paper" />, <KeyBind id="key.attack" />, tooltips, item references, recipe previews, and scene components to make documentation easier to read in-game.
+Authors can use GuideNH-specific tags such as <ItemImage id="minecraft:paper" />, <KeyBind id="key.attack" />, tooltips, item references, recipe previews, and scene components to make documentation easier to read and maintain in-game.
 
-The goal is not only to explain content, but to make complex information easier to explore.
+Our goal is not only to explain content, but also to make complex information clear, intuitive, and easy to explore.
 
 ## Enjoy the Guide
 
-GuideNH is here to make in-game documentation clearer, faster, and more useful.
+GuideNH helps you find answers faster, while also helping authors organize content more effectively.
 
-Use it as a map, a reference book, and a workspace for understanding complex systems.
+It is your guide map, your reference manual, and a practical tool for understanding complex systems.
