@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.mermaid;
 import java.util.List;
 
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public enum MermaidDiagramType {
 
@@ -34,6 +35,10 @@ public enum MermaidDiagramType {
                 return MINDMAP;
             }
             if (trimmed.startsWith("flowchart") || trimmed.startsWith("graph")) {
+                return FLOWCHART;
+            }
+            if (trimmed.startsWith("swimlane")) {
+                GuideDebugLog.warn("[GuideNH] [Mermaid] swimlane flowcharts are not supported, falling back to normal flowchart rendering");
                 return FLOWCHART;
             }
             break;
