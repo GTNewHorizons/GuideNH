@@ -53,8 +53,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         return "elk";
     }
 
-    // ---- Compound graph layout with SEPARATE_CHILDREN + boundary ports ----
-    //
     // Subgraphs with different directions become ElkNode compounds with
     // SEPARATE_CHILDREN (so each gets its own layout run with its own DIRECTION).
     // Cross-hierarchy edges are split at the compound boundary: internal segments
@@ -77,7 +75,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
         Set<String> compoundSgIds = buildCompoundSgIds(document, parentSgMap, subgraphById);
 
-        // ---- Build ELK compound graph ----
         ElkNode root = ElkGraphUtil.createGraph();
         root.setProperty(CoreOptions.ALGORITHM, "org.eclipse.elk.layered");
         root.setProperty(CoreOptions.DIRECTION, toElkDirection(document.getDirection()));
@@ -222,15 +219,11 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                     tgtEdges));
         }
 
-        // ---- Run layout ----
         RecursiveGraphLayoutEngine engine = new RecursiveGraphLayoutEngine();
         engine.layout(root, new NullElkProgressMonitor());
 
-        // ---- Extract positions ----
         Map<String, FlowchartLayoutResult.NodePosition> positions = new LinkedHashMap<>();
         collectPositions(root, 0, 0, cfg.canvasPadding(), positions, elkNodeMap);
-
-        // ---- Extract and stitch edge paths ----
         List<FlowchartLayoutResult.EdgePath> edgePaths = new ArrayList<>();
 
         // Collect all edges created by split chains and dummy chains so we can skip them in collectRemainingEdges
@@ -335,8 +328,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         return new FlowchartLayoutResult(positions, edgePaths, maxX + cfg.canvasPadding(), maxY + cfg.canvasPadding());
     }
 
-    // ---- Edge point extraction ----
-
     private static List<FlowchartLayoutResult.Point> edgePoints(ElkEdge edge, ElkNode root, int padding) {
         ElkNode container = edge.getContainingNode();
         double[] off = nodeOffsetExact(container, root);
@@ -414,8 +405,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         }
     }
 
-    // ---- Graph construction helpers ----
-
     private static List<String> compoundChain(String nodeId, Map<String, FlowchartSubgraph> nodeToSubgraph,
         Set<String> compoundSgIds, Map<String, String> parentSgMap, Map<String, FlowchartSubgraph> subgraphById) {
         List<String> reverse = new ArrayList<>();
@@ -432,21 +421,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             chain.add(reverse.get(i));
         }
         return chain;
-    }
-
-    private static ElkNode findLowestCommonAncestor(ElkNode a, ElkNode b) {
-        Set<ElkNode> ancestors = new LinkedHashSet<>();
-        ElkNode cur = a;
-        while (cur != null) {
-            ancestors.add(cur);
-            cur = cur.getParent();
-        }
-        cur = b;
-        while (cur != null) {
-            if (ancestors.contains(cur)) return cur;
-            cur = cur.getParent();
-        }
-        return null;
     }
 
     private static Map<String, String> buildParentSubgraphMap(List<FlowchartSubgraph> subgraphs) {
@@ -558,8 +532,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         return root;
     }
 
-    // ---- Position extraction ----
-
     private static void collectPositions(ElkNode node, int offsetX, int offsetY, int padding,
         Map<String, FlowchartLayoutResult.NodePosition> positions, Map<String, ElkNode> elkNodeMap) {
         boolean isCompound = node.getIdentifier() != null && node.getIdentifier()
@@ -581,8 +553,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             collectPositions(child, absX, absY, padding, positions, elkNodeMap);
         }
     }
-
-    // ---- Misc helpers ----
 
     private static Map<String, FlowchartSubgraph> buildNodeToSubgraphMap(List<FlowchartSubgraph> subgraphs) {
         Map<String, FlowchartSubgraph> result = new LinkedHashMap<>();
@@ -609,8 +579,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             default -> Direction.DOWN;
         };
     }
-
-    // ---- Data records ----
 
     private record SplitChain(String sourceId, String targetId, @Nullable String edgeId, List<ElkPort> srcPorts,
         List<ElkPort> tgtPorts, ElkEdge externalEdge, List<ElkEdge> srcEdges, List<ElkEdge> tgtEdges) {}

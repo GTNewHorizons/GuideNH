@@ -151,8 +151,6 @@ public final class MermaidNodeRenderer {
         return Math.round(width);
     }
 
-    // ---- Text wrapping ----
-
     public static List<String> wrapText(RenderContext context, ResolvedTextStyle style, String text, int maxWidth) {
         return wrapText(new LayoutContext(new FontMetrics() {
 

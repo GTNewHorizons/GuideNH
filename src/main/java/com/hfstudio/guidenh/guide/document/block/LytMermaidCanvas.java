@@ -370,8 +370,6 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         return base + Math.round(value * activeZoom);
     }
 
-    // ---- Shared static utilities ----
-
     protected static boolean usesRawGl(LytBlock block) {
         return block instanceof LytLatexBlock || block instanceof LytLatexDisplayBlock
             || block instanceof LytItemImage
@@ -519,8 +517,6 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                     contentLayout.visualBounds()
                         .height() * activeZoom)));
     }
-
-    // ---- Shared inner types ----
 
     public record NodeHit(LytNode node, FlowInteractionPath flowPath, int localX, int localY) {
 

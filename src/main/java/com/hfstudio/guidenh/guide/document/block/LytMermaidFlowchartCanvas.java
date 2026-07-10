@@ -701,8 +701,6 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         return contextLineHeight(badgeStyle) + badgePaddingY * 2 + iconGapY;
     }
 
-    // ---- Subgraph rendering ----
-
     private void renderSubgraphs(RenderContext context, int baseX, int baseY, float activeZoom) {
         if (layout == null) return;
         for (var subgraph : document.getSubgraphs()) {
@@ -805,7 +803,4 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         } catch (NumberFormatException ignored) {}
         return 0;
     }
-
-    // ---- Inner classes ----
-
 }
