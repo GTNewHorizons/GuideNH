@@ -149,10 +149,6 @@ public class GuideLightweightReloadService {
         GuideDebugLog.warnAlways(
             "[GuideNH] [GuideLightweightReloadService] select() stats during this reload: {}",
             GuidePageResourceSelector.formatSelectStats());
-        GuideDebugLog
-            .warnAlways("[GuideNH] [GuideLightweightReloadService] {}", DataDrivenGuideLoader.formatIndexStats());
-        GuideDebugLog
-            .warnAlways("[GuideNH] [GuideLightweightReloadService] {}", DataDrivenGuideLoader.formatReadBytesStats());
         GuidePageResourceSelector.resetSelectStats();
     }
 

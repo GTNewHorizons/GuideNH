@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -91,11 +92,6 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    // readBytes I/O performance counters (reset per reload)
-    private static long totalReadBytesNs = 0;
-    private static long totalReadBytesCalls = 0;
-    private static long totalReadBytesSuccess = 0;
-
     private DataDrivenGuideLoader() {}
 
     // ── Public API: Scan + Index ─────────────────────────────────────────────
@@ -117,7 +113,6 @@ public class DataDrivenGuideLoader {
             return cache.result();
         }
 
-        long t0 = System.nanoTime();
         pagePackIndex.clear();
         indexReady = false;
         pagePackOrder.set(0);
@@ -126,25 +121,16 @@ public class DataDrivenGuideLoader {
         var discoveredLanguages = new LinkedHashMap<ResourceLocation, LinkedHashSet<String>>();
         var guidePageLangKeys = new LinkedHashMap<String, LinkedHashMap<String, String>>();
 
-        int zipPackCount = 0, dirPackCount = 0;
-        long zipScanNs = 0, dirScanNs = 0;
-
         for (var pack : resolvedPacks) {
             var root = getLooseResourcePackRoot(pack);
             if (root == null || !root.exists()) continue;
-            long packT0 = System.nanoTime();
             if (!root.isDirectory()) {
-                zipPackCount++;
                 scanZipBuildIndex(root, folder, pagePaths, pack, discoveredLanguages, guidePageLangKeys);
-                zipScanNs += System.nanoTime() - packT0;
             } else {
-                dirPackCount++;
                 scanDirectoryBuildIndex(pack, root, folder, pagePaths, discoveredLanguages, guidePageLangKeys);
-                dirScanNs += System.nanoTime() - packT0;
             }
         }
 
-        long guideBuildT0 = System.nanoTime();
         var guides = new LinkedHashMap<ResourceLocation, MutableGuide>();
         for (var entry : discoveredLanguages.entrySet()) {
             guides.put(
@@ -155,47 +141,24 @@ public class DataDrivenGuideLoader {
                     .defaultLanguage(DEFAULT_LANGUAGE)
                     .build());
         }
-        long guideBuildNs = System.nanoTime() - guideBuildT0;
 
-        long preloadT0 = System.nanoTime();
         GuidePageLanguageIndex.preload(freezeLangKeys(guidePageLangKeys));
-        long preloadNs = System.nanoTime() - preloadT0;
 
-        indexReady = true;
-
-        int mdCount = 0;
-        for (var np : pagePaths.values()) mdCount += np.size();
-        int langKeyCount = guidePageLangKeys.values()
-            .stream()
-            .mapToInt(Map::size)
-            .sum();
-
-        long totalNs = System.nanoTime() - t0;
-        GuideDebugLog.warnAlways(
-            "[GuideNH] [DataDrivenGuideLoader] scanAndBuildAll: {} guides, {} page paths, {} lang keys from {} packs ({} zip, {} dir) in {} ms — zipScan={}ms dirScan={}ms guideBuild={}ms preload={}ms",
-            guides.size(),
-            mdCount,
-            langKeyCount,
-            resolvedPacks.size(),
-            zipPackCount,
-            dirPackCount,
-            totalNs / 1_000_000L,
-            zipScanNs / 1_000_000L,
-            dirScanNs / 1_000_000L,
-            guideBuildNs / 1_000_000L,
-            preloadNs / 1_000_000L);
-        var result = new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages));
-        // Save cache so subsequent scans with same packs return instantly
+        // Save cache BEFORE indexReady — pagePackIndex must not be touched by readers
+        // during the snapshot (Map.copyOf on ConcurrentHashMap can throw on concurrent read).
         if (!resolvedPacks.isEmpty() && guides.size() > 0) {
             lastScanCache = new ScanCache(
                 List.copyOf(packRoots),
                 folder,
-                result,
-                Map.copyOf(pagePackIndex),
-                Map.copyOf(PACK_LANG_FILE_PATHS),
+                new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages)),
+                new HashMap<>(pagePackIndex),
+                new HashMap<>(PACK_LANG_FILE_PATHS),
                 freezeLangKeys(guidePageLangKeys));
         }
-        return result;
+
+        indexReady = true;
+
+        return new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages));
     }
 
     public static @Nullable List<PackCandidate> getCandidatesFor(ResourceLocation pageLocation) {
@@ -211,9 +174,6 @@ public class DataDrivenGuideLoader {
         PACK_LANG_FILE_PATHS.clear();
         indexReady = false;
         pagePackOrder.set(0);
-        totalReadBytesNs = 0;
-        totalReadBytesCalls = 0;
-        totalReadBytesSuccess = 0;
         // NOTE: lastScanCache is NOT cleared here — it persists across reloads
         // so that GuideReloadListener's second call (same packs) hits cache.
     }
@@ -224,9 +184,7 @@ public class DataDrivenGuideLoader {
         LinkedHashMap<String, LinkedHashSet<String>> pagePaths, IResourcePack resourcePack,
         Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages,
         LinkedHashMap<String, LinkedHashMap<String, String>> guidePageLangKeys) {
-        long t0 = System.nanoTime();
         var prefix = "assets/";
-        int mdCount = 0, langCount = 0;
         try (var zip = new ZipFile(resourcePackFile)) {
             var entries = zip.entries();
             while (entries.hasMoreElements()) {
@@ -239,7 +197,6 @@ public class DataDrivenGuideLoader {
                     collectLangKeys(zip, entry, path, guidePageLangKeys);
                     PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackFile, k -> new ArrayList<>())
                         .add(path);
-                    langCount++;
                     continue;
                 }
                 if (!path.endsWith(".md")) continue;
@@ -279,22 +236,12 @@ public class DataDrivenGuideLoader {
                             k -> new ArrayList<>())
                         .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
                 }
-                mdCount++;
             }
         } catch (IOException e) {
             GuideDebugLog.warnAlways(
                 "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide pages from resource pack {}",
                 resourcePackFile.getAbsolutePath(),
                 e);
-        }
-        long elapsedNs = System.nanoTime() - t0;
-        if (elapsedNs > 200_000_000) {
-            GuideDebugLog.warnAlways(
-                "[GuideNH] [DataDrivenGuideLoader] Slow pack {}: {} ms ({} .md, {} .lang)",
-                resourcePack.getPackName(),
-                elapsedNs / 1_000_000L,
-                mdCount,
-                langCount);
         }
     }
 
@@ -680,16 +627,9 @@ public class DataDrivenGuideLoader {
     // ── I/O: Read Bytes ──────────────────────────────────────────────────────
 
     public static byte[] readBytes(IResourcePack resourcePack, ResourceLocation resourceLocation) {
-        long startedAt = System.nanoTime();
         try (var input = resourcePack.getInputStream(resourceLocation)) {
-            byte[] result = GuideResourceAccess.readFully(input);
-            totalReadBytesCalls++;
-            totalReadBytesSuccess++;
-            totalReadBytesNs += System.nanoTime() - startedAt;
-            return result;
+            return GuideResourceAccess.readFully(input);
         } catch (IOException e) {
-            totalReadBytesCalls++;
-            totalReadBytesNs += System.nanoTime() - startedAt;
             return null;
         }
     }
@@ -829,36 +769,6 @@ public class DataDrivenGuideLoader {
         var frozen = new LinkedHashMap<String, Map<String, String>>();
         for (var entry : keys.entrySet()) frozen.put(entry.getKey(), Map.copyOf(entry.getValue()));
         return Collections.unmodifiableMap(frozen);
-    }
-
-    public static String formatIndexStats() {
-        if (!indexReady) return "pagePackIndex not ready";
-        int totalKeys = pagePackIndex.size();
-        int totalPackRefs = 0, minC = Integer.MAX_VALUE, maxC = 0;
-        for (var candidates : pagePackIndex.values()) {
-            int size = candidates.size();
-            totalPackRefs += size;
-            if (size < minC) minC = size;
-            if (size > maxC) maxC = size;
-        }
-        double avg = (double) totalPackRefs / totalKeys;
-        return String.format(
-            "pagePackIndex: %d keys, %d total pack refs, candidates per key min=%d max=%d avg=%.1f",
-            totalKeys,
-            totalPackRefs,
-            minC,
-            maxC,
-            avg);
-    }
-
-    public static String formatReadBytesStats() {
-        if (totalReadBytesCalls == 0) return "no readBytes() calls";
-        return String.format(
-            "readBytes: %d calls, %d ms total, %d us avg/call, %d success (hits)",
-            totalReadBytesCalls,
-            totalReadBytesNs / 1_000_000L,
-            totalReadBytesCalls > 0 ? totalReadBytesNs / totalReadBytesCalls / 1000 : 0,
-            totalReadBytesSuccess);
     }
 
     private static Map<ResourceLocation, Set<String>> freezeDiscoveredLanguages(
