@@ -762,7 +762,7 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
         @Override
         public void pushLocalScissor(LytRect rect) {
-            delegate.pushScissor(scaleRect(rect));
+            delegate.pushLocalScissor(scaleRect(rect));
         }
 
         @Override
