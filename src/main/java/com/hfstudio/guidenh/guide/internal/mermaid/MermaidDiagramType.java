@@ -38,7 +38,8 @@ public enum MermaidDiagramType {
                 return FLOWCHART;
             }
             if (trimmed.startsWith("swimlane")) {
-                GuideDebugLog.warn("[GuideNH] [Mermaid] swimlane flowcharts are not supported, falling back to normal flowchart rendering");
+                GuideDebugLog.warn(
+                    "[GuideNH] [Mermaid] swimlane flowcharts are not supported, falling back to normal flowchart rendering");
                 return FLOWCHART;
             }
             break;

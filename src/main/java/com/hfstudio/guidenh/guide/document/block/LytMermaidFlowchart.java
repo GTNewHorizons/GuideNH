@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
@@ -47,7 +48,10 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
         if (copyValue != null && !copyValue.isEmpty()) {
             LytButton btn = new LytButton(LytCodeBlockToolbar.COPY_SPRITE, new LytSize(16, 16));
             btn.setOnClick(screen -> screen.copyCodeBlock(copyValue));
-            btn.setTooltipText("Copy Plan");
+            btn.setTooltipFunction((pressed) -> {
+                if (pressed) return GuidebookText.FlowchartCopyPlanSuccess.text();
+                return GuidebookText.FlowchartCopyPlan.text();
+            });
             btn.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
             toolbar.addButton(btn);
         }

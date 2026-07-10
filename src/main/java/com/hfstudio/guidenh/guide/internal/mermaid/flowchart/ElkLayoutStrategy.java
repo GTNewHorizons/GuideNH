@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
 import org.eclipse.elk.core.RecursiveGraphLayoutEngine;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.options.CoreOptions;
@@ -20,6 +19,7 @@ import org.eclipse.elk.graph.ElkEdgeSection;
 import org.eclipse.elk.graph.ElkNode;
 import org.eclipse.elk.graph.ElkPort;
 import org.eclipse.elk.graph.util.ElkGraphUtil;
+import org.jetbrains.annotations.Nullable;
 
 public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
@@ -211,7 +211,15 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             ElkEdge externalEdge = ElkGraphUtil.createSimpleEdge(extSrc, extTgt);
 
             splitChains.add(
-                new SplitChain(edge.getFrom(), edge.getTo(), edge.getEdgeId(), srcPorts, tgtPorts, externalEdge, srcEdges, tgtEdges));
+                new SplitChain(
+                    edge.getFrom(),
+                    edge.getTo(),
+                    edge.getEdgeId(),
+                    srcPorts,
+                    tgtPorts,
+                    externalEdge,
+                    srcEdges,
+                    tgtEdges));
         }
 
         // ---- Run layout ----
@@ -369,8 +377,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
     }
 
     private static void collectRemainingEdges(ElkNode node, double offsetX, double offsetY, int padding,
-        List<FlowchartLayoutResult.EdgePath> edgePaths, Set<ElkEdge> splitEdges,
-        Map<ElkEdge, String> simpleEdgeToId) {
+        List<FlowchartLayoutResult.EdgePath> edgePaths, Set<ElkEdge> splitEdges, Map<ElkEdge, String> simpleEdgeToId) {
         double absX = offsetX + node.getX();
         double absY = offsetY + node.getY();
 
@@ -606,8 +613,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
     // ---- Data records ----
 
     private record SplitChain(String sourceId, String targetId, @Nullable String edgeId, List<ElkPort> srcPorts,
-        List<ElkPort> tgtPorts,
-        ElkEdge externalEdge, List<ElkEdge> srcEdges, List<ElkEdge> tgtEdges) {}
+        List<ElkPort> tgtPorts, ElkEdge externalEdge, List<ElkEdge> srcEdges, List<ElkEdge> tgtEdges) {}
 
     private record DummyChain(String sourceId, String targetId, @Nullable String edgeId, List<ElkEdge> chainEdges) {}
 }

@@ -50,8 +50,6 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
     private ColorValue toolbarText = DEFAULT_TOOLBAR_TEXT;
 
     private String copyText = "";
-    private boolean copied;
-    private long copiedUntilMillis;
     private int preferredWidth;
     @Setter
     private boolean copyButtonVisible = true;
@@ -60,8 +58,11 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
         copySourceButton = new LytButton(COPY_SPRITE, new LytSize(16, 16));
         copySourceButton.setColor(toolbarText);
         copySourceButton.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
-        copySourceButton.setOnClick(screen -> { if (screen.copyCodeBlock(copyText)) markCopied(); });
-        copySourceButton.setTooltipSupplier(this::getCopyTooltipText);
+        copySourceButton.setOnClick(screen -> screen.copyCodeBlock(copyText));
+        copySourceButton.setTooltipFunction((pressed) -> {
+            if (pressed) return GuidebookText.CodeBlockCopySuccess.text();
+            return GuidebookText.CodeBlockCopy.text();
+        });
 
         languageLabel.setMarginTop(0);
         languageLabel.setMarginBottom(0);
@@ -180,18 +181,5 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
             new BorderRenderer()
                 .render(context, bounds, getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom());
         }
-    }
-
-    private void markCopied() {
-        copied = true;
-        copiedUntilMillis = System.currentTimeMillis() + COPY_TOOLTIP_RESET_DELAY_MILLIS;
-    }
-
-    private String getCopyTooltipText() {
-        if (copied && System.currentTimeMillis() < copiedUntilMillis) {
-            return GuidebookText.CodeBlockCopySuccess.text();
-        }
-        copied = false;
-        return GuidebookText.CodeBlockCopy.text();
     }
 }
