@@ -97,11 +97,17 @@ public class FlowchartLayoutResult {
         private final String fromId;
         private final String toId;
         private final List<Point> points;
+        private final @Nullable String edgeId;
 
         public EdgePath(String fromId, String toId, List<Point> points) {
+            this(fromId, toId, points, null);
+        }
+
+        public EdgePath(String fromId, String toId, List<Point> points, @Nullable String edgeId) {
             this.fromId = fromId != null ? fromId : "";
             this.toId = toId != null ? toId : "";
             this.points = points != null ? List.copyOf(new ArrayList<>(points)) : List.of();
+            this.edgeId = edgeId;
         }
 
         public String getFromId() {
@@ -114,6 +120,10 @@ public class FlowchartLayoutResult {
 
         public List<Point> getPoints() {
             return points;
+        }
+
+        public @Nullable String getEdgeId() {
+            return edgeId;
         }
     }
 

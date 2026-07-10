@@ -41,7 +41,7 @@ public class FlowchartParser {
     private static final Pattern EDGE_ID_PREFIX_PATTERN = Pattern.compile("(.*?)([-=.~]{2,})(\\S+)@$");
     private static final Pattern PIPED_LABEL_PATTERN = Pattern.compile("\\s*\\|([^|]*)\\|");
     private static final Pattern GRAPH_KW_PATTERN = Pattern
-        .compile("^(flowchart-elk|flowchart|graph|swimlane-beta)\\b");
+        .compile("^(flowchart-elk|flowchart|graph|swimlane-beta|swimlane)\\b");
     private static final Pattern STATEMENT_PATTERN = Pattern.compile("^(style|classDef|class|linkStyle)\\b");
 
     private FlowchartParser(List<String> lines) {

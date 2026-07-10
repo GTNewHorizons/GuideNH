@@ -33,9 +33,6 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
     private static final int NODE_GAP_Y = 14;
     private static final int ICON_GAP_Y = 4;
     private static final int CONNECTOR_THICKNESS = 1;
-    private static final float ZOOM_STEP = 1.1f;
-    private static final float MIN_ZOOM = 0.5f;
-    private static final float MAX_ZOOM = 2.5f;
     static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(0xFFF1F6FB);
     static final ConstantColor NODE_TEXT_COLOR = new ConstantColor(0xFFD7DEE7);
     static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(0xFFB8C2CF);

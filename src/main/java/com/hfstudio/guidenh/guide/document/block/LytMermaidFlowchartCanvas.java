@@ -287,7 +287,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     private void renderEdges(RenderContext context, int baseX, int baseY, float activeZoom) {
         int defaultColor = context.resolveColor(EDGE_COLOR);
         for (EdgePath edgePath : layout.getEdgePaths()) {
-            FlowchartEdge flowEdge = lookupEdge(edgePath.getFromId(), edgePath.getToId());
+            FlowchartEdge flowEdge = lookupEdge(edgePath.getFromId(), edgePath.getToId(), edgePath.getEdgeId());
             MermaidEdgeStyle style = flowEdge != null ? flowEdge.getStyle() : MermaidEdgeStyle.SOLID;
             boolean arrowFwd = flowEdge == null || flowEdge.isArrowFwd();
             boolean arrowRev = flowEdge != null && flowEdge.isArrowRev();
@@ -376,7 +376,12 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         }
     }
 
-    private @Nullable FlowchartEdge lookupEdge(String fromId, String toId) {
+    private @Nullable FlowchartEdge lookupEdge(String fromId, String toId, @Nullable String edgeId) {
+        if (edgeId != null) {
+            for (FlowchartEdge e : document.getEdges()) {
+                if (edgeId.equals(e.getEdgeId())) return e;
+            }
+        }
         for (FlowchartEdge e : document.getEdges()) {
             if (e.getFrom()
                 .equals(fromId)

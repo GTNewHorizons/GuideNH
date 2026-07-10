@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.jetbrains.annotations.Nullable;
 import org.eclipse.elk.core.RecursiveGraphLayoutEngine;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.options.CoreOptions;
@@ -115,6 +116,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         List<SplitChain> splitChains = new ArrayList<>();
         Set<String> dummyNodeIds = new LinkedHashSet<>();
         List<DummyChain> dummyChains = new ArrayList<>();
+        Map<ElkEdge, String> simpleEdgeToId = new LinkedHashMap<>();
         int[] dummyCounter = { 0 };
 
         for (FlowchartEdge edge : document.getEdges()) {
@@ -166,9 +168,13 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                         prev = dummy;
                     }
                     chainEdges.add(ElkGraphUtil.createSimpleEdge(prev, target));
-                    dummyChains.add(new DummyChain(edge.getFrom(), edge.getTo(), chainEdges));
+                    dummyChains.add(new DummyChain(edge.getFrom(), edge.getTo(), edge.getEdgeId(), chainEdges));
                 } else {
-                    ElkGraphUtil.createSimpleEdge(source, target);
+                    ElkEdge elkEdge = ElkGraphUtil.createSimpleEdge(source, target);
+                    String eid = edge.getEdgeId();
+                    if (eid != null) {
+                        simpleEdgeToId.put(elkEdge, eid);
+                    }
                 }
                 continue;
             }
@@ -205,7 +211,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             ElkEdge externalEdge = ElkGraphUtil.createSimpleEdge(extSrc, extTgt);
 
             splitChains.add(
-                new SplitChain(edge.getFrom(), edge.getTo(), srcPorts, tgtPorts, externalEdge, srcEdges, tgtEdges));
+                new SplitChain(edge.getFrom(), edge.getTo(), edge.getEdgeId(), srcPorts, tgtPorts, externalEdge, srcEdges, tgtEdges));
         }
 
         // ---- Run layout ----
@@ -287,7 +293,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             }
 
             if (!merged.isEmpty()) {
-                edgePaths.add(new FlowchartLayoutResult.EdgePath(sc.sourceId, sc.targetId, merged));
+                edgePaths.add(new FlowchartLayoutResult.EdgePath(sc.sourceId, sc.targetId, merged, sc.edgeId));
             }
         }
 
@@ -305,12 +311,12 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
                 }
             }
             if (!merged.isEmpty()) {
-                edgePaths.add(new FlowchartLayoutResult.EdgePath(dc.sourceId, dc.targetId, merged));
+                edgePaths.add(new FlowchartLayoutResult.EdgePath(dc.sourceId, dc.targetId, merged, dc.edgeId));
             }
         }
 
         // Collect unsplit edges from the whole tree (skip hierarchical and chain edges)
-        collectRemainingEdges(root, 0, 0, cfg.canvasPadding(), edgePaths, splitEdges);
+        collectRemainingEdges(root, 0, 0, cfg.canvasPadding(), edgePaths, splitEdges, simpleEdgeToId);
 
         int maxX = 0;
         int maxY = 0;
@@ -363,7 +369,8 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
     }
 
     private static void collectRemainingEdges(ElkNode node, double offsetX, double offsetY, int padding,
-        List<FlowchartLayoutResult.EdgePath> edgePaths, Set<ElkEdge> splitEdges) {
+        List<FlowchartLayoutResult.EdgePath> edgePaths, Set<ElkEdge> splitEdges,
+        Map<ElkEdge, String> simpleEdgeToId) {
         double absX = offsetX + node.getX();
         double absY = offsetY + node.getY();
 
@@ -390,12 +397,13 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
             List<FlowchartLayoutResult.Point> pts = edgePoints(edge, absX, absY, padding);
             if (!pts.isEmpty()) {
-                edgePaths.add(new FlowchartLayoutResult.EdgePath(srcId, tgtId, pts));
+                String eid = simpleEdgeToId.get(edge);
+                edgePaths.add(new FlowchartLayoutResult.EdgePath(srcId, tgtId, pts, eid));
             }
         }
 
         for (ElkNode child : node.getChildren()) {
-            collectRemainingEdges(child, absX, absY, padding, edgePaths, splitEdges);
+            collectRemainingEdges(child, absX, absY, padding, edgePaths, splitEdges, simpleEdgeToId);
         }
     }
 
@@ -597,8 +605,9 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
     // ---- Data records ----
 
-    private record SplitChain(String sourceId, String targetId, List<ElkPort> srcPorts, List<ElkPort> tgtPorts,
+    private record SplitChain(String sourceId, String targetId, @Nullable String edgeId, List<ElkPort> srcPorts,
+        List<ElkPort> tgtPorts,
         ElkEdge externalEdge, List<ElkEdge> srcEdges, List<ElkEdge> tgtEdges) {}
 
-    private record DummyChain(String sourceId, String targetId, List<ElkEdge> chainEdges) {}
+    private record DummyChain(String sourceId, String targetId, @Nullable String edgeId, List<ElkEdge> chainEdges) {}
 }
