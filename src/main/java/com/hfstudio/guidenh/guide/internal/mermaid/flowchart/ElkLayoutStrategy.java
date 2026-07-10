@@ -29,7 +29,6 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
 
     public static void warmup() {
         if (warmedUp) return;
-        warmedUp = true;
         try {
             ElkNode root = ElkGraphUtil.createGraph();
             root.setProperty(CoreOptions.ALGORITHM, "org.eclipse.elk.layered");
@@ -43,6 +42,8 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             ElkGraphUtil.createSimpleEdge(a, b);
             RecursiveGraphLayoutEngine engine = new RecursiveGraphLayoutEngine();
             engine.layout(root, new NullElkProgressMonitor());
+
+            warmedUp = true;
         } catch (Exception ignored) {}
     }
 
