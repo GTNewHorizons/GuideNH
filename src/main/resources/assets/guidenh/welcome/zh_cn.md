@@ -55,7 +55,7 @@ GuideNH 页面使用带有 frontmatter 元数据的 Markdown 编写。
 
 作者可以使用 GuideNH 专用标签，例如 <ItemImage id="minecraft:paper" />、<KeyBind id="key.attack" />、悬浮提示、物品引用、配方预览和场景组件，让游戏内文档更容易阅读和维护。
 
-它的目标不只是展示文字，而是让复杂信息变得更清晰、更直观、更容易探索。
+我们的目标不仅是单纯地解释内容，更是为了让复杂的信息变得清晰直观，易于探索。
 
 ## 开始使用吧
 
