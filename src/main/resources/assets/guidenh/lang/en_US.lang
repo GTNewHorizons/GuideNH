@@ -547,6 +547,9 @@ guideme.guidebook.ToggleBlockStats=Toggle Block Stats
 guideme.guidebook.ToggleGrid=Toggle Floor Grid
 guideme.guidebook.ZoomIn=Zoom In
 guideme.guidebook.ZoomOut=Zoom Out
+guideme.guidebook.FlowchartCopyPlan=Copy Plan
+guideme.guidebook.FlowchartCopyPlanSuccess=Plan copied to the clipboard
+guideme.guidebook.FlowchartCopyPlanFailure=Failed to copy plan: %s
 
 # Items
 item.guide.name=Guide

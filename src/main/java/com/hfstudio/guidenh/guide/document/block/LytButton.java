@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -14,10 +14,14 @@ import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 public class LytButton extends LytGuiSprite {
 
+    private static final long PRESSED_TOOLTIP_RESET_DELAY_MILLIS = 1500L;
+
     @Nullable
     private Consumer<GuideUiHost> onClick;
     @Nullable
-    private Supplier<String> tooltipSupplier;
+    private Function<Boolean, String> tooltipSupplier;
+    private boolean pressed = false;
+    private long pressedUntilMillis;
 
     public LytButton(GuiSprite sprite, LytSize size) {
         super(sprite, size);
@@ -27,12 +31,12 @@ public class LytButton extends LytGuiSprite {
         this.onClick = onClick;
     }
 
-    public void setTooltipSupplier(@Nullable Supplier<String> tooltipSupplier) {
+    public void setTooltipFunction(@Nullable Function<Boolean, String> tooltipSupplier) {
         this.tooltipSupplier = tooltipSupplier;
     }
 
     public void setTooltipText(@Nullable String tooltipText) {
-        this.tooltipSupplier = tooltipText != null ? () -> tooltipText : null;
+        this.tooltipSupplier = tooltipText != null ? (_) -> tooltipText : null;
     }
 
     @Override
@@ -41,6 +45,8 @@ public class LytButton extends LytGuiSprite {
         var bounds = getBounds();
         if (bounds == null || !bounds.contains(x, y) || onClick == null) return false;
         onClick.accept(screen);
+        pressed = true;
+        pressedUntilMillis = System.currentTimeMillis() + PRESSED_TOOLTIP_RESET_DELAY_MILLIS;
         return true;
     }
 
@@ -49,7 +55,10 @@ public class LytButton extends LytGuiSprite {
         if (tooltipSupplier == null) return Optional.empty();
         var bounds = getBounds();
         if (bounds != null && bounds.contains((int) x, (int) y)) {
-            return Optional.of(new TextTooltip(tooltipSupplier.get()));
+            if (System.currentTimeMillis() >= pressedUntilMillis) {
+                pressed = false;
+            }
+            return Optional.of(new TextTooltip(tooltipSupplier.apply(pressed)));
         }
         return Optional.empty();
     }
