@@ -13,8 +13,7 @@ public enum Mixins implements IMixins {
     EARLY(Side.CLIENT, "forge.AccessorForgeHooksClient", "forge.AccessorGuiIngameForge", "fml.AccessorFMLClientHandler",
         "minecraft.AccessorAbstractResourcePack", "minecraft.AccessorFallbackResourceManager",
         "minecraft.AccessorSimpleReloadableResourceManager", "forge.AccessorShapedOreRecipe",
-        "forge.AccessorShapelessOreRecipe", "minecraft.MixinModelRendererSceneExportCapture",
-        "minecraft.MixinTessellatorSceneExportCapture"),
+        "forge.AccessorShapelessOreRecipe"),
 
     BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.MixinPanelButtonQuest", "compat.MixinPanelTextBox",
         "compat.AccessorPanelTextBox", "compat.AccessorPanelTextBoxHotZone"),

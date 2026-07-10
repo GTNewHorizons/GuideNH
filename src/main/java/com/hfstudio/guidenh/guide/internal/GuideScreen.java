@@ -5402,14 +5402,11 @@ public class GuideScreen extends GuiContainer
 
     @Nullable
     private Path resolveContextResourcePackPath(MutableGuide targetGuide, ResourceLocation pageId, String language) {
-        GuidePageResourceSelector.SelectedPageResource selected = resolveContextSelectedResource(
-            targetGuide,
-            pageId,
-            language);
+        GuidePageResourceSelector.SelectedPack selected = resolveContextSelectedResource(targetGuide, pageId, language);
         if (selected == null) {
             return null;
         }
-        var resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.resourcePack());
+        var resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.pack());
         if (resourcePackFile == null) {
             return null;
         }
@@ -5433,11 +5430,8 @@ public class GuideScreen extends GuiContainer
     @Nullable
     private IResourcePack resolveContextResourcePack(MutableGuide targetGuide, ResourceLocation pageId,
         String language) {
-        GuidePageResourceSelector.SelectedPageResource selected = resolveContextSelectedResource(
-            targetGuide,
-            pageId,
-            language);
-        return selected != null ? selected.resourcePack() : null;
+        GuidePageResourceSelector.SelectedPack selected = resolveContextSelectedResource(targetGuide, pageId, language);
+        return selected != null ? selected.pack() : null;
     }
 
     private ResourceLocation resolveGuidePageSourceId(MutableGuide targetGuide, ResourceLocation pageId,
@@ -5450,7 +5444,7 @@ public class GuideScreen extends GuiContainer
     }
 
     @Nullable
-    private GuidePageResourceSelector.SelectedPageResource resolveContextSelectedResource(MutableGuide targetGuide,
+    private GuidePageResourceSelector.SelectedPack resolveContextSelectedResource(MutableGuide targetGuide,
         ResourceLocation pageId, String language) {
         ResourceLocation localizedSourceId = resolveGuidePageSourceId(targetGuide, pageId, language);
         ResourceLocation defaultSourceId = language != null && !language.equals(targetGuide.getDefaultLanguage())

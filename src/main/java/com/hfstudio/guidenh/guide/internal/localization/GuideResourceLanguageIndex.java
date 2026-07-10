@@ -4,19 +4,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Enumeration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.StringTranslate;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -44,18 +41,28 @@ public class GuideResourceLanguageIndex {
         long startedAt = System.nanoTime();
         Map<String, String> merged = new LinkedHashMap<>();
         var activeResourcePacks = DataDrivenGuideLoader.getLastActiveResourcePacks();
+        int packIndex = 0;
         for (IResourcePack resourcePack : activeResourcePacks) {
+            long packStartedAt = System.nanoTime();
             loadResourcePackLanguage(resourcePack, normalizedLanguage, merged);
+            long packNs = System.nanoTime() - packStartedAt;
+            if (packNs > 100_000_000) {
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [GuideResourceLanguageIndex] Slow resource pack [#{}/{}] {} took {} ms",
+                    packIndex,
+                    activeResourcePacks.size(),
+                    resourcePack.getPackName(),
+                    packNs / 1_000_000L);
+            }
+            packIndex++;
         }
         long totalNs = System.nanoTime() - startedAt;
-        if (ModConfig.debug.enableDebugMode) {
-            GuideDebugLog.infoAlways(
-                "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ns",
-                merged.size(),
-                normalizedLanguage,
-                activeResourcePacks.size(),
-                totalNs);
-        }
+        GuideDebugLog.warnAlways(
+            "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ms",
+            merged.size(),
+            normalizedLanguage,
+            activeResourcePacks.size(),
+            totalNs / 1_000_000L);
         return merged.isEmpty() ? Map.of() : Map.copyOf(merged);
     }
 
@@ -69,7 +76,7 @@ public class GuideResourceLanguageIndex {
             loadDirectoryLanguage(resourcePackFile, normalizedLanguage, target);
             return;
         }
-        loadZipLanguage(resourcePackFile, normalizedLanguage, target);
+        loadZipLanguage(resourcePack, resourcePackFile, normalizedLanguage, target);
     }
 
     private static void loadDirectoryLanguage(File resourcePackRoot, String normalizedLanguage,
@@ -129,34 +136,22 @@ public class GuideResourceLanguageIndex {
         }
     }
 
-    private static void loadZipLanguage(File resourcePackFile, String normalizedLanguage, Map<String, String> target) {
-        try (ZipFile zip = new ZipFile(resourcePackFile)) {
-            Enumeration<? extends ZipEntry> entries = zip.entries();
-            while (entries.hasMoreElements()) {
-                ZipEntry entry = entries.nextElement();
-                if (entry.isDirectory()) {
-                    continue;
-                }
-                String path = entry.getName();
-                if (!path.contains("/lang/")) {
-                    continue;
-                }
-                int fileNameStart = path.lastIndexOf('/') + 1;
-                if (fileNameStart <= 0 || fileNameStart >= path.length()) {
-                    continue;
-                }
-                if (!isMatchingLangFile(path.substring(fileNameStart), normalizedLanguage)) {
-                    continue;
-                }
-                try (InputStream input = zip.getInputStream(entry)) {
-                    target.putAll(StringTranslate.parseLangFile(input));
-                }
+    /**
+     * Reads .lang files for the requested language using the cached entry list
+     * from DataDrivenGuideLoader's single scan, avoiding a redundant zip entry iteration.
+     */
+    private static void loadZipLanguage(IResourcePack resourcePack, File resourcePackFile, String normalizedLanguage,
+        Map<String, String> target) {
+        List<String> langEntryPaths = DataDrivenGuideLoader.getLangFilePaths(resourcePackFile);
+        for (String path : langEntryPaths) {
+            int fileNameStart = path.lastIndexOf('/') + 1;
+            if (fileNameStart <= 0 || fileNameStart >= path.length()) {
+                continue;
             }
-        } catch (IOException e) {
-            GuideDebugLog.warnAlways(
-                "[GuideNH] [GuideResourceLanguageIndex] Failed to scan lang entries from resource pack {}",
-                resourcePackFile.getAbsolutePath(),
-                e);
+            if (!isMatchingLangFile(path.substring(fileNameStart), normalizedLanguage)) {
+                continue;
+            }
+            target.putAll(DataDrivenGuideLoader.readLangFile(resourcePack, path));
         }
     }
 

@@ -52,8 +52,12 @@ public class DefaultGuideResourcePackManager {
         }
 
         reloadPending = false;
-        GuideMEClientReloadDispatcher
-            .dispatch(minecraft.func_152345_ab(), minecraft::func_152344_a, minecraft::refreshResources);
+        // Directly reload guides without triggering Minecraft.refreshResources().
+        // The DefaultGuide pack was already injected into FML's resource pack list
+        // during init(), and DataDrivenGuideLoader.getActiveResourcePacks() reads
+        // from that list. A full refreshResources() would also rebuild the texture
+        // atlas (~35s on Java 8) unnecessarily.
+        GuideLightweightReloadService.reloadGuides(minecraft.getResourceManager());
     }
 
     private static void ensureDirectoryExists(Path root) {

@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -152,7 +151,7 @@ public class GuideScreenEditorFileStore {
     private Path resolveExistingWritableSelectedSourcePath(MutableGuide guide, ResourceLocation pageId,
         String language) {
         var resourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
-        GuidePageResourceSelector.SelectedPageResource selected = GuidePageResourceSelector.selectFirstPresent(
+        GuidePageResourceSelector.SelectedPack selected = GuidePageResourceSelector.selectFirstPresent(
             resourcePacks,
             toResourcePackPageId(guide, pageId, language),
             language != null && !language.equals(guide.getDefaultLanguage())
@@ -162,7 +161,7 @@ public class GuideScreenEditorFileStore {
         if (selected == null) {
             return null;
         }
-        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.resourcePack());
+        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.pack());
         if (resourcePackFile == null || !resourcePackFile.isDirectory()) {
             return null;
         }
@@ -203,13 +202,10 @@ public class GuideScreenEditorFileStore {
     @Nullable
     private Path findWritableResourcePackRootContainingAsset(ResourceLocation... assetIds) {
         var resourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
-        GuidePageResourceSelector.SelectedPageResource selected = GuidePageResourceSelector
+        GuidePageResourceSelector.SelectedPack selected = GuidePageResourceSelector
             .selectFirstPresent(resourcePacks, assetIds);
-        if (selected == null) {
-            return null;
-        }
-        IResourcePack resourcePack = selected.resourcePack();
-        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(resourcePack);
+        if (selected == null) return null;
+        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.pack());
         if (resourcePackFile == null || !resourcePackFile.isDirectory()) {
             return null;
         }

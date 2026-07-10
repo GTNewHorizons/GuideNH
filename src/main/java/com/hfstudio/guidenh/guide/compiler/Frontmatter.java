@@ -19,6 +19,8 @@ import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+
 public class Frontmatter {
 
     @Nullable
@@ -38,10 +40,19 @@ public class Frontmatter {
         .withInitial(() -> new Yaml(new SafeConstructor(new LoaderOptions())));
 
     public static Frontmatter parse(ResourceLocation pageId, String yamlText) {
+        long startedAt = System.nanoTime();
         var yaml = YAML.get();
 
         FrontmatterNavigation navigation = null;
         Object loaded = yaml.load(yamlText);
+        long yamlLoadNs = System.nanoTime() - startedAt;
+        if (yamlLoadNs > 10_000_000) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [Frontmatter] Slow YAML parse for {}: {} ms, yamlText length={}",
+                pageId,
+                yamlLoadNs / 1_000_000L,
+                yamlText.length());
+        }
         if (loaded == null) {
             return new Frontmatter(null, Collections.emptyMap());
         }

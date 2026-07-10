@@ -278,11 +278,18 @@ public class PageCompiler {
      */
     public static ParsedGuidePage parseFrontmatterOnly(String sourcePack, String language, ResourceLocation id,
         String pageContent) {
+        long startedAt = System.nanoTime();
         pageContent = pageContent != null ? pageContent : "";
-        pageContent = normalizeLineEndings(pageContent);
-        var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
 
-        return new ParsedGuidePage(
+        long stageStartedAt = System.nanoTime();
+        pageContent = normalizeLineEndings(pageContent);
+        long normalizeNs = System.nanoTime() - stageStartedAt;
+
+        stageStartedAt = System.nanoTime();
+        var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
+        long frontmatterNs = System.nanoTime() - stageStartedAt;
+
+        var result = new ParsedGuidePage(
             sourcePack,
             id,
             pageContent,
@@ -292,6 +299,18 @@ public class PageCompiler {
             null, // no parse failure yet
             null,
             null);
+
+        long totalNs = System.nanoTime() - startedAt;
+        if (totalNs > 2_000_000) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [PageCompiler] Slow parseFrontmatterOnly for {}: total={}us normalizeUs={} frontmatterUs={} contentLength={}",
+                id,
+                totalNs / 1000,
+                normalizeNs / 1000,
+                frontmatterNs / 1000,
+                pageContent.length());
+        }
+        return result;
     }
 
     public static String normalizeLineEndings(String pageContent) {
