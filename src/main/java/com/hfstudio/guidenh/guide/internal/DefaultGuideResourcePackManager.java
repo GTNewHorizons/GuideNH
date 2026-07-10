@@ -23,7 +23,6 @@ public class DefaultGuideResourcePackManager {
     private static final String DEFAULT_GUIDE_ZIP = "config/guidenh/DefaultGuide.zip";
     private static final String PACK_NAME = "GuideNH DefaultGuide";
     private static IResourcePack defaultGuidePack;
-    private static boolean reloadPending;
 
     private DefaultGuideResourcePackManager() {}
 
@@ -37,23 +36,7 @@ public class DefaultGuideResourcePackManager {
         if (inject(pack, minecraft)) {
             File packFile = DataDrivenGuideLoader.getLooseResourcePackRoot(pack);
             GuideDebugLog.infoAlways("Registered DefaultGuide resource pack at {}", packFile);
-            reloadPending = true;
         }
-    }
-
-    public static void refreshIfPending() {
-        if (!reloadPending) {
-            return;
-        }
-
-        Minecraft minecraft = Minecraft.getMinecraft();
-        if (minecraft == null) {
-            return;
-        }
-
-        reloadPending = false;
-        GuideMEClientReloadDispatcher
-            .dispatch(minecraft.func_152345_ab(), r -> minecraft.func_152344_a(r), minecraft::refreshResources);
     }
 
     private static void ensureDirectoryExists(Path root) {
