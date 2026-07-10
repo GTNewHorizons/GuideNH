@@ -100,7 +100,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         false);
 
     private final FlowchartDocument document;
-    private Map<String, NodeContentLayout> nodeContentLayouts = Map.of();
+    private final Map<String, NodeContentLayout> nodeContentLayouts = new LinkedHashMap<>();
     private FlowchartLayoutResult layout;
 
     public LytMermaidFlowchartCanvas(FlowchartDocument document, Map<String, LytBlock> nodeContentBlocks) {
@@ -161,21 +161,6 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         var minSizes = computeNodeMinSizes(context);
         layout = strategy.layout(document, minSizes);
 
-        Map<String, NodeContentLayout> layouts = new LinkedHashMap<>();
-        for (var entry : layout.getNodePositions()
-            .entrySet()) {
-            String nodeId = entry.getKey();
-            LytBlock block = nodeContentBlocks.get(nodeId);
-            if (block != null) {
-                LayoutContext localContext = new LayoutContext(context).withVisualScale(context.getVisualScale());
-                int contentWidth = Math.clamp(layout.getWidth() / 3, 96, 240);
-                block.layout(localContext, 0, 0, contentWidth);
-                LytRect visualBounds = resolveBlockVisualBounds(block);
-                layouts.put(nodeId, new NodeContentLayout(block, visualBounds));
-            }
-        }
-        nodeContentLayouts = layouts;
-
         int desiredHeight = (layout != null ? layout.getHeight() : 0) + CANVAS_PADDING * 2;
         int viewportHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
             : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
@@ -204,6 +189,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                     .get(0);
 
         Map<String, NodeMinSize> result = new LinkedHashMap<>();
+        nodeContentLayouts.clear();
         for (var entry : document.getNodes()
             .entrySet()) {
             String nodeId = entry.getKey();
@@ -221,6 +207,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 LytRect vb = resolveBlockVisualBounds(block);
                 textWidth = vb.width();
                 textHeight = vb.height();
+                nodeContentLayouts.put(nodeId, new NodeContentLayout(block, vb));
             } else {
                 ResolvedTextStyle style = isRoot ? ROOT_TEXT_STYLE : NODE_TEXT_STYLE;
                 String label = node.getLabel();
@@ -623,9 +610,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 List<String> lines = MermaidNodeRenderer.wrapText(context, style, label, visibleWidth);
                 int lineHeight = context.getLineHeight(style);
                 int totalTextHeight = lines.size() * lineHeight;
-                int textAreaTop = textY;
-                int textAreaHeight = contentArea.y() + visibleHeight - textAreaTop;
-                int baseTextY = textAreaTop + Math.max(0, (textAreaHeight - totalTextHeight) / 2);
+                int textAreaHeight = contentArea.y() + visibleHeight - textY;
+                int baseTextY = textY + Math.max(0, (textAreaHeight - totalTextHeight) / 2);
                 for (int i = 0; i < lines.size(); i++) {
                     int lineWidth = context.getStringWidth(lines.get(i), style);
                     int textX = contentArea.x() + Math.max(0, (visibleWidth - lineWidth) / 2);
