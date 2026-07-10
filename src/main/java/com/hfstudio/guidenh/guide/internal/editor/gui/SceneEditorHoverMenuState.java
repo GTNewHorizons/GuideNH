@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
+import lombok.Getter;
+
 public class SceneEditorHoverMenuState {
 
+    @Getter
     private boolean open;
     private boolean stickyUntilPointerLeaves;
-
-    public boolean isOpen() {
-        return open;
-    }
 
     public void update(boolean hoveringButton, boolean hoveringMenu) {
         if (open && stickyUntilPointerLeaves) {

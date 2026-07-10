@@ -31,9 +31,8 @@ import com.hfstudio.guidenh.guide.latex.GuideLatexTextureCache;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiTranslationStats;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibElementTooltipResolver;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
 
 public class GuideLightweightReloadService {
 
@@ -61,15 +60,10 @@ public class GuideLightweightReloadService {
         GuideLatexTextureCache.INSTANCE.clearAll();
         GuideSceneStructureCache.global()
             .clear();
-        StructureLibRuntimeFacade.CONTROL_ANALYSIS_CACHE.clear();
-        StructureLibRuntimeFacade.ANALYSIS_SNAPSHOT_CACHE.clear();
-        StructureLibRuntimeFacade.IMPORT_RESULT_CACHE.clear();
-        StructureLibElementTooltipResolver.BLOCK_CANDIDATE_CACHE.clear();
-        StructureLibElementTooltipResolver.HATCH_CANDIDATE_CACHE.clear();
+        StructureLibDefinitionCache.getInstance()
+            .refresh();
         ClientProxy.getLytHost()
             .clearPageCaches();
-        ClientProxy.getStructureLibPreviewWorker()
-            .reset();
 
         // Single-pass scan: builds page index, discovers guide definitions,
         // collects page paths and language keys — all in one IO pass.
@@ -118,8 +112,6 @@ public class GuideLightweightReloadService {
         if (!allPageIds.isEmpty()) {
             worker.reset(allPageIds);
         }
-        ClientProxy.getStructureLibPreviewBootstrap()
-            .scheduleReloadPrewarm();
         long registryUpdateNs = System.nanoTime() - stageStartedAt;
 
         stageStartedAt = System.nanoTime();

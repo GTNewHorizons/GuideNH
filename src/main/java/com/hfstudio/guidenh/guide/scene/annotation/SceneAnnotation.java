@@ -6,6 +6,9 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public abstract class SceneAnnotation {
 
     @Nullable
@@ -13,6 +16,8 @@ public abstract class SceneAnnotation {
     @Nullable
     private StructureLibSceneCondition structureLibCondition;
 
+    @Getter
+    @Setter
     private boolean hovered;
 
     @Nullable
@@ -41,11 +46,4 @@ public abstract class SceneAnnotation {
         this.structureLibCondition = structureLibCondition;
     }
 
-    public boolean isHovered() {
-        return hovered;
-    }
-
-    public void setHovered(boolean hovered) {
-        this.hovered = hovered;
-    }
 }

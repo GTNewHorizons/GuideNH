@@ -5,47 +5,32 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class CompileOptions {
 
+    @Getter
+    @Setter
     private List<HtmlExtension> extensions = new ArrayList<>();
 
     @Nullable
     private String defaultLineEnding;
 
+    @Getter
+    @Setter
     private boolean allowDangerousHtml;
 
+    @Getter
+    @Setter
     private boolean allowDangerousProtocol;
 
-    public List<HtmlExtension> getExtensions() {
-        return extensions;
-    }
-
-    public void setExtensions(List<HtmlExtension> extensions) {
-        this.extensions = extensions;
-    }
-
-    public String getDefaultLineEnding() {
+    public @Nullable String getDefaultLineEnding() {
         return defaultLineEnding;
     }
 
-    public void setDefaultLineEnding(String defaultLineEnding) {
+    public void setDefaultLineEnding(@Nullable String defaultLineEnding) {
         this.defaultLineEnding = defaultLineEnding;
-    }
-
-    public boolean isAllowDangerousHtml() {
-        return allowDangerousHtml;
-    }
-
-    public void setAllowDangerousHtml(boolean allowDangerousHtml) {
-        this.allowDangerousHtml = allowDangerousHtml;
-    }
-
-    public boolean isAllowDangerousProtocol() {
-        return allowDangerousProtocol;
-    }
-
-    public void setAllowDangerousProtocol(boolean allowDangerousProtocol) {
-        this.allowDangerousProtocol = allowDangerousProtocol;
     }
 
     public CompileOptions allowDangerousHtml() {

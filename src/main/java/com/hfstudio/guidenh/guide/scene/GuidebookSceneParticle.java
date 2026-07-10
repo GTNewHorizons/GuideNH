@@ -284,7 +284,7 @@ public class GuidebookSceneParticle {
         int frameOffset;
         if (maxAge > 0) {
             int clampedAge = Math.clamp(currentAge, 0, maxAge - 1);
-            frameOffset = Math.clamp(clampedAge * animationFrameCount / maxAge, 0, animationFrameCount - 1);
+            frameOffset = Math.clamp((long) clampedAge * animationFrameCount / maxAge, 0, animationFrameCount - 1);
         } else if (animationLoop) {
             frameOffset = Math.floorMod(currentAge, animationFrameCount);
         } else {

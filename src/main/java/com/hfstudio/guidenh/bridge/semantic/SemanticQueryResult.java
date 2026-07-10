@@ -3,6 +3,9 @@ package com.hfstudio.guidenh.bridge.semantic;
 import java.util.List;
 import java.util.Map;
 
+import lombok.Getter;
+
+@Getter
 public class SemanticQueryResult {
 
     private final String capability;
@@ -17,19 +20,4 @@ public class SemanticQueryResult {
         this.nextCursor = nextCursor;
     }
 
-    public String getCapability() {
-        return capability;
-    }
-
-    public int getVersion() {
-        return version;
-    }
-
-    public List<Map<String, String>> getEntries() {
-        return entries;
-    }
-
-    public String getNextCursor() {
-        return nextCursor;
-    }
 }

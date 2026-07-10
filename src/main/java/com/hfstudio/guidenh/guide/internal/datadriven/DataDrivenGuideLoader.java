@@ -92,6 +92,9 @@ public class DataDrivenGuideLoader {
         }
     }
 
+    /** Cache of discovered namespace roots per resource pack directory keyed by canonical path. */
+    private static final ConcurrentHashMap<Path, List<NamespaceRoot>> nativeNamespaceRootsCache = new ConcurrentHashMap<>();
+
     private DataDrivenGuideLoader() {}
 
     // ── Public API: Scan + Index ─────────────────────────────────────────────
@@ -172,6 +175,7 @@ public class DataDrivenGuideLoader {
     public static void clearCaches() {
         pagePackIndex.clear();
         PACK_LANG_FILE_PATHS.clear();
+        nativeNamespaceRootsCache.clear();
         indexReady = false;
         pagePackOrder.set(0);
         // NOTE: lastScanCache is NOT cleared here — it persists across reloads
@@ -709,13 +713,26 @@ public class DataDrivenGuideLoader {
             }
         }
 
+        Path cacheKey = resourcePackRoot.toPath().toAbsolutePath().normalize();
+        List<NamespaceRoot> cached = nativeNamespaceRootsCache.get(cacheKey);
+        if (cached != null) {
+            for (var nr : cached) {
+                addNamespaceRoot(byPath, nr);
+            }
+            return List.copyOf(byPath.values());
+        }
+
+        var nativeRoots = new ArrayList<NamespaceRoot>();
         var nativeDirs = resourcePackRoot.listFiles(File::isDirectory);
         if (nativeDirs != null) {
             for (var dir : nativeDirs) {
                 if ("assets".equals(dir.getName())) continue;
-                addNamespaceRoot(byPath, new NamespaceRoot(namespaceFromDirectoryName(dir.getName()), dir, true));
+                var nr = new NamespaceRoot(namespaceFromDirectoryName(dir.getName()), dir, true);
+                addNamespaceRoot(byPath, nr);
+                nativeRoots.add(nr);
             }
         }
+        nativeNamespaceRootsCache.put(cacheKey, List.copyOf(nativeRoots));
         return List.copyOf(byPath.values());
     }
 

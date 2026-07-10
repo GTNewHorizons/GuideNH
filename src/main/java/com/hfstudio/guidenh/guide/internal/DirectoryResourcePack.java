@@ -15,9 +15,12 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class DirectoryResourcePack implements IResourcePack {
 
     private final String packName;
+    @Getter
     private final Path root;
     private volatile DomainSnapshot resourceDomains;
 
@@ -25,10 +28,6 @@ public class DirectoryResourcePack implements IResourcePack {
         this.packName = packName;
         this.root = root.toAbsolutePath()
             .normalize();
-    }
-
-    public Path getRoot() {
-        return root;
     }
 
     @Override

@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.libs.micromark.html;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -108,13 +108,9 @@ public class SanitizeUri {
 
             if (replace != null) {
                 result.append(value, start, index);
-                try {
-                    result.append(
-                        URLEncoder.encode(replace, "UTF-8")
-                            .replace("+", "%20"));
-                } catch (UnsupportedEncodingException ex) {
-                    throw new RuntimeException(ex);
-                }
+                result.append(
+                    URLEncoder.encode(replace, StandardCharsets.UTF_8)
+                        .replace("+", "%20"));
                 start = index + skip + 1;
                 replace = null;
             }

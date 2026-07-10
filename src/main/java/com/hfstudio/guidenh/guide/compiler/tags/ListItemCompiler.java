@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -23,7 +22,7 @@ public class ListItemCompiler extends BlockTagCompiler {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         LytListItem listItem;
-        var taskMarker = MarkdownListSemantics.extractTaskMarker((List) el.children());
+        var taskMarker = MarkdownListSemantics.extractTaskMarker(el.children());
         if (taskMarker != null) {
             LytTaskListItem taskItem = new LytTaskListItem();
             taskItem.setChecked(taskMarker.checked());
@@ -38,7 +37,7 @@ public class ListItemCompiler extends BlockTagCompiler {
         // Normalize first child margins
         var children = listItem.getChildren();
         if (!children.isEmpty()) {
-            var firstChild = children.get(0);
+            var firstChild = children.getFirst();
             if (firstChild instanceof LytBlock) {
                 ((LytBlock) firstChild).setMarginTop(0);
                 ((LytBlock) firstChild).setMarginBottom(0);

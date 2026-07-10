@@ -21,24 +21,33 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class VanillaRenderContext implements RenderContext {
 
     public static final RenderItem ITEM_RENDERER = new RenderItem();
 
     private final FontRenderer fontRenderer;
+    @Getter
+    @Setter
     private int screenHeight;
 
+    @Setter
     private LightDarkMode lightDarkMode;
+    @Setter
     private LytRect viewport;
 
     private final Deque<LytRect> scissorStack = new ArrayDeque<>();
 
+    @Getter
     private int documentOriginX = 0;
     private int documentOriginY = 0;
 
     private int scrollOffsetY = 0;
     private float preciseScrollOffsetY = 0f;
 
+    @Getter
     private float zoom = 1.0f;
 
     public VanillaRenderContext(LightDarkMode mode, LytRect viewport, int screenHeight) {
@@ -48,21 +57,9 @@ public class VanillaRenderContext implements RenderContext {
         this.fontRenderer = Minecraft.getMinecraft().fontRenderer;
     }
 
-    public void setLightDarkMode(LightDarkMode mode) {
-        this.lightDarkMode = mode;
-    }
-
-    public void setViewport(LytRect viewport) {
-        this.viewport = viewport;
-    }
-
     public void setDocumentOrigin(int absX, int absY) {
         this.documentOriginX = absX;
         this.documentOriginY = absY;
-    }
-
-    public int getDocumentOriginX() {
-        return documentOriginX;
     }
 
     @Override
@@ -85,10 +82,6 @@ public class VanillaRenderContext implements RenderContext {
         return scrollOffsetY;
     }
 
-    public float getZoom() {
-        return zoom;
-    }
-
     public void setZoom(float zoom) {
         this.zoom = zoom > 0f ? zoom : 1.0f;
     }
@@ -100,14 +93,6 @@ public class VanillaRenderContext implements RenderContext {
             Math.round((rect.y() - preciseScrollOffsetY) * zoom) + documentOriginY,
             Math.max(1, Math.round(rect.width() * zoom)),
             Math.max(1, Math.round(rect.height() * zoom)));
-    }
-
-    public int getScreenHeight() {
-        return screenHeight;
-    }
-
-    public void setScreenHeight(int screenHeight) {
-        this.screenHeight = screenHeight;
     }
 
     @Override

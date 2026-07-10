@@ -11,6 +11,8 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 
+import lombok.Getter;
+
 /**
  * Main debug overlay system for GuideNH.
  * Manages all debug UI components: info panel, control panel, and hover detection.
@@ -22,10 +24,20 @@ public class GuideDebugOverlay {
     public static final float ATTACHED_LABEL_Z = 10.0F;
     public static final float INFO_PANEL_Z = 20.0F;
 
+    /**
+     * -- GETTER --
+     * Get the performance monitor for external use.
+     */
+    @Getter
     private final PerformanceMonitor performanceMonitor;
     private final DashedBorderRenderer borderRenderer;
     private final DebugInfoPanel infoPanel;
     private final DebugControlPanel controlPanel;
+    /**
+     * -- GETTER --
+     * Get the hover detector for external use (e.g., custom element detection).
+     */
+    @Getter
     private final ElementHoverDetector hoverDetector;
     private LytDocument currentDocument;
 
@@ -185,20 +197,6 @@ public class GuideDebugOverlay {
         GL11.glVertex2f(mouseX, mouseY + 1);
         GL11.glEnd();
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-    }
-
-    /**
-     * Get the hover detector for external use (e.g., custom element detection).
-     */
-    public ElementHoverDetector getHoverDetector() {
-        return hoverDetector;
-    }
-
-    /**
-     * Get the performance monitor for external use.
-     */
-    public PerformanceMonitor getPerformanceMonitor() {
-        return performanceMonitor;
     }
 
     /**

@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.guide.internal.editor.md;
 
 import java.util.UUID;
 
+import lombok.Getter;
+
+@Getter
 public class SceneEditorMarkdownElementRange {
 
     private final UUID elementId;
@@ -12,18 +15,6 @@ public class SceneEditorMarkdownElementRange {
         this.elementId = elementId;
         this.startIndex = startIndex;
         this.endIndex = endIndex;
-    }
-
-    public UUID getElementId() {
-        return elementId;
-    }
-
-    public int getStartIndex() {
-        return startIndex;
-    }
-
-    public int getEndIndex() {
-        return endIndex;
     }
 
     public boolean contains(int cursorIndex) {

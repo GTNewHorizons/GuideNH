@@ -45,8 +45,6 @@ public class InitializeText {
             return this::data;
         }
 
-        ;
-
         private State data(int code) {
             if (atBreak(code)) {
                 effects.exit(Types.data);
@@ -57,8 +55,6 @@ public class InitializeText {
             effects.consume(code);
             return this::data;
         }
-
-        ;
 
         boolean atBreak(int code) {
             if (code == Codes.eof) {

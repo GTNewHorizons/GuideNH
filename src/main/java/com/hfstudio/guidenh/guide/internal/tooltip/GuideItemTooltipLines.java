@@ -45,14 +45,14 @@ public class GuideItemTooltipLines {
 
         if (lines.isEmpty()) {
             lines.add(safeDisplayName(stack));
-        } else if (lines.get(0) == null || lines.get(0)
+        } else if (lines.getFirst() == null || lines.getFirst()
             .isEmpty()) {
                 lines.set(0, safeDisplayName(stack));
             }
 
         var rarity = stack.getRarity();
         if (!lines.isEmpty() && rarity != null) {
-            lines.set(0, rarity.rarityColor.toString() + lines.get(0));
+            lines.set(0, rarity.rarityColor.toString() + lines.getFirst());
         }
         for (int i = 1; i < lines.size(); i++) {
             String line = lines.get(i);

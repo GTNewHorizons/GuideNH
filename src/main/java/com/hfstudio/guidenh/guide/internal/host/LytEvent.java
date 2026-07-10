@@ -4,12 +4,15 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import lombok.Getter;
+
 public class LytEvent {
 
     private final EventType type;
     private final Object target;
     private Object currentTarget;
     private final Map<String, Object> data;
+    @Getter
     private boolean propagationStopped;
 
     public LytEvent(EventType type, Object target) {
@@ -41,10 +44,6 @@ public class LytEvent {
 
     public void stopPropagation() {
         propagationStopped = true;
-    }
-
-    public boolean isPropagationStopped() {
-        return propagationStopped;
     }
 
     void setCurrentTarget(Object node) {

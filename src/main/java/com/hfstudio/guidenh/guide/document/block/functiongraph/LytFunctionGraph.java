@@ -20,6 +20,9 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Function graph block. Plots one or more {@link FunctionPlot} curves on a Cartesian panel with
  * interactive Desmos-style hovering: while the cursor is over a curve the segment is thickened, an
@@ -68,28 +71,59 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private static final ResolvedTextStyle TOOLTIP_BODY_STYLE = makeStyle(0xFFD7DEE7, false);
     private static final ResolvedTextStyle LEGEND_LABEL_STYLE = makeStyle(0xFFD7DEE7, false);
 
+    @Getter
     private final List<FunctionPlot> plots = new ArrayList<>();
+    @Getter
     private final List<MarkedPoint> points = new ArrayList<>();
 
+    @Getter
+    @Setter
     private String title;
+    @Getter
     private int explicitWidth = -1;
+    @Getter
     private int explicitHeight = -1;
+    @Getter
+    @Setter
     private int backgroundColor = 0xFF1B1F23;
+    @Getter
+    @Setter
     private int borderColor = 0xFF3A4047;
+    @Getter
+    @Setter
     private int axisColor = 0xFFB8C2CF;
+    @Getter
+    @Setter
     private int gridColor = 0x33B8C2CF;
+    @Getter
+    @Setter
     private boolean showGrid = true;
+    @Getter
+    @Setter
     private boolean showAxes = true;
+    @Getter
     private CornerLegendPosition cornerLegendPosition = CornerLegendPosition.NONE;
+    @Getter
     private int cornerLegendWidth = CornerLegendRenderer.DEFAULT_WIDTH;
+    @Getter
     private int cornerLegendHeight = CornerLegendRenderer.DEFAULT_HEIGHT;
+    @Getter
+    @Setter
     private int cornerLegendBackgroundColor = CornerLegendRenderer.DEFAULT_BACKGROUND;
 
+    @Getter
     private double explicitXMin = Double.NaN;
+    @Getter
     private double explicitXMax = Double.NaN;
+    @Getter
     private double explicitYMin = Double.NaN;
+    @Getter
     private double explicitYMax = Double.NaN;
+    @Getter
+    @Setter
     private double explicitXStep = Double.NaN;
+    @Getter
+    @Setter
     private double explicitYStep = Double.NaN;
 
     /** Bitmask of visible quadrants (bit i = quadrant i+1). {@code 0} means auto. */
@@ -134,45 +168,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         }
     }
 
-    public List<FunctionPlot> getPlots() {
-        return plots;
-    }
-
-    public List<MarkedPoint> getPoints() {
-        return points;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
     public void setExplicitSize(int width, int height) {
         this.explicitWidth = width > 0 ? width : -1;
         this.explicitHeight = height > 0 ? height : -1;
-    }
-
-    public void setBackgroundColor(int backgroundColor) {
-        this.backgroundColor = backgroundColor;
-    }
-
-    public void setBorderColor(int borderColor) {
-        this.borderColor = borderColor;
-    }
-
-    public void setAxisColor(int axisColor) {
-        this.axisColor = axisColor;
-    }
-
-    public void setGridColor(int gridColor) {
-        this.gridColor = gridColor;
-    }
-
-    public void setShowGrid(boolean showGrid) {
-        this.showGrid = showGrid;
-    }
-
-    public void setShowAxes(boolean showAxes) {
-        this.showAxes = showAxes;
     }
 
     public void setCornerLegendPosition(CornerLegendPosition cornerLegendPosition) {
@@ -182,10 +180,6 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     public void setCornerLegendSize(int width, int height) {
         this.cornerLegendWidth = width > 0 ? width : CornerLegendRenderer.DEFAULT_WIDTH;
         this.cornerLegendHeight = height > 0 ? height : CornerLegendRenderer.DEFAULT_HEIGHT;
-    }
-
-    public void setCornerLegendBackgroundColor(int cornerLegendBackgroundColor) {
-        this.cornerLegendBackgroundColor = cornerLegendBackgroundColor;
     }
 
     public void setExplicitXRange(double min, double max) {
@@ -198,92 +192,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         this.explicitYMax = max;
     }
 
-    public void setExplicitXStep(double step) {
-        this.explicitXStep = step;
-    }
-
-    public void setExplicitYStep(double step) {
-        this.explicitYStep = step;
-    }
-
     public void setQuadrantMask(int mask) {
         this.explicitQuadrantMask = mask & 0xF;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public int getExplicitWidth() {
-        return explicitWidth;
-    }
-
-    public int getExplicitHeight() {
-        return explicitHeight;
-    }
-
-    public int getBackgroundColor() {
-        return backgroundColor;
-    }
-
-    public int getBorderColor() {
-        return borderColor;
-    }
-
-    public int getAxisColor() {
-        return axisColor;
-    }
-
-    public int getGridColor() {
-        return gridColor;
-    }
-
-    public boolean isShowGrid() {
-        return showGrid;
-    }
-
-    public boolean isShowAxes() {
-        return showAxes;
-    }
-
-    public CornerLegendPosition getCornerLegendPosition() {
-        return cornerLegendPosition;
-    }
-
-    public int getCornerLegendWidth() {
-        return cornerLegendWidth;
-    }
-
-    public int getCornerLegendHeight() {
-        return cornerLegendHeight;
-    }
-
-    public int getCornerLegendBackgroundColor() {
-        return cornerLegendBackgroundColor;
-    }
-
-    public double getExplicitXMin() {
-        return explicitXMin;
-    }
-
-    public double getExplicitXMax() {
-        return explicitXMax;
-    }
-
-    public double getExplicitYMin() {
-        return explicitYMin;
-    }
-
-    public double getExplicitYMax() {
-        return explicitYMax;
-    }
-
-    public double getExplicitXStep() {
-        return explicitXStep;
-    }
-
-    public double getExplicitYStep() {
-        return explicitYStep;
     }
 
     @Override
@@ -440,11 +350,6 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         // Keep the active highlight visible until the next hover update clears it.
     }
 
-    @Override
-    public boolean scroll(int documentX, int documentY, int wheelDelta) {
-        return false;
-    }
-
     private void resolveRanges() {
         double xMin = !Double.isNaN(explicitXMin) ? explicitXMin : 0d;
         double xMax = !Double.isNaN(explicitXMax) ? explicitXMax : 10d;
@@ -549,7 +454,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (key == sampleCacheKey && sampleXs != null) {
             return;
         }
-        int sampleCount = Math.clamp(plotRect.width() * 2, MIN_SAMPLES, MAX_SAMPLES);
+        int sampleCount = Math.clamp(plotRect.width() * 2L, MIN_SAMPLES, MAX_SAMPLES);
         sampleXs = new float[plots.size()][];
         sampleYs = new float[plots.size()][];
         for (int i = 0; i < plots.size(); i++) {

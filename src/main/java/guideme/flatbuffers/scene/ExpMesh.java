@@ -36,20 +36,20 @@ public final class ExpMesh extends Table {
         return this;
     }
 
-    public guideme.flatbuffers.scene.ExpMaterial material() {
-        return material(new guideme.flatbuffers.scene.ExpMaterial());
+    public ExpMaterial material() {
+        return material(new ExpMaterial());
     }
 
-    public guideme.flatbuffers.scene.ExpMaterial material(guideme.flatbuffers.scene.ExpMaterial obj) {
+    public ExpMaterial material(ExpMaterial obj) {
         int o = __offset(4);
         return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
     }
 
-    public guideme.flatbuffers.scene.ExpVertexFormat vertexFormat() {
-        return vertexFormat(new guideme.flatbuffers.scene.ExpVertexFormat());
+    public ExpVertexFormat vertexFormat() {
+        return vertexFormat(new ExpVertexFormat());
     }
 
-    public guideme.flatbuffers.scene.ExpVertexFormat vertexFormat(guideme.flatbuffers.scene.ExpVertexFormat obj) {
+    public ExpVertexFormat vertexFormat(ExpVertexFormat obj) {
         int o = __offset(6);
         return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
     }
@@ -71,7 +71,7 @@ public final class ExpMesh extends Table {
 
     public int indexBuffer(int j) {
         int o = __offset(10);
-        return o != 0 ? bb.get(__vector(o) + j * 1) & 0xFF : 0;
+        return o != 0 ? bb.get(__vector(o) + j) & 0xFF : 0;
     }
 
     public int indexBufferLength() {
@@ -99,7 +99,7 @@ public final class ExpMesh extends Table {
     public boolean mutateIndexBuffer(int j, int index_buffer) {
         int o = __offset(10);
         if (o != 0) {
-            bb.put(__vector(o) + j * 1, (byte) index_buffer);
+            bb.put(__vector(o) + j, (byte) index_buffer);
             return true;
         } else {
             return false;
@@ -138,7 +138,7 @@ public final class ExpMesh extends Table {
 
     public int vertexBuffer(int j) {
         int o = __offset(16);
-        return o != 0 ? bb.get(__vector(o) + j * 1) & 0xFF : 0;
+        return o != 0 ? bb.get(__vector(o) + j) & 0xFF : 0;
     }
 
     public int vertexBufferLength() {
@@ -166,7 +166,7 @@ public final class ExpMesh extends Table {
     public boolean mutateVertexBuffer(int j, int vertex_buffer) {
         int o = __offset(16);
         if (o != 0) {
-            bb.put(__vector(o) + j * 1, (byte) vertex_buffer);
+            bb.put(__vector(o) + j, (byte) vertex_buffer);
             return true;
         } else {
             return false;

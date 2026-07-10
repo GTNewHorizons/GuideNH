@@ -7,11 +7,17 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class StructureLibImportResult {
 
+    @Getter
     private final boolean success;
+    @Getter
     private final List<PlacedBlock> blocks;
+    @Getter
     private final List<String> warnings;
+    @Getter
     private final List<String> errors;
     @Nullable
     private final StructureLibSceneMetadata metadata;
@@ -45,22 +51,6 @@ public class StructureLibImportResult {
         return new StructureLibImportResult(false, List.of(), warnings, List.of(normalized), metadata);
     }
 
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public List<PlacedBlock> getBlocks() {
-        return blocks;
-    }
-
-    public List<String> getWarnings() {
-        return warnings;
-    }
-
-    public List<String> getErrors() {
-        return errors;
-    }
-
     public StructureLibImportResult withWarnings(List<String> nextWarnings) {
         return new StructureLibImportResult(success, blocks, immutableCopy(nextWarnings), errors, metadata, true);
     }
@@ -87,10 +77,15 @@ public class StructureLibImportResult {
 
     public static class PlacedBlock {
 
+        @Getter
         private final int x;
+        @Getter
         private final int y;
+        @Getter
         private final int z;
+        @Getter
         private final Block block;
+        @Getter
         private final int meta;
         @Nullable
         private final NBTTagCompound tileTag;
@@ -106,26 +101,6 @@ public class StructureLibImportResult {
             this.meta = meta;
             this.tileTag = tileTag != null ? (NBTTagCompound) tileTag.copy() : null;
             this.blockId = normalizeBlockId(blockId);
-        }
-
-        public int getX() {
-            return x;
-        }
-
-        public int getY() {
-            return y;
-        }
-
-        public int getZ() {
-            return z;
-        }
-
-        public Block getBlock() {
-            return block;
-        }
-
-        public int getMeta() {
-            return meta;
         }
 
         @Nullable

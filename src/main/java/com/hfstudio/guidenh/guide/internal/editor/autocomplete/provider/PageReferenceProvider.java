@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -19,18 +18,17 @@ public class PageReferenceProvider implements AutocompleteProvider {
     private static volatile List<String> pagePaths;
 
     private static Set<AutocompleteKey> buildKeys() {
-        Set<AutocompleteKey> keys = new HashSet<>();
-        keys.add(AutocompleteKey.forValue("a", "href"));
-        keys.add(AutocompleteKey.forValue("SubPages", "id"));
-        keys.add(AutocompleteKey.forValue("ItemLink", "linksTo"));
-        keys.add(AutocompleteKey.forValue("*", "parent"));
-        keys.add(AutocompleteKey.forValue("link", "url"));
-        return Collections.unmodifiableSet(keys);
+        return Set.of(
+            AutocompleteKey.forValue("a", "href"),
+            AutocompleteKey.forValue("SubPages", "id"),
+            AutocompleteKey.forValue("ItemLink", "linksTo"),
+            AutocompleteKey.forValue("*", "parent"),
+            AutocompleteKey.forValue("link", "url"));
     }
 
     /** Set the available page paths from the guide's page collection. */
     public static void setPages(@Nullable Collection<String> paths) {
-        pagePaths = paths != null ? Collections.unmodifiableList(new ArrayList<>(paths)) : null;
+        pagePaths = paths != null ? List.copyOf(paths) : null;
     }
 
     @Override

@@ -7,6 +7,8 @@ import org.jetbrains.annotations.Nullable;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonWriter;
 
+import lombok.Setter;
+
 /**
  * Image (Node) represents an image.
  * Image can be used where phrasing content is expected. It has no content model, but is described by its alt field.
@@ -16,6 +18,7 @@ import com.google.gson.stream.JsonWriter;
  * Yields:
  * { type: 'image', url: 'https://example.com/favicon.ico', title: 'bravo', alt: 'alpha' }
  */
+@Setter
 public class MdAstImage extends MdAstNode implements MdAstResource, MdAstAlternative, MdAstStaticPhrasingContent {
 
     public static final String TYPE = "image";
@@ -40,18 +43,6 @@ public class MdAstImage extends MdAstNode implements MdAstResource, MdAstAlterna
     @Override
     public @Nullable String title() {
         return title;
-    }
-
-    public void setAlt(String alt) {
-        this.alt = alt;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
     }
 
     @Override

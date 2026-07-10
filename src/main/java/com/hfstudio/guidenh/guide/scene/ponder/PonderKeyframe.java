@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 /**
  * A single keyframe in a Ponder timeline.
  * At the specified {@code time} (in game ticks) the camera and annotations transition to this state.
@@ -16,7 +18,9 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PonderKeyframe {
 
+    @Getter
     private int time;
+    @Getter
     private boolean hidden;
     @Nullable
     private String label;
@@ -66,14 +70,6 @@ public class PonderKeyframe {
      */
     @Nullable
     private Integer cameraEaseTicks;
-
-    public int getTime() {
-        return time;
-    }
-
-    public boolean isHidden() {
-        return hidden;
-    }
 
     @Nullable
     public String getLabel() {

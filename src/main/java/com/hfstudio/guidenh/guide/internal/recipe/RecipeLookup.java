@@ -84,7 +84,7 @@ public class RecipeLookup {
 
     @Nullable
     public static Entry fromShapedOre(ShapedOreRecipe r) {
-        AccessorShapedOreRecipe accessor = (AccessorShapedOreRecipe) (Object) r;
+        AccessorShapedOreRecipe accessor = (AccessorShapedOreRecipe) r;
         Object[] input = accessor.guidenh$getInput();
         if (input == null) return null;
         int w = accessor.guidenh$getWidth();
@@ -105,7 +105,7 @@ public class RecipeLookup {
 
     @Nullable
     public static Entry fromShapelessOre(ShapelessOreRecipe r) {
-        ArrayList<Object> input = ((AccessorShapelessOreRecipe) (Object) r).guidenh$getInput();
+        ArrayList<Object> input = ((AccessorShapelessOreRecipe) r).guidenh$getInput();
         if (input == null) return null;
         Entry e = new Entry();
         e.result = r.getRecipeOutput();
@@ -118,12 +118,12 @@ public class RecipeLookup {
     @Nullable
     public static ItemStack resolveOre(Object o) {
         if (o == null) return null;
-        if (o instanceof ItemStack) {
-            return copy((ItemStack) o);
+        if (o instanceof ItemStack stack) {
+            return copy(stack);
         }
         if (o instanceof List<?>list) {
-            if (!list.isEmpty() && list.get(0) instanceof ItemStack) {
-                return copy((ItemStack) list.get(0));
+            if (!list.isEmpty() && list.getFirst() instanceof ItemStack) {
+                return copy((ItemStack) list.getFirst());
             }
         }
         return null;

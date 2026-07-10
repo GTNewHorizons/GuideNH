@@ -71,7 +71,7 @@ public class SetextUnderline {
         heading.type = Types.setextHeading;
         heading.start = events.get(text)
             .token().start;
-        heading.end = events.get(events.size() - 1)
+        heading.end = events.getLast()
             .token().end;
 
         // Change the paragraph to setext heading text.

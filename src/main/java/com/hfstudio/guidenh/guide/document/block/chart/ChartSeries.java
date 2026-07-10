@@ -1,16 +1,22 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * A data series in a chart, used by column / bar / line / scatter charts.
  * Index-based column/bar/line use only {@link #ys}; scatter uses both {@link #xs} and {@link #ys}.
  */
+@Getter
 public class ChartSeries {
 
     private final String name;
     private final int color;
     private final double[] xs;
     private final double[] ys;
+    @Setter
     private ChartIcon icon;
+    @Setter
     private String tooltipExtra;
 
     public ChartSeries(String name, int color, double[] xs, double[] ys) {
@@ -33,39 +39,8 @@ public class ChartSeries {
         return new ChartSeries(name, color, indices, values);
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public int getColor() {
-        return color;
-    }
-
-    public double[] getXs() {
-        return xs;
-    }
-
-    public double[] getYs() {
-        return ys;
-    }
-
     public int size() {
         return ys.length;
     }
 
-    public ChartIcon getIcon() {
-        return icon;
-    }
-
-    public void setIcon(ChartIcon icon) {
-        this.icon = icon;
-    }
-
-    public String getTooltipExtra() {
-        return tooltipExtra;
-    }
-
-    public void setTooltipExtra(String tooltipExtra) {
-        this.tooltipExtra = tooltipExtra;
-    }
 }

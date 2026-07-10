@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.internal.editor.guide;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+
 public class GuideScreenEditorUndoHistory {
 
     private final int limit;
@@ -69,6 +71,7 @@ public class GuideScreenEditorUndoHistory {
         return states.get(index);
     }
 
+    @Getter
     public static final class Entry {
 
         private final String text;
@@ -82,18 +85,6 @@ public class GuideScreenEditorUndoHistory {
             int safeSelectionEnd = Math.clamp(selectionEnd, safeSelectionStart, safeText.length());
             this.selectionStart = safeSelectionStart;
             this.selectionEnd = safeSelectionEnd;
-        }
-
-        public String getText() {
-            return text;
-        }
-
-        public int getSelectionStart() {
-            return selectionStart;
-        }
-
-        public int getSelectionEnd() {
-            return selectionEnd;
         }
 
         @Override

@@ -5,8 +5,10 @@ import com.hfstudio.guidenh.network.GuideNhCustomPayloadLimits;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 
 /** Per-request-position {@code X} payloads (AE2 tile description stream), parallel to request order. */
+@Getter
 public class GuideNhAe2BaseTileNetworkBatchReplyMessage implements IMessage {
 
     public static final int FORMAT_V1 = 1;
@@ -27,14 +29,6 @@ public class GuideNhAe2BaseTileNetworkBatchReplyMessage implements IMessage {
     public GuideNhAe2BaseTileNetworkBatchReplyMessage(long corrId, byte[][] xpPayloads) {
         this.corrId = corrId;
         this.xpPayloads = budgetPayloads(xpPayloads);
-    }
-
-    public long getCorrId() {
-        return corrId;
-    }
-
-    public byte[][] getXpPayloads() {
-        return xpPayloads;
     }
 
     public boolean isConsistentPayload(int n) {

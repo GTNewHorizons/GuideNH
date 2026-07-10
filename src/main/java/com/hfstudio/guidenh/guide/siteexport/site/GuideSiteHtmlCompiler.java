@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -585,8 +585,7 @@ public class GuideSiteHtmlCompiler {
         String[] aligns = alignStr.isEmpty() ? new String[0] : alignStr.split(",");
         boolean firstRow = true;
         for (Object child : el.children()) {
-            if (child instanceof MdxJsxFlowElement && "tr".equals(((MdxJsxFlowElement) child).name())) {
-                MdxJsxFlowElement tr = (MdxJsxFlowElement) child;
+            if (child instanceof MdxJsxFlowElement tr && "tr".equals(tr.name())) {
                 html.append("<tr>");
                 int cellIdx = 0;
                 for (Object cellChild : tr.children()) {
@@ -685,12 +684,12 @@ public class GuideSiteHtmlCompiler {
         if (el.children()
             .size() != 1
             || !(el.children()
-                .get(0) instanceof MdAstText)) {
+                .getFirst() instanceof MdAstText)) {
             return null;
         }
         return MarkdownLatexShorthand.extractSoleDisplayFormula(
             ((MdAstText) el.children()
-                .get(0)).value);
+                .getFirst()).value);
     }
 
     private String compileTooltip(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
@@ -987,15 +986,11 @@ public class GuideSiteHtmlCompiler {
 
     private GuideSiteSoundExport.MdxSoundAttributes soundAttributes(MdxJsxElementFields element,
         String soundSourceAttributeName) {
-        return new GuideSiteSoundExport.MdxSoundAttributes() {
-
-            @Override
-            public @Nullable String value(String name) {
-                if ("src".equals(name) && !"src".equals(soundSourceAttributeName)) {
-                    return element.getAttributeString(soundSourceAttributeName, null);
-                }
-                return element.getAttributeString(name, null);
+        return name -> {
+            if ("src".equals(name) && !"src".equals(soundSourceAttributeName)) {
+                return element.getAttributeString(soundSourceAttributeName, null);
             }
+            return element.getAttributeString(name, null);
         };
     }
 
@@ -1164,7 +1159,7 @@ public class GuideSiteHtmlCompiler {
                 .append(escapeAttribute(templateId))
                 .append("\"");
         }
-        if (style.length() > 0) {
+        if (!style.isEmpty()) {
             html.append(" style=\"")
                 .append(escapeAttribute(style.toString()))
                 .append("\"");
@@ -1711,8 +1706,8 @@ public class GuideSiteHtmlCompiler {
 
         private static String decodeUriPart(String value) {
             try {
-                return URLDecoder.decode(value, "UTF-8");
-            } catch (UnsupportedEncodingException | IllegalArgumentException ignored) {
+                return URLDecoder.decode(value, StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException ignored) {
                 return value.replace("%20", " ");
             }
         }

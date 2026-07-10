@@ -1,9 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -14,8 +11,8 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteConte
 /** Suggests OreDictionary names for "ore" attributes. */
 public class OreDictProvider implements AutocompleteProvider {
 
-    private static final Set<AutocompleteKey> KEYS = Collections.unmodifiableSet(
-        new HashSet<>(Arrays.asList(AutocompleteKey.forValue("*", "ore"), AutocompleteKey.forValue("*", "ore_ids"))));
+    private static final Set<AutocompleteKey> KEYS = Set
+        .of(AutocompleteKey.forValue("*", "ore"), AutocompleteKey.forValue("*", "ore_ids"));
 
     @Override
     public Set<AutocompleteKey> getSupportedKeys() {

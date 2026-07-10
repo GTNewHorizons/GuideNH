@@ -7,10 +7,12 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
+@Getter
 public class StructureLibPreviewSelection {
 
     public static final int DEFAULT_MASTER_TIER = 1;
-    public static final String SURVIVAL_CONSTRUCT_OPTION = "structurelib.survival_construct";
     public static final String SURVIVAL_FILL_EMPTY_HATCHES_OPTION = "structurelib.survival_fill_empty_hatches";
     public static final String FORCE_HATCH_PLACEMENT_OPTION = "structurelib.force_hatch_placement";
 
@@ -39,18 +41,6 @@ public class StructureLibPreviewSelection {
 
     public static StructureLibPreviewSelection ofMasterTier(int masterTier) {
         return new StructureLibPreviewSelection(masterTier, Map.of());
-    }
-
-    public int getMasterTier() {
-        return masterTier;
-    }
-
-    public Map<String, Integer> getChannelOverrides() {
-        return channelOverrides;
-    }
-
-    public Map<String, Boolean> getIntegrationOptions() {
-        return integrationOptions;
     }
 
     public boolean hasChannelOverride(String channelId) {

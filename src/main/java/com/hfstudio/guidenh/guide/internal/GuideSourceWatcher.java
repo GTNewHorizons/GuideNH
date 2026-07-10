@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 import com.github.bsideup.jabel.Desugar;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -250,12 +251,12 @@ public class GuideSourceWatcher implements AutoCloseable {
             Files.walkFileTree(sourceFolder, new FileVisitor<>() {
 
                 @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                public @NonNull FileVisitResult preVisitDirectory(Path dir, @NonNull BasicFileAttributes attrs) {
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                public @NonNull FileVisitResult visitFile(Path file, @NonNull BasicFileAttributes attrs) {
                     var pageKey = getPageLangKey(file);
                     if (pageKey != null && (namespaceFilter == null || namespaceFilter.equals(
                         pageKey.pageId()
@@ -267,13 +268,13 @@ public class GuideSourceWatcher implements AutoCloseable {
                 }
 
                 @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                public @NonNull FileVisitResult visitFileFailed(Path file, @NonNull IOException exc) {
                     GuideDebugLog.error("[GuideNH] [GuideSourceWatcher] Failed to list page {}", file, exc);
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+                public @NonNull FileVisitResult postVisitDirectory(Path dir, IOException exc) {
                     if (exc != null) {
                         GuideDebugLog.error("[GuideNH] [GuideSourceWatcher] Failed to list all pages in {}", dir, exc);
                     }

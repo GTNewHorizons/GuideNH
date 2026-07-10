@@ -58,7 +58,7 @@ public class GuidePageLanguageIndex {
         return key != null && key.startsWith(PAGE_LANG_KEY_PREFIX);
     }
 
-    public static Map<String, String> readPageKeys(InputStream input) throws IOException {
+    public static Map<String, String> readPageKeys(InputStream input) {
         Map<String, String> source = StringTranslate.parseLangFile(input);
         if (source.isEmpty()) {
             return Map.of();

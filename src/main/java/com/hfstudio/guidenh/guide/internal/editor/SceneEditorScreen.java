@@ -593,7 +593,7 @@ public class SceneEditorScreen extends GuiScreen {
             applyServerSelectionToBlankSession(serverSnbt);
             return;
         }
-        if (baseSnbt == null || currentSnbt == null || !baseSnbt.equals(currentSnbt)) {
+        if (baseSnbt == null || !baseSnbt.equals(currentSnbt)) {
             return;
         }
         if (serverSnbt.equals(currentSnbt)) {
@@ -675,9 +675,7 @@ public class SceneEditorScreen extends GuiScreen {
             exportPreviewScreenshot();
             return;
         }
-        if (button.id == ADD_ELEMENT_BUTTON_ID) {
-            return;
-        }
+        if (button.id == ADD_ELEMENT_BUTTON_ID) {}
     }
 
     @Override
@@ -859,7 +857,6 @@ public class SceneEditorScreen extends GuiScreen {
                 && (previewScene.containsSceneViewport(mouseX, mouseY)
                     || previewScene.containsBottomControlSlider(mouseX, mouseY))) {
                 previewScene.scroll(mouseX, mouseY, wheelDelta);
-                return;
             }
         }
     }
@@ -2722,9 +2719,8 @@ public class SceneEditorScreen extends GuiScreen {
         int previewReserved = 220;
         int toggleReserved = SceneEditorScreenLayout.MARKDOWN_TOGGLE_WIDTH + 2;
         int computed = this.width - rightReserved - previewReserved - toggleReserved;
-        return Math.max(
-            SceneEditorScreenLayout.MIN_LEFT_OPEN_WIDTH,
-            Math.min(SceneEditorScreenLayout.MAX_LEFT_OPEN_WIDTH, computed));
+        return Math
+            .clamp(computed, SceneEditorScreenLayout.MIN_LEFT_OPEN_WIDTH, SceneEditorScreenLayout.MAX_LEFT_OPEN_WIDTH);
     }
 
     private boolean isInsidePreviewInteractionArea(int mouseX, int mouseY) {
@@ -3708,7 +3704,7 @@ public class SceneEditorScreen extends GuiScreen {
             : session.getSceneModel()
                 .getPreviewHeight();
         int scale = screenshotMenuController.getScale();
-        String resolutionHint = (hintW * scale) + " \u00D7 " + (hintH * scale);
+        String resolutionHint = (hintW * scale) + " × " + (hintH * scale);
         this.drawString(this.fontRendererObj, resolutionHint, hintBounds.x(), hintBounds.y(), PANEL_MUTED_TEXT);
     }
 

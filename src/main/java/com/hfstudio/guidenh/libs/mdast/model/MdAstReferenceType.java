@@ -4,6 +4,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import lombok.Getter;
+
+@Getter
 public enum MdAstReferenceType {
 
     /**
@@ -36,7 +39,4 @@ public enum MdAstReferenceType {
         return result;
     }
 
-    public String getSerializedName() {
-        return serializedName;
-    }
 }

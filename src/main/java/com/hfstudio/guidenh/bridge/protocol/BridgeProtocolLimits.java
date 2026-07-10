@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.bridge.protocol;
 
+import lombok.Getter;
+
+@Getter
 public class BridgeProtocolLimits {
 
     private final int maxMessageBytes;
@@ -25,39 +28,4 @@ public class BridgeProtocolLimits {
         this.maxPreviewTooltipLines = 24;
     }
 
-    public int getMaxMessageBytes() {
-        return maxMessageBytes;
-    }
-
-    public int getMaxPageSize() {
-        return maxPageSize;
-    }
-
-    public int getMaxSubscriptions() {
-        return maxSubscriptions;
-    }
-
-    public int getMaxConnections() {
-        return maxConnections;
-    }
-
-    public int getMaxDeltaEntries() {
-        return maxDeltaEntries;
-    }
-
-    public int getMaxPreviewSearchPageSize() {
-        return maxPreviewSearchPageSize;
-    }
-
-    public int getMaxPreviewResolveBytes() {
-        return maxPreviewResolveBytes;
-    }
-
-    public int getMaxPreviewIconPixels() {
-        return maxPreviewIconPixels;
-    }
-
-    public int getMaxPreviewTooltipLines() {
-        return maxPreviewTooltipLines;
-    }
 }

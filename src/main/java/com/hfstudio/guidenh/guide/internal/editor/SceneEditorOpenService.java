@@ -14,6 +14,8 @@ import com.hfstudio.guidenh.guide.internal.item.RegionWandExportMode;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 
+import lombok.Getter;
+
 public class SceneEditorOpenService {
 
     private final SceneEditorStructureCache structureCache;
@@ -120,7 +122,9 @@ public class SceneEditorOpenService {
 
     public static class OpenResult {
 
+        @Getter
         private final SceneEditorSession session;
+        @Getter
         private final boolean importUnavailable;
         @Nullable
         private final GuidebookText openFeedbackMessage;
@@ -132,20 +136,13 @@ public class SceneEditorOpenService {
             this.openFeedbackMessage = openFeedbackMessage;
         }
 
-        public SceneEditorSession getSession() {
-            return session;
-        }
-
-        public boolean isImportUnavailable() {
-            return importUnavailable;
-        }
-
         @Nullable
         public GuidebookText getOpenFeedbackMessage() {
             return openFeedbackMessage;
         }
     }
 
+    @Getter
     public static class ServerSelectionRequest {
 
         private final int x;
@@ -166,32 +163,5 @@ public class SceneEditorOpenService {
             this.includeEntities = includeEntities;
         }
 
-        public int getX() {
-            return x;
-        }
-
-        public int getY() {
-            return y;
-        }
-
-        public int getZ() {
-            return z;
-        }
-
-        public int getSizeX() {
-            return sizeX;
-        }
-
-        public int getSizeY() {
-            return sizeY;
-        }
-
-        public int getSizeZ() {
-            return sizeZ;
-        }
-
-        public boolean isIncludeEntities() {
-            return includeEntities;
-        }
     }
 }

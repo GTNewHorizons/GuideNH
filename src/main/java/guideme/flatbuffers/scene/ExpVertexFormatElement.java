@@ -21,11 +21,11 @@ public final class ExpVertexFormatElement extends Struct {
     }
 
     public int index() {
-        return bb.get(bb_pos + 0) & 0xFF;
+        return bb.get(bb_pos) & 0xFF;
     }
 
     public void mutateIndex(int index) {
-        bb.put(bb_pos + 0, (byte) index);
+        bb.put(bb_pos, (byte) index);
     }
 
     public int type() {

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.guide;
 
+import lombok.Getter;
+
 public class GuideScreenEditorMerge {
 
     private GuideScreenEditorMerge() {}
@@ -56,6 +58,7 @@ public class GuideScreenEditorMerge {
         return text.substring(0, change.start) + change.replacement + text.substring(change.end);
     }
 
+    @Getter
     public static final class Result {
 
         public enum Kind {
@@ -89,13 +92,6 @@ public class GuideScreenEditorMerge {
             return new Result(Kind.CONFLICT, "");
         }
 
-        public Kind getKind() {
-            return kind;
-        }
-
-        public String getText() {
-            return text;
-        }
     }
 
     private static final class Change {

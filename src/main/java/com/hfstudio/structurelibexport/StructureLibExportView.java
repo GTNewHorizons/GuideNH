@@ -94,9 +94,6 @@ public class StructureLibExportView {
         if ("top".equals(name)) {
             return PerspectivePreset.UP;
         }
-        if ("isometric-south-east".equals(name)) {
-            return PerspectivePreset.ISOMETRIC_NORTH_EAST;
-        }
         return PerspectivePreset.ISOMETRIC_NORTH_EAST;
     }
 }

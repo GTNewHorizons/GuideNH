@@ -6,13 +6,12 @@ import java.util.function.Consumer;
 
 import com.hfstudio.guidenh.libs.micromark.Extension;
 
+import lombok.Getter;
+
+@Getter
 public class ParseOptions {
 
     private final List<Extension> extensions = new ArrayList<>();
-
-    public List<Extension> getExtensions() {
-        return extensions;
-    }
 
     public ParseOptions withSyntaxExtension(Extension extension) {
         this.extensions.add(extension);

@@ -1215,7 +1215,7 @@ public class GuideSiteSceneAnnotationSerializer {
 
             for (int i = 0; i < text.length(); i++) {
                 char ch = text.charAt(i);
-                if (ch == '\u00A7' && i + 1 < text.length()) {
+                if (ch == '§' && i + 1 < text.length()) {
                     appendLegacySegment(html, segment, style);
                     style.apply(text.charAt(++i));
                     continue;

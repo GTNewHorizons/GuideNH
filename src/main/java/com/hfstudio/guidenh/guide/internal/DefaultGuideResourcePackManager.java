@@ -52,9 +52,10 @@ public class DefaultGuideResourcePackManager {
         }
 
         reloadPending = false;
-        // Skipped: at this point other mods haven't registered their resources yet,
-        // so a reload would find 0 guides. The real reload happens via GuideReloadListener
-        // when Forge's resource manager finishes its full refresh.
+        GuideMEClientReloadDispatcher.dispatch(
+            minecraft.func_152345_ab(),
+            minecraft::func_152344_a,
+            GuideLightweightReloadService::reloadDevelopmentGuides);
     }
 
     private static void ensureDirectoryExists(Path root) {

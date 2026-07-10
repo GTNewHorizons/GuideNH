@@ -7,21 +7,30 @@ import org.joml.Vector4f;
 
 import com.hfstudio.guidenh.guide.document.LytSize;
 
+import lombok.Getter;
+
 public class CameraSettings {
 
+    @Getter
     private float zoom = 1f;
 
     private final Vector4f viewport = new Vector4f();
 
+    @Getter
     private float rotationX;
+    @Getter
     private float rotationY;
+    @Getter
     private float rotationZ;
 
     private final Vector3f rotationCenter = new Vector3f();
 
+    @Getter
     private float offsetX;
+    @Getter
     private float offsetY;
 
+    @Getter
     private LytSize viewportSize = LytSize.empty();
 
     public CameraSettings() {
@@ -41,10 +50,6 @@ public class CameraSettings {
             viewport.set(-halfWidth, -halfHeight, halfWidth, halfHeight);
             markProjectionDirty();
         }
-    }
-
-    public LytSize getViewportSize() {
-        return viewportSize;
     }
 
     public void setPerspectivePreset(PerspectivePreset preset) {
@@ -72,19 +77,11 @@ public class CameraSettings {
         }
     }
 
-    public float getZoom() {
-        return zoom;
-    }
-
     public void setZoom(float zoom) {
         if (this.zoom != zoom) {
             this.zoom = zoom;
             markProjectionDirty();
         }
-    }
-
-    public float getRotationX() {
-        return rotationX;
     }
 
     public void setRotationX(float rotationX) {
@@ -94,19 +91,11 @@ public class CameraSettings {
         }
     }
 
-    public float getRotationY() {
-        return rotationY;
-    }
-
     public void setRotationY(float rotationY) {
         if (this.rotationY != rotationY) {
             this.rotationY = rotationY;
             markViewDirty();
         }
-    }
-
-    public float getRotationZ() {
-        return rotationZ;
     }
 
     public void setRotationZ(float rotationZ) {
@@ -131,19 +120,11 @@ public class CameraSettings {
         return rotationCenter;
     }
 
-    public float getOffsetX() {
-        return offsetX;
-    }
-
     public void setOffsetX(float offsetX) {
         if (this.offsetX != offsetX) {
             this.offsetX = offsetX;
             markViewDirty();
         }
-    }
-
-    public float getOffsetY() {
-        return offsetY;
     }
 
     public void setOffsetY(float offsetY) {
@@ -173,9 +154,10 @@ public class CameraSettings {
     public Matrix4f getViewMatrix() {
         if (viewDirty) {
             viewDirty = false;
+            // Standard orbit camera with optional screen-space offset.
+            // V = T(offset) · R · T(-rc) where R = Rz · Rx · Ry
             var result = reusableView.identity();
             result.translate(offsetX, offsetY, 0f);
-            result.translate(rotationCenter.x, rotationCenter.y, rotationCenter.z);
             result.rotateZ(DEG_TO_RAD * rotationZ);
             result.rotateX(DEG_TO_RAD * rotationX);
             result.rotateY(DEG_TO_RAD * rotationY);
@@ -190,11 +172,7 @@ public class CameraSettings {
             float s = 0.625f * 16f * zoom;
             reusableProjection.identity()
                 .setOrtho(viewport.x(), viewport.z(), viewport.y(), viewport.w(), -1000f, 3000f)
-                // Keep zoom out of the model-view matrix so fixed-function lighting is not
-                // skewed by our orthographic preview scale.
-                .translate(offsetX, offsetY, 0f)
-                .scale(s, s, 1f)
-                .translate(-offsetX, -offsetY, 0f);
+                .scale(s, s, 1f);
         }
         return reusableProjection;
     }
@@ -293,7 +271,6 @@ public class CameraSettings {
 
     private void markViewDirty() {
         viewDirty = true;
-        projectionDirty = true;
         combinedDirty = true;
         invertedDirty = true;
     }

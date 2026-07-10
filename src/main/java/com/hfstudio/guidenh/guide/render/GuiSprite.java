@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.guide.render;
 
 import net.minecraft.util.ResourceLocation;
 
+import lombok.Getter;
+
+@Getter
 public class GuiSprite {
 
     private final ResourceLocation texture;
@@ -26,31 +29,4 @@ public class GuiSprite {
         this(texture, u, v, width, height, 256, 256);
     }
 
-    public ResourceLocation getTexture() {
-        return texture;
-    }
-
-    public int getU() {
-        return u;
-    }
-
-    public int getV() {
-        return v;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
-    public int getTexWidth() {
-        return texWidth;
-    }
-
-    public int getTexHeight() {
-        return texHeight;
-    }
 }

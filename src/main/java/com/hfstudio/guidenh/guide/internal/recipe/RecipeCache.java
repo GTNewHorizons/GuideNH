@@ -59,7 +59,7 @@ public class RecipeCache {
     }
 
     private static Map<Key, List<Object>> createCache() {
-        return new LinkedHashMap<Key, List<Object>>(16, 0.75f, true) {
+        return new LinkedHashMap<>(16, 0.75f, true) {
 
             @Override
             protected boolean removeEldestEntry(Entry<Key, List<Object>> eldest) {

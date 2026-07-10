@@ -4,7 +4,9 @@ import java.nio.charset.StandardCharsets;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 
+@Getter
 public class GuideNhClientBridgeMessage implements IMessage {
 
     public static final byte ACTION_IMPORT_STRUCTURE = 0;
@@ -29,26 +31,6 @@ public class GuideNhClientBridgeMessage implements IMessage {
 
     public static GuideNhClientBridgeMessage importStructure(int x, int y, int z, String filePath) {
         return new GuideNhClientBridgeMessage(ACTION_IMPORT_STRUCTURE, x, y, z, filePath);
-    }
-
-    public byte getAction() {
-        return action;
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public int getZ() {
-        return z;
-    }
-
-    public String getFilePath() {
-        return filePath;
     }
 
     @Override

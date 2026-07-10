@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.mixins;
 
+import org.jspecify.annotations.NonNull;
+
 import com.gtnewhorizon.gtnhmixins.builders.IMixins;
 import com.gtnewhorizon.gtnhmixins.builders.ITargetMod;
 import com.gtnewhorizon.gtnhmixins.builders.MixinBuilder;
@@ -32,6 +34,10 @@ public enum Mixins implements IMixins {
     WR_CBE_UNLOADED_JAM_STATE(Side.CLIENT, Phase.LATE, Mods.WirelessRedstoneCore,
         "compat.wirelessredstone.MixinRedstoneEther"),
 
+    BLOCK_RENDERER_6343(Side.CLIENT, Phase.LATE, Mods.BlockRenderer6343,
+        "compat.blockrenderer6343.AccessorConstructableData",
+        "compat.blockrenderer6343.AccessorGTNEIMultiblockHandler"),
+
     ;
 
     private final MixinBuilder builder;
@@ -48,7 +54,7 @@ public enum Mixins implements IMixins {
     }
 
     @Override
-    public MixinBuilder getBuilder() {
+    public @NonNull MixinBuilder getBuilder() {
         return builder;
     }
 }

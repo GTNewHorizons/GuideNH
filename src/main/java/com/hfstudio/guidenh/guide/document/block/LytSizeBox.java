@@ -9,6 +9,8 @@ import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 public class LytSizeBox extends LytVBox implements DocumentDragTarget {
 
     private static final int SCROLLBAR_WIDTH = 5;
@@ -17,7 +19,9 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
 
     private final BorderRenderer borderRenderer = new BorderRenderer();
 
+    @Getter
     private int preferredWidth;
+    @Getter
     private int preferredHeight;
     private int contentHeight;
     private int viewportX;
@@ -32,16 +36,8 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
     private boolean draggingScrollbar;
     private int scrollbarGrabOffsetY;
 
-    public int getPreferredWidth() {
-        return preferredWidth;
-    }
-
     public void setPreferredWidth(int preferredWidth) {
         this.preferredWidth = Math.max(0, preferredWidth);
-    }
-
-    public int getPreferredHeight() {
-        return preferredHeight;
     }
 
     public void setPreferredHeight(int preferredHeight) {

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
@@ -11,6 +10,8 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.latex.GuideLatexRenderer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+
+import lombok.Getter;
 
 /**
  * Block-level (display) LaTeX element. Occupies the full available width and centers the formula
@@ -23,13 +24,19 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
 
     private static final int VERTICAL_MARGIN = 4;
 
+    @Getter
     private final String formula;
+    @Getter
     private final int fillColorArgb;
+    @Getter
     private final float sourceScale;
+    @Getter
     private final float userScale;
     @Nullable
     private final GuideTooltip tooltip;
+    @Getter
     private final int offsetX;
+    @Getter
     private final int offsetY;
 
     /** Cached formula display width (pixels in GUI units), set during layout. */
@@ -109,27 +116,6 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
         return LytVisitor.Result.CONTINUE;
     }
 
-    @Override
-    public List<? extends LytNode> getChildren() {
-        return List.of();
-    }
-
-    public String getFormula() {
-        return formula;
-    }
-
-    public int getFillColorArgb() {
-        return fillColorArgb;
-    }
-
-    public float getSourceScale() {
-        return sourceScale;
-    }
-
-    public float getUserScale() {
-        return userScale;
-    }
-
     public boolean isShowTooltip() {
         return tooltip != null;
     }
@@ -137,14 +123,6 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
     @Nullable
     public GuideTooltip getLatexTooltip() {
         return tooltip;
-    }
-
-    public int getOffsetX() {
-        return offsetX;
-    }
-
-    public int getOffsetY() {
-        return offsetY;
     }
 
     public LytRect getVisualBounds() {

@@ -12,6 +12,8 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 
+import lombok.Getter;
+
 public class GuideScreenContextMenu {
 
     private static final int ITEM_HEIGHT = 14;
@@ -59,6 +61,7 @@ public class GuideScreenContextMenu {
     }
 
     private final List<Entry> entries;
+    @Getter
     private boolean open;
     private int x;
     private int y;
@@ -68,10 +71,6 @@ public class GuideScreenContextMenu {
 
     public GuideScreenContextMenu(List<Entry> entries) {
         this.entries = entries != null ? List.copyOf(new ArrayList<>(entries)) : List.of();
-    }
-
-    public boolean isOpen() {
-        return open;
     }
 
     public void open(int mouseX, int mouseY, int viewportWidth, int viewportHeight, FontRenderer fontRenderer) {

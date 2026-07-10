@@ -9,6 +9,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 
+import lombok.Getter;
+
 public class SceneEditorSaveService {
 
     private final SceneEditorStructureCache structureCache;
@@ -42,8 +44,11 @@ public class SceneEditorSaveService {
 
     public static class SaveResult {
 
+        @Getter
         private final boolean success;
+        @Getter
         private final String savedText;
+        @Getter
         private final Optional<Path> structurePath;
         @Nullable
         private final Throwable error;
@@ -61,18 +66,6 @@ public class SceneEditorSaveService {
 
         public static SaveResult failure(Throwable error, Optional<Path> structurePath) {
             return new SaveResult(false, "", structurePath, error);
-        }
-
-        public boolean isSuccess() {
-            return success;
-        }
-
-        public String getSavedText() {
-            return savedText;
-        }
-
-        public Optional<Path> getStructurePath() {
-            return structurePath;
         }
 
         @Nullable

@@ -5,8 +5,10 @@ import com.hfstudio.guidenh.network.GuideNhCustomPayloadLimits;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 
 /** Parallel to request order: hit, cs (unsigned byte), sideOut, then packed side-part blobs. */
+@Getter
 public class GuideNhAe2CableBatchReplyMessage implements IMessage {
 
     public static final int FORMAT_V1 = 1;
@@ -42,26 +44,6 @@ public class GuideNhAe2CableBatchReplyMessage implements IMessage {
         this.cs = copyBytes(cs, n);
         this.sideOut = copyInts(sideOut, n);
         this.partPacked = budgetPartPayloads(partPacked, n);
-    }
-
-    public long getCorrId() {
-        return corrId;
-    }
-
-    public byte[] getHit() {
-        return hit;
-    }
-
-    public byte[] getCs() {
-        return cs;
-    }
-
-    public int[] getSideOut() {
-        return sideOut;
-    }
-
-    public byte[][] getPartPacked() {
-        return partPacked;
     }
 
     /** {@code true} when arrays match {@code n} positions from the request. */

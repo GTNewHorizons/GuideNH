@@ -9,6 +9,8 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
+import lombok.Getter;
+
 /**
  * XY scatter chart: draws only data points without connecting lines.
  */
@@ -16,6 +18,7 @@ public class LytScatterChart extends LytChartBase {
 
     private static final int POINT_RADIUS = 3;
 
+    @Getter
     private List<ChartSeries> series = new ArrayList<>();
     private ChartAxisOptions xAxis = new ChartAxisOptions();
     private ChartAxisOptions yAxis = new ChartAxisOptions();
@@ -26,10 +29,6 @@ public class LytScatterChart extends LytChartBase {
 
     public void setSeries(List<ChartSeries> series) {
         this.series = series != null ? series : new ArrayList<>();
-    }
-
-    public List<ChartSeries> getSeries() {
-        return series;
     }
 
     public void setXAxis(ChartAxisOptions xAxis) {

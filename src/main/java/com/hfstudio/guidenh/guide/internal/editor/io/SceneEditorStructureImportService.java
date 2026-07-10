@@ -22,6 +22,8 @@ import net.minecraft.nbt.NBTTagCompound;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class SceneEditorStructureImportService {
 
     public static final String SNBT_EXTENSION = ".snbt";
@@ -136,7 +138,7 @@ public class SceneEditorStructureImportService {
         try {
             String directory = dialog.getDirectory();
             String fileName = dialog.getFile();
-            if (directory == null || fileName == null || !isSnbtFileName(fileName)) {
+            if (directory == null || !isSnbtFileName(fileName)) {
                 return null;
             }
             return new File(directory, fileName).toPath();
@@ -199,6 +201,7 @@ public class SceneEditorStructureImportService {
         String read(Path path) throws Exception;
     }
 
+    @Getter
     public static class ImportResult {
 
         private final String structureSource;
@@ -211,16 +214,5 @@ public class SceneEditorStructureImportService {
             this.displayPath = displayPath;
         }
 
-        public String getStructureSource() {
-            return structureSource;
-        }
-
-        public String getStructureText() {
-            return structureText;
-        }
-
-        public String getDisplayPath() {
-            return displayPath;
-        }
     }
 }

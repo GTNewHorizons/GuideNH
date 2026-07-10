@@ -103,9 +103,11 @@ public record FlowInteractionPath(@Nullable LytFlowContent primary, List<LytFlow
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof FlowInteractionPath path && Objects.equals(primary, path.primary)
-            && Objects.equals(targets, path.targets)
-            && Objects.equals(activeSpoiler, path.activeSpoiler);
+        return other instanceof FlowInteractionPath(
+                LytFlowContent primary1, List<LytFlowContent> targets1, LytSpoilerSpan spoiler
+        ) && Objects.equals(primary, primary1)
+            && Objects.equals(targets, targets1)
+            && Objects.equals(activeSpoiler, spoiler);
     }
 
     @Override
