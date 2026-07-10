@@ -14,31 +14,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 
 public class GuidePageResourceSelector {
 
-    private static long totalSelectNs = 0;
-    private static long totalSelectCalls = 0;
-    private static long totalPacksChecked = 0;
-    private static long totalHits = 0;
-
     private GuidePageResourceSelector() {}
-
-    public static void resetSelectStats() {
-        totalSelectNs = 0;
-        totalSelectCalls = 0;
-        totalPacksChecked = 0;
-        totalHits = 0;
-    }
-
-    public static String formatSelectStats() {
-        if (totalSelectCalls == 0) return "no select() calls";
-        return String.format(
-            "select() called %d times, total %.0f ms, avg %.1f ms/call, packs checked %d (avg %.0f/call), hits %d",
-            totalSelectCalls,
-            totalSelectNs / 1_000_000.0,
-            totalSelectNs / 1_000_000.0 / totalSelectCalls,
-            totalPacksChecked,
-            (double) totalPacksChecked / totalSelectCalls,
-            totalHits);
-    }
 
     /**
      * Selects the best resource pack that contains the given resource location.
@@ -56,8 +32,6 @@ public class GuidePageResourceSelector {
 
     public static @Nullable SelectedPack select(ResourceLocation sourceId,
         Iterable<? extends IResourcePack> resourcePacks) {
-        long startedAt = System.nanoTime();
-
         // O(1) index lookup
         List<DataDrivenGuideLoader.PackCandidate> candidates = DataDrivenGuideLoader.getCandidatesFor(sourceId);
         if (candidates != null && !candidates.isEmpty()) {
@@ -68,26 +42,16 @@ public class GuidePageResourceSelector {
                     best = candidates.get(i);
                 }
             }
-            totalHits++;
-            int packsChecked = candidates.size();
-            long selectNs = System.nanoTime() - startedAt;
-            totalSelectNs += selectNs;
-            totalSelectCalls++;
-            totalPacksChecked += packsChecked;
             return new SelectedPack(sourceId, best.pack(), best.loadPriority());
         }
 
         // Index says it doesn't exist — fast null
         if (DataDrivenGuideLoader.isIndexPopulated()) {
-            long selectNs = System.nanoTime() - startedAt;
-            totalSelectNs += selectNs;
-            totalSelectCalls++;
-            totalPacksChecked += 0;
             return null;
         }
 
         // Index not built yet — emergency full scan
-        return selectFullScan(sourceId, resourcePacks, startedAt);
+        return selectFullScan(sourceId, resourcePacks);
     }
 
     /**
@@ -95,18 +59,15 @@ public class GuidePageResourceSelector {
      * Reads bytes for comparison (loadPriority requires frontmatter parsing).
      */
     private static @Nullable SelectedPack selectFullScan(ResourceLocation sourceId,
-        Iterable<? extends IResourcePack> resourcePacks, long startedAt) {
+        Iterable<? extends IResourcePack> resourcePacks) {
         SelectedPack winner = null;
         byte[] winnerBytes = null;
         int order = 0;
-        int packsChecked = 0;
         for (IResourcePack resourcePack : resourcePacks) {
-            packsChecked++;
             byte[] bytes = DataDrivenGuideLoader.readBytes(resourcePack, sourceId);
             if (bytes == null) {
                 continue;
             }
-            totalHits++;
             int candidateOrder = order++;
             int candidatePriority = readLoadPriority(sourceId, bytes);
             if (winner == null) {
@@ -127,10 +88,6 @@ public class GuidePageResourceSelector {
                 winnerBytes = bytes;
             }
         }
-        long selectNs = System.nanoTime() - startedAt;
-        totalSelectNs += selectNs;
-        totalSelectCalls++;
-        totalPacksChecked += packsChecked;
         return winner;
     }
 
