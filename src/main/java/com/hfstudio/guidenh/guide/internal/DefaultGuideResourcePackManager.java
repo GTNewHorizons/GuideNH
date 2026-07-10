@@ -52,8 +52,10 @@ public class DefaultGuideResourcePackManager {
         }
 
         reloadPending = false;
-        GuideMEClientReloadDispatcher
-            .dispatch(minecraft.func_152345_ab(), minecraft::func_152344_a, minecraft::refreshResources);
+        GuideMEClientReloadDispatcher.dispatch(
+            minecraft.func_152345_ab(),
+            minecraft::func_152344_a,
+            GuideLightweightReloadService::reloadDevelopmentGuides);
     }
 
     private static void ensureDirectoryExists(Path root) {
