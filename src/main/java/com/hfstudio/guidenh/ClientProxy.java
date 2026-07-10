@@ -236,7 +236,7 @@ public class ClientProxy extends CommonProxy {
     public void completeInit(FMLLoadCompleteEvent event) {
         super.completeInit(event);
         GuideDevelopmentResourcePackWatcher.init();
-        DefaultGuideResourcePackManager.refreshIfPending();
+        GuideReloadListener.markBootComplete();
         MasterScheduler.getInstance()
             .submit(new DevWatchWorkItem());
         GuideOnStartup.init();
