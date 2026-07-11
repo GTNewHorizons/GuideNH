@@ -39,6 +39,7 @@ public class LytHost {
     private final Map<String, Map<String, Object>> nodeResults = new LinkedHashMap<>(16, 0.75f, true);
     private final Map<String, AtomicInteger> pageNodeCounters = new HashMap<>();
     private static final int MAX_NODE_RESULT_CACHE = 32;
+    @Getter
     @Setter
     String currentPageId;
 
