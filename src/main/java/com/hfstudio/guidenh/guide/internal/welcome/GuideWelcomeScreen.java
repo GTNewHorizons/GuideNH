@@ -59,8 +59,6 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private static final int CLOSE_RIGHT_MARGIN = 7;
     private static final int CLOSE_TOP_MARGIN = 3;
     private static final int EXTERNAL_LINK_CONFIRM_ID = 0;
-    private static final String TITLE_KEY = "guidenh.welcome.title";
-    private static final String CLOSE_HINT_KEY = "guidenh.welcome.close_hint";
 
     private final GuiScreen parent;
     private final GuideWelcomeContent.LoadedContent content;
@@ -184,7 +182,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
         drawCenteredString(
             fontRendererObj,
-            translate(TITLE_KEY, "Welcome to GuideNH"),
+            StatCollector.translateToLocal("guidenh.welcome.title"),
             width / 2,
             panelY + 10,
             0xFFF0F0F0);
@@ -198,7 +196,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
         drawCenteredString(
             fontRendererObj,
-            translate(CLOSE_HINT_KEY, "Press Space or click the top-right button to close"),
+            StatCollector.translateToLocal("guidenh.welcome.close_hint"),
             width / 2,
             panelBottom - 14,
             0xFFB8C0CC);
@@ -480,11 +478,11 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     }
 
     private int panelWidth() {
-        return Math.min(PANEL_MAX_WIDTH, Math.max(220, width - 40));
+        return Math.clamp(width - 40, 220, PANEL_MAX_WIDTH);
     }
 
     private int panelHeight() {
-        return Math.min(PANEL_MAX_HEIGHT, Math.max(160, height - 40));
+        return Math.clamp(height - 40, 160, PANEL_MAX_HEIGHT);
     }
 
     private int panelX() {
@@ -594,11 +592,6 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         } catch (Exception e) {
             GuideDebugLog.warnAlways("[GuideNH] Failed to open external welcome link {}", uri, e);
         }
-    }
-
-    private static String translate(String key, String fallback) {
-        String translated = StatCollector.translateToLocal(key);
-        return key.equals(translated) ? fallback : translated;
     }
 
 }
