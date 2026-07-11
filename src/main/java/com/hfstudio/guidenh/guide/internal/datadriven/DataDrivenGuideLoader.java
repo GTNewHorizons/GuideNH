@@ -638,7 +638,9 @@ public class DataDrivenGuideLoader {
         } catch (RuntimeException e) {
             GuideDebugLog.warnAlways(
                 "[GuideNH] [DataDrivenGuideLoader] readBytes failed for {} from pack {}: {}",
-                resourceLocation, resourcePack.getPackName(), e.toString());
+                resourceLocation,
+                resourcePack.getPackName(),
+                e.toString());
             return null;
         }
     }
