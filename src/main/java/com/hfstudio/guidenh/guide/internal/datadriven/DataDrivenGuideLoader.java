@@ -54,8 +54,6 @@ public class DataDrivenGuideLoader {
     public static final String LANGUAGE_FOLDER_PREFIX = "_";
     private static final String DEFAULT_LANGUAGE = "en_us";
 
-    // ── Records ──────────────────────────────────────────────────────────────
-
     public record PackCandidate(IResourcePack pack, int loadPriority, int order) {
 
         boolean shouldReplace(PackCandidate previous) {
@@ -69,8 +67,6 @@ public class DataDrivenGuideLoader {
 
     private record NamespaceRoot(String namespace, File directory, boolean allowDirectoryAsGuideRoot) {}
 
-    // ── State ────────────────────────────────────────────────────────────────
-
     private static final Map<Class<?>, Field> LOOSE_ROOT_FIELDS = new IdentityHashMap<>();
     private static volatile List<IResourcePack> lastActiveResourcePacks = List.of();
     private static volatile List<IResourcePack> lastResourceManagerResourcePacks = List.of();
@@ -80,7 +76,6 @@ public class DataDrivenGuideLoader {
     private static final AtomicInteger pagePackOrder = new AtomicInteger(0);
     static final Map<File, List<String>> PACK_LANG_FILE_PATHS = new IdentityHashMap<>();
 
-    /** Cache: if the same packs are scanned for the same folder, skip re-scanning. */
     private static volatile @Nullable ScanCache lastScanCache = null;
 
     private record ScanCache(List<File> packRoots, String folder, ScanResult result,
@@ -92,12 +87,9 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    /** Cache of discovered namespace roots per resource pack directory keyed by canonical path. */
     private static final ConcurrentHashMap<Path, List<NamespaceRoot>> nativeNamespaceRootsCache = new ConcurrentHashMap<>();
 
     private DataDrivenGuideLoader() {}
-
-    // ── Public API: Scan + Index ─────────────────────────────────────────────
 
     public static ScanResult scanAndBuildAll(String folder) {
         return scanAndBuildAll(folder, getActiveResourcePacks());
@@ -181,8 +173,6 @@ public class DataDrivenGuideLoader {
         // NOTE: lastScanCache is NOT cleared here — it persists across reloads
         // so that GuideReloadListener's second call (same packs) hits cache.
     }
-
-    // ── Core Zip Scan (IO) ───────────────────────────────────────────────────
 
     private static void scanZipBuildIndex(File resourcePackFile, String folder,
         LinkedHashMap<String, LinkedHashSet<String>> pagePaths, IResourcePack resourcePack,
@@ -269,7 +259,6 @@ public class DataDrivenGuideLoader {
         } catch (IOException ignored) {}
     }
 
-    /** Inline helper: extracts loadPriority from frontmatter in a zip entry. */
     private static int parseLoadPriorityFromZipEntry(ZipFile zip, ZipEntry entry, ResourceLocation loc) {
         try (var stream = zip.getInputStream(entry)) {
             String content = new String(GuideResourceAccess.readFully(stream), StandardCharsets.UTF_8);
@@ -283,8 +272,6 @@ public class DataDrivenGuideLoader {
         } catch (IOException ignored) {}
         return 0;
     }
-
-    // ── Core Directory Scan (IO) ─────────────────────────────────────────────
 
     private static void scanDirectoryBuildIndex(IResourcePack resourcePack, File resourcePackRoot, String folder,
         LinkedHashMap<String, LinkedHashSet<String>> pagePaths,
@@ -370,7 +357,6 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    /** Inline helper: extracts loadPriority from frontmatter in a filesystem file. */
     private static int parseLoadPriorityFromFile(Path filePath, ResourceLocation loc) {
         try {
             String content = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
@@ -384,8 +370,6 @@ public class DataDrivenGuideLoader {
         } catch (IOException ignored) {}
         return 0;
     }
-
-    // ── Lang File Cache (populated during scanAndBuildAll, consumed by language indices) ──
 
     public static List<String> getLangFilePaths(File resourcePackFile) {
         List<String> paths = PACK_LANG_FILE_PATHS.get(resourcePackFile);
@@ -404,8 +388,6 @@ public class DataDrivenGuideLoader {
             return Map.of();
         }
     }
-
-    // ── Site Export Support (IO: enumerate .md files for a specific guide) ───
 
     public static Set<String> discoverPagePaths(ResourceLocation guideId, String folder) {
         return discoverPagePaths(guideId, folder, getActiveResourcePacks());
@@ -457,8 +439,6 @@ public class DataDrivenGuideLoader {
         }
     }
 
-    // ── Public Utility ───────────────────────────────────────────────────────
-
     public static void collectMarkdownPaths(File directory, String relativePath, Set<String> pagePaths) {
         var children = directory.listFiles();
         if (children == null) return;
@@ -480,8 +460,6 @@ public class DataDrivenGuideLoader {
     public static String toLanguageCode(String folderName) {
         return LangUtil.normalizeLanguage(folderName.substring(LANGUAGE_FOLDER_PREFIX.length()));
     }
-
-    // ── ResourcePack Resolution (IO) ─────────────────────────────────────────
 
     public static List<IResourcePack> getActiveResourcePacks() {
         var resourcePacks = new LinkedHashSet<IResourcePack>(GuideDevelopmentResourcePacks.getConfiguredPacks());
@@ -628,8 +606,6 @@ public class DataDrivenGuideLoader {
         return Collections.unmodifiableMap(result);
     }
 
-    // ── I/O: Read Bytes ──────────────────────────────────────────────────────
-
     public static byte[] readBytes(IResourcePack resourcePack, ResourceLocation resourceLocation) {
         try (var input = resourcePack.getInputStream(resourceLocation)) {
             return GuideResourceAccess.readFully(input);
@@ -664,8 +640,6 @@ public class DataDrivenGuideLoader {
         }
         return null;
     }
-
-    // ── Internal helpers: directory traversal ────────────────────────────────
 
     private static List<File> guideRootCandidates(File resourcePackRoot, String namespace, String folder) {
         var candidates = new LinkedHashMap<Path, File>(3);
@@ -777,7 +751,6 @@ public class DataDrivenGuideLoader {
         return result;
     }
 
-    /** Resolves pack roots for cache key comparisons. Files have stable equals(). */
     private static List<File> resolvePackRoots(List<IResourcePack> packs) {
         var roots = new ArrayList<File>(packs.size());
         for (var pack : packs) {
@@ -786,8 +759,6 @@ public class DataDrivenGuideLoader {
         }
         return roots;
     }
-
-    // ── Stats ────────────────────────────────────────────────────────────────
 
     private static Map<String, Map<String, String>> freezeLangKeys(
         LinkedHashMap<String, LinkedHashMap<String, String>> keys) {
@@ -807,25 +778,21 @@ public class DataDrivenGuideLoader {
         return Collections.unmodifiableMap(frozen);
     }
 
-    /** @deprecated No longer needed. */
     @Deprecated
     public static byte[] readLooseBytes(IResourcePack resourcePack, ResourceLocation resourceLocation) {
         return null;
     }
 
-    /** @deprecated Use {@link #scanAndBuildAll(String, Iterable)}. */
     @Deprecated
     public static void buildPageIndex(String folder) {
         scanAndBuildAll(folder);
     }
 
-    /** @deprecated Use {@link #scanAndBuildAll(String, Iterable)}. */
     @Deprecated
     public static void buildPageIndex(String folder, Iterable<? extends IResourcePack> packs) {
         scanAndBuildAll(folder, packs);
     }
 
-    /** @deprecated Use {@link #getCandidatesFor(ResourceLocation)}. */
     @Deprecated
     public static @Nullable List<IResourcePack> getPacksFor(ResourceLocation loc) {
         var candidates = pagePackIndex.get(loc);
