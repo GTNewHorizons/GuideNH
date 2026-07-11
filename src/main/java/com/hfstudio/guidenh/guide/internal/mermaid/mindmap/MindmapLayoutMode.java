@@ -1,11 +1,11 @@
-package com.hfstudio.guidenh.guide.internal.mermaid;
+package com.hfstudio.guidenh.guide.internal.mermaid.mindmap;
 
-public enum MermaidMindmapLayoutMode {
+public enum MindmapLayoutMode {
 
     MINDMAP,
     TIDY_TREE;
 
-    public static MermaidMindmapLayoutMode fromConfigValue(String value) {
+    public static MindmapLayoutMode fromConfigValue(String value) {
         if (value == null) {
             return MINDMAP;
         }

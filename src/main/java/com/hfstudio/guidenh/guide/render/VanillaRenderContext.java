@@ -678,6 +678,25 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
+    public void fillEllipse(float cx, float cy, float rx, float ry, int argbColor) {
+        if (rx <= 0f || ry <= 0f) {
+            return;
+        }
+        beginShapeDraw();
+        applyArgb(argbColor);
+        var tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLE_FAN);
+        tessColor(tess, argbColor);
+        tess.addVertex(cx, cy, 0);
+        for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
+            double a = (Math.PI * 2.0 * i) / CIRCLE_SEGMENTS;
+            tess.addVertex(cx + (float) (Math.cos(a) * rx), cy + (float) (Math.sin(a) * ry), 0);
+        }
+        tess.draw();
+        endShapeDraw();
+    }
+
+    @Override
     public void drawCircleOutline(float cx, float cy, float radius, float thickness, int argbColor) {
         if (radius <= 0f) {
             return;

@@ -5,42 +5,56 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
-import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 import lombok.Getter;
 
-@Getter
-public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
+public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
 
-    private final MindmapDocument mindmap;
+    @Getter
+    private final FlowchartDocument flowchart;
+    @Getter
     private final String sourceText;
+    @Getter
     private final LytCodeBlockToolbar toolbar = new LytCodeBlockToolbar();
-    private final LytMermaidMindmapCanvas canvas;
+    private final LytMermaidFlowchartCanvas canvas;
 
-    public LytMermaidMindmap(MindmapDocument mindmap, String sourceText) {
-        this(mindmap, sourceText, Collections.emptyMap());
+    public LytMermaidFlowchart(FlowchartDocument flowchart, String sourceText) {
+        this(flowchart, sourceText, Collections.emptyMap());
     }
 
-    public LytMermaidMindmap(MindmapDocument mindmap, String sourceText, Map<String, LytBlock> nodeContent) {
-        this.mindmap = mindmap;
+    public LytMermaidFlowchart(FlowchartDocument flowchart, String sourceText, Map<String, LytBlock> nodeContent) {
+        this.flowchart = flowchart;
         this.sourceText = sourceText != null ? sourceText : "";
-        this.canvas = new LytMermaidMindmapCanvas(mindmap, nodeContent != null ? nodeContent : Collections.emptyMap());
+        this.canvas = new LytMermaidFlowchartCanvas(
+            flowchart,
+            nodeContent != null ? nodeContent : Collections.emptyMap());
 
         setPadding(6);
         setGap(4);
         setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
         setBorder(new BorderStyle(SymbolicColor.TABLE_BORDER, 1));
 
-        toolbar.setLanguageDisplayName("Mermaid");
+        toolbar.setLanguageDisplayName("Flowchart");
         toolbar.setCopyText(this.sourceText);
-        toolbar.setCopyButtonVisible(false);
-        toolbar.setToolbarBackground(LytMermaidMindmapCanvas.PANEL_BACKGROUND);
-        toolbar.setToolbarBorder(LytMermaidMindmapCanvas.PANEL_BORDER);
-        toolbar.setToolbarText(LytMermaidMindmapCanvas.NODE_TEXT_COLOR);
+        toolbar.setCopyButtonVisible(true);
+        String copyValue = flowchart.getCopyValue();
+        if (copyValue != null && !copyValue.isEmpty()) {
+            LytButton btn = new LytButton(LytCodeBlockToolbar.COPY_SPRITE, new LytSize(16, 16));
+            btn.setOnClick(screen -> screen.copyCodeBlock(copyValue));
+            btn.setTooltipFunction((pressed) -> {
+                if (pressed) return GuidebookText.FlowchartCopyPlanSuccess.text();
+                return GuidebookText.FlowchartCopyPlan.text();
+            });
+            btn.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
+            toolbar.addButton(btn);
+        }
 
         append(toolbar);
         append(canvas);

@@ -22,9 +22,9 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIconKind;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeShape;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
 
 /**
  * Generates static HTML and SVG markup for chart, function-graph, file-tree,
@@ -170,7 +170,7 @@ public class GuideSiteGraphRenderer {
 
     private static class MmLayoutNode {
 
-        private final MermaidMindmapNode source;
+        private final MindmapNode source;
         @Nullable
         private final String parentId;
         private final boolean isRoot;
@@ -180,7 +180,7 @@ public class GuideSiteGraphRenderer {
         private final @Nullable String badge;
         final List<MmLayoutNode> children = new ArrayList<>();
 
-        private MmLayoutNode(MermaidMindmapNode source, @Nullable String parentId, boolean isRoot,
+        private MmLayoutNode(MindmapNode source, @Nullable String parentId, boolean isRoot,
             @Nullable String htmlContent) {
             this.source = source;
             this.parentId = parentId;
@@ -192,11 +192,11 @@ public class GuideSiteGraphRenderer {
         }
     }
 
-    public static String renderMermaidTree(MermaidMindmapDocument doc) {
-        return renderMermaidTree(doc, new LinkedHashMap<>());
+    public static String renderMermaidTree(MindmapDocument doc) {
+        return renderMermaidTree(doc, new LinkedHashMap<String, String>());
     }
 
-    public static String renderMermaidTree(MermaidMindmapDocument doc, Map<String, String> nodeHtmlById) {
+    public static String renderMermaidTree(MindmapDocument doc, Map<String, String> nodeHtmlById) {
         if (doc == null || doc.getRoot() == null) {
             return "<div class=\"guide-mermaid-pan\" data-guide-pannable>"
                 + "<div class=\"guide-mermaid-stage\" data-guide-mermaid-stage>"
@@ -219,10 +219,10 @@ public class GuideSiteGraphRenderer {
         return html.toString();
     }
 
-    private static MmLayoutNode buildMmLayout(MermaidMindmapNode source, @Nullable String parentId, boolean isRoot,
+    private static MmLayoutNode buildMmLayout(MindmapNode source, @Nullable String parentId, boolean isRoot,
         Map<String, String> nodeHtmlById) {
         MmLayoutNode node = new MmLayoutNode(source, parentId, isRoot, nodeHtmlById.get(source.getId()));
-        for (MermaidMindmapNode child : source.getChildren()) {
+        for (MindmapNode child : source.getChildren()) {
             node.children.add(buildMmLayout(child, source.getId(), false, nodeHtmlById));
         }
         return node;
@@ -271,8 +271,8 @@ public class GuideSiteGraphRenderer {
         }
     }
 
-    private static String escapeShapeClass(@Nullable MermaidMindmapNodeShape shape) {
-        return switch (shape != null ? shape : MermaidMindmapNodeShape.DEFAULT) {
+    private static String escapeShapeClass(@Nullable MermaidNodeShape shape) {
+        return switch (shape != null ? shape : MermaidNodeShape.DEFAULT) {
             case ROUNDED -> "rounded";
             case CIRCLE -> "circle";
             case HEXAGON -> "hexagon";
