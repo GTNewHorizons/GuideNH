@@ -112,9 +112,11 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
-        if (keyCode == Keyboard.KEY_SPACE) {
+        if (keyCode == Keyboard.KEY_SPACE || keyCode == Keyboard.KEY_ESCAPE) {
             close();
+            return;
         }
+        super.keyTyped(typedChar, keyCode);
     }
 
     @Override
@@ -359,9 +361,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         try {
             ParsedGuidePage parsed = PageCompiler
                 .parse(loadedContent.sourcePack(), loadedContent.language(), PAGE_ID, loadedContent.source());
-            GuidePage compiled = PageCompiler.compile(pageCollection, pageCollection.getExtensions(), parsed);
-            compiled.prepareForDisplay();
-            return compiled;
+            return PageCompiler.compile(pageCollection, pageCollection.getExtensions(), parsed);
         } catch (Throwable t) {
             GuideDebugLog.error("[GuideNH] Failed to compile welcome popup content", t);
             return PageCompiler.buildErrorGuidePage(
