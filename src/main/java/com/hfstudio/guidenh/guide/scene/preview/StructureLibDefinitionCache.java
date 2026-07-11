@@ -62,7 +62,7 @@ public class StructureLibDefinitionCache {
                     return c;
                 }
             }
-        } catch (Throwable t) {}
+        } catch (Throwable _) {}
         return null;
     }
 

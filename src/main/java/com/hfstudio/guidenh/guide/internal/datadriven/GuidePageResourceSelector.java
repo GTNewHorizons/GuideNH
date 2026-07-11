@@ -130,8 +130,7 @@ public class GuidePageResourceSelector {
     private static @Nullable SelectedPack selectFirstPresentFullScan(Iterable<? extends IResourcePack> resourcePacks,
         ResourceLocation... sourceIds) {
         for (IResourcePack resourcePack : resourcePacks) {
-            for (int i = 0; i < sourceIds.length; i++) {
-                ResourceLocation sourceId = sourceIds[i];
+            for (ResourceLocation sourceId : sourceIds) {
                 if (sourceId == null) continue;
                 if (DataDrivenGuideLoader.readBytes(resourcePack, sourceId) != null) {
                     return new SelectedPack(sourceId, resourcePack, 0);

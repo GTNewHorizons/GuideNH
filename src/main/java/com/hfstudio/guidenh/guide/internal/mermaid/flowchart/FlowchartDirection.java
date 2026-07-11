@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.mermaid.flowchart;
 
+import java.util.Locale;
+
 public enum FlowchartDirection {
 
     TB,
@@ -10,7 +12,7 @@ public enum FlowchartDirection {
     public static FlowchartDirection fromString(String value) {
         if (value == null) return TB;
         return switch (value.trim()
-            .toUpperCase(java.util.Locale.ROOT)) {
+            .toUpperCase(Locale.ROOT)) {
             case "BT" -> BT;
             case "LR" -> LR;
             case "RL" -> RL;

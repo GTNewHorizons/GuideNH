@@ -5,5 +5,5 @@ public enum MermaidEdgeStyle {
     DASHED,
     THICK,
     DOTTED,
-    INVISIBLE;
+    INVISIBLE
 }

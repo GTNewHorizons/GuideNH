@@ -1122,9 +1122,7 @@ public class FlowchartParser {
             for (LinkStyleEntry entry : linkStyleEntries) {
                 for (String idxStr : entry.indices()) {
                     if ("default".equalsIgnoreCase(idxStr)) {
-                        for (int i = 0; i < edges.size(); i++) {
-                            edges.set(i, applyEntryToEdge(edges.get(i), entry));
-                        }
+                        edges.replaceAll(edge -> applyEntryToEdge(edge, entry));
                     } else {
                         try {
                             int idx = Integer.parseInt(idxStr);

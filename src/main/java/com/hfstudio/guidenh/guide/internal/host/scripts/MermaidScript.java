@@ -121,7 +121,7 @@ public class MermaidScript implements LytScript {
             LytMermaidFlowchart block = new LytMermaidFlowchart(
                 document,
                 sourceText,
-                ph.nodeContentBlocks != null ? ph.nodeContentBlocks : java.util.Collections.emptyMap());
+                ph.nodeContentBlocks != null ? ph.nodeContentBlocks : Collections.emptyMap());
             if (ph.width > 0 || ph.height > 0) {
                 block.setPreferredSize(ph.width, ph.height);
             }

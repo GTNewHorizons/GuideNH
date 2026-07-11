@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.datadriven;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -141,7 +142,7 @@ public class DataDrivenGuideLoader {
 
         // Save cache BEFORE indexReady — pagePackIndex must not be touched by readers
         // during the snapshot (Map.copyOf on ConcurrentHashMap can throw on concurrent read).
-        if (!resolvedPacks.isEmpty() && guides.size() > 0) {
+        if (!resolvedPacks.isEmpty() && !guides.isEmpty()) {
             lastScanCache = new ScanCache(
                 List.copyOf(packRoots),
                 folder,
@@ -299,7 +300,7 @@ public class DataDrivenGuideLoader {
                     String fileName = langFile.getName();
                     int dot = fileName.lastIndexOf('.');
                     if (dot <= 0) continue;
-                    try (var input = new java.io.FileInputStream(langFile)) {
+                    try (var input = new FileInputStream(langFile)) {
                         var parsed = StringTranslate.parseLangFile(input);
                         for (var entry : parsed.entrySet()) {
                             if (entry.getKey()
@@ -359,7 +360,7 @@ public class DataDrivenGuideLoader {
 
     private static int parseLoadPriorityFromFile(Path filePath, ResourceLocation loc) {
         try {
-            String content = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
+            String content = Files.readString(filePath);
             if (content.startsWith("﻿")) content = content.substring(1);
             String yamlText = PageCompiler.extractFrontmatterText(PageCompiler.normalizeLineEndings(content));
             if (yamlText != null) {

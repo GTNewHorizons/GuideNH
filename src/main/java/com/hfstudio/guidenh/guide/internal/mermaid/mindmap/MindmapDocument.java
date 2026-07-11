@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.mermaid.mindmap;
 
+import lombok.Getter;
+
+@Getter
 public class MindmapDocument {
 
     private final MindmapLayoutMode layoutMode;
@@ -10,11 +13,4 @@ public class MindmapDocument {
         this.root = root;
     }
 
-    public MindmapLayoutMode getLayoutMode() {
-        return layoutMode;
-    }
-
-    public MindmapNode getRoot() {
-        return root;
-    }
 }
