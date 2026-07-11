@@ -61,6 +61,8 @@ guideme.gui.config.debug.debugdashofflength.tooltip=虚线段之间间隙的长�
 guideme.gui.config.ui=用户界面
 guideme.gui.config.ui.confirmexternallinks=外链打开前确认
 guideme.gui.config.ui.confirmexternallinks.tooltip=控制点击指南 Markdown 中的外部链接时，是否先弹出确认窗口再打开浏览器。
+guideme.gui.config.ui.welcomepopupenabled=欢迎弹窗
+guideme.gui.config.ui.welcomepopupenabled.tooltip=控制 GuideNH 是否显示首次打开欢迎弹窗。
 guideme.gui.config.ui.contentzoom=指南内容缩放
 guideme.gui.config.ui.contentzoom.tooltip=控制指南内容的全局缩放倍率。单个页面仍可通过 frontmatter 覆盖该值。
 guideme.gui.config.ui.fullwidth=全宽布局
@@ -164,6 +166,8 @@ guideme.gui.config.runtimebridge.maxdeltaentries=最大增量条目数
 guideme.gui.config.runtimebridge.maxdeltaentries.tooltip=运行时桥接单条消息最多发送的语义增量条目数。
 
 # Guidebook UI
+guidenh.welcome.title=欢迎使用 GuideNH
+guidenh.welcome.close_hint=按空格键或点击右上角按钮关闭
 guideme.guidebook.Close=关闭
 guideme.guidebook.CloseFullWidthView=关闭全宽视图
 guideme.guidebook.OpenRecipeInNei=在 NEI 中打开此配方
