@@ -4,19 +4,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Enumeration;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.StringTranslate;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -26,19 +23,34 @@ public class GuidePageLanguageIndex {
     private static final String PAGE_LANG_KEY_PREFIX = "guidenh.page.";
 
     private static final Map<String, Map<String, String>> PAGE_KEYS_BY_LANGUAGE = new ConcurrentHashMap<>();
+    private static volatile boolean preloaded = false;
 
     private GuidePageLanguageIndex() {}
 
     public static void clear() {
         PAGE_KEYS_BY_LANGUAGE.clear();
+        preloaded = false;
+    }
+
+    /**
+     * Pre-populates the language index with keys collected during scanAll().
+     * After this call, getValue() returns instantly without scanning packs.
+     */
+    public static void preload(Map<String, Map<String, String>> keysByLanguage) {
+        PAGE_KEYS_BY_LANGUAGE.putAll(keysByLanguage);
+        preloaded = true;
     }
 
     public static @Nullable String getValue(String language, String key) {
         if (key == null || !key.startsWith(PAGE_LANG_KEY_PREFIX)) {
             return null;
         }
-        return PAGE_KEYS_BY_LANGUAGE
-            .computeIfAbsent(LangUtil.normalizeLanguage(language), GuidePageLanguageIndex::loadLanguage)
+        String normalizedLanguage = LangUtil.normalizeLanguage(language);
+        if (preloaded) {
+            Map<String, String> keys = PAGE_KEYS_BY_LANGUAGE.get(normalizedLanguage);
+            return keys != null ? keys.get(key) : null;
+        }
+        return PAGE_KEYS_BY_LANGUAGE.computeIfAbsent(normalizedLanguage, GuidePageLanguageIndex::loadLanguage)
             .get(key);
     }
 
@@ -66,18 +78,28 @@ public class GuidePageLanguageIndex {
         long startedAt = System.nanoTime();
         Map<String, String> merged = new LinkedHashMap<>();
         var activeResourcePacks = DataDrivenGuideLoader.getLastActiveResourcePacks();
+        int packIndex = 0;
         for (IResourcePack resourcePack : activeResourcePacks) {
+            long packStartedAt = System.nanoTime();
             loadResourcePackLanguage(resourcePack, normalizedLanguage, merged);
+            long packNs = System.nanoTime() - packStartedAt;
+            if (packNs > 100_000_000) {
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [GuidePageLanguageIndex] Slow resource pack [#{}/{}] {} took {} ms",
+                    packIndex,
+                    activeResourcePacks.size(),
+                    resourcePack.getPackName(),
+                    packNs / 1_000_000L);
+            }
+            packIndex++;
         }
         long totalNs = System.nanoTime() - startedAt;
-        if (ModConfig.debug.enableDebugMode) {
-            GuideDebugLog.infoAlways(
-                "[GuideNH] [GuidePageLanguageIndex] Loaded {} page language keys for language {} from {} resource packs in {} ns",
-                merged.size(),
-                normalizedLanguage,
-                activeResourcePacks.size(),
-                totalNs);
-        }
+        GuideDebugLog.warnAlways(
+            "[GuideNH] [GuidePageLanguageIndex] Loaded {} page language keys for language {} from {} resource packs in {} ms",
+            merged.size(),
+            normalizedLanguage,
+            activeResourcePacks.size(),
+            totalNs / 1_000_000L);
         return merged.isEmpty() ? Map.of() : Map.copyOf(merged);
     }
 
@@ -91,7 +113,7 @@ public class GuidePageLanguageIndex {
             loadDirectoryLanguage(resourcePackFile, normalizedLanguage, target);
             return;
         }
-        loadZipLanguage(resourcePackFile, normalizedLanguage, target);
+        loadZipLanguage(resourcePack, resourcePackFile, normalizedLanguage, target);
     }
 
     private static void loadDirectoryLanguage(File resourcePackRoot, String normalizedLanguage,
@@ -151,34 +173,29 @@ public class GuidePageLanguageIndex {
         }
     }
 
-    private static void loadZipLanguage(File resourcePackFile, String normalizedLanguage, Map<String, String> target) {
-        try (ZipFile zip = new ZipFile(resourcePackFile)) {
-            Enumeration<? extends ZipEntry> entries = zip.entries();
-            while (entries.hasMoreElements()) {
-                ZipEntry entry = entries.nextElement();
-                if (entry.isDirectory()) {
-                    continue;
-                }
-                String path = entry.getName();
-                if (!isLangZipPath(path)) {
-                    continue;
-                }
-                int fileNameStart = path.lastIndexOf('/') + 1;
-                if (fileNameStart <= 0 || fileNameStart >= path.length()) {
-                    continue;
-                }
-                if (!isMatchingLangFile(path.substring(fileNameStart), normalizedLanguage)) {
-                    continue;
-                }
-                try (InputStream input = zip.getInputStream(entry)) {
-                    mergePageKeys(input, target);
+    /**
+     * Reads .lang files for the requested language using the cached entry list
+     * from DataDrivenGuideLoader's single scan, avoiding a redundant zip entry iteration.
+     */
+    private static void loadZipLanguage(IResourcePack resourcePack, File resourcePackFile, String normalizedLanguage,
+        Map<String, String> target) {
+        List<String> langEntryPaths = DataDrivenGuideLoader.getLangFilePaths(resourcePackFile);
+        for (String path : langEntryPaths) {
+            int fileNameStart = path.lastIndexOf('/') + 1;
+            if (fileNameStart <= 0 || fileNameStart >= path.length()) {
+                continue;
+            }
+            if (!isMatchingLangFile(path.substring(fileNameStart), normalizedLanguage)) {
+                continue;
+            }
+            Map<String, String> entries = DataDrivenGuideLoader.readLangFile(resourcePack, path);
+            if (!entries.isEmpty()) {
+                for (var entry : entries.entrySet()) {
+                    if (isPageLangKey(entry.getKey())) {
+                        target.put(entry.getKey(), entry.getValue());
+                    }
                 }
             }
-        } catch (IOException e) {
-            GuideDebugLog.warnAlways(
-                "[GuideNH] [GuidePageLanguageIndex] Failed to scan lang entries from resource pack {}",
-                resourcePackFile.getAbsolutePath(),
-                e);
         }
     }
 
@@ -191,11 +208,7 @@ public class GuidePageLanguageIndex {
             .equals(normalizedLanguage);
     }
 
-    private static boolean isLangZipPath(String path) {
-        return path.contains("/lang/");
-    }
-
-    private static void mergePageKeys(InputStream input, Map<String, String> target) {
+    private static void mergePageKeys(InputStream input, Map<String, String> target) throws IOException {
         target.putAll(readPageKeys(input));
     }
 }

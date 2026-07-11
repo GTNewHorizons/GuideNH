@@ -7,19 +7,29 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
 
+import lombok.Getter;
+
 public class FlowchartEdge {
 
+    @Getter
     private final String from;
+    @Getter
     private final String to;
     @Nullable
     private final String label;
+    @Getter
     private final MermaidEdgeStyle style;
+    @Getter
     private final boolean arrowFwd;
+    @Getter
     private final boolean arrowRev;
+    @Getter
     private final MermaidArrowHead forwardHead;
+    @Getter
     private final MermaidArrowHead reverseHead;
     @Nullable
     private final String edgeId;
+    @Getter
     private final int length;
     @Nullable
     private final String styleOverride;
@@ -46,44 +56,12 @@ public class FlowchartEdge {
         this.styleOverride = styleOverride;
     }
 
-    public String getFrom() {
-        return from;
-    }
-
-    public String getTo() {
-        return to;
-    }
-
     public @Nullable String getLabel() {
         return label;
     }
 
-    public MermaidEdgeStyle getStyle() {
-        return style;
-    }
-
-    public boolean isArrowFwd() {
-        return arrowFwd;
-    }
-
-    public boolean isArrowRev() {
-        return arrowRev;
-    }
-
-    public MermaidArrowHead getForwardHead() {
-        return forwardHead;
-    }
-
-    public MermaidArrowHead getReverseHead() {
-        return reverseHead;
-    }
-
     public @Nullable String getEdgeId() {
         return edgeId;
-    }
-
-    public int getLength() {
-        return length;
     }
 
     public @Nullable String getStyleOverride() {

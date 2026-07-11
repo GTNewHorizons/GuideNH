@@ -3,6 +3,8 @@
 /.idea/
 /.vscode/
 /run/*
+*.jfc
+*.jfr
 /build/
 /eclipse/
 .classpath

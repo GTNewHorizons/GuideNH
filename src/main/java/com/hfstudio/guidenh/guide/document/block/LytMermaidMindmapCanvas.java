@@ -21,6 +21,8 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 
+import lombok.Getter;
+
 public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapCanvas> implements DebugComponent {
 
     private static final int CANVAS_PADDING = 10;
@@ -86,6 +88,7 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         null,
         false);
 
+    @Getter
     private final MindmapDocument mindmap;
 
     private DiagramLayout layout;
@@ -125,15 +128,6 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
     @Override
     public boolean diagramReady() {
         return layout != null;
-    }
-
-    public MindmapDocument getMindmap() {
-        return mindmap;
-    }
-
-    public void setPreferredSize(int width, int height) {
-        preferredWidth = Math.max(0, width);
-        preferredHeight = Math.max(0, height);
     }
 
     @Override

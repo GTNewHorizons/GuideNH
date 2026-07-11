@@ -5,12 +5,19 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class FlowchartSubgraph {
 
+    @Getter
     private final String id;
+    @Getter
     private final String label;
+    @Getter
     private final List<String> nodeIds;
+    @Getter
     private final List<FlowchartEdge> edges;
+    @Getter
     private final List<FlowchartSubgraph> children;
     @Nullable
     private final FlowchartDirection direction;
@@ -28,26 +35,6 @@ public class FlowchartSubgraph {
         this.edges = List.copyOf(new ArrayList<>(edges != null ? edges : List.of()));
         this.children = List.copyOf(new ArrayList<>(children != null ? children : List.of()));
         this.direction = direction;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public List<String> getNodeIds() {
-        return nodeIds;
-    }
-
-    public List<FlowchartEdge> getEdges() {
-        return edges;
-    }
-
-    public List<FlowchartSubgraph> getChildren() {
-        return children;
     }
 
     public @Nullable FlowchartDirection getDirection() {

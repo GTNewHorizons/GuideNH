@@ -174,63 +174,27 @@ public class PageCompiler {
 
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation id, String pageContent) {
         pageContent = pageContent != null ? pageContent : "";
-        long parseStartedAt = System.nanoTime();
-        long stageStartedAt = parseStartedAt;
         pageContent = normalizeLineEndings(pageContent);
-        long normalizeNs = System.nanoTime() - stageStartedAt;
-
-        stageStartedAt = System.nanoTime();
         pageContent = FootnotePreprocessor.preprocess(pageContent);
-        long footnoteNs = System.nanoTime() - stageStartedAt;
-
-        stageStartedAt = System.nanoTime();
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
-        long sourceFrontmatterNs = System.nanoTime() - stageStartedAt;
-
-        stageStartedAt = System.nanoTime();
         MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(pageContent);
-        long latexMaskNs = System.nanoTime() - stageStartedAt;
-
-        stageStartedAt = System.nanoTime();
         String parseContent = MdxCommentMasker.mask(latexMask.source());
-        long commentMaskNs = System.nanoTime() - stageStartedAt;
 
         MdAstRoot astRoot;
         String parseFailureMessage = null;
         UnistPoint parseFailureFrom = null;
         UnistPoint parseFailureTo = null;
         Frontmatter frontmatter;
-        long markdownParseNs = 0L;
-        long latexRestoreNs = 0L;
-        long htmlNormalizeNs = 0L;
-        long mdAstConvertNs = 0L;
         try {
-            stageStartedAt = System.nanoTime();
             astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
-            markdownParseNs = System.nanoTime() - stageStartedAt;
-
-            stageStartedAt = System.nanoTime();
             MarkdownLatexShorthand.restore(astRoot, latexMask);
-            latexRestoreNs = System.nanoTime() - stageStartedAt;
-
-            stageStartedAt = System.nanoTime();
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
-            htmlNormalizeNs = System.nanoTime() - stageStartedAt;
 
-            // Collect definitions before conversion (converter needs them
-            // for link/image reference resolution).
-            stageStartedAt = System.nanoTime();
             Map<String, MdAstDefinition> definitions = GuideMarkdownDefinitions.collect(astRoot);
-
-            // Parse frontmatter BEFORE conversion — the converter removes
-            // MdAstYamlFrontmatter from children.
             frontmatter = parseFrontmatter(id, astRoot);
-
             MdAstToMdxConverter.convert(astRoot, definitions);
-            mdAstConvertNs = System.nanoTime() - stageStartedAt;
         } catch (RuntimeException t) {
             if (t instanceof ParseException e) {
-                markdownParseNs = System.nanoTime() - stageStartedAt;
                 parseFailureFrom = e.getFrom();
                 parseFailureTo = e.getTo();
             }
@@ -241,28 +205,9 @@ public class PageCompiler {
             frontmatter = new Frontmatter(null, Collections.emptyMap());
         }
 
-        long astFrontmatterNs = System.nanoTime() - stageStartedAt;
         if (parseFailureMessage != null && sourceFrontmatter.navigationEntry() != null) {
             frontmatter = sourceFrontmatter;
         }
-
-        long totalNs = System.nanoTime() - parseStartedAt;
-        GuideDebugLog.info(
-            "[GuideNH] [PageCompiler] Parsed page {} lang={} totalNs={} normalizeNs={} footnoteNs={} sourceFrontmatterNs={} latexMaskNs={} commentMaskNs={} markdownParseNs={} latexRestoreNs={} htmlNormalizeNs={} mdAstConvertNs={} astFrontmatterNs={} parseFailed={}",
-            id,
-            language,
-            totalNs,
-            normalizeNs,
-            footnoteNs,
-            sourceFrontmatterNs,
-            latexMaskNs,
-            commentMaskNs,
-            markdownParseNs,
-            latexRestoreNs,
-            htmlNormalizeNs,
-            mdAstConvertNs,
-            astFrontmatterNs,
-            parseFailureMessage != null);
 
         return new ParsedGuidePage(
             sourcePack,
@@ -299,7 +244,7 @@ public class PageCompiler {
             null, // astRoot — triggers lazy parse on first getAstRoot()
             sourceFrontmatter,
             language,
-            null, // no parse failure yet
+            null,
             null,
             null);
     }

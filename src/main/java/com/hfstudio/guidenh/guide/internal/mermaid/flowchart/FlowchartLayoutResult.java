@@ -8,6 +8,9 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
+@Getter
 public class FlowchartLayoutResult {
 
     public record NodeMinSize(int width, int height) {
@@ -32,27 +35,12 @@ public class FlowchartLayoutResult {
         this.height = Math.max(0, height);
     }
 
-    public Map<String, NodePosition> getNodePositions() {
-        return nodePositions;
-    }
-
-    public List<EdgePath> getEdgePaths() {
-        return edgePaths;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
     @Nullable
     public NodePosition getPosition(String nodeId) {
         return nodePositions.get(nodeId);
     }
 
+    @Getter
     public static class NodePosition {
 
         private final int x;
@@ -67,22 +55,6 @@ public class FlowchartLayoutResult {
             this.height = Math.max(0, height);
         }
 
-        public int getX() {
-            return x;
-        }
-
-        public int getY() {
-            return y;
-        }
-
-        public int getWidth() {
-            return width;
-        }
-
-        public int getHeight() {
-            return height;
-        }
-
         public int getCenterX() {
             return x + width / 2;
         }
@@ -94,8 +66,11 @@ public class FlowchartLayoutResult {
 
     public static class EdgePath {
 
+        @Getter
         private final String fromId;
+        @Getter
         private final String toId;
+        @Getter
         private final List<Point> points;
         private final @Nullable String edgeId;
 
@@ -110,23 +85,12 @@ public class FlowchartLayoutResult {
             this.edgeId = edgeId;
         }
 
-        public String getFromId() {
-            return fromId;
-        }
-
-        public String getToId() {
-            return toId;
-        }
-
-        public List<Point> getPoints() {
-            return points;
-        }
-
         public @Nullable String getEdgeId() {
             return edgeId;
         }
     }
 
+    @Getter
     public static class Point {
 
         private final int x;
@@ -137,12 +101,5 @@ public class FlowchartLayoutResult {
             this.y = y;
         }
 
-        public int getX() {
-            return x;
-        }
-
-        public int getY() {
-            return y;
-        }
     }
 }

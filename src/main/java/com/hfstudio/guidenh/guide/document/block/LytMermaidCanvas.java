@@ -30,6 +30,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Getter;
 import lombok.Setter;
 
 public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends LytBlock
@@ -542,6 +543,7 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         private final LytRect viewport;
         private final int originX;
         private final int originY;
+        @Getter
         private final float scale;
         private final Map<ResolvedTextStyle, ResolvedTextStyle> scaledStyleCache = new IdentityHashMap<>();
 
@@ -556,10 +558,6 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
             this.originX = originX;
             this.originY = originY;
             this.scale = Math.max(0.0001f, scale);
-        }
-
-        public float getScale() {
-            return scale;
         }
 
         @Override

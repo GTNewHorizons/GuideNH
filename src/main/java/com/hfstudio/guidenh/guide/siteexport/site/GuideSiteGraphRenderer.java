@@ -193,7 +193,7 @@ public class GuideSiteGraphRenderer {
     }
 
     public static String renderMermaidTree(MindmapDocument doc) {
-        return renderMermaidTree(doc, new LinkedHashMap<String, String>());
+        return renderMermaidTree(doc, new LinkedHashMap<>());
     }
 
     public static String renderMermaidTree(MindmapDocument doc, Map<String, String> nodeHtmlById) {
