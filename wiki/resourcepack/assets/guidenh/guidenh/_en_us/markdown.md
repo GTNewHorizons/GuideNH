@@ -528,6 +528,16 @@ Runtime nodes can mix normal text with embedded guide blocks.
 </NodeContent>
 </Mermaid>
 
+## Mermaid Flowcharts
+
+Flowchart showcase featuring all shapes, extended properties, icons, and a recipe node:
+
+<Mermaid src="./markdown-flowchart.mmd" width="600" height="600">
+  <NodeContent id="Craft">
+    <RecipeFor id="minecraft:crafting_table" />
+  </NodeContent>
+</Mermaid>
+
 ## Footnotes
 
 Footnote ref[^one]

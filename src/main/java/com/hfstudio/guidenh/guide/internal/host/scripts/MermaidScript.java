@@ -6,6 +6,8 @@ import java.util.Collections;
 import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler.MermaidPlaceholder;
+import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
+import com.hfstudio.guidenh.guide.document.block.LytMermaidFlowchart;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -14,7 +16,10 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class MermaidScript implements LytScript {
@@ -55,7 +60,7 @@ public class MermaidScript implements LytScript {
         }
 
         if (sourceText != null) {
-            sourceText = MermaidMindmapParser.normalize(sourceText);
+            sourceText = MermaidSourceExtractor.normalize(sourceText);
         }
 
         if (sourceText == null || sourceText.trim()
@@ -64,8 +69,21 @@ public class MermaidScript implements LytScript {
             return;
         }
 
+        MermaidDiagramType diagramType = ph.diagramType;
+        if (diagramType == MermaidDiagramType.UNKNOWN) {
+            diagramType = MermaidDiagramType.detect(sourceText);
+        }
+
+        switch (diagramType) {
+            case MINDMAP -> renderMindmap(ctx, ph, sourceText);
+            case FLOWCHART -> renderFlowchart(ctx, sourceText, ph);
+            case UNKNOWN -> renderUnknown(ctx, sourceText, ph);
+        }
+    }
+
+    private void renderMindmap(ScriptContext ctx, MermaidPlaceholder ph, String sourceText) {
         try {
-            var document = MermaidMindmapParser.parse(sourceText);
+            var document = MindmapParser.parse(sourceText);
             LytMermaidMindmap block = new LytMermaidMindmap(
                 document,
                 sourceText,
@@ -73,7 +91,6 @@ public class MermaidScript implements LytScript {
             if (ph.width > 0 || ph.height > 0) {
                 block.setPreferredSize(ph.width, ph.height);
             }
-            // Dispatch MOUNT events into NodeContent subtrees (Recipe/BlockImage placeholders)
             if (ph.nodeContentBlocks != null) {
                 GuideDebugLog
                     .debug("[MermaidDebug] Dispatching into {} NodeContent blocks", ph.nodeContentBlocks.size());
@@ -96,6 +113,44 @@ public class MermaidScript implements LytScript {
             GuideDebugLog.error("[GuideNH] [MermaidScript] Failed to parse Mermaid source: {}", sourceText, e);
             replaceWithError(ctx, "Failed to parse: " + e.getMessage());
         }
+    }
+
+    private void renderFlowchart(ScriptContext ctx, String sourceText, MermaidPlaceholder ph) {
+        try {
+            var document = FlowchartParser.parse(sourceText);
+            LytMermaidFlowchart block = new LytMermaidFlowchart(
+                document,
+                sourceText,
+                ph.nodeContentBlocks != null ? ph.nodeContentBlocks : java.util.Collections.emptyMap());
+            if (ph.width > 0 || ph.height > 0) {
+                block.setPreferredSize(ph.width, ph.height);
+            }
+            if (ph.nodeContentBlocks != null) {
+                for (var entry : ph.nodeContentBlocks.entrySet()) {
+                    var contentBlock = entry.getValue();
+                    if (contentBlock instanceof LytNode root) {
+                        ctx.dispatchSubtree(root);
+                    }
+                }
+            }
+            ctx.replace(block);
+        } catch (IllegalArgumentException e) {
+            GuideDebugLog.error("[GuideNH] [MermaidScript] Failed to parse flowchart source: {}", sourceText, e);
+            replaceWithError(ctx, "Failed to parse flowchart: " + e.getMessage());
+        }
+    }
+
+    private void renderUnknown(ScriptContext ctx, String sourceText, MermaidPlaceholder ph) {
+        LytCodeBlock codeBlock = new LytCodeBlock();
+        codeBlock.setCodeContent("mermaid", sourceText);
+        codeBlock.setLanguageDisplayName("Mermaid (stub)");
+        if (ph.width > 0 || ph.height > 0) {
+            codeBlock.setPreferredBodyWidth(ph.width);
+            if (ph.height > 0) {
+                codeBlock.setForcedBodyHeight(ph.height);
+            }
+        }
+        ctx.replace(codeBlock);
     }
 
     private void replaceWithError(ScriptContext ctx, String message) {

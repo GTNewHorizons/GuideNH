@@ -1,13 +1,15 @@
-package com.hfstudio.guidenh.guide.internal.mermaid;
+package com.hfstudio.guidenh.guide.internal.mermaid.mindmap;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
+
 import lombok.Getter;
 
-public class MermaidMindmapNode {
+public class MindmapNode {
 
     @Getter
     private final String id;
@@ -16,7 +18,7 @@ public class MermaidMindmapNode {
     @Getter
     private final String text;
     @Getter
-    private final MermaidMindmapNodeShape shape;
+    private final MermaidNodeShape shape;
     @Getter
     private final List<String> classes;
     @Nullable
@@ -25,14 +27,14 @@ public class MermaidMindmapNode {
     private final Integer x;
     @Nullable
     private final Integer y;
-    private final List<MermaidMindmapNode> children = new ArrayList<>();
+    private final List<MindmapNode> children = new ArrayList<>();
 
-    public MermaidMindmapNode(String id, String labelSource, String text, MermaidMindmapNodeShape shape,
-        List<String> classes, @Nullable String icon, @Nullable Integer x, @Nullable Integer y) {
+    public MindmapNode(String id, String labelSource, String text, MermaidNodeShape shape, List<String> classes,
+        @Nullable String icon, @Nullable Integer x, @Nullable Integer y) {
         this.id = id != null ? id : "";
         this.labelSource = labelSource != null ? labelSource : "";
         this.text = text != null ? text : "";
-        this.shape = shape != null ? shape : MermaidMindmapNodeShape.DEFAULT;
+        this.shape = shape != null ? shape : MermaidNodeShape.DEFAULT;
         this.classes = List.copyOf(new ArrayList<>(classes != null ? classes : List.of()));
         this.icon = icon != null && !icon.trim()
             .isEmpty() ? icon.trim() : null;
@@ -52,11 +54,11 @@ public class MermaidMindmapNode {
         return y;
     }
 
-    public List<MermaidMindmapNode> getChildren() {
+    public List<MindmapNode> getChildren() {
         return List.copyOf(children);
     }
 
-    public void addChild(MermaidMindmapNode child) {
+    public void addChild(MindmapNode child) {
         if (child != null) {
             children.add(child);
         }

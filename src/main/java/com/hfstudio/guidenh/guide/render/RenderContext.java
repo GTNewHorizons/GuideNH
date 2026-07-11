@@ -128,6 +128,11 @@ public interface RenderContext {
     void fillCircle(float cx, float cy, float radius, int argbColor);
 
     /**
+     * Fill an ellipse with a single color (polygon approximation).
+     */
+    void fillEllipse(float cx, float cy, float rx, float ry, int argbColor);
+
+    /**
      * Draw a circular outline (polygon approximation).
      */
     void drawCircleOutline(float cx, float cy, float radius, float thickness, int argbColor);

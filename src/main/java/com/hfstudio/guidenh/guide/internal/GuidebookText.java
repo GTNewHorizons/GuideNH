@@ -390,7 +390,12 @@ public enum GuidebookText implements LocalizationEnum {
     PonderPlayPause,
     PonderRestart,
     ToggleGrid,
-    ToggleBlockStats;
+    ToggleBlockStats,
+    FlowchartCopyPlan,
+    FlowchartCopyPlanSuccess,
+    FlowchartCopyPlanFailure,
+
+    ;
 
     @Override
     public String getTranslationKey() {
