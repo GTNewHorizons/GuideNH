@@ -270,7 +270,7 @@ public class DataDrivenGuideLoader {
                     .navigationEntry();
                 return nav != null ? nav.loadPriority() : 0;
             }
-        } catch (IOException ignored) {}
+        } catch (Exception ignored) {}
         return 0;
     }
 
@@ -368,7 +368,7 @@ public class DataDrivenGuideLoader {
                     .navigationEntry();
                 return nav != null ? nav.loadPriority() : 0;
             }
-        } catch (IOException ignored) {}
+        } catch (Exception ignored) {}
         return 0;
     }
 
