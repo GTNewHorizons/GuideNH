@@ -1,0 +1,197 @@
+/// GuideNH FlatBuffer schema — 定义 Java ↔ Rust 数据合约
+/// 生成命令: flatc --rust -o src/ schema/guidenh_layout.fbs
+
+namespace com.hfstudio.guidenh.guide.layout.flatbuffers;
+
+// ═══════════════════ 通用类型 ═══════════════════
+
+/// 尺寸：Auto | Points | Percent
+table Dimension {
+  value: float = 0.0;
+  unit: byte = 0;     // 0=Auto 1=Points 2=Percent
+}
+
+// ═══════════════════ Style ═══════════════════
+
+table Style {
+  display: byte = 0;           // 0=Flex 1=Grid 2=Block 3=None
+  flex_direction: byte = 1;    // 0=Row 1=Column
+  flex_wrap: byte = 0;         // 0=NoWrap 1=Wrap
+  align_items: byte = 0;       // 0=Start 1=Center 2=End 3=Stretch
+  align_self: byte = 0;        // 0=Auto 1=Start 2=Center 3=End 4=Stretch
+  justify_content: byte = 0;   // 0=Start 1=Center 2=End 3=SpaceBetween 4=SpaceAround 5=SpaceEvenly
+  gap_w: Dimension;
+  gap_h: Dimension;
+  size_w: Dimension;
+  size_h: Dimension;
+  min_w: Dimension;
+  min_h: Dimension;
+  max_w: Dimension;
+  max_h: Dimension;
+  aspect_ratio: float = 0.0;
+  margin_left: float = 0.0;
+  margin_right: float = 0.0;
+  margin_top: float = 0.0;
+  margin_bottom: float = 0.0;
+  margin_auto_left: bool = false;
+  margin_auto_right: bool = false;
+  margin_auto_top: bool = false;
+  margin_auto_bottom: bool = false;
+  padding_left: float = 0.0;
+  padding_right: float = 0.0;
+  padding_top: float = 0.0;
+  padding_bottom: float = 0.0;
+  border_left: float = 0.0;
+  border_right: float = 0.0;
+  border_top: float = 0.0;
+  border_bottom: float = 0.0;
+  overflow: byte = 0;          // 0=Visible 1=Hidden 2=Scroll
+  flex_grow: float = 0.0;
+  flex_shrink: float = 1.0;
+  flex_basis: Dimension;
+  float: byte = 0;             // 0=None 1=Left 2=Right
+  clear: byte = 0;             // 0=None 1=Left 2=Right 3=Both
+  position: byte = 0;          // 0=Relative 1=Absolute
+  inset_top: Dimension;
+  inset_right: Dimension;
+  inset_bottom: Dimension;
+  inset_left: Dimension;
+}
+
+// ═══════════════════ TextStyle ═══════════════════
+
+table TextStyle {
+  font_size: float = 14.0;
+  bold: bool = false;
+  italic: bool = false;
+  font_scale: float = 1.0;
+  color: uint = 0xFFFFFFFF;
+  font: uint = 0;
+}
+
+// ═══════════════════ 节点数据类型 ═══════════════════
+
+table TextData {
+  text: string;
+  style: TextStyle;
+  white_space: byte = 0;     // 0=Normal 1=PreWrap
+}
+
+table ImageData {
+  natural_w: float;
+  natural_h: float;
+  crop_x: int = 0;
+  crop_y: int = 0;
+  crop_w: int = -1;
+  crop_h: int = -1;
+  scale_x: float = 1.0;
+  scale_y: float = 1.0;
+  explicit_w: float = -1.0;
+  explicit_h: float = -1.0;
+}
+
+table SlotData {
+  slot_size: float = 18.0;
+}
+
+table ThematicBreakData {
+  height: float = 6.0;
+}
+
+table CustomData {
+  type_id: uint;          // Rust 消费: LatexDisplay(8)
+                          // Java-only: MediaWiki/Mermaid/StructureView/Chart/Scene3D/Mindmap/ContentTabs/RecipeBox
+  payload: [ubyte];
+}
+
+table LatexDisplayData {
+  formula: string;
+  fill_color_argb: uint = 0xFFFFFFFF;
+  source_scale: float = 100.0;
+  user_scale: float = 1.0;
+  offset_x: int = 0;
+  offset_y: int = 0;
+  raw_w: float;
+  raw_h: float;
+  ref_h: float;
+}
+
+// ═══════════════════ 布局树节点 ═══════════════════
+
+table FlatNode {
+  style: Style;
+  node_type: byte = 0;         // 0=Container 1=Text 2=Image 3=Slot
+                                // 4=ThematicBreak 5=Custom 6=FileTree
+                                // 7=Table 8=Latex 20=RecipeBox
+  text: TextData;
+  image: ImageData;
+  slot: SlotData;
+  break_: ThematicBreakData;
+  custom: CustomData;
+  latex: LatexDisplayData;
+  custom_layout: byte = 0;     // 0=None 1=ItemGrid 2=SlotGrid
+  children: [uint];
+}
+
+// ═══════════════════ measureLayout 输入/输出 ═══════════════════
+
+table LayoutInput {
+  available_width: float;
+  visual_scale: float = 1.0;
+  nodes: [FlatNode];
+}
+
+table LayoutResult {
+  nodes: [FlatLayout];
+  glyph_runs: [GlyphRun];
+  content_height: float;
+}
+
+table FlatLayout {
+  x: float;
+  y: float;
+  w: float;
+  h: float;
+  order: uint = 0;
+}
+
+table GlyphRun {
+  node_index: uint;
+  font_atlas_id: int;
+  glyphs: [PlacedGlyph];
+}
+
+table PlacedGlyph {
+  glyph_id: uint;
+  x: float;       // 绝对文档坐标
+  y: float;
+  w: float;
+  h: float;
+}
+
+// ═══════════════════ rasterizeGlyphs 输入/输出 ═══════════════════
+
+table RasterInput {
+  requests: [FontRequest];
+}
+
+table FontRequest {
+  font_id: uint;
+  font_size: float;
+  glyph_ids: [uint];
+}
+
+table RasterResult {
+  glyphs: [GlyphPixels];
+}
+
+table GlyphPixels {
+  font_id: uint;
+  font_size: float;
+  glyph_id: uint;
+  width: uint;
+  height: uint;
+  rgba: [ubyte];
+}
+
+root_type LayoutInput;

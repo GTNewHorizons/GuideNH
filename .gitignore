@@ -62,3 +62,7 @@ layout.json
 /gradle-user
 .claude/
 CLAUDE.md
+
+### Rust layout-engine ###
+/layout-engine/target/
+/layout-engine/src/guidenh_layout_generated.rs

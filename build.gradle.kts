@@ -14,6 +14,10 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    val nativeLib = System.getProperty("guide.native.lib.path")
+    if (nativeLib != null) {
+        jvmArgs("-Dguide.native.lib.path=$nativeLib")
+    }
 }
 
 tasks.named<ShadowJar>("shadowJar") {
@@ -50,4 +54,17 @@ runConfigs.forEach { (taskName, path) ->
             workingDir.mkdirs()
         }
     }
+}
+
+/** Standalone task: build Rust native library.
+ *  Run manually: ./gradlew buildRustNative
+ *  Does NOT wire into the main build pipeline.
+ *  Requires Rust toolchain: https://rustup.rs
+ */
+val buildRustNative by tasks.registering(Exec::class) {
+    description = "Build Rust native library (layout-engine/guide_layout_engine.dll)"
+    group = "build"
+    workingDir = file("layout-engine")
+    commandLine("cargo", "build", "--release")
+    outputs.file("layout-engine/target/release/guide_layout_engine.dll")
 }
