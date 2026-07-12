@@ -15,9 +15,13 @@
 
 ## **简介**
 
-* <span style="color: #ff6600;">GuideNH</span> 是面向 Minecraft **1.7.10** / Forge **10.13.4.1614** 的游戏内指南框架。
+* <span style="color: #ff6600;">GuideNH</span> 是面向 Minecraft **1.7.10** 的游戏内指南框架。
 * 它移植并扩展了 GuideME 风格的 Markdown 指南系统，适合 GTNH 时代的整合包与大型模组。
 * 它允许作者直接用资源包结构中的 Markdown 文件编写复杂指南书。
+
+## 依赖需求
+
+* [GTNHLib (>= 0.11.16)](https://github.com/GTNewHorizons/GTNHLib)
 
 ## **功能**
 
