@@ -21,6 +21,7 @@ import cpw.mods.fml.common.event.FMLServerStartingEvent;
     modid = MODID,
     version = Tags.VERSION,
     name = MODNAME,
+    dependencies = "required-after:gtnhlib;",
     guiFactory = "com.hfstudio.guidenh.config.GuideNHGuiFactory",
     acceptableRemoteVersions = "*",
     acceptedMinecraftVersions = "[1.7.10]")
