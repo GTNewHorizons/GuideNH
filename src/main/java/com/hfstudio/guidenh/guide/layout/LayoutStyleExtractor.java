@@ -1,14 +1,10 @@
 package com.hfstudio.guidenh.guide.layout;
 
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.hfstudio.guidenh.guide.document.block.LytAxisBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
-import com.hfstudio.guidenh.guide.document.block.LytBox;
-import com.hfstudio.guidenh.guide.document.block.LytVBox;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytSizeBox;
-import com.hfstudio.guidenh.guide.document.block.LytWidthBox;
-import com.hfstudio.guidenh.guide.document.block.LytAxisBox;
-import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.Style;
 
 /**
@@ -21,20 +17,21 @@ public final class LayoutStyleExtractor {
 
     /** Style modifiers bitmask — pass to build() to override defaults. */
     public static final class Flags {
-        public static final int NONE         = 0;
+
+        public static final int NONE = 0;
         public static final int DISPLAY_BLOCK = 1 << 0;
-        public static final int DISPLAY_FLEX  = 1 << 1;
-        public static final int DISPLAY_GRID  = 1 << 2;
-        public static final int SIZE_FULL_WIDTH = 1 << 3;  // force 100% width
-        public static final int SIZE_AUTO_WIDTH  = 1 << 4;  // force auto width
-        public static final int SIZE_AUTO_HEIGHT = 1 << 5;  // force auto height
-        public static final int OVERFLOW_HIDDEN  = 1 << 6;
-        public static final int OVERFLOW_SCROLL  = 1 << 7;
+        public static final int DISPLAY_FLEX = 1 << 1;
+        public static final int DISPLAY_GRID = 1 << 2;
+        public static final int SIZE_FULL_WIDTH = 1 << 3; // force 100% width
+        public static final int SIZE_AUTO_WIDTH = 1 << 4; // force auto width
+        public static final int SIZE_AUTO_HEIGHT = 1 << 5; // force auto height
+        public static final int OVERFLOW_HIDDEN = 1 << 6;
+        public static final int OVERFLOW_SCROLL = 1 << 7;
+
         private Flags() {}
     }
 
     private LayoutStyleExtractor() {}
-
 
     /** Build a FlatBuffer Style from a LytBlock node. Extracts all layout-relevant fields. */
     public static int build(FlatBufferBuilder fbb, LytBlock block) {
@@ -50,24 +47,49 @@ public final class LayoutStyleExtractor {
         byte alignSelf = getAlignSelf(block, flags);
         byte justify = 0; // default: Start
 
-        int sizeWOff = dimAuto(fbb);   // default: auto
+        int sizeWOff = dimAuto(fbb); // default: auto
         int sizeHOff = dimAuto(fbb);
-        int minWOff = 0;  int minHOff = 0;
-        int maxWOff = 0;  int maxHOff = 0;
+        int minWOff = 0;
+        int minHOff = 0;
+        int maxWOff = 0;
+        int maxHOff = 0;
 
-        applySizeConstraints(block, flags, fbb);
+        // Apply explicit size constraints from the block
+        int explicitW = block.getExplicitWidth();
+        int explicitH = block.getExplicitHeight();
+
+        if (explicitW > 0) {
+            sizeWOff = dimPx(fbb, explicitW);
+        } else if ((flags & Flags.SIZE_FULL_WIDTH) != 0) {
+            sizeWOff = dimPct(fbb, 1.0f);
+        } else if ((flags & Flags.SIZE_AUTO_WIDTH) != 0) {
+            sizeWOff = dimAuto(fbb);
+        }
+
+        if (explicitH > 0) {
+            sizeHOff = dimPx(fbb, explicitH);
+        } else if ((flags & Flags.SIZE_AUTO_HEIGHT) != 0) {
+            sizeHOff = dimAuto(fbb);
+        }
 
         float marginL = block.getMarginLeft();
         float marginR = block.getMarginRight();
         float marginT = block.getMarginTop();
         float marginB = block.getMarginBottom();
-        float padL = 0; float padR = 0; float padT = 0; float padB = 0;
+        float padL = 0;
+        float padR = 0;
+        float padT = 0;
+        float padB = 0;
         // Phase 1: padding access via LytBox fields is package-private.
         // Full integration will use LytBlock bounds computation.
-        float borderL = block.getBorderLeft().width();
-        float borderR = block.getBorderRight().width();
-        float borderT = block.getBorderTop().width();
-        float borderB = block.getBorderBottom().width();
+        float borderL = block.getBorderLeft()
+            .width();
+        float borderR = block.getBorderRight()
+            .width();
+        float borderT = block.getBorderTop()
+            .width();
+        float borderB = block.getBorderBottom()
+            .width();
 
         int gapWOff = 0;
         int gapHOff = 0;
@@ -92,26 +114,56 @@ public final class LayoutStyleExtractor {
         byte clear = 0;
 
         byte position = 0;
-        int insetTOff = 0; int insetROff = 0;
-        int insetBOff = 0; int insetLOff = 0;
+        int insetTOff = 0;
+        int insetROff = 0;
+        int insetBOff = 0;
+        int insetLOff = 0;
 
-        return Style.createStyle(fbb,
-            display, flexDir, flexWrap, alignItems, alignSelf, justify,
-            gapWOff, gapHOff,
-            sizeWOff, sizeHOff,
-            minWOff, minHOff,
-            maxWOff, maxHOff,
+        return Style.createStyle(
+            fbb,
+            display,
+            flexDir,
+            flexWrap,
+            alignItems,
+            alignSelf,
+            justify,
+            gapWOff,
+            gapHOff,
+            sizeWOff,
+            sizeHOff,
+            minWOff,
+            minHOff,
+            maxWOff,
+            maxHOff,
             0f, // aspectRatio
-            marginL, marginR, marginT, marginB,
-            false, false, false, false, // marginAuto
-            padL, padR, padT, padB,
-            borderL, borderR, borderT, borderB,
+            marginL,
+            marginR,
+            marginT,
+            marginB,
+            false,
+            false,
+            false,
+            false, // marginAuto
+            padL,
+            padR,
+            padT,
+            padB,
+            borderL,
+            borderR,
+            borderT,
+            borderB,
             overflow,
-            flexGrow, flexShrink, flexBasisOff,
-            float_, clear, position,
-            insetTOff, insetROff, insetBOff, insetLOff);
+            flexGrow,
+            flexShrink,
+            flexBasisOff,
+            float_,
+            clear,
+            position,
+            insetTOff,
+            insetROff,
+            insetBOff,
+            insetLOff);
     }
-
 
     /** Auto (null in FlatBuffer = unset). */
     public static int dimAuto(FlatBufferBuilder fbb) {
@@ -127,7 +179,6 @@ public final class LayoutStyleExtractor {
     public static int dimPct(FlatBufferBuilder fbb, float fraction) {
         return com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension.createDimension(fbb, fraction * 100f, (byte) 2);
     }
-
 
     private static byte getDisplay(LytBlock block, int flags) {
         if ((flags & Flags.DISPLAY_BLOCK) != 0) return 2;
@@ -161,11 +212,6 @@ public final class LayoutStyleExtractor {
         // fullWidth → Stretch
         if ((flags & Flags.SIZE_FULL_WIDTH) != 0 || block.isFullWidth()) return 4;
         return 0; // Auto
-    }
-
-    private static void applySizeConstraints(LytBlock block, int flags, FlatBufferBuilder fbb) {
-        // Phase 1: handled by caller through flags.
-        // Full implementation will read explicitWidth/Height constraints.
     }
 
     private static byte getOverflow(LytBlock block, int flags) {

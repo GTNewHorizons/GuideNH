@@ -26,6 +26,8 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.render.GuiSprite;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
@@ -76,7 +78,29 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     @Override
     public List<? extends LytNode> getChildren() {
-        return new ArrayList<>(nodeContentBlocks.values());
+        return List.of();
+    }
+
+    @Override
+    protected LytVisitor.Result visitChildren(LytVisitor visitor, boolean includeOutOfTreeContent) {
+        if (includeOutOfTreeContent && nodeContentBlocks != null) {
+            for (LytBlock block : nodeContentBlocks.values()) {
+                if (block.visit(visitor, true) == LytVisitor.Result.STOP) {
+                    return LytVisitor.Result.STOP;
+                }
+            }
+        }
+        return LytVisitor.Result.CONTINUE;
+    }
+
+    @Override
+    public int getExplicitWidth() {
+        return preferredWidth > 0 ? preferredWidth : -1;
+    }
+
+    @Override
+    public int getExplicitHeight() {
+        return preferredHeight > 0 ? preferredHeight : -1;
     }
 
     protected abstract int canvasPadding();
@@ -354,6 +378,46 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
             context.popScissor();
         }
     }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        if (!diagramReady()) return;
+        LytRect b = getBounds();
+        if (b == null) return;
+
+        // Panel background and border
+        c.emit(
+            new GuideRenderPrimitive.FillRect(
+                b.x(),
+                b.y(),
+                b.width(),
+                b.height(),
+                PANEL_BACKGROUND.resolve(LightDarkMode.current())));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                b.x(),
+                b.y(),
+                b.width(),
+                b.height(),
+                1,
+                1,
+                1,
+                1,
+                PANEL_BORDER.resolve(LightDarkMode.current())));
+
+        float activeZoom = getActiveZoom();
+        LytRect inner = getInnerViewport();
+        int baseX = inner.x() + getVisualOffsetX() - getScaledOriginX();
+        int baseY = inner.y() + getVisualOffsetY() - getScaledOriginY();
+
+        emitDiagramPrimitives(c, baseX, baseY, activeZoom);
+    }
+
+    /**
+     * Subclasses override to emit diagram-specific primitives (edges, nodes,
+     * content blocks) after the panel has been emitted.
+     */
+    protected void emitDiagramPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {}
 
     protected ResolvedTextStyle getOrScaleStyle(ResolvedTextStyle base, float zoom) {
         return MermaidNodeRenderer.getOrScaleStyle(scaledStyleCache, base, zoom);

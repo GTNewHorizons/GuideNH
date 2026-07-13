@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.document.block;
 import com.hfstudio.guidenh.guide.document.LytPoint;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 
@@ -118,4 +119,40 @@ public abstract class LytBlock extends LytNode {
     protected abstract void onLayoutMoved(int deltaX, int deltaY);
 
     public abstract void render(RenderContext context);
+
+    // ---- explicit size ---------------------------------------------------
+
+    /**
+     * Override to declare a preferred width in pixels.
+     * Returns -1 when no explicit width is set.
+     */
+    public int getExplicitWidth() {
+        return -1;
+    }
+
+    /**
+     * Override to declare a preferred height in pixels.
+     * Returns -1 when no explicit height is set.
+     */
+    public int getExplicitHeight() {
+        return -1;
+    }
+
+    // ---- primitive collection --------------------------------------------
+
+    /**
+     * Emit this block's own draw primitives. <b>Do not</b> iterate
+     * {@link #getChildren()} — the {@link PrimitiveCollector} handles
+     * tree traversal. Nodes with private rendering data (e.g. MermaidCanvas)
+     * may call {@link PrimitiveCollector#collectFrom} on their internal
+     * subtrees here.
+     */
+    public void computePrimitives(PrimitiveCollector c) {}
+
+    /**
+     * Emit decoration primitives (borders, outlines) that must paint
+     * <em>after</em> children. Called by {@link PrimitiveCollector#collectFrom}
+     * after recursing into {@link #getChildren()}.
+     */
+    public void emitDecorations(PrimitiveCollector c) {}
 }

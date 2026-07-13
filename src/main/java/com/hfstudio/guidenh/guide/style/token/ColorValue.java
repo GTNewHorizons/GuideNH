@@ -3,12 +3,12 @@ package com.hfstudio.guidenh.guide.style.token;
 /** ARGB color token value. Semantic constants are pre-defined statics. */
 public record ColorValue(int argb) implements ResolvedValue {
 
-    public static final ColorValue WHITE      = new ColorValue(0xFFFFFFFF);
-    public static final ColorValue BLACK      = new ColorValue(0xFF000000);
+    public static final ColorValue WHITE = new ColorValue(0xFFFFFFFF);
+    public static final ColorValue BLACK = new ColorValue(0xFF000000);
     public static final ColorValue TRANSPARENT = new ColorValue(0x00000000);
-    public static final ColorValue RED        = new ColorValue(0xFFFF0000);
-    public static final ColorValue GREEN      = new ColorValue(0xFF00FF00);
-    public static final ColorValue BLUE       = new ColorValue(0xFF0000FF);
+    public static final ColorValue RED = new ColorValue(0xFFFF0000);
+    public static final ColorValue GREEN = new ColorValue(0xFF00FF00);
+    public static final ColorValue BLUE = new ColorValue(0xFF0000FF);
 
     /** Parse from hex string: "0xFF373737", "#373737", "255,55,55" */
     public static ColorValue parse(String s) {
@@ -35,8 +35,19 @@ public record ColorValue(int argb) implements ResolvedValue {
         throw new IllegalArgumentException("Invalid color value: " + s);
     }
 
-    public int red()   { return (argb >>> 16) & 0xFF; }
-    public int green() { return (argb >>> 8) & 0xFF; }
-    public int blue()  { return argb & 0xFF; }
-    public int alpha() { return (argb >>> 24) & 0xFF; }
+    public int red() {
+        return (argb >>> 16) & 0xFF;
+    }
+
+    public int green() {
+        return (argb >>> 8) & 0xFF;
+    }
+
+    public int blue() {
+        return argb & 0xFF;
+    }
+
+    public int alpha() {
+        return (argb >>> 24) & 0xFF;
+    }
 }

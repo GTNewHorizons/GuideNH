@@ -77,6 +77,16 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         this.explicitHeight = height > 0 ? height : -1;
     }
 
+    @Override
+    public int getExplicitWidth() {
+        return explicitWidth;
+    }
+
+    @Override
+    public int getExplicitHeight() {
+        return explicitHeight;
+    }
+
     public void setLegendPosition(ChartLegendPosition legendPosition) {
         this.legendPosition = legendPosition != null ? legendPosition : ChartLegendPosition.NONE;
     }

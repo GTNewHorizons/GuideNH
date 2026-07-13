@@ -8,6 +8,8 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Setter;
@@ -143,5 +145,48 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
             borderRenderer
                 .render(context, bounds, getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom());
         }
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        if (backgroundColor != null) {
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    bounds.x(),
+                    bounds.y(),
+                    bounds.width(),
+                    bounds.height(),
+                    resolveBackgroundArgb()));
+        }
+    }
+
+    @Override
+    public void emitDecorations(PrimitiveCollector c) {
+        if (getBorderTop().width() > 0 || getBorderLeft().width() > 0
+            || getBorderRight().width() > 0
+            || getBorderBottom().width() > 0) {
+            c.emit(
+                new GuideRenderPrimitive.DrawBorder(
+                    bounds.x(),
+                    bounds.y(),
+                    bounds.width(),
+                    bounds.height(),
+                    getBorderTop().width(),
+                    getBorderLeft().width(),
+                    getBorderRight().width(),
+                    getBorderBottom().width(),
+                    resolveBorderArgb()));
+        }
+    }
+
+    private int resolveBackgroundArgb() {
+        if (backgroundColor == null) return 0;
+        return backgroundColor.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
+    }
+
+    private int resolveBorderArgb() {
+        var color = getBorderTop().color();
+        if (color == null) return 0xFF000000;
+        return color.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
     }
 }

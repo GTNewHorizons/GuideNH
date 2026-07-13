@@ -2,52 +2,76 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
+
 @SuppressWarnings("unused")
 public final class SlotData extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static SlotData getRootAsSlotData(ByteBuffer _bb) { return getRootAsSlotData(_bb, new SlotData()); }
-  public static SlotData getRootAsSlotData(ByteBuffer _bb, SlotData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public SlotData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public float slotSize() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 18.0f; }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createSlotData(FlatBufferBuilder builder,
-      float slotSize) {
-    builder.startTable(1);
-    SlotData.addSlotSize(builder, slotSize);
-    return SlotData.endSlotData(builder);
-  }
+    public static SlotData getRootAsSlotData(ByteBuffer _bb) {
+        return getRootAsSlotData(_bb, new SlotData());
+    }
 
-  public static void startSlotData(FlatBufferBuilder builder) { builder.startTable(1); }
-  public static void addSlotSize(FlatBufferBuilder builder, float slotSize) { builder.addFloat(0, slotSize, 18.0f); }
-  public static int endSlotData(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static SlotData getRootAsSlotData(ByteBuffer _bb, SlotData obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public SlotData get(int j) { return get(new SlotData(), j); }
-    public SlotData get(SlotData obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public SlotData __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public float slotSize() {
+        int o = __offset(4);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 18.0f;
+    }
+
+    public static int createSlotData(FlatBufferBuilder builder, float slotSize) {
+        builder.startTable(1);
+        SlotData.addSlotSize(builder, slotSize);
+        return SlotData.endSlotData(builder);
+    }
+
+    public static void startSlotData(FlatBufferBuilder builder) {
+        builder.startTable(1);
+    }
+
+    public static void addSlotSize(FlatBufferBuilder builder, float slotSize) {
+        builder.addFloat(0, slotSize, 18.0f);
+    }
+
+    public static int endSlotData(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public SlotData get(int j) {
+            return get(new SlotData(), j);
+        }
+
+        public SlotData get(SlotData obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

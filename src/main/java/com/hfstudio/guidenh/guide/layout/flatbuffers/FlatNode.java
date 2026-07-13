@@ -2,102 +2,236 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.Table;
+
 @SuppressWarnings("unused")
 public final class FlatNode extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static FlatNode getRootAsFlatNode(ByteBuffer _bb) { return getRootAsFlatNode(_bb, new FlatNode()); }
-  public static FlatNode getRootAsFlatNode(ByteBuffer _bb, FlatNode obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public FlatNode __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.Style style() { return style(new com.hfstudio.guidenh.guide.layout.flatbuffers.Style()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.Style style(com.hfstudio.guidenh.guide.layout.flatbuffers.Style obj) { int o = __offset(4); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
-  public byte nodeType() { int o = __offset(6); return o != 0 ? bb.get(o + bb_pos) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextData text() { return text(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextData()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextData text(com.hfstudio.guidenh.guide.layout.flatbuffers.TextData obj) { int o = __offset(8); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData image() { return image(new com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData image(com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData obj) { int o = __offset(10); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData slot() { return slot(new com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData slot(com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData obj) { int o = __offset(12); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData break_() { return break_(new com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData break_(com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData obj) { int o = __offset(14); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.CustomData custom() { return custom(new com.hfstudio.guidenh.guide.layout.flatbuffers.CustomData()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.CustomData custom(com.hfstudio.guidenh.guide.layout.flatbuffers.CustomData obj) { int o = __offset(16); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData latex() { return latex(new com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData latex(com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData obj) { int o = __offset(18); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
-  public byte customLayout() { int o = __offset(20); return o != 0 ? bb.get(o + bb_pos) : 0; }
-  public long children(int j) { int o = __offset(22); return o != 0 ? (long)bb.getInt(__vector(o) + j * 4) & 0xFFFFFFFFL : 0; }
-  public int childrenLength() { int o = __offset(22); return o != 0 ? __vector_len(o) : 0; }
-  public IntVector childrenVector() { return childrenVector(new IntVector()); }
-  public IntVector childrenVector(IntVector obj) { int o = __offset(22); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer childrenAsByteBuffer() { return __vector_as_bytebuffer(22, 4); }
-  public ByteBuffer childrenInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 22, 4); }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createFlatNode(FlatBufferBuilder builder,
-      int styleOffset,
-      byte nodeType,
-      int textOffset,
-      int imageOffset,
-      int slotOffset,
-      int break_Offset,
-      int customOffset,
-      int latexOffset,
-      byte customLayout,
-      int childrenOffset) {
-    builder.startTable(10);
-    FlatNode.addChildren(builder, childrenOffset);
-    FlatNode.addLatex(builder, latexOffset);
-    FlatNode.addCustom(builder, customOffset);
-    FlatNode.addBreak_(builder, break_Offset);
-    FlatNode.addSlot(builder, slotOffset);
-    FlatNode.addImage(builder, imageOffset);
-    FlatNode.addText(builder, textOffset);
-    FlatNode.addStyle(builder, styleOffset);
-    FlatNode.addCustomLayout(builder, customLayout);
-    FlatNode.addNodeType(builder, nodeType);
-    return FlatNode.endFlatNode(builder);
-  }
+    public static FlatNode getRootAsFlatNode(ByteBuffer _bb) {
+        return getRootAsFlatNode(_bb, new FlatNode());
+    }
 
-  public static void startFlatNode(FlatBufferBuilder builder) { builder.startTable(10); }
-  public static void addStyle(FlatBufferBuilder builder, int styleOffset) { builder.addOffset(0, styleOffset, 0); }
-  public static void addNodeType(FlatBufferBuilder builder, byte nodeType) { builder.addByte(1, nodeType, 0); }
-  public static void addText(FlatBufferBuilder builder, int textOffset) { builder.addOffset(2, textOffset, 0); }
-  public static void addImage(FlatBufferBuilder builder, int imageOffset) { builder.addOffset(3, imageOffset, 0); }
-  public static void addSlot(FlatBufferBuilder builder, int slotOffset) { builder.addOffset(4, slotOffset, 0); }
-  public static void addBreak_(FlatBufferBuilder builder, int break_Offset) { builder.addOffset(5, break_Offset, 0); }
-  public static void addCustom(FlatBufferBuilder builder, int customOffset) { builder.addOffset(6, customOffset, 0); }
-  public static void addLatex(FlatBufferBuilder builder, int latexOffset) { builder.addOffset(7, latexOffset, 0); }
-  public static void addCustomLayout(FlatBufferBuilder builder, byte customLayout) { builder.addByte(8, customLayout, 0); }
-  public static void addChildren(FlatBufferBuilder builder, int childrenOffset) { builder.addOffset(9, childrenOffset, 0); }
-  public static int createChildrenVector(FlatBufferBuilder builder, long[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addInt((int) data[i]); return builder.endVector(); }
-  public static void startChildrenVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static int endFlatNode(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static FlatNode getRootAsFlatNode(ByteBuffer _bb, FlatNode obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public FlatNode get(int j) { return get(new FlatNode(), j); }
-    public FlatNode get(FlatNode obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public FlatNode __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.Style style() {
+        return style(new com.hfstudio.guidenh.guide.layout.flatbuffers.Style());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.Style style(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.Style obj) {
+        int o = __offset(4);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
+    public byte nodeType() {
+        int o = __offset(6);
+        return o != 0 ? bb.get(o + bb_pos) : 0;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextData text() {
+        return text(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextData text(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.TextData obj) {
+        int o = __offset(8);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData image() {
+        return image(new com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData image(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData obj) {
+        int o = __offset(10);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData slot() {
+        return slot(new com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData slot(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData obj) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData break_() {
+        return break_(new com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData break_(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData obj) {
+        int o = __offset(14);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.CustomData custom() {
+        return custom(new com.hfstudio.guidenh.guide.layout.flatbuffers.CustomData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.CustomData custom(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.CustomData obj) {
+        int o = __offset(16);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData latex() {
+        return latex(new com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData latex(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData obj) {
+        int o = __offset(18);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
+    public byte customLayout() {
+        int o = __offset(20);
+        return o != 0 ? bb.get(o + bb_pos) : 0;
+    }
+
+    public long children(int j) {
+        int o = __offset(22);
+        return o != 0 ? (long) bb.getInt(__vector(o) + j * 4) & 0xFFFFFFFFL : 0;
+    }
+
+    public int childrenLength() {
+        int o = __offset(22);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public IntVector childrenVector() {
+        return childrenVector(new IntVector());
+    }
+
+    public IntVector childrenVector(IntVector obj) {
+        int o = __offset(22);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer childrenAsByteBuffer() {
+        return __vector_as_bytebuffer(22, 4);
+    }
+
+    public ByteBuffer childrenInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 22, 4);
+    }
+
+    public static int createFlatNode(FlatBufferBuilder builder, int styleOffset, byte nodeType, int textOffset,
+        int imageOffset, int slotOffset, int break_Offset, int customOffset, int latexOffset, byte customLayout,
+        int childrenOffset) {
+        builder.startTable(10);
+        FlatNode.addChildren(builder, childrenOffset);
+        FlatNode.addLatex(builder, latexOffset);
+        FlatNode.addCustom(builder, customOffset);
+        FlatNode.addBreak_(builder, break_Offset);
+        FlatNode.addSlot(builder, slotOffset);
+        FlatNode.addImage(builder, imageOffset);
+        FlatNode.addText(builder, textOffset);
+        FlatNode.addStyle(builder, styleOffset);
+        FlatNode.addCustomLayout(builder, customLayout);
+        FlatNode.addNodeType(builder, nodeType);
+        return FlatNode.endFlatNode(builder);
+    }
+
+    public static void startFlatNode(FlatBufferBuilder builder) {
+        builder.startTable(10);
+    }
+
+    public static void addStyle(FlatBufferBuilder builder, int styleOffset) {
+        builder.addOffset(0, styleOffset, 0);
+    }
+
+    public static void addNodeType(FlatBufferBuilder builder, byte nodeType) {
+        builder.addByte(1, nodeType, 0);
+    }
+
+    public static void addText(FlatBufferBuilder builder, int textOffset) {
+        builder.addOffset(2, textOffset, 0);
+    }
+
+    public static void addImage(FlatBufferBuilder builder, int imageOffset) {
+        builder.addOffset(3, imageOffset, 0);
+    }
+
+    public static void addSlot(FlatBufferBuilder builder, int slotOffset) {
+        builder.addOffset(4, slotOffset, 0);
+    }
+
+    public static void addBreak_(FlatBufferBuilder builder, int break_Offset) {
+        builder.addOffset(5, break_Offset, 0);
+    }
+
+    public static void addCustom(FlatBufferBuilder builder, int customOffset) {
+        builder.addOffset(6, customOffset, 0);
+    }
+
+    public static void addLatex(FlatBufferBuilder builder, int latexOffset) {
+        builder.addOffset(7, latexOffset, 0);
+    }
+
+    public static void addCustomLayout(FlatBufferBuilder builder, byte customLayout) {
+        builder.addByte(8, customLayout, 0);
+    }
+
+    public static void addChildren(FlatBufferBuilder builder, int childrenOffset) {
+        builder.addOffset(9, childrenOffset, 0);
+    }
+
+    public static int createChildrenVector(FlatBufferBuilder builder, long[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addInt((int) data[i]);
+        return builder.endVector();
+    }
+
+    public static void startChildrenVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static int endFlatNode(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public FlatNode get(int j) {
+            return get(new FlatNode(), j);
+        }
+
+        public FlatNode get(FlatNode obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

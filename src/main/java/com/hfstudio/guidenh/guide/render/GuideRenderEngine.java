@@ -1,13 +1,15 @@
 package com.hfstudio.guidenh.guide.render;
 
-import com.hfstudio.guidenh.guide.document.LytRect;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.Tessellator;
-import org.lwjgl.opengl.GL11;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.Tessellator;
+
+import org.lwjgl.opengl.GL11;
+
+import com.hfstudio.guidenh.guide.document.LytRect;
 
 /**
  * Central render engine that accepts GuideRenderPrimitives and batches them
@@ -35,7 +37,6 @@ public class GuideRenderEngine {
         this.glyphAtlas = glyphAtlas;
         this.sceneRenderer = sceneRenderer;
     }
-
 
     /** Begin a new frame. Clears all state stacks. */
     public void beginFrame(LytRect viewport, float displayScale) {
@@ -82,14 +83,9 @@ public class GuideRenderEngine {
         flush();
     }
 
-
     private void pushTransform(GuideRenderPrimitive.PushTransform t) {
         Transform parent = transformStack.peek();
-        transformStack.push(new Transform(
-            parent.tx + t.tx(),
-            parent.ty + t.ty(),
-            parent.scale * t.scale()
-        ));
+        transformStack.push(new Transform(parent.tx + t.tx(), parent.ty + t.ty(), parent.scale * t.scale()));
     }
 
     private void popTransform() {
@@ -122,15 +118,13 @@ public class GuideRenderEngine {
         }
     }
 
-
     private LytRect toScreen(int x, int y, int w, int h) {
         Transform t = transformStack.peek();
         return new LytRect(
             Math.round((x + t.tx) * t.scale),
             Math.round((y + t.ty) * t.scale),
             Math.max(1, Math.round(w * t.scale)),
-            Math.max(1, Math.round(h * t.scale))
-        );
+            Math.max(1, Math.round(h * t.scale)));
     }
 
     private void glScissor(LytRect r) {
@@ -141,7 +135,6 @@ public class GuideRenderEngine {
         int sh = Math.max(1, r.height() * s);
         GL11.glScissor(sx, Math.max(0, sy), sw, Math.max(0, sh));
     }
-
 
     private void setupSolid() {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -165,7 +158,6 @@ public class GuideRenderEngine {
         float b = (argb & 0xFF) / 255f;
         GL11.glColor4f(r, g, b, a);
     }
-
 
     private void drawFillRect(GuideRenderPrimitive.FillRect f) {
         LytRect r = toScreen(f.x(), f.y(), f.w(), f.h());
@@ -200,9 +192,17 @@ public class GuideRenderEngine {
         int x = db.x(), y = db.y(), w = db.w(), h = db.h();
         int argb = db.argb();
         if (db.top() > 0) drawFillRect(new GuideRenderPrimitive.FillRect(x, y, w, db.top(), argb));
-        if (db.bottom() > 0) drawFillRect(new GuideRenderPrimitive.FillRect(x, y + h - db.bottom(), w, db.bottom(), argb));
-        if (db.left() > 0) drawFillRect(new GuideRenderPrimitive.FillRect(x, y + db.top(), db.left(), h - db.top() - db.bottom(), argb));
-        if (db.right() > 0) drawFillRect(new GuideRenderPrimitive.FillRect(x + w - db.right(), y + db.top(), db.right(), h - db.top() - db.bottom(), argb));
+        if (db.bottom() > 0)
+            drawFillRect(new GuideRenderPrimitive.FillRect(x, y + h - db.bottom(), w, db.bottom(), argb));
+        if (db.left() > 0) drawFillRect(
+            new GuideRenderPrimitive.FillRect(x, y + db.top(), db.left(), h - db.top() - db.bottom(), argb));
+        if (db.right() > 0) drawFillRect(
+            new GuideRenderPrimitive.FillRect(
+                x + w - db.right(),
+                y + db.top(),
+                db.right(),
+                h - db.top() - db.bottom(),
+                argb));
     }
 
     private void drawBlitTexture(GuideRenderPrimitive.BlitTexture bt) {
@@ -232,8 +232,7 @@ public class GuideRenderEngine {
         Tessellator tess = Tessellator.instance;
         tess.startDrawingQuads();
         for (GuideRenderPrimitive.PlacedGlyph g : glyphs) {
-            LytRect sr = toScreen(Math.round(g.x()), Math.round(g.y()),
-                Math.round(g.w()), Math.round(g.h()));
+            LytRect sr = toScreen(Math.round(g.x()), Math.round(g.y()), Math.round(g.w()), Math.round(g.h()));
             // UV coordinates from glyph atlas
             GuideGlyphAtlas.GlyphUV uv = glyphAtlas.lookup(g.glyphId());
             if (uv == null) continue;
@@ -290,8 +289,10 @@ public class GuideRenderEngine {
             tess.addVertex(dc.cx(), dc.cy(), 0);
             for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
                 double a = Math.PI * 2.0 * i / CIRCLE_SEGMENTS;
-                tess.addVertex(dc.cx() + (float) (Math.cos(a) * dc.radius()),
-                    dc.cy() + (float) (Math.sin(a) * dc.radius()), 0);
+                tess.addVertex(
+                    dc.cx() + (float) (Math.cos(a) * dc.radius()),
+                    dc.cy() + (float) (Math.sin(a) * dc.radius()),
+                    0);
             }
             tess.draw();
         } else {
@@ -380,11 +381,18 @@ public class GuideRenderEngine {
         }
 
         sceneRenderer.render(
-            s3.level(), s3.camera(),
-            s3.particles(), s3.weatherEffects(),
-            s3.weatherAnimationTick(), s3.lightDarkMode(),
-            clip.x(), clip.y(), clip.width(), clip.height(),
-            viewport.width(), viewport.height());
+            s3.level(),
+            s3.camera(),
+            s3.particles(),
+            s3.weatherEffects(),
+            s3.weatherAnimationTick(),
+            s3.lightDarkMode(),
+            clip.x(),
+            clip.y(),
+            clip.width(),
+            clip.height(),
+            viewport.width(),
+            viewport.height());
 
         GL11.glPopMatrix();
         GL11.glPopAttrib();
@@ -406,7 +414,6 @@ public class GuideRenderEngine {
         }
     }
 
-
     private java.util.Map<Integer, HostDrawCallback> hostCallbackRegistry = new java.util.HashMap<>();
     private int nextCallbackId = 1;
 
@@ -418,9 +425,9 @@ public class GuideRenderEngine {
 
     @FunctionalInterface
     public interface HostDrawCallback {
+
         void draw(int x, int y, int w, int h);
     }
-
 
     private record Transform(int tx, int ty, float scale) {}
 }

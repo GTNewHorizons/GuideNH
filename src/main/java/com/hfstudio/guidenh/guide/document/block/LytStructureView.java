@@ -49,6 +49,16 @@ public class LytStructureView extends LytBlock {
         this.viewHeight = Math.max(32, height);
     }
 
+    @Override
+    public int getExplicitWidth() {
+        return viewWidth;
+    }
+
+    @Override
+    public int getExplicitHeight() {
+        return viewHeight;
+    }
+
     public void addBlock(int x, int y, int z, ItemStack stack) {
         if (stack != null) {
             blocks.add(new BlockEntry(x, y, z, stack));

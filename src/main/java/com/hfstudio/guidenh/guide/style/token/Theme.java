@@ -1,14 +1,14 @@
 package com.hfstudio.guidenh.guide.style.token;
 
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 
 /**
  * One theme — a resolved name→id→value mapping.
@@ -26,7 +26,9 @@ public final class Theme {
         this.values = values;
     }
 
-    public String name() { return name; }
+    public String name() {
+        return name;
+    }
 
     /** Fast lookup by TokenKey — preferred. */
     @SuppressWarnings("unchecked")
@@ -51,18 +53,25 @@ public final class Theme {
         return null;
     }
 
+    public ColorValue color(TokenKey<ColorValue> key) {
+        return get(key);
+    }
 
+    public DimensionValue dim(TokenKey<DimensionValue> key) {
+        return get(key);
+    }
 
+    public FloatValue flt(TokenKey<FloatValue> key) {
+        return get(key);
+    }
 
-    public ColorValue color(TokenKey<ColorValue> key) { return get(key); }
-    public DimensionValue dim(TokenKey<DimensionValue> key) { return get(key); }
-    public FloatValue flt(TokenKey<FloatValue> key) { return get(key); }
-    public IntValue int_(TokenKey<IntValue> key) { return get(key); }
+    public IntValue int_(TokenKey<IntValue> key) {
+        return get(key);
+    }
 
     /** Builder for GuideThemeManager. */
 
-    static Theme build(String themeName, List<TokenKey<?>> keys,
-                       Map<String, String> overrides) {
+    static Theme build(String themeName, List<TokenKey<?>> keys, Map<String, String> overrides) {
         Object2IntMap<String> nameToId = new Object2IntArrayMap<>(keys.size());
         ResolvedValue[] values = new ResolvedValue[keys.size()];
 
@@ -83,11 +92,12 @@ public final class Theme {
 
     private static ResolvedValue parseWithFallback(TokenKey<?> key, String raw) {
         try {
-            return key.type().parse(raw);
+            return key.type()
+                .parse(raw);
         } catch (Exception e) {
             GuideDebugLog.warnAlways(
-                "Theme: failed to parse '" + key.name() + "'='" + raw +
-                "', falling back to default (" + key.defaultValue() + ")");
+                "Theme: failed to parse '" + key
+                    .name() + "'='" + raw + "', falling back to default (" + key.defaultValue() + ")");
             return key.defaultValue();
         }
     }

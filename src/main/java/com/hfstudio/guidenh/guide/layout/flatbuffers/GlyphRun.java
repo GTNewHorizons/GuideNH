@@ -2,66 +2,126 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
+
 @SuppressWarnings("unused")
 public final class GlyphRun extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static GlyphRun getRootAsGlyphRun(ByteBuffer _bb) { return getRootAsGlyphRun(_bb, new GlyphRun()); }
-  public static GlyphRun getRootAsGlyphRun(ByteBuffer _bb, GlyphRun obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public GlyphRun __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public long nodeIndex() { int o = __offset(4); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
-  public int fontAtlasId() { int o = __offset(6); return o != 0 ? bb.getInt(o + bb_pos) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph glyphs(int j) { return glyphs(new com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph(), j); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph glyphs(com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph obj, int j) { int o = __offset(8); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
-  public int glyphsLength() { int o = __offset(8); return o != 0 ? __vector_len(o) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector glyphsVector() { return glyphsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector glyphsVector(com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector obj) { int o = __offset(8); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createGlyphRun(FlatBufferBuilder builder,
-      long nodeIndex,
-      int fontAtlasId,
-      int glyphsOffset) {
-    builder.startTable(3);
-    GlyphRun.addGlyphs(builder, glyphsOffset);
-    GlyphRun.addFontAtlasId(builder, fontAtlasId);
-    GlyphRun.addNodeIndex(builder, nodeIndex);
-    return GlyphRun.endGlyphRun(builder);
-  }
+    public static GlyphRun getRootAsGlyphRun(ByteBuffer _bb) {
+        return getRootAsGlyphRun(_bb, new GlyphRun());
+    }
 
-  public static void startGlyphRun(FlatBufferBuilder builder) { builder.startTable(3); }
-  public static void addNodeIndex(FlatBufferBuilder builder, long nodeIndex) { builder.addInt(0, (int) nodeIndex, (int) 0L); }
-  public static void addFontAtlasId(FlatBufferBuilder builder, int fontAtlasId) { builder.addInt(1, fontAtlasId, 0); }
-  public static void addGlyphs(FlatBufferBuilder builder, int glyphsOffset) { builder.addOffset(2, glyphsOffset, 0); }
-  public static int createGlyphsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
-  public static void startGlyphsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static int endGlyphRun(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static GlyphRun getRootAsGlyphRun(ByteBuffer _bb, GlyphRun obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public GlyphRun get(int j) { return get(new GlyphRun(), j); }
-    public GlyphRun get(GlyphRun obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public GlyphRun __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public long nodeIndex() {
+        int o = __offset(4);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+    }
+
+    public int fontAtlasId() {
+        int o = __offset(6);
+        return o != 0 ? bb.getInt(o + bb_pos) : 0;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph glyphs(int j) {
+        return glyphs(new com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph(), j);
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph glyphs(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph obj, int j) {
+        int o = __offset(8);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int glyphsLength() {
+        int o = __offset(8);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector glyphsVector() {
+        return glyphsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector glyphsVector(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector obj) {
+        int o = __offset(8);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public static int createGlyphRun(FlatBufferBuilder builder, long nodeIndex, int fontAtlasId, int glyphsOffset) {
+        builder.startTable(3);
+        GlyphRun.addGlyphs(builder, glyphsOffset);
+        GlyphRun.addFontAtlasId(builder, fontAtlasId);
+        GlyphRun.addNodeIndex(builder, nodeIndex);
+        return GlyphRun.endGlyphRun(builder);
+    }
+
+    public static void startGlyphRun(FlatBufferBuilder builder) {
+        builder.startTable(3);
+    }
+
+    public static void addNodeIndex(FlatBufferBuilder builder, long nodeIndex) {
+        builder.addInt(0, (int) nodeIndex, (int) 0L);
+    }
+
+    public static void addFontAtlasId(FlatBufferBuilder builder, int fontAtlasId) {
+        builder.addInt(1, fontAtlasId, 0);
+    }
+
+    public static void addGlyphs(FlatBufferBuilder builder, int glyphsOffset) {
+        builder.addOffset(2, glyphsOffset, 0);
+    }
+
+    public static int createGlyphsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startGlyphsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static int endGlyphRun(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public GlyphRun get(int j) {
+            return get(new GlyphRun(), j);
+        }
+
+        public GlyphRun get(GlyphRun obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

@@ -32,7 +32,8 @@ public final class LayoutBridge {
         }
 
         // Extract native lib from classpath resources
-        String os = System.getProperty("os.name").toLowerCase();
+        String os = System.getProperty("os.name")
+            .toLowerCase();
         String libName;
         if (os.contains("win")) {
             libName = "guide_layout_engine.dll";
@@ -45,17 +46,18 @@ public final class LayoutBridge {
         String resourcePath = "/natives/" + libName;
         try (InputStream is = LayoutBridge.class.getResourceAsStream(resourcePath)) {
             if (is == null) {
-                throw new UnsatisfiedLinkError(
-                    "Native library not found in classpath: " + resourcePath);
+                throw new UnsatisfiedLinkError("Native library not found in classpath: " + resourcePath);
             }
             Path tmpFile = Files.createTempFile("guide_layout_engine_", libName);
-            tmpFile.toFile().deleteOnExit();
+            tmpFile.toFile()
+                .deleteOnExit();
             Files.copy(is, tmpFile, StandardCopyOption.REPLACE_EXISTING);
-            System.load(tmpFile.toAbsolutePath().toString());
+            System.load(
+                tmpFile.toAbsolutePath()
+                    .toString());
             loaded = true;
         } catch (IOException e) {
-            throw new UnsatisfiedLinkError(
-                "Failed to extract native library: " + e.getMessage());
+            throw new UnsatisfiedLinkError("Failed to extract native library: " + e.getMessage());
         }
     }
 
@@ -64,6 +66,7 @@ public final class LayoutBridge {
 
     /**
      * Measure the entire layout tree.
+     * 
      * @param handle FontSystem handle from init()
      * @param input  FlatBuffer-encoded LayoutInput bytes
      * @return FlatBuffer-encoded LayoutResult bytes, or empty byte[] on failure
@@ -72,6 +75,7 @@ public final class LayoutBridge {
 
     /**
      * Rasterize a batch of glyphs.
+     * 
      * @param handle FontSystem handle from init()
      * @param input  FlatBuffer-encoded RasterInput bytes
      * @return FlatBuffer-encoded RasterResult bytes, or empty byte[] on failure

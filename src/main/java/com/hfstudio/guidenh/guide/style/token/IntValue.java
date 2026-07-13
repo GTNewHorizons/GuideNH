@@ -6,7 +6,10 @@ public record IntValue(int value) implements ResolvedValue {
 
     public static IntValue parse(String s) {
         if (s == null || s.isBlank()) return ZERO;
-        try { return new IntValue(Integer.parseInt(s.strip())); }
-        catch (NumberFormatException e) { throw new IllegalArgumentException("Invalid int value: " + s); }
+        try {
+            return new IntValue(Integer.parseInt(s.strip()));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid int value: " + s);
+        }
     }
 }

@@ -1,13 +1,15 @@
 package com.hfstudio.guidenh.guide.render;
 
-import net.minecraft.client.renderer.GLAllocation;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
-
-import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import net.minecraft.client.renderer.GLAllocation;
+
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
 
 /**
  * Glyph atlas: manages a single GL texture containing rasterized glyphs from Rust cosmic-text.
@@ -68,12 +70,10 @@ public class GuideGlyphAtlas {
         ensureTexture();
         atlasBuffer.position(0);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
-        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, u, v, w, h,
-            GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, atlasBuffer);
+        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, u, v, w, h, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, atlasBuffer);
 
         float texSize = ATLAS_SIZE;
-        GlyphUV uv = new GlyphUV(u / texSize, v / texSize,
-            (u + w) / texSize, (v + h) / texSize);
+        GlyphUV uv = new GlyphUV(u / texSize, v / texSize, (u + w) / texSize, (v + h) / texSize);
         glyphCache.put(glyphId, uv);
         return uv;
     }
@@ -100,8 +100,16 @@ public class GuideGlyphAtlas {
         currentRowHeight = 0;
         if (textureId >= 0) {
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
-            GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, ATLAS_SIZE, ATLAS_SIZE,
-                GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, atlasBuffer);
+            GL11.glTexSubImage2D(
+                GL11.GL_TEXTURE_2D,
+                0,
+                0,
+                0,
+                ATLAS_SIZE,
+                ATLAS_SIZE,
+                GL11.GL_RGBA,
+                GL11.GL_UNSIGNED_BYTE,
+                atlasBuffer);
         }
     }
 
@@ -122,10 +130,26 @@ public class GuideGlyphAtlas {
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
-        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, ATLAS_SIZE, ATLAS_SIZE,
-            0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, (java.nio.ByteBuffer) null);
-        GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, 0, 0, ATLAS_SIZE, ATLAS_SIZE,
-            GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, atlasBuffer);
+        GL11.glTexImage2D(
+            GL11.GL_TEXTURE_2D,
+            0,
+            GL11.GL_RGBA8,
+            ATLAS_SIZE,
+            ATLAS_SIZE,
+            0,
+            GL11.GL_RGBA,
+            GL11.GL_UNSIGNED_BYTE,
+            (java.nio.ByteBuffer) null);
+        GL11.glTexSubImage2D(
+            GL11.GL_TEXTURE_2D,
+            0,
+            0,
+            0,
+            ATLAS_SIZE,
+            ATLAS_SIZE,
+            GL11.GL_RGBA,
+            GL11.GL_UNSIGNED_BYTE,
+            atlasBuffer);
     }
 
     public record GlyphUV(float u, float v, float u2, float v2) {}

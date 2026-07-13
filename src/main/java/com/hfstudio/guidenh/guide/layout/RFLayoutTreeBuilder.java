@@ -1,18 +1,15 @@
 package com.hfstudio.guidenh.guide.layout;
 
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.document.block.*;
-import com.hfstudio.guidenh.guide.document.flow.*;
-import com.hfstudio.guidenh.guide.document.block.table.*;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutInput;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.Style;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.TextData;
+import java.util.*;
 
 import javax.annotation.Nullable;
-import java.util.*;
+
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.hfstudio.guidenh.guide.document.block.*;
+import com.hfstudio.guidenh.guide.document.block.table.*;
+import com.hfstudio.guidenh.guide.document.flow.*;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.Style;
 
 /**
  * Serializes a Lyt document tree into a FlatBuffer LayoutInput byte array.
@@ -37,8 +34,8 @@ public class RFLayoutTreeBuilder {
         }
 
         int nodesVec = fbb.createVectorOfTables(nodeOffsets);
-        int inputOff = com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutInput.createLayoutInput(
-            fbb, availWidth, visualScale, nodesVec);
+        int inputOff = com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutInput
+            .createLayoutInput(fbb, availWidth, visualScale, nodesVec);
         fbb.finish(inputOff);
         return fbb.sizedByteArray();
     }
@@ -63,16 +60,14 @@ public class RFLayoutTreeBuilder {
 
     private int serializeNode(FlatBufferBuilder fbb, LytNode node) {
         int styleOff = buildStyle(fbb);
-        int[] childIndices = node.getChildren().stream()
+        int[] childIndices = node.getChildren()
+            .stream()
             .mapToInt(c -> nodeToIndex.getOrDefault(c, -1))
             .filter(i -> i >= 0)
             .toArray();
         int childrenVec = createChildrenVector(fbb, childIndices);
 
-        return FlatNode.createFlatNode(fbb, styleOff, (byte) 0,
-            0, 0, 0, 0, 0, 0,
-            (byte) 0,
-            childrenVec);
+        return FlatNode.createFlatNode(fbb, styleOff, (byte) 0, 0, 0, 0, 0, 0, 0, (byte) 0, childrenVec);
     }
 
     // createChildrenVector helper — FlatBuffers [uint] maps to int vector
@@ -85,17 +80,49 @@ public class RFLayoutTreeBuilder {
     }
 
     private int buildStyle(FlatBufferBuilder fbb) {
-        return Style.createStyle(fbb,
-            (byte) 0, (byte) 1, (byte) 0, (byte) 0, (byte) 0, (byte) 0,
-            0, 0, 0, 0, 0, 0, 0, 0,
+        return Style.createStyle(
+            fbb,
+            (byte) 0,
+            (byte) 1,
+            (byte) 0,
+            (byte) 0,
+            (byte) 0,
+            (byte) 0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
             0f,
-            0f, 0f, 0f, 0f, false, false, false, false,
-            0f, 0f, 0f, 0f,
-            0f, 0f, 0f, 0f,
+            0f,
+            0f,
+            0f,
+            0f,
+            false,
+            false,
+            false,
+            false,
+            0f,
+            0f,
+            0f,
+            0f,
+            0f,
+            0f,
+            0f,
+            0f,
             (byte) 0,
-            0f, 1f, 0,
-            (byte) 0, (byte) 0,
+            0f,
+            1f,
+            0,
             (byte) 0,
-            0, 0, 0, 0);
+            (byte) 0,
+            (byte) 0,
+            0,
+            0,
+            0,
+            0);
     }
 }

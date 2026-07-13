@@ -1,13 +1,14 @@
 package com.hfstudio.guidenh.guide.layout;
 
+import java.util.*;
+
+import javax.annotation.Nullable;
+
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.hfstudio.guidenh.guide.document.block.*;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableRow;
 import com.hfstudio.guidenh.guide.document.flow.*;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutInput;
-
-import javax.annotation.Nullable;
-import java.util.*;
 
 /**
  * Serializes a Lyt document tree into a FlatBuffer LayoutInput byte array.
@@ -56,7 +57,6 @@ public class LayoutTreeSerializer {
         return nodeToIndex.getOrDefault(node, -1);
     }
 
-
     private void flattenTree(LytNode node) {
         if (shouldEliminate(node)) {
             // Skip this node, recurse into its children directly
@@ -81,22 +81,19 @@ public class LayoutTreeSerializer {
 
     private boolean shouldEliminate(LytNode node) {
         // Flow classes don't extend LytNode — use class name check
-        String name = node.getClass().getName();
-        if (name.contains("LytFlowSpan")
-            || name.contains("LytFlowAnchor")
+        String name = node.getClass()
+            .getName();
+        if (name.contains("LytFlowSpan") || name.contains("LytFlowAnchor")
             || name.contains("LytFlowBreak")
             || name.contains("LytFlowInlineBlock")) {
             return true;
         }
         // Blocks that are layout wrappers — eliminated in tree
-        if (node instanceof LytAlignedBlock
-            || node instanceof LytDocumentFloat
-            || node instanceof LytTableRow) {
+        if (node instanceof LytAlignedBlock || node instanceof LytDocumentFloat || node instanceof LytTableRow) {
             return true;
         }
         return false;
     }
-
 
     private List<Integer> getChildIndices(LytBlock block) {
         List<Integer> indices = new ArrayList<>();

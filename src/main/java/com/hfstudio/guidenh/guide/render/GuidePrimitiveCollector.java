@@ -57,8 +57,7 @@ public class GuidePrimitiveCollector {
     }
 
     private boolean isCulled(LytRect b) {
-        return b.right() < viewport.x()
-            || b.bottom() < viewport.y()
+        return b.right() < viewport.x() || b.bottom() < viewport.y()
             || b.x() > viewport.right()
             || b.y() > viewport.bottom();
     }

@@ -23,19 +23,31 @@ public final class TokenKey<T extends ResolvedValue> {
     }
 
     /** Register a new token key. Called from node static initializers. */
-    public static <T extends ResolvedValue> TokenKey<T> define(
-        String name, TokenType type, T defaultValue
-    ) {
+    public static <T extends ResolvedValue> TokenKey<T> define(String name, TokenType type, T defaultValue) {
         int id = NEXT_ID.getAndIncrement();
         TokenKey<T> key = new TokenKey<>(id, name, type, defaultValue);
         ThemeRegistry.register(key);
         return key;
     }
 
-    public int id()              { return id; }
-    public String name()         { return name; }
-    public TokenType type()   { return type; }
-    public T defaultValue()      { return defaultValue; }
+    public int id() {
+        return id;
+    }
 
-    @Override public String toString() { return name + "[" + id + "]"; }
+    public String name() {
+        return name;
+    }
+
+    public TokenType type() {
+        return type;
+    }
+
+    public T defaultValue() {
+        return defaultValue;
+    }
+
+    @Override
+    public String toString() {
+        return name + "[" + id + "]";
+    }
 }
