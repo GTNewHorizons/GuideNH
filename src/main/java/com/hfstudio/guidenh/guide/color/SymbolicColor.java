@@ -2,7 +2,12 @@ package com.hfstudio.guidenh.guide.color;
 
 /**
  * Symbolic colors can be overridden more easily in styles and define both a light- and dark-themed color variant.
+ *
+ * @deprecated Migrate to {@link com.hfstudio.guidenh.guide.style.token.GuideThemeManager}
+ *             and declare {@code TokenKey<ColorValue>} static fields on each node class.
+ *             This enum will be removed once all nodes have been migrated.
  */
+@Deprecated
 public enum SymbolicColor implements ColorValue {
 
     LINK(Colors.rgb(0, 213, 255), Colors.rgb(0, 213, 255)),

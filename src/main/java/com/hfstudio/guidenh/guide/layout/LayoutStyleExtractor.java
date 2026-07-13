@@ -35,7 +35,6 @@ public final class LayoutStyleExtractor {
 
     private LayoutStyleExtractor() {}
 
-    // ── Main entry point ──
 
     /** Build a FlatBuffer Style from a LytBlock node. Extracts all layout-relevant fields. */
     public static int build(FlatBufferBuilder fbb, LytBlock block) {
@@ -44,7 +43,6 @@ public final class LayoutStyleExtractor {
 
     /** Build with additional flags overriding automatic detection. */
     public static int build(FlatBufferBuilder fbb, LytBlock block, int flags) {
-        // ── Display & direction from class identity or flags ──
         byte display = getDisplay(block, flags);
         byte flexDir = getFlexDirection(block);
         byte flexWrap = getFlexWrap(block, flags);
@@ -52,7 +50,6 @@ public final class LayoutStyleExtractor {
         byte alignSelf = getAlignSelf(block, flags);
         byte justify = 0; // default: Start
 
-        // ── Size ──
         int sizeWOff = dimAuto(fbb);   // default: auto
         int sizeHOff = dimAuto(fbb);
         int minWOff = 0;  int minHOff = 0;
@@ -60,7 +57,6 @@ public final class LayoutStyleExtractor {
 
         applySizeConstraints(block, flags, fbb);
 
-        // ── Box model ──
         float marginL = block.getMarginLeft();
         float marginR = block.getMarginRight();
         float marginT = block.getMarginTop();
@@ -73,7 +69,6 @@ public final class LayoutStyleExtractor {
         float borderT = block.getBorderTop().width();
         float borderB = block.getBorderBottom().width();
 
-        // ── Gap ──
         int gapWOff = 0;
         int gapHOff = 0;
         if (block instanceof LytAxisBox ax) {
@@ -87,19 +82,15 @@ public final class LayoutStyleExtractor {
             }
         }
 
-        // ── Overflow ──
         byte overflow = getOverflow(block, flags);
 
-        // ── Flex (defaults) ──
         float flexGrow = 0f;
         float flexShrink = 1f;
         int flexBasisOff = 0;
 
-        // ── Float / Clear ──
         byte float_ = 0;
         byte clear = 0;
 
-        // ── Position ──
         byte position = 0;
         int insetTOff = 0; int insetROff = 0;
         int insetBOff = 0; int insetLOff = 0;
@@ -121,7 +112,6 @@ public final class LayoutStyleExtractor {
             insetTOff, insetROff, insetBOff, insetLOff);
     }
 
-    // ── Dimension helpers ──
 
     /** Auto (null in FlatBuffer = unset). */
     public static int dimAuto(FlatBufferBuilder fbb) {
@@ -138,7 +128,6 @@ public final class LayoutStyleExtractor {
         return com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension.createDimension(fbb, fraction * 100f, (byte) 2);
     }
 
-    // ── Internal helpers ──
 
     private static byte getDisplay(LytBlock block, int flags) {
         if ((flags & Flags.DISPLAY_BLOCK) != 0) return 2;

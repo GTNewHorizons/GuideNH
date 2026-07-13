@@ -36,7 +36,6 @@ public final class LayoutNodeSerializer {
             customLayout, childrenVec);
     }
 
-    // ── Node type dispatch ──
 
     private static byte resolveNodeType(LytBlock block) {
         if (block instanceof LytThematicBreak) return 4;
@@ -67,7 +66,6 @@ public final class LayoutNodeSerializer {
             || block instanceof LytFunctionGraph;
     }
 
-    // ── Sub-data table builders ──
 
     private static int buildTextData(FlatBufferBuilder fbb, LytBlock block) {
         int strOff = fbb.createString("");
@@ -117,7 +115,6 @@ public final class LayoutNodeSerializer {
         return -1;
     }
 
-    // ── Children vector ──
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {
         fbb.startVector(4, indices.size(), 4);

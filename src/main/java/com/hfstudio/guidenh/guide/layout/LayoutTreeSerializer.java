@@ -56,7 +56,6 @@ public class LayoutTreeSerializer {
         return nodeToIndex.getOrDefault(node, -1);
     }
 
-    // ── Tree flattening ──
 
     private void flattenTree(LytNode node) {
         if (shouldEliminate(node)) {
@@ -98,7 +97,6 @@ public class LayoutTreeSerializer {
         return false;
     }
 
-    // ── Child indices ──
 
     private List<Integer> getChildIndices(LytBlock block) {
         List<Integer> indices = new ArrayList<>();

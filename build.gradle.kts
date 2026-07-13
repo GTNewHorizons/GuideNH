@@ -8,6 +8,11 @@ minecraft {
     extraRunJvmArguments.addAll("-Xmx4G", "-Xms512m", "-Dgtnhlib.dumpkeys=true")
 }
 
+dependencies {
+    // fastutil is available at MC runtime but not in test scope
+    testImplementation("it.unimi.dsi:fastutil:8.5.12")
+}
+
 tasks.withType<JavaCompile>().configureEach {
     options.annotationProcessorPath = configurations.annotationProcessor.get()
 }

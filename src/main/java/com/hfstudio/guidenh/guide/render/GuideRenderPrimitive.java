@@ -34,7 +34,6 @@ public sealed interface GuideRenderPrimitive
         GuideRenderPrimitive.RenderScene3D,
         GuideRenderPrimitive.HostDraw {
 
-    // ── State instructions ──
 
     /** Push a translation+scale onto the transform stack. */
     record PushTransform(int tx, int ty, float scale) implements GuideRenderPrimitive {}
@@ -49,7 +48,6 @@ public sealed interface GuideRenderPrimitive
     /** Set color for subsequent primitives. */
     record SetColor(int argb) implements GuideRenderPrimitive {}
 
-    // ── Draw primitives ──
 
     /** Filled rectangle. */
     record FillRect(int x, int y, int w, int h, int argb) implements GuideRenderPrimitive {}
@@ -95,7 +93,6 @@ public sealed interface GuideRenderPrimitive
     record HostDraw(int callbackId, int x, int y, int w, int h)
         implements GuideRenderPrimitive {}
 
-    /** A single glyph placed at an absolute document coordinate. */
-    /** Glyph position data — not a primitive, used by DrawGlyphRun. */
+    /** A single glyph placed at an absolute document coordinate. Used by DrawGlyphRun. */
     record PlacedGlyph(int glyphId, float x, float y, float w, float h) {}
 }

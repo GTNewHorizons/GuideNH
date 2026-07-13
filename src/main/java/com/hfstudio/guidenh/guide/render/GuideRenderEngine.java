@@ -19,11 +19,9 @@ import java.util.List;
  */
 public class GuideRenderEngine {
 
-    // ── Injected dependencies ──
     private final GuideGlyphAtlas glyphAtlas;
     private final GuidebookSceneRenderer sceneRenderer;
 
-    // ── Runtime state ──
     private final Deque<Transform> transformStack = new ArrayDeque<>();
     private final Deque<LytRect> scissorStack = new ArrayDeque<>();
     private int currentColor = 0xFFFFFFFF;
@@ -38,7 +36,6 @@ public class GuideRenderEngine {
         this.sceneRenderer = sceneRenderer;
     }
 
-    // ── Frame lifecycle ──
 
     /** Begin a new frame. Clears all state stacks. */
     public void beginFrame(LytRect viewport, float displayScale) {
@@ -85,7 +82,6 @@ public class GuideRenderEngine {
         flush();
     }
 
-    // ── State stack management ──
 
     private void pushTransform(GuideRenderPrimitive.PushTransform t) {
         Transform parent = transformStack.peek();
@@ -126,7 +122,6 @@ public class GuideRenderEngine {
         }
     }
 
-    // ── Coordinate conversion ──
 
     private LytRect toScreen(int x, int y, int w, int h) {
         Transform t = transformStack.peek();
@@ -147,7 +142,6 @@ public class GuideRenderEngine {
         GL11.glScissor(sx, Math.max(0, sy), sw, Math.max(0, sh));
     }
 
-    // ── Draw helpers ──
 
     private void setupSolid() {
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -172,7 +166,6 @@ public class GuideRenderEngine {
         GL11.glColor4f(r, g, b, a);
     }
 
-    // ── Primitive renderers ──
 
     private void drawFillRect(GuideRenderPrimitive.FillRect f) {
         LytRect r = toScreen(f.x(), f.y(), f.w(), f.h());
@@ -413,7 +406,6 @@ public class GuideRenderEngine {
         }
     }
 
-    // ── HostDraw callback registry (temporary, will be replaced in future phases) ──
 
     private java.util.Map<Integer, HostDrawCallback> hostCallbackRegistry = new java.util.HashMap<>();
     private int nextCallbackId = 1;
@@ -429,7 +421,6 @@ public class GuideRenderEngine {
         void draw(int x, int y, int w, int h);
     }
 
-    // ── Internal types ──
 
     private record Transform(int tx, int ty, float scale) {}
 }
