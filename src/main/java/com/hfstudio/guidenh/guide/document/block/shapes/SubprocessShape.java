@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class SubprocessShape implements ShapeRenderer {
@@ -18,6 +20,18 @@ public class SubprocessShape implements ShapeRenderer {
 
         context.drawLine(innerX, y, innerX, y + h, 1, borderColor);
         context.drawLine(innerX + innerW, y, innerX + innerW, y + h, 1, borderColor);
+    }
+
+    @Override
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
+        int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
+        int innerX = x + FRAME_WIDTH;
+        int innerW = w - FRAME_WIDTH * 2;
+
+        c.emit(new GuideRenderPrimitive.FillRect(x, y, w, h, borderColor));
+        c.emit(new GuideRenderPrimitive.FillRect(innerX, y, innerW, h, backgroundColor));
+        c.emit(new GuideRenderPrimitive.DrawLine(innerX, y, innerX, y + h, 1, borderColor));
+        c.emit(new GuideRenderPrimitive.DrawLine(innerX + innerW, y, innerX + innerW, y + h, 1, borderColor));
     }
 
     @Override

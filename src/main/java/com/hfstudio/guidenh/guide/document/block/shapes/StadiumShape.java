@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class StadiumShape implements ShapeRenderer {
@@ -19,6 +21,22 @@ public class StadiumShape implements ShapeRenderer {
         context.fillRect(x + r, y + 1, w - r * 2, h - 2, backgroundColor);
         context.fillCircle(x + r, cy, ir, backgroundColor);
         context.fillCircle(x + w - r, cy, ir, backgroundColor);
+    }
+
+    @Override
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
+        int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
+        int r = h / 2;
+        float cy = y + h / 2f;
+
+        c.emit(new GuideRenderPrimitive.FillRect(x + r, y, w - r * 2, h, borderColor));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + r, cy, r, borderColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + w - r, cy, r, borderColor, true));
+
+        int ir = Math.max(r - 1, 0);
+        c.emit(new GuideRenderPrimitive.FillRect(x + r, y + 1, w - r * 2, h - 2, backgroundColor));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + r, cy, ir, backgroundColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + w - r, cy, ir, backgroundColor, true));
     }
 
     @Override

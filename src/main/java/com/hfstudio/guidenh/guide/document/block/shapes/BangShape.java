@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class BangShape implements ShapeRenderer {
@@ -51,6 +52,51 @@ public class BangShape implements ShapeRenderer {
 
         ShapeUtils.fillPolygonCentered(context, xs, ys, borderColor);
         ShapeUtils.fillPolygonCentered(context, ixs, iys, backgroundColor);
+    }
+
+    @Override
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
+        int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
+        float[] raw = buildBangPolygon(w, h);
+        int n = raw.length / 2;
+
+        float minX = Float.MAX_VALUE, maxX = Float.MIN_VALUE;
+        float minY = Float.MAX_VALUE, maxY = Float.MIN_VALUE;
+        for (int i = 0; i < raw.length; i += 2) {
+            if (raw[i] < minX) minX = raw[i];
+            if (raw[i] > maxX) maxX = raw[i];
+            if (raw[i + 1] < minY) minY = raw[i + 1];
+            if (raw[i + 1] > maxY) maxY = raw[i + 1];
+        }
+
+        float sx = (maxX > minX) ? w / (maxX - minX) : 1;
+        float sy = (maxY > minY) ? h / (maxY - minY) : 1;
+        float[] xs = new float[n];
+        float[] ys = new float[n];
+        for (int i = 0; i < n; i++) {
+            xs[i] = x + (raw[i * 2] - minX) * sx;
+            ys[i] = y + (raw[i * 2 + 1] - minY) * sy;
+        }
+
+        float cx = x + w / 2f, cy = y + h / 2f;
+        float[] ixs = new float[n];
+        float[] iys = new float[n];
+        for (int i = 0; i < n; i++) {
+            float dx = xs[i] - cx;
+            float dy = ys[i] - cy;
+            float d = (float) Math.sqrt(dx * dx + dy * dy);
+            if (d > 1) {
+                float s = (d - 1) / d;
+                ixs[i] = cx + dx * s;
+                iys[i] = cy + dy * s;
+            } else {
+                ixs[i] = xs[i];
+                iys[i] = ys[i];
+            }
+        }
+
+        ShapeUtils.emitPolygonCentered(c, xs, ys, borderColor);
+        ShapeUtils.emitPolygonCentered(c, ixs, iys, backgroundColor);
     }
 
     private static float[] buildBangPolygon(float w, float h) {

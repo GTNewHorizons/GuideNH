@@ -4,6 +4,8 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 
+import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+
 /**
  * Sealed interface for all render primitives consumed by GuideRenderEngine.
  * <p>
@@ -70,8 +72,8 @@ public sealed interface GuideRenderPrimitive permits GuideRenderPrimitive.PushTr
     /** Minecraft item stack rendering. */
     record RenderItem(ItemStack stack, int x, int y) implements GuideRenderPrimitive {}
 
-    /** Simple text via Minecraft FontRenderer (fallback, not cosmic-text). */
-    record DrawText(String text, int x, int y, int argb, boolean shadow) implements GuideRenderPrimitive {}
+    /** Text via Minecraft FontRenderer with full ResolvedTextStyle. */
+    record DrawText(String text, int x, int y, ResolvedTextStyle style) implements GuideRenderPrimitive {}
 
     /** 3D scene rendering. */
     record RenderScene3D(Object level, Object camera, List<?> annotations, List<?> particles, List<?> weatherEffects,

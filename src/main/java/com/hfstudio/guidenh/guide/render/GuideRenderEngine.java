@@ -5,11 +5,14 @@ import java.util.Deque;
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.Tessellator;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 /**
  * Central render engine that accepts GuideRenderPrimitives and batches them
@@ -356,11 +359,76 @@ public class GuideRenderEngine {
         Minecraft mc = Minecraft.getMinecraft();
         String text = dt.text();
         if (text == null || text.isEmpty()) return;
-        int color = dt.argb() | 0xFF000000; // ensure opaque
-        if (dt.shadow()) {
-            mc.fontRenderer.drawStringWithShadow(text, dt.x(), dt.y(), color);
+        ResolvedTextStyle style = dt.style();
+        int x = dt.x();
+        int y = dt.y();
+
+        int color = resolveTextColor(style);
+        String drawn = GuideFontCompat.prepareRenderedText(text, style);
+
+        float scale = style.fontScale();
+        boolean scaled = Math.abs(scale - 1f) > 1e-4f;
+        if (scaled) {
+            GL11.glPushMatrix();
+            GL11.glTranslatef(x, y, 0f);
+            GL11.glScalef(scale, scale, 1f);
+            if (style.dropShadow()) {
+                mc.fontRenderer.drawStringWithShadow(drawn, 0, 0, color);
+            } else {
+                mc.fontRenderer.drawString(drawn, 0, 0, color);
+            }
+            GL11.glPopMatrix();
+        } else if (style.dropShadow()) {
+            mc.fontRenderer.drawStringWithShadow(drawn, x, y, color);
         } else {
-            mc.fontRenderer.drawString(text, dt.x(), dt.y(), color);
+            mc.fontRenderer.drawString(drawn, x, y, color);
+        }
+
+        drawTextDecorations(drawn, x, y, color, style);
+    }
+
+    private int resolveTextColor(ResolvedTextStyle style) {
+        int color = style.color() != null ? style.color()
+            .resolve(LightDarkMode.current()) : 0xFFFFFFFF;
+        if ((color >>> 24) == 0) {
+            color |= 0xFF000000;
+        }
+        return color;
+    }
+
+    private void drawTextDecorations(String text, int x, int y, int color, ResolvedTextStyle style) {
+        boolean hasUnderline = style.underlined();
+        boolean hasWavyUnderline = style.wavyUnderline();
+        boolean hasDottedUnderline = style.dottedUnderline();
+        if (!hasUnderline && !hasWavyUnderline && !hasDottedUnderline) return;
+
+        float scale = style.fontScale();
+        Minecraft mc = Minecraft.getMinecraft();
+        int scaledFontHeight = Math.round(mc.fontRenderer.FONT_HEIGHT * scale);
+        int decorationY = y + scaledFontHeight - 1;
+        int decoratedWidth = GuideFontCompat.getPreparedStringWidth(mc.fontRenderer, text, style);
+
+        if (hasUnderline) {
+            Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
+        }
+        if (hasWavyUnderline) {
+            for (int i = 0; i < decoratedWidth; i++) {
+                int phase = i & 3;
+                int dy = (phase == 0 || phase == 2) ? 0 : (phase == 1 ? -1 : 1);
+                Gui.drawRect(x + i, decorationY + dy, x + i + 1, decorationY + dy + 1, color);
+            }
+        }
+        if (hasDottedUnderline) {
+            int cursor = 0;
+            boolean bold = style.bold();
+            for (int i = 0; i < text.length() && cursor < decoratedWidth; i++) {
+                char c = text.charAt(i);
+                int charWidth = mc.fontRenderer.getCharWidth(c);
+                if (bold) charWidth++;
+                int dotX = x + cursor + (charWidth - 2) / 2;
+                Gui.drawRect(dotX, decorationY - 1, dotX + 2, decorationY + 1, color);
+                cursor += charWidth;
+            }
         }
     }
 

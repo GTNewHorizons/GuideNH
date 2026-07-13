@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class AsymmetricShape implements ShapeRenderer {
@@ -32,6 +34,35 @@ public class AsymmetricShape implements ShapeRenderer {
         }
         context.fillPolygon(xs, ys, borderColor);
         context.fillPolygon(shrunkXs, shrunkYs, backgroundColor);
+    }
+
+    @Override
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
+        int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
+        int r = rect.right(), b = rect.bottom(), cy = y + h / 2;
+        int inset = Math.max(2, h / 4);
+
+        float cx = x + w / 2f;
+        float cy2 = y + h / 2f;
+        float[] xs = { r, r, x + inset, x, x + inset };
+        float[] ys = { y, b, b, cy, y };
+        float[] shrunkXs = new float[5];
+        float[] shrunkYs = new float[5];
+        for (int i = 0; i < 5; i++) {
+            float dx = xs[i] - cx;
+            float dy = ys[i] - cy2;
+            float d = (float) Math.sqrt(dx * dx + dy * dy);
+            if (d > 1) {
+                float s = (d - 1) / d;
+                shrunkXs[i] = cx + dx * s;
+                shrunkYs[i] = cy2 + dy * s;
+            } else {
+                shrunkXs[i] = xs[i];
+                shrunkYs[i] = ys[i];
+            }
+        }
+        c.emit(new GuideRenderPrimitive.DrawPolygon(xs, ys, borderColor));
+        c.emit(new GuideRenderPrimitive.DrawPolygon(shrunkXs, shrunkYs, backgroundColor));
     }
 
     @Override

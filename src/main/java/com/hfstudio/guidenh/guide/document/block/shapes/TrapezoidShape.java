@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class TrapezoidShape implements ShapeRenderer {
@@ -32,6 +34,35 @@ public class TrapezoidShape implements ShapeRenderer {
         }
         context.fillPolygon(xs, ys, borderColor);
         context.fillPolygon(shrunkXs, shrunkYs, backgroundColor);
+    }
+
+    @Override
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
+        int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
+        int r = rect.right(), b = rect.bottom();
+        int inset = Math.max(1, h / 4);
+
+        float cx = x + w / 2f;
+        float cy = y + h / 2f;
+        float[] xs = { x + inset, r - inset, r, x };
+        float[] ys = { y, y, b, b };
+        float[] shrunkXs = new float[4];
+        float[] shrunkYs = new float[4];
+        for (int i = 0; i < 4; i++) {
+            float dx = xs[i] - cx;
+            float dy = ys[i] - cy;
+            float d = (float) Math.sqrt(dx * dx + dy * dy);
+            if (d > 1) {
+                float s = (d - 1) / d;
+                shrunkXs[i] = cx + dx * s;
+                shrunkYs[i] = cy + dy * s;
+            } else {
+                shrunkXs[i] = xs[i];
+                shrunkYs[i] = ys[i];
+            }
+        }
+        c.emit(new GuideRenderPrimitive.DrawPolygon(xs, ys, borderColor));
+        c.emit(new GuideRenderPrimitive.DrawPolygon(shrunkXs, shrunkYs, backgroundColor));
     }
 
     @Override

@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class RoundedRectShape implements ShapeRenderer {
@@ -24,6 +26,27 @@ public class RoundedRectShape implements ShapeRenderer {
         context.fillCircle(ix + iw - ir, iy + ir, ir, backgroundColor);
         context.fillCircle(ix + ir, iy + ih - ir, ir, backgroundColor);
         context.fillCircle(ix + iw - ir, iy + ih - ir, ir, backgroundColor);
+    }
+
+    @Override
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
+        int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
+        int r = Math.clamp(Math.min(w, h) / 5, 2, 12);
+
+        c.emit(new GuideRenderPrimitive.FillRect(x, y, w, h, borderColor));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + r, y + r, r, borderColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + w - r, y + r, r, borderColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + r, y + h - r, r, borderColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + w - r, y + h - r, r, borderColor, true));
+
+        int inset = 1;
+        int ir = Math.max(r - inset, 1);
+        int ix = x + inset, iy = y + inset, iw = w - inset * 2, ih = h - inset * 2;
+        c.emit(new GuideRenderPrimitive.FillRect(ix, iy, iw, ih, backgroundColor));
+        c.emit(new GuideRenderPrimitive.DrawCircle(ix + ir, iy + ir, ir, backgroundColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(ix + iw - ir, iy + ir, ir, backgroundColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(ix + ir, iy + ih - ir, ir, backgroundColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(ix + iw - ir, iy + ih - ir, ir, backgroundColor, true));
     }
 
     @Override
