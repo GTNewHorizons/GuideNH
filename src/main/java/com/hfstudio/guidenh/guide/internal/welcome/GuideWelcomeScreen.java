@@ -162,7 +162,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         if (parent != null) {
-            parent.drawScreen(mouseX, mouseY, partialTicks);
+            parent.drawScreen(-1, -1, partialTicks);
         } else {
             drawDefaultBackground();
         }
