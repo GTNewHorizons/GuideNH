@@ -198,7 +198,7 @@ public class NeiGuideNavigation {
         if (scopedHandler == null || scopedHandler.numRecipes() <= 0) {
             return null;
         }
-        String targetHandlerName = recipeId.getHandleName();
+        String targetHandlerName = recipeId.getHandlerName();
         if (!Objects.equals(targetHandlerName, resolveHandlerName(scopedHandler))) {
             return null;
         }
@@ -229,7 +229,7 @@ public class NeiGuideNavigation {
         if (scopedHandler == null || scopedHandler.numRecipes() <= 0) {
             return null;
         }
-        if (!Objects.equals(recipeId.getHandleName(), resolveHandlerName(scopedHandler))) {
+        if (!Objects.equals(recipeId.getHandlerName(), resolveHandlerName(scopedHandler))) {
             return null;
         }
         ArrayList<IUsageHandler> handlers = new ArrayList<>(1);
