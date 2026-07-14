@@ -129,8 +129,11 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeContent;
 import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeScreen;
+import com.hfstudio.guidenh.guide.layout.FontProvider;
+import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
+import com.hfstudio.guidenh.guide.layout.SystemFontProvider;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialCatalog;
@@ -2589,6 +2592,16 @@ public class GuideScreen extends GuiContainer
     }
 
     private void ensureLayout() {
+        // Lazy-init the Rust font system handle with system CJK font
+        if (LayoutBridge.getFontHandle() == 0) {
+            FontProvider fontProvider = new SystemFontProvider();
+            byte[] fontData = fontProvider.getFontData("zh_CN");
+            GuideDebugLog.warnAlways(
+                "GuideScreen: initializing Rust font system from {} ({} bytes)",
+                fontProvider.getFontPath(), fontData.length);
+            LayoutBridge.setFontHandle(LayoutBridge.init(fontData, "zh_CN"));
+        }
+
         var activeDocument = getActiveDocument();
         if (activeDocument == null) return;
         int layoutWidth = Math.max(1, Math.round(contentW / currentZoom));

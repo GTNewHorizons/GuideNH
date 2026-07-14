@@ -61,6 +61,18 @@ public final class LayoutBridge {
         }
     }
 
+    private static long globalFontHandle;
+
+    /** Set the global font handle (called once after init()). */
+    public static void setFontHandle(long handle) {
+        globalFontHandle = handle;
+    }
+
+    /** Get the global font handle. Returns 0 if not initialized. */
+    public static long getFontHandle() {
+        return globalFontHandle;
+    }
+
     /** Load TTF font data and create a FontSystem. Returns opaque handle (long). */
     public static native long init(byte[] fontTtfData, String locale);
 

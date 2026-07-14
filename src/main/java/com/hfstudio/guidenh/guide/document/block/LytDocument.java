@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -13,9 +14,13 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
+import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.layout.LayoutTreeSerializer;
 import com.hfstudio.guidenh.guide.layout.Layouts;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutResult;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import lombok.Getter;
 
@@ -160,7 +165,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     private Layout createLayout(LayoutContext context, int availableWidth) {
         var bounds = Layouts.verticalLayout(context, blocks, 0, 0, availableWidth, 5, 5, 5, 5, 0, AlignItems.START);
-        int contentHeight = bounds.height();
+        float javaHeight = bounds.height();
         // Document-level floats (LytDocumentFloat) report zero height so they do not advance the
         // vertical cursor in verticalLayout. If a float is taller than the text that wraps beside
         // it, the float visually extends below the last paragraph but the computed contentHeight
@@ -168,9 +173,45 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         // After the full layout pass, any remaining active floats represent exactly this case.
         // Retrieve their maximum bottom edge and extend contentHeight to cover them.
         var floatBottom = context.clearFloats(true, true);
-        if (floatBottom.isPresent() && floatBottom.getAsInt() > contentHeight) {
-            contentHeight = floatBottom.getAsInt() + 5;
+        if (floatBottom.isPresent() && floatBottom.getAsInt() > javaHeight) {
+            javaHeight = floatBottom.getAsInt() + 5;
         }
+
+        // --- Rust layout pipeline (active) ---
+        int contentHeight = (int) javaHeight;
+        long fontHandle = LayoutBridge.getFontHandle();
+        if (fontHandle == 0) {
+            GuideDebugLog.warnAlways("Layout: fontHandle not initialized, using Java layout");
+        } else {
+            try {
+                var serializer = new LayoutTreeSerializer();
+                byte[] input = serializer.serialize(this, availableWidth, context.getVisualScale());
+                byte[] result = LayoutBridge.measureLayout(fontHandle, input);
+                if (result.length > 0) {
+                    var flatResult = LayoutResult.getRootAsLayoutResult(ByteBuffer.wrap(result));
+                    // DIAG: log Rust engine debug_info
+                    GuideDebugLog.warnAlways("Layout: debugInfo is null? {}", flatResult.debugInfo() == null);
+                    String debugInfo = flatResult.debugInfo();
+                    if (debugInfo != null && !debugInfo.isEmpty()) {
+                        GuideDebugLog.warnAlways("Layout: Rust debug_info = {}", debugInfo);
+                    }
+                    int rustHeight = (int) flatResult.contentHeight();
+                    if (rustHeight > 0) {
+                        contentHeight = rustHeight;
+                        GuideDebugLog.warnAlways(
+                            "Layout: used Rust contentHeight={} (Java was={})", contentHeight, (int) javaHeight);
+                    } else {
+                        GuideDebugLog.warnAlways(
+                            "Layout: Rust returned {} <= 0, fallback to Java {}", rustHeight, (int) javaHeight);
+                    }
+                }
+            } catch (Exception e) {
+                GuideDebugLog.warnAlways(
+                    "Layout: Rust pipeline failed, fallback to Java {}", (int) javaHeight, e);
+            }
+        }
+        // -----------------------------------------
+
         var cachedBounds = new LytRect(0, 0, availableWidth, contentHeight);
         return new Layout(availableWidth, contentHeight, cachedBounds);
     }

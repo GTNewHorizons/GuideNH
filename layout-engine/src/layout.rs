@@ -80,12 +80,37 @@ pub fn compute_layout(
         }
     }
 
-    // Find root (last created node)
-    let root_idx = (0..flat_nodes.len())
-        .rev()
-        .find(|&i| node_map[i].1)
-        .unwrap_or(0);
-    let root_id = node_map[root_idx].0;
+    // Pass 3: Create a synthetic root to group all top-level flat nodes.
+    // LytDocument extends LytNode, NOT LytBlock, so flattenTree() does not add it
+    // to flatNodes. All flat nodes are orphans in Taffy — they have no parent.
+    // compute_layout_with_measure traverses from the given root; only nodes in that
+    // subtree are laid out. A synthetic column container collects every created node
+    // as its child, so Taffy lays out the complete tree.
+    let root_child_ids: Vec<NodeId> = node_map.iter()
+        .filter(|(_, created)| *created)
+        .map(|(id, _)| *id)
+        .collect();
+    let root_id = if root_child_ids.len() <= 1 {
+        root_child_ids.first().copied().unwrap_or_else(|| {
+            taffy.new_leaf(Style::default()).expect("Failed to create fallback root")
+        })
+    } else {
+        // Column flex so children stack vertically. Match Java LytDocument padding 5.
+        let root_style = Style {
+            display: Display::Flex,
+            flex_direction: FlexDirection::Column,
+            size: Size { width: Dimension::from_length(avail_width * visual_scale), height: Dimension::AUTO },
+            padding: Rect {
+                left: LengthPercentage::length(5.0),
+                top: LengthPercentage::length(5.0),
+                right: LengthPercentage::length(5.0),
+                bottom: LengthPercentage::length(5.0),
+            },
+            ..Default::default()
+        };
+        taffy.new_with_children(root_style, &root_child_ids)
+            .expect("Failed to create synthetic root")
+    };
 
     // ── Compute layout with measure ──
     let mut glyph_acc: HashMap<usize, GlyphAccum> = HashMap::new();
@@ -159,12 +184,39 @@ pub fn compute_layout(
     let nodes_vec = fbb.create_vector(&flat_layout_offsets);
     let glyph_runs_vec = fbb.create_vector(&glyph_run_offsets);
 
+    // Build per-node diagnostic string for Java-side logging
+    let mut dbg = format!(
+        "total_height={} |nodes={} created={} synth_root={}",
+        total_height,
+        flat_nodes.len(),
+        node_map.iter().filter(|(_, ok)| *ok).count(),
+        root_child_ids.len(),
+    );
+    for (i, fb) in flat_nodes.iter().enumerate() {
+        if !node_map[i].1 { continue; }
+        if let Ok(l) = taffy.layout(node_map[i].0) {
+            let ty = fb.node_type();
+            let (x, y, w_, h_) = (l.location.x, l.location.y, l.size.width, l.size.height);
+            let tb = if ty == 1 {
+                fb.text().and_then(|t| t.text()).map(|s| format!(" tlen={}", s.len())).unwrap_or_default()
+            } else if ty == 0 {
+                fb.children().map(|c| format!(" c={}", c.len())).unwrap_or_default()
+            } else {
+                String::new()
+            };
+            dbg.push_str(&format!(" |[{}]t{}@({:.0},{:.0})s({:.0},{:.0}){}",
+                i, ty, x, y, w_, h_, tb));
+        }
+    }
+    let debug_info_str = fbb.create_string(&dbg);
+
     let result = LayoutResult::create(
         &mut fbb,
         &LayoutResultArgs {
             nodes: Some(nodes_vec),
             glyph_runs: Some(glyph_runs_vec),
             content_height: total_height,
+            debug_info: Some(debug_info_str),
         },
     );
 

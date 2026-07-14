@@ -90,9 +90,23 @@ public final class LayoutResult extends Table {
         return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
     }
 
+    public String debugInfo() {
+        int o = __offset(10);
+        return o != 0 ? __string(o + bb_pos) : null;
+    }
+
+    public ByteBuffer debugInfoAsByteBuffer() {
+        return __vector_as_bytebuffer(10, 1);
+    }
+
+    public ByteBuffer debugInfoInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 10, 1);
+    }
+
     public static int createLayoutResult(FlatBufferBuilder builder, int nodesOffset, int glyphRunsOffset,
-        float contentHeight) {
-        builder.startTable(3);
+        float contentHeight, int debugInfoOffset) {
+        builder.startTable(4);
+        LayoutResult.addDebugInfo(builder, debugInfoOffset);
         LayoutResult.addContentHeight(builder, contentHeight);
         LayoutResult.addGlyphRuns(builder, glyphRunsOffset);
         LayoutResult.addNodes(builder, nodesOffset);
@@ -100,7 +114,11 @@ public final class LayoutResult extends Table {
     }
 
     public static void startLayoutResult(FlatBufferBuilder builder) {
-        builder.startTable(3);
+        builder.startTable(4);
+    }
+
+    public static void addDebugInfo(FlatBufferBuilder builder, int debugInfoOffset) {
+        builder.addOffset(3, debugInfoOffset, 0);
     }
 
     public static void addNodes(FlatBufferBuilder builder, int nodesOffset) {

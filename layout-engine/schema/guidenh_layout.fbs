@@ -145,6 +145,7 @@ table LayoutResult {
   nodes: [FlatLayout];
   glyph_runs: [GlyphRun];
   content_height: float;
+  debug_info: string;
 }
 
 table FlatLayout {

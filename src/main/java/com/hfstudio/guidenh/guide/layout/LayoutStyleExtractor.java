@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.layout;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.hfstudio.guidenh.guide.document.block.LytAxisBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytBox;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytSizeBox;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.Style;
@@ -35,11 +36,28 @@ public final class LayoutStyleExtractor {
 
     /** Build a FlatBuffer Style from a LytBlock node. Extracts all layout-relevant fields. */
     public static int build(FlatBufferBuilder fbb, LytBlock block) {
-        return build(fbb, block, Flags.NONE);
+        return build(fbb, block, Flags.NONE, 0, 0, 0, 0);
     }
 
     /** Build with additional flags overriding automatic detection. */
     public static int build(FlatBufferBuilder fbb, LytBlock block, int flags) {
+        return build(fbb, block, flags, 0, 0, 0, 0);
+    }
+
+    /**
+     * Build with margin offsets from eliminated ancestor nodes.
+     * The offset values are <b>added</b> to the block's own margins.
+     */
+    public static int build(FlatBufferBuilder fbb, LytBlock block, int marginOffT, int marginOffR,
+        int marginOffB, int marginOffL) {
+        return build(fbb, block, Flags.NONE, marginOffT, marginOffR, marginOffB, marginOffL);
+    }
+
+    /**
+     * Build with flags and margin offsets from eliminated ancestor nodes.
+     */
+    public static int build(FlatBufferBuilder fbb, LytBlock block, int flags,
+        int marginOffT, int marginOffR, int marginOffB, int marginOffL) {
         byte display = getDisplay(block, flags);
         byte flexDir = getFlexDirection(block);
         byte flexWrap = getFlexWrap(block, flags);
@@ -72,16 +90,21 @@ public final class LayoutStyleExtractor {
             sizeHOff = dimAuto(fbb);
         }
 
-        float marginL = block.getMarginLeft();
-        float marginR = block.getMarginRight();
-        float marginT = block.getMarginTop();
-        float marginB = block.getMarginBottom();
+        float marginL = block.getMarginLeft() + marginOffL;
+        float marginR = block.getMarginRight() + marginOffR;
+        float marginT = block.getMarginTop() + marginOffT;
+        float marginB = block.getMarginBottom() + marginOffB;
         float padL = 0;
         float padR = 0;
         float padT = 0;
         float padB = 0;
-        // Phase 1: padding access via LytBox fields is package-private.
-        // Full integration will use LytBlock bounds computation.
+        // Read actual padding from LytBox subclasses (VBox, HBox, etc.)
+        if (block instanceof LytBox lb) {
+            padL = readLytBoxPadding(lb, "paddingLeft");
+            padR = readLytBoxPadding(lb, "paddingRight");
+            padT = readLytBoxPadding(lb, "paddingTop");
+            padB = readLytBoxPadding(lb, "paddingBottom");
+        }
         float borderL = block.getBorderLeft()
             .width();
         float borderR = block.getBorderRight()
@@ -178,6 +201,22 @@ public final class LayoutStyleExtractor {
     /** Percentage (0.0 ~ 1.0). */
     public static int dimPct(FlatBufferBuilder fbb, float fraction) {
         return com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension.createDimension(fbb, fraction * 100f, (byte) 2);
+    }
+
+    /**
+     * Read an int padding field from LytBox via reflection.
+     * {@code LytBox.paddingLeft/Top/Right/Bottom} are {@code protected}, not
+     * accessible from this package, so we use reflection as the least-invasive
+     * bridge. Revisit if a public getter is added to LytBox in the future.
+     */
+    private static int readLytBoxPadding(LytBox box, String fieldName) {
+        try {
+            var field = LytBox.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field.getInt(box);
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     private static byte getDisplay(LytBlock block, int flags) {
