@@ -50,6 +50,24 @@ public class TrapezoidShape implements ShapeRenderer {
     }
 
     @Override
+    public String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
+        int r = x + w, b = y + h;
+        int inset = Math.max(1, h / 4);
+        return String.format(
+            "<polygon points=\"%d,%d %d,%d %d,%d %d,%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/>",
+            x + inset,
+            y,
+            r - inset,
+            y,
+            r,
+            b,
+            x,
+            b,
+            fill,
+            stroke);
+    }
+
+    @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int w = nodeRect.width();
         int h = nodeRect.height();

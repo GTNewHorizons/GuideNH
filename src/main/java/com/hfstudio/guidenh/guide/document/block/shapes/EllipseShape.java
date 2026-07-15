@@ -27,6 +27,19 @@ public class EllipseShape implements ShapeRenderer {
     }
 
     @Override
+    public String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
+        int cx = x + w / 2, cy = y + h / 2;
+        return String.format(
+            "<ellipse cx=\"%d\" cy=\"%d\" rx=\"%d\" ry=\"%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"/>",
+            cx,
+            cy,
+            w / 2,
+            h / 2,
+            fill,
+            stroke);
+    }
+
+    @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;

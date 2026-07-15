@@ -106,6 +106,33 @@ public class CloudShape implements ShapeRenderer {
     }
 
     @Override
+    public String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
+        String pts = generateSvgPoints(x, y, w, h);
+        return String.format(
+            "<polygon points=\"%s\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/>",
+            pts,
+            fill,
+            stroke);
+    }
+
+    /** Returns an SVG points attribute string for this shape, fitted to (x,y,w,h). */
+    public static String generateSvgPoints(int x, int y, int w, int h) {
+        float[] raw = buildCloudPolygon(w, h);
+        float[] bounds = ShapeUtils.computeBounds(raw);
+        float minX = bounds[0], maxX = bounds[1], minY = bounds[2], maxY = bounds[3];
+        float sx = (maxX > minX) ? w / (maxX - minX) : 1;
+        float sy = (maxY > minY) ? h / (maxY - minY) : 1;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < raw.length; i += 2) {
+            if (i > 0) sb.append(" ");
+            sb.append(Math.round(x + (raw[i] - minX) * sx))
+                .append(",")
+                .append(Math.round(y + (raw[i + 1] - minY) * sy));
+        }
+        return sb.toString();
+    }
+
+    @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;

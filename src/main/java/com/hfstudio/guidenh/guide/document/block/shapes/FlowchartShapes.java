@@ -58,6 +58,11 @@ public final class FlowchartShapes {
         };
     }
 
+    public static String renderSvg(MermaidNodeShape shape, int x, int y, int w, int h, String fill, String stroke) {
+        ShapeRenderer renderer = RENDERERS.get(shape);
+        return renderer != null ? renderer.renderSvg(x, y, w, h, fill, stroke) : "";
+    }
+
     public static boolean isShapeClipped(MermaidNodeShape shape) {
         ShapeRenderer renderer = RENDERERS.get(shape);
         return renderer != null && renderer.isClipped();
@@ -329,4 +334,5 @@ public final class FlowchartShapes {
             return diff <= 0 && diff >= delta;
         }
     }
+
 }

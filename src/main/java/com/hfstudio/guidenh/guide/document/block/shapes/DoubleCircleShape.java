@@ -33,6 +33,24 @@ public class DoubleCircleShape implements ShapeRenderer {
     }
 
     @Override
+    public String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
+        int cx = x + w / 2, cy = y + h / 2;
+        int outerR = Math.min(w, h) / 2;
+        int innerR = Math.max(outerR - 5, 1);
+        return String.format(
+            "<circle cx=\"%d\" cy=\"%d\" r=\"%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"/>\n<circle cx=\"%d\" cy=\"%d\" r=\"%d\" fill=\"none\" stroke=\"%s\" stroke-width=\"1.5\"/>",
+            cx,
+            cy,
+            outerR,
+            fill,
+            stroke,
+            cx,
+            cy,
+            innerR,
+            stroke);
+    }
+
+    @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;

@@ -37,6 +37,23 @@ public class DiamondShape implements ShapeRenderer {
     }
 
     @Override
+    public String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
+        int cx = x + w / 2, cy = y + h / 2;
+        return String.format(
+            "<polygon points=\"%d,%d %d,%d %d,%d %d,%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/>",
+            cx,
+            y,
+            x + w,
+            cy,
+            cx,
+            y + h,
+            x,
+            cy,
+            fill,
+            stroke);
+    }
+
+    @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;

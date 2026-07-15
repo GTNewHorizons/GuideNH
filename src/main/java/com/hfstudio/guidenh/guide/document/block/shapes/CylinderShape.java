@@ -84,6 +84,54 @@ public class CylinderShape implements ShapeRenderer {
     }
 
     @Override
+    public String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
+        int cx = x + w / 2, rx = w / 2, r = Math.max(3, h / 4);
+        int top = y + r, bot = y + h - r;
+        return String.format(
+            "<path d=\"M %d,%d A %d,%d 0 0,1 %d,%d L %d,%d A %d,%d 0 0,1 %d,%d Z\" fill=\"%s\"/>\n"
+                + "<ellipse cx=\"%d\" cy=\"%d\" rx=\"%d\" ry=\"%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"/>\n"
+                + "<path d=\"M %d,%d A %d,%d 0 0,1 %d,%d\" fill=\"none\" stroke=\"%s\" stroke-width=\"1.5\"/>\n"
+                + "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"1.5\"/>\n"
+                + "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"1.5\"/>",
+            x,
+            top,
+            rx,
+            r,
+            x + w,
+            top,
+            x + w,
+            bot,
+            rx,
+            r,
+            x,
+            bot,
+            fill,
+            cx,
+            top,
+            rx,
+            r,
+            fill,
+            stroke,
+            x + w,
+            bot,
+            rx,
+            r,
+            x,
+            bot,
+            stroke,
+            x,
+            top,
+            x,
+            bot,
+            stroke,
+            x + w,
+            top,
+            x + w,
+            bot,
+            stroke);
+    }
+
+    @Override
     public boolean isClipped() {
         return true;
     }

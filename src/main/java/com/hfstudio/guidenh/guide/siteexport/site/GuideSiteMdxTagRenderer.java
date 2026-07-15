@@ -61,7 +61,10 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNodeContentExtractor;
@@ -1509,7 +1512,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 ResourceLocation assetId = IdUtils.resolveLink(src, currentPageId);
                 byte[] data = guide.loadAsset(assetId);
                 if (data != null) {
-                    source = MindmapParser.normalize(new String(data, StandardCharsets.UTF_8));
+                    source = MermaidSourceExtractor.normalize(new String(data, StandardCharsets.UTF_8));
                 }
             } catch (Exception ignored) {}
         }
@@ -1526,17 +1529,27 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderError("Empty Mermaid diagram");
         }
         try {
-            MindmapDocument doc = MindmapParser.parse(source);
-            return GuideSiteGraphRenderer.renderMermaidTree(
-                doc,
-                compileMermaidNodeHtml(
-                    element,
-                    currentPageId,
-                    doc,
-                    defaultNamespace,
-                    templates,
-                    sceneResolver,
-                    compiler));
+            MermaidDiagramType type = MermaidDiagramType.detect(source);
+            return switch (type) {
+                case MINDMAP -> {
+                    MindmapDocument doc = MindmapParser.parse(source);
+                    yield GuideSiteGraphRenderer.renderMermaidTree(
+                        doc,
+                        compileMermaidNodeHtml(
+                            element,
+                            currentPageId,
+                            doc,
+                            defaultNamespace,
+                            templates,
+                            sceneResolver,
+                            compiler));
+                }
+                case FLOWCHART -> {
+                    FlowchartDocument doc = FlowchartParser.parse(source);
+                    yield GuideSiteGraphRenderer.renderFlowchart(doc);
+                }
+                case UNKNOWN -> CODE_BLOCK_RENDERER.render("mermaid", source);
+            };
         } catch (Exception ex) {
             return CODE_BLOCK_RENDERER.render("mermaid", source);
         }
