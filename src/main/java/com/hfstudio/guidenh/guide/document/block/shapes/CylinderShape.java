@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class CylinderShape implements ShapeRenderer {
@@ -80,6 +81,84 @@ public class CylinderShape implements ShapeRenderer {
         int top = nodeRect.y() + 2 * ry + padY + extraV;
         int bodyH = nodeRect.height() - 3 * ry - 2 * padY - 2 * extraV;
         return new LytRect(nodeRect.x() + padX, top, nodeRect.width() - 2 * padX, bodyH);
+    }
+
+    @Override
+    public boolean isClipped() {
+        return true;
+    }
+
+    @Override
+    public Point edgeIntersect(LytRect nodeRect, int ex, int ey) {
+        int x = nodeRect.x(), y = nodeRect.y(), w = nodeRect.width(), h = nodeRect.height();
+        int cx = x + w / 2;
+        int rx = w / 2;
+        int ry = Math.max(1, rx / 3);
+        int bodyTop = y + ry;
+        int bodyBottom = y + h - ry;
+        int midY = (bodyTop + bodyBottom) / 2;
+
+        double dx = ex - cx;
+        double dy = ey - midY;
+        if (dx == 0 && dy == 0) return new Point(cx, midY);
+
+        double rx2 = (double) rx * rx;
+        double ry2 = (double) ry * ry;
+
+        // Precompute shared terms for ellipse intersection
+        double A = dx * dx / rx2 + dy * dy / ry2;
+
+        double bestT = Double.MAX_VALUE;
+        Point best = null;
+
+        if (A > 1e-12) {
+            // Top half-ellipse: center at (cx, bodyTop), y <= bodyTop
+            double hy = midY - bodyTop;
+            double B = 2.0 * hy * dy / ry2;
+            double C = hy * hy / ry2 - 1.0;
+            double disc = B * B - 4.0 * A * C;
+            if (disc >= 0) {
+                double sqrtDisc = Math.sqrt(disc);
+                for (double t : new double[] { (-B - sqrtDisc) / (2.0 * A), (-B + sqrtDisc) / (2.0 * A) }) {
+                    if (t > 0 && t < bestT && midY + t * dy <= bodyTop) {
+                        bestT = t;
+                        best = new Point((int) Math.round(cx + t * dx), (int) Math.round(midY + t * dy));
+                    }
+                }
+            }
+
+            // Bottom half-ellipse: center at (cx, bodyBottom), y >= bodyBottom
+            hy = midY - bodyBottom;
+            B = 2.0 * hy * dy / ry2;
+            C = hy * hy / ry2 - 1.0;
+            disc = B * B - 4.0 * A * C;
+            if (disc >= 0) {
+                double sqrtDisc = Math.sqrt(disc);
+                for (double t : new double[] { (-B - sqrtDisc) / (2.0 * A), (-B + sqrtDisc) / (2.0 * A) }) {
+                    if (t > 0 && t < bestT && midY + t * dy >= bodyBottom) {
+                        bestT = t;
+                        best = new Point((int) Math.round(cx + t * dx), (int) Math.round(midY + t * dy));
+                    }
+                }
+            }
+        }
+
+        // Check left and right vertical lines
+        if (Math.abs(dx) > 1e-12) {
+            double invDx = 1.0 / dx;
+            for (int lx : new int[] { x, x + w }) {
+                double t = (lx - cx) * invDx;
+                if (t > 0 && t < bestT) {
+                    double py = midY + t * dy;
+                    if (py >= bodyTop && py <= bodyBottom) {
+                        bestT = t;
+                        best = new Point(lx, (int) Math.round(py));
+                    }
+                }
+            }
+        }
+
+        return best != null ? best : FlowchartShapes.intersectRect(nodeRect, ex, ey);
     }
 
     @Override

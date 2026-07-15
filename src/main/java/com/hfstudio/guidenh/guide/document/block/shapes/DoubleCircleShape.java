@@ -1,11 +1,22 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class DoubleCircleShape implements ShapeRenderer {
 
     private static final int GAP = 5;
+
+    @Override
+    public boolean isClipped() {
+        return true;
+    }
+
+    @Override
+    public Point edgeIntersect(LytRect nodeRect, int ex, int ey) {
+        return FlowchartShapes.intersectCircle(nodeRect, ex, ey);
+    }
 
     @Override
     public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {

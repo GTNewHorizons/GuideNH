@@ -4,9 +4,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class BangShape implements ShapeRenderer {
+
+    @Override
+    public boolean isClipped() {
+        return true;
+    }
+
+    @Override
+    public Point edgeIntersect(LytRect nodeRect, int ex, int ey) {
+        int w = nodeRect.width(), h = nodeRect.height();
+        float[][] arcs = getBangArcs(w, h);
+        float[] raw = buildBangPolygon(w, h);
+        float[] bounds = ShapeUtils.computeBounds(raw);
+        return FlowchartShapes.intersectArcs(nodeRect, bounds, arcs, ex, ey);
+    }
 
     @Override
     public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
@@ -14,15 +29,8 @@ public class BangShape implements ShapeRenderer {
         float[] raw = buildBangPolygon(w, h);
         int n = raw.length / 2;
 
-        float minX = Float.MAX_VALUE, maxX = Float.MIN_VALUE;
-        float minY = Float.MAX_VALUE, maxY = Float.MIN_VALUE;
-        for (int i = 0; i < raw.length; i += 2) {
-            if (raw[i] < minX) minX = raw[i];
-            if (raw[i] > maxX) maxX = raw[i];
-            if (raw[i + 1] < minY) minY = raw[i + 1];
-            if (raw[i + 1] > maxY) maxY = raw[i + 1];
-        }
-
+        float[] bounds = ShapeUtils.computeBounds(raw);
+        float minX = bounds[0], maxX = bounds[1], minY = bounds[2], maxY = bounds[3];
         float sx = (maxX > minX) ? w / (maxX - minX) : 1;
         float sy = (maxY > minY) ? h / (maxY - minY) : 1;
         float[] xs = new float[n];
@@ -53,16 +61,19 @@ public class BangShape implements ShapeRenderer {
         ShapeUtils.fillPolygonCentered(context, ixs, iys, backgroundColor);
     }
 
-    private static float[] buildBangPolygon(float w, float h) {
+    private static float[][] getBangArcs(float w, float h) {
         float r = 0.15f * w;
 
-        // SVG arc: a rx ry xAxisRot largeArc sweep dx dy
-        float[][] arcs = { { 0.25f * w, -0.10f * h, r, r, 0, 0 }, { 0.25f * w, 0, r, r, 0, 0 },
+        return new float[][] { { 0.25f * w, -0.10f * h, r, r, 0, 0 }, { 0.25f * w, 0, r, r, 0, 0 },
             { 0.25f * w, 0, r, r, 0, 0 }, { 0.25f * w, 0.10f * h, r, r, 0, 0 }, { 0.15f * w, 0.33f * h, r, r, 0, 0 },
             { 0, 0.34f * h, r * 0.8f, r * 0.8f, 0, 0 }, { -0.15f * w, 0.33f * h, r, r, 0, 0 },
             { -0.25f * w, 0.15f * h, r, r, 0, 0 }, { -0.25f * w, 0, r, r, 0, 0 }, { -0.25f * w, 0, r, r, 0, 0 },
             { -0.25f * w, -0.15f * h, r, r, 0, 0 }, { -0.10f * w, -0.33f * h, r, r, 0, 0 },
             { 0, -0.34f * h, r * 0.8f, r * 0.8f, 0, 0 }, { 0.10f * w, -0.33f * h, r, r, 0, 0 }, };
+    }
+
+    private static float[] buildBangPolygon(float w, float h) {
+        float[][] arcs = getBangArcs(w, h);
 
         List<Float> pts = new ArrayList<>();
         float cx = 0, cy = 0;
