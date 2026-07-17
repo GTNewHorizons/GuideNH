@@ -5,12 +5,15 @@ import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiConfirmOpenLink;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StatCollector;
 
@@ -32,12 +35,19 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
+import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
+import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
+import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
+import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipRenderSupport;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
@@ -54,8 +64,9 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private static final int HEADER_HEIGHT = 30;
     private static final int FOOTER_HEIGHT = 18;
     private static final int SCROLL_STEP = 36;
-    private static final float SCROLL_LERP = 0.35F;
-    private static final float SCROLL_SNAP_EPSILON = 0.35F;
+    private static final float SCROLL_SHARPNESS = 28F;
+    private static final float SCROLL_SNAP_EPSILON = 0.01F;
+    private static final int SCROLLBAR_WIDTH = 5;
     private static final int CLOSE_RIGHT_MARGIN = 7;
     private static final int CLOSE_TOP_MARGIN = 3;
     private static final int EXTERNAL_LINK_CONFIRM_ID = 0;
@@ -64,6 +75,10 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private final GuideWelcomeContent.LoadedContent content;
     private final VanillaRenderContext renderContext = new VanillaRenderContext(
         LightDarkMode.DARK_MODE,
+        LytRect.empty(),
+        0);
+    private final VanillaRenderContext contentTooltipRenderContext = new VanillaRenderContext(
+        LightDarkMode.LIGHT_MODE,
         LytRect.empty(),
         0);
     private final MinecraftFontMetrics fontMetrics = new MinecraftFontMetrics();
@@ -79,6 +94,9 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private int layoutWidth = -1;
     private float scrollY;
     private float targetScrollY;
+    private long lastScrollUpdateNanos;
+    private boolean draggingScrollbar;
+    private int scrollbarGrabOffsetY;
     private boolean hostStateSaved;
     @Nullable
     private LytDocument parentDocument;
@@ -108,6 +126,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         updateCloseButton();
         targetScrollY = clampScroll(targetScrollY);
         scrollY = clampScroll(scrollY);
+        lastScrollUpdateNanos = 0;
     }
 
     @Override
@@ -136,20 +155,36 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         layoutDocument();
         tickScenes();
         targetScrollY = clampScroll(targetScrollY);
-        float delta = targetScrollY - scrollY;
-        if (Math.abs(delta) <= SCROLL_SNAP_EPSILON) {
-            scrollY = targetScrollY;
-        } else {
-            scrollY += delta * SCROLL_LERP;
-        }
+        scrollY = clampScroll(scrollY);
     }
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        if (mouseButton == 0 && startScrollbarDrag(mouseX, mouseY)) {
+            return;
+        }
         if (handleDocumentClick(mouseX, mouseY, mouseButton)) {
             return;
         }
         super.mouseClicked(mouseX, mouseY, mouseButton);
+    }
+
+    @Override
+    protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        if (draggingScrollbar && clickedMouseButton == 0) {
+            updateScrollFromMouseY(mouseY);
+            return;
+        }
+        super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+    }
+
+    @Override
+    protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
+        if (draggingScrollbar && state != -1) {
+            draggingScrollbar = false;
+            return;
+        }
+        super.mouseMovedOrUp(mouseX, mouseY, state);
     }
 
     @Override
@@ -161,6 +196,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        updateVisualScroll();
         if (parent != null) {
             parent.drawScreen(-1, -1, partialTicks);
         } else {
@@ -193,7 +229,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         renderDocument(mouseX, mouseY);
 
         if (maxScrollY() > 0) {
-            drawScrollbar(panelRight - 8, documentTop(), documentBottom());
+            drawScrollbar();
         }
 
         drawCenteredString(
@@ -202,6 +238,8 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
             width / 2,
             panelBottom - 14,
             0xFFB8C0CC);
+
+        drawHoverTooltip(mouseX, mouseY);
     }
 
     @Override
@@ -525,6 +563,23 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         targetScrollY = clampScroll(scroll);
     }
 
+    private void updateVisualScroll() {
+        long now = System.nanoTime();
+        if (lastScrollUpdateNanos == 0) {
+            lastScrollUpdateNanos = now;
+            return;
+        }
+        float deltaSeconds = Math.min(0.05F, (now - lastScrollUpdateNanos) / 1_000_000_000F);
+        lastScrollUpdateNanos = now;
+        float delta = targetScrollY - scrollY;
+        if (Math.abs(delta) <= SCROLL_SNAP_EPSILON) {
+            scrollY = targetScrollY;
+            return;
+        }
+        float blend = 1F - (float) Math.exp(-SCROLL_SHARPNESS * deltaSeconds);
+        scrollY += delta * blend;
+    }
+
     private void drawCloseButton(int mouseX, int mouseY, int panelRight, int panelY) {
         updateCloseButton(panelRight, panelY);
         if (closeButton != null) {
@@ -561,14 +616,163 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         return panelY + CLOSE_TOP_MARGIN;
     }
 
-    private void drawScrollbar(int x, int top, int bottom) {
-        int height = Math.max(1, bottom - top);
-        drawRect(x, top, x + 3, bottom, 0x33262D38);
-        float maxScroll = maxScrollY();
+    private void drawScrollbar() {
+        int[] thumb = scrollbarThumbRect();
+        int x = thumb[0];
+        int top = thumb[4];
+        int height = thumb[5];
+        drawRect(x, top, x + SCROLLBAR_WIDTH, top + height, 0x33262D38);
+        int color = draggingScrollbar ? 0xFFFFFFFF : 0x99B8C0CC;
+        drawRect(x, thumb[1], x + SCROLLBAR_WIDTH, thumb[1] + thumb[3], color);
+    }
+
+    private int[] scrollbarThumbRect() {
+        int top = documentTop();
+        int height = Math.max(1, documentBottom() - top);
         int contentHeight = document != null ? Math.max(1, document.getContentHeight()) : 1;
         int thumbHeight = Math.max(14, height * documentHeight() / contentHeight);
-        int thumbY = top + Math.round((height - thumbHeight) * scrollY / Math.max(1, maxScroll));
-        drawRect(x, thumbY, x + 3, thumbY + thumbHeight, 0x99B8C0CC);
+        int thumbY = top + Math.round((height - thumbHeight) * scrollY / Math.max(1F, maxScrollY()));
+        return new int[] { panelX() + panelWidth() - 8, thumbY, SCROLLBAR_WIDTH, thumbHeight, top, height };
+    }
+
+    private boolean startScrollbarDrag(int mouseX, int mouseY) {
+        if (maxScrollY() <= 0) {
+            return false;
+        }
+        int[] thumb = scrollbarThumbRect();
+        int x = thumb[0];
+        int top = thumb[4];
+        if (mouseX < x || mouseX >= x + thumb[2] || mouseY < top || mouseY >= top + thumb[5]) {
+            return false;
+        }
+        if (mouseY >= thumb[1] && mouseY < thumb[1] + thumb[3]) {
+            scrollbarGrabOffsetY = mouseY - thumb[1];
+        } else {
+            scrollbarGrabOffsetY = thumb[3] / 2;
+            updateScrollFromMouseY(mouseY);
+        }
+        draggingScrollbar = true;
+        return true;
+    }
+
+    private void updateScrollFromMouseY(int mouseY) {
+        int[] thumb = scrollbarThumbRect();
+        int track = Math.max(1, thumb[5] - thumb[3]);
+        int relativeY = Math.clamp(mouseY - scrollbarGrabOffsetY - thumb[4], 0, track);
+        scrollY = relativeY * maxScrollY() / track;
+        targetScrollY = scrollY;
+    }
+
+    private void drawHoverTooltip(int mouseX, int mouseY) {
+        if (closeButton != null && mouseX >= closeButton.xPosition
+            && mouseY >= closeButton.yPosition
+            && mouseX < closeButton.xPosition + closeButton.width
+            && mouseY < closeButton.yPosition + closeButton.height) {
+            drawHoveringText(List.of(closeButton.getTooltip()), mouseX, mouseY, fontRendererObj);
+            return;
+        }
+
+        GuideTooltip tooltip = findDocumentTooltip(mouseX, mouseY);
+        if (tooltip instanceof ItemTooltip itemTooltip) {
+            drawItemTooltip(itemTooltip, mouseX, mouseY);
+        } else if (tooltip instanceof TextTooltip textTooltip) {
+            String text = textTooltip.getText()
+                .replace("\\n", "\n");
+            drawHoveringText(List.of(text.split("\n", -1)), mouseX, mouseY, fontRendererObj);
+        } else if (tooltip instanceof ContentTooltip contentTooltip) {
+            drawContentTooltip(contentTooltip, mouseX, mouseY);
+        }
+    }
+
+    @Nullable
+    private GuideTooltip findDocumentTooltip(int mouseX, int mouseY) {
+        DocumentInteractionSnapshot hit = pickDocument(mouseX, mouseY);
+        if (hit == null) {
+            return null;
+        }
+        int docX = mouseX - documentX();
+        int docY = mouseY - documentTop() + Math.round(scrollY);
+        for (LytFlowContent content : interactiveFlowTargets(hit)) {
+            Optional<GuideTooltip> tooltip = GuideScreen.tryGetTooltip(content, docX, docY);
+            if (tooltip.isPresent()) {
+                return tooltip.get();
+            }
+        }
+        for (LytNode current = hit.node(); current != null; current = current.getParent()) {
+            Optional<GuideTooltip> tooltip = GuideScreen.tryGetTooltip(current, docX, docY);
+            if (tooltip.isPresent()) {
+                return tooltip.get();
+            }
+        }
+        return null;
+    }
+
+    private void drawItemTooltip(ItemTooltip tooltip, int mouseX, int mouseY) {
+        ItemStack stack = tooltip.getStack();
+        if (stack == null) {
+            return;
+        }
+        List<String> lines = GuideItemTooltipLines.build(tooltip, mc);
+        FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(stack, fontRendererObj);
+        drawHoveringText(lines, mouseX, mouseY, font);
+    }
+
+    private void drawContentTooltip(ContentTooltip tooltip, int mouseX, int mouseY) {
+        int padding = 4;
+        LytRect box = tooltip.layout(Math.max(80, panelWidth() * 4 / 5));
+        int tooltipWidth = box.width();
+        int tooltipHeight = box.height();
+        int left = panelX() + padding;
+        int top = panelY() + padding;
+        int right = panelX() + panelWidth() - padding;
+        int bottom = panelY() + panelHeight() - padding;
+        int x = mouseX + 12;
+        int y = mouseY - 12;
+        if (x + tooltipWidth + padding > right) {
+            x = mouseX - tooltipWidth - 12;
+        }
+        x = Math.clamp(x, left, Math.max(left, right - tooltipWidth));
+        y = Math.clamp(y, top, Math.max(top, bottom - tooltipHeight));
+
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        zLevel = 300F;
+        itemRender.zLevel = 300F;
+        int background = 0xF0100010;
+        drawGradientRect(
+            x - padding,
+            y - padding,
+            x + tooltipWidth + padding,
+            y + tooltipHeight + padding,
+            background,
+            background);
+        drawGradientRect(x - padding, y - padding, x + tooltipWidth + padding, y - padding + 1, 0x505000FF, 0x505000FF);
+        drawGradientRect(
+            x - padding,
+            y + tooltipHeight + padding - 1,
+            x + tooltipWidth + padding,
+            y + tooltipHeight + padding,
+            0x5028007F,
+            0x5028007F);
+
+        contentTooltipRenderContext.setViewport(new LytRect(0, 0, tooltipWidth, tooltipHeight));
+        contentTooltipRenderContext.setScreenHeight(height);
+        contentTooltipRenderContext.setDocumentOrigin(x, y);
+        contentTooltipRenderContext.setScrollOffsetY(0);
+        contentTooltipRenderContext.setZoom(1F);
+        GL11.glPushMatrix();
+        GL11.glTranslatef(x, y, 300F);
+        try {
+            tooltip.getContent()
+                .render(contentTooltipRenderContext);
+        } catch (Throwable t) {
+            GuideDebugLog.warnAlways("[GuideNH] Error rendering welcome tooltip", t);
+        } finally {
+            GL11.glPopMatrix();
+            contentTooltipRenderContext.restoreExternalRenderState();
+            zLevel = 0F;
+            itemRender.zLevel = 0F;
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
+        }
     }
 
     private GuiConfirmOpenLink createExternalLinkConfirmScreen(URI uri) {
