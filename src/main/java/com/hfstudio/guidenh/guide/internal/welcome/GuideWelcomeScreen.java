@@ -719,13 +719,13 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
     private void drawContentTooltip(ContentTooltip tooltip, int mouseX, int mouseY) {
         int padding = 4;
-        LytRect box = tooltip.layout(Math.max(80, panelWidth() * 4 / 5));
+        int left = padding;
+        int top = padding;
+        int right = width - padding;
+        int bottom = height - padding;
+        LytRect box = tooltip.layout(Math.max(80, (right - left) * 4 / 5));
         int tooltipWidth = box.width();
         int tooltipHeight = box.height();
-        int left = panelX() + padding;
-        int top = panelY() + padding;
-        int right = panelX() + panelWidth() - padding;
-        int bottom = panelY() + panelHeight() - padding;
         int x = mouseX + 12;
         int y = mouseY - 12;
         if (x + tooltipWidth + padding > right) {
