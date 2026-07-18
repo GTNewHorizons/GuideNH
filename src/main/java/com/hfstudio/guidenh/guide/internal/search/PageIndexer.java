@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
@@ -60,7 +61,13 @@ public class PageIndexer implements IndexingContext {
     public void indexContent(MdAstAnyContent content, IndexingSink sink) {
         if (content instanceof MdAstText astText) {
             sink.appendText(astText, astText.value);
+        } else if (content instanceof MdAstBreak) {
+            sink.appendBreak();
         } else if (content instanceof MdxJsxElementFields el) {
+            if ("br".equals(el.name())) {
+                sink.appendBreak();
+                return;
+            }
             var compiler = tagCompilers.get(el.name());
             if (compiler == null) {
                 GuideDebugLog.warnAlways(
