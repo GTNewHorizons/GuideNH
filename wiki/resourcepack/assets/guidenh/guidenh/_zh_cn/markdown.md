@@ -180,6 +180,14 @@ Markdown：
 > {: title="Item Quote" color="#61b75d" iconItem="minecraft:emerald" }
 > 头部使用物品图标。
 
+```markdown
+> {: title="PNG Quote" color="#c79d3e" iconPng="./diamond.png" }
+> 从指南资源加载的 PNG 图标。
+```
+
+> {: title="PNG Quote" color="#c79d3e" iconPng="./diamond.png" }
+> 从指南资源加载的 PNG 图标。
+
 ## 列表
 
 Markdown：
@@ -492,6 +500,8 @@ mindmap
 
 <Mermaid src="./markdown-mindmap.mmd" />
 
+固定尺寸的运行时 Mermaid 视口：
+
 <Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
 
 带有富文本标签和显式节点内容的思维导图：
@@ -511,6 +521,16 @@ mindmap
 <NodeContent id="preview">
 <BlockImage id="minecraft:diamond_block" scale={2} />
 </NodeContent>
+</Mermaid>
+
+## Mermaid 流程图
+
+展示所有形状、扩展属性、图标和配方节点的流程图：
+
+<Mermaid src="./markdown-flowchart.mmd" width="600" height="600">
+  <NodeContent id="Craft">
+    <RecipeFor id="minecraft:crafting_table" />
+  </NodeContent>
 </Mermaid>
 
 ## 脚注
