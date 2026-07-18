@@ -1,7 +1,11 @@
 package com.hfstudio.guidenh.guide.internal.search;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
@@ -22,7 +26,102 @@ public class GuideSearchSnippetFormatter {
         var expanded = expandHighlightMarkup(fragmentMarkup == null ? "" : fragmentMarkup);
         var plain = new StringBuilder();
         var ranges = parseRanges(expanded, plain);
-        return buildFlowContent(plain.toString(), ranges);
+        var sanitized = stripMarkdownDelimiters(plain.toString(), ranges);
+        return buildFlowContent(sanitized.text(), sanitized.ranges());
+    }
+
+    private static SanitizedSnippet stripMarkdownDelimiters(String text, List<IntRange> ranges) {
+        var delimiters = findMarkdownDelimiters(text);
+        if (delimiters.isEmpty()) {
+            return new SanitizedSnippet(text, ranges);
+        }
+
+        int[] offsets = new int[text.length() + 1];
+        var sanitized = new StringBuilder(text.length());
+        int sourceIndex = 0;
+        while (sourceIndex < text.length()) {
+            offsets[sourceIndex] = sanitized.length();
+            IntRange delimiter = delimiterStartingAt(delimiters, sourceIndex);
+            if (delimiter != null) {
+                for (int index = delimiter.startInclusive() + 1; index <= delimiter.endExclusive(); index++) {
+                    offsets[index] = sanitized.length();
+                }
+                sourceIndex = delimiter.endExclusive();
+                continue;
+            }
+            sanitized.append(text.charAt(sourceIndex));
+            sourceIndex++;
+            offsets[sourceIndex] = sanitized.length();
+        }
+
+        var sanitizedRanges = new ArrayList<IntRange>(ranges.size());
+        for (var range : ranges) {
+            int start = offsets[range.startInclusive()];
+            int end = offsets[range.endExclusive()];
+            if (start < end) {
+                sanitizedRanges.add(new IntRange(start, end));
+            }
+        }
+        return new SanitizedSnippet(sanitized.toString(), sanitizedRanges);
+    }
+
+    private static List<IntRange> findMarkdownDelimiters(String text) {
+        var delimiters = new ArrayList<IntRange>();
+        Deque<MarkdownDelimiter> openDelimiters = new ArrayDeque<>();
+        int index = 0;
+        while (index < text.length()) {
+            if (!isMarkdownDelimiter(text.charAt(index)) || isEscaped(text, index)) {
+                index++;
+                continue;
+            }
+            int end = index + 1;
+            while (end < text.length() && text.charAt(end) == text.charAt(index)) {
+                end++;
+            }
+            String token = text.substring(index, end);
+            MarkdownDelimiter opening = openDelimiters.peek();
+            if (opening != null && opening.token()
+                .equals(token) && containsVisibleText(text, opening.endExclusive(), index)) {
+                delimiters.add(new IntRange(opening.startInclusive(), opening.endExclusive()));
+                delimiters.add(new IntRange(index, end));
+                openDelimiters.pop();
+            } else {
+                openDelimiters.push(new MarkdownDelimiter(token, index, end));
+            }
+            index = end;
+        }
+        return delimiters;
+    }
+
+    private static boolean isMarkdownDelimiter(char character) {
+        return !Character.isLetterOrDigit(character) && !Character.isWhitespace(character);
+    }
+
+    private static boolean isEscaped(String text, int index) {
+        int slashCount = 0;
+        for (int cursor = index - 1; cursor >= 0 && text.charAt(cursor) == '\\'; cursor--) {
+            slashCount++;
+        }
+        return slashCount % 2 != 0;
+    }
+
+    private static boolean containsVisibleText(String text, int start, int end) {
+        for (int index = start; index < end; index++) {
+            if (!Character.isWhitespace(text.charAt(index))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Nullable
+    private static IntRange delimiterStartingAt(List<IntRange> delimiters, int index) {
+        for (var delimiter : delimiters) {
+            if (delimiter.startInclusive() == index) {
+                return delimiter;
+            }
+        }
+        return null;
     }
 
     public static LytFlowContent clipToVisibleChars(LytFlowContent content, int maxVisibleChars) {
@@ -227,4 +326,10 @@ public class GuideSearchSnippetFormatter {
             }
         }
     }
+
+    @Desugar
+    private record SanitizedSnippet(String text, List<IntRange> ranges) {}
+
+    @Desugar
+    private record MarkdownDelimiter(String token, int startInclusive, int endExclusive) {}
 }

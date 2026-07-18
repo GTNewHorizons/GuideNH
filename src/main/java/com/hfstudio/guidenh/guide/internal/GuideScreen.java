@@ -308,6 +308,8 @@ public class GuideScreen extends GuiContainer
     private LytDocument searchDocument;
     @Nullable
     private String cachedSearchQuery;
+    private long cachedSearchIndexRevision = -1L;
+    private long searchDocumentRebuildAfterNanos;
 
     // Tracks the item stack whose tooltip was rendered last frame, for the G-key disambiguation hotkey.
     @Nullable
@@ -389,6 +391,7 @@ public class GuideScreen extends GuiContainer
     public static final int SEARCH_RESULT_ICON_AND_GAP = 22;
     public static final int SEARCH_RESULT_TITLE_GAP = 8;
     public static final int SEARCH_PATH_MAX_CHARS = 20;
+    private static final long SEARCH_QUERY_DEBOUNCE_NANOS = 75_000_000L;
     public static final String ASCII_ELLIPSIS = "...";
     public static final int SEARCH_TOOLBAR_FIELD_Y_OFFSET = 5;
     private static final int SPECIAL_SEARCH_BACKGROUND_PADDING_X = 4;
@@ -5805,7 +5808,6 @@ public class GuideScreen extends GuiContainer
             draggingDocument = false;
             return;
         }
-        if (state == 0) {}
     }
 
     @Nullable
@@ -6495,13 +6497,22 @@ public class GuideScreen extends GuiContainer
         }
 
         String query = GuideSearchPage.queryFromAnchor(currentAnchor);
-        if (!force && searchDocument != null && Objects.equals(cachedSearchQuery, query)) {
+        if (!force && System.nanoTime() < searchDocumentRebuildAfterNanos) {
+            return;
+        }
+        long searchIndexRevision = GuideME.getSearch()
+            .getIndexRevision();
+        if (!force && searchDocument != null
+            && Objects.equals(cachedSearchQuery, query)
+            && cachedSearchIndexRevision == searchIndexRevision) {
             return;
         }
 
         clearInteractionState();
         cachedSearchQuery = query;
         searchDocument = buildSearchDocument(query);
+        cachedSearchIndexRevision = searchIndexRevision;
+        searchDocumentRebuildAfterNanos = 0L;
         layoutDocument = null;
         lastLayoutWidth = -1;
     }
@@ -6858,7 +6869,8 @@ public class GuideScreen extends GuiContainer
         currentPage = null;
         document = null;
         refreshCurrentPageTitle();
-        rebuildSearchDocumentIfNeeded(true);
+        searchDocumentRebuildAfterNanos = query.isEmpty() ? 0L : System.nanoTime() + SEARCH_QUERY_DEBOUNCE_NANOS;
+        rebuildSearchDocumentIfNeeded(false);
         scrollY = 0;
         snapVisualScrollToTarget();
         invalidateScrollbarOutline();

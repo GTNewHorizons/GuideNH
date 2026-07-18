@@ -12,14 +12,17 @@ public class SearchIndexWorkItem implements WorkItem {
 
     @Override
     public boolean shouldRun() {
-        return true;
+        return GuideME.getSearch()
+            .hasPendingWork();
     }
 
     @Override
     public WorkResult tick(long deadlineNs) {
-        GuideME.getSearch()
-            .processWork(GuideSearch.BACKGROUND_TIME_PER_TICK);
-        return WorkResult.DONE;
+        GuideSearch search = GuideME.getSearch();
+        long budget = search.isSearchPriorityActive() ? GuideSearch.SEARCH_TIME_PER_TICK
+            : GuideSearch.BACKGROUND_TIME_PER_TICK;
+        search.processWork(budget);
+        return WorkResult.YIELD;
     }
 
     @Override
