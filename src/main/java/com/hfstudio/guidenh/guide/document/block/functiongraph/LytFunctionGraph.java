@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -25,14 +26,14 @@ import lombok.Setter;
 
 /**
  * Function graph block. Plots one or more {@link FunctionPlot} curves on a Cartesian panel with
- * interactive Desmos-style hovering: while the cursor is over a curve the segment is thickened, an
- * accent point is drawn at the cursor's x value, and a custom tooltip anchored to the point is
- * rendered. Pressing the mouse button latches the highlight onto that curve so the user can drag
- * along it freely until the button is released, even when the cursor strays vertically.
+ * interactive Desmos-style hovering: while the cursor is over a curve the segment is thickened and an
+ * accent point is drawn at the cursor's x value. Pressing the mouse button latches the highlight
+ * onto that curve so the user can drag along it freely until the button is released, even when the
+ * cursor strays vertically.
  *
  * <p>
- * Layout, sampling and the tooltip overlay are all handled inside this single block so the rest
- * of the document does not need to coordinate with it.
+ * Layout, sampling and hover-state tracking are all handled inside this single block so the rest of
+ * the document does not need to coordinate with it.
  */
 public class LytFunctionGraph extends LytBlock implements InteractiveElement, DocumentDragTarget {
 
@@ -50,9 +51,6 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private static final float HIGHLIGHT_LINE_BONUS = 1.0f;
     private static final int POINT_RADIUS = 3;
     private static final float POINT_OUTER_RING = 1f;
-    private static final int TOOLTIP_PADDING_X = 5;
-    private static final int TOOLTIP_PADDING_Y = 4;
-    private static final int TOOLTIP_GAP = 8;
     private static final int LEGEND_GAP_ABOVE = 4;
     private static final int LEGEND_ROW_GAP = 2;
     private static final int LEGEND_ITEM_GAP = 10;
@@ -67,7 +65,6 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
 
     private static final ResolvedTextStyle TITLE_STYLE = makeStyle(0xFFE6E6E6, true);
     private static final ResolvedTextStyle AXIS_LABEL_STYLE = makeStyle(0xFFB8C2CF, false);
-    private static final ResolvedTextStyle TOOLTIP_TITLE_STYLE = makeStyle(0xFFFFFFFF, false);
     private static final ResolvedTextStyle TOOLTIP_BODY_STYLE = makeStyle(0xFFD7DEE7, false);
     private static final ResolvedTextStyle LEGEND_LABEL_STYLE = makeStyle(0xFFD7DEE7, false);
 
@@ -295,8 +292,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (!isDragging) {
             updateHover(x, y);
         }
-        // Tooltip is rendered manually anchored to the point; no built-in tooltip is returned.
-        return Optional.empty();
+        return createActiveTooltip();
     }
 
     @Override
@@ -918,10 +914,6 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF);
         context.fillCircle(sx, sy, POINT_RADIUS, plot.getColor());
 
-        // Tooltip panel.
-        String line1 = !isEmpty(plot.getLabel()) ? plot.getLabel() : plot.getExpressionText();
-        String line2 = "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
-        renderTooltipBox(context, sx, sy, line1, line2);
     }
 
     private void renderMarkedPointOverlay(RenderContext context, LytRect plotRect) {
@@ -938,10 +930,6 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000);
         context.fillCircle(sx, sy, POINT_RADIUS, color);
 
-        MarkedPoint point = points.get(activeMarkedIndex);
-        String line1 = !isEmpty(point.getLabel()) ? point.getLabel() : "Point";
-        String line2 = "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
-        renderTooltipBox(context, sx, sy, line1, line2);
     }
 
     private void renderAutoPointOverlay(RenderContext context, LytRect plotRect) {
@@ -957,31 +945,44 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000);
         context.fillCircle(sx, sy, POINT_RADIUS, color);
 
-        FunctionPlot plot = plots.get(activeAutoPlotIndex);
-        String line1 = !isEmpty(plot.getLabel()) ? plot.getLabel() : plot.getExpressionText();
-        String line2 = "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
-        renderTooltipBox(context, sx, sy, line1, line2);
     }
 
-    private void renderTooltipBox(RenderContext context, float sx, float sy, String line1, String line2) {
-        int lineH = context.getLineHeight(TOOLTIP_BODY_STYLE);
-        int textWidth = Math
-            .max(context.getStringWidth(line1, TOOLTIP_TITLE_STYLE), context.getStringWidth(line2, TOOLTIP_BODY_STYLE));
-        int boxWidth = textWidth + TOOLTIP_PADDING_X * 2;
-        int boxHeight = lineH * 2 + TOOLTIP_PADDING_Y * 2;
-        int boxX = (int) sx - boxWidth / 2;
-        int boxY = (int) sy - boxHeight - TOOLTIP_GAP;
-        if (boxY < bounds.y() + 2) {
-            boxY = (int) sy + TOOLTIP_GAP;
+    private Optional<GuideTooltip> createActiveTooltip() {
+        if (activeMarkedIndex >= 0 && activeMarkedIndex < points.size()) {
+            MarkedPoint point = points.get(activeMarkedIndex);
+            return coordinateTooltip(
+                !isEmpty(point.getLabel()) ? point.getLabel() : "Point",
+                activeMarkedDataX,
+                activeMarkedDataY);
         }
-        boxX = Math.clamp(boxX, bounds.x() + 2, bounds.right() - boxWidth - 2);
-        boxY = Math.clamp(boxY, bounds.y() + 2, bounds.bottom() - boxHeight - 2);
+        if (activeAutoPlotIndex >= 0 && activeAutoPlotIndex < plots.size()) {
+            FunctionPlot plot = plots.get(activeAutoPlotIndex);
+            return coordinateTooltip(
+                !isEmpty(plot.getLabel()) ? plot.getLabel() : plot.getExpressionText(),
+                activeAutoDataX,
+                activeAutoDataY);
+        }
+        if (activePlotIndex < 0 || activePlotIndex >= plots.size()) {
+            return Optional.empty();
+        }
+        FunctionPlot plot = plots.get(activePlotIndex);
+        double dataX;
+        double dataY;
+        if (plot.isInverse()) {
+            dataY = activeDataX;
+            dataX = plot.evaluate(dataY);
+        } else {
+            dataX = activeDataX;
+            dataY = plot.evaluate(dataX);
+        }
+        if (!Double.isFinite(dataX) || !Double.isFinite(dataY)) {
+            return Optional.empty();
+        }
+        return coordinateTooltip(!isEmpty(plot.getLabel()) ? plot.getLabel() : plot.getExpressionText(), dataX, dataY);
+    }
 
-        LytRect box = new LytRect(boxX, boxY, boxWidth, boxHeight);
-        context.fillRect(box, 0xEE202428);
-        context.drawBorder(box, 0xFF555555, 1);
-        context.drawText(line1, boxX + TOOLTIP_PADDING_X, boxY + TOOLTIP_PADDING_Y, TOOLTIP_TITLE_STYLE);
-        context.drawText(line2, boxX + TOOLTIP_PADDING_X, boxY + TOOLTIP_PADDING_Y + lineH, TOOLTIP_BODY_STYLE);
+    private Optional<GuideTooltip> coordinateTooltip(String label, double dataX, double dataY) {
+        return Optional.of(new TextTooltip(label + "\n(" + formatValue(dataX) + ", " + formatValue(dataY) + ")"));
     }
 
     /**
@@ -1362,12 +1363,5 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             false,
             null,
             false);
-    }
-
-    @SuppressWarnings("unused")
-    private int unusedDragButtonAccessor() {
-        // The drag button is captured for future use (e.g. distinguishing left/right behaviour) but
-        // is not consulted today; this accessor keeps it from being trimmed by static analysis.
-        return dragButton;
     }
 }
