@@ -7,6 +7,7 @@ import net.minecraftforge.common.MinecraftForge;
 
 import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridge;
 import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridgeSettings;
+import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.client.RegionWandRenderer;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.command.GuideNhClientCommand;
@@ -111,6 +112,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
+        GuideNhClientTaskScheduler.initialize();
         GuidebookLevel.setPreviewWorldFactory(GuidebookFakeWorld::new);
         GuideNhClientIntegrationBootstrap.preInitClient();
         GuideME.initClientProxy();

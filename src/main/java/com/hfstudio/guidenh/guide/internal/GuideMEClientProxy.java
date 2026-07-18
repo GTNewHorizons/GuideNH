@@ -6,6 +6,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.guide.PageAnchor;
 
 public class GuideMEClientProxy extends GuideMEServerProxy {
@@ -20,6 +21,9 @@ public class GuideMEClientProxy extends GuideMEServerProxy {
     public boolean reloadResources() {
         var mc = Minecraft.getMinecraft();
         if (mc == null) return false;
-        return GuideMEClientReloadDispatcher.dispatch(mc.func_152345_ab(), mc::func_152344_a, mc::refreshResources);
+        return GuideMEClientReloadDispatcher.dispatch(
+            GuideNhClientTaskScheduler.isOnClientThread(),
+            GuideNhClientTaskScheduler::execute,
+            mc::refreshResources);
     }
 }
