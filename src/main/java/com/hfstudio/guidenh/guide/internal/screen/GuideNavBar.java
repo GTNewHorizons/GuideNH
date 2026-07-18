@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.screen;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,6 +27,7 @@ import com.hfstudio.guidenh.guide.internal.GuideBookmarkState;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
@@ -155,8 +157,10 @@ public class GuideNavBar {
 
     public interface GuideExpansionListener {
 
-        void onExpansionToggled(@Nullable ResourceLocation guideId, ResourceLocation pageId, boolean expanded);
+        void onExpansionChanged(List<ExpansionChange> changes, boolean allCollapsed);
     }
+
+    public record ExpansionChange(@Nullable ResourceLocation guideId, ResourceLocation pageId, boolean expanded) {}
 
     private final List<Row> rows = new ArrayList<>();
     private final Set<ResourceLocation> expandedPageIds = new HashSet<>();
@@ -170,7 +174,7 @@ public class GuideNavBar {
     private int lastExpandedStateHash;
     private boolean bookmarkGroupExpanded = true;
     @Nullable
-    private GuideExpansionListener onExpansionToggled;
+    private GuideExpansionListener onExpansionChanged;
 
     private int x;
     private int y;
@@ -191,6 +195,7 @@ public class GuideNavBar {
         this.x = x;
         this.y = y;
         this.height = height;
+        clampScrollToRows();
     }
 
     public void setOpenWidth(int openWidth) {
@@ -219,8 +224,8 @@ public class GuideNavBar {
         }
     }
 
-    public void setOnExpansionToggled(@Nullable GuideExpansionListener listener) {
-        this.onExpansionToggled = listener;
+    public void setOnExpansionChanged(@Nullable GuideExpansionListener listener) {
+        this.onExpansionChanged = listener;
     }
 
     public void update(int mouseX, int mouseY, @Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
@@ -330,6 +335,14 @@ public class GuideNavBar {
         }
     }
 
+    public void expandAll(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
+        updateExpansionState(collectExpandableNodes(tree), true, bookmarkState);
+    }
+
+    public void collapseAll(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
+        updateExpansionState(collectExpandableNodes(tree), false, bookmarkState, true);
+    }
+
     private boolean shouldRebuildRows(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
         return tree != lastTree || lastBookmarkStateVersion != bookmarkState.version()
             || lastExpandedStateHash != expandedPageIds.hashCode();
@@ -342,6 +355,7 @@ public class GuideNavBar {
         if (tree == null) {
             lastBookmarkStateVersion = bookmarkState.version();
             lastExpandedStateHash = expandedPageIds.hashCode();
+            clampScrollToRows();
             return;
         }
         GuideNavProjection.ProjectionResult projected = projection
@@ -351,6 +365,7 @@ public class GuideNavBar {
         }
         lastBookmarkStateVersion = bookmarkState.version();
         lastExpandedStateHash = expandedPageIds.hashCode();
+        clampScrollToRows();
     }
 
     public void render(Minecraft mc, @Nullable ResourceLocation currentGuideId,
@@ -640,7 +655,8 @@ public class GuideNavBar {
 
     @Nullable
     public ClickResult mouseClicked(int mouseX, int mouseY, @Nullable ResourceLocation currentGuideId,
-        @Nullable ResourceLocation currentPageId, GuideBookmarkState bookmarkState, boolean showNewPageButton) {
+        @Nullable ResourceLocation currentPageId, GuideBookmarkState bookmarkState, boolean showNewPageButton,
+        boolean shiftDown) {
         if (!isOpen()) {
             return null;
         }
@@ -672,7 +688,11 @@ public class GuideNavBar {
         }
 
         if (row.hasChildren() && isInsideExpandArrow(mouseX, row)) {
-            toggleExpand(row, bookmarkState);
+            if (shiftDown && row.kind() == GuideNavProjection.RowKind.TREE_PAGE) {
+                toggleExpandedDescendants(row, bookmarkState);
+            } else {
+                toggleExpand(row, bookmarkState);
+            }
             return ClickResult.none();
         }
 
@@ -795,16 +815,93 @@ public class GuideNavBar {
     private void toggleExpand(Row row, GuideBookmarkState bookmarkState) {
         if (row.kind() == GuideNavProjection.RowKind.BOOKMARK_GROUP) {
             bookmarkGroupExpanded = !bookmarkGroupExpanded;
-        } else if (row.pageId() != null) {
-            if (expandedPageIds.contains(row.pageId())) {
-                expandedPageIds.remove(row.pageId());
-            } else {
-                expandedPageIds.add(row.pageId());
+            rebuildRows(lastTree, bookmarkState);
+            return;
+        }
+        ResourceLocation pageId = row.pageId();
+        if (lastTree == null || pageId == null) {
+            return;
+        }
+        NavigationNode node = lastTree.getNodeById(pageId);
+        if (node == null) {
+            return;
+        }
+        updateExpansionState(List.of(node), !expandedPageIds.contains(pageId), bookmarkState);
+    }
+
+    private void toggleExpandedDescendants(Row row, GuideBookmarkState bookmarkState) {
+        ResourceLocation pageId = row.pageId();
+        if (lastTree == null || pageId == null) {
+            return;
+        }
+        NavigationNode node = lastTree.getNodeById(pageId);
+        if (node == null) {
+            return;
+        }
+        List<NavigationNode> nodes = collectExpandableNodes(node);
+        boolean allExpanded = !nodes.isEmpty() && nodes.stream()
+            .allMatch(expandableNode -> expandedPageIds.contains(expandableNode.pageId()));
+        updateExpansionState(nodes, !allExpanded, bookmarkState);
+    }
+
+    private List<NavigationNode> collectExpandableNodes(@Nullable NavigationTree tree) {
+        return tree == null ? List.of() : collectExpandableNodes(tree.getRootNodes());
+    }
+
+    private List<NavigationNode> collectExpandableNodes(NavigationNode root) {
+        return collectExpandableNodes(List.of(root));
+    }
+
+    private List<NavigationNode> collectExpandableNodes(List<NavigationNode> roots) {
+        if (roots.isEmpty()) {
+            return List.of();
+        }
+        List<NavigationNode> nodes = new ArrayList<>();
+        ArrayDeque<NavigationNode> pendingNodes = new ArrayDeque<>(roots.size());
+        for (int index = roots.size() - 1; index >= 0; index--) {
+            pendingNodes.push(roots.get(index));
+        }
+        while (!pendingNodes.isEmpty()) {
+            NavigationNode node = pendingNodes.pop();
+            List<NavigationNode> children = node.children();
+            if (node.pageId() != null && !children.isEmpty()) {
+                nodes.add(node);
+            }
+            for (int index = children.size() - 1; index >= 0; index--) {
+                pendingNodes.push(children.get(index));
             }
         }
+        return nodes;
+    }
+
+    private void updateExpansionState(List<NavigationNode> nodes, boolean expanded, GuideBookmarkState bookmarkState) {
+        updateExpansionState(nodes, expanded, bookmarkState, false);
+    }
+
+    private void updateExpansionState(List<NavigationNode> nodes, boolean expanded, GuideBookmarkState bookmarkState,
+        boolean allCollapsed) {
+        List<ExpansionChange> changes = new ArrayList<>();
+        boolean changed = allCollapsed && !expandedPageIds.isEmpty();
+        for (NavigationNode node : nodes) {
+            ResourceLocation pageId = node.pageId();
+            if (pageId == null) {
+                continue;
+            }
+            boolean nodeChanged = expanded ? expandedPageIds.add(pageId) : expandedPageIds.remove(pageId);
+            changed |= nodeChanged;
+            if (nodeChanged) {
+                changes.add(new ExpansionChange(node.guideId(), pageId, expanded));
+            }
+        }
+        if (allCollapsed) {
+            expandedPageIds.clear();
+        }
+        if (!changed) {
+            return;
+        }
         rebuildRows(lastTree, bookmarkState);
-        if (onExpansionToggled != null && row.pageId() != null) {
-            onExpansionToggled.onExpansionToggled(row.guideId(), row.pageId(), expandedPageIds.contains(row.pageId()));
+        if (onExpansionChanged != null) {
+            onExpansionChanged.onExpansionChanged(changes, allCollapsed);
         }
     }
 
@@ -814,15 +911,21 @@ public class GuideNavBar {
     }
 
     public void scroll(int dwheel) {
-        int contentH = rows.size() * ROW_H + CONTENT_PADDING * 2;
-        int max = Math.max(0, contentH - Math.max(0, height - TITLE_H));
-        scrollY -= Integer.signum(dwheel) * ROW_H * 2;
-        if (scrollY < 0) {
-            scrollY = 0;
+        scrollY = Math.clamp(scrollY - Integer.signum(dwheel) * ROW_H * 2, 0, getMaxScrollY());
+    }
+
+    private void clampScrollToRows() {
+        int maxScrollY = getMaxScrollY();
+        int clampedScrollY = Math.clamp(scrollY, 0, maxScrollY);
+        if (clampedScrollY != scrollY || visualScrollY.rounded() > maxScrollY) {
+            scrollY = clampedScrollY;
+            visualScrollY.snapTo(scrollY);
         }
-        if (scrollY > max) {
-            scrollY = max;
-        }
+    }
+
+    private int getMaxScrollY() {
+        int contentHeight = rows.size() * ROW_H + CONTENT_PADDING * 2;
+        return Math.max(0, contentHeight - getBodyHeight());
     }
 
     private int getFirstVisibleRowIndex() {

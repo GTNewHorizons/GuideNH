@@ -117,6 +117,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar.ContextTarget;
+import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar.ExpansionChange;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
@@ -540,16 +541,12 @@ public class GuideScreen extends GuiContainer
             bookmarkState,
             route.isContent() && currentAnchor != null ? currentAnchor.pageId() : null,
             null);
-        navBar.setOnExpansionToggled((toggledGuideId, pageId, expanded) -> {
-            if (toggledGuideId != null) {
-                updateSavedExpansionState(toggledGuideId, pageId, expanded);
-            }
+        navBar.setOnExpansionChanged((changes, allCollapsed) -> {
             ResourceLocation currentGuideId = guide != null ? guide.getId() : null;
-            if (!Objects.equals(currentGuideId, toggledGuideId)) {
+            updateSavedExpansionStates(changes, currentGuideId);
+            if (allCollapsed || changes.stream()
+                .anyMatch(change -> !Objects.equals(currentGuideId, change.guideId()))) {
                 rememberNavigationState();
-            }
-            if (toggledGuideId == null && currentGuideId != null) {
-                updateSavedExpansionState(null, pageId, expanded);
             }
         });
     }
@@ -806,23 +803,40 @@ public class GuideScreen extends GuiContainer
             .rememberNavBarState(guide != null ? guide.getId() : null, navBar.captureState());
     }
 
-    private void updateSavedExpansionState(@Nullable ResourceLocation guideId, ResourceLocation pageId,
-        boolean expanded) {
-        GuideNavBarState saved = ClientProxy.getLytHost()
-            .getNavigation()
-            .recallNavigationState(guideId);
-        LinkedHashSet<ResourceLocation> updated = new LinkedHashSet<>(
-            saved.expandedPageIds() != null ? saved.expandedPageIds() : Collections.emptySet());
-        if (expanded) {
-            updated.add(pageId);
-        } else {
-            updated.remove(pageId);
-        }
-        ClientProxy.getLytHost()
-            .getNavigation()
-            .rememberNavBarState(
+    private void updateSavedExpansionStates(List<ExpansionChange> changes, @Nullable ResourceLocation currentGuideId) {
+        Map<ResourceLocation, GuideNavBarState> savedStates = new LinkedHashMap<>();
+        Map<ResourceLocation, LinkedHashSet<ResourceLocation>> expandedPageIdsByGuide = new LinkedHashMap<>();
+        for (ExpansionChange change : changes) {
+            ResourceLocation guideId = change.guideId();
+            if (guideId == null && currentGuideId == null) {
+                continue;
+            }
+            GuideNavBarState saved = savedStates.computeIfAbsent(
                 guideId,
-                GuideNavBarState.create(saved.bookmarkGroupExpanded(), updated, saved.scrollY()));
+                ignored -> ClientProxy.getLytHost()
+                    .getNavigation()
+                    .recallNavigationState(guideId));
+            LinkedHashSet<ResourceLocation> expandedPageIds = expandedPageIdsByGuide.computeIfAbsent(
+                guideId,
+                ignored -> new LinkedHashSet<>(
+                    saved.expandedPageIds() != null ? saved.expandedPageIds() : Collections.emptySet()));
+            if (change.expanded()) {
+                expandedPageIds.add(change.pageId());
+            } else {
+                expandedPageIds.remove(change.pageId());
+            }
+        }
+        for (Map.Entry<ResourceLocation, GuideNavBarState> entry : savedStates.entrySet()) {
+            GuideNavBarState saved = entry.getValue();
+            ClientProxy.getLytHost()
+                .getNavigation()
+                .rememberNavBarState(
+                    entry.getKey(),
+                    GuideNavBarState.create(
+                        saved.bookmarkGroupExpanded(),
+                        expandedPageIdsByGuide.get(entry.getKey()),
+                        saved.scrollY()));
+        }
     }
 
     private boolean isNavigationNewPageButtonVisible() {
@@ -4901,10 +4915,8 @@ public class GuideScreen extends GuiContainer
         }
         if (button == 1 && navBar.contains(mouseX, mouseY)) {
             ContextTarget contextTarget = navBar.getContextTarget(mouseX, mouseY);
-            if (contextTarget != null) {
-                openNavBarContextMenu(mouseX, mouseY, contextTarget);
-                return;
-            }
+            openNavBarContextMenu(mouseX, mouseY, contextTarget);
+            return;
         }
         if (GuideScreenNeiBridge.mouseClicked(this, mouseX, mouseY, button)) {
             return;
@@ -4916,7 +4928,8 @@ public class GuideScreen extends GuiContainer
                 guide != null ? guide.getId() : null,
                 currentAnchor != null ? currentAnchor.pageId() : null,
                 bookmarkState,
-                isNavigationNewPageButtonVisible());
+                isNavigationNewPageButtonVisible(),
+                Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT));
             if (result != null && result.pinToggle()) {
                 toggleNavigationPinned();
                 mc.getSoundHandler()
@@ -5119,7 +5132,7 @@ public class GuideScreen extends GuiContainer
         homePageContextMenu.open(mouseX, mouseY, width, height, fontRendererObj);
     }
 
-    private void openNavBarContextMenu(int mouseX, int mouseY, ContextTarget contextTarget) {
+    private void openNavBarContextMenu(int mouseX, int mouseY, @Nullable ContextTarget contextTarget) {
         closeHomePageContextMenu();
         closeGuideEditorContextMenu();
         closeNavBarContextMenu();
@@ -5164,6 +5177,14 @@ public class GuideScreen extends GuiContainer
     private void performNavBarContextMenuAction(GuideScreenContextMenu.ContextMenuAction action) {
         ContextTarget contextTarget = navBarContextTarget;
         closeNavBarContextMenu();
+        if (action == GuideScreenContextMenu.ContextMenuAction.EXPAND_ALL) {
+            navBar.expandAll(resolveNavigationTree(), bookmarkState);
+            return;
+        }
+        if (action == GuideScreenContextMenu.ContextMenuAction.COLLAPSE_ALL) {
+            navBar.collapseAll(resolveNavigationTree(), bookmarkState);
+            return;
+        }
         if (action == GuideScreenContextMenu.ContextMenuAction.OPEN_SPECIAL_PAGES) {
             openSpecialPagesFromContextMenu(contextTarget);
             return;
@@ -5193,8 +5214,17 @@ public class GuideScreen extends GuiContainer
                     .specialPageId(activeGuide.getDefaultNamespace(), MediaWikiSpecialPageIds.SPECIAL_PAGES)));
     }
 
-    private List<GuideScreenContextMenu.Entry> buildNavBarContextMenuEntries(ContextTarget contextTarget) {
+    private List<GuideScreenContextMenu.Entry> buildNavBarContextMenuEntries(@Nullable ContextTarget contextTarget) {
         List<GuideScreenContextMenu.Entry> entries = new ArrayList<>();
+        entries.add(
+            GuideScreenContextMenu.Entry
+                .action(GuidebookText.NavBarExpandAll.text(), GuideScreenContextMenu.ContextMenuAction.EXPAND_ALL));
+        entries.add(
+            GuideScreenContextMenu.Entry
+                .action(GuidebookText.NavBarCollapseAll.text(), GuideScreenContextMenu.ContextMenuAction.COLLAPSE_ALL));
+        if (contextTarget == null) {
+            return entries;
+        }
         entries.add(
             GuideScreenContextMenu.Entry.action(
                 GuidebookText.NavBarSpecialPages.text(),
@@ -5223,10 +5253,8 @@ public class GuideScreen extends GuiContainer
         }
         if (button == 1 && navBar.contains(mouseX, mouseY)) {
             ContextTarget contextTarget = navBar.getContextTarget(mouseX, mouseY);
-            if (contextTarget != null) {
-                openNavBarContextMenu(mouseX, mouseY, contextTarget);
-                return true;
-            }
+            openNavBarContextMenu(mouseX, mouseY, contextTarget);
+            return true;
         }
         boolean handled = homePageContextMenu.mouseClicked(
             mouseX,
@@ -5257,10 +5285,8 @@ public class GuideScreen extends GuiContainer
         }
         if (button == 1 && navBar.contains(mouseX, mouseY)) {
             ContextTarget contextTarget = navBar.getContextTarget(mouseX, mouseY);
-            if (contextTarget != null) {
-                openNavBarContextMenu(mouseX, mouseY, contextTarget);
-                return true;
-            }
+            openNavBarContextMenu(mouseX, mouseY, contextTarget);
+            return true;
         }
         boolean handled = navBarContextMenu
             .mouseClicked(mouseX, mouseY, button, this::performNavBarContextMenuAction, fontRendererObj, width, height);

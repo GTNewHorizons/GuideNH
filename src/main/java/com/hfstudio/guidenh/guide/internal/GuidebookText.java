@@ -268,6 +268,8 @@ public enum GuidebookText implements LocalizationEnum {
     HomePage,
     HomePageSpecialPages,
     NavBarSpecialPages,
+    NavBarExpandAll,
+    NavBarCollapseAll,
     SpecialPageShowMore,
     SiteExportNoPages,
     SiteExportOpenGuide,
