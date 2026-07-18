@@ -761,6 +761,7 @@ public class GuideScreen extends GuiContainer
         ensureLayout();
         scrollToCurrentAnchor();
         clampScroll();
+        rebuildToolbar();
         if (isGuideEditorActive()) {
             refreshGuideEditorDraft(true);
         }
@@ -2241,7 +2242,6 @@ public class GuideScreen extends GuiContainer
                     bookmarkState,
                     null,
                     null);
-                rebuildToolbar();
             });
         } else if (btn == btnGuideEditorToggle) {
             toggleGuideEditorEnabled();
@@ -2303,7 +2303,6 @@ public class GuideScreen extends GuiContainer
                                     .pageId() : null,
                         carryOver);
                 }
-                rebuildToolbar();
             }
         });
     }
@@ -2341,7 +2340,6 @@ public class GuideScreen extends GuiContainer
                                     .pageId() : null,
                         carryOver);
                 }
-                rebuildToolbar();
             }
         });
     }
@@ -2870,18 +2868,19 @@ public class GuideScreen extends GuiContainer
         }
         drawButtonTooltip(mouseX, mouseY);
         debugOverlay.onFrameStart();
+        var activeDocument = getActiveDocument();
         debugOverlay.render(
             width,
             height,
             mouseX,
             mouseY,
             contentX,
-            getDocumentViewportY(),
+            activeDocument != null ? getDocumentRenderY(activeDocument) : getDocumentViewportY(),
             contentW,
             getDocumentViewportHeight(),
             Math.round(visualScrollY),
             currentZoom,
-            layoutDocument,
+            activeDocument,
             fontRendererObj);
     }
 
@@ -6113,7 +6112,6 @@ public class GuideScreen extends GuiContainer
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
             rememberCurrentContentStateIfEligible();
             restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guide.getId(), anchor), 0));
-            rebuildToolbar();
         });
     }
 
@@ -6144,7 +6142,6 @@ public class GuideScreen extends GuiContainer
                 bookmarkState,
                 anchor.pageId(),
                 carryOver);
-            rebuildToolbar();
         });
     }
 
@@ -6791,7 +6788,7 @@ public class GuideScreen extends GuiContainer
                 + SPECIAL_SEARCH_DIVIDER_HEIGHT
                 + 6;
         }
-        return isSearchPage() ? SEARCH_FIELD_H + 14 : 0;
+        return 0;
     }
 
     private boolean handleSearchFieldKey(char typedChar, int keyCode) {
