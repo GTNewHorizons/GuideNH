@@ -1348,9 +1348,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         StringBuilder text = new StringBuilder();
         collectStructureText(text, element.children());
-        FileTreeModel model = FileTreeParser.parse(
-            text.toString()
-                .trim());
+        return renderFileTree(text.toString(), defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+    }
+
+    @Override
+    public String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler) {
+        FileTreeModel model = FileTreeParser.parse(source.trim());
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-file-tree\">");
         for (FileTreeEntry entry : model.entries()) {

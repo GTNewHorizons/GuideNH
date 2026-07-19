@@ -72,6 +72,12 @@ public class GuideSiteHtmlCompiler {
         @Nullable
         String render(MdxJsxElementFields element, String defaultNamespace, @Nullable ResourceLocation currentPageId,
             GuideSiteTemplateRegistry templates, SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler);
+
+        @Nullable
+        default String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+            GuideSiteTemplateRegistry templates, SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+            return null;
+        }
     }
 
     public interface SceneResolver {
@@ -303,7 +309,7 @@ public class GuideSiteHtmlCompiler {
             return compileListItemMdx(el, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if ("pre".equals(el.name())) {
-            return compileCodeBlockMdx(el);
+            return compileCodeBlockMdx(el, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if ("table".equals(el.name())) {
             return compileTableMdx(el, templates, defaultNamespace, currentPageId, sceneResolver);
@@ -527,7 +533,8 @@ public class GuideSiteHtmlCompiler {
             + "</li>";
     }
 
-    private String compileCodeBlockMdx(MdxJsxElementFields el) {
+    private String compileCodeBlockMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String codeText = extractTextFromElement(el);
         String lang = el.getAttributeString("lang", null);
         String meta = el.getAttributeString("meta", null);
@@ -542,7 +549,9 @@ public class GuideSiteHtmlCompiler {
             return GuideSiteGraphRenderer.renderCsvTable(codeText, true);
         }
         if ("tree".equals(lang) || "filetree".equals(lang)) {
-            return GuideSiteGraphRenderer.renderFileTree(codeText);
+            String rendered = mdxTagRenderer
+                .renderFileTree(codeText, defaultNamespace, currentPageId, templates, sceneResolver, this);
+            return rendered != null ? rendered : GuideSiteGraphRenderer.renderFileTree(codeText);
         }
         if ("mermaid".equals(lang)) {
             try {
