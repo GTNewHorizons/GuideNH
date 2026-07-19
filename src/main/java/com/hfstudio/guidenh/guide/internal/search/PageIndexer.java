@@ -70,10 +70,6 @@ public class PageIndexer implements IndexingContext {
             }
             var compiler = tagCompilers.get(el.name());
             if (compiler == null) {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH] [PageIndexer] Unhandled MDX element in guide search indexing: {}",
-                    el.name());
-                // Fallback: index children content
                 indexContent(el.children(), sink);
             } else {
                 compiler.index(this, el, sink);

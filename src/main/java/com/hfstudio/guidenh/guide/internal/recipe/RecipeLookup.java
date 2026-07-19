@@ -121,9 +121,10 @@ public class RecipeLookup {
         if (o instanceof ItemStack stack) {
             return copy(stack);
         }
-        if (o instanceof List<?>list) {
-            if (!list.isEmpty() && list.getFirst() instanceof ItemStack) {
-                return copy((ItemStack) list.getFirst());
+        if (o instanceof List<?>list && !list.isEmpty()) {
+            Object first = list.get(0);
+            if (first instanceof ItemStack stack) {
+                return copy(stack);
             }
         }
         return null;
