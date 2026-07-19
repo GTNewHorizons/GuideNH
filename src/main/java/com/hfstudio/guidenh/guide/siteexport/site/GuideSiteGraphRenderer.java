@@ -101,9 +101,9 @@ public class GuideSiteGraphRenderer {
         int g = (argb >> 8) & 0xFF;
         int b = argb & 0xFF;
         if (a == 0xFF) {
-            return String.format("#%02X%02X%02X", r, g, b);
+            return String.format(Locale.ROOT, "#%02X%02X%02X", r, g, b);
         }
-        return String.format("rgba(%d,%d,%d,%.3f)", r, g, b, a / 255.0);
+        return String.format(Locale.ROOT, "rgba(%d,%d,%d,%.3f)", r, g, b, a / 255.0);
     }
 
     // File tree.
@@ -1354,7 +1354,13 @@ public class GuideSiteGraphRenderer {
                     .append("\" stroke=\"")
                     .append(argbToRgba(bgColor))
                     .append("\" stroke-width=\"0.5\"><title>")
-                    .append(esc(sl.label + ": " + formatNum(sl.value) + " (" + String.format("%.1f", pct) + "%)"))
+                    .append(
+                        esc(
+                            sl.label + ": "
+                                + formatNum(sl.value)
+                                + " ("
+                                + String.format(Locale.ROOT, "%.1f", pct)
+                                + "%)"))
                     .append("</title></path>");
                 ang = ea;
             }
@@ -1852,7 +1858,8 @@ public class GuideSiteGraphRenderer {
                 .append("\" stroke=\"")
                 .append(argbToRgba(bgColor))
                 .append("\" stroke-width=\"0.5\"><title>")
-                .append(esc(s.label + ": " + formatNum(s.value) + " (" + String.format("%.1f", pct) + "%)"))
+                .append(
+                    esc(s.label + ": " + formatNum(s.value) + " (" + String.format(Locale.ROOT, "%.1f", pct) + "%)"))
                 .append("</title></path>");
             startAngle = endAngle;
         }
@@ -3046,12 +3053,12 @@ public class GuideSiteGraphRenderer {
         }
         double absV = Math.abs(v);
         if (absV >= 1e6 || (absV < 1e-3)) {
-            return String.format("%.2e", v);
+            return String.format(Locale.ROOT, "%.2e", v);
         }
         if (absV == Math.floor(absV) && absV < 1e5) {
             return String.valueOf((long) v);
         }
-        String s = String.format("%.4f", v);
+        String s = String.format(Locale.ROOT, "%.4f", v);
         int dot = s.indexOf('.');
         if (dot >= 0) {
             int last = s.length() - 1;
