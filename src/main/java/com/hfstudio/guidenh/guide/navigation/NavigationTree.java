@@ -327,7 +327,13 @@ public class NavigationTree {
 
     public static final Comparator<NavigationNode> NODE_COMPARATOR = Comparator.comparingInt(NavigationNode::position)
         .reversed()
-        .thenComparing(NavigationNode::title);
+        .thenComparing(NavigationNode::title)
+        .thenComparing(
+            node -> node.guideId() != null ? node.guideId()
+                .toString() : "")
+        .thenComparing(
+            node -> node.pageId() != null ? node.pageId()
+                .toString() : "");
 
     @Nullable
     private static NavigationNode createMergedNode(Map<ResourceLocation, NavigationNode> nodeIndex,
