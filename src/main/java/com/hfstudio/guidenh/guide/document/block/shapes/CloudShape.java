@@ -4,9 +4,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class CloudShape implements ShapeRenderer {
+
+    @Override
+    public boolean isClipped() {
+        return true;
+    }
+
+    @Override
+    public Point edgeIntersect(LytRect nodeRect, int ex, int ey) {
+        int w = nodeRect.width(), h = nodeRect.height();
+        float[][] arcs = getCloudArcs(w, h);
+        float[] raw = buildCloudPolygon(w, h);
+        float[] bounds = ShapeUtils.computeBounds(raw);
+        return FlowchartShapes.intersectArcs(nodeRect, bounds, arcs, ex, ey);
+    }
 
     @Override
     public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
@@ -14,15 +29,8 @@ public class CloudShape implements ShapeRenderer {
         float[] raw = buildCloudPolygon(w, h);
         int n = raw.length / 2;
 
-        float minX = Float.MAX_VALUE, maxX = Float.MIN_VALUE;
-        float minY = Float.MAX_VALUE, maxY = Float.MIN_VALUE;
-        for (int i = 0; i < raw.length; i += 2) {
-            if (raw[i] < minX) minX = raw[i];
-            if (raw[i] > maxX) maxX = raw[i];
-            if (raw[i + 1] < minY) minY = raw[i + 1];
-            if (raw[i + 1] > maxY) maxY = raw[i + 1];
-        }
-
+        float[] bounds = ShapeUtils.computeBounds(raw);
+        float minX = bounds[0], maxX = bounds[1], minY = bounds[2], maxY = bounds[3];
         float sx = (maxX > minX) ? w / (maxX - minX) : 1;
         float sy = (maxY > minY) ? h / (maxY - minY) : 1;
         float[] xs = new float[n];
@@ -53,18 +61,21 @@ public class CloudShape implements ShapeRenderer {
         ShapeUtils.fillPolygonCentered(context, ixs, iys, backgroundColor);
     }
 
-    private static float[] buildCloudPolygon(float w, float h) {
+    private static float[][] getCloudArcs(float w, float h) {
         float r1 = 0.15f * w;
         float r2 = 0.25f * w;
         float r3 = 0.35f * w;
         float r4 = 0.20f * w;
 
-        // SVG arc: a rx ry xAxisRot largeArc sweep dx dy
-        float[][] arcs = { { 0.25f * w, -0.10f * w, r1, r1, 0, 1 }, { 0.40f * w, -0.10f * w, r3, r3, 0, 1 },
+        return new float[][] { { 0.25f * w, -0.10f * w, r1, r1, 0, 1 }, { 0.40f * w, -0.10f * w, r3, r3, 0, 1 },
             { 0.35f * w, 0.20f * w, r2, r2, 0, 1 }, { 0.15f * w, 0.35f * h, r1, r1, 0, 1 },
             { -0.15f * w, 0.65f * h, r4, r4, 0, 1 }, { -0.25f * w, 0.15f * w, r2, r1, 0, 1 },
             { -0.50f * w, 0, r3, r3, 0, 1 }, { -0.25f * w, -0.15f * w, r1, r1, 0, 1 },
             { -0.10f * w, -0.35f * h, r1, r1, 0, 1 }, { 0.10f * w, -0.65f * h, r4, r4, 0, 1 }, };
+    }
+
+    private static float[] buildCloudPolygon(float w, float h) {
+        float[][] arcs = getCloudArcs(w, h);
 
         List<Float> pts = new ArrayList<>();
         float cx = 0, cy = 0;
@@ -92,6 +103,33 @@ public class CloudShape implements ShapeRenderer {
             result[i] = pts.get(i);
         }
         return result;
+    }
+
+    @Override
+    public String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
+        String pts = generateSvgPoints(x, y, w, h);
+        return String.format(
+            "<polygon points=\"%s\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/>",
+            pts,
+            fill,
+            stroke);
+    }
+
+    /** Returns an SVG points attribute string for this shape, fitted to (x,y,w,h). */
+    public static String generateSvgPoints(int x, int y, int w, int h) {
+        float[] raw = buildCloudPolygon(w, h);
+        float[] bounds = ShapeUtils.computeBounds(raw);
+        float minX = bounds[0], maxX = bounds[1], minY = bounds[2], maxY = bounds[3];
+        float sx = (maxX > minX) ? w / (maxX - minX) : 1;
+        float sy = (maxY > minY) ? h / (maxY - minY) : 1;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < raw.length; i += 2) {
+            if (i > 0) sb.append(" ");
+            sb.append(Math.round(x + (raw[i] - minX) * sx))
+                .append(",")
+                .append(Math.round(y + (raw[i + 1] - minY) * sy));
+        }
+        return sb.toString();
     }
 
     @Override
