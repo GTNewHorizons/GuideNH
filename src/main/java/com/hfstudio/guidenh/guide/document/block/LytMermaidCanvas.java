@@ -23,6 +23,8 @@ import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
+import com.hfstudio.guidenh.guide.internal.debug.DebugFlowContainer;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.render.GuiSprite;
@@ -256,6 +258,12 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
             zoom);
     }
 
+    public void resetView() {
+        zoom = 1f;
+        centerDiagram(contentWidth(), contentHeight());
+        clampOffsets();
+    }
+
     @Override
     public boolean beginDrag(int documentX, int documentY, int button) {
         if (!diagramReady()) return false;
@@ -361,10 +369,10 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     }
 
     public static int clampAxis(int offset, int viewportSize, int contentSize) {
-        if (contentSize <= viewportSize) {
-            return (viewportSize - contentSize) / 2;
-        }
-        return Math.clamp(offset, viewportSize - contentSize, 0);
+        int minimumVisible = Math.max(1, Math.min(contentSize, viewportSize) / 2);
+        int minOffset = minimumVisible - contentSize;
+        int maxOffset = viewportSize - minimumVisible;
+        return Math.clamp(offset, minOffset, maxOffset);
     }
 
     public static int scaled(int base, int value, float activeZoom) {
@@ -517,6 +525,81 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                 Math.round(
                     contentLayout.visualBounds()
                         .height() * activeZoom)));
+    }
+
+    protected void collectNodeContentDebugComponents(NodeContentLayout contentLayout, LytRect contentViewport,
+        float activeZoom, String nodeName, int priority, List<DebugComponent.ComponentEntry> components) {
+        if (contentLayout == null || contentViewport == null
+            || contentLayout.visualBounds()
+                .isEmpty()) {
+            return;
+        }
+        int originX = contentViewport.x() - Math.round(
+            contentLayout.visualBounds()
+                .x() * activeZoom);
+        int originY = contentViewport.y() - Math.round(
+            contentLayout.visualBounds()
+                .y() * activeZoom);
+        collectNodeContentDebugComponents(
+            contentLayout.block(),
+            originX,
+            originY,
+            activeZoom,
+            nodeName,
+            priority,
+            components,
+            0);
+    }
+
+    private void collectNodeContentDebugComponents(LytNode node, int originX, int originY, float activeZoom,
+        String nodeName, int priority, List<DebugComponent.ComponentEntry> components, int depth) {
+        LytRect localBounds = node.getBounds();
+        if (localBounds != null && !localBounds.isEmpty()) {
+            LytRect screenBounds = new LytRect(
+                originX + Math.round(localBounds.x() * activeZoom),
+                originY + Math.round(localBounds.y() * activeZoom),
+                Math.max(1, Math.round(localBounds.width() * activeZoom)),
+                Math.max(1, Math.round(localBounds.height() * activeZoom)));
+            components.add(
+                new DebugComponent.SimpleComponentEntry(
+                    "NodeContent:" + nodeName
+                        + ":"
+                        + node.getClass()
+                            .getSimpleName(),
+                    screenBounds,
+                    null,
+                    priority + depth));
+            if (node instanceof DebugFlowContainer flowContainer) {
+                for (DebugFlowContainer.FlowContentEntry entry : flowContainer.getAllFlowContent()) {
+                    LytRect flowBounds = entry.bounds();
+                    components.add(
+                        new DebugComponent.SimpleComponentEntry(
+                            "NodeContent:" + nodeName
+                                + ":"
+                                + entry.content()
+                                    .getClass()
+                                    .getSimpleName(),
+                            new LytRect(
+                                originX + Math.round(flowBounds.x() * activeZoom),
+                                originY + Math.round(flowBounds.y() * activeZoom),
+                                Math.max(1, Math.round(flowBounds.width() * activeZoom)),
+                                Math.max(1, Math.round(flowBounds.height() * activeZoom))),
+                            null,
+                            priority + depth + 10));
+                }
+            }
+        }
+        for (LytNode child : node.getChildren()) {
+            collectNodeContentDebugComponents(
+                child,
+                originX,
+                originY,
+                activeZoom,
+                nodeName,
+                priority,
+                components,
+                depth + 1);
+        }
     }
 
     public record NodeHit(LytNode node, FlowInteractionPath flowPath, int localX, int localY) {

@@ -55,9 +55,18 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
             btn.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
             toolbar.addButton(btn);
         }
+        toolbar.addButton(createResetViewButton());
 
         append(toolbar);
         append(canvas);
+    }
+
+    private LytButton createResetViewButton() {
+        LytButton button = new LytButton(LytCodeBlockToolbar.RESET_VIEW_SPRITE, new LytSize(16, 16));
+        button.setOnClick(screen -> canvas.resetView());
+        button.setTooltipText(GuidebookText.ResetView.text());
+        button.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
+        return button;
     }
 
     public void setPreferredSize(int width, int height) {
