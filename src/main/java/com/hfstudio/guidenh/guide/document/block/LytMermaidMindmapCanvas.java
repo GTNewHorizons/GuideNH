@@ -836,8 +836,46 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
 
         // Collect all nodes from the layout
         collectNodeComponents(layout.root(), components, baseX, baseY, activeZoom);
+        collectConnectorComponents(layout.root(), components, baseX, baseY, activeZoom);
 
         return components;
+    }
+
+    private void collectConnectorComponents(NodeLayout node, List<ComponentEntry> components, int baseX, int baseY,
+        float activeZoom) {
+        if (node == null) {
+            return;
+        }
+        for (NodeLayout child : node.children) {
+            int startX;
+            int startY;
+            int endX;
+            int endY;
+            if (mindmap.getLayoutMode() == MindmapLayoutMode.TIDY_TREE) {
+                startX = scaled(baseX, node.centerX(), activeZoom);
+                startY = scaled(baseY, node.bottom(), activeZoom);
+                endX = scaled(baseX, child.centerX(), activeZoom);
+                endY = scaled(baseY, child.y, activeZoom);
+                int middleY = (startY + endY) / 2;
+                addConnectorSegments(components, startX, startY, startX, middleY, endX, middleY, endX, endY);
+            } else {
+                boolean rightSide = child.centerX() >= node.centerX();
+                startX = scaled(baseX, rightSide ? node.right() : node.x, activeZoom);
+                startY = scaled(baseY, node.centerY(), activeZoom);
+                endX = scaled(baseX, rightSide ? child.x : child.right(), activeZoom);
+                endY = scaled(baseY, child.centerY(), activeZoom);
+                int middleX = (startX + endX) / 2;
+                addConnectorSegments(components, startX, startY, middleX, startY, middleX, endY, endX, endY);
+            }
+            collectConnectorComponents(child, components, baseX, baseY, activeZoom);
+        }
+    }
+
+    private void addConnectorSegments(List<ComponentEntry> components, int x1, int y1, int x2, int y2, int x3, int y3,
+        int x4, int y4) {
+        components.add(new LineComponentEntry("Connector", x1, y1, x2, y2, CONNECTOR_THICKNESS + 2, null, 10));
+        components.add(new LineComponentEntry("Connector", x2, y2, x3, y3, CONNECTOR_THICKNESS + 2, null, 10));
+        components.add(new LineComponentEntry("Connector", x3, y3, x4, y4, CONNECTOR_THICKNESS + 2, null, 10));
     }
 
     private void collectNodeComponents(NodeLayout node, List<ComponentEntry> components, int baseX, int baseY,
@@ -906,6 +944,13 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
                 activeZoom);
             components.add(
                 new SimpleComponentEntry("NodeContent", contentRect, "Block content for: " + nodeName, priority + 3));
+            collectNodeContentDebugComponents(
+                node.contentLayout,
+                contentRect,
+                activeZoom,
+                nodeName,
+                priority + 4,
+                components);
         }
 
         // Recursively collect children
