@@ -8,6 +8,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
@@ -62,8 +63,10 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
@@ -1551,7 +1554,15 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 }
                 case FLOWCHART -> {
                     FlowchartDocument doc = FlowchartParser.parse(source);
-                    yield GuideSiteGraphRenderer.renderFlowchart(doc);
+                    Map<String, String> nodeHtml = compileFlowchartNodeHtml(
+                        element,
+                        currentPageId,
+                        doc,
+                        defaultNamespace,
+                        templates,
+                        sceneResolver,
+                        compiler);
+                    yield GuideSiteGraphRenderer.renderFlowchart(doc, nodeHtml);
                 }
                 case UNKNOWN -> CODE_BLOCK_RENDERER.render("mermaid", source);
             };
@@ -1566,10 +1577,40 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         GuideSiteHtmlCompiler compiler) {
         Map<String, MindmapNode> nodesById = new LinkedHashMap<>();
         collectMermaidNodes(nodesById, doc.getRoot());
+        Map<String, String> nodeHtml = compileMermaidNodeContentBlocks(
+            element,
+            nodesById.keySet(),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler);
+        for (MindmapNode node : nodesById.values()) {
+            if (nodeHtml.containsKey(node.getId()) || !shouldCompileMermaidRichLabel(node)) {
+                continue;
+            }
+            ParsedGuidePage parsed = PageCompiler
+                .parse(resolveSourcePack(currentPageId), "en_us", currentPageId, node.getLabelSource());
+            nodeHtml.put(
+                node.getId(),
+                compiler.compileInlineFragment(
+                    parsed.getAstRoot()
+                        .children(),
+                    templates,
+                    defaultNamespace,
+                    sceneResolver,
+                    currentPageId));
+        }
+        return nodeHtml;
+    }
+
+    private Map<String, String> compileMermaidNodeContentBlocks(MdxJsxElementFields element, Set<String> validNodeIds,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         Map<String, String> nodeHtml = new LinkedHashMap<>();
         for (MdxJsxFlowElement nodeContent : MermaidSourceExtractor.collectNodeContentElements(element.children())) {
             String id = MermaidSourceExtractor.readNodeContentId(nodeContent);
-            if (id == null || !nodesById.containsKey(id) || nodeHtml.containsKey(id)) {
+            if (id == null || !validNodeIds.contains(id) || nodeHtml.containsKey(id)) {
                 continue;
             }
             nodeHtml.put(
@@ -1581,12 +1622,34 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                     sceneResolver,
                     currentPageId));
         }
-        for (MindmapNode node : nodesById.values()) {
-            if (nodeHtml.containsKey(node.getId()) || !shouldCompileMermaidRichLabel(node)) {
+        return nodeHtml;
+    }
+
+    private Map<String, String> compileFlowchartNodeHtml(MdxJsxElementFields element,
+        @Nullable ResourceLocation currentPageId, FlowchartDocument doc, String defaultNamespace,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler) {
+        Map<String, String> nodeHtml = compileMermaidNodeContentBlocks(
+            element,
+            doc.getNodes()
+                .keySet(),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler);
+        for (FlowchartNode node : doc.getNodes()
+            .values()) {
+            if (nodeHtml.containsKey(node.getId())) {
                 continue;
             }
+            String labelSource = node.getLabelSource();
+            if (labelSource == null) continue;
+            String normalized = MermaidParser.normalizeLabel(labelSource);
+            String plain = MermaidParser.toPlainText(normalized);
+            if (normalized.equals(plain)) continue;
             ParsedGuidePage parsed = PageCompiler
-                .parse(resolveSourcePack(currentPageId), "en_us", currentPageId, node.getLabelSource());
+                .parse(resolveSourcePack(currentPageId), "en_us", currentPageId, normalized);
             nodeHtml.put(
                 node.getId(),
                 compiler.compileInlineFragment(

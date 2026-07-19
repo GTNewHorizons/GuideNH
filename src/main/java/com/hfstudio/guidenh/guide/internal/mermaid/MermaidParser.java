@@ -18,6 +18,25 @@ public class MermaidParser {
                 .trim());
     }
 
+    public static String toPlainText(@Nullable String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        String normalized = text;
+        normalized = normalized.replace("![", "[");
+        normalized = normalized.replaceAll("\\[([^\\]]+)]\\(([^)]+)\\)", "$1");
+        normalized = normalized.replaceAll("\\[([^\\]]+)]\\[([^\\]]+)]", "$1");
+        normalized = normalized.replace("**", "")
+            .replace("__", "")
+            .replace("~~", "")
+            .replace("++", "")
+            .replace("^^", "")
+            .replace("::", "")
+            .replace("`", "");
+        normalized = normalized.replaceAll("</?[a-zA-Z]+[^>]*>", "");
+        return stripWrappingQuotes(normalized.trim());
+    }
+
     public static String stripWrappingQuotes(@Nullable String text) {
         if (text == null || text.length() < 2) return text != null ? text : "";
         if ((text.startsWith("\"") && text.endsWith("\"")) || (text.startsWith("'") && text.endsWith("'"))) {
