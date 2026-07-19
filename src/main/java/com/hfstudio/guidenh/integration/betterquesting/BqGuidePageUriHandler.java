@@ -26,10 +26,11 @@ public class BqGuidePageUriHandler implements Predicate<URI> {
     @Override
     public boolean test(URI uri) {
         PageAnchor anchor = BqGuidePageLinks.parseUri(uri);
-        if (anchor == null) {
-            return false;
-        }
+        return open(anchor);
+    }
 
+    public static boolean open(PageAnchor anchor) {
+        if (anchor == null) return false;
         GuidePageLinkTarget target = GuidePageLinkTarget.resolve(anchor);
         Minecraft mc = Minecraft.getMinecraft();
         if (mc == null) {

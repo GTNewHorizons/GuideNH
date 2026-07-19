@@ -80,6 +80,30 @@ public class GuideNhClientIntegrationBootstrap {
         if (Mods.BetterQuesting.isModLoaded()) {
             BqGuidePageUriHandler.register();
 
+            // TODO: Enable these registrations after BetterQuesting releases the editor and text-box extension APIs.
+            // TextEditorActionRegistry.register(
+            // new ResourceLocation("guidenh", "guide_link"),
+            // new TextEditorMacro("guidenh.compat.bq.insert_guide_link", "[guide] ", "[/guide]"));
+            // ResourceLocation guidePageInteraction = new ResourceLocation("guidenh", "guide_page");
+            // PanelTextBox.registerTextProcessor(
+            // guidePageInteraction,
+            // text -> BqGuidePageLinks.replaceGuideTags(
+            // text,
+            // (target, label) -> PanelTextBox.createInteractiveText(guidePageInteraction, target, label)));
+            // PanelTextBox.registerTextInteraction(guidePageInteraction, new PanelTextBox.TextInteraction() {
+            //
+            // @Override
+            // public boolean onClick(String target) {
+            // return BqGuidePageUriHandler.open(BqGuidePageLinks.parsePageSpec(target));
+            // }
+            //
+            // @Override
+            // public List<String> getTooltip(String target) {
+            // PageAnchor anchor = BqGuidePageLinks.parsePageSpec(target);
+            // return anchor != null ? BqGuidePageLinks.getTooltip(anchor) : null;
+            // }
+            // });
+
             GuideNhClientIntegrationRegistry.global()
                 .registerQuestHoverProvider(new BetterQuestingQuestHoverProvider());
         }
