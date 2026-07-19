@@ -823,6 +823,10 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
 
     @Override
     public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> cachedComponents = getCachedDebugComponents(layout);
+        if (cachedComponents != null) {
+            return cachedComponents;
+        }
         List<ComponentEntry> components = new ArrayList<>();
 
         if (layout == null || bounds == null) {
@@ -836,39 +840,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
 
         // Collect all nodes from the layout
         collectNodeComponents(layout.root(), components, baseX, baseY, activeZoom);
-        collectConnectorComponents(layout.root(), components, baseX, baseY, activeZoom);
 
-        return components;
-    }
-
-    private void collectConnectorComponents(NodeLayout node, List<ComponentEntry> components, int baseX, int baseY,
-        float activeZoom) {
-        if (node == null) {
-            return;
-        }
-        for (NodeLayout child : node.children) {
-            int startX;
-            int startY;
-            int endX;
-            int endY;
-            if (mindmap.getLayoutMode() == MindmapLayoutMode.TIDY_TREE) {
-                startX = scaled(baseX, node.centerX(), activeZoom);
-                startY = scaled(baseY, node.bottom(), activeZoom);
-                endX = scaled(baseX, child.centerX(), activeZoom);
-                endY = scaled(baseY, child.y, activeZoom);
-                int middleY = (startY + endY) / 2;
-                addConnectorSegments(components, startX, startY, startX, middleY, endX, middleY, endX, endY);
-            } else {
-                boolean rightSide = child.centerX() >= node.centerX();
-                startX = scaled(baseX, rightSide ? node.right() : node.x, activeZoom);
-                startY = scaled(baseY, node.centerY(), activeZoom);
-                endX = scaled(baseX, rightSide ? child.x : child.right(), activeZoom);
-                endY = scaled(baseY, child.centerY(), activeZoom);
-                int middleX = (startX + endX) / 2;
-                addConnectorSegments(components, startX, startY, middleX, startY, middleX, endY, endX, endY);
-            }
-            collectConnectorComponents(child, components, baseX, baseY, activeZoom);
-        }
+        return cacheDebugComponents(layout, components);
     }
 
     private void addConnectorSegments(List<ComponentEntry> components, int x1, int y1, int x2, int y2, int x3, int y3,
@@ -955,7 +928,32 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
 
         // Recursively collect children
         for (NodeLayout child : node.children) {
+            collectConnectorComponents(node, child, components, baseX, baseY, activeZoom);
             collectNodeComponents(child, components, baseX, baseY, activeZoom);
         }
+    }
+
+    private void collectConnectorComponents(NodeLayout parent, NodeLayout child, List<ComponentEntry> components,
+        int baseX, int baseY, float activeZoom) {
+        int startX;
+        int startY;
+        int endX;
+        int endY;
+        if (mindmap.getLayoutMode() == MindmapLayoutMode.TIDY_TREE) {
+            startX = scaled(baseX, parent.centerX(), activeZoom);
+            startY = scaled(baseY, parent.bottom(), activeZoom);
+            endX = scaled(baseX, child.centerX(), activeZoom);
+            endY = scaled(baseY, child.y, activeZoom);
+            int middleY = (startY + endY) / 2;
+            addConnectorSegments(components, startX, startY, startX, middleY, endX, middleY, endX, endY);
+            return;
+        }
+        boolean rightSide = child.centerX() >= parent.centerX();
+        startX = scaled(baseX, rightSide ? parent.right() : parent.x, activeZoom);
+        startY = scaled(baseY, parent.centerY(), activeZoom);
+        endX = scaled(baseX, rightSide ? child.x : child.right(), activeZoom);
+        endY = scaled(baseY, child.centerY(), activeZoom);
+        int middleX = (startX + endX) / 2;
+        addConnectorSegments(components, startX, startY, middleX, startY, middleX, endY, endX, endY);
     }
 }

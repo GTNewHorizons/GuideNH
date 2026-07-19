@@ -57,6 +57,14 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     private final Map<ResolvedTextStyle, ResolvedTextStyle> scaledStyleCache = new IdentityHashMap<>();
     private float lastScaledStyleZoom = Float.NaN;
+    @Nullable
+    private Object debugComponentLayout;
+    @Nullable
+    private LytRect debugComponentViewport;
+    private int debugComponentOffsetX;
+    private int debugComponentOffsetY;
+    private float debugComponentZoom;
+    private List<DebugComponent.ComponentEntry> cachedDebugComponents = List.of();
 
     // Common interaction state
     protected Map<String, LytBlock> nodeContentBlocks;
@@ -366,6 +374,32 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     protected ResolvedTextStyle getOrScaleStyle(ResolvedTextStyle base, float zoom) {
         return MermaidNodeRenderer.getOrScaleStyle(scaledStyleCache, base, zoom);
+    }
+
+    @Nullable
+    protected List<DebugComponent.ComponentEntry> getCachedDebugComponents(Object layout) {
+        LytRect viewport = getInnerViewport();
+        int offsetX = getVisualOffsetX();
+        int offsetY = getVisualOffsetY();
+        float activeZoom = getActiveZoom();
+        if (layout != debugComponentLayout || !viewport.equals(debugComponentViewport)
+            || offsetX != debugComponentOffsetX
+            || offsetY != debugComponentOffsetY
+            || Float.compare(activeZoom, debugComponentZoom) != 0) {
+            return null;
+        }
+        return cachedDebugComponents;
+    }
+
+    protected List<DebugComponent.ComponentEntry> cacheDebugComponents(Object layout,
+        List<DebugComponent.ComponentEntry> components) {
+        debugComponentLayout = layout;
+        debugComponentViewport = getInnerViewport();
+        debugComponentOffsetX = getVisualOffsetX();
+        debugComponentOffsetY = getVisualOffsetY();
+        debugComponentZoom = getActiveZoom();
+        cachedDebugComponents = List.copyOf(components);
+        return cachedDebugComponents;
     }
 
     public static int clampAxis(int offset, int viewportSize, int contentSize) {

@@ -1,8 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.debug;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
@@ -30,14 +27,13 @@ public class ElementHoverDetector {
 
         DebugInfoExtractorInit.init();
 
-        List<HoveredCandidate> candidates = new ArrayList<>();
-        collectHoveredNodes(document, mouseX, mouseY, null, candidates);
-
-        return selectBestCandidate(candidates);
+        HoveredCandidate bestCandidate = new HoveredCandidate();
+        collectHoveredNodes(document, mouseX, mouseY, null, 0, bestCandidate);
+        return bestCandidate.info;
     }
 
     private void collectHoveredNodes(LytNode node, int mouseX, int mouseY, @Nullable HoveredElementInfo parentInfo,
-        List<HoveredCandidate> candidates) {
+        int depth, HoveredCandidate bestCandidate) {
 
         LytRect bounds = node.getBounds();
 
@@ -51,15 +47,14 @@ public class ElementHoverDetector {
 
             info.setCumulativeScrollOffset(cumulativeScrollX, cumulativeScrollY);
 
-            int depth = calculateDepth(node);
-            candidates.add(new HoveredCandidate(info, depth, bounds.width() * bounds.height()));
+            bestCandidate.consider(info, depth, bounds.width() * bounds.height());
 
             if (node instanceof DebugComponent debugComponent) {
-                collectDebugComponents(debugComponent, mouseX, mouseY, info, depth, candidates);
+                collectDebugComponents(debugComponent, mouseX, mouseY, info, depth, bestCandidate);
             }
 
             if (node instanceof DebugFlowContainer flowContainer) {
-                collectFlowContent(flowContainer, mouseX, mouseY, info, depth, candidates);
+                collectFlowContent(flowContainer, mouseX, mouseY, info, depth, bestCandidate);
             }
 
             // Calculate cumulative scroll offset for children: parent's cumulative + this node's offset
@@ -92,17 +87,17 @@ public class ElementHoverDetector {
             }
 
             for (LytNode child : node.getChildren()) {
-                collectHoveredNodes(child, adjustedMouseX, adjustedMouseY, childParentInfo, candidates);
+                collectHoveredNodes(child, adjustedMouseX, adjustedMouseY, childParentInfo, depth + 1, bestCandidate);
             }
         } else if (bounds == null) {
             for (LytNode child : node.getChildren()) {
-                collectHoveredNodes(child, mouseX, mouseY, parentInfo, candidates);
+                collectHoveredNodes(child, mouseX, mouseY, parentInfo, depth + 1, bestCandidate);
             }
         }
     }
 
     private void collectDebugComponents(DebugComponent debugComponent, int mouseX, int mouseY,
-        HoveredElementInfo parentInfo, int parentDepth, List<HoveredCandidate> candidates) {
+        HoveredElementInfo parentInfo, int parentDepth, HoveredCandidate bestCandidate) {
 
         for (DebugComponent.ComponentEntry component : debugComponent.getDebugComponents()) {
             if (component.containsPoint(mouseX, mouseY)) {
@@ -134,13 +129,13 @@ public class ElementHoverDetector {
                     .width()
                     * component.getBounds()
                         .height();
-                candidates.add(new HoveredCandidate(info, effectiveDepth, area));
+                bestCandidate.consider(info, effectiveDepth, area);
             }
         }
     }
 
     private void collectFlowContent(DebugFlowContainer flowContainer, int mouseX, int mouseY,
-        HoveredElementInfo parentInfo, int parentDepth, List<HoveredCandidate> candidates) {
+        HoveredElementInfo parentInfo, int parentDepth, HoveredCandidate bestCandidate) {
 
         DebugFlowContainer.FlowContentEntry entry = flowContainer.pickFlowContent(mouseX, mouseY);
         if (entry != null && entry.bounds()
@@ -171,34 +166,8 @@ public class ElementHoverDetector {
                 .width()
                 * entry.bounds()
                     .height();
-            candidates.add(new HoveredCandidate(info, parentDepth + 1, area));
+            bestCandidate.consider(info, parentDepth + 1, area);
         }
-    }
-
-    @Nullable
-    private HoveredElementInfo selectBestCandidate(List<HoveredCandidate> candidates) {
-        if (candidates.isEmpty()) {
-            return null;
-        }
-
-        HoveredCandidate best = candidates.get(0);
-        for (HoveredCandidate candidate : candidates) {
-            if (candidate.depth > best.depth || (candidate.depth == best.depth && candidate.area < best.area)) {
-                best = candidate;
-            }
-        }
-
-        return best.info;
-    }
-
-    private int calculateDepth(LytNode node) {
-        int depth = 0;
-        LytNode current = node.getParent();
-        while (current != null) {
-            depth++;
-            current = current.getParent();
-        }
-        return depth;
     }
 
     private HoveredElementInfo createElementInfo(LytNode node, LytRect bounds,
@@ -235,14 +204,17 @@ public class ElementHoverDetector {
 
     private static class HoveredCandidate {
 
-        final HoveredElementInfo info;
-        final int depth;
-        final float area;
+        @Nullable
+        private HoveredElementInfo info;
+        private int depth = Integer.MIN_VALUE;
+        private float area = Float.POSITIVE_INFINITY;
 
-        HoveredCandidate(HoveredElementInfo info, int depth, float area) {
-            this.info = info;
-            this.depth = depth;
-            this.area = area;
+        private void consider(HoveredElementInfo info, int depth, float area) {
+            if (depth > this.depth || depth == this.depth && area < this.area) {
+                this.info = info;
+                this.depth = depth;
+                this.area = area;
+            }
         }
     }
 }

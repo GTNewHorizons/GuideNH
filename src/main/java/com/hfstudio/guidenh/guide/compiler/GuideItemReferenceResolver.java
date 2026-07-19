@@ -104,19 +104,23 @@ public class GuideItemReferenceResolver {
         }
 
         List<ItemStack> oreStacks = OreDictionary.getOres(trimmedOreName);
-        if (oreStacks == null || oreStacks.isEmpty()) {
+        if (oreStacks.isEmpty()) {
             return null;
         }
 
-        ItemStack firstMatch = oreStacks.getFirst();
-        if (firstMatch == null || firstMatch.getItem() == null) {
-            return null;
+        for (ItemStack stack : oreStacks) {
+            if (stack == null || stack.getItem() == null) {
+                continue;
+            }
+
+            ItemStack copiedStack = stack.copy();
+            ItemStack normalizedStack = GuideNhIntegrationRegistry.global()
+                .normalizeItemStack(copiedStack);
+
+            return normalizedStack != null && normalizedStack.getItem() != null ? normalizedStack : copiedStack;
         }
 
-        ItemStack copiedStack = firstMatch.copy();
-        ItemStack normalizedStack = GuideNhIntegrationRegistry.global()
-            .normalizeItemStack(copiedStack);
-        return normalizedStack != null && normalizedStack.getItem() != null ? normalizedStack : copiedStack;
+        return null;
     }
 
     @Nullable

@@ -808,6 +808,10 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
     @Override
     public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> cachedComponents = getCachedDebugComponents(layout);
+        if (cachedComponents != null) {
+            return cachedComponents;
+        }
         List<ComponentEntry> components = new ArrayList<>();
         if (layout == null || bounds == null) {
             return components;
@@ -858,6 +862,6 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 collectNodeContentDebugComponents(contentLayout, contentBounds, zoom, label, 30, components);
             }
         }
-        return components;
+        return cacheDebugComponents(layout, components);
     }
 }
