@@ -1,10 +1,12 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,7 @@ public class GuideSiteSceneTessellatorCapture {
     private static volatile @Nullable GuideSiteSceneTessellatorCapture ACTIVE;
 
     private final GuideSiteAssetRegistry assets;
+    private final TextureExportCache textureCache;
     private final Matrix4f inverseViewMatrix;
     private final Matrix4f currentWorldMatrix = new Matrix4f();
     private final Matrix4f modelViewMatrix = new Matrix4f();
@@ -57,8 +60,10 @@ public class GuideSiteSceneTessellatorCapture {
     @Nullable
     private String currentSourceTextureId;
 
-    public GuideSiteSceneTessellatorCapture(GuideSiteAssetRegistry assets, Matrix4f inverseViewMatrix) {
+    public GuideSiteSceneTessellatorCapture(GuideSiteAssetRegistry assets, TextureExportCache textureCache,
+        Matrix4f inverseViewMatrix) {
         this.assets = assets;
+        this.textureCache = textureCache;
         this.inverseViewMatrix = new Matrix4f(inverseViewMatrix);
     }
 
@@ -254,6 +259,30 @@ public class GuideSiteSceneTessellatorCapture {
                     exportHeight = lh;
                     if (lw <= MAX_EXPORT_TEXTURE_SIZE && lh <= MAX_EXPORT_TEXTURE_SIZE) break;
                 }
+            }
+
+            int magFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER);
+            int minFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER);
+            boolean linearFiltering = magFilter == GL11.GL_LINEAR;
+            boolean useMipmaps = minFilter == GL11.GL_NEAREST_MIPMAP_NEAREST
+                || minFilter == GL11.GL_LINEAR_MIPMAP_NEAREST
+                || minFilter == GL11.GL_NEAREST_MIPMAP_LINEAR
+                || minFilter == GL11.GL_LINEAR_MIPMAP_LINEAR;
+            TextureCacheKey cacheKey = new TextureCacheKey(
+                textureId,
+                level0Width,
+                level0Height,
+                exportMipLevel,
+                currentSourceTextureId,
+                linearFiltering,
+                useMipmaps);
+            TextureExport cached = textureCache.get(cacheKey);
+            if (cached != null) {
+                textures.put(textureId, cached);
+                return cached;
+            }
+
+            if (exportMipLevel > 0) {
                 GuideDebugLog.debugAlways(
                     "exportCurrentTexture: texture id={} is {}x{} - using mip level {} ({}x{}) for site export",
                     textureId,
@@ -274,29 +303,20 @@ public class GuideSiteSceneTessellatorCapture {
             GL11.glGetTexImage(GL11.GL_TEXTURE_2D, exportMipLevel, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixels);
 
             BufferedImage image = new BufferedImage(exportWidth, exportHeight, BufferedImage.TYPE_INT_ARGB);
-            for (int y = 0; y < exportHeight; y++) {
-                for (int x = 0; x < exportWidth; x++) {
-                    int index = (x + y * exportWidth) * 4;
-                    int r = pixels.get(index) & 0xFF;
-                    int g = pixels.get(index + 1) & 0xFF;
-                    int b = pixels.get(index + 2) & 0xFF;
-                    int a = pixels.get(index + 3) & 0xFF;
-                    image.setRGB(x, y, a << 24 | r << 16 | g << 8 | b);
-                }
+            int[] argbPixels = ((DataBufferInt) image.getRaster()
+                .getDataBuffer()).getData();
+            for (int pixelIndex = 0, byteIndex = 0; pixelIndex < argbPixels.length; pixelIndex++, byteIndex += 4) {
+                int r = pixels.get(byteIndex) & 0xFF;
+                int g = pixels.get(byteIndex + 1) & 0xFF;
+                int b = pixels.get(byteIndex + 2) & 0xFF;
+                int a = pixels.get(byteIndex + 3) & 0xFF;
+                argbPixels[pixelIndex] = a << 24 | r << 16 | g << 8 | b;
             }
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ImageIO.write(image, "png", out);
 
             String texturePath = assets.writeShared("scene-textures", ".png", out.toByteArray());
-
-            int magFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER);
-            int minFilter = GL11.glGetTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER);
-            boolean linearFiltering = magFilter == GL11.GL_LINEAR;
-            boolean useMipmaps = minFilter == GL11.GL_NEAREST_MIPMAP_NEAREST
-                || minFilter == GL11.GL_LINEAR_MIPMAP_NEAREST
-                || minFilter == GL11.GL_NEAREST_MIPMAP_LINEAR
-                || minFilter == GL11.GL_LINEAR_MIPMAP_LINEAR;
 
             TextureExport export = new TextureExport(
                 "gltex-" + textureId,
@@ -305,6 +325,7 @@ public class GuideSiteSceneTessellatorCapture {
                 linearFiltering,
                 useMipmaps);
             textures.put(textureId, export);
+            textureCache.put(cacheKey, export);
             return export;
         } finally {
             if (savedActiveUnit != OpenGlHelper.defaultTexUnit) {
@@ -769,5 +790,24 @@ public class GuideSiteSceneTessellatorCapture {
             this.useMipmaps = useMipmaps;
         }
     }
+
+    public static class TextureExportCache {
+
+        private final Map<TextureCacheKey, TextureExport> exports = new HashMap<>();
+
+        public TextureExportCache() {}
+
+        @Nullable
+        private TextureExport get(TextureCacheKey key) {
+            return exports.get(key);
+        }
+
+        private void put(TextureCacheKey key, TextureExport export) {
+            exports.put(key, export);
+        }
+    }
+
+    private record TextureCacheKey(int textureId, int level0Width, int level0Height, int exportMipLevel,
+        @Nullable String sourceTextureId, boolean linearFiltering, boolean useMipmaps) {}
 
 }

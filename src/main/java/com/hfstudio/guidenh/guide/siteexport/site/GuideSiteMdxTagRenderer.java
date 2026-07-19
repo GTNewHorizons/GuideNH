@@ -62,6 +62,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNodeContentExtractor;
@@ -245,7 +247,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderContentTabs(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
         }
         if ("FileTree".equals(name)) {
-            return renderFileTree(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+            return renderFileTreeElement(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
         }
         if ("FootnoteList".equals(name)) {
             return "<div class=\"guide-footnote-list\">"
@@ -1340,14 +1342,26 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return 0;
     }
 
-    private String renderFileTree(MdxJsxElementFields element, String defaultNamespace,
+    private String renderFileTreeElement(MdxJsxElementFields element, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         StringBuilder text = new StringBuilder();
         collectStructureText(text, element.children());
-        FileTreeModel model = FileTreeParser.parse(
+        return renderFileTree(
             text.toString()
-                .trim());
+                .trim(),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler);
+    }
+
+    @Override
+    public String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler) {
+        FileTreeModel model = FileTreeParser.parse(source != null ? source : "");
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-file-tree\">");
         for (FileTreeEntry entry : model.entries()) {
@@ -1509,7 +1523,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 ResourceLocation assetId = IdUtils.resolveLink(src, currentPageId);
                 byte[] data = guide.loadAsset(assetId);
                 if (data != null) {
-                    source = MindmapParser.normalize(new String(data, StandardCharsets.UTF_8));
+                    source = MermaidSourceExtractor.normalize(new String(data, StandardCharsets.UTF_8));
                 }
             } catch (Exception ignored) {}
         }
@@ -1526,20 +1540,60 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderError("Empty Mermaid diagram");
         }
         try {
-            MindmapDocument doc = MindmapParser.parse(source);
+            if (isFlowchart(source)) {
+                FlowchartDocument document = FlowchartParser.parse(source);
+                return GuideSiteGraphRenderer.renderMermaidFlowchart(
+                    document,
+                    compileMermaidNodeHtml(
+                        element,
+                        currentPageId,
+                        defaultNamespace,
+                        templates,
+                        sceneResolver,
+                        compiler));
+            }
+            MindmapDocument document = MindmapParser.parse(source);
             return GuideSiteGraphRenderer.renderMermaidTree(
-                doc,
+                document,
                 compileMermaidNodeHtml(
                     element,
                     currentPageId,
-                    doc,
+                    document,
                     defaultNamespace,
                     templates,
                     sceneResolver,
                     compiler));
-        } catch (Exception ex) {
-            return CODE_BLOCK_RENDERER.render("mermaid", source);
+        } catch (IllegalArgumentException e) {
+            return renderError("Failed to parse Mermaid: " + e.getMessage());
         }
+    }
+
+    private boolean isFlowchart(String source) {
+        return source.lines()
+            .map(
+                line -> line.trim()
+                    .toLowerCase(Locale.ROOT))
+            .anyMatch(line -> line.startsWith("flowchart") || line.startsWith("graph "));
+    }
+
+    private Map<String, String> compileMermaidNodeHtml(MdxJsxElementFields element,
+        @Nullable ResourceLocation currentPageId, String defaultNamespace, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+        Map<String, String> nodeHtml = new LinkedHashMap<>();
+        for (MdxJsxFlowElement nodeContent : MermaidSourceExtractor.collectNodeContentElements(element.children())) {
+            String id = MermaidSourceExtractor.readNodeContentId(nodeContent);
+            if (id != null && !nodeHtml.containsKey(id)) {
+                nodeHtml.put(
+                    id,
+                    compiler.compileFragment(
+                        nodeContent.children(),
+                        templates,
+                        defaultNamespace,
+                        sceneResolver,
+                        currentPageId));
+            }
+        }
+        return nodeHtml;
     }
 
     private Map<String, String> compileMermaidNodeHtml(MdxJsxElementFields element,

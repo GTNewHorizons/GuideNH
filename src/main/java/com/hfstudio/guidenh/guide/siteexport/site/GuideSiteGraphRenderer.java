@@ -23,6 +23,9 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIconK
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartEdge;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
 
@@ -217,6 +220,63 @@ public class GuideSiteGraphRenderer {
         renderMmNodes(html, root);
         html.append("</div></div></div>");
         return html.toString();
+    }
+
+    public static String renderMermaidFlowchart(FlowchartDocument document, Map<String, String> nodeHtmlById) {
+        StringBuilder html = new StringBuilder();
+        html.append(
+            "<div class=\"guide-mermaid-pan\" data-guide-pannable><div class=\"guide-mermaid-stage\" data-guide-mermaid-stage>");
+        html.append(
+            "<svg class=\"guide-mermaid-canvas\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\"></svg>");
+        html.append("<div class=\"guide-mermaid-node-layer\">");
+        Map<String, String> parentIds = new LinkedHashMap<>();
+        for (FlowchartEdge edge : document.getEdges()) {
+            if (!parentIds.containsKey(edge.getTo()) && !createsParentCycle(parentIds, edge.getTo(), edge.getFrom())) {
+                parentIds.put(edge.getTo(), edge.getFrom());
+            }
+        }
+        for (String nodeId : document.getNodeOrder()) {
+            FlowchartNode node = document.getNodes()
+                .get(nodeId);
+            if (node == null) {
+                continue;
+            }
+            String parentId = parentIds.get(nodeId);
+            html.append("<article class=\"guide-mermaid-node guide-mermaid-shape-")
+                .append(escapeShapeClass(node.getShape()))
+                .append(parentId == null ? " guide-mermaid-node-root" : "")
+                .append("\" data-node-id=\"")
+                .append(esc(nodeId))
+                .append("\"");
+            if (parentId != null) {
+                html.append(" data-parent-id=\"")
+                    .append(esc(parentId))
+                    .append("\"");
+            }
+            html.append(" data-accent=\"#7AA2F7\"><span class=\"guide-mermaid-node-accent\"></span>");
+            html.append("<div class=\"guide-mermaid-node-body\">");
+            String nodeHtml = nodeHtmlById.get(nodeId);
+            if (nodeHtml != null && !nodeHtml.trim()
+                .isEmpty()) {
+                html.append(nodeHtml);
+            } else {
+                html.append("<div class=\"guide-mermaid-node-line\">")
+                    .append(esc(node.getLabel()))
+                    .append("</div>");
+            }
+            html.append("</div></article>");
+        }
+        html.append("</div></div></div>");
+        return html.toString();
+    }
+
+    private static boolean createsParentCycle(Map<String, String> parentIds, String childId, String parentId) {
+        for (String current = parentId; current != null; current = parentIds.get(current)) {
+            if (childId.equals(current)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static MmLayoutNode buildMmLayout(MindmapNode source, @Nullable String parentId, boolean isRoot,

@@ -596,11 +596,6 @@ function buildStateKey(state) {
   let key = `layer=${Math.max(0, Number(state.visibleLayer) || 0)}|ponder=${Math.max(0, Number(state.ponderTick) || 0)}`;
   const structures = normalizeStateStructures(state);
   if (Object.keys(structures).length === 0) {
-    key += `|tier=${Math.max(1, Number(state.tier) || 1)}`;
-    const channels = state.channels || {};
-    for (const channelId of Object.keys(channels)) {
-      key += `|channel:${channelId}=${Math.max(0, Number(channels[channelId]) || 0)}`;
-    }
     return key;
   }
   for (const structureId of Object.keys(structures)) {
