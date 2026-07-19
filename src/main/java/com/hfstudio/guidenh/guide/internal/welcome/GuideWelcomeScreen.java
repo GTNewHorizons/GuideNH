@@ -711,6 +711,28 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
             y + tooltipHeight + padding,
             background,
             background);
+        drawGradientRect(x - padding, y - padding - 1, x + tooltipWidth + padding, y - padding, background, background);
+        drawGradientRect(
+            x - padding,
+            y + tooltipHeight + padding,
+            x + tooltipWidth + padding,
+            y + tooltipHeight + padding + 1,
+            background,
+            background);
+        drawGradientRect(
+            x - padding - 1,
+            y - padding,
+            x - padding,
+            y + tooltipHeight + padding,
+            background,
+            background);
+        drawGradientRect(
+            x + tooltipWidth + padding,
+            y - padding,
+            x + tooltipWidth + padding + 1,
+            y + tooltipHeight + padding,
+            background,
+            background);
         drawGradientRect(x - padding, y - padding, x + tooltipWidth + padding, y - padding + 1, borderTop, borderTop);
         drawGradientRect(
             x - padding,
@@ -744,8 +766,8 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         try {
             tooltip.getContent()
                 .render(contentTooltipRenderContext);
-        } catch (Throwable t) {
-            GuideDebugLog.warnAlways("[GuideNH] Error rendering welcome tooltip", t);
+        } catch (Throwable ignored) {
+            // Keep preview hover robust even if rich tooltip content fails.
         } finally {
             GL11.glPopMatrix();
             contentTooltipRenderContext.restoreExternalRenderState();
