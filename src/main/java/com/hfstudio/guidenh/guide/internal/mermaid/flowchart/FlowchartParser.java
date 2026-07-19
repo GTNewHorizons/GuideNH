@@ -442,7 +442,7 @@ public class FlowchartParser {
             .trim();
 
         if (rest.isEmpty()) {
-            return new NodeSpec(id, id, MermaidNodeShape.DEFAULT, List.of(), null, false, null);
+            return new NodeSpec(id, id, MermaidNodeShape.DEFAULT, List.of(), null, false, null, null);
         }
 
         if (rest.startsWith("@{")) {
@@ -464,10 +464,13 @@ public class FlowchartParser {
         @Nullable
         String icon = null;
         boolean markdownLabel = false;
+        @Nullable
+        String labelSource = null;
 
         NodeShapeDefinition.MatchResult shapeResult = NodeShapeDefinition.match(rest);
         if (shapeResult != null) {
-            label = normalizeLabel(shapeResult.inner());
+            labelSource = shapeResult.inner();
+            label = normalizeLabel(labelSource);
             if (label.isEmpty()) label = id;
             shape = shapeResult.definition()
                 .shape();
@@ -504,13 +507,13 @@ public class FlowchartParser {
             }
         }
 
-        return new NodeSpec(id, label, shape, classes, icon, markdownLabel, null);
+        return new NodeSpec(id, label, shape, classes, icon, markdownLabel, null, labelSource);
     }
 
     private NodeSpec parseExtendedNode(String id, String rest) {
         int braceEnd = findMatchingBrace(rest, 1);
         if (braceEnd < 0) {
-            return new NodeSpec(id, id, MermaidNodeShape.DEFAULT, List.of(), null, false, null);
+            return new NodeSpec(id, id, MermaidNodeShape.DEFAULT, List.of(), null, false, null, null);
         }
         String body = rest.substring(2, braceEnd)
             .trim();
@@ -566,7 +569,7 @@ public class FlowchartParser {
             }
         }
 
-        return new NodeSpec(id, label, shape, classes, icon, false, extra);
+        return new NodeSpec(id, label, shape, classes, icon, false, extra, null);
     }
 
     @Nullable
@@ -618,7 +621,8 @@ public class FlowchartParser {
                         existing.getStyleOverride(),
                         existing.getIcon(),
                         existing.isMarkdownLabel(),
-                        existing.getExtendedProperties()));
+                        existing.getExtendedProperties(),
+                        existing.getLabelSource()));
             }
             return;
         }
@@ -630,7 +634,8 @@ public class FlowchartParser {
             null,
             spec.icon(),
             spec.markdownLabel(),
-            spec.extendedProperties());
+            spec.extendedProperties(),
+            spec.labelSource());
     }
 
     List<Object> tokenizeLine(String line) {
@@ -836,7 +841,8 @@ public class FlowchartParser {
                 null,
                 spec.icon(),
                 spec.markdownLabel(),
-                spec.extendedProperties());
+                spec.extendedProperties(),
+                spec.labelSource());
         }
         builder.nodes.computeIfPresent(
             nodeId,
@@ -848,7 +854,8 @@ public class FlowchartParser {
                 joined,
                 existing.getIcon(),
                 existing.isMarkdownLabel(),
-                existing.getExtendedProperties()));
+                existing.getExtendedProperties(),
+                existing.getLabelSource()));
     }
 
     private void parseClassDefStatement(String rest) {
@@ -903,7 +910,7 @@ public class FlowchartParser {
 
     @Desugar
     record NodeSpec(String id, String label, MermaidNodeShape shape, List<String> classes, @Nullable String icon,
-        boolean markdownLabel, @Nullable Map<String, String> extendedProperties) {}
+        boolean markdownLabel, @Nullable Map<String, String> extendedProperties, @Nullable String labelSource) {}
 
     @Desugar
     record PipedLabel(@Nullable String label, int endPosition) {}
@@ -943,7 +950,7 @@ public class FlowchartParser {
 
         void addVertex(String id, @Nullable String label, @Nullable MermaidNodeShape shape,
             @Nullable List<String> classes, @Nullable String styleOverride, @Nullable String icon,
-            boolean markdownLabel, @Nullable Map<String, String> extendedProperties) {
+            boolean markdownLabel, @Nullable Map<String, String> extendedProperties, @Nullable String labelSource) {
             if (id == null || id.isEmpty()) return;
             if (nodes.containsKey(id)) return;
             MermaidNodeShape resolvedShape = shape != null ? shape : MermaidNodeShape.DEFAULT;
@@ -957,7 +964,8 @@ public class FlowchartParser {
                 styleOverride,
                 icon,
                 markdownLabel,
-                extendedProperties);
+                extendedProperties,
+                labelSource);
             nodes.put(id, node);
             if (!subgraphStack.isEmpty()) {
                 subgraphStack.peek().nodeIds.add(id);
@@ -1036,7 +1044,8 @@ public class FlowchartParser {
                     existing.getStyleOverride(),
                     existing.getIcon(),
                     existing.isMarkdownLabel(),
-                    existing.getExtendedProperties()));
+                    existing.getExtendedProperties(),
+                    existing.getLabelSource()));
         }
 
         void addClassDef(String className, List<String> styles) {
@@ -1084,7 +1093,8 @@ public class FlowchartParser {
                         merged,
                         node.getIcon(),
                         node.isMarkdownLabel(),
-                        node.getExtendedProperties()));
+                        node.getExtendedProperties(),
+                        node.getLabelSource()));
             }
         }
 
@@ -1113,7 +1123,8 @@ public class FlowchartParser {
                             String.join(",", resolved),
                             node.getIcon(),
                             node.isMarkdownLabel(),
-                            node.getExtendedProperties()));
+                            node.getExtendedProperties(),
+                            node.getLabelSource()));
                 }
             }
         }

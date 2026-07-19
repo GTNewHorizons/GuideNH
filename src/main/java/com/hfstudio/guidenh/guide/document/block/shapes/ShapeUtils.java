@@ -45,6 +45,21 @@ final class ShapeUtils {
         return points;
     }
 
+    /**
+     * @return float[] { minX, maxX, minY, maxY }
+     */
+    static float[] computeBounds(float[] raw) {
+        float minX = Float.MAX_VALUE, maxX = Float.MIN_VALUE;
+        float minY = Float.MAX_VALUE, maxY = Float.MIN_VALUE;
+        for (int i = 0; i < raw.length; i += 2) {
+            if (raw[i] < minX) minX = raw[i];
+            if (raw[i] > maxX) maxX = raw[i];
+            if (raw[i + 1] < minY) minY = raw[i + 1];
+            if (raw[i + 1] > maxY) maxY = raw[i + 1];
+        }
+        return new float[] { minX, maxX, minY, maxY };
+    }
+
     static List<float[]> svgArc(float x1, float y1, float x2, float y2, float rx, float ry, float xAxisRot,
         boolean largeArc, boolean sweep, int segments) {
         rx = Math.abs(rx);

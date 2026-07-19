@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import com.hfstudio.guidenh.guide.document.block.shapes.FlowchartShapes;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartEdge;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult;
@@ -36,6 +38,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     private static final int CONNECTOR_THICKNESS = 2;
     private static final int NODE_PADDING_X = 10;
     private static final int NODE_PADDING_Y = 6;
+    private static final int NODE_EDGE_MARGIN = 12;
     private static final int ICON_GAP_Y = 4;
     private static final int BADGE_PADDING_X = 4;
     private static final int BADGE_PADDING_Y = 2;
@@ -247,6 +250,11 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 height += 4;
             }
 
+            if (FlowchartShapes.isShapeClipped(node.getShape())) {
+                width += NODE_EDGE_MARGIN * 2;
+                height += NODE_EDGE_MARGIN * 2;
+            }
+
             result.put(nodeId, new NodeMinSize(width, height));
         }
         return result;
@@ -310,50 +318,143 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             List<FlowchartLayoutResult.Point> points = edgePath.getPoints();
             if (points.size() < 2) continue;
 
-            for (int i = 1; i < points.size(); i++) {
-                FlowchartLayoutResult.Point from = points.get(i - 1);
-                FlowchartLayoutResult.Point to = points.get(i);
-                float x1 = scaled(baseX, from.getX(), activeZoom);
-                float y1 = scaled(baseY, from.getY(), activeZoom);
-                float x2 = scaled(baseX, to.getX(), activeZoom);
-                float y2 = scaled(baseY, to.getY(), activeZoom);
+            FlowchartLayoutResult.Point srcBoundary = null;
+            FlowchartLayoutResult.Point tgtBoundary = null;
+            NodePosition srcPos = null;
+            NodePosition tgtPos = null;
 
-                if (style == MermaidEdgeStyle.DASHED || style == MermaidEdgeStyle.DOTTED) {
-                    drawDashedLine(context, x1, y1, x2, y2, edgeThickness, edgeColor, style == MermaidEdgeStyle.DOTTED);
-                } else {
-                    context.drawLine(x1, y1, x2, y2, edgeThickness, edgeColor);
+            if (arrowFwd) {
+                tgtPos = layout.getPosition(edgePath.getToId());
+                if (tgtPos != null) {
+                    FlowchartNode tgtNode = document.getNodes()
+                        .get(edgePath.getToId());
+                    MermaidNodeShape tgtShape = tgtNode != null ? tgtNode.getShape() : null;
+                    if (tgtShape != null && FlowchartShapes.isShapeClipped(tgtShape)) {
+                        FlowchartLayoutResult.Point lastPoint = points.get(points.size() - 1);
+                        LytRect tgtRect = new LytRect(
+                            tgtPos.getX() + NODE_EDGE_MARGIN,
+                            tgtPos.getY() + NODE_EDGE_MARGIN,
+                            tgtPos.getWidth() - NODE_EDGE_MARGIN * 2,
+                            tgtPos.getHeight() - NODE_EDGE_MARGIN * 2);
+                        tgtBoundary = FlowchartShapes
+                            .edgeIntersect(tgtRect, tgtShape, lastPoint.getX(), lastPoint.getY());
+                    }
+                }
+            }
+            if (arrowRev) {
+                srcPos = layout.getPosition(edgePath.getFromId());
+                if (srcPos != null) {
+                    FlowchartNode srcNode = document.getNodes()
+                        .get(edgePath.getFromId());
+                    MermaidNodeShape srcShape = srcNode != null ? srcNode.getShape() : null;
+                    if (srcShape != null && FlowchartShapes.isShapeClipped(srcShape)) {
+                        FlowchartLayoutResult.Point firstPoint = points.get(0);
+                        LytRect srcRect = new LytRect(
+                            srcPos.getX() + NODE_EDGE_MARGIN,
+                            srcPos.getY() + NODE_EDGE_MARGIN,
+                            srcPos.getWidth() - NODE_EDGE_MARGIN * 2,
+                            srcPos.getHeight() - NODE_EDGE_MARGIN * 2);
+                        srcBoundary = FlowchartShapes
+                            .edgeIntersect(srcRect, srcShape, firstPoint.getX(), firstPoint.getY());
+                    }
                 }
             }
 
-            if (arrowFwd || arrowRev) {
-                FlowchartLayoutResult.Point last = points.getLast();
-                FlowchartLayoutResult.Point prev = points.size() >= 2 ? points.get(points.size() - 2) : last;
-                float tipX = scaled(baseX, last.getX(), activeZoom);
-                float tipY = scaled(baseY, last.getY(), activeZoom);
-                float dirX = tipX - scaled(baseX, prev.getX(), activeZoom);
-                float dirY = tipY - scaled(baseY, prev.getY(), activeZoom);
+            List<FlowchartLayoutResult.Point> edgePoints = new ArrayList<>(points);
+            if (tgtBoundary != null) {
+                FlowchartLayoutResult.Point lastOrig = points.get(points.size() - 1);
+                if (tgtBoundary.getX() != lastOrig.getX() || tgtBoundary.getY() != lastOrig.getY()) {
+                    edgePoints.add(tgtBoundary);
+                }
+            }
+            if (srcBoundary != null) {
+                FlowchartLayoutResult.Point firstOrig = points.get(0);
+                if (srcBoundary.getX() != firstOrig.getX() || srcBoundary.getY() != firstOrig.getY()) {
+                    edgePoints.add(0, srcBoundary);
+                }
+            }
+
+            drawEdgeLines(
+                context,
+                edgePoints,
+                edgePath.getFromId(),
+                edgePath.getToId(),
+                baseX,
+                baseY,
+                activeZoom,
+                style,
+                edgeThickness,
+                edgeColor,
+                srcBoundary,
+                tgtBoundary);
+
+            if (arrowFwd) {
+                float tipX, tipY, dirX, dirY;
+                if (tgtPos != null) {
+                    FlowchartNode tgtNode = document.getNodes()
+                        .get(edgePath.getToId());
+                    MermaidNodeShape tgtShape = tgtNode != null ? tgtNode.getShape() : null;
+                    if (tgtBoundary != null) {
+                        FlowchartLayoutResult.Point prev = edgePoints.get(edgePoints.size() - 2);
+                        tipX = scaled(baseX, tgtBoundary.getX(), activeZoom);
+                        tipY = scaled(baseY, tgtBoundary.getY(), activeZoom);
+                        dirX = tipX - scaled(baseX, prev.getX(), activeZoom);
+                        dirY = tipY - scaled(baseY, prev.getY(), activeZoom);
+                    } else {
+                        FlowchartLayoutResult.Point lastPoint = points.get(points.size() - 1);
+                        FlowchartLayoutResult.Point prev = points.get(points.size() - 2);
+                        int tx = tgtShape != null ? lastPoint.getX() : tgtPos.getX() + tgtPos.getWidth() / 2;
+                        int ty = tgtShape != null ? lastPoint.getY() : tgtPos.getY() + tgtPos.getHeight() / 2;
+                        tipX = scaled(baseX, tx, activeZoom);
+                        tipY = scaled(baseY, ty, activeZoom);
+                        dirX = tipX - scaled(baseX, prev.getX(), activeZoom);
+                        dirY = tipY - scaled(baseY, prev.getY(), activeZoom);
+                    }
+                } else {
+                    FlowchartLayoutResult.Point prev = points.get(points.size() - 2);
+                    tipX = scaled(baseX, prev.getX(), activeZoom);
+                    tipY = scaled(baseY, prev.getY(), activeZoom);
+                    dirX = 0;
+                    dirY = 0;
+                }
                 float len = (float) Math.sqrt(dirX * dirX + dirY * dirY);
                 if (len > 0.5f) {
-                    dirX /= len;
-                    dirY /= len;
-                    if (arrowFwd) {
-                        drawArrowHeadVariant(context, tipX, tipY, dirX, dirY, activeZoom, edgeColor, fwdHead);
-                    }
+                    drawArrowHeadVariant(context, tipX, tipY, dirX / len, dirY / len, activeZoom, edgeColor, fwdHead);
                 }
+            }
 
-                if (arrowRev) {
-                    FlowchartLayoutResult.Point first = points.get(0);
-                    FlowchartLayoutResult.Point second = points.size() >= 2 ? points.get(1) : first;
-                    float tailX = scaled(baseX, first.getX(), activeZoom);
-                    float tailY = scaled(baseY, first.getY(), activeZoom);
-                    float revDirX = tailX - scaled(baseX, second.getX(), activeZoom);
-                    float revDirY = tailY - scaled(baseY, second.getY(), activeZoom);
-                    float revLen = (float) Math.sqrt(revDirX * revDirX + revDirY * revDirY);
-                    if (revLen > 0.5f) {
-                        revDirX /= revLen;
-                        revDirY /= revLen;
-                        drawArrowHeadVariant(context, tailX, tailY, revDirX, revDirY, activeZoom, edgeColor, revHead);
+            if (arrowRev) {
+                float tailX, tailY, dirX, dirY;
+                if (srcPos != null) {
+                    FlowchartNode srcNode = document.getNodes()
+                        .get(edgePath.getFromId());
+                    MermaidNodeShape srcShape = srcNode != null ? srcNode.getShape() : null;
+                    if (srcBoundary != null) {
+                        FlowchartLayoutResult.Point next = edgePoints.get(1);
+                        tailX = scaled(baseX, srcBoundary.getX(), activeZoom);
+                        tailY = scaled(baseY, srcBoundary.getY(), activeZoom);
+                        dirX = scaled(baseX, next.getX(), activeZoom) - tailX;
+                        dirY = scaled(baseY, next.getY(), activeZoom) - tailY;
+                    } else {
+                        FlowchartLayoutResult.Point firstPoint = points.get(0);
+                        FlowchartLayoutResult.Point second = points.get(1);
+                        int tx = srcShape != null ? firstPoint.getX() : srcPos.getX() + srcPos.getWidth() / 2;
+                        int ty = srcShape != null ? firstPoint.getY() : srcPos.getY() + srcPos.getHeight() / 2;
+                        tailX = scaled(baseX, tx, activeZoom);
+                        tailY = scaled(baseY, ty, activeZoom);
+                        dirX = scaled(baseX, second.getX(), activeZoom) - tailX;
+                        dirY = scaled(baseY, second.getY(), activeZoom) - tailY;
                     }
+                } else {
+                    FlowchartLayoutResult.Point second = points.get(1);
+                    tailX = scaled(baseX, second.getX(), activeZoom);
+                    tailY = scaled(baseY, second.getY(), activeZoom);
+                    dirX = 0;
+                    dirY = 0;
+                }
+                float len = (float) Math.sqrt(dirX * dirX + dirY * dirY);
+                if (len > 0.5f) {
+                    drawArrowHeadVariant(context, tailX, tailY, dirX / len, dirY / len, activeZoom, edgeColor, revHead);
                 }
             }
 
@@ -377,6 +478,52 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 return e;
         }
         return null;
+    }
+
+    private void drawEdgeLines(RenderContext context, List<FlowchartLayoutResult.Point> points, String fromId,
+        String toId, int baseX, int baseY, float activeZoom, MermaidEdgeStyle style, int thickness, int color,
+        @Nullable FlowchartLayoutResult.Point srcBoundary, @Nullable FlowchartLayoutResult.Point tgtBoundary) {
+        NodePosition srcPos = layout.getPosition(fromId);
+        NodePosition tgtPos = layout.getPosition(toId);
+
+        float srcCx = srcPos != null ? scaled(baseX, srcPos.getX() + srcPos.getWidth() / 2, activeZoom) : Float.NaN;
+        float srcCy = srcPos != null ? scaled(baseY, srcPos.getY() + srcPos.getHeight() / 2, activeZoom) : Float.NaN;
+        float tgtCx = tgtPos != null ? scaled(baseX, tgtPos.getX() + tgtPos.getWidth() / 2, activeZoom) : Float.NaN;
+        float tgtCy = tgtPos != null ? scaled(baseY, tgtPos.getY() + tgtPos.getHeight() / 2, activeZoom) : Float.NaN;
+
+        int n = points.size();
+
+        for (int i = 1; i < n; i++) {
+            FlowchartLayoutResult.Point from = points.get(i - 1);
+            FlowchartLayoutResult.Point to = points.get(i);
+            float x1 = scaled(baseX, from.getX(), activeZoom);
+            float y1 = scaled(baseY, from.getY(), activeZoom);
+            float x2 = scaled(baseX, to.getX(), activeZoom);
+            float y2 = scaled(baseY, to.getY(), activeZoom);
+            drawLine(context, x1, y1, x2, y2, style, thickness, color);
+        }
+
+        if (!Float.isNaN(srcCx) && srcBoundary == null) {
+            FlowchartLayoutResult.Point first = points.get(0);
+            float x1 = scaled(baseX, first.getX(), activeZoom);
+            float y1 = scaled(baseY, first.getY(), activeZoom);
+            drawLine(context, srcCx, srcCy, x1, y1, style, thickness, color);
+        }
+        if (!Float.isNaN(tgtCx) && tgtBoundary == null) {
+            FlowchartLayoutResult.Point last = points.get(n - 1);
+            float x1 = scaled(baseX, last.getX(), activeZoom);
+            float y1 = scaled(baseY, last.getY(), activeZoom);
+            drawLine(context, x1, y1, tgtCx, tgtCy, style, thickness, color);
+        }
+    }
+
+    private void drawLine(RenderContext context, float x1, float y1, float x2, float y2, MermaidEdgeStyle style,
+        int thickness, int color) {
+        if (style == MermaidEdgeStyle.DASHED || style == MermaidEdgeStyle.DOTTED) {
+            drawDashedLine(context, x1, y1, x2, y2, thickness, color, style == MermaidEdgeStyle.DOTTED);
+        } else {
+            context.drawLine(x1, y1, x2, y2, thickness, color);
+        }
     }
 
     private void drawDashedLine(RenderContext context, float x1, float y1, float x2, float y2, int thickness, int color,
@@ -544,7 +691,13 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             int sy = scaled(baseY, pos.getY(), activeZoom);
             int sw = Math.max(1, Math.round(pos.getWidth() * activeZoom));
             int sh = Math.max(1, Math.round(pos.getHeight() * activeZoom));
-            LytRect rect = new LytRect(sx, sy, sw, sh);
+            LytRect rect;
+            if (FlowchartShapes.isShapeClipped(node.getShape())) {
+                int margin = Math.round(NODE_EDGE_MARGIN * activeZoom);
+                rect = new LytRect(sx + margin, sy + margin, sw - 2 * margin, sh - 2 * margin);
+            } else {
+                rect = new LytRect(sx, sy, sw, sh);
+            }
 
             var colors = MermaidNodeRenderer.resolveNodeColors(node.getClasses(), node.getShape(), isRoot);
             String nodeStyles = node.getStyleOverride();

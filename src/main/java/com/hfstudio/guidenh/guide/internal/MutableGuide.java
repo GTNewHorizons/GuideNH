@@ -346,6 +346,21 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             .addShutdownHook(new Thread(watcher::close));
     }
 
+    public boolean hasDevelopmentSources() {
+        return watcher != null;
+    }
+
+    public void tickDevelopmentSources() {
+        if (pages == null || watcher == null) {
+            return;
+        }
+
+        var changes = watcher.takeChanges();
+        if (!changes.isEmpty()) {
+            applyChanges(changes);
+        }
+    }
+
     @Override
     public synchronized void close() {
         int developmentPageCount = developmentPages.size();
