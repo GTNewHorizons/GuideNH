@@ -29,13 +29,9 @@ import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 
 import appeng.api.AEApi;
-import appeng.api.implementations.parts.IPartCable;
-import appeng.api.networking.IGridHost;
 import appeng.api.parts.IFacadePart;
 import appeng.api.parts.IPart;
 import appeng.api.parts.PartItemStack;
-import appeng.api.util.AECableType;
-import appeng.api.util.AEColor;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
 import appeng.parts.CableBusContainer;
@@ -52,7 +48,7 @@ import io.netty.buffer.Unpooled;
 /**
  * AE2 guide preview: applies server-authoritative AE2 preview bytes from {@link GuidebookLevel#previewAuthorityStore()}
  * ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID} cable bus; {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}
- * other {@link AEBaseTile}), merged with locally inferred cable facings where applicable.
+ * other {@link AEBaseTile}), merged with locally inferred cable facings for the current preview layout.
  */
 public class Ae2Helpers {
 
@@ -154,8 +150,19 @@ public class Ae2Helpers {
         for (TileEntity te : level.getTileEntities()) {
             CableBusContainer container = resolveCableContainer(te);
             if (container != null) {
-                syncCableBusConnections(container, level);
                 syncCableBusSidePartStreams(container, level);
+            }
+        }
+        for (TileEntity te : level.getTileEntities()) {
+            CableBusContainer container = resolveCableContainer(te);
+            if (container != null) {
+                container.updateConnections();
+            }
+        }
+        for (TileEntity te : level.getTileEntities()) {
+            CableBusContainer container = resolveCableContainer(te);
+            if (container != null) {
+                syncCableBusConnections(container, level);
             }
         }
         if (level.getOrCreateFakeWorld() instanceof GuidebookPreviewWorld previewWorld) {
@@ -240,7 +247,6 @@ public class Ae2Helpers {
             return;
         }
 
-        int csDirections = computeCableConnectionMask(container, level);
         TileEntity tile = container.getTile();
         long posKey = GuidebookLevel.packPos(tile.xCoord, tile.yCoord, tile.zCoord);
         byte[] raw = level.previewAuthorityStore()
@@ -248,15 +254,12 @@ public class Ae2Helpers {
         Ae2CablePreviewSnapshot snap = raw != null ? Ae2CablePreviewWireCodec.decode(raw)
             : Ae2CablePreviewSnapshot.EMPTY;
 
-        int poweredMask = 1 << ForgeDirection.UNKNOWN.ordinal();
+        int csDirections = computeCableConnectionMask(container, level);
         int csOut;
         int sideOut;
         if (snap.hasCableCore()) {
             csOut = (snap.gridCsUnsigned() & ~CS_DIRECTION_MASK) | (csDirections & CS_DIRECTION_MASK);
             sideOut = snap.sideOut();
-            if (sideOut != 0 && (csOut & poweredMask) == 0) {
-                csOut |= poweredMask;
-            }
         } else {
             csOut = csDirections;
             sideOut = 0;
@@ -470,56 +473,19 @@ public class Ae2Helpers {
         int y = tile.yCoord;
         int z = tile.zCoord;
 
-        AEColor sourceCableColor = getCableColorFromContainer(container);
+        if (!(container.getPart(ForgeDirection.UNKNOWN) instanceof PartCable cable)) {
+            return 0;
+        }
+        AENetworkProxy sourceProxy = cable.getProxy();
 
         int cs = 0;
         for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
             TileEntity adj = level.getTileEntity(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ);
-            CableBusContainer adjContainer = resolveCableContainer(adj);
-            boolean sourceHasSidePart = container.getPart(dir) != null;
-            boolean sourceBlocked = isBlocked(container, dir);
-            boolean sourceCanConnect = container.getCableConnectionType(dir) != AECableType.NONE;
-            boolean neighborCanConnect;
-            boolean neighborFaceBlockedByPart = false;
-            boolean neighborBlocked = false;
-            boolean neighborAcceptsSide = true;
-            AEColor neighborCableColor = null;
-
-            if (adjContainer != null) {
-                ForgeDirection opposite = dir.getOpposite();
-                neighborCanConnect = canConnectCableBusOnSide(adjContainer, opposite);
-                neighborFaceBlockedByPart = Ae2CableConnectionRules
-                    .facePartBlocksAdjacentCable(adjContainer.getPart(opposite) != null, neighborCanConnect);
-                neighborBlocked = isBlocked(adjContainer, opposite);
-                neighborCableColor = getCableColorFromContainer(adjContainer);
-            } else if (adj instanceof IGridHost adjHost) {
-                ForgeDirection opposite = dir.getOpposite();
-                neighborCanConnect = adjHost.getCableConnectionType(opposite) != AECableType.NONE;
-                if (adjHost instanceof IGridProxyable adjProxyable) {
-                    AENetworkProxy proxy = null;
-                    try {
-                        proxy = adjProxyable.getProxy();
-                    } catch (Throwable ignored) {}
-                    if (proxy == null) {
-                        continue;
-                    }
-                    neighborAcceptsSide = proxy.getConnectableSides()
-                        .contains(opposite);
-                }
-            } else {
+            AENetworkProxy targetProxy = resolveExternalConnectionProxy(adj, dir.getOpposite());
+            if (targetProxy == null) {
                 continue;
             }
-
-            if (!Ae2CableConnectionRules.shouldConnect(
-                sourceHasSidePart,
-                sourceBlocked,
-                sourceCanConnect,
-                neighborCanConnect,
-                neighborFaceBlockedByPart,
-                neighborBlocked,
-                neighborAcceptsSide,
-                sourceCableColor,
-                neighborCableColor)) {
+            if (!Ae2CableConnectionRules.shouldConnect(sourceProxy, dir, targetProxy, dir.getOpposite())) {
                 continue;
             }
             cs |= (1 << dir.ordinal());
@@ -533,36 +499,28 @@ public class Ae2Helpers {
         return Ae2CableStructureSupport.resolveCableContainer(tileEntity);
     }
 
-    private static boolean isBlocked(CableBusContainer container, ForgeDirection direction) {
-        try {
-            return container.isBlocked(direction);
-        } catch (Throwable ignored) {
-            return false;
-        }
-    }
-
     @Optional.Method(modid = "appliedenergistics2")
-    private static boolean canConnectCableBusOnSide(CableBusContainer container, ForgeDirection direction) {
-        try {
-            return container.getCableConnectionType(direction) != AECableType.NONE;
-        } catch (Throwable ignored) {
-            return false;
+    @Nullable
+    private static AENetworkProxy resolveExternalConnectionProxy(@Nullable TileEntity tileEntity,
+        ForgeDirection direction) {
+        CableBusContainer container = resolveCableContainer(tileEntity);
+        if (container != null) {
+            IPart sidePart = container.getPart(direction);
+            if (sidePart != null) {
+                return sidePart instanceof Ae2ExternalGridPart externalPart
+                    ? externalPart.guideNh$getExternalConnectionProxy()
+                    : null;
+            }
+            IPart centerPart = container.getPart(ForgeDirection.UNKNOWN);
+            return getProxy(centerPart);
         }
+        return tileEntity instanceof IGridProxyable proxyable ? proxyable.getProxy() : null;
     }
 
     @Optional.Method(modid = "appliedenergistics2")
     @Nullable
-    private static AEColor getCableColorFromContainer(@Nullable CableBusContainer container) {
-        if (container == null) {
-            return null;
-        }
-        try {
-            IPart centerPart = container.getPart(ForgeDirection.UNKNOWN);
-            if (centerPart instanceof IPartCable cable) {
-                return cable.getCableColor();
-            }
-        } catch (Throwable ignored) {}
-        return null;
+    private static AENetworkProxy getProxy(@Nullable IPart part) {
+        return part instanceof IGridProxyable proxyable ? proxyable.getProxy() : null;
     }
 
     @Optional.Method(modid = "appliedenergistics2")

@@ -21,6 +21,9 @@ public enum Mixins implements IMixins {
     BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.MixinPanelButtonQuest", "compat.MixinPanelTextBox",
         "compat.MixinGuiTextEditor", "compat.AccessorPanelTextBox", "compat.AccessorPanelTextBoxHotZone"),
 
+    AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
+        "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
+
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
 
     FMP_BLOCK_MICRO_MATERIAL(Side.CLIENT, Phase.LATE, Mods.ForgeMultipart,
