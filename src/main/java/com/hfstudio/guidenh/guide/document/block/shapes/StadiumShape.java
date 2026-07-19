@@ -22,6 +22,21 @@ public class StadiumShape implements ShapeRenderer {
     }
 
     @Override
+    public String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
+        int r = h / 2;
+        return String.format(
+            "<rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" rx=\"%d\" ry=\"%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"/>",
+            x,
+            y,
+            w,
+            h,
+            r,
+            r,
+            fill,
+            stroke);
+    }
+
+    @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         return nodeRect.shrink(padX, padY, padX, padY);
     }

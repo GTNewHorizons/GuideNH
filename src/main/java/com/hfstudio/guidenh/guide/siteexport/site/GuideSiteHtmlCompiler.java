@@ -628,8 +628,7 @@ public class GuideSiteHtmlCompiler {
         @Nullable Integer height) {
         try {
             return switch (MermaidDiagramType.detect(codeText)) {
-                case FLOWCHART -> GuideSiteGraphRenderer
-                    .renderMermaidFlowchart(FlowchartParser.parse(codeText), Map.of());
+                case FLOWCHART -> GuideSiteGraphRenderer.renderFlowchart(FlowchartParser.parse(codeText), Map.of());
                 case MINDMAP -> GuideSiteGraphRenderer.renderMermaidTree(MindmapParser.parse(codeText), Map.of());
                 case UNKNOWN -> CODE_BLOCK_RENDERER.render(language, codeText, width, height);
             };

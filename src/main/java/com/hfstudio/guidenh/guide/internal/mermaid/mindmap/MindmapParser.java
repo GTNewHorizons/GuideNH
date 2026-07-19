@@ -170,7 +170,7 @@ public class MindmapParser {
         MermaidNodeShape shape = parsedShape != null ? parsedShape.shape() : MermaidNodeShape.DEFAULT;
 
         String labelSource = MermaidParser.normalizeLabel(label);
-        String plainText = toPlainText(labelSource);
+        String plainText = MermaidParser.toPlainText(labelSource);
         if (plainText.isEmpty() && icon != null && !icon.isEmpty()) {
             labelSource = formatIconLabel(icon);
             plainText = labelSource;
@@ -200,25 +200,6 @@ public class MindmapParser {
             }
         }
         return result;
-    }
-
-    private static String toPlainText(String text) {
-        if (text == null || text.isEmpty()) {
-            return "";
-        }
-        String normalized = text;
-        normalized = normalized.replace("![", "[");
-        normalized = normalized.replaceAll("\\[([^\\]]+)]\\(([^)]+)\\)", "$1");
-        normalized = normalized.replaceAll("\\[([^\\]]+)]\\[([^\\]]+)]", "$1");
-        normalized = normalized.replace("**", "")
-            .replace("__", "")
-            .replace("~~", "")
-            .replace("++", "")
-            .replace("^^", "")
-            .replace("::", "")
-            .replace("`", "");
-        normalized = normalized.replaceAll("</?[a-zA-Z]+[^>]*>", "");
-        return MermaidParser.stripWrappingQuotes(normalized.trim());
     }
 
     private static String formatIconLabel(String icon) {

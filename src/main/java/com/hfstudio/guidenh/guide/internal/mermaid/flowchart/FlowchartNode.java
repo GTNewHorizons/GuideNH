@@ -28,16 +28,14 @@ public class FlowchartNode {
     @Getter
     private final boolean markdownLabel;
     @Nullable
+    @Getter
+    private final String labelSource;
+    @Nullable
     private final Map<String, String> extendedProperties;
 
     public FlowchartNode(String id, String label, MermaidNodeShape shape, List<String> classes,
-        @Nullable String styleOverride) {
-        this(id, label, shape, classes, styleOverride, null, false, null);
-    }
-
-    public FlowchartNode(String id, String label, MermaidNodeShape shape, List<String> classes,
         @Nullable String styleOverride, @Nullable String icon, boolean markdownLabel,
-        @Nullable Map<String, String> extendedProperties) {
+        @Nullable Map<String, String> extendedProperties, @Nullable String labelSource) {
         this.id = id != null ? id : "";
         this.label = label != null ? label : "";
         this.shape = shape != null ? shape : MermaidNodeShape.DEFAULT;
@@ -45,6 +43,7 @@ public class FlowchartNode {
         this.styleOverride = styleOverride;
         this.icon = icon;
         this.markdownLabel = markdownLabel;
+        this.labelSource = labelSource;
         this.extendedProperties = extendedProperties != null ? Map.copyOf(new LinkedHashMap<>(extendedProperties))
             : null;
     }

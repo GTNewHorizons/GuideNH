@@ -21,6 +21,30 @@ public class SubprocessShape implements ShapeRenderer {
     }
 
     @Override
+    public String renderSvg(int x, int y, int w, int h, String fill, String stroke) {
+        int innerX = x + FRAME_WIDTH;
+        int innerW = w - FRAME_WIDTH * 2;
+        return String.format(
+            "<rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"/>\n<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"1.5\"/>\n<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"1.5\"/>",
+            x,
+            y,
+            w,
+            h,
+            fill,
+            stroke,
+            innerX,
+            y,
+            innerX,
+            y + h,
+            stroke,
+            innerX + innerW,
+            y,
+            innerX + innerW,
+            y + h,
+            stroke);
+    }
+
+    @Override
     public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
         int innerX = nodeRect.x() + FRAME_WIDTH;
         int innerW = nodeRect.width() - FRAME_WIDTH * 2;
