@@ -39,13 +39,13 @@ You may be able to:
 - compare different structure states
 - follow annotations placed directly in the preview
 
-<BlockImage id="minecraft:stonebrick" />
-
 ## For Readers
 
 Start with the navigation panel, then search for the item, machine, or concept you want to understand.
 
 If you are not sure where to begin, try opening the recommended pages on the home screen once they become available.
+
+After closing this welcome page, you can show it again by enabling **Welcome Popup** in the GuideNH configuration.
 
 <Color color="#ffcc66">Tip:</Color> GuideNH usually splits content into multiple small, connected pages instead of turning everything into one overly long document.
 
