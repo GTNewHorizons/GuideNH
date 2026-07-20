@@ -25,6 +25,9 @@ taffy = { version = "0.12", features = ["flexbox", "grid", "block_layout", "floa
 # Text shaping & rasterization
 cosmic-text = "0.19"
 
+# Line-box text layout (per-line geometry control) — migration target
+parley = { version = "0.11", features = ["complex-scripts"] }
+
 # Rasterization
 swash = "0.2"
 
@@ -39,3 +42,6 @@ minifb = { version = "0.25", optional = true }
 
 [build-dependencies]
 flatc = "0.2"
+
+[dev-dependencies]
+image = "0.25"

@@ -139,49 +139,6 @@ public final class GuideText {
         c.emit(new GuideRenderPrimitive.DrawGlyphRun(tex, glyphs, resolveColor(style)));
     }
 
-    /**
-     * Oracle for the compiler's float-wrap band splitting: shape {@code text}
-     * at {@code maxWidth} and return per-visual-line records as
-     * {@code [startByte, endByte, lineTop, lineBottom]} (document units).
-     * Same engine, same width → deterministic break points.
-     */
-    public static List<int[]> shapeLineBands(String text, @Nullable ResolvedTextStyle style, int maxWidth) {
-        if (!isAvailable() || text == null || text.isEmpty() || maxWidth <= 0) {
-            return List.of();
-        }
-        boolean bold = style != null && style.bold();
-        boolean italic = style != null && style.italic();
-        float scale = style != null ? style.fontScale() : 1f;
-        FlatBufferBuilder fbb = new FlatBufferBuilder(1024);
-        int strOff = fbb.createString(text);
-        int styleOff = TextStyle
-            .createTextStyle(fbb, BASE_FONT_SIZE, bold, italic, scale, 0xFFFFFFFFL, 0L, false, false, 0L, false);
-        int inputOff = ShapeTextInput.createShapeTextInput(fbb, strOff, styleOff, maxWidth, DisplayScale.scaleFactor());
-        fbb.finish(inputOff);
-        byte[] result = LayoutBridge.shapeText(LayoutBridge.getFontHandle(), fbb.sizedByteArray());
-        if (result == null || result.length == 0) {
-            return List.of();
-        }
-        ShapeTextResult shaped = ShapeTextResult.getRootAsShapeTextResult(ByteBuffer.wrap(result));
-        int n = shaped.glyphsLength();
-        List<int[]> lines = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            var g = shaped.glyphs(i);
-            if (g == null) continue;
-            int li = (int) g.lineIndex();
-            while (lines.size() <= li) {
-                lines.add(new int[] { Integer.MAX_VALUE, 0, Integer.MAX_VALUE, 0 });
-            }
-            int[] line = lines.get(li);
-            line[0] = Math.min(line[0], (int) g.start());
-            line[1] = Math.max(line[1], (int) g.end());
-            line[2] = Math.min(line[2], Math.round(g.y()));
-            line[3] = Math.max(line[3], Math.round(g.y() + g.h()));
-        }
-        lines.removeIf(l -> l[0] == Integer.MAX_VALUE);
-        return lines;
-    }
-
     /** Per-codepoint advance (cached; used by RustFontMetrics). */
     public static float advanceOf(int codePoint, @Nullable ResolvedTextStyle style) {
         if (!isAvailable()) {

@@ -7,6 +7,9 @@ use cosmic_text::{
 pub struct GuideFontSystem {
     pub font_system: FontSystem,
     pub swash_cache: SwashCache,
+    /// Parley-side contexts (migration target; both engines coexist during
+    /// the transition and share the same registered font data).
+    pub parley: crate::parley_text::ParleyFonts,
 }
 
 impl GuideFontSystem {
@@ -14,11 +17,13 @@ impl GuideFontSystem {
         Self {
             font_system: FontSystem::new(),
             swash_cache: SwashCache::new(),
+            parley: crate::parley_text::ParleyFonts::new(),
         }
     }
 
     pub fn load_font_data(&mut self, data: Vec<u8>) {
-        self.font_system.db_mut().load_font_data(data);
+        self.font_system.db_mut().load_font_data(data.clone());
+        self.parley.load_font_data(data);
     }
 
     /// Shape text and return glyphs with relative coordinates (buffer-local),

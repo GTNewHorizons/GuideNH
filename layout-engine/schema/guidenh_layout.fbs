@@ -100,8 +100,21 @@ table TextData {
   style: TextStyle;
   white_space: byte = 0;     // 0=Normal 1=PreWrap
   inline_blocks: [InlineBlockRef];  // paired with U+FFFC placeholders, in document order
-  bands: [TextBand];          // float-wrap bands (empty = single-width shaping)
+  bands: [TextBand];          // DEPRECATED (parley migration): replaced by float_clips
   spans: [TextSpan];          // rich multi-style runs (empty = single-style shaping)
+  float_clips: [FloatClip];   // forbidden intervals for per-line float wrapping (paragraph-relative)
+}
+
+/// One forbidden interval the text must not occupy, in paragraph-relative
+/// coordinates (typically a float's rect ∩ the paragraph). The Rust line
+/// breaker subtracts clips from the available width per line: x<=0 is a
+/// left-side clip (text starts right of x+width), otherwise a right-side
+/// clip (text ends at x).
+table FloatClip {
+  y_top: float = 0.0;
+  y_bottom: float = 0.0;
+  x: float = 0.0;
+  width: float = 0.0;
 }
 
 /// One float-wrap band: the paragraph's text is shaped in sequential bands at

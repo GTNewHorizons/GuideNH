@@ -102,6 +102,12 @@ public final class LayoutBridge {
     public static native byte[] renderText(long handle, String text, float fontSize, float availWidth);
 
     /**
+     * Parley variant of {@link #renderText} — same RenderResult wire format,
+     * the shaping engine is the only difference (migration A/B window).
+     */
+    public static native byte[] renderTextParley(long handle, String text, float fontSize, float availWidth);
+
+    /**
      * Shape + rasterize one styled text (unified text pipeline entry).
      *
      * @param handle FontSystem handle from init()

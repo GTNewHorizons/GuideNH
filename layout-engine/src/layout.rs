@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 
 use crate::fb::{
     DecorationRect, DecorationRectArgs, FlatLayout, FlatLayoutArgs, FlatNode, GlyphBitmap,
@@ -7,7 +6,6 @@ use crate::fb::{
     PlacedGlyph, PlacedGlyphArgs,
 };
 use crate::measure::{create_measure_closure, GlyphAccum, NodeContext};
-use crate::raster::image_to_rgba;
 use crate::style_convert::flat_style_to_taffy;
 use crate::text::GuideFontSystem;
 use flatbuffers::FlatBufferBuilder;
@@ -148,7 +146,8 @@ pub fn compute_layout(
 
     // ── Compute layout with measure ──
     let mut glyph_acc: HashMap<usize, GlyphAccum> = HashMap::new();
-    let measure_fn = create_measure_closure(font_system, &flat_nodes, &mut glyph_acc);
+    let measure_fn =
+        create_measure_closure(font_system, &flat_nodes, &mut glyph_acc, input.justify() != 0);
 
     let available = Size {
         width: AvailableSpace::Definite(avail_width),
@@ -192,15 +191,9 @@ pub fn compute_layout(
         sizes[i] = (layout.size.width, layout.size.height);
     }
 
-    // Inline post-pass: anchor inline blocks at their U+FFFC placeholders —
-    // the placeholder's advance is replaced by the block's real width (kerning).
+    // Inline post-pass: anchor inline blocks at their parley InlineBox
+    // positions and grow lines vertically per their align modes.
     inline_post_pass(&flat_nodes, &mut glyph_acc, &mut abs_positions, &mut sizes);
-
-    // Justification post-pass: stretch inter-word spaces so Latin-dominant
-    // lines reach their target width (per band for float-wrap paragraphs).
-    if input.justify() != 0 {
-        justify_pass(&flat_nodes, &mut glyph_acc, &sizes);
-    }
 
     // Content height = the synthetic root's own box (its Column flex height
     // already sums in-flow children + padding). Do NOT max over all nodes:
@@ -259,7 +252,8 @@ pub fn compute_layout(
                 .and_then(|t| t.style())
                 .map(|s| s.color())
                 .unwrap_or(0xFFFFFFFF);
-            let (quads, new_bitmaps) = rasterize_glyphs(font_system, &acc.glyphs, render_scale);
+            let (quads, new_bitmaps) =
+                crate::parley_text::rasterize_out_glyphs(&acc.glyphs, render_scale);
             for (key, bw, bh, rgba) in new_bitmaps {
                 if bitmap_index.insert(key) {
                     bitmap_keys.push(key);
@@ -279,8 +273,10 @@ pub fn compute_layout(
                         y: y + q.y,
                         w: q.w,
                         h: q.h,
-                        start: q.start,
-                        end: q.end,
+                        // Byte ranges are unavailable in the parley path and
+                        // have no consumers.
+                        start: 0,
+                        end: 0,
                         line_index: q.line_index,
                     },
                 ));
@@ -371,13 +367,14 @@ pub fn compute_layout(
     fbb.finished_data().to_vec()
 }
 
-/// Inline post-pass: for every text node with U+FFFC placeholder markers,
-/// anchor each inline block at its marker and shift the glyphs that follow on
-/// the same line, so the placeholder's advance is exactly replaced by the
-/// block's real width (kerning). Vertical handling mirrors the legacy layout's
-/// per-line box growth: a line holding blocks grows by the space they need
-/// above the baseline and below the line, pushing later lines down (the
-/// paragraph's measured height already reserves the total — see measure.rs).
+/// Inline post-pass: for every text node with inline-block markers, anchor
+/// each block at its marker and grow the lines vertically per the block's
+/// align mode. Parley's InlineBox already accounts block widths in pen
+/// positions, so no glyph kerning shifts are needed — only the vertical
+/// handling, mirroring the legacy layout's per-line box growth: a line
+/// holding blocks grows by the space they need above the baseline and below
+/// the line, pushing later lines down (the paragraph's measured height
+/// already reserves the total — see measure.rs).
 fn inline_post_pass(
     flat_nodes: &[FlatNode],
     glyph_acc: &mut HashMap<usize, GlyphAccum>,
@@ -441,24 +438,16 @@ fn inline_post_pass(
             }
         }
 
-        // 2) Anchor blocks per their alignment mode and compute the per-marker
-        //    dx (block width minus placeholder advance). Markers are in shaping
-        //    order, matching the inline blocks' document order.
-        let mut shift_after: Vec<(usize, f32, f32)> = Vec::new(); // (line_index, pen_x, dx)
+        // 2) Anchor blocks per their alignment mode. Markers are in shaping
+        //    order, matching the inline blocks' document order; pen positions
+        //    already account for the blocks' widths (parley InlineBox).
         for (mi, m) in acc.markers.iter().enumerate() {
             if mi >= refs.len() {
                 break;
             }
             let r = refs.get(mi);
             let ci = r.node() as usize;
-            let (bw, bh) = sizes[ci];
-            let dx = bw - m.advance;
-            // The marker's own x is shifted by earlier markers on the same line.
-            let prior: f32 = shift_after
-                .iter()
-                .filter(|(li, px, _)| *li == m.line_index && *px < m.pen_x)
-                .map(|(_, _, d)| *d)
-                .sum();
+            let (_, bh) = sizes[ci];
             let top = match r.align() {
                 // Baseline ascent: block top sits `param` above the baseline.
                 1 => m.baseline_y - r.param(),
@@ -467,131 +456,7 @@ fn inline_post_pass(
                 // Default: block bottom sits 2px below the baseline.
                 _ => m.baseline_y + 2.0 - bh,
             };
-            abs_positions[ci] = (node_x + m.pen_x + prior, node_y + top);
-            shift_after.push((m.line_index, m.pen_x, dx));
-        }
-
-        // 3) Apply glyph shifts: every glyph after a marker on the same line.
-        for g in acc.glyphs.iter_mut() {
-            let dx: f32 = shift_after
-                .iter()
-                .filter(|(li, px, _)| *li == g.line_index && *px < g.x - 0.01)
-                .map(|(_, _, d)| *d)
-                .sum();
-            g.x += dx;
-        }
-    }
-}
-
-/// Stable u64 dedupe key for a glyph bitmap, derived from the full swash
-/// CacheKey (font, glyph, size, subpixel bins, weight, flags). Deterministic
-/// across calls, so the Java atlas cache survives layout rebuilds.
-fn stable_bitmap_key(key: &cosmic_text::CacheKey) -> u64 {
-    let mut h = std::collections::hash_map::DefaultHasher::new();
-    key.hash(&mut h);
-    h.finish()
-}
-
-/// Justification post-pass: for every Latin-dominant line (≥2 space glyphs),
-/// evenly stretch the inter-word spaces so the line reaches its target width —
-/// the band width for float-wrap paragraphs, the node width otherwise. Last
-/// lines and CJK-dominant lines are left alone (letter-spaced CJK looks bad,
-/// and trailing lines stay natural, matching CSS text-justify).
-fn justify_pass(
-    flat_nodes: &[FlatNode],
-    glyph_acc: &mut HashMap<usize, GlyphAccum>,
-    sizes: &[(f32, f32)],
-) {
-    for (i, acc) in glyph_acc.iter_mut() {
-        let node = &flat_nodes[*i];
-        let Some(text) = node.text().and_then(|t| t.text()) else { continue };
-        if text.is_empty() || acc.glyphs.is_empty() {
-            continue;
-        }
-        let node_w = sizes[*i].0;
-        if node_w <= 1.0 {
-            continue;
-        }
-        let bands = node
-            .text()
-            .and_then(|t| t.bands())
-            .filter(|b| b.len() >= 2);
-        let max_line = acc
-            .glyphs
-            .iter()
-            .map(|g| g.line_index)
-            .max()
-            .unwrap_or(0);
-        // Group glyph indices by visual line.
-        let mut lines: std::collections::BTreeMap<usize, Vec<usize>> = Default::default();
-        for (gi, g) in acc.glyphs.iter().enumerate() {
-            lines.entry(g.line_index).or_default().push(gi);
-        }
-        for (line, mut idxs) in lines {
-            if line == max_line {
-                continue;
-            }
-            // Target width: the band containing this line's first byte, else node width.
-            let target_w = match bands {
-                Some(bands) => {
-                    let first = idxs
-                        .iter()
-                        .map(|&gi| acc.glyphs[gi].start)
-                        .min()
-                        .unwrap_or(0);
-                    let mut w = node_w;
-                    for bi in 0..bands.len() {
-                        if first >= bands.get(bi).split_byte() {
-                            w = bands.get(bi).width();
-                        }
-                    }
-                    w
-                }
-                None => node_w,
-            };
-            if target_w <= 1.0 {
-                continue;
-            }
-            let mut min_x = f32::MAX;
-            let mut max_end = 0.0f32;
-            let mut space_count = 0usize;
-            let bytes = text.as_bytes();
-            for &gi in &idxs {
-                let g = &acc.glyphs[gi];
-                if g.x < min_x {
-                    min_x = g.x;
-                }
-                if g.x + g.w > max_end {
-                    max_end = g.x + g.w;
-                }
-                if bytes.get(g.start as usize) == Some(&b' ') {
-                    space_count += 1;
-                }
-            }
-            let natural = max_end - min_x;
-            if space_count < 2 || natural >= target_w - 1.0 || natural <= 0.0 {
-                continue;
-            }
-            // Stretch each space's advance; cap the per-space growth so a very
-            // short line is not pulled into a sparse, ugly spread.
-            let stretch = ((target_w - natural) / space_count as f32).min(4.0);
-            if stretch <= 0.05 {
-                continue;
-            }
-            idxs.sort_by(|a, b| {
-                acc.glyphs[*a]
-                    .x
-                    .partial_cmp(&acc.glyphs[*b].x)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            });
-            let mut cumulative = 0.0f32;
-            for &gi in &idxs {
-                acc.glyphs[gi].x += cumulative;
-                if bytes.get(acc.glyphs[gi].start as usize) == Some(&b' ') {
-                    acc.glyphs[gi].w += stretch;
-                    cumulative += stretch;
-                }
-            }
+            abs_positions[ci] = (node_x + m.pen_x, node_y + top);
         }
     }
 }
@@ -628,9 +493,9 @@ fn span_style_table(node: &FlatNode) -> Vec<SpanStyleInfo> {
 /// Emit span decoration rects (background highlights, underline,
 /// strikethrough) from per-line glyph extents, in absolute document
 /// coordinates. Runs after the inline post-pass, so the shaped glyphs already
-/// carry final (kerning- and growth-adjusted) positions.
+/// carry final (growth-adjusted) positions.
 fn emit_decorations<'a>(
-    glyphs: &[crate::text::ShapedGlyph],
+    glyphs: &[crate::parley_text::OutGlyph],
     span_styles: &[SpanStyleInfo],
     node_index: u32,
     node_x: f32,
@@ -650,15 +515,12 @@ fn emit_decorations<'a>(
     }
     let mut by_line: std::collections::BTreeMap<(u32, usize), Extent> = Default::default();
     for g in glyphs {
-        if g.inline_placeholder {
-            continue;
-        }
         let e = by_line.entry((g.span_index, g.line_index)).or_insert(Extent {
             min_x: g.x,
             max_x: g.x + g.w,
             baseline: g.y,
             line_top: g.line_top,
-            line_height: g.h,
+            line_height: g.line_height,
         });
         e.min_x = e.min_x.min(g.x);
         e.max_x = e.max_x.max(g.x + g.w);
@@ -718,76 +580,6 @@ fn emit_decorations<'a>(
     }
 }
 
-/// One rasterized glyph quad (buffer-local, document units) with its atlas key.
-pub struct RasterizedGlyph {
-    pub bitmap_key: u64,
-    pub x: f32,
-    pub y: f32,
-    pub w: f32,
-    pub h: f32,
-    pub start: u32,
-    pub end: u32,
-    pub line_index: u32,
-    pub span_index: u32,
-}
-
-/// Rasterize shaped glyphs: pen positions → swash bitmaps, deduplicated by the
-/// stable content key. Returns buffer-local quads plus the unique bitmap data
-/// (key, w, h, rgba) the caller merges into its own dedupe set. Inline-block
-/// placeholder glyphs (U+FFFC) are skipped — they are not drawn.
-pub fn rasterize_glyphs(
-    font_system: &mut GuideFontSystem,
-    glyphs: &[crate::text::ShapedGlyph],
-    render_scale: f32,
-) -> (Vec<RasterizedGlyph>, Vec<(u64, u32, u32, Vec<u8>)>) {
-    let mut quads = Vec::new();
-    let mut bitmaps: Vec<(u64, u32, u32, Vec<u8>)> = Vec::new();
-    let mut seen: std::collections::HashSet<u64> = Default::default();
-    for g in glyphs {
-        if g.inline_placeholder {
-            continue;
-        }
-        // Pen position in document units, then to physical pixels. Y is
-        // truncated for grid hinting, mirroring cosmic-text's LayoutGlyph::physical.
-        let pen_x = g.x * render_scale;
-        let pen_y = (g.y * render_scale).trunc();
-        let (cache_key, xi, yi) = cosmic_text::CacheKey::new(
-            g.font_id,
-            g.glyph_id as u16,
-            g.font_size * render_scale,
-            (pen_x, pen_y),
-            g.font_weight,
-            g.cache_key_flags,
-        );
-        let img = font_system
-            .swash_cache
-            .get_image(&mut font_system.font_system, cache_key);
-        let Some(img) = img else { continue };
-        if img.placement.width == 0 || img.placement.height == 0 {
-            continue;
-        }
-        let bitmap_key = stable_bitmap_key(&cache_key);
-        if seen.insert(bitmap_key) {
-            let (bw, bh, rgba) = image_to_rgba(&img);
-            bitmaps.push((bitmap_key, bw, bh, rgba));
-        }
-        // Placement in document units: bitmap top-left relative to the pen
-        // (baseline origin), divided back from physical pixels.
-        quads.push(RasterizedGlyph {
-            bitmap_key,
-            x: (xi + img.placement.left) as f32 / render_scale,
-            y: (yi - img.placement.top) as f32 / render_scale,
-            w: img.placement.width as f32 / render_scale,
-            h: img.placement.height as f32 / render_scale,
-            start: g.start,
-            end: g.end,
-            line_index: g.line_index as u32,
-            span_index: g.span_index,
-        });
-    }
-    (quads, bitmaps)
-}
-
 /// shapeText JNI command: shape + rasterize a single styled text, returning a
 /// ShapeTextResult FlatBuffer with atlas-keyed buffer-local quads and metrics.
 pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> Vec<u8> {
@@ -805,15 +597,21 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
         None
     };
 
-    let shaped = font_system.shape_text(
-        text,
-        style.font_size(),
-        style.bold(),
-        style.italic(),
-        style.font_scale(),
-        max_w,
-    );
-    let (quads, bitmaps) = rasterize_glyphs(font_system, &shaped.glyphs, render_scale);
+    let scaled = style.font_size() * style.font_scale();
+    // Italic is NOT forwarded to shaping — the engine applies the synthetic
+    // slant at draw time (MC §o parity; forwarding both would double-slant).
+    let layout = font_system
+        .parley
+        .layout_styled(text, scaled, 10.0 / 9.0, style.bold(), max_w);
+    let content_height = layout.height();
+    let ascent = layout
+        .lines()
+        .next()
+        .map(|l| l.metrics().baseline - l.metrics().block_min_coord)
+        .unwrap_or(scaled);
+    let (glyphs, _markers, max_x) =
+        crate::parley_text::collect_layout(&layout, &[], max_w.unwrap_or(f32::MAX));
+    let (quads, bitmaps) = crate::parley_text::rasterize_out_glyphs(&glyphs, render_scale);
 
     let mut fbb = flatbuffers::FlatBufferBuilder::with_capacity(4096);
     let glyph_offsets: Vec<flatbuffers::WIPOffset<PlacedGlyph>> = quads
@@ -827,8 +625,8 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
                     y: q.y,
                     w: q.w,
                     h: q.h,
-                    start: q.start,
-                    end: q.end,
+                    start: 0,
+                    end: 0,
                     line_index: q.line_index,
                 },
             )
@@ -852,20 +650,15 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
         .collect();
     let bitmaps_vec = fbb.create_vector(&bitmap_offsets);
 
-    let max_x = shaped
-        .glyphs
-        .iter()
-        .map(|g| g.x + g.w)
-        .fold(0.0f32, f32::max);
     let result = ShapeTextResult::create(
         &mut fbb,
         &ShapeTextResultArgs {
             // Real advance, zero allowed (zero-width chars must measure 0 —
             // the 1px clamp belongs to Taffy node sizing only, see measure.rs).
             width: max_x,
-            height: shaped.content_height.max(1.0),
-            ascent: shaped.ascent,
-            line_height: style.font_size() * style.font_scale() * (10.0 / 9.0),
+            height: content_height.max(1.0),
+            ascent,
+            line_height: scaled * (10.0 / 9.0),
             glyphs: Some(glyphs_vec),
             bitmaps: Some(bitmaps_vec),
         },

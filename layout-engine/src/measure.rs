@@ -14,16 +14,16 @@ pub struct NodeContext {
 /// Accumulator for shaped glyphs during measure closure.
 /// Inserted on each call; last call wins (Taffy may measure multiple times).
 pub struct GlyphAccum {
-    /// Relative glyphs (buffer-local coordinates, no node offset).
-    pub glyphs: Vec<crate::text::ShapedGlyph>,
-    /// Inline-block placeholders (U+FFFC) in shaping order, consumed by the
-    /// inline post-pass in layout.rs.
+    /// Relative glyphs (paragraph-local coordinates, no node offset).
+    pub glyphs: Vec<crate::parley_text::OutGlyph>,
+    /// Inline-block anchors in shaping order, consumed by the inline
+    /// post-pass in layout.rs.
     pub markers: Vec<InlineMarker>,
 }
 
-/// One U+FFFC placeholder in buffer-local coordinates: pen position on the
-/// line's baseline, its line metrics, and the placeholder's advance (to be
-/// replaced by the block width).
+/// One inline-block anchor in paragraph-local coordinates: pen position on
+/// the line's baseline plus the line metrics the anchor's block needs for
+/// its vertical alignment.
 #[derive(Clone, Debug)]
 pub struct InlineMarker {
     pub pen_x: f32,
@@ -66,12 +66,20 @@ pub(crate) fn inline_block_height(nodes: &[FlatNode], idx: usize) -> f32 {
     if d.unit() == 1 { d.value() } else { 0.0 }
 }
 
+/// Explicit pixel width of an inline block node (0 when not px-sized).
+pub(crate) fn inline_block_width(nodes: &[FlatNode], idx: usize) -> f32 {
+    let Some(style) = nodes[idx].style() else { return 0.0 };
+    let Some(d) = style.size_w() else { return 0.0 };
+    if d.unit() == 1 { d.value() } else { 0.0 }
+}
+
 /// Build the measure closure for compute_layout_with_measure.
 /// Dispatches by node_type to the appropriate measurement function.
 pub fn create_measure_closure<'a>(
     font_system: &'a mut GuideFontSystem,
     flat_nodes: &'a [FlatNode],
     glyph_acc: &'a mut HashMap<usize, GlyphAccum>,
+    justify: bool,
 ) -> impl FnMut(
     Size<Option<f32>>,
     Size<AvailableSpace>,
@@ -88,7 +96,7 @@ pub fn create_measure_closure<'a>(
 
         let measured = match ctx.node_type {
             1 => measure_text(
-                font_system, flat_nodes, index, glyph_acc, known, available,
+                font_system, flat_nodes, index, glyph_acc, known, available, justify,
             ),
             2 => measure_image(flat_nodes, index),
             3 => measure_slot(flat_nodes, index),
@@ -114,6 +122,7 @@ fn measure_text(
     acc: &mut HashMap<usize, GlyphAccum>,
     _known: Size<Option<f32>>,
     available: Size<AvailableSpace>,
+    justify: bool,
 ) -> Size<f32> {
     let node = &nodes[idx];
     let td = match node.text() {
@@ -123,200 +132,114 @@ fn measure_text(
     let text = td.text().unwrap_or("");
     let style = td.style().unwrap();
     let font_size = style.font_size();
-    let bold = style.bold();
-    let italic = style.italic();
     let font_scale = style.font_scale();
 
-    // Rich multi-style spans (TextData.spans): shaped together via
-    // Buffer::set_rich_text; empty = legacy single-style shaping. Spans cover
+    // Rich multi-style spans (TextData.spans) → builder ranges. Spans cover
     // the full text in document order, so span byte boundaries index into it.
-    let rich_spans: Vec<crate::text::RichSpan> = match td.spans() {
-        Some(v) if !v.is_empty() => {
-            let mut out = Vec::with_capacity(v.len());
-            for (i, s) in v.iter().enumerate() {
+    let mut span_styles: Vec<crate::parley_text::SpanStyle> = Vec::new();
+    if let Some(v) = td.spans() {
+        if !v.is_empty() {
+            let mut pos = 0usize;
+            for s in v.iter() {
+                let t = s.text().unwrap_or("");
                 let st = s.style().unwrap();
-                out.push(crate::text::RichSpan {
-                    text: s.text().unwrap_or("").to_string(),
+                span_styles.push(crate::parley_text::SpanStyle {
+                    start: pos,
+                    end: pos + t.len(),
                     bold: st.bold(),
-                    italic: st.italic(),
-                    span_index: i as u32,
+                });
+                pos += t.len();
+            }
+        }
+    }
+
+    // Inline blocks: anchor bytes are the U+FFFC placeholders in document
+    // order; each box's width comes from its node's explicit pixel size.
+    let mut inlines: Vec<crate::parley_text::InlineSpec> = Vec::new();
+    if let Some(refs) = td.inline_blocks() {
+        if !refs.is_empty() {
+            let anchors: Vec<usize> = text
+                .char_indices()
+                .filter(|(_, ch)| *ch == '\u{FFFC}')
+                .map(|(i, _)| i)
+                .collect();
+            for (k, r) in refs.iter().enumerate() {
+                if k >= anchors.len() {
+                    break;
+                }
+                inlines.push(crate::parley_text::InlineSpec {
+                    anchor_byte: anchors[k],
+                    width: inline_block_width(nodes, r.node() as usize),
                 });
             }
-            out
         }
-        _ => Vec::new(),
-    };
-    let span_bounds: Vec<(usize, usize)> = {
-        let mut bounds = Vec::with_capacity(rich_spans.len());
-        let mut pos = 0usize;
-        for s in &rich_spans {
-            bounds.push((pos, pos + s.text.len()));
-            pos += s.text.len();
-        }
-        bounds
+    }
+
+    // Float-wrap forbidden intervals (paragraph-relative; empty = uniform).
+    let clips: Vec<crate::parley_text::Clip> = match td.float_clips() {
+        Some(v) => v
+            .iter()
+            .map(|c| crate::parley_text::Clip {
+                y_top: c.y_top(),
+                y_bottom: c.y_bottom(),
+                x: c.x(),
+                width: c.width(),
+            })
+            .collect(),
+        None => Vec::new(),
     };
 
-    // The buffer is already at the scaled font size (text.rs), so the wrap
-    // width is used as-is — dividing by font_scale here would wrap early (D-1).
+    // The buffer is already at the scaled font size (parley_text), so the
+    // wrap width is used as-is (D-1).
     let max_w = match available.width {
-        AvailableSpace::Definite(w) => Some(w as f32),
+        AvailableSpace::Definite(w) => w as f32,
         // Min-content probe: wrap at zero width so every breakable point is
         // taken — the measured width is then the longest unbreakable word,
         // not the whole unwrapped line (D-5).
-        AvailableSpace::MinContent => Some(0.0),
-        _ => None,
+        AvailableSpace::MinContent => 0.0,
+        _ => f32::MAX,
     };
 
-    // Shape text — gets relative (buffer-local) glyphs. With float-wrap bands
-    // (TextData.bands), the paragraph is shaped band by band at per-band widths
-    // and stacked, mirroring CSS float wrapping (narrow beside the float, full
-    // width below it).
-    let bands = td.bands();
-    let mut max_x = 0.0f32;
-    let mut content_height = 0.0f32;
-    let mut glyphs_out: Vec<crate::text::ShapedGlyph> = Vec::new();
-    if let Some(bands) = bands.filter(|b| b.len() >= 2) {
-        let mut y_off = 0.0f32;
-        let mut line_off = 0usize;
-        for bi in 0..bands.len() {
-            let band = bands.get(bi);
-            let start = band.split_byte() as usize;
-            let end = if bi + 1 < bands.len() {
-                (bands.get(bi + 1).split_byte() as usize).min(text.len())
-            } else {
-                text.len()
-            };
-            if start >= end || start >= text.len() {
-                continue;
-            }
-            let segment = &text[start..end];
-            let bw = band.width();
-            // Rich path: clip the spans overlapping this band's byte range.
-            // span_index stays the global span number, so attribution is
-            // unaffected by band splitting.
-            let band_spans: Vec<crate::text::RichSpan> = if rich_spans.is_empty() {
-                Vec::new()
-            } else {
-                let mut pieces = Vec::new();
-                for (si, (ss, se)) in span_bounds.iter().enumerate() {
-                    let lo = (*ss).max(start);
-                    let hi = (*se).min(end);
-                    if lo < hi {
-                        let src = &rich_spans[si];
-                        pieces.push(crate::text::RichSpan {
-                            text: text[lo..hi].to_string(),
-                            bold: src.bold,
-                            italic: src.italic,
-                            span_index: si as u32,
-                        });
-                    }
-                }
-                pieces
-            };
-            let shaped = if !band_spans.is_empty() {
-                fs.shape_rich_text(
-                    &band_spans,
-                    font_size,
-                    font_scale,
-                    if bw > 0.0 { Some(bw) } else { None },
-                )
-            } else {
-                fs.shape_text(
-                    segment,
-                    font_size,
-                    bold,
-                    italic,
-                    font_scale,
-                    if bw > 0.0 { Some(bw) } else { None },
-                )
-            };
-            let band_lines = shaped
-                .glyphs
-                .iter()
-                .map(|g| g.line_index)
-                .max()
-                .map_or(0, |m| m + 1);
-            for mut g in shaped.glyphs {
-                g.x += band.margin_left();
-                g.y += y_off;
-                g.line_top += y_off;
-                g.line_index += line_off;
-                // Glyph byte ranges are segment-local — rebase to the full text.
-                g.start += start as u32;
-                g.end += start as u32;
-                if g.x + g.w > max_x {
-                    max_x = g.x + g.w;
-                }
-                glyphs_out.push(g);
-            }
-            y_off += shaped.content_height;
-            line_off += band_lines;
-        }
-        content_height = y_off;
-    } else if !rich_spans.is_empty() {
-        let shaped = fs.shape_rich_text(&rich_spans, font_size, font_scale, max_w);
-        content_height = shaped.content_height;
-        for g in &shaped.glyphs {
-            if g.x + g.w > max_x {
-                max_x = g.x + g.w;
-            }
-        }
-        glyphs_out = shaped.glyphs;
-    } else {
-        let shaped = fs.shape_text(text, font_size, bold, italic, font_scale, max_w);
-        content_height = shaped.content_height;
-        for g in &shaped.glyphs {
-            if g.x + g.w > max_x {
-                max_x = g.x + g.w;
-            }
-        }
-        glyphs_out = shaped.glyphs;
-    }
-
-    let h = if content_height > 0.0 {
-        content_height
-    } else {
-        font_size * font_scale * (10.0 / 9.0)
+    let req = crate::parley_text::ShapeRequest {
+        text,
+        spans: &span_styles,
+        inlines: &inlines,
+        clips: &clips,
+        font_size,
+        font_scale,
+        max_width: max_w,
+        justify,
     };
+    let shaped = crate::parley_text::shape_paragraph(&mut fs.parley, &req);
 
-    // Inline-block placeholders: reserve the height their lines grow by, so
-    // Taffy flows following siblings below the block (the paragraph's measured
-    // height must already include it — growing it in the post-pass would come
-    // too late).
-    let markers: Vec<InlineMarker> = glyphs_out
-        .iter()
-        .filter(|g| g.inline_placeholder)
-        .map(|g| InlineMarker {
-            pen_x: g.x,
-            baseline_y: g.y,
-            line_top: g.line_top,
-            line_height: g.h,
-            line_index: g.line_index,
-            advance: g.w,
-        })
-        .collect();
-    let mut h = h;
-    if !markers.is_empty() {
-        h += inline_line_growth(nodes, idx, &markers);
+    let mut h = shaped.content_height;
+    if h <= 0.0 {
+        h = font_size * font_scale * (10.0 / 9.0);
+    }
+    // Inline-block vertical growth: reserve the space their lines grow by,
+    // so Taffy flows following siblings below the block (the paragraph's
+    // measured height must already include it — growing it in the post-pass
+    // would come too late).
+    if !shaped.markers.is_empty() {
+        h += inline_line_growth(nodes, idx, &shaped.markers);
     }
 
-    // Store relative glyphs and inline markers for later absolute-coord fixup
     acc.insert(
         idx,
         GlyphAccum {
-            glyphs: glyphs_out,
-            markers,
+            glyphs: shaped.glyphs,
+            markers: shaped.markers,
         },
     );
 
     Size {
-        width: max_x.max(1.0),
+        width: shaped.max_x.max(1.0),
         height: h.max(1.0),
     }
 }
 
 /// Extra paragraph height from inline blocks, mirroring the legacy per-line
-/// box growth: every line holding a placeholder grows by the space its blocks
+/// box growth: every line holding an anchor grows by the space its blocks
 /// need above the baseline plus below the line, and later lines are pushed
 /// down by the accumulated growth (applied in the inline post-pass).
 fn inline_line_growth(nodes: &[FlatNode], idx: usize, markers: &[InlineMarker]) -> f32 {

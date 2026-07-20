@@ -4,6 +4,7 @@ pub use guidenh_layout_generated::com::hfstudio::guidenh::guide::layout::flatbuf
 pub mod jni_bridge;
 pub mod layout;
 pub mod measure;
+pub mod parley_text;
 pub mod raster;
 pub mod style_convert;
 pub mod text;
@@ -268,7 +269,7 @@ pub extern "system" fn Java_com_hfstudio_guidenh_guide_layout_LayoutBridge_rende
         let mut total_w: f32 = 0.0;
         let mut total_h: f32 = 0.0;
 
-        let white = cosmic_text::Color::rgb(255, 255, 255);
+        let _white = cosmic_text::Color::rgb(255, 255, 255);
 
         for run in buffer.layout_runs() {
             for glyph in run.glyphs {
@@ -337,6 +338,64 @@ pub extern "system" fn Java_com_hfstudio_guidenh_guide_layout_LayoutBridge_rende
                 height: total_h,
                 glyphs: Some(glyphs_vec),
             },
+        );
+        fbb.finish(result, None);
+
+        vec_to_jbytearray(&mut env, fbb.finished_data()).unwrap_or(std::ptr::null_mut())
+    }));
+
+    match result {
+        Ok(arr) => arr,
+        Err(_) => env.new_byte_array(0).map(|a| a.into_raw()).unwrap_or(std::ptr::null_mut()),
+    }
+}
+
+/// Java: static native byte[] renderTextParley(long handle, String text, float fontSize, float availWidth);
+/// Parley variant of renderText — same RenderResult wire format; the shaping
+/// engine is the only difference (A/B migration window).
+#[no_mangle]
+pub extern "system" fn Java_com_hfstudio_guidenh_guide_layout_LayoutBridge_renderTextParley(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    text: JString,
+    font_size: jni::sys::jfloat,
+    avail_width: jni::sys::jfloat,
+) -> jbyteArray {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        if handle == 0 {
+            return vec_to_jbytearray(&mut env, &[]).unwrap_or(std::ptr::null_mut());
+        }
+        let text_str: String = env.get_string(&text).map(|s| s.into()).unwrap_or_default();
+        if text_str.is_empty() {
+            return vec_to_jbytearray(&mut env, &[]).unwrap_or(std::ptr::null_mut());
+        }
+
+        let font_system = unsafe { &mut *(handle as *mut GuideFontSystem) };
+        // Match renderText's line height (size × 1.5) for apples-to-apples A/B.
+        let layout = font_system
+            .parley
+            .layout_paragraph(&text_str, font_size, 1.5, Some(avail_width));
+        let quads = crate::parley_text::rasterize_layout(&layout, font_size);
+
+        let mut fbb = flatbuffers::FlatBufferBuilder::with_capacity(16384);
+        let mut glyph_offsets: Vec<flatbuffers::WIPOffset<crate::fb::RenderGlyph>> =
+            Vec::with_capacity(quads.len());
+        let mut total_w: f32 = 0.0;
+        let mut total_h: f32 = 0.0;
+        for q in quads {
+            let rgba_vec = fbb.create_vector(&q.rgba);
+            glyph_offsets.push(crate::fb::RenderGlyph::create(
+                &mut fbb,
+                &crate::fb::RenderGlyphArgs { x: q.x, y: q.y, w: q.w, h: q.h, rgba: Some(rgba_vec) },
+            ));
+            total_w = total_w.max((q.x + q.w as i32) as f32);
+            total_h = total_h.max((q.y + q.h as i32) as f32);
+        }
+        let glyphs_vec = fbb.create_vector(&glyph_offsets);
+        let result = crate::fb::RenderResult::create(
+            &mut fbb,
+            &crate::fb::RenderResultArgs { width: total_w, height: total_h, glyphs: Some(glyphs_vec) },
         );
         fbb.finish(result, None);
 

@@ -106,6 +106,16 @@ val runLayoutDump by tasks.registering(JavaExec::class) {
     setIgnoreExitValue(true)
 }
 
+/** Headless A/B: cosmic renderText vs parley renderTextParley. */
+val runParleySmoke by tasks.registering(JavaExec::class) {
+    description = "Headless A/B: cosmic renderText vs parley renderTextParley"
+    group = "verification"
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.hfstudio.guidenh.guide.layout.GlyphRenderTest")
+    jvmArgs("-Dguide.native.lib.path=$rustDllPath", "-Dsun.java2d.uiScale=1.0")
+    args("--headless")
+}
+
 val buildRustNative by tasks.registering(Exec::class) {
     description = "Build Rust native library (layout-engine/guide_layout_engine.dll)"
     group = "build"

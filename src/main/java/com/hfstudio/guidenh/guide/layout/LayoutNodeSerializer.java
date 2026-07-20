@@ -50,11 +50,11 @@ public final class LayoutNodeSerializer {
     public record InlineRef(int flatIndex, int align, float param) {}
 
     /**
-     * One float-wrap band (schema TextBand): the paragraph's text is shaped in
-     * sequential bands at per-band widths, mirroring CSS float wrapping
-     * (narrow beside the float, full width below it).
+     * One forbidden interval for per-line float wrapping (schema FloatClip), in
+     * paragraph-relative coordinates: x<=0 is a left-side clip (text starts
+     * right of x+width), otherwise a right-side clip (text ends at x).
      */
-    public record BandSpec(int splitByte, float width, float marginLeft) {}
+    public record FloatClipSpec(float yTop, float yBottom, float x, float width) {}
 
     /** Extract the full text of a paragraph (with U+FFFC placeholders for inline blocks). */
     static String paragraphText(LytParagraph par) {
@@ -66,9 +66,9 @@ public final class LayoutNodeSerializer {
     }
 
     public static int build(FlatBufferBuilder fbb, LytBlock block, int styleOff, List<Integer> childIndices,
-        List<InlineRef> inlineRefs, List<BandSpec> bandSpecs) {
+        List<InlineRef> inlineRefs, List<FloatClipSpec> floatClips) {
         byte nodeType = resolveNodeType(block);
-        int textOff = nodeType == 1 ? buildTextData(fbb, block, inlineRefs, bandSpecs) : 0;
+        int textOff = nodeType == 1 ? buildTextData(fbb, block, inlineRefs, floatClips) : 0;
         int imageOff = nodeType == 2 ? buildImageData(fbb, block) : 0;
         int slotOff = nodeType == 3 ? buildSlotData(fbb, block) : 0;
         int breakOff = nodeType == 4 ? buildThematicBreakData(fbb) : 0;
@@ -160,7 +160,7 @@ public final class LayoutNodeSerializer {
     }
 
     private static int buildTextData(FlatBufferBuilder fbb, LytBlock block, List<InlineRef> inlineRefs,
-        List<BandSpec> bandSpecs) {
+        List<FloatClipSpec> floatClips) {
         String text = "";
         // Base em size matches the legacy MC font cell (FONT_HEIGHT = 9); the
         // guide's line height is FONT_HEIGHT+1 = 10, which text.rs mirrors as
@@ -224,15 +224,15 @@ public final class LayoutNodeSerializer {
             }
             inlineBlocksVec = TextData.createInlineBlocksVector(fbb, refs);
         }
-        int bandsVec = 0;
-        if (!bandSpecs.isEmpty()) {
-            int[] bands = new int[bandSpecs.size()];
-            for (int i = 0; i < bands.length; i++) {
-                var b = bandSpecs.get(i);
-                bands[i] = com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand
-                    .createTextBand(fbb, b.splitByte(), b.width(), b.marginLeft());
+        int clipsVec = 0;
+        if (!floatClips.isEmpty()) {
+            int[] clips = new int[floatClips.size()];
+            for (int i = 0; i < clips.length; i++) {
+                var c = floatClips.get(i);
+                clips[i] = com.hfstudio.guidenh.guide.layout.flatbuffers.FloatClip
+                    .createFloatClip(fbb, c.yTop(), c.yBottom(), c.x(), c.width());
             }
-            bandsVec = TextData.createBandsVector(fbb, bands);
+            clipsVec = TextData.createFloatClipsVector(fbb, clips);
         }
         int spansVec = 0;
         if (needsRichSpans(spanParts)) {
@@ -245,7 +245,7 @@ public final class LayoutNodeSerializer {
             }
             spansVec = TextData.createSpansVector(fbb, spans);
         }
-        return TextData.createTextData(fbb, strOff, styleOff, (byte) 0, inlineBlocksVec, bandsVec, spansVec);
+        return TextData.createTextData(fbb, strOff, styleOff, (byte) 0, inlineBlocksVec, 0, spansVec, clipsVec);
     }
 
     /** One text run with its resolved style, in document order. */

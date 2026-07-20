@@ -70,8 +70,8 @@ public class LayoutTreeSerializer {
     private final Map<LytBlock, Float> flexGrowOverrides = new IdentityHashMap<>();
     /** Extra margin-left for a specific child (e.g. the recipe output slot's arrow gap). */
     private final Map<LytBlock, Integer> marginLeftAdjust = new IdentityHashMap<>();
-    /** Float-wrap band specs for text paragraphs crossing a float's bottom edge. */
-    private final Map<LytBlock, List<LayoutNodeSerializer.BandSpec>> bandSpecs = new IdentityHashMap<>();
+    /** Float-wrap forbidden intervals for text paragraphs (per-line clip query). */
+    private final Map<LytBlock, List<LayoutNodeSerializer.FloatClipSpec>> floatClips = new IdentityHashMap<>();
     /**
      * Clear-break bridge: a paragraph containing a {@code <br clear="..."/>
      * } has
@@ -97,7 +97,7 @@ public class LayoutTreeSerializer {
         lanePins.clear();
         flexGrowOverrides.clear();
         marginLeftAdjust.clear();
-        bandSpecs.clear();
+        floatClips.clear();
         clearMinHeights.clear();
         floatRects.clear();
         this.availWidth = availWidth;
@@ -149,7 +149,7 @@ public class LayoutTreeSerializer {
                 }
             }
             nodeOffsets[i] = LayoutNodeSerializer
-                .build(fbb, block, styleOff, childIndices, inlineRefs, bandSpecs.getOrDefault(block, List.of()));
+                .build(fbb, block, styleOff, childIndices, inlineRefs, floatClips.getOrDefault(block, List.of()));
         }
 
         int nodesVec = fbb.createVectorOfTables(nodeOffsets);
@@ -345,39 +345,61 @@ public class LayoutTreeSerializer {
     /**
      * Float lane computation, replayed from the Java layout results.
      * <p>
-     * <b>Text paragraphs</b> in a float's vertical band are always narrowed to
-     * the computed lane (displacement + lane width) so Rust shapes their lines
-     * around the float — Java wraps their text, not necessarily their bounds.
-     * <b>Non-text blocks</b> are only pinned when their Java bounds actually
-     * abut the float lane (edge-abutment detection; the registered float rect
-     * already includes FLOAT_GAP) — children of flex rows and naturally narrow
-     * blocks pass through unpinned.
+     * <b>Text paragraphs without inline blocks</b> get one {@code FloatClip}
+     * per vertically-overlapping float (paragraph-relative forbidden
+     * interval): the Rust line breaker subtracts clips from the available
+     * width per line — true CSS float wrapping, no lane pinning, no band
+     * pre-splitting.
+     * <b>Paragraphs with inline blocks</b> keep the whole-lane pin (grown
+     * lines would invalidate the clip's y math), and <b>non-text blocks</b>
+     * are only pinned when their Java bounds actually abut the float lane
+     * (edge-abutment detection; the registered float rect already includes
+     * FLOAT_GAP) — children of flex rows and naturally narrow blocks pass
+     * through unpinned.
      */
     private void pinLaneIfFloatAdjacent(LytBlock block, int parentContentX, int parentContentW) {
         if (floatRects.isEmpty()) return;
         LytRect b = block.getFlowBounds();
         int naturalX = parentContentX + block.getMarginLeft();
         int naturalRight = parentContentX + parentContentW - block.getMarginRight();
+
+        boolean isPlainText = LayoutNodeSerializer.resolveNodeType(block) == 1 && block instanceof LytParagraph par
+            && par.getInlineBlocks()
+                .isEmpty();
+        if (isPlainText) {
+            List<LayoutNodeSerializer.FloatClipSpec> clips = null;
+            for (FloatRect fr : floatRects) {
+                LytRect f = fr.rect();
+                if (f.bottom() <= b.y() || f.y() >= b.bottom()) continue;
+                int yTop = Math.max(f.y(), b.y()) - b.y();
+                int yBottom = Math.min(f.bottom(), b.bottom()) - b.y();
+                LayoutNodeSerializer.FloatClipSpec c = fr.right()
+                    // Right float: forbidden interval starts at the float's
+                    // content left edge (registered rect holds FLOAT_GAP there).
+                    ? new LayoutNodeSerializer.FloatClipSpec(
+                        yTop,
+                        yBottom,
+                        f.x() + LytDocumentFloat.FLOAT_GAP - b.x(),
+                        Math.max(1, b.right() - (f.x() + LytDocumentFloat.FLOAT_GAP)))
+                    // Left float: forbidden interval [0, lane left).
+                    : new LayoutNodeSerializer.FloatClipSpec(yTop, yBottom, 0, f.right() - b.x());
+                if (clips == null) clips = new ArrayList<>();
+                clips.add(c);
+            }
+            if (clips != null) floatClips.put(block, clips);
+            return;
+        }
+
         for (FloatRect fr : floatRects) {
             LytRect f = fr.rect();
             if (f.bottom() <= b.y() || f.y() >= b.bottom()) continue; // no vertical overlap
             boolean isText = LayoutNodeSerializer.resolveNodeType(block) == 1;
-            // A paragraph that extends below the float's bottom edge gets true
-            // CSS wrapping via band splitting (narrow beside, full width below);
-            // inline-block paragraphs keep the whole-lane pin (registered limit).
-            boolean crossesBottom = f.bottom() > b.y() && f.bottom() < b.bottom();
             if (fr.right()) {
                 // Right float: the registered rect holds FLOAT_GAP on its left,
                 // so the float's content starts at f.x()+GAP.
                 int laneRight = f.x() + LytDocumentFloat.FLOAT_GAP;
                 int laneWidth = Math.max(1, laneRight - naturalX);
                 if (isText) {
-                    if (crossesBottom && block instanceof LytParagraph par
-                        && par.getInlineBlocks()
-                            .isEmpty()
-                        && registerFloatBands(par, f, naturalX, naturalRight, laneWidth, 0)) {
-                        return;
-                    }
                     if (laneRight < naturalRight) {
                         lanePins.put(block, new LayoutStyleExtractor.LanePin(0, laneWidth));
                         return;
@@ -393,12 +415,6 @@ public class LayoutTreeSerializer {
                 int laneLeft = f.right();
                 int laneWidth = Math.max(1, naturalRight - laneLeft);
                 if (isText) {
-                    if (crossesBottom && block instanceof LytParagraph par
-                        && par.getInlineBlocks()
-                            .isEmpty()
-                        && registerFloatBands(par, f, naturalX, naturalRight, laneWidth, laneLeft - naturalX)) {
-                        return;
-                    }
                     if (laneLeft > naturalX) {
                         lanePins.put(block, new LayoutStyleExtractor.LanePin(laneLeft - naturalX, laneWidth));
                         return;
@@ -410,39 +426,6 @@ public class LayoutTreeSerializer {
                 }
             }
         }
-    }
-
-    /**
-     * Compute float-wrap bands for a paragraph crossing a float's bottom edge:
-     * shape the text at the narrow lane width (Rust oracle — same engine, same
-     * width, so the split byte is exact), find the first line starting below
-     * the float bottom, and split there into narrow + full-width bands.
-     */
-    private boolean registerFloatBands(LytParagraph par, LytRect f, int naturalX, int naturalRight, int laneWidth,
-        int laneInset) {
-        String text = LayoutNodeSerializer.paragraphText(par);
-        if (text.isEmpty()) {
-            return false;
-        }
-        var lines = com.hfstudio.guidenh.guide.render.GuideText.shapeLineBands(text, par.resolveStyle(), laneWidth);
-        int floatBottomRel = f.bottom() - par.getFlowBounds()
-            .y();
-        int split = -1;
-        for (int[] line : lines) {
-            if (line[2] >= floatBottomRel) {
-                split = line[0];
-                break;
-            }
-        }
-        if (split <= 0) {
-            return false; // paragraph stays fully beside the float — keep the lane pin
-        }
-        bandSpecs.put(
-            par,
-            List.of(
-                new LayoutNodeSerializer.BandSpec(0, laneWidth, laneInset),
-                new LayoutNodeSerializer.BandSpec(split, Math.max(1, naturalRight - naturalX), 0)));
-        return true;
     }
 
     /**
