@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.style.BorderStyle;
 
 import lombok.Setter;
 
@@ -148,6 +149,11 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
     }
 
     @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
     public void computePrimitives(PrimitiveCollector c) {
         if (backgroundColor != null) {
             c.emit(
@@ -185,8 +191,15 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
     }
 
     private int resolveBorderArgb() {
-        var color = getBorderTop().color();
-        if (color == null) return 0xFF000000;
-        return color.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
+        // DrawBorder is single-color; use the first side that declares one
+        // (some blocks, e.g. the code toolbar, only set a bottom border).
+        BorderStyle[] sides = { getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom() };
+        for (BorderStyle side : sides) {
+            var color = side.color();
+            if (color != null) {
+                return color.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
+            }
+        }
+        return 0xFF000000;
     }
 }

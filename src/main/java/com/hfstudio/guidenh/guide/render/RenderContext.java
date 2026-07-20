@@ -34,6 +34,32 @@ public interface RenderContext {
         return 0;
     }
 
+    /**
+     * Precise (unrounded) scroll offset in document units. Used by the render
+     * engine to build the root transform; defaults to the integer scroll offset.
+     */
+    default float getPreciseScrollOffsetY() {
+        return getScrollOffsetY();
+    }
+
+    /**
+     * Current zoom factor (document -> screen scale). 1.0 means no zoom.
+     */
+    default float getZoom() {
+        return 1.0f;
+    }
+
+    /**
+     * The fixed on-screen viewport rectangle in screen GUI coordinates. Unlike
+     * {@link #viewport()} (which is in document space and moves with scroll),
+     * this rect stays fixed regardless of scroll/zoom and is used for the
+     * outer scissor clip and for primitive culling. Defaults to {@link #viewport()},
+     * which is exact when the origin is (0, 0) and zoom is 1.
+     */
+    default LytRect getScreenViewport() {
+        return viewport();
+    }
+
     default LytRect toScreenRect(LytRect rect) {
         return new LytRect(
             rect.x() + getDocumentOriginX(),

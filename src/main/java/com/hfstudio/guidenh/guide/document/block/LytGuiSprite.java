@@ -1,5 +1,9 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.ITextureObject;
+import net.minecraft.util.ResourceLocation;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
@@ -10,6 +14,8 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuiSprite;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -66,6 +72,16 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
     }
 
     @Override
+    public int getExplicitWidth() {
+        return Math.round(size.width());
+    }
+
+    @Override
+    public int getExplicitHeight() {
+        return Math.round(size.height());
+    }
+
+    @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         float actualWidth = size.width();
         float actualHeight = size.height();
@@ -99,9 +115,54 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
     }
 
     @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        if (sprite != null) {
+            var b = getBounds();
+            int texId = getGlTextureId(sprite.getTexture());
+            if (texId >= 0) {
+                float u = (float) sprite.getU() / sprite.getTexWidth();
+                float v = (float) sprite.getV() / sprite.getTexHeight();
+                float u2 = (float) (sprite.getU() + sprite.getWidth()) / sprite.getTexWidth();
+                float v2 = (float) (sprite.getV() + sprite.getHeight()) / sprite.getTexHeight();
+                ColorValue tint = hovered && hoverColor != null ? hoverColor : color;
+                int argb = tint.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
+                c.emit(
+                    new GuideRenderPrimitive.BlitTexture(
+                        texId,
+                        b.x(),
+                        b.y(),
+                        b.width(),
+                        b.height(),
+                        u,
+                        v,
+                        u2,
+                        v2,
+                        argb));
+            }
+        }
+    }
+
+    @Override
     public void render(RenderContext context) {
         if (sprite != null) {
             context.fillIcon(getBounds(), sprite, hovered && hoverColor != null ? hoverColor : color);
+        }
+    }
+
+    private static int getGlTextureId(ResourceLocation res) {
+        try {
+            ITextureObject tex = Minecraft.getMinecraft()
+                .getTextureManager()
+                .getTexture(res);
+            return tex != null ? tex.getGlTextureId() : -1;
+        } catch (Throwable t) {
+            // Headless (unit tests) or texture unavailable: skip drawing.
+            return -1;
         }
     }
 }

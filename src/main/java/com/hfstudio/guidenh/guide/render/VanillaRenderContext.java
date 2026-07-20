@@ -38,6 +38,14 @@ public class VanillaRenderContext implements RenderContext {
     @Setter
     private LytRect viewport;
 
+    /**
+     * Fixed on-screen viewport rect (screen GUI coordinates), set by the screen
+     * alongside {@link #viewport}. Used by the primitive pipeline for the outer
+     * scissor clip and culling; falls back to {@link #viewport} when unset.
+     */
+    @Setter
+    private LytRect screenViewport;
+
     private final Deque<LytRect> scissorStack = new ArrayDeque<>();
 
     @Getter
@@ -103,6 +111,16 @@ public class VanillaRenderContext implements RenderContext {
     @Override
     public LytRect viewport() {
         return viewport;
+    }
+
+    @Override
+    public LytRect getScreenViewport() {
+        return screenViewport != null ? screenViewport : viewport;
+    }
+
+    @Override
+    public float getPreciseScrollOffsetY() {
+        return preciseScrollOffsetY;
     }
 
     @Override

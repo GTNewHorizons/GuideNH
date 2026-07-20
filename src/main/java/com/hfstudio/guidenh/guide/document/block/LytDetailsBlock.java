@@ -12,6 +12,8 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
@@ -36,7 +38,8 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     private final LytHBox summaryRow = new LytHBox();
     private final LytParagraph summaryMarker = new LytParagraph();
     private final LytParagraph summaryContent = new LytParagraph();
-    private final LytVBox content = new LytVBox();
+    /** Scrollable content viewport; clips its children to its own bounds. */
+    private final LytViewportBox content = new LytViewportBox();
     private final BorderRenderer borderRenderer = new BorderRenderer();
     private final SmoothFloatState visualContentScrollOffsetY = new SmoothFloatState();
 
@@ -48,12 +51,9 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     private int preferredWidth;
     @Getter
     private int preferredContentHeight;
-    private int contentHeight;
-    private int contentViewportX;
-    private int contentViewportY;
-    private int contentViewportWidth;
-    private int contentViewportHeight;
     private int contentScrollOffsetY;
+    /** Visual-scroll delta currently baked into the content bounds (see computePrimitives). */
+    private int visualDeltaY;
     private boolean draggingContent;
     private int dragLastDocumentY;
     private boolean draggingScrollbar;
@@ -172,31 +172,30 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         LytRect summaryBounds = summaryRow.layout(context, innerX, innerY, innerWidth);
         int totalHeight = PADDING + BORDER_WIDTH + summaryBounds.height() + PADDING + BORDER_WIDTH;
 
-        contentHeight = 0;
-        contentViewportX = innerX;
-        contentViewportY = summaryBounds.bottom() + GAP;
-        contentViewportWidth = innerWidth;
-        contentViewportHeight = 0;
-
         if (open) {
-            LytRect measuredContent = content.layout(context, contentViewportX, contentViewportY, contentViewportWidth);
-            contentHeight = measuredContent.height();
-            contentViewportHeight = preferredContentHeight > 0 ? preferredContentHeight : contentHeight;
-            if (preferredContentHeight > 0 && contentHeight > contentViewportHeight) {
-                contentViewportWidth = Math.max(1, innerWidth - SCROLLBAR_WIDTH - SCROLLBAR_GAP);
-                measuredContent = content.layout(context, contentViewportX, contentViewportY, contentViewportWidth);
-                contentHeight = measuredContent.height();
+            int contentX = innerX;
+            int contentY = summaryBounds.bottom() + GAP;
+            int contentWidth = innerWidth;
+            LytRect measuredContent = content.layout(context, contentX, contentY, contentWidth);
+            int naturalHeight = measuredContent.height();
+            int viewportHeight = preferredContentHeight > 0 ? preferredContentHeight : naturalHeight;
+            if (preferredContentHeight > 0 && naturalHeight > viewportHeight) {
+                contentWidth = Math.max(1, innerWidth - SCROLLBAR_WIDTH - SCROLLBAR_GAP);
+                measuredContent = content.layout(context, contentX, contentY, contentWidth);
+                naturalHeight = measuredContent.height();
+                viewportHeight = preferredContentHeight;
             }
-            contentViewportHeight = preferredContentHeight > 0 ? preferredContentHeight : contentHeight;
+            content.setExplicitHeight(viewportHeight);
             setContentScrollOffset(contentScrollOffsetY);
             snapVisualScrollToTarget();
             totalHeight = PADDING + BORDER_WIDTH
                 + summaryBounds.height()
                 + GAP
-                + contentViewportHeight
+                + viewportHeight
                 + PADDING
                 + BORDER_WIDTH;
         } else {
+            content.setExplicitHeight(-1);
             setContentScrollOffset(0);
             snapVisualScrollToTarget();
         }
@@ -204,16 +203,124 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         return new LytRect(x, y, safeWidth, totalHeight);
     }
 
+    // ---- derived geometry (computed from current bounds; no layout-time fields) ----
+
+    /** The content viewport rect is simply the viewport box's own bounds. */
+    private LytRect getContentViewportBounds() {
+        return content.getBounds();
+    }
+
+    /**
+     * Natural (unscrolled) content height, derived from the children's current
+     * bounds. The scroll offset cancels out: children and the content box move
+     * together.
+     */
+    private int getContentNaturalHeight() {
+        int bottom = Integer.MIN_VALUE;
+        for (LytNode child : content.getChildren()) {
+            if (child instanceof LytBlock childBlock) {
+                bottom = Math.max(
+                    bottom,
+                    childBlock.getBounds()
+                        .bottom());
+            }
+        }
+        return bottom == Integer.MIN_VALUE ? 0
+            : Math.max(
+                0,
+                bottom - content.getBounds()
+                    .y());
+    }
+
+    private int getContentViewportHeight() {
+        return preferredContentHeight > 0 ? preferredContentHeight : getContentNaturalHeight();
+    }
+
+    private int getMaxContentScroll() {
+        return Math.max(0, getContentNaturalHeight() - getContentViewportHeight());
+    }
+
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
         summaryRow.moveLayoutPos(deltaX, deltaY);
         content.moveLayoutPos(deltaX, deltaY);
-        contentViewportX += deltaX;
-        contentViewportY += deltaY;
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        c.emit(
+            new GuideRenderPrimitive.FillRect(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                SymbolicColor.BLOCKQUOTE_BACKGROUND.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
+
+        // Advance the smooth scroll and bake the visual delta into the content
+        // bounds (collector traverses the content right after this).
+        updateVisualScroll();
+        int newDelta = contentScrollOffsetY - visualContentScrollOffsetY.rounded();
+        if (open && newDelta != visualDeltaY
+            && !content.getBounds()
+                .isEmpty()) {
+            content.moveLayoutPos(0, newDelta - visualDeltaY);
+            visualDeltaY = newDelta;
+        }
+
+        LytRect trackBounds = getScrollbarTrackBounds();
+        if (open && !trackBounds.isEmpty()) {
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    trackBounds.x(),
+                    trackBounds.y(),
+                    trackBounds.width(),
+                    trackBounds.height(),
+                    0x30242B33));
+            LytRect thumbBounds = getScrollbarThumbBounds();
+            if (!thumbBounds.isEmpty()) {
+                c.emit(
+                    new GuideRenderPrimitive.FillRect(
+                        thumbBounds.x(),
+                        thumbBounds.y(),
+                        thumbBounds.width(),
+                        thumbBounds.height(),
+                        draggingScrollbar ? 0xFFCDD6E1 : 0xA0AAB5C2));
+            }
+        }
+    }
+
+    @Override
+    public void emitDecorations(PrimitiveCollector c) {
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                BORDER_WIDTH,
+                BORDER_WIDTH,
+                BORDER_WIDTH,
+                BORDER_WIDTH,
+                DETAILS_BORDER.color() != null ? DETAILS_BORDER.color()
+                    .resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current()) : 0xFF000000));
+    }
+
+    @Override
+    protected void afterExternalLayout() {
+        // The writeback reset the content to the unscrolled position; re-apply
+        // the current scroll offset and restart the visual-delta bookkeeping.
+        updateContentPosition();
+        visualDeltaY = 0;
     }
 
     @Override
     public void render(RenderContext context) {
+        // Legacy reference path (unreachable in the primitive pipeline).
         updateVisualScroll();
         context.fillRect(bounds, SymbolicColor.BLOCKQUOTE_BACKGROUND);
         summaryRow.render(context);
@@ -221,7 +328,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
             LytRect viewport = getContentViewportBounds();
             context.pushLocalScissor(viewport);
             try {
-                renderContentWithVisualOffset(context);
+                content.render(context);
             } finally {
                 context.popScissor();
             }
@@ -333,19 +440,12 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         }
     }
 
-    private LytRect getContentViewportBounds() {
-        return new LytRect(contentViewportX, contentViewportY, contentViewportWidth, contentViewportHeight);
-    }
-
     private LytRect getScrollbarTrackBounds() {
         if (getMaxContentScroll() <= 0) {
             return LytRect.empty();
         }
-        return new LytRect(
-            contentViewportX + contentViewportWidth + SCROLLBAR_GAP,
-            contentViewportY,
-            SCROLLBAR_WIDTH,
-            contentViewportHeight);
+        LytRect viewport = getContentViewportBounds();
+        return new LytRect(viewport.right() + SCROLLBAR_GAP, viewport.y(), SCROLLBAR_WIDTH, viewport.height());
     }
 
     private LytRect getScrollbarThumbBounds() {
@@ -353,8 +453,9 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         if (track.isEmpty()) {
             return LytRect.empty();
         }
-        int thumbHeight = Math
-            .max(MIN_SCROLLBAR_THUMB, track.height() * track.height() / Math.max(track.height(), contentHeight));
+        int thumbHeight = Math.max(
+            MIN_SCROLLBAR_THUMB,
+            track.height() * track.height() / Math.max(track.height(), getContentNaturalHeight()));
         thumbHeight = Math.min(thumbHeight, track.height());
         int maxScroll = getMaxContentScroll();
         int thumbTrack = Math.max(1, track.height() - thumbHeight);
@@ -365,10 +466,6 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         return new LytRect(track.x(), thumbY, track.width(), thumbHeight);
     }
 
-    private int getMaxContentScroll() {
-        return Math.max(0, contentHeight - contentViewportHeight);
-    }
-
     private void setContentScrollOffset(int contentScrollOffsetY) {
         this.contentScrollOffsetY = SceneEditorVerticalScrollbar.clamp(contentScrollOffsetY, 0, getMaxContentScroll());
         updateContentPosition();
@@ -376,27 +473,18 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
 
     private void updateContentPosition() {
         if (!content.getBounds()
-            .isEmpty()) {
+            .isEmpty()
+            && !summaryRow.getBounds()
+                .isEmpty()) {
+            int naturalX = bounds.x() + PADDING + BORDER_WIDTH;
+            int naturalY = summaryRow.getBounds()
+                .bottom() + GAP;
             content.moveLayoutPos(
-                contentViewportX - content.getBounds()
+                naturalX - content.getBounds()
                     .x(),
-                contentViewportY - contentScrollOffsetY
+                naturalY - contentScrollOffsetY
                     - content.getBounds()
                         .y());
-        }
-    }
-
-    private void renderContentWithVisualOffset(RenderContext context) {
-        int renderDeltaY = contentScrollOffsetY - visualContentScrollOffsetY.rounded();
-        if (renderDeltaY == 0) {
-            content.render(context);
-            return;
-        }
-        content.moveLayoutPos(0, renderDeltaY);
-        try {
-            content.render(context);
-        } finally {
-            content.moveLayoutPos(0, -renderDeltaY);
         }
     }
 
@@ -420,6 +508,6 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
 
     private void updateVisualScroll() {
         visualContentScrollOffsetY
-            .updateTowards(contentScrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, contentViewportHeight * 2f));
+            .updateTowards(contentScrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, getContentViewportHeight() * 2f));
     }
 }

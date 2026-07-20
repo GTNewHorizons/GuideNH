@@ -119,7 +119,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
     }
 
     private void appendInlineBlock(LytFlowInlineBlock inlineBlock) {
-        var layoutBounds = inlineBlock.getPreferredBounds(lineBoxWidth);
+        var layoutBounds = inlineBlock.getPreferredBounds(context, lineBoxWidth);
         var size = layoutBounds.size();
         var block = inlineBlock.getBlock();
         var marginLeft = block.getMarginLeft();

@@ -8,6 +8,8 @@ import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -78,10 +80,25 @@ public class LytStructureView extends LytBlock {
     protected void onLayoutMoved(int deltaX, int deltaY) {}
 
     @Override
-    public void render(RenderContext context) {
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
         var bounds = getBounds();
-        context.fillRect(bounds, 0xFF1E1E1E);
-        context.drawBorder(bounds, 0xFF555555, 1);
+        c.emit(new GuideRenderPrimitive.FillRect(bounds.x(), bounds.y(), bounds.width(), bounds.height(), 0xFF1E1E1E));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                1,
+                1,
+                1,
+                1,
+                0xFF555555));
 
         if (blocks.isEmpty()) {
             return;
@@ -114,17 +131,21 @@ public class LytStructureView extends LytBlock {
             sortedCache = sorted;
         }
 
-        context.pushLocalScissor(bounds);
-        try {
-            for (BlockEntry b : sorted) {
-                int px = projectX(b.x, b.z) + offsetX;
-                int py = projectY(b.x, b.y, b.z) + offsetY;
-                context.renderItem(b.stack, px, py);
-            }
-        } finally {
-            context.popScissor();
+        c.pushScissor(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        for (BlockEntry b : sorted) {
+            int px = projectX(b.x, b.z) + offsetX;
+            int py = projectY(b.x, b.y, b.z) + offsetY;
+            c.emit(new GuideRenderPrimitive.RenderItem(b.stack, px, py));
         }
+        c.popScissor();
     }
+
+    /**
+     * Migrated to {@link #computePrimitives}; the legacy path is unreachable
+     * (the collector only invokes it when {@link #usePrimitives()} is false).
+     */
+    @Override
+    public void render(RenderContext context) {}
 
     public static int projectX(int x, int z) {
         return (x - z) * TILE_W;

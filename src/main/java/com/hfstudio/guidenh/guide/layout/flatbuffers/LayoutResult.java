@@ -85,40 +85,88 @@ public final class LayoutResult extends Table {
         return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
     }
 
-    public float contentHeight() {
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap bitmaps(int j) {
+        return bitmaps(new com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap(), j);
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap bitmaps(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap obj, int j) {
         int o = __offset(8);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int bitmapsLength() {
+        int o = __offset(8);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap.Vector bitmapsVector() {
+        return bitmapsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap.Vector());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap.Vector bitmapsVector(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap.Vector obj) {
+        int o = __offset(8);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.DecorationRect decorations(int j) {
+        return decorations(new com.hfstudio.guidenh.guide.layout.flatbuffers.DecorationRect(), j);
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.DecorationRect decorations(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.DecorationRect obj, int j) {
+        int o = __offset(10);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int decorationsLength() {
+        int o = __offset(10);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.DecorationRect.Vector decorationsVector() {
+        return decorationsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.DecorationRect.Vector());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.DecorationRect.Vector decorationsVector(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.DecorationRect.Vector obj) {
+        int o = __offset(10);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public float contentHeight() {
+        int o = __offset(12);
         return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
     }
 
     public String debugInfo() {
-        int o = __offset(10);
+        int o = __offset(14);
         return o != 0 ? __string(o + bb_pos) : null;
     }
 
     public ByteBuffer debugInfoAsByteBuffer() {
-        return __vector_as_bytebuffer(10, 1);
+        return __vector_as_bytebuffer(14, 1);
     }
 
     public ByteBuffer debugInfoInByteBuffer(ByteBuffer _bb) {
-        return __vector_in_bytebuffer(_bb, 10, 1);
+        return __vector_in_bytebuffer(_bb, 14, 1);
     }
 
     public static int createLayoutResult(FlatBufferBuilder builder, int nodesOffset, int glyphRunsOffset,
-        float contentHeight, int debugInfoOffset) {
-        builder.startTable(4);
+        int bitmapsOffset, int decorationsOffset, float contentHeight, int debugInfoOffset) {
+        builder.startTable(6);
         LayoutResult.addDebugInfo(builder, debugInfoOffset);
         LayoutResult.addContentHeight(builder, contentHeight);
+        LayoutResult.addDecorations(builder, decorationsOffset);
+        LayoutResult.addBitmaps(builder, bitmapsOffset);
         LayoutResult.addGlyphRuns(builder, glyphRunsOffset);
         LayoutResult.addNodes(builder, nodesOffset);
         return LayoutResult.endLayoutResult(builder);
     }
 
     public static void startLayoutResult(FlatBufferBuilder builder) {
-        builder.startTable(4);
-    }
-
-    public static void addDebugInfo(FlatBufferBuilder builder, int debugInfoOffset) {
-        builder.addOffset(3, debugInfoOffset, 0);
+        builder.startTable(6);
     }
 
     public static void addNodes(FlatBufferBuilder builder, int nodesOffset) {
@@ -149,8 +197,40 @@ public final class LayoutResult extends Table {
         builder.startVector(4, numElems, 4);
     }
 
+    public static void addBitmaps(FlatBufferBuilder builder, int bitmapsOffset) {
+        builder.addOffset(2, bitmapsOffset, 0);
+    }
+
+    public static int createBitmapsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startBitmapsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addDecorations(FlatBufferBuilder builder, int decorationsOffset) {
+        builder.addOffset(3, decorationsOffset, 0);
+    }
+
+    public static int createDecorationsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startDecorationsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
     public static void addContentHeight(FlatBufferBuilder builder, float contentHeight) {
-        builder.addFloat(2, contentHeight, 0.0f);
+        builder.addFloat(4, contentHeight, 0.0f);
+    }
+
+    public static void addDebugInfo(FlatBufferBuilder builder, int debugInfoOffset) {
+        builder.addOffset(5, debugInfoOffset, 0);
     }
 
     public static int endLayoutResult(FlatBufferBuilder builder) {

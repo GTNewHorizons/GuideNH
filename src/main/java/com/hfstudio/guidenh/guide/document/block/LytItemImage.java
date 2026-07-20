@@ -15,9 +15,16 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextStyle;
+import com.hfstudio.guidenh.guide.style.token.DimensionValue;
+import com.hfstudio.guidenh.guide.style.token.GuideThemeManager;
+import com.hfstudio.guidenh.guide.style.token.TokenKey;
+import com.hfstudio.guidenh.guide.style.token.TokenType;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -26,7 +33,17 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
 
     public static final int BASE_SIZE = 16;
 
-    private static final int LABEL_GAP = 2;
+    /** Theme token: gap between the item icon and its label text. */
+    private static final TokenKey<DimensionValue> LABEL_GAP = TokenKey
+        .define("--lyt-item-image-label-gap", TokenType.DIMENSION, DimensionValue.px(2));
+
+    private static int labelGap() {
+        return GuideThemeManager.instance()
+            .active()
+            .dim(LABEL_GAP)
+            .pxInt();
+    }
+
     private static final int DEFAULT_INLINE_ITEM_VISUAL_Y_OFFSET = 0;
 
     public static int DEFAULT_TEXT_INLINE_Y_OFFSET = 0;
@@ -67,6 +84,9 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     @Nullable
     private String labelFormat = null;
     private int layoutYOffset = 0;
+    /** Label text metrics cached from the last layout pass (used by computePrimitives). */
+    private int labelTextW;
+    private int labelTextH;
     @Nullable
     private ResolvedTextStyle cachedLabelStyle = null;
     @Nullable
@@ -149,6 +169,8 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         String text = resolveLabelText();
         int textW = measureTextWidth(context, text, textStyle);
         int textH = context.getLineHeight(textStyle);
+        labelTextW = textW;
+        labelTextH = textH;
 
         if (!showIcon) {
             layoutYOffset = 0;
@@ -158,13 +180,64 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         int top = Math.min(0, textTop);
         int bottom = Math.max(iconSize, textTop + textH);
         layoutYOffset = top;
-        int totalW = iconSize + LABEL_GAP + textW;
+        int totalW = iconSize + labelGap() + textW;
         int totalH = Math.max(0, bottom - top);
         return new LytRect(x, y, totalW, totalH);
     }
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {}
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        if (stack == null || stack.stackSize == 0) return;
+
+        int baseX = bounds.x();
+        int baseY = bounds.y() - layoutYOffset;
+        int iconSize = Math.round(BASE_SIZE * scale);
+        boolean hasLabel = labelPosition != null;
+
+        int iconX = baseX;
+        int textX = baseX;
+        int textY = baseY;
+
+        if (hasLabel) {
+            ResolvedTextStyle textStyle = resolveLabelStyle();
+            String text = resolveLabelText();
+            int textVCenter = showIcon ? (iconSize - labelTextH) / 2 : 0;
+            int labelYOffset = inline && showIcon
+                ? Math
+                    .round((labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET) * scale)
+                : 0;
+
+            if ("left".equals(labelPosition)) {
+                textX = baseX;
+                iconX = showIcon ? baseX + labelTextW + labelGap() : baseX;
+            } else {
+                iconX = baseX;
+                textX = showIcon ? baseX + iconSize + labelGap() : baseX;
+            }
+            textY = baseY + textVCenter + labelYOffset;
+            GuideText.emitText(c, text, textX, textY, textStyle);
+        }
+
+        if (showIcon) {
+            int renderX = iconX;
+            int renderY = baseY + getInlineVisualYOffset();
+            if (scale == 1f) {
+                c.emit(new GuideRenderPrimitive.RenderItem(stack, renderX, renderY));
+            } else {
+                c.pushTransform(renderX, renderY, scale);
+                c.emit(new GuideRenderPrimitive.RenderItem(stack, 0, 0));
+                c.popTransform();
+            }
+        }
+    }
 
     @Override
     public void render(RenderContext context) {
@@ -192,10 +265,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
 
             if ("left".equals(labelPosition)) {
                 textX = baseX;
-                iconX = showIcon ? baseX + textW + LABEL_GAP : baseX;
+                iconX = showIcon ? baseX + textW + labelGap() : baseX;
             } else {
                 iconX = baseX;
-                textX = showIcon ? baseX + iconSize + LABEL_GAP : baseX;
+                textX = showIcon ? baseX + iconSize + labelGap() : baseX;
             }
             textY = baseY + textVCenter + labelYOffset;
             context.drawText(text, textX, textY, textStyle);

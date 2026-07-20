@@ -12,11 +12,27 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
  * supporting font from well-known OS-specific paths.
  * <p>
  * <table>
- *   <caption>Resolved paths by OS</caption>
- *   <tr><th>OS</th><th>Font</th><th>Path</th></tr>
- *   <tr><td>Windows</td><td>Microsoft YaHei</td><td>{@code C:\Windows\Fonts\msyh.ttc}</td></tr>
- *   <tr><td>Linux</td><td>Noto Sans CJK SC</td><td>{@code /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc}</td></tr>
- *   <tr><td>macOS</td><td>PingFang SC</td><td>{@code /System/Library/Fonts/PingFang.ttc}</td></tr>
+ * <caption>Resolved paths by OS</caption>
+ * <tr>
+ * <th>OS</th>
+ * <th>Font</th>
+ * <th>Path</th>
+ * </tr>
+ * <tr>
+ * <td>Windows</td>
+ * <td>Microsoft YaHei</td>
+ * <td>{@code C:\Windows\Fonts\msyh.ttc}</td>
+ * </tr>
+ * <tr>
+ * <td>Linux</td>
+ * <td>Noto Sans CJK SC</td>
+ * <td>{@code /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc}</td>
+ * </tr>
+ * <tr>
+ * <td>macOS</td>
+ * <td>PingFang SC</td>
+ * <td>{@code /System/Library/Fonts/PingFang.ttc}</td>
+ * </tr>
  * </table>
  * </p>
  * <p>
@@ -32,19 +48,18 @@ public final class SystemFontProvider implements FontProvider {
     public byte[] getFontData(String locale) {
         Path fontPath = resolveFontPath();
         if (fontPath == null) {
-            GuideDebugLog.warnAlways(
-                "SystemFontProvider: no font file found for locale={}, using empty fallback", locale);
+            GuideDebugLog
+                .warnAlways("SystemFontProvider: no font file found for locale={}, using empty fallback", locale);
             return new byte[0];
         }
         try {
             byte[] data = Files.readAllBytes(fontPath);
-            resolvedPath = fontPath.toAbsolutePath().toString();
-            GuideDebugLog.warnAlways(
-                "SystemFontProvider: loaded {} bytes from {}", data.length, resolvedPath);
+            resolvedPath = fontPath.toAbsolutePath()
+                .toString();
+            GuideDebugLog.warnAlways("SystemFontProvider: loaded {} bytes from {}", data.length, resolvedPath);
             return data;
         } catch (IOException e) {
-            GuideDebugLog.warnAlways(
-                "SystemFontProvider: failed to read {}: {}", fontPath, e.getMessage());
+            GuideDebugLog.warnAlways("SystemFontProvider: failed to read {}: {}", fontPath, e.getMessage());
             return new byte[0];
         }
     }
@@ -57,7 +72,8 @@ public final class SystemFontProvider implements FontProvider {
     // ---- platform detection ----
 
     private static Path resolveFontPath() {
-        String os = System.getProperty("os.name").toLowerCase();
+        String os = System.getProperty("os.name")
+            .toLowerCase();
         if (os.contains("win")) {
             return resolveWindowsFont();
         } else if (os.contains("mac")) {
@@ -92,15 +108,13 @@ public final class SystemFontProvider implements FontProvider {
 
     private static Path resolveLinuxFont() {
         // Noto Sans CJK — common locations
-        Path[] candidates = {
-            Paths.get("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+        Path[] candidates = { Paths.get("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
             Paths.get("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),
             Paths.get("/usr/share/fonts/noto/NotoSansCJK-Regular.ttc"),
             Paths.get("/usr/share/fonts/opentype/noto/NotoSansSC-Regular.otf"),
             Paths.get("/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf"),
             // Debian/Ubuntu package fonts-noto-cjk
-            Paths.get("/usr/share/fonts/opentype/noto/NotoSansCJKsc-Regular.otf"),
-        };
+            Paths.get("/usr/share/fonts/opentype/noto/NotoSansCJKsc-Regular.otf"), };
         for (Path p : candidates) {
             if (Files.exists(p)) return p;
         }

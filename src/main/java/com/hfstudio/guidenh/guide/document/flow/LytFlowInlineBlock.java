@@ -11,7 +11,6 @@ import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
-import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 import lombok.Getter;
@@ -21,29 +20,21 @@ import lombok.Setter;
 @Setter
 public class LytFlowInlineBlock extends LytFlowContent implements InteractiveElement {
 
-    private static final ThreadLocal<LayoutContext> MEASURE_LAYOUT_CONTEXT = ThreadLocal
-        .withInitial(() -> new LayoutContext(new MinecraftFontMetrics()));
-
     private LytBlock block;
 
     private InlineBlockAlignment alignment = InlineBlockAlignment.INLINE;
 
-    public LytSize getPreferredSize(int lineWidth) {
-        return measurePreferredBounds(lineWidth).size();
+    public LytSize getPreferredSize(LayoutContext context, int lineWidth) {
+        return getPreferredBounds(context, lineWidth).size();
     }
 
-    public LytRect getPreferredBounds(int lineWidth) {
-        return measurePreferredBounds(lineWidth);
-    }
-
-    private LytRect measurePreferredBounds(int lineWidth) {
+    public LytRect getPreferredBounds(LayoutContext context, int lineWidth) {
         if (block == null) {
             return LytRect.empty();
         }
-
-        var layoutContext = MEASURE_LAYOUT_CONTEXT.get()
-            .resetTransientState();
-        return block.layout(layoutContext, 0, 0, lineWidth);
+        // Measure with the ambient layout context (same font metrics as the
+        // rest of the pass — and headless-safe in tests).
+        return block.layout(context, 0, 0, lineWidth);
     }
 
     @Override

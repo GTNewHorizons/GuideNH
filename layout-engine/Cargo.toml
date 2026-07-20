@@ -6,6 +6,15 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
+[[bin]]
+name = "cosmic-render"
+path = "src/bin/cosmic_render.rs"
+required-features = ["window-test"]
+
+[features]
+default = []
+window-test = ["minifb"]
+
 [dependencies]
 # JNI bridge
 jni = "0.21"
@@ -21,6 +30,9 @@ swash = "0.2"
 
 # Serialization
 flatbuffers = "24"
+
+# Test window
+minifb = { version = "0.25", optional = true }
 
 # Minecraft formatting code parsing
 # (custom module, no external dependency needed)

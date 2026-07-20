@@ -93,6 +93,10 @@ public class ModConfig {
         @DefaultBoolean(true)
         public boolean showMousePosition = true;
 
+        @Comment("Show layout diagnostic overlay (green=Java bounds, red=Rust rects, blue=glyph quads, yellow=viewport scissor, gray=culled blocks)")
+        @DefaultBoolean(false)
+        public boolean layoutOverlay = false;
+
         @Comment("Debug text color (ARGB format)")
         public int debugTextColor = 0xFFC47BA1;
 

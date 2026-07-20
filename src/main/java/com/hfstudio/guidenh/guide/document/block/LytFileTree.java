@@ -9,6 +9,8 @@ import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -148,6 +150,72 @@ public class LytFileTree extends LytBlock {
             }
             row.payload.moveLayoutPos(deltaX, deltaY);
         }
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        int baseX = bounds.x();
+        int connectorColor = SymbolicColor.TABLE_BORDER
+            .resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
+        int halfIndent = indentPx / 2;
+        for (Row row : rows) {
+            int rowY = row.rowY;
+            int rowHeight = row.rowHeight;
+            int rowMidY = rowY + Math.max(0, rowHeight - CONNECTOR_THICKNESS) / 2;
+            int rowBottomY = rowY + rowHeight + rowGapPx;
+            int slotCount = row.slots.size();
+            int columnCenterX = baseX + halfIndent;
+            for (int slotIndex = 0; slotIndex < slotCount; slotIndex++, columnCenterX += indentPx) {
+                SlotKind slot = row.slots.get(slotIndex);
+                switch (slot) {
+                    case VERTICAL -> emitVerticalLine(c, columnCenterX, rowY, rowBottomY, connectorColor);
+                    case BRANCH -> {
+                        emitVerticalLine(c, columnCenterX, rowY, rowBottomY, connectorColor);
+                        emitHorizontalLine(
+                            c,
+                            columnCenterX,
+                            columnCenterX - halfIndent + indentPx,
+                            rowMidY,
+                            connectorColor);
+                    }
+                    case LAST_BRANCH -> {
+                        emitVerticalLine(c, columnCenterX, rowY, rowMidY + CONNECTOR_THICKNESS, connectorColor);
+                        emitHorizontalLine(
+                            c,
+                            columnCenterX,
+                            columnCenterX - halfIndent + indentPx,
+                            rowMidY,
+                            connectorColor);
+                    }
+                    case EMPTY -> {
+                        // Empty slot draws nothing.
+                    }
+                }
+            }
+        }
+    }
+
+    private static void emitVerticalLine(PrimitiveCollector c, int x, int yStart, int yEnd, int color) {
+        int top = Math.min(yStart, yEnd);
+        int height = Math.abs(yEnd - yStart);
+        if (height <= 0) {
+            return;
+        }
+        c.emit(new GuideRenderPrimitive.FillRect(x, top, CONNECTOR_THICKNESS, height, color));
+    }
+
+    private static void emitHorizontalLine(PrimitiveCollector c, int xStart, int xEnd, int y, int color) {
+        int left = Math.min(xStart, xEnd);
+        int width = Math.abs(xEnd - xStart);
+        if (width <= 0) {
+            return;
+        }
+        c.emit(new GuideRenderPrimitive.FillRect(left, y, width, CONNECTOR_THICKNESS, color));
     }
 
     @Override

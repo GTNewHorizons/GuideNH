@@ -148,10 +148,10 @@ pub fn flat_style_to_taffy(fb: &FbStyle) -> Style {
             _ => Position::Relative,
         },
         inset: Rect {
-            left: fb_to_lpa(it, itv, false),
+            left: fb_to_lpa(il, ilv, false),
             right: fb_to_lpa(ir, irv, false),
-            top: fb_to_lpa(ib, ibv, false),
-            bottom: fb_to_lpa(il, ilv, false),
+            top: fb_to_lpa(it, itv, false),
+            bottom: fb_to_lpa(ib, ibv, false),
         },
         // Float and Clear are feature-gated behind float_layout
         // which is enabled in our Cargo.toml

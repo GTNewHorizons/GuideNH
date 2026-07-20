@@ -657,6 +657,7 @@ guidenh.debug.menu.display_options=显示选项
 guidenh.debug.menu.display_options.show_fps=显示 FPS
 guidenh.debug.menu.display_options.show_memory=显示内存
 guidenh.debug.menu.display_options.show_mouse=显示鼠标位置
+guidenh.debug.menu.display_options.layout_overlay=布局诊断浮层 (Java/Rust 矩形)
 guidenh.debug.menu.recompile_page=重新编译当前页面
 guidenh.debug.menu.export_debug_data=导出调试数据
 

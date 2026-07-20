@@ -67,14 +67,51 @@ table TextStyle {
   font_scale: float = 1.0;
   color: uint = 0xFFFFFFFF;
   font: uint = 0;
+  underline: bool = false;
+  strikethrough: bool = false;
+  highlight_argb: uint = 0;   // span background fill (0 = none)
+  inline_code: bool = false;  // highlight geometry variant (no side padding)
 }
 
 // ═══════════════════ 节点数据类型 ═══════════════════
+
+/// Inline block reference: pairs a U+FFFC placeholder (in document order) with
+/// the inner block's flat index and its vertical alignment request.
+/// align: 0 = block bottom sits 2px below the text baseline (default)
+///        1 = baseline ascent — block top sits `param` px above the text baseline
+///            (LaTeX math-baseline alignment: param = formula ascent above its
+///            math baseline, so the formula's baseline lands on the text's)
+///        2 = center on the text line, then shift down by `param` px (item icons)
+table InlineBlockRef {
+  node: uint;
+  align: byte = 0;
+  param: float = 0.0;
+}
+
+/// One styled run of a rich paragraph: `text` concatenated over all spans
+/// equals TextData.text (same document order, U+FFFC placeholders included).
+table TextSpan {
+  text: string;
+  style: TextStyle;
+}
 
 table TextData {
   text: string;
   style: TextStyle;
   white_space: byte = 0;     // 0=Normal 1=PreWrap
+  inline_blocks: [InlineBlockRef];  // paired with U+FFFC placeholders, in document order
+  bands: [TextBand];          // float-wrap bands (empty = single-width shaping)
+  spans: [TextSpan];          // rich multi-style runs (empty = single-style shaping)
+}
+
+/// One float-wrap band: the paragraph's text is shaped in sequential bands at
+/// per-band widths (CSS float wrapping: narrow beside the float, full width
+/// below it). Bands are ordered; the first band starts at split_byte 0, each
+/// later band starts at its split_byte and continues to the next band's start.
+table TextBand {
+  split_byte: uint = 0;    // start byte offset (UTF-8) of this band's text
+  width: float = 0.0;      // shaping width for this band (px)
+  margin_left: float = 0.0; // extra left inset for this band's glyphs
 }
 
 table ImageData {
@@ -138,12 +175,16 @@ table FlatNode {
 table LayoutInput {
   available_width: float;
   visual_scale: float = 1.0;
+  render_scale: float = 1.0;  // display pixel ratio (MC guiScale) for hi-res glyph bitmaps
+  justify: byte = 1;          // 0=off 1=auto (justify Latin-dominant lines by stretching spaces)
   nodes: [FlatNode];
 }
 
 table LayoutResult {
   nodes: [FlatLayout];
   glyph_runs: [GlyphRun];
+  bitmaps: [GlyphBitmap];
+  decorations: [DecorationRect];
   content_height: float;
   debug_info: string;
 }
@@ -156,18 +197,51 @@ table FlatLayout {
   order: uint = 0;
 }
 
+/// One glyph run of a paragraph, grouped by span: `argb` tints the (white)
+/// atlas bitmaps, `shear` asks the engine for a synthetic-italic slant.
+/// Default values keep legacy single-style runs white and unslanted.
 table GlyphRun {
   node_index: uint;
-  font_atlas_id: int;
   glyphs: [PlacedGlyph];
+  argb: uint = 0xFFFFFFFF;
+  shear: bool = false;
 }
 
-table PlacedGlyph {
-  glyph_id: uint;
-  x: float;       // 绝对文档坐标
+/// A decoration rectangle in absolute document coordinates (top-left origin),
+/// derived from a span's glyph extents: kind 0 = background (highlight /
+/// inline-code), 1 = underline, 2 = strikethrough.
+table DecorationRect {
+  node: uint = 0;
+  x: float;
   y: float;
   w: float;
   h: float;
+  argb: uint;
+  kind: byte = 0;
+}
+
+/// A glyph quad in absolute document coordinates (top-left origin).
+/// w/h are the bitmap dimensions divided by render_scale (i.e. document units).
+/// start/end are the glyph's byte range in the source text (for band-split
+/// computations; 0 when not meaningful).
+table PlacedGlyph {
+  bitmap_key: ulong;  // opaque dedupe key into LayoutResult.bitmaps
+  x: float;
+  y: float;
+  w: float;
+  h: float;
+  start: uint = 0;
+  end: uint = 0;
+  line_index: uint = 0;  // visual (wrapped) line index within the shaped buffer
+}
+
+/// A unique rasterized glyph bitmap, at render_scale resolution.
+/// Placement is already baked into the owning PlacedGlyph's quad.
+table GlyphBitmap {
+  key: ulong;
+  w: uint;
+  h: uint;
+  rgba: [ubyte];
 }
 
 // ═══════════════════ rasterizeGlyphs 输入/输出 ═══════════════════
@@ -180,6 +254,8 @@ table FontRequest {
   font_id: uint;
   font_size: float;
   glyph_ids: [uint];
+  pos_x: [float];  // document X positions, same length as glyph_ids
+  pos_y: [float];  // document Y positions
 }
 
 table RasterResult {
@@ -193,6 +269,44 @@ table GlyphPixels {
   width: uint;
   height: uint;
   rgba: [ubyte];
+}
+
+// ═══════════════════ renderText (combined shape + rasterize) ═══════════════════
+
+// ═══════════════════ shapeText (unified text pipeline) ═══════════════════
+
+/// One-off text shaping for the GuideText unified entry: same shaping and
+/// rasterization as the layout pipeline's text path, returning atlas-keyed
+/// quads (buffer-local, origin = text top-left) so Java can reuse the shared
+/// glyph atlas and DrawGlyphRun execution as-is.
+table ShapeTextInput {
+  text: string;
+  style: TextStyle;
+  max_width: float = -1.0;   // <= 0: no wrapping
+  render_scale: float = 1.0; // display pixel ratio for hi-res bitmaps
+}
+
+table ShapeTextResult {
+  width: float;
+  height: float;
+  ascent: float;            // first-line baseline offset below the line top
+  line_height: float;
+  glyphs: [PlacedGlyph];    // buffer-local quads (origin = text top-left)
+  bitmaps: [GlyphBitmap];
+}
+
+table RenderGlyph {
+  x: int;           // pixel X (SubpixelBin integer + placement, no rounding needed)
+  y: int;           // pixel Y
+  w: uint;          // bitmap width
+  h: uint;          // bitmap height
+  rgba: [ubyte];    // RGBA pixel data
+}
+
+table RenderResult {
+  width: float;     // total content width
+  height: float;    // total content height
+  glyphs: [RenderGlyph];
 }
 
 root_type LayoutInput;

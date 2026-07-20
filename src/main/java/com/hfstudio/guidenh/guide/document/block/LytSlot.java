@@ -12,6 +12,8 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -62,6 +64,33 @@ public class LytSlot extends LytBlock implements InteractiveElement {
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {}
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        var x = bounds.x();
+        var y = bounds.y();
+        int w = bounds.width();
+        int h = bounds.height();
+
+        if (renderSlotBackground) {
+            c.emit(new GuideRenderPrimitive.FillRect(x, y, w, 1, SLOT_BORDER_DARK));
+            c.emit(new GuideRenderPrimitive.FillRect(x, y, 1, h, SLOT_BORDER_DARK));
+            c.emit(new GuideRenderPrimitive.FillRect(x, y + h - 1, w, 1, SLOT_BORDER_LIGHT));
+            c.emit(new GuideRenderPrimitive.FillRect(x + w - 1, y, 1, h, SLOT_BORDER_LIGHT));
+            c.emit(new GuideRenderPrimitive.FillRect(x + 1, y + 1, w - 2, h - 2, SLOT_INNER_BG));
+        }
+
+        var padding = largeSlot ? LARGE_PADDING : PADDING;
+        var stack = getDisplayedStack();
+        if (stack != null) {
+            c.emit(new GuideRenderPrimitive.RenderItem(stack, x + padding, y + padding));
+        }
+    }
 
     @Override
     public void render(RenderContext context) {

@@ -141,6 +141,8 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
         LytHBox row = new LytHBox();
         row.setGap(MULTI_GAP);
+        // Full width so the Rust flex row wraps at the parent's content edge.
+        row.setFullWidth(true);
         for (var b : boxes) row.append(b);
         parent.append(row);
     }

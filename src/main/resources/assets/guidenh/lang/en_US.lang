@@ -660,6 +660,7 @@ guidenh.debug.menu.display_options=Display Options
 guidenh.debug.menu.display_options.show_fps=Show FPS
 guidenh.debug.menu.display_options.show_memory=Show Memory
 guidenh.debug.menu.display_options.show_mouse=Show Mouse Position
+guidenh.debug.menu.display_options.layout_overlay=Layout Overlay (Java/Rust rects)
 guidenh.debug.menu.recompile_page=Recompile Current Page
 guidenh.debug.menu.export_debug_data=Export Debug Data
 

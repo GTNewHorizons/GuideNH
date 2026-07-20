@@ -15,7 +15,13 @@ public class DisplayScale {
     private DisplayScale() {}
 
     public static void refreshIfNeeded() {
-        Minecraft mc = Minecraft.getMinecraft();
+        Minecraft mc;
+        try {
+            mc = Minecraft.getMinecraft();
+        } catch (Throwable t) {
+            return; // headless (unit tests): Minecraft class unavailable, keep cached defaults
+        }
+        if (mc == null) return; // headless (unit tests): keep cached defaults
         int dw = mc.displayWidth;
         int dh = mc.displayHeight;
         int gs = mc.gameSettings != null ? mc.gameSettings.guiScale : 0;

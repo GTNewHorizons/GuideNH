@@ -9,7 +9,13 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.latex.GuideLatexRenderer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.style.token.DimensionValue;
+import com.hfstudio.guidenh.guide.style.token.GuideThemeManager;
+import com.hfstudio.guidenh.guide.style.token.TokenKey;
+import com.hfstudio.guidenh.guide.style.token.TokenType;
 
 import lombok.Getter;
 
@@ -22,7 +28,16 @@ import lombok.Getter;
  */
 public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement {
 
-    private static final int VERTICAL_MARGIN = 4;
+    /** Theme token: vertical margin above and below a display formula. */
+    private static final TokenKey<DimensionValue> VERTICAL_MARGIN = TokenKey
+        .define("--lyt-latex-display-vertical-margin", TokenType.DIMENSION, DimensionValue.px(4));
+
+    private static int verticalMargin() {
+        return GuideThemeManager.instance()
+            .active()
+            .dim(VERTICAL_MARGIN)
+            .pxInt();
+    }
 
     @Getter
     private final String formula;
@@ -83,11 +98,42 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
         formulaDisplayH = (int) Math.max(1, Math.ceil((double) size[1] * lineHeight * userScale / refH));
         formulaDisplayW = (int) Math.max(1, Math.ceil((double) size[0] * lineHeight * userScale / refH));
 
-        return new LytRect(x, y, availableWidth, formulaDisplayH + 2 * VERTICAL_MARGIN);
+        return new LytRect(x, y, availableWidth, formulaDisplayH + 2 * verticalMargin());
     }
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {}
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        if (formulaDisplayW <= 0 || formulaDisplayH <= 0) {
+            return;
+        }
+
+        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
+        if (tex == null) {
+            return;
+        }
+
+        int centeredX = bounds.x() + (bounds.width() - formulaDisplayW) / 2;
+        int formulaY = bounds.y() + verticalMargin();
+        c.emit(
+            new GuideRenderPrimitive.BlitTexture(
+                tex[0],
+                centeredX + offsetX,
+                formulaY + offsetY,
+                formulaDisplayW,
+                formulaDisplayH,
+                0f,
+                0f,
+                1f,
+                1f));
+    }
 
     @Override
     public void render(RenderContext context) {
@@ -101,7 +147,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
         }
 
         int centeredX = bounds.x() + (bounds.width() - formulaDisplayW) / 2;
-        int formulaY = bounds.y() + VERTICAL_MARGIN;
+        int formulaY = bounds.y() + verticalMargin();
         GuideLatexRenderer.INSTANCE
             .renderLatex(centeredX + offsetX, formulaY + offsetY, formulaDisplayW, formulaDisplayH, tex[0]);
     }
@@ -130,7 +176,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
             return bounds != null ? bounds : LytRect.empty();
         }
         int centeredX = bounds.x() + (bounds.width() - formulaDisplayW) / 2;
-        int formulaY = bounds.y() + VERTICAL_MARGIN;
+        int formulaY = bounds.y() + verticalMargin();
         return new LytRect(centeredX + offsetX, formulaY + offsetY, formulaDisplayW, formulaDisplayH);
     }
 

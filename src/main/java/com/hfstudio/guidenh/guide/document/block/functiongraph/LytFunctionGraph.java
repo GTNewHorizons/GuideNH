@@ -15,6 +15,9 @@ import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
@@ -197,6 +200,16 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     }
 
     @Override
+    public int getExplicitWidth() {
+        return explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH;
+    }
+
+    @Override
+    public int getExplicitHeight() {
+        return explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT;
+    }
+
+    @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         int width = ResponsiveVisualSizing
             .scaleWidth(explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH, context.getVisualScale(), 72);
@@ -207,7 +220,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (title != null && !title.isEmpty()) {
             fixedChromeHeight += context.getLineHeight(TITLE_STYLE) + TITLE_GAP;
         }
-        int legendHeight = measureLegendHeight(context, plotWidth);
+        int legendHeight = measureLegendHeight(plotWidth);
         if (legendHeight > 0) {
             fixedChromeHeight += legendHeight + LEGEND_GAP_ABOVE;
         }
@@ -227,9 +240,35 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     }
 
     @Override
-    public void render(RenderContext context) {
-        context.fillRect(bounds, backgroundColor);
-        context.drawBorder(bounds, borderColor, 1);
+    protected void onExternalLayoutApplied(LytRect oldBounds, LytRect newBounds) {
+        invalidateSamples();
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        c.emit(
+            new GuideRenderPrimitive.FillRect(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                backgroundColor));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                1,
+                1,
+                1,
+                1,
+                borderColor));
 
         int contentTop = bounds.y() + PADDING;
         int contentBottom = bounds.bottom() - PADDING;
@@ -237,17 +276,17 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         int contentRight = bounds.right() - PADDING;
 
         if (title != null && !title.isEmpty()) {
-            int tw = context.getStringWidth(title, TITLE_STYLE);
+            int tw = GuideText.measureWidth(title, TITLE_STYLE);
             int tx = bounds.x() + (bounds.width() - tw) / 2;
-            context.drawText(title, tx, contentTop, TITLE_STYLE);
-            contentTop += context.getLineHeight(TITLE_STYLE) + TITLE_GAP;
+            GuideText.emitText(c, title, tx, contentTop, TITLE_STYLE);
+            contentTop += GuideText.lineHeight(TITLE_STYLE) + TITLE_GAP;
         }
 
         int plotLeft = contentLeft + AXIS_PAD_LEFT;
         int plotRight = contentRight;
         int plotTop = contentTop;
         int legendWidth = Math.max(0, plotRight - plotLeft);
-        int legendHeight = measureLegendHeight(context, legendWidth);
+        int legendHeight = measureLegendHeight(legendWidth);
         int plotBottom = contentBottom - AXIS_PAD_BOTTOM - (legendHeight > 0 ? legendHeight + LEGEND_GAP_ABOVE : 0);
         if (plotRight - plotLeft <= 16 || plotBottom - plotTop <= 16) {
             return;
@@ -265,30 +304,37 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         }
 
         if (showGrid) {
-            drawGrid(context, plotRect);
+            drawGrid(c, plotRect);
         }
         if (showAxes) {
-            drawAxes(context, plotRect);
+            drawAxes(c, plotRect);
         }
 
         for (int i = 0; i < plots.size(); i++) {
-            renderPlot(context, plotRect, i);
+            renderPlot(c, plotRect, i);
         }
 
-        renderMarkedPoints(context, plotRect);
-        renderAutoPoints(context, plotRect);
+        renderMarkedPoints(c, plotRect);
+        renderAutoPoints(c, plotRect);
 
         if ((activePlotIndex >= 0 && activePlotIndex < plots.size()) || activeMarkedIndex >= 0
             || activeAutoPlotIndex >= 0) {
-            renderActiveOverlay(context, plotRect);
+            renderActiveOverlay(c, plotRect);
         }
-        renderCornerLegend(context, plotRect);
+        renderCornerLegend(c, plotRect);
 
         if (legendHeight > 0) {
             int legendTop = plotRect.bottom() + AXIS_PAD_BOTTOM + LEGEND_GAP_ABOVE;
-            renderLegend(context, plotRect.x(), legendTop, legendWidth);
+            renderLegend(c, plotRect.x(), legendTop, legendWidth);
         }
     }
+
+    /**
+     * Migrated to {@link #computePrimitives}; the legacy path is unreachable
+     * (the collector only invokes it when {@link #usePrimitives()} is false).
+     */
+    @Override
+    public void render(RenderContext context) {}
 
     @Override
     public Optional<GuideTooltip> getTooltip(float x, float y) {
@@ -512,61 +558,61 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return inverse ? unmapY(screenX) : unmapX(screenX);
     }
 
-    private void drawGrid(RenderContext context, LytRect plotRect) {
+    private void drawGrid(PrimitiveCollector c, LytRect plotRect) {
         if (effectiveXStep > 0) {
             double start = Math.ceil(effectiveXMin / effectiveXStep) * effectiveXStep;
             for (double v = start; v <= effectiveXMax + 1e-9; v += effectiveXStep) {
                 float x = (float) mapX(v);
-                context.drawLine(x, plotRect.y(), x, plotRect.bottom(), 1f, gridColor);
+                c.emit(new GuideRenderPrimitive.DrawLine(x, plotRect.y(), x, plotRect.bottom(), 1f, gridColor));
             }
         }
         if (effectiveYStep > 0) {
             double start = Math.ceil(effectiveYMin / effectiveYStep) * effectiveYStep;
             for (double v = start; v <= effectiveYMax + 1e-9; v += effectiveYStep) {
                 float y = (float) mapY(v);
-                context.drawLine(plotRect.x(), y, plotRect.right(), y, 1f, gridColor);
+                c.emit(new GuideRenderPrimitive.DrawLine(plotRect.x(), y, plotRect.right(), y, 1f, gridColor));
             }
         }
     }
 
-    private void drawAxes(RenderContext context, LytRect plotRect) {
+    private void drawAxes(PrimitiveCollector c, LytRect plotRect) {
         // Vertical (y) axis pinned to x = 0 when visible, otherwise to plotRect.x.
         float axisX = (float) mapX(0d);
         if (axisX < plotRect.x() || axisX > plotRect.right()) {
             axisX = plotRect.x();
         }
-        context.drawLine(axisX, plotRect.y(), axisX, plotRect.bottom(), 1f, axisColor);
+        c.emit(new GuideRenderPrimitive.DrawLine(axisX, plotRect.y(), axisX, plotRect.bottom(), 1f, axisColor));
 
         float axisY = (float) mapY(0d);
         if (axisY < plotRect.y() || axisY > plotRect.bottom()) {
             axisY = plotRect.bottom();
         }
-        context.drawLine(plotRect.x(), axisY, plotRect.right(), axisY, 1f, axisColor);
+        c.emit(new GuideRenderPrimitive.DrawLine(plotRect.x(), axisY, plotRect.right(), axisY, 1f, axisColor));
 
         // Y tick labels along left edge of plot rect.
         if (effectiveYStep > 0) {
             double start = Math.ceil(effectiveYMin / effectiveYStep) * effectiveYStep;
-            int lh = context.getLineHeight(AXIS_LABEL_STYLE);
+            int lh = GuideText.lineHeight(AXIS_LABEL_STYLE);
             for (double v = start; v <= effectiveYMax + 1e-9; v += effectiveYStep) {
                 String label = formatTick(v);
-                int sw = context.getStringWidth(label, AXIS_LABEL_STYLE);
+                int sw = GuideText.measureWidth(label, AXIS_LABEL_STYLE);
                 int ly = (int) mapY(v) - lh / 2;
-                context.drawText(label, plotRect.x() - sw - AXIS_LABEL_GAP, ly, AXIS_LABEL_STYLE);
+                GuideText.emitText(c, label, plotRect.x() - sw - AXIS_LABEL_GAP, ly, AXIS_LABEL_STYLE);
             }
         }
         if (effectiveXStep > 0) {
             double start = Math.ceil(effectiveXMin / effectiveXStep) * effectiveXStep;
             for (double v = start; v <= effectiveXMax + 1e-9; v += effectiveXStep) {
                 String label = formatTick(v);
-                int sw = context.getStringWidth(label, AXIS_LABEL_STYLE);
+                int sw = GuideText.measureWidth(label, AXIS_LABEL_STYLE);
                 int lx = (int) mapX(v) - sw / 2;
                 lx = Math.clamp(lx, plotRect.x() - sw / 2, plotRect.right() - sw / 2);
-                context.drawText(label, lx, plotRect.bottom() + AXIS_LABEL_GAP, AXIS_LABEL_STYLE);
+                GuideText.emitText(c, label, lx, plotRect.bottom() + AXIS_LABEL_GAP, AXIS_LABEL_STYLE);
             }
         }
     }
 
-    private void renderPlot(RenderContext context, LytRect plotRect, int index) {
+    private void renderPlot(PrimitiveCollector c, LytRect plotRect, int index) {
         FunctionPlot plot = plots.get(index);
         float[] xs = sampleXs[index];
         float[] ys = sampleYs[index];
@@ -597,11 +643,11 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             if ((x1 < plotRect.x() && x2 < plotRect.x()) || (x1 > plotRect.right() && x2 > plotRect.right())) {
                 continue;
             }
-            context.drawLine(x1, y1, x2, y2, thickness, color);
+            c.emit(new GuideRenderPrimitive.DrawLine(x1, y1, x2, y2, thickness, color));
         }
     }
 
-    private void renderMarkedPoints(RenderContext context, LytRect plotRect) {
+    private void renderMarkedPoints(PrimitiveCollector c, LytRect plotRect) {
         for (MarkedPoint point : points) {
             double[] res = resolveMarkedPoint(point);
             if (res == null) {
@@ -618,8 +664,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             if (sy < plotRect.y() - POINT_RADIUS || sy > plotRect.bottom() + POINT_RADIUS) {
                 continue;
             }
-            context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF);
-            context.fillCircle(sx, sy, POINT_RADIUS, color);
+            c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF, true));
+            c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS, color, true));
         }
     }
 
@@ -668,7 +714,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return new double[] { dataX, dataY, (double) color };
     }
 
-    private void renderAutoPoints(RenderContext context, LytRect plotRect) {
+    private void renderAutoPoints(PrimitiveCollector c, LytRect plotRect) {
         autoPointHitCache.clear();
         for (int pi = 0; pi < plots.size(); pi++) {
             FunctionPlot plot = plots.get(pi);
@@ -679,19 +725,19 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             int color = spec.colorInherit() ? plot.getColor() : spec.color();
             int drawn = 0;
             if (!Double.isNaN(spec.everyX())) {
-                drawn = renderAutoPointsEveryX(context, plotRect, plot, spec, color, drawn, pi);
+                drawn = renderAutoPointsEveryX(c, plotRect, plot, spec, color, drawn, pi);
             }
             if (!Double.isNaN(spec.everyY()) && drawn < AUTO_POINT_MAX_PER_PLOT) {
-                renderAutoPointsEveryY(context, plotRect, plot, spec, color, drawn, pi);
+                renderAutoPointsEveryY(c, plotRect, plot, spec, color, drawn, pi);
             }
         }
     }
 
-    private int renderAutoPointsEveryX(RenderContext context, LytRect plotRect, FunctionPlot plot, AutoPointSpec spec,
+    private int renderAutoPointsEveryX(PrimitiveCollector c, LytRect plotRect, FunctionPlot plot, AutoPointSpec spec,
         int color, int drawn, int plotIndex) {
         if (plot.isInverse()) {
             return renderAutoPointIntersectionsForAxis(
-                context,
+                c,
                 plotRect,
                 plot,
                 spec,
@@ -711,7 +757,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         while (value <= max + 1e-9 && drawn < AUTO_POINT_MAX_PER_PLOT && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
             double dataX = value;
             double dataY = plot.evaluate(value);
-            if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode(), plotIndex)) {
+            if (drawAutoPoint(c, plotRect, dataX, dataY, color, spec.labelMode(), plotIndex)) {
                 drawn++;
             }
             value += step;
@@ -720,7 +766,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return drawn;
     }
 
-    private int renderAutoPointsEveryY(RenderContext context, LytRect plotRect, FunctionPlot plot, AutoPointSpec spec,
+    private int renderAutoPointsEveryY(PrimitiveCollector c, LytRect plotRect, FunctionPlot plot, AutoPointSpec spec,
         int color, int drawn, int plotIndex) {
         if (plot.isInverse()) {
             double step = spec.everyY();
@@ -730,7 +776,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
                 double dataY = value;
                 double dataX = plot.evaluate(value);
-                if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode(), plotIndex)) {
+                if (drawAutoPoint(c, plotRect, dataX, dataY, color, spec.labelMode(), plotIndex)) {
                     drawn++;
                 }
                 value += step;
@@ -744,7 +790,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         while (value <= effectiveYMax + 1e-9 && drawn < AUTO_POINT_MAX_PER_PLOT
             && targets < AUTO_POINT_MAX_TARGETS_PER_PLOT) {
             drawn = renderAutoPointIntersectionsForAxis(
-                context,
+                c,
                 plotRect,
                 plot,
                 spec,
@@ -761,7 +807,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return drawn;
     }
 
-    private int renderAutoPointIntersectionsForAxis(RenderContext context, LytRect plotRect, FunctionPlot plot,
+    private int renderAutoPointIntersectionsForAxis(PrimitiveCollector c, LytRect plotRect, FunctionPlot plot,
         AutoPointSpec spec, int color, double target, double targetMin, double targetMax, boolean targetX, int drawn,
         int plotIndex) {
         double independentMin = plot.isInverse() ? effectiveYMin : effectiveXMin;
@@ -789,7 +835,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                     prevValue = value;
                     continue;
                 }
-                if (drawAutoPoint(context, plotRect, dataX, dataY, color, spec.labelMode(), plotIndex)) {
+                if (drawAutoPoint(c, plotRect, dataX, dataY, color, spec.labelMode(), plotIndex)) {
                     drawn++;
                 }
             }
@@ -823,7 +869,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         return (lo + hi) * 0.5d;
     }
 
-    private boolean drawAutoPoint(RenderContext context, LytRect plotRect, double dataX, double dataY, int color,
+    private boolean drawAutoPoint(PrimitiveCollector c, LytRect plotRect, double dataX, double dataY, int color,
         AutoPointLabelMode labelMode, int plotIndex) {
         if (!Double.isFinite(dataX) || !Double.isFinite(dataY)) {
             return false;
@@ -837,12 +883,12 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             return false;
         }
         autoPointHitCache.add(new double[] { sx, sy, dataX, dataY, (double) color, (double) plotIndex });
-        context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF);
-        context.fillCircle(sx, sy, POINT_RADIUS, color);
+        c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS, color, true));
         if (labelMode != null && labelMode != AutoPointLabelMode.NONE) {
             String label = autoPointLabel(labelMode, dataX, dataY);
-            int width = context.getStringWidth(label, TOOLTIP_BODY_STYLE);
-            int lineHeight = context.getLineHeight(TOOLTIP_BODY_STYLE);
+            int width = GuideText.measureWidth(label, TOOLTIP_BODY_STYLE);
+            int lineHeight = GuideText.lineHeight(TOOLTIP_BODY_STYLE);
             int x = (int) sx + AUTO_POINT_LABEL_GAP;
             if (x + width > plotRect.right()) {
                 x = (int) sx - width - AUTO_POINT_LABEL_GAP;
@@ -851,7 +897,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             if (y < plotRect.y()) {
                 y = (int) sy + AUTO_POINT_LABEL_GAP;
             }
-            context.drawText(label, x, y, TOOLTIP_BODY_STYLE);
+            GuideText.emitText(c, label, x, y, TOOLTIP_BODY_STYLE);
         }
         return true;
     }
@@ -865,7 +911,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         };
     }
 
-    private void renderCornerLegend(RenderContext context, LytRect plotRect) {
+    private void renderCornerLegend(PrimitiveCollector c, LytRect plotRect) {
         if (cornerLegendPosition == CornerLegendPosition.NONE) {
             return;
         }
@@ -876,8 +922,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 entries.add(new CornerLegendEntry(plot.getLabel(), plot.getColor(), true));
             }
         }
-        CornerLegendRenderer.render(
-            context,
+        CornerLegendRenderer.emit(
+            c,
             plotRect,
             entries,
             cornerLegendPosition,
@@ -886,13 +932,13 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             cornerLegendBackgroundColor);
     }
 
-    private void renderActiveOverlay(RenderContext context, LytRect plotRect) {
+    private void renderActiveOverlay(PrimitiveCollector c, LytRect plotRect) {
         if (activeMarkedIndex >= 0) {
-            renderMarkedPointOverlay(context, plotRect);
+            renderMarkedPointOverlay(c, plotRect);
             return;
         }
         if (activeAutoPlotIndex >= 0) {
-            renderAutoPointOverlay(context, plotRect);
+            renderAutoPointOverlay(c, plotRect);
             return;
         }
         if (activePlotIndex < 0 || activePlotIndex >= plots.size()) {
@@ -915,16 +961,16 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (sx < plotRect.x() || sx > plotRect.right() || sy < plotRect.y() || sy > plotRect.bottom()) {
             return;
         }
-        context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF);
-        context.fillCircle(sx, sy, POINT_RADIUS, plot.getColor());
+        c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS, plot.getColor(), true));
 
         // Tooltip panel.
         String line1 = !isEmpty(plot.getLabel()) ? plot.getLabel() : plot.getExpressionText();
         String line2 = "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
-        renderTooltipBox(context, sx, sy, line1, line2);
+        renderTooltipBox(c, sx, sy, line1, line2);
     }
 
-    private void renderMarkedPointOverlay(RenderContext context, LytRect plotRect) {
+    private void renderMarkedPointOverlay(PrimitiveCollector c, LytRect plotRect) {
         double dataX = activeMarkedDataX;
         double dataY = activeMarkedDataY;
         int color = activeMarkedColor;
@@ -934,17 +980,17 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             return;
         }
         // Larger highlight for marked points.
-        context.fillCircle(sx, sy, POINT_RADIUS + 2f, 0xFFFFFFFF);
-        context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000);
-        context.fillCircle(sx, sy, POINT_RADIUS, color);
+        c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS + 2f, 0xFFFFFFFF, true));
+        c.emit(new GuideRenderPrimitive.DrawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000));
+        c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS, color, true));
 
         MarkedPoint point = points.get(activeMarkedIndex);
         String line1 = !isEmpty(point.getLabel()) ? point.getLabel() : "Point";
         String line2 = "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
-        renderTooltipBox(context, sx, sy, line1, line2);
+        renderTooltipBox(c, sx, sy, line1, line2);
     }
 
-    private void renderAutoPointOverlay(RenderContext context, LytRect plotRect) {
+    private void renderAutoPointOverlay(PrimitiveCollector c, LytRect plotRect) {
         double dataX = activeAutoDataX;
         double dataY = activeAutoDataY;
         int color = activeAutoColor;
@@ -953,20 +999,20 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (sx < plotRect.x() || sx > plotRect.right() || sy < plotRect.y() || sy > plotRect.bottom()) {
             return;
         }
-        context.fillCircle(sx, sy, POINT_RADIUS + 2f, 0xFFFFFFFF);
-        context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000);
-        context.fillCircle(sx, sy, POINT_RADIUS, color);
+        c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS + 2f, 0xFFFFFFFF, true));
+        c.emit(new GuideRenderPrimitive.DrawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000));
+        c.emit(new GuideRenderPrimitive.DrawCircle(sx, sy, POINT_RADIUS, color, true));
 
         FunctionPlot plot = plots.get(activeAutoPlotIndex);
         String line1 = !isEmpty(plot.getLabel()) ? plot.getLabel() : plot.getExpressionText();
         String line2 = "(" + formatValue(dataX) + ", " + formatValue(dataY) + ")";
-        renderTooltipBox(context, sx, sy, line1, line2);
+        renderTooltipBox(c, sx, sy, line1, line2);
     }
 
-    private void renderTooltipBox(RenderContext context, float sx, float sy, String line1, String line2) {
-        int lineH = context.getLineHeight(TOOLTIP_BODY_STYLE);
+    private void renderTooltipBox(PrimitiveCollector c, float sx, float sy, String line1, String line2) {
+        int lineH = GuideText.lineHeight(TOOLTIP_BODY_STYLE);
         int textWidth = Math
-            .max(context.getStringWidth(line1, TOOLTIP_TITLE_STYLE), context.getStringWidth(line2, TOOLTIP_BODY_STYLE));
+            .max(GuideText.measureWidth(line1, TOOLTIP_TITLE_STYLE), GuideText.measureWidth(line2, TOOLTIP_BODY_STYLE));
         int boxWidth = textWidth + TOOLTIP_PADDING_X * 2;
         int boxHeight = lineH * 2 + TOOLTIP_PADDING_Y * 2;
         int boxX = (int) sx - boxWidth / 2;
@@ -977,18 +1023,17 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         boxX = Math.clamp(boxX, bounds.x() + 2, bounds.right() - boxWidth - 2);
         boxY = Math.clamp(boxY, bounds.y() + 2, bounds.bottom() - boxHeight - 2);
 
-        LytRect box = new LytRect(boxX, boxY, boxWidth, boxHeight);
-        context.fillRect(box, 0xEE202428);
-        context.drawBorder(box, 0xFF555555, 1);
-        context.drawText(line1, boxX + TOOLTIP_PADDING_X, boxY + TOOLTIP_PADDING_Y, TOOLTIP_TITLE_STYLE);
-        context.drawText(line2, boxX + TOOLTIP_PADDING_X, boxY + TOOLTIP_PADDING_Y + lineH, TOOLTIP_BODY_STYLE);
+        c.emit(new GuideRenderPrimitive.FillRect(boxX, boxY, boxWidth, boxHeight, 0xEE202428));
+        c.emit(new GuideRenderPrimitive.DrawBorder(boxX, boxY, boxWidth, boxHeight, 1, 1, 1, 1, 0xFF555555));
+        GuideText.emitText(c, line1, boxX + TOOLTIP_PADDING_X, boxY + TOOLTIP_PADDING_Y, TOOLTIP_TITLE_STYLE);
+        GuideText.emitText(c, line2, boxX + TOOLTIP_PADDING_X, boxY + TOOLTIP_PADDING_Y + lineH, TOOLTIP_BODY_STYLE);
     }
 
     /**
      * Measure the total height needed to lay out the legend below the plot, given the available
      * width. Returns {@code 0} when no plot has a label, suppressing the legend area entirely.
      */
-    private int measureLegendHeight(RenderContext context, int availableWidth) {
+    private int measureLegendHeight(int availableWidth) {
         if (availableWidth <= 0) {
             return 0;
         }
@@ -1003,7 +1048,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (!any) {
             return 0;
         }
-        int rowHeight = Math.max(LEGEND_SWATCH_SIZE, context.getLineHeight(LEGEND_LABEL_STYLE));
+        int rowHeight = Math.max(LEGEND_SWATCH_SIZE, GuideText.lineHeight(LEGEND_LABEL_STYLE));
         int rows = 1;
         int rowWidth = 0;
         for (FunctionPlot plot : plots) {
@@ -1012,7 +1057,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 continue;
             }
             int itemWidth = LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP
-                + context.getStringWidth(label, LEGEND_LABEL_STYLE);
+                + GuideText.measureWidth(label, LEGEND_LABEL_STYLE);
             int needed = rowWidth == 0 ? itemWidth : rowWidth + LEGEND_ITEM_GAP + itemWidth;
             if (rowWidth > 0 && needed > availableWidth) {
                 rows++;
@@ -1022,66 +1067,17 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             }
         }
         return rows * rowHeight + (rows - 1) * LEGEND_ROW_GAP;
-    }
-
-    private int measureLegendHeight(LayoutContext context, int availableWidth) {
-        if (availableWidth <= 0) {
-            return 0;
-        }
-        boolean any = false;
-        for (FunctionPlot plot : plots) {
-            if (plot.getLabel() != null && !plot.getLabel()
-                .isEmpty()) {
-                any = true;
-                break;
-            }
-        }
-        if (!any) {
-            return 0;
-        }
-        int rowHeight = Math.max(LEGEND_SWATCH_SIZE, context.getLineHeight(LEGEND_LABEL_STYLE));
-        int rows = 1;
-        int rowWidth = 0;
-        for (FunctionPlot plot : plots) {
-            String label = plot.getLabel();
-            if (label == null || label.isEmpty()) {
-                continue;
-            }
-            int itemWidth = LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP
-                + measureTextWidth(context, LEGEND_LABEL_STYLE, label);
-            int needed = rowWidth == 0 ? itemWidth : rowWidth + LEGEND_ITEM_GAP + itemWidth;
-            if (rowWidth > 0 && needed > availableWidth) {
-                rows++;
-                rowWidth = itemWidth;
-            } else {
-                rowWidth = needed;
-            }
-        }
-        return rows * rowHeight + (rows - 1) * LEGEND_ROW_GAP;
-    }
-
-    private int measureTextWidth(LayoutContext context, ResolvedTextStyle style, String text) {
-        if (text == null || text.isEmpty()) {
-            return 0;
-        }
-        float width = 0f;
-        for (int offset = 0; offset < text.length();) {
-            int codePoint = text.codePointAt(offset);
-            width += context.getAdvance(codePoint, style);
-            offset += Character.charCount(codePoint);
-        }
-        return Math.round(width);
     }
 
     /**
      * Render the legend at {@code (left, top)}. Items flow left-to-right and wrap onto a new row
      * once the next item would exceed {@code availableWidth}.
      */
-    private void renderLegend(RenderContext context, int left, int top, int availableWidth) {
+    private void renderLegend(PrimitiveCollector c, int left, int top, int availableWidth) {
         if (availableWidth <= 0) {
             return;
         }
-        int rowHeight = Math.max(LEGEND_SWATCH_SIZE, context.getLineHeight(LEGEND_LABEL_STYLE));
+        int rowHeight = Math.max(LEGEND_SWATCH_SIZE, GuideText.lineHeight(LEGEND_LABEL_STYLE));
         int x = left;
         int y = top;
         boolean firstInRow = true;
@@ -1091,7 +1087,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 continue;
             }
             int itemWidth = LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP
-                + context.getStringWidth(label, LEGEND_LABEL_STYLE);
+                + GuideText.measureWidth(label, LEGEND_LABEL_STYLE);
             int needed = firstInRow ? itemWidth : (x - left) + LEGEND_ITEM_GAP + itemWidth;
             if (!firstInRow && needed > availableWidth) {
                 y += rowHeight + LEGEND_ROW_GAP;
@@ -1102,11 +1098,21 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
                 x += LEGEND_ITEM_GAP;
             }
             int swatchY = y + (rowHeight - LEGEND_SWATCH_SIZE) / 2;
-            LytRect swatch = new LytRect(x, swatchY, LEGEND_SWATCH_SIZE, LEGEND_SWATCH_SIZE);
-            context.fillRect(swatch, plot.getColor());
-            context.drawBorder(swatch, 0xFF000000, 1);
-            int textY = y + (rowHeight - context.getLineHeight(LEGEND_LABEL_STYLE)) / 2;
-            context.drawText(label, x + LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP, textY, LEGEND_LABEL_STYLE);
+            c.emit(
+                new GuideRenderPrimitive.FillRect(x, swatchY, LEGEND_SWATCH_SIZE, LEGEND_SWATCH_SIZE, plot.getColor()));
+            c.emit(
+                new GuideRenderPrimitive.DrawBorder(
+                    x,
+                    swatchY,
+                    LEGEND_SWATCH_SIZE,
+                    LEGEND_SWATCH_SIZE,
+                    1,
+                    1,
+                    1,
+                    1,
+                    0xFF000000));
+            int textY = y + (rowHeight - GuideText.lineHeight(LEGEND_LABEL_STYLE)) / 2;
+            GuideText.emitText(c, label, x + LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP, textY, LEGEND_LABEL_STYLE);
             x += itemWidth;
             firstInRow = false;
         }

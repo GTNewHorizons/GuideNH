@@ -6,7 +6,9 @@ import java.util.List;
 import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 import lombok.Getter;
@@ -76,7 +78,7 @@ public class LytLineChart extends LytChartBase {
     }
 
     @Override
-    protected void renderChart(RenderContext context, LytRect plotRect) {
+    protected void renderChart(PrimitiveCollector c, LytRect plotRect) {
         if (series.isEmpty()) return;
 
         double yMin = Double.POSITIVE_INFINITY;
@@ -107,7 +109,6 @@ public class LytLineChart extends LytChartBase {
 
         int categoryCount = Math.max(categories.length, maxSeriesLength());
         int[] insets = CartesianChartRenderer.computeAxisInsets(
-            context,
             xAxis,
             yAxis,
             xRange,
@@ -120,7 +121,7 @@ public class LytLineChart extends LytChartBase {
         if (inner.width() <= 4 || inner.height() <= 4) return;
 
         CartesianChartRenderer.drawAxes(
-            context,
+            c,
             inner,
             xAxis,
             yAxis,
@@ -148,7 +149,7 @@ public class LytLineChart extends LytChartBase {
                 if (hoveredKey >= 0 && hoveredSeries == si && (hoveredPoint == i || hoveredPoint == i + 1)) {
                     thick = LINE_THICKNESS + 1f;
                 }
-                context.drawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor());
+                c.emit(new GuideRenderPrimitive.DrawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor()));
             }
 
             // Data points.
@@ -165,9 +166,9 @@ public class LytLineChart extends LytChartBase {
                         y += off[1] * 2f;
                     }
                     float r = hovered ? POINT_RADIUS + 2f : POINT_RADIUS;
-                    context.fillCircle(x, y, r, s.getColor());
+                    c.emit(new GuideRenderPrimitive.DrawCircle(x, y, r, s.getColor(), true));
                     if (hovered) {
-                        context.drawCircleOutline(x, y, r, 1f, 0xFF000000);
+                        c.emit(new GuideRenderPrimitive.DrawCircleOutline(x, y, r, 1f, 0xFF000000));
                     }
                 }
             }
@@ -175,10 +176,10 @@ public class LytLineChart extends LytChartBase {
             // Data value labels.
             if (getLabelPosition() != ChartLabelPosition.NONE) {
                 ResolvedTextStyle style = textStyle(getLabelColor());
-                int lh = context.getLineHeight(style);
+                int lh = GuideText.lineHeight(style);
                 for (int i = 0; i < n; i++) {
                     String text = formatValue(s.getYs()[i]);
-                    int tw = context.getStringWidth(text, style);
+                    int tw = GuideText.measureWidth(text, style);
                     int tx = (int) px[i] - tw / 2;
                     int ty;
                     switch (getLabelPosition()) {
@@ -196,7 +197,7 @@ public class LytLineChart extends LytChartBase {
                         default:
                             continue;
                     }
-                    context.drawText(text, tx, ty, style);
+                    GuideText.emitText(c, text, tx, ty, style);
                 }
             }
         }

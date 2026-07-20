@@ -3,11 +3,15 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.lwjgl.opengl.GL11;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.ITextureObject;
+import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 /**
@@ -65,8 +69,8 @@ public class ChartLegendRenderer {
         }
     }
 
-    public static Layout computeLayout(RenderContext context, List<LegendEntry> entries, ChartLegendPosition position,
-        int contentLeft, int contentTop, int contentRight, int contentBottom) {
+    public static Layout computeLayout(List<LegendEntry> entries, ChartLegendPosition position, int contentLeft,
+        int contentTop, int contentRight, int contentBottom) {
         if (entries == null || entries.isEmpty() || position == null || position == ChartLegendPosition.NONE) {
             return new Layout(
                 entries != null ? entries : new ArrayList<>(),
@@ -79,7 +83,7 @@ public class ChartLegendRenderer {
         }
 
         ResolvedTextStyle textStyle = LytChartBase.textStyle(0xFFCCCCCC);
-        int lineHeight = context.getLineHeight(textStyle);
+        int lineHeight = GuideText.lineHeight(textStyle);
         int swatch = LytChartBase.LEGEND_SWATCH_SIZE;
         int gap = LytChartBase.LEGEND_GAP;
 
@@ -90,7 +94,7 @@ public class ChartLegendRenderer {
                     entries,
                     position,
                     Math.max(1, contentRight - contentLeft),
-                    context::getStringWidth,
+                    (text, style) -> GuideText.measureWidth(text, style),
                     lineHeight,
                     swatch,
                     textStyle);
@@ -110,7 +114,7 @@ public class ChartLegendRenderer {
             case RIGHT: {
                 int width = 0;
                 for (LegendEntry e : entries) {
-                    int w = swatch + SWATCH_TEXT_GAP + context.getStringWidth(e.name, textStyle);
+                    int w = swatch + SWATCH_TEXT_GAP + GuideText.measureWidth(e.name, textStyle);
                     if (w > width) {
                         width = w;
                     }
@@ -140,12 +144,12 @@ public class ChartLegendRenderer {
         }
     }
 
-    public static void render(RenderContext context, Layout layout, ResolvedTextStyle styleTemplate) {
+    public static void emit(PrimitiveCollector c, Layout layout, ResolvedTextStyle styleTemplate) {
         if (layout.position == ChartLegendPosition.NONE || layout.entries.isEmpty()) {
             return;
         }
         ResolvedTextStyle textStyle = LytChartBase.textStyle(0xFFCCCCCC);
-        int lineHeight = context.getLineHeight(textStyle);
+        int lineHeight = GuideText.lineHeight(textStyle);
         int swatch = LytChartBase.LEGEND_SWATCH_SIZE;
         LytRect rect = layout.legendRect;
 
@@ -155,7 +159,7 @@ public class ChartLegendRenderer {
                 int totalWidth = 0;
                 for (int i = 0; i < layout.entries.size(); i++) {
                     LegendEntry e = layout.entries.get(i);
-                    totalWidth += swatch + SWATCH_TEXT_GAP + context.getStringWidth(e.name, textStyle);
+                    totalWidth += swatch + SWATCH_TEXT_GAP + GuideText.measureWidth(e.name, textStyle);
                     if (i < layout.entries.size() - 1) {
                         totalWidth += LytChartBase.LEGEND_ENTRY_GAP;
                     }
@@ -166,17 +170,17 @@ public class ChartLegendRenderer {
                 int textY = y + (rowHeight - lineHeight) / 2;
                 int swY = y + (rowHeight - swatch) / 2;
                 for (LegendEntry e : layout.entries) {
-                    int itemWidth = swatch + SWATCH_TEXT_GAP + context.getStringWidth(e.name, textStyle);
+                    int itemWidth = swatch + SWATCH_TEXT_GAP + GuideText.measureWidth(e.name, textStyle);
                     if (x > rect.x() && x + itemWidth > rect.right()) {
                         x = rect.x();
                         y += rowHeight + HORIZONTAL_ROW_GAP;
                         textY = y + (rowHeight - lineHeight) / 2;
                         swY = y + (rowHeight - swatch) / 2;
                     }
-                    drawSwatch(context, e, x, swY, swatch);
+                    emitSwatch(c, e, x, swY, swatch);
                     x += swatch + SWATCH_TEXT_GAP;
-                    context.drawText(e.name, x, textY, textStyle);
-                    x += context.getStringWidth(e.name, textStyle) + LytChartBase.LEGEND_ENTRY_GAP;
+                    GuideText.emitText(c, e.name, x, textY, textStyle);
+                    x += GuideText.measureWidth(e.name, textStyle) + LytChartBase.LEGEND_ENTRY_GAP;
                 }
                 break;
             }
@@ -186,8 +190,8 @@ public class ChartLegendRenderer {
                 int y = rect.y();
                 for (LegendEntry e : layout.entries) {
                     int swY = y + (lineHeight - swatch) / 2;
-                    drawSwatch(context, e, x, swY, swatch);
-                    context.drawText(e.name, x + swatch + SWATCH_TEXT_GAP, y, textStyle);
+                    emitSwatch(c, e, x, swY, swatch);
+                    GuideText.emitText(c, e.name, x + swatch + SWATCH_TEXT_GAP, y, textStyle);
                     y += lineHeight + 2;
                     if (y + lineHeight > rect.bottom()) {
                         break;
@@ -259,20 +263,37 @@ public class ChartLegendRenderer {
         int measure(String text, ResolvedTextStyle style);
     }
 
-    private static void drawSwatch(RenderContext context, LegendEntry entry, int x, int y, int size) {
+    private static void emitSwatch(PrimitiveCollector c, LegendEntry entry, int x, int y, int size) {
         if (entry.icon != null && entry.icon.hasItemStack()) {
             float scale = (float) size / 16f;
-            GL11.glPushMatrix();
-            GL11.glTranslatef(x, y, 0f);
-            GL11.glScalef(scale, scale, 1f);
-            context.renderItem(entry.icon.getStack(), 0, 0);
-            GL11.glPopMatrix();
+            c.pushTransform(x, y, scale);
+            c.emit(new GuideRenderPrimitive.RenderItem(entry.icon.getStack(), 0, 0));
+            c.popTransform();
             return;
         }
         if (entry.icon != null && entry.icon.hasImage()) {
-            context.fillTexturedRect(new LytRect(x, y, size, size), entry.icon.getTexture());
+            ResourceLocation res = entry.icon.getTexture()
+                .getTexture();
+            int texId = res != null ? getGlTextureId(res) : -1;
+            if (texId >= 0) {
+                // Full texture UV — matches the legacy fillTexturedRect behavior.
+                c.emit(new GuideRenderPrimitive.BlitTexture(texId, x, y, size, size, 0f, 0f, 1f, 1f));
+            }
             return;
         }
-        context.fillRect(new LytRect(x, y, size, size), entry.color);
+        c.emit(new GuideRenderPrimitive.FillRect(x, y, size, size, entry.color));
+    }
+
+    /** Convert a Minecraft ResourceLocation to a GL texture ID for use with BlitTexture. */
+    private static int getGlTextureId(ResourceLocation res) {
+        try {
+            ITextureObject tex = Minecraft.getMinecraft()
+                .getTextureManager()
+                .getTexture(res);
+            return tex != null ? tex.getGlTextureId() : -1;
+        } catch (Throwable t) {
+            // Headless (unit tests) or texture unavailable: skip drawing.
+            return -1;
+        }
     }
 }

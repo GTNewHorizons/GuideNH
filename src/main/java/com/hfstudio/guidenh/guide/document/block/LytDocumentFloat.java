@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -40,7 +41,7 @@ import lombok.Getter;
 @Getter
 public class LytDocumentFloat extends LytBlock {
 
-    private static final int FLOAT_GAP = 5;
+    public static final int FLOAT_GAP = 5;
 
     private LytBlock inner;
     private final boolean floatRight;
@@ -104,6 +105,16 @@ public class LytDocumentFloat extends LytBlock {
     @Override
     public LytNode pickNode(int x, int y) {
         return inner.pickNode(x, y);
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        // No-op: inner child is picked up by PrimitiveCollector.collectFrom traversal.
     }
 
     @Override

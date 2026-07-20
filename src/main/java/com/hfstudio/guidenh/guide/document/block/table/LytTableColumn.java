@@ -4,7 +4,9 @@ import lombok.Getter;
 
 public class LytTableColumn {
 
+    @Getter
     int x;
+    @Getter
     int width;
     @Getter
     int preferredWidth;

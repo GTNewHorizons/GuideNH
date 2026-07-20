@@ -1,7 +1,9 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 /**
@@ -12,10 +14,10 @@ public class CartesianChartRenderer {
     protected CartesianChartRenderer() {}
 
     /** Compute insets reserved for axis labels; returns [left, top, right, bottom] (pixels). */
-    public static int[] computeAxisInsets(RenderContext context, ChartAxisOptions xAxis, ChartAxisOptions yAxis,
-        AxisRange xRange, AxisRange yRange, String[] xCategories, boolean showXTicks, boolean showYTicks) {
+    public static int[] computeAxisInsets(ChartAxisOptions xAxis, ChartAxisOptions yAxis, AxisRange xRange,
+        AxisRange yRange, String[] xCategories, boolean showXTicks, boolean showYTicks) {
         ResolvedTextStyle style = LytChartBase.textStyle(0xFFCCCCCC);
-        int lineH = context.getLineHeight(style);
+        int lineH = GuideText.lineHeight(style);
         int left = 4;
         int top = 4;
         int right = 4;
@@ -24,7 +26,7 @@ public class CartesianChartRenderer {
             int maxLabel = 0;
             for (double t = yRange.min; t <= yRange.max + 1e-9; t += yRange.step) {
                 String s = yAxis.formatTick(t);
-                int w = context.getStringWidth(s, style);
+                int w = GuideText.measureWidth(s, style);
                 if (w > maxLabel) {
                     maxLabel = w;
                 }
@@ -45,15 +47,15 @@ public class CartesianChartRenderer {
             // Reserve a small right margin so the last X tick label does not overflow the plot.
             if (xRange != null) {
                 String last = xAxis.formatTick(xRange.max);
-                right = Math.max(right, context.getStringWidth(last, style) / 2 + 2);
+                right = Math.max(right, GuideText.measureWidth(last, style) / 2 + 2);
             } else if (xCategories != null && xCategories.length > 0) {
                 String last = xCategories[xCategories.length - 1];
                 if (last != null) {
-                    right = Math.max(right, context.getStringWidth(last, style) / 2 + 2);
+                    right = Math.max(right, GuideText.measureWidth(last, style) / 2 + 2);
                 }
                 String first = xCategories[0];
                 if (first != null) {
-                    left = Math.max(left, context.getStringWidth(first, style) / 2 + 2);
+                    left = Math.max(left, GuideText.measureWidth(first, style) / 2 + 2);
                 }
             }
         }
@@ -73,7 +75,7 @@ public class CartesianChartRenderer {
     }
 
     /** Render axes + grid lines + tick text inside plotRect. */
-    public static void drawAxes(RenderContext context, LytRect plotRect, ChartAxisOptions xAxis, ChartAxisOptions yAxis,
+    public static void drawAxes(PrimitiveCollector c, LytRect plotRect, ChartAxisOptions xAxis, ChartAxisOptions yAxis,
         AxisRange xRange, AxisRange yRange, String[] xCategories, boolean numericX) {
         ResolvedTextStyle xLabelStyle = LytChartBase.textStyle(xAxis.getLabelColor());
         ResolvedTextStyle yLabelStyle = LytChartBase.textStyle(yAxis.getLabelColor());
@@ -83,12 +85,19 @@ public class CartesianChartRenderer {
             for (double t = yRange.min; t <= yRange.max + 1e-9; t += yRange.step) {
                 float y = mapY(t, yRange, plotRect);
                 if (yAxis.isGridVisible()) {
-                    context.drawLine(plotRect.x(), y, plotRect.right(), y, 1f, yAxis.getGridColor());
+                    c.emit(
+                        new GuideRenderPrimitive.DrawLine(
+                            plotRect.x(),
+                            y,
+                            plotRect.right(),
+                            y,
+                            1f,
+                            yAxis.getGridColor()));
                 }
                 String s = yAxis.formatTick(t);
-                int sw = context.getStringWidth(s, yLabelStyle);
-                int lh = context.getLineHeight(yLabelStyle);
-                context.drawText(s, plotRect.x() - sw - 4, (int) y - lh / 2, yLabelStyle);
+                int sw = GuideText.measureWidth(s, yLabelStyle);
+                int lh = GuideText.lineHeight(yLabelStyle);
+                GuideText.emitText(c, s, plotRect.x() - sw - 4, (int) y - lh / 2, yLabelStyle);
             }
         }
 
@@ -98,48 +107,68 @@ public class CartesianChartRenderer {
             for (double t = xRange.min; t <= xRange.max + 1e-9; t += xRange.step) {
                 float x = mapX(t, xRange, plotRect);
                 if (xAxis.isGridVisible()) {
-                    context.drawLine(x, plotRect.y(), x, plotRect.bottom(), 1f, xAxis.getGridColor());
+                    c.emit(
+                        new GuideRenderPrimitive.DrawLine(
+                            x,
+                            plotRect.y(),
+                            x,
+                            plotRect.bottom(),
+                            1f,
+                            xAxis.getGridColor()));
                 }
                 String s = xAxis.formatTick(t);
-                int sw = context.getStringWidth(s, xLabelStyle);
+                int sw = GuideText.measureWidth(s, xLabelStyle);
                 int tx = (int) x - sw / 2;
                 // Allow at most half the label to extend past the plot edge so neighbouring text
                 // does not collide with the chart border.
                 tx = Math.max(plotRect.x() - sw / 2, Math.min(plotRect.right() - sw / 2, tx));
-                context.drawText(s, tx, plotRect.bottom() + 3, xLabelStyle);
+                GuideText.emitText(c, s, tx, plotRect.bottom() + 3, xLabelStyle);
             }
         } else if (xCategories != null && xCategories.length > 0) {
             float step = (float) plotRect.width() / xCategories.length;
             for (int i = 0; i < xCategories.length; i++) {
                 String label = xCategories[i] != null ? xCategories[i] : "";
-                int sw = context.getStringWidth(label, xLabelStyle);
+                int sw = GuideText.measureWidth(label, xLabelStyle);
                 float cx = plotRect.x() + step * (i + 0.5f);
                 int tx = (int) cx - sw / 2;
-                context.drawText(label, tx, plotRect.bottom() + 3, xLabelStyle);
+                GuideText.emitText(c, label, tx, plotRect.bottom() + 3, xLabelStyle);
             }
         }
 
         // Axis border.
-        context.drawLine(plotRect.x(), plotRect.y(), plotRect.x(), plotRect.bottom(), 1f, xAxis.getAxisColor());
-        context
-            .drawLine(plotRect.x(), plotRect.bottom(), plotRect.right(), plotRect.bottom(), 1f, xAxis.getAxisColor());
+        c.emit(
+            new GuideRenderPrimitive.DrawLine(
+                plotRect.x(),
+                plotRect.y(),
+                plotRect.x(),
+                plotRect.bottom(),
+                1f,
+                xAxis.getAxisColor()));
+        c.emit(
+            new GuideRenderPrimitive.DrawLine(
+                plotRect.x(),
+                plotRect.bottom(),
+                plotRect.right(),
+                plotRect.bottom(),
+                1f,
+                xAxis.getAxisColor()));
 
         // Axis title.
         if (xAxis.getLabel() != null && !xAxis.getLabel()
             .isEmpty()) {
-            int sw = context.getStringWidth(xAxis.getLabel(), xLabelStyle);
-            int lh = context.getLineHeight(xLabelStyle);
+            int sw = GuideText.measureWidth(xAxis.getLabel(), xLabelStyle);
+            int lh = GuideText.lineHeight(xLabelStyle);
             // Center the X-axis label below the tick row, but clamp to the plot's horizontal range
             // so a long label does not bleed past the right edge.
             int tx = plotRect.x() + Math.max(0, (plotRect.width() - sw) / 2);
-            context.drawText(xAxis.getLabel(), tx, plotRect.bottom() + 3 + lh + 2, xLabelStyle);
+            GuideText.emitText(c, xAxis.getLabel(), tx, plotRect.bottom() + 3 + lh + 2, xLabelStyle);
         }
         if (yAxis.getLabel() != null && !yAxis.getLabel()
             .isEmpty()) {
-            int lh = context.getLineHeight(yLabelStyle);
+            int lh = GuideText.lineHeight(yLabelStyle);
             // Place the Y-axis label horizontally above the plot's top-left corner instead of to
             // its left, so long labels (e.g. "Strength (dB)") never overflow the chart frame.
-            context.drawText(yAxis.getLabel(), plotRect.x(), plotRect.y() - lh - 2, yLabelStyle);
+            GuideText.emitText(c, yAxis.getLabel(), plotRect.x(), plotRect.y() - lh - 2, yLabelStyle);
         }
     }
 }

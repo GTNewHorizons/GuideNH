@@ -379,6 +379,17 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         }
     }
 
+    /**
+     * Not yet migrated: the base {@link #computePrimitives} only draws the panel
+     * (edges/nodes/content need {@code emitDiagramPrimitives} overrides in the
+     * subclasses). Until those exist, render the whole canvas through the legacy
+     * fallback so diagrams don't show up as empty panels.
+     */
+    @Override
+    public boolean usePrimitives() {
+        return false;
+    }
+
     @Override
     public void computePrimitives(PrimitiveCollector c) {
         if (!diagramReady()) return;

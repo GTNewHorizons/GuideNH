@@ -8,6 +8,7 @@ import java.nio.ByteOrder;
 import com.google.flatbuffers.BaseVector;
 import com.google.flatbuffers.Constants;
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
 import com.google.flatbuffers.IntVector;
 import com.google.flatbuffers.Table;
 
@@ -73,8 +74,65 @@ public final class FontRequest extends Table {
         return __vector_in_bytebuffer(_bb, 8, 4);
     }
 
-    public static int createFontRequest(FlatBufferBuilder builder, long fontId, float fontSize, int glyphIdsOffset) {
-        builder.startTable(3);
+    public float posX(int j) {
+        int o = __offset(10);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int posXLength() {
+        int o = __offset(10);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatVector posXVector() {
+        return posXVector(new FloatVector());
+    }
+
+    public FloatVector posXVector(FloatVector obj) {
+        int o = __offset(10);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer posXAsByteBuffer() {
+        return __vector_as_bytebuffer(10, 4);
+    }
+
+    public ByteBuffer posXInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 10, 4);
+    }
+
+    public float posY(int j) {
+        int o = __offset(12);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int posYLength() {
+        int o = __offset(12);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatVector posYVector() {
+        return posYVector(new FloatVector());
+    }
+
+    public FloatVector posYVector(FloatVector obj) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer posYAsByteBuffer() {
+        return __vector_as_bytebuffer(12, 4);
+    }
+
+    public ByteBuffer posYInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 12, 4);
+    }
+
+    public static int createFontRequest(FlatBufferBuilder builder, long fontId, float fontSize, int glyphIdsOffset,
+        int posXOffset, int posYOffset) {
+        builder.startTable(5);
+        FontRequest.addPosY(builder, posYOffset);
+        FontRequest.addPosX(builder, posXOffset);
         FontRequest.addGlyphIds(builder, glyphIdsOffset);
         FontRequest.addFontSize(builder, fontSize);
         FontRequest.addFontId(builder, fontId);
@@ -82,7 +140,7 @@ public final class FontRequest extends Table {
     }
 
     public static void startFontRequest(FlatBufferBuilder builder) {
-        builder.startTable(3);
+        builder.startTable(5);
     }
 
     public static void addFontId(FlatBufferBuilder builder, long fontId) {
@@ -104,6 +162,34 @@ public final class FontRequest extends Table {
     }
 
     public static void startGlyphIdsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addPosX(FlatBufferBuilder builder, int posXOffset) {
+        builder.addOffset(3, posXOffset, 0);
+    }
+
+    public static int createPosXVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startPosXVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addPosY(FlatBufferBuilder builder, int posYOffset) {
+        builder.addOffset(4, posYOffset, 0);
+    }
+
+    public static int createPosYVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startPosYVector(FlatBufferBuilder builder, int numElems) {
         builder.startVector(4, numElems, 4);
     }
 

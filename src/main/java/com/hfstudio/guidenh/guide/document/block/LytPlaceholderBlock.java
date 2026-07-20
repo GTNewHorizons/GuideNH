@@ -74,6 +74,13 @@ public class LytPlaceholderBlock extends LytBlock {
     }
 
     @Override
+    public boolean usePrimitives() {
+        // No own drawing — the collector recurses into currentBlock, which
+        // dispatches to primitives or HostDraw depending on its own state.
+        return true;
+    }
+
+    @Override
     public List<? extends LytNode> getChildren() {
         return List.copyOf(currentChildren);
     }

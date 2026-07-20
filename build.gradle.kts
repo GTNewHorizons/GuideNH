@@ -58,6 +58,11 @@ runConfigs.forEach { (taskName, path) ->
         doFirst {
             workingDir.mkdirs()
         }
+        // Forward the layout-overlay flag to the client JVM:
+        //   ./gradlew runClient25 -Dguidenh.layoutOverlay=true
+        providers.systemProperty("guidenh.layoutOverlay").orNull?.let {
+            jvmArgs("-Dguidenh.layoutOverlay=$it")
+        }
     }
 }
 
@@ -66,6 +71,41 @@ runConfigs.forEach { (taskName, path) ->
  *  Does NOT wire into the main build pipeline.
  *  Requires Rust toolchain: https://rustup.rs
  */
+/** Resolve the Rust DLL path eagerly (configuration-cache friendly): prefer the
+ *  redirected target dir on E:, fall back to the in-tree target dir. */
+val rustDllPath: String = run {
+    val eDrive = File("E:/build_out/guide_nh_rust/release/guide_layout_engine.dll")
+    if (eDrive.exists()) eDrive.absolutePath else "${rootDir}/layout-engine/target/release/guide_layout_engine.dll"
+}
+
+/** Run GlyphRenderTest main class. Requires Rust DLL built first. */
+val runGlyphTest by tasks.registering(JavaExec::class) {
+    description = "Run GlyphRenderTest visual glyph verification window"
+    group = "verification"
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.hfstudio.guidenh.guide.layout.GlyphRenderTest")
+    jvmArgs("-Dguide.native.lib.path=$rustDllPath", "-Dsun.java2d.uiScale=1.0")
+}
+
+/** Headless diagnostic: print glyph pipeline to console. */
+val runGlyphDiag by tasks.registering(JavaExec::class) {
+    description = "Run GlyphDiag: headless glyph data diagnostic"
+    group = "verification"
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.hfstudio.guidenh.guide.layout.GlyphDiag")
+    jvmArgs("-Dguide.native.lib.path=$rustDllPath", "-Dsun.java2d.uiScale=1.0")
+}
+
+/** Headless layout pipeline test bench: synthetic pages → invariants + tree dump. */
+val runLayoutDump by tasks.registering(JavaExec::class) {
+    description = "Run LayoutPipelineHarness: headless layout pipeline verification"
+    group = "verification"
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.hfstudio.guidenh.guide.layout.LayoutPipelineHarness")
+    jvmArgs("-Dguide.native.lib.path=$rustDllPath", "-Dsun.java2d.uiScale=1.0")
+    setIgnoreExitValue(true)
+}
+
 val buildRustNative by tasks.registering(Exec::class) {
     description = "Build Rust native library (layout-engine/guide_layout_engine.dll)"
     group = "build"

@@ -45,18 +45,28 @@ public final class LayoutInput extends Table {
         return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f;
     }
 
+    public float renderScale() {
+        int o = __offset(8);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f;
+    }
+
+    public byte justify() {
+        int o = __offset(10);
+        return o != 0 ? bb.get(o + bb_pos) : 1;
+    }
+
     public com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode nodes(int j) {
         return nodes(new com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode(), j);
     }
 
     public com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode nodes(
         com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode obj, int j) {
-        int o = __offset(8);
+        int o = __offset(12);
         return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
     }
 
     public int nodesLength() {
-        int o = __offset(8);
+        int o = __offset(12);
         return o != 0 ? __vector_len(o) : 0;
     }
 
@@ -66,21 +76,23 @@ public final class LayoutInput extends Table {
 
     public com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode.Vector nodesVector(
         com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode.Vector obj) {
-        int o = __offset(8);
+        int o = __offset(12);
         return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
     }
 
     public static int createLayoutInput(FlatBufferBuilder builder, float availableWidth, float visualScale,
-        int nodesOffset) {
-        builder.startTable(3);
+        float renderScale, byte justify, int nodesOffset) {
+        builder.startTable(5);
         LayoutInput.addNodes(builder, nodesOffset);
+        LayoutInput.addRenderScale(builder, renderScale);
         LayoutInput.addVisualScale(builder, visualScale);
         LayoutInput.addAvailableWidth(builder, availableWidth);
+        LayoutInput.addJustify(builder, justify);
         return LayoutInput.endLayoutInput(builder);
     }
 
     public static void startLayoutInput(FlatBufferBuilder builder) {
-        builder.startTable(3);
+        builder.startTable(5);
     }
 
     public static void addAvailableWidth(FlatBufferBuilder builder, float availableWidth) {
@@ -91,8 +103,16 @@ public final class LayoutInput extends Table {
         builder.addFloat(1, visualScale, 1.0f);
     }
 
+    public static void addRenderScale(FlatBufferBuilder builder, float renderScale) {
+        builder.addFloat(2, renderScale, 1.0f);
+    }
+
+    public static void addJustify(FlatBufferBuilder builder, byte justify) {
+        builder.addByte(3, justify, 1);
+    }
+
     public static void addNodes(FlatBufferBuilder builder, int nodesOffset) {
-        builder.addOffset(2, nodesOffset, 0);
+        builder.addOffset(4, nodesOffset, 0);
     }
 
     public static int createNodesVector(FlatBufferBuilder builder, int[] data) {

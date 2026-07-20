@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 
@@ -108,6 +109,17 @@ public class LytQuoteBox extends LytBlock implements LytBlockContainer {
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
         root.moveLayoutPos(deltaX, deltaY);
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        // No-op: the internal root (LytVBox) is a child returned by getChildren()
+        // and will be visited by PrimitiveCollector.collectFrom traversal.
     }
 
     @Override

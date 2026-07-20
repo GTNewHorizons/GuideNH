@@ -7,7 +7,9 @@ import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 import lombok.Getter;
@@ -90,7 +92,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected void renderChart(RenderContext context, LytRect plotRect) {
+    protected void renderChart(PrimitiveCollector c, LytRect plotRect) {
         int categoryCount = Math.max(categories.length, maxSeriesLength());
         if (categoryCount == 0 || (series.isEmpty() && lineOverlays.isEmpty())) return;
         // Peel off a dedicated right-hand area for the pie inset when configured.
@@ -126,11 +128,11 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
 
         // Estimate left-side (category) and bottom (value tick) insets.
         ResolvedTextStyle style = textStyle(0xFFCCCCCC);
-        int lh = context.getLineHeight(style);
+        int lh = GuideText.lineHeight(style);
         int leftInset = 4;
         for (int i = 0; i < categoryCount; i++) {
-            String c = i < categories.length ? categories[i] : Integer.toString(i + 1);
-            int w = context.getStringWidth(c, style);
+            String cat = i < categories.length ? categories[i] : Integer.toString(i + 1);
+            int w = GuideText.measureWidth(cat, style);
             if (w > leftInset) leftInset = w;
         }
         leftInset += 6;
@@ -147,31 +149,49 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         for (double t = xRange.min; t <= xRange.max + 1e-9; t += xRange.step) {
             float gx = CartesianChartRenderer.mapX(t, xRange, inner);
             if (xAxis.isGridVisible()) {
-                context.drawLine(gx, inner.y(), gx, inner.bottom(), 1f, xAxis.getGridColor());
+                c.emit(new GuideRenderPrimitive.DrawLine(gx, inner.y(), gx, inner.bottom(), 1f, xAxis.getGridColor()));
             }
             String s = xAxis.formatTick(t);
-            int sw = context.getStringWidth(s, style);
-            context.drawText(s, (int) gx - sw / 2, inner.bottom() + 3, style);
+            int sw = GuideText.measureWidth(s, style);
+            GuideText.emitText(c, s, (int) gx - sw / 2, inner.bottom() + 3, style);
         }
         if (xAxis.getLabel() != null && !xAxis.getLabel()
             .isEmpty()) {
-            int sw = context.getStringWidth(xAxis.getLabel(), style);
-            context
-                .drawText(xAxis.getLabel(), inner.x() + (inner.width() - sw) / 2, inner.bottom() + 3 + lh + 2, style);
+            int sw = GuideText.measureWidth(xAxis.getLabel(), style);
+            GuideText.emitText(
+                c,
+                xAxis.getLabel(),
+                inner.x() + (inner.width() - sw) / 2,
+                inner.bottom() + 3 + lh + 2,
+                style);
         }
 
         // Category ticks.
         float categoryHeight = (float) inner.height() / categoryCount;
         for (int i = 0; i < categoryCount; i++) {
-            String c = i < categories.length ? categories[i] : Integer.toString(i + 1);
-            int sw = context.getStringWidth(c, style);
+            String cat = i < categories.length ? categories[i] : Integer.toString(i + 1);
+            int sw = GuideText.measureWidth(cat, style);
             float cy = inner.y() + categoryHeight * (i + 0.5f);
-            context.drawText(c, inner.x() - sw - 4, (int) cy - lh / 2, style);
+            GuideText.emitText(c, cat, inner.x() - sw - 4, (int) cy - lh / 2, style);
         }
 
         // Border.
-        context.drawLine(inner.x(), inner.y(), inner.x(), inner.bottom(), 1f, xAxis.getAxisColor());
-        context.drawLine(inner.x(), inner.bottom(), inner.right(), inner.bottom(), 1f, xAxis.getAxisColor());
+        c.emit(
+            new GuideRenderPrimitive.DrawLine(
+                inner.x(),
+                inner.y(),
+                inner.x(),
+                inner.bottom(),
+                1f,
+                xAxis.getAxisColor()));
+        c.emit(
+            new GuideRenderPrimitive.DrawLine(
+                inner.x(),
+                inner.bottom(),
+                inner.right(),
+                inner.bottom(),
+                1f,
+                xAxis.getAxisColor()));
 
         int seriesCount = series.size();
         float baselineX = CartesianChartRenderer.mapX(0d, xRange, inner);
@@ -201,11 +221,22 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
                         (int) y0,
                         Math.max(1, (int) (xRight - xLeft)),
                         Math.max(1, (int) (y1 - y0)));
-                    context.fillRect(bar, s.getColor());
+                    c.emit(
+                        new GuideRenderPrimitive.FillRect(bar.x(), bar.y(), bar.width(), bar.height(), s.getColor()));
                     if (hovered) {
-                        context.drawBorder(bar, 0xFF000000, 1);
+                        c.emit(
+                            new GuideRenderPrimitive.DrawBorder(
+                                bar.x(),
+                                bar.y(),
+                                bar.width(),
+                                bar.height(),
+                                1,
+                                1,
+                                1,
+                                1,
+                                0xFF000000));
                     }
-                    drawValueLabel(context, valueStyle, v, bar, endX);
+                    drawValueLabel(c, valueStyle, v, bar, endX);
                 }
             }
         }
@@ -230,31 +261,31 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
                     if (hoveredLineSeries == li && (hoveredLinePoint == i || hoveredLinePoint == i + 1)) {
                         thick += 1f;
                     }
-                    context.drawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor());
+                    c.emit(new GuideRenderPrimitive.DrawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor()));
                 }
                 for (int i = 0; i < n; i++) {
                     boolean ph = hoveredLineSeries == li && hoveredLinePoint == i;
                     float r = ph ? LINE_POINT_RADIUS + 2f : LINE_POINT_RADIUS;
-                    context.fillCircle(px[i], py[i], r, s.getColor());
+                    c.emit(new GuideRenderPrimitive.DrawCircle(px[i], py[i], r, s.getColor(), true));
                     if (ph) {
-                        context.drawCircleOutline(px[i], py[i], r, 1f, 0xFF000000);
+                        c.emit(new GuideRenderPrimitive.DrawCircleOutline(px[i], py[i], r, 1f, 0xFF000000));
                     }
                 }
             }
         }
 
         if (pieArea != null) {
-            PieInsetRenderer.drawAt(context, pieArea, pieInset);
+            PieInsetRenderer.drawAt(c, pieArea, pieInset);
         } else {
-            PieInsetRenderer.draw(context, inner, pieInset);
+            PieInsetRenderer.draw(c, inner, pieInset);
         }
     }
 
-    private void drawValueLabel(RenderContext context, ResolvedTextStyle style, double value, LytRect bar, float endX) {
+    private void drawValueLabel(PrimitiveCollector c, ResolvedTextStyle style, double value, LytRect bar, float endX) {
         if (getLabelPosition() == ChartLabelPosition.NONE) return;
         String text = formatValue(value);
-        int tw = context.getStringWidth(text, style);
-        int lh = context.getLineHeight(style);
+        int tw = GuideText.measureWidth(text, style);
+        int lh = GuideText.lineHeight(style);
         int textX;
         int textY = bar.y() + (bar.height() - lh) / 2;
         int textX1 = bar.x() + (bar.width() - tw) / 2;
@@ -277,7 +308,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
             default:
                 return;
         }
-        context.drawText(text, textX, textY, style);
+        GuideText.emitText(c, text, textX, textY, style);
     }
 
     private int maxSeriesLength() {

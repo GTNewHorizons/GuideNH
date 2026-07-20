@@ -18,6 +18,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeTokenType;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -38,6 +40,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     private static final int MIN_SCROLLBAR_THUMB = 14;
 
     private final LytCodeBlockToolbar toolbar = new LytCodeBlockToolbar();
+    private final LytViewportBox bodyViewport = new LytViewportBox();
     private final LytParagraph body = new LytParagraph();
 
     @Getter
@@ -54,15 +57,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     @Getter
     private int forcedBodyHeight;
     @Getter
-    private int bodyContentHeight;
-    private int bodyViewportX;
-    private int bodyViewportY;
-    private int bodyViewportWidth;
-    @Getter
-    private int bodyViewportHeight;
-    @Getter
     private int bodyScrollOffsetY;
     private final SmoothFloatState visualBodyScrollOffsetY = new SmoothFloatState();
+    /** Visual-scroll delta currently baked into the body's bounds (see computePrimitives). */
+    private int appliedVisualDeltaY;
     @Getter
     private boolean draggingBody;
     private int dragLastDocumentY;
@@ -90,8 +88,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
             style -> style.whiteSpace(WhiteSpaceMode.PRE_WRAP)
                 .color(CODE_DEFAULT));
 
+        bodyViewport.setFullWidth(true);
+        bodyViewport.append(body);
         append(toolbar);
-        append(body);
+        append(bodyViewport);
         syncToolbar();
     }
 
@@ -213,6 +213,66 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     }
 
     @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        super.computePrimitives(c);
+        c.emit(
+            new GuideRenderPrimitive.FillRect(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                CODE_BACKGROUND.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
+
+        // Advance the smooth scroll and bake the visual delta into the body's
+        // bounds. The collector traverses the body right after this, so the
+        // body renders at its animated position and hit-tests stay aligned.
+        updateVisualScroll();
+        int newDelta = bodyScrollOffsetY - visualBodyScrollOffsetY.rounded();
+        if (newDelta != appliedVisualDeltaY && !body.getBounds()
+            .isEmpty()) {
+            body.moveLayoutPos(0, newDelta - appliedVisualDeltaY);
+            appliedVisualDeltaY = newDelta;
+        }
+
+        if (getMaxBodyScroll() > 0) {
+            LytRect track = getScrollbarTrackBounds();
+            if (!track.isEmpty()) {
+                c.emit(
+                    new GuideRenderPrimitive.FillRect(
+                        track.x(),
+                        track.y(),
+                        track.width(),
+                        track.height(),
+                        CODE_THEME.scrollbarTrackArgb()));
+                LytRect thumb = getScrollbarThumbBounds();
+                if (!thumb.isEmpty()) {
+                    c.emit(
+                        new GuideRenderPrimitive.FillRect(
+                            thumb.x(),
+                            thumb.y(),
+                            thumb.width(),
+                            thumb.height(),
+                            draggingScrollbar ? CODE_THEME.scrollbarThumbActiveArgb()
+                                : CODE_THEME.scrollbarThumbArgb()));
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void afterExternalLayout() {
+        // The writeback reset the body to the unscrolled position; re-apply the
+        // current scroll offset and restart the visual-delta bookkeeping.
+        updateBodyPosition();
+        appliedVisualDeltaY = 0;
+    }
+
+    @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
         int safeWidth = preferredBodyWidth > 0 ? Math.max(1, Math.min(availableWidth, preferredBodyWidth))
             : Math.max(1, availableWidth);
@@ -223,21 +283,54 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         int bodyAvailableWidth = safeWidth;
 
         LytRect measuredBody = body.layout(context, x, bodyY, bodyAvailableWidth);
-        bodyContentHeight = measuredBody.height();
-        bodyViewportHeight = forcedBodyHeight > 0 ? forcedBodyHeight : bodyContentHeight;
-        if (forcedBodyHeight > 0 && bodyContentHeight > bodyViewportHeight) {
+        int contentHeight = measuredBody.height();
+        int viewportHeight = forcedBodyHeight > 0 ? forcedBodyHeight : contentHeight;
+        if (forcedBodyHeight > 0 && contentHeight > viewportHeight) {
             bodyAvailableWidth = Math.max(1, safeWidth - SCROLLBAR_WIDTH - 4);
             measuredBody = body.layout(context, x, bodyY, bodyAvailableWidth);
-            bodyContentHeight = measuredBody.height();
+            contentHeight = measuredBody.height();
         }
 
-        bodyViewportHeight = forcedBodyHeight > 0 ? forcedBodyHeight : bodyContentHeight;
-        bodyViewportX = x;
-        bodyViewportY = bodyY;
-        bodyViewportWidth = bodyAvailableWidth;
+        viewportHeight = forcedBodyHeight > 0 ? forcedBodyHeight : contentHeight;
+        bodyViewport.setExplicitHeight(viewportHeight);
+        bodyViewport.layout(context, x, bodyY, bodyAvailableWidth);
         setBodyScrollOffset(bodyScrollOffsetY);
         snapVisualScrollToTarget();
-        return new LytRect(x, y, safeWidth, toolbarBounds.height() + getGap() + bodyViewportHeight);
+        return new LytRect(x, y, safeWidth, toolbarBounds.height() + getGap() + viewportHeight);
+    }
+
+    // ---- derived geometry (computed from current bounds; no layout-time fields) ----
+
+    private int getBodyContentHeight() {
+        return body.getBounds()
+            .height();
+    }
+
+    private LytRect getBodyViewportBounds() {
+        LytRect tb = toolbar.getBounds();
+        int x = bounds.x() + getBorderLeft().width() + paddingLeft;
+        int y = tb.isEmpty() ? bounds.y() + getBorderTop().width() + paddingTop : tb.bottom() + getGap();
+        int w = bounds.right() - getBorderRight().width() - paddingRight - x;
+        int h;
+        if (forcedBodyHeight > 0) {
+            h = forcedBodyHeight;
+            if (getMaxBodyScroll() > 0) {
+                w = Math.max(1, w - SCROLLBAR_WIDTH - 4);
+            }
+        } else {
+            h = getBodyContentHeight();
+        }
+        return new LytRect(x, y, Math.max(0, w), Math.max(0, h));
+    }
+
+    /** Public viewport height accessor (derived; replaces the former layout-time field). */
+    public int getBodyViewportHeight() {
+        return getBodyViewportBounds().height();
+    }
+
+    private int getMaxBodyScroll() {
+        if (forcedBodyHeight <= 0) return 0;
+        return Math.max(0, getBodyContentHeight() - forcedBodyHeight);
     }
 
     @Override
@@ -251,10 +344,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
         toolbar.render(context);
 
-        LytRect bodyViewport = getBodyViewportBounds();
-        context.pushLocalScissor(bodyViewport);
+        LytRect bodyViewportBounds = getBodyViewportBounds();
+        context.pushLocalScissor(bodyViewportBounds);
         try {
-            renderBodyWithVisualOffset(context);
+            body.render(context);
         } finally {
             context.popScissor();
         }
@@ -316,10 +409,6 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         }
     }
 
-    private LytRect getBodyViewportBounds() {
-        return new LytRect(bodyViewportX, bodyViewportY, bodyViewportWidth, Math.max(0, bodyViewportHeight));
-    }
-
     private LytRect getScrollbarTrackBounds() {
         if (getMaxBodyScroll() <= 0) {
             return LytRect.empty();
@@ -334,8 +423,9 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         if (track.isEmpty()) {
             return LytRect.empty();
         }
-        int thumbHeight = Math
-            .max(MIN_SCROLLBAR_THUMB, track.height() * track.height() / Math.max(track.height(), bodyContentHeight));
+        int thumbHeight = Math.max(
+            MIN_SCROLLBAR_THUMB,
+            track.height() * track.height() / Math.max(track.height(), getBodyContentHeight()));
         thumbHeight = Math.min(thumbHeight, track.height());
         int maxScroll = getMaxBodyScroll();
         int thumbTrack = Math.max(1, track.height() - thumbHeight);
@@ -346,41 +436,23 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         return new LytRect(track.x(), thumbY, track.width(), thumbHeight);
     }
 
-    private int getMaxBodyScroll() {
-        return Math.max(0, bodyContentHeight - bodyViewportHeight);
-    }
-
     private void setBodyScrollOffset(int bodyScrollOffsetY) {
         this.bodyScrollOffsetY = SceneEditorVerticalScrollbar.clamp(bodyScrollOffsetY, 0, getMaxBodyScroll());
         updateBodyPosition();
     }
 
     private void updateBodyPosition() {
-        if (!body.getBounds()
-            .isEmpty()
-            && !toolbar.getBounds()
-                .isEmpty()) {
-            int bodyViewportY = toolbar.getBounds()
-                .bottom() + getGap();
+        LytRect viewport = getBodyViewportBounds();
+        if (!viewport.isEmpty() && !body.getBounds()
+            .isEmpty()) {
             body.moveLayoutPos(
                 0,
-                bodyViewportY - bodyScrollOffsetY
+                viewport.y() - bodyScrollOffsetY
                     - body.getBounds()
                         .y());
-        }
-    }
-
-    private void renderBodyWithVisualOffset(RenderContext context) {
-        int renderDeltaY = bodyScrollOffsetY - visualBodyScrollOffsetY.rounded();
-        if (renderDeltaY == 0) {
-            body.render(context);
-            return;
-        }
-        body.moveLayoutPos(0, renderDeltaY);
-        try {
-            body.render(context);
-        } finally {
-            body.moveLayoutPos(0, -renderDeltaY);
+            // Bounds now sit at the scroll target; the visual delta restarts
+            // from here and is re-baked by computePrimitives each frame.
+            appliedVisualDeltaY = 0;
         }
     }
 
@@ -404,6 +476,6 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     private void updateVisualScroll() {
         visualBodyScrollOffsetY
-            .updateTowards(bodyScrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, bodyViewportHeight * 2f));
+            .updateTowards(bodyScrollOffsetY, 28f, 0.25f, 0.01f, Math.max(128f, getBodyViewportBounds().height() * 2f));
     }
 }

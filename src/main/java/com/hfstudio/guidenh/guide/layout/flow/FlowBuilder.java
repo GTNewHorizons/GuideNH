@@ -88,6 +88,17 @@ public class FlowBuilder {
         return null;
     }
 
+    /** Invoke {@code consumer} for every non-empty text run, in line order. */
+    public void forEachTextRun(Consumer<LineTextRun> consumer) {
+        for (var line : lines) {
+            for (var el = line.firstElement; el != null; el = el.next) {
+                if (el instanceof LineTextRun textRun && !textRun.text.isEmpty()) {
+                    consumer.accept(textRun);
+                }
+            }
+        }
+    }
+
     private void updateHoverState(@Nullable FlowInteractionPath hoverPath, @Nullable FlowInteractionPath revealPath) {
         FlowInteractionPath resolvedHoverPath = hoverPath != null ? hoverPath : EMPTY_PATH;
         FlowInteractionPath resolvedRevealPath = revealPath != null ? revealPath : EMPTY_PATH;

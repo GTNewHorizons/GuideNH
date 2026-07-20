@@ -7,6 +7,8 @@ import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -30,18 +32,11 @@ public class LytTable extends LytBlock {
 
         layoutColumns(x, availableWidth);
 
-        // Layout each row
+        // Layout each row (rows lay out their own cells against the column model)
         var currentY = y + CELL_BORDER;
         for (var row : rows) {
-            var rowTop = currentY;
-            var rowBottom = currentY;
-            for (var cell : row.getChildren()) {
-                var column = cell.column;
-                var cellBounds = cell.layout(context, column.x, currentY, column.width);
-                rowBottom = Math.max(rowBottom, cellBounds.bottom());
-            }
-            row.bounds = new LytRect(x, rowTop, availableWidth, rowBottom - rowTop);
-            currentY = rowBottom + CELL_BORDER;
+            var rowBounds = row.layout(context, x, currentY, availableWidth);
+            currentY = rowBounds.bottom() + CELL_BORDER;
         }
 
         return new LytRect(x, y, availableWidth, currentY - y);
@@ -53,11 +48,43 @@ public class LytTable extends LytBlock {
             col.x += deltaX;
         }
         for (var row : rows) {
-            row.bounds = row.bounds.move(deltaX, deltaY);
-            for (var cell : row.getChildren()) {
-                cell.moveLayoutPos(deltaX, deltaY);
-            }
+            row.moveLayoutPos(deltaX, deltaY);
         }
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        var bounds = getBounds();
+        // Column border lines (vertical lines between columns)
+        for (int i = 0; i < columns.size() - 1; i++) {
+            var column = columns.get(i);
+            var colRight = column.x + column.width;
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    colRight,
+                    bounds.y(),
+                    1,
+                    bounds.height(),
+                    SymbolicColor.TABLE_BORDER.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
+        }
+        // Row border lines (horizontal lines between rows)
+        for (int i = 0; i < rows.size() - 1; i++) {
+            var row = rows.get(i);
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    bounds.x(),
+                    row.getBounds()
+                        .bottom(),
+                    bounds.width(),
+                    1,
+                    SymbolicColor.TABLE_BORDER.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
+        }
+        // Cells are children — collectFrom traversal handles them
     }
 
     @Override
@@ -72,18 +99,26 @@ public class LytTable extends LytBlock {
 
         for (int i = 0; i < rows.size() - 1; i++) {
             var row = rows.get(i);
-            context.fillRect(bounds.x(), row.bounds.bottom(), bounds.width(), 1, SymbolicColor.TABLE_BORDER);
+            context.fillRect(
+                bounds.x(),
+                row.getBounds()
+                    .bottom(),
+                bounds.width(),
+                1,
+                SymbolicColor.TABLE_BORDER);
         }
 
         for (var row : rows) {
-            for (var cell : row.getChildren()) {
-                cell.render(context);
-            }
+            row.render(context);
         }
     }
 
     public LytTableRow appendRow() {
         var row = new LytTableRow(this);
+        if (rows.isEmpty()) {
+            row.setMarginTop(CELL_BORDER);
+        }
+        row.setMarginBottom(CELL_BORDER);
         rows.add(row);
         return row;
     }

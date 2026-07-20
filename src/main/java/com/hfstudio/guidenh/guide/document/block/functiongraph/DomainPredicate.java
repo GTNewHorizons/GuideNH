@@ -131,12 +131,29 @@ public interface DomainPredicate {
         if (text == null || text.isEmpty()) {
             return fallback;
         }
-        double constant = FunctionLibrary.constant(text);
+        String trimmed = text.trim();
+        if (trimmed.isEmpty()) {
+            return fallback;
+        }
+        // Unary sign before a constant ("-pi", "+tau"): Double.parseDouble
+        // handles signed numbers itself, but the constant lookup needs the
+        // sign stripped and re-applied.
+        int sign = 1;
+        String body = trimmed;
+        if (body.startsWith("-")) {
+            sign = -1;
+            body = body.substring(1)
+                .trim();
+        } else if (body.startsWith("+")) {
+            body = body.substring(1)
+                .trim();
+        }
+        double constant = FunctionLibrary.constant(body);
         if (!Double.isNaN(constant)) {
-            return constant;
+            return sign * constant;
         }
         try {
-            return Double.parseDouble(text);
+            return Double.parseDouble(trimmed);
         } catch (NumberFormatException ex) {
             return fallback;
         }

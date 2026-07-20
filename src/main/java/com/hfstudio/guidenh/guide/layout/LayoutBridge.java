@@ -94,6 +94,23 @@ public final class LayoutBridge {
      */
     public static native byte[] rasterizeGlyphs(long handle, byte[] input);
 
+    /**
+     * Shape + rasterize text in one call. Returns RenderResult FlatBuffer bytes
+     * with per-glyph (x, y, w, h, rgba) at SubpixelBin-corrected positions.
+     * Java only needs to blit the returned glyphs — no rounding/position math.
+     */
+    public static native byte[] renderText(long handle, String text, float fontSize, float availWidth);
+
+    /**
+     * Shape + rasterize one styled text (unified text pipeline entry).
+     *
+     * @param handle FontSystem handle from init()
+     * @param input  FlatBuffer-encoded ShapeTextInput bytes
+     * @return FlatBuffer-encoded ShapeTextResult bytes (atlas-keyed quads +
+     *         metrics), or empty byte[] on failure
+     */
+    public static native byte[] shapeText(long handle, byte[] input);
+
     /** Destroy the FontSystem and free native memory. */
     public static native void destroy(long handle);
 

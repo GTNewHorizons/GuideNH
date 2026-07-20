@@ -4,16 +4,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.ITextureObject;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuiAssets;
+import com.hfstudio.guidenh.guide.render.GuiSprite;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
@@ -126,6 +132,103 @@ public class LytImage extends LytBlock implements InteractiveElement {
     @Override
     public void onMouseLeave() {
         hoveredSoundAnnotation = null;
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        var bounds = getBounds();
+        if (texture == null || texture.isMissing()) {
+            // Fall back to missing texture sprite
+            emitBlitGuiSprite(c, GuiAssets.MISSING_TEXTURE, bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        } else {
+            ResourceLocation resolvedTex = texture.getTexture();
+            int texId = resolvedTex != null ? getGlTextureId(resolvedTex) : -1;
+            if (texId >= 0) {
+                // Full texture UV — matches the legacy fillTexturedRect behavior
+                c.emit(
+                    new GuideRenderPrimitive.BlitTexture(
+                        texId,
+                        bounds.x(),
+                        bounds.y(),
+                        bounds.width(),
+                        bounds.height(),
+                        0f,
+                        0f,
+                        1f,
+                        1f));
+            } else {
+                // Texture object not (yet) registered with the TextureManager —
+                // fall back to the missing-texture sprite instead of leaving an
+                // empty box.
+                emitBlitGuiSprite(
+                    c,
+                    GuiAssets.MISSING_TEXTURE,
+                    bounds.x(),
+                    bounds.y(),
+                    bounds.width(),
+                    bounds.height());
+            }
+        }
+    }
+
+    @Override
+    public void emitDecorations(PrimitiveCollector c) {
+        if (annotations.isEmpty()) {
+            return;
+        }
+        var bounds = getBounds();
+        int dispW = bounds.width();
+        int dispH = bounds.height();
+        if (dispW <= 0 || dispH <= 0) {
+            return;
+        }
+        int natW = texture != null && !texture.isMissing() ? getEffectiveSourceWidth() : dispW;
+        int natH = texture != null && !texture.isMissing() ? getEffectiveSourceHeight() : dispH;
+        for (var ann : annotations) {
+            if (!ann.isShowBorder()) {
+                continue;
+            }
+            int bx;
+            int by;
+            int bw;
+            int bh;
+            if (ann.isWholeImage()) {
+                bx = bounds.x();
+                by = bounds.y();
+                bw = bounds.width();
+                bh = bounds.height();
+            } else {
+                int clampedX = Math.clamp(ann.getImgX(), 0, natW);
+                int clampedY = Math.clamp(ann.getImgY(), 0, natH);
+                int clampedW = Math.min(ann.getImgX() + ann.getImgW(), natW) - clampedX;
+                int clampedH = Math.min(ann.getImgY() + ann.getImgH(), natH) - clampedY;
+                if (clampedW <= 0 || clampedH <= 0) {
+                    continue;
+                }
+                bx = bounds.x() + clampedX * dispW / natW;
+                by = bounds.y() + clampedY * dispH / natH;
+                bw = Math.max(1, clampedW * dispW / natW);
+                bh = Math.max(1, clampedH * dispH / natH);
+            }
+            int borderArgb = ann.getBorderColor()
+                .resolve(LightDarkMode.current());
+            c.emit(
+                new GuideRenderPrimitive.DrawBorder(
+                    bx,
+                    by,
+                    bw,
+                    bh,
+                    ann.getBorderThickness(),
+                    ann.getBorderThickness(),
+                    ann.getBorderThickness(),
+                    ann.getBorderThickness(),
+                    borderArgb));
+        }
     }
 
     @Override
@@ -318,6 +421,34 @@ public class LytImage extends LytBlock implements InteractiveElement {
             texture.getSize()
                 .height())
             : 1;
+    }
+
+    /**
+     * Convert a Minecraft ResourceLocation to a GL texture ID for use with BlitTexture.
+     */
+    private static int getGlTextureId(ResourceLocation res) {
+        try {
+            ITextureObject tex = Minecraft.getMinecraft()
+                .getTextureManager()
+                .getTexture(res);
+            return tex != null ? tex.getGlTextureId() : -1;
+        } catch (Throwable t) {
+            // Headless (unit tests) or texture unavailable: skip drawing.
+            return -1;
+        }
+    }
+
+    /**
+     * Emit a BlitTexture for a GuiSprite at the given screen coordinates.
+     */
+    private static void emitBlitGuiSprite(PrimitiveCollector c, GuiSprite sprite, int x, int y, int w, int h) {
+        int texId = getGlTextureId(sprite.getTexture());
+        if (texId < 0) return;
+        float u = (float) sprite.getU() / sprite.getTexWidth();
+        float v = (float) sprite.getV() / sprite.getTexHeight();
+        float u2 = (float) (sprite.getU() + sprite.getWidth()) / sprite.getTexWidth();
+        float v2 = (float) (sprite.getV() + sprite.getHeight()) / sprite.getTexHeight();
+        c.emit(new GuideRenderPrimitive.BlitTexture(texId, x, y, w, h, u, v, u2, v2));
     }
 
     public static class ImagePoint {

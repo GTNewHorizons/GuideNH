@@ -1,11 +1,18 @@
 package com.hfstudio.guidenh.guide.layout;
 
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytAxisBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBox;
+import com.hfstudio.guidenh.guide.document.block.LytCodeBlockToolbar;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
+import com.hfstudio.guidenh.guide.document.block.LytItemGrid;
 import com.hfstudio.guidenh.guide.document.block.LytSizeBox;
+import com.hfstudio.guidenh.guide.document.block.LytSlot;
+import com.hfstudio.guidenh.guide.document.block.LytSlotGrid;
+import com.hfstudio.guidenh.guide.document.block.LytViewportBox;
+import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.Style;
 
 /**
@@ -28,36 +35,59 @@ public final class LayoutStyleExtractor {
         public static final int SIZE_AUTO_HEIGHT = 1 << 5; // force auto height
         public static final int OVERFLOW_HIDDEN = 1 << 6;
         public static final int OVERFLOW_SCROLL = 1 << 7;
+        /** Fall back to the block's current Java-computed bounds when no explicit size is set. */
+        public static final int SIZE_FROM_JAVA_BOUNDS = 1 << 8;
 
         private Flags() {}
     }
 
     private LayoutStyleExtractor() {}
 
+    /** Absolute-position lowering for floated blocks: inset + size in px, relative to the flattened parent. */
+    public record FloatAbs(int insetLeft, int insetTop, int width, int height) {}
+
+    /** Lane pinning for float-adjacent blocks: extra margin-left and explicit width in px. */
+    public record LanePin(int marginLeft, int width) {}
+
+    /**
+     * Per-node style adjustments computed by {@code LayoutTreeSerializer} while
+     * lowering the tree. {@code minHeight} bridges the Java flow height of a
+     * paragraph whose height was extended by a float-clearing break (the break
+     * has no text, so Rust cannot measure the cleared space).
+     */
+    public record NodeAdjustments(int marginT, int marginR, int marginB, int marginL, FloatAbs abs, LanePin lane,
+        float flexGrow, int minHeight) {
+
+        public static final NodeAdjustments ZERO = new NodeAdjustments(0, 0, 0, 0, null, null, 0f, 0);
+    }
+
     /** Build a FlatBuffer Style from a LytBlock node. Extracts all layout-relevant fields. */
     public static int build(FlatBufferBuilder fbb, LytBlock block) {
-        return build(fbb, block, Flags.NONE, 0, 0, 0, 0);
+        return build(fbb, block, Flags.NONE, NodeAdjustments.ZERO);
     }
 
     /** Build with additional flags overriding automatic detection. */
     public static int build(FlatBufferBuilder fbb, LytBlock block, int flags) {
-        return build(fbb, block, flags, 0, 0, 0, 0);
+        return build(fbb, block, flags, NodeAdjustments.ZERO);
     }
 
     /**
      * Build with margin offsets from eliminated ancestor nodes.
      * The offset values are <b>added</b> to the block's own margins.
      */
-    public static int build(FlatBufferBuilder fbb, LytBlock block, int marginOffT, int marginOffR,
-        int marginOffB, int marginOffL) {
-        return build(fbb, block, Flags.NONE, marginOffT, marginOffR, marginOffB, marginOffL);
+    public static int build(FlatBufferBuilder fbb, LytBlock block, int marginOffT, int marginOffR, int marginOffB,
+        int marginOffL) {
+        return build(
+            fbb,
+            block,
+            Flags.NONE,
+            new NodeAdjustments(marginOffT, marginOffR, marginOffB, marginOffL, null, null, 0f, 0));
     }
 
     /**
-     * Build with flags and margin offsets from eliminated ancestor nodes.
+     * Build with flags and per-node adjustments from the serializer's lowering pass.
      */
-    public static int build(FlatBufferBuilder fbb, LytBlock block, int flags,
-        int marginOffT, int marginOffR, int marginOffB, int marginOffL) {
+    public static int build(FlatBufferBuilder fbb, LytBlock block, int flags, NodeAdjustments adj) {
         byte display = getDisplay(block, flags);
         byte flexDir = getFlexDirection(block);
         byte flexWrap = getFlexWrap(block, flags);
@@ -76,6 +106,46 @@ public final class LayoutStyleExtractor {
         int explicitW = block.getExplicitWidth();
         int explicitH = block.getExplicitHeight();
 
+        // ---- compiler lowering: per-class size rules ------------------------
+        // Fixed grids: explicit width so the row-wrap forms exactly N columns.
+        if (block instanceof LytSlotGrid sg && explicitW <= 0) {
+            explicitW = sg.getWidth() * LytSlot.OUTER_SIZE;
+        }
+        // Size boxes with a preferred width reserve exactly that width.
+        if (block instanceof LytSizeBox sb && sb.getPreferredWidth() > 0 && explicitW <= 0) {
+            explicitW = sb.getPreferredWidth();
+        }
+        // Scroll containers clip their content through an inner LytViewportBox
+        // (which declares the viewport height itself), so no container-level
+        // size/overflow rule is needed here.
+
+        if ((flags & Flags.SIZE_FROM_JAVA_BOUNDS) != 0) {
+            // Leaf-serialized blocks have no Rust-measured content; their size
+            // must match the Java-computed flow bounds (available because
+            // serialization runs after the Java layout pass) so Rust reserves
+            // the same box. Flow bounds — not visual getBounds(): floats report
+            // a zero-height flow rect while their content visually overflows.
+            LytRect b = block.getFlowBounds();
+            if (explicitW <= 0 && b != null) explicitW = b.width();
+            if (explicitH <= 0 && b != null) explicitH = b.height();
+        }
+
+        // ---- compiler lowering: float de-sugar ------------------------------
+        // Float-adjacent blocks are pinned to their Java lane: margin-left
+        // displacement + explicit lane width.
+        if (adj.lane() != null && explicitW <= 0) {
+            explicitW = adj.lane()
+                .width();
+        }
+        // Floated blocks become position:absolute with their Java rect as
+        // inset + size (out of flow, zero flow height — exactly CSS float).
+        if (adj.abs() != null) {
+            explicitW = adj.abs()
+                .width();
+            explicitH = adj.abs()
+                .height();
+        }
+
         if (explicitW > 0) {
             sizeWOff = dimPx(fbb, explicitW);
         } else if ((flags & Flags.SIZE_FULL_WIDTH) != 0) {
@@ -90,10 +160,28 @@ public final class LayoutStyleExtractor {
             sizeHOff = dimAuto(fbb);
         }
 
-        float marginL = block.getMarginLeft() + marginOffL;
-        float marginR = block.getMarginRight() + marginOffR;
-        float marginT = block.getMarginTop() + marginOffT;
-        float marginB = block.getMarginBottom() + marginOffB;
+        // Clear-break bridge: reserve the Java flow height of a paragraph whose
+        // height was extended by <br clear="..."/> so following blocks stack
+        // below the float (Rust measures only the text — the break has none).
+        if (adj.minHeight() > 0) {
+            minHOff = dimPx(fbb, adj.minHeight());
+        }
+
+        float marginL = block.getMarginLeft() + adj.marginL();
+        float marginR = block.getMarginRight() + adj.marginR();
+        float marginT = block.getMarginTop() + adj.marginT();
+        float marginB = block.getMarginBottom() + adj.marginB();
+        if (adj.lane() != null) {
+            marginL += adj.lane()
+                .marginLeft();
+        }
+        if (adj.abs() != null) {
+            // Absolutely-positioned (floated) blocks: margins are meaningless.
+            marginL = 0;
+            marginR = 0;
+            marginT = 0;
+            marginB = 0;
+        }
         float padL = 0;
         float padR = 0;
         float padT = 0;
@@ -129,11 +217,13 @@ public final class LayoutStyleExtractor {
 
         byte overflow = getOverflow(block, flags);
 
-        float flexGrow = 0f;
-        float flexShrink = 1f;
+        float flexGrow = adj.flexGrow();
+        // Content inside a scroll viewport keeps its natural height — Taffy
+        // must not shrink it to fit the (shorter) viewport.
+        float flexShrink = block.getParent() instanceof LytViewportBox ? 0f : 1f;
         int flexBasisOff = 0;
 
-        byte float_ = 0;
+        byte float_ = 0; // floats are lowered to absolute positioning, never emitted
         byte clear = 0;
 
         byte position = 0;
@@ -141,6 +231,17 @@ public final class LayoutStyleExtractor {
         int insetROff = 0;
         int insetBOff = 0;
         int insetLOff = 0;
+        if (adj.abs() != null) {
+            position = 1; // Absolute
+            insetLOff = dimPx(
+                fbb,
+                adj.abs()
+                    .insetLeft());
+            insetTOff = dimPx(
+                fbb,
+                adj.abs()
+                    .insetTop());
+        }
 
         return Style.createStyle(
             fbb,
@@ -209,7 +310,7 @@ public final class LayoutStyleExtractor {
      * accessible from this package, so we use reflection as the least-invasive
      * bridge. Revisit if a public getter is added to LytBox in the future.
      */
-    private static int readLytBoxPadding(LytBox box, String fieldName) {
+    static int readLytBoxPadding(LytBox box, String fieldName) {
         try {
             var field = LytBox.class.getDeclaredField(fieldName);
             field.setAccessible(true);
@@ -230,26 +331,33 @@ public final class LayoutStyleExtractor {
 
     private static byte getFlexDirection(LytBlock block) {
         if (block instanceof LytHBox) return 0; // Row
+        // Compiler lowering: grids and horizontal composites become row containers.
+        if (block instanceof LytSlotGrid || block instanceof LytItemGrid) return 0;
+        if (block instanceof LytStandardRecipeBox) return 0;
+        if (block instanceof LytCodeBlockToolbar) return 0;
+        // Table rows are real Row containers (cells keep pinned column widths).
+        if (block instanceof com.hfstudio.guidenh.guide.document.block.table.LytTableRow) return 0;
         return 1; // Column (VBox, default)
     }
 
     private static byte getFlexWrap(LytBlock block, int flags) {
-        // HBox wrap detection deferred until LytHBox resolves
+        if (block instanceof LytHBox hb && hb.isWrap()) return 1; // Wrap
+        // Grids lower to wrapping rows: N per line, then wrap.
+        if (block instanceof LytSlotGrid || block instanceof LytItemGrid) return 1;
         return 0; // NoWrap
     }
 
     private static byte getAlignItems(LytBlock block) {
-        if (block instanceof LytAxisBox ax) {
-            // Phase 1: enum mapping deferred — alignItems value resolution
-            // depends on the actual LytAxisBox.AlignItems enum which may vary.
-            return 0;
-        }
-        return 0;
+        if (block instanceof LytCodeBlockToolbar) return 1; // Center (label + icon buttons)
+        // CSS default is stretch: block-level children fill the cross axis.
+        return 3; // Stretch
     }
 
     private static byte getAlignSelf(LytBlock block, int flags) {
         // fullWidth → Stretch
         if ((flags & Flags.SIZE_FULL_WIDTH) != 0 || block.isFullWidth()) return 4;
+        // Item grids wrap by available width — stretch so the wrap engages.
+        if (block instanceof LytItemGrid) return 4;
         return 0; // Auto
     }
 

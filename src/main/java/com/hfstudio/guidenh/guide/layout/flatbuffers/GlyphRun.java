@@ -10,6 +10,11 @@ import com.google.flatbuffers.Constants;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Table;
 
+/**
+ * One glyph run of a paragraph, grouped by span: `argb` tints the (white)
+ * atlas bitmaps, `shear` asks the engine for a synthetic-italic slant.
+ * Default values keep legacy single-style runs white and unslanted.
+ */
 @SuppressWarnings("unused")
 public final class GlyphRun extends Table {
 
@@ -40,23 +45,18 @@ public final class GlyphRun extends Table {
         return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
     }
 
-    public int fontAtlasId() {
-        int o = __offset(6);
-        return o != 0 ? bb.getInt(o + bb_pos) : 0;
-    }
-
     public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph glyphs(int j) {
         return glyphs(new com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph(), j);
     }
 
     public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph glyphs(
         com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph obj, int j) {
-        int o = __offset(8);
+        int o = __offset(6);
         return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
     }
 
     public int glyphsLength() {
-        int o = __offset(8);
+        int o = __offset(6);
         return o != 0 ? __vector_len(o) : 0;
     }
 
@@ -66,32 +66,40 @@ public final class GlyphRun extends Table {
 
     public com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector glyphsVector(
         com.hfstudio.guidenh.guide.layout.flatbuffers.PlacedGlyph.Vector obj) {
-        int o = __offset(8);
+        int o = __offset(6);
         return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
     }
 
-    public static int createGlyphRun(FlatBufferBuilder builder, long nodeIndex, int fontAtlasId, int glyphsOffset) {
-        builder.startTable(3);
+    public long argb() {
+        int o = __offset(8);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 4294967295L;
+    }
+
+    public boolean shear() {
+        int o = __offset(10);
+        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+    }
+
+    public static int createGlyphRun(FlatBufferBuilder builder, long nodeIndex, int glyphsOffset, long argb,
+        boolean shear) {
+        builder.startTable(4);
+        GlyphRun.addArgb(builder, argb);
         GlyphRun.addGlyphs(builder, glyphsOffset);
-        GlyphRun.addFontAtlasId(builder, fontAtlasId);
         GlyphRun.addNodeIndex(builder, nodeIndex);
+        GlyphRun.addShear(builder, shear);
         return GlyphRun.endGlyphRun(builder);
     }
 
     public static void startGlyphRun(FlatBufferBuilder builder) {
-        builder.startTable(3);
+        builder.startTable(4);
     }
 
     public static void addNodeIndex(FlatBufferBuilder builder, long nodeIndex) {
         builder.addInt(0, (int) nodeIndex, (int) 0L);
     }
 
-    public static void addFontAtlasId(FlatBufferBuilder builder, int fontAtlasId) {
-        builder.addInt(1, fontAtlasId, 0);
-    }
-
     public static void addGlyphs(FlatBufferBuilder builder, int glyphsOffset) {
-        builder.addOffset(2, glyphsOffset, 0);
+        builder.addOffset(1, glyphsOffset, 0);
     }
 
     public static int createGlyphsVector(FlatBufferBuilder builder, int[] data) {
@@ -102,6 +110,14 @@ public final class GlyphRun extends Table {
 
     public static void startGlyphsVector(FlatBufferBuilder builder, int numElems) {
         builder.startVector(4, numElems, 4);
+    }
+
+    public static void addArgb(FlatBufferBuilder builder, long argb) {
+        builder.addInt(2, (int) argb, (int) 4294967295L);
+    }
+
+    public static void addShear(FlatBufferBuilder builder, boolean shear) {
+        builder.addBoolean(3, shear, false);
     }
 
     public static int endGlyphRun(FlatBufferBuilder builder) {

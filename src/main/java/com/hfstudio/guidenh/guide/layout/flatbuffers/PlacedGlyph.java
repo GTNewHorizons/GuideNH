@@ -10,6 +10,12 @@ import com.google.flatbuffers.Constants;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Table;
 
+/**
+ * A glyph quad in absolute document coordinates (top-left origin).
+ * w/h are the bitmap dimensions divided by render_scale (i.e. document units).
+ * start/end are the glyph's byte range in the source text (for band-split
+ * computations; 0 when not meaningful).
+ */
 @SuppressWarnings("unused")
 public final class PlacedGlyph extends Table {
 
@@ -35,9 +41,9 @@ public final class PlacedGlyph extends Table {
         return this;
     }
 
-    public long glyphId() {
+    public long bitmapKey() {
         int o = __offset(4);
-        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+        return o != 0 ? bb.getLong(o + bb_pos) : 0L;
     }
 
     public float x() {
@@ -60,22 +66,41 @@ public final class PlacedGlyph extends Table {
         return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
     }
 
-    public static int createPlacedGlyph(FlatBufferBuilder builder, long glyphId, float x, float y, float w, float h) {
-        builder.startTable(5);
+    public long start() {
+        int o = __offset(14);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+    }
+
+    public long end() {
+        int o = __offset(16);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+    }
+
+    public long lineIndex() {
+        int o = __offset(18);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+    }
+
+    public static int createPlacedGlyph(FlatBufferBuilder builder, long bitmapKey, float x, float y, float w, float h,
+        long start, long end, long lineIndex) {
+        builder.startTable(8);
+        PlacedGlyph.addBitmapKey(builder, bitmapKey);
+        PlacedGlyph.addLineIndex(builder, lineIndex);
+        PlacedGlyph.addEnd(builder, end);
+        PlacedGlyph.addStart(builder, start);
         PlacedGlyph.addH(builder, h);
         PlacedGlyph.addW(builder, w);
         PlacedGlyph.addY(builder, y);
         PlacedGlyph.addX(builder, x);
-        PlacedGlyph.addGlyphId(builder, glyphId);
         return PlacedGlyph.endPlacedGlyph(builder);
     }
 
     public static void startPlacedGlyph(FlatBufferBuilder builder) {
-        builder.startTable(5);
+        builder.startTable(8);
     }
 
-    public static void addGlyphId(FlatBufferBuilder builder, long glyphId) {
-        builder.addInt(0, (int) glyphId, (int) 0L);
+    public static void addBitmapKey(FlatBufferBuilder builder, long bitmapKey) {
+        builder.addLong(0, bitmapKey, 0L);
     }
 
     public static void addX(FlatBufferBuilder builder, float x) {
@@ -92,6 +117,18 @@ public final class PlacedGlyph extends Table {
 
     public static void addH(FlatBufferBuilder builder, float h) {
         builder.addFloat(4, h, 0.0f);
+    }
+
+    public static void addStart(FlatBufferBuilder builder, long start) {
+        builder.addInt(5, (int) start, (int) 0L);
+    }
+
+    public static void addEnd(FlatBufferBuilder builder, long end) {
+        builder.addInt(6, (int) end, (int) 0L);
+    }
+
+    public static void addLineIndex(FlatBufferBuilder builder, long lineIndex) {
+        builder.addInt(7, (int) lineIndex, (int) 0L);
     }
 
     public static int endPlacedGlyph(FlatBufferBuilder builder) {

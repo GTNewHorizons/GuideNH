@@ -1,15 +1,16 @@
 package com.hfstudio.guidenh.guide.render;
 
-import java.util.List;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Interface for text nodes that hold glyph data from Rust cosmic-text shaping.
  */
 public interface GlyphRunHolder {
 
-    /** Set the glyph run from measureLayout result. */
-    void setGlyphRun(List<GuideRenderPrimitive.PlacedGlyph> glyphs);
+    /** Set the glyph data from the measureLayout result (null to clear). */
+    void setGlyphData(@Nullable GlyphRunData data);
 
-    /** Get the glyph run, or null if not yet measured. */
-    List<GuideRenderPrimitive.PlacedGlyph> getGlyphRun();
+    /** Get the glyph data, or null if not yet measured / opaque. */
+    @Nullable
+    GlyphRunData getGlyphData();
 }

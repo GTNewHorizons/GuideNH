@@ -65,20 +65,45 @@ public final class TextStyle extends Table {
         return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
     }
 
+    public boolean underline() {
+        int o = __offset(16);
+        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+    }
+
+    public boolean strikethrough() {
+        int o = __offset(18);
+        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+    }
+
+    public long highlightArgb() {
+        int o = __offset(20);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+    }
+
+    public boolean inlineCode() {
+        int o = __offset(22);
+        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+    }
+
     public static int createTextStyle(FlatBufferBuilder builder, float fontSize, boolean bold, boolean italic,
-        float fontScale, long color, long font) {
-        builder.startTable(6);
+        float fontScale, long color, long font, boolean underline, boolean strikethrough, long highlightArgb,
+        boolean inlineCode) {
+        builder.startTable(10);
+        TextStyle.addHighlightArgb(builder, highlightArgb);
         TextStyle.addFont(builder, font);
         TextStyle.addColor(builder, color);
         TextStyle.addFontScale(builder, fontScale);
         TextStyle.addFontSize(builder, fontSize);
+        TextStyle.addInlineCode(builder, inlineCode);
+        TextStyle.addStrikethrough(builder, strikethrough);
+        TextStyle.addUnderline(builder, underline);
         TextStyle.addItalic(builder, italic);
         TextStyle.addBold(builder, bold);
         return TextStyle.endTextStyle(builder);
     }
 
     public static void startTextStyle(FlatBufferBuilder builder) {
-        builder.startTable(6);
+        builder.startTable(10);
     }
 
     public static void addFontSize(FlatBufferBuilder builder, float fontSize) {
@@ -103,6 +128,22 @@ public final class TextStyle extends Table {
 
     public static void addFont(FlatBufferBuilder builder, long font) {
         builder.addInt(5, (int) font, (int) 0L);
+    }
+
+    public static void addUnderline(FlatBufferBuilder builder, boolean underline) {
+        builder.addBoolean(6, underline, false);
+    }
+
+    public static void addStrikethrough(FlatBufferBuilder builder, boolean strikethrough) {
+        builder.addBoolean(7, strikethrough, false);
+    }
+
+    public static void addHighlightArgb(FlatBufferBuilder builder, long highlightArgb) {
+        builder.addInt(8, (int) highlightArgb, (int) 0L);
+    }
+
+    public static void addInlineCode(FlatBufferBuilder builder, boolean inlineCode) {
+        builder.addBoolean(9, inlineCode, false);
     }
 
     public static int endTextStyle(FlatBufferBuilder builder) {

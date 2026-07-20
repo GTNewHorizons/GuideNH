@@ -51,6 +51,11 @@ public class LayoutContext implements FontMetrics {
         cachedRightFloatLeftEdge = Integer.MAX_VALUE;
     }
 
+    /** Whether any floats are currently registered (left or right). */
+    public boolean hasActiveFloats() {
+        return !leftFloats.isEmpty() || !rightFloats.isEmpty();
+    }
+
     public OptionalInt getLeftFloatRightEdge() {
         if (leftFloats.isEmpty()) {
             return OptionalInt.empty();

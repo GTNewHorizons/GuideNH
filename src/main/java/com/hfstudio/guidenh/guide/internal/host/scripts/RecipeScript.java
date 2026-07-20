@@ -233,6 +233,8 @@ public class RecipeScript implements LytScript {
         if (boxes.size() == 1) return boxes.getFirst();
         var row = new LytHBox();
         row.setGap(RecipeCompiler.MULTI_GAP);
+        // Full width so the Rust flex row wraps at the parent's content edge.
+        row.setFullWidth(true);
         for (var b : boxes) row.append(b);
         return row;
     }

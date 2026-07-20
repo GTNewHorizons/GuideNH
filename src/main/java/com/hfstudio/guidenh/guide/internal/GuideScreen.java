@@ -132,7 +132,7 @@ import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeScreen;
 import com.hfstudio.guidenh.guide.layout.FontProvider;
 import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
-import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
+import com.hfstudio.guidenh.guide.layout.RustFontMetrics;
 import com.hfstudio.guidenh.guide.layout.SystemFontProvider;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
@@ -271,7 +271,7 @@ public class GuideScreen extends GuiContainer
     private final GuideScreenHomeHistory homeHistory = GuideScreenHomeHistory.shared();
     private final HomePageDataBuilder homePageDataBuilder = new HomePageDataBuilder();
     private final HomePageController homePageController = new HomePageController();
-    private final MinecraftFontMetrics layoutFontMetrics = new MinecraftFontMetrics();
+    private final RustFontMetrics layoutFontMetrics = new RustFontMetrics();
     private final CodeBlockClipboardService codeBlockClipboardService = new CodeBlockClipboardService();
     private final GuideDebugOverlay debugOverlay = new GuideDebugOverlay();
     private final GuideScreenScrollbarOutline scrollbarOutline = new GuideScreenScrollbarOutline();
@@ -2598,7 +2598,8 @@ public class GuideScreen extends GuiContainer
             byte[] fontData = fontProvider.getFontData("zh_CN");
             GuideDebugLog.warnAlways(
                 "GuideScreen: initializing Rust font system from {} ({} bytes)",
-                fontProvider.getFontPath(), fontData.length);
+                fontProvider.getFontPath(),
+                fontData.length);
             LayoutBridge.setFontHandle(LayoutBridge.init(fontData, "zh_CN"));
         }
 
@@ -3162,26 +3163,17 @@ public class GuideScreen extends GuiContainer
         cachedPreviewScissor = cachedRect(cachedPreviewScissor, x, y, renderWidth, renderHeight);
         reusableRenderCtx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
         reusableRenderCtx.setViewport(cachedPreviewViewport);
+        reusableRenderCtx.setScreenViewport(cachedPreviewScissor);
         reusableRenderCtx.setScreenHeight(this.height);
         reusableRenderCtx.setDocumentOrigin(x, y);
         reusableRenderCtx.setScrollOffsetY(guideEditorPreviewScrollY);
         reusableRenderCtx.setZoom(1.0f);
-        reusableRenderCtx.pushScissor(cachedPreviewScissor);
-        GL11.glPushMatrix();
-        GL11.glTranslatef(x, y, 0f);
-        GL11.glTranslatef(0f, -(float) guideEditorPreviewScrollY, 0f);
+        // No GL matrix or context scissor here: the primitive pipeline's render
+        // engine owns the document->screen transform and the viewport clip.
         try {
             previewDocument.render(reusableRenderCtx);
         } catch (Throwable t) {
             GuideDebugLog.warnAlways("Failed to render guide editor preview", t);
-        } finally {
-            GL11.glPopMatrix();
-            reusableRenderCtx.restoreExternalRenderState();
-            reusableRenderCtx.popScissor();
-            reusableRenderCtx.restoreExternalRenderState();
-            GL11.glDisable(GL11.GL_SCISSOR_TEST);
-            GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
         }
         drawGuideEditorPreviewScrollbar(
             x + renderWidth - SCROLLBAR_W,
@@ -4475,27 +4467,19 @@ public class GuideScreen extends GuiContainer
         cachedViewportRect = cachedRect(cachedViewportRect, 0, viewportTopInDocument, contentW, documentH);
         cachedScissorRect = cachedRect(cachedScissorRect, contentX, documentY, contentW, documentH);
         ctx.setViewport(cachedViewportRect);
+        ctx.setScreenViewport(cachedScissorRect);
         ctx.setScreenHeight(this.height);
         int documentRenderY = getDocumentViewportY() + documentRenderOffsetY;
         ctx.setDocumentOrigin(contentX, documentRenderY);
         ctx.setScrollOffsetY(renderedScrollY);
         ctx.setPreciseScrollOffsetY(visualScrollY);
         ctx.setZoom(currentZoom);
-        ctx.pushScissor(cachedScissorRect);
-        GL11.glPushMatrix();
-        GL11.glTranslatef(contentX, documentRenderY, 0f);
-        if (currentZoom != 1.0f) {
-            GL11.glScalef(currentZoom, currentZoom, 1f);
-        }
-        GL11.glTranslatef(0f, -visualScrollY, 0f);
+        // No GL matrix or context scissor here: the primitive pipeline's render
+        // engine owns the document->screen transform and the viewport clip.
         try {
             activeDocument.render(ctx);
         } catch (Throwable t) {
             GuideDebugLog.error("Error rendering guide document {}", currentAnchor.pageId(), t);
-        } finally {
-            GL11.glPopMatrix();
-            ctx.restoreExternalRenderState();
-            ctx.popScissor();
         }
     }
 

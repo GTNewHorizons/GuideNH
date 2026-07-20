@@ -6,7 +6,9 @@ import java.util.List;
 import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 import lombok.Getter;
@@ -61,7 +63,7 @@ public class LytScatterChart extends LytChartBase {
     }
 
     @Override
-    protected void renderChart(RenderContext context, LytRect plotRect) {
+    protected void renderChart(PrimitiveCollector c, LytRect plotRect) {
         if (series.isEmpty()) return;
         double xMin = Double.POSITIVE_INFINITY;
         double xMax = Double.NEGATIVE_INFINITY;
@@ -90,16 +92,15 @@ public class LytScatterChart extends LytChartBase {
         xRangeCache = xRange;
         yRangeCache = yRange;
 
-        int[] insets = CartesianChartRenderer
-            .computeAxisInsets(context, xAxis, yAxis, xRange, yRange, null, true, true);
+        int[] insets = CartesianChartRenderer.computeAxisInsets(xAxis, yAxis, xRange, yRange, null, true, true);
         LytRect inner = plotRect.shrink(insets[0], insets[1], insets[2], insets[3]);
         plotCache = inner;
         if (inner.width() <= 4 || inner.height() <= 4) return;
 
-        CartesianChartRenderer.drawAxes(context, inner, xAxis, yAxis, xRange, yRange, null, true);
+        CartesianChartRenderer.drawAxes(c, inner, xAxis, yAxis, xRange, yRange, null, true);
 
         ResolvedTextStyle valueStyle = textStyle(getLabelColor());
-        int lh = context.getLineHeight(valueStyle);
+        int lh = GuideText.lineHeight(valueStyle);
         int hoveredSeries = decodeSeries(hoveredKey);
         int hoveredPoint = decodePoint(hoveredKey);
         for (int si = 0; si < series.size(); si++) {
@@ -111,13 +112,13 @@ public class LytScatterChart extends LytChartBase {
                 boolean hovered = hoveredKey >= 0 && hoveredSeries == si && hoveredPoint == i;
                 float r = hovered ? POINT_RADIUS + 2f : POINT_RADIUS;
                 int color = hovered ? brighten(s.getColor()) : s.getColor();
-                context.fillCircle(x, y, r, color);
+                c.emit(new GuideRenderPrimitive.DrawCircle(x, y, r, color, true));
                 if (hovered) {
-                    context.drawCircleOutline(x, y, r, 1f, 0xFF000000);
+                    c.emit(new GuideRenderPrimitive.DrawCircleOutline(x, y, r, 1f, 0xFF000000));
                 }
                 if (getLabelPosition() != ChartLabelPosition.NONE) {
                     String text = "(" + formatValue(s.getXs()[i]) + "," + formatValue(s.getYs()[i]) + ")";
-                    int tw = context.getStringWidth(text, valueStyle);
+                    int tw = GuideText.measureWidth(text, valueStyle);
                     int tx = (int) x - tw / 2;
                     int ty;
                     switch (getLabelPosition()) {
@@ -131,7 +132,7 @@ public class LytScatterChart extends LytChartBase {
                         default:
                             continue;
                     }
-                    context.drawText(text, tx, ty, valueStyle);
+                    GuideText.emitText(c, text, tx, ty, valueStyle);
                 }
             }
         }

@@ -10,6 +10,8 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBox;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
@@ -75,6 +77,14 @@ public class LytGenericRecipeBox extends LytBox {
         int w = Math.max(maxX - x, 1);
         int h = Math.max(maxY - y, topOffset);
         return new LytRect(x, y, w, h);
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        super.computePrimitives(c);
+        if (hasTitle()) {
+            GuideText.emitText(c, title, bounds.x(), bounds.y(), DefaultStyles.BASE_STYLE);
+        }
     }
 
     @Override

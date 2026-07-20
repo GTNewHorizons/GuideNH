@@ -9,6 +9,8 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.latex.GuideLatexRenderer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -51,11 +53,20 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
     private final int offsetY;
 
     /** Formula display width in GUI pixels, recomputed each layout pass. */
+    @Getter
     private int formulaDisplayW;
     /** Formula display height in GUI pixels, recomputed each layout pass. */
+    @Getter
     private int formulaDisplayH;
     /** Vertical pixel offset inside the layout bounds, recomputed each layout pass. */
     private int renderYOffset;
+    /**
+     * Distance from the formula's top to the text baseline it aligns with, in GUI
+     * pixels. Recomputed each layout pass; consumed by the Rust inline post-pass,
+     * which anchors the block's top this far above the placeholder's baseline.
+     */
+    @Getter
+    private float baselineAscent;
     private boolean sourceMetricsResolved;
     private int sourceWidthPx;
     private int sourceHeightPx;
@@ -116,6 +127,11 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         int topInset = Math.max(0, -desiredRenderYOffset);
         int bottomInset = Math.max(0, desiredRenderYOffset);
         renderYOffset = desiredRenderYOffset + topInset;
+        // Ascent above the text baseline, in the same units the Rust inline
+        // post-pass anchors with: for BASELINE this is exactly the formula's
+        // math ascent (displayH - depth); the algebra also covers TOP/CENTER/
+        // BOTTOM via their align offsets.
+        baselineAscent = lineHeight - desiredRenderYOffset;
 
         return new LytRect(x, y - topInset, formulaDisplayW, topInset + formulaDisplayH + bottomInset);
     }
@@ -146,6 +162,47 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {}
+
+    /**
+     * External (Rust) layout anchors the block's bounds at the formula's visual
+     * box — the legacy line-expansion insets and render offset no longer apply.
+     * Zero the offset so the primitive blit and {@link #getVisualBounds()} use
+     * the bounds origin from now on (the legacy layout path recomputes it on
+     * the next Java pass before it is needed again).
+     */
+    @Override
+    protected void afterExternalLayout() {
+        renderYOffset = 0;
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        if (formulaDisplayW <= 0 || formulaDisplayH <= 0) {
+            return;
+        }
+
+        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
+        if (tex == null) {
+            return;
+        }
+
+        c.emit(
+            new GuideRenderPrimitive.BlitTexture(
+                tex[0],
+                bounds.x() + offsetX,
+                bounds.y() + renderYOffset,
+                formulaDisplayW,
+                formulaDisplayH,
+                0f,
+                0f,
+                1f,
+                1f));
+    }
 
     @Override
     public void render(RenderContext context) {

@@ -15,6 +15,9 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
@@ -149,9 +152,30 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     protected void onLayoutMoved(int deltaX, int deltaY) {}
 
     @Override
-    public final void render(RenderContext context) {
-        context.fillRect(bounds, backgroundColor);
-        context.drawBorder(bounds, borderColor, 1);
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public final void computePrimitives(PrimitiveCollector c) {
+        c.emit(
+            new GuideRenderPrimitive.FillRect(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                backgroundColor));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                1,
+                1,
+                1,
+                1,
+                borderColor));
 
         ResolvedTextStyle textStyle = textStyle(0xFFFFFFFF);
         int contentTop = bounds.y() + PADDING;
@@ -161,16 +185,16 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
 
         if (title != null && !title.isEmpty()) {
             ResolvedTextStyle titleStyle = textStyle(titleColor);
-            int titleWidth = context.getStringWidth(title, titleStyle);
+            int titleWidth = GuideText.measureWidth(title, titleStyle);
             int titleX = bounds.x() + (bounds.width() - titleWidth) / 2;
-            context.drawText(title, titleX, contentTop, titleStyle);
-            contentTop += context.getLineHeight(titleStyle) + TITLE_GAP;
+            GuideText.emitText(c, title, titleX, contentTop, titleStyle);
+            contentTop += GuideText.lineHeight(titleStyle) + TITLE_GAP;
         }
 
         // Compute legend area.
         List<ChartLegendRenderer.LegendEntry> legend = collectLegendEntries();
         ChartLegendRenderer.Layout legendLayout = ChartLegendRenderer
-            .computeLayout(context, legend, legendPosition, contentLeft, contentTop, contentRight, contentBottom);
+            .computeLayout(legend, legendPosition, contentLeft, contentTop, contentRight, contentBottom);
 
         int plotLeft = legendLayout.plotLeft;
         int plotTop = legendLayout.plotTop;
@@ -181,23 +205,30 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         }
         LytRect plotRect = new LytRect(plotLeft, plotTop, plotRight - plotLeft, plotBottom - plotTop);
 
-        renderChart(context, plotRect);
-        CornerLegendRenderer.render(
-            context,
+        renderChart(c, plotRect);
+        CornerLegendRenderer.emit(
+            c,
             plotRect,
             collectCornerLegendEntries(),
             cornerLegendPosition,
             cornerLegendWidth,
             cornerLegendHeight,
             cornerLegendBackgroundColor);
-        ChartLegendRenderer.render(context, legendLayout, textStyle);
+        ChartLegendRenderer.emit(c, legendLayout, textStyle);
     }
+
+    /**
+     * Migrated to {@link #computePrimitives}; the legacy path is unreachable
+     * (the collector only invokes it when {@link #usePrimitives()} is false).
+     */
+    @Override
+    public final void render(RenderContext context) {}
 
     /**
      * Subclasses implement the chart-specific drawing; {@code plotRect} has already excluded the space
      * occupied by the title and legend.
      */
-    protected abstract void renderChart(RenderContext context, LytRect plotRect);
+    protected abstract void renderChart(PrimitiveCollector c, LytRect plotRect);
 
     /**
      * Collect legend entries; empty by default. Subclasses override as needed.

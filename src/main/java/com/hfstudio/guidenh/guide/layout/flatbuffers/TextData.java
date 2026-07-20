@@ -63,8 +63,87 @@ public final class TextData extends Table {
         return o != 0 ? bb.get(o + bb_pos) : 0;
     }
 
-    public static int createTextData(FlatBufferBuilder builder, int textOffset, int styleOffset, byte whiteSpace) {
-        builder.startTable(3);
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef inlineBlocks(int j) {
+        return inlineBlocks(new com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef(), j);
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef inlineBlocks(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef obj, int j) {
+        int o = __offset(10);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int inlineBlocksLength() {
+        int o = __offset(10);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef.Vector inlineBlocksVector() {
+        return inlineBlocksVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef.Vector());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef.Vector inlineBlocksVector(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef.Vector obj) {
+        int o = __offset(10);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand bands(int j) {
+        return bands(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand(), j);
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand bands(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand obj, int j) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int bandsLength() {
+        int o = __offset(12);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand.Vector bandsVector() {
+        return bandsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand.Vector());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand.Vector bandsVector(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand.Vector obj) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan spans(int j) {
+        return spans(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan(), j);
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan spans(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan obj, int j) {
+        int o = __offset(14);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int spansLength() {
+        int o = __offset(14);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan.Vector spansVector() {
+        return spansVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan.Vector());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan.Vector spansVector(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan.Vector obj) {
+        int o = __offset(14);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public static int createTextData(FlatBufferBuilder builder, int textOffset, int styleOffset, byte whiteSpace,
+        int inlineBlocksOffset, int bandsOffset, int spansOffset) {
+        builder.startTable(6);
+        TextData.addSpans(builder, spansOffset);
+        TextData.addBands(builder, bandsOffset);
+        TextData.addInlineBlocks(builder, inlineBlocksOffset);
         TextData.addStyle(builder, styleOffset);
         TextData.addText(builder, textOffset);
         TextData.addWhiteSpace(builder, whiteSpace);
@@ -72,7 +151,7 @@ public final class TextData extends Table {
     }
 
     public static void startTextData(FlatBufferBuilder builder) {
-        builder.startTable(3);
+        builder.startTable(6);
     }
 
     public static void addText(FlatBufferBuilder builder, int textOffset) {
@@ -85,6 +164,48 @@ public final class TextData extends Table {
 
     public static void addWhiteSpace(FlatBufferBuilder builder, byte whiteSpace) {
         builder.addByte(2, whiteSpace, 0);
+    }
+
+    public static void addInlineBlocks(FlatBufferBuilder builder, int inlineBlocksOffset) {
+        builder.addOffset(3, inlineBlocksOffset, 0);
+    }
+
+    public static int createInlineBlocksVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startInlineBlocksVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addBands(FlatBufferBuilder builder, int bandsOffset) {
+        builder.addOffset(4, bandsOffset, 0);
+    }
+
+    public static int createBandsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startBandsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addSpans(FlatBufferBuilder builder, int spansOffset) {
+        builder.addOffset(5, spansOffset, 0);
+    }
+
+    public static int createSpansVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startSpansVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
     }
 
     public static int endTextData(FlatBufferBuilder builder) {
