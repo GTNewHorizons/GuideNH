@@ -307,8 +307,15 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
             .set_layout_max_advance(req.max_width.max(1.0));
         while !breaker.is_done() {
             let y = breaker.committed_y() as f32;
-            let (x, w) = clip_query(y + est_h * 0.5, est_h, req.max_width, req.clips);
-            breaker.state_mut().set_line_x(x);
+            // NOTE: no set_line_x here — under Justify, parley bakes line_x
+            // into the glyph pens (the line fills [line_x, line_x+advance]),
+            // which would double-apply the indent: collect_layout already
+            // shifts every line by the clip's x0 once. The breaker only needs
+            // the per-line WIDTH; the horizontal placement is applied at
+            // collect time. The query uses the line TOP so a line that merely
+            // straddles a clip's boundary is still clipped (CSS: any overlap
+            // between the line box and the float's span narrows the line).
+            let (_, w) = clip_query(y, est_h, req.max_width, req.clips);
             breaker.state_mut().set_line_max_advance(w);
             if breaker.break_next().is_none() {
                 break;
@@ -335,8 +342,10 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
 }
 
 /// Collect positioned glyphs + inline markers from a laid-out paragraph,
-/// applying per-line clip x offsets (parley's set_line_x only steers the
-/// breaker/justify frame — it does not shift output glyphs).
+/// applying per-line clip x offsets. The left-float indent lives ONLY here:
+/// the breaker sets just the per-line width — under Justify, parley bakes a
+/// set_line_x origin into the glyph pens (line fills [line_x, line_x+adv]),
+/// so setting it at break time would shift every left-clipped line twice.
 pub fn collect_layout(
     layout: &Layout<SpanBrush>,
     clips: &[Clip],
@@ -350,8 +359,10 @@ pub fn collect_layout(
         let (x_off, _) = if clips.is_empty() {
             (0.0, max_width)
         } else {
+            // Same query as the breaker: line top + full height (overlap
+            // semantics), so collect and break agree on every line's lane.
             clip_query(
-                m.block_min_coord + m.line_height * 0.5,
+                m.block_min_coord,
                 m.line_height,
                 max_width,
                 clips,

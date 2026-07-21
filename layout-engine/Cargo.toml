@@ -6,14 +6,8 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
-[[bin]]
-name = "cosmic-render"
-path = "src/bin/cosmic_render.rs"
-required-features = ["window-test"]
-
 [features]
 default = []
-window-test = ["minifb"]
 
 [dependencies]
 # JNI bridge
@@ -22,10 +16,7 @@ jni = "0.21"
 # Layout engine
 taffy = { version = "0.12", features = ["flexbox", "grid", "block_layout", "float_layout"] }
 
-# Text shaping & rasterization
-cosmic-text = "0.19"
-
-# Line-box text layout (per-line geometry control) — migration target
+# Line-box text layout (per-line geometry control)
 parley = { version = "0.11", features = ["complex-scripts"] }
 
 # Rasterization
@@ -33,12 +24,6 @@ swash = "0.2"
 
 # Serialization
 flatbuffers = "24"
-
-# Test window
-minifb = { version = "0.25", optional = true }
-
-# Minecraft formatting code parsing
-# (custom module, no external dependency needed)
 
 [build-dependencies]
 flatc = "0.2"
