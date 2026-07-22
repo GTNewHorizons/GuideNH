@@ -159,7 +159,7 @@ pub fn compute_layout(
                         .collect()
                 })
                 .unwrap_or_default();
-            let sz = measure_text(
+            let (sz, clear_floor) = measure_text(
                 font_system,
                 &flat_nodes,
                 idx,
@@ -174,6 +174,16 @@ pub fn compute_layout(
             abs_positions[idx] = (para_x, para_abs_y);
             sizes[idx] = (sz.width, sz.height);
             cursor += sz.height + mt + mb;
+            // A trailing in-paragraph clear does not stretch this paragraph's
+            // box; it pushes the flow that follows it below the cleared float.
+            // Advance the cursor to that floor so the next block (a callout)
+            // starts below the float while this paragraph hugs its text.
+            if let Some(f) = clear_floor {
+                let f_rel = (f - content_y).max(0.0);
+                if f_rel > cursor {
+                    cursor = f_rel;
+                }
+            }
             continue;
         }
 
@@ -728,7 +738,7 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
         .next()
         .map(|l| l.metrics().baseline - l.metrics().block_min_coord)
         .unwrap_or(scaled);
-    let (glyphs, _markers, max_x, _content_height) =
+    let (glyphs, _markers, max_x, _content_height, _clear_floor) =
         crate::parley_text::collect_layout(&layout, &[], 0.0, 0.0, max_w.unwrap_or(f32::MAX), &[]);
     let (quads, bitmaps) = crate::parley_text::rasterize_out_glyphs(&glyphs, render_scale);
 

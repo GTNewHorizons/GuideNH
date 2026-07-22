@@ -244,6 +244,14 @@ pub struct ParleyShaped {
     pub markers: Vec<crate::measure::InlineMarker>,
     pub content_height: f32,
     pub max_x: f32,
+    /// Absolute document y that the flow AFTER this paragraph must not rise
+    /// above, when the paragraph ends with a `<br clear>` whose drop no later
+    /// line inside the paragraph can carry (the common, trailing form). The
+    /// paragraph's own `content_height` is NOT inflated by it — the pusher
+    /// advances its cursor to this floor after the paragraph so the following
+    /// block (e.g. a callout) starts below the cleared float while this
+    /// paragraph's box still hugs its text. `None` when no such clear applies.
+    pub clear_floor: Option<f32>,
 }
 
 /// Shape one paragraph: spans → ranged styles, inline blocks → InlineBox,
@@ -353,7 +361,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         AlignmentOptions::default(),
     );
 
-    let (glyphs, markers, max_x, content_height) = collect_layout(
+    let (glyphs, markers, max_x, content_height, clear_floor) = collect_layout(
         &layout,
         req.floats,
         req.para_abs_y,
@@ -366,6 +374,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         markers,
         content_height,
         max_x,
+        clear_floor,
     }
 }
 
@@ -392,7 +401,7 @@ pub fn collect_layout(
     para_x: f32,
     max_width: f32,
     clears: &[(usize, u8)],
-) -> (Vec<OutGlyph>, Vec<crate::measure::InlineMarker>, f32, f32) {
+) -> (Vec<OutGlyph>, Vec<crate::measure::InlineMarker>, f32, f32, Option<f32>) {
     let mut glyphs = Vec::new();
     let mut markers: Vec<(u64, crate::measure::InlineMarker)> = Vec::new();
     let mut max_x = 0.0f32;
@@ -471,12 +480,14 @@ pub fn collect_layout(
             next_clear += 1;
         }
     }
-    // A trailing clear (break after the last line's text, the common form) has
-    // no following line to carry its drop, so extend the content height to the
-    // cleared floats' bottom edge directly.
-    if let Some(f) = clear_floor {
-        content_h = content_h.max(f - para_abs_y);
-    }
+    // A trailing clear (break after the last line's text — the only real-world
+    // form) has no following line inside this paragraph to carry its drop, so
+    // its floor is NOT added to this paragraph's height (that would stretch the
+    // box and leave a blank gap, the "callout not hugging" bug). Instead the
+    // floor is returned for the pusher to advance its cursor past it. A mid-
+    // paragraph clear needs no such hand-off: its dropped later lines already
+    // raised content_h via eff_top_abs, so the natural cursor advance already
+    // clears the floor.
     markers.sort_by_key(|(id, _)| *id);
     (
         glyphs,
@@ -486,6 +497,7 @@ pub fn collect_layout(
             .collect(),
         max_x,
         content_h,
+        clear_floor,
     )
 }
 

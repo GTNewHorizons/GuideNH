@@ -94,15 +94,15 @@ pub fn create_measure_closure<'a>(
         };
         let index = ctx.flat_index;
 
-        let measured = match ctx.node_type {
+        let (measured, _clear_floor) = match ctx.node_type {
             1 => measure_text(
                 font_system, flat_nodes, index, glyph_acc, available, justify, &[], 0.0, 0.0, &[],
             ),
-            2 => measure_image(flat_nodes, index),
-            3 => measure_slot(flat_nodes, index),
-            4 => measure_thematic_break(flat_nodes, index, known),
-            8 => measure_latex(flat_nodes, index),
-            _ => Size::ZERO,
+            2 => (measure_image(flat_nodes, index), None),
+            3 => (measure_slot(flat_nodes, index), None),
+            4 => (measure_thematic_break(flat_nodes, index, known), None),
+            8 => (measure_latex(flat_nodes, index), None),
+            _ => (Size::ZERO, None),
         };
         // Explicit style sizes win over content measurement (CSS behavior):
         // Taffy passes them in as known dimensions; honoring them is what lets
@@ -126,11 +126,11 @@ pub(crate) fn measure_text(
     para_abs_y: f32,
     para_x: f32,
     clears: &[(usize, u8)],
-) -> Size<f32> {
+) -> (Size<f32>, Option<f32>) {
     let node = &nodes[idx];
     let td = match node.text() {
         Some(t) => t,
-        None => return Size::ZERO,
+        None => return (Size::ZERO, None),
     };
     let text = td.text().unwrap_or("");
     let style = td.style().unwrap();
@@ -224,10 +224,13 @@ pub(crate) fn measure_text(
         },
     );
 
-    Size {
-        width: shaped.max_x.max(1.0),
-        height: h.max(1.0),
-    }
+    (
+        Size {
+            width: shaped.max_x.max(1.0),
+            height: h.max(1.0),
+        },
+        shaped.clear_floor,
+    )
 }
 
 /// Extra paragraph height from inline blocks, mirroring the legacy per-line
