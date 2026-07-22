@@ -38,6 +38,10 @@ public class LytStandardRecipeBox extends LytBox {
         this.inputs = inputs;
         this.output = new LytSlot(resultStack);
         this.output.setLargeSlot(true);
+        // Reserve the crafting-arrow gap as the output slot's own left margin,
+        // so the flex-row layout (Rust) leaves room for the arrow between the
+        // inputs grid and the output — declared by the block, not the compiler.
+        this.output.setMarginLeft(GAP * 2 + ARROW_W);
         this.shapeless = shapeless;
         append(inputs);
         append(output);

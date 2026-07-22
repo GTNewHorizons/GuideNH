@@ -55,9 +55,9 @@ public final class LayoutStyleExtractor {
      * to position:absolute.
      */
     public record NodeAdjustments(int marginT, int marginR, int marginB, int marginL, FloatAbs abs,
-        float flexGrow, int floatSide, int columnWidth) {
+        int floatSide, int columnWidth) {
 
-        public static final NodeAdjustments ZERO = new NodeAdjustments(0, 0, 0, 0, null, 0f, 0, 0);
+        public static final NodeAdjustments ZERO = new NodeAdjustments(0, 0, 0, 0, null, 0, 0);
     }
 
     /** Build a FlatBuffer Style from a LytBlock node. Extracts all layout-relevant fields. */
@@ -80,7 +80,7 @@ public final class LayoutStyleExtractor {
             fbb,
             block,
             Flags.NONE,
-            new NodeAdjustments(marginOffT, marginOffR, marginOffB, marginOffL, null, 0f, 0, 0));
+            new NodeAdjustments(marginOffT, marginOffR, marginOffB, marginOffL, null, 0, 0));
     }
 
     /**
@@ -217,7 +217,7 @@ public final class LayoutStyleExtractor {
 
         byte overflow = getOverflow(block, flags);
 
-        float flexGrow = adj.flexGrow();
+        float flexGrow = block.getFlexGrow();
         // Content inside a scroll viewport keeps its natural height — Taffy
         // must not shrink it to fit the (shorter) viewport.
         float flexShrink = block.getParent() instanceof LytViewportBox ? 0f : 1f;

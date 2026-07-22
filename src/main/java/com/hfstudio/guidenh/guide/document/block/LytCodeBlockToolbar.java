@@ -68,6 +68,9 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
 
         languageLabel.setMarginTop(0);
         languageLabel.setMarginBottom(0);
+        // The label takes the remaining toolbar width — declared on the block
+        // itself, read directly by the layout compiler (no special case).
+        languageLabel.setFlexGrow(1f);
         languageLabel.modifyStyle(
             style -> style.bold(true)
                 .color(toolbarText));

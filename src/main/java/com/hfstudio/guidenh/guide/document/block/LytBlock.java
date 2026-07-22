@@ -71,6 +71,16 @@ public abstract class LytBlock extends LytNode {
     private boolean fullWidth;
 
     /**
+     * Flex grow factor for this block inside a row/column flex container
+     * (declared by the block itself, e.g. the code toolbar's language label
+     * takes the remaining width). Read directly by the layout compiler — no
+     * serializer-side special case.
+     */
+    @Getter
+    @Setter
+    private float flexGrow;
+
+    /**
      * Override the layout bounds with an externally computed rect (the Rust
      * layout engine). Children receive their own rects from the same pass, so
      * no propagation happens here. Subclasses with position/size-dependent

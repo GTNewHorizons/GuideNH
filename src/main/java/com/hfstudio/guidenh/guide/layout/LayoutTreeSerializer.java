@@ -67,10 +67,6 @@ public class LayoutTreeSerializer {
     private final Map<LytBlock, Integer> floatIntents = new IdentityHashMap<>();
     /** Table-cell column widths (px), kept until the column model moves to taffy Grid. */
     private final Map<LytBlock, Integer> columnWidths = new IdentityHashMap<>();
-    /** Flex-grow overrides (e.g. the code toolbar's language label). */
-    private final Map<LytBlock, Float> flexGrowOverrides = new IdentityHashMap<>();
-    /** Extra margin-left for a specific child (e.g. the recipe output slot's arrow gap). */
-    private final Map<LytBlock, Integer> marginLeftAdjust = new IdentityHashMap<>();
     /**
      * Float rects registered during serialize, in document coordinates. NOT fed
      * to Rust (the pusher computes its own float geometry); retained solely as
@@ -90,8 +86,6 @@ public class LayoutTreeSerializer {
         absoluteFloats.clear();
         floatIntents.clear();
         columnWidths.clear();
-        flexGrowOverrides.clear();
-        marginLeftAdjust.clear();
         floatRects.clear();
         this.availWidth = availWidth;
 
@@ -126,9 +120,8 @@ public class LayoutTreeSerializer {
                 (int) mo.top(),
                 (int) mo.right(),
                 (int) mo.bottom(),
-                (int) mo.left() + marginLeftAdjust.getOrDefault(block, 0),
+                (int) mo.left(),
                 absoluteFloats.get(block),
-                flexGrowOverrides.getOrDefault(block, 0f),
                 floatIntents.getOrDefault(block, 0),
                 columnWidths.getOrDefault(block, 0));
             int styleOff = LayoutStyleExtractor.build(fbb, block, flags, adj);
@@ -268,7 +261,6 @@ public class LayoutTreeSerializer {
                 floatIntents.put(block, pendingFloatSide);
                 pendingFloatSide = 0;
             }
-            applyChildRules(block);
             if (block instanceof LytTable table) {
                 // Table cells keep the Java-computed COLUMN widths (the column
                 // model resolves preferred/flexible widths) so cell content
@@ -343,21 +335,6 @@ public class LayoutTreeSerializer {
             }
         }
         return false;
-    }
-
-    /** Per-parent lowering rules for specific children (margins, flex-grow). */
-    private void applyChildRules(LytBlock block) {
-        var kids = block.getChildren();
-        if (kids.isEmpty()) return;
-        if (block instanceof LytStandardRecipeBox && kids.get(kids.size() - 1) instanceof LytBlock last) {
-            // The crafting arrow sits between the inputs grid and the output
-            // slot: reserve GAP + arrow width + GAP as the output's margin-left.
-            marginLeftAdjust.put(last, LytStandardRecipeBox.GAP * 2 + LytStandardRecipeBox.ARROW_W);
-        }
-        if (block instanceof LytCodeBlockToolbar && kids.get(0) instanceof LytBlock first) {
-            // The language label takes the remaining width; buttons stay fixed.
-            flexGrowOverrides.put(first, 1.0f);
-        }
     }
 
     private static int contentOriginX(LytBlock block) {
