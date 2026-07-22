@@ -54,8 +54,8 @@ public final class LayoutStyleExtractor {
      * (the float gap rides the inner's margin); {@code abs} lowers inline blocks
      * to position:absolute.
      */
-    public record NodeAdjustments(int marginT, int marginR, int marginB, int marginL, FloatAbs abs,
-        int floatSide, int columnWidth) {
+    public record NodeAdjustments(int marginT, int marginR, int marginB, int marginL, FloatAbs abs, int floatSide,
+        int columnWidth) {
 
         public static final NodeAdjustments ZERO = new NodeAdjustments(0, 0, 0, 0, null, 0, 0);
     }

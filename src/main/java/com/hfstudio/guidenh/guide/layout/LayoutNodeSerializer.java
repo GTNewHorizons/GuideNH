@@ -205,8 +205,8 @@ public final class LayoutNodeSerializer {
                 }
                 // Base run tint (single-style runs fall back to this color).
                 baseColor = GuideText.resolveColor(resolved) & 0xFFFFFFFFL;
-                wsByte = resolved.whiteSpace()
-                    == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1 : 0;
+                wsByte = resolved.whiteSpace() == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1
+                    : 0;
             }
 
             // Rich spans: per-leaf resolved styles in document order (concatenated
@@ -398,7 +398,8 @@ public final class LayoutNodeSerializer {
     }
 
     /**
-     * Record every in-paragraph {@code <br>} (hard break) at its raw byte offset
+     * Record every in-paragraph {@code <br>
+     * } (hard break) at its raw byte offset
      * in the break-free text. Mirrors {@link #walkClears}' traversal and offset
      * accounting (a break contributes no bytes to the text), but records ALL
      * breaks, not only the clearing ones. The Rust pusher splits the paragraph

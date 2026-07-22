@@ -12,13 +12,11 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBox;
-import com.hfstudio.guidenh.guide.document.block.LytCodeBlockToolbar;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
-import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableCell;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableRow;
@@ -213,8 +211,8 @@ public class LayoutTreeSerializer {
      * @param parentContentX/Y/W content origin and width of the nearest flattened
      *                           ancestor (for lane computation and absolute insets)
      */
-    private void flattenTree(LytNode node, MarginAccum inherited, int pendingFloatSide,
-        int parentContentX, int parentContentY, int parentContentW) {
+    private void flattenTree(LytNode node, MarginAccum inherited, int pendingFloatSide, int parentContentX,
+        int parentContentY, int parentContentW) {
         if (shouldEliminate(node)) {
             // Add this node's margins to the inherited accumulator
             MarginAccum total = inherited;
