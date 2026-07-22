@@ -212,6 +212,10 @@ pub struct ShapeRequest<'a> {
     /// Absolute document x of this paragraph's content origin; float edges are
     /// converted to paragraph-relative by subtracting this.
     pub para_x: f32,
+    /// In-paragraph clear breaks (raw UTF-8 byte offset into the original text
+    /// + side 1=left 2=right 3=both), in document order. Mapped to cleaned-text
+    /// offsets inside shape_paragraph.
+    pub clears: &'a [(usize, u8)],
     pub font_size: f32,
     pub font_scale: f32,
     pub max_width: f32,
@@ -266,6 +270,10 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         let n = fffc_orig.iter().take_while(|&&p| p < pos).count();
         pos - 3 * n
     };
+    // Map clear breaks from original-text byte offsets to cleaned-text offsets
+    // (the same mapping spans use), so they line up with parley's line ranges.
+    let clean_clears: Vec<(usize, u8)> =
+        req.clears.iter().map(|(k, s)| (adjust(*k), *s)).collect();
 
     let mut b = parley
         .layout_cx
@@ -345,46 +353,65 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         AlignmentOptions::default(),
     );
 
-    let (glyphs, markers, max_x) =
-        collect_layout(&layout, req.floats, req.para_abs_y, req.para_x, req.max_width);
+    let (glyphs, markers, max_x, content_height) = collect_layout(
+        &layout,
+        req.floats,
+        req.para_abs_y,
+        req.para_x,
+        req.max_width,
+        &clean_clears,
+    );
     ParleyShaped {
         glyphs,
         markers,
-        content_height: layout.height(),
+        content_height,
         max_x,
     }
 }
 
 /// Collect positioned glyphs + inline markers from a laid-out paragraph,
-/// applying per-line float x offsets. The left-float indent lives ONLY here:
-/// the breaker sets just the per-line width — under Justify, parley bakes a
-/// set_line_x origin into the glyph pens (line fills [line_x, line_x+adv]),
-/// so setting it at break time would shift every left-clipped line twice.
+/// applying per-line float x offsets and in-paragraph clear breaks. The
+/// left-float indent lives ONLY here: the breaker sets just the per-line width
+/// — under Justify, parley bakes a set_line_x origin into the glyph pens (line
+/// fills [line_x, line_x+adv]), so setting it at break time would shift every
+/// left-clipped line twice.
+///
+/// `clears` are in-paragraph `<br clear>` breaks (cleaned-text byte offset +
+/// side), in document order. After the line whose text range covers a break's
+/// offset is laid out, every following line is dropped to the cleared floats'
+/// bottom edge (`clear_floor`). This is exact for the only real-world form — a
+/// clear at the paragraph's end (the break has no trailing text, so no line is
+/// re-wrapped by the drop); a mid-paragraph clear drops later lines without
+/// re-wrapping them (first-order: never mispositions into a float, only the
+/// wrap of those later lines is approximate, and no real page uses that form).
+/// Returns the paragraph content height including any clear-induced growth.
 pub fn collect_layout(
     layout: &Layout<SpanBrush>,
     floats: &[FloatRect],
     para_abs_y: f32,
     para_x: f32,
     max_width: f32,
-) -> (Vec<OutGlyph>, Vec<crate::measure::InlineMarker>, f32) {
+    clears: &[(usize, u8)],
+) -> (Vec<OutGlyph>, Vec<crate::measure::InlineMarker>, f32, f32) {
     let mut glyphs = Vec::new();
     let mut markers: Vec<(u64, crate::measure::InlineMarker)> = Vec::new();
     let mut max_x = 0.0f32;
+    let mut clear_floor: Option<f32> = None; // absolute y later lines must not rise above
+    let mut next_clear = 0usize;
+    let mut content_h = 0.0f32;
     for (li, line) in layout.lines().enumerate() {
         let m = line.metrics();
+        let tr = line.text_range();
+        let orig_top_abs = para_abs_y + m.block_min_coord;
+        let shift = clear_floor.map_or(0.0, |f| (f - orig_top_abs).max(0.0));
+        let eff_top_abs = orig_top_abs + shift;
         let (x_off, _) = if floats.is_empty() {
             (0.0, max_width)
         } else {
-            // Same query as the breaker: absolute line top + full height
-            // (overlap semantics), so collect and break agree on every line's
-            // lane.
-            query_floats(
-                para_abs_y + m.block_min_coord,
-                m.line_height,
-                para_x,
-                max_width,
-                floats,
-            )
+            // Same query as the breaker, but at the (possibly clear-dropped)
+            // effective line top: a line pushed below the floats sees the full
+            // width, so its x-offset is 0 regardless of the exact dropped y.
+            query_floats(eff_top_abs, m.line_height, para_x, max_width, floats)
         };
         for item in line.items() {
             match item {
@@ -397,9 +424,9 @@ pub fn collect_layout(
                         glyphs.push(OutGlyph {
                             glyph_id: g.id,
                             x: g.x + x_off,
-                            y: g.y,
+                            y: g.y + shift,
                             w: g.advance,
-                            line_top: m.block_min_coord,
+                            line_top: m.block_min_coord + shift,
                             line_height: m.line_height,
                             line_index: li,
                             span_index,
@@ -414,8 +441,8 @@ pub fn collect_layout(
                         bx.id,
                         crate::measure::InlineMarker {
                             pen_x: bx.x + x_off,
-                            baseline_y: m.baseline,
-                            line_top: m.block_min_coord,
+                            baseline_y: m.baseline + shift,
+                            line_top: m.block_min_coord + shift,
                             line_height: m.line_height,
                             line_index: li,
                             advance: bx.width,
@@ -424,6 +451,31 @@ pub fn collect_layout(
                 }
             }
         }
+        content_h = content_h.max(eff_top_abs + m.line_height - para_abs_y);
+        // A clear takes effect after the line that covers its offset: the break
+        // sits at/after that line's text, so the line itself is not dropped but
+        // everything following it is.
+        while next_clear < clears.len() && clears[next_clear].0 <= tr.end {
+            let side = clears[next_clear].1;
+            let mut floor = 0.0f32;
+            for f in floats {
+                let side_match =
+                    side == 3 || (side == 1 && !f.right) || (side == 2 && f.right);
+                if side_match {
+                    floor = floor.max(f.y + f.h);
+                }
+            }
+            if floor > 0.0 {
+                clear_floor = Some(clear_floor.map_or(floor, |c| c.max(floor)));
+            }
+            next_clear += 1;
+        }
+    }
+    // A trailing clear (break after the last line's text, the common form) has
+    // no following line to carry its drop, so extend the content height to the
+    // cleared floats' bottom edge directly.
+    if let Some(f) = clear_floor {
+        content_h = content_h.max(f - para_abs_y);
     }
     markers.sort_by_key(|(id, _)| *id);
     (
@@ -433,6 +485,7 @@ pub fn collect_layout(
             .map(|(_, m)| m)
             .collect(),
         max_x,
+        content_h,
     )
 }
 

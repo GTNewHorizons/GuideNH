@@ -150,6 +150,15 @@ pub fn compute_layout(
                 width: AvailableSpace::Definite(content_w),
                 height: AvailableSpace::MaxContent,
             };
+            let clears_raw: Vec<(usize, u8)> = flat_nodes[idx]
+                .text()
+                .and_then(|t| t.clears())
+                .map(|v| {
+                    v.iter()
+                        .map(|c| (c.raw_offset() as usize, c.side() as u8))
+                        .collect()
+                })
+                .unwrap_or_default();
             let sz = measure_text(
                 font_system,
                 &flat_nodes,
@@ -160,6 +169,7 @@ pub fn compute_layout(
                 &float_table,
                 para_abs_y,
                 para_x,
+                &clears_raw,
             );
             abs_positions[idx] = (para_x, para_abs_y);
             sizes[idx] = (sz.width, sz.height);
@@ -718,8 +728,8 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
         .next()
         .map(|l| l.metrics().baseline - l.metrics().block_min_coord)
         .unwrap_or(scaled);
-    let (glyphs, _markers, max_x) =
-        crate::parley_text::collect_layout(&layout, &[], 0.0, 0.0, max_w.unwrap_or(f32::MAX));
+    let (glyphs, _markers, max_x, _content_height) =
+        crate::parley_text::collect_layout(&layout, &[], 0.0, 0.0, max_w.unwrap_or(f32::MAX), &[]);
     let (quads, bitmaps) = crate::parley_text::rasterize_out_glyphs(&glyphs, render_scale);
 
     let mut fbb = flatbuffers::FlatBufferBuilder::with_capacity(4096);

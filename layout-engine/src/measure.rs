@@ -96,7 +96,7 @@ pub fn create_measure_closure<'a>(
 
         let measured = match ctx.node_type {
             1 => measure_text(
-                font_system, flat_nodes, index, glyph_acc, available, justify, &[], 0.0, 0.0,
+                font_system, flat_nodes, index, glyph_acc, available, justify, &[], 0.0, 0.0, &[],
             ),
             2 => measure_image(flat_nodes, index),
             3 => measure_slot(flat_nodes, index),
@@ -125,6 +125,7 @@ pub(crate) fn measure_text(
     floats: &[crate::parley_text::FloatRect],
     para_abs_y: f32,
     para_x: f32,
+    clears: &[(usize, u8)],
 ) -> Size<f32> {
     let node = &nodes[idx];
     let td = match node.text() {
@@ -195,6 +196,7 @@ pub(crate) fn measure_text(
         floats,
         para_abs_y,
         para_x,
+        clears,
         font_size,
         font_scale,
         max_width: max_w,

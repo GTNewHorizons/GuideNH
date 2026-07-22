@@ -102,7 +102,18 @@ table TextData {
   inline_blocks: [InlineBlockRef];  // paired with U+FFFC placeholders, in document order
   bands: [TextBand];          // DEPRECATED (parley migration): replaced by float_clips
   spans: [TextSpan];          // rich multi-style runs (empty = single-style shaping)
-  float_clips: [FloatClip];   // forbidden intervals for per-line float wrapping (paragraph-relative)
+  float_clips: [FloatClip];   // DEPRECATED: per-line wrapping now owned by the Rust pusher's live float table
+  clears: [ClearBreak];       // in-paragraph <br clear> breaks (raw UTF-8 byte offset + side)
+}
+
+/// One in-paragraph clear break (`<br clear="..."/>`). `raw_offset` is the
+/// UTF-8 byte offset into TextData.text (the original text, U+FFFC included)
+/// at which the break occurs; the Rust pusher maps it to its cleaned text and,
+/// after the line covering that offset is laid out, drops subsequent lines to
+/// the cleared floats' bottom edge. side: 1=left 2=right 3=both.
+table ClearBreak {
+  raw_offset: uint = 0;
+  side: byte = 0;
 }
 
 /// One forbidden interval the text must not occupy, in paragraph-relative

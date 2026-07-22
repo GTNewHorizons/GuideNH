@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.layout;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +18,7 @@ import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
@@ -163,6 +165,9 @@ public final class LayoutNodeSerializer {
         float fontScale = 1f;
         long baseColor = 0xFFFFFFFFL;
         List<SpanPart> spanParts = new ArrayList<>();
+        // In-paragraph clear breaks with their raw (original-text) UTF-8 byte
+        // offset; collected in document order alongside the text extraction.
+        List<int[]> clears = new ArrayList<>();
 
         if (block instanceof LytParagraph par) {
             // Collect all text recursively — text can be nested inside LytFlowSpan wrappers
@@ -201,6 +206,11 @@ public final class LayoutNodeSerializer {
             for (LytFlowContent fc : par.getContent()) {
                 collectSpanParts(fc, resolved, spanParts);
             }
+            // Clear breaks: record each <br clear> at its raw byte offset so the
+            // Rust pusher can drop the following lines below the cleared floats.
+            for (LytFlowContent fc : par.getContent()) {
+                walkClears(fc, new int[] { 0 }, clears);
+            }
         }
 
         int strOff = fbb.createString(text);
@@ -227,7 +237,17 @@ public final class LayoutNodeSerializer {
             }
             spansVec = TextData.createSpansVector(fbb, spans);
         }
-        return TextData.createTextData(fbb, strOff, styleOff, (byte) 0, inlineBlocksVec, 0, spansVec, 0);
+        int clearsVec = 0;
+        if (!clears.isEmpty()) {
+            int[] cs = new int[clears.size()];
+            for (int i = 0; i < cs.length; i++) {
+                int[] c = clears.get(i);
+                cs[i] = com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak
+                    .createClearBreak(fbb, c[0], (byte) c[1]);
+            }
+            clearsVec = TextData.createClearsVector(fbb, cs);
+        }
+        return TextData.createTextData(fbb, strOff, styleOff, (byte) 0, inlineBlocksVec, 0, spansVec, 0, clearsVec);
     }
 
     /** One text run with its resolved style, in document order. */
@@ -325,6 +345,34 @@ public final class LayoutNodeSerializer {
      * Handles {@link LytFlowText} (direct text) and {@link LytFlowSpan}
      * (wrapper with nested children).
      */
+    /**
+     * Walk flow content in document order, tracking the running raw (original
+     * text, U+FFFC included) UTF-8 byte offset and recording every clear break
+     * at its offset. Mirrors {@link #extractFlowText}'s traversal so the offset
+     * matches the byte position in TextData.text: text contributes its UTF-8
+     * length, an inline block contributes the 3 bytes of its U+FFFC placeholder,
+     * a break contributes nothing (it is not in the text).
+     */
+    private static void walkClears(LytFlowContent fc, int[] offset, List<int[]> out) {
+        if (fc instanceof LytFlowText ft) {
+            offset[0] += ft.getText()
+                .getBytes(StandardCharsets.UTF_8).length;
+        } else if (fc instanceof LytFlowInlineBlock) {
+            offset[0] += 3; // U+FFFC placeholder = 3 UTF-8 bytes
+        } else if (fc instanceof LytFlowBreak fb) {
+            boolean left = fb.isClearLeft();
+            boolean right = fb.isClearRight();
+            if (left || right) {
+                byte side = (byte) (left && right ? 3 : left ? 1 : 2);
+                out.add(new int[] { offset[0], side });
+            }
+        } else if (fc instanceof LytFlowSpan fs) {
+            for (LytFlowContent child : fs.getChildren()) {
+                walkClears(child, offset, out);
+            }
+        }
+    }
+
     private static void extractFlowText(LytFlowContent fc, StringBuilder out) {
         if (fc instanceof LytFlowText ft) {
             out.append(ft.getText());

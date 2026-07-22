@@ -163,9 +163,35 @@ public final class TextData extends Table {
         return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
     }
 
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak clears(int j) {
+        return clears(new com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak(), j);
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak clears(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak obj, int j) {
+        int o = __offset(18);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int clearsLength() {
+        int o = __offset(18);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak.Vector clearsVector() {
+        return clearsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak.Vector());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak.Vector clearsVector(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak.Vector obj) {
+        int o = __offset(18);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
     public static int createTextData(FlatBufferBuilder builder, int textOffset, int styleOffset, byte whiteSpace,
-        int inlineBlocksOffset, int bandsOffset, int spansOffset, int floatClipsOffset) {
-        builder.startTable(7);
+        int inlineBlocksOffset, int bandsOffset, int spansOffset, int floatClipsOffset, int clearsOffset) {
+        builder.startTable(8);
+        TextData.addClears(builder, clearsOffset);
         TextData.addFloatClips(builder, floatClipsOffset);
         TextData.addSpans(builder, spansOffset);
         TextData.addBands(builder, bandsOffset);
@@ -177,7 +203,7 @@ public final class TextData extends Table {
     }
 
     public static void startTextData(FlatBufferBuilder builder) {
-        builder.startTable(7);
+        builder.startTable(8);
     }
 
     public static void addText(FlatBufferBuilder builder, int textOffset) {
@@ -245,6 +271,20 @@ public final class TextData extends Table {
     }
 
     public static void startFloatClipsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addClears(FlatBufferBuilder builder, int clearsOffset) {
+        builder.addOffset(7, clearsOffset, 0);
+    }
+
+    public static int createClearsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startClearsVector(FlatBufferBuilder builder, int numElems) {
         builder.startVector(4, numElems, 4);
     }
 
