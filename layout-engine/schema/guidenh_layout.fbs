@@ -104,6 +104,11 @@ table TextData {
   spans: [TextSpan];          // rich multi-style runs (empty = single-style shaping)
   float_clips: [FloatClip];   // DEPRECATED: per-line wrapping now owned by the Rust pusher's live float table
   clears: [ClearBreak];       // in-paragraph <br clear> breaks (raw UTF-8 byte offset + side)
+  breaks: [uint];             // raw UTF-8 byte offsets of every in-paragraph <br> (hard line break);
+                              // the Rust pusher splits the paragraph at these offsets and shapes
+                              // each piece independently (a hard break, not a whitespace char), so
+                              // <br> works under any white-space mode and PRE_WRAP code bodies keep
+                              // their line structure. Coordinates are in the break-free text.
 }
 
 /// One in-paragraph clear break (`<br clear="..."/>`). `raw_offset` is the

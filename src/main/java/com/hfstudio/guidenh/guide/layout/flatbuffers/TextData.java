@@ -188,9 +188,21 @@ public final class TextData extends Table {
         return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
     }
 
+    public long breaks(int j) {
+        int o = __offset(20);
+        return o != 0 ? (long) bb.getInt(__vector(o) + j * 4) & 0xFFFFFFFFL : 0;
+    }
+
+    public int breaksLength() {
+        int o = __offset(20);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
     public static int createTextData(FlatBufferBuilder builder, int textOffset, int styleOffset, byte whiteSpace,
-        int inlineBlocksOffset, int bandsOffset, int spansOffset, int floatClipsOffset, int clearsOffset) {
-        builder.startTable(8);
+        int inlineBlocksOffset, int bandsOffset, int spansOffset, int floatClipsOffset, int clearsOffset,
+        int breaksOffset) {
+        builder.startTable(9);
+        TextData.addBreaks(builder, breaksOffset);
         TextData.addClears(builder, clearsOffset);
         TextData.addFloatClips(builder, floatClipsOffset);
         TextData.addSpans(builder, spansOffset);
@@ -203,7 +215,7 @@ public final class TextData extends Table {
     }
 
     public static void startTextData(FlatBufferBuilder builder) {
-        builder.startTable(8);
+        builder.startTable(9);
     }
 
     public static void addText(FlatBufferBuilder builder, int textOffset) {
@@ -285,6 +297,20 @@ public final class TextData extends Table {
     }
 
     public static void startClearsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addBreaks(FlatBufferBuilder builder, int breaksOffset) {
+        builder.addOffset(8, breaksOffset, 0);
+    }
+
+    public static int createBreaksVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addInt(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startBreaksVector(FlatBufferBuilder builder, int numElems) {
         builder.startVector(4, numElems, 4);
     }
 

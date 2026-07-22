@@ -189,47 +189,147 @@ pub(crate) fn measure_text(
         _ => f32::MAX,
     };
 
-    let req = crate::parley_text::ShapeRequest {
-        text,
-        spans: &span_styles,
-        inlines: &inlines,
-        floats,
-        para_abs_y,
-        para_x,
-        clears,
-        font_size,
-        font_scale,
-        max_width: max_w,
-        justify,
-    };
-    let shaped = crate::parley_text::shape_paragraph(&mut fs.parley, &req);
+    // Hard breaks (<br>): raw byte offsets (in the break-free text) at which the
+    // paragraph is split into independently shaped pieces. A <br> is a hard line
+    // break that must hold under ANY white-space mode, but parley 0.11 exposes no
+    // white-space control and its normal collapse would fold a literal '\n' into a
+    // space — so the break is realised structurally by shaping each piece on its
+    // own and stacking them vertically (piece k+1 starts at the accumulated height
+    // of the pieces before it). Pieces carry no inline boxes (a paragraph that has
+    // both inline boxes and hard breaks falls through to the single-shape path
+    // below, keeping inline geometry correct at the cost of the hard break).
+    let breaks: Vec<usize> = td
+        .breaks()
+        .map(|v| v.iter().map(|x| x as usize).collect())
+        .unwrap_or_default();
 
-    let mut h = shaped.content_height;
-    if h <= 0.0 {
-        h = font_size * font_scale * (10.0 / 9.0);
-    }
-    // Inline-block vertical growth: reserve the space their lines grow by,
-    // so Taffy flows following siblings below the block (the paragraph's
-    // measured height must already include it — growing it in the post-pass
-    // would come too late).
-    if !shaped.markers.is_empty() {
-        h += inline_line_growth(nodes, idx, &shaped.markers);
-    }
+    let (shaped_glyphs, shaped_markers, shaped_h, shaped_max_x, shaped_floor) =
+        if !breaks.is_empty() && inlines.is_empty() {
+            let mut bounds: Vec<usize> = Vec::with_capacity(breaks.len() + 2);
+            bounds.push(0);
+            for &b in &breaks {
+                if b > *bounds.last().unwrap() && b <= text.len() {
+                    bounds.push(b);
+                }
+            }
+            if *bounds.last().unwrap() != text.len() {
+                bounds.push(text.len());
+            }
+            let mut all_glyphs: Vec<crate::parley_text::OutGlyph> = Vec::new();
+            let mut all_markers: Vec<crate::measure::InlineMarker> = Vec::new();
+            let mut acc_h: f32 = 0.0;
+            let mut max_x: f32 = 0.0;
+            let mut floor: Option<f32> = None;
+            for w in bounds.windows(2) {
+                let lo = w[0];
+                let hi = w[1];
+                if lo >= hi {
+                    continue;
+                }
+                let sub_text = &text[lo..hi];
+                let sub_spans: Vec<crate::parley_text::SpanStyle> = span_styles
+                    .iter()
+                    .filter_map(|sp| {
+                        let ns = sp.start.max(lo);
+                        let ne = sp.end.min(hi);
+                        if ns < ne {
+                            Some(crate::parley_text::SpanStyle {
+                                start: ns - lo,
+                                end: ne - lo,
+                                bold: sp.bold,
+                            })
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                let sub_clears: Vec<(usize, u8)> = clears
+                    .iter()
+                    .filter_map(|(o, s)| {
+                        if *o >= lo && *o < hi {
+                            Some((*o - lo, *s))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                let seg_top = para_abs_y + acc_h;
+                let req = crate::parley_text::ShapeRequest {
+                    text: sub_text,
+                    spans: &sub_spans,
+                    inlines: &[],
+                    floats,
+                    para_abs_y: seg_top,
+                    para_x,
+                    clears: &sub_clears,
+                    font_size,
+                    font_scale,
+                    max_width: max_w,
+                    justify,
+                };
+                let shaped = crate::parley_text::shape_paragraph(&mut fs.parley, &req);
+                for mut g in shaped.glyphs {
+                    g.y += acc_h;
+                    g.line_top += acc_h;
+                    all_glyphs.push(g);
+                }
+                for mut m in shaped.markers {
+                    m.baseline_y += acc_h;
+                    m.line_top += acc_h;
+                    all_markers.push(m);
+                }
+                let sh = if shaped.content_height <= 0.0 {
+                    font_size * font_scale * (10.0 / 9.0)
+                } else {
+                    shaped.content_height
+                };
+                acc_h += sh;
+                max_x = max_x.max(shaped.max_x);
+                floor = match (floor, shaped.clear_floor) {
+                    (Some(a), Some(b)) => Some(a.max(b)),
+                    (a, b) => a.or(b),
+                };
+            }
+            (all_glyphs, all_markers, acc_h, max_x, floor)
+        } else {
+            let req = crate::parley_text::ShapeRequest {
+                text,
+                spans: &span_styles,
+                inlines: &inlines,
+                floats,
+                para_abs_y,
+                para_x,
+                clears,
+                font_size,
+                font_scale,
+                max_width: max_w,
+                justify,
+            };
+            let shaped = crate::parley_text::shape_paragraph(&mut fs.parley, &req);
+            let mut h = shaped.content_height;
+            if h <= 0.0 {
+                h = font_size * font_scale * (10.0 / 9.0);
+            }
+            if !shaped.markers.is_empty() {
+                h += inline_line_growth(nodes, idx, &shaped.markers);
+            }
+            (shaped.glyphs, shaped.markers, h, shaped.max_x, shaped.clear_floor)
+        };
 
     acc.insert(
         idx,
         GlyphAccum {
-            glyphs: shaped.glyphs,
-            markers: shaped.markers,
+            glyphs: shaped_glyphs,
+            markers: shaped_markers,
         },
     );
 
     (
         Size {
-            width: shaped.max_x.max(1.0),
-            height: h.max(1.0),
+            width: shaped_max_x.max(1.0),
+            height: shaped_h.max(1.0),
         },
-        shaped.clear_floor,
+        shaped_floor,
     )
 }
 

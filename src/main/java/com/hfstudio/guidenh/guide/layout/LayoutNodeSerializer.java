@@ -113,11 +113,12 @@ public final class LayoutNodeSerializer {
      * Java-computed bounds, and rendering falls back to the legacy path
      * (HostDraw) automatically since no glyph run is produced.
      * <p>
-     * Currently: PRE_WRAP paragraphs (code blocks, preformatted text),
-     * float-aligned inline-block paragraphs, and dynamic-style paragraphs
-     * (spoiler reveal, {@code §k}/obfuscated — see
-     * {@link LytParagraph#hasDynamicStyles}). Static multi-style paragraphs
-     * are serialized as rich Text with {@code TextData.spans} instead.
+     * Currently: PRE_WRAP paragraphs (code blocks — parley 0.11 has no
+     * white-space Preserve, so they keep the legacy per-span path until the
+     * text engine can honour pre-wrap), float-aligned inline-block paragraphs,
+     * and dynamic-style paragraphs (spoiler reveal, {@code §k}/obfuscated — see
+     * {@link LytParagraph#hasDynamicStyles}). Static multi-style paragraphs are
+     * serialized as rich Text with {@code TextData.spans} instead.
      */
     private static boolean isOpaqueText(LytParagraph par) {
         var resolved = par.resolveStyle();
@@ -164,7 +165,12 @@ public final class LayoutNodeSerializer {
         boolean italic = false;
         float fontScale = 1f;
         long baseColor = 0xFFFFFFFFL;
+        byte wsByte = 0;
         List<SpanPart> spanParts = new ArrayList<>();
+        // In-paragraph hard breaks (<br>): raw byte offsets in the break-free
+        // text at which the Rust pusher splits the paragraph into independently
+        // shaped pieces (a hard break, not a whitespace char).
+        List<Integer> breaks = new ArrayList<>();
         // In-paragraph clear breaks with their raw (original-text) UTF-8 byte
         // offset; collected in document order alongside the text extraction.
         List<int[]> clears = new ArrayList<>();
@@ -199,6 +205,8 @@ public final class LayoutNodeSerializer {
                 }
                 // Base run tint (single-style runs fall back to this color).
                 baseColor = GuideText.resolveColor(resolved) & 0xFFFFFFFFL;
+                wsByte = resolved.whiteSpace()
+                    == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1 : 0;
             }
 
             // Rich spans: per-leaf resolved styles in document order (concatenated
@@ -208,8 +216,15 @@ public final class LayoutNodeSerializer {
             }
             // Clear breaks: record each <br clear> at its raw byte offset so the
             // Rust pusher can drop the following lines below the cleared floats.
+            int[] clearOff = new int[] { 0 };
             for (LytFlowContent fc : par.getContent()) {
-                walkClears(fc, new int[] { 0 }, clears);
+                walkClears(fc, clearOff, clears);
+            }
+            // Hard breaks: record every <br> (including clear ones) so the Rust
+            // pusher splits the paragraph into independently shaped pieces.
+            int[] breakOff = new int[] { 0 };
+            for (LytFlowContent fc : par.getContent()) {
+                walkBreaks(fc, breakOff, breaks);
             }
         }
 
@@ -247,7 +262,16 @@ public final class LayoutNodeSerializer {
             }
             clearsVec = TextData.createClearsVector(fbb, cs);
         }
-        return TextData.createTextData(fbb, strOff, styleOff, (byte) 0, inlineBlocksVec, 0, spansVec, 0, clearsVec);
+        int breaksVec = 0;
+        if (!breaks.isEmpty()) {
+            int[] bs = new int[breaks.size()];
+            for (int i = 0; i < bs.length; i++) {
+                bs[i] = breaks.get(i);
+            }
+            breaksVec = TextData.createBreaksVector(fbb, bs);
+        }
+        return TextData
+            .createTextData(fbb, strOff, styleOff, wsByte, inlineBlocksVec, 0, spansVec, 0, clearsVec, breaksVec);
     }
 
     /** One text run with its resolved style, in document order. */
@@ -369,6 +393,34 @@ public final class LayoutNodeSerializer {
         } else if (fc instanceof LytFlowSpan fs) {
             for (LytFlowContent child : fs.getChildren()) {
                 walkClears(child, offset, out);
+            }
+        }
+    }
+
+    /**
+     * Record every in-paragraph {@code <br>} (hard break) at its raw byte offset
+     * in the break-free text. Mirrors {@link #walkClears}' traversal and offset
+     * accounting (a break contributes no bytes to the text), but records ALL
+     * breaks, not only the clearing ones. The Rust pusher splits the paragraph
+     * at these offsets and shapes each piece independently.
+     */
+    private static void walkBreaks(LytFlowContent fc, int[] offset, List<Integer> out) {
+        if (fc instanceof LytFlowText ft) {
+            offset[0] += ft.getText()
+                .getBytes(StandardCharsets.UTF_8).length;
+        } else if (fc instanceof LytFlowInlineBlock) {
+            offset[0] += 3; // U+FFFC placeholder = 3 UTF-8 bytes
+        } else if (fc instanceof LytFlowBreak fb) {
+            // A clearing break is handled by the clear-floor path (single-shape
+            // trailing clear); recording it here as a hard split too would put it
+            // exactly on a segment boundary and lose it. Only non-clearing <br>
+            // are hard splits.
+            if (!fb.isClearLeft() && !fb.isClearRight()) {
+                out.add(offset[0]); // the break itself is not in the text
+            }
+        } else if (fc instanceof LytFlowSpan fs) {
+            for (LytFlowContent child : fs.getChildren()) {
+                walkBreaks(child, offset, out);
             }
         }
     }
