@@ -5,14 +5,25 @@ use crate::fb::{
     GlyphBitmapArgs, GlyphRun, GlyphRunArgs, LayoutInput, LayoutResult, LayoutResultArgs,
     PlacedGlyph, PlacedGlyphArgs,
 };
-use crate::measure::{create_measure_closure, GlyphAccum, NodeContext};
+use crate::measure::{create_measure_closure, measure_text, GlyphAccum, NodeContext};
+use crate::parley_text::FloatRect;
 use crate::style_convert::flat_style_to_taffy;
 use crate::text::GuideFontSystem;
 use flatbuffers::FlatBufferBuilder;
 use taffy::prelude::*;
 
-/// Build a Taffy tree from FlatBuffer LayoutInput, compute layout,
-/// and return LayoutResult FlatBuffer bytes.
+/// Document content-box padding, matching the legacy synthetic root and the
+/// Java document padding (5px each side).
+const CONTENT_PAD: f32 = 5.0;
+
+/// Document-flow pusher (v1). Owns the single authoritative float table and
+/// drives the top-level sequence in document order: top-level paragraphs are
+/// shaped directly against the live table (real per-line wrapping — the
+/// "bridge" is this in-process query, no precomputed clip table crosses any
+/// boundary); top-level floats register into the table at the current cursor
+/// without advancing it; top-level blocks are laid out as taffy subtrees.
+/// Nested paragraphs inside those subtrees still wrap at full width (the
+/// pusher does not yet recurse into block float contexts — transition).
 pub fn compute_layout(
     input_bytes: &[u8],
     font_system: &mut GuideFontSystem,
@@ -22,229 +33,211 @@ pub fn compute_layout(
 
     let avail_width = input.available_width();
     // NB: visual_scale is intentionally NOT applied to the root width (D-3) —
-    // Java blocks already pre-apply it per block (ResponsiveVisualSizing), so
-    // multiplying the root by it double-counted and disagreed with every other
-    // unscaled input (styles, lane pins, font metrics).
+    // Java blocks already pre-apply it per block (ResponsiveVisualSizing).
     let _visual_scale = input.visual_scale();
     // Display pixel ratio (MC guiScale): glyph bitmaps are rasterized at
     // font_size * render_scale so 1 texel maps to 1 physical pixel; quad
     // coordinates are then divided back into document units.
     let render_scale = input.render_scale().max(0.25);
     let fb_nodes = input.nodes();
+    let justify = input.justify() != 0;
 
-    // Collect FlatNode references into a Vec for indexed access
     let flat_nodes: Vec<FlatNode> = fb_nodes
         .map_or_else(Vec::new, |v| (0..v.len()).map(|i| v.get(i)).collect());
 
-    // ── Build Taffy tree ──
-    let mut taffy: TaffyTree<NodeContext> = TaffyTree::new();
-    let mut node_map: Vec<(NodeId, bool)> = Vec::with_capacity(flat_nodes.len());
-    // Tracks which flat nodes are claimed as some container's child, so the
-    // synthetic root only adopts genuine orphans. (Adopting EVERY node would
-    // re-parent the whole tree to the root and flatten all nesting.)
-    let mut claimed: Vec<bool> = vec![false; flat_nodes.len()];
+    let content_x = CONTENT_PAD;
+    let content_y = CONTENT_PAD;
+    let content_w = (avail_width - 2.0 * CONTENT_PAD).max(1.0);
 
-    // Pass 1: Create leaf nodes (no children)
-    for (i, fb_node) in flat_nodes.iter().enumerate() {
-        if fb_node.children().map_or(true, |c| c.is_empty()) {
-            let style = flat_style_to_taffy(&fb_node.style().unwrap());
-            let ctx = NodeContext {
-                flat_index: i,
-                node_type: fb_node.node_type() as u8,
-            };
-            let id = taffy
-                .new_leaf_with_context(style, ctx)
-                .expect("Failed to create leaf node");
-            node_map.push((id, true));
-        } else {
-            node_map.push((NodeId::from(0usize), false));
-        }
-    }
-
-    // Pass 2: Create container nodes bottom-up
-    let mut changed = true;
-    let mut iterations = 0;
-    let max_iter = flat_nodes.len() + 1;
-    while changed && iterations < max_iter {
-        changed = false;
-        iterations += 1;
-        for (i, fb_node) in flat_nodes.iter().enumerate() {
-            if node_map[i].1 {
-                continue;
-            }
-            let children = match fb_node.children() {
-                Some(c) => c,
-                None => continue,
-            };
-            if children.is_empty() {
-                continue;
-            }
-            let all_ready = children.iter().all(|ci| node_map[ci as usize].1);
-            if all_ready {
-                let style = flat_style_to_taffy(&fb_node.style().unwrap());
-                let child_ids: Vec<NodeId> =
-                    children.iter().map(|ci| node_map[ci as usize].0).collect();
-                let id = taffy
-                    .new_with_children(style, &child_ids)
-                    .expect("Failed to create container node");
-                for ci in children.iter() {
-                    claimed[ci as usize] = true;
-                }
-                // Text nodes (paragraphs) with inline-block children still need
-                // their measure closure: attach the context so Taffy measures
-                // the text content AND lays out the (absolute) children.
-                if fb_node.node_type() == 1 {
-                    taffy.set_node_context(
-                        id,
-                        Some(NodeContext {
-                            flat_index: i,
-                            node_type: fb_node.node_type() as u8,
-                        }),
-                    );
-                }
-                node_map[i] = (id, true);
-                changed = true;
-            }
-        }
-    }
-
-    // Pass 3: Create a synthetic root to group all top-level flat nodes.
-    // LytDocument extends LytNode, NOT LytBlock, so the document itself is not
-    // a flat node and has no Taffy parent — every top-level block is an
-    // "orphan" the synthetic root must adopt. Nodes already claimed as a
-    // container's child in Pass 2 must NOT be adopted: adopting them again
-    // would re-parent (and thereby flatten) the whole tree.
-    let root_child_ids: Vec<NodeId> = node_map
-        .iter()
-        .enumerate()
-        .filter(|(i, (_, created))| *created && !claimed[*i])
-        .map(|(_, (id, _))| *id)
-        .collect();
-    let root_id = if root_child_ids.is_empty() {
-        taffy
-            .new_leaf(Style::default())
-            .expect("Failed to create fallback root")
-    } else {
-        // Column flex so children stack vertically. Match Java LytDocument
-        // padding 5 — unconditionally: single-child pages must get the same
-        // origin/width as multi-child ones (D-2).
-        let root_style = Style {
-            display: Display::Flex,
-            flex_direction: FlexDirection::Column,
-            size: Size { width: Dimension::from_length(avail_width), height: Dimension::AUTO },
-            padding: Rect {
-                left: LengthPercentage::length(5.0),
-                top: LengthPercentage::length(5.0),
-                right: LengthPercentage::length(5.0),
-                bottom: LengthPercentage::length(5.0),
-            },
-            ..Default::default()
-        };
-        taffy.new_with_children(root_style, &root_child_ids)
-            .expect("Failed to create synthetic root")
-    };
-
-    // ── Compute layout with measure ──
-    let mut glyph_acc: HashMap<usize, GlyphAccum> = HashMap::new();
-    let measure_fn =
-        create_measure_closure(font_system, &flat_nodes, &mut glyph_acc, input.justify() != 0);
-
-    let available = Size {
-        width: AvailableSpace::Definite(avail_width),
-        height: AvailableSpace::MaxContent,
-    };
-
-    taffy
-        .compute_layout_with_measure(root_id, available, measure_fn)
-        .expect("Layout computation failed");
-
-    // ── Collect results ──
-    let mut fbb = FlatBufferBuilder::with_capacity(4096);
-
-    // Taffy's Layout.location is relative to the PARENT's coordinate frame, so
-    // absolute document positions must be accumulated down the tree. The flat
-    // array registers parents before their children (depth-first flattening),
-    // so a single forward pass suffices.
-    let mut flat_parent: Vec<Option<usize>> = vec![None; flat_nodes.len()];
-    for (i, fb) in flat_nodes.iter().enumerate() {
+    // Document-top sequence = flat nodes not claimed as any container's child
+    // (the orphans the legacy synthetic root adopted; the pusher drives them).
+    let mut claimed = vec![false; flat_nodes.len()];
+    for fb in flat_nodes.iter() {
         if let Some(ch) = fb.children() {
             for ci in ch.iter() {
-                flat_parent[ci as usize] = Some(i);
+                claimed[ci as usize] = true;
             }
         }
     }
+    let top_seq: Vec<usize> = (0..flat_nodes.len()).filter(|i| !claimed[*i]).collect();
+
+    let mut taffy: TaffyTree<NodeContext> = TaffyTree::new();
     let mut abs_positions: Vec<(f32, f32)> = vec![(0.0, 0.0); flat_nodes.len()];
     let mut sizes: Vec<(f32, f32)> = vec![(0.0, 0.0); flat_nodes.len()];
+    let mut glyph_acc: HashMap<usize, GlyphAccum> = HashMap::new();
+    let mut float_table: Vec<FloatRect> = Vec::new();
+    let mut cursor: f32 = 0.0;
 
-    // Pass A: absolute positions and sizes for every node.
-    for (i, _fb_node) in flat_nodes.iter().enumerate() {
-        if !node_map[i].1 {
+    for &idx in &top_seq {
+        let fb = &flat_nodes[idx];
+        let (ml, mt, mr, mb, pos_abs, float_side, node_type) = match fb.style() {
+            Some(s) => (
+                s.margin_left(),
+                s.margin_top(),
+                s.margin_right(),
+                s.margin_bottom(),
+                s.position() == 1,
+                s.float(),
+                fb.node_type(),
+            ),
+            None => (0.0, 0.0, 0.0, 0.0, false, 0, fb.node_type()),
+        };
+
+        if pos_abs {
+            // Inline block: position is assigned later by the inline post-pass;
+            // only its subtree size is needed here.
+            let (w, h, _sub) = build_subtree(
+                &mut taffy,
+                idx,
+                &flat_nodes,
+                font_system,
+                &mut glyph_acc,
+                justify,
+                &mut abs_positions,
+                &mut sizes,
+                0.0,
+                0.0,
+                None,
+            );
+            sizes[idx] = (w, h);
+            abs_positions[idx] = (0.0, 0.0);
             continue;
         }
-        let layout = taffy
-            .layout(node_map[i].0)
-            .expect("Failed to get layout");
-        let parent_pos = flat_parent[i]
-            .map(|p| abs_positions[p])
-            .unwrap_or((0.0, 0.0));
-        abs_positions[i] = (parent_pos.0 + layout.location.x, parent_pos.1 + layout.location.y);
-        sizes[i] = (layout.size.width, layout.size.height);
+
+        if float_side == 1 || float_side == 2 {
+            let right = float_side == 2;
+            let (w, h, sub) = build_subtree(
+                &mut taffy,
+                idx,
+                &flat_nodes,
+                font_system,
+                &mut glyph_acc,
+                justify,
+                &mut abs_positions,
+                &mut sizes,
+                0.0,
+                0.0,
+                None,
+            );
+            let fy = content_y + cursor;
+            let fx = if right {
+                content_x + content_w - w
+            } else {
+                content_x
+            };
+            for &si in &sub {
+                abs_positions[si] = (abs_positions[si].0 + fx, abs_positions[si].1 + fy);
+            }
+            sizes[idx] = (w, h);
+            // The float's gap is expressed as the inner's margin (CSS-correct):
+            // the registered rectangle is the margin box, the drawn box is the
+            // content box.
+            float_table.push(FloatRect {
+                x: fx - ml,
+                y: fy - mt,
+                w: w + ml + mr,
+                h: h + mt + mb,
+                right,
+            });
+            // A float does not advance the vertical cursor (zero flow height).
+            continue;
+        }
+
+        if node_type == 1 {
+            let para_abs_y = content_y + cursor;
+            let para_x = content_x;
+            let avail = Size {
+                width: AvailableSpace::Definite(content_w),
+                height: AvailableSpace::MaxContent,
+            };
+            let sz = measure_text(
+                font_system,
+                &flat_nodes,
+                idx,
+                &mut glyph_acc,
+                avail,
+                justify,
+                &float_table,
+                para_abs_y,
+                para_x,
+            );
+            abs_positions[idx] = (para_x, para_abs_y);
+            sizes[idx] = (sz.width, sz.height);
+            cursor += sz.height + mt + mb;
+            continue;
+        }
+
+        // Block container / image / slot / latex / break: top-level gets the
+        // full content width (legacy verticalLayout stretches top blocks).
+        let by = content_y + cursor;
+        let (w, h, _sub) = build_subtree(
+            &mut taffy,
+            idx,
+            &flat_nodes,
+            font_system,
+            &mut glyph_acc,
+            justify,
+            &mut abs_positions,
+            &mut sizes,
+            content_x,
+            by,
+            Some(content_w),
+        );
+        sizes[idx] = (w, h);
+        if let Some(c) = fb.style().map(|s| s.clear()) {
+            if c != 0 {
+                let mut cleared: f32 = 0.0;
+                for f in &float_table {
+                    let side_match =
+                        c == 3 || (c == 1 && !f.right) || (c == 2 && f.right);
+                    if side_match {
+                        cleared = cleared.max(f.y + f.h);
+                    }
+                }
+                let cleared_rel = (cleared - content_y).max(0.0);
+                if cleared_rel > cursor {
+                    cursor = cleared_rel;
+                }
+            }
+        }
+        cursor += h + mt + mb;
     }
 
     // Inline post-pass: anchor inline blocks at their parley InlineBox
     // positions and grow lines vertically per their align modes.
     inline_post_pass(&flat_nodes, &mut glyph_acc, &mut abs_positions, &mut sizes);
 
-    // Content height = the synthetic root's own box (its Column flex height
-    // already sums in-flow children + padding). Do NOT max over all nodes:
-    // scroll-clipped content inside viewports would inflate the page height
-    // (D-4); absolute floats may extend below — Java takes max(rust, java)
-    // where javaHeight already includes the float-bottom extension.
-    let root_layout = taffy
-        .layout(root_id)
-        .expect("Failed to get root layout");
-    let total_height = root_layout.location.y + root_layout.size.height;
+    // Content height = cursor plus any trailing float that extends below it.
+    let mut total_height = content_y + cursor;
+    for f in &float_table {
+        total_height = total_height.max(f.y + f.h);
+    }
 
+    // ── Collect results ──
+    let mut fbb = FlatBufferBuilder::with_capacity(4096);
     let mut flat_layout_offsets: Vec<flatbuffers::WIPOffset<FlatLayout>> = Vec::new();
     let mut glyph_run_offsets: Vec<flatbuffers::WIPOffset<GlyphRun>> = Vec::new();
     let mut decoration_offsets: Vec<flatbuffers::WIPOffset<DecorationRect>> = Vec::new();
 
-    // Unique glyph bitmaps for the whole result, deduplicated by a stable
-    // content key derived from the swash CacheKey (font, glyph, size, subpixel
-    // bin, weight, flags). Java uses the u64 as an opaque atlas cache key.
     let mut bitmap_keys: Vec<u64> = Vec::new();
     let mut bitmap_data: Vec<(u32, u32, Vec<u8>)> = Vec::new();
     let mut bitmap_index: std::collections::HashSet<u64> = std::collections::HashSet::new();
 
-    // Pass B: emit FlatLayouts, glyph runs and bitmaps.
     for (i, _fb_node) in flat_nodes.iter().enumerate() {
-        if !node_map[i].1 {
-            // Emit a placeholder so the FlatLayout vector stays index-aligned
-            // with the input flat_nodes array (Java joins by index).
-            flat_layout_offsets.push(FlatLayout::create(
-                &mut fbb,
-                &FlatLayoutArgs { x: 0.0, y: 0.0, w: 0.0, h: 0.0, order: 0 },
-            ));
-            continue;
-        }
-        let layout = taffy
-            .layout(node_map[i].0)
-            .expect("Failed to get layout");
-
         let (x, y) = abs_positions[i];
         let (w, h) = sizes[i];
 
         flat_layout_offsets.push(FlatLayout::create(
             &mut fbb,
-            &FlatLayoutArgs { x, y, w, h, order: layout.order },
+            &FlatLayoutArgs {
+                x,
+                y,
+                w,
+                h,
+                order: 0,
+            },
         ));
 
-        // Glyph runs: rasterize each shaped glyph at its absolute document
-        // position. The cache key comes from the shaping outcome (correct
-        // font/weight/flags/subpixel bin) — never rebuilt from raw glyph ids.
-        // Rich paragraphs yield one GlyphRun per span (argb = span color,
-        // shear = span italic); decoration rects come from per-line span
-        // glyph extents.
         if let Some(acc) = glyph_acc.remove(&i) {
             let span_styles = span_style_table(&flat_nodes[i]);
             let base_color = flat_nodes[i]
@@ -273,8 +266,6 @@ pub fn compute_layout(
                         y: y + q.y,
                         w: q.w,
                         h: q.h,
-                        // Byte ranges are unavailable in the parley path and
-                        // have no consumers.
                         start: 0,
                         end: 0,
                         line_index: q.line_index,
@@ -288,8 +279,6 @@ pub fn compute_layout(
                 let (argb, shear) = span_styles
                     .get(si as usize)
                     .map(|s| (s.color, s.italic))
-                    // Single-style runs tint with the paragraph's base color
-                    // (the atlas bitmaps are white — C-1).
                     .unwrap_or((base_color, false));
                 let glyphs_vec = fbb.create_vector(&placed_offsets);
                 glyph_run_offsets.push(GlyphRun::create(
@@ -302,7 +291,15 @@ pub fn compute_layout(
                     },
                 ));
             }
-            emit_decorations(&acc.glyphs, &span_styles, i as u32, x, y, &mut fbb, &mut decoration_offsets);
+            emit_decorations(
+                &acc.glyphs,
+                &span_styles,
+                i as u32,
+                x,
+                y,
+                &mut fbb,
+                &mut decoration_offsets,
+            );
         }
     }
 
@@ -325,31 +322,13 @@ pub fn compute_layout(
     }
     let bitmaps_vec = fbb.create_vector(&bitmap_offsets);
 
-    // Build per-node diagnostic string for Java-side logging
-    let mut dbg = format!(
-        "total_height={} |nodes={} created={} synth_root={}",
+    let debug_info_str = fbb.create_string(&format!(
+        "total_height={} nodes={} top={} floats={}",
         total_height,
         flat_nodes.len(),
-        node_map.iter().filter(|(_, ok)| *ok).count(),
-        root_child_ids.len(),
-    );
-    for (i, fb) in flat_nodes.iter().enumerate() {
-        if !node_map[i].1 { continue; }
-        if let Ok(l) = taffy.layout(node_map[i].0) {
-            let ty = fb.node_type();
-            let (x, y, w_, h_) = (l.location.x, l.location.y, l.size.width, l.size.height);
-            let tb = if ty == 1 {
-                fb.text().and_then(|t| t.text()).map(|s| format!(" tlen={}", s.len())).unwrap_or_default()
-            } else if ty == 0 {
-                fb.children().map(|c| format!(" c={}", c.len())).unwrap_or_default()
-            } else {
-                String::new()
-            };
-            dbg.push_str(&format!(" |[{}]t{}@({:.0},{:.0})s({:.0},{:.0}){}",
-                i, ty, x, y, w_, h_, tb));
-        }
-    }
-    let debug_info_str = fbb.create_string(&dbg);
+        top_seq.len(),
+        float_table.len(),
+    ));
 
     let result = LayoutResult::create(
         &mut fbb,
@@ -365,6 +344,136 @@ pub fn compute_layout(
 
     fbb.finish(result, None);
     fbb.finished_data().to_vec()
+}
+
+/// Lay out one flat node and its descendants as an isolated taffy subtree,
+/// returning the node's size and the list of flat indices it covers. Absolute
+/// positions are written relative to `(base_x, base_y)`. Paragraphs inside the
+/// subtree are measured at full width (transition: the pusher's float context
+/// does not yet recurse into block subtrees).
+fn build_subtree(
+    taffy: &mut TaffyTree<NodeContext>,
+    idx: usize,
+    flat_nodes: &[FlatNode],
+    font_system: &mut GuideFontSystem,
+    glyph_acc: &mut HashMap<usize, GlyphAccum>,
+    justify: bool,
+    abs_positions: &mut Vec<(f32, f32)>,
+    sizes: &mut Vec<(f32, f32)>,
+    base_x: f32,
+    base_y: f32,
+    known_w: Option<f32>,
+) -> (f32, f32, Vec<usize>) {
+    let mut node_id_of: Vec<Option<NodeId>> = vec![None; flat_nodes.len()];
+    let mut sub: Vec<usize> = Vec::new();
+
+    fn build(
+        taffy: &mut TaffyTree<NodeContext>,
+        idx: usize,
+        flat_nodes: &[FlatNode],
+        node_id_of: &mut Vec<Option<NodeId>>,
+        sub: &mut Vec<usize>,
+    ) -> NodeId {
+        sub.push(idx);
+        let fb = &flat_nodes[idx];
+        let style = fb
+            .style()
+            .map(|s| flat_style_to_taffy(&s))
+            .unwrap_or_default();
+        let nt = fb.node_type();
+        let has_children = fb.children().map_or(false, |c| !c.is_empty());
+        if !has_children || nt == 1 {
+            let id = taffy
+                .new_leaf_with_context(
+                    style,
+                    NodeContext {
+                        flat_index: idx,
+                        node_type: nt as u8,
+                    },
+                )
+                .expect("leaf");
+            node_id_of[idx] = Some(id);
+            return id;
+        }
+        let child_idxs: Vec<usize> = fb
+            .children()
+            .unwrap()
+            .iter()
+            .map(|ci| ci as usize)
+            .collect();
+        let child_ids: Vec<NodeId> = child_idxs
+            .iter()
+            .map(|ci| build(taffy, *ci, flat_nodes, node_id_of, sub))
+            .collect();
+        let id = taffy
+            .new_with_children(style, &child_ids)
+            .expect("container");
+        if nt == 1 {
+            let _ = taffy.set_node_context(
+                id,
+                Some(NodeContext {
+                    flat_index: idx,
+                    node_type: nt as u8,
+                }),
+            );
+        }
+        node_id_of[idx] = Some(id);
+        id
+    }
+
+    let root_id = build(taffy, idx, flat_nodes, &mut node_id_of, &mut sub);
+
+    let mut measure_fn = create_measure_closure(font_system, flat_nodes, glyph_acc, justify);
+    let avail = Size {
+        width: known_w
+            .map(AvailableSpace::Definite)
+            .unwrap_or(AvailableSpace::MaxContent),
+        height: AvailableSpace::MaxContent,
+    };
+    taffy
+        .compute_layout_with_measure(root_id, avail, &mut measure_fn)
+        .expect("subtree layout");
+
+    fn read(
+        taffy: &TaffyTree<NodeContext>,
+        idx: usize,
+        flat_nodes: &[FlatNode],
+        node_id_of: &[Option<NodeId>],
+        abs_positions: &mut Vec<(f32, f32)>,
+        sizes: &mut Vec<(f32, f32)>,
+        parent_abs: (f32, f32),
+    ) {
+        let id = node_id_of[idx].expect("node id");
+        let l = taffy.layout(id).expect("layout");
+        let abs = (parent_abs.0 + l.location.x, parent_abs.1 + l.location.y);
+        abs_positions[idx] = abs;
+        sizes[idx] = (l.size.width, l.size.height);
+        if let Some(ch) = flat_nodes[idx].children() {
+            for ci in ch.iter() {
+                read(taffy, ci as usize, flat_nodes, node_id_of, abs_positions, sizes, abs);
+            }
+        }
+    }
+
+    let rl = taffy.layout(root_id).expect("root layout");
+    let root_abs = (base_x + rl.location.x, base_y + rl.location.y);
+    abs_positions[idx] = root_abs;
+    sizes[idx] = (rl.size.width, rl.size.height);
+    if let Some(ch) = flat_nodes[idx].children() {
+        for ci in ch.iter() {
+            read(
+                taffy,
+                ci as usize,
+                flat_nodes,
+                &node_id_of,
+                abs_positions,
+                sizes,
+                root_abs,
+            );
+        }
+    }
+
+    (rl.size.width, rl.size.height, sub)
 }
 
 /// Inline post-pass: for every text node with inline-block markers, anchor
@@ -610,7 +719,7 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
         .map(|l| l.metrics().baseline - l.metrics().block_min_coord)
         .unwrap_or(scaled);
     let (glyphs, _markers, max_x) =
-        crate::parley_text::collect_layout(&layout, &[], max_w.unwrap_or(f32::MAX));
+        crate::parley_text::collect_layout(&layout, &[], 0.0, 0.0, max_w.unwrap_or(f32::MAX));
     let (quads, bitmaps) = crate::parley_text::rasterize_out_glyphs(&glyphs, render_scale);
 
     let mut fbb = flatbuffers::FlatBufferBuilder::with_capacity(4096);

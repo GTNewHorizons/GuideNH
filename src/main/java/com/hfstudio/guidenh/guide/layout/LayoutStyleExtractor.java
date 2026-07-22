@@ -6,6 +6,7 @@ import com.hfstudio.guidenh.guide.document.block.LytAxisBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBox;
 import com.hfstudio.guidenh.guide.document.block.LytCodeBlockToolbar;
+import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytItemGrid;
 import com.hfstudio.guidenh.guide.document.block.LytSizeBox;
@@ -43,22 +44,20 @@ public final class LayoutStyleExtractor {
 
     private LayoutStyleExtractor() {}
 
-    /** Absolute-position lowering for floated blocks: inset + size in px, relative to the flattened parent. */
+    /** Absolute-position lowering for inline blocks: inset + size in px, relative to the flattened parent. */
     public record FloatAbs(int insetLeft, int insetTop, int width, int height) {}
-
-    /** Lane pinning for float-adjacent blocks: extra margin-left and explicit width in px. */
-    public record LanePin(int marginLeft, int width) {}
 
     /**
      * Per-node style adjustments computed by {@code LayoutTreeSerializer} while
-     * lowering the tree. {@code minHeight} bridges the Java flow height of a
-     * paragraph whose height was extended by a float-clearing break (the break
-     * has no text, so Rust cannot measure the cleared space).
+     * lowering the tree. {@code floatSide} (0 none, 1 left, 2 right) is set on a
+     * floated block's inner so the Rust pusher treats it as a real CSS float
+     * (the float gap rides the inner's margin); {@code abs} lowers inline blocks
+     * to position:absolute.
      */
-    public record NodeAdjustments(int marginT, int marginR, int marginB, int marginL, FloatAbs abs, LanePin lane,
-        float flexGrow, int minHeight) {
+    public record NodeAdjustments(int marginT, int marginR, int marginB, int marginL, FloatAbs abs,
+        float flexGrow, int floatSide, int columnWidth) {
 
-        public static final NodeAdjustments ZERO = new NodeAdjustments(0, 0, 0, 0, null, null, 0f, 0);
+        public static final NodeAdjustments ZERO = new NodeAdjustments(0, 0, 0, 0, null, 0f, 0, 0);
     }
 
     /** Build a FlatBuffer Style from a LytBlock node. Extracts all layout-relevant fields. */
@@ -81,7 +80,7 @@ public final class LayoutStyleExtractor {
             fbb,
             block,
             Flags.NONE,
-            new NodeAdjustments(marginOffT, marginOffR, marginOffB, marginOffL, null, null, 0f, 0));
+            new NodeAdjustments(marginOffT, marginOffR, marginOffB, marginOffL, null, 0f, 0, 0));
     }
 
     /**
@@ -130,15 +129,17 @@ public final class LayoutStyleExtractor {
             if (explicitH <= 0 && b != null) explicitH = b.height();
         }
 
-        // ---- compiler lowering: float de-sugar ------------------------------
-        // Float-adjacent blocks are pinned to their Java lane: margin-left
-        // displacement + explicit lane width.
-        if (adj.lane() != null && explicitW <= 0) {
-            explicitW = adj.lane()
-                .width();
+        // Table cells keep their Java-resolved column width so cell content
+        // wraps at the column width (column model not yet on taffy Grid).
+        if (adj.columnWidth() > 0 && explicitW <= 0) {
+            explicitW = adj.columnWidth();
         }
-        // Floated blocks become position:absolute with their Java rect as
-        // inset + size (out of flow, zero flow height — exactly CSS float).
+
+        // ---- compiler lowering: inline-block absolute sizing -----------------
+        // Inline blocks become position:absolute with their visual box as inset
+        // + size (out of flow). Document-level floats are NOT lowered here: the
+        // inner carries a real `float` (floatSide) and the Rust pusher lays it
+        // out, with the float gap expressed as the inner's margin.
         if (adj.abs() != null) {
             explicitW = adj.abs()
                 .width();
@@ -160,27 +161,26 @@ public final class LayoutStyleExtractor {
             sizeHOff = dimAuto(fbb);
         }
 
-        // Clear-break bridge: reserve the Java flow height of a paragraph whose
-        // height was extended by <br clear="..."/> so following blocks stack
-        // below the float (Rust measures only the text — the break has none).
-        if (adj.minHeight() > 0) {
-            minHOff = dimPx(fbb, adj.minHeight());
-        }
-
         float marginL = block.getMarginLeft() + adj.marginL();
         float marginR = block.getMarginRight() + adj.marginR();
         float marginT = block.getMarginTop() + adj.marginT();
         float marginB = block.getMarginBottom() + adj.marginB();
-        if (adj.lane() != null) {
-            marginL += adj.lane()
-                .marginLeft();
-        }
         if (adj.abs() != null) {
             // Absolutely-positioned (floated) blocks: margins are meaningless.
             marginL = 0;
             marginR = 0;
             marginT = 0;
             marginB = 0;
+        }
+        // Float gap rides the inner's margin on the text-facing side + bottom,
+        // so the pusher's registered (margin-box) rectangle keeps FLOAT_GAP
+        // clear of the float content while the drawn box stays the content box.
+        if (adj.floatSide() == 2) {
+            marginL += LytDocumentFloat.FLOAT_GAP;
+            marginB += LytDocumentFloat.FLOAT_GAP;
+        } else if (adj.floatSide() == 1) {
+            marginR += LytDocumentFloat.FLOAT_GAP;
+            marginB += LytDocumentFloat.FLOAT_GAP;
         }
         float padL = 0;
         float padR = 0;
@@ -223,7 +223,7 @@ public final class LayoutStyleExtractor {
         float flexShrink = block.getParent() instanceof LytViewportBox ? 0f : 1f;
         int flexBasisOff = 0;
 
-        byte float_ = 0; // floats are lowered to absolute positioning, never emitted
+        byte float_ = (byte) adj.floatSide(); // 0 none, 1 left, 2 right — real CSS float for the pusher
         byte clear = 0;
 
         byte position = 0;

@@ -54,64 +54,44 @@ public class LayoutTreeSerializer {
     /** Margins accumulated from eliminated ancestors, applied during style extraction. */
     private final Map<LytBlock, MarginAccum> marginOffsets = new IdentityHashMap<>();
     /**
-     * Absolute-position lowering for {@link LytDocumentFloat} inners and
-     * paragraph-inline blocks: inset + size in px relative to the Rust parent's
-     * content box. For document floats the parent is the wrapper itself, kept
-     * in the tree as an in-flow, zero-height anchor at the float's document
-     * slot — the floated block is emitted as {@code position:absolute} with
-     * {@code insetTop = 0} (out of flow, exactly the CSS float "zero flow
-     * height" semantics) so its vertical position always tracks the Rust flow
-     * instead of a replayed Java coordinate.
+     * Absolute-position lowering for paragraph-inline blocks only: inset + size
+     * in px relative to the Rust parent's content box. (Document-level floats no
+     * longer lower to absolute — the inner carries a real `float` instead.)
      */
     private final Map<LytBlock, LayoutStyleExtractor.FloatAbs> absoluteFloats = new IdentityHashMap<>();
     /**
-     * Lane pinning for float-adjacent blocks: margin-left displacement +
-     * explicit width in px, taken from the Java layout (the float registry is
-     * order-dependent, so the compiler replays it while flattening).
+     * Float side (1 left, 2 right) for a floated block's inner, set when the
+     * {@link LytDocumentFloat} wrapper is eliminated so the inner is emitted as a
+     * real CSS float for the Rust pusher.
      */
-    private final Map<LytBlock, LayoutStyleExtractor.LanePin> lanePins = new IdentityHashMap<>();
+    private final Map<LytBlock, Integer> floatIntents = new IdentityHashMap<>();
+    /** Table-cell column widths (px), kept until the column model moves to taffy Grid. */
+    private final Map<LytBlock, Integer> columnWidths = new IdentityHashMap<>();
     /** Flex-grow overrides (e.g. the code toolbar's language label). */
     private final Map<LytBlock, Float> flexGrowOverrides = new IdentityHashMap<>();
     /** Extra margin-left for a specific child (e.g. the recipe output slot's arrow gap). */
     private final Map<LytBlock, Integer> marginLeftAdjust = new IdentityHashMap<>();
-    /** Float-wrap forbidden intervals for text paragraphs (per-line clip query). */
-    private final Map<LytBlock, List<LayoutNodeSerializer.FloatClipSpec>> floatClips = new IdentityHashMap<>();
     /**
-     * Clear-break bridge: a paragraph containing a {@code <br clear="..."/>
-     * } has
-     * its Java flow height EXTENDED below the cleared floats (LineBuilder jumps
-     * lineBoxY), but the break contributes no text, so Rust measures only the
-     * text lines and the following blocks would stack too high — into the
-     * float's zone. The Java height is bridged as {@code min_h} so Taffy
-     * reserves the space.
+     * Float rects registered during serialize, in document coordinates. NOT fed
+     * to Rust (the pusher computes its own float geometry); retained solely as
+     * the test-only oracle for the harness glyph-vs-float overlap invariant.
+     * Filled from the Java-laid-out inner bounds at wrapper-elimination time.
      */
-    private final Map<LytBlock, Integer> clearMinHeights = new IdentityHashMap<>();
-    /** Float rects registered so far in document order (document coordinates + side). */
     private final List<FloatRect> floatRects = new ArrayList<>();
     /** Available layout width of the current serialize() call (for lane computation). */
     private float availWidth;
 
     record FloatRect(LytRect rect, boolean right) {}
 
-    /**
-     * A float wrapper (already emitted as an in-flow, zero-height anchor node)
-     * whose first real block descendant must become its absolutely-positioned
-     * child. {@code laneW} is the content width of the anchor's flattened
-     * parent — the anchor stretches to it, so the right-float inset is
-     * {@code laneW - innerWidth}.
-     */
-    record PendingFloat(LytDocumentFloat df, int laneW) {}
-
     public byte[] serialize(LytNode root, float availWidth, float visualScale, float renderScale) {
         flatNodes.clear();
         nodeToIndex.clear();
         marginOffsets.clear();
         absoluteFloats.clear();
-        lanePins.clear();
+        floatIntents.clear();
+        columnWidths.clear();
         flexGrowOverrides.clear();
         marginLeftAdjust.clear();
-        floatClips.clear();
-        clearMinHeights.clear();
         floatRects.clear();
         this.availWidth = availWidth;
 
@@ -148,9 +128,9 @@ public class LayoutTreeSerializer {
                 (int) mo.bottom(),
                 (int) mo.left() + marginLeftAdjust.getOrDefault(block, 0),
                 absoluteFloats.get(block),
-                lanePins.get(block),
                 flexGrowOverrides.getOrDefault(block, 0f),
-                clearMinHeights.getOrDefault(block, 0));
+                floatIntents.getOrDefault(block, 0),
+                columnWidths.getOrDefault(block, 0));
             int styleOff = LayoutStyleExtractor.build(fbb, block, flags, adj);
             List<LayoutNodeSerializer.InlineRef> inlineRefs = new ArrayList<>();
             if (block instanceof LytParagraph par) {
@@ -161,8 +141,7 @@ public class LayoutTreeSerializer {
                     }
                 }
             }
-            nodeOffsets[i] = LayoutNodeSerializer
-                .build(fbb, block, styleOff, childIndices, inlineRefs, floatClips.getOrDefault(block, List.of()));
+            nodeOffsets[i] = LayoutNodeSerializer.build(fbb, block, styleOff, childIndices, inlineRefs);
         }
 
         int nodesVec = fbb.createVectorOfTables(nodeOffsets);
@@ -230,7 +209,7 @@ public class LayoutTreeSerializer {
     private void flattenTree(LytNode node) {
         // Document content origin/width: Java pads the document by 5 (matches
         // the synthetic root padding in layout.rs).
-        flattenTree(node, MarginAccum.ZERO, null, 5, 5, Math.max(1, Math.round(availWidth) - 10));
+        flattenTree(node, MarginAccum.ZERO, 0, 5, 5, Math.max(1, Math.round(availWidth) - 10));
     }
 
     /**
@@ -241,7 +220,7 @@ public class LayoutTreeSerializer {
      * @param parentContentX/Y/W content origin and width of the nearest flattened
      *                           ancestor (for lane computation and absolute insets)
      */
-    private void flattenTree(LytNode node, MarginAccum inherited, @Nullable PendingFloat pendingFloat,
+    private void flattenTree(LytNode node, MarginAccum inherited, int pendingFloatSide,
         int parentContentX, int parentContentY, int parentContentW) {
         if (shouldEliminate(node)) {
             // Add this node's margins to the inherited accumulator
@@ -249,8 +228,21 @@ public class LayoutTreeSerializer {
             if (node instanceof LytBlock elided) {
                 total = total.add(elided);
             }
+            // A float wrapper is eliminated here: register its rect for the
+            // harness overlap oracle (from the Java-laid-out inner bounds) and
+            // forward the float side to the inner, which becomes a real float.
+            int childSide = pendingFloatSide;
+            if (node instanceof LytDocumentFloat df) {
+                LytRect inner = df.getBounds();
+                int gap = LytDocumentFloat.FLOAT_GAP;
+                LytRect frect = df.isFloatRight()
+                    ? new LytRect(inner.x() - gap, inner.y(), inner.width() + gap, inner.height() + gap)
+                    : new LytRect(inner.x(), inner.y(), inner.width() + gap, inner.height() + gap);
+                floatRects.add(new FloatRect(frect, df.isFloatRight()));
+                childSide = df.isFloatRight() ? 2 : 1;
+            }
             for (LytNode child : node.getChildren()) {
-                flattenTree(child, total, pendingFloat, parentContentX, parentContentY, parentContentW);
+                flattenTree(child, total, childSide, parentContentX, parentContentY, parentContentW);
             }
             return;
         }
@@ -269,41 +261,12 @@ public class LayoutTreeSerializer {
                 // serialized (e.g. LytFileTree's icon+payload rows).
                 return;
             }
-            if (block instanceof LytDocumentFloat df) {
-                // The float wrapper is NOT eliminated: it stays in the tree as
-                // an in-flow, zero-height ANCHOR (its own Java flow rect is
-                // (x, y, 0, 0)). Its position comes from the Rust flow, so the
-                // float can never detach from its document slot — replaying the
-                // Java-computed float y as a root-relative absolute inset broke
-                // whenever the two engines' flow cursors disagreed (margin
-                // collapse, line-height rounding), sliding floats up over
-                // earlier content. The inner becomes the anchor's absolute
-                // child below.
-                //
-                // Register the rect for the lane/clip replay (Java geometry).
-                // LytDocumentFloat.getBounds() returns the INNER's bounds; the
-                // registered rect mirrors the Java LayoutContext registration,
-                // which extends the rect by FLOAT_GAP (on the left for right
-                // floats, on the right for left floats).
-                LytRect inner = df.getBounds();
-                int gap = LytDocumentFloat.FLOAT_GAP;
-                LytRect frect = df.isFloatRight()
-                    ? new LytRect(inner.x() - gap, inner.y(), inner.width() + gap, inner.height() + gap)
-                    : new LytRect(inner.x(), inner.y(), inner.width() + gap, inner.height() + gap);
-                floatRects.add(new FloatRect(frect, df.isFloatRight()));
-                pendingFloat = new PendingFloat(df, parentContentW);
-            } else if (pendingFloat != null) {
-                // The float's inner: absolute child of the anchor, pinned at
-                // its near top corner (left edge for left floats, right edge
-                // for right floats). Top is 0 — the anchor already sits at the
-                // float's flow slot.
-                LytRect fb = block.getFlowBounds();
-                int insetL = pendingFloat.df()
-                    .isFloatRight() ? Math.max(0, pendingFloat.laneW() - fb.width()) : 0;
-                absoluteFloats.put(block, new LayoutStyleExtractor.FloatAbs(insetL, 0, fb.width(), fb.height()));
-                pendingFloat = null;
-            } else {
-                pinLaneIfFloatAdjacent(block, parentContentX, parentContentW);
+            if (pendingFloatSide != 0) {
+                // The float wrapper was eliminated up-stack; this inner becomes
+                // a real CSS float for the Rust pusher (the float gap is added
+                // to its margin during style extraction).
+                floatIntents.put(block, pendingFloatSide);
+                pendingFloatSide = 0;
             }
             applyChildRules(block);
             if (block instanceof LytTable table) {
@@ -317,7 +280,7 @@ public class LayoutTreeSerializer {
                     for (LytTableCell cell : row.getChildren()) {
                         var column = table.getColumns()
                             .get(ci++);
-                        lanePins.put(cell, new LayoutStyleExtractor.LanePin(0, column.getWidth()));
+                        columnWidths.put(cell, column.getWidth());
                     }
                 }
             }
@@ -346,12 +309,6 @@ public class LayoutTreeSerializer {
                             vh));
                 }
             }
-            if (block instanceof LytParagraph par && hasClearBreak(par)) {
-                clearMinHeights.put(
-                    par,
-                    par.getFlowBounds()
-                        .height());
-            }
             // This block becomes the nearest flattened ancestor for its children.
             parentContentX = contentOriginX(block);
             parentContentY = contentOriginY(block);
@@ -359,96 +316,7 @@ public class LayoutTreeSerializer {
         }
 
         for (LytNode child : node.getChildren()) {
-            flattenTree(child, MarginAccum.ZERO, pendingFloat, parentContentX, parentContentY, parentContentW);
-        }
-    }
-
-    /**
-     * Float lane computation, replayed from the Java layout results.
-     * <p>
-     * <b>Text paragraphs without inline blocks</b> get one {@code FloatClip}
-     * per vertically-overlapping float (paragraph-relative forbidden
-     * interval): the Rust line breaker subtracts clips from the available
-     * width per line — true CSS float wrapping, no lane pinning, no band
-     * pre-splitting.
-     * <b>Paragraphs with inline blocks</b> keep the whole-lane pin (grown
-     * lines would invalidate the clip's y math), and <b>non-text blocks</b>
-     * are only pinned when their Java bounds actually abut the float lane
-     * (edge-abutment detection; the registered float rect already includes
-     * FLOAT_GAP) — children of flex rows and naturally narrow blocks pass
-     * through unpinned.
-     */
-    private void pinLaneIfFloatAdjacent(LytBlock block, int parentContentX, int parentContentW) {
-        if (floatRects.isEmpty()) return;
-        LytRect b = block.getFlowBounds();
-        int naturalX = parentContentX + block.getMarginLeft();
-        int naturalRight = parentContentX + parentContentW - block.getMarginRight();
-
-        boolean isPlainText = LayoutNodeSerializer.resolveNodeType(block) == 1 && block instanceof LytParagraph par
-            && par.getInlineBlocks()
-                .isEmpty();
-        if (isPlainText) {
-            List<LayoutNodeSerializer.FloatClipSpec> clips = null;
-            for (FloatRect fr : floatRects) {
-                LytRect f = fr.rect();
-                if (f.bottom() <= b.y() || f.y() >= b.bottom()) continue;
-                int yTop = Math.max(f.y(), b.y()) - b.y();
-                int yBottom = Math.min(f.bottom(), b.bottom()) - b.y();
-                LayoutNodeSerializer.FloatClipSpec c = fr.right()
-                    // Right float: forbidden interval starts at the registered
-                    // rect's left edge — that edge already carries FLOAT_GAP,
-                    // so text wraps FLOAT_GAP px clear of the float's content
-                    // (mirrors the legacy getRightFloatLeftEdge() wrap edge).
-                    ? new LayoutNodeSerializer.FloatClipSpec(
-                        yTop,
-                        yBottom,
-                        f.x() - b.x(),
-                        Math.max(1, b.right() - f.x()))
-                    // Left float: forbidden interval [0, lane left).
-                    : new LayoutNodeSerializer.FloatClipSpec(yTop, yBottom, 0, f.right() - b.x());
-                if (clips == null) clips = new ArrayList<>();
-                clips.add(c);
-            }
-            if (clips != null) floatClips.put(block, clips);
-            return;
-        }
-
-        for (FloatRect fr : floatRects) {
-            LytRect f = fr.rect();
-            if (f.bottom() <= b.y() || f.y() >= b.bottom()) continue; // no vertical overlap
-            boolean isText = LayoutNodeSerializer.resolveNodeType(block) == 1;
-            if (fr.right()) {
-                // Right float: the registered rect's left edge already carries
-                // FLOAT_GAP, so the lane ends there — text stays FLOAT_GAP px
-                // clear of the float's content edge.
-                int laneRight = f.x();
-                int laneWidth = Math.max(1, laneRight - naturalX);
-                if (isText) {
-                    if (laneRight < naturalRight) {
-                        lanePins.put(block, new LayoutStyleExtractor.LanePin(0, laneWidth));
-                        return;
-                    }
-                }
-                if (!isText && b.x() == naturalX && Math.abs(b.right() - laneRight) <= 1) {
-                    lanePins.put(block, new LayoutStyleExtractor.LanePin(0, b.width()));
-                    return;
-                }
-            } else {
-                // Left float: the lane starts at the registered rect's right
-                // edge (content + gap).
-                int laneLeft = f.right();
-                int laneWidth = Math.max(1, naturalRight - laneLeft);
-                if (isText) {
-                    if (laneLeft > naturalX) {
-                        lanePins.put(block, new LayoutStyleExtractor.LanePin(laneLeft - naturalX, laneWidth));
-                        return;
-                    }
-                }
-                if (!isText && b.x() != naturalX && Math.abs(b.x() - laneLeft) <= 1) {
-                    lanePins.put(block, new LayoutStyleExtractor.LanePin(b.x() - naturalX, b.width()));
-                    return;
-                }
-            }
+            flattenTree(child, MarginAccum.ZERO, pendingFloatSide, parentContentX, parentContentY, parentContentW);
         }
     }
 
@@ -531,10 +399,14 @@ public class LayoutTreeSerializer {
             || name.contains("LytFlowInlineBlock")) {
             return true;
         }
-        // Blocks that are layout wrappers — eliminated in tree. Note that
-        // LytDocumentFloat is deliberately NOT eliminated: it becomes the
-        // in-flow zero-height anchor for its floated child (see flattenTree).
+        // Blocks that are layout wrappers — eliminated in tree. LytDocumentFloat
+        // is eliminated too: its inner is re-emitted as a real CSS float (the
+        // wrapper's only remaining job — registering the harness oracle rect —
+        // happens in the elimination branch of flattenTree).
         if (node instanceof LytAlignedBlock) {
+            return true;
+        }
+        if (node instanceof LytDocumentFloat) {
             return true;
         }
         return false;

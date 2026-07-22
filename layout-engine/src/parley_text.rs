@@ -166,14 +166,18 @@ fn alpha_to_rgba(data: &[u8]) -> Vec<u8> {
 
 // ═══════════════ Phase 2: paragraph shaping core ═══════════════
 
-/// Forbidden interval (paragraph-relative); see FloatClip in the schema.
-/// `x <= 0` is a left-side clip (text starts right of x+width), otherwise a
-/// right-side clip (text ends at x).
-pub struct Clip {
-    pub y_top: f32,
-    pub y_bottom: f32,
+/// One registered document-level float, in absolute document coordinates.
+/// The pusher owns the float table and hands it to paragraph shaping so the
+/// line breaker can query the free interval per line in real time — there is
+/// no precomputed clip table and no cross-boundary geometry (the "bridge" is
+/// this in-process query). `right` mirrors CSS float side.
+#[derive(Clone, Copy)]
+pub struct FloatRect {
     pub x: f32,
-    pub width: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+    pub right: bool,
 }
 
 /// One styled span: byte range into the ORIGINAL (unstripped) text + bold
@@ -199,8 +203,15 @@ pub struct ShapeRequest<'a> {
     pub spans: &'a [SpanStyle],
     /// Inline blocks in document order (paired with U+FFFC anchors).
     pub inlines: &'a [InlineSpec],
-    /// Float-forbidden intervals (empty = uniform-width paragraph).
-    pub clips: &'a [Clip],
+    /// Document-level floats registered so far (absolute coords); empty =
+    /// uniform-width paragraph. Queried per line against the line's absolute y.
+    pub floats: &'a [FloatRect],
+    /// Absolute document y of this paragraph's top edge; line y for the float
+    /// query is `para_abs_y + line_relative_y`.
+    pub para_abs_y: f32,
+    /// Absolute document x of this paragraph's content origin; float edges are
+    /// converted to paragraph-relative by subtracting this.
+    pub para_x: f32,
     pub font_size: f32,
     pub font_scale: f32,
     pub max_width: f32,
@@ -292,30 +303,32 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
     }
     let mut layout = b.build(&clean);
 
-    // Break: uniform fast path, or per-line widths under float clips (the
-    // browser IFC loop: query the free interval at the line's y, hand it to
-    // the breaker, repeat).
-    if req.clips.is_empty() {
+    // Break: uniform fast path, or per-line widths under document floats (the
+    // browser IFC loop: query the free interval at the line's absolute y, hand
+    // it to the breaker, repeat). The float table is queried in real time — no
+    // precomputed clip table crosses any boundary.
+    if req.floats.is_empty() {
         layout.break_all_lines(Some(req.max_width));
     } else {
         let est_h = scaled * (10.0 / 9.0);
         let mut breaker = layout.break_lines();
-        // floor 1.0: min-content probes pass max_width=0, and parley asserts
-        // line_max ≤ layout_max (clip_query also floors at 1px).
+        // floor 1.0: min-content probes pass max_width=0, and query_floats also
+        // floors at 1px.
         breaker
             .state_mut()
             .set_layout_max_advance(req.max_width.max(1.0));
         while !breaker.is_done() {
-            let y = breaker.committed_y() as f32;
-            // NOTE: no set_line_x here — under Justify, parley bakes line_x
-            // into the glyph pens (the line fills [line_x, line_x+advance]),
-            // which would double-apply the indent: collect_layout already
-            // shifts every line by the clip's x0 once. The breaker only needs
-            // the per-line WIDTH; the horizontal placement is applied at
-            // collect time. The query uses the line TOP so a line that merely
-            // straddles a clip's boundary is still clipped (CSS: any overlap
-            // between the line box and the float's span narrows the line).
-            let (_, w) = clip_query(y, est_h, req.max_width, req.clips);
+            let rel_y = breaker.committed_y() as f32;
+            // The line's absolute y is the paragraph top plus the committed
+            // relative offset; the query converts float edges to paragraph-
+            // relative x using para_x.
+            let (_, w) = query_floats(
+                req.para_abs_y + rel_y,
+                est_h,
+                req.para_x,
+                req.max_width,
+                req.floats,
+            );
             breaker.state_mut().set_line_max_advance(w);
             if breaker.break_next().is_none() {
                 break;
@@ -332,7 +345,8 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         AlignmentOptions::default(),
     );
 
-    let (glyphs, markers, max_x) = collect_layout(&layout, req.clips, req.max_width);
+    let (glyphs, markers, max_x) =
+        collect_layout(&layout, req.floats, req.para_abs_y, req.para_x, req.max_width);
     ParleyShaped {
         glyphs,
         markers,
@@ -342,13 +356,15 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
 }
 
 /// Collect positioned glyphs + inline markers from a laid-out paragraph,
-/// applying per-line clip x offsets. The left-float indent lives ONLY here:
+/// applying per-line float x offsets. The left-float indent lives ONLY here:
 /// the breaker sets just the per-line width — under Justify, parley bakes a
 /// set_line_x origin into the glyph pens (line fills [line_x, line_x+adv]),
 /// so setting it at break time would shift every left-clipped line twice.
 pub fn collect_layout(
     layout: &Layout<SpanBrush>,
-    clips: &[Clip],
+    floats: &[FloatRect],
+    para_abs_y: f32,
+    para_x: f32,
     max_width: f32,
 ) -> (Vec<OutGlyph>, Vec<crate::measure::InlineMarker>, f32) {
     let mut glyphs = Vec::new();
@@ -356,16 +372,18 @@ pub fn collect_layout(
     let mut max_x = 0.0f32;
     for (li, line) in layout.lines().enumerate() {
         let m = line.metrics();
-        let (x_off, _) = if clips.is_empty() {
+        let (x_off, _) = if floats.is_empty() {
             (0.0, max_width)
         } else {
-            // Same query as the breaker: line top + full height (overlap
-            // semantics), so collect and break agree on every line's lane.
-            clip_query(
-                m.block_min_coord,
+            // Same query as the breaker: absolute line top + full height
+            // (overlap semantics), so collect and break agree on every line's
+            // lane.
+            query_floats(
+                para_abs_y + m.block_min_coord,
                 m.line_height,
+                para_x,
                 max_width,
-                clips,
+                floats,
             )
         };
         for item in line.items() {
@@ -418,19 +436,28 @@ pub fn collect_layout(
     )
 }
 
-/// The free horizontal interval for a line at [y, y+h): the node width minus
-/// every clip intersecting that band.
-fn clip_query(y: f32, h: f32, node_w: f32, clips: &[Clip]) -> (f32, f32) {
+/// The free horizontal interval (paragraph-relative) for a line whose absolute
+/// top is `abs_y` and height `h`: the node width minus every float intersecting
+/// that absolute band, with float edges converted to paragraph-relative by
+/// `para_x`. Left floats push the left edge right; right floats pull the right
+/// edge left.
+fn query_floats(
+    abs_y: f32,
+    h: f32,
+    para_x: f32,
+    node_w: f32,
+    floats: &[FloatRect],
+) -> (f32, f32) {
     let mut x0 = 0.0f32;
     let mut x1 = node_w;
-    for c in clips {
-        if c.y_bottom <= y || c.y_top >= y + h {
+    for f in floats {
+        if f.y + f.h <= abs_y || f.y >= abs_y + h {
             continue;
         }
-        if c.x <= 0.0 {
-            x0 = x0.max(c.x + c.width);
+        if f.right {
+            x1 = x1.min(f.x - para_x);
         } else {
-            x1 = x1.min(c.x);
+            x0 = x0.max(f.x + f.w - para_x);
         }
     }
     (x0, (x1 - x0).max(1.0))

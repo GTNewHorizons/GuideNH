@@ -96,7 +96,7 @@ pub fn create_measure_closure<'a>(
 
         let measured = match ctx.node_type {
             1 => measure_text(
-                font_system, flat_nodes, index, glyph_acc, known, available, justify,
+                font_system, flat_nodes, index, glyph_acc, available, justify, &[], 0.0, 0.0,
             ),
             2 => measure_image(flat_nodes, index),
             3 => measure_slot(flat_nodes, index),
@@ -115,14 +115,16 @@ pub fn create_measure_closure<'a>(
     }
 }
 
-fn measure_text(
+pub(crate) fn measure_text(
     fs: &mut GuideFontSystem,
     nodes: &[FlatNode],
     idx: usize,
     acc: &mut HashMap<usize, GlyphAccum>,
-    _known: Size<Option<f32>>,
     available: Size<AvailableSpace>,
     justify: bool,
+    floats: &[crate::parley_text::FloatRect],
+    para_abs_y: f32,
+    para_x: f32,
 ) -> Size<f32> {
     let node = &nodes[idx];
     let td = match node.text() {
@@ -175,20 +177,6 @@ fn measure_text(
         }
     }
 
-    // Float-wrap forbidden intervals (paragraph-relative; empty = uniform).
-    let clips: Vec<crate::parley_text::Clip> = match td.float_clips() {
-        Some(v) => v
-            .iter()
-            .map(|c| crate::parley_text::Clip {
-                y_top: c.y_top(),
-                y_bottom: c.y_bottom(),
-                x: c.x(),
-                width: c.width(),
-            })
-            .collect(),
-        None => Vec::new(),
-    };
-
     // The buffer is already at the scaled font size (parley_text), so the
     // wrap width is used as-is (D-1).
     let max_w = match available.width {
@@ -204,7 +192,9 @@ fn measure_text(
         text,
         spans: &span_styles,
         inlines: &inlines,
-        clips: &clips,
+        floats,
+        para_abs_y,
+        para_x,
         font_size,
         font_scale,
         max_width: max_w,
