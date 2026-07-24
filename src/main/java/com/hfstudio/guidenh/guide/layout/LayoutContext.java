@@ -32,15 +32,6 @@ public class LayoutContext implements FontMetrics {
         return this;
     }
 
-    public LayoutContext resetTransientState() {
-        visualScale = 1.0f;
-        leftFloats.clear();
-        rightFloats.clear();
-        cachedLeftFloatRightEdge = Integer.MIN_VALUE;
-        cachedRightFloatLeftEdge = Integer.MAX_VALUE;
-        return this;
-    }
-
     public void addLeftFloat(LytRect bounds) {
         leftFloats.add(bounds);
         cachedLeftFloatRightEdge = Integer.MIN_VALUE;
@@ -51,21 +42,8 @@ public class LayoutContext implements FontMetrics {
         cachedRightFloatLeftEdge = Integer.MAX_VALUE;
     }
 
-    /** Whether any floats are currently registered (left or right). */
-    public boolean hasActiveFloats() {
-        return !leftFloats.isEmpty() || !rightFloats.isEmpty();
-    }
-
-    public OptionalInt getLeftFloatRightEdge() {
-        if (leftFloats.isEmpty()) {
-            return OptionalInt.empty();
-        }
-        return OptionalInt.of(getLeftFloatRightEdgeOr(0));
-    }
-
     /**
      * Returns the right edge of the furthest-right left float, or {@code fallback} if there are none.
-     * Prefer this over {@link #getLeftFloatRightEdge()} in hot paths to avoid {@link OptionalInt} allocation.
      */
     public int getLeftFloatRightEdgeOr(int fallback) {
         if (leftFloats.isEmpty()) {
@@ -82,16 +60,8 @@ public class LayoutContext implements FontMetrics {
         return cachedLeftFloatRightEdge;
     }
 
-    public OptionalInt getRightFloatLeftEdge() {
-        if (rightFloats.isEmpty()) {
-            return OptionalInt.empty();
-        }
-        return OptionalInt.of(getRightFloatLeftEdgeOr(0));
-    }
-
     /**
      * Returns the left edge of the furthest-left right float, or {@code fallback} if there are none.
-     * Prefer this over {@link #getRightFloatLeftEdge()} in hot paths to avoid {@link OptionalInt} allocation.
      */
     public int getRightFloatLeftEdgeOr(int fallback) {
         if (rightFloats.isEmpty()) {

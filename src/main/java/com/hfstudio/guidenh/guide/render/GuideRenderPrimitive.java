@@ -126,6 +126,8 @@ public sealed interface GuideRenderPrimitive permits GuideRenderPrimitive.PushTr
     /**
      * A glyph quad at an absolute document coordinate (top-left origin), with the
      * key of its bitmap in the GuideGlyphAtlas. Used by DrawGlyphRun.
+     * {@code lineIndex} is the visual (wrapped) line the glyph belongs to within
+     * its paragraph, carried so line geometry can be rebuilt from glyph runs.
      */
-    record PlacedGlyph(long atlasKey, float x, float y, float w, float h) {}
+    record PlacedGlyph(long atlasKey, float x, float y, float w, float h, int lineIndex) {}
 }

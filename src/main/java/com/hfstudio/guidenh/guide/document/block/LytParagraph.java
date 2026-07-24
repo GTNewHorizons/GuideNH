@@ -1,16 +1,12 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Stream;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;
@@ -22,9 +18,6 @@ import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.internal.debug.DebugFlowContainer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
-import com.hfstudio.guidenh.guide.layout.flow.FlowBuilder;
-import com.hfstudio.guidenh.guide.layout.flow.LineElement;
-import com.hfstudio.guidenh.guide.layout.flow.LineTextRun;
 import com.hfstudio.guidenh.guide.render.GlyphRunData;
 import com.hfstudio.guidenh.guide.render.GlyphRunGroup;
 import com.hfstudio.guidenh.guide.render.GlyphRunHolder;
@@ -41,7 +34,7 @@ import lombok.Setter;
 
 public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlowContainer, GlyphRunHolder {
 
-    protected final FlowBuilder content = new FlowBuilder();
+    private final List<LytFlowContent> flowContent = new ArrayList<>();
 
     // Rich glyph output from Rust cosmic-text shaping (per-span runs + decorations)
     @Nullable
@@ -58,17 +51,14 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
     }
 
     /**
-     * Render through the primitive pipeline when either a Rust-shaped glyph run
-     * is available (mode 1: plain single-style paragraphs, rich multi-style
-     * paragraphs and paragraphs with inline blocks) or every span is statically
-     * styled (mode 2: per-span {@link GuideText} emission, the fallback when no
-     * glyph run was produced). Dynamic-style paragraphs (obfuscated, spoiler,
-     * float-aligned inline blocks) keep legacy HostDraw rendering.
+     * Render through the primitive pipeline when a Rust-shaped glyph run is
+     * available. Opaque paragraphs (§k/obfuscated, float-aligned inline blocks)
+     * keep legacy HostDraw rendering via {@link #render(RenderContext)}.
      */
     @Override
     public boolean usePrimitives() {
-        return (glyphData != null && !glyphData.runs()
-            .isEmpty()) || isStaticMultiStyle();
+        return glyphData != null && !glyphData.runs()
+            .isEmpty();
     }
 
     @Override
@@ -104,20 +94,17 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
 
     @Override
     protected void onExternalLayoutApplied(LytRect oldBounds, LytRect newBounds) {
-        // Flow lines are laid out in absolute document coordinates by the Java
-        // pass; when the external (Rust) engine re-anchors this paragraph, the
-        // flow content must follow — otherwise legacy-rendered paragraphs
-        // (opaque leaves, e.g. code block bodies) draw offset from their bounds
-        // and clip rects, and hover hit-tests diverge from the glyph quads.
-        int dx = newBounds.x() - oldBounds.x();
-        int dy = newBounds.y() - oldBounds.y();
-        if (dx != 0 || dy != 0) {
-            content.move(dx, dy);
-        }
     }
 
     @Override
     public void computePrimitives(PrimitiveCollector c) {
+        // Obfuscated (§k) paragraphs: render per-frame random characters via
+        // GuideText at the Rust-computed paragraph bounds. Layout geometry
+        // comes from Rust (single authority); animation is a rendering concern.
+        if (hasObfuscatedStyles(getContent())) {
+            emitObfuscatedText(c);
+            return;
+        }
         if (glyphData != null && !glyphData.runs()
             .isEmpty()) {
             // Span backgrounds (highlight / inline-code) behind the glyphs;
@@ -127,189 +114,131 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
             }
             int atlasTex = GuideGlyphAtlas.instance()
                 .getTextureId();
-            for (GlyphRunGroup group : glyphData.runs()) {
-                c.emit(new GuideRenderPrimitive.DrawGlyphRun(atlasTex, group.glyphs(), group.argb(), group.shear()));
+            List<LytFlowContent> spanOwners = hasSpoiler() ? collectSpanOwners() : null;
+            List<GlyphRunGroup> runs = glyphData.runs();
+            for (int si = 0; si < runs.size(); si++) {
+                GlyphRunGroup group = runs.get(si);
+                if (spanOwners != null && si < spanOwners.size() && isSpoilerHidden(spanOwners.get(si))) {
+                    emitSpoilerMask(c, group);
+                } else {
+                    c.emit(new GuideRenderPrimitive.DrawGlyphRun(atlasTex, group.glyphs(), group.argb(), group.shear()));
+                }
             }
             for (GuideRenderPrimitive.FillRect line : glyphData.lines()) {
                 c.emit(line);
             }
             return;
         }
-        if (isStaticMultiStyle()) {
-            emitStaticSpans(c);
+    }
+
+    private boolean hasSpoiler() {
+        for (LytFlowContent fc : getContent()) {
+            if (hasSpoilerIn(fc)) return true;
+        }
+        return false;
+    }
+
+    private static boolean hasSpoilerIn(LytFlowContent fc) {
+        if (fc instanceof LytSpoilerSpan) return true;
+        if (fc instanceof LytFlowSpan span) {
+            for (LytFlowContent child : span.getChildren()) {
+                if (hasSpoilerIn(child)) return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isSpoilerHidden(LytFlowContent owner) {
+        LytSpoilerSpan spoiler = owner.findAncestor(LytSpoilerSpan.class);
+        if (spoiler == null) return false;
+        if (owner instanceof LytSpoilerSpan) spoiler = (LytSpoilerSpan) owner;
+        boolean hovered = hoveredPath != null && hoveredPath.containsPrimaryOrDescendant(owner);
+        boolean revealed = revealedPath != null && revealedPath.containsOrAncestors(owner);
+        return !hovered && !revealed;
+    }
+
+    private static void emitSpoilerMask(PrimitiveCollector c, GlyphRunGroup group) {
+        if (group.glyphs()
+            .isEmpty()) return;
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE, maxX = 0, maxY = 0;
+        for (var g : group.glyphs()) {
+            minX = Math.min(minX, g.x());
+            minY = Math.min(minY, g.y());
+            maxX = Math.max(maxX, g.x() + g.w());
+            maxY = Math.max(maxY, g.y() + g.h());
+        }
+        c.emit(
+            new GuideRenderPrimitive.FillRect(
+                Math.round(minX) - 1,
+                Math.round(minY) - 1,
+                Math.round(maxX - minX) + 2,
+                Math.round(maxY - minY) + 2,
+                0xFF000000));
+    }
+
+    /**
+     * Emit obfuscated (§k) text via GuideText with per-frame random characters.
+     * Rust provides layout geometry (paragraph bounds); rendering is handled
+     * here as a native GuideText call — no LineBuilder dependency.
+     */
+    private void emitObfuscatedText(PrimitiveCollector c) {
+        StringBuilder text = new StringBuilder();
+        for (LytFlowContent fc : getContent()) {
+            collectObfuscatedText(fc, text);
+        }
+        if (text.isEmpty()) return;
+        StringBuilder random = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (Character.isWhitespace(ch)) {
+                random.append(ch);
+            } else {
+                random.append(randomObfuscatedChar());
+            }
+        }
+        GuideText.emitText(c, random.toString(), bounds.x(), bounds.y(), resolveStyle());
+    }
+
+    private static void collectObfuscatedText(LytFlowContent fc, StringBuilder out) {
+        if (fc instanceof LytFlowText ft) {
+            out.append(ft.getText());
+        } else if (fc instanceof LytFlowInlineBlock) {
+            out.append(' '); // placeholder space for inline blocks
+        } else if (fc instanceof LytFlowSpan fs) {
+            for (LytFlowContent child : fs.getChildren()) {
+                collectObfuscatedText(child, out);
+            }
         }
     }
 
-    /**
-     * Mode 2 rendering: emit each flow {@link LineTextRun} through
-     * {@link GuideText} at its flow-layout position, plus the decorations the
-     * glyph run cannot express (span backgrounds, underline, strikethrough).
-     * Hover styles are intentionally ignored (matches the glyph-run path);
-     * wavy/dotted underline and spoiler reveal are not yet implemented here.
-     */
-    private void emitStaticSpans(PrimitiveCollector c) {
-        LightDarkMode mode = LightDarkMode.current();
-        content.forEachTextRun(run -> {
-            ResolvedTextStyle style = run.style;
-            LytRect rect = run.bounds;
-            boolean inlineCode = style.inlineCode();
-            ColorValue backgroundColor = style.backgroundColor();
-            int width = rect.width();
-            int height = rect.height();
-            if (width > 0 && height > 0) {
-                if (inlineCode) {
-                    int backgroundArgb = mode == LightDarkMode.DARK_MODE ? LineTextRun.INLINE_CODE_BACKGROUND_DARK
-                        : LineTextRun.INLINE_CODE_BACKGROUND_LIGHT;
-                    c.emit(new GuideRenderPrimitive.FillRect(rect.x(), rect.y() - 1, width, height, backgroundArgb));
-                } else if (backgroundColor != null) {
-                    c.emit(
-                        new GuideRenderPrimitive.FillRect(
-                            rect.x() - 1,
-                            rect.y() - 1,
-                            width + 2,
-                            height,
-                            backgroundColor.resolve(mode)));
-                }
-            }
-            int textX = inlineCode ? rect.x() + LineTextRun.INLINE_CODE_PAD_X : rect.x();
-            GuideText.emitText(c, run.text, textX, rect.y(), style);
-            int textColor = GuideText.resolveColor(style);
-            if (style.underlined()) {
-                c.emit(
-                    new GuideRenderPrimitive.FillRect(
-                        rect.x(),
-                        rect.y() + GuideText.lineHeight(style) - 1,
-                        width,
-                        1,
-                        textColor));
-            }
-            if (style.strikethrough()) {
-                c.emit(
-                    new GuideRenderPrimitive.FillRect(
-                        rect.x(),
-                        rect.y() + GuideText.lineHeight(style) / 2,
-                        width,
-                        1,
-                        textColor));
-            }
-        });
+    private static char randomObfuscatedChar() {
+        // Fast per-frame random character from ASCII letters and digits,
+        // matching Minecraft's §k visual style.
+        long t = System.nanoTime();
+        int idx = (int) (t % 62);
+        if (idx < 26) return (char) ('A' + idx);
+        if (idx < 52) return (char) ('a' + idx - 26);
+        return (char) ('0' + idx - 52);
     }
 
     /**
-     * Mode 2 eligibility: no Rust glyph run (opaque leaf — guaranteed by the
-     * call sites), no dynamic styles, no inline blocks, and either multiple
-     * distinct resolved styles or any color/decoration the single-style glyph
-     * run would drop. {@code LayoutNodeSerializer.isOpaqueText} uses the
-     * narrower {@link #hasMultipleStylesOrDecorations} view of the same
-     * traversal so plain single-color paragraphs keep the glyph-run path,
-     * while already-opaque single-color paragraphs (PRE_WRAP code bodies)
-     * still render per-span here.
+     * Obfuscated-only detection: {@code §k} content cannot be baked into a
+     * static glyph run (per-frame random animation). Spoiler spans are NOT
+     * included — they get glyph runs with a render-time overlay.
      */
-    private boolean isStaticMultiStyle() {
-        return isStaticMultiStyleContent(getContent());
-    }
-
-    /**
-     * Static multi-style classification over a flow content tree. Returns
-     * {@code false} for dynamic content (spoiler spans, {@code §k}/obfuscated
-     * styles, float-aligned inline blocks — these keep legacy rendering) and
-     * for paragraphs containing inline blocks (those keep the Rust glyph run +
-     * inline post-pass). Hover styles do not count as dynamic.
-     */
-    public static boolean isStaticMultiStyleContent(Iterable<LytFlowContent> content) {
-        return classifyStaticContent(content, true);
-    }
-
-    /**
-     * Serializer-facing variant of {@link #isStaticMultiStyleContent}: counts
-     * only what the single-style glyph run structurally cannot express
-     * (multiple resolved styles, or any decoration). A single styled color is
-     * deliberately ignored here so plain paragraphs keep the glyph-run path;
-     * opaque single-color paragraphs (e.g. PRE_WRAP code bodies) still render
-     * per-span via mode 2, which applies the full color check.
-     */
-    public static boolean hasMultipleStylesOrDecorations(Iterable<LytFlowContent> content) {
-        return classifyStaticContent(content, false);
-    }
-
-    private static boolean classifyStaticContent(Iterable<LytFlowContent> content, boolean includeColor) {
-        Set<ResolvedTextStyle> styles = new HashSet<>();
+    public static boolean hasObfuscatedStyles(Iterable<LytFlowContent> content) {
         for (LytFlowContent fc : content) {
-            if (!collectStaticLeafStyles(fc, styles)) {
-                return false;
-            }
-        }
-        if (styles.size() >= 2) {
-            return true;
-        }
-        for (ResolvedTextStyle style : styles) {
-            if (hasDecoration(style)) {
-                return true;
-            }
-            if (includeColor && style.color() != null) {
+            if (hasObfuscatedIn(fc)) {
                 return true;
             }
         }
         return false;
     }
 
-    /**
-     * Depth-first leaf style collection. Returns {@code false} when the subtree
-     * contains dynamic content or an inline block (any alignment), which
-     * disqualifies the whole paragraph from mode 2.
-     */
-    private static boolean collectStaticLeafStyles(LytFlowContent fc, Set<ResolvedTextStyle> out) {
-        if (fc instanceof LytSpoilerSpan) {
-            return false; // spoiler reveal is dynamic
-        }
-        if (fc instanceof LytFlowInlineBlock) {
-            return false; // inline blocks keep the glyph-run / legacy paths
-        }
+    private static boolean hasObfuscatedIn(LytFlowContent fc) {
         if (fc instanceof LytFlowSpan span) {
             for (LytFlowContent child : span.getChildren()) {
-                if (!collectStaticLeafStyles(child, out)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        if (fc instanceof LytFlowText text) {
-            if (text.getText()
-                .contains("§k")) {
-                return false; // obfuscated runs are dynamic
-            }
-            ResolvedTextStyle style = fc.resolveStyle();
-            if (style.obfuscated()) {
-                return false;
-            }
-            out.add(style);
-        }
-        return true;
-    }
-
-    /**
-     * Dynamic-style detection for the serializer: content the baked-at-layout
-     * glyph run cannot express (spoiler reveal, {@code §k}/obfuscated). Such
-     * paragraphs must stay opaque (legacy rendering) — a glyph run would render
-     * spoilers in plain text and draw {@code §k} literally. Hover styles do not
-     * count as dynamic.
-     */
-    public static boolean hasDynamicStyles(Iterable<LytFlowContent> content) {
-        for (LytFlowContent fc : content) {
-            if (hasDynamicStylesIn(fc)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean hasDynamicStylesIn(LytFlowContent fc) {
-        if (fc instanceof LytSpoilerSpan) {
-            return true;
-        }
-        if (fc instanceof LytFlowSpan span) {
-            for (LytFlowContent child : span.getChildren()) {
-                if (hasDynamicStylesIn(child)) {
+                if (hasObfuscatedIn(child)) {
                     return true;
                 }
             }
@@ -325,15 +254,6 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
             }
         }
         return false;
-    }
-
-    /** Decorations the single-style glyph run cannot express. */
-    private static boolean hasDecoration(ResolvedTextStyle style) {
-        return style.underlined() || style.strikethrough()
-            || style.wavyUnderline()
-            || style.dottedUnderline()
-            || style.backgroundColor() != null
-            || style.inlineCode();
     }
 
     @Getter
@@ -356,17 +276,12 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
 
     @Override
     public void append(LytFlowContent child) {
-        content.append(child);
+        flowContent.add(child);
         child.setParent(this);
     }
 
     @Override
     public boolean isCulled(LytRect viewport) {
-        // If we have floating content, account for its bounding box exceeding our content box
-        if (content.floatsIntersect(viewport)) {
-            return false;
-        }
-
         return super.isCulled(viewport);
     }
 
@@ -377,19 +292,19 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
         availableWidth -= paddingLeft + paddingRight;
         y += paddingTop;
 
-        var style = resolveStyle();
-
-        var bounds = content.computeLayout(context, x, y, availableWidth, style.alignment());
-
-        if (paddingBottom != 0) {
-            return bounds.withHeight(bounds.height() + paddingBottom);
+        // Paragraph geometry is Rust's sole authority — all paragraphs skip
+        // the expensive LineBuilder pass. Inline block children still need
+        // their sizes computed here (the serializer reads them before Rust
+        // takes over); positions are assigned later by the Rust inline post-pass.
+        for (LytBlock ib : getInlineBlocks()) {
+            ib.layout(context, 0, 0, availableWidth);
         }
-        return bounds;
+        int h = paddingTop + paddingBottom + 10; // minimal estimate
+        return new LytRect(x - paddingLeft, y - paddingTop, availableWidth, h);
     }
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
-        content.move(deltaX, deltaY);
         // The Rust-baked glyph run uses absolute document coordinates — it must
         // follow the paragraph's bounds (scroll replay, smooth scrolling) or the
         // text detaches from the paragraph's background/clip/hover geometry.
@@ -409,7 +324,8 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
                             g.x() + deltaX,
                             g.y() + deltaY,
                             g.w(),
-                            g.h()));
+                            g.h(),
+                            g.lineIndex()));
                 }
                 movedGroups.add(new GlyphRunGroup(moved, group.argb(), group.shear()));
             }
@@ -455,41 +371,100 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
 
     @Override
     public @Nullable LytNode pickNode(int x, int y) {
-        // If we are the host for any floating elements, those can exceed our own bounds
-        var fl = content.pickFloatingElement(x, y);
-        if (fl != null) {
-            return this;
-        }
-
         return super.pickNode(x, y);
     }
 
     @Override
     public void render(RenderContext context) {
-        // Since we overwrite isCulled, we render even if our actual line content is culled, for floats
-        if (context.intersectsViewport(bounds)) {
-            content.render(context, hoveredPath, revealedPath);
-        }
-
-        content.renderFloats(context, hoveredPath, revealedPath);
+        // All rendering is through computePrimitives (usePrimitives=true).
     }
 
     @Override
     public @Nullable FlowInteractionPath pickContent(int x, int y) {
-        return content.pickPath(x, y);
+        if (glyphData != null && !glyphData.runs()
+            .isEmpty()) {
+            var hit = pickFromGlyphRuns(x, y);
+            if (hit != null) {
+                return hit;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private FlowInteractionPath pickFromGlyphRuns(int x, int y) {
+        List<LytFlowContent> spanOwners = collectSpanOwners();
+        var runs = glyphData.runs();
+        for (int si = 0; si < runs.size(); si++) {
+            var group = runs.get(si);
+            for (var g : group.glyphs()) {
+                if (x >= g.x() && x <= g.x() + g.w() && y >= g.y() && y <= g.y() + g.h()) {
+                    LytFlowContent owner = si < spanOwners.size() ? spanOwners.get(si) : null;
+                    if (owner != null) {
+                        return FlowInteractionPath.fromPrimary(owner);
+                    }
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    private List<LytFlowContent> collectSpanOwners() {
+        List<LytFlowContent> owners = new ArrayList<>();
+        for (LytFlowContent fc : getContent()) {
+            collectSpanOwnersRecursive(fc, owners);
+        }
+        return owners;
+    }
+
+    private static void collectSpanOwnersRecursive(LytFlowContent fc, List<LytFlowContent> out) {
+        if (fc instanceof LytFlowText || fc instanceof LytFlowInlineBlock) {
+            out.add(fc);
+        } else if (fc instanceof LytFlowSpan span) {
+            for (LytFlowContent child : span.getChildren()) {
+                collectSpanOwnersRecursive(child, out);
+            }
+        }
     }
 
     public @Nullable LytRect getFirstLineBounds() {
-        return content.getFirstLineBounds();
+        if (glyphData != null && !glyphData.runs()
+            .isEmpty()) {
+            return firstLineBoundsFromGlyphs();
+        }
+        return null;
     }
 
     public @Nullable LytRect getFirstTextRunBounds() {
-        return content.getFirstTextRunBounds();
+        if (glyphData != null && !glyphData.runs()
+            .isEmpty()) {
+            return firstLineBoundsFromGlyphs();
+        }
+        return null;
+    }
+
+    @Nullable
+    private LytRect firstLineBoundsFromGlyphs() {
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE, maxX = 0, maxY = 0;
+        boolean found = false;
+        for (GlyphRunGroup group : glyphData.runs()) {
+            for (var g : group.glyphs()) {
+                if (g.lineIndex() != 0) continue;
+                found = true;
+                minX = Math.min(minX, g.x());
+                minY = Math.min(minY, g.y());
+                maxX = Math.max(maxX, g.x() + g.w());
+                maxY = Math.max(maxY, g.y() + g.h());
+            }
+        }
+        if (!found) return null;
+        return new LytRect(Math.round(minX), Math.round(minY), Math.round(maxX - minX), Math.round(maxY - minY));
     }
 
     @Override
     public Stream<LytRect> enumerateContentBounds(LytFlowContent content) {
-        return this.content.enumerateContentBounds(content);
+        return Stream.empty();
     }
 
     @Override
@@ -506,15 +481,15 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
     }
 
     public Iterable<LytFlowContent> getContent() {
-        return content.getContent();
+        return flowContent;
     }
 
     public boolean isEmpty() {
-        return content.isEmpty();
+        return flowContent.isEmpty();
     }
 
     public void clearContent() {
-        content.clear();
+        flowContent.clear();
     }
 
     /**
@@ -578,20 +553,11 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
     @Override
     @Nullable
     public FlowContentEntry pickFlowContent(int x, int y) {
-        LineElement element = content.pick(x, y);
-        if (element != null) {
-            return new FlowContentEntry(element.getFlowContent(), element.bounds);
-        }
         return null;
     }
 
     @Override
     public List<FlowContentEntry> getAllFlowContent() {
-        List<FlowContentEntry> entries = new ArrayList<>();
-        for (LytFlowContent flowContent : getContent()) {
-            content.enumerateContentBounds(flowContent)
-                .forEach(bounds -> entries.add(new FlowContentEntry(flowContent, bounds)));
-        }
-        return entries;
+        return List.of();
     }
 }

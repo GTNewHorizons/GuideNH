@@ -259,172 +259,145 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     }
 
     private Layout createLayout(LayoutContext context, int availableWidth) {
-        var bounds = Layouts.verticalLayout(context, blocks, 0, 0, availableWidth, 5, 5, 5, 5, 0, AlignItems.START);
-        float javaHeight = bounds.height();
-        // Document-level floats (LytDocumentFloat) report zero height so they do not advance the
-        // vertical cursor in verticalLayout. If a float is taller than the text that wraps beside
-        // it, the float visually extends below the last paragraph but the computed contentHeight
-        // does not reflect this, causing the scroll area to be truncated.
-        // After the full layout pass, any remaining active floats represent exactly this case.
-        // Retrieve their maximum bottom edge and extend contentHeight to cover them.
-        var floatBottom = context.clearFloats(true, true);
-        if (floatBottom.isPresent() && floatBottom.getAsInt() > javaHeight) {
-            javaHeight = floatBottom.getAsInt() + 5;
-        }
+        // Java layout pass: still needed so the serializer can read inline-block
+        // visual sizes and opaque-container bounds (SIZE_FROM_JAVA_BOUNDS). The
+        // Rust pipeline overwrites all geometry afterward.
+        Layouts.verticalLayout(context, blocks, 0, 0, availableWidth, 5, 5, 5, 5, 0, AlignItems.START);
+        context.clearFloats(true, true);
 
-        // --- Rust layout pipeline (active) ---
-        int contentHeight = (int) javaHeight;
+        // --- Rust layout pipeline (sole authority for geometry) ---
+        int contentHeight = 0;
         long fontHandle = LayoutBridge.getFontHandle();
-        if (fontHandle == 0) {
-            GuideDebugLog.warnAlways("Layout: fontHandle not initialized, using Java layout");
-        } else {
-            // Clear glyph runs up front, across the WHOLE tree (not just the
-            // serialized nodes): on any Rust failure/empty result, no stale
-            // run may survive to be drawn at outdated coordinates (B-2/B-11).
-            for (LytBlock top : blocks) {
-                clearGlyphRuns(top);
-            }
-            try {
-                var serializer = new LayoutTreeSerializer();
-                byte[] input = serializer
-                    .serialize(this, availableWidth, context.getVisualScale(), DisplayScale.scaleFactor());
-                long t0 = System.nanoTime();
-                byte[] result = LayoutBridge.measureLayout(fontHandle, input);
-                long elapsed = System.nanoTime() - t0;
-                GuideDebugLog.warnAlways("Layout: measureLayout took {} ms", elapsed / 1_000_000);
-                if (result.length > 0) {
-                    var flatResult = LayoutResult.getRootAsLayoutResult(ByteBuffer.wrap(result));
-                    // DIAG: log Rust engine debug_info
-                    GuideDebugLog.warnAlways("Layout: debugInfo is null? {}", flatResult.debugInfo() == null);
-                    String debugInfo = flatResult.debugInfo();
-                    if (debugInfo != null && !debugInfo.isEmpty()) {
-                        GuideDebugLog.warnAlways("Layout: Rust debug_info = {}", debugInfo);
-                    }
-                    int rustHeight = (int) flatResult.contentHeight();
-                    if (rustHeight > 0) {
-                        // javaHeight includes the float-bottom extension; take the
-                        // max so a Rust-side float underestimate can't truncate the
-                        // scroll area while the two layouts converge.
-                        contentHeight = Math.max(rustHeight, (int) javaHeight);
-                        GuideDebugLog.warnAlways(
-                            "Layout: used Rust contentHeight={} (Java was={})",
-                            contentHeight,
-                            (int) javaHeight);
-                    } else {
-                        GuideDebugLog.warnAlways(
-                            "Layout: Rust returned {} <= 0, fallback to Java {}",
-                            rustHeight,
-                            (int) javaHeight);
-                    }
-                    // Layout landing: overwrite every serialized block's bounds with
-                    // the Rust-computed rect so blocks, glyph runs and floats share
-                    // one coordinate truth. The FlatLayout vector is index-aligned
-                    // with the serializer's flat nodes.
-                    overlayRustBlocks.clear();
-                    overlayRustRects.clear();
-                    int numLayouts = flatResult.nodesLength();
-                    for (int i = 0; i < numLayouts; i++) {
-                        var fl = flatResult.nodes(i);
-                        if (fl == null) continue;
-                        LytNode node = serializer.getNodeByFlatIndex(i);
-                        if (!(node instanceof LytBlock lb)) continue;
-                        LytRect rustRect = new LytRect(
-                            Math.round(fl.x()),
-                            Math.round(fl.y()),
-                            Math.max(0, Math.round(fl.w())),
-                            Math.max(0, Math.round(fl.h())));
-                        lb.applyExternalLayout(rustRect);
-                        if (isOverlayEnabled()) {
-                            overlayRustBlocks.add(lb);
-                            overlayRustRects.add(rustRect);
-                        }
-                    }
-                    // Post pass: let blocks re-apply state that depends on their
-                    // children's final bounds (e.g. scroll offsets) BEFORE the
-                    // cull-bounds union is recomputed from the moved subtrees.
-                    for (int i = 0; i < numLayouts; i++) {
-                        LytNode node = serializer.getNodeByFlatIndex(i);
-                        if (node instanceof LytBlock lb) {
-                            lb.afterExternalLayout();
-                        }
-                    }
-                    // Upload unique glyph bitmaps (hi-res, rasterized by Rust at
-                    // render_scale) to the atlas. Placement is already baked into
-                    // the per-glyph quads below.
-                    var atlas = GuideGlyphAtlas.instance();
-                    int numBitmaps = flatResult.bitmapsLength();
-                    for (int bi = 0; bi < numBitmaps; bi++) {
-                        var bmp = flatResult.bitmaps(bi);
-                        if (bmp == null) continue;
-                        int w = (int) bmp.w();
-                        int h = (int) bmp.h();
-                        if (w <= 0 || h <= 0) continue;
-                        ByteBuffer rgbaBuf = bmp.rgbaAsByteBuffer();
-                        byte[] rgba = new byte[rgbaBuf.remaining()];
-                        rgbaBuf.get(rgba);
-                        atlas.upload(bmp.key(), rgba, w, h);
-                    }
-                    // Extract glyph runs (final document-space quads, top-left
-                    // origin) and group them per paragraph node — a rich
-                    // paragraph yields one run per span — then inject together
-                    // with the span decoration rects.
-                    Map<Integer, List<GlyphRunGroup>> runsByNode = new HashMap<>();
-                    int numRuns = flatResult.glyphRunsLength();
-                    for (int ri = 0; ri < numRuns; ri++) {
-                        var fbRun = flatResult.glyphRuns(ri);
-                        if (fbRun == null) continue;
-                        int numGlyphs = fbRun.glyphsLength();
-                        var placed = new ArrayList<GuideRenderPrimitive.PlacedGlyph>(numGlyphs);
-                        for (int gi = 0; gi < numGlyphs; gi++) {
-                            var fbg = fbRun.glyphs(gi);
-                            if (fbg != null) {
-                                placed.add(
-                                    new GuideRenderPrimitive.PlacedGlyph(
-                                        fbg.bitmapKey(),
-                                        fbg.x(),
-                                        fbg.y(),
-                                        fbg.w(),
-                                        fbg.h()));
-                            }
-                        }
-                        runsByNode.computeIfAbsent((int) fbRun.nodeIndex(), k -> new ArrayList<>())
-                            .add(new GlyphRunGroup(placed, (int) fbRun.argb(), fbRun.shear()));
-                    }
-                    Map<Integer, List<GuideRenderPrimitive.FillRect>> backgroundsByNode = new HashMap<>();
-                    Map<Integer, List<GuideRenderPrimitive.FillRect>> linesByNode = new HashMap<>();
-                    int numDecorations = flatResult.decorationsLength();
-                    for (int di = 0; di < numDecorations; di++) {
-                        var d = flatResult.decorations(di);
-                        if (d == null) continue;
-                        var rect = new GuideRenderPrimitive.FillRect(
-                            Math.round(d.x()),
-                            Math.round(d.y()),
-                            Math.round(d.w()),
-                            Math.round(d.h()),
-                            (int) d.argb());
-                        (d.kind() == 0 ? backgroundsByNode : linesByNode)
-                            .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
-                            .add(rect);
-                    }
-                    for (var entry : runsByNode.entrySet()) {
-                        LytNode node = serializer.getNodeByFlatIndex(entry.getKey());
-                        if (node instanceof GlyphRunHolder holder) {
-                            holder.setGlyphData(
-                                new GlyphRunData(
-                                    entry.getValue(),
-                                    backgroundsByNode.getOrDefault(entry.getKey(), List.of()),
-                                    linesByNode.getOrDefault(entry.getKey(), List.of())));
-                            GuideDebugLog.warnAlways(
-                                "Layout: set {} glyph groups on paragraph at flat index {}",
-                                entry.getValue()
-                                    .size(),
-                                entry.getKey());
-                        }
+        // Clear glyph runs up front, across the WHOLE tree (not just the
+        // serialized nodes): on any Rust failure/empty result, no stale
+        // run may survive to be drawn at outdated coordinates (B-2/B-11).
+        for (LytBlock top : blocks) {
+            clearGlyphRuns(top);
+        }
+        try {
+            var serializer = new LayoutTreeSerializer();
+            byte[] input = serializer
+                .serialize(this, availableWidth, context.getVisualScale(), DisplayScale.scaleFactor());
+            long t0 = System.nanoTime();
+            byte[] result = LayoutBridge.measureLayout(fontHandle, input);
+            long elapsed = System.nanoTime() - t0;
+            GuideDebugLog.warnAlways("Layout: measureLayout took {} ms", elapsed / 1_000_000);
+            if (result.length > 0) {
+                var flatResult = LayoutResult.getRootAsLayoutResult(ByteBuffer.wrap(result));
+                String debugInfo = flatResult.debugInfo();
+                if (debugInfo != null && !debugInfo.isEmpty()) {
+                    GuideDebugLog.warnAlways("Layout: Rust debug_info = {}", debugInfo);
+                }
+                contentHeight = (int) flatResult.contentHeight();
+                // Layout landing: overwrite every serialized block's bounds with
+                // the Rust-computed rect so blocks, glyph runs and floats share
+                // one coordinate truth. The FlatLayout vector is index-aligned
+                // with the serializer's flat nodes.
+                overlayRustBlocks.clear();
+                overlayRustRects.clear();
+                int numLayouts = flatResult.nodesLength();
+                for (int i = 0; i < numLayouts; i++) {
+                    var fl = flatResult.nodes(i);
+                    if (fl == null) continue;
+                    LytNode node = serializer.getNodeByFlatIndex(i);
+                    if (!(node instanceof LytBlock lb)) continue;
+                    LytRect rustRect = new LytRect(
+                        Math.round(fl.x()),
+                        Math.round(fl.y()),
+                        Math.max(0, Math.round(fl.w())),
+                        Math.max(0, Math.round(fl.h())));
+                    lb.applyExternalLayout(rustRect);
+                    if (isOverlayEnabled()) {
+                        overlayRustBlocks.add(lb);
+                        overlayRustRects.add(rustRect);
                     }
                 }
-            } catch (Exception e) {
-                GuideDebugLog.warnAlways("Layout: Rust pipeline failed, fallback to Java {}", (int) javaHeight, e);
+                // Post pass: let blocks re-apply state that depends on their
+                // children's final bounds (e.g. scroll offsets) BEFORE the
+                // cull-bounds union is recomputed from the moved subtrees.
+                for (int i = 0; i < numLayouts; i++) {
+                    LytNode node = serializer.getNodeByFlatIndex(i);
+                    if (node instanceof LytBlock lb) {
+                        lb.afterExternalLayout();
+                    }
+                }
+                // Upload unique glyph bitmaps (hi-res, rasterized by Rust at
+                // render_scale) to the atlas. Placement is already baked into
+                // the per-glyph quads below.
+                var atlas = GuideGlyphAtlas.instance();
+                int numBitmaps = flatResult.bitmapsLength();
+                for (int bi = 0; bi < numBitmaps; bi++) {
+                    var bmp = flatResult.bitmaps(bi);
+                    if (bmp == null) continue;
+                    int w = (int) bmp.w();
+                    int h = (int) bmp.h();
+                    if (w <= 0 || h <= 0) continue;
+                    ByteBuffer rgbaBuf = bmp.rgbaAsByteBuffer();
+                    byte[] rgba = new byte[rgbaBuf.remaining()];
+                    rgbaBuf.get(rgba);
+                    atlas.upload(bmp.key(), rgba, w, h);
+                }
+                // Extract glyph runs (final document-space quads, top-left
+                // origin) and group them per paragraph node — a rich
+                // paragraph yields one run per span — then inject together
+                // with the span decoration rects.
+                Map<Integer, List<GlyphRunGroup>> runsByNode = new HashMap<>();
+                int numRuns = flatResult.glyphRunsLength();
+                for (int ri = 0; ri < numRuns; ri++) {
+                    var fbRun = flatResult.glyphRuns(ri);
+                    if (fbRun == null) continue;
+                    int numGlyphs = fbRun.glyphsLength();
+                    var placed = new ArrayList<GuideRenderPrimitive.PlacedGlyph>(numGlyphs);
+                    for (int gi = 0; gi < numGlyphs; gi++) {
+                        var fbg = fbRun.glyphs(gi);
+                        if (fbg != null) {
+                            placed.add(
+                                new GuideRenderPrimitive.PlacedGlyph(
+                                    fbg.bitmapKey(),
+                                    fbg.x(),
+                                    fbg.y(),
+                                    fbg.w(),
+                                    fbg.h(),
+                                    (int) fbg.lineIndex()));
+                        }
+                    }
+                    runsByNode.computeIfAbsent((int) fbRun.nodeIndex(), k -> new ArrayList<>())
+                        .add(new GlyphRunGroup(placed, (int) fbRun.argb(), fbRun.shear()));
+                }
+                Map<Integer, List<GuideRenderPrimitive.FillRect>> backgroundsByNode = new HashMap<>();
+                Map<Integer, List<GuideRenderPrimitive.FillRect>> linesByNode = new HashMap<>();
+                int numDecorations = flatResult.decorationsLength();
+                for (int di = 0; di < numDecorations; di++) {
+                    var d = flatResult.decorations(di);
+                    if (d == null) continue;
+                    var rect = new GuideRenderPrimitive.FillRect(
+                        Math.round(d.x()),
+                        Math.round(d.y()),
+                        Math.round(d.w()),
+                        Math.round(d.h()),
+                        (int) d.argb());
+                    (d.kind() == 0 ? backgroundsByNode : linesByNode)
+                        .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                        .add(rect);
+                }
+                for (var entry : runsByNode.entrySet()) {
+                    LytNode node = serializer.getNodeByFlatIndex(entry.getKey());
+                    if (node instanceof GlyphRunHolder holder) {
+                        holder.setGlyphData(
+                            new GlyphRunData(
+                                entry.getValue(),
+                                backgroundsByNode.getOrDefault(entry.getKey(), List.of()),
+                                linesByNode.getOrDefault(entry.getKey(), List.of())));
+                        GuideDebugLog.warnAlways(
+                            "Layout: set {} glyph groups on paragraph at flat index {}",
+                            entry.getValue()
+                                .size(),
+                            entry.getKey());
+                    }
+                }
             }
+        } catch (Exception e) {
+            GuideDebugLog.warnAlways("Layout: Rust pipeline failed", e);
         }
         // Culling bounds: subtree union, recomputed on EVERY layout (success or
         // fallback — stale unions cull content that moved into view, B-2). A

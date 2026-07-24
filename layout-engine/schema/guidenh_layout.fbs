@@ -82,6 +82,8 @@ table TextStyle {
 ///            (LaTeX math-baseline alignment: param = formula ascent above its
 ///            math baseline, so the formula's baseline lands on the text's)
 ///        2 = center on the text line, then shift down by `param` px (item icons)
+///        3 = float left — block floats to paragraph left edge, text wraps right
+///        4 = float right — block floats to paragraph right edge, text wraps left
 table InlineBlockRef {
   node: uint;
   align: byte = 0;

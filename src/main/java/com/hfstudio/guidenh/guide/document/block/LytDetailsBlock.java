@@ -319,23 +319,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     }
 
     @Override
-    public void render(RenderContext context) {
-        // Legacy reference path (unreachable in the primitive pipeline).
-        updateVisualScroll();
-        context.fillRect(bounds, SymbolicColor.BLOCKQUOTE_BACKGROUND);
-        summaryRow.render(context);
-        if (open) {
-            LytRect viewport = getContentViewportBounds();
-            context.pushLocalScissor(viewport);
-            try {
-                content.render(context);
-            } finally {
-                context.popScissor();
-            }
-            renderScrollbar(context);
-        }
-        borderRenderer.render(context, bounds, DETAILS_BORDER, DETAILS_BORDER, DETAILS_BORDER, DETAILS_BORDER);
-    }
+    public void render(RenderContext context) {}
 
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {

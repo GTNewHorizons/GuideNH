@@ -31,7 +31,6 @@ import com.hfstudio.guidenh.guide.layout.flatbuffers.TextData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData;
-import com.hfstudio.guidenh.guide.layout.flow.LineTextRun;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -113,45 +112,11 @@ public final class LayoutNodeSerializer {
      * Java-computed bounds, and rendering falls back to the legacy path
      * (HostDraw) automatically since no glyph run is produced.
      * <p>
-     * Currently: PRE_WRAP paragraphs (code blocks — parley 0.11 has no
-     * white-space Preserve, so they keep the legacy per-span path until the
-     * text engine can honour pre-wrap), float-aligned inline-block paragraphs,
-     * and dynamic-style paragraphs (spoiler reveal, {@code §k}/obfuscated — see
-     * {@link LytParagraph#hasDynamicStyles}). Static multi-style paragraphs are
-     * serialized as rich Text with {@code TextData.spans} instead.
+     * All paragraphs use Rust text shaping for layout; float-aligned inline
+     * blocks are serialized with align=3/4 and positioned inline by the Rust
+     * post-pass (paragraph-level float support deferred to a later step).
      */
     private static boolean isOpaqueText(LytParagraph par) {
-        var resolved = par.resolveStyle();
-        if (resolved != null && resolved.whiteSpace() == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP) {
-            return true;
-        }
-        // Paragraphs with float-aligned inline blocks keep the legacy path
-        // (inline float layout is not part of the inline-block pipeline yet).
-        for (LytFlowContent fc : par.getContent()) {
-            if (hasFloatAlignedInlineBlock(fc)) return true;
-        }
-        // Dynamic styles (spoiler reveal, §k/obfuscated) cannot be baked into
-        // a glyph run — it would render spoilers in plain text and draw §k
-        // literally. Those paragraphs must stay on the legacy path.
-        if (LytParagraph.hasDynamicStyles(par.getContent())) {
-            return true;
-        }
-        // Static multi-style paragraphs are NOT opaque: they serialize as Text
-        // with rich spans (TextData.spans) and get per-span glyph runs from
-        // Rust. Mode-2 per-span emission remains as the fallback when no glyph
-        // run is produced (Rust pipeline unavailable).
-        return false;
-    }
-
-    private static boolean hasFloatAlignedInlineBlock(LytFlowContent fc) {
-        if (fc instanceof LytFlowInlineBlock ib) {
-            return ib.getAlignment() != com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment.INLINE;
-        }
-        if (fc instanceof LytFlowSpan fs) {
-            for (LytFlowContent child : fs.getChildren()) {
-                if (hasFloatAlignedInlineBlock(child)) return true;
-            }
-        }
         return false;
     }
 
@@ -344,8 +309,8 @@ public final class LayoutNodeSerializer {
         long highlight = 0L;
         if (inlineCode) {
             highlight = LightDarkMode.current() == LightDarkMode.DARK_MODE
-                ? LineTextRun.INLINE_CODE_BACKGROUND_DARK & 0xFFFFFFFFL
-                : LineTextRun.INLINE_CODE_BACKGROUND_LIGHT & 0xFFFFFFFFL;
+                ? 0x1A6FB6FFL
+                : 0x1AF0F6FFL;
         } else if (style.backgroundColor() != null) {
             highlight = style.backgroundColor()
                 .resolve(LightDarkMode.current()) & 0xFFFFFFFFL;

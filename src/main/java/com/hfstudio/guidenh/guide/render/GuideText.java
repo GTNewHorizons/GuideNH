@@ -134,7 +134,14 @@ public final class GuideText {
         for (int i = 0; i < n; i++) {
             var g = shaped.glyphs(i);
             if (g == null) continue;
-            glyphs.add(new GuideRenderPrimitive.PlacedGlyph(g.bitmapKey(), x + g.x(), y + g.y(), g.w(), g.h()));
+            glyphs.add(
+                new GuideRenderPrimitive.PlacedGlyph(
+                    g.bitmapKey(),
+                    x + g.x(),
+                    y + g.y(),
+                    g.w(),
+                    g.h(),
+                    (int) g.lineIndex()));
         }
         c.emit(new GuideRenderPrimitive.DrawGlyphRun(tex, glyphs, resolveColor(style)));
     }

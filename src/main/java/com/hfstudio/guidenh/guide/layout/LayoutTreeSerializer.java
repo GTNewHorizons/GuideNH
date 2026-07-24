@@ -11,7 +11,6 @@ import com.google.flatbuffers.FlatBufferBuilder;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
-import com.hfstudio.guidenh.guide.document.block.LytBox;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
@@ -20,8 +19,9 @@ import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableCell;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableRow;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
+import com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutInput;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -72,8 +72,6 @@ public class LayoutTreeSerializer {
      * Filled from the Java-laid-out inner bounds at wrapper-elimination time.
      */
     private final List<FloatRect> floatRects = new ArrayList<>();
-    /** Available layout width of the current serialize() call (for lane computation). */
-    private float availWidth;
 
     record FloatRect(LytRect rect, boolean right) {}
 
@@ -85,7 +83,6 @@ public class LayoutTreeSerializer {
         floatIntents.clear();
         columnWidths.clear();
         floatRects.clear();
-        this.availWidth = availWidth;
 
         flattenTree(root);
 
@@ -107,11 +104,13 @@ public class LayoutTreeSerializer {
             MarginAccum mo = marginOffsets.getOrDefault(block, MarginAccum.ZERO);
             List<Integer> childIndices = getChildIndices(block);
             int flags = LayoutStyleExtractor.Flags.NONE;
-            if (childIndices.isEmpty() && LayoutNodeSerializer.resolveNodeType(block) != 1) {
-                // Rust cannot measure leaf containers (they would come back
-                // zero-sized); reserve the box the Java layout pass computed.
-                // Text (node_type 1) is excluded — a paragraph's box must come
-                // from Rust text measurement so the glyph runs stay consistent.
+            byte nodeType = LayoutNodeSerializer.resolveNodeType(block);
+            if (childIndices.isEmpty() && nodeType != 1 && nodeType != 2 && nodeType != 3 && nodeType != 4
+                && nodeType != 8) {
+                // Opaque leaf containers (charts, scenes, etc.) have no Rust
+                // measure function — reserve the box Java computed. Types with
+                // Rust measure (Text=1, Image=2, Slot=3, Break=4, Latex=8) are
+                // excluded: Rust sizes them from declared content facts.
                 flags |= LayoutStyleExtractor.Flags.SIZE_FROM_JAVA_BOUNDS;
             }
             var adj = new LayoutStyleExtractor.NodeAdjustments(
@@ -125,11 +124,8 @@ public class LayoutTreeSerializer {
             int styleOff = LayoutStyleExtractor.build(fbb, block, flags, adj);
             List<LayoutNodeSerializer.InlineRef> inlineRefs = new ArrayList<>();
             if (block instanceof LytParagraph par) {
-                for (LytBlock ib : par.getInlineBlocks()) {
-                    int ibIdx = getFlatIndex(ib);
-                    if (ibIdx >= 0) {
-                        inlineRefs.add(inlineRefOf(ibIdx, ib));
-                    }
+                for (LytFlowContent fc : par.getContent()) {
+                    collectInlineRefs(fc, inlineRefs);
                 }
             }
             nodeOffsets[i] = LayoutNodeSerializer.build(fbb, block, styleOff, childIndices, inlineRefs);
@@ -164,12 +160,35 @@ public class LayoutTreeSerializer {
     }
 
     /**
-     * Vertical alignment request for one inline block (see InlineBlockRef in the
-     * schema): LaTeX formulas align their math baseline (param = ascent above the
-     * text baseline), inline item icons center on the line plus their configured
-     * y offset, everything else sits with its bottom 2px below the baseline.
+     * Recursively walk flow content to collect inline-block refs. Float-aligned
+     * inline blocks (FLOAT_LEFT / FLOAT_RIGHT) carry their alignment from the
+     * {@link LytFlowInlineBlock} wrapper; inline blocks use type-based alignment.
      */
-    private static LayoutNodeSerializer.InlineRef inlineRefOf(int flatIndex, LytBlock ib) {
+    private void collectInlineRefs(LytFlowContent fc, List<LayoutNodeSerializer.InlineRef> out) {
+        if (fc instanceof LytFlowInlineBlock ib && ib.getBlock() != null) {
+            int ibIdx = getFlatIndex(ib.getBlock());
+            if (ibIdx >= 0) {
+                out.add(inlineRefOf(ibIdx, ib.getBlock(), ib.getAlignment()));
+            }
+        } else if (fc instanceof LytFlowSpan fs) {
+            for (LytFlowContent child : fs.getChildren()) {
+                collectInlineRefs(child, out);
+            }
+        }
+    }
+
+    /**
+     * Vertical alignment request for one inline block (see InlineBlockRef in the
+     * schema). Float aligns (3/4) override type-based alignment (0/1/2).
+     */
+    private static LayoutNodeSerializer.InlineRef inlineRefOf(int flatIndex, LytBlock ib,
+        InlineBlockAlignment flowAlign) {
+        if (flowAlign == InlineBlockAlignment.FLOAT_LEFT) {
+            return new LayoutNodeSerializer.InlineRef(flatIndex, 3, 0f);
+        }
+        if (flowAlign == InlineBlockAlignment.FLOAT_RIGHT) {
+            return new LayoutNodeSerializer.InlineRef(flatIndex, 4, 0f);
+        }
         if (ib instanceof com.hfstudio.guidenh.guide.document.block.LytLatexBlock latex) {
             return new LayoutNodeSerializer.InlineRef(flatIndex, 1, latex.getBaselineAscent());
         }
@@ -198,21 +217,16 @@ public class LayoutTreeSerializer {
     }
 
     private void flattenTree(LytNode node) {
-        // Document content origin/width: Java pads the document by 5 (matches
-        // the synthetic root padding in layout.rs).
-        flattenTree(node, MarginAccum.ZERO, 0, 5, 5, Math.max(1, Math.round(availWidth) - 10));
+        flattenTree(node, MarginAccum.ZERO, 0);
     }
 
     /**
-     * @param inherited          margins accumulated from eliminated ancestors
-     * @param pendingFloat       a float wrapper's anchor node was just emitted
-     *                           up-stack; the first non-eliminated block descendant
-     *                           becomes its absolutely-positioned child
-     * @param parentContentX/Y/W content origin and width of the nearest flattened
-     *                           ancestor (for lane computation and absolute insets)
+     * @param inherited    margins accumulated from eliminated ancestors
+     * @param pendingFloat a float wrapper's anchor node was just emitted
+     *                     up-stack; the first non-eliminated block descendant
+     *                     becomes its absolutely-positioned child
      */
-    private void flattenTree(LytNode node, MarginAccum inherited, int pendingFloatSide, int parentContentX,
-        int parentContentY, int parentContentW) {
+    private void flattenTree(LytNode node, MarginAccum inherited, int pendingFloatSide) {
         if (shouldEliminate(node)) {
             // Add this node's margins to the inherited accumulator
             MarginAccum total = inherited;
@@ -233,7 +247,7 @@ public class LayoutTreeSerializer {
                 childSide = df.isFloatRight() ? 2 : 1;
             }
             for (LytNode child : node.getChildren()) {
-                flattenTree(child, total, childSide, parentContentX, parentContentY, parentContentW);
+                flattenTree(child, total, childSide);
             }
             return;
         }
@@ -290,79 +304,14 @@ public class LayoutTreeSerializer {
                         vw = latex.getFormulaDisplayW();
                         vh = latex.getFormulaDisplayH();
                     }
-                    absoluteFloats.put(
-                        ib,
-                        new LayoutStyleExtractor.FloatAbs(
-                            fb.x() - contentOriginX(par),
-                            fb.y() - contentOriginY(par),
-                            vw,
-                            vh));
+                    absoluteFloats.put(ib, new LayoutStyleExtractor.FloatAbs(vw, vh));
                 }
             }
-            // This block becomes the nearest flattened ancestor for its children.
-            parentContentX = contentOriginX(block);
-            parentContentY = contentOriginY(block);
-            parentContentW = contentWidth(block);
         }
 
         for (LytNode child : node.getChildren()) {
-            flattenTree(child, MarginAccum.ZERO, pendingFloatSide, parentContentX, parentContentY, parentContentW);
+            flattenTree(child, MarginAccum.ZERO, pendingFloatSide);
         }
-    }
-
-    /**
-     * Does this paragraph's flow content contain a float-clearing break
-     * ({@code <br clear="left|right|all"/>
-     * })? Mirrors the recursive span walk
-     * of {@code LayoutNodeSerializer.hasFloatAlignedInlineBlock}.
-     */
-    private static boolean hasClearBreak(LytParagraph par) {
-        for (LytFlowContent fc : par.getContent()) {
-            if (hasClearBreak(fc)) return true;
-        }
-        return false;
-    }
-
-    private static boolean hasClearBreak(LytFlowContent fc) {
-        if (fc instanceof LytFlowBreak fb && (fb.isClearLeft() || fb.isClearRight())) {
-            return true;
-        }
-        if (fc instanceof LytFlowSpan fs) {
-            for (LytFlowContent child : fs.getChildren()) {
-                if (hasClearBreak(child)) return true;
-            }
-        }
-        return false;
-    }
-
-    private static int contentOriginX(LytBlock block) {
-        LytRect b = block.getFlowBounds();
-        int padL = block instanceof LytBox box ? LayoutStyleExtractor.readLytBoxPadding(box, "paddingLeft") : 0;
-        return b.x() + padL
-            + block.getBorderLeft()
-                .width();
-    }
-
-    private static int contentOriginY(LytBlock block) {
-        LytRect b = block.getFlowBounds();
-        int padT = block instanceof LytBox box ? LayoutStyleExtractor.readLytBoxPadding(box, "paddingTop") : 0;
-        return b.y() + padT
-            + block.getBorderTop()
-                .width();
-    }
-
-    private static int contentWidth(LytBlock block) {
-        LytRect b = block.getFlowBounds();
-        int padL = block instanceof LytBox box ? LayoutStyleExtractor.readLytBoxPadding(box, "paddingLeft") : 0;
-        int padR = block instanceof LytBox box ? LayoutStyleExtractor.readLytBoxPadding(box, "paddingRight") : 0;
-        return Math.max(
-            1,
-            b.width() - padL
-                - padR
-                - block.getBorderLeft()
-                    .width()
-                - block.getBorderRight()
-                    .width());
     }
 
     private boolean shouldEliminate(LytNode node) {

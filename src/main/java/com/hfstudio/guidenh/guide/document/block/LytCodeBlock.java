@@ -344,14 +344,6 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
         toolbar.render(context);
 
-        LytRect bodyViewportBounds = getBodyViewportBounds();
-        context.pushLocalScissor(bodyViewportBounds);
-        try {
-            body.render(context);
-        } finally {
-            context.popScissor();
-        }
-
         renderScrollbar(context);
         new BorderRenderer()
             .render(context, ownBounds, getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom());

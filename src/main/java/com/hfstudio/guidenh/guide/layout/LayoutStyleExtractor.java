@@ -28,24 +28,16 @@ public final class LayoutStyleExtractor {
     public static final class Flags {
 
         public static final int NONE = 0;
-        public static final int DISPLAY_BLOCK = 1 << 0;
-        public static final int DISPLAY_FLEX = 1 << 1;
-        public static final int DISPLAY_GRID = 1 << 2;
-        public static final int SIZE_FULL_WIDTH = 1 << 3; // force 100% width
-        public static final int SIZE_AUTO_WIDTH = 1 << 4; // force auto width
-        public static final int SIZE_AUTO_HEIGHT = 1 << 5; // force auto height
-        public static final int OVERFLOW_HIDDEN = 1 << 6;
-        public static final int OVERFLOW_SCROLL = 1 << 7;
         /** Fall back to the block's current Java-computed bounds when no explicit size is set. */
-        public static final int SIZE_FROM_JAVA_BOUNDS = 1 << 8;
+        public static final int SIZE_FROM_JAVA_BOUNDS = 1 << 0;
 
         private Flags() {}
     }
 
     private LayoutStyleExtractor() {}
 
-    /** Absolute-position lowering for inline blocks: inset + size in px, relative to the flattened parent. */
-    public record FloatAbs(int insetLeft, int insetTop, int width, int height) {}
+    /** Out-of-flow marker for inline blocks: visual box size in px (position comes from Rust's inline post-pass). */
+    public record FloatAbs(int width, int height) {}
 
     /**
      * Per-node style adjustments computed by {@code LayoutTreeSerializer} while
@@ -60,38 +52,15 @@ public final class LayoutStyleExtractor {
         public static final NodeAdjustments ZERO = new NodeAdjustments(0, 0, 0, 0, null, 0, 0);
     }
 
-    /** Build a FlatBuffer Style from a LytBlock node. Extracts all layout-relevant fields. */
-    public static int build(FlatBufferBuilder fbb, LytBlock block) {
-        return build(fbb, block, Flags.NONE, NodeAdjustments.ZERO);
-    }
-
-    /** Build with additional flags overriding automatic detection. */
-    public static int build(FlatBufferBuilder fbb, LytBlock block, int flags) {
-        return build(fbb, block, flags, NodeAdjustments.ZERO);
-    }
-
-    /**
-     * Build with margin offsets from eliminated ancestor nodes.
-     * The offset values are <b>added</b> to the block's own margins.
-     */
-    public static int build(FlatBufferBuilder fbb, LytBlock block, int marginOffT, int marginOffR, int marginOffB,
-        int marginOffL) {
-        return build(
-            fbb,
-            block,
-            Flags.NONE,
-            new NodeAdjustments(marginOffT, marginOffR, marginOffB, marginOffL, null, 0, 0));
-    }
-
     /**
      * Build with flags and per-node adjustments from the serializer's lowering pass.
      */
     public static int build(FlatBufferBuilder fbb, LytBlock block, int flags, NodeAdjustments adj) {
-        byte display = getDisplay(block, flags);
+        byte display = getDisplay(block);
         byte flexDir = getFlexDirection(block);
-        byte flexWrap = getFlexWrap(block, flags);
+        byte flexWrap = getFlexWrap(block);
         byte alignItems = getAlignItems(block);
-        byte alignSelf = getAlignSelf(block, flags);
+        byte alignSelf = getAlignSelf(block);
         byte justify = 0; // default: Start
 
         int sizeWOff = dimAuto(fbb); // default: auto
@@ -149,16 +118,10 @@ public final class LayoutStyleExtractor {
 
         if (explicitW > 0) {
             sizeWOff = dimPx(fbb, explicitW);
-        } else if ((flags & Flags.SIZE_FULL_WIDTH) != 0) {
-            sizeWOff = dimPct(fbb, 1.0f);
-        } else if ((flags & Flags.SIZE_AUTO_WIDTH) != 0) {
-            sizeWOff = dimAuto(fbb);
         }
 
         if (explicitH > 0) {
             sizeHOff = dimPx(fbb, explicitH);
-        } else if ((flags & Flags.SIZE_AUTO_HEIGHT) != 0) {
-            sizeHOff = dimAuto(fbb);
         }
 
         float marginL = block.getMarginLeft() + adj.marginL();
@@ -215,7 +178,7 @@ public final class LayoutStyleExtractor {
             }
         }
 
-        byte overflow = getOverflow(block, flags);
+        byte overflow = getOverflow(block);
 
         float flexGrow = block.getFlexGrow();
         // Content inside a scroll viewport keeps its natural height — Taffy
@@ -232,15 +195,7 @@ public final class LayoutStyleExtractor {
         int insetBOff = 0;
         int insetLOff = 0;
         if (adj.abs() != null) {
-            position = 1; // Absolute
-            insetLOff = dimPx(
-                fbb,
-                adj.abs()
-                    .insetLeft());
-            insetTOff = dimPx(
-                fbb,
-                adj.abs()
-                    .insetTop());
+            position = 1; // Absolute — Rust's inline post-pass assigns the real position
         }
 
         return Style.createStyle(
@@ -299,11 +254,6 @@ public final class LayoutStyleExtractor {
         return com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension.createDimension(fbb, px, (byte) 1);
     }
 
-    /** Percentage (0.0 ~ 1.0). */
-    public static int dimPct(FlatBufferBuilder fbb, float fraction) {
-        return com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension.createDimension(fbb, fraction * 100f, (byte) 2);
-    }
-
     /**
      * Read an int padding field from LytBox via reflection.
      * {@code LytBox.paddingLeft/Top/Right/Bottom} are {@code protected}, not
@@ -320,13 +270,8 @@ public final class LayoutStyleExtractor {
         }
     }
 
-    private static byte getDisplay(LytBlock block, int flags) {
-        if ((flags & Flags.DISPLAY_BLOCK) != 0) return 2;
-        if ((flags & Flags.DISPLAY_GRID) != 0) return 1;
-        if ((flags & Flags.DISPLAY_FLEX) != 0) return 0;
-        // auto-detect: Block for Document, Flex for boxes
-        // Document check deferred until LytDocument package resolves
-        return 0; // Flex (default for most blocks)
+    private static byte getDisplay(LytBlock block) {
+        return 0; // Flex (default for all blocks)
     }
 
     private static byte getFlexDirection(LytBlock block) {
@@ -340,7 +285,7 @@ public final class LayoutStyleExtractor {
         return 1; // Column (VBox, default)
     }
 
-    private static byte getFlexWrap(LytBlock block, int flags) {
+    private static byte getFlexWrap(LytBlock block) {
         if (block instanceof LytHBox hb && hb.isWrap()) return 1; // Wrap
         // Grids lower to wrapping rows: N per line, then wrap.
         if (block instanceof LytSlotGrid || block instanceof LytItemGrid) return 1;
@@ -353,17 +298,14 @@ public final class LayoutStyleExtractor {
         return 3; // Stretch
     }
 
-    private static byte getAlignSelf(LytBlock block, int flags) {
-        // fullWidth → Stretch
-        if ((flags & Flags.SIZE_FULL_WIDTH) != 0 || block.isFullWidth()) return 4;
+    private static byte getAlignSelf(LytBlock block) {
+        if (block.isFullWidth()) return 4; // Stretch
         // Item grids wrap by available width — stretch so the wrap engages.
         if (block instanceof LytItemGrid) return 4;
         return 0; // Auto
     }
 
-    private static byte getOverflow(LytBlock block, int flags) {
-        if ((flags & Flags.OVERFLOW_SCROLL) != 0) return 2;
-        if ((flags & Flags.OVERFLOW_HIDDEN) != 0) return 1;
+    private static byte getOverflow(LytBlock block) {
         if (block instanceof LytSizeBox) return 2; // Scroll
         return 0; // Visible
     }

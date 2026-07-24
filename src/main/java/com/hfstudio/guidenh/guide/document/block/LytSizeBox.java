@@ -171,29 +171,7 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
     }
 
     @Override
-    public void render(RenderContext context) {
-        // Legacy reference path (unreachable in the primitive pipeline).
-        updateVisualScroll();
-        if (!hasVerticalScroll()) {
-            super.render(context);
-            return;
-        }
-
-        if (getBackgroundColor() != null) {
-            context.fillRect(bounds, getBackgroundColor());
-        }
-
-        LytRect viewportBounds = getViewportBounds();
-        context.pushLocalScissor(viewportBounds);
-        try {
-            viewport.render(context);
-        } finally {
-            context.popScissor();
-        }
-
-        renderScrollbar(context);
-        renderBorder(context);
-    }
+    public void render(RenderContext context) {}
 
     @Override
     public boolean beginDrag(int documentX, int documentY, int button) {
