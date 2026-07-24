@@ -80,6 +80,8 @@ public class TagAttributeRegistry {
             new AttributeSpec("h", AttrType.INT),
             new AttributeSpec("scaleX", AttrType.FLOAT),
             new AttributeSpec("scaleY", AttrType.FLOAT),
+            new AttributeSpec("displayWidth", AttrType.INT),
+            new AttributeSpec("displayHeight", AttrType.INT),
             new AttributeSpec("sound", AttrType.STRING),
             new AttributeSpec("soundSrc", AttrType.FILE_PATH),
             new AttributeSpec("trigger", AttrType.STRING));

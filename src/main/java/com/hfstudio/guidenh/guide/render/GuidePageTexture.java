@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -66,6 +67,11 @@ public class GuidePageTexture {
         return MISSING;
     }
 
+    @Nullable
+    public static synchronized GuidePageTexture getCached(ResourceLocation id) {
+        return CACHE.get(id);
+    }
+
     public static GuidePageTexture of(ResourceLocation texture) {
         return new GuidePageTexture(texture, 256, 256);
     }
@@ -86,6 +92,11 @@ public class GuidePageTexture {
             GuideDebugLog.error("Failed to load guide page texture {}", id, t);
             return missing();
         }
+    }
+
+    public static GuidePageTexture loadCached(ResourceLocation id, Supplier<byte[]> assetLoader) {
+        GuidePageTexture cached = getCached(id);
+        return cached != null ? cached : load(id, assetLoader.get());
     }
 
     public static synchronized void clear() {

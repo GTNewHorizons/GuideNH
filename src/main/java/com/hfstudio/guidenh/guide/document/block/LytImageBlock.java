@@ -35,6 +35,10 @@ public class LytImageBlock extends LytParagraph {
     private double scaleX = 1.0d;
     @Getter
     private double scaleY = 1.0d;
+    @Getter
+    private int displayWidth = -1;
+    @Getter
+    private int displayHeight = -1;
     @Nullable
     private String align;
     @Getter
@@ -97,6 +101,14 @@ public class LytImageBlock extends LytParagraph {
 
     public void setScaleY(double scaleY) {
         this.scaleY = scaleY > 0.0d ? scaleY : 1.0d;
+    }
+
+    public void setDisplayWidth(int displayWidth) {
+        this.displayWidth = displayWidth > 0 ? displayWidth : -1;
+    }
+
+    public void setDisplayHeight(int displayHeight) {
+        this.displayHeight = displayHeight > 0 ? displayHeight : -1;
     }
 
     @Nullable

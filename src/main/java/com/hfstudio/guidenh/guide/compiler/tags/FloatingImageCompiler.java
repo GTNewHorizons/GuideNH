@@ -36,6 +36,13 @@ public class FloatingImageCompiler extends FlowTagCompiler {
 
     private record ScaleSpec(double scaleX, double scaleY) {}
 
+    private record DisplaySpec(int width, int height) {
+
+        private boolean isSpecified() {
+            return width > 0 || height > 0;
+        }
+    }
+
     @Override
     public Set<String> getTagNames() {
         return Collections.singleton(TAG_NAME);
@@ -52,9 +59,17 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         var align = el.getAttributeString("align", "left");
         var title = el.getAttributeString("title", null);
         var alt = el.getAttributeString("alt", null);
-        CropSpec crop = parseCropSpec(compiler, parent, el);
+        DisplaySpec display = parseDisplaySpec(compiler, parent, el);
+        CropSpec crop = parseCropSpec(compiler, parent, el, display != null && display.isSpecified());
         ScaleSpec scale = parseScaleSpec(compiler, parent, el);
-        if (crop == null || scale == null) {
+        if (crop == null || display == null || scale == null) {
+            return;
+        }
+        if (display.isSpecified() && hasScaleAttributes(el)) {
+            parent.appendError(
+                compiler,
+                "FloatingImage displayWidth/displayHeight cannot be used with scaleX/scaleY.",
+                el);
             return;
         }
 
@@ -75,6 +90,8 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         block.setCropHeight(crop.height());
         block.setScaleX(scale.scaleX());
         block.setScaleY(scale.scaleY());
+        block.setDisplayWidth(display.width());
+        block.setDisplayHeight(display.height());
 
         // Resolve the image src to a string identifier for later script use without
         // loading the actual asset at compile time.
@@ -243,7 +260,8 @@ public class FloatingImageCompiler extends FlowTagCompiler {
     }
 
     @Nullable
-    private static CropSpec parseCropSpec(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
+    private static CropSpec parseCropSpec(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el,
+        boolean allowWholeImage) {
         String widthValue = el.getAttributeString("width", null);
         String widthAlias = el.getAttributeString("w", null);
         String heightValue = el.getAttributeString("height", null);
@@ -254,6 +272,13 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         }
         if (heightValue != null && heightAlias != null) {
             parent.appendError(compiler, "FloatingImage cannot use both height and h.", el);
+            return null;
+        }
+        if (!hasCropAttributes(el)) {
+            if (allowWholeImage) {
+                return new CropSpec(0, 0, -1, -1);
+            }
+            parent.appendError(compiler, "FloatingImage requires x, y, width or w, and height or h.", el);
             return null;
         }
         Integer x = parseRequiredIntAttr(compiler, parent, el, "x");
@@ -273,6 +298,14 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         return new CropSpec(x, y, width, height);
     }
 
+    private static boolean hasCropAttributes(MdxJsxElementFields el) {
+        return el.getAttributeString("x", null) != null || el.getAttributeString("y", null) != null
+            || el.getAttributeString("width", null) != null
+            || el.getAttributeString("w", null) != null
+            || el.getAttributeString("height", null) != null
+            || el.getAttributeString("h", null) != null;
+    }
+
     @Nullable
     private static ScaleSpec parseScaleSpec(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
         Double scaleX = parseDoubleAttr(compiler, parent, el, "scaleX", 1.0d);
@@ -285,6 +318,21 @@ public class FloatingImageCompiler extends FlowTagCompiler {
             return null;
         }
         return new ScaleSpec(scaleX, scaleY);
+    }
+
+    @Nullable
+    private static DisplaySpec parseDisplaySpec(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
+        Integer width = parseOptionalPositiveIntAttr(compiler, parent, el, "displayWidth");
+        Integer height = parseOptionalPositiveIntAttr(compiler, parent, el, "displayHeight");
+        if ((width == null && el.getAttributeString("displayWidth", null) != null)
+            || (height == null && el.getAttributeString("displayHeight", null) != null)) {
+            return null;
+        }
+        return new DisplaySpec(width != null ? width : -1, height != null ? height : -1);
+    }
+
+    private static boolean hasScaleAttributes(MdxJsxElementFields el) {
+        return el.getAttributeString("scaleX", null) != null || el.getAttributeString("scaleY", null) != null;
     }
 
     @Nullable
@@ -326,6 +374,24 @@ public class FloatingImageCompiler extends FlowTagCompiler {
             parent.appendError(compiler, "FloatingImage " + name + " must be an integer.", el);
             return null;
         }
+    }
+
+    @Nullable
+    private static Integer parseOptionalPositiveIntAttr(PageCompiler compiler, LytFlowParent parent,
+        MdxJsxElementFields el, String name) {
+        String value = el.getAttributeString(name, null);
+        if (value == null || value.trim()
+            .isEmpty()) {
+            return null;
+        }
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            if (parsed > 0) {
+                return parsed;
+            }
+        } catch (NumberFormatException ignored) {}
+        parent.appendError(compiler, "FloatingImage " + name + " must be a positive integer.", el);
+        return null;
     }
 
     @Nullable

@@ -46,6 +46,8 @@ public class LytImage extends LytBlock implements InteractiveElement {
     private int cropHeight = -1;
     private double scaleX = 1.0d;
     private double scaleY = 1.0d;
+    private int displayWidth = -1;
+    private int displayHeight = -1;
 
     @Getter
     private final List<ImageRegionAnnotation> annotations = new ArrayList<>();
@@ -86,6 +88,11 @@ public class LytImage extends LytBlock implements InteractiveElement {
         this.scaleY = scaleY > 0.0d ? scaleY : 1.0d;
     }
 
+    public void setDisplaySize(int displayWidth, int displayHeight) {
+        this.displayWidth = displayWidth > 0 ? displayWidth : -1;
+        this.displayHeight = displayHeight > 0 ? displayHeight : -1;
+    }
+
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         if (texture == null) {
@@ -97,7 +104,12 @@ public class LytImage extends LytBlock implements InteractiveElement {
         int sourceHeight = Math.max(1, cropHeight > 0 ? cropHeight : size.height());
         int width;
         int height;
-        if (explicitWidth > 0 || explicitHeight > 0) {
+        if (displayWidth > 0 || displayHeight > 0) {
+            width = displayWidth > 0 ? displayWidth
+                : Math.max(1, (int) Math.round(displayHeight * sourceWidth / (double) sourceHeight));
+            height = displayHeight > 0 ? displayHeight
+                : Math.max(1, (int) Math.round(displayWidth * sourceHeight / (double) sourceWidth));
+        } else if (explicitWidth > 0 || explicitHeight > 0) {
             width = explicitWidth > 0 ? explicitWidth : Math.max(1, (int) Math.round(sourceWidth * scaleX));
             height = explicitHeight > 0 ? explicitHeight : Math.max(1, (int) Math.round(sourceHeight * scaleY));
         } else {
