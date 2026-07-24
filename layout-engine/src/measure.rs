@@ -19,6 +19,8 @@ pub struct GlyphAccum {
     /// Inline-block anchors in shaping order, consumed by the inline
     /// post-pass in layout.rs.
     pub markers: Vec<InlineMarker>,
+    /// Float-aligned inline block anchors: (flat_node_index, paragraph-relative y).
+    pub float_anchors: Vec<(usize, f32)>,
 }
 
 /// One inline-block anchor in paragraph-local coordinates: pen position on
@@ -170,9 +172,18 @@ pub(crate) fn measure_text(
                 if k >= anchors.len() {
                     break;
                 }
+                let align = r.align();
+                let float_side = match align {
+                    3 => Some(1u8),
+                    4 => Some(2u8),
+                    _ => None,
+                };
                 inlines.push(crate::parley_text::InlineSpec {
                     anchor_byte: anchors[k],
                     width: inline_block_width(nodes, r.node() as usize),
+                    height: inline_block_height(nodes, r.node() as usize),
+                    float_side,
+                    node: r.node() as usize,
                 });
             }
         }
@@ -203,7 +214,7 @@ pub(crate) fn measure_text(
         .map(|v| v.iter().map(|x| x as usize).collect())
         .unwrap_or_default();
 
-    let (shaped_glyphs, shaped_markers, shaped_h, shaped_max_x, shaped_floor) =
+    let (shaped_glyphs, shaped_markers, shaped_h, shaped_max_x, shaped_floor, shaped_float_anchors) =
         if !breaks.is_empty() && inlines.is_empty() {
             let mut bounds: Vec<usize> = Vec::with_capacity(breaks.len() + 2);
             bounds.push(0);
@@ -290,7 +301,7 @@ pub(crate) fn measure_text(
                     (a, b) => a.or(b),
                 };
             }
-            (all_glyphs, all_markers, acc_h, max_x, floor)
+            (all_glyphs, all_markers, acc_h, max_x, floor, Vec::new())
         } else {
             let req = crate::parley_text::ShapeRequest {
                 text,
@@ -313,7 +324,7 @@ pub(crate) fn measure_text(
             if !shaped.markers.is_empty() {
                 h += inline_line_growth(nodes, idx, &shaped.markers);
             }
-            (shaped.glyphs, shaped.markers, h, shaped.max_x, shaped.clear_floor)
+            (shaped.glyphs, shaped.markers, h, shaped.max_x, shaped.clear_floor, shaped.float_anchors)
         };
 
     acc.insert(
@@ -321,6 +332,7 @@ pub(crate) fn measure_text(
         GlyphAccum {
             glyphs: shaped_glyphs,
             markers: shaped_markers,
+            float_anchors: shaped_float_anchors,
         },
     );
 

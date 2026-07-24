@@ -513,7 +513,7 @@ fn inline_post_pass(
     use crate::measure::marker_needs;
 
     for (i, acc) in glyph_acc.iter_mut() {
-        if acc.markers.is_empty() {
+        if acc.markers.is_empty() && acc.float_anchors.is_empty() {
             continue;
         }
         let refs = match flat_nodes[*i].text().and_then(|t| t.inline_blocks()) {
@@ -521,10 +521,9 @@ fn inline_post_pass(
             None => continue,
         };
         let (node_x, node_y) = abs_positions[*i];
+        let content_w = sizes[*i].0;
 
-        // 1) Per-line growth from RAW marker metrics: line l's baseline and
-        //    line_top shift down by the accumulated growth of earlier lines
-        //    plus its own need-above.
+        // 1) Per-line growth from regular inline markers.
         let mut by_line: std::collections::BTreeMap<usize, (f32, f32)> = Default::default();
         for (mi, m) in acc.markers.iter().enumerate() {
             if mi >= refs.len() {
@@ -567,25 +566,53 @@ fn inline_post_pass(
             }
         }
 
-        // 2) Anchor blocks per their alignment mode. Markers are in shaping
-        //    order, matching the inline blocks' document order; pen positions
-        //    already account for the blocks' widths (parley InlineBox).
-        for (mi, m) in acc.markers.iter().enumerate() {
-            if mi >= refs.len() {
+        // 2) Anchor regular inline blocks per their alignment mode.
+        // Markers are paired with refs by document order (both exclude floats).
+        let mut reg_mi = 0usize;
+        for ri in 0..refs.len() {
+            let r = refs.get(ri);
+            if r.align() >= 3 {
+                continue;
+            }
+            if reg_mi >= acc.markers.len() {
                 break;
             }
-            let r = refs.get(mi);
+            let m = &acc.markers[reg_mi];
             let ci = r.node() as usize;
             let (_, bh) = sizes[ci];
             let top = match r.align() {
-                // Baseline ascent: block top sits `param` above the baseline.
                 1 => m.baseline_y - r.param(),
-                // Center on the line, then shift down by `param`.
                 2 => m.line_top + (m.line_height - bh) / 2.0 + r.param(),
-                // Default: block bottom sits 2px below the baseline.
                 _ => m.baseline_y + 2.0 - bh,
             };
             abs_positions[ci] = (node_x + m.pen_x, node_y + top);
+            reg_mi += 1;
+        }
+
+        // 3) Anchor float-aligned inline blocks.
+        // float_anchors contains (node_index, paragraph-relative-y) in order.
+        // Pair with InlineBlockRef entries that have align=3 (float-left) or
+        // align=4 (float-right).
+        let mut float_i = 0usize;
+        for ri in 0..refs.len() {
+            let r = refs.get(ri);
+            if r.align() < 3 {
+                continue;
+            }
+            if float_i >= acc.float_anchors.len() {
+                break;
+            }
+            let (_, para_rel_y) = acc.float_anchors[float_i];
+            let ci = r.node() as usize;
+            let (bw, _bh) = sizes[ci];
+            // Float at paragraph edge; margins are already in sizes.
+            let x = if r.align() == 3 {
+                node_x
+            } else {
+                node_x + content_w - bw
+            };
+            abs_positions[ci] = (x, node_y + para_rel_y);
+            float_i += 1;
         }
     }
 }

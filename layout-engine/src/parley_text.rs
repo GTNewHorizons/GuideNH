@@ -191,9 +191,13 @@ pub struct SpanStyle {
 
 /// One inline block to place: byte index of its U+FFFC anchor in the
 /// ORIGINAL text + its layout width (paragraph-relative units).
+/// `float_side`: None = regular inline, Some(1) = float-left, Some(2) = float-right.
 pub struct InlineSpec {
     pub anchor_byte: usize,
     pub width: f32,
+    pub height: f32,
+    pub float_side: Option<u8>,
+    pub node: usize,
 }
 
 pub struct ShapeRequest<'a> {
@@ -252,16 +256,24 @@ pub struct ParleyShaped {
     /// block (e.g. a callout) starts below the cleared float while this
     /// paragraph's box still hugs its text. `None` when no such clear applies.
     pub clear_floor: Option<f32>,
+    /// Float-aligned inline block anchors: (flat_node_index, paragraph-relative y).
+    /// The x coordinate is computed later in inline_post_pass from the block's
+    /// align mode and the paragraph's content width.
+    pub float_anchors: Vec<(usize, f32)>,
 }
 
 /// Shape one paragraph: spans → ranged styles, inline blocks → InlineBox,
 /// float clips → per-line widths via BreakerState, then collect positioned
 /// glyphs and inline markers.
+///
+/// Float-aligned inline blocks trigger a two-pass shaping: pass 1 (full
+/// width, all inlines as boxes) determines each float's anchor line; pass 2
+/// shapes with paragraph-level floats constraining subsequent line widths.
+/// Regular paragraphs (no float inlines) take the fast one-pass path.
 pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleyShaped {
     let scaled = req.font_size * req.font_scale;
 
-    // Strip the U+FFFC anchors: parley places InlineBoxes by byte index, and
-    // the placeholder char itself must never shape into a .notdef glyph.
+    // ── Pre-processing: strip U+FFFC, build clean text ──
     let mut clean = String::with_capacity(req.text.len());
     let mut box_clean_idx: Vec<usize> = Vec::with_capacity(req.inlines.len());
     let mut fffc_orig: Vec<usize> = Vec::with_capacity(req.inlines.len());
@@ -273,28 +285,139 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
             clean.push(ch);
         }
     }
-    // Byte-index map original → cleaned (FFFC is 3 bytes in UTF-8).
     let adjust = |pos: usize| -> usize {
         let n = fffc_orig.iter().take_while(|&&p| p < pos).count();
         pos - 3 * n
     };
-    // Map clear breaks from original-text byte offsets to cleaned-text offsets
-    // (the same mapping spans use), so they line up with parley's line ranges.
     let clean_clears: Vec<(usize, u8)> =
         req.clears.iter().map(|(k, s)| (adjust(*k), *s)).collect();
 
-    let mut b = parley
-        .layout_cx
-        .ranged_builder(&mut parley.font_cx, &clean, 1.0, true);
+    let has_float = req.inlines.iter().any(|s| s.float_side.is_some());
+
+    // ── One-pass: fast path when no float inlines ──
+    if !has_float {
+        let mut b = parley.layout_cx.ranged_builder(&mut parley.font_cx, &clean, 1.0, true);
+        push_defaults(&mut b, scaled);
+        push_spans(&mut b, req.spans, &adjust, &clean);
+        push_inlines(&mut b, req.inlines, &box_clean_idx, false);
+        let mut layout = b.build(&clean);
+        break_and_align(&mut layout, req);
+        let (glyphs, markers, max_x, h, floor) = collect_layout(
+            &layout, req.floats, req.para_abs_y, req.para_x, req.max_width, &clean_clears,
+        );
+        return ParleyShaped {
+            glyphs,
+            markers,
+            content_height: h,
+            max_x,
+            clear_floor: floor,
+            float_anchors: Vec::new(),
+        };
+    }
+
+    // ── Two-pass: paragraph-level float inlines ──
+
+    // Pass 1: all boxes (including floats), full width. Float blocks
+    // participate as inline boxes so their anchor line positions are correct.
+    let layout1 = {
+        let mut b = parley.layout_cx.ranged_builder(&mut parley.font_cx, &clean, 1.0, true);
+        push_defaults(&mut b, scaled);
+        push_spans(&mut b, req.spans, &adjust, &clean);
+        push_inlines(&mut b, req.inlines, &box_clean_idx, false);
+        let mut layout = b.build(&clean);
+        break_and_align(&mut layout, req);
+        layout
+    };
+
+    // Find float anchor line Y positions from pass 1 layout.
+    let mut para_floats: Vec<FloatRect> = Vec::new();
+    let mut float_anchor_ys: Vec<(usize, f32)> = Vec::new();
+    for line in layout1.lines() {
+        let tr = line.text_range();
+        let y = line.metrics().block_min_coord;
+        for (k, spec) in req.inlines.iter().enumerate() {
+            if k >= box_clean_idx.len() {
+                break;
+            }
+            if spec.float_side.is_none() {
+                continue;
+            }
+            if tr.contains(&box_clean_idx[k]) {
+                let abs_y = req.para_abs_y + y;
+                let side = spec.float_side.unwrap_or(1);
+                let fl = FloatRect {
+                    x: if side == 1 {
+                        req.para_x
+                    } else {
+                        (req.para_x + req.max_width - spec.width).max(req.para_x)
+                    },
+                    y: abs_y,
+                    w: spec.width.max(1.0),
+                    h: spec.height.max(scaled * 10.0 / 9.0),
+                    right: side == 2,
+                };
+                para_floats.push(fl);
+                float_anchor_ys.push((spec.node, y));
+                break;
+            }
+        }
+    }
+
+    // Merge document floats + paragraph-local floats for pass 2.
+    let mut merged_floats: Vec<FloatRect> = req.floats.to_vec();
+    merged_floats.extend(para_floats.iter().cloned());
+
+    // Pass 2: skip float inline boxes, shape with constrained widths.
+    let layout2 = {
+        let mut b = parley.layout_cx.ranged_builder(&mut parley.font_cx, &clean, 1.0, true);
+        push_defaults(&mut b, scaled);
+        push_spans(&mut b, req.spans, &adjust, &clean);
+        push_inlines(&mut b, req.inlines, &box_clean_idx, true);
+        let mut layout = b.build(&clean);
+        break_with_floats(&mut layout, req, &merged_floats, scaled);
+        layout.align(
+            if req.justify {
+                Alignment::Justify
+            } else {
+                Alignment::Start
+            },
+            AlignmentOptions::default(),
+        );
+        layout
+    };
+
+    let (glyphs, markers, max_x, content_height, clear_floor) = collect_layout(
+        &layout2, &merged_floats, req.para_abs_y, req.para_x, req.max_width, &clean_clears,
+    );
+
+    ParleyShaped {
+        glyphs,
+        markers,
+        content_height,
+        max_x,
+        clear_floor,
+        float_anchors: float_anchor_ys,
+    }
+}
+
+fn push_defaults(b: &mut parley::RangedBuilder<SpanBrush>, scaled: f32) {
     b.push_default(StyleProperty::FontSize(scaled));
     b.push_default(StyleProperty::LineHeight(LineHeight::FontSizeRelative(10.0 / 9.0)));
     b.push_default(StyleProperty::FontFamily(FontFamily::Single(
         FontFamilyName::Generic(GenericFamily::SansSerif),
     )));
     b.push_default(StyleProperty::Brush(SpanBrush(0)));
-    for (i, sp) in req.spans.iter().enumerate() {
+}
+
+fn push_spans(
+    b: &mut parley::RangedBuilder<SpanBrush>,
+    spans: &[SpanStyle],
+    adjust: &dyn Fn(usize) -> usize,
+    text: &str,
+) {
+    for (i, sp) in spans.iter().enumerate() {
         let (s, e) = (adjust(sp.start), adjust(sp.end));
-        if s >= e || e > clean.len() {
+        if s >= e || e > text.len() {
             continue;
         }
         b.push(StyleProperty::Brush(SpanBrush(i as u32)), s..e);
@@ -302,55 +425,37 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
             b.push(StyleProperty::FontWeight(FontWeight::BOLD), s..e);
         }
     }
-    for (k, spec) in req.inlines.iter().enumerate() {
-        if k >= box_clean_idx.len() {
+}
+
+fn push_inlines(
+    b: &mut parley::RangedBuilder<SpanBrush>,
+    inlines: &[InlineSpec],
+    clean_idx: &[usize],
+    skip_floats: bool,
+) {
+    for (k, spec) in inlines.iter().enumerate() {
+        if k >= clean_idx.len() {
             break;
+        }
+        if skip_floats && spec.float_side.is_some() {
+            continue;
         }
         b.push_inline_box(InlineBox {
             id: k as u64,
             kind: InlineBoxKind::InFlow,
-            index: box_clean_idx[k],
+            index: clean_idx[k],
             width: spec.width,
-            // Width participates in wrapping and line breaking; the VERTICAL
-            // growth (above/below the baseline per align mode) is applied by
-            // the Java-side post-pass, so the box reports zero height here.
             height: 0.0,
         });
     }
-    let mut layout = b.build(&clean);
+}
 
-    // Break: uniform fast path, or per-line widths under document floats (the
-    // browser IFC loop: query the free interval at the line's absolute y, hand
-    // it to the breaker, repeat). The float table is queried in real time — no
-    // precomputed clip table crosses any boundary.
+fn break_and_align(layout: &mut Layout<SpanBrush>, req: &ShapeRequest) {
     if req.floats.is_empty() {
         layout.break_all_lines(Some(req.max_width));
     } else {
-        let est_h = scaled * (10.0 / 9.0);
-        let mut breaker = layout.break_lines();
-        // floor 1.0: min-content probes pass max_width=0, and query_floats also
-        // floors at 1px.
-        breaker
-            .state_mut()
-            .set_layout_max_advance(req.max_width.max(1.0));
-        while !breaker.is_done() {
-            let rel_y = breaker.committed_y() as f32;
-            // The line's absolute y is the paragraph top plus the committed
-            // relative offset; the query converts float edges to paragraph-
-            // relative x using para_x.
-            let (_, w) = query_floats(
-                req.para_abs_y + rel_y,
-                est_h,
-                req.para_x,
-                req.max_width,
-                req.floats,
-            );
-            breaker.state_mut().set_line_max_advance(w);
-            if breaker.break_next().is_none() {
-                break;
-            }
-        }
-        breaker.finish();
+        let est_h = req.font_size * req.font_scale * (10.0 / 9.0);
+        break_with_floats(layout, req, req.floats, est_h);
     }
     layout.align(
         if req.justify {
@@ -360,22 +465,26 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         },
         AlignmentOptions::default(),
     );
+}
 
-    let (glyphs, markers, max_x, content_height, clear_floor) = collect_layout(
-        &layout,
-        req.floats,
-        req.para_abs_y,
-        req.para_x,
-        req.max_width,
-        &clean_clears,
-    );
-    ParleyShaped {
-        glyphs,
-        markers,
-        content_height,
-        max_x,
-        clear_floor,
+fn break_with_floats(
+    layout: &mut Layout<SpanBrush>,
+    req: &ShapeRequest,
+    floats: &[FloatRect],
+    est_h: f32,
+) {
+    let mut breaker = layout.break_lines();
+    breaker.state_mut().set_layout_max_advance(req.max_width.max(1.0));
+    while !breaker.is_done() {
+        let rel_y = breaker.committed_y() as f32;
+        let (_, w) =
+            query_floats(req.para_abs_y + rel_y, est_h, req.para_x, req.max_width, floats);
+        breaker.state_mut().set_line_max_advance(w);
+        if breaker.break_next().is_none() {
+            break;
+        }
     }
+    breaker.finish();
 }
 
 /// Collect positioned glyphs + inline markers from a laid-out paragraph,
