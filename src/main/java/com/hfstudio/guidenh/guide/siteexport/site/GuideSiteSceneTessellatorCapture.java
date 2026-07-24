@@ -108,7 +108,7 @@ public class GuideSiteSceneTessellatorCapture {
     public void startDrawing(int drawMode) {
         if (drawing) {
             // A previous batch was not properly closed, so drop it before recording a new one.
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "Scene capture startDrawing called while already drawing (mode={}); discarding previous unclosed batch",
                 drawMode);
             drawing = false;
@@ -137,7 +137,7 @@ public class GuideSiteSceneTessellatorCapture {
                 captureCurrentMesh();
             }
         } catch (Throwable e) {
-            GuideDebugLog.warnAlways("Scene capture mesh export failed ({} vertices)", vertexCount, e);
+            GuideDebugLog.warn("Scene capture mesh export failed ({} vertices)", vertexCount, e);
         } finally {
             currentVertexBytes = EMPTY_VERTEX_BYTES;
             currentVertexCount = 0;
@@ -234,7 +234,7 @@ public class GuideSiteSceneTessellatorCapture {
             int level0Width = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
             int level0Height = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
             if (level0Width <= 0 || level0Height <= 0) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "exportCurrentTexture: bound texture id={} has invalid level-0 dimensions {}x{}; skipping",
                     textureId,
                     level0Width,

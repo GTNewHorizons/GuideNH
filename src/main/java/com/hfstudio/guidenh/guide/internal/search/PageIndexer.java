@@ -78,7 +78,7 @@ public class PageIndexer implements IndexingContext {
             // Handled via conversion
         } else {
             GuideDebugLog
-                .warnAlways("[GuideNH] [PageIndexer] Unhandled node type in guide search indexing: {}", content.type());
+                .warn("[GuideNH] [PageIndexer] Unhandled node type in guide search indexing: {}", content.type());
         }
     }
 

@@ -61,12 +61,12 @@ public class FileTreeCompiler {
                     var imageId = IdUtils.resolveLink(value, compiler.getPageId());
                     var imageContent = compiler.loadAsset(imageId);
                     if (imageContent == null) {
-                        GuideDebugLog.warnAlways("[GuideNH] [FileTreeCompiler] File tree iconPng not found: {}", value);
+                        GuideDebugLog.warn("[GuideNH] [FileTreeCompiler] File tree iconPng not found: {}", value);
                         image.setTitle("Missing image: " + value);
                     }
                     image.setImage(imageId, imageContent);
                 } catch (IllegalArgumentException e) {
-                    GuideDebugLog.warnAlways(
+                    GuideDebugLog.warn(
                         "[GuideNH] [FileTreeCompiler] File tree iconPng has invalid id '{}': {}",
                         value,
                         e.getMessage());
@@ -81,7 +81,7 @@ public class FileTreeCompiler {
                         .getResourceDomain());
                 if (stack == null) {
                     GuideDebugLog
-                        .warnAlways("[GuideNH] [FileTreeCompiler] File tree iconItem could not be resolved: {}", value);
+                        .warn("[GuideNH] [FileTreeCompiler] File tree iconItem could not be resolved: {}", value);
                     LytParagraph fallback = new LytParagraph();
                     fallback.setMarginTop(0);
                     fallback.setMarginBottom(0);

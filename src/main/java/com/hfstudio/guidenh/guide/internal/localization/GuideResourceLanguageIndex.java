@@ -47,7 +47,7 @@ public class GuideResourceLanguageIndex {
             loadResourcePackLanguage(resourcePack, normalizedLanguage, merged);
             long packNs = System.nanoTime() - packStartedAt;
             if (packNs > 100_000_000) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [GuideResourceLanguageIndex] Slow resource pack [#{}/{}] {} took {} ms",
                     packIndex,
                     activeResourcePacks.size(),
@@ -57,7 +57,7 @@ public class GuideResourceLanguageIndex {
             packIndex++;
         }
         long totalNs = System.nanoTime() - startedAt;
-        GuideDebugLog.warnAlways(
+        GuideDebugLog.warn(
             "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ms",
             merged.size(),
             normalizedLanguage,
@@ -128,7 +128,7 @@ public class GuideResourceLanguageIndex {
             try (InputStream input = new FileInputStream(child)) {
                 target.putAll(StringTranslate.parseLangFile(input));
             } catch (IOException e) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [GuideResourceLanguageIndex] Failed to read lang file {}",
                     child.getAbsolutePath(),
                     e);

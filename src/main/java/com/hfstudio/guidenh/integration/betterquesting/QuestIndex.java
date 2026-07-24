@@ -64,8 +64,7 @@ public class QuestIndex extends UniqueIndex<UUID, PageAnchor> {
         }
 
         if (!(questIdsNode instanceof List<?>questIdList)) {
-            GuideDebugLog
-                .warnAlways("[GuideNH] [QuestIndex] Page {} contains malformed quest_ids frontmatter", page.getId());
+            GuideDebugLog.warn("[GuideNH] [QuestIndex] Page {} contains malformed quest_ids frontmatter", page.getId());
             return List.of();
         }
 
@@ -76,14 +75,13 @@ public class QuestIndex extends UniqueIndex<UUID, PageAnchor> {
             if (listEntry instanceof String questIdStr) {
                 String trimmed = questIdStr.trim();
                 if (trimmed.isEmpty()) {
-                    GuideDebugLog.warnAlways(
-                        "[GuideNH] [QuestIndex] Page {} contains an empty quest_ids frontmatter entry",
-                        pageId);
+                    GuideDebugLog
+                        .warn("[GuideNH] [QuestIndex] Page {} contains an empty quest_ids frontmatter entry", pageId);
                     continue;
                 }
                 UUID parsed = QuestIdParser.parse(trimmed);
                 if (parsed == null) {
-                    GuideDebugLog.warnAlways(
+                    GuideDebugLog.warn(
                         "[GuideNH] [QuestIndex] Page {} contains a malformed quest_ids frontmatter entry: {}",
                         pageId,
                         trimmed);
@@ -91,7 +89,7 @@ public class QuestIndex extends UniqueIndex<UUID, PageAnchor> {
                 }
                 anchors.add(Pair.of(parsed, new PageAnchor(pageId, null)));
             } else {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [QuestIndex] Page {} contains a malformed quest_ids frontmatter entry: {}",
                     pageId,
                     listEntry);

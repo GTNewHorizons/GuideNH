@@ -175,7 +175,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     @Nullable
     public ParsedGuidePage getParsedPage(ResourceLocation id) {
         if (pages == null) {
-            GuideDebugLog.warnAlways("[GuideNH] [MutableGuide] Can't get page {}. Pages not loaded yet.", id);
+            GuideDebugLog.warn("[GuideNH] [MutableGuide] Can't get page {}. Pages not loaded yet.", id);
             return null;
         }
 
@@ -732,7 +732,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
                         requestedMediaWikiWarmupRevision = Long.MIN_VALUE;
                     }
                 }
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [MutableGuide] Failed to warm MediaWiki caches asynchronously for guide {} revision {}",
                     id,
                     revision,

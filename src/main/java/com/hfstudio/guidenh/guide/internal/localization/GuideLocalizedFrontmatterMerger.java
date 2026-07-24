@@ -22,7 +22,7 @@ public class GuideLocalizedFrontmatterMerger {
         long t1 = System.nanoTime();
         long totalUs = (t1 - t0) / 1000;
         if (totalUs > 1_000) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [FrontmatterMerger] merge() took {}us, fallbackLen={} localizedLen={}",
                 totalUs,
                 fallbackSource.length(),
@@ -64,7 +64,7 @@ public class GuideLocalizedFrontmatterMerger {
         long t5 = System.nanoTime();
         long totalUs = (t5 - t0) / 1000;
         if (totalUs > 1_000) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [FrontmatterMerger] mergeInternal normalize={}us split={}us yamlLoad={}us mergeKeys={}us writeMap={}us total={}us",
                 (t1 - t0) / 1000,
                 (t2 - t1) / 1000,

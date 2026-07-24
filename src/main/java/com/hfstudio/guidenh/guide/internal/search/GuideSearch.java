@@ -370,7 +370,7 @@ public class GuideSearch implements AutoCloseable {
 
                 var guide = Guides.getById(guideId);
                 if (guide == null) {
-                    GuideDebugLog.warnAlways(
+                    GuideDebugLog.warn(
                         "[GuideNH] [GuideSearch] Search index produced guide id {} which couldn't be found.",
                         guideId);
                     continue;
@@ -378,7 +378,7 @@ public class GuideSearch implements AutoCloseable {
 
                 var page = guide.getParsedPage(pageId);
                 if (page == null) {
-                    GuideDebugLog.warnAlways(
+                    GuideDebugLog.warn(
                         "[GuideNH] [GuideSearch] Search index produced page {} in guide {}, which couldn't be found.",
                         pageId,
                         guideId);
@@ -475,7 +475,7 @@ public class GuideSearch implements AutoCloseable {
         var luceneLang = Analyzers.MINECRAFT_TO_LUCENE_LANG.get(language);
         if (luceneLang == null) {
             if (warnedAboutLanguage.add(language)) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [GuideSearch] Minecraft language '{}' is unknown, so search falls back to english.",
                     language);
             }

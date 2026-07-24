@@ -27,7 +27,7 @@ public class NeiRecipeLookup {
                     NeiRecipeLookup.class.getClassLoader());
                 ok = true;
             } catch (Throwable t) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [NeiRecipeLookup] NEI API incompatible; recipe rendering falls back to vanilla. Reason: {}",
                     t.toString());
             }
@@ -98,7 +98,7 @@ public class NeiRecipeLookup {
             }
             return out;
         } catch (Throwable t) {
-            GuideDebugLog.warnAlways("[GuideNH] [NeiRecipeLookup] NEI crafting refs query failed", t);
+            GuideDebugLog.warn("[GuideNH] [NeiRecipeLookup] NEI crafting refs query failed", t);
             return List.of();
         }
     }
@@ -117,7 +117,7 @@ public class NeiRecipeLookup {
         try {
             return processHandlers(NeiDirectCalls.getUsageHandlers(target));
         } catch (Throwable t) {
-            GuideDebugLog.warnAlways("[GuideNH] [NeiRecipeLookup] NEI usage query failed", t);
+            GuideDebugLog.warn("[GuideNH] [NeiRecipeLookup] NEI usage query failed", t);
             return List.of();
         }
     }
@@ -131,7 +131,7 @@ public class NeiRecipeLookup {
         try {
             return NeiDirectCalls.getCraftingHandlers(target);
         } catch (Throwable t) {
-            GuideDebugLog.warnAlways("[GuideNH] [NeiRecipeLookup] queryRawCraftingHandlers failed", t);
+            GuideDebugLog.warn("[GuideNH] [NeiRecipeLookup] queryRawCraftingHandlers failed", t);
             return List.of();
         }
     }
@@ -145,7 +145,7 @@ public class NeiRecipeLookup {
         try {
             return NeiDirectCalls.getUsageHandlers(target);
         } catch (Throwable t) {
-            GuideDebugLog.warnAlways("[GuideNH] [NeiRecipeLookup] queryRawUsageHandlers failed", t);
+            GuideDebugLog.warn("[GuideNH] [NeiRecipeLookup] queryRawUsageHandlers failed", t);
             return List.of();
         }
     }

@@ -484,7 +484,7 @@ public class SceneScript implements LytScript {
 
         @Override
         public void appendError(PageCompiler compiler, String text, UnistNode node) {
-            GuideDebugLog.warnAlways("[GuideNH] [SceneScript] {}", text);
+            GuideDebugLog.warn("[GuideNH] [SceneScript] {}", text);
         }
     }
 

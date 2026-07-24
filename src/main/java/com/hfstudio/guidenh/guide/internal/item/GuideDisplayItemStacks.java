@@ -174,9 +174,9 @@ public class GuideDisplayItemStacks {
     private static void warnOnce(String key, String message, Object arg, @Nullable Throwable t) {
         if (WARNED_DISPLAY_FAILURES.add(key)) {
             if (t == null) {
-                GuideDebugLog.warnAlways(message, arg);
+                GuideDebugLog.warn(message, arg);
             } else {
-                GuideDebugLog.warnAlways(message, arg, t);
+                GuideDebugLog.warn(message, arg, t);
             }
         }
     }
@@ -184,9 +184,9 @@ public class GuideDisplayItemStacks {
     private static void warnOnce(String key, String message, Object arg1, Object arg2, @Nullable Throwable t) {
         if (WARNED_DISPLAY_FAILURES.add(key)) {
             if (t == null) {
-                GuideDebugLog.warnAlways(message, arg1, arg2);
+                GuideDebugLog.warn(message, arg1, arg2);
             } else {
-                GuideDebugLog.warnAlways(message, arg1, arg2, t);
+                GuideDebugLog.warn(message, arg1, arg2, t);
             }
         }
     }

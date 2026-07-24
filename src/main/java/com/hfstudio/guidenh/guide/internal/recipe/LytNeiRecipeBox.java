@@ -231,7 +231,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
             + t.getClass()
                 .getName();
         if (WARNED_RECIPE_RENDER_FAILURES.add(key)) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [LytNeiRecipeBox] Failed to render embedded recipe {}#{}; keeping recipe frame",
                 handler.getClass()
                     .getName(),

@@ -165,7 +165,7 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
 
         GuideSiteSceneTessellatorCapture.RecordingResult result = recorder.finish();
         if (result.meshes.isEmpty()) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "Scene site export captured no tessellated meshes for a {}x{} scene; exported 3D preview will be blank.",
                 width,
                 height);

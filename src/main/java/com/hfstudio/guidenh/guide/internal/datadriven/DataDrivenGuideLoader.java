@@ -233,7 +233,7 @@ public class DataDrivenGuideLoader {
                 }
             }
         } catch (IOException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide pages from resource pack {}",
                 resourcePackFile.getAbsolutePath(),
                 e);
@@ -433,7 +433,7 @@ public class DataDrivenGuideLoader {
                 if (!pagePath.isEmpty()) pagePaths.add(pagePath);
             }
         } catch (IOException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [DataDrivenGuideLoader] Failed to scan zip for pages: {}",
                 resourcePackFile.getAbsolutePath(),
                 e);
@@ -499,7 +499,7 @@ public class DataDrivenGuideLoader {
         try {
             return ((AccessorAbstractResourcePack) resourcePack).guidenh$getResourcePackFile();
         } catch (RuntimeException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [DataDrivenGuideLoader] Failed to resolve backing file for pack {}",
                 resourcePack.getPackName(),
                 e);
@@ -517,7 +517,7 @@ public class DataDrivenGuideLoader {
             if (value instanceof Path path) return path.toFile();
             if (value instanceof File file) return file;
         } catch (IllegalAccessException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [DataDrivenGuideLoader] Failed to resolve directory root for pack {}",
                 resourcePack.getPackName(),
                 e);
@@ -555,7 +555,7 @@ public class DataDrivenGuideLoader {
             var basePacks = accessor.guidenh$getResourcePackList();
             if (basePacks != null) resourcePacks.addAll(basePacks);
         } catch (RuntimeException e) {
-            GuideDebugLog.warnAlways("[GuideNH] [DataDrivenGuideLoader] Failed to inspect base resource packs", e);
+            GuideDebugLog.warn("[GuideNH] [DataDrivenGuideLoader] Failed to inspect base resource packs", e);
         }
         var repository = Minecraft.getMinecraft()
             .getResourcePackRepository();
@@ -588,7 +588,7 @@ public class DataDrivenGuideLoader {
                 }
             }
         } catch (RuntimeException e) {
-            GuideDebugLog.warnAlways("[GuideNH] [DataDrivenGuideLoader] Failed to inspect resource manager packs", e);
+            GuideDebugLog.warn("[GuideNH] [DataDrivenGuideLoader] Failed to inspect resource manager packs", e);
         }
     }
 

@@ -73,8 +73,7 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
 
         List<?> itemIdList = normalizeItemIdEntries(page, itemIdsNode);
         if (itemIdList == null) {
-            GuideDebugLog
-                .warnAlways("[GuideNH] [ItemIndex] Page {} contains malformed item_ids frontmatter", page.getId());
+            GuideDebugLog.warn("[GuideNH] [ItemIndex] Page {} contains malformed item_ids frontmatter", page.getId());
             return List.of();
         }
 
@@ -97,7 +96,7 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
                         page.getId()
                             .getResourceDomain());
                 } catch (IllegalArgumentException e) {
-                    GuideDebugLog.warnAlways(
+                    GuideDebugLog.warn(
                         "[GuideNH] [ItemIndex] Page {} contains a malformed item_ids frontmatter entry: {}",
                         page.getId(),
                         listEntry);
@@ -105,7 +104,7 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
                 }
 
                 if (itemId == null) {
-                    GuideDebugLog.warnAlways(
+                    GuideDebugLog.warn(
                         "[GuideNH] [ItemIndex] Page {} references an unknown item {} in its item_ids frontmatter",
                         page.getId(),
                         listEntry);
@@ -114,7 +113,7 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
 
                 itemAnchors.add(Pair.of(itemId, new PageAnchor(page.getId(), anchor)));
             } else {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [ItemIndex] Page {} contains a malformed item_ids frontmatter entry: {}",
                     page.getId(),
                     listEntry);
@@ -132,9 +131,8 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
         if (itemIdsNode instanceof String itemIdEntry) {
             String trimmed = itemIdEntry.trim();
             if (trimmed.isEmpty()) {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH] [ItemIndex] Page {} contains an empty item_ids frontmatter entry",
-                    page.getId());
+                GuideDebugLog
+                    .warn("[GuideNH] [ItemIndex] Page {} contains an empty item_ids frontmatter entry", page.getId());
                 return List.of();
             }
             return List.of(trimmed);

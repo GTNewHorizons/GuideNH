@@ -55,8 +55,7 @@ public class GuideLatexRenderer {
                 int h = icon.getIconHeight();
                 return Math.max(1, h);
             } catch (ParseException e) {
-                GuideDebugLog
-                    .warnAlways("[GuideNH/LaTeX] Failed to calibrate reference height for scale {}", sourceScale, e);
+                GuideDebugLog.warn("[GuideNH/LaTeX] Failed to calibrate reference height for scale {}", sourceScale, e);
                 return 16;
             }
         });
@@ -120,11 +119,11 @@ public class GuideLatexRenderer {
             GuideLatexTextureCache.INSTANCE.putSize(sizeKey, w, h, d);
             return new int[] { w, h, d };
         } catch (ParseException e) {
-            GuideDebugLog.warnAlways("[GuideNH/LaTeX] Parse error measuring '{}': {}", formula, e.getMessage());
+            GuideDebugLog.warn("[GuideNH/LaTeX] Parse error measuring '{}': {}", formula, e.getMessage());
             GuideLatexTextureCache.INSTANCE.markFailed(formula, e.getMessage());
             return null;
         } catch (Exception e) {
-            GuideDebugLog.warnAlways("[GuideNH/LaTeX] Unexpected error measuring '{}': {}", formula, e.getMessage(), e);
+            GuideDebugLog.warn("[GuideNH/LaTeX] Unexpected error measuring '{}': {}", formula, e.getMessage(), e);
             GuideLatexTextureCache.INSTANCE.markFailed(formula, e.getMessage());
             return null;
         }
@@ -175,11 +174,11 @@ public class GuideLatexRenderer {
 
             return new int[] { textureId, w, h };
         } catch (ParseException e) {
-            GuideDebugLog.warnAlways("[GuideNH/LaTeX] Parse error rendering '{}': {}", formula, e.getMessage());
+            GuideDebugLog.warn("[GuideNH/LaTeX] Parse error rendering '{}': {}", formula, e.getMessage());
             GuideLatexTextureCache.INSTANCE.markFailed(formula, e.getMessage());
             return null;
         } catch (Exception e) {
-            GuideDebugLog.warnAlways("[GuideNH/LaTeX] Unexpected error rendering '{}': {}", formula, e.getMessage(), e);
+            GuideDebugLog.warn("[GuideNH/LaTeX] Unexpected error rendering '{}': {}", formula, e.getMessage(), e);
             GuideLatexTextureCache.INSTANCE.markFailed(
                 formula,
                 e.getMessage() == null ? e.getClass()

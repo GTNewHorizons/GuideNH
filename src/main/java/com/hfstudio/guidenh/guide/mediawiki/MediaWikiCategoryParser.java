@@ -87,7 +87,7 @@ public class MediaWikiCategoryParser {
     }
 
     private static void warnMalformedCategories(ParsedGuidePage page, String message) {
-        GuideDebugLog.warnAlways("[GuideNH] [MediaWikiCategoryParser] Page {} {}", page.getId(), message);
+        GuideDebugLog.warn("[GuideNH] [MediaWikiCategoryParser] Page {} {}", page.getId(), message);
     }
 
     private static String normalizeCategoryKey(String categoryName) {

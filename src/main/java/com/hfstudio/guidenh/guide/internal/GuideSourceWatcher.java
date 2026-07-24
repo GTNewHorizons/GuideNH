@@ -754,10 +754,8 @@ public class GuideSourceWatcher implements AutoCloseable {
             Map<String, String> entries = GuidePageLanguageIndex.readPageKeys(input);
             return entries.get(GuideLocalizedPageSourceResolver.buildLangKey(contentRootFolder, pageId));
         } catch (IOException e) {
-            GuideDebugLog.warnAlways(
-                "[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}",
-                langFilePath,
-                e);
+            GuideDebugLog
+                .warn("[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}", langFilePath, e);
             return null;
         }
     }
@@ -795,7 +793,7 @@ public class GuideSourceWatcher implements AutoCloseable {
                             child.getFileName()
                                 .toString()));
             } catch (IOException e) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [GuideSourceWatcher] Failed to scan localized source namespaces in {}",
                     assetsPath,
                     e);
@@ -825,10 +823,8 @@ public class GuideSourceWatcher implements AutoCloseable {
         try (InputStream input = Files.newInputStream(langFilePath)) {
             return GuidePageLanguageIndex.readPageKeys(input);
         } catch (IOException e) {
-            GuideDebugLog.warnAlways(
-                "[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}",
-                langFilePath,
-                e);
+            GuideDebugLog
+                .warn("[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}", langFilePath, e);
             return Map.of();
         }
     }
