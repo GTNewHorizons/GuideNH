@@ -5,37 +5,10 @@ import java.util.List;
 
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
-import com.hfstudio.guidenh.guide.render.RenderContext;
 
 final class ShapeUtils {
 
     private ShapeUtils() {}
-
-    /**
-     * Fills a polygon using a triangle fan from the centroid.
-     * This avoids artifacts from using a boundary vertex as the fan origin
-     * (which happens with plain {@link RenderContext#fillPolygon(float[], float[], int)}).
-     */
-    static void fillPolygonCentered(RenderContext context, float[] xs, float[] ys, int color) {
-        int n = xs.length;
-        if (n < 3) return;
-        float cx = 0, cy = 0;
-        for (int i = 0; i < n; i++) {
-            cx += xs[i];
-            cy += ys[i];
-        }
-        cx /= n;
-        cy /= n;
-        float[] fanXs = new float[n + 2];
-        float[] fanYs = new float[n + 2];
-        fanXs[0] = cx;
-        fanYs[0] = cy;
-        System.arraycopy(xs, 0, fanXs, 1, n);
-        System.arraycopy(ys, 0, fanYs, 1, n);
-        fanXs[n + 1] = xs[0];
-        fanYs[n + 1] = ys[0];
-        context.fillPolygon(fanXs, fanYs, color);
-    }
 
     /** Same as fillPolygonCentered but emits a DrawPolygon primitive. */
     static void emitPolygonCentered(PrimitiveCollector c, float[] xs, float[] ys, int color) {

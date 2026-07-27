@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.FontMetrics;
@@ -70,10 +69,6 @@ public final class MermaidNodeRenderer {
         int accent = resolveAccentColor(classes, shape);
         int background = isRoot ? DEFAULT_BACKGROUND : ALT_BACKGROUND;
         return new NodeColors(background, accent, accent);
-    }
-
-    public static void renderAccentBar(RenderContext context, LytRect boxRect, int accentColor) {
-        context.fillRect(new LytRect(boxRect.x(), boxRect.y(), 3, boxRect.height()), accentColor);
     }
 
     public static ResolvedTextStyle scaleTextStyle(ResolvedTextStyle base, float zoom) {

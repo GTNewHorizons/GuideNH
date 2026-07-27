@@ -18,8 +18,6 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
-import com.hfstudio.guidenh.guide.render.RenderContext;
-import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -169,12 +167,6 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {}
-
-    @Override
-    protected void renderDiagram(RenderContext context, int baseX, int baseY, float activeZoom) {
-        renderConnectors(context, layout.root(), baseX, baseY);
-        renderNodes(context, layout.root(), baseX, baseY);
-    }
 
     // ---- primitives pipeline (replaces render* for the primitives path) ----
 
@@ -579,107 +571,6 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         }
     }
 
-    private void renderConnectors(RenderContext context, NodeLayout node, int baseX, int baseY) {
-        float activeZoom = getActiveZoom();
-        for (NodeLayout child : node.children) {
-            if (mindmap.getLayoutMode() == MindmapLayoutMode.TIDY_TREE) {
-                drawVerticalConnector(
-                    context,
-                    scaled(baseX, node.centerX(), activeZoom),
-                    scaled(baseY, node.bottom(), activeZoom),
-                    scaled(baseX, child.centerX(), activeZoom),
-                    scaled(baseY, child.y, activeZoom),
-                    0xFF5D6C7C);
-            } else {
-                boolean rightSide = child.centerX() >= node.centerX();
-                int parentEdgeX = scaled(baseX, rightSide ? node.right() : node.x, activeZoom);
-                int childEdgeX = scaled(baseX, rightSide ? child.x : child.right(), activeZoom);
-                drawHorizontalConnector(
-                    context,
-                    parentEdgeX,
-                    scaled(baseY, node.centerY(), activeZoom),
-                    childEdgeX,
-                    scaled(baseY, child.centerY(), activeZoom),
-                    0xFF5D6C7C);
-            }
-            renderConnectors(context, child, baseX, baseY);
-        }
-    }
-
-    private void renderNodes(RenderContext context, NodeLayout node, int baseX, int baseY) {
-        float activeZoom = getActiveZoom();
-        LytRect rect = new LytRect(
-            scaled(baseX, node.x, activeZoom),
-            scaled(baseY, node.y, activeZoom),
-            Math.max(1, Math.round(node.width * activeZoom)),
-            Math.max(1, Math.round(node.height * activeZoom)));
-        LytRect boxRect = rect;
-        NodeColors colors = resolveColors(node.node);
-        context.fillRect(boxRect, colors.background);
-        context.drawBorder(boxRect, colors.border, node.node.getShape() == MermaidNodeShape.BANG ? 2 : 1);
-        context.fillRect(new LytRect(boxRect.x(), boxRect.y(), 3, boxRect.height()), colors.accent);
-
-        ResolvedTextStyle style = getOrScaleStyle(node.depth == 0 ? ROOT_TEXT_STYLE : NODE_TEXT_STYLE, activeZoom);
-        ResolvedTextStyle badgeStyle = getOrScaleStyle(ICON_TEXT_STYLE, activeZoom);
-        int paddingX = Math.max(1, Math.round(NODE_PADDING_X * activeZoom));
-        int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * activeZoom));
-        int iconGapY = Math.max(1, Math.round(ICON_GAP_Y * activeZoom));
-        int badgePaddingX = Math.max(2, Math.round(4 * activeZoom));
-        int badgePaddingY = Math.max(1, Math.round(2 * activeZoom));
-        int textY = rect.y() + paddingY;
-        if (node.showBadge && node.badgeText != null) {
-            int badgeWidth = Math.max(1, context.getStringWidth(node.badgeText, badgeStyle) + badgePaddingX * 2);
-            LytRect badge = new LytRect(
-                rect.x() + paddingX,
-                textY,
-                badgeWidth,
-                Math.max(1, context.getLineHeight(badgeStyle) + badgePaddingY * 2));
-            context.fillRect(badge, 0x262A3340);
-            context.drawBorder(badge, 0x66434C57, 1);
-            context.drawText(node.badgeText, badge.x() + badgePaddingX, badge.y() + badgePaddingY, badgeStyle);
-            textY = badge.bottom() + iconGapY;
-        }
-
-        if (node.contentLayout != null) {
-            renderNodeContent(context, node, rect, paddingX, textY, activeZoom);
-        } else {
-            int lineHeight = context.getLineHeight(style);
-            for (String line : node.lines) {
-                int lineWidth = MermaidNodeRenderer.measureText(context, style, line);
-                int textX = rect.x() + Math.max(paddingX, (rect.width() - lineWidth) / 2);
-                context.drawText(line, textX, textY, style);
-                textY += lineHeight;
-            }
-        }
-
-        for (NodeLayout child : node.children) {
-            renderNodes(context, child, baseX, baseY);
-        }
-    }
-
-    private void renderNodeContent(RenderContext context, NodeLayout node, LytRect rect, int paddingX, int contentY,
-        float activeZoom) {
-        if (node.contentLayout == null) return;
-        LytRect contentViewport = resolveNodeContentRect(node.contentLayout, rect, paddingX, contentY, activeZoom);
-        renderNodeContent(
-            context,
-            node.contentLayout.block(),
-            contentViewport,
-            node.contentLayout.visualBounds(),
-            activeZoom);
-    }
-
-    private static boolean containsScene(@Nullable LytBlock block) {
-        if (block == null) return false;
-        if (block instanceof LytGuidebookScene) return true;
-        if (block instanceof LytNode container) {
-            for (var child : container.getChildren()) {
-                if (child instanceof LytBlock childBlock && containsScene(childBlock)) return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     @Nullable
     protected NodeHit pickNodeHit(int documentX, int documentY) {
@@ -813,48 +704,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         return new NodeColors(background, border, accent);
     }
 
-    private void drawHorizontalConnector(RenderContext context, int startX, int startY, int endX, int endY, int color) {
-        int midX = (startX + endX) / 2;
-        fillHorizontalLine(context, startX, midX, startY, color);
-        fillVerticalLine(context, midX, startY, endY, color);
-        fillHorizontalLine(context, midX, endX, endY, color);
-    }
-
-    private void drawVerticalConnector(RenderContext context, int startX, int startY, int endX, int endY, int color) {
-        int midY = (startY + endY) / 2;
-        fillVerticalLine(context, startX, startY, midY, color);
-        fillHorizontalLine(context, startX, endX, midY, color);
-        fillVerticalLine(context, endX, midY, endY, color);
-    }
-
-    private void fillHorizontalLine(RenderContext context, int startX, int endX, int y, int color) {
-        int left = Math.min(startX, endX);
-        int width = Math.abs(endX - startX) + 1;
-        context.fillRect(new LytRect(left, y, width, CONNECTOR_THICKNESS), color);
-    }
-
-    private void fillVerticalLine(RenderContext context, int x, int startY, int endY, int color) {
-        int top = Math.min(startY, endY);
-        int height = Math.abs(endY - startY) + 1;
-        context.fillRect(new LytRect(x, top, CONNECTOR_THICKNESS, height), color);
-    }
-
     private int resolvePreferredViewportWidth() {
         return preferredWidth > 0 ? preferredWidth : MIN_WIDTH;
-    }
-
-    LytRect getContentBoundsForTesting() {
-        return layout != null ? layout.contentBounds() : LytRect.empty();
-    }
-
-    public interface AdvanceFunction {
-
-        float getAdvance(int codePoint, ResolvedTextStyle style);
-    }
-
-    private interface WordVisitor {
-
-        boolean accept(String word);
     }
 
     public static class DiagramLayout {

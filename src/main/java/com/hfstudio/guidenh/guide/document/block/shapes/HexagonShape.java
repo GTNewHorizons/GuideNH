@@ -3,38 +3,8 @@ package com.hfstudio.guidenh.guide.document.block.shapes;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
-import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class HexagonShape implements ShapeRenderer {
-
-    @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
-        int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
-        int r = rect.right(), b = rect.bottom(), cy = y + h / 2;
-        int inset = Math.max(1, h / 4);
-
-        float[] xs = { x + inset, r - inset, r, r - inset, x + inset, x };
-        float[] ys = { y, y, cy, b, b, cy };
-        float cx = x + w / 2f;
-        float cy2 = y + h / 2f;
-        float[] shrunkXs = new float[6];
-        float[] shrunkYs = new float[6];
-        for (int i = 0; i < 6; i++) {
-            float dx = xs[i] - cx;
-            float dy = ys[i] - cy2;
-            float d = (float) Math.sqrt(dx * dx + dy * dy);
-            if (d > 1) {
-                float s = (d - 1) / d;
-                shrunkXs[i] = cx + dx * s;
-                shrunkYs[i] = cy2 + dy * s;
-            } else {
-                shrunkXs[i] = xs[i];
-                shrunkYs[i] = ys[i];
-            }
-        }
-        context.fillPolygon(xs, ys, borderColor);
-        context.fillPolygon(shrunkXs, shrunkYs, backgroundColor);
-    }
 
     @Override
     public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {

@@ -163,10 +163,20 @@ public final class FlatNode extends Table {
         return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
     }
 
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ChartData chartData() {
+        return chartData(new com.hfstudio.guidenh.guide.layout.flatbuffers.ChartData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.ChartData chartData(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.ChartData obj) {
+        int o = __offset(28);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
     public static int createFlatNode(FlatBufferBuilder builder, int styleOffset, byte nodeType, int textOffset,
         int imageOffset, int slotOffset, int break_Offset, int customOffset, int latexOffset, byte customLayout,
-        int childrenOffset, int recipeBoxOffset, int pieChartOffset) {
-        builder.startTable(12);
+        int childrenOffset, int recipeBoxOffset, int pieChartOffset, int chartDataOffset) {
+        builder.startTable(13);
         FlatNode.addChildren(builder, childrenOffset);
         FlatNode.addLatex(builder, latexOffset);
         FlatNode.addCustom(builder, customOffset);
@@ -174,6 +184,7 @@ public final class FlatNode extends Table {
         FlatNode.addSlot(builder, slotOffset);
         FlatNode.addImage(builder, imageOffset);
         FlatNode.addText(builder, textOffset);
+        FlatNode.addChartData(builder, chartDataOffset);
         FlatNode.addPieChart(builder, pieChartOffset);
         FlatNode.addRecipeBox(builder, recipeBoxOffset);
         FlatNode.addStyle(builder, styleOffset);
@@ -183,7 +194,7 @@ public final class FlatNode extends Table {
     }
 
     public static void startFlatNode(FlatBufferBuilder builder) {
-        builder.startTable(12);
+        builder.startTable(13);
     }
 
     public static void addStyle(FlatBufferBuilder builder, int styleOffset) {
@@ -232,6 +243,10 @@ public final class FlatNode extends Table {
 
     public static void addPieChart(FlatBufferBuilder builder, int pieChartOffset) {
         builder.addOffset(11, pieChartOffset, 0);
+    }
+
+    public static void addChartData(FlatBufferBuilder builder, int chartDataOffset) {
+        builder.addOffset(12, chartDataOffset, 0);
     }
 
     public static int createChildrenVector(FlatBufferBuilder builder, long[] data) {

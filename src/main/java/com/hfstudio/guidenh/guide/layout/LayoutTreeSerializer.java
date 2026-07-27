@@ -111,7 +111,8 @@ public class LayoutTreeSerializer {
             int flags = LayoutStyleExtractor.Flags.NONE;
             byte nodeType = LayoutNodeSerializer.resolveNodeType(block);
             if (childIndices.isEmpty() && nodeType != 1 && nodeType != 2 && nodeType != 3 && nodeType != 4
-                && nodeType != 8 && nodeType != 20 && nodeType != 21 && !(block instanceof LytGuiSprite)) {
+                && nodeType != 8 && nodeType != 20 && nodeType != 21 && nodeType != 22
+                && !(block instanceof LytGuiSprite)) {
                 // Opaque leaf containers (charts, scenes, etc.) have no Rust
                 // measure function — reserve the box Java computed. Types with
                 // Rust measure (Text=1, Image=2, Slot=3, Break=4, Latex=8,

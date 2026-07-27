@@ -105,8 +105,9 @@ pub fn create_measure_closure<'a>(
             3 => (measure_slot(flat_nodes, index), None),
             4 => (measure_thematic_break(flat_nodes, index, known), None),
             8 => (measure_latex(flat_nodes, index), None),
-            20 => (measure_recipe_box(flat_nodes, index), None),
-            21 => (measure_pie_chart(flat_nodes, index, known, available, visual_scale), None),
+             20 => (measure_recipe_box(flat_nodes, index), None),
+             21 => (measure_pie_chart(flat_nodes, index, known, available, visual_scale), None),
+             22 => (measure_chart(flat_nodes, index, known, available, visual_scale), None),
             _ => (Size::ZERO, None),
         };
         // Explicit style sizes win over content measurement (CSS behavior):
@@ -477,15 +478,13 @@ fn measure_recipe_box(nodes: &[FlatNode], idx: usize) -> Size<f32> {
     Size { width: w, height: h }
 }
 
-/// Measure a pie chart (node_type = 21). The formula mirrors
-/// LytChartBase.computeLayout term for term, with Java-computed
-/// pixel values (chrome_height, preferred_width, total_height)
-/// provided via PieChartData. Pure-arithmetic helper functions
-/// (scale_width, scale_height_for_width) replicate
-/// ResponsiveVisualSizing on the Rust side.
-fn measure_pie_chart(
-    nodes: &[FlatNode],
-    idx: usize,
+/// Shared chart measurement formula, extracted from LytChartBase.computeLayout.
+/// Used by both PieChart (node_type=21) via PieChartData and Cartesian charts
+/// (BarChart node_type=22, future Column/Line/Scatter) via ChartData.
+fn chart_measurement(
+    preferred_w: f32,
+    total_h: f32,
+    chrome: f32,
     known: Size<Option<f32>>,
     available: Size<AvailableSpace>,
     visual_scale: f32,
@@ -493,12 +492,6 @@ fn measure_pie_chart(
     // Constants mirrored from LytChartBase: DEFAULT_WIDTH=320, DEFAULT_HEIGHT=200
     // are already baked into the Java-precomputed preferred_width and total_height.
     const MIN_PLOT_HEIGHT: f32 = 72.0;
-
-    let node = &nodes[idx];
-    let pd = match node.pie_chart() {
-        Some(d) => d,
-        None => return Size::ZERO,
-    };
 
     // Width formula — mirrors LytChartBase.computeLayout:
     //   preferredWidth = (explicitW > 0 ? explicitW : DEFAULT_WIDTH) + extraPlotWidth
@@ -508,7 +501,6 @@ fn measure_pie_chart(
     // When explicitWidth > 0 (user-set via setExplicitSize), Taffy passes
     // it as known.width and we use it directly. Otherwise known.width is
     // None and we compute the width from the Java-precomputed preferred_width.
-    let preferred_w = pd.preferred_width();
     let w = match known.width {
         Some(explicit) => explicit,
         None => {
@@ -527,13 +519,71 @@ fn measure_pie_chart(
     //   bodyHeight   = max(1, totalHeight - clamp(chrome, 0, totalHeight - 1))
     //   scaledBody   = scaleHeightForWidth(preferredW, bodyHeight, width, MIN_PLOT_HEIGHT)
     //   height       = chrome + scaledBody
-    let raw_h = pd.total_height();
-    let chrome = pd.chrome_height();
-    let body = (raw_h - chrome.clamp(0.0, raw_h - 1.0)).max(1.0);
+    let raw_h = total_h;
+    // Guard against raw_h < 1.0: clamp upper bound to at least 0 so the
+    // range is valid even when totalHeight is 0 or negative (T5.2 legacy).
+    let body = (raw_h - chrome.clamp(0.0, (raw_h - 1.0).max(0.0))).max(1.0);
     let scaled_body = scale_height_for_width(preferred_w, body, w, MIN_PLOT_HEIGHT);
     let h = chrome + scaled_body;
 
     Size { width: w, height: h }
+}
+
+/// Measure a pie chart (node_type = 21). The formula mirrors
+/// LytChartBase.computeLayout term for term, with Java-computed
+/// pixel values (chrome_height, preferred_width, total_height)
+/// provided via PieChartData. Pure-arithmetic helper functions
+/// (scale_width, scale_height_for_width) replicate
+/// ResponsiveVisualSizing on the Rust side.
+fn measure_pie_chart(
+    nodes: &[FlatNode],
+    idx: usize,
+    known: Size<Option<f32>>,
+    available: Size<AvailableSpace>,
+    visual_scale: f32,
+) -> Size<f32> {
+    let node = &nodes[idx];
+    let pd = match node.pie_chart() {
+        Some(d) => d,
+        None => return Size::ZERO,
+    };
+
+    chart_measurement(
+        pd.preferred_width(),
+        pd.total_height(),
+        pd.chrome_height(),
+        known,
+        available,
+        visual_scale,
+    )
+}
+
+/// Measure a Cartesian chart (node_type = 22: BarChart, future Column/Line/Scatter).
+/// Uses the same LytChartBase.computeLayout formula as PieChart, reading sizing
+/// data from the ChartData table instead. When a generic chart measurement function
+/// is established, Column/Line/Scatter wiring requires only a serializer mapping
+/// to node_type 22 with ChartData.
+fn measure_chart(
+    nodes: &[FlatNode],
+    idx: usize,
+    known: Size<Option<f32>>,
+    available: Size<AvailableSpace>,
+    visual_scale: f32,
+) -> Size<f32> {
+    let node = &nodes[idx];
+    let cd = match node.chart_data() {
+        Some(d) => d,
+        None => return Size::ZERO,
+    };
+
+    chart_measurement(
+        cd.preferred_width(),
+        cd.total_height(),
+        cd.chrome_height(),
+        known,
+        available,
+        visual_scale,
+    )
 }
 
 /// Mirrors ResponsiveVisualSizing.scaleWidth: apply a visual-scale factor

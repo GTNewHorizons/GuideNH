@@ -216,13 +216,23 @@ table PieChartData {
   chrome_height: float;
 }
 
+/// Generic Cartesian chart sizing data (Bar/Column/Line/Scatter).
+/// Same fields as PieChartData, kept as a separate table so node_type 21
+/// (PieChart) retains backward compatibility. node_type 22 (BarChart) and
+/// future Cartesian charts use this table.
+table ChartData {
+  preferred_width: float;
+  total_height: float;
+  chrome_height: float;
+}
+
 // ═══════════════════ 布局树节点 ═══════════════════
 
 table FlatNode {
   style: Style;
   node_type: byte = 0;         // 0=Container 1=Text 2=Image 3=Slot
                                 // 4=ThematicBreak 5=Custom 6=FileTree
-                                // 7=Table 8=Latex 20=RecipeBox 21=PieChart
+                                // 7=Table 8=Latex 20=RecipeBox 21=PieChart 22=BarChart
   text: TextData;
   image: ImageData;
   slot: SlotData;
@@ -233,6 +243,7 @@ table FlatNode {
   children: [uint];
   recipe_box: RecipeBoxData;   // node_type 20: NEI recipe box sizing data
   pie_chart: PieChartData;     // node_type 21: Pie chart sizing data
+  chart_data: ChartData;       // node_type 22: Cartesian chart sizing data (Bar/Column/Line/Scatter)
 }
 
 // ═══════════════════ measureLayout 输入/输出 ═══════════════════

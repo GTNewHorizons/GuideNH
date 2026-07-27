@@ -3,24 +3,10 @@ package com.hfstudio.guidenh.guide.document.block.shapes;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
-import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class SubprocessShape implements ShapeRenderer {
 
     private static final int FRAME_WIDTH = 8;
-
-    @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
-        int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
-        int innerX = x + FRAME_WIDTH;
-        int innerW = w - FRAME_WIDTH * 2;
-
-        context.fillRect(x, y, w, h, borderColor);
-        context.fillRect(innerX, y, innerW, h, backgroundColor);
-
-        context.drawLine(innerX, y, innerX, y + h, 1, borderColor);
-        context.drawLine(innerX + innerW, y, innerX + innerW, y + h, 1, borderColor);
-    }
 
     @Override
     public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {

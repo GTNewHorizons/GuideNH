@@ -3,25 +3,10 @@ package com.hfstudio.guidenh.guide.document.block.shapes;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
-import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class DoubleCircleShape implements ShapeRenderer {
 
     private static final int GAP = 5;
-
-    @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
-        int cx = rect.x() + rect.width() / 2;
-        int cy = rect.y() + rect.height() / 2;
-        int outerR = Math.min(rect.width(), rect.height()) / 2;
-        int innerR = Math.max(outerR - GAP, 1);
-        if (outerR > 0) {
-            context.fillCircle(cx, cy, outerR, borderColor);
-            context.fillCircle(cx, cy, Math.max(outerR - 1, 1), backgroundColor);
-            context.fillCircle(cx, cy, innerR, borderColor);
-            context.fillCircle(cx, cy, Math.max(innerR - 1, 0), backgroundColor);
-        }
-    }
 
     @Override
     public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
