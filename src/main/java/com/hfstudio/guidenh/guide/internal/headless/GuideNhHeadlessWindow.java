@@ -33,6 +33,9 @@ public final class GuideNhHeadlessWindow {
     private static final String TAG = "[GuideNhHeadlessWindow]";
     private static final boolean HEADLESS = Boolean.getBoolean(PROPERTY_NAME);
 
+    /** Guard against redundant hide attempts — set to true once SDL_HideWindow succeeds. */
+    private static volatile boolean hidden = false;
+
     private GuideNhHeadlessWindow() {}
 
     /**
@@ -82,9 +85,11 @@ public final class GuideNhHeadlessWindow {
         } catch (ClassNotFoundException e) {
             GuideDebugLog.warnAlways(
                 "{} DisplayEvents not found (lwjgl3ify <= 3.0.20), will use fallback hideNow()", TAG);
+            hideNow();  // preInit attempt — sdlWindow already available on MC 1.7.10
         } catch (Exception e) {
             GuideDebugLog.warnAlways(
                 "{} Failed to register pre-window-create listener: {}", TAG, e.getMessage());
+            hideNow();  // fallback — try direct hide in case DisplayEvents path partially failed
         }
     }
 
@@ -96,6 +101,9 @@ public final class GuideNhHeadlessWindow {
         if (!HEADLESS) {
             return;
         }
+        if (hidden) {
+            return;
+        }
 
         try {
             Class<?> displayClass = Class.forName("org.lwjglx.opengl.Display");
@@ -105,6 +113,7 @@ public final class GuideNhHeadlessWindow {
                 sdlVideo.getMethod("SDL_HideWindow", long.class).invoke(null, window);
                 GuideDebugLog.infoAlways(
                     "{} Window hidden via SDL_HideWindow (sdlWindow={})", TAG, window);
+                hidden = true;
             } else {
                 GuideDebugLog.warnAlways(
                     "{} sdlWindow is 0, cannot hide window", TAG);
