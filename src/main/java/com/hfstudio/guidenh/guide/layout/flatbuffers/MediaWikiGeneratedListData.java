@@ -2,77 +2,68 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.Table;
+import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.Table;
-
+/**
+ * MediaWiki generated list sizing data (node_type 29).
+ * Mirrors MediaWikiGeneratedListBlock.computeLayout term for term.
+ * The column-planning algorithm depends on Java object data (entry sort keys,
+ * titles, section grouping); Rust cannot replicate it. Java precomputes the
+ * max column content height (the tallest column's content, excluding
+ * TOP_PADDING/BOTTOM_PADDING) via a getter set during computeLayout.
+ * Rust adds the padding constants to produce the total block height.
+ * Width is always availableWidth — the block fills the parent's content box.
+ */
 @SuppressWarnings("unused")
 public final class MediaWikiGeneratedListData extends Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
+  public static MediaWikiGeneratedListData getRootAsMediaWikiGeneratedListData(ByteBuffer _bb) { return getRootAsMediaWikiGeneratedListData(_bb, new MediaWikiGeneratedListData()); }
+  public static MediaWikiGeneratedListData getRootAsMediaWikiGeneratedListData(ByteBuffer _bb, MediaWikiGeneratedListData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public MediaWikiGeneratedListData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-    public static void ValidateVersion() {
-        Constants.FLATBUFFERS_23_5_26();
-    }
+  /**
+   * Content height of the tallest column (not including TOP_PADDING=6 and
+   * BOTTOM_PADDING=6). When entries are empty, this is ROW_HEIGHT=20.
+   * Mirrors maxColumnHeight or ROW_HEIGHT in computeLayout, which is the
+   * max over columns of (columnY - y - TOP_PADDING).
+   */
+  public float maxContentHeight() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
 
-    public static MediaWikiGeneratedListData getRootAsMediaWikiGeneratedListData(ByteBuffer _bb) {
-        return getRootAsMediaWikiGeneratedListData(_bb, new MediaWikiGeneratedListData());
-    }
+  public static int createMediaWikiGeneratedListData(FlatBufferBuilder builder,
+      float maxContentHeight) {
+    builder.startTable(1);
+    MediaWikiGeneratedListData.addMaxContentHeight(builder, maxContentHeight);
+    return MediaWikiGeneratedListData.endMediaWikiGeneratedListData(builder);
+  }
 
-    public static MediaWikiGeneratedListData getRootAsMediaWikiGeneratedListData(ByteBuffer _bb,
-        MediaWikiGeneratedListData obj) {
-        _bb.order(ByteOrder.LITTLE_ENDIAN);
-        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-    }
+  public static void startMediaWikiGeneratedListData(FlatBufferBuilder builder) { builder.startTable(1); }
+  public static void addMaxContentHeight(FlatBufferBuilder builder, float maxContentHeight) { builder.addFloat(0, maxContentHeight, 0.0f); }
+  public static int endMediaWikiGeneratedListData(FlatBufferBuilder builder) {
+    int o = builder.endTable();
+    return o;
+  }
 
-    public void __init(int _i, ByteBuffer _bb) {
-        __reset(_i, _bb);
-    }
+  public static final class Vector extends BaseVector {
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public MediaWikiGeneratedListData __assign(int _i, ByteBuffer _bb) {
-        __init(_i, _bb);
-        return this;
-    }
-
-    public float maxContentHeight() {
-        int o = __offset(4);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public static int createMediaWikiGeneratedListData(FlatBufferBuilder builder, float maxContentHeight) {
-        builder.startTable(1);
-        MediaWikiGeneratedListData.addMaxContentHeight(builder, maxContentHeight);
-        return MediaWikiGeneratedListData.endMediaWikiGeneratedListData(builder);
-    }
-
-    public static void startMediaWikiGeneratedListData(FlatBufferBuilder builder) {
-        builder.startTable(1);
-    }
-
-    public static void addMaxContentHeight(FlatBufferBuilder builder, float maxContentHeight) {
-        builder.addFloat(0, maxContentHeight, 0.0f);
-    }
-
-    public static int endMediaWikiGeneratedListData(FlatBufferBuilder builder) {
-        int o = builder.endTable();
-        return o;
-    }
-
-    public static final class Vector extends BaseVector {
-
-        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-            __reset(_vector, _element_size, _bb);
-            return this;
-        }
-
-        public MediaWikiGeneratedListData get(int j) {
-            return get(new MediaWikiGeneratedListData(), j);
-        }
-
-        public MediaWikiGeneratedListData get(MediaWikiGeneratedListData obj, int j) {
-            return obj.__assign(__indirect(__element(j), bb), bb);
-        }
-    }
+    public MediaWikiGeneratedListData get(int j) { return get(new MediaWikiGeneratedListData(), j); }
+    public MediaWikiGeneratedListData get(MediaWikiGeneratedListData obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+  }
 }
+

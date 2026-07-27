@@ -2,106 +2,58 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.Table;
+import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.Table;
-
 @SuppressWarnings("unused")
 public final class RasterInput extends Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
+  public static RasterInput getRootAsRasterInput(ByteBuffer _bb) { return getRootAsRasterInput(_bb, new RasterInput()); }
+  public static RasterInput getRootAsRasterInput(ByteBuffer _bb, RasterInput obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public RasterInput __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-    public static void ValidateVersion() {
-        Constants.FLATBUFFERS_23_5_26();
-    }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest requests(int j) { return requests(new com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest(), j); }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest requests(com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest obj, int j) { int o = __offset(4); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
+  public int requestsLength() { int o = __offset(4); return o != 0 ? __vector_len(o) : 0; }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest.Vector requestsVector() { return requestsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest.Vector()); }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest.Vector requestsVector(com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest.Vector obj) { int o = __offset(4); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
 
-    public static RasterInput getRootAsRasterInput(ByteBuffer _bb) {
-        return getRootAsRasterInput(_bb, new RasterInput());
-    }
+  public static int createRasterInput(FlatBufferBuilder builder,
+      int requestsOffset) {
+    builder.startTable(1);
+    RasterInput.addRequests(builder, requestsOffset);
+    return RasterInput.endRasterInput(builder);
+  }
 
-    public static RasterInput getRootAsRasterInput(ByteBuffer _bb, RasterInput obj) {
-        _bb.order(ByteOrder.LITTLE_ENDIAN);
-        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-    }
+  public static void startRasterInput(FlatBufferBuilder builder) { builder.startTable(1); }
+  public static void addRequests(FlatBufferBuilder builder, int requestsOffset) { builder.addOffset(0, requestsOffset, 0); }
+  public static int createRequestsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
+  public static void startRequestsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
+  public static int endRasterInput(FlatBufferBuilder builder) {
+    int o = builder.endTable();
+    return o;
+  }
 
-    public void __init(int _i, ByteBuffer _bb) {
-        __reset(_i, _bb);
-    }
+  public static final class Vector extends BaseVector {
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public RasterInput __assign(int _i, ByteBuffer _bb) {
-        __init(_i, _bb);
-        return this;
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest requests(int j) {
-        return requests(new com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest(), j);
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest requests(
-        com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest obj, int j) {
-        int o = __offset(4);
-        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
-    }
-
-    public int requestsLength() {
-        int o = __offset(4);
-        return o != 0 ? __vector_len(o) : 0;
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest.Vector requestsVector() {
-        return requestsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest.Vector());
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest.Vector requestsVector(
-        com.hfstudio.guidenh.guide.layout.flatbuffers.FontRequest.Vector obj) {
-        int o = __offset(4);
-        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
-    }
-
-    public static int createRasterInput(FlatBufferBuilder builder, int requestsOffset) {
-        builder.startTable(1);
-        RasterInput.addRequests(builder, requestsOffset);
-        return RasterInput.endRasterInput(builder);
-    }
-
-    public static void startRasterInput(FlatBufferBuilder builder) {
-        builder.startTable(1);
-    }
-
-    public static void addRequests(FlatBufferBuilder builder, int requestsOffset) {
-        builder.addOffset(0, requestsOffset, 0);
-    }
-
-    public static int createRequestsVector(FlatBufferBuilder builder, int[] data) {
-        builder.startVector(4, data.length, 4);
-        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
-        return builder.endVector();
-    }
-
-    public static void startRequestsVector(FlatBufferBuilder builder, int numElems) {
-        builder.startVector(4, numElems, 4);
-    }
-
-    public static int endRasterInput(FlatBufferBuilder builder) {
-        int o = builder.endTable();
-        return o;
-    }
-
-    public static final class Vector extends BaseVector {
-
-        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-            __reset(_vector, _element_size, _bb);
-            return this;
-        }
-
-        public RasterInput get(int j) {
-            return get(new RasterInput(), j);
-        }
-
-        public RasterInput get(RasterInput obj, int j) {
-            return obj.__assign(__indirect(__element(j), bb), bb);
-        }
-    }
+    public RasterInput get(int j) { return get(new RasterInput(), j); }
+    public RasterInput get(RasterInput obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+  }
 }
+

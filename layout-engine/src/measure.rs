@@ -986,23 +986,47 @@ fn measure_mediawiki_generated_list(
     }
 }
 
-/// Measure a MediaWiki special generated block (node_type = 30). The formula mirrors
-/// MediaWikiSpecialGeneratedBlock.computeLayout term for term. The column-planning
-/// algorithm depends on Java object data (entry sort keys, titles, section grouping,
-/// subtitle text and Minecraft font metrics) and cannot be replicated in Rust.
-/// Java precomputes the max column content height via
-/// MediaWikiSpecialGeneratedData.max_content_height.
-/// Rust adds the padding constants to produce the total block height.
+/// Measure a MediaWiki special generated block (node_type = 30).
+///
+/// Java passes width-independent font facts (title widths, subtitle word widths,
+/// line-height constants, estimated heights). Rust computes columnWidth from
+/// availableWidth, wraps subtitle words per entry, packs columns (shortest-column-first
+/// for groups, even distribution for flat entries), and produces maxColumnHeight.
 /// Width is always availableWidth — the block fills the parent's content box.
+///
+/// Mirrors MediaWikiSpecialGeneratedBlock.computeLayout term for term, with the
+/// entry-height computation now owned by Rust using the pre-measured word-width
+/// array. This eliminates the T6a-found discrepancy between the lazy estimateEntryHeight
+/// (hardcoded 9px, no wrapping) and computeEntryHeight (10px, wrapped by columnWidth).
 fn measure_mediawiki_special_generated(
     nodes: &[FlatNode],
     idx: usize,
     known: Size<Option<f32>>,
     available: Size<AvailableSpace>,
 ) -> Size<f32> {
-    // Constants mirrored from MediaWikiSpecialGeneratedBlock:
+    // Layout constants, mirrored from MediaWikiSpecialGeneratedBlock static fields.
     const TOP_PADDING: f32 = 6.0;
     const BOTTOM_PADDING: f32 = 6.0;
+    const SIDE_PADDING: f32 = 2.0;
+    const COLUMN_GAP: f32 = 10.0;
+    const GROUP_MARGIN: f32 = 6.0;
+    const HEADER_HEIGHT: f32 = 20.0;
+    const HEADER_MARGIN_TOP: f32 = 5.0;
+    const HEADER_MARGIN_BOTTOM: f32 = 5.0;
+    const ENTRY_HEIGHT: f32 = 20.0;
+    const ENTRY_GAP: f32 = 2.0;
+    const ICON_SIZE: f32 = 16.0;
+    const ICON_GAP: f32 = 4.0;
+    const LIST_MARKER_SIZE: f32 = 3.0;
+    const LIST_MARKER_GAP: f32 = 6.0;
+    const TITLE_SUBTITLE_GAP: f32 = 3.0;
+    const ENTRY_VERTICAL_PADDING_TOP: f32 = 3.0;
+    const ENTRY_VERTICAL_PADDING_BOTTOM: f32 = 3.0;
+    const LOAD_MORE_HEIGHT: f32 = 18.0;
+    const LOAD_MORE_MARGIN_TOP: f32 = 2.0;
+    // Line heights: getLineHeight(LINK_STYLE) = 10, getLineHeight(SUBTITLE_STYLE) = 10
+    const TITLE_LINE_HEIGHT: f32 = 10.0;
+    const SUBTITLE_LINE_HEIGHT: f32 = 10.0;
 
     let node = &nodes[idx];
     let data = match node.mediawiki_special_generated_data() {
@@ -1010,19 +1034,258 @@ fn measure_mediawiki_special_generated(
         None => return Size::ZERO,
     };
 
-    let max_content_h = data.max_content_height();
-
     // Width: the block always fills available width (no intrinsic preference).
-    // Mirrors computeLayout: return new LytRect(x, y, availableWidth, ...).
     let w = match available.width {
         AvailableSpace::Definite(a) => a.max(0.0),
         _ => 0.0,
     };
 
-    // Height = TOP_PADDING + maxColumnContentHeight + BOTTOM_PADDING.
-    // Mirrors computeLayout:
-    //   return new LytRect(x, y, availableWidth, TOP_PADDING + maxColumnHeight + BOTTOM_PADDING);
-    let h = TOP_PADDING + max_content_h + BOTTOM_PADDING;
+    // ── Column width (mirrors Java computeLayout) ──────────────────────────
+    let inner_width = (w - SIDE_PADDING * 2.0).max(0.0);
+    let column_count = data.column_count().max(1) as usize;
+    let column_width =
+        ((inner_width - COLUMN_GAP * (column_count as f32 - 1.0)) / column_count as f32).max(1.0);
+
+    // ── Read font-fact vectors ─────────────────────────────────────────────
+    let total_entries = data.total_entry_count() as usize;
+    let entry_title_widths = data.entry_title_widths();
+    let entry_has_icon = data.entry_has_icon();
+    let entry_subtitle_line_counts = data.entry_subtitle_line_counts();
+    let subtitle_line_word_counts = data.subtitle_line_word_counts();
+    let subtitle_word_widths = data.subtitle_word_widths();
+    let subtitle_space_width = data.subtitle_space_width();
+
+    let group_cnt = data.group_count().max(0) as usize;
+    let group_title_widths = data.group_title_widths();
+    let group_entry_counts = data.group_entry_counts();
+    let group_estimated_heights = data.group_estimated_heights();
+
+    let has_more = data.has_more();
+
+    // ── Compute real entry height given columnWidth ────────────────────────
+    // Mirrors computeEntryHeight: wrapping + line-height constants.
+    let compute_entry_height = |entry_idx: usize| -> f32 {
+        let has_icon = entry_has_icon
+            .as_ref()
+            .and_then(|v| if entry_idx < v.len() { Some(v.get(entry_idx)) } else { None })
+            .unwrap_or(0i8)
+            != 0;
+
+        let text_max_width = {
+            let reserve = LIST_MARKER_SIZE
+                + LIST_MARKER_GAP
+                + if has_icon { ICON_SIZE + ICON_GAP } else { 0.0 };
+            (column_width - reserve).max(1.0)
+        };
+
+        let line_count = entry_subtitle_line_counts
+            .as_ref()
+            .and_then(|v| {
+                if entry_idx < v.len() {
+                    Some(v.get(entry_idx) as usize)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0);
+
+        if line_count == 0 {
+            return ENTRY_HEIGHT;
+        }
+
+        // ── Word-level wrapping ────────────────────────────────────────
+        // Find the global line-index start for this entry within the flat arrays.
+        let line_start: usize = entry_subtitle_line_counts
+            .as_ref()
+            .map(|v| (0..entry_idx).map(|i| v.get(i) as usize).sum::<usize>())
+            .unwrap_or(0);
+
+        let mut total_wrapped: usize = 0;
+        if let (Some(wc_vec), Some(ww_vec)) = (subtitle_line_word_counts.as_ref(), subtitle_word_widths.as_ref()) {
+            // Compute word-index start: sum word counts of all lines before line_start.
+            let mut word_start: usize = 0;
+            for li in 0..line_start {
+                if li < wc_vec.len() {
+                    word_start += wc_vec.get(li) as usize;
+                }
+            }
+
+            for li in 0..line_count {
+                let global_line = line_start + li;
+                if global_line >= wc_vec.len() {
+                    break;
+                }
+                let n_words = wc_vec.get(global_line) as usize;
+                if n_words == 0 {
+                    continue;
+                }
+
+                // Raw line width = word widths + spaces between words.
+                let raw_line_width: f32 = {
+                    let mut sum = 0.0f32;
+                    for wi in word_start..word_start + n_words {
+                        if wi < ww_vec.len() {
+                            sum += ww_vec.get(wi);
+                        }
+                    }
+                    if n_words > 1 {
+                        sum += subtitle_space_width * (n_words - 1) as f32;
+                    }
+                    sum
+                };
+
+                if raw_line_width <= text_max_width {
+                    total_wrapped += 1;
+                } else {
+                    // Word-wrap: mirrors Java appendWrappedLine.
+                    let mut current_w: f32 = 0.0;
+                    let mut sub_lines: usize = 0;
+                    for wi in word_start..word_start + n_words {
+                        if wi >= ww_vec.len() {
+                            break;
+                        }
+                        let word_w = ww_vec.get(wi);
+                        let needed = if current_w == 0.0 {
+                            word_w
+                        } else {
+                            current_w + subtitle_space_width + word_w
+                        };
+                        if current_w > 0.0 && needed > text_max_width {
+                            sub_lines += 1;
+                            current_w = word_w;
+                        } else {
+                            current_w = needed;
+                        }
+                    }
+                    if current_w > 0.0 {
+                        sub_lines += 1;
+                    }
+                    total_wrapped += sub_lines;
+                }
+
+                word_start += n_words;
+            }
+        }
+
+        if total_wrapped == 0 {
+            return ENTRY_HEIGHT;
+        }
+
+        // Mirrors computeEntryHeight:
+        //   contentHeight = max(ICON_SIZE, getLineHeight(LINK_STYLE) + TITLE_SUBTITLE_GAP
+        //                               + getLineHeight(SUBTITLE_STYLE) * subtitleLines.size())
+        //   height = max(ENTRY_HEIGHT, ENTRY_VERTICAL_PADDING_TOP + contentHeight + ENTRY_VERTICAL_PADDING_BOTTOM)
+        let content_height = (TITLE_LINE_HEIGHT + TITLE_SUBTITLE_GAP
+            + SUBTITLE_LINE_HEIGHT * total_wrapped as f32)
+            .max(ICON_SIZE);
+        (ENTRY_VERTICAL_PADDING_TOP + content_height + ENTRY_VERTICAL_PADDING_BOTTOM)
+            .max(ENTRY_HEIGHT)
+    };
+
+    // ── Packing & per-column height ────────────────────────────────────────
+    let max_column_height: f32;
+
+    if total_entries == 0 {
+        // Empty result: one row at ENTRY_HEIGHT (mirrors isEmpty branch).
+        max_column_height = ENTRY_HEIGHT;
+    } else if group_cnt > 0 {
+        // ── Grouped: shortest-column-first packing ─────────────────────
+        // Mirrors layoutColumns: assign each group to the shortest column
+        // using estimated heights, then recompute real heights.
+        let mut col_heights_est: Vec<f32> = vec![0.0; column_count];
+        // For tracking which groups go to which column.
+        let mut col_groups: Vec<Vec<usize>> = vec![Vec::new(); column_count];
+
+        for g in 0..group_cnt {
+            // Find shortest column.
+            let target = col_heights_est
+                .iter()
+                .enumerate()
+                .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(i, _)| i)
+                .unwrap_or(0);
+            col_groups[target].push(g);
+            let est_h = group_estimated_heights
+                .as_ref()
+                .and_then(|v| if g < v.len() { Some(v.get(g)) } else { None })
+                .unwrap_or(0.0);
+            col_heights_est[target] += est_h;
+        }
+
+        // Compute real column heights using actual entry heights.
+        // Build per-group entry-index ranges.
+        let mut group_entry_start: Vec<usize> = Vec::with_capacity(group_cnt);
+        let mut cur: usize = 0;
+        for g in 0..group_cnt {
+            group_entry_start.push(cur);
+            let cnt = group_entry_counts
+                .as_ref()
+                .and_then(|v| if g < v.len() { Some(v.get(g) as usize) } else { None })
+                .unwrap_or(0);
+            cur += cnt;
+        }
+
+        let mut real_max: f32 = 0.0;
+        for col_g in &col_groups {
+            if col_g.is_empty() {
+                // Empty column gets no height contribution but we need to
+                // still consider it (prev max will capture the tallest).
+                continue;
+            }
+            let mut col_y: f32 = 0.0;
+            for &g in col_g {
+                // Group header.
+                let has_title = group_title_widths
+                    .as_ref()
+                    .and_then(|v| if g < v.len() { Some(v.get(g)) } else { None })
+                    .unwrap_or(0.0)
+                    > 0.0;
+                if has_title {
+                    col_y += HEADER_MARGIN_TOP + HEADER_HEIGHT + HEADER_MARGIN_BOTTOM;
+                }
+                // Entries in this group.
+                let start = group_entry_start[g];
+                let end = group_entry_start.get(g + 1).copied().unwrap_or(cur);
+                for e in start..end {
+                    col_y += compute_entry_height(e);
+                    col_y += ENTRY_GAP;
+                }
+                col_y += GROUP_MARGIN;
+            }
+            real_max = real_max.max(col_y);
+        }
+        max_column_height = real_max;
+    } else {
+        // ── Flat: even distribution across columns ─────────────────────
+        // Mirrors layoutFlatColumns: perColumn = ceil(N / columnCount).
+        let per_column = ((total_entries + column_count - 1) / column_count).max(1);
+        let mut real_max: f32 = 0.0;
+        for col in 0..column_count {
+            let start = col * per_column;
+            if start >= total_entries {
+                break;
+            }
+            let end = (start + per_column).min(total_entries);
+            let mut col_y: f32 = 0.0;
+            for e in start..end {
+                col_y += compute_entry_height(e);
+                col_y += ENTRY_GAP;
+            }
+            // Flat entries are wrapped in a single no-title group per column.
+            col_y += GROUP_MARGIN;
+            real_max = real_max.max(col_y);
+        }
+        max_column_height = real_max;
+    }
+
+    // hasMore adds LOAD_MORE_HEIGHT after the column content (mirrors Java).
+    let max_h = if has_more {
+        max_column_height + LOAD_MORE_MARGIN_TOP + LOAD_MORE_HEIGHT
+    } else {
+        max_column_height
+    };
+
+    let h = TOP_PADDING + max_h + BOTTOM_PADDING;
 
     Size {
         width: known.width.unwrap_or(w),

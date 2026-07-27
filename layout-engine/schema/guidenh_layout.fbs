@@ -273,20 +273,61 @@ table FunctionGraphData {
 }
 
 /// MediaWiki special generated block sizing data (node_type 30).
-/// Mirrors MediaWikiSpecialGeneratedBlock.computeLayout term for term.
-/// The column-planning algorithm depends on Java object data (entries, titles,
-/// section grouping) and Minecraft font metrics (subtitle wrapping); Rust cannot
-/// replicate it. Java precomputes the max column content height (the tallest
-/// column's content, excluding TOP_PADDING/BOTTOM_PADDING) via a getter set
-/// during computeLayout. Rust adds the padding constants to produce the total
-/// block height. Width is always availableWidth — the block fills the parent's
-/// content box.
+/// Java passes width-independent font facts (title widths, subtitle word widths,
+/// line heights, estimated heights). Rust computes columnWidth from availableWidth,
+/// wraps subtitle words per entry, packs columns (shortest-column-first), and
+/// produces maxColumnHeight. Width is always availableWidth — the block fills
+/// the parent's content box.
 table MediaWikiSpecialGeneratedData {
-  /// Content height of the tallest column (not including TOP_PADDING=6 and
-  /// BOTTOM_PADDING=6). When entries are empty, this is ENTRY_HEIGHT=20.
-  /// Mirrors maxColumnHeight in computeLayout, which is the max over columns
-  /// of (columnY - y - TOP_PADDING).
+  /// DEPRECATED (T6b-2): Rust now computes maxColumnHeight internally.
+  /// Kept for backward compatibility with old serialized data.
   max_content_height: float;
+
+  // ═══════════════════ Width-independent layout constants ═══════════════════
+
+  /// resolveColumnCount result (depends only on definition.name()/kind).
+  column_count: int = 1;
+  /// hasMore flag from the visible result: adds LOAD_MORE_HEIGHT after the
+  /// column content when true.
+  has_more: bool = false;
+  /// Number of groups (for grouped/group-index kinds; flat builds one group
+  /// per column, see group_flat_entry_count).
+  group_count: int = 0;
+
+  /// Per-group title measureWidth: 0 means no title (no header row).
+  /// Length = group_count.
+  group_title_widths: [float];
+  /// Per-group entry count in the visible result's entry order.
+  /// Length = group_count.
+  group_entry_counts: [int];
+  /// Per-group estimated total height (estimateHeight), width-independent,
+  /// used by Rust's shortest-column-first packing. Length = group_count.
+  group_estimated_heights: [float];
+
+  /// Total number of entries across all groups. Entries are indexed 0..N-1
+  /// in the order they appear in the visible result (group-major).
+  total_entry_count: int = 0;
+
+  /// Per-entry title pixel width: measureWidth(title, LINK_STYLE).
+  /// Width-independent font fact. Length = total_entry_count.
+  entry_title_widths: [float];
+  /// Per-entry icon presence (1 = has icon). Length = total_entry_count.
+  entry_has_icon: [byte];
+  /// Per-entry estimated height (estimateEntryHeight), width-independent.
+  /// Length = total_entry_count.
+  entry_estimated_heights: [float];
+  /// Per-entry raw subtitle line count (GuideStringLines.splitLines result,
+  /// 0 = no subtitle). Length = total_entry_count.
+  entry_subtitle_line_counts: [int];
+
+  /// Per-raw-subtitle-line word count (GuideStringLines.splitLines then
+  /// split by \\s+) — concatenated across all entries' raw lines.
+  subtitle_line_word_counts: [int];
+  /// Per-word pixel width (measureWidth(word, SUBTITLE_STYLE)) — concatenated
+  /// across all words of all raw lines of all entries.
+  subtitle_word_widths: [float];
+  /// Width of a space character in SUBTITLE_STYLE (for word-gap calculations).
+  subtitle_space_width: float = 4.0;
 }
 
 /// MediaWiki generated list sizing data (node_type 29).

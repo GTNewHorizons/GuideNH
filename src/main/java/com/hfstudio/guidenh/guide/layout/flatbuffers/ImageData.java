@@ -2,167 +2,88 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.Table;
+import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.Table;
-
 @SuppressWarnings("unused")
 public final class ImageData extends Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
+  public static ImageData getRootAsImageData(ByteBuffer _bb) { return getRootAsImageData(_bb, new ImageData()); }
+  public static ImageData getRootAsImageData(ByteBuffer _bb, ImageData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public ImageData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-    public static void ValidateVersion() {
-        Constants.FLATBUFFERS_23_5_26();
-    }
+  public float naturalW() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public float naturalH() { int o = __offset(6); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public int cropX() { int o = __offset(8); return o != 0 ? bb.getInt(o + bb_pos) : 0; }
+  public int cropY() { int o = __offset(10); return o != 0 ? bb.getInt(o + bb_pos) : 0; }
+  public int cropW() { int o = __offset(12); return o != 0 ? bb.getInt(o + bb_pos) : -1; }
+  public int cropH() { int o = __offset(14); return o != 0 ? bb.getInt(o + bb_pos) : -1; }
+  public float scaleX() { int o = __offset(16); return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f; }
+  public float scaleY() { int o = __offset(18); return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f; }
+  public float explicitW() { int o = __offset(20); return o != 0 ? bb.getFloat(o + bb_pos) : -1.0f; }
+  public float explicitH() { int o = __offset(22); return o != 0 ? bb.getFloat(o + bb_pos) : -1.0f; }
 
-    public static ImageData getRootAsImageData(ByteBuffer _bb) {
-        return getRootAsImageData(_bb, new ImageData());
-    }
+  public static int createImageData(FlatBufferBuilder builder,
+      float naturalW,
+      float naturalH,
+      int cropX,
+      int cropY,
+      int cropW,
+      int cropH,
+      float scaleX,
+      float scaleY,
+      float explicitW,
+      float explicitH) {
+    builder.startTable(10);
+    ImageData.addExplicitH(builder, explicitH);
+    ImageData.addExplicitW(builder, explicitW);
+    ImageData.addScaleY(builder, scaleY);
+    ImageData.addScaleX(builder, scaleX);
+    ImageData.addCropH(builder, cropH);
+    ImageData.addCropW(builder, cropW);
+    ImageData.addCropY(builder, cropY);
+    ImageData.addCropX(builder, cropX);
+    ImageData.addNaturalH(builder, naturalH);
+    ImageData.addNaturalW(builder, naturalW);
+    return ImageData.endImageData(builder);
+  }
 
-    public static ImageData getRootAsImageData(ByteBuffer _bb, ImageData obj) {
-        _bb.order(ByteOrder.LITTLE_ENDIAN);
-        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-    }
+  public static void startImageData(FlatBufferBuilder builder) { builder.startTable(10); }
+  public static void addNaturalW(FlatBufferBuilder builder, float naturalW) { builder.addFloat(0, naturalW, 0.0f); }
+  public static void addNaturalH(FlatBufferBuilder builder, float naturalH) { builder.addFloat(1, naturalH, 0.0f); }
+  public static void addCropX(FlatBufferBuilder builder, int cropX) { builder.addInt(2, cropX, 0); }
+  public static void addCropY(FlatBufferBuilder builder, int cropY) { builder.addInt(3, cropY, 0); }
+  public static void addCropW(FlatBufferBuilder builder, int cropW) { builder.addInt(4, cropW, -1); }
+  public static void addCropH(FlatBufferBuilder builder, int cropH) { builder.addInt(5, cropH, -1); }
+  public static void addScaleX(FlatBufferBuilder builder, float scaleX) { builder.addFloat(6, scaleX, 1.0f); }
+  public static void addScaleY(FlatBufferBuilder builder, float scaleY) { builder.addFloat(7, scaleY, 1.0f); }
+  public static void addExplicitW(FlatBufferBuilder builder, float explicitW) { builder.addFloat(8, explicitW, -1.0f); }
+  public static void addExplicitH(FlatBufferBuilder builder, float explicitH) { builder.addFloat(9, explicitH, -1.0f); }
+  public static int endImageData(FlatBufferBuilder builder) {
+    int o = builder.endTable();
+    return o;
+  }
 
-    public void __init(int _i, ByteBuffer _bb) {
-        __reset(_i, _bb);
-    }
+  public static final class Vector extends BaseVector {
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public ImageData __assign(int _i, ByteBuffer _bb) {
-        __init(_i, _bb);
-        return this;
-    }
-
-    public float naturalW() {
-        int o = __offset(4);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float naturalH() {
-        int o = __offset(6);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public int cropX() {
-        int o = __offset(8);
-        return o != 0 ? bb.getInt(o + bb_pos) : 0;
-    }
-
-    public int cropY() {
-        int o = __offset(10);
-        return o != 0 ? bb.getInt(o + bb_pos) : 0;
-    }
-
-    public int cropW() {
-        int o = __offset(12);
-        return o != 0 ? bb.getInt(o + bb_pos) : -1;
-    }
-
-    public int cropH() {
-        int o = __offset(14);
-        return o != 0 ? bb.getInt(o + bb_pos) : -1;
-    }
-
-    public float scaleX() {
-        int o = __offset(16);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f;
-    }
-
-    public float scaleY() {
-        int o = __offset(18);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f;
-    }
-
-    public float explicitW() {
-        int o = __offset(20);
-        return o != 0 ? bb.getFloat(o + bb_pos) : -1.0f;
-    }
-
-    public float explicitH() {
-        int o = __offset(22);
-        return o != 0 ? bb.getFloat(o + bb_pos) : -1.0f;
-    }
-
-    public static int createImageData(FlatBufferBuilder builder, float naturalW, float naturalH, int cropX, int cropY,
-        int cropW, int cropH, float scaleX, float scaleY, float explicitW, float explicitH) {
-        builder.startTable(10);
-        ImageData.addExplicitH(builder, explicitH);
-        ImageData.addExplicitW(builder, explicitW);
-        ImageData.addScaleY(builder, scaleY);
-        ImageData.addScaleX(builder, scaleX);
-        ImageData.addCropH(builder, cropH);
-        ImageData.addCropW(builder, cropW);
-        ImageData.addCropY(builder, cropY);
-        ImageData.addCropX(builder, cropX);
-        ImageData.addNaturalH(builder, naturalH);
-        ImageData.addNaturalW(builder, naturalW);
-        return ImageData.endImageData(builder);
-    }
-
-    public static void startImageData(FlatBufferBuilder builder) {
-        builder.startTable(10);
-    }
-
-    public static void addNaturalW(FlatBufferBuilder builder, float naturalW) {
-        builder.addFloat(0, naturalW, 0.0f);
-    }
-
-    public static void addNaturalH(FlatBufferBuilder builder, float naturalH) {
-        builder.addFloat(1, naturalH, 0.0f);
-    }
-
-    public static void addCropX(FlatBufferBuilder builder, int cropX) {
-        builder.addInt(2, cropX, 0);
-    }
-
-    public static void addCropY(FlatBufferBuilder builder, int cropY) {
-        builder.addInt(3, cropY, 0);
-    }
-
-    public static void addCropW(FlatBufferBuilder builder, int cropW) {
-        builder.addInt(4, cropW, -1);
-    }
-
-    public static void addCropH(FlatBufferBuilder builder, int cropH) {
-        builder.addInt(5, cropH, -1);
-    }
-
-    public static void addScaleX(FlatBufferBuilder builder, float scaleX) {
-        builder.addFloat(6, scaleX, 1.0f);
-    }
-
-    public static void addScaleY(FlatBufferBuilder builder, float scaleY) {
-        builder.addFloat(7, scaleY, 1.0f);
-    }
-
-    public static void addExplicitW(FlatBufferBuilder builder, float explicitW) {
-        builder.addFloat(8, explicitW, -1.0f);
-    }
-
-    public static void addExplicitH(FlatBufferBuilder builder, float explicitH) {
-        builder.addFloat(9, explicitH, -1.0f);
-    }
-
-    public static int endImageData(FlatBufferBuilder builder) {
-        int o = builder.endTable();
-        return o;
-    }
-
-    public static final class Vector extends BaseVector {
-
-        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-            __reset(_vector, _element_size, _bb);
-            return this;
-        }
-
-        public ImageData get(int j) {
-            return get(new ImageData(), j);
-        }
-
-        public ImageData get(ImageData obj, int j) {
-            return obj.__assign(__indirect(__element(j), bb), bb);
-        }
-    }
+    public ImageData get(int j) { return get(new ImageData(), j); }
+    public ImageData get(ImageData obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+  }
 }
+

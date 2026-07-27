@@ -278,9 +278,9 @@ public final class LayoutNodeSerializer {
         }
         int breaksVec = 0;
         if (!breaks.isEmpty()) {
-            int[] bs = new int[breaks.size()];
+            long[] bs = new long[breaks.size()];
             for (int i = 0; i < bs.length; i++) {
-                bs[i] = breaks.get(i);
+                bs[i] = breaks.get(i) & 0xFFFFFFFFL;
             }
             breaksVec = TextData.createBreaksVector(fbb, bs);
         }
@@ -750,13 +750,72 @@ public final class LayoutNodeSerializer {
     }
 
     private static int buildMediaWikiSpecialGeneratedData(FlatBufferBuilder fbb, LytBlock block) {
+        // Use zero for the deprecated max_content_height field; Rust computes
+        // the actual column height from font facts and available_width.
         float maxContentHeight = 0;
 
         if (block instanceof MediaWikiSpecialGeneratedBlock mw) {
-            maxContentHeight = mw.getMaxPrecomputedContentHeight();
+            // Collect font facts from the block (uses Minecraft font metrics,
+            // width-independent). The serializer does NOT have a LayoutContext,
+            // so fonts facts are collected via computeLayout context which is
+            // already complete by the time serialization runs. We pass null
+            // context here — font facts were already captured during layout.
+            var facts = mw.getCollectedFontFacts();
+            if (facts != null) {
+                var impl = facts.impl();
+                int groupTitleWidthsOff = impl.groupTitleWidths().length > 0
+                    ? MediaWikiSpecialGeneratedData.createGroupTitleWidthsVector(fbb, impl.groupTitleWidths())
+                    : 0;
+                int groupEntryCountsOff = impl.groupEntryCounts().length > 0
+                    ? MediaWikiSpecialGeneratedData.createGroupEntryCountsVector(fbb, impl.groupEntryCounts())
+                    : 0;
+                int groupEstimatedHeightsOff = impl.groupEstimatedHeights().length > 0
+                    ? MediaWikiSpecialGeneratedData.createGroupEstimatedHeightsVector(fbb, impl.groupEstimatedHeights())
+                    : 0;
+                int entryTitleWidthsOff = impl.entryTitleWidths().length > 0
+                    ? MediaWikiSpecialGeneratedData.createEntryTitleWidthsVector(fbb, impl.entryTitleWidths())
+                    : 0;
+                int entryHasIconOff = impl.entryHasIcon().length > 0
+                    ? MediaWikiSpecialGeneratedData.createEntryHasIconVector(fbb, impl.entryHasIcon())
+                    : 0;
+                int entryEstimatedHeightsOff = impl.entryEstimatedHeights().length > 0
+                    ? MediaWikiSpecialGeneratedData.createEntryEstimatedHeightsVector(fbb, impl.entryEstimatedHeights())
+                    : 0;
+                int entrySubtitleLineCountsOff = impl.entrySubtitleLineCounts().length > 0
+                    ? MediaWikiSpecialGeneratedData.createEntrySubtitleLineCountsVector(fbb, impl.entrySubtitleLineCounts())
+                    : 0;
+                int subtitleLineWordCountsOff = impl.subtitleLineWordCounts().length > 0
+                    ? MediaWikiSpecialGeneratedData.createSubtitleLineWordCountsVector(fbb, impl.subtitleLineWordCounts())
+                    : 0;
+                int subtitleWordWidthsOff = impl.subtitleWordWidths().length > 0
+                    ? MediaWikiSpecialGeneratedData.createSubtitleWordWidthsVector(fbb, impl.subtitleWordWidths())
+                    : 0;
+
+                return MediaWikiSpecialGeneratedData.createMediaWikiSpecialGeneratedData(
+                    fbb,
+                    maxContentHeight,
+                    impl.columnCount(),
+                    impl.hasMore(),
+                    impl.groupCount(),
+                    groupTitleWidthsOff,
+                    groupEntryCountsOff,
+                    groupEstimatedHeightsOff,
+                    impl.totalEntryCount(),
+                    entryTitleWidthsOff,
+                    entryHasIconOff,
+                    entryEstimatedHeightsOff,
+                    entrySubtitleLineCountsOff,
+                    subtitleLineWordCountsOff,
+                    subtitleWordWidthsOff,
+                    impl.subtitleSpaceWidth());
+            }
         }
 
-        return MediaWikiSpecialGeneratedData.createMediaWikiSpecialGeneratedData(fbb, maxContentHeight);
+        // Fallback: no block data or no font facts (should not happen in normal flow).
+        return MediaWikiSpecialGeneratedData.createMediaWikiSpecialGeneratedData(
+            fbb, maxContentHeight, 1, false, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 4.0f);
     }
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {

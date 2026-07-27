@@ -2,126 +2,66 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.Table;
+import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.Table;
-
 @SuppressWarnings("unused")
 public final class RenderResult extends Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
+  public static RenderResult getRootAsRenderResult(ByteBuffer _bb) { return getRootAsRenderResult(_bb, new RenderResult()); }
+  public static RenderResult getRootAsRenderResult(ByteBuffer _bb, RenderResult obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public RenderResult __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-    public static void ValidateVersion() {
-        Constants.FLATBUFFERS_23_5_26();
-    }
+  public float width() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public float height() { int o = __offset(6); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph glyphs(int j) { return glyphs(new com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph(), j); }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph glyphs(com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph obj, int j) { int o = __offset(8); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
+  public int glyphsLength() { int o = __offset(8); return o != 0 ? __vector_len(o) : 0; }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph.Vector glyphsVector() { return glyphsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph.Vector()); }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph.Vector glyphsVector(com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph.Vector obj) { int o = __offset(8); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
 
-    public static RenderResult getRootAsRenderResult(ByteBuffer _bb) {
-        return getRootAsRenderResult(_bb, new RenderResult());
-    }
+  public static int createRenderResult(FlatBufferBuilder builder,
+      float width,
+      float height,
+      int glyphsOffset) {
+    builder.startTable(3);
+    RenderResult.addGlyphs(builder, glyphsOffset);
+    RenderResult.addHeight(builder, height);
+    RenderResult.addWidth(builder, width);
+    return RenderResult.endRenderResult(builder);
+  }
 
-    public static RenderResult getRootAsRenderResult(ByteBuffer _bb, RenderResult obj) {
-        _bb.order(ByteOrder.LITTLE_ENDIAN);
-        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-    }
+  public static void startRenderResult(FlatBufferBuilder builder) { builder.startTable(3); }
+  public static void addWidth(FlatBufferBuilder builder, float width) { builder.addFloat(0, width, 0.0f); }
+  public static void addHeight(FlatBufferBuilder builder, float height) { builder.addFloat(1, height, 0.0f); }
+  public static void addGlyphs(FlatBufferBuilder builder, int glyphsOffset) { builder.addOffset(2, glyphsOffset, 0); }
+  public static int createGlyphsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
+  public static void startGlyphsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
+  public static int endRenderResult(FlatBufferBuilder builder) {
+    int o = builder.endTable();
+    return o;
+  }
 
-    public void __init(int _i, ByteBuffer _bb) {
-        __reset(_i, _bb);
-    }
+  public static final class Vector extends BaseVector {
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public RenderResult __assign(int _i, ByteBuffer _bb) {
-        __init(_i, _bb);
-        return this;
-    }
-
-    public float width() {
-        int o = __offset(4);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float height() {
-        int o = __offset(6);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph glyphs(int j) {
-        return glyphs(new com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph(), j);
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph glyphs(
-        com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph obj, int j) {
-        int o = __offset(8);
-        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
-    }
-
-    public int glyphsLength() {
-        int o = __offset(8);
-        return o != 0 ? __vector_len(o) : 0;
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph.Vector glyphsVector() {
-        return glyphsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph.Vector());
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph.Vector glyphsVector(
-        com.hfstudio.guidenh.guide.layout.flatbuffers.RenderGlyph.Vector obj) {
-        int o = __offset(8);
-        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
-    }
-
-    public static int createRenderResult(FlatBufferBuilder builder, float width, float height, int glyphsOffset) {
-        builder.startTable(3);
-        RenderResult.addGlyphs(builder, glyphsOffset);
-        RenderResult.addHeight(builder, height);
-        RenderResult.addWidth(builder, width);
-        return RenderResult.endRenderResult(builder);
-    }
-
-    public static void startRenderResult(FlatBufferBuilder builder) {
-        builder.startTable(3);
-    }
-
-    public static void addWidth(FlatBufferBuilder builder, float width) {
-        builder.addFloat(0, width, 0.0f);
-    }
-
-    public static void addHeight(FlatBufferBuilder builder, float height) {
-        builder.addFloat(1, height, 0.0f);
-    }
-
-    public static void addGlyphs(FlatBufferBuilder builder, int glyphsOffset) {
-        builder.addOffset(2, glyphsOffset, 0);
-    }
-
-    public static int createGlyphsVector(FlatBufferBuilder builder, int[] data) {
-        builder.startVector(4, data.length, 4);
-        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
-        return builder.endVector();
-    }
-
-    public static void startGlyphsVector(FlatBufferBuilder builder, int numElems) {
-        builder.startVector(4, numElems, 4);
-    }
-
-    public static int endRenderResult(FlatBufferBuilder builder) {
-        int o = builder.endTable();
-        return o;
-    }
-
-    public static final class Vector extends BaseVector {
-
-        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-            __reset(_vector, _element_size, _bb);
-            return this;
-        }
-
-        public RenderResult get(int j) {
-            return get(new RenderResult(), j);
-        }
-
-        public RenderResult get(RenderResult obj, int j) {
-            return obj.__assign(__indirect(__element(j), bb), bb);
-        }
-    }
+    public RenderResult get(int j) { return get(new RenderResult(), j); }
+    public RenderResult get(RenderResult obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+  }
 }
+

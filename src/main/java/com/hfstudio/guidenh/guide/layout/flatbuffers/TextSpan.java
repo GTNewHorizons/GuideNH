@@ -2,13 +2,22 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.Table;
+import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.Table;
 
 /**
  * One styled run of a rich paragraph: `text` concatenated over all spans
@@ -16,89 +25,40 @@ import com.google.flatbuffers.Table;
  */
 @SuppressWarnings("unused")
 public final class TextSpan extends Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
+  public static TextSpan getRootAsTextSpan(ByteBuffer _bb) { return getRootAsTextSpan(_bb, new TextSpan()); }
+  public static TextSpan getRootAsTextSpan(ByteBuffer _bb, TextSpan obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public TextSpan __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-    public static void ValidateVersion() {
-        Constants.FLATBUFFERS_23_5_26();
-    }
+  public String text() { int o = __offset(4); return o != 0 ? __string(o + bb_pos) : null; }
+  public ByteBuffer textAsByteBuffer() { return __vector_as_bytebuffer(4, 1); }
+  public ByteBuffer textInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 4, 1); }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle style() { return style(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle()); }
+  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle style(com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle obj) { int o = __offset(6); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
 
-    public static TextSpan getRootAsTextSpan(ByteBuffer _bb) {
-        return getRootAsTextSpan(_bb, new TextSpan());
-    }
+  public static int createTextSpan(FlatBufferBuilder builder,
+      int textOffset,
+      int styleOffset) {
+    builder.startTable(2);
+    TextSpan.addStyle(builder, styleOffset);
+    TextSpan.addText(builder, textOffset);
+    return TextSpan.endTextSpan(builder);
+  }
 
-    public static TextSpan getRootAsTextSpan(ByteBuffer _bb, TextSpan obj) {
-        _bb.order(ByteOrder.LITTLE_ENDIAN);
-        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-    }
+  public static void startTextSpan(FlatBufferBuilder builder) { builder.startTable(2); }
+  public static void addText(FlatBufferBuilder builder, int textOffset) { builder.addOffset(0, textOffset, 0); }
+  public static void addStyle(FlatBufferBuilder builder, int styleOffset) { builder.addOffset(1, styleOffset, 0); }
+  public static int endTextSpan(FlatBufferBuilder builder) {
+    int o = builder.endTable();
+    return o;
+  }
 
-    public void __init(int _i, ByteBuffer _bb) {
-        __reset(_i, _bb);
-    }
+  public static final class Vector extends BaseVector {
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public TextSpan __assign(int _i, ByteBuffer _bb) {
-        __init(_i, _bb);
-        return this;
-    }
-
-    public String text() {
-        int o = __offset(4);
-        return o != 0 ? __string(o + bb_pos) : null;
-    }
-
-    public ByteBuffer textAsByteBuffer() {
-        return __vector_as_bytebuffer(4, 1);
-    }
-
-    public ByteBuffer textInByteBuffer(ByteBuffer _bb) {
-        return __vector_in_bytebuffer(_bb, 4, 1);
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle style() {
-        return style(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle());
-    }
-
-    public com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle style(
-        com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle obj) {
-        int o = __offset(6);
-        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
-    }
-
-    public static int createTextSpan(FlatBufferBuilder builder, int textOffset, int styleOffset) {
-        builder.startTable(2);
-        TextSpan.addStyle(builder, styleOffset);
-        TextSpan.addText(builder, textOffset);
-        return TextSpan.endTextSpan(builder);
-    }
-
-    public static void startTextSpan(FlatBufferBuilder builder) {
-        builder.startTable(2);
-    }
-
-    public static void addText(FlatBufferBuilder builder, int textOffset) {
-        builder.addOffset(0, textOffset, 0);
-    }
-
-    public static void addStyle(FlatBufferBuilder builder, int styleOffset) {
-        builder.addOffset(1, styleOffset, 0);
-    }
-
-    public static int endTextSpan(FlatBufferBuilder builder) {
-        int o = builder.endTable();
-        return o;
-    }
-
-    public static final class Vector extends BaseVector {
-
-        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-            __reset(_vector, _element_size, _bb);
-            return this;
-        }
-
-        public TextSpan get(int j) {
-            return get(new TextSpan(), j);
-        }
-
-        public TextSpan get(TextSpan obj, int j) {
-            return obj.__assign(__indirect(__element(j), bb), bb);
-        }
-    }
+    public TextSpan get(int j) { return get(new TextSpan(), j); }
+    public TextSpan get(TextSpan obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+  }
 }
+

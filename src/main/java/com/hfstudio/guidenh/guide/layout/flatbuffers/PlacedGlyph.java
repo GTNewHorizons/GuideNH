@@ -2,13 +2,22 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.Table;
+import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.Table;
 
 /**
  * A glyph quad in absolute document coordinates (top-left origin).
@@ -18,137 +27,61 @@ import com.google.flatbuffers.Table;
  */
 @SuppressWarnings("unused")
 public final class PlacedGlyph extends Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
+  public static PlacedGlyph getRootAsPlacedGlyph(ByteBuffer _bb) { return getRootAsPlacedGlyph(_bb, new PlacedGlyph()); }
+  public static PlacedGlyph getRootAsPlacedGlyph(ByteBuffer _bb, PlacedGlyph obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public PlacedGlyph __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-    public static void ValidateVersion() {
-        Constants.FLATBUFFERS_23_5_26();
-    }
+  public long bitmapKey() { int o = __offset(4); return o != 0 ? bb.getLong(o + bb_pos) : 0L; }
+  public float x() { int o = __offset(6); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public float y() { int o = __offset(8); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public float w() { int o = __offset(10); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public float h() { int o = __offset(12); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public long start() { int o = __offset(14); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
+  public long end() { int o = __offset(16); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
+  public long lineIndex() { int o = __offset(18); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
 
-    public static PlacedGlyph getRootAsPlacedGlyph(ByteBuffer _bb) {
-        return getRootAsPlacedGlyph(_bb, new PlacedGlyph());
-    }
+  public static int createPlacedGlyph(FlatBufferBuilder builder,
+      long bitmapKey,
+      float x,
+      float y,
+      float w,
+      float h,
+      long start,
+      long end,
+      long lineIndex) {
+    builder.startTable(8);
+    PlacedGlyph.addBitmapKey(builder, bitmapKey);
+    PlacedGlyph.addLineIndex(builder, lineIndex);
+    PlacedGlyph.addEnd(builder, end);
+    PlacedGlyph.addStart(builder, start);
+    PlacedGlyph.addH(builder, h);
+    PlacedGlyph.addW(builder, w);
+    PlacedGlyph.addY(builder, y);
+    PlacedGlyph.addX(builder, x);
+    return PlacedGlyph.endPlacedGlyph(builder);
+  }
 
-    public static PlacedGlyph getRootAsPlacedGlyph(ByteBuffer _bb, PlacedGlyph obj) {
-        _bb.order(ByteOrder.LITTLE_ENDIAN);
-        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-    }
+  public static void startPlacedGlyph(FlatBufferBuilder builder) { builder.startTable(8); }
+  public static void addBitmapKey(FlatBufferBuilder builder, long bitmapKey) { builder.addLong(0, bitmapKey, 0L); }
+  public static void addX(FlatBufferBuilder builder, float x) { builder.addFloat(1, x, 0.0f); }
+  public static void addY(FlatBufferBuilder builder, float y) { builder.addFloat(2, y, 0.0f); }
+  public static void addW(FlatBufferBuilder builder, float w) { builder.addFloat(3, w, 0.0f); }
+  public static void addH(FlatBufferBuilder builder, float h) { builder.addFloat(4, h, 0.0f); }
+  public static void addStart(FlatBufferBuilder builder, long start) { builder.addInt(5, (int) start, (int) 0L); }
+  public static void addEnd(FlatBufferBuilder builder, long end) { builder.addInt(6, (int) end, (int) 0L); }
+  public static void addLineIndex(FlatBufferBuilder builder, long lineIndex) { builder.addInt(7, (int) lineIndex, (int) 0L); }
+  public static int endPlacedGlyph(FlatBufferBuilder builder) {
+    int o = builder.endTable();
+    return o;
+  }
 
-    public void __init(int _i, ByteBuffer _bb) {
-        __reset(_i, _bb);
-    }
+  public static final class Vector extends BaseVector {
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public PlacedGlyph __assign(int _i, ByteBuffer _bb) {
-        __init(_i, _bb);
-        return this;
-    }
-
-    public long bitmapKey() {
-        int o = __offset(4);
-        return o != 0 ? bb.getLong(o + bb_pos) : 0L;
-    }
-
-    public float x() {
-        int o = __offset(6);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float y() {
-        int o = __offset(8);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float w() {
-        int o = __offset(10);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float h() {
-        int o = __offset(12);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public long start() {
-        int o = __offset(14);
-        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
-    }
-
-    public long end() {
-        int o = __offset(16);
-        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
-    }
-
-    public long lineIndex() {
-        int o = __offset(18);
-        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
-    }
-
-    public static int createPlacedGlyph(FlatBufferBuilder builder, long bitmapKey, float x, float y, float w, float h,
-        long start, long end, long lineIndex) {
-        builder.startTable(8);
-        PlacedGlyph.addBitmapKey(builder, bitmapKey);
-        PlacedGlyph.addLineIndex(builder, lineIndex);
-        PlacedGlyph.addEnd(builder, end);
-        PlacedGlyph.addStart(builder, start);
-        PlacedGlyph.addH(builder, h);
-        PlacedGlyph.addW(builder, w);
-        PlacedGlyph.addY(builder, y);
-        PlacedGlyph.addX(builder, x);
-        return PlacedGlyph.endPlacedGlyph(builder);
-    }
-
-    public static void startPlacedGlyph(FlatBufferBuilder builder) {
-        builder.startTable(8);
-    }
-
-    public static void addBitmapKey(FlatBufferBuilder builder, long bitmapKey) {
-        builder.addLong(0, bitmapKey, 0L);
-    }
-
-    public static void addX(FlatBufferBuilder builder, float x) {
-        builder.addFloat(1, x, 0.0f);
-    }
-
-    public static void addY(FlatBufferBuilder builder, float y) {
-        builder.addFloat(2, y, 0.0f);
-    }
-
-    public static void addW(FlatBufferBuilder builder, float w) {
-        builder.addFloat(3, w, 0.0f);
-    }
-
-    public static void addH(FlatBufferBuilder builder, float h) {
-        builder.addFloat(4, h, 0.0f);
-    }
-
-    public static void addStart(FlatBufferBuilder builder, long start) {
-        builder.addInt(5, (int) start, (int) 0L);
-    }
-
-    public static void addEnd(FlatBufferBuilder builder, long end) {
-        builder.addInt(6, (int) end, (int) 0L);
-    }
-
-    public static void addLineIndex(FlatBufferBuilder builder, long lineIndex) {
-        builder.addInt(7, (int) lineIndex, (int) 0L);
-    }
-
-    public static int endPlacedGlyph(FlatBufferBuilder builder) {
-        int o = builder.endTable();
-        return o;
-    }
-
-    public static final class Vector extends BaseVector {
-
-        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-            __reset(_vector, _element_size, _bb);
-            return this;
-        }
-
-        public PlacedGlyph get(int j) {
-            return get(new PlacedGlyph(), j);
-        }
-
-        public PlacedGlyph get(PlacedGlyph obj, int j) {
-            return obj.__assign(__indirect(__element(j), bb), bb);
-        }
-    }
+    public PlacedGlyph get(int j) { return get(new PlacedGlyph(), j); }
+    public PlacedGlyph get(PlacedGlyph obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+  }
 }
+

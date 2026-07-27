@@ -2,13 +2,22 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.Table;
+import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.Table;
 
 /**
  * One float-wrap band: the paragraph's text is shaped in sequential bands at
@@ -18,86 +27,41 @@ import com.google.flatbuffers.Table;
  */
 @SuppressWarnings("unused")
 public final class TextBand extends Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
+  public static TextBand getRootAsTextBand(ByteBuffer _bb) { return getRootAsTextBand(_bb, new TextBand()); }
+  public static TextBand getRootAsTextBand(ByteBuffer _bb, TextBand obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public TextBand __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-    public static void ValidateVersion() {
-        Constants.FLATBUFFERS_23_5_26();
-    }
+  public long splitByte() { int o = __offset(4); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
+  public float width() { int o = __offset(6); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public float marginLeft() { int o = __offset(8); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
 
-    public static TextBand getRootAsTextBand(ByteBuffer _bb) {
-        return getRootAsTextBand(_bb, new TextBand());
-    }
+  public static int createTextBand(FlatBufferBuilder builder,
+      long splitByte,
+      float width,
+      float marginLeft) {
+    builder.startTable(3);
+    TextBand.addMarginLeft(builder, marginLeft);
+    TextBand.addWidth(builder, width);
+    TextBand.addSplitByte(builder, splitByte);
+    return TextBand.endTextBand(builder);
+  }
 
-    public static TextBand getRootAsTextBand(ByteBuffer _bb, TextBand obj) {
-        _bb.order(ByteOrder.LITTLE_ENDIAN);
-        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-    }
+  public static void startTextBand(FlatBufferBuilder builder) { builder.startTable(3); }
+  public static void addSplitByte(FlatBufferBuilder builder, long splitByte) { builder.addInt(0, (int) splitByte, (int) 0L); }
+  public static void addWidth(FlatBufferBuilder builder, float width) { builder.addFloat(1, width, 0.0f); }
+  public static void addMarginLeft(FlatBufferBuilder builder, float marginLeft) { builder.addFloat(2, marginLeft, 0.0f); }
+  public static int endTextBand(FlatBufferBuilder builder) {
+    int o = builder.endTable();
+    return o;
+  }
 
-    public void __init(int _i, ByteBuffer _bb) {
-        __reset(_i, _bb);
-    }
+  public static final class Vector extends BaseVector {
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public TextBand __assign(int _i, ByteBuffer _bb) {
-        __init(_i, _bb);
-        return this;
-    }
-
-    public long splitByte() {
-        int o = __offset(4);
-        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
-    }
-
-    public float width() {
-        int o = __offset(6);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float marginLeft() {
-        int o = __offset(8);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public static int createTextBand(FlatBufferBuilder builder, long splitByte, float width, float marginLeft) {
-        builder.startTable(3);
-        TextBand.addMarginLeft(builder, marginLeft);
-        TextBand.addWidth(builder, width);
-        TextBand.addSplitByte(builder, splitByte);
-        return TextBand.endTextBand(builder);
-    }
-
-    public static void startTextBand(FlatBufferBuilder builder) {
-        builder.startTable(3);
-    }
-
-    public static void addSplitByte(FlatBufferBuilder builder, long splitByte) {
-        builder.addInt(0, (int) splitByte, (int) 0L);
-    }
-
-    public static void addWidth(FlatBufferBuilder builder, float width) {
-        builder.addFloat(1, width, 0.0f);
-    }
-
-    public static void addMarginLeft(FlatBufferBuilder builder, float marginLeft) {
-        builder.addFloat(2, marginLeft, 0.0f);
-    }
-
-    public static int endTextBand(FlatBufferBuilder builder) {
-        int o = builder.endTable();
-        return o;
-    }
-
-    public static final class Vector extends BaseVector {
-
-        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-            __reset(_vector, _element_size, _bb);
-            return this;
-        }
-
-        public TextBand get(int j) {
-            return get(new TextBand(), j);
-        }
-
-        public TextBand get(TextBand obj, int j) {
-            return obj.__assign(__indirect(__element(j), bb), bb);
-        }
-    }
+    public TextBand get(int j) { return get(new TextBand(), j); }
+    public TextBand get(TextBand obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+  }
 }
+

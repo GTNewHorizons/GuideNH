@@ -27,6 +27,7 @@ import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextStyle;
@@ -40,6 +41,230 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
 
     /** Precomputed max column content height for Rust MeasureFunc. Set during computeLayout. */
     private int maxPrecomputedContentHeight = 0;
+
+    /** Font facts collected during computeLayout, consumed by Rust measure via serialization. */
+    @Nullable
+    private FontFacts collectedFontFacts;
+
+    /**
+     * Returns the font facts, collecting them on demand if no prior layout has
+     * cached them. Called by the serializer (which runs after computeLayout and
+     * does NOT have a LayoutContext). Uses {@link GuideText} static methods so
+     * no {@link LayoutContext} is required.
+     */
+    public FontFacts getCollectedFontFacts() {
+        if (collectedFontFacts == null) {
+            collectedFontFacts = collectFontFacts();
+        }
+        return collectedFontFacts;
+    }
+
+    // ── Serialization helpers for Rust-side measurement ────────────────────
+
+    /**
+     * Populates a FontFactsCollector with width-independent font-measurement
+     * data consumed by the Rust measure function.
+     */
+    public FontFacts collectFontFacts() {
+        return new FontFacts(collectFontFactsImpl());
+    }
+
+    /**
+     * Contains all per-entry font facts plus column-planning data for Rust.
+     * Exposed as a single object so the serializer calls one method.
+     */
+    public record FontFacts(FontFactsImpl impl) {
+        public record FontFactsImpl(
+            int columnCount,
+            boolean hasMore,
+            int groupCount,
+            float[] groupTitleWidths,
+            int[] groupEntryCounts,
+            float[] groupEstimatedHeights,
+            int totalEntryCount,
+            float[] entryTitleWidths,
+            byte[] entryHasIcon,
+            float[] entryEstimatedHeights,
+            int[] entrySubtitleLineCounts,
+            int[] subtitleLineWordCounts,
+            float[] subtitleWordWidths,
+            float subtitleSpaceWidth) {}
+    }
+
+    private FontFacts.FontFactsImpl collectFontFactsImpl() {
+        MediaWikiSpecialPageResult visibleResult = applyVisibility(result, searchQuery);
+        int columnCount = resolveColumnCount(visibleResult);
+        boolean hasMoreFlag = visibleResult != null && visibleResult.hasMore();
+        boolean isGrouped = visibleResult != null
+            && (visibleResult.kind() == MediaWikiSpecialPageKind.GROUPED
+                || visibleResult.kind() == MediaWikiSpecialPageKind.GROUP_INDEX);
+
+        if (isEmpty(visibleResult)) {
+            return new FontFacts.FontFactsImpl(
+                columnCount, false, 0, new float[0], new int[0], new float[0],
+                0, new float[0], new byte[0], new float[0], new int[0],
+                new int[0], new float[0], 0f);
+        }
+
+        if (!isGrouped) {
+            // ── Flat entries: distribute evenly ──
+            List<MediaWikiSpecialListEntry> entries = visibleResult.flatEntries() != null
+                ? visibleResult.flatEntries() : List.of();
+            int totalEntryCount = entries.size();
+            int perColumn = Math.max(1, (totalEntryCount + columnCount - 1) / columnCount);
+            // Build per-column groups (one group per column, no title).
+            int actualGroupCount = 0;
+            for (int ci = 0; ci < columnCount; ci++) {
+                int start = ci * perColumn;
+                if (start >= totalEntryCount) break;
+                actualGroupCount++;
+            }
+            int[] groupEntryCounts = new int[actualGroupCount];
+            float[] groupTitleWidths = new float[actualGroupCount];
+            float[] groupEstimatedHeights = new float[actualGroupCount];
+            int entryIdx = 0;
+            for (int gi = 0; gi < actualGroupCount; gi++) {
+                int start = gi * perColumn;
+                int end = Math.min(entries.size(), start + perColumn);
+                int cnt = end - start;
+                groupEntryCounts[gi] = cnt;
+                groupTitleWidths[gi] = 0f; // no title
+                // Estimate height for this group's entries.
+                float estH = 0f;
+                for (int ei = start; ei < end; ei++) {
+                    estH += estimateEntryHeight(entries.get(ei)) + ENTRY_GAP;
+                }
+                estH += GROUP_MARGIN;
+                groupEstimatedHeights[gi] = estH;
+            }
+
+            float[] entryTitleWidths = new float[totalEntryCount];
+            byte[] entryHasIcon = new byte[totalEntryCount];
+            float[] entryEstimatedHeights = new float[totalEntryCount];
+            int[] entrySubtitleLineCounts = new int[totalEntryCount];
+            java.util.ArrayList<Integer> lineWordCounts = new java.util.ArrayList<>();
+            java.util.ArrayList<Float> wordWidths = new java.util.ArrayList<>();
+            float spaceWidth = 0f;
+
+            for (int ei = 0; ei < totalEntryCount; ei++) {
+                MediaWikiSpecialListEntry e = entries.get(ei);
+                entryTitleWidths[ei] = GuideText.measureWidth(e.title() != null ? e.title() : "", LINK_STYLE);
+                entryHasIcon[ei] = (byte) (e.icon() != null ? 1 : 0);
+                entryEstimatedHeights[ei] = estimateEntryHeight(e);
+                // Subtitle word data
+                String sub = e.subtitle();
+                if (sub == null || sub.isEmpty()) {
+                    entrySubtitleLineCounts[ei] = 0;
+                } else {
+                    java.util.List<String> rawLines = GuideStringLines.splitLines(sub);
+                    entrySubtitleLineCounts[ei] = rawLines.size();
+                    for (String rawLine : rawLines) {
+                        String trimmed = rawLine.trim();
+                        if (trimmed.isEmpty()) {
+                            continue;
+                        }
+                        String[] words = trimmed.split("\\s+");
+                        lineWordCounts.add(words.length);
+                        for (String word : words) {
+                            if (word.isEmpty()) continue;
+                            float w = GuideText.measureWidth(word, SUBTITLE_STYLE);
+                            wordWidths.add(w);
+                        }
+                    }
+                }
+            }
+            // Measure space width from the first subtitle word if available, else default.
+            spaceWidth = GuideText.measureWidth(" ", SUBTITLE_STYLE);
+            if (spaceWidth <= 0f) spaceWidth = 4f; // fallback
+
+            int[] lwc = new int[lineWordCounts.size()];
+            for (int i = 0; i < lwc.length; i++) lwc[i] = lineWordCounts.get(i);
+            float[] ww = new float[wordWidths.size()];
+            for (int i = 0; i < ww.length; i++) ww[i] = wordWidths.get(i);
+
+            return new FontFacts.FontFactsImpl(
+                columnCount, hasMoreFlag, actualGroupCount,
+                groupTitleWidths, groupEntryCounts, groupEstimatedHeights,
+                totalEntryCount,
+                entryTitleWidths, entryHasIcon, entryEstimatedHeights, entrySubtitleLineCounts,
+                lwc, ww, spaceWidth);
+        } else {
+            // ── Grouped entries: one group per result group ──
+            java.util.List<GroupLayout> groups = buildGroups(visibleResult);
+            int groupCount = groups.size();
+
+            float[] groupTitleWidths = new float[groupCount];
+            int[] groupEntryCounts = new int[groupCount];
+            float[] groupEstimatedHeights = new float[groupCount];
+
+            // First pass: compute per-group metadata and total entry count.
+            int totalEntryCount = 0;
+            for (int gi = 0; gi < groupCount; gi++) {
+                GroupLayout g = groups.get(gi);
+                float tw = 0f;
+                if (g.title() != null && !g.title().isEmpty()) {
+                    tw = GuideText.measureWidth(g.title(), HEADER_STYLE);
+                }
+                groupTitleWidths[gi] = tw;
+                groupEntryCounts[gi] = g.entries().size();
+                totalEntryCount += g.entries().size();
+                groupEstimatedHeights[gi] = estimateHeight(g);
+            }
+
+            float[] entryTitleWidths = new float[totalEntryCount];
+            byte[] entryHasIcon = new byte[totalEntryCount];
+            float[] entryEstimatedHeights = new float[totalEntryCount];
+            int[] entrySubtitleLineCounts = new int[totalEntryCount];
+            java.util.ArrayList<Integer> lineWordCounts = new java.util.ArrayList<>();
+            java.util.ArrayList<Float> wordWidths = new java.util.ArrayList<>();
+            float spaceWidth = 0f;
+            int entryIdx = 0;
+
+            for (int gi = 0; gi < groupCount; gi++) {
+                GroupLayout g = groups.get(gi);
+                for (MediaWikiSpecialListEntry e : g.entries()) {
+                    entryTitleWidths[entryIdx] = GuideText.measureWidth(e.title() != null ? e.title() : "", LINK_STYLE);
+                    entryHasIcon[entryIdx] = (byte) (e.icon() != null ? 1 : 0);
+                    entryEstimatedHeights[entryIdx] = estimateEntryHeight(e);
+
+                    String sub = e.subtitle();
+                    if (sub == null || sub.isEmpty()) {
+                        entrySubtitleLineCounts[entryIdx] = 0;
+                    } else {
+                        java.util.List<String> rawLines = GuideStringLines.splitLines(sub);
+                        entrySubtitleLineCounts[entryIdx] = rawLines.size();
+                        for (String rawLine : rawLines) {
+                            String trimmed = rawLine.trim();
+                            if (trimmed.isEmpty()) continue;
+                            String[] words = trimmed.split("\\s+");
+                            lineWordCounts.add(words.length);
+                            for (String word : words) {
+                                if (word.isEmpty()) continue;
+                                float w = GuideText.measureWidth(word, SUBTITLE_STYLE);
+                                wordWidths.add(w);
+                            }
+                        }
+                    }
+                    entryIdx++;
+                }
+            }
+
+            spaceWidth = GuideText.measureWidth(" ", SUBTITLE_STYLE);
+            if (spaceWidth <= 0f) spaceWidth = 4f;
+
+            int[] lwc = new int[lineWordCounts.size()];
+            for (int i = 0; i < lwc.length; i++) lwc[i] = lineWordCounts.get(i);
+            float[] ww = new float[wordWidths.size()];
+            for (int i = 0; i < ww.length; i++) ww[i] = wordWidths.get(i);
+
+            return new FontFacts.FontFactsImpl(
+                columnCount, hasMoreFlag, groupCount,
+                groupTitleWidths, groupEntryCounts, groupEstimatedHeights,
+                totalEntryCount,
+                entryTitleWidths, entryHasIcon, entryEstimatedHeights, entrySubtitleLineCounts,
+                lwc, ww, spaceWidth);
+        }
+    }
     private static final int SIDE_PADDING = 2;
     private static final int COLUMN_GAP = 10;
     private static final int GROUP_MARGIN = 6;
@@ -118,6 +343,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             visibilityCache = null;
             currentVisibleCount = resolveDefaultVisibleCount(result);
             maxPrecomputedContentHeight = 0;
+            collectedFontFacts = null;
         }
     }
 
@@ -134,6 +360,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     public void setRows(int rows) {
         this.rows = Math.max(1, rows);
         maxPrecomputedContentHeight = 0;
+        collectedFontFacts = null;
     }
 
     public void setEmptyText(String emptyText) {
@@ -207,6 +434,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         }
         visibilityCache = null;
         maxPrecomputedContentHeight = 0;
+        collectedFontFacts = null;
         var document = getDocument();
         if (document != null) {
             document.invalidateLayout();
@@ -300,6 +528,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             maxColumnHeight += LOAD_MORE_MARGIN_TOP + LOAD_MORE_HEIGHT;
         }
         this.maxPrecomputedContentHeight = maxColumnHeight;
+
         return new LytRect(x, y, availableWidth, TOP_PADDING + maxColumnHeight + BOTTOM_PADDING);
     }
 
@@ -735,6 +964,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             currentVisibleCount + MediaWikiSpecialPageQuery.PAGE_SIZE);
         visibilityCache = null;
         maxPrecomputedContentHeight = 0;
+        collectedFontFacts = null;
         var document = getDocument();
         if (document != null) {
             document.invalidateLayout();

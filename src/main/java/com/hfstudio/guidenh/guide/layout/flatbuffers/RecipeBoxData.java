@@ -2,148 +2,104 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.Table;
+import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.Table;
-
 @SuppressWarnings("unused")
 public final class RecipeBoxData extends Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
+  public static RecipeBoxData getRootAsRecipeBoxData(ByteBuffer _bb) { return getRootAsRecipeBoxData(_bb, new RecipeBoxData()); }
+  public static RecipeBoxData getRootAsRecipeBoxData(ByteBuffer _bb, RecipeBoxData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public RecipeBoxData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-    public static void ValidateVersion() {
-        Constants.FLATBUFFERS_23_5_26();
-    }
+  /**
+   * Handler-reported body content width (px), from registry.lookupRecipeHandlerWidth.
+   */
+  public float bodyWidth() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  /**
+   * Resolved body content height (px), from NeiRecipeLayoutMetrics.resolveBodyHeight.
+   */
+  public float bodyHeight() { int o = __offset(6); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  /**
+   * Additional top inset for GregTech handler (0 for normal handlers).
+   */
+  public float bodyTopInset() { int o = __offset(8); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  /**
+   * Vertical shift applied by the handler registry.
+   */
+  public float bodyYShift() { int o = __offset(10); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  /**
+   * Title text pixel width, computed via Minecraft font metrics (Java-only).
+   */
+  public float titleTextWidth() { int o = __offset(12); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  /**
+   * Icon display size: 8 if an icon (stack or image) is present, else 0.
+   */
+  public float iconSize() { int o = __offset(14); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  /**
+   * Whether the action button (jump to NEI) is shown.
+   */
+  public boolean recipeJumpEnabled() { int o = __offset(16); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
+  /**
+   * Title bar height = Math.max(ICON_SIZE, FONT_HEIGHT) + TITLE_PAD_TOP + TITLE_PAD_BOTTOM.
+   */
+  public float titleHeight() { int o = __offset(18); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
 
-    public static RecipeBoxData getRootAsRecipeBoxData(ByteBuffer _bb) {
-        return getRootAsRecipeBoxData(_bb, new RecipeBoxData());
-    }
+  public static int createRecipeBoxData(FlatBufferBuilder builder,
+      float bodyWidth,
+      float bodyHeight,
+      float bodyTopInset,
+      float bodyYShift,
+      float titleTextWidth,
+      float iconSize,
+      boolean recipeJumpEnabled,
+      float titleHeight) {
+    builder.startTable(8);
+    RecipeBoxData.addTitleHeight(builder, titleHeight);
+    RecipeBoxData.addIconSize(builder, iconSize);
+    RecipeBoxData.addTitleTextWidth(builder, titleTextWidth);
+    RecipeBoxData.addBodyYShift(builder, bodyYShift);
+    RecipeBoxData.addBodyTopInset(builder, bodyTopInset);
+    RecipeBoxData.addBodyHeight(builder, bodyHeight);
+    RecipeBoxData.addBodyWidth(builder, bodyWidth);
+    RecipeBoxData.addRecipeJumpEnabled(builder, recipeJumpEnabled);
+    return RecipeBoxData.endRecipeBoxData(builder);
+  }
 
-    public static RecipeBoxData getRootAsRecipeBoxData(ByteBuffer _bb, RecipeBoxData obj) {
-        _bb.order(ByteOrder.LITTLE_ENDIAN);
-        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-    }
+  public static void startRecipeBoxData(FlatBufferBuilder builder) { builder.startTable(8); }
+  public static void addBodyWidth(FlatBufferBuilder builder, float bodyWidth) { builder.addFloat(0, bodyWidth, 0.0f); }
+  public static void addBodyHeight(FlatBufferBuilder builder, float bodyHeight) { builder.addFloat(1, bodyHeight, 0.0f); }
+  public static void addBodyTopInset(FlatBufferBuilder builder, float bodyTopInset) { builder.addFloat(2, bodyTopInset, 0.0f); }
+  public static void addBodyYShift(FlatBufferBuilder builder, float bodyYShift) { builder.addFloat(3, bodyYShift, 0.0f); }
+  public static void addTitleTextWidth(FlatBufferBuilder builder, float titleTextWidth) { builder.addFloat(4, titleTextWidth, 0.0f); }
+  public static void addIconSize(FlatBufferBuilder builder, float iconSize) { builder.addFloat(5, iconSize, 0.0f); }
+  public static void addRecipeJumpEnabled(FlatBufferBuilder builder, boolean recipeJumpEnabled) { builder.addBoolean(6, recipeJumpEnabled, false); }
+  public static void addTitleHeight(FlatBufferBuilder builder, float titleHeight) { builder.addFloat(7, titleHeight, 0.0f); }
+  public static int endRecipeBoxData(FlatBufferBuilder builder) {
+    int o = builder.endTable();
+    return o;
+  }
 
-    public void __init(int _i, ByteBuffer _bb) {
-        __reset(_i, _bb);
-    }
+  public static final class Vector extends BaseVector {
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public RecipeBoxData __assign(int _i, ByteBuffer _bb) {
-        __init(_i, _bb);
-        return this;
-    }
-
-    public float bodyWidth() {
-        int o = __offset(4);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float bodyHeight() {
-        int o = __offset(6);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float bodyTopInset() {
-        int o = __offset(8);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float bodyYShift() {
-        int o = __offset(10);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float titleTextWidth() {
-        int o = __offset(12);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public float iconSize() {
-        int o = __offset(14);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public boolean recipeJumpEnabled() {
-        int o = __offset(16);
-        return o != 0 ? bb.get(o + bb_pos) != 0 : false;
-    }
-
-    public float titleHeight() {
-        int o = __offset(18);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public static int createRecipeBoxData(FlatBufferBuilder builder, float bodyWidth, float bodyHeight,
-        float bodyTopInset, float bodyYShift, float titleTextWidth, float iconSize, boolean recipeJumpEnabled,
-        float titleHeight) {
-        builder.startTable(8);
-        RecipeBoxData.addTitleHeight(builder, titleHeight);
-        RecipeBoxData.addTitleTextWidth(builder, titleTextWidth);
-        RecipeBoxData.addIconSize(builder, iconSize);
-        RecipeBoxData.addBodyYShift(builder, bodyYShift);
-        RecipeBoxData.addBodyTopInset(builder, bodyTopInset);
-        RecipeBoxData.addBodyHeight(builder, bodyHeight);
-        RecipeBoxData.addBodyWidth(builder, bodyWidth);
-        RecipeBoxData.addRecipeJumpEnabled(builder, recipeJumpEnabled);
-        return RecipeBoxData.endRecipeBoxData(builder);
-    }
-
-    public static void startRecipeBoxData(FlatBufferBuilder builder) {
-        builder.startTable(8);
-    }
-
-    public static void addBodyWidth(FlatBufferBuilder builder, float bodyWidth) {
-        builder.addFloat(0, bodyWidth, 0.0f);
-    }
-
-    public static void addBodyHeight(FlatBufferBuilder builder, float bodyHeight) {
-        builder.addFloat(1, bodyHeight, 0.0f);
-    }
-
-    public static void addBodyTopInset(FlatBufferBuilder builder, float bodyTopInset) {
-        builder.addFloat(2, bodyTopInset, 0.0f);
-    }
-
-    public static void addBodyYShift(FlatBufferBuilder builder, float bodyYShift) {
-        builder.addFloat(3, bodyYShift, 0.0f);
-    }
-
-    public static void addTitleTextWidth(FlatBufferBuilder builder, float titleTextWidth) {
-        builder.addFloat(4, titleTextWidth, 0.0f);
-    }
-
-    public static void addIconSize(FlatBufferBuilder builder, float iconSize) {
-        builder.addFloat(5, iconSize, 0.0f);
-    }
-
-    public static void addRecipeJumpEnabled(FlatBufferBuilder builder, boolean recipeJumpEnabled) {
-        builder.addByte(6, (byte) (recipeJumpEnabled ? 1 : 0), (byte) 0);
-    }
-
-    public static void addTitleHeight(FlatBufferBuilder builder, float titleHeight) {
-        builder.addFloat(7, titleHeight, 0.0f);
-    }
-
-    public static int endRecipeBoxData(FlatBufferBuilder builder) {
-        int o = builder.endTable();
-        return o;
-    }
-
-    public static final class Vector extends BaseVector {
-
-        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-            __reset(_vector, _element_size, _bb);
-            return this;
-        }
-
-        public RecipeBoxData get(int j) {
-            return get(new RecipeBoxData(), j);
-        }
-
-        public RecipeBoxData get(RecipeBoxData obj, int j) {
-            return obj.__assign(__indirect(__element(j), bb), bb);
-        }
-    }
+    public RecipeBoxData get(int j) { return get(new RecipeBoxData(), j); }
+    public RecipeBoxData get(RecipeBoxData obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+  }
 }
+

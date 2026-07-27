@@ -2,89 +2,59 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.BooleanVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.DoubleVector;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.LongVector;
+import com.google.flatbuffers.ShortVector;
+import com.google.flatbuffers.StringVector;
+import com.google.flatbuffers.Struct;
+import com.google.flatbuffers.Table;
+import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.Table;
 
 /**
  * 尺寸：Auto | Points | Percent
  */
 @SuppressWarnings("unused")
 public final class Dimension extends Table {
+  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
+  public static Dimension getRootAsDimension(ByteBuffer _bb) { return getRootAsDimension(_bb, new Dimension()); }
+  public static Dimension getRootAsDimension(ByteBuffer _bb, Dimension obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
+  public Dimension __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-    public static void ValidateVersion() {
-        Constants.FLATBUFFERS_23_5_26();
-    }
+  public float value() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public byte unit() { int o = __offset(6); return o != 0 ? bb.get(o + bb_pos) : 0; }
 
-    public static Dimension getRootAsDimension(ByteBuffer _bb) {
-        return getRootAsDimension(_bb, new Dimension());
-    }
+  public static int createDimension(FlatBufferBuilder builder,
+      float value,
+      byte unit) {
+    builder.startTable(2);
+    Dimension.addValue(builder, value);
+    Dimension.addUnit(builder, unit);
+    return Dimension.endDimension(builder);
+  }
 
-    public static Dimension getRootAsDimension(ByteBuffer _bb, Dimension obj) {
-        _bb.order(ByteOrder.LITTLE_ENDIAN);
-        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
-    }
+  public static void startDimension(FlatBufferBuilder builder) { builder.startTable(2); }
+  public static void addValue(FlatBufferBuilder builder, float value) { builder.addFloat(0, value, 0.0f); }
+  public static void addUnit(FlatBufferBuilder builder, byte unit) { builder.addByte(1, unit, 0); }
+  public static int endDimension(FlatBufferBuilder builder) {
+    int o = builder.endTable();
+    return o;
+  }
 
-    public void __init(int _i, ByteBuffer _bb) {
-        __reset(_i, _bb);
-    }
+  public static final class Vector extends BaseVector {
+    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public Dimension __assign(int _i, ByteBuffer _bb) {
-        __init(_i, _bb);
-        return this;
-    }
-
-    public float value() {
-        int o = __offset(4);
-        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
-    }
-
-    public byte unit() {
-        int o = __offset(6);
-        return o != 0 ? bb.get(o + bb_pos) : 0;
-    }
-
-    public static int createDimension(FlatBufferBuilder builder, float value, byte unit) {
-        builder.startTable(2);
-        Dimension.addValue(builder, value);
-        Dimension.addUnit(builder, unit);
-        return Dimension.endDimension(builder);
-    }
-
-    public static void startDimension(FlatBufferBuilder builder) {
-        builder.startTable(2);
-    }
-
-    public static void addValue(FlatBufferBuilder builder, float value) {
-        builder.addFloat(0, value, 0.0f);
-    }
-
-    public static void addUnit(FlatBufferBuilder builder, byte unit) {
-        builder.addByte(1, unit, 0);
-    }
-
-    public static int endDimension(FlatBufferBuilder builder) {
-        int o = builder.endTable();
-        return o;
-    }
-
-    public static final class Vector extends BaseVector {
-
-        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
-            __reset(_vector, _element_size, _bb);
-            return this;
-        }
-
-        public Dimension get(int j) {
-            return get(new Dimension(), j);
-        }
-
-        public Dimension get(Dimension obj, int j) {
-            return obj.__assign(__indirect(__element(j), bb), bb);
-        }
-    }
+    public Dimension get(int j) { return get(new Dimension(), j); }
+    public Dimension get(Dimension obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+  }
 }
+
