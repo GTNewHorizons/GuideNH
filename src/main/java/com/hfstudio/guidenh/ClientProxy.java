@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.DefaultGuideResourcePackManager;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePackWatcher;
+import com.hfstudio.guidenh.guide.internal.headless.GuideNhHeadlessWindow;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
@@ -111,6 +112,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
+        GuideNhHeadlessWindow.installEarly();
         GuidebookLevel.setPreviewWorldFactory(GuidebookFakeWorld::new);
         GuideNhClientIntegrationBootstrap.preInitClient();
         GuideME.initClientProxy();
@@ -228,6 +230,7 @@ public class ClientProxy extends CommonProxy {
                 ModConfig.runtimeBridge.maxSubscriptions,
                 ModConfig.runtimeBridge.maxConnections,
                 ModConfig.runtimeBridge.maxDeltaEntries));
+        GuideNhHeadlessWindow.hideNow();
     }
 
     @Override
