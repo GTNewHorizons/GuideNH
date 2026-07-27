@@ -109,6 +109,7 @@ pub fn create_measure_closure<'a>(
              21 => (measure_pie_chart(flat_nodes, index, known, available, visual_scale), None),
               22 | 23 | 24 | 25 => (measure_chart(flat_nodes, index, known, available, visual_scale), None),
               26 => (measure_structure_view(flat_nodes, index, known, available, visual_scale), None),
+              27 => (measure_guidebook_scene(flat_nodes, index, known, available, visual_scale), None),
              _ => (Size::ZERO, None),
         };
         // Explicit style sizes win over content measurement (CSS behavior):
@@ -626,6 +627,115 @@ fn measure_structure_view(
         width: w,
         height: h,
     }
+}
+
+/// Measure a guidebook scene (node_type = 27). The formula mirrors
+/// LytGuidebookScene.computeLayout term for term, with Java-precomputed
+/// dock sizes, button column reserve, button total height, and bottom
+/// control area height provided via GuidebookSceneData. The responsive
+/// scene sizing (scale_width, dock clamping, computeResponsiveSceneHeight)
+/// is replicated in Rust using available_width and visual_scale.
+fn measure_guidebook_scene(
+    nodes: &[FlatNode],
+    idx: usize,
+    known: Size<Option<f32>>,
+    available: Size<AvailableSpace>,
+    visual_scale: f32,
+) -> Size<f32> {
+    const MIN_RESPONSIVE_SCENE_SIZE: f32 = 16.0;
+    const BLOCK_STATS_DOCK_GAP: f32 = 4.0;  // only used in dock clamping logic
+    const BLOCK_STATS_MIN_WIDTH: f32 = 32.0;
+
+    let node = &nodes[idx];
+    let gs = match node.guidebook_scene_data() {
+        Some(d) => d,
+        None => return Size::ZERO,
+    };
+
+    let scene_w = gs.scene_width();
+    let scene_h = gs.scene_height();
+    let reserve = gs.button_column_reserve();
+    let buttons_total_h = gs.buttons_total_height();
+    let mut left_dock = gs.left_dock();
+    let mut right_dock = gs.right_dock();
+    let top_dock = gs.top_dock();
+    let bottom_dock = gs.bottom_dock();
+    let bottom_ctrl_h = gs.bottom_control_area_height();
+    let reserve_bottom = gs.reserve_bottom_control();
+
+    // targetSceneWidth = scaleWidth(width, visualScale, MIN_RESPONSIVE_SCENE_SIZE)
+    let target_scene_w = scale_width(scene_w, visual_scale, MIN_RESPONSIVE_SCENE_SIZE);
+
+    // totalDesired = targetSceneWidth + reserve + leftDock + rightDock
+    let total_desired = target_scene_w + reserve + left_dock + right_dock;
+
+    // availableWidth from Taffy
+    let avail_w = match available.width {
+        AvailableSpace::Definite(a) => a,
+        _ => f32::MAX,
+    };
+
+    // w = min(totalDesired, max(reserve + MIN_RESPONSIVE_SCENE_SIZE, availableWidth))
+    let w = total_desired.min((reserve + MIN_RESPONSIVE_SCENE_SIZE).max(avail_w));
+
+    // availableForDocks = max(0, w - reserve - targetSceneWidth)
+    let available_for_docks = (w - reserve - target_scene_w).max(0.0);
+
+    // Dock clamping: if left+right > availableForDocks, shrink proportionally
+    if left_dock + right_dock > available_for_docks {
+        if left_dock > 0.0 && right_dock > 0.0 {
+            left_dock = left_dock.min(available_for_docks / 2.0);
+            right_dock = right_dock.min(available_for_docks - left_dock);
+        } else if left_dock > 0.0 {
+            left_dock = left_dock.min(available_for_docks);
+        } else {
+            right_dock = right_dock.min(available_for_docks);
+        }
+    }
+
+    // minDockSpace = BLOCK_STATS_MIN_WIDTH + BLOCK_STATS_DOCK_GAP
+    let min_dock_space = BLOCK_STATS_MIN_WIDTH + BLOCK_STATS_DOCK_GAP;
+    if left_dock > 0.0 && left_dock < min_dock_space {
+        left_dock = 0.0;
+    }
+    if right_dock > 0.0 && right_dock < min_dock_space {
+        right_dock = 0.0;
+    }
+
+    // sceneW = max(MIN_RESPONSIVE_SCENE_SIZE, w - reserve - leftDock - rightDock)
+    let scene_w_responsive = (w - reserve - left_dock - right_dock).max(MIN_RESPONSIVE_SCENE_SIZE);
+
+    // computeResponsiveSceneHeight(sceneW, buttonsTotalH)
+    let scene_h_responsive = compute_responsive_scene_height(scene_w, scene_h, scene_w_responsive, buttons_total_h, MIN_RESPONSIVE_SCENE_SIZE);
+
+    // h = topDock + sceneH + (reserveBottomControlArea ? bottomControlAreaHeight : 0) + bottomDock
+    let h = top_dock + scene_h_responsive + (if reserve_bottom { bottom_ctrl_h } else { 0.0 }) + bottom_dock;
+
+    // known dimensions (explicit style sizes) win over measured
+    Size {
+        width: known.width.unwrap_or(w),
+        height: known.height.unwrap_or(h),
+    }
+}
+
+/// Mirrors LytGuidebookScene.computeResponsiveSceneHeight.
+/// scene_width / scene_height are the intrinsic dimensions (setSceneSize or
+/// defaults); actual_width is the responsive scene width after dock clamping.
+fn compute_responsive_scene_height(
+    base_width: f32,
+    base_height: f32,
+    actual_width: f32,
+    buttons_total_h: f32,
+    min_size: f32,
+) -> f32 {
+    let base_w = base_width.max(1.0);
+    let base_h = base_height.max(1.0);
+    if actual_width >= base_w {
+        return base_h.max(buttons_total_h);
+    }
+    let scale = actual_width / base_w;
+    let scaled_h = (base_h * scale).round().max(1.0).max(min_size);
+    scaled_h.max(buttons_total_h)
 }
 
 /// Mirrors ResponsiveVisualSizing.scaleWidth: apply a visual-scale factor

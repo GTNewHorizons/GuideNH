@@ -236,6 +236,37 @@ table StructureViewData {
   view_height: float;
 }
 
+/// Guidebook scene sizing data (node_type 27).
+/// Mirrors LytGuidebookScene.computeLayout term for term.
+/// Minecraft-dependent values (block stats geometry, button visibility,
+/// bottom control areas) are precomputed by Java; Rust applies the
+/// responsive scene sizing formula (scale_width, dock clamping,
+/// computeResponsiveSceneHeight) with available_width and visual_scale.
+table GuidebookSceneData {
+  /// Intrinsic scene pixel width (setSceneSize or DEFAULT_WIDTH = 256).
+  scene_width: float;
+  /// Intrinsic scene pixel height (setSceneSize or DEFAULT_HEIGHT = 192).
+  scene_height: float;
+  /// Horizontal space reserved for the floating button column:
+  /// interactive && sceneButtonsVisible ? (BTN_OUTSIDE_GAP + BTN_SIZE) : 0.
+  button_column_reserve: float;
+  /// Total pixel height of scene buttons when stacked vertically:
+  /// interactive && sceneButtonsVisible ? (BTN_SIZE * count + BTN_GAP * max(0, count-1)) : 0.
+  buttons_total_height: float;
+  /// Block-stats left dock size + BLOCK_STATS_DOCK_GAP, or 0.
+  left_dock: float;
+  /// Block-stats right dock size + BLOCK_STATS_DOCK_GAP, or 0.
+  right_dock: float;
+  /// Block-stats top dock size + BLOCK_STATS_DOCK_GAP, or 0.
+  top_dock: float;
+  /// Block-stats bottom dock size + BLOCK_STATS_DOCK_GAP, or 0.
+  bottom_dock: float;
+  /// Bottom control area height from getBottomControlAreaHeight().
+  bottom_control_area_height: float;
+  /// Whether the layout should reserve room for bottom controls.
+  reserve_bottom_control: bool = false;
+}
+
 // ═══════════════════ 布局树节点 ═══════════════════
 
 table FlatNode {
@@ -244,6 +275,7 @@ table FlatNode {
                                 // 4=ThematicBreak 5=Custom 6=FileTree
                                 // 7=Table 8=Latex 20=RecipeBox 21=PieChart 22=BarChart
                                 // 23=ColumnChart 24=LineChart 25=ScatterChart 26=StructureView
+                                // 27=GuidebookScene (Rust MeasureFunc)
   text: TextData;
   image: ImageData;
   slot: SlotData;
@@ -256,6 +288,7 @@ table FlatNode {
   pie_chart: PieChartData;     // node_type 21: Pie chart sizing data
   chart_data: ChartData;       // node_type 22: Cartesian chart sizing data (Bar/Column/Line/Scatter)
   structure_view_data: StructureViewData; // node_type 26: StructureView sizing data
+  guidebook_scene_data: GuidebookSceneData; // node_type 27: GuidebookScene sizing data
 }
 
 // ═══════════════════ measureLayout 输入/输出 ═══════════════════

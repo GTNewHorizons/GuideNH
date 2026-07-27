@@ -24,6 +24,7 @@ import com.hfstudio.guidenh.guide.document.block.chart.LytLineChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytPieChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytScatterChart;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.document.block.LytStructureView;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
@@ -33,6 +34,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ChartData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.GuidebookSceneData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.PieChartData;
@@ -84,6 +86,7 @@ public final class LayoutNodeSerializer {
         int chartDataOff = (nodeType == 22 || nodeType == 23 || nodeType == 24 || nodeType == 25)
             ? buildChartData(fbb, block) : 0;
         int structureViewDataOff = nodeType == 26 ? buildStructureViewData(fbb, block) : 0;
+        int guidebookSceneDataOff = nodeType == 27 ? buildGuidebookSceneData(fbb, block) : 0;
         byte customLayout = 0;
 
         int childrenVec = buildChildrenVector(fbb, childIndices);
@@ -102,10 +105,12 @@ public final class LayoutNodeSerializer {
             recipeBoxOff,
             pieChartOff,
             chartDataOff,
-            structureViewDataOff);
+            structureViewDataOff,
+            guidebookSceneDataOff);
     }
 
     static byte resolveNodeType(LytBlock block) {
+        if (block instanceof LytGuidebookScene) return 27;
         if (block instanceof LytStructureView) return 26;
         if (block instanceof LytPieChart) return 21;
         if (block instanceof LytBarChart) return 22;
@@ -603,6 +608,45 @@ public final class LayoutNodeSerializer {
         }
 
         return StructureViewData.createStructureViewData(fbb, viewWidth, viewHeight);
+    }
+
+    private static int buildGuidebookSceneData(FlatBufferBuilder fbb, LytBlock block) {
+        float sceneWidth = LytGuidebookScene.DEFAULT_WIDTH;
+        float sceneHeight = LytGuidebookScene.DEFAULT_HEIGHT;
+        float buttonColumnReserve = 0;
+        float buttonsTotalHeight = 0;
+        float leftDock = 0;
+        float rightDock = 0;
+        float topDock = 0;
+        float bottomDock = 0;
+        float bottomControlAreaHeight = 0;
+        boolean reserveBottomControl = false;
+
+        if (block instanceof LytGuidebookScene scene) {
+            sceneWidth = scene.getSceneWidth();
+            sceneHeight = scene.getSceneHeight();
+            buttonColumnReserve = scene.getSceneButtonColumnReserveForExport();
+            buttonsTotalHeight = scene.getButtonsTotalHeightForExport();
+            leftDock = scene.getLeftDockForExport();
+            rightDock = scene.getRightDockForExport();
+            topDock = scene.getTopDockForExport();
+            bottomDock = scene.getBottomDockForExport();
+            bottomControlAreaHeight = scene.getBottomControlAreaHeight();
+            reserveBottomControl = scene.isReserveBottomControlArea();
+        }
+
+        return GuidebookSceneData.createGuidebookSceneData(
+            fbb,
+            sceneWidth,
+            sceneHeight,
+            buttonColumnReserve,
+            buttonsTotalHeight,
+            leftDock,
+            rightDock,
+            topDock,
+            bottomDock,
+            bottomControlAreaHeight,
+            reserveBottomControl);
     }
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {

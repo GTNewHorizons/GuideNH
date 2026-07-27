@@ -2065,6 +2065,42 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return buttonColumnReserve();
     }
 
+    public int getButtonsTotalHeightForExport() {
+        if (!interactive || !sceneButtonsVisible) {
+            return 0;
+        }
+        int buttonCount = cachedSceneButtonRoles().length;
+        return BTN_SIZE * buttonCount + BTN_GAP * Math.max(0, buttonCount - 1);
+    }
+
+    /** Pre-clamping left dock size including BLOCK_STATS_DOCK_GAP, or 0. */
+    public int getLeftDockForExport() {
+        return blockStatsDock == BlockStatsDock.LEFT
+            ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP
+            : 0;
+    }
+
+    /** Pre-clamping right dock size including BLOCK_STATS_DOCK_GAP, or 0. */
+    public int getRightDockForExport() {
+        return blockStatsDock == BlockStatsDock.RIGHT
+            ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP
+            : 0;
+    }
+
+    /** Pre-clamping top dock size including BLOCK_STATS_DOCK_GAP, or 0. */
+    public int getTopDockForExport() {
+        return blockStatsDock == BlockStatsDock.TOP
+            ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP
+            : 0;
+    }
+
+    /** Pre-clamping bottom dock size including BLOCK_STATS_DOCK_GAP, or 0. */
+    public int getBottomDockForExport() {
+        return blockStatsDock == BlockStatsDock.BOTTOM
+            ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP
+            : 0;
+    }
+
     private int blockStatsDockLengthForLayout(boolean horizontal) {
         if (!blockStatsEnabled || !blockStatsVisible
             || blockStatsMode == BlockStatsMode.MANUAL
