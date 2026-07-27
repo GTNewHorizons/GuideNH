@@ -141,6 +141,8 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialGeneratedBlock;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageIds;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.render.GuideRenderEngine;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
@@ -3980,12 +3982,24 @@ public class GuideScreen extends GuiContainer
         ctx.setScreenHeight(this.height);
         ctx.setDocumentOrigin(titleX, titleY);
         ctx.setScrollOffsetY(0);
-        GL11.glPushMatrix();
-        GL11.glTranslatef(titleX, titleY, 0f);
         try {
-            pageTitle.render(ctx);
+            // Use the primitive pipeline instead of the legacy render() call:
+            // pageTitle now renders through computePrimitives() (usePrimitives()
+            // always returns true when content exists), which emits atlas-backed
+            // glyph runs when glyphData is available, or a GuideText fallback
+            // (DrawGlyphRun / DrawText) when glyphData is null/empty. This
+            // eliminates the silent blank from the previous empty render() path.
+            var engine = LytDocument.getRenderEngine();
+            LytRect titleScreenVp = new LytRect(titleX, titleY, availableW, Math.max(titleH, TOOLBAR_H));
+            var pc = new PrimitiveCollector(titleScreenVp, ctx);
+            pc.pushTransform(titleX, titleY, 1.0f);
+            pc.collectFrom(pageTitle);
+            pc.popTransform();
+            var prims = pc.result();
+            if (!prims.isEmpty()) {
+                engine.execute(prims);
+            }
         } finally {
-            GL11.glPopMatrix();
             ctx.restoreExternalRenderState();
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
             GL11.glEnable(GL11.GL_TEXTURE_2D);

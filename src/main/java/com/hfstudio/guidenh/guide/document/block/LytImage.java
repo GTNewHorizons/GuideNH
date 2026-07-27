@@ -44,7 +44,9 @@ public class LytImage extends LytBlock implements InteractiveElement {
     @Setter
     private String alt;
 
+    @Getter
     private int explicitWidth = -1;
+    @Getter
     private int explicitHeight = -1;
     private int cropX;
     private int cropY;

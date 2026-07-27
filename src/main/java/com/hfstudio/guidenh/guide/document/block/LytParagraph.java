@@ -57,8 +57,7 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
      */
     @Override
     public boolean usePrimitives() {
-        return glyphData != null && !glyphData.runs()
-            .isEmpty();
+        return !flowContent.isEmpty();
     }
 
     @Override
@@ -129,6 +128,9 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
             }
             return;
         }
+        // Fallback: glyph data unavailable — emit text through GuideText so the
+        // paragraph renders as visible text instead of silent blank.
+        emitTextFallback(c);
     }
 
     private boolean hasSpoiler() {
@@ -207,6 +209,35 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
         } else if (fc instanceof LytFlowSpan fs) {
             for (LytFlowContent child : fs.getChildren()) {
                 collectObfuscatedText(child, out);
+            }
+        }
+    }
+
+    /**
+     * Fallback emission: collect all plain text from flow content and emit via
+     * GuideText (atlas-backed glyph run). Used when glyphData is null or empty
+     * so the paragraph renders visible text instead of silent blank.
+     */
+    private void emitTextFallback(PrimitiveCollector c) {
+        StringBuilder text = new StringBuilder();
+        for (LytFlowContent fc : getContent()) {
+            collectPlainText(fc, text);
+        }
+        if (text.isEmpty()) return;
+        GuideText.emitText(c, text.toString(), bounds.x(), bounds.y(), resolveStyle());
+    }
+
+    /**
+     * Collect plain (non-obfuscated) text from a flow-content subtree.
+     */
+    private static void collectPlainText(LytFlowContent fc, StringBuilder out) {
+        if (fc instanceof LytFlowText ft) {
+            out.append(ft.getText());
+        } else if (fc instanceof LytFlowInlineBlock) {
+            out.append(' '); // placeholder space for inline blocks
+        } else if (fc instanceof LytFlowSpan fs) {
+            for (LytFlowContent child : fs.getChildren()) {
+                collectPlainText(child, out);
             }
         }
     }
@@ -376,7 +407,19 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
 
     @Override
     public void render(RenderContext context) {
-        // All rendering is through computePrimitives (usePrimitives=true).
+        // All block-tree rendering goes through computePrimitives (usePrimitives
+        // always returns true when content exists). This legacy-path fallback is
+        // only reached by direct render() callers (e.g. GuideScreen pageTitle).
+        if (flowContent.isEmpty()) return;
+        if (glyphData != null && !glyphData.runs()
+            .isEmpty()) return;
+        StringBuilder text = new StringBuilder();
+        for (LytFlowContent fc : getContent()) {
+            collectPlainText(fc, text);
+        }
+        if (!text.isEmpty()) {
+            context.drawText(text.toString(), bounds.x(), bounds.y(), resolveStyle());
+        }
     }
 
     @Override

@@ -1,9 +1,12 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -46,6 +49,25 @@ public class LytHeading extends LytParagraph {
         separatorXOffset = Math.max(0, clampedLeftEdge - x);
         separatorWidth = Math.max(0, clampedRightEdge - clampedLeftEdge);
         return super.computeLayout(context, x, y, availableWidth);
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        super.computePrimitives(c);
+
+        if (depth == 1) {
+            var bounds = getBounds();
+            int sepX = bounds.x() + separatorXOffset;
+            int sepW = Math.max(0, separatorWidth);
+            c.emit(new GuideRenderPrimitive.FillRect(sepX, bounds.bottom() - 1, sepW, 1,
+                SymbolicColor.HEADER1_SEPARATOR.resolve(LightDarkMode.current())));
+        } else if (depth == 2) {
+            var bounds = getBounds();
+            int sepX = bounds.x() + separatorXOffset;
+            int sepW = Math.max(0, separatorWidth);
+            c.emit(new GuideRenderPrimitive.FillRect(sepX, bounds.bottom() - 1, sepW, 1,
+                SymbolicColor.HEADER2_SEPARATOR.resolve(LightDarkMode.current())));
+        }
     }
 
     @Override

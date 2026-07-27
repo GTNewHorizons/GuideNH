@@ -465,17 +465,11 @@ public final class LayoutNodeSerializer {
             userScale = lb.getUserScale();
             offsetX = lb.getOffsetX();
             offsetY = lb.getOffsetY();
-            var bds = lb.getBounds();
-            if (bds != null) {
-                rawW = bds.width();
-                rawH = bds.height();
-            }
+            rawW = lb.getFormulaDisplayW();
+            rawH = lb.getFormulaDisplayH();
         } else if (block instanceof LytLatexDisplayBlock ldb) {
-            var bds = ldb.getBounds();
-            if (bds != null) {
-                rawW = bds.width();
-                rawH = bds.height();
-            }
+            rawW = ldb.getFormulaDisplayW();
+            rawH = ldb.getFormulaDisplayH();
         }
 
         int formulaOff = fbb.createString(formula);

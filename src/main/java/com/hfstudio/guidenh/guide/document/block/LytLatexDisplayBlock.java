@@ -55,8 +55,10 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
     private final int offsetY;
 
     /** Cached formula display width (pixels in GUI units), set during layout. */
+    @Getter
     private int formulaDisplayW;
     /** Cached formula display height (pixels in GUI units), set during layout. */
+    @Getter
     private int formulaDisplayH;
 
     public LytLatexDisplayBlock(String formula, int fillColorArgb, float sourceScale, float userScale,

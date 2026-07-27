@@ -12,9 +12,14 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
+import com.hfstudio.guidenh.guide.document.block.LytGuiSprite;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
+import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
+import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.block.LytSlot;
+import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableCell;
@@ -106,11 +111,12 @@ public class LayoutTreeSerializer {
             int flags = LayoutStyleExtractor.Flags.NONE;
             byte nodeType = LayoutNodeSerializer.resolveNodeType(block);
             if (childIndices.isEmpty() && nodeType != 1 && nodeType != 2 && nodeType != 3 && nodeType != 4
-                && nodeType != 8) {
+                && nodeType != 8 && !(block instanceof LytGuiSprite)) {
                 // Opaque leaf containers (charts, scenes, etc.) have no Rust
                 // measure function — reserve the box Java computed. Types with
-                // Rust measure (Text=1, Image=2, Slot=3, Break=4, Latex=8) are
-                // excluded: Rust sizes them from declared content facts.
+                // Rust measure (Text=1, Image=2, Slot=3, Break=4, Latex=8) and
+                // LytGuiSprite (size from sprite UV constants) are excluded:
+                // Rust sizes them from declared content facts.
                 flags |= LayoutStyleExtractor.Flags.SIZE_FROM_JAVA_BOUNDS;
             }
             var adj = new LayoutStyleExtractor.NodeAdjustments(
@@ -189,7 +195,7 @@ public class LayoutTreeSerializer {
         if (flowAlign == InlineBlockAlignment.FLOAT_RIGHT) {
             return new LayoutNodeSerializer.InlineRef(flatIndex, 4, 0f);
         }
-        if (ib instanceof com.hfstudio.guidenh.guide.document.block.LytLatexBlock latex) {
+        if (ib instanceof LytLatexBlock latex) {
             return new LayoutNodeSerializer.InlineRef(flatIndex, 1, latex.getBaselineAscent());
         }
         if (ib instanceof com.hfstudio.guidenh.guide.document.block.LytItemImage img && img.isInline()
@@ -296,13 +302,36 @@ public class LayoutTreeSerializer {
                 // expansion insets of e.g. LytLatexBlock must not leak into the
                 // anchor math — the post-pass aligns the visual box itself).
                 for (LytBlock ib : par.getInlineBlocks()) {
-                    LytRect fb = ib.getFlowBounds();
-                    int vw = fb.width();
-                    int vh = fb.height();
-                    if (ib instanceof com.hfstudio.guidenh.guide.document.block.LytLatexBlock latex
-                        && latex.getFormulaDisplayW() > 0) {
+                    int vw;
+                    int vh;
+                    if (ib instanceof LytLatexBlock latex && latex.getFormulaDisplayW() > 0) {
                         vw = latex.getFormulaDisplayW();
                         vh = latex.getFormulaDisplayH();
+                    } else if (ib instanceof LytLatexDisplayBlock ldb && ldb.getFormulaDisplayW() > 0) {
+                        vw = ldb.getFormulaDisplayW();
+                        vh = ldb.getFormulaDisplayH();
+                    } else if (ib instanceof LytSlot slot) {
+                        int sz = slot.isLargeSlot() ? LytSlot.OUTER_SIZE_LARGE : LytSlot.OUTER_SIZE;
+                        vw = vh = sz;
+                    } else if (ib instanceof LytThematicBreak) {
+                        LytRect b = ib.getBounds();
+                        vw = b != null ? b.width() : 0;
+                        vh = 6;
+                    } else if (ib instanceof LytGuiSprite gs) {
+                        vw = Math.max(1, gs.getExplicitWidth());
+                        vh = Math.max(1, gs.getExplicitHeight());
+                    } else if (ib instanceof LytImage image && image.getExplicitWidth() > 0
+                        && image.getExplicitHeight() > 0) {
+                        vw = image.getExplicitWidth();
+                        vh = image.getExplicitHeight();
+                    } else if (ib instanceof LytImageBlock imb && imb.getExplicitWidth() > 0
+                        && imb.getExplicitHeight() > 0) {
+                        vw = imb.getExplicitWidth();
+                        vh = imb.getExplicitHeight();
+                    } else {
+                        LytRect b = ib.getBounds();
+                        vw = b != null ? b.width() : 0;
+                        vh = b != null ? b.height() : 0;
                     }
                     absoluteFloats.put(ib, new LayoutStyleExtractor.FloatAbs(vw, vh));
                 }
