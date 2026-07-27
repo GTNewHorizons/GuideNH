@@ -29,8 +29,10 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.RustFontMetrics;
@@ -209,6 +211,31 @@ public final class RenderPageService {
 
         LytDocument document = compiledPage.document();
 
+        // ---- 3a. Mount document (dispatch MOUNT events for SceneScript etc.) ---
+        String mountPageId = compiledPage.id().toString();
+        LytHost lytHost = ClientProxy.getLytHost();
+        try {
+            lytHost.setCurrentPageId(mountPageId);
+            lytHost.setCurrentPageCollection(guide);
+            lytHost.mountDocument(document);
+
+            // Drive async scripts (SceneScript: doInit → doAwaitSnbt → doBuild)
+            // to convergence using the host's step mechanism.
+            long deadline = System.nanoTime() + 10_000_000_000L; // 10 seconds
+            while (lytHost.hasWork() && System.nanoTime() < deadline) {
+                lytHost.step(deadline);
+            }
+            if (lytHost.hasWork()) {
+                GuideDebugLog.warnAlways(
+                    "RenderPageService: page {} mount timed out after 10s, {} tasks still pending",
+                    mountPageId, lytHost.pendingTaskCount());
+            }
+        } catch (Exception e) {
+            throw new RenderPageException(
+                RenderPageException.Stage.LAYOUT,
+                "Mount failed for page " + mountPageId, e);
+        }
+
         // ---- 4. Layout ------------------------------------------------------
         int contentHeight;
         try {
@@ -301,6 +328,16 @@ public final class RenderPageService {
                 throw new RenderPageException(
                     RenderPageException.Stage.IO, "Failed to write overlay PNG", e);
             }
+        }
+
+        // ---- 10. Unmount document from LytHost (avoid document leak on static host) ---
+        try {
+            // mountDocument(null) detaches the current doc (setLive(false)) and clears
+            // the task queue. LytHost has no explicit unmount/release method beyond this.
+            lytHost.mountDocument(null);
+        } catch (Exception e) {
+            GuideDebugLog.warnAlways(
+                "RenderPageService: cleanup unmount failed for page {}", mountPageId, e);
         }
 
         int blockCount = countBlocks(document);
