@@ -63,8 +63,19 @@ runConfigs.forEach { (taskName, path) ->
         providers.systemProperty("guidenh.layoutOverlay").orNull?.let {
             jvmArgs("-Dguidenh.layoutOverlay=$it")
         }
+        // Forward headless-render driver props to the client JVM:
+        //   ./gradlew runClient25 -Dguidenh.headlessRender=true -Dguidenh.renderpage.guide=guidenh:guidenh -Dguidenh.renderpage.page=guidenh:guidenh/en_us/markdown
+        providers.systemProperty("guidenh.headlessRender").orNull?.let {
+            jvmArgs("-Dguidenh.headlessRender=$it")
+        }
+        listOf("guide", "page", "md", "width", "out", "lang", "bounds", "overlay", "world").forEach { key ->
+            providers.systemProperty("guidenh.renderpage.$key").orNull?.let {
+                jvmArgs("-Dguidenh.renderpage.$key=$it")
+            }
+        }
     }
 }
+
 
 /** Standalone task: build Rust native library.
  *  Run manually: ./gradlew buildRustNative
