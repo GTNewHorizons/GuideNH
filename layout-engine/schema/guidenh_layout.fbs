@@ -255,6 +255,23 @@ table FunctionGraphData {
   label_item_widths: [float];
 }
 
+/// MediaWiki special generated block sizing data (node_type 30).
+/// Mirrors MediaWikiSpecialGeneratedBlock.computeLayout term for term.
+/// The column-planning algorithm depends on Java object data (entries, titles,
+/// section grouping) and Minecraft font metrics (subtitle wrapping); Rust cannot
+/// replicate it. Java precomputes the max column content height (the tallest
+/// column's content, excluding TOP_PADDING/BOTTOM_PADDING) via a getter set
+/// during computeLayout. Rust adds the padding constants to produce the total
+/// block height. Width is always availableWidth — the block fills the parent's
+/// content box.
+table MediaWikiSpecialGeneratedData {
+  /// Content height of the tallest column (not including TOP_PADDING=6 and
+  /// BOTTOM_PADDING=6). When entries are empty, this is ENTRY_HEIGHT=20.
+  /// Mirrors maxColumnHeight in computeLayout, which is the max over columns
+  /// of (columnY - y - TOP_PADDING).
+  max_content_height: float;
+}
+
 /// MediaWiki generated list sizing data (node_type 29).
 /// Mirrors MediaWikiGeneratedListBlock.computeLayout term for term.
 /// The column-planning algorithm depends on Java object data (entry sort keys,
@@ -312,7 +329,8 @@ table FlatNode {
                                 // 23=ColumnChart 24=LineChart 25=ScatterChart 26=StructureView
                                 // 27=GuidebookScene (Rust MeasureFunc)
                                 // 28=FunctionGraph (Rust MeasureFunc)
-                                // 29=MediaWikiGeneratedList (Rust MeasureFunc)
+                                 // 29=MediaWikiGeneratedList (Rust MeasureFunc)
+                                 // 30=MediaWikiSpecialGenerated (Rust MeasureFunc)
   text: TextData;
   image: ImageData;
   slot: SlotData;
@@ -327,7 +345,8 @@ table FlatNode {
   structure_view_data: StructureViewData; // node_type 26: StructureView sizing data
   guidebook_scene_data: GuidebookSceneData; // node_type 27: GuidebookScene sizing data
   function_graph_data: FunctionGraphData; // node_type 28: FunctionGraph sizing data
-  mediawiki_generated_list_data: MediaWikiGeneratedListData; // node_type 29: MediaWikiGeneratedList sizing data
+   mediawiki_generated_list_data: MediaWikiGeneratedListData; // node_type 29: MediaWikiGeneratedList sizing data
+   mediawiki_special_generated_data: MediaWikiSpecialGeneratedData; // node_type 30: MediaWikiSpecialGeneratedBlock sizing data
 }
 
 // ═══════════════════ measureLayout 输入/输出 ═══════════════════

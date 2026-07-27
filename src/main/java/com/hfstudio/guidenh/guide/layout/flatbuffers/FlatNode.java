@@ -213,12 +213,23 @@ public final class FlatNode extends Table {
         return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
     }
 
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiSpecialGeneratedData mediawikiSpecialGeneratedData() {
+        return mediawikiSpecialGeneratedData(new com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiSpecialGeneratedData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiSpecialGeneratedData mediawikiSpecialGeneratedData(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiSpecialGeneratedData obj) {
+        int o = __offset(38);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
     public static int createFlatNode(FlatBufferBuilder builder, int styleOffset, byte nodeType, int textOffset,
         int imageOffset, int slotOffset, int break_Offset, int customOffset, int latexOffset, byte customLayout,
         int childrenOffset, int recipeBoxOffset, int pieChartOffset, int chartDataOffset,
         int structureViewDataOffset, int guidebookSceneDataOffset, int functionGraphDataOffset,
-        int mediawikiGeneratedListDataOffset) {
-        builder.startTable(17);
+        int mediawikiGeneratedListDataOffset, int mediawikiSpecialGeneratedDataOffset) {
+        builder.startTable(18);
+        FlatNode.addMediawikiSpecialGeneratedData(builder, mediawikiSpecialGeneratedDataOffset);
         FlatNode.addMediawikiGeneratedListData(builder, mediawikiGeneratedListDataOffset);
         FlatNode.addFunctionGraphData(builder, functionGraphDataOffset);
         FlatNode.addStructureViewData(builder, structureViewDataOffset);
@@ -309,6 +320,10 @@ public final class FlatNode extends Table {
 
     public static void addMediawikiGeneratedListData(FlatBufferBuilder builder, int mediawikiGeneratedListDataOffset) {
         builder.addOffset(16, mediawikiGeneratedListDataOffset, 0);
+    }
+
+    public static void addMediawikiSpecialGeneratedData(FlatBufferBuilder builder, int mediawikiSpecialGeneratedDataOffset) {
+        builder.addOffset(17, mediawikiSpecialGeneratedDataOffset, 0);
     }
 
     public static int createChildrenVector(FlatBufferBuilder builder, long[] data) {

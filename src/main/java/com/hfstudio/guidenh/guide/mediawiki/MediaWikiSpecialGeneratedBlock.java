@@ -37,6 +37,9 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     private static final int SPECIAL_PAGES_GROUP_COLUMNS = 2;
     private static final int TOP_PADDING = 6;
     private static final int BOTTOM_PADDING = 6;
+
+    /** Precomputed max column content height for Rust MeasureFunc. Set during computeLayout. */
+    private int maxPrecomputedContentHeight = 0;
     private static final int SIDE_PADDING = 2;
     private static final int COLUMN_GAP = 10;
     private static final int GROUP_MARGIN = 6;
@@ -135,6 +138,15 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         this.emptyText = emptyText != null && !emptyText.isEmpty() ? emptyText : GuidebookText.MediaWikiNoPages.text();
     }
 
+    /**
+     * Returns the precomputed max column content height (tallest column's content,
+     * excluding TOP_PADDING and BOTTOM_PADDING). Used by the Rust MeasureFunc.
+     * Equals ENTRY_HEIGHT when the visible result is empty.
+     */
+    public int getMaxPrecomputedContentHeight() {
+        return maxPrecomputedContentHeight;
+    }
+
     public void setSearchQuery(String searchQuery) {
         String nextSearchQuery = searchQuery != null ? searchQuery : "";
         if (this.searchQuery.equals(nextSearchQuery)) {
@@ -191,6 +203,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         int columnWidth = Math.max(1, (innerWidth - COLUMN_GAP * (columnCount - 1)) / columnCount);
 
         if (isEmpty(visibleResult)) {
+            this.maxPrecomputedContentHeight = ENTRY_HEIGHT;
             rowLayouts
                 .add(new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ENTRY_HEIGHT), null));
             return new LytRect(x, y, availableWidth, TOP_PADDING + ENTRY_HEIGHT + BOTTOM_PADDING);
@@ -240,6 +253,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     RenderRow.loadMore()));
             maxColumnHeight += LOAD_MORE_MARGIN_TOP + LOAD_MORE_HEIGHT;
         }
+        this.maxPrecomputedContentHeight = maxColumnHeight;
         return new LytRect(x, y, availableWidth, TOP_PADDING + maxColumnHeight + BOTTOM_PADDING);
     }
 
