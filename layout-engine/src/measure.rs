@@ -82,6 +82,7 @@ pub fn create_measure_closure<'a>(
     flat_nodes: &'a [FlatNode],
     glyph_acc: &'a mut HashMap<usize, GlyphAccum>,
     justify: bool,
+    visual_scale: f32,
 ) -> impl FnMut(
     Size<Option<f32>>,
     Size<AvailableSpace>,
@@ -105,6 +106,7 @@ pub fn create_measure_closure<'a>(
             4 => (measure_thematic_break(flat_nodes, index, known), None),
             8 => (measure_latex(flat_nodes, index), None),
             20 => (measure_recipe_box(flat_nodes, index), None),
+            21 => (measure_pie_chart(flat_nodes, index, known, available, visual_scale), None),
             _ => (Size::ZERO, None),
         };
         // Explicit style sizes win over content measurement (CSS behavior):
@@ -473,4 +475,87 @@ fn measure_recipe_box(nodes: &[FlatNode], idx: usize) -> Size<f32> {
         + FRAME_BORDER;
 
     Size { width: w, height: h }
+}
+
+/// Measure a pie chart (node_type = 21). The formula mirrors
+/// LytChartBase.computeLayout term for term, with Java-computed
+/// pixel values (chrome_height, preferred_width, total_height)
+/// provided via PieChartData. Pure-arithmetic helper functions
+/// (scale_width, scale_height_for_width) replicate
+/// ResponsiveVisualSizing on the Rust side.
+fn measure_pie_chart(
+    nodes: &[FlatNode],
+    idx: usize,
+    known: Size<Option<f32>>,
+    available: Size<AvailableSpace>,
+    visual_scale: f32,
+) -> Size<f32> {
+    // Constants mirrored from LytChartBase: DEFAULT_WIDTH=320, DEFAULT_HEIGHT=200
+    // are already baked into the Java-precomputed preferred_width and total_height.
+    const MIN_PLOT_HEIGHT: f32 = 72.0;
+
+    let node = &nodes[idx];
+    let pd = match node.pie_chart() {
+        Some(d) => d,
+        None => return Size::ZERO,
+    };
+
+    // Width formula — mirrors LytChartBase.computeLayout:
+    //   preferredWidth = (explicitW > 0 ? explicitW : DEFAULT_WIDTH) + extraPlotWidth
+    //   scaledWidth = scaleWidth(preferredWidth, visualScale, 64)
+    //   width = max(1, min(scaledWidth, availableWidth))
+    //
+    // When explicitWidth > 0 (user-set via setExplicitSize), Taffy passes
+    // it as known.width and we use it directly. Otherwise known.width is
+    // None and we compute the width from the Java-precomputed preferred_width.
+    let preferred_w = pd.preferred_width();
+    let w = match known.width {
+        Some(explicit) => explicit,
+        None => {
+            let scaled = scale_width(preferred_w, visual_scale, 64.0);
+            let avail = match available.width {
+                AvailableSpace::Definite(a) => a,
+                _ => f32::MAX,
+            };
+            (scaled.min(avail)).max(1.0)
+        }
+    };
+
+    // Height formula — mirrors LytChartBase.computeLayout:
+    //   totalHeight  = explicitH > 0 ? explicitH : DEFAULT_HEIGHT
+    //   chrome       = estimateFixedChromeHeight(context, width)  [Java-precomputed]
+    //   bodyHeight   = max(1, totalHeight - clamp(chrome, 0, totalHeight - 1))
+    //   scaledBody   = scaleHeightForWidth(preferredW, bodyHeight, width, MIN_PLOT_HEIGHT)
+    //   height       = chrome + scaledBody
+    let raw_h = pd.total_height();
+    let chrome = pd.chrome_height();
+    let body = (raw_h - chrome.clamp(0.0, raw_h - 1.0)).max(1.0);
+    let scaled_body = scale_height_for_width(preferred_w, body, w, MIN_PLOT_HEIGHT);
+    let h = chrome + scaled_body;
+
+    Size { width: w, height: h }
+}
+
+/// Mirrors ResponsiveVisualSizing.scaleWidth: apply a visual-scale factor
+/// to a base width, then clamp.
+fn scale_width(base_width: f32, visual_scale: f32, min_width: f32) -> f32 {
+    let safe_base = base_width.max(1.0);
+    let clamped = visual_scale.clamp(0.1, 1.0);
+    if clamped >= 0.999 {
+        return safe_base;
+    }
+    (safe_base * clamped).round().max(1.0).max(min_width)
+}
+
+/// Mirrors ResponsiveVisualSizing.scaleHeightForWidth: proportionally scale
+/// a base height when the actual width is narrower than the base width.
+fn scale_height_for_width(base_width: f32, base_height: f32, actual_width: f32, min_height: f32) -> f32 {
+    let safe_base_w = base_width.max(1.0);
+    let safe_base_h = base_height.max(1.0);
+    let safe_actual_w = actual_width.max(1.0);
+    if safe_actual_w >= safe_base_w {
+        return safe_base_h;
+    }
+    let scale = safe_actual_w / safe_base_w;
+    (safe_base_h * scale).round().max(1.0).max(min_height)
 }

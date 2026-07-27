@@ -72,7 +72,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected int getExtraPlotWidth() {
+    public int getExtraPlotWidth() {
         if (pieInset != null && pieInset.getPosition() == PieInsetSpec.Position.RIGHT_OUTSIDE) {
             return pieInset.getSize() + PIE_OUTSIDE_GAP;
         }

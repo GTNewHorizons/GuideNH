@@ -15,6 +15,9 @@ import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapLayoutMode;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -171,6 +174,133 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
     protected void renderDiagram(RenderContext context, int baseX, int baseY, float activeZoom) {
         renderConnectors(context, layout.root(), baseX, baseY);
         renderNodes(context, layout.root(), baseX, baseY);
+    }
+
+    // ---- primitives pipeline (replaces render* for the primitives path) ----
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    protected void emitDiagramPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
+        emitConnectorsPrimitives(c, layout.root(), baseX, baseY, activeZoom);
+        emitNodesPrimitives(c, layout.root(), baseX, baseY, activeZoom);
+    }
+
+    private void emitConnectorsPrimitives(PrimitiveCollector c, NodeLayout node, int baseX, int baseY,
+        float activeZoom) {
+        for (NodeLayout child : node.children) {
+            if (mindmap.getLayoutMode() == MindmapLayoutMode.TIDY_TREE) {
+                emitVerticalConnector(
+                    c,
+                    scaled(baseX, node.centerX(), activeZoom),
+                    scaled(baseY, node.bottom(), activeZoom),
+                    scaled(baseX, child.centerX(), activeZoom),
+                    scaled(baseY, child.y, activeZoom),
+                    0xFF5D6C7C);
+            } else {
+                boolean rightSide = child.centerX() >= node.centerX();
+                int parentEdgeX = scaled(baseX, rightSide ? node.right() : node.x, activeZoom);
+                int childEdgeX = scaled(baseX, rightSide ? child.x : child.right(), activeZoom);
+                emitHorizontalConnector(
+                    c,
+                    parentEdgeX,
+                    scaled(baseY, node.centerY(), activeZoom),
+                    childEdgeX,
+                    scaled(baseY, child.centerY(), activeZoom),
+                    0xFF5D6C7C);
+            }
+            emitConnectorsPrimitives(c, child, baseX, baseY, activeZoom);
+        }
+    }
+
+    private void emitHorizontalConnector(PrimitiveCollector c, int startX, int startY, int endX, int endY, int color) {
+        int midX = (startX + endX) / 2;
+        emitHorizontalLine(c, startX, midX, startY, color);
+        emitVerticalLine(c, midX, startY, endY, color);
+        emitHorizontalLine(c, midX, endX, endY, color);
+    }
+
+    private void emitVerticalConnector(PrimitiveCollector c, int startX, int startY, int endX, int endY, int color) {
+        int midY = (startY + endY) / 2;
+        emitVerticalLine(c, startX, startY, midY, color);
+        emitHorizontalLine(c, startX, endX, midY, color);
+        emitVerticalLine(c, endX, midY, endY, color);
+    }
+
+    private void emitHorizontalLine(PrimitiveCollector c, int startX, int endX, int y, int color) {
+        int left = Math.min(startX, endX);
+        int width = Math.abs(endX - startX) + 1;
+        c.emit(new GuideRenderPrimitive.FillRect(left, y, width, CONNECTOR_THICKNESS, color));
+    }
+
+    private void emitVerticalLine(PrimitiveCollector c, int x, int startY, int endY, int color) {
+        int top = Math.min(startY, endY);
+        int height = Math.abs(endY - startY) + 1;
+        c.emit(new GuideRenderPrimitive.FillRect(x, top, CONNECTOR_THICKNESS, height, color));
+    }
+
+    private void emitNodesPrimitives(PrimitiveCollector c, NodeLayout node, int baseX, int baseY, float activeZoom) {
+        LytRect rect = new LytRect(
+            scaled(baseX, node.x, activeZoom),
+            scaled(baseY, node.y, activeZoom),
+            Math.max(1, Math.round(node.width * activeZoom)),
+            Math.max(1, Math.round(node.height * activeZoom)));
+        LytRect boxRect = rect;
+        NodeColors colors = resolveColors(node.node);
+        c.emit(new GuideRenderPrimitive.FillRect(boxRect.x(), boxRect.y(), boxRect.width(), boxRect.height(),
+            colors.background));
+        int borderThickness = node.node.getShape() == MermaidNodeShape.BANG ? 2 : 1;
+        c.emit(new GuideRenderPrimitive.DrawBorder(
+            boxRect.x(), boxRect.y(), boxRect.width(), boxRect.height(),
+            borderThickness, borderThickness, borderThickness, borderThickness, colors.border));
+        c.emit(new GuideRenderPrimitive.FillRect(boxRect.x(), boxRect.y(), 3, boxRect.height(), colors.accent));
+
+        ResolvedTextStyle style = getOrScaleStyle(node.depth == 0 ? ROOT_TEXT_STYLE : NODE_TEXT_STYLE, activeZoom);
+        ResolvedTextStyle badgeStyle = getOrScaleStyle(ICON_TEXT_STYLE, activeZoom);
+        int paddingX = Math.max(1, Math.round(NODE_PADDING_X * activeZoom));
+        int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * activeZoom));
+        int iconGapY = Math.max(1, Math.round(ICON_GAP_Y * activeZoom));
+        int badgePaddingX = Math.max(2, Math.round(4 * activeZoom));
+        int badgePaddingY = Math.max(1, Math.round(2 * activeZoom));
+        int textY = rect.y() + paddingY;
+        if (node.showBadge && node.badgeText != null) {
+            int badgeWidth = Math.max(1, GuideText.measureWidth(node.badgeText, badgeStyle) + badgePaddingX * 2);
+            int badgeHeight = Math.max(1, GuideText.lineHeight(badgeStyle) + badgePaddingY * 2);
+            LytRect badge = new LytRect(
+                rect.x() + paddingX,
+                textY,
+                badgeWidth,
+                badgeHeight);
+            c.emit(new GuideRenderPrimitive.FillRect(
+                badge.x(), badge.y(), badge.width(), badge.height(),
+                MermaidNodeRenderer.BADGE_BACKGROUND));
+            c.emit(new GuideRenderPrimitive.DrawBorder(
+                badge.x(), badge.y(), badge.width(), badge.height(),
+                1, 1, 1, 1, MermaidNodeRenderer.BADGE_BORDER));
+            GuideText.emitText(c, node.badgeText, badge.x() + badgePaddingX, badge.y() + badgePaddingY, badgeStyle);
+            textY = badge.bottom() + iconGapY;
+        }
+
+        if (node.contentLayout != null) {
+            LytRect contentViewport = resolveNodeContentRect(node.contentLayout, rect, paddingX, textY, activeZoom);
+            emitNodeContentPrimitives(c, node.contentLayout.block(), contentViewport,
+                node.contentLayout.visualBounds(), activeZoom);
+        } else {
+            int lineHeight = GuideText.lineHeight(style);
+            for (String line : node.lines) {
+                int lineWidth = GuideText.measureWidth(line, style);
+                int textX = rect.x() + Math.max(paddingX, (rect.width() - lineWidth) / 2);
+                c.emit(new GuideRenderPrimitive.DrawText(line, textX, textY, style));
+                textY += lineHeight;
+            }
+        }
+
+        for (NodeLayout child : node.children) {
+            emitNodesPrimitives(c, child, baseX, baseY, activeZoom);
+        }
     }
 
     private DiagramLayout buildLayout(LayoutContext context, int availableWidth) {

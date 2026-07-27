@@ -203,13 +203,26 @@ table RecipeBoxData {
   title_height: float;
 }
 
+table PieChartData {
+  /// preferred_width = (explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH) + extraPlotWidth.
+  /// Java-precomputed input to the sizing formula.
+  preferred_width: float;
+  /// total_height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT.
+  /// Java-precomputed height baseline (before body scaling).
+  total_height: float;
+  /// Chrome height precomputed by Java = estimateFixedChromeHeight(context, width).
+  /// Encodes title height + legend height + padding, all of which depend on
+  /// Minecraft font metrics available only on the Java side.
+  chrome_height: float;
+}
+
 // ═══════════════════ 布局树节点 ═══════════════════
 
 table FlatNode {
   style: Style;
   node_type: byte = 0;         // 0=Container 1=Text 2=Image 3=Slot
                                 // 4=ThematicBreak 5=Custom 6=FileTree
-                                // 7=Table 8=Latex 20=RecipeBox
+                                // 7=Table 8=Latex 20=RecipeBox 21=PieChart
   text: TextData;
   image: ImageData;
   slot: SlotData;
@@ -219,6 +232,7 @@ table FlatNode {
   custom_layout: byte = 0;     // 0=None 1=ItemGrid 2=SlotGrid
   children: [uint];
   recipe_box: RecipeBoxData;   // node_type 20: NEI recipe box sizing data
+  pie_chart: PieChartData;     // node_type 21: Pie chart sizing data
 }
 
 // ═══════════════════ measureLayout 输入/输出 ═══════════════════

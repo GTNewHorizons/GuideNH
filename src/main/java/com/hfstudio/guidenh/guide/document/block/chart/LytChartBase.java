@@ -32,8 +32,8 @@ import lombok.Setter;
  */
 public abstract class LytChartBase extends LytBlock implements InteractiveElement {
 
-    protected static final int DEFAULT_WIDTH = 320;
-    protected static final int DEFAULT_HEIGHT = 200;
+    public static final int DEFAULT_WIDTH = 320;
+    public static final int DEFAULT_HEIGHT = 200;
     protected static final int PADDING = 8;
     protected static final int TITLE_GAP = 4;
     protected static final int LEGEND_GAP = 6;
@@ -75,6 +75,13 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     /** Currently hovered hit key; {@code -1} means none. The exact semantics is decided by each subclass. */
     protected int hoveredKey = -1;
 
+    /**
+     * Chrome height (title + legend + padding), cached during {@link #computeLayout}
+     * for serialization into PieChartData.
+     */
+    @Getter
+    private int chromeHeight;
+
     public void setExplicitSize(int width, int height) {
         this.explicitWidth = width > 0 ? width : -1;
         this.explicitHeight = height > 0 ? height : -1;
@@ -113,11 +120,13 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         width = ResponsiveVisualSizing.scaleWidth(width, context.getVisualScale(), 64);
         int height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT;
         width = Math.max(1, Math.min(width, availableWidth));
+        int estimatedChrome = estimateFixedChromeHeight(context, width);
+        this.chromeHeight = estimatedChrome;
         height = ResponsiveVisualSizing.scaleBodyHeightForWidth(
             preferredWidth(),
             height,
             width,
-            estimateFixedChromeHeight(context, width),
+            estimatedChrome,
             MIN_PLOT_HEIGHT);
         return new LytRect(x, y, width, height);
     }
@@ -144,7 +153,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
      * Subclasses override to request additional horizontal space (for example, a side-mounted pie inset).
      * Default 0.
      */
-    protected int getExtraPlotWidth() {
+    public int getExtraPlotWidth() {
         return 0;
     }
 

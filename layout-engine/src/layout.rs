@@ -34,7 +34,7 @@ pub fn compute_layout(
     let avail_width = input.available_width();
     // NB: visual_scale is intentionally NOT applied to the root width (D-3) —
     // Java blocks already pre-apply it per block (ResponsiveVisualSizing).
-    let _visual_scale = input.visual_scale();
+    let visual_scale = input.visual_scale();
     // Display pixel ratio (MC guiScale): glyph bitmaps are rasterized at
     // font_size * render_scale so 1 texel maps to 1 physical pixel; quad
     // coordinates are then divided back into document units.
@@ -93,6 +93,7 @@ pub fn compute_layout(
                 font_system,
                 &mut glyph_acc,
                 justify,
+                visual_scale,
                 &mut abs_positions,
                 &mut sizes,
                 0.0,
@@ -113,6 +114,7 @@ pub fn compute_layout(
                 font_system,
                 &mut glyph_acc,
                 justify,
+                visual_scale,
                 &mut abs_positions,
                 &mut sizes,
                 0.0,
@@ -197,6 +199,7 @@ pub fn compute_layout(
             font_system,
             &mut glyph_acc,
             justify,
+            visual_scale,
             &mut abs_positions,
             &mut sizes,
             content_x,
@@ -378,6 +381,7 @@ fn build_subtree(
     font_system: &mut GuideFontSystem,
     glyph_acc: &mut HashMap<usize, GlyphAccum>,
     justify: bool,
+    visual_scale: f32,
     abs_positions: &mut Vec<(f32, f32)>,
     sizes: &mut Vec<(f32, f32)>,
     base_x: f32,
@@ -443,7 +447,7 @@ fn build_subtree(
 
     let root_id = build(taffy, idx, flat_nodes, &mut node_id_of, &mut sub);
 
-    let mut measure_fn = create_measure_closure(font_system, flat_nodes, glyph_acc, justify);
+    let mut measure_fn = create_measure_closure(font_system, flat_nodes, glyph_acc, justify, visual_scale);
     let avail = Size {
         width: known_w
             .map(AvailableSpace::Definite)

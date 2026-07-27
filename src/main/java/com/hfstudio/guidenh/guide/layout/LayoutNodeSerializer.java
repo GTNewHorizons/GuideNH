@@ -17,6 +17,8 @@ import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
+import com.hfstudio.guidenh.guide.document.block.chart.LytChartBase;
+import com.hfstudio.guidenh.guide.document.block.chart.LytPieChart;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
@@ -27,6 +29,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.PieChartData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.RecipeBoxData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextData;
@@ -70,6 +73,7 @@ public final class LayoutNodeSerializer {
         int breakOff = nodeType == 4 ? buildThematicBreakData(fbb) : 0;
         int latexOff = nodeType == 8 ? buildLatexData(fbb, block) : 0;
         int recipeBoxOff = nodeType == 20 ? buildRecipeBoxData(fbb, block) : 0;
+        int pieChartOff = nodeType == 21 ? buildPieChartData(fbb, block) : 0;
         byte customLayout = 0;
 
         int childrenVec = buildChildrenVector(fbb, childIndices);
@@ -85,10 +89,12 @@ public final class LayoutNodeSerializer {
             latexOff,
             customLayout,
             childrenVec,
-            recipeBoxOff);
+            recipeBoxOff,
+            pieChartOff);
     }
 
     static byte resolveNodeType(LytBlock block) {
+        if (block instanceof LytPieChart) return 21;
         if (block instanceof LytNeiRecipeBox) return 20;
         if (block instanceof LytThematicBreak) return 4;
         if (block instanceof LytImage || block instanceof LytImageBlock) return 2;
@@ -522,6 +528,29 @@ public final class LayoutNodeSerializer {
             iconSize,
             recipeJumpEnabled,
             titleHeight);
+    }
+
+    private static int buildPieChartData(FlatBufferBuilder fbb, LytBlock block) {
+        float preferredWidth = 0;
+        float totalHeight = 0;
+        float chromeHeight = 0;
+
+        if (block instanceof LytPieChart chart) {
+            // preferredWidth: mirrors LytChartBase.preferredWidth()
+            int ew = chart.getExplicitWidth();
+            preferredWidth = (ew > 0 ? ew : LytChartBase.DEFAULT_WIDTH) + chart.getExtraPlotWidth();
+            // totalHeight: mirrors LytChartBase.computeLayout: explicitHeight or DEFAULT_HEIGHT
+            int eh = chart.getExplicitHeight();
+            totalHeight = eh > 0 ? eh : LytChartBase.DEFAULT_HEIGHT;
+            // chromeHeight: precomputed by Java during computeLayout and cached
+            chromeHeight = chart.getChromeHeight();
+        }
+
+        return PieChartData.createPieChartData(
+            fbb,
+            preferredWidth,
+            totalHeight,
+            chromeHeight);
     }
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {
