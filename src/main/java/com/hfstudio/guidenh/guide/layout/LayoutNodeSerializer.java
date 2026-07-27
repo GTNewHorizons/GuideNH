@@ -19,7 +19,10 @@ import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
 import com.hfstudio.guidenh.guide.document.block.chart.LytBarChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytChartBase;
+import com.hfstudio.guidenh.guide.document.block.chart.LytColumnChart;
+import com.hfstudio.guidenh.guide.document.block.chart.LytLineChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytPieChart;
+import com.hfstudio.guidenh.guide.document.block.chart.LytScatterChart;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
@@ -76,7 +79,8 @@ public final class LayoutNodeSerializer {
         int latexOff = nodeType == 8 ? buildLatexData(fbb, block) : 0;
         int recipeBoxOff = nodeType == 20 ? buildRecipeBoxData(fbb, block) : 0;
         int pieChartOff = nodeType == 21 ? buildPieChartData(fbb, block) : 0;
-        int chartDataOff = nodeType == 22 ? buildChartData(fbb, block) : 0;
+        int chartDataOff = (nodeType == 22 || nodeType == 23 || nodeType == 24 || nodeType == 25)
+            ? buildChartData(fbb, block) : 0;
         byte customLayout = 0;
 
         int childrenVec = buildChildrenVector(fbb, childIndices);
@@ -100,6 +104,9 @@ public final class LayoutNodeSerializer {
     static byte resolveNodeType(LytBlock block) {
         if (block instanceof LytPieChart) return 21;
         if (block instanceof LytBarChart) return 22;
+        if (block instanceof LytColumnChart) return 23;
+        if (block instanceof LytLineChart) return 24;
+        if (block instanceof LytScatterChart) return 25;
         if (block instanceof LytNeiRecipeBox) return 20;
         if (block instanceof LytThematicBreak) return 4;
         if (block instanceof LytImage || block instanceof LytImageBlock) return 2;

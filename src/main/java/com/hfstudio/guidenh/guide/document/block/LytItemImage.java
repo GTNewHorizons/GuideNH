@@ -6,14 +6,13 @@ import java.util.Optional;
 import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
-import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
+
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
@@ -241,64 +240,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
 
     @Override
     public void render(RenderContext context) {
-        if (stack == null || stack.stackSize == 0) return;
-
-        int baseX = bounds.x();
-        int baseY = bounds.y() - layoutYOffset;
-        int iconSize = Math.round(BASE_SIZE * scale);
-        boolean hasLabel = labelPosition != null;
-
-        int iconX = baseX;
-        int textX = baseX;
-        int textY = baseY;
-
-        if (hasLabel) {
-            ResolvedTextStyle textStyle = resolveLabelStyle();
-            String text = resolveLabelText();
-            int textW = context.getStringWidth(text, textStyle);
-            int textH = context.getLineHeight(textStyle);
-            int textVCenter = showIcon ? (iconSize - textH) / 2 : 0;
-            int labelYOffset = inline && showIcon
-                ? Math
-                    .round((labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET) * scale)
-                : 0;
-
-            if ("left".equals(labelPosition)) {
-                textX = baseX;
-                iconX = showIcon ? baseX + textW + labelGap() : baseX;
-            } else {
-                iconX = baseX;
-                textX = showIcon ? baseX + iconSize + labelGap() : baseX;
-            }
-            textY = baseY + textVCenter + labelYOffset;
-            context.drawText(text, textX, textY, textStyle);
-        }
-
-        if (showIcon) {
-            int renderX = iconX;
-            int renderY = baseY + getInlineVisualYOffset();
-            renderIcon(context, renderX, renderY);
-        }
-    }
-
-    private void renderIcon(RenderContext context, int renderX, int renderY) {
-        try {
-            if (scale == 1f) {
-                context.renderItem(stack, renderX, renderY);
-            } else {
-                GL11.glPushMatrix();
-                try {
-                    GL11.glTranslatef(renderX, renderY, 0);
-                    GL11.glScalef(scale, scale, 1f);
-                    context.renderItem(stack, 0, 0);
-                } finally {
-                    GL11.glPopMatrix();
-                }
-            }
-        } catch (Throwable t) {
-            GuideDisplayItemStacks.warnRenderFailure("LytItemImage", stack, t);
-            context.restoreExternalRenderState();
-        }
+        // Unused: LytItemImage uses the primitives path (usePrimitives() == true).
     }
 
     @Override

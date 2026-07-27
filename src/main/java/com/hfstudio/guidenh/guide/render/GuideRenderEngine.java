@@ -47,6 +47,19 @@ public class GuideRenderEngine {
     private LytRect viewport;
     private int guiScale = 1;
 
+    /** Current batch state for Tessellator session sharing. */
+    private BatchState batchState = BatchState.IDLE;
+    /** Texture ID for the current textured batch (−1 when not textured). */
+    private int batchTexId = -1;
+
+    private enum BatchState {
+        IDLE,
+        /** Accumulating untextured quads (FillRect, GradientFill, DrawBorder, DrawLine). */
+        SHAPE_QUADS,
+        /** Accumulating textured quads (BlitTexture, DrawGlyphRun). */
+        TEXTURED_QUADS
+    }
+
     public GuideRenderEngine(GuideGlyphAtlas glyphAtlas, GuidebookSceneRenderer sceneRenderer) {
         this.glyphAtlas = glyphAtlas;
         this.sceneRenderer = sceneRenderer;
@@ -82,6 +95,8 @@ public class GuideRenderEngine {
         transformStack.clear();
         transformStack.push(new Transform(0f, 0f, 1.0f));
         scissorStack.clear();
+        batchState = BatchState.IDLE;
+        batchTexId = -1;
     }
 
     /** Execute a batch of primitives. Flushes the Tessellator before returning so
@@ -116,9 +131,9 @@ public class GuideRenderEngine {
                 }
             }
         } finally {
-            // Flush even when a drawXxx method throws between startDrawing and draw,
+            // Close the current batch even when a drawXxx method throws mid-batch,
             // so the Tessellator never leaks in DRAWING state after execute() returns.
-            try { Tessellator.instance.draw(); } catch (IllegalStateException e) { /* not drawing */ }
+            flush();
             // Reset stacks to frame-initial state. A prior frame that threw mid-execute
             // can leave the stacks unbalanced; resetting here guarantees every execute()
             // starts with a clean slate regardless of what happened last frame.
@@ -154,6 +169,7 @@ public class GuideRenderEngine {
     }
 
     private void pushTransform(GuideRenderPrimitive.PushTransform t) {
+        flush();
         Transform parent = currentTransform();
         // screen = doc * (parent.scale * t.scale) + (parent.t + t.t * parent.scale)
         transformStack.push(
@@ -164,6 +180,7 @@ public class GuideRenderEngine {
     }
 
     private void popTransform() {
+        flush();
         if (transformStack.size() > 1) {
             transformStack.pop();
         }
@@ -173,6 +190,7 @@ public class GuideRenderEngine {
 
     /** Intersect {@code screenRect} with the current scissor, push, and apply. */
     private void pushScissorRect(LytRect screenRect) {
+        flush();
         LytRect sr = screenRect;
         if (!scissorStack.isEmpty()) {
             LytRect parent = scissorStack.peek();
@@ -200,6 +218,7 @@ public class GuideRenderEngine {
     }
 
     private void popScissor() {
+        flush();
         if (scissorStack.isEmpty()) {
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
             return;
@@ -284,9 +303,47 @@ public class GuideRenderEngine {
         GL11.glPopAttrib();
     }
 
+    /**
+     * Submit the current batched primitives to GL and reset batch state.
+     * Safe to call when no batch is open (no-op in that case).
+     */
     private void flush() {
-        // In Phase 1, each draw call is immediate (no batching yet).
-        // Future phase: batch similar primitives to reduce Tessellator.draw() calls.
+        if (batchState == BatchState.IDLE) return;
+        Tessellator tess = Tessellator.instance;
+        tess.draw();
+        if (batchState == BatchState.SHAPE_QUADS) {
+            endShape();
+        } else if (batchState == BatchState.TEXTURED_QUADS) {
+            endTextured();
+        }
+        batchState = BatchState.IDLE;
+        batchTexId = -1;
+    }
+
+    /**
+     * Start or join a shape-quads batch (FillRect, GradientFill, DrawBorder, DrawLine).
+     * Flushes any incompatible batch first.
+     */
+    private void beginShapeQuads() {
+        if (batchState == BatchState.SHAPE_QUADS) return;
+        flush();
+        beginShape();
+        Tessellator.instance.startDrawingQuads();
+        batchState = BatchState.SHAPE_QUADS;
+    }
+
+    /**
+     * Start or join a textured-quads batch (BlitTexture, DrawGlyphRun).
+     * Flushes any incompatible batch first (different type or different texture).
+     */
+    private void beginTexturedQuads(int texId) {
+        if (batchState == BatchState.TEXTURED_QUADS && batchTexId == texId) return;
+        flush();
+        beginTextured();
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texId);
+        Tessellator.instance.startDrawingQuads();
+        batchState = BatchState.TEXTURED_QUADS;
+        batchTexId = texId;
     }
 
     private void color(int argb) {
@@ -320,24 +377,20 @@ public class GuideRenderEngine {
 
     private void drawFillRect(GuideRenderPrimitive.FillRect f) {
         LytRect r = toScreen(f.x(), f.y(), f.w(), f.h());
-        beginShape();
+        beginShapeQuads();
         color(f.argb());
         Tessellator tess = Tessellator.instance;
-        tess.startDrawingQuads();
         tessColor(tess, f.argb());
         tess.addVertex(r.x(), r.y() + r.height(), 0);
         tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
         tess.addVertex(r.x() + r.width(), r.y(), 0);
         tess.addVertex(r.x(), r.y(), 0);
-        tess.draw();
-        endShape();
     }
 
     private void drawGradientFill(GuideRenderPrimitive.GradientFill g) {
         LytRect r = toScreen(g.x(), g.y(), g.w(), g.h());
-        beginShape();
+        beginShapeQuads();
         Tessellator tess = Tessellator.instance;
-        tess.startDrawingQuads();
         color(g.argbBottom());
         tessColor(tess, g.argbBottom());
         tess.addVertex(r.x(), r.y() + r.height(), 0);
@@ -346,25 +399,46 @@ public class GuideRenderEngine {
         tessColor(tess, g.argbTop());
         tess.addVertex(r.x() + r.width(), r.y(), 0);
         tess.addVertex(r.x(), r.y(), 0);
-        tess.draw();
-        endShape();
     }
 
     private void drawBorder(GuideRenderPrimitive.DrawBorder db) {
         int x = db.x(), y = db.y(), w = db.w(), h = db.h();
         int argb = db.argb();
-        if (db.top() > 0) drawFillRect(new GuideRenderPrimitive.FillRect(x, y, w, db.top(), argb));
-        if (db.bottom() > 0)
-            drawFillRect(new GuideRenderPrimitive.FillRect(x, y + h - db.bottom(), w, db.bottom(), argb));
-        if (db.left() > 0) drawFillRect(
-            new GuideRenderPrimitive.FillRect(x, y + db.top(), db.left(), h - db.top() - db.bottom(), argb));
-        if (db.right() > 0) drawFillRect(
-            new GuideRenderPrimitive.FillRect(
-                x + w - db.right(),
-                y + db.top(),
-                db.right(),
-                h - db.top() - db.bottom(),
-                argb));
+        beginShapeQuads();
+        Tessellator tess = Tessellator.instance;
+        color(argb);
+        tessColor(tess, argb);
+        // Aggregate all four sides into a single begin/end pair. Each side that
+        // is visible adds exactly one quad (4 vertices); at most 4 quads / 16
+        // vertices total.
+        if (db.top() > 0) {
+            LytRect r = toScreen(x, y, w, db.top());
+            tess.addVertex(r.x(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y(), 0);
+            tess.addVertex(r.x(), r.y(), 0);
+        }
+        if (db.bottom() > 0) {
+            LytRect r = toScreen(x, y + h - db.bottom(), w, db.bottom());
+            tess.addVertex(r.x(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y(), 0);
+            tess.addVertex(r.x(), r.y(), 0);
+        }
+        if (db.left() > 0) {
+            LytRect r = toScreen(x, y + db.top(), db.left(), h - db.top() - db.bottom());
+            tess.addVertex(r.x(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y(), 0);
+            tess.addVertex(r.x(), r.y(), 0);
+        }
+        if (db.right() > 0) {
+            LytRect r = toScreen(x + w - db.right(), y + db.top(), db.right(), h - db.top() - db.bottom());
+            tess.addVertex(r.x(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y(), 0);
+            tess.addVertex(r.x(), r.y(), 0);
+        }
     }
 
     /**
@@ -389,25 +463,19 @@ public class GuideRenderEngine {
 
     private void drawBlitTexture(GuideRenderPrimitive.BlitTexture bt) {
         LytRect r = toScreen(bt.x(), bt.y(), bt.w(), bt.h());
-        flush();
-        beginTextured();
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, bt.texId());
+        beginTexturedQuads(bt.texId());
         color(bt.argb());
         Tessellator tess = Tessellator.instance;
-        tess.startDrawingQuads();
         tessColor(tess, bt.argb());
         tess.addVertexWithUV(r.x(), r.y() + r.height(), 0, bt.u(), bt.v2());
         tess.addVertexWithUV(r.x() + r.width(), r.y() + r.height(), 0, bt.u2(), bt.v2());
         tess.addVertexWithUV(r.x() + r.width(), r.y(), 0, bt.u2(), bt.v());
         tess.addVertexWithUV(r.x(), r.y(), 0, bt.u(), bt.v());
-        tess.draw();
-        endTextured();
     }
 
     private void drawGlyphRun(GuideRenderPrimitive.DrawGlyphRun dg) {
         List<GuideRenderPrimitive.PlacedGlyph> glyphs = dg.glyphs();
         if (glyphs == null || glyphs.isEmpty()) return;
-        flush();
         int atlasTex = dg.atlasId();
         if (atlasTex <= 0) return;
         Transform t = currentTransform();
@@ -421,11 +489,10 @@ public class GuideRenderEngine {
             }
             shearBaseY = shearBaseY * t.scale + t.ty;
         }
-        beginTextured();
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, atlasTex);
+        beginTexturedQuads(atlasTex);
         color(dg.argb());
         Tessellator tess = Tessellator.instance;
-        tess.startDrawingQuads();
+        tessColor(tess, dg.argb());
         int missingAtlas = 0;
         for (GuideRenderPrimitive.PlacedGlyph g : glyphs) {
             // UV coordinates from glyph atlas
@@ -454,8 +521,6 @@ public class GuideRenderEngine {
             tess.addVertexWithUV(xTop + w, y, 0, uv.u2(), uv.v()); // top-right → glyph top row
             tess.addVertexWithUV(xTop, y, 0, uv.u(), uv.v()); // top-left → glyph top row
         }
-        tess.draw();
-        endTextured();
         if (missingAtlas > 0 && GuideDebugLog.isLayoutOverlayEnabled()) {
             GuideDebugLog.warnAlways(
                 "[TRC] DrawGlyphRun: {} glyphs missing from atlas (run size={})",
@@ -476,20 +541,18 @@ public class GuideRenderEngine {
         float nx = -dy / len * half;
         float ny = dx / len * half;
 
-        beginShape();
+        beginShapeQuads();
         color(dl.argb());
         Tessellator tess = Tessellator.instance;
-        tess.startDrawingQuads();
         tessColor(tess, dl.argb());
         tess.addVertex(x1 - nx, y1 - ny, 0);
         tess.addVertex(x2 - nx, y2 - ny, 0);
         tess.addVertex(x2 + nx, y2 + ny, 0);
         tess.addVertex(x1 + nx, y1 + ny, 0);
-        tess.draw();
-        endShape();
     }
 
     private void drawTriangle(GuideRenderPrimitive.DrawTriangle dt) {
+        flush();
         beginShape();
         color(dt.argb());
         Tessellator tess = Tessellator.instance;
@@ -505,6 +568,7 @@ public class GuideRenderEngine {
     private static final int CIRCLE_SEGMENTS = 32;
 
     private void drawCircle(GuideRenderPrimitive.DrawCircle dc) {
+        flush();
         float cx = sx(dc.cx()), cy = sy(dc.cy());
         float radius = dc.radius() * currentTransform().scale;
         beginShape();
@@ -535,6 +599,7 @@ public class GuideRenderEngine {
     }
 
     private void drawCircleOutline(GuideRenderPrimitive.DrawCircleOutline dco) {
+        flush();
         float cx = sx(dco.cx()), cy = sy(dco.cy());
         float scale = currentTransform().scale;
         float half = Math.max(0.5f, dco.thickness() * scale * 0.5f);
@@ -558,6 +623,7 @@ public class GuideRenderEngine {
     }
 
     private void drawPolygon(GuideRenderPrimitive.DrawPolygon dp) {
+        flush();
         float[] xs = dp.xs();
         float[] ys = dp.ys();
         if (xs == null || ys == null || xs.length < 3) return;

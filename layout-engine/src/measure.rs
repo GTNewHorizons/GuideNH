@@ -107,7 +107,7 @@ pub fn create_measure_closure<'a>(
             8 => (measure_latex(flat_nodes, index), None),
              20 => (measure_recipe_box(flat_nodes, index), None),
              21 => (measure_pie_chart(flat_nodes, index, known, available, visual_scale), None),
-             22 => (measure_chart(flat_nodes, index, known, available, visual_scale), None),
+              22 | 23 | 24 | 25 => (measure_chart(flat_nodes, index, known, available, visual_scale), None),
             _ => (Size::ZERO, None),
         };
         // Explicit style sizes win over content measurement (CSS behavior):
