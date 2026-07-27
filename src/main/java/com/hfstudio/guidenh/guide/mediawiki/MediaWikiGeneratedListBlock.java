@@ -65,6 +65,9 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
     @Nullable
     private RowLayout hoveredRow;
 
+    /** Precomputed max column content height for Rust MeasureFunc. Set during computeLayout. */
+    private int maxPrecomputedContentHeight = 0;
+
     public void setEntries(List<MediaWikiListEntry> entries) {
         this.entries.clear();
         if (entries != null) {
@@ -80,6 +83,15 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
         this.emptyText = emptyText != null && !emptyText.isEmpty() ? emptyText : GuidebookText.MediaWikiNoPages.text();
     }
 
+    /**
+     * Returns the precomputed max column content height (tallest column's content,
+     * excluding TOP_PADDING and BOTTOM_PADDING). Used by the Rust MeasureFunc.
+     * Equals ROW_HEIGHT when entries is empty.
+     */
+    public int getMaxPrecomputedContentHeight() {
+        return maxPrecomputedContentHeight;
+    }
+
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         rowLayouts.clear();
@@ -90,6 +102,7 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
         int columnWidth = Math.max(1, (innerWidth - COLUMN_GAP * (columnCount - 1)) / columnCount);
 
         if (entries.isEmpty()) {
+            this.maxPrecomputedContentHeight = ROW_HEIGHT;
             rowLayouts
                 .add(new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ROW_HEIGHT), null, null));
             return new LytRect(x, y, availableWidth, TOP_PADDING + ROW_HEIGHT + BOTTOM_PADDING);
@@ -116,6 +129,7 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
             }
             maxColumnHeight = Math.max(maxColumnHeight, columnY - y - TOP_PADDING);
         }
+        this.maxPrecomputedContentHeight = maxColumnHeight;
         return new LytRect(x, y, availableWidth, TOP_PADDING + maxColumnHeight + BOTTOM_PADDING);
     }
 

@@ -203,11 +203,23 @@ public final class FlatNode extends Table {
         return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
     }
 
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiGeneratedListData mediawikiGeneratedListData() {
+        return mediawikiGeneratedListData(new com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiGeneratedListData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiGeneratedListData mediawikiGeneratedListData(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiGeneratedListData obj) {
+        int o = __offset(36);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
     public static int createFlatNode(FlatBufferBuilder builder, int styleOffset, byte nodeType, int textOffset,
         int imageOffset, int slotOffset, int break_Offset, int customOffset, int latexOffset, byte customLayout,
         int childrenOffset, int recipeBoxOffset, int pieChartOffset, int chartDataOffset,
-        int structureViewDataOffset, int guidebookSceneDataOffset, int functionGraphDataOffset) {
-        builder.startTable(16);
+        int structureViewDataOffset, int guidebookSceneDataOffset, int functionGraphDataOffset,
+        int mediawikiGeneratedListDataOffset) {
+        builder.startTable(17);
+        FlatNode.addMediawikiGeneratedListData(builder, mediawikiGeneratedListDataOffset);
         FlatNode.addFunctionGraphData(builder, functionGraphDataOffset);
         FlatNode.addStructureViewData(builder, structureViewDataOffset);
         FlatNode.addGuidebookSceneData(builder, guidebookSceneDataOffset);
@@ -228,7 +240,7 @@ public final class FlatNode extends Table {
     }
 
     public static void startFlatNode(FlatBufferBuilder builder) {
-        builder.startTable(16);
+        builder.startTable(17);
     }
 
     public static void addStyle(FlatBufferBuilder builder, int styleOffset) {
@@ -293,6 +305,10 @@ public final class FlatNode extends Table {
 
     public static void addFunctionGraphData(FlatBufferBuilder builder, int functionGraphDataOffset) {
         builder.addOffset(15, functionGraphDataOffset, 0);
+    }
+
+    public static void addMediawikiGeneratedListData(FlatBufferBuilder builder, int mediawikiGeneratedListDataOffset) {
+        builder.addOffset(16, mediawikiGeneratedListDataOffset, 0);
     }
 
     public static int createChildrenVector(FlatBufferBuilder builder, long[] data) {

@@ -48,6 +48,8 @@ import com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionPlot;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiGeneratedListData;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiGeneratedListBlock;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -91,6 +93,7 @@ public final class LayoutNodeSerializer {
         int structureViewDataOff = nodeType == 26 ? buildStructureViewData(fbb, block) : 0;
         int guidebookSceneDataOff = nodeType == 27 ? buildGuidebookSceneData(fbb, block) : 0;
         int functionGraphDataOff = nodeType == 28 ? buildFunctionGraphData(fbb, block) : 0;
+        int mediawikiGeneratedListDataOff = nodeType == 29 ? buildMediaWikiGeneratedListData(fbb, block) : 0;
         byte customLayout = 0;
 
         int childrenVec = buildChildrenVector(fbb, childIndices);
@@ -111,10 +114,12 @@ public final class LayoutNodeSerializer {
             chartDataOff,
             structureViewDataOff,
             guidebookSceneDataOff,
-            functionGraphDataOff);
+            functionGraphDataOff,
+            mediawikiGeneratedListDataOff);
     }
 
     static byte resolveNodeType(LytBlock block) {
+        if (block instanceof MediaWikiGeneratedListBlock) return 29;
         if (block instanceof LytFunctionGraph) return 28;
         if (block instanceof LytGuidebookScene) return 27;
         if (block instanceof LytStructureView) return 26;
@@ -705,6 +710,16 @@ public final class LayoutNodeSerializer {
             titleChrome,
             legendRowHeight,
             labelWidthsVec);
+    }
+
+    private static int buildMediaWikiGeneratedListData(FlatBufferBuilder fbb, LytBlock block) {
+        float maxContentHeight = 0;
+
+        if (block instanceof MediaWikiGeneratedListBlock mw) {
+            maxContentHeight = mw.getMaxPrecomputedContentHeight();
+        }
+
+        return MediaWikiGeneratedListData.createMediaWikiGeneratedListData(fbb, maxContentHeight);
     }
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {

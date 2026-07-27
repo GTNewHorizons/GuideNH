@@ -111,6 +111,7 @@ pub fn create_measure_closure<'a>(
               26 => (measure_structure_view(flat_nodes, index, known, available, visual_scale), None),
               27 => (measure_guidebook_scene(flat_nodes, index, known, available, visual_scale), None),
               28 => (measure_function_graph(flat_nodes, index, known, available, visual_scale), None),
+              29 => (measure_mediawiki_generated_list(flat_nodes, index, known, available), None),
              _ => (Size::ZERO, None),
         };
         // Explicit style sizes win over content measurement (CSS behavior):
@@ -836,6 +837,53 @@ fn measure_function_graph(
 
     // Explicit style sizes (known dimensions from Taffy) win over content
     // measurement — the caller's known.unwrap_or already handles this.
+    Size {
+        width: known.width.unwrap_or(w),
+        height: known.height.unwrap_or(h),
+    }
+}
+
+/// Measure a MediaWiki generated list block (node_type = 29). The formula mirrors
+/// MediaWikiGeneratedListBlock.computeLayout term for term. The column-planning
+/// algorithm (planColumns) depends on Java object data (entry sort keys, titles,
+/// section grouping) and cannot be replicated in Rust. Java precomputes the max
+/// column content height via MediaWikiGeneratedListData.max_content_height.
+/// Rust adds the padding constants to produce the total block height.
+/// Width is always availableWidth — the block fills the parent's content box.
+fn measure_mediawiki_generated_list(
+    nodes: &[FlatNode],
+    idx: usize,
+    known: Size<Option<f32>>,
+    available: Size<AvailableSpace>,
+) -> Size<f32> {
+    // Constants mirrored from MediaWikiGeneratedListBlock:
+    //   private static final int TOP_PADDING = 6;
+    //   private static final int BOTTOM_PADDING = 6;
+    const TOP_PADDING: f32 = 6.0;
+    const BOTTOM_PADDING: f32 = 6.0;
+
+    let node = &nodes[idx];
+    let data = match node.mediawiki_generated_list_data() {
+        Some(d) => d,
+        None => return Size::ZERO,
+    };
+
+    let max_content_h = data.max_content_height();
+
+    // Width: the block always fills available width (no intrinsic preference).
+    // Mirrors computeLayout: return new LytRect(x, y, availableWidth, ...).
+    let w = match available.width {
+        AvailableSpace::Definite(a) => a.max(0.0),
+        _ => 0.0,
+    };
+
+    // Height = TOP_PADDING + maxColumnContentHeight + BOTTOM_PADDING.
+    // Mirrors computeLayout:
+    //   return new LytRect(x, y, availableWidth, TOP_PADDING + maxColumnHeight + BOTTOM_PADDING);
+    // and for empty entries:
+    //   return new LytRect(x, y, availableWidth, TOP_PADDING + ROW_HEIGHT + BOTTOM_PADDING);
+    let h = TOP_PADDING + max_content_h + BOTTOM_PADDING;
+
     Size {
         width: known.width.unwrap_or(w),
         height: known.height.unwrap_or(h),
