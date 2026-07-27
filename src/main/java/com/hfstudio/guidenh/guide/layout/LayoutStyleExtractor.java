@@ -294,6 +294,15 @@ public final class LayoutStyleExtractor {
 
     private static byte getAlignItems(LytBlock block) {
         if (block instanceof LytCodeBlockToolbar) return 1; // Center (label + icon buttons)
+        if (block instanceof LytAxisBox ax) {
+            return switch (ax.getAlignItems()) {
+                case CENTER -> 1;
+                case END    -> 2;
+                // START -> Stretch: preserve existing behavior for the many blocks
+                // that never call setAlignItems() and keep the LytAxisBox default.
+                default -> 3;
+            };
+        }
         // CSS default is stretch: block-level children fill the cross axis.
         return 3; // Stretch
     }

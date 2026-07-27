@@ -9,7 +9,6 @@ import java.util.Set;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
-import com.hfstudio.guidenh.guide.document.block.LytFileTree;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
@@ -143,17 +142,6 @@ public final class LayoutNodeSerializer {
         if (block instanceof LytParagraph par && isOpaqueText(par)) return 0; // opaque leaf — no glyph run
         if (block instanceof LytParagraph) return 1; // Text — contains LytFlowText children
         return 0; // Container
-    }
-
-    /**
-     * Blocks whose internal subtree structure the compiler keeps as opaque
-     * leaves: children are not serialized (the Java layout positions them), and
-     * the block reserves its box from the Java-computed flow bounds. Currently:
-     * {@code LytFileTree} (icon+payload rows with connector lines are a custom
-     * internal arrangement).
-     */
-    static boolean isOpaqueSubtree(LytBlock block) {
-        return block instanceof LytFileTree;
     }
 
     /**

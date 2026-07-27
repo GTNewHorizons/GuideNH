@@ -272,11 +272,6 @@ public class LayoutTreeSerializer {
             }
             flatNodes.add(block);
             nodeToIndex.put(node, idx);
-            if (LayoutNodeSerializer.isOpaqueSubtree(block)) {
-                // Opaque subtree: children keep the Java layout and are not
-                // serialized (e.g. LytFileTree's icon+payload rows).
-                return;
-            }
             if (pendingFloatSide != 0) {
                 // The float wrapper was eliminated up-stack; this inner becomes
                 // a real CSS float for the Rust pusher (the float gap is added

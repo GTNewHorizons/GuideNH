@@ -17,12 +17,15 @@ import lombok.Getter;
 
 /**
  * A block that renders a file tree as a stack of rows where each row carries a configurable depth
- * of connector lines drawn directly with {@link RenderContext#fillRect}, an optional icon block
- * and a {@link LytParagraph} payload re-parsed from inline markdown.
+ * of connector lines drawn directly via {@link #computePrimitives}, an optional icon block and a
+ * {@link LytParagraph} payload re-parsed from inline markdown.
  *
- * <p>
- * Connectors are derived strictly from the slot kinds parsed for each row, so the visual output is
- * deterministic with respect to the source.
+ * <p>Each row is wrapped in a {@link LytHBox} row container whose {@code marginLeft} encodes the
+ * indentation level ({@code slots.size() * indentPx}) and whose children are the optional icon
+ * block followed by the payload paragraph. The row containers are full tree children
+ * ({@link #getChildren()}), so they participate in Rust layout — the paragraphs receive proper
+ * glyph data and bounds computed by the Rust layout engine. Connector lines are still drawn in
+ * {@link #computePrimitives} using the Rust-computed row container bounds for Y positions.
  */
 public class LytFileTree extends LytBlock {
 
@@ -33,7 +36,7 @@ public class LytFileTree extends LytBlock {
     private static final int CONNECTOR_THICKNESS = 1;
 
     private final List<Row> rows = new ArrayList<>();
-    private final List<LytNode> childNodes = new ArrayList<>();
+    private final List<LytHBox> rowContainers = new ArrayList<>();
     @Getter
     private int indentPx = DEFAULT_INDENT_PX;
     @Getter
@@ -42,14 +45,16 @@ public class LytFileTree extends LytBlock {
     private int iconGapPx = DEFAULT_ICON_GAP_PX;
 
     public void appendRow(List<SlotKind> slots, @Nullable LytBlock iconBlock, LytParagraph payload) {
-        Row row = new Row(new ArrayList<>(slots), iconBlock, payload);
+        LytHBox container = new LytHBox();
+        container.setWrap(false);
+        container.setGap(iconGapPx);
+        container.setAlignItems(AlignItems.CENTER);
         if (iconBlock != null) {
-            iconBlock.parent = this;
-            childNodes.add(iconBlock);
+            container.append(iconBlock);
         }
-        payload.parent = this;
-        childNodes.add(payload);
-        rows.add(row);
+        container.append(payload);
+        rows.add(new Row(new ArrayList<>(slots), container));
+        rowContainers.add(container);
     }
 
     public void setIndentPx(int indentPx) {
@@ -68,27 +73,16 @@ public class LytFileTree extends LytBlock {
 
     @Override
     public List<? extends LytNode> getChildren() {
-        return childNodes;
+        return rowContainers;
     }
 
     @Override
     public void removeChild(LytNode node) {
-        for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
-            Row row = rows.get(rowIndex);
-            if (row.payload == node) {
-                row.payload.parent = null;
-                childNodes.remove(row.payload);
-                if (row.iconBlock != null) {
-                    row.iconBlock.parent = null;
-                    childNodes.remove(row.iconBlock);
-                }
-                rows.remove(rowIndex);
-                return;
-            }
-            if (row.iconBlock == node) {
-                row.iconBlock.parent = null;
-                childNodes.remove(row.iconBlock);
-                rows.set(rowIndex, new Row(row.slots, null, row.payload));
+        for (int i = 0; i < rowContainers.size(); i++) {
+            if (rowContainers.get(i) == node) {
+                rowContainers.get(i).parent = null;
+                rowContainers.remove(i);
+                rows.remove(i);
                 return;
             }
         }
@@ -101,37 +95,20 @@ public class LytFileTree extends LytBlock {
 
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);
-            int iconX = x + row.slots.size() * indentPx;
-            int payloadX;
-            int iconHeight = 0;
-            if (row.iconBlock != null) {
-                // Give the icon enough headroom so its natural width can be measured. Cap it to
-                // half of the remaining row space so a runaway label cannot eat the whole row.
-                int iconAvailable = Math.max(iconBoxPx, (x + availableWidth - iconX) / 2);
-                row.iconBlock.layout(context, iconX, currentY, Math.max(1, iconAvailable));
-                LytRect iconBounds = row.iconBlock.getBounds();
-                int actualIconWidth = iconBounds.width();
-                int reservedIconWidth = Math.max(iconBoxPx, actualIconWidth);
-                iconHeight = iconBounds.height();
-                payloadX = iconX + reservedIconWidth + iconGapPx;
-            } else {
-                payloadX = iconX;
-            }
-            int payloadAvailable = Math.max(1, x + availableWidth - payloadX);
-            LytRect payloadBounds = row.payload.layout(context, payloadX, currentY, payloadAvailable);
-            int payloadHeight = payloadBounds.height();
-            int rowHeight = Math.max(payloadHeight, iconHeight);
-            if (rowHeight <= 0) {
-                rowHeight = 1;
-            }
-            centerRowChild(row.payload, rowHeight, payloadHeight);
-            if (row.iconBlock != null) {
-                centerRowChild(row.iconBlock, rowHeight, iconHeight);
-            }
-            row.rowY = currentY;
-            row.rowHeight = rowHeight;
-            currentY += rowHeight;
+            LytHBox container = row.container;
+
+            // Indentation as margin-left on the row container.
+            int marginLeft = row.slots.size() * indentPx;
+            container.setMarginLeft(marginLeft);
+            // Gap between rows as margin-bottom (except last row).
+            container.setMarginBottom(i < rows.size() - 1 ? rowGapPx : 0);
+
+            // Position the container and lay out its children (icon + payload).
+            container.layout(context, x + marginLeft, currentY, availableWidth - marginLeft);
+            LytRect rowBounds = container.getBounds();
+            int rowHeight = Math.max(1, rowBounds.height());
             totalHeight += rowHeight;
+            currentY += rowHeight;
             if (i < rows.size() - 1) {
                 currentY += rowGapPx;
                 totalHeight += rowGapPx;
@@ -143,12 +120,8 @@ public class LytFileTree extends LytBlock {
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
-        for (Row row : rows) {
-            row.rowY += deltaY;
-            if (row.iconBlock != null) {
-                row.iconBlock.moveLayoutPos(deltaX, deltaY);
-            }
-            row.payload.moveLayoutPos(deltaX, deltaY);
+        for (LytHBox row : rowContainers) {
+            row.moveLayoutPos(deltaX, deltaY);
         }
     }
 
@@ -163,11 +136,14 @@ public class LytFileTree extends LytBlock {
         int connectorColor = SymbolicColor.TABLE_BORDER
             .resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
         int halfIndent = indentPx / 2;
-        for (Row row : rows) {
-            int rowY = row.rowY;
-            int rowHeight = row.rowHeight;
+        for (int i = 0; i < rows.size(); i++) {
+            Row row = rows.get(i);
+            LytRect rowBounds = row.container.getBounds();
+            int rowY = rowBounds.y();
+            int rowHeight = rowBounds.height();
             int rowMidY = rowY + Math.max(0, rowHeight - CONNECTOR_THICKNESS) / 2;
-            int rowBottomY = rowY + rowHeight + rowGapPx;
+            // Extend vertical connector to the bottom of the margin-box gap.
+            int rowBottomY = rowY + rowHeight + row.container.getMarginBottom();
             int slotCount = row.slots.size();
             int columnCenterX = baseX + halfIndent;
             for (int slotIndex = 0; slotIndex < slotCount; slotIndex++, columnCenterX += indentPx) {
@@ -221,11 +197,8 @@ public class LytFileTree extends LytBlock {
     @Override
     public void render(RenderContext context) {
         renderConnectors(context);
-        for (Row row : rows) {
-            if (row.iconBlock != null) {
-                row.iconBlock.render(context);
-            }
-            row.payload.render(context);
+        for (LytHBox row : rowContainers) {
+            row.render(context);
         }
     }
 
@@ -234,11 +207,13 @@ public class LytFileTree extends LytBlock {
         // Resolve symbolic color once per frame instead of on every fillRect.
         int connectorColor = context.resolveColor(SymbolicColor.TABLE_BORDER);
         int halfIndent = indentPx / 2;
-        for (Row row : rows) {
-            int rowY = row.rowY;
-            int rowHeight = row.rowHeight;
+        for (int i = 0; i < rows.size(); i++) {
+            Row row = rows.get(i);
+            LytRect rowBounds = row.container.getBounds();
+            int rowY = rowBounds.y();
+            int rowHeight = rowBounds.height();
             int rowMidY = rowY + Math.max(0, rowHeight - CONNECTOR_THICKNESS) / 2;
-            int rowBottomY = rowY + rowHeight + rowGapPx;
+            int rowBottomY = rowY + rowHeight + row.container.getMarginBottom();
             int slotCount = row.slots.size();
             int columnCenterX = baseX + halfIndent;
             for (int slotIndex = 0; slotIndex < slotCount; slotIndex++, columnCenterX += indentPx) {
@@ -271,13 +246,6 @@ public class LytFileTree extends LytBlock {
         }
     }
 
-    private void centerRowChild(LytBlock child, int rowHeight, int childHeight) {
-        if (childHeight <= 0 || childHeight >= rowHeight) {
-            return;
-        }
-        child.moveLayoutPos(0, (rowHeight - childHeight) / 2);
-    }
-
     private static void drawVerticalLine(RenderContext context, int x, int yStart, int yEnd, int color) {
         int top = Math.min(yStart, yEnd);
         int height = Math.abs(yEnd - yStart);
@@ -299,16 +267,11 @@ public class LytFileTree extends LytBlock {
     private static class Row {
 
         final List<SlotKind> slots;
-        @Nullable
-        final LytBlock iconBlock;
-        final LytParagraph payload;
-        int rowY;
-        int rowHeight;
+        final LytHBox container;
 
-        Row(List<SlotKind> slots, @Nullable LytBlock iconBlock, LytParagraph payload) {
+        Row(List<SlotKind> slots, LytHBox container) {
             this.slots = slots;
-            this.iconBlock = iconBlock;
-            this.payload = payload;
+            this.container = container;
         }
     }
 }
