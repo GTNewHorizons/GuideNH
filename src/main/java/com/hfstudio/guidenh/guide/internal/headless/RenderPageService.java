@@ -73,10 +73,11 @@ public final class RenderPageService {
      * @param pageId           registered page id (non-null → registered-page path)
      * @param mdFile           arbitrary markdown file (non-null → raw-md path)
      * @param language         language code, e.g. "en_us" or "zh_cn"
-     * @param width            layout width in pixels
+     * @param width            layout width in document units (GUI pixels)
      * @param outDir           output directory for generated files
      * @param emitBoundsJson   if true, write a block-bounds JSON sidecar
      * @param emitDebugOverlay if true, write a debug overlay PNG
+     * @param scale            render pixel-density multiplier (1-4; 1 = 1×, no scaling)
      */
     public record RenderPageRequest(
         String guideId,
@@ -86,7 +87,8 @@ public final class RenderPageService {
         int width,
         Path outDir,
         boolean emitBoundsJson,
-        boolean emitDebugOverlay
+        boolean emitDebugOverlay,
+        int scale
     ) {}
 
     /**
@@ -245,10 +247,11 @@ public final class RenderPageService {
         }
 
         // ---- 6. Render ------------------------------------------------------
+        int scale = req.scale();
         BufferedImage image;
         try {
             image = DocumentOffscreenFramebuffer.renderAll(
-                primitives, renderCtx, req.width(), contentHeight, 0x121216);
+                primitives, renderCtx, req.width(), contentHeight, 0x121216, scale);
         } catch (Exception e) {
             throw new RenderPageException(
                 RenderPageException.Stage.RENDER, "Offscreen rendering failed", e);
@@ -291,7 +294,7 @@ public final class RenderPageService {
             try {
                 Path overlayPath = req.outDir()
                     .resolve(buildBaseName(req) + "_overlay.png");
-                drawDebugOverlay(image, document, overlayPath);
+                drawDebugOverlay(image, document, overlayPath, scale);
                 GuideDebugLog.infoAlways(
                     "RenderPageService: wrote overlay PNG {}", overlayPath);
             } catch (IOException e) {
@@ -302,7 +305,7 @@ public final class RenderPageService {
 
         int blockCount = countBlocks(document);
         return new RenderPageResult(
-            pngPath, boundsJsonPath, req.width(), contentHeight, blockCount);
+            pngPath, boundsJsonPath, req.width() * scale, contentHeight * scale, blockCount);
     }
 
     // ---- compilation helpers ------------------------------------------------
@@ -453,7 +456,7 @@ public final class RenderPageService {
     // ---- debug overlay ------------------------------------------------------
 
     private static void drawDebugOverlay(
-        BufferedImage source, LytDocument document, Path target) throws IOException {
+            BufferedImage source, LytDocument document, Path target, int scale) throws IOException {
         int w = source.getWidth();
         int h = source.getHeight();
         BufferedImage overlay = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
@@ -463,7 +466,7 @@ public final class RenderPageService {
                 RenderingHints.KEY_TEXT_ANTIALIASING,
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             int[] counter = { 0 };
-            drawOverlayBlocks(g, document, 0, counter);
+            drawOverlayBlocks(g, document, 0, counter, scale);
         } finally {
             g.dispose();
         }
@@ -488,28 +491,32 @@ public final class RenderPageService {
      * @param counter  single-element array carrying the global block index
      */
     private static void drawOverlayBlocks(
-        Graphics2D g, LytNode node, int depth, int[] counter) {
+            Graphics2D g, LytNode node, int depth, int[] counter, int scale) {
         if (node instanceof LytBlock block) {
             LytRect bounds = block.getBounds();
             if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {
                 int idx = counter[0]++;
                 int ci = depth % OVERLAY_FILL_COLORS.length;
+                int bx = bounds.x() * scale;
+                int by = bounds.y() * scale;
+                int bw = bounds.width() * scale;
+                int bh = bounds.height() * scale;
 
                 // Semi-transparent fill
                 g.setColor(new Color(OVERLAY_FILL_COLORS[ci], true));
-                g.fillRect(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+                g.fillRect(bx, by, bw, bh);
 
                 // Solid border
                 g.setColor(new Color(OVERLAY_BORDER_COLORS[ci]));
-                g.drawRect(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+                g.drawRect(bx, by, bw, bh);
 
                 // Block index label near the top-left corner
                 g.setColor(new Color(OVERLAY_BORDER_COLORS[ci]));
-                g.drawString(String.valueOf(idx), bounds.x() + 2, bounds.y() + 12);
+                g.drawString(String.valueOf(idx), bx + 2 * scale, by + 12 * scale);
             }
         }
         for (var child : node.getChildren()) {
-            drawOverlayBlocks(g, child, depth + 1, counter);
+            drawOverlayBlocks(g, child, depth + 1, counter, scale);
         }
     }
 

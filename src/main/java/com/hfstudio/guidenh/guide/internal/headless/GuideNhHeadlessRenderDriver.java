@@ -47,7 +47,8 @@ public class GuideNhHeadlessRenderDriver {
         String language,
         boolean emitBoundsJson,
         boolean emitDebugOverlay,
-        String worldName
+        String worldName,
+        int scale
     ) {}
 
     // ---- state machine -------------------------------------------------------
@@ -122,6 +123,18 @@ public class GuideNhHeadlessRenderDriver {
         boolean overlay = Boolean.parseBoolean(System.getProperty("guidenh.renderpage.overlay", "false"));
         String worldName = System.getProperty("guidenh.renderpage.world", "screenshot-world");
 
+        int scale;
+        try {
+            scale = Integer.parseInt(System.getProperty("guidenh.renderpage.scale", "1"));
+        } catch (NumberFormatException e) {
+            logError("Invalid scale value: " + System.getProperty("guidenh.renderpage.scale"));
+            return null;
+        }
+        if (scale < 1 || scale > 4) {
+            logError("Scale must be between 1 and 4, got: " + scale);
+            return null;
+        }
+
         return new HeadlessRenderConfig(
             guideId,
             hasPage ? pageId : null,
@@ -131,7 +144,8 @@ public class GuideNhHeadlessRenderDriver {
             lang,
             bounds,
             overlay,
-            worldName
+            worldName,
+            scale
         );
     }
 
@@ -230,7 +244,8 @@ public class GuideNhHeadlessRenderDriver {
                 config.width(),
                 config.outDir(),
                 config.emitBoundsJson(),
-                config.emitDebugOverlay()
+                config.emitDebugOverlay(),
+                config.scale()
             );
             RenderPageService.RenderPageResult result = RenderPageService.render(req);
 

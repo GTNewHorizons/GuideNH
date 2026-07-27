@@ -49,7 +49,7 @@ public class GuideNhClientCommand extends CommandBase {
     public static final String[] EXPORT_STRUCTURE_FLAGS = { "--mode", "snbt", "snbt_e", "blocks", "blocks_e" };
     public static final String[] EXPORT_SITE_FLAGS = { "--ponder-frames", "--ponder-every-tick" };
     public static final String[] RENDERPAGE_FLAGS = { "--guide", "--page", "--md", "--width", "--out", "--lang", "--bounds",
-        "--overlay" };
+        "--overlay", "--scale" };
 
     @Override
     public String getCommandName() {
@@ -449,7 +449,7 @@ public class GuideNhClientCommand extends CommandBase {
 
         if (opts.guideId() == null) {
             sender.addChatMessage(new ChatComponentText(
-                "§cUsage: /guidenhc renderpage --guide <guideId> [--page <pageId> | --md <path>] [--width <px>] [--out <dir>] [--lang <lang>] [--bounds] [--overlay]"));
+                "§cUsage: /guidenhc renderpage --guide <guideId> [--page <pageId> | --md <path>] [--width <px>] [--out <dir>] [--lang <lang>] [--bounds] [--overlay] [--scale <1-4>]"));
             return;
         }
 
@@ -475,6 +475,16 @@ public class GuideNhClientCommand extends CommandBase {
             return;
         }
 
+        if (opts.scaleError() != null) {
+            sender.addChatMessage(new ChatComponentText(
+                "§cInvalid --scale value: '" + opts.scaleError() + "', must be integer between 1-4"));
+            return;
+        }
+        if (opts.scale() < 1 || opts.scale() > 4) {
+            sender.addChatMessage(new ChatComponentText("§cError: --scale must be between 1 and 4."));
+            return;
+        }
+
         try {
             RenderPageService.RenderPageResult result = RenderPageService.render(
                 new RenderPageService.RenderPageRequest(
@@ -485,7 +495,8 @@ public class GuideNhClientCommand extends CommandBase {
                     opts.width(),
                     opts.outDir(),
                     opts.emitBoundsJson(),
-                    opts.emitDebugOverlay()
+                    opts.emitDebugOverlay(),
+                    opts.scale()
                 )
             );
             sender.addChatMessage(new ChatComponentText(
@@ -510,6 +521,8 @@ public class GuideNhClientCommand extends CommandBase {
         String language = "en_us";
         boolean emitBoundsJson = false;
         boolean emitDebugOverlay = false;
+        int scale = 1;
+        String scaleError = null;
 
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
@@ -541,10 +554,20 @@ public class GuideNhClientCommand extends CommandBase {
                 }
                 case "--bounds" -> emitBoundsJson = true;
                 case "--overlay" -> emitDebugOverlay = true;
+                case "--scale" -> {
+                    if (i + 1 < args.length) {
+                        String raw = args[++i];
+                        try {
+                            scale = Integer.parseInt(raw);
+                        } catch (NumberFormatException e) {
+                            scaleError = raw;
+                        }
+                    }
+                }
             }
         }
 
-        return new RenderPageOptions(guideId, pageId, mdFile, width, outDir, language, emitBoundsJson, emitDebugOverlay, widthError);
+        return new RenderPageOptions(guideId, pageId, mdFile, width, outDir, language, emitBoundsJson, emitDebugOverlay, widthError, scale, scaleError);
     }
 
     private boolean requireSceneExportEnabled(ICommandSender sender) {
@@ -589,6 +612,8 @@ public class GuideNhClientCommand extends CommandBase {
         String language,
         boolean emitBoundsJson,
         boolean emitDebugOverlay,
-        String widthError
+        String widthError,
+        int scale,
+        String scaleError
     ) {}
 }

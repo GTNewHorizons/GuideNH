@@ -49,11 +49,11 @@ public final class DocumentOffscreenFramebuffer {
      * @param primitives  the already-collected primitives in document coordinates.
      * @param context     the render context whose document origin is adjusted per
      *                    tile (affects HostDraw callbacks).
-     * @param totalWidth  full document pixel width (must be positive and ≤
-     *                    {@link #MAX_TOTAL_DIMENSION}).
-     * @param totalHeight full document pixel height (must be positive and ≤
-     *                    {@link #MAX_TOTAL_DIMENSION}).
+     * @param totalWidth  full document width in document units (must be positive).
+     * @param totalHeight full document height in document units (must be positive).
      * @param backgroundRgb opaque background colour packed as 0xRRGGBB.
+     * @param scale       pixel-density multiplier (1-4). Output dimensions are
+     *                    totalWidth × scale by totalHeight × scale.
      * @return a fully composited opaque {@code BufferedImage} of the document.
      * @throws IllegalArgumentException if dimensions are out of range.
      * @throws IllegalStateException    if the Minecraft client is not ready.
@@ -65,17 +65,23 @@ public final class DocumentOffscreenFramebuffer {
             VanillaRenderContext context,
             int totalWidth,
             int totalHeight,
-            int backgroundRgb) {
+            int backgroundRgb,
+            int scale) {
 
         // ---- dimension validation -------------------------------------------
         if (totalWidth <= 0 || totalHeight <= 0) {
             throw new IllegalArgumentException(
                 "totalWidth and totalHeight must be positive: " + totalWidth + " x " + totalHeight);
         }
-        if (totalWidth > MAX_TOTAL_DIMENSION || totalHeight > MAX_TOTAL_DIMENSION) {
+
+        // Scale pixel dimensions
+        int pxWidth = totalWidth * scale;
+        int pxHeight = totalHeight * scale;
+
+        if (pxWidth > MAX_TOTAL_DIMENSION || pxHeight > MAX_TOTAL_DIMENSION) {
             throw new IllegalArgumentException(
-                "totalWidth/totalHeight exceed maximum " + MAX_TOTAL_DIMENSION + ": "
-                    + totalWidth + " x " + totalHeight);
+                "Pixel dimensions exceed maximum " + MAX_TOTAL_DIMENSION + ": "
+                    + pxWidth + " x " + pxHeight);
         }
 
         Minecraft minecraft = Minecraft.getMinecraft();
@@ -95,8 +101,8 @@ public final class DocumentOffscreenFramebuffer {
             GuideGlyphAtlas.instance(),
             new GuidebookSceneRenderer());
 
-        // ---- output image ---------------------------------------------------
-        BufferedImage output = new BufferedImage(totalWidth, totalHeight, BufferedImage.TYPE_INT_ARGB);
+        // ---- output image (scaled pixel dimensions) -------------------------
+        BufferedImage output = new BufferedImage(pxWidth, pxHeight, BufferedImage.TYPE_INT_ARGB);
         Graphics2D outputG = output.createGraphics();
         outputG.setRenderingHint(
             RenderingHints.KEY_INTERPOLATION,
@@ -107,11 +113,11 @@ public final class DocumentOffscreenFramebuffer {
             int prevDisplayHeight = minecraft.displayHeight;
             int prevGuiScale = minecraft.gameSettings.guiScale;
 
-            // ---- tile loop --------------------------------------------------
-            for (int tileY = 0; tileY < totalHeight; tileY += tileSize) {
-                int tileH = Math.min(tileSize, totalHeight - tileY);
-                for (int tileX = 0; tileX < totalWidth; tileX += tileSize) {
-                    int tileW = Math.min(tileSize, totalWidth - tileX);
+            // ---- tile loop (in pixel space, scaled) -------------------------
+            for (int tileY = 0; tileY < pxHeight; tileY += tileSize) {
+                int tileH = Math.min(tileSize, pxHeight - tileY);
+                for (int tileX = 0; tileX < pxWidth; tileX += tileSize) {
+                    int tileW = Math.min(tileSize, pxWidth - tileX);
 
                     Framebuffer fb = null;
                     boolean projectionPushed = false;
@@ -149,12 +155,15 @@ public final class DocumentOffscreenFramebuffer {
                         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
                         // Shift document origin so HostDraw callbacks see the tile offset
-                        context.setDocumentOrigin(-tileX, -tileY);
+                        // Document-origin callback: doc units (tileX/scale, tileY/scale)
+                        context.setDocumentOrigin(-tileX / scale, -tileY / scale);
 
-                        // Wrap primitives with a tile-offset transform:
-                        //   screen = doc * 1 + (-tileX, -tileY)
-                        // This shifts document content so the tile portion starts at (0,0).
-                        List<GuideRenderPrimitive> wrapped = wrapForTile(primitives, tileX, tileY);
+                        // Wrap primitives with scale + tile-offset transforms:
+                        //   outer: PushTransform(0, 0, scale) — scales doc coords by N×
+                        //   inner: PushTransform(-tileX/scale, -tileY/scale, 1.0f) — tile offset
+                        //     in doc space, which after parent-scaling becomes -tileX, -tileY
+                        // Combined: screen = doc * scale + (-tileX, -tileY)
+                        List<GuideRenderPrimitive> wrapped = wrapForTile(primitives, tileX, tileY, scale);
 
                         engine.beginFrame(new LytRect(0, 0, tileW, tileH), 1.0f);
                         engine.execute(wrapped);
@@ -203,19 +212,35 @@ public final class DocumentOffscreenFramebuffer {
     // ---- helper: primitive list wrapping ------------------------------------
 
     /**
-     * Wraps the original primitive list with an outer {@link PushTransform} that
-     * shifts the document origin by {@code (-tileX, -tileY)}. This is the
-     * tile-offset equivalent of setting
-     * {@link VanillaRenderContext#setDocumentOrigin(int, int)} for the
-     * primitive-based rendering path.
+     * Wraps the original primitive list with:
+     * <ol>
+     *   <li>Outer {@link PushTransform}(0, 0, scale) — scales document coordinates
+     *       by N× for pixel-density amplification.</li>
+     *   <li>Inner {@link PushTransform}(-tileX/scale, -tileY/scale, 1.0f) — tile
+     *       offset in document space.  The engine's composition applies parent
+     *       scale to child translation, yielding effective offset
+     *       {@code (-tileX, -tileY)} in the scaled pixel space.</li>
+     * </ol>
+     *
+     * <p>Combined effective transform:
+     * {@code screen = doc * scale + (-tileX, -tileY)}.
+     *
+     * <p>Tile coordinates are in pixel (scaled) space; the inner translation
+     * divides by scale so the tile-border crossing matches document units.
      */
     private static List<GuideRenderPrimitive> wrapForTile(
             List<GuideRenderPrimitive> primitives,
             int tileX,
-            int tileY) {
-        List<GuideRenderPrimitive> wrapped = new ArrayList<>(primitives.size() + 2);
-        wrapped.add(new GuideRenderPrimitive.PushTransform(-tileX, -tileY, 1.0f));
+            int tileY,
+            int scale) {
+        List<GuideRenderPrimitive> wrapped = new ArrayList<>(primitives.size() + 4);
+        // Outer: scale document coordinates
+        wrapped.add(new GuideRenderPrimitive.PushTransform(0f, 0f, (float) scale));
+        // Inner: tile offset in document space
+        wrapped.add(new GuideRenderPrimitive.PushTransform(
+            (float) -tileX / scale, (float) -tileY / scale, 1.0f));
         wrapped.addAll(primitives);
+        wrapped.add(new GuideRenderPrimitive.PopTransform());
         wrapped.add(new GuideRenderPrimitive.PopTransform());
         return wrapped;
     }
