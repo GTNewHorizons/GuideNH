@@ -104,6 +104,7 @@ pub fn create_measure_closure<'a>(
             3 => (measure_slot(flat_nodes, index), None),
             4 => (measure_thematic_break(flat_nodes, index, known), None),
             8 => (measure_latex(flat_nodes, index), None),
+            20 => (measure_recipe_box(flat_nodes, index), None),
             _ => (Size::ZERO, None),
         };
         // Explicit style sizes win over content measurement (CSS behavior):
@@ -429,4 +430,47 @@ fn measure_latex(nodes: &[FlatNode], idx: usize) -> Size<f32> {
         width: latex.raw_w() * latex.user_scale(),
         height: (latex.raw_h() + 8.0) * latex.user_scale(),
     }
+}
+
+/// Measure an NEI recipe box (node_type = 20). The formula mirrors
+/// LytNeiRecipeBox.computeLayout term for term, with Java-computed
+/// pixel values (title_text_width, title_height, body dimensions)
+/// provided via RecipeBoxData. Constants replicate the Java class's
+/// static fields.
+fn measure_recipe_box(nodes: &[FlatNode], idx: usize) -> Size<f32> {
+    const FRAME_BORDER: f32 = 4.0;
+    const TITLE_GAP_AFTER_ICON: f32 = 3.0;
+    const TITLE_GAP_BEFORE_ACTION: f32 = 3.0;
+    const ACTION_BUTTON_SIZE: f32 = 12.0;
+    const BODY_MARGIN: f32 = 2.0;
+
+    let node = &nodes[idx];
+    let rb = match node.recipe_box() {
+        Some(d) => d,
+        None => return Size::ZERO,
+    };
+
+    // titleWidth = iconSize + (iconSize > 0 ? TITLE_GAP_AFTER_ICON : 0) + titleTextWidth
+    let mut title_width = rb.icon_size()
+        + (if rb.icon_size() > 0.0 { TITLE_GAP_AFTER_ICON } else { 0.0 })
+        + rb.title_text_width();
+    // if recipeJumpEnabled: titleWidth += TITLE_GAP_BEFORE_ACTION + ACTION_BUTTON_SIZE
+    if rb.recipe_jump_enabled() {
+        title_width += TITLE_GAP_BEFORE_ACTION + ACTION_BUTTON_SIZE;
+    }
+    // innerW = max(bodyWidth, titleWidth)
+    let inner_w = f32::max(rb.body_width(), title_width);
+    // w = FRAME_BORDER + innerW + FRAME_BORDER
+    let w = FRAME_BORDER + inner_w + FRAME_BORDER;
+
+    // h = FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset + bodyHeight + bodyYShift + FRAME_BORDER
+    let h = FRAME_BORDER
+        + rb.title_height()
+        + BODY_MARGIN
+        + rb.body_top_inset()
+        + rb.body_height()
+        + rb.body_y_shift()
+        + FRAME_BORDER;
+
+    Size { width: w, height: h }
 }

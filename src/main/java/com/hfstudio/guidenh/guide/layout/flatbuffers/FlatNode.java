@@ -143,10 +143,20 @@ public final class FlatNode extends Table {
         return __vector_in_bytebuffer(_bb, 22, 4);
     }
 
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.RecipeBoxData recipeBox() {
+        return recipeBox(new com.hfstudio.guidenh.guide.layout.flatbuffers.RecipeBoxData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.RecipeBoxData recipeBox(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.RecipeBoxData obj) {
+        int o = __offset(24);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
     public static int createFlatNode(FlatBufferBuilder builder, int styleOffset, byte nodeType, int textOffset,
         int imageOffset, int slotOffset, int break_Offset, int customOffset, int latexOffset, byte customLayout,
-        int childrenOffset) {
-        builder.startTable(10);
+        int childrenOffset, int recipeBoxOffset) {
+        builder.startTable(11);
         FlatNode.addChildren(builder, childrenOffset);
         FlatNode.addLatex(builder, latexOffset);
         FlatNode.addCustom(builder, customOffset);
@@ -154,6 +164,7 @@ public final class FlatNode extends Table {
         FlatNode.addSlot(builder, slotOffset);
         FlatNode.addImage(builder, imageOffset);
         FlatNode.addText(builder, textOffset);
+        FlatNode.addRecipeBox(builder, recipeBoxOffset);
         FlatNode.addStyle(builder, styleOffset);
         FlatNode.addCustomLayout(builder, customLayout);
         FlatNode.addNodeType(builder, nodeType);
@@ -161,7 +172,7 @@ public final class FlatNode extends Table {
     }
 
     public static void startFlatNode(FlatBufferBuilder builder) {
-        builder.startTable(10);
+        builder.startTable(11);
     }
 
     public static void addStyle(FlatBufferBuilder builder, int styleOffset) {
@@ -202,6 +213,10 @@ public final class FlatNode extends Table {
 
     public static void addChildren(FlatBufferBuilder builder, int childrenOffset) {
         builder.addOffset(9, childrenOffset, 0);
+    }
+
+    public static void addRecipeBox(FlatBufferBuilder builder, int recipeBoxOffset) {
+        builder.addOffset(10, recipeBoxOffset, 0);
     }
 
     public static int createChildrenVector(FlatBufferBuilder builder, long[] data) {

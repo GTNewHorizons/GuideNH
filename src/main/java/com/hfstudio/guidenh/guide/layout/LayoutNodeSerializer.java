@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
+import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
@@ -26,6 +27,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.RecipeBoxData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan;
@@ -67,6 +69,7 @@ public final class LayoutNodeSerializer {
         int slotOff = nodeType == 3 ? buildSlotData(fbb, block) : 0;
         int breakOff = nodeType == 4 ? buildThematicBreakData(fbb) : 0;
         int latexOff = nodeType == 8 ? buildLatexData(fbb, block) : 0;
+        int recipeBoxOff = nodeType == 20 ? buildRecipeBoxData(fbb, block) : 0;
         byte customLayout = 0;
 
         int childrenVec = buildChildrenVector(fbb, childIndices);
@@ -81,10 +84,12 @@ public final class LayoutNodeSerializer {
             0,
             latexOff,
             customLayout,
-            childrenVec);
+            childrenVec,
+            recipeBoxOff);
     }
 
     static byte resolveNodeType(LytBlock block) {
+        if (block instanceof LytNeiRecipeBox) return 20;
         if (block instanceof LytThematicBreak) return 4;
         if (block instanceof LytImage || block instanceof LytImageBlock) return 2;
         if (block instanceof LytSlot) return 3;
@@ -484,6 +489,39 @@ public final class LayoutNodeSerializer {
             rawW,
             rawH,
             refH);
+    }
+
+    private static int buildRecipeBoxData(FlatBufferBuilder fbb, LytBlock block) {
+        float bodyWidth = 0;
+        float bodyHeight = 0;
+        float bodyTopInset = 0;
+        float bodyYShift = 0;
+        float titleTextWidth = 0;
+        float iconSize = 0;
+        boolean recipeJumpEnabled = false;
+        float titleHeight = 0;
+
+        if (block instanceof LytNeiRecipeBox box) {
+            bodyWidth = box.getBodyWidth();
+            bodyHeight = box.getBodyHeight();
+            bodyTopInset = box.getBodyTopInset();
+            bodyYShift = box.getBodyYShift();
+            titleTextWidth = box.getTitleTextWidth();
+            iconSize = box.getIconSizeResult();
+            recipeJumpEnabled = box.isRecipeJumpEnabled();
+            titleHeight = box.getTitleHeight();
+        }
+
+        return RecipeBoxData.createRecipeBoxData(
+            fbb,
+            bodyWidth,
+            bodyHeight,
+            bodyTopInset,
+            bodyYShift,
+            titleTextWidth,
+            iconSize,
+            recipeJumpEnabled,
+            titleHeight);
     }
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {

@@ -184,6 +184,25 @@ table LatexDisplayData {
   ref_h: float;
 }
 
+table RecipeBoxData {
+  /// Handler-reported body content width (px), from registry.lookupRecipeHandlerWidth.
+  body_width: float;
+  /// Resolved body content height (px), from NeiRecipeLayoutMetrics.resolveBodyHeight.
+  body_height: float;
+  /// Additional top inset for GregTech handler (0 for normal handlers).
+  body_top_inset: float = 0.0;
+  /// Vertical shift applied by the handler registry.
+  body_y_shift: float = 0.0;
+  /// Title text pixel width, computed via Minecraft font metrics (Java-only).
+  title_text_width: float;
+  /// Icon display size: 8 if an icon (stack or image) is present, else 0.
+  icon_size: float;
+  /// Whether the action button (jump to NEI) is shown.
+  recipe_jump_enabled: bool = false;
+  /// Title bar height = Math.max(ICON_SIZE, FONT_HEIGHT) + TITLE_PAD_TOP + TITLE_PAD_BOTTOM.
+  title_height: float;
+}
+
 // ═══════════════════ 布局树节点 ═══════════════════
 
 table FlatNode {
@@ -199,6 +218,7 @@ table FlatNode {
   latex: LatexDisplayData;
   custom_layout: byte = 0;     // 0=None 1=ItemGrid 2=SlotGrid
   children: [uint];
+  recipe_box: RecipeBoxData;   // node_type 20: NEI recipe box sizing data
 }
 
 // ═══════════════════ measureLayout 输入/输出 ═══════════════════

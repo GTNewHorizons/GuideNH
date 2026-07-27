@@ -79,11 +79,17 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     private final @Nullable Object iconImage;
     private final int iconImageW;
     private final int iconImageH;
+    @Getter
     private final int bodyWidth;
+    @Getter
     private final int bodyHeight;
+    @Getter
     private final int bodyTopInset;
+    @Getter
     private final int bodyYShift;
+    @Getter
     private final int titleHeight;
+    @Getter
     private final boolean recipeJumpEnabled;
     private final @Nullable GuideTooltip actionButtonTooltip;
     /**
@@ -160,9 +166,23 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         return (iconStack != null || iconImage != null) ? ICON_SIZE : 0;
     }
 
+    /**
+     * Public accessor for serialization: icon display size (0 or {@value #ICON_SIZE}).
+     */
+    public int getIconSizeResult() {
+        return iconSize();
+    }
+
     private int titleTextWidth() {
         if (handlerName.isEmpty()) return 0;
         return Minecraft.getMinecraft().fontRenderer.getStringWidth(handlerName);
+    }
+
+    /**
+     * Public accessor for serialization: title text pixel width via Minecraft font metrics.
+     */
+    public int getTitleTextWidth() {
+        return titleTextWidth();
     }
 
     @Override

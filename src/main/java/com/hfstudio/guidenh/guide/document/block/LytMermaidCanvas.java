@@ -593,6 +593,59 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                         .height() * activeZoom)));
     }
 
+    // ---- primitives-path helpers for node content blocks ----
+
+    /**
+     * Emit primitives for a node content block using the collector, replacing
+     * the legacy NodeContentRenderContext path. The block is rendered inside
+     * a PushTransform/PopTransform frame so its local coordinates map to the
+     * correct screen position.
+     */
+    protected void emitNodeContentPrimitives(PrimitiveCollector c, LytBlock block, LytRect contentViewport,
+        LytRect visualBounds, float activeZoom) {
+        LytRect innerViewport = getInnerViewport();
+        LytRect clip = intersect(innerViewport, contentViewport);
+        if (clip == null) return;
+        int originX = contentViewport.x() - Math.round(visualBounds.x() * activeZoom);
+        int originY = contentViewport.y() - Math.round(visualBounds.y() * activeZoom);
+        c.pushScissor(clip.x(), clip.y(), clip.width(), clip.height());
+        c.pushTransform(originX, originY, activeZoom);
+        c.collectFrom(block);
+        c.popTransform();
+        c.popScissor();
+    }
+
+    /**
+     * Overload that prepares the content viewport from a NodeContentLayout
+     * and a screen-space content area, then delegates to the 5-arg variant.
+     */
+    protected void emitNodeContentPrimitives(PrimitiveCollector c, NodeContentLayout contentLayout,
+        LytRect contentArea, float activeZoom) {
+        LytRect rawViewport = new LytRect(
+            contentArea.x(),
+            contentArea.y(),
+            Math.max(
+                1,
+                Math.round(
+                    contentLayout.visualBounds()
+                        .width() * activeZoom)),
+            Math.max(
+                1,
+                Math.round(
+                    contentLayout.visualBounds()
+                        .height() * activeZoom)));
+        int cvpX = rawViewport.x();
+        int cvpY = rawViewport.y();
+        if (rawViewport.width() < contentArea.width()) {
+            cvpX = contentArea.x() + (contentArea.width() - rawViewport.width()) / 2;
+        }
+        if (rawViewport.height() < contentArea.height()) {
+            cvpY = contentArea.y() + (contentArea.height() - rawViewport.height()) / 2;
+        }
+        LytRect contentViewport = new LytRect(cvpX, cvpY, rawViewport.width(), rawViewport.height());
+        emitNodeContentPrimitives(c, contentLayout.block(), contentViewport, contentLayout.visualBounds(), activeZoom);
+    }
+
     public record NodeHit(LytNode node, FlowInteractionPath flowPath, int localX, int localY) {
 
         public NodeHit(LytNode node, @Nullable FlowInteractionPath flowPath, int localX, int localY) {
