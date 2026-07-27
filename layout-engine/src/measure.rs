@@ -110,6 +110,7 @@ pub fn create_measure_closure<'a>(
               22 | 23 | 24 | 25 => (measure_chart(flat_nodes, index, known, available, visual_scale), None),
               26 => (measure_structure_view(flat_nodes, index, known, available, visual_scale), None),
               27 => (measure_guidebook_scene(flat_nodes, index, known, available, visual_scale), None),
+              28 => (measure_function_graph(flat_nodes, index, known, available, visual_scale), None),
              _ => (Size::ZERO, None),
         };
         // Explicit style sizes win over content measurement (CSS behavior):
@@ -736,6 +737,109 @@ fn compute_responsive_scene_height(
     let scale = actual_width / base_w;
     let scaled_h = (base_h * scale).round().max(1.0).max(min_size);
     scaled_h.max(buttons_total_h)
+}
+
+/// Measure a function graph (node_type = 28). The formula mirrors
+/// LytFunctionGraph.computeLayout term for term, with Java-precomputed
+/// title_chrome, legend_row_height, and per-plot label_item_widths
+/// (via FunctionGraphData). Uses shared scale_width/scale_height_for_width
+/// helpers that replicate ResponsiveVisualSizing on the Rust side.
+fn measure_function_graph(
+    nodes: &[FlatNode],
+    idx: usize,
+    known: Size<Option<f32>>,
+    available: Size<AvailableSpace>,
+    visual_scale: f32,
+) -> Size<f32> {
+    const PADDING: f32 = 8.0;
+    const AXIS_PAD_LEFT: f32 = 28.0;
+    const AXIS_PAD_BOTTOM: f32 = 14.0;
+    const LEGEND_GAP_ABOVE: f32 = 4.0;
+    const LEGEND_ITEM_GAP: f32 = 10.0;
+    const LEGEND_ROW_GAP: f32 = 2.0;
+    const MIN_PLOT_HEIGHT: f32 = 88.0;
+
+    let node = &nodes[idx];
+    let fgd = match node.function_graph_data() {
+        Some(d) => d,
+        None => return Size::ZERO,
+    };
+
+    let base_w = fgd.base_width();
+    let base_h = fgd.base_height();
+
+    // width = scaleWidth(baseWidth, visualScale, 72), clamped to [1, availableWidth]
+    let target_w = scale_width(base_w, visual_scale, 72.0);
+    let avail_w = match available.width {
+        AvailableSpace::Definite(a) => a,
+        _ => f32::MAX,
+    };
+    let w = target_w.max(1.0).min(avail_w);
+
+    // plotWidth = max(0, width - PADDING * 2 - AXIS_PAD_LEFT)
+    let plot_w = (w - PADDING * 2.0 - AXIS_PAD_LEFT).max(0.0);
+
+    // fixedChromeHeight = PADDING * 2 + AXIS_PAD_BOTTOM
+    let mut fixed_chrome = PADDING * 2.0 + AXIS_PAD_BOTTOM;
+
+    // if (title != null && !title.isEmpty()) fixedChrome += titleChrome (precomputed)
+    fixed_chrome += fgd.title_chrome();
+
+    // legendHeight = measureLegendHeight(plotWidth)
+    // Precomputed row height and per-label item widths; wrapping algorithm
+    // replicates LytFunctionGraph.measureLegendHeight.
+    let legend_row_h = fgd.legend_row_height();
+    let legend_h = if legend_row_h > 0.0 {
+        let mut rows: i32 = 1;
+        let mut row_w: f32 = 0.0;
+        if let Some(widths) = fgd.label_item_widths() {
+            for i in 0..widths.len() {
+                let item_w = widths.get(i);
+                if item_w <= 0.0 {
+                    continue;
+                }
+                let needed = if row_w == 0.0 {
+                    item_w
+                } else {
+                    row_w + LEGEND_ITEM_GAP + item_w
+                };
+                if row_w > 0.0 && needed > plot_w {
+                    rows += 1;
+                    row_w = item_w;
+                } else {
+                    row_w = needed;
+                }
+            }
+        }
+        // If rows stays 1 but no items had width > 0, the loop never
+        // ran (all labels empty or no plots). The Java code returns 0
+        // for this case. Since we start at rows=1, check: legend_h = 0
+        // when no items have been processed (row_w == 0.0).
+        if row_w == 0.0 {
+            0.0
+        } else {
+            rows as f32 * legend_row_h + (rows - 1) as f32 * LEGEND_ROW_GAP
+        }
+    } else {
+        0.0
+    };
+    if legend_h > 0.0 {
+        fixed_chrome += legend_h + LEGEND_GAP_ABOVE;
+    }
+
+    // height = scaleBodyHeightForWidth(baseWidth, baseHeight, width, fixedChrome, MIN_PLOT_HEIGHT)
+    let safe_total_h = base_h.max(1.0);
+    let safe_fixed_h = fixed_chrome.clamp(0.0, (safe_total_h - 1.0).max(0.0));
+    let body_h = (safe_total_h - safe_fixed_h).max(1.0);
+    let scaled_body = scale_height_for_width(base_w, body_h, w, MIN_PLOT_HEIGHT);
+    let h = safe_fixed_h + scaled_body;
+
+    // Explicit style sizes (known dimensions from Taffy) win over content
+    // measurement — the caller's known.unwrap_or already handles this.
+    Size {
+        width: known.width.unwrap_or(w),
+        height: known.height.unwrap_or(h),
+    }
 }
 
 /// Mirrors ResponsiveVisualSizing.scaleWidth: apply a visual-scale factor

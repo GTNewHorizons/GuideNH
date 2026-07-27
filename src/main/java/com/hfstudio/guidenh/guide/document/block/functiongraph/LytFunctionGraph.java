@@ -39,8 +39,8 @@ import lombok.Setter;
  */
 public class LytFunctionGraph extends LytBlock implements InteractiveElement, DocumentDragTarget {
 
-    private static final int DEFAULT_WIDTH = 320;
-    private static final int DEFAULT_HEIGHT = 220;
+    public static final int DEFAULT_WIDTH = 320;
+    public static final int DEFAULT_HEIGHT = 220;
     private static final int PADDING = 8;
     private static final int TITLE_GAP = 4;
     private static final int AXIS_LABEL_GAP = 4;
@@ -73,6 +73,23 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private static final ResolvedTextStyle TOOLTIP_TITLE_STYLE = makeStyle(0xFFFFFFFF, false);
     private static final ResolvedTextStyle TOOLTIP_BODY_STYLE = makeStyle(0xFFD7DEE7, false);
     private static final ResolvedTextStyle LEGEND_LABEL_STYLE = makeStyle(0xFFD7DEE7, false);
+
+    // ---- Exposure for serializer precomputation (no flatc available) ----
+
+    /** @see #TITLE_GAP */
+    public static int getTitleGapConstant() { return TITLE_GAP; }
+
+    /** @see #TITLE_STYLE */
+    public static ResolvedTextStyle getTitleStyle() { return TITLE_STYLE; }
+
+    /** @see #LEGEND_LABEL_STYLE */
+    public static ResolvedTextStyle getLegendLabelStyle() { return LEGEND_LABEL_STYLE; }
+
+    /** @see #LEGEND_SWATCH_SIZE */
+    public static int getLegendSwatchSize() { return LEGEND_SWATCH_SIZE; }
+
+    /** @see #LEGEND_SWATCH_TEXT_GAP */
+    public static int getLegendSwatchTextGap() { return LEGEND_SWATCH_TEXT_GAP; }
 
     @Getter
     private final List<FunctionPlot> plots = new ArrayList<>();
@@ -197,16 +214,6 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
 
     public void setQuadrantMask(int mask) {
         this.explicitQuadrantMask = mask & 0xF;
-    }
-
-    @Override
-    public int getExplicitWidth() {
-        return explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH;
-    }
-
-    @Override
-    public int getExplicitHeight() {
-        return explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT;
     }
 
     @Override

@@ -34,6 +34,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ChartData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.FunctionGraphData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.GuidebookSceneData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData;
@@ -45,6 +46,8 @@ import com.hfstudio.guidenh.guide.layout.flatbuffers.TextData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionPlot;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -87,6 +90,7 @@ public final class LayoutNodeSerializer {
             ? buildChartData(fbb, block) : 0;
         int structureViewDataOff = nodeType == 26 ? buildStructureViewData(fbb, block) : 0;
         int guidebookSceneDataOff = nodeType == 27 ? buildGuidebookSceneData(fbb, block) : 0;
+        int functionGraphDataOff = nodeType == 28 ? buildFunctionGraphData(fbb, block) : 0;
         byte customLayout = 0;
 
         int childrenVec = buildChildrenVector(fbb, childIndices);
@@ -106,10 +110,12 @@ public final class LayoutNodeSerializer {
             pieChartOff,
             chartDataOff,
             structureViewDataOff,
-            guidebookSceneDataOff);
+            guidebookSceneDataOff,
+            functionGraphDataOff);
     }
 
     static byte resolveNodeType(LytBlock block) {
+        if (block instanceof LytFunctionGraph) return 28;
         if (block instanceof LytGuidebookScene) return 27;
         if (block instanceof LytStructureView) return 26;
         if (block instanceof LytPieChart) return 21;
@@ -647,6 +653,58 @@ public final class LayoutNodeSerializer {
             bottomDock,
             bottomControlAreaHeight,
             reserveBottomControl);
+    }
+
+    private static int buildFunctionGraphData(FlatBufferBuilder fbb, LytBlock block) {
+        float baseWidth = LytFunctionGraph.DEFAULT_WIDTH;
+        float baseHeight = LytFunctionGraph.DEFAULT_HEIGHT;
+        float titleChrome = 0;
+        float legendRowHeight = 0;
+        float[] labelItemWidths = new float[0];
+
+        if (block instanceof LytFunctionGraph graph) {
+            int ew = graph.getExplicitWidth();
+            int eh = graph.getExplicitHeight();
+            baseWidth = ew > 0 ? ew : LytFunctionGraph.DEFAULT_WIDTH;
+            baseHeight = eh > 0 ? eh : LytFunctionGraph.DEFAULT_HEIGHT;
+
+            // titleChrome = lineHeight(TITLE_STYLE) + TITLE_GAP, or 0 if no title
+            String title = graph.getTitle();
+            if (title != null && !title.isEmpty()) {
+                int titleLineHeight = GuideText.lineHeight(LytFunctionGraph.getTitleStyle());
+                titleChrome = titleLineHeight + LytFunctionGraph.getTitleGapConstant();
+            }
+
+            // Legend item widths and row height
+            List<FunctionPlot> plots = graph.getPlots();
+            int swatchSize = LytFunctionGraph.getLegendSwatchSize();
+            int swatchTextGap = LytFunctionGraph.getLegendSwatchTextGap();
+            legendRowHeight = Math.max(swatchSize,
+                GuideText.lineHeight(LytFunctionGraph.getLegendLabelStyle()));
+            labelItemWidths = new float[plots.size()];
+            boolean hasLabel = false;
+            for (int i = 0; i < plots.size(); i++) {
+                FunctionPlot plot = plots.get(i);
+                String label = plot.getLabel();
+                if (label != null && !label.isEmpty()) {
+                    int labelW = GuideText.measureWidth(label, LytFunctionGraph.getLegendLabelStyle());
+                    labelItemWidths[i] = swatchSize + swatchTextGap + labelW;
+                    hasLabel = true;
+                }
+            }
+            if (!hasLabel) {
+                legendRowHeight = 0; // suppress legend entirely — no labels
+            }
+        }
+
+        int labelWidthsVec = FunctionGraphData.createLabelItemWidthsVector(fbb, labelItemWidths);
+        return FunctionGraphData.createFunctionGraphData(
+            fbb,
+            baseWidth,
+            baseHeight,
+            titleChrome,
+            legendRowHeight,
+            labelWidthsVec);
     }
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {

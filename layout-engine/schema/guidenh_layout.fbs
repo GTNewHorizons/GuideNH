@@ -236,6 +236,25 @@ table StructureViewData {
   view_height: float;
 }
 
+/// Function graph sizing data (node_type 28).
+/// Mirrors LytFunctionGraph.computeLayout term for term.
+/// Minecraft-dependent values (label widths, line heights) are precomputed
+/// by Java; Rust applies the responsive formula (scale_width, legend
+/// wrapping, scale_body_height_for_width) with available_width and visual_scale.
+table FunctionGraphData {
+  /// Intrinsic base width: explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH.
+  base_width: float;
+  /// Intrinsic base height: explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT.
+  base_height: float;
+  /// lineHeight(TITLE_STYLE) + TITLE_GAP if title present and non-empty, else 0.
+  title_chrome: float;
+  /// Row height for legend wrapping: max(LEGEND_SWATCH_SIZE, lineHeight(LEGEND_LABEL_STYLE)).
+  legend_row_height: float;
+  /// Per-plot legend item widths (0 for plots without labels):
+  /// LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP + measureWidth(label, style).
+  label_item_widths: [float];
+}
+
 /// Guidebook scene sizing data (node_type 27).
 /// Mirrors LytGuidebookScene.computeLayout term for term.
 /// Minecraft-dependent values (block stats geometry, button visibility,
@@ -276,6 +295,7 @@ table FlatNode {
                                 // 7=Table 8=Latex 20=RecipeBox 21=PieChart 22=BarChart
                                 // 23=ColumnChart 24=LineChart 25=ScatterChart 26=StructureView
                                 // 27=GuidebookScene (Rust MeasureFunc)
+                                // 28=FunctionGraph (Rust MeasureFunc)
   text: TextData;
   image: ImageData;
   slot: SlotData;
@@ -289,6 +309,7 @@ table FlatNode {
   chart_data: ChartData;       // node_type 22: Cartesian chart sizing data (Bar/Column/Line/Scatter)
   structure_view_data: StructureViewData; // node_type 26: StructureView sizing data
   guidebook_scene_data: GuidebookSceneData; // node_type 27: GuidebookScene sizing data
+  function_graph_data: FunctionGraphData; // node_type 28: FunctionGraph sizing data
 }
 
 // ═══════════════════ measureLayout 输入/输出 ═══════════════════
