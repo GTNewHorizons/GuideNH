@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
@@ -313,7 +314,7 @@ public final class RenderPageService {
         if (parsed == null) {
             throw new RenderPageException(
                 RenderPageException.Stage.COMPILE,
-                "Page not found: " + req.pageId());
+                buildPageNotFoundMessage(guide, req.pageId()));
         }
         try {
             return PageCompiler.compile(guide, guide.getExtensions(), parsed);
@@ -359,6 +360,24 @@ public final class RenderPageService {
             throw new RenderPageException(
                 RenderPageException.Stage.COMPILE,
                 "Failed to compile mdFile " + mdFile, e);
+        }
+    }
+
+    /**
+     * Build a descriptive "page not found" message including the list of available page keys.
+     */
+    private static String buildPageNotFoundMessage(MutableGuide guide, String pageId) {
+        try {
+            var pages = guide.getPages();
+            String keyList = pages.stream()
+                .limit(30)
+                .map(p -> p.getId().toString())
+                .collect(Collectors.joining(", ", "[", "]"));
+            return "Page not found: " + pageId
+                + ". Available pages (" + pages.size() + " total): " + keyList;
+        } catch (IllegalStateException e) {
+            // pages collection is not loaded yet
+            return "Page not found: " + pageId + " (pages not loaded yet)";
         }
     }
 
