@@ -68,7 +68,7 @@ runConfigs.forEach { (taskName, path) ->
         providers.systemProperty("guidenh.headlessRender").orNull?.let {
             jvmArgs("-Dguidenh.headlessRender=$it")
         }
-        listOf("guide", "page", "md", "width", "out", "lang", "bounds", "overlay", "world", "scale").forEach { key ->
+        listOf("guide", "page", "md", "width", "out", "lang", "bounds", "overlay", "world", "scale", "allPages", "list").forEach { key ->
             providers.systemProperty("guidenh.renderpage.$key").orNull?.let {
                 jvmArgs("-Dguidenh.renderpage.$key=$it")
             }
