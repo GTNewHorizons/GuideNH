@@ -86,6 +86,11 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     /**
      * Returns the chrome height, computing it lazily if no layout pass has been run.
      * Uses {@link GuideText} static font metrics so it works without a {@link LayoutContext}.
+     * <p>
+     * NOTE: This is only used by the Java render path (computeLayout for scaling).
+     * The Rust measure path now computes chrome internally from the final width,
+     * using legend wrapping transplanted from {@link ChartLegendRenderer}.
+     * See the T6a fix in measure.rs for the Rust-side computation.
      */
     public int getChromeHeight() {
         if (chromeHeight <= 0) {
@@ -111,6 +116,57 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
             chrome += legendPosition == ChartLegendPosition.NONE ? 0 : LEGEND_GAP;
         }
         return chrome;
+    }
+
+    /**
+     * Returns the title chrome (lineHeight + TITLE_GAP), width-independent,
+     * for Rust-side chrome computation. 0 if no title is set.
+     */
+    public float getTitleChromeForRust() {
+        if (title != null && !title.isEmpty()) {
+            return GuideText.lineHeight(textStyle(titleColor)) + TITLE_GAP;
+        }
+        return 0f;
+    }
+
+    /**
+     * Returns the legend position as a byte matching the schema:
+     * 0=NONE, 1=TOP, 2=BOTTOM, 3=LEFT, 4=RIGHT.
+     */
+    public byte getLegendPositionForRust() {
+        return switch (legendPosition) {
+            case TOP -> (byte) 1;
+            case BOTTOM -> (byte) 2;
+            case LEFT -> (byte) 3;
+            case RIGHT -> (byte) 4;
+            default -> (byte) 0;
+        };
+    }
+
+    /**
+     * Returns the legend row height (max of swatch size and line height)
+     * for Rust-side chrome computation.
+     */
+    public float getLegendRowHeightForRust() {
+        ResolvedTextStyle legendStyle = textStyle(0xFFCCCCCC);
+        int lineHeight = GuideText.lineHeight(legendStyle);
+        return Math.max(LEGEND_SWATCH_SIZE, lineHeight);
+    }
+
+    /**
+     * Returns per-legend-entry label widths for Rust-side chrome computation.
+     * Each entry's width = LEGEND_SWATCH_SIZE + SWATCH_TEXT_GAP + measureWidth(label, legendStyle).
+     */
+    public float[] getLegendLabelWidthsForRust() {
+        List<ChartLegendRenderer.LegendEntry> entries = collectLegendEntries();
+        ResolvedTextStyle legendStyle = textStyle(0xFFCCCCCC);
+        float[] widths = new float[entries.size()];
+        for (int i = 0; i < entries.size(); i++) {
+            ChartLegendRenderer.LegendEntry entry = entries.get(i);
+            int labelW = GuideText.measureWidth(entry.name, legendStyle);
+            widths[i] = LEGEND_SWATCH_SIZE + ChartLegendRenderer.getSwatchTextGap() + labelW;
+        }
+        return widths;
     }
 
     public void setExplicitSize(int width, int height) {

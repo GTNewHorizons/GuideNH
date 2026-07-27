@@ -210,10 +210,17 @@ table PieChartData {
   /// total_height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT.
   /// Java-precomputed height baseline (before body scaling).
   total_height: float;
-  /// Chrome height precomputed by Java = estimateFixedChromeHeight(context, width).
-  /// Encodes title height + legend height + padding, all of which depend on
-  /// Minecraft font metrics available only on the Java side.
+  /// DEPRECATED: Rust now computes chrome internally from the final width w.
+  /// Kept for backward compatibility with old serialized data.
   chrome_height: float;
+  /// Title lineHeight(TITLE_STYLE) + TITLE_GAP; 0 if no title (width-independent).
+  title_chrome: float = 0.0;
+  /// Legend position: 0=NONE 1=TOP 2=BOTTOM 3=LEFT 4=RIGHT.
+  legend_position: byte = 0;
+  /// Row height for legend wrapping: max(LEGEND_SWATCH_SIZE, lineHeight(LEGEND_LABEL_STYLE)).
+  legend_row_height: float = 10.0;
+  /// Per-entry legend label widths: LEGEND_SWATCH_SIZE + SWATCH_TEXT_GAP + measureWidth(label, style).
+  legend_label_widths: [float];
 }
 
 /// Generic Cartesian chart sizing data (Bar/Column/Line/Scatter).
@@ -223,7 +230,17 @@ table PieChartData {
 table ChartData {
   preferred_width: float;
   total_height: float;
+  /// DEPRECATED: Rust now computes chrome internally from the final width w.
+  /// Kept for backward compatibility with old serialized data.
   chrome_height: float;
+  /// Title lineHeight(TITLE_STYLE) + TITLE_GAP; 0 if no title (width-independent).
+  title_chrome: float = 0.0;
+  /// Legend position: 0=NONE 1=TOP 2=BOTTOM 3=LEFT 4=RIGHT.
+  legend_position: byte = 0;
+  /// Row height for legend wrapping: max(LEGEND_SWATCH_SIZE, lineHeight(LEGEND_LABEL_STYLE)).
+  legend_row_height: float = 10.0;
+  /// Per-entry legend label widths: LEGEND_SWATCH_SIZE + SWATCH_TEXT_GAP + measureWidth(label, style).
+  legend_label_widths: [float];
 }
 
 /// Isometric structure view sizing data (node_type 26).

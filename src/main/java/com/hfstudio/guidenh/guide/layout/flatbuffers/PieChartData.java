@@ -45,22 +45,54 @@ public final class PieChartData extends Table {
         return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
     }
 
+    /** DEPRECATED: Rust computes chrome internally. */
     public float chromeHeight() {
         int o = __offset(8);
         return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
     }
 
-    public static int createPieChartData(FlatBufferBuilder builder, float preferredWidth, float totalHeight,
-        float chromeHeight) {
-        builder.startTable(3);
+    public float titleChrome() {
+        int o = __offset(10);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    public int legendPosition() {
+        int o = __offset(12);
+        return o != 0 ? bb.get(o + bb_pos) & 0xFF : 0;
+    }
+
+    public float legendRowHeight() {
+        int o = __offset(14);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 10.0f;
+    }
+
+    public float legendLabelWidths(int j) {
+        int o = __offset(16);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int legendLabelWidthsLength() {
+        int o = __offset(16);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public static int createPieChartData(FlatBufferBuilder builder,
+        float preferredWidth, float totalHeight, float chromeHeight,
+        float titleChrome, int legendPosition, float legendRowHeight,
+        int legendLabelWidthsOffset) {
+        builder.startTable(7);
+        PieChartData.addLegendLabelWidths(builder, legendLabelWidthsOffset);
+        PieChartData.addLegendRowHeight(builder, legendRowHeight);
+        PieChartData.addTitleChrome(builder, titleChrome);
         PieChartData.addChromeHeight(builder, chromeHeight);
         PieChartData.addTotalHeight(builder, totalHeight);
         PieChartData.addPreferredWidth(builder, preferredWidth);
+        PieChartData.addLegendPosition(builder, legendPosition);
         return PieChartData.endPieChartData(builder);
     }
 
     public static void startPieChartData(FlatBufferBuilder builder) {
-        builder.startTable(3);
+        builder.startTable(7);
     }
 
     public static void addPreferredWidth(FlatBufferBuilder builder, float preferredWidth) {
@@ -73,6 +105,32 @@ public final class PieChartData extends Table {
 
     public static void addChromeHeight(FlatBufferBuilder builder, float chromeHeight) {
         builder.addFloat(2, chromeHeight, 0.0f);
+    }
+
+    public static void addTitleChrome(FlatBufferBuilder builder, float titleChrome) {
+        builder.addFloat(3, titleChrome, 0.0f);
+    }
+
+    public static void addLegendPosition(FlatBufferBuilder builder, int legendPosition) {
+        builder.addByte(4, (byte) legendPosition, (byte) 0);
+    }
+
+    public static void addLegendRowHeight(FlatBufferBuilder builder, float legendRowHeight) {
+        builder.addFloat(5, legendRowHeight, 10.0f);
+    }
+
+    public static void addLegendLabelWidths(FlatBufferBuilder builder, int legendLabelWidthsOffset) {
+        builder.addOffset(6, legendLabelWidthsOffset, 0);
+    }
+
+    public static int createLegendLabelWidthsVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startLegendLabelWidthsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
     }
 
     public static int endPieChartData(FlatBufferBuilder builder) {

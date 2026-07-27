@@ -486,16 +486,26 @@ fn measure_recipe_box(nodes: &[FlatNode], idx: usize) -> Size<f32> {
 /// Shared chart measurement formula, extracted from LytChartBase.computeLayout.
 /// Used by both PieChart (node_type=21) via PieChartData and Cartesian charts
 /// (BarChart node_type=22, future Column/Line/Scatter) via ChartData.
+///
+/// Chrome height is now computed in Rust from the final width w, eliminating
+/// the T6a-found discrepancy where the Java lazy getter used unscaled
+/// preferredWidth for legend wrapping (T6a ticket: chromeHeight lazy 用未缩放宽度).
 fn chart_measurement(
     preferred_w: f32,
     total_h: f32,
-    chrome: f32,
+    title_chrome: f32,
+    legend_position: i8,
+    legend_row_height: f32,
+    legend_label_widths: &[f32],
     known: Size<Option<f32>>,
     available: Size<AvailableSpace>,
     visual_scale: f32,
 ) -> Size<f32> {
-    // Constants mirrored from LytChartBase: DEFAULT_WIDTH=320, DEFAULT_HEIGHT=200
-    // are already baked into the Java-precomputed preferred_width and total_height.
+    // Constants mirrored from LytChartBase:
+    const PADDING: f32 = 8.0;
+    const LEGEND_GAP: f32 = 6.0;
+    const LEGEND_ENTRY_GAP: f32 = 12.0;
+    const HORIZONTAL_ROW_GAP: f32 = 2.0;
     const MIN_PLOT_HEIGHT: f32 = 72.0;
 
     // Width formula — mirrors LytChartBase.computeLayout:
@@ -518,9 +528,32 @@ fn chart_measurement(
         }
     };
 
+    // Chrome height — Rust-computed from the final width w.
+    // Mirrors LytChartBase.estimateFixedChromeHeight:
+    //   chrome = PADDING * 2
+    //       + title_chrome  (Java-precomputed: lineHeight(titleStyle) + TITLE_GAP, 0 if no title)
+    //       + legendHeight  (only for TOP/BOTTOM legend)
+    //       + LEGEND_GAP    (if legend present and TOP/BOTTOM)
+    let content_w = (w - PADDING * 2.0).max(1.0);
+    let legend_h = chart_legend_height(
+        legend_row_height,
+        legend_label_widths,
+        content_w,
+        LEGEND_ENTRY_GAP,
+        HORIZONTAL_ROW_GAP,
+    );
+    let mut chrome = PADDING * 2.0;
+    chrome += title_chrome;
+    // Chrome includes legend_h (may be 0 when entries empty) + LEGEND_GAP
+    // when legend is TOP/BOTTOM, matching LytChartBase.estimateFixedChromeHeight
+    // which always adds LEGEND_GAP for TOP/BOTTOM regardless of legend height.
+    let has_legend = legend_position == 1 || legend_position == 2;
+    if has_legend {
+        chrome += legend_h + LEGEND_GAP;
+    }
+
     // Height formula — mirrors LytChartBase.computeLayout:
     //   totalHeight  = explicitH > 0 ? explicitH : DEFAULT_HEIGHT
-    //   chrome       = estimateFixedChromeHeight(context, width)  [Java-precomputed]
     //   bodyHeight   = max(1, totalHeight - clamp(chrome, 0, totalHeight - 1))
     //   scaledBody   = scaleHeightForWidth(preferredW, bodyHeight, width, MIN_PLOT_HEIGHT)
     //   height       = chrome + scaledBody
@@ -534,12 +567,54 @@ fn chart_measurement(
     Size { width: w, height: h }
 }
 
+/// Compute the total height of a horizontal (TOP/BOTTOM) legend given per-entry
+/// widths, row height, and layout constants. Mirrors
+/// ChartLegendRenderer.measureHorizontalLegendHeight term for term, including
+/// the first-item-no-gap rule and the computation:
+///   rows * rowHeight + max(0, rows-1) * rowGap
+fn chart_legend_height(
+    row_height: f32,
+    item_widths: &[f32],
+    available_width: f32,
+    entry_gap: f32,
+    row_gap: f32,
+) -> f32 {
+    if row_height <= 0.0 || item_widths.is_empty() {
+        return 0.0;
+    }
+    let mut rows: i32 = 1;
+    let mut row_w: f32 = 0.0;
+    for &item_w in item_widths {
+        if item_w <= 0.0 {
+            continue;
+        }
+        let needed = if row_w == 0.0 {
+            item_w
+        } else {
+            row_w + entry_gap + item_w
+        };
+        if row_w > 0.0 && needed > available_width {
+            rows += 1;
+            row_w = item_w;
+        } else {
+            row_w = needed;
+        }
+    }
+    // If rows stayed at 1 but no items had width > 0, return 0 (matching Java).
+    if row_w == 0.0 {
+        return 0.0;
+    }
+    rows as f32 * row_height + (rows - 1) as f32 * row_gap
+}
+
 /// Measure a pie chart (node_type = 21). The formula mirrors
 /// LytChartBase.computeLayout term for term, with Java-computed
-/// pixel values (chrome_height, preferred_width, total_height)
-/// provided via PieChartData. Pure-arithmetic helper functions
-/// (scale_width, scale_height_for_width) replicate
-/// ResponsiveVisualSizing on the Rust side.
+/// font-metric values (title_chrome, legend_row_height,
+/// legend_label_widths) provided via PieChartData. Chrome height
+/// is computed in Rust from the actual width, using the legend
+/// wrapping algorithm transplanted from ChartLegendRenderer.
+/// Pure-arithmetic helper functions (scale_width, scale_height_for_width)
+/// replicate ResponsiveVisualSizing on the Rust side.
 fn measure_pie_chart(
     nodes: &[FlatNode],
     idx: usize,
@@ -553,10 +628,21 @@ fn measure_pie_chart(
         None => return Size::ZERO,
     };
 
+    // Collect legend label widths from FlatBuffer vector into a Vec<f32>.
+    // This is needed because chart_measurement operates on &[f32] and the
+    // flatbuffers Vector does not implement Deref<Target=[f32]>.
+    let widths: Vec<f32> = pd
+        .legend_label_widths()
+        .map(|v| (0..v.len()).map(|i| v.get(i)).collect())
+        .unwrap_or_default();
+
     chart_measurement(
         pd.preferred_width(),
         pd.total_height(),
-        pd.chrome_height(),
+        pd.title_chrome(),
+        pd.legend_position(),
+        pd.legend_row_height(),
+        &widths,
         known,
         available,
         visual_scale,
@@ -565,9 +651,9 @@ fn measure_pie_chart(
 
 /// Measure a Cartesian chart (node_type = 22: BarChart, future Column/Line/Scatter).
 /// Uses the same LytChartBase.computeLayout formula as PieChart, reading sizing
-/// data from the ChartData table instead. When a generic chart measurement function
-/// is established, Column/Line/Scatter wiring requires only a serializer mapping
-/// to node_type 22 with ChartData.
+/// data from the ChartData table instead. Chrome height is computed in Rust
+/// from the final width w, using the legend wrapping algorithm transplanted
+/// from ChartLegendRenderer.
 fn measure_chart(
     nodes: &[FlatNode],
     idx: usize,
@@ -581,10 +667,19 @@ fn measure_chart(
         None => return Size::ZERO,
     };
 
+    // Collect legend label widths from FlatBuffer vector into a Vec<f32>.
+    let widths: Vec<f32> = cd
+        .legend_label_widths()
+        .map(|v| (0..v.len()).map(|i| v.get(i)).collect())
+        .unwrap_or_default();
+
     chart_measurement(
         cd.preferred_width(),
         cd.total_height(),
-        cd.chrome_height(),
+        cd.title_chrome(),
+        cd.legend_position(),
+        cd.legend_row_height(),
+        &widths,
         known,
         available,
         visual_scale,

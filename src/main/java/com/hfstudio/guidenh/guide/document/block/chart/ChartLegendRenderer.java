@@ -22,6 +22,9 @@ public class ChartLegendRenderer {
     private static final int SWATCH_TEXT_GAP = 4;
     private static final int HORIZONTAL_ROW_GAP = 2;
 
+    /** Exposed for Rust-side chrome computation. */
+    public static int getSwatchTextGap() { return SWATCH_TEXT_GAP; }
+
     protected ChartLegendRenderer() {}
 
     /** A single legend entry. */

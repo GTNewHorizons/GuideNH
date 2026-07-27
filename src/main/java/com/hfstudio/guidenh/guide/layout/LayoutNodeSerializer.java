@@ -571,7 +571,10 @@ public final class LayoutNodeSerializer {
     private static int buildPieChartData(FlatBufferBuilder fbb, LytBlock block) {
         float preferredWidth = 0;
         float totalHeight = 0;
-        float chromeHeight = 0;
+        float titleChrome = 0;
+        byte legendPosition = 0;
+        float legendRowHeight = 10f;
+        float[] legendLabelWidths = new float[0];
 
         if (block instanceof LytPieChart chart) {
             // preferredWidth: mirrors LytChartBase.preferredWidth()
@@ -580,21 +583,32 @@ public final class LayoutNodeSerializer {
             // totalHeight: mirrors LytChartBase.computeLayout: explicitHeight or DEFAULT_HEIGHT
             int eh = chart.getExplicitHeight();
             totalHeight = eh > 0 ? eh : LytChartBase.DEFAULT_HEIGHT;
-            // chromeHeight: precomputed by Java during computeLayout and cached
-            chromeHeight = chart.getChromeHeight();
+            // New fields for Rust-side chrome computation (width-independent):
+            titleChrome = chart.getTitleChromeForRust();
+            legendPosition = chart.getLegendPositionForRust();
+            legendRowHeight = chart.getLegendRowHeightForRust();
+            legendLabelWidths = chart.getLegendLabelWidthsForRust();
         }
 
+        int widthsVec = PieChartData.createLegendLabelWidthsVector(fbb, legendLabelWidths);
         return PieChartData.createPieChartData(
             fbb,
             preferredWidth,
             totalHeight,
-            chromeHeight);
+            0f, // chromeHeight — DEPRECATED, Rust computes internally
+            titleChrome,
+            legendPosition,
+            legendRowHeight,
+            widthsVec);
     }
 
     private static int buildChartData(FlatBufferBuilder fbb, LytBlock block) {
         float preferredWidth = 0;
         float totalHeight = 0;
-        float chromeHeight = 0;
+        float titleChrome = 0;
+        byte legendPosition = 0;
+        float legendRowHeight = 10f;
+        float[] legendLabelWidths = new float[0];
 
         if (block instanceof LytChartBase chart) {
             // preferredWidth: mirrors LytChartBase.preferredWidth()
@@ -603,15 +617,23 @@ public final class LayoutNodeSerializer {
             // totalHeight: mirrors LytChartBase.computeLayout: explicitHeight or DEFAULT_HEIGHT
             int eh = chart.getExplicitHeight();
             totalHeight = eh > 0 ? eh : LytChartBase.DEFAULT_HEIGHT;
-            // chromeHeight: precomputed by Java during computeLayout and cached
-            chromeHeight = chart.getChromeHeight();
+            // New fields for Rust-side chrome computation (width-independent):
+            titleChrome = chart.getTitleChromeForRust();
+            legendPosition = chart.getLegendPositionForRust();
+            legendRowHeight = chart.getLegendRowHeightForRust();
+            legendLabelWidths = chart.getLegendLabelWidthsForRust();
         }
 
+        int widthsVec = ChartData.createLegendLabelWidthsVector(fbb, legendLabelWidths);
         return ChartData.createChartData(
             fbb,
             preferredWidth,
             totalHeight,
-            chromeHeight);
+            0f, // chromeHeight — DEPRECATED, Rust computes internally
+            titleChrome,
+            legendPosition,
+            legendRowHeight,
+            widthsVec);
     }
 
     private static int buildStructureViewData(FlatBufferBuilder fbb, LytBlock block) {
