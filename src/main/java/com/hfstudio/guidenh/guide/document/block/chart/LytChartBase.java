@@ -78,9 +78,40 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     /**
      * Chrome height (title + legend + padding), cached during {@link #computeLayout}
      * for serialization into PieChartData.
+     * Computed lazily when accessed and still zero (no pre-pass), using static
+     * font metrics via {@link GuideText} instead of {@link LayoutContext}.
      */
-    @Getter
     private int chromeHeight;
+
+    /**
+     * Returns the chrome height, computing it lazily if no layout pass has been run.
+     * Uses {@link GuideText} static font metrics so it works without a {@link LayoutContext}.
+     */
+    public int getChromeHeight() {
+        if (chromeHeight <= 0) {
+            chromeHeight = computeChromeHeightForWidth(preferredWidth());
+        }
+        return chromeHeight;
+    }
+
+    /**
+     * Computes chrome height purely from block fields and static font metrics.
+     * Does NOT require a {@link LayoutContext}, so it works even without the
+     * Java layout pre-pass having been run.
+     */
+    private int computeChromeHeightForWidth(int width) {
+        int chrome = PADDING * 2;
+        if (title != null && !title.isEmpty()) {
+            chrome += GuideText.lineHeight(textStyle(titleColor)) + TITLE_GAP;
+        }
+        int contentWidth = Math.max(1, width - PADDING * 2);
+        chrome += ChartLegendRenderer
+            .measureHeightStatic(collectLegendEntries(), legendPosition, contentWidth);
+        if (legendPosition == ChartLegendPosition.TOP || legendPosition == ChartLegendPosition.BOTTOM) {
+            chrome += legendPosition == ChartLegendPosition.NONE ? 0 : LEGEND_GAP;
+        }
+        return chrome;
+    }
 
     public void setExplicitSize(int width, int height) {
         this.explicitWidth = width > 0 ? width : -1;

@@ -223,6 +223,31 @@ public class ChartLegendRenderer {
             textStyle);
     }
 
+    /**
+     * Version without {@link LayoutContext}; uses guide-level static font metrics
+     * ({@link GuideText#lineHeight} / {@link GuideText#measureWidth}) so it can
+     * be called from a lazy getter when the Java layout pre-pass has not run.
+     * The result is equivalent to {@link #measureHeight} for serialization purposes.
+     */
+    public static int measureHeightStatic(List<LegendEntry> entries, ChartLegendPosition position,
+        int availableWidth) {
+        if (entries == null || entries.isEmpty() || position == null || position == ChartLegendPosition.NONE) {
+            return 0;
+        }
+        if (position != ChartLegendPosition.TOP && position != ChartLegendPosition.BOTTOM) {
+            return 0;
+        }
+        ResolvedTextStyle textStyle = LytChartBase.textStyle(0xFFCCCCCC);
+        return measureHorizontalLegendHeight(
+            entries,
+            position,
+            Math.max(1, availableWidth),
+            (text, style) -> GuideText.measureWidth(text, style),
+            GuideText.lineHeight(textStyle),
+            LytChartBase.LEGEND_SWATCH_SIZE,
+            textStyle);
+    }
+
     private static int measureHorizontalLegendHeight(List<LegendEntry> entries, ChartLegendPosition position,
         int availableWidth, TextWidthMeasure textWidthMeasure, int lineHeight, int swatch,
         ResolvedTextStyle textStyle) {

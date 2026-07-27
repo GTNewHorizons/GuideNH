@@ -117,6 +117,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             definition = result.definition();
             visibilityCache = null;
             currentVisibleCount = resolveDefaultVisibleCount(result);
+            maxPrecomputedContentHeight = 0;
         }
     }
 
@@ -132,6 +133,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
 
     public void setRows(int rows) {
         this.rows = Math.max(1, rows);
+        maxPrecomputedContentHeight = 0;
     }
 
     public void setEmptyText(String emptyText) {
@@ -142,9 +144,52 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
      * Returns the precomputed max column content height (tallest column's content,
      * excluding TOP_PADDING and BOTTOM_PADDING). Used by the Rust MeasureFunc.
      * Equals ENTRY_HEIGHT when the visible result is empty.
+     * <p>
+     * Computed lazily when the cached value is zero (no layout pre-pass has run,
+     * or state was invalidated). Uses {@link #estimateEntryHeight} so no
+     * {@link LayoutContext} is needed.
      */
     public int getMaxPrecomputedContentHeight() {
+        if (maxPrecomputedContentHeight <= 0) {
+            maxPrecomputedContentHeight = computeMaxPrecomputedContentHeight();
+        }
         return maxPrecomputedContentHeight;
+    }
+
+    /**
+     * Computes max column content height from block state alone, without
+     * requiring a {@link LayoutContext}. Falls back to {@link #estimateEntryHeight}
+     * for entry heights (which does not need text-width measurement).
+     */
+    private int computeMaxPrecomputedContentHeight() {
+        MediaWikiSpecialPageResult visibleResult = applyVisibility(result, searchQuery);
+        int columnCount = resolveColumnCount(visibleResult);
+        int innerWidth = 0; // not used for height calculation with estimateEntryHeight
+
+        if (isEmpty(visibleResult)) {
+            return ENTRY_HEIGHT;
+        }
+
+        List<List<GroupLayout>> columns = layoutColumns(visibleResult);
+        int maxColumnHeight = 0;
+        for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
+            int columnY = 0;
+            for (GroupLayout group : columns.get(columnIndex)) {
+                if (group.title() != null) {
+                    columnY += HEADER_MARGIN_TOP + HEADER_HEIGHT + HEADER_MARGIN_BOTTOM;
+                }
+                for (MediaWikiSpecialListEntry entry : group.entries()) {
+                    columnY += estimateEntryHeight(entry);
+                    columnY += ENTRY_GAP;
+                }
+                columnY += GROUP_MARGIN;
+            }
+            maxColumnHeight = Math.max(maxColumnHeight, columnY);
+        }
+        if (visibleResult.hasMore()) {
+            maxColumnHeight += LOAD_MORE_MARGIN_TOP + LOAD_MORE_HEIGHT;
+        }
+        return maxColumnHeight;
     }
 
     public void setSearchQuery(String searchQuery) {
@@ -161,6 +206,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             currentVisibleCount = resolveDefaultVisibleCount(result);
         }
         visibilityCache = null;
+        maxPrecomputedContentHeight = 0;
         var document = getDocument();
         if (document != null) {
             document.invalidateLayout();
@@ -688,6 +734,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             Integer.MAX_VALUE - MediaWikiSpecialPageQuery.PAGE_SIZE,
             currentVisibleCount + MediaWikiSpecialPageQuery.PAGE_SIZE);
         visibilityCache = null;
+        maxPrecomputedContentHeight = 0;
         var document = getDocument();
         if (document != null) {
             document.invalidateLayout();

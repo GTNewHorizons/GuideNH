@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.latex.GuideLatexRenderer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
@@ -53,11 +54,11 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
     private final int offsetY;
 
     /** Formula display width in GUI pixels, recomputed each layout pass. */
-    @Getter
     private int formulaDisplayW;
     /** Formula display height in GUI pixels, recomputed each layout pass. */
-    @Getter
     private int formulaDisplayH;
+    /** True when lazy computation has been attempted (even if result is 0). */
+    private boolean formulaDisplayComputed;
     /** Vertical pixel offset inside the layout bounds, recomputed each layout pass. */
     private int renderYOffset;
     /**
@@ -89,8 +90,44 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         this.offsetY = options.offsetY();
     }
 
+    /**
+     * Returns the formula display width, computing it lazily if no layout pass has been run.
+     * Uses static font metrics via {@link GuideText} so it works without a {@link LayoutContext}.
+     */
+    public int getFormulaDisplayW() {
+        if (!formulaDisplayComputed) {
+            computeFormulaDisplay();
+        }
+        return formulaDisplayW;
+    }
+
+    /**
+     * Returns the formula display height, computing it lazily if no layout pass has been run.
+     * Uses static font metrics via {@link GuideText} so it works without a {@link LayoutContext}.
+     */
+    public int getFormulaDisplayH() {
+        if (!formulaDisplayComputed) {
+            computeFormulaDisplay();
+        }
+        return formulaDisplayH;
+    }
+
+    /** Lazy-compute formula display dimensions using static font metrics. */
+    private void computeFormulaDisplay() {
+        formulaDisplayComputed = true;
+        if (!resolveSourceMetrics()) {
+            formulaDisplayW = 0;
+            formulaDisplayH = 0;
+            return;
+        }
+        int lineHeight = GuideText.lineHeight(null);
+        formulaDisplayH = scaleSourceMetricCeil(sourceHeightPx, lineHeight);
+        formulaDisplayW = scaleSourceMetricCeil(sourceWidthPx, lineHeight);
+    }
+
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        formulaDisplayComputed = true;
         if (!resolveSourceMetrics()) {
             formulaDisplayW = 0;
             formulaDisplayH = 0;

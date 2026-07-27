@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.latex.GuideLatexRenderer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.token.DimensionValue;
@@ -55,11 +56,11 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
     private final int offsetY;
 
     /** Cached formula display width (pixels in GUI units), set during layout. */
-    @Getter
     private int formulaDisplayW;
     /** Cached formula display height (pixels in GUI units), set during layout. */
-    @Getter
     private int formulaDisplayH;
+    /** True when lazy computation has been attempted (even if result is 0). */
+    private boolean formulaDisplayComputed;
 
     public LytLatexDisplayBlock(String formula, int fillColorArgb, float sourceScale, float userScale,
         @Nullable GuideTooltip tooltip, int offsetX, int offsetY) {
@@ -85,8 +86,46 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
         this.offsetY = options.offsetY();
     }
 
+    /**
+     * Returns the formula display width, computing it lazily if no layout pass has been run.
+     * Uses static font metrics via {@link GuideText} so it works without a {@link LayoutContext}.
+     */
+    public int getFormulaDisplayW() {
+        if (!formulaDisplayComputed) {
+            computeFormulaDisplay();
+        }
+        return formulaDisplayW;
+    }
+
+    /**
+     * Returns the formula display height, computing it lazily if no layout pass has been run.
+     * Uses static font metrics via {@link GuideText} so it works without a {@link LayoutContext}.
+     */
+    public int getFormulaDisplayH() {
+        if (!formulaDisplayComputed) {
+            computeFormulaDisplay();
+        }
+        return formulaDisplayH;
+    }
+
+    /** Lazy-compute formula display dimensions using static font metrics. */
+    private void computeFormulaDisplay() {
+        formulaDisplayComputed = true;
+        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale);
+        if (size == null) {
+            formulaDisplayW = 0;
+            formulaDisplayH = 0;
+            return;
+        }
+        int lineHeight = GuideText.lineHeight(null);
+        int refH = GuideLatexRenderer.INSTANCE.calibrateRefHeight(sourceScale);
+        formulaDisplayH = (int) Math.max(1, Math.ceil((double) size[1] * lineHeight * userScale / refH));
+        formulaDisplayW = (int) Math.max(1, Math.ceil((double) size[0] * lineHeight * userScale / refH));
+    }
+
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        formulaDisplayComputed = true;
         int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale);
         if (size == null) {
             formulaDisplayW = 0;

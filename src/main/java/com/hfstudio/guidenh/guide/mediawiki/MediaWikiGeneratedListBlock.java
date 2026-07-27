@@ -73,10 +73,14 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
         if (entries != null) {
             this.entries.addAll(entries);
         }
+        // Invalidate precomputed height when entries change
+        this.maxPrecomputedContentHeight = 0;
     }
 
     public void setRows(int rows) {
         this.rows = MediaWikiListPlanner.sanitizeRows(rows);
+        // Invalidate precomputed height when row count changes
+        this.maxPrecomputedContentHeight = 0;
     }
 
     public void setEmptyText(String emptyText) {
@@ -87,9 +91,45 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
      * Returns the precomputed max column content height (tallest column's content,
      * excluding TOP_PADDING and BOTTOM_PADDING). Used by the Rust MeasureFunc.
      * Equals ROW_HEIGHT when entries is empty.
+     * <p>
+     * Computed lazily when no layout pass has been run (value is 0). The
+     * calculation depends only on block fields ({@link #entries}, {@link #rows})
+     * and constants — not on a {@link LayoutContext} — so it works without the
+     * Java layout pre-pass.
      */
     public int getMaxPrecomputedContentHeight() {
+        if (maxPrecomputedContentHeight <= 0) {
+            maxPrecomputedContentHeight = computeMaxPrecomputedContentHeight();
+        }
         return maxPrecomputedContentHeight;
+    }
+
+    /**
+     * Computes the max column content height from block state alone (no
+     * {@link LayoutContext} needed). The height is independent of availableWidth
+     * because column packing uses <em>row count</em> (not pixel width) to
+     * distribute entries; each entry occupies a fixed {@link #ROW_HEIGHT}.
+     */
+    private int computeMaxPrecomputedContentHeight() {
+        if (entries.isEmpty()) {
+            return ROW_HEIGHT;
+        }
+        int columnCount = Math.max(1, rows);
+        List<MediaWikiListPlanner.MediaWikiListColumn> columns =
+            MediaWikiListPlanner.planColumns(entries, columnCount);
+        int maxColumnHeight = 0;
+        for (MediaWikiListPlanner.MediaWikiListColumn column : columns) {
+            int columnHeight = 0;
+            for (MediaWikiListPlanner.MediaWikiListSection section : column.sections()) {
+                if (!section.entries().isEmpty()) {
+                    columnHeight += SECTION_GAP_TOP;
+                }
+                columnHeight += HEADER_HEIGHT + SECTION_GAP_BOTTOM;
+                columnHeight += section.entries().size() * ROW_HEIGHT;
+            }
+            maxColumnHeight = Math.max(maxColumnHeight, columnHeight);
+        }
+        return maxColumnHeight;
     }
 
     @Override
