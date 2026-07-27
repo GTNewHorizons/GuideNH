@@ -21,6 +21,10 @@ pub struct GlyphAccum {
     pub markers: Vec<InlineMarker>,
     /// Float-aligned inline block anchors: (flat_node_index, paragraph-relative y).
     pub float_anchors: Vec<(usize, f32)>,
+    /// (x_off, line_width) of the last line's full float-compressed window
+    /// (paragraph-relative). None for empty paragraphs. Used by separator
+    /// line (kind=3 DecorationRect) for heading paragraphs.
+    pub last_line_window: Option<(f32, f32)>,
 }
 
 /// One inline-block anchor in paragraph-local coordinates: pen position on
@@ -223,8 +227,9 @@ pub(crate) fn measure_text(
         .map(|v| v.iter().map(|x| x as usize).collect())
         .unwrap_or_default();
 
-    let (shaped_glyphs, shaped_markers, shaped_h, shaped_max_x, shaped_floor, shaped_float_anchors) =
+    let (shaped_glyphs, shaped_markers, shaped_h, shaped_max_x, shaped_floor, shaped_float_anchors, shaped_last_window) =
         if !breaks.is_empty() && inlines.is_empty() {
+            let mut last_window: Option<(f32, f32)> = None;
             let mut bounds: Vec<usize> = Vec::with_capacity(breaks.len() + 2);
             bounds.push(0);
             for &b in &breaks {
@@ -309,8 +314,10 @@ pub(crate) fn measure_text(
                     (Some(a), Some(b)) => Some(a.max(b)),
                     (a, b) => a.or(b),
                 };
+                // Track last segment's window for the separator-line mechanism
+                last_window = shaped.last_line_window;
             }
-            (all_glyphs, all_markers, acc_h, max_x, floor, Vec::new())
+            (all_glyphs, all_markers, acc_h, max_x, floor, Vec::new(), last_window)
         } else {
             let req = crate::parley_text::ShapeRequest {
                 text,
@@ -333,7 +340,7 @@ pub(crate) fn measure_text(
             if !shaped.markers.is_empty() {
                 h += inline_line_growth(nodes, idx, &shaped.markers);
             }
-            (shaped.glyphs, shaped.markers, h, shaped.max_x, shaped.clear_floor, shaped.float_anchors)
+            (shaped.glyphs, shaped.markers, h, shaped.max_x, shaped.clear_floor, shaped.float_anchors, shaped.last_line_window)
         };
 
     acc.insert(
@@ -342,6 +349,7 @@ pub(crate) fn measure_text(
             glyphs: shaped_glyphs,
             markers: shaped_markers,
             float_anchors: shaped_float_anchors,
+            last_line_window: shaped_last_window,
         },
     );
 

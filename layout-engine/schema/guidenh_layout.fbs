@@ -111,6 +111,9 @@ table TextData {
                               // each piece independently (a hard break, not a whitespace char), so
                               // <br> works under any white-space mode and PRE_WRAP code bodies keep
                               // their line structure. Coordinates are in the break-free text.
+  separator: bool = false;    // T6b-4: heading paragraph (depth 1/2) — Rust emits a kind=3
+                              // DecorationRect for the last line's full float-compressed window
+                              // so Java can draw a themed separator across the real text area.
 }
 
 /// One in-paragraph clear break (`<br clear="..."/>`). `raw_offset` is the

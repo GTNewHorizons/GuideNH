@@ -365,7 +365,8 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
             glyphData = new GlyphRunData(
                 movedGroups,
                 moveRects(glyphData.backgrounds(), deltaX, deltaY),
-                moveRects(glyphData.lines(), deltaX, deltaY));
+                moveRects(glyphData.lines(), deltaX, deltaY),
+                moveRects(glyphData.separators(), deltaX, deltaY));
         }
     }
 

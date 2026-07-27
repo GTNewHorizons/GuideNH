@@ -323,6 +323,26 @@ pub fn compute_layout(
                 &mut fbb,
                 &mut decoration_offsets,
             );
+            // Emit separator-line window (kind=3) for heading paragraphs.
+            // The rect spans the full float-compressed line width, not just
+            // the glyph extents — Java LytHeading draws the themed separator
+            // across this interval.
+            if let Some((x_off, line_width)) = acc.last_line_window {
+                if flat_nodes[i].text().map(|t| t.separator()).unwrap_or(false) {
+                    decoration_offsets.push(DecorationRect::create(
+                        &mut fbb,
+                        &DecorationRectArgs {
+                            node: i as u32,
+                            x: x + x_off,
+                            y: 0.0,
+                            w: line_width,
+                            h: 0.0,
+                            argb: 0,
+                            kind: 3,
+                        },
+                    ));
+                }
+            }
         }
     }
 
@@ -769,7 +789,7 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
         .next()
         .map(|l| l.metrics().baseline - l.metrics().block_min_coord)
         .unwrap_or(scaled);
-    let (glyphs, _markers, max_x, _content_height, _clear_floor) =
+    let (glyphs, _markers, max_x, _content_height, _clear_floor, _last_window) =
         crate::parley_text::collect_layout(&layout, &[], 0.0, 0.0, max_w.unwrap_or(f32::MAX), &[]);
     let (quads, bitmaps) = crate::parley_text::rasterize_out_glyphs(&glyphs, render_scale);
 

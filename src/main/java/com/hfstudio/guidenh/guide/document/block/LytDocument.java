@@ -366,6 +366,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                 }
                 Map<Integer, List<GuideRenderPrimitive.FillRect>> backgroundsByNode = new HashMap<>();
                 Map<Integer, List<GuideRenderPrimitive.FillRect>> linesByNode = new HashMap<>();
+                Map<Integer, List<GuideRenderPrimitive.FillRect>> separatorsByNode = new HashMap<>();
                 int numDecorations = flatResult.decorationsLength();
                 for (int di = 0; di < numDecorations; di++) {
                     var d = flatResult.decorations(di);
@@ -376,9 +377,19 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                         Math.round(d.w()),
                         Math.round(d.h()),
                         (int) d.argb());
-                    (d.kind() == 0 ? backgroundsByNode : linesByNode)
-                        .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
-                        .add(rect);
+                    if (d.kind() == 3) {
+                        separatorsByNode
+                            .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                            .add(rect);
+                    } else if (d.kind() == 0) {
+                        backgroundsByNode
+                            .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                            .add(rect);
+                    } else {
+                        linesByNode
+                            .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                            .add(rect);
+                    }
                 }
                 for (var entry : runsByNode.entrySet()) {
                     LytNode node = serializer.getNodeByFlatIndex(entry.getKey());
@@ -387,7 +398,8 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                             new GlyphRunData(
                                 entry.getValue(),
                                 backgroundsByNode.getOrDefault(entry.getKey(), List.of()),
-                                linesByNode.getOrDefault(entry.getKey(), List.of())));
+                                linesByNode.getOrDefault(entry.getKey(), List.of()),
+                                separatorsByNode.getOrDefault(entry.getKey(), List.of())));
                         GuideDebugLog.warnAlways(
                             "Layout: set {} glyph groups on paragraph at flat index {}",
                             entry.getValue()

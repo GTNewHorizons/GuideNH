@@ -10,6 +10,7 @@ import com.google.flatbuffers.FlatBufferBuilder;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytFileTree;
+import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
 import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
@@ -284,8 +285,10 @@ public final class LayoutNodeSerializer {
             }
             breaksVec = TextData.createBreaksVector(fbb, bs);
         }
+        boolean separator = (block instanceof LytHeading heading)
+            && (heading.getDepth() == 1 || heading.getDepth() == 2);
         return TextData
-            .createTextData(fbb, strOff, styleOff, wsByte, inlineBlocksVec, 0, spansVec, 0, clearsVec, breaksVec);
+            .createTextData(fbb, strOff, styleOff, wsByte, inlineBlocksVec, 0, spansVec, 0, clearsVec, breaksVec, separator);
     }
 
     /** One text run with its resolved style, in document order. */

@@ -256,6 +256,11 @@ pub struct ParleyShaped {
     /// block (e.g. a callout) starts below the cleared float while this
     /// paragraph's box still hugs its text. `None` when no such clear applies.
     pub clear_floor: Option<f32>,
+    /// (x_off, line_width) of the last line in the paragraph, in paragraph-
+    /// relative coordinates. Used by the separator-line mechanism (kind=3
+    /// DecorationRect) so LytHeading draws a themed separator across the
+    /// float-compressed full line window.
+    pub last_line_window: Option<(f32, f32)>,
     /// Float-aligned inline block anchors: (flat_node_index, paragraph-relative y).
     /// The x coordinate is computed later in inline_post_pass from the block's
     /// align mode and the paragraph's content width.
@@ -302,7 +307,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         push_inlines(&mut b, req.inlines, &box_clean_idx, false);
         let mut layout = b.build(&clean);
         break_and_align(&mut layout, req);
-        let (glyphs, markers, max_x, h, floor) = collect_layout(
+        let (glyphs, markers, max_x, h, floor, last_window) = collect_layout(
             &layout, req.floats, req.para_abs_y, req.para_x, req.max_width, &clean_clears,
         );
         return ParleyShaped {
@@ -311,6 +316,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
             content_height: h,
             max_x,
             clear_floor: floor,
+            last_line_window: last_window,
             float_anchors: Vec::new(),
         };
     }
@@ -386,7 +392,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         layout
     };
 
-    let (glyphs, markers, max_x, content_height, clear_floor) = collect_layout(
+    let (glyphs, markers, max_x, content_height, clear_floor, last_window) = collect_layout(
         &layout2, &merged_floats, req.para_abs_y, req.para_x, req.max_width, &clean_clears,
     );
 
@@ -396,6 +402,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         content_height,
         max_x,
         clear_floor,
+        last_line_window: last_window,
         float_anchors: float_anchor_ys,
     }
 }
@@ -510,20 +517,21 @@ pub fn collect_layout(
     para_x: f32,
     max_width: f32,
     clears: &[(usize, u8)],
-) -> (Vec<OutGlyph>, Vec<crate::measure::InlineMarker>, f32, f32, Option<f32>) {
+    ) -> (Vec<OutGlyph>, Vec<crate::measure::InlineMarker>, f32, f32, Option<f32>, Option<(f32, f32)>) {
     let mut glyphs = Vec::new();
     let mut markers: Vec<(u64, crate::measure::InlineMarker)> = Vec::new();
     let mut max_x = 0.0f32;
     let mut clear_floor: Option<f32> = None; // absolute y later lines must not rise above
     let mut next_clear = 0usize;
     let mut content_h = 0.0f32;
+    let mut last_window: Option<(f32, f32)> = None;
     for (li, line) in layout.lines().enumerate() {
         let m = line.metrics();
         let tr = line.text_range();
         let orig_top_abs = para_abs_y + m.block_min_coord;
         let shift = clear_floor.map_or(0.0, |f| (f - orig_top_abs).max(0.0));
         let eff_top_abs = orig_top_abs + shift;
-        let (x_off, _) = if floats.is_empty() {
+        let (x_off, line_width) = if floats.is_empty() {
             (0.0, max_width)
         } else {
             // Same query as the breaker, but at the (possibly clear-dropped)
@@ -570,6 +578,7 @@ pub fn collect_layout(
             }
         }
         content_h = content_h.max(eff_top_abs + m.line_height - para_abs_y);
+        last_window = Some((x_off, line_width));
         // A clear takes effect after the line that covers its offset: the break
         // sits at/after that line's text, so the line itself is not dropped but
         // everything following it is.
@@ -607,6 +616,7 @@ pub fn collect_layout(
         max_x,
         content_h,
         clear_floor,
+        last_window,
     )
 }
 
