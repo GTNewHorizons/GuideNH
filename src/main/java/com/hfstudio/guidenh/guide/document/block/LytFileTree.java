@@ -53,8 +53,26 @@ public class LytFileTree extends LytBlock {
             container.append(iconBlock);
         }
         container.append(payload);
+        // Indentation as margin-left on the row container (previously set in
+        // computeLayout — moved here so the margin is available for serialization
+        // even after the Java layout pre-pass is removed).
+        int marginLeft = slots.size() * indentPx;
+        container.setMarginLeft(marginLeft);
+        // Gap between rows as margin-bottom (last-row gap cleared by
+        // finalizeRowGaps).
+        container.setMarginBottom(rowGapPx);
         rows.add(new Row(new ArrayList<>(slots), container));
         rowContainers.add(container);
+    }
+
+    /**
+     * Clear the bottom margin on the last row so no trailing gap is added.
+     * Call after all rows have been appended.
+     */
+    public void finalizeRowGaps() {
+        if (!rowContainers.isEmpty()) {
+            rowContainers.get(rowContainers.size() - 1).setMarginBottom(0);
+        }
     }
 
     public void setIndentPx(int indentPx) {
@@ -90,31 +108,23 @@ public class LytFileTree extends LytBlock {
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        // Margins are now set in appendRow / finalizeRowGaps.
+        // Children are laid out by the Rust layout engine — this method
+        // is retained for compatibility but is no longer called by the
+        // document pipeline (the Java layout pre-pass has been removed).
+        // If called directly, lay out children minimally.
         int currentY = y;
         int totalHeight = 0;
-
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);
             LytHBox container = row.container;
-
-            // Indentation as margin-left on the row container.
-            int marginLeft = row.slots.size() * indentPx;
-            container.setMarginLeft(marginLeft);
-            // Gap between rows as margin-bottom (except last row).
-            container.setMarginBottom(i < rows.size() - 1 ? rowGapPx : 0);
-
-            // Position the container and lay out its children (icon + payload).
+            int marginLeft = container.getMarginLeft();
             container.layout(context, x + marginLeft, currentY, availableWidth - marginLeft);
             LytRect rowBounds = container.getBounds();
             int rowHeight = Math.max(1, rowBounds.height());
             totalHeight += rowHeight;
-            currentY += rowHeight;
-            if (i < rows.size() - 1) {
-                currentY += rowGapPx;
-                totalHeight += rowGapPx;
-            }
+            currentY += rowHeight + container.getMarginBottom();
         }
-
         return new LytRect(x, y, availableWidth, totalHeight);
     }
 

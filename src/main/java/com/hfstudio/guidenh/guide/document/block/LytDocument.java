@@ -22,7 +22,6 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.LayoutTreeSerializer;
-import com.hfstudio.guidenh.guide.layout.Layouts;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutResult;
 import com.hfstudio.guidenh.guide.render.GlyphRunData;
 import com.hfstudio.guidenh.guide.render.GlyphRunGroup;
@@ -259,11 +258,8 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     }
 
     private Layout createLayout(LayoutContext context, int availableWidth) {
-        // Java layout pass: still needed so the serializer can read inline-block
-        // visual sizes and opaque-container bounds (SIZE_FROM_JAVA_BOUNDS). The
-        // Rust pipeline overwrites all geometry afterward.
-        Layouts.verticalLayout(context, blocks, 0, 0, availableWidth, 5, 5, 5, 5, 0, AlignItems.START);
-        context.clearFloats(true, true);
+        // The Java layout pre-pass has been removed. The tree is serialized
+        // without a pre-layout step; Rust is the sole authority for geometry.
 
         // --- Rust layout pipeline (sole authority for geometry) ---
         int contentHeight = 0;

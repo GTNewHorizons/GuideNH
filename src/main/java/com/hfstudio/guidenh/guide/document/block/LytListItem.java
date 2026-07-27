@@ -24,7 +24,19 @@ public class LytListItem extends LytVBox {
 
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
-        // Compute and cache the ordered item number once per layout pass.
+        // cachedOrderedNumber is computed in afterExternalLayout now (the
+        // Java layout pre-pass no longer calls computeLayout). Retain margin
+        // offset for direct layout() calls (internal use by parent blocks).
+        var margin = LEVEL_MARGIN;
+        var bounds = super.computeBoxLayout(context, x + margin, y, availableWidth - margin);
+        return bounds.expand(LEVEL_MARGIN, 0, 0, 0);
+    }
+
+    @Override
+    protected void afterExternalLayout() {
+        super.afterExternalLayout();
+        // Compute ordered item number from parent list (rendering reads
+        // cachedOrderedNumber; avoid sibling scan every frame).
         if (parent instanceof LytList list && list.isOrdered()) {
             int number = list.getStart();
             for (var child : list.getChildren()) {
@@ -35,9 +47,6 @@ public class LytListItem extends LytVBox {
         } else {
             cachedOrderedNumber = -1;
         }
-        var margin = LEVEL_MARGIN;
-        var bounds = super.computeBoxLayout(context, x + margin, y, availableWidth - margin);
-        return bounds.expand(LEVEL_MARGIN, 0, 0, 0);
     }
 
     @Override

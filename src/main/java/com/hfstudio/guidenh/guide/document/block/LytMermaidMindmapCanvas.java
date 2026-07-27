@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapLayoutMode;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
+import com.hfstudio.guidenh.guide.layout.FontMetrics;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
@@ -163,6 +164,28 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
             viewportWidth,
             innerViewportHeight);
         return new LytRect(x, y, safeWidth, viewportHeight);
+    }
+
+    @Override
+    protected void afterExternalLayout() {
+        // The Java layout pre-pass no longer calls computeLayout, so the
+        // diagram layout would never be computed. Compute it here from the
+        // Rust-computed bounds, using a GuideText-backed LayoutContext.
+        if (layout != null) return;
+        int safeWidth = preferredWidth > 0
+            ? Math.max(1, Math.min(preferredWidth, Math.max(1, bounds.width())))
+            : Math.max(1, bounds.width());
+        LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
+            @Override
+            public float getAdvance(int codePoint, ResolvedTextStyle s) {
+                return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
+            }
+            @Override
+            public int getLineHeight(ResolvedTextStyle s) {
+                return GuideText.lineHeight(s);
+            }
+        });
+        layout = buildLayout(fallbackCtx, safeWidth);
     }
 
     @Override

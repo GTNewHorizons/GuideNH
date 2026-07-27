@@ -133,44 +133,52 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
     }
 
     @Override
-    protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+    protected void afterExternalLayout() {
+        // Recompute row layouts from Rust-computed bounds (the Java pre-pass
+        // no longer calls computeLayout). Uses only block fields and constants
+        // — no LayoutContext needed (heights are fixed constants).
+        if (bounds.isEmpty()) return;
+        recomputeRowLayouts(bounds.x(), bounds.y(), bounds.width());
+    }
+
+    /** Shared row-layout computation used by both the pre-pass and afterExternalLayout. */
+    private void recomputeRowLayouts(int x, int y, int availableWidth) {
         rowLayouts.clear();
         hoveredRow = null;
-
         int columnCount = Math.max(1, rows);
         int innerWidth = Math.max(0, availableWidth - SIDE_PADDING * 2);
         int columnWidth = Math.max(1, (innerWidth - COLUMN_GAP * (columnCount - 1)) / columnCount);
-
         if (entries.isEmpty()) {
-            this.maxPrecomputedContentHeight = ROW_HEIGHT;
-            rowLayouts
-                .add(new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ROW_HEIGHT), null, null));
-            return new LytRect(x, y, availableWidth, TOP_PADDING + ROW_HEIGHT + BOTTOM_PADDING);
+            rowLayouts.add(
+                new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ROW_HEIGHT), null, null));
+            return;
         }
-
-        List<MediaWikiListPlanner.MediaWikiListColumn> columns = MediaWikiListPlanner.planColumns(entries, columnCount);
-        int maxColumnHeight = 0;
+        List<MediaWikiListPlanner.MediaWikiListColumn> columns =
+            MediaWikiListPlanner.planColumns(entries, columnCount);
         for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
             int columnX = x + SIDE_PADDING + columnIndex * (columnWidth + COLUMN_GAP);
             int columnY = y + TOP_PADDING;
-            for (MediaWikiListPlanner.MediaWikiListSection section : columns.get(columnIndex)
-                .sections()) {
-                if (!section.entries()
-                    .isEmpty()) {
-                    columnY += SECTION_GAP_TOP;
-                }
-                rowLayouts
-                    .add(new RowLayout(new LytRect(columnX, columnY, columnWidth, HEADER_HEIGHT), null, section.key()));
+            for (var section : columns.get(columnIndex).sections()) {
+                if (!section.entries().isEmpty()) columnY += SECTION_GAP_TOP;
+                rowLayouts.add(
+                    new RowLayout(new LytRect(columnX, columnY, columnWidth, HEADER_HEIGHT), null, section.key()));
                 columnY += HEADER_HEIGHT + SECTION_GAP_BOTTOM;
                 for (MediaWikiListEntry entry : section.entries()) {
-                    rowLayouts.add(new RowLayout(new LytRect(columnX, columnY, columnWidth, ROW_HEIGHT), entry, null));
+                    rowLayouts.add(
+                        new RowLayout(new LytRect(columnX, columnY, columnWidth, ROW_HEIGHT), entry, null));
                     columnY += ROW_HEIGHT;
                 }
             }
-            maxColumnHeight = Math.max(maxColumnHeight, columnY - y - TOP_PADDING);
         }
-        this.maxPrecomputedContentHeight = maxColumnHeight;
-        return new LytRect(x, y, availableWidth, TOP_PADDING + maxColumnHeight + BOTTOM_PADDING);
+    }
+
+    @Override
+    protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        recomputeRowLayouts(x, y, availableWidth);
+        // maxPrecomputedContentHeight has a lazy getter — it will be
+        // computed on demand if not set here.
+        return new LytRect(x, y, availableWidth,
+            TOP_PADDING + getMaxPrecomputedContentHeight() + BOTTOM_PADDING);
     }
 
     @Override

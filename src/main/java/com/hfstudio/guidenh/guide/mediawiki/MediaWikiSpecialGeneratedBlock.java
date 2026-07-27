@@ -21,6 +21,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.BorderRenderer;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.layout.FontMetrics;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
@@ -467,24 +468,28 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     }
 
     @Override
-    protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+    protected void afterExternalLayout() {
+        // Recompute row layouts from Rust-computed bounds (the Java pre-pass
+        // no longer calls computeLayout). Uses computeEntryHeight with a
+        // GuideText fallback LayoutContext (no real FontMetrics available).
+        if (bounds.isEmpty()) return;
+        recomputeRowLayouts(bounds.x(), bounds.y(), bounds.width());
+    }
+
+    /** Shared row-layout computation for both the pre-pass and afterExternalLayout. */
+    private void recomputeRowLayouts(int x, int y, int availableWidth) {
         rowLayouts.clear();
         hoveredRow = null;
-
         MediaWikiSpecialPageResult visibleResult = applyVisibility(result, searchQuery);
         int columnCount = resolveColumnCount(visibleResult);
         int innerWidth = Math.max(0, availableWidth - SIDE_PADDING * 2);
         int columnWidth = Math.max(1, (innerWidth - COLUMN_GAP * (columnCount - 1)) / columnCount);
-
         if (isEmpty(visibleResult)) {
-            this.maxPrecomputedContentHeight = ENTRY_HEIGHT;
-            rowLayouts
-                .add(new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ENTRY_HEIGHT), null));
-            return new LytRect(x, y, availableWidth, TOP_PADDING + ENTRY_HEIGHT + BOTTOM_PADDING);
+            rowLayouts.add(
+                new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ENTRY_HEIGHT), null));
+            return;
         }
-
         List<List<GroupLayout>> columns = layoutColumns(visibleResult);
-        int maxColumnHeight = 0;
         for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
             int columnX = x + SIDE_PADDING + columnIndex * (columnWidth + COLUMN_GAP);
             int columnY = y + TOP_PADDING;
@@ -497,7 +502,17 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     columnY += HEADER_MARGIN_TOP + HEADER_HEIGHT + HEADER_MARGIN_BOTTOM;
                 }
                 for (MediaWikiSpecialListEntry entry : group.entries()) {
-                    int entryHeight = computeEntryHeight(context, entry, columnWidth);
+                    int entryHeight = computeEntryHeight(
+                        new LayoutContext(new FontMetrics() {
+                            @Override
+                            public float getAdvance(int cp, ResolvedTextStyle s) {
+                                return GuideText.measureWidth(new String(Character.toChars(cp)), s);
+                            }
+                            @Override
+                            public int getLineHeight(ResolvedTextStyle s) {
+                                return GuideText.lineHeight(s);
+                            }
+                        }), entry, columnWidth);
                     rowLayouts.add(
                         new RowLayout(
                             new LytRect(columnX, columnY, columnWidth, entryHeight),
@@ -514,9 +529,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 }
                 columnY += GROUP_MARGIN;
             }
-            maxColumnHeight = Math.max(maxColumnHeight, columnY - y - TOP_PADDING);
         }
         if (visibleResult.hasMore()) {
+            int maxColumnHeight = rowLayouts.stream()
+                .mapToInt(rl -> rl.bounds().bottom() - y)
+                .max().orElse(0);
             rowLayouts.add(
                 new RowLayout(
                     new LytRect(
@@ -525,11 +542,16 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                         innerWidth,
                         LOAD_MORE_HEIGHT),
                     RenderRow.loadMore()));
-            maxColumnHeight += LOAD_MORE_MARGIN_TOP + LOAD_MORE_HEIGHT;
         }
-        this.maxPrecomputedContentHeight = maxColumnHeight;
+    }
 
-        return new LytRect(x, y, availableWidth, TOP_PADDING + maxColumnHeight + BOTTOM_PADDING);
+    @Override
+    protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        recomputeRowLayouts(x, y, availableWidth);
+        // maxPrecomputedContentHeight has a lazy getter — it will be
+        // computed on demand if not set here.
+        return new LytRect(x, y, availableWidth,
+            TOP_PADDING + getMaxPrecomputedContentHeight() + BOTTOM_PADDING);
     }
 
     @Override

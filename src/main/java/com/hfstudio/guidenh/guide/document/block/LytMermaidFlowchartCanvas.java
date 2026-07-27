@@ -278,6 +278,30 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     }
 
     @Override
+    protected void afterExternalLayout() {
+        // The Java layout pre-pass no longer calls computeLayout, so the
+        // diagram layout would never be computed. Compute it here from the
+        // Rust-computed bounds, using a GuideText-backed LayoutContext.
+        if (layout != null) return; // already computed (direct layout() call)
+        int safeWidth = preferredWidth > 0
+            ? Math.clamp(preferredWidth, 1, Math.max(1, bounds.width()))
+            : Math.max(1, bounds.width());
+        LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
+            @Override
+            public float getAdvance(int codePoint, com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
+                return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
+            }
+            @Override
+            public int getLineHeight(com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
+                return GuideText.lineHeight(s);
+            }
+        });
+        FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(document.getLayoutMode());
+        var minSizes = computeNodeMinSizes(fallbackCtx);
+        layout = strategy.layout(document, minSizes);
+    }
+
+    @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {}
 
     private @Nullable FlowchartEdge lookupEdge(String fromId, String toId, @Nullable String edgeId) {

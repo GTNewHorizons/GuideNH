@@ -77,6 +77,8 @@ public class LayoutTreeSerializer {
      * Filled from the Java-laid-out inner bounds at wrapper-elimination time.
      */
     private final List<FloatRect> floatRects = new ArrayList<>();
+    /** Available width (px) from the last serialize() — needed by flattenTree for table column layout. */
+    private float serializeAvailWidth;
 
     record FloatRect(LytRect rect, boolean right) {}
 
@@ -88,6 +90,7 @@ public class LayoutTreeSerializer {
         floatIntents.clear();
         columnWidths.clear();
         floatRects.clear();
+        this.serializeAvailWidth = availWidth;
 
         flattenTree(root);
 
@@ -110,20 +113,11 @@ public class LayoutTreeSerializer {
             List<Integer> childIndices = getChildIndices(block);
             int flags = LayoutStyleExtractor.Flags.NONE;
             byte nodeType = LayoutNodeSerializer.resolveNodeType(block);
-            if (childIndices.isEmpty() && nodeType != 1 && nodeType != 2 && nodeType != 3 && nodeType != 4
-                && nodeType != 8 && nodeType != 20 && nodeType != 21 && nodeType != 22
-                && nodeType != 23 && nodeType != 24 && nodeType != 25 && nodeType != 26 && nodeType != 27
-                && nodeType != 28 && nodeType != 29 && nodeType != 30
-                && !(block instanceof LytGuiSprite)) {
-                // Opaque leaf containers (charts, scenes, etc.) have no Rust
-                // measure function — reserve the box Java computed. Types with
-                // Rust measure (Text=1, Image=2, Slot=3, Break=4, Latex=8,
-                // RecipeBox=20, PieChart=21, StructureView=26,
-                // GuidebookScene=27, FunctionGraph=28) and LytGuiSprite
-                // (size from sprite UV constants) are excluded: Rust sizes them
-                // from declared content facts.
-                flags |= LayoutStyleExtractor.Flags.SIZE_FROM_JAVA_BOUNDS;
-            }
+            // SIZE_FROM_JAVA_BOUNDS was previously set for opaque leaf containers
+            // that had no Rust measure function. The Java layout pre-pass has been
+            // removed — opaque containers now declare their size through explicit
+            // dimensions or Rust-side measure functions. See Flag constant in
+            // LayoutStyleExtractor (kept as historical comment).
             var adj = new LayoutStyleExtractor.NodeAdjustments(
                 (int) mo.top(),
                 (int) mo.right(),
@@ -280,6 +274,12 @@ public class LayoutTreeSerializer {
                 pendingFloatSide = 0;
             }
             if (block instanceof LytTable table) {
+                // Column widths must be resolved before serialization so cells
+                // carry their column width constraint. The Java pre-pass is
+                // removed, so layoutColumns is called here with the available
+                // width from the serialize() parameter. (x=0 is safe — column.x
+                // is overwritten by Rust.)
+                table.layoutColumns(0, Math.round(serializeAvailWidth));
                 // Table cells keep the Java-computed COLUMN widths (the column
                 // model resolves preferred/flexible widths) so cell content
                 // wraps at the column width; heights are Rust-measured so

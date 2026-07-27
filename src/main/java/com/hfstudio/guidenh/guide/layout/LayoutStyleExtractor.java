@@ -28,8 +28,15 @@ public final class LayoutStyleExtractor {
     public static final class Flags {
 
         public static final int NONE = 0;
-        /** Fall back to the block's current Java-computed bounds when no explicit size is set. */
-        public static final int SIZE_FROM_JAVA_BOUNDS = 1 << 0;
+        /**
+         * Historical: SIZE_FROM_JAVA_BOUNDS = 1 &lt;&lt; 0 was used by the Java layout
+         * pre-pass to reserve Java-computed bounds for opaque containers. The
+         * pre-pass has been removed; opaque containers now declare size through
+         * explicit dimensions or Rust-side measure functions. The constant is
+         * kept as a comment-only symbol — any reference outside this comment
+         * should be treated as a bug.
+         */
+        // public static final int SIZE_FROM_JAVA_BOUNDS = 1 << 0;
 
         private Flags() {}
     }
@@ -87,16 +94,10 @@ public final class LayoutStyleExtractor {
         // (which declares the viewport height itself), so no container-level
         // size/overflow rule is needed here.
 
-        if ((flags & Flags.SIZE_FROM_JAVA_BOUNDS) != 0) {
-            // Leaf-serialized blocks have no Rust-measured content; their size
-            // must match the Java-computed flow bounds (available because
-            // serialization runs after the Java layout pass) so Rust reserves
-            // the same box. Flow bounds — not visual getBounds(): floats report
-            // a zero-height flow rect while their content visually overflows.
-            LytRect b = block.getFlowBounds();
-            if (explicitW <= 0 && b != null) explicitW = b.width();
-            if (explicitH <= 0 && b != null) explicitH = b.height();
-        }
+        // SIZE_FROM_JAVA_BOUNDS consumption branch removed (the Java layout
+        // pre-pass is gone). Opaque containers declare size through explicit
+        // dimensions or Rust-side measure functions. Flow-bounds fallback no
+        // longer applies — getFlowBounds() is retained for other callers.
 
         // Table cells keep their Java-resolved column width so cell content
         // wraps at the column width (column model not yet on taffy Grid).

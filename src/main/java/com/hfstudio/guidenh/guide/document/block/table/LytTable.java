@@ -130,7 +130,12 @@ public class LytTable extends LytBlock {
         return columns.get(index);
     }
 
-    private void layoutColumns(int x, int availableWidth) {
+    /**
+     * Distribute available width among columns. Called by the serializer
+     * (no longer by the Java pre-pass) so column widths are set before
+     * serialization. {@code x} is the table's left edge in document coords.
+     */
+    public void layoutColumns(int x, int availableWidth) {
         int innerWidth = Math.max(0, availableWidth - (columns.size() + 1) * CELL_BORDER);
         int totalPreferredWidth = 0;
         int flexibleColumns = 0;

@@ -118,6 +118,38 @@ public class LytContentTabsHeader extends LytBlock implements InteractiveElement
     }
 
     @Override
+    protected void afterExternalLayout() {
+        // Recompute tab hit rects from the Rust-computed bounds. The Java
+        // layout pre-pass no longer calls computeLayout, so tabBounds must
+        // be rebuilt here to stay valid for hit testing and rendering.
+        recomputeTabBounds();
+    }
+
+    private void recomputeTabBounds() {
+        tabBounds.clear();
+        int x = bounds.x();
+        int y = bounds.y();
+        int availableWidth = Math.max(1, bounds.width());
+        int cursorX = x;
+        int cursorY = y;
+        int rowHeight = 0;
+        int bottom = y;
+        for (String title : titles) {
+            int w = GuideText.measureWidth(title, IDLE_STYLE) + HEADER_PAD_X * 2;
+            int h = GuideText.lineHeight(IDLE_STYLE) + HEADER_PAD_TOP + HEADER_PAD_BOTTOM;
+            if (cursorX > x && cursorX + w > x + availableWidth) {
+                cursorX = x;
+                cursorY += rowHeight + HEADER_GAP_Y;
+                rowHeight = 0;
+            }
+            tabBounds.add(new LytRect(cursorX, cursorY, w, h));
+            cursorX += w + HEADER_GAP_X;
+            rowHeight = Math.max(rowHeight, h);
+            bottom = Math.max(bottom, cursorY + h);
+        }
+    }
+
+    @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
         for (int i = 0; i < tabBounds.size(); i++) {
             tabBounds.set(
