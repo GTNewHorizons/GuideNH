@@ -108,7 +108,8 @@ pub fn create_measure_closure<'a>(
              20 => (measure_recipe_box(flat_nodes, index), None),
              21 => (measure_pie_chart(flat_nodes, index, known, available, visual_scale), None),
               22 | 23 | 24 | 25 => (measure_chart(flat_nodes, index, known, available, visual_scale), None),
-            _ => (Size::ZERO, None),
+              26 => (measure_structure_view(flat_nodes, index, known, available, visual_scale), None),
+             _ => (Size::ZERO, None),
         };
         // Explicit style sizes win over content measurement (CSS behavior):
         // Taffy passes them in as known dimensions; honoring them is what lets
@@ -584,6 +585,47 @@ fn measure_chart(
         available,
         visual_scale,
     )
+}
+
+/// Measure an isometric structure view (node_type = 26). The formula mirrors
+/// LytStructureView.computeLayout term for term, with Java-precomputed
+/// view_width and view_height (setViewSize or DEFAULT_WIDTH/HEIGHT) provided
+/// via StructureViewData. Uses the shared scale_width/scale_height_for_width
+/// helpers that replicate ResponsiveVisualSizing on the Rust side.
+fn measure_structure_view(
+    nodes: &[FlatNode],
+    idx: usize,
+    known: Size<Option<f32>>,
+    available: Size<AvailableSpace>,
+    visual_scale: f32,
+) -> Size<f32> {
+    let node = &nodes[idx];
+    let sv = match node.structure_view_data() {
+        Some(d) => d,
+        None => return Size::ZERO,
+    };
+
+    let view_w = sv.view_width();
+    let view_h = sv.view_height();
+
+    // targetWidth = scaleWidth(viewWidth, visualScale, 32)
+    let target_w = scale_width(view_w, visual_scale, 32.0);
+    // width = clamp(targetWidth, 1, availableWidth)
+    let avail_w = match available.width {
+        AvailableSpace::Definite(a) => a,
+        _ => f32::MAX,
+    };
+    let w = target_w.max(1.0).min(avail_w);
+    // height = scaleHeightForWidth(viewWidth, viewHeight, width, 32)
+    let h = scale_height_for_width(view_w, view_h, w, 32.0);
+
+    // Explicit style sizes (known dimensions from Taffy) win over content
+    // measurement — the caller's known.unwrap_or already handles this for
+    // the general case, but we include the logic for clarity.
+    Size {
+        width: w,
+        height: h,
+    }
 }
 
 /// Mirrors ResponsiveVisualSizing.scaleWidth: apply a visual-scale factor

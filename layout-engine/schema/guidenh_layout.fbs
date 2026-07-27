@@ -226,6 +226,16 @@ table ChartData {
   chrome_height: float;
 }
 
+/// Isometric structure view sizing data (node_type 26).
+/// Mirrors LytStructureView.computeLayout: view_width/view_height are the
+/// block's intrinsic dimensions (setViewSize or DEFAULT_WIDTH/HEIGHT), used
+/// by the Rust measure function with visual_scale and available_width to
+/// compute the responsive box.
+table StructureViewData {
+  view_width: float;
+  view_height: float;
+}
+
 // ═══════════════════ 布局树节点 ═══════════════════
 
 table FlatNode {
@@ -233,6 +243,7 @@ table FlatNode {
   node_type: byte = 0;         // 0=Container 1=Text 2=Image 3=Slot
                                 // 4=ThematicBreak 5=Custom 6=FileTree
                                 // 7=Table 8=Latex 20=RecipeBox 21=PieChart 22=BarChart
+                                // 23=ColumnChart 24=LineChart 25=ScatterChart 26=StructureView
   text: TextData;
   image: ImageData;
   slot: SlotData;
@@ -244,6 +255,7 @@ table FlatNode {
   recipe_box: RecipeBoxData;   // node_type 20: NEI recipe box sizing data
   pie_chart: PieChartData;     // node_type 21: Pie chart sizing data
   chart_data: ChartData;       // node_type 22: Cartesian chart sizing data (Bar/Column/Line/Scatter)
+  structure_view_data: StructureViewData; // node_type 26: StructureView sizing data
 }
 
 // ═══════════════════ measureLayout 输入/输出 ═══════════════════

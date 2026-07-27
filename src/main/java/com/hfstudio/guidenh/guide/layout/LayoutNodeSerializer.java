@@ -24,6 +24,7 @@ import com.hfstudio.guidenh.guide.document.block.chart.LytLineChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytPieChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytScatterChart;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
+import com.hfstudio.guidenh.guide.document.block.LytStructureView;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -37,6 +38,7 @@ import com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.PieChartData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.RecipeBoxData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.StructureViewData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle;
@@ -81,6 +83,7 @@ public final class LayoutNodeSerializer {
         int pieChartOff = nodeType == 21 ? buildPieChartData(fbb, block) : 0;
         int chartDataOff = (nodeType == 22 || nodeType == 23 || nodeType == 24 || nodeType == 25)
             ? buildChartData(fbb, block) : 0;
+        int structureViewDataOff = nodeType == 26 ? buildStructureViewData(fbb, block) : 0;
         byte customLayout = 0;
 
         int childrenVec = buildChildrenVector(fbb, childIndices);
@@ -98,10 +101,12 @@ public final class LayoutNodeSerializer {
             childrenVec,
             recipeBoxOff,
             pieChartOff,
-            chartDataOff);
+            chartDataOff,
+            structureViewDataOff);
     }
 
     static byte resolveNodeType(LytBlock block) {
+        if (block instanceof LytStructureView) return 26;
         if (block instanceof LytPieChart) return 21;
         if (block instanceof LytBarChart) return 22;
         if (block instanceof LytColumnChart) return 23;
@@ -586,6 +591,18 @@ public final class LayoutNodeSerializer {
             preferredWidth,
             totalHeight,
             chromeHeight);
+    }
+
+    private static int buildStructureViewData(FlatBufferBuilder fbb, LytBlock block) {
+        float viewWidth = LytStructureView.DEFAULT_WIDTH;
+        float viewHeight = LytStructureView.DEFAULT_HEIGHT;
+
+        if (block instanceof LytStructureView sv) {
+            viewWidth = sv.getViewWidth();
+            viewHeight = sv.getViewHeight();
+        }
+
+        return StructureViewData.createStructureViewData(fbb, viewWidth, viewHeight);
     }
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {

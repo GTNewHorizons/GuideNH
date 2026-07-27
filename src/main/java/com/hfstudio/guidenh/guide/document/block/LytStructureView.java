@@ -46,19 +46,12 @@ public class LytStructureView extends LytBlock {
     // Invalidated whenever addBlock mutates the underlying list.
     private List<BlockEntry> sortedCache;
 
+    public int getViewWidth() { return viewWidth; }
+    public int getViewHeight() { return viewHeight; }
+
     public void setViewSize(int width, int height) {
         this.viewWidth = Math.max(32, width);
         this.viewHeight = Math.max(32, height);
-    }
-
-    @Override
-    public int getExplicitWidth() {
-        return viewWidth;
-    }
-
-    @Override
-    public int getExplicitHeight() {
-        return viewHeight;
     }
 
     public void addBlock(int x, int y, int z, ItemStack stack) {

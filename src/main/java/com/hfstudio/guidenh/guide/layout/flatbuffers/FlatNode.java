@@ -173,10 +173,21 @@ public final class FlatNode extends Table {
         return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
     }
 
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.StructureViewData structureViewData() {
+        return structureViewData(new com.hfstudio.guidenh.guide.layout.flatbuffers.StructureViewData());
+    }
+
+    public com.hfstudio.guidenh.guide.layout.flatbuffers.StructureViewData structureViewData(
+        com.hfstudio.guidenh.guide.layout.flatbuffers.StructureViewData obj) {
+        int o = __offset(30);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
     public static int createFlatNode(FlatBufferBuilder builder, int styleOffset, byte nodeType, int textOffset,
         int imageOffset, int slotOffset, int break_Offset, int customOffset, int latexOffset, byte customLayout,
-        int childrenOffset, int recipeBoxOffset, int pieChartOffset, int chartDataOffset) {
-        builder.startTable(13);
+        int childrenOffset, int recipeBoxOffset, int pieChartOffset, int chartDataOffset,
+        int structureViewDataOffset) {
+        builder.startTable(14);
         FlatNode.addChildren(builder, childrenOffset);
         FlatNode.addLatex(builder, latexOffset);
         FlatNode.addCustom(builder, customOffset);
@@ -184,6 +195,7 @@ public final class FlatNode extends Table {
         FlatNode.addSlot(builder, slotOffset);
         FlatNode.addImage(builder, imageOffset);
         FlatNode.addText(builder, textOffset);
+        FlatNode.addStructureViewData(builder, structureViewDataOffset);
         FlatNode.addChartData(builder, chartDataOffset);
         FlatNode.addPieChart(builder, pieChartOffset);
         FlatNode.addRecipeBox(builder, recipeBoxOffset);
@@ -194,7 +206,7 @@ public final class FlatNode extends Table {
     }
 
     public static void startFlatNode(FlatBufferBuilder builder) {
-        builder.startTable(13);
+        builder.startTable(14);
     }
 
     public static void addStyle(FlatBufferBuilder builder, int styleOffset) {
@@ -247,6 +259,10 @@ public final class FlatNode extends Table {
 
     public static void addChartData(FlatBufferBuilder builder, int chartDataOffset) {
         builder.addOffset(12, chartDataOffset, 0);
+    }
+
+    public static void addStructureViewData(FlatBufferBuilder builder, int structureViewDataOffset) {
+        builder.addOffset(13, structureViewDataOffset, 0);
     }
 
     public static int createChildrenVector(FlatBufferBuilder builder, long[] data) {
