@@ -444,9 +444,9 @@ public final class RenderPageService {
                 obj.addProperty("depth", depth);
                 target.add(obj);
             }
-            for (var child : block.getChildren()) {
-                walkBlocksForJson(child, depth + 1, target);
-            }
+        }
+        for (var child : node.getChildren()) {
+            walkBlocksForJson(child, depth + 1, target);
         }
     }
 
@@ -507,9 +507,9 @@ public final class RenderPageService {
                 g.setColor(new Color(OVERLAY_BORDER_COLORS[ci]));
                 g.drawString(String.valueOf(idx), bounds.x() + 2, bounds.y() + 12);
             }
-            for (var child : block.getChildren()) {
-                drawOverlayBlocks(g, child, depth + 1, counter);
-            }
+        }
+        for (var child : node.getChildren()) {
+            drawOverlayBlocks(g, child, depth + 1, counter);
         }
     }
 
