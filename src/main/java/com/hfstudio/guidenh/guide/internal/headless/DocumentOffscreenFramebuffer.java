@@ -116,6 +116,7 @@ public final class DocumentOffscreenFramebuffer {
             int prevDisplayWidth = minecraft.displayWidth;
             int prevDisplayHeight = minecraft.displayHeight;
             int prevGuiScale = minecraft.gameSettings.guiScale;
+            context.setZoom(scale);
 
             // ---- tile loop (in pixel space, scaled) -------------------------
             for (int tileY = 0; tileY < pxHeight; tileY += tileSize) {
@@ -159,8 +160,8 @@ public final class DocumentOffscreenFramebuffer {
                         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
                         // Shift document origin so HostDraw callbacks see the tile offset
-                        // Document-origin callback: doc units (tileX/scale, tileY/scale)
-                        context.setDocumentOrigin(-tileX / scale, -tileY / scale);
+                        // Document-origin callback: pixel units (-tileX, -tileY)
+                        context.setDocumentOrigin(-tileX, -tileY);
 
                         // Wrap primitives with scale + tile-offset transforms:
                         //   outer: PushTransform(0, 0, scale) — scales doc coords by N×
