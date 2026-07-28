@@ -1,7 +1,6 @@
 ---
 navigation:
   title: Mermaid Large Diagram
-  parent: visualtest/index.md
   position: 8150
 ---
 

@@ -1,7 +1,6 @@
 ---
 navigation:
   title: Mermaid NodeContent Rich Blocks
-  parent: visualtest/index.md
   position: 8160
 ---
 

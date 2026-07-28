@@ -11,17 +11,13 @@
 独立 guide 不可行。fixture 挂在自有资源包的 `assets/guidenh/guidenh/_en_us/visualtest/` 子树下，
 页面合并进 `guidenh:guidenh` 指南（仅开发期 -D 注入，不影响发布）。页面 id 规则：
 `guidenh:visualtest/<子文件夹>/<文件>.md`（如 `guidenh:visualtest/mermaid/mindmap.md`）。
-frontmatter 的 parent 一律写 `visualtest/index.md`（语料子树根），visualtest/index.md 的 parent 为 `index.md`。
+frontmatter **不写 parent**（实证：parent 按页面所在文件夹相对解析，写 `visualtest/index.md` 会被解析成 `visualtest/<子文件夹>/visualtest/index.md` 报 unknown parent；visualtest/index.md 写 `parent: index.md` 会自指成 cycle，疑似阻塞启动链）。fixture 页全部省略 parent，渲染按页面 id 进行，导航树形态对 fixture 无意义。
 
 ```bash
-# 渲染语料库指定页面（--list 逗号分隔；allPages 会连主指南一起渲染，不用）
-./gradlew runClient25 \
-  -Dguidenh.guide.sources=D:/Projects/GuideNH/visualtest/resourcepack \
-  -Dguidenh.headlessRender=true \
-  -Dguidenh.renderpage.guide=guidenh:guidenh \
-  -Dguidenh.renderpage.list=guidenh:visualtest/mermaid/mindmap.md,guidenh:visualtest/mermaid/flowchart.md \
-  -Dguidenh.renderpage.out=screenshots_visualtest \
-  -Dguidenh.renderpage.width=900 -Dguidenh.renderpage.scale=2
+# 渲染语料库指定页面。注意：--list 是【列表文件路径】（一行一个 pageId，# 为注释），不是逗号分隔 id；
+# 误传页面 id 会触发 InvalidPathException 被 FML 静默吞掉、卡主菜单（已在 parseConfig 加固为显式报错）。allPages 会连主指南一起渲染，不用。
+py -3 tools/visual-inspection/render_watchdog.py --timeout 600 --log C:/Temp/opencode/wd_render.log -- cmd //c "gradlew.bat runClient25 -Dguidenh.guide.sources=D:/Projects/GuideNH/visualtest/resourcepack -Dguidenh.headlessRender=true -Dguidenh.renderpage.guide=guidenh:guidenh -Dguidenh.renderpage.list=C:/Temp/opencode/lists/mermaid.txt -Dguidenh.renderpage.out=screenshots_visualtest -Dguidenh.renderpage.width=900 -Dguidenh.renderpage.scale=2"
+# note: in git-bash you must use cmd //c and quote the whole command (/c gets mangled to C:/ by MSYS; bare bash resolves to WSL bash)
 ```
 
 ## 编写规范
@@ -33,7 +29,6 @@ frontmatter 的 parent 一律写 `visualtest/index.md`（语料子树根），vi
    ---
    navigation:
      title: <英文标题>
-     parent: visualtest/index.md
      position: <号段内递减，大者靠前>
    ---
    ```

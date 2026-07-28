@@ -1,7 +1,6 @@
 ---
 navigation:
   title: Mermaid Mindmap Modes
-  parent: visualtest/index.md
   position: 8190
 ---
 

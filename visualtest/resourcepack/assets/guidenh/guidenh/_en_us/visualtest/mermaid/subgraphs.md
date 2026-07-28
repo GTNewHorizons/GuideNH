@@ -1,7 +1,6 @@
 ---
 navigation:
   title: Mermaid Nested Subgraphs
-  parent: visualtest/index.md
   position: 8170
 ---
 

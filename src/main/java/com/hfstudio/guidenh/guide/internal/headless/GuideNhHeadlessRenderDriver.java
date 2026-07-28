@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -199,12 +200,27 @@ public class GuideNhHeadlessRenderDriver {
             return null;
         }
 
+        Path mdPath = null;
+        Path listPath = null;
+        try {
+            mdPath = hasMd ? Paths.get(mdProp) : null;
+            listPath = hasList ? Paths.get(listProp) : null;
+        } catch (InvalidPathException e) {
+            // NOTE: --md / --list expect FILE PATHS (list = file with one pageId per line),
+            // not page ids. Page ids contain ':' which is an illegal Windows path char and
+            // previously blew up here as an unlogged InvalidPathException that FML's state
+            // event dispatch swallowed silently, hanging the client at the main menu.
+            logError("Invalid file path for -Dguidenh.renderpage.md / --list: " + e.getMessage()
+                + " (note: --list expects a path to a file containing one pageId per line)");
+            return null;
+        }
+
         return new HeadlessRenderConfig(
             guideId,
             hasPage ? pageId : null,
-            hasMd ? Paths.get(mdProp) : null,
+            mdPath,
             allPages,
-            hasList ? Paths.get(listProp) : null,
+            listPath,
             width,
             outDir,
             lang,

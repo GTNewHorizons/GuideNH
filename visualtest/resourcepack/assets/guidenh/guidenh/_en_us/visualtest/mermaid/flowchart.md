@@ -1,7 +1,6 @@
 ---
 navigation:
   title: Mermaid Flowchart Shapes and Edges
-  parent: visualtest/index.md
   position: 8180
 ---
 
