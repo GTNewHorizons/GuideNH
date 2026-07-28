@@ -109,6 +109,28 @@ py -3 tools/visual-inspection/render_watchdog.py --timeout 600 --log C:/Temp/ope
 # note: in git-bash you must use cmd //c and quote the whole command (/c gets mangled to C:/ by MSYS; bare bash resolves to WSL bash)
 ```
 
+### 游戏内实测（真实客户端对照）
+
+**已验证的部署方式：DefaultGuide 注入**（mod 自带机制，日志实证 "Registered DefaultGuide resource pack"，
+且经此路径的无头渲染实测 exit 0）。GuideNH 启动时把 `config/guidenh/DefaultGuide/` 直接注入 FML
+资源包列表（`DefaultGuideResourcePackManager.java`），不经资源包仓库，任何实例都生效。
+
+- **开发实例**：已建 junction `run/client_new/config/guidenh/DefaultGuide` → `visualtest/resourcepack`
+  （单一事实源，fixture 改动即时反映到游戏内）。
+- **其他实例（含真实 GTNH 安装）**：把 `visualtest/resourcepack` 下的 `assets/` 整个复制到该实例的
+  `config/guidenh/DefaultGuide/` 下即可（`pack.mcmeta`/`pack.png` 可不带）。
+- **页面归属**：fixture 页面与主指南合并进同一 guide `guidenh:guidenh`。visualtest 各页面无 `parent`，
+  是导航树根节点，出现在指南 GUI 左侧导航栏根级列表，点击直达。
+- **打开方式**：游戏内 `/guidenhc open guidenh:guidenh`（客户端命令，`GuideNhClientCommand.java:56,78,144-158`；
+  不支持指定具体页面），或指南物品打开后从导航栏进入。
+
+**已证伪的路径（勿用）**：把包放进 `resourcepacks/` 目录（即使 `pack.mcmeta` 齐全、且在 options.txt
+启用）在开发实例**不会被加载**——两次无头渲染实测均 "Guide not found: guidenh:guidenh"，ResourceManager
+重载列表中无对应 FileResourcePack（疑开发环境仓库扫描问题，未深究）。`run/client_new/resourcepacks/visualtest`
+junction 保留无害但不要依赖。
+
+> 本小节服务于"金标准：进游戏肉眼对照"的分诊流程。发现渲染异常时，以游戏内实测结果为最终判据。
+
 ## 编写规范
 
 1. **单焦点**：一个文件只测一类特性；文件内多个用例为该特性的变体组合。
