@@ -25,6 +25,10 @@ from io import BytesIO
 
 VLM_SYSTEM_PROMPT = """你是一个排版缺陷检测员。分析图像中的排版与渲染问题。
 
+这是长页面的一块垂直切片。切片上边缘或下边缘处被切断的文字/图片/场景是切片造成的，**不要报告**；只有内容在切片内部被容器边缘截断时才报告"裁剪截断"。
+
+尖括号标签（如 <GameScene>、<Entity>）以等宽代码样式出现在正文中是该文档系统的正常排版，不要报告为"未转义/未渲染"。
+
 请检查以下问题类别：
 1. 文字重叠 - 不同文本块互相重叠
 2. 文字溢出容器 - 文本超出其背景容器边界
@@ -37,6 +41,7 @@ VLM_SYSTEM_PROMPT = """你是一个排版缺陷检测员。分析图像中的排
 
 严格要求只输出JSON格式，不要包含任何其他文字说明。
 输出格式: {"findings": [{"bbox":[x,y,w,h], "class":"问题类别", "severity":"error|warn|info", "confidence":0-1, "evidence":"一句话描述"}]}
+键名必须严格为 bbox/class/severity/confidence/evidence，禁止使用 type/description 等其他键名。
 无问题则输出: {"findings": []}
 注意：bbox坐标使用图像内的像素坐标。"""
 
@@ -342,7 +347,8 @@ def tile_image(pil_image, tile_h, overlap):
 def call_vlm_api(api_key, base_url, model, image_b64, timeout, prompt_text):
     """
     调用 OpenAI 兼容的 VLM API。
-    返回: 解析后的 JSON dict，或 None（失败时）
+    返回: (result, error_detail) —— 成功时 result 为解析后的 JSON dict, error_detail 为 None；
+          失败时 result 为 None, error_detail 为错误描述字符串（区分"API 调用失败"与"响应解析失败"）。
     """
     url = f"{base_url}/chat/completions".rstrip('/')
     headers = {
@@ -352,6 +358,7 @@ def call_vlm_api(api_key, base_url, model, image_b64, timeout, prompt_text):
     payload = {
         "model": model,
         "messages": [
+            {"role": "system", "content": VLM_SYSTEM_PROMPT},
             {
                 "role": "user",
                 "content": [
@@ -367,8 +374,7 @@ def call_vlm_api(api_key, base_url, model, image_b64, timeout, prompt_text):
     }
     data = json.dumps(payload).encode('utf-8')
 
-    retries = [1, 4, 16]  # 指数退避
-    last_err = None
+    retries = [1, 4, 16]  # 指数退避，仅用于 429、5xx、网络错误
 
     for attempt in range(1 + len(retries)):
         try:
@@ -379,26 +385,49 @@ def call_vlm_api(api_key, base_url, model, image_b64, timeout, prompt_text):
             # 提取 content
             choices = resp_json.get('choices', [])
             if not choices:
+                preview = resp_body[:200]
                 eprint(f"[warn] API 返回无 choices")
-                return None
+                return (None, f"API 调用失败: 响应无 choices, 原始响应: {preview}")
             content = choices[0].get('message', {}).get('content', '')
-            return extract_json_block(content)
-        except (urllib.error.HTTPError, urllib.error.URLError, OSError,
-                json.JSONDecodeError, TimeoutError) as e:
-            last_err = e
-            code = getattr(e, 'code', 0)
-            if code == 429 or code >= 500 or isinstance(e, (TimeoutError, urllib.error.URLError)):
+            result = extract_json_block(content)
+            if result is None:
+                preview = content[:200]
+                return (None, f"响应解析失败: {preview}")
+            return (result, None)
+        except urllib.error.HTTPError as e:
+            code = e.code
+            body_preview = ""
+            try:
+                body_preview = e.read().decode('utf-8', errors='replace')[:200]
+            except Exception:
+                pass
+            err_msg = f"API 调用失败: HTTP {code} {body_preview}"
+            # 仅 429、5xx 重试；其他 4xx 立即失败
+            if code == 429 or code >= 500:
                 if attempt < len(retries):
                     wait = retries[attempt]
                     eprint(f"[warn] API 调用失败 (attempt {attempt+1}): {e}，等待 {wait}s 重试")
                     time.sleep(wait)
                     continue
-            eprint(f"[error] API 调用最终失败: {e}")
-            return None
+                eprint(f"[error] {err_msg}")
+                return (None, err_msg)
+            eprint(f"[error] {err_msg}")
+            return (None, err_msg)
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            err_msg = f"API 调用失败: {e}"
+            if attempt < len(retries):
+                wait = retries[attempt]
+                eprint(f"[warn] API 调用失败 (attempt {attempt+1}): {e}，等待 {wait}s 重试")
+                time.sleep(wait)
+                continue
+            eprint(f"[error] {err_msg}")
+            return (None, err_msg)
+        except json.JSONDecodeError as e:
+            err_msg = f"API 调用失败: 响应体 JSON 解析失败: {e}"
+            eprint(f"[error] {err_msg}")
+            return (None, err_msg)
 
-    if last_err:
-        eprint(f"[error] API 调用最终失败: {last_err}")
-    return None
+    return (None, "API 调用失败: 未知错误")
 
 
 def extract_json_block(text):
@@ -424,9 +453,46 @@ def extract_json_block(text):
         try:
             return json.loads(text[brace_start:brace_end + 1])
         except json.JSONDecodeError:
+            preview = text[:200]
+            eprint(f"[warn] tile 响应 JSON 解析失败: {preview}")
             pass
 
     return None
+
+
+def _normalize_finding(f):
+    """
+    归一化模型返回的 finding 键名。
+    实测 qwen 系模型偶发键名漂移（type→class, description→evidence, bbox_2d→bbox 等）。
+    映射规则：仅当目标键不存在时执行映射；bbox_2d 若为四点格式则转为 [x,y,w,h]。
+    """
+    f = dict(f)  # 不修改原 dict
+
+    # type → class
+    if 'class' not in f and 'type' in f:
+        f['class'] = f.pop('type')
+
+    # description → evidence
+    if 'evidence' not in f and 'description' in f:
+        f['evidence'] = f.pop('description')
+
+    # box → bbox
+    if 'bbox' not in f and 'box' in f:
+        f['bbox'] = f.pop('box')
+
+    # bbox_2d → bbox（四点格式 [x1,y1,x2,y2] 转 [x,y,w,h]）
+    if 'bbox' not in f and 'bbox_2d' in f:
+        raw = f.pop('bbox_2d')
+        if isinstance(raw, (list, tuple)) and len(raw) == 4:
+            x1, y1, x2, y2 = raw
+            if x2 > x1 and y2 > y1:
+                f['bbox'] = [x1, y1, x2 - x1, y2 - y1]
+            else:
+                f['bbox'] = list(raw)
+        else:
+            f['bbox'] = raw
+
+    return f
 
 
 def process_tile(args):
@@ -439,17 +505,19 @@ def process_tile(args):
 
     try:
         b64 = encode_image_png(tile_img)
-        result = call_vlm_api(api_key, base_url, model, b64, timeout, prompt_text)
-        if result is None:
+        result, error_detail = call_vlm_api(api_key, base_url, model, b64, timeout, prompt_text)
+        if error_detail:
             return {
                 "page": page_name,
                 "source": "vlm",
                 "tile_index": tile_idx,
                 "findings": [],
-                "error": f"tile {tile_idx} API 调用失败"
+                "error": f"tile {tile_idx} {error_detail}"
             }
 
         findings = result.get('findings', [])
+        # 归一化键名：防御模型不遵守键名约束（qwen 系偶发键名漂移）
+        findings = [_normalize_finding(f) for f in findings]
         # 坐标换算：瓦片内 y -> 整页 y
         converted = []
         for f in findings:
@@ -586,10 +654,13 @@ def run_vlm(shots_dir, pages_filter, model_override, tile_h, overlap, dry_run, o
                     b64_size = len(base64.b64encode(buf.getvalue()).decode('ascii'))
                     req_body = json.dumps({
                         "model": model,
-                        "messages": [{"role": "user", "content": [
-                            {"type": "text", "text": VLM_USER_TEXT},
-                            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,..."}}
-                        ]}],
+                        "messages": [
+                            {"role": "system", "content": VLM_SYSTEM_PROMPT},
+                            {"role": "user", "content": [
+                                {"type": "text", "text": VLM_USER_TEXT},
+                                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,..."}}
+                            ]}
+                        ],
                         "max_tokens": 1024,
                         "temperature": 0.1
                     })
