@@ -331,7 +331,7 @@ junction 保留无害但不要依赖。
 **meta/frontmatter.md** — navigation.icon/icon_texture/icons 变体、categories、item_ids、author/date（侧边栏不可见时以加载无错+正文正常为准）。
 **meta/zoom-small.md** — frontmatter `zoom: 0.8`。
 **meta/zoom-large.md** — frontmatter `zoom: 1.5`。
-**meta/indexes.md** — `<SubPages>`、`<CategoryIndex category>`。
+**meta/indexes.md** — `<SubPages>`、`<Category name>`（代码实证 `<CategoryIndex>` 无编译器，真实标签是 `<Category name>`，CategoryCompiler.java:22-23）。
 - 不变式：加载无错；zoom 页渲染缩放正确；索引列表完整。
 
 ### overflow/（原 pagination/，引擎无分页器）
@@ -362,6 +362,7 @@ junction 保留无害但不要依赖。
 | recipes.md::gamescene:40 物化失败 | scenes/import.md |
 | example_structure.snbt 缺失 | scenes/import.md（补测试资源） |
 | mermaid 占位框（**已确认真实引擎问题**：游戏内与离线一致只渲染占位标签框，疑 ELK/异步绘制链迁移丢失） | mermaid/*.md；已进游戏对照定性 |
+| JSX `<table align>` 空 columns 布局崩溃（**真实引擎崩溃**：NoSuchElementException at LytTable.layoutColumns LytTable.java:176；tr/td JSX 解析出 0 列；疑 BlockTagCompiler align 代理与 TableCompiler align 语义冲突） | layout/align.md JSX 表格用例已文字化禁用，修复后恢复 |
 
 ## 断言翻译指引（棘轮）
 
