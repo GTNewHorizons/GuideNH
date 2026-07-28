@@ -5,7 +5,96 @@
 > 组织：语义文件夹（不用数字前缀），简单 → 复杂递进。引擎无分页器（单遍连续布局），
 > 原 pagination/ 改题为 overflow/（视口溢出与滚动容器行为）。
 
-## 运行方式
+## 术语与分诊（先读！）
+
+**真实引擎问题**：在真实游戏内 GUI 也能复现的引擎缺陷（布局错误、特性失效、迁移丢失等）。
+**离线渲染问题**：只在无头/离屏捕获路径出现的假象——游戏内正常，例如异步布局未完成即截图、
+离屏 FBO 特性、窗口隐藏时序、字体/GL 上下文差异。
+
+**分诊规则（每个发现必须过）**：
+1. 发现视觉异常时**默认先假设是离线渲染问题**，用下列方法排除后才允许定性真实引擎问题：
+   - **金标准：进游戏肉眼对照**（同一页面在真实客户端是否正常）；
+   - 主指南对照：主指南同特性页在离线渲染下是否正常（正常→fixture 写法问题；同样异常→倾向真实）；
+   - 日志证据：编译告警/渲染堆栈/异步完成回调是否在截图前发生；
+   - 机制推理：该特性是否有异步/延迟初始化路径（如 ELK 布局、结构物化、纹理下载）。
+2. 定性结论必须写明证据（"游戏内复现" / "仅离线出现" / "未分诊"）。**未分诊的发现禁止进修复队列**。
+3. mermaid 占位框：用户游戏内实测也不完整 → 倾向**真实引擎问题**（疑重构迁移丢失），优先验证修复。
+4. 已知离线特有现象（勿再上报）：截图首帧异步内容未就绪、离屏渲染与屏幕渲染的微小像素差。
+
+## 运行方式（自包含快速上手）
+
+### 术语速查
+- **无头批量渲染**：`runClient25` + `-Dguidenh.headlessRender=true`，客户端自启世界、逐页离屏渲染、
+  写 PNG（+可选 bounds JSON / overlay PNG）后自动退出（exit 0）。
+- **看门狗**：`tools/visual-inspection/render_watchdog.py`，防孤儿 JVM（harness 杀 shell 不杀子进程树）。
+  超时 exit 124 并 taskkill /T + 孤儿清扫。**禁止裸跑 gradlew 渲染**。
+- **列表文件**：`--list` 的唯一合法值是**文件路径**，文件内一行一个 pageId、`#` 注释。
+  传页面 id 本身会触发 InvalidPathException（旧版被 FML 静默吞掉卡主菜单；现已加固为显式报错退出）。
+
+### 渲染命令模板（git-bash）
+
+```bash
+# 0) 前置：清 daemon（防 busy daemon 连锁），准备列表文件
+./gradlew --stop
+mkdir -p C:/Temp/opencode/lists && printf 'guidenh:visualtest/mermaid/mindmap.md
+' > C:/Temp/opencode/lists/demo.txt
+
+# 1) 渲染（必须 cmd //c + 整条引号：/c 会被 MSYS 转成 C:/；裸 bash 会被解析成 WSL bash）
+py -3 tools/visual-inspection/render_watchdog.py --timeout 600 --log C:/Temp/opencode/wd_render.log --   cmd //c "gradlew.bat runClient25     -Dguidenh.guide.sources=D:/Projects/GuideNH/visualtest/resourcepack     -Dguidenh.headlessRender=true     -Dguidenh.renderpage.guide=guidenh:guidenh     -Dguidenh.renderpage.list=C:/Temp/opencode/lists/demo.txt     -Dguidenh.renderpage.out=screenshots_visualtest     -Dguidenh.renderpage.width=900 -Dguidenh.renderpage.scale=2     -Dguidenh.renderpage.bounds=true -Dguidenh.renderpage.overlay=true"
+```
+
+### -D 参数全表（parseConfig 实证）
+
+| 参数 | 语义 | 默认 | 备注 |
+|---|---|---|---|
+| `guidenh.guide.sources` | dev 资源包目录（转发为 `guideme.resourcePack.sources`） | 无 | fixture 包注入用，发布无影响 |
+| `guidenh.headlessRender` | 激活无头驱动（隐藏窗口+注册驱动） | false | 必须 `=true` |
+| `guidenh.renderpage.guide` | 目标指南 id | 必填 | fixture 用 `guidenh:guidenh` |
+| `renderpage.page` / `.md` | 单页模式：页面 id / md 文件路径 | — | 与批量模式互斥 |
+| `renderpage.allPages` | 批量：指南全部页（**会连主指南，勿用**） | — | — |
+| `renderpage.list` | 批量：**列表文件路径**（一行一 id） | — | 见上方术语 |
+| `renderpage.out` | 输出目录（相对 run/client_new/） | screenshots | — |
+| `renderpage.width` | 页宽 px（100-4096） | 900 | — |
+| `renderpage.scale` | 渲染放大（1-4） | 1 | **用 2**（字体/3D 才清晰） |
+| `renderpage.lang` | 语言 | en_us | — |
+| `renderpage.bounds` | 同时写 bounds JSON（几何初筛数据源） | false | 初筛必须 =true |
+| `renderpage.overlay` | 同时写布局 overlay PNG | false | — |
+| `renderpage.world` | 使用的存档 | screenshot-world | 已存在于 saves/ |
+
+### 产物与时延
+- 产物：`run/client_new/screenshots_visualtest/<页名>_<时间戳>.png`（+.json/+_overlay.png）。
+- 时延：冷启动到首张截图 ~3-4min（85 mods 加载）；批量摊薄（实测 5 页 175s）。
+- 批次结束日志：`Batch complete: total=N ok=N failed=0`，进程 exit 0 自动退出。
+
+### 进程管理铁律
+1. 渲染前 `./gradlew --stop`；渲染后确认 watchdog 报 0 孤儿。
+2. **异常后禁止不诊断就用更长超时盲重试**——先看日志定位，再行动。
+3. 看门狗 timeout 建议 480-600（超首屏时延即可，批量页均 <1min）。
+
+### 故障分诊表
+
+| 症状 | 判据（grep 日志） | 原因 | 处置 |
+|---|---|---|---|
+| 卡主菜单循环 | 无 `Registering headless render driver` | 驱动未注册：旧版配置错误被 FML 静默吞掉 | 找 parseConfig 显式报错；`--info` 看 `Starting process` 确认 -D 到达 |
+| `Invalid headless render configuration` | 控制台 | -D 拼写错 / list 语义错 | 按报错提示改 |
+| `Guide not found` | 日志 | renderpage.guide 错 | 用 `guidenh:guidenh` |
+| 窗口可见未隐藏 | 肉眼 | headlessRender 未到达 JVM（引用/转发丢失） | 检查 cmd //c 引用形式 |
+| 批次 Page FAIL | `Page FAIL` 行 | 页面编译/渲染错误 | 看同日志堆栈 |
+
+### 初筛员（screen.py 三子命令）
+
+```bash
+# 第 0 层 几何（需 bounds=true 渲染产物；规则见 tools/visual-inspection/README.md）
+py -3 tools/visual-inspection/screen.py geometric --shots run/client_new/screenshots_visualtest --page-width 1800 --out C:/Temp/opencode/geo.json
+
+# 第 1 层 VLM（需 .env：DASHSCOPE_API_KEY；模型 qwen3-vl-plus【选定】；--dry-run 先验瓦片）
+py -3 tools/visual-inspection/screen.py vlm --shots run/client_new/screenshots_visualtest --out C:/Temp/opencode/vlm.json
+
+# 第 2 层 合并报告
+py -3 tools/visual-inspection/screen.py report --geo C:/Temp/opencode/geo.json --vlm C:/Temp/opencode/vlm.json --out C:/Temp/opencode/report.md
+```
+配置：复制 `tools/visual-inspection/.env.example` 为 `.env` 填 key（.env 已 gitignore，禁提交）。
+
 
 **结构约定（实证修正）**：引擎只扫描固定 folder `guidenh`（DataDrivenGuideLoader.AUTO_GUIDE_FOLDER），
 独立 guide 不可行。fixture 挂在自有资源包的 `assets/guidenh/guidenh/_en_us/visualtest/` 子树下，
@@ -35,7 +124,7 @@ py -3 tools/visual-inspection/render_watchdog.py --timeout 600 --log C:/Temp/ope
 4. 页面统一放 `_en_us/`（加载兜底最稳）；CJK 测试内容直接写正文。
 5. 页面保持短（1-3 屏）；overflow/ 与压力页除外。
 6. 结构文字用英文；被测对象内容按需。
-7. 每文件头部 `<!-- -->` 注释写明：测试目标 + 不变式编号，与本文档条目对应。
+7. 每文件头部用**一行普通文本**写明：测试目标 + 不变式编号（会显示在截图里，兼作自解释）。**禁止 `<!-- -->`**——实证会被当正文渲染。
 8. 语法参考：`wiki/resourcepack/assets/guidenh/guidenh/_en_us/*.md`（官方文档页，
    含真实用例）；不确定的属性名以 `TagAttributeRegistry.java` 为准，禁止臆造。
 
@@ -250,6 +339,7 @@ py -3 tools/visual-inspection/render_watchdog.py --timeout 600 --log C:/Temp/ope
 | 行内 LaTeX 掉行 | latex/inline.md |
 | recipes.md::gamescene:40 物化失败 | scenes/import.md |
 | example_structure.snbt 缺失 | scenes/import.md（补测试资源） |
+| mermaid 占位框（疑似**真实引擎问题**：用户游戏内实测复现，疑重构迁移丢失） | mermaid/*.md + 进游戏对照验证 |
 
 ## 断言翻译指引（棘轮）
 

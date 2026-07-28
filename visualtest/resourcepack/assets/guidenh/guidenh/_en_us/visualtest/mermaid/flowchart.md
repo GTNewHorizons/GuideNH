@@ -4,10 +4,9 @@ navigation:
   position: 8180
 ---
 
-<!--
-测试目标：flowchart 节点形状 + 箭头样式 + 边标签 + classDef/linkStyle
-不变式：箭头方向正确、标签不压线、形状渲染齐全
--->
+TEST GOAL / 测试目标：flowchart 节点形状 + 箭头样式 + 边标签 + classDef/linkStyle
+
+INVARIANTS / 不变式：箭头方向正确、标签不压线、形状渲染齐全
 
 ## Node Shape Showcase
 

@@ -4,10 +4,9 @@ navigation:
   position: 8190
 ---
 
-<!--
-测试目标：mindmap 两种布局模式 + 节点形状 + 多层嵌套
-不变式：树连线正确、节点不重叠、深层嵌套不串层
--->
+TEST GOAL / 测试目标：mindmap 两种布局模式 + 节点形状 + 多层嵌套
+
+INVARIANTS / 不变式：树连线正确、节点不重叠、深层嵌套不串层
 
 ## Default Layout (Alternating Left-Right)
 

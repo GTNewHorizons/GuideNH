@@ -4,10 +4,9 @@ navigation:
   position: 8170
 ---
 
-<!--
-测试目标：嵌套 subgraph（2层、3层）+ 跨 subgraph 边
-不变式：嵌套框包含关系正确、配色分层、跨边不穿框
--->
+TEST GOAL / 测试目标：嵌套 subgraph（2层、3层）+ 跨 subgraph 边
+
+INVARIANTS / 不变式：嵌套框包含关系正确、配色分层、跨边不穿框
 
 ## Two-Level Nesting
 

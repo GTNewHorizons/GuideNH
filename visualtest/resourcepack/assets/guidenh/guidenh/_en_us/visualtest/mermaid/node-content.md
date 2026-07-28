@@ -4,10 +4,9 @@ navigation:
   position: 8160
 ---
 
-<!--
-测试目标：<NodeContent id> 富内容节点（节点内嵌格式化文本 / 列表）
-不变式：富内容在节点框内布局正确
--->
+TEST GOAL / 测试目标：<NodeContent id> 富内容节点（节点内嵌格式化文本 / 列表）
+
+INVARIANTS / 不变式：富内容在节点框内布局正确
 
 Expected: A mindmap where the "runtime" node contains formatted text with an item image, and the "preview" node contains a list.
 
