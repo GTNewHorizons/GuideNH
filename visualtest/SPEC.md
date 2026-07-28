@@ -200,6 +200,40 @@ SUSPECT 129 / FP 128）→ K3 截图逐簇裁决。以下结论全部有截图�
 | A15 | **FloatingImage 文档浮动锚点失效**：浮动图全部渲染在页面原点 (0,0) 压页头，正文环绕区无图（解释了此前归因 br 的压页头现象） | floats/wrap-modes、images/fullwidth、stress |
 | A16 | 任务列表复选框缺失确认（A12 复核：lists/tasks 页同样无框，部分行 `[x]` 字面残留） | lists/tasks、stress |
 
+### A 类修复收尾台账（2026-07-29 统一修复轮，全部目检确认）
+
+| # | 状态 | 修复提交 | 根因/手法摘要 |
+|---|---|---|---|
+| A1 | **关闭** | ad66653d + 651eb4c4 | fenced mermaid 真实创建点在 PreCompiler（MermaidScript 是死路径）；共享预计算 MermaidLayoutPrecomputer + headless zoom/offset 旁路 + pushScissor 裁剪居中；651eb4c4 回退 K4 修复对 mermaid 的 fullWidth 波及 |
+| A2 | **关闭** | 9e00e5ff | JSX `<table align>` 空列崩溃修复 |
+| A3 | **关闭** | e6c3f03d | ContentTabs 头高度≈0 修复 |
+| A4 | **关闭** | 9e00e5ff | details 正文左缘裁切修复 |
+| A5 | **关闭** | 188c6abc | 角落图例参考系：renderChart 改返 inner rect，图例相对数据区定位（原压轴标签区）；四角目检 PASS、pie/function 无回归 |
+| A6 | **关闭** | 651eb4c4 | $$ 独立段检测落在 ParagraphCompiler（PageCompiler.compileParagraphBlock 是死代码）+ alignSelf CENTER + K4 宽度 100% 使居中生效 |
+| A7 | **关闭** | 651eb4c4 | 掉行真根因=LytLatexBlock.baselineAscent 恒 0（Rust inline_post_pass 把公式顶放基线处）；顺带修 Rust 双重 user_scale（measure.rs:445，DLL 双目录重建） |
+| A8 | **关闭** | 651eb4c4（$$）+ 188c6abc（$） | $ 行内简写：Pandoc 分隔规则（开后非空白/闭前非空白/闭后非数字）+ `\$` 转义保护 + mask/split 共享 Pattern；残留边缘见 N2 |
+| A9 | **关闭** | e6c3f03d | ImportStructure 后场景变更时序修复 |
+| A10 | **主体关闭，残留 N1** | e6c3f03d | RecipeFor/RecipesFor/handler 过滤/fallbackText 均恢复真实渲染（064319 渲染实证） |
+| A11 | **关闭** | 9e00e5ff + 651eb4c4 | K4 系统性根修：taffy 根 size.width=Auto 时 shrink-wrap 致 align_self 全无效 → fullWidth 块 size_width=100%（LayoutStyleExtractor dimPercent）；代码块/tabs/latex 居中连带修复 |
+| A12/A16 | **关闭** | ad66653d | extractTaskMarker 原地改坏共享 AST 致二次编译丢前缀 → save/restore + try/finally；标记槽 paddingLeft + computePrimitives 绘制 |
+| A13 | **关闭** | 9e00e5ff + 188c6abc | 主体早修；残留 §f 白色字面输出=哨兵冲突（0xFFFFFFFF==int -1 与"非法码 -1"撞车）→ 哨兵改 0；全色表目检 PASS |
+| A14 | **关闭** | ad66653d | `{: widths=}` 元数据重做为 meta 表达式解析 |
+| A15 | **关闭** | ad66653d | 文档浮动锚点重做（浮动图回正文环绕区） |
+
+### 修复轮新登记 issue
+
+- **N1** nei/recipes `handlerOrder=999` 越界 fallback：渲染破损窄条（glScissor 裁切残段）而非 fallbackText（预期行为见页内 Expected；2026-07-29 064319 渲染实证）
+- **N2** A8a 边缘：源码 `\$x$` 转义还原为 `$x$` 后可能被 split 误判为公式（reviewer 发现 D1；真实语料罕见，低优先）
+- **N3** lists/rich.md 列表项内小表格撑满整页宽（K4 宽度链的语义结果，美观度存疑，非崩溃；如需收窄应在表格编译层加 natural-width 选项）
+- **N4** stress/mixed.md 页内 "known issue: renders placeholder box only" 文本已过时（mermaid 已真渲染）→ fixture 文本待更新
+
+### 预存问题（2026-07-28 基线同现，确认为非本轮回归，待立项）
+
+- code/blocks.md "Special Characters" 节 MDX 解析错误红字（`Unhandled MDX element in flow context: null mdxJsxTextElement (113:23)`）+ 该节 `##` 标题字面输出
+- images/fullwidth.md natural-width 表格与棋盘图重叠；红图垂直溢出压住后续标题
+- lists/rich.md 红图垂直溢出压文本（同族）
+- stress/mixed.md 浮动红图与表格首列轻微重叠
+
 ### B. 未复现 → 进游戏验证（金标准）
 
 - K1 巨型 §：50 连续 § 全部正常尺寸，**未复现** → 进游戏对照主指南 markdown.md
