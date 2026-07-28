@@ -67,3 +67,11 @@ CLAUDE.md
 /layout-engine/target/
 /layout-engine/src/guidenh_layout_generated.rs
 /layout-engine/.cargo/
+
+### Visual inspection tooling (API keys & python artifacts) ###
+.env
+.env.local
+tools/visual-inspection/.env
+__pycache__/
+*.pyc
+.venv/

@@ -66,6 +66,11 @@ runConfigs.forEach { (taskName, path) ->
         providers.systemProperty("guidenh.debug.scenerender").orNull?.let {
             jvmArgs("-Dguidenh.debug.scenerender=$it")
         }
+        // Forward extra development resource-pack source (visual-test fixture pack):
+        //   ./gradlew runClient25 -Dguidenh.guide.sources=D:/Projects/GuideNH/visualtest/resourcepack
+        providers.systemProperty("guidenh.guide.sources").orNull?.let {
+            jvmArgs("-Dguideme.resourcePack.sources=$it")
+        }
         // Forward headless-render driver props to the client JVM:
         //   ./gradlew runClient25 -Dguidenh.headlessRender=true -Dguidenh.renderpage.guide=guidenh:guidenh -Dguidenh.renderpage.page=guidenh:guidenh/en_us/markdown
         providers.systemProperty("guidenh.headlessRender").orNull?.let {
