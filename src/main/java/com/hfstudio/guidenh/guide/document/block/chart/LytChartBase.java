@@ -301,10 +301,13 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         }
         LytRect plotRect = new LytRect(plotLeft, plotTop, plotRight - plotLeft, plotBottom - plotTop);
 
-        renderChart(c, plotRect);
+        LytRect innerPlotRect = renderChart(c, plotRect);
+        if (innerPlotRect == null || innerPlotRect.isEmpty()) {
+            innerPlotRect = plotRect;
+        }
         CornerLegendRenderer.emit(
             c,
-            plotRect,
+            innerPlotRect,
             collectCornerLegendEntries(),
             cornerLegendPosition,
             cornerLegendWidth,
@@ -324,7 +327,8 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
      * Subclasses implement the chart-specific drawing; {@code plotRect} has already excluded the space
      * occupied by the title and legend.
      */
-    protected abstract void renderChart(PrimitiveCollector c, LytRect plotRect);
+    /** @return the inner rectangle actually used for data plotting (may be {@code plotRect} itself) */
+    protected abstract LytRect renderChart(PrimitiveCollector c, LytRect plotRect);
 
     /**
      * Collect legend entries; empty by default. Subclasses override as needed.

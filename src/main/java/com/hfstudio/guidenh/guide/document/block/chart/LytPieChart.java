@@ -49,13 +49,13 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected void renderChart(PrimitiveCollector c, LytRect plotRect) {
-        if (slices.isEmpty()) return;
+    protected LytRect renderChart(PrimitiveCollector c, LytRect plotRect) {
+        if (slices.isEmpty()) return plotRect;
         double total = 0d;
         for (PieSlice s : slices) {
             total += Math.max(0d, s.getValue());
         }
-        if (total <= 0d) return;
+        if (total <= 0d) return plotRect;
         totalCache = total;
 
         float cx = plotRect.x() + plotRect.width() / 2f;
@@ -97,6 +97,7 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
             }
             angle += sweep;
         }
+        return plotRect;
     }
 
     private static void drawSlice(PrimitiveCollector c, float cx, float cy, float radius, double startAngle,

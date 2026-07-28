@@ -78,8 +78,8 @@ public class LytLineChart extends LytChartBase {
     }
 
     @Override
-    protected void renderChart(PrimitiveCollector c, LytRect plotRect) {
-        if (series.isEmpty()) return;
+    protected LytRect renderChart(PrimitiveCollector c, LytRect plotRect) {
+        if (series.isEmpty()) return plotRect;
 
         double yMin = Double.POSITIVE_INFINITY;
         double yMax = Double.NEGATIVE_INFINITY;
@@ -118,7 +118,7 @@ public class LytLineChart extends LytChartBase {
             true);
         LytRect inner = plotRect.shrink(insets[0], insets[1], insets[2], insets[3]);
         plotCache = inner;
-        if (inner.width() <= 4 || inner.height() <= 4) return;
+        if (inner.width() <= 4 || inner.height() <= 4) return inner;
 
         CartesianChartRenderer.drawAxes(
             c,
@@ -201,6 +201,7 @@ public class LytLineChart extends LytChartBase {
                 }
             }
         }
+        return inner;
     }
 
     private static float[] computeOutwardNormal(float[] xs, float[] ys, int i, int n) {

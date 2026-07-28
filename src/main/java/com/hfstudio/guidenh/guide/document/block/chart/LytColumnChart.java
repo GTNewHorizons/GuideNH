@@ -92,10 +92,10 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected void renderChart(PrimitiveCollector c, LytRect plotRect) {
+    protected LytRect renderChart(PrimitiveCollector c, LytRect plotRect) {
         int categoryCount = Math.max(categories.length, maxSeriesLength());
         if (categoryCount == 0 || (series.isEmpty() && lineOverlays.isEmpty())) {
-            return;
+            return plotRect;
         }
         // If the pie inset uses RIGHT_OUTSIDE, peel off a dedicated right-hand area for it so the
         // columns/lines do not have to share space with the pie.
@@ -136,7 +136,7 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
         LytRect inner = plotRect.shrink(insets[0], insets[1], insets[2], insets[3]);
         plotCache = inner;
         if (inner.width() <= 4 || inner.height() <= 4) {
-            return;
+            return inner;
         }
 
         CartesianChartRenderer.drawAxes(c, inner, xAxis, yAxis, null, yRange, ensureCategories(categoryCount), false);
@@ -229,6 +229,7 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
         } else {
             PieInsetRenderer.draw(c, inner, pieInset);
         }
+        return inner;
     }
 
     private void drawValueLabel(PrimitiveCollector c, ResolvedTextStyle style, double value, LytRect bar,

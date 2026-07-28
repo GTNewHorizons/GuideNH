@@ -19,8 +19,8 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import lombok.Getter;
 
 /**
- * Utility for detecting and splitting {@code $$formula$$} shorthand LaTeX expressions
- * inside Markdown text nodes.
+ * Utility for detecting and splitting {@code $$formula$$} / {@code $formula$} shorthand LaTeX
+ * expressions inside Markdown text nodes.
  *
  * <p>
  * A {@code $$formula$$} shorthand always uses default rendering parameters (white colour,
@@ -29,18 +29,59 @@ import lombok.Getter;
  * <p>
  * Display-mode detection: if a paragraph's only text content is exactly {@code $$formula$$}
  * (after trimming whitespace), the formula is rendered as a centred display block. Otherwise
- * each {@code $$formula$$} fragment is rendered as an inline block inside the surrounding text.
+ * each {@code $$formula$$} or {@code $formula$} fragment is rendered as an inline block inside
+ * the surrounding text.
+ *
+ * <p>Single-dollar inline formulas follow Pandoc-style rules:
+ * the opening {@code $} must be followed by a non-whitespace character,
+ * the closing {@code $} must be preceded by a non-whitespace character,
+ * and the closing {@code $} must not be followed by a digit (to avoid currency false positives).
+ * Use {@code \$} to escape a dollar sign that should be treated as literal text.
  */
 public class MarkdownLatexShorthand {
 
     private static final String PLACEHOLDER_PREFIX = "\uE000GUIDENH_LATEX_";
     private static final String PLACEHOLDER_SUFFIX = "_\uE001";
+    private static final String ESCAPE_PLACEHOLDER_PREFIX = "\uE000GUIDENH_LATEXESC_";
+
+    /**
+     * Sentinel used to temporarily replace {@code $$} after double-dollar masking,
+     * preventing the single-dollar pattern from matching placeholder wraps.
+     */
+    private static final String DOLLAR_SENTINEL = "\uE004\uE005";
 
     /**
      * Matches {@code $$...$$} where the content contains no literal {@code $} characters.
      * DOTALL allows newlines inside the formula.
      */
     private static final Pattern DOLLAR_PATTERN = Pattern.compile("\\$\\$([^$]+?)\\$\\$", Pattern.DOTALL);
+
+    /**
+     * Matches {@code \$} escape sequences — a backslash followed by dollar.
+     */
+    private static final Pattern ESCAPED_DOLLAR_PATTERN = Pattern.compile("\\\\[$]");
+
+    /**
+     * Single-dollar inline formula pattern (Pandoc rules):
+     * <ul>
+     *   <li>Opening {@code $} must be followed by a non-whitespace, non-{@code $} character.
+     *   <li>Closing {@code $} must be preceded by a non-whitespace, non-{@code $} character.
+     *   <li>Closing {@code $} must not be followed by a digit (avoid currency false positives).
+     *   <li>Content must not contain {@code $} or newlines.
+     * </ul>
+     */
+    private static final String SINGLE_DOLLAR_REGEX = "\\$([^\\s$](?:[^$\\n]*[^\\s$])?)\\$(?!\\d)";
+    private static final Pattern SINGLE_DOLLAR_PATTERN = Pattern.compile(SINGLE_DOLLAR_REGEX);
+
+    /**
+     * Combined pattern for {@link #split}: {@code $$...$$} branch (priority), then single {@code $...$} branch.
+     * <ul>
+     *   <li>Match present → use {@link #formulaFromMatch(Matcher)} to extract the formula content</li>
+     * </ul>
+     */
+    private static final Pattern COMBINED_PATTERN = Pattern.compile(
+        "(\\$\\$([^$]+?)\\$\\$)|(\\$([^\\s$](?:[^$\\n]*[^\\s$])?)\\$(?!\\d))", Pattern.DOTALL
+    );
 
     private MarkdownLatexShorthand() {}
 
@@ -51,18 +92,64 @@ public class MarkdownLatexShorthand {
         if (!mayContain(source)) {
             return new MaskResult(source, Map.of());
         }
-        Matcher matcher = DOLLAR_PATTERN.matcher(source);
-        StringBuilder masked = new StringBuilder(source.length());
         Map<String, String> formulas = new HashMap<>();
         int index = 0;
-        while (matcher.find()) {
-            String placeholder = PLACEHOLDER_PREFIX + index + PLACEHOLDER_SUFFIX;
-            formulas.put(placeholder, matcher.group(1));
-            matcher.appendReplacement(masked, Matcher.quoteReplacement("$$" + placeholder + "$$"));
-            index++;
+
+        // Step (a): mask $$...$$ — unchanged
+        {
+            Matcher matcher = DOLLAR_PATTERN.matcher(source);
+            StringBuilder sb = new StringBuilder(source.length());
+            while (matcher.find()) {
+                String placeholder = PLACEHOLDER_PREFIX + index + PLACEHOLDER_SUFFIX;
+                formulas.put(placeholder, matcher.group(1));
+                matcher.appendReplacement(sb, Matcher.quoteReplacement("$$" + placeholder + "$$"));
+                index++;
+            }
+            matcher.appendTail(sb);
+            source = sb.toString();
         }
-        matcher.appendTail(masked);
-        return new MaskResult(masked.toString(), formulas);
+
+        // Temporarily protect remaining $$ (placeholder wraps and unmatched pairs)
+        // so the single-$ pattern in step (c) does not match them.
+        boolean hasProtected = source.contains("$$");
+        if (hasProtected) {
+            source = source.replace("$$", DOLLAR_SENTINEL);
+        }
+
+        // Step (b): mask \$ escapes → bare placeholder, restore yields literal $
+        {
+            Matcher matcher = ESCAPED_DOLLAR_PATTERN.matcher(source);
+            StringBuilder sb = new StringBuilder(source.length());
+            while (matcher.find()) {
+                String placeholder = ESCAPE_PLACEHOLDER_PREFIX + index + PLACEHOLDER_SUFFIX;
+                formulas.put(placeholder, "$");
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(placeholder));
+                index++;
+            }
+            matcher.appendTail(sb);
+            source = sb.toString();
+        }
+
+        // Step (c): mask single $...$  ($$ are protected so they won't match)
+        {
+            Matcher matcher = SINGLE_DOLLAR_PATTERN.matcher(source);
+            StringBuilder sb = new StringBuilder(source.length());
+            while (matcher.find()) {
+                String placeholder = PLACEHOLDER_PREFIX + index + PLACEHOLDER_SUFFIX;
+                formulas.put(placeholder, matcher.group(1));
+                matcher.appendReplacement(sb, Matcher.quoteReplacement("$" + placeholder + "$"));
+                index++;
+            }
+            matcher.appendTail(sb);
+            source = sb.toString();
+        }
+
+        // Restore protected $$
+        if (hasProtected) {
+            source = source.replace(DOLLAR_SENTINEL, "$$");
+        }
+
+        return new MaskResult(source, formulas);
     }
 
     public static void restore(MdAstNode root, MaskResult maskResult) {
@@ -73,10 +160,10 @@ public class MarkdownLatexShorthand {
     }
 
     /**
-     * Quick pre-check: returns {@code false} if {@code text} cannot contain any {@code $$} pattern.
+     * Quick pre-check: returns {@code false} if {@code text} cannot contain any {@code $} pattern.
      */
     public static boolean mayContain(String text) {
-        return text != null && text.contains("$$");
+        return text != null && text.contains("$");
     }
 
     /**
@@ -102,6 +189,19 @@ public class MarkdownLatexShorthand {
     }
 
     /**
+     * Extracts the formula content from a {@link #COMBINED_PATTERN} match.
+     * <ul>
+     *   <li>Group 2: formula from {@code $$...$$} branch</li>
+     *   <li>Group 4: formula from single {@code $...$} branch</li>
+     * </ul>
+     */
+    private static String formulaFromMatch(Matcher m) {
+        String d = m.group(2);
+        if (d != null) return d;
+        return m.group(4);
+    }
+
+    /**
      * Splits {@code text} into alternating plain-text and LaTeX-formula {@link Segment}s.
      * Plain-text segments may be empty strings only when the text starts or ends with a formula.
      *
@@ -113,13 +213,13 @@ public class MarkdownLatexShorthand {
             return List.of();
         }
         List<Segment> result = new ArrayList<>();
-        Matcher m = DOLLAR_PATTERN.matcher(text);
+        Matcher m = COMBINED_PATTERN.matcher(text);
         int last = 0;
         while (m.find()) {
             if (m.start() > last) {
                 result.add(Segment.text(text.substring(last, m.start())));
             }
-            result.add(Segment.formula(m.group(1)));
+            result.add(Segment.formula(formulaFromMatch(m)));
             last = m.end();
         }
         if (last < text.length()) {

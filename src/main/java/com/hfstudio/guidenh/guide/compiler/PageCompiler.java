@@ -1113,7 +1113,7 @@ public class PageCompiler {
      * styled flow content fragments (plain {@link LytFlowText} or {@link LytFlowSpan}
      * wrapping a text node).
      */
-    private static List<LytFlowContent> parseSectionFormatting(String text) {
+    static List<LytFlowContent> parseSectionFormatting(String text) {
         if (text.isEmpty()) {
             return Collections.emptyList();
         }
@@ -1134,11 +1134,11 @@ public class PageCompiler {
             if (ch == '§' && i + 1 < text.length()) {
                 char code = text.charAt(i + 1);
                 int mappedColor = mapSectionColor(code);
-                if (mappedColor != -1 || isSectionFormatCode(code)) {
+                if (mappedColor != 0 || isSectionFormatCode(code)) {
                     // Valid § code – flush current segment and apply
                     flushSectionSegment(result, segment, color, bold, italic, underlined, strikethrough, obfuscated);
 
-                    if (mappedColor != -1) {
+                    if (mappedColor != 0) {
                         // §0-§f color: reset all formatting and set colour
                         color = new ConstantColor(mappedColor);
                         bold = false;
@@ -1217,8 +1217,8 @@ public class PageCompiler {
         result.add(span);
     }
 
-    /** Returns ARGB color int for §0-§f, or -1 if {@code code} is not a colour code. */
-    private static int mapSectionColor(char code) {
+    /** Returns ARGB color int for §0-§f, or 0 if {@code code} is not a colour code. */
+    static int mapSectionColor(char code) {
         return switch (Character.toLowerCase(code)) {
             case '0' -> 0xFF000000; // Black
             case '1' -> 0xFF0000AA; // Dark Blue
@@ -1236,7 +1236,7 @@ public class PageCompiler {
             case 'd' -> 0xFFFF55FF; // Light Purple
             case 'e' -> 0xFFFFFF55; // Yellow
             case 'f' -> 0xFFFFFFFF; // White
-            default -> -1;
+            default -> 0;
         };
     }
 

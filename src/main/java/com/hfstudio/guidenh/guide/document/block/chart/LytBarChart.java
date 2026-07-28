@@ -92,9 +92,9 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected void renderChart(PrimitiveCollector c, LytRect plotRect) {
+    protected LytRect renderChart(PrimitiveCollector c, LytRect plotRect) {
         int categoryCount = Math.max(categories.length, maxSeriesLength());
-        if (categoryCount == 0 || (series.isEmpty() && lineOverlays.isEmpty())) return;
+        if (categoryCount == 0 || (series.isEmpty() && lineOverlays.isEmpty())) return plotRect;
         // Peel off a dedicated right-hand area for the pie inset when configured.
         LytRect pieArea = null;
         if (pieInset != null && pieInset.getPosition() == PieInsetSpec.Position.RIGHT_OUTSIDE) {
@@ -143,7 +143,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         }
         LytRect inner = plotRect.shrink(leftInset, 4, 4, bottomInset);
         plotCache = inner;
-        if (inner.width() <= 4 || inner.height() <= 4) return;
+        if (inner.width() <= 4 || inner.height() <= 4) return inner;
 
         // Grid (vertical lines correspond to X values).
         for (double t = xRange.min; t <= xRange.max + 1e-9; t += xRange.step) {
@@ -279,6 +279,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         } else {
             PieInsetRenderer.draw(c, inner, pieInset);
         }
+        return inner;
     }
 
     private void drawValueLabel(PrimitiveCollector c, ResolvedTextStyle style, double value, LytRect bar, float endX) {

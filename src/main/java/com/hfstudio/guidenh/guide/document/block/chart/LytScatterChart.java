@@ -63,8 +63,8 @@ public class LytScatterChart extends LytChartBase {
     }
 
     @Override
-    protected void renderChart(PrimitiveCollector c, LytRect plotRect) {
-        if (series.isEmpty()) return;
+    protected LytRect renderChart(PrimitiveCollector c, LytRect plotRect) {
+        if (series.isEmpty()) return plotRect;
         double xMin = Double.POSITIVE_INFINITY;
         double xMax = Double.NEGATIVE_INFINITY;
         double yMin = Double.POSITIVE_INFINITY;
@@ -95,7 +95,7 @@ public class LytScatterChart extends LytChartBase {
         int[] insets = CartesianChartRenderer.computeAxisInsets(xAxis, yAxis, xRange, yRange, null, true, true);
         LytRect inner = plotRect.shrink(insets[0], insets[1], insets[2], insets[3]);
         plotCache = inner;
-        if (inner.width() <= 4 || inner.height() <= 4) return;
+        if (inner.width() <= 4 || inner.height() <= 4) return inner;
 
         CartesianChartRenderer.drawAxes(c, inner, xAxis, yAxis, xRange, yRange, null, true);
 
@@ -136,6 +136,7 @@ public class LytScatterChart extends LytChartBase {
                 }
             }
         }
+        return inner;
     }
 
     private static int brighten(int argb) {
