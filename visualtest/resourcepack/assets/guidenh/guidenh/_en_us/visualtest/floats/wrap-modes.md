@@ -40,9 +40,9 @@ This paragraph demonstrates through wrapping. The image floats to the left and t
 
 ## Top-Bottom Wrap
 
-Expected: Image is horizontally centred; text only appears above and below, never beside it.
+Expected: Image in top-bottom wrap; text only appears above and below, never beside it. (Engine note: FloatingImage align accepts only left/right — center is rejected with an error, so this case uses left.)
 
-<FloatingImage src="../assets/tall-64x256.png" wrap="top-bottom" align="center" width="64" height="256" x="0" y="0" scaleX="1.5" scaleY="0.5" title="top-bottom center" />
+<FloatingImage src="../assets/tall-64x256.png" wrap="top-bottom" align="left" width="64" height="256" x="0" y="0" scaleX="1.5" scaleY="0.5" title="top-bottom center" />
 
 This paragraph appears below the centred image. With `top-bottom` wrap, text never flows beside the block — it only appears above and below. The image occupies a full horizontal slot within the content area and text resumes only after the image vertical extent ends. This is equivalent to a non-floating block with explicit horizontal alignment.
 

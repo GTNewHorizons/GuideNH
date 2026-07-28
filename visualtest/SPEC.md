@@ -196,6 +196,9 @@ SUSPECT 129 / FP 128）→ K3 截图逐簇裁决。以下结论全部有截图�
 | A11 | **fullWidth Column 内代码块不撑满容器**（K4 家族实证；表格能撑满） | images/fullwidth |
 | A12 | **任务列表 `- [x]` 无复选框/无标记渲染**（新发现） | stress（lists/tasks 待复核） |
 | A13 | **§ 颜色/格式码完全不生效原样输出**（`<Color>` 标签正常对照） | text/section-codes 全页 |
+| A14 | **pipe 表格 `{: widths=}` 元数据不生效**：元数据行原样输出为表格下一行文本，列宽均分（fixtures 与 wiki 文档语法一致） | tables/metadata 全部 3 例 + stress |
+| A15 | **FloatingImage 文档浮动锚点失效**：浮动图全部渲染在页面原点 (0,0) 压页头，正文环绕区无图（解释了此前归因 br 的压页头现象） | floats/wrap-modes、images/fullwidth、stress |
+| A16 | 任务列表复选框缺失确认（A12 复核：lists/tasks 页同样无框，部分行 `[x]` 字面残留） | lists/tasks、stress |
 
 ### B. 未复现 → 进游戏验证（金标准）
 
@@ -203,16 +206,19 @@ SUSPECT 129 / FP 128）→ K3 截图逐簇裁决。以下结论全部有截图�
 - K2 标题分隔线穿字：headings 页分隔线干净，**未复现** → 进游戏验证
 - 实体 Y 偏移悬浮：entities 页羊/苦力怕/玩家贴地正常，**未复现** → 进游戏验证
 - GameScene tab 内浮动占满整行、文字不环绕：证据较弱，标 suspect 待复核
+- FloatingImage align 仅接受 left/right（center 报引擎校验错误）——top-bottom 居中无法表达，引擎限制还是设计？修复阶段定
+- wrap 六模式中 tight/through 渲染与 square 无异（FloatingImageCompiler 不区分语义）——与 ContentWrapMode 语义不符，待修复阶段对照 LytFloatAwareBlock 路径
+
 
 ### C. Fixture 缺陷（已修/修复中）
 
-- C1 `clear="both"` 非法值 ×47（合法值 left/right/all/none）→ **已修**（8 文件）
-- C2 `<FloatingImage>` 缺 x/y 编译报错（floats/in-tabs、wrap-modes）→ 修复中
-- C3 content-tabs.md 的 ContentTabs 直接含文本节点（7:31 编译错误）→ 修复中
-- C4 headings.md `---` 与文字同行导致直出 → 修复中
-- C5 entities.md 场景视角太窄，第二实体出画 → 修复中
+- C1 `clear="both"` 非法值 ×47 → **已修并验证**（重渲染错误文本消失）
+- C2 `<FloatingImage>` 缺 x/y 编译报错 → **已修并验证**（9 处补齐，报错消失）
+- C3 content-tabs.md 头部行内裸标签文本 → **已修并验证**（编译错误消失；A3 重叠为引擎问题仍在）
+- C4 headings.md `---` 独立成行 → **已修**
+- C5 entities.md 场景加宽（width 必须字符串形式，`{240}` 表达式被拒）→ **已修**；残留：zombie/skeleton 仍不入画（疑实体生成失败，fixture 改进项）
 - C6 cjk/tables/headings "超长"用例长度不足触发折行 → 加长（弱优先级）
-- C7 stress `{: widths=}` 直出 → 待对照 tables/metadata.md 重渲染后定性（引擎 vs 写法）
+- C7 stress `{: widths=}` 直出 → **已定性引擎问题**（tables/metadata 同样直出，见 A14）
 
 ### D. 离线基建问题
 
