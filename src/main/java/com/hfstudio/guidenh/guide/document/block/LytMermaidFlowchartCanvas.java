@@ -27,6 +27,7 @@ import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -106,6 +107,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     private final FlowchartDocument document;
     private final Map<String, NodeContentLayout> nodeContentLayouts = new LinkedHashMap<>();
     private FlowchartLayoutResult layout;
+    private int precomputedLayoutWidth;
 
     public LytMermaidFlowchartCanvas(FlowchartDocument document, Map<String, LytBlock> nodeContentBlocks) {
         this.document = document;
@@ -277,45 +279,99 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         clampOffsets();
     }
 
+    /**
+     * Pre-compute diagram layout before the first Rust layout pass and set
+     * preferredHeight so Rust allocates the correct canvas height immediately.
+     * Caches the layout result for reuse in afterExternalLayout when the
+     * actual bounds width matches the pre-computation width.
+     *
+     * @param ctx            LayoutContext backed by GuideText-based FontMetrics
+     * @param availableWidth estimated canvas content width (page width or
+     *                       placeholder width)
+     */
+    public void precomputeLayout(LayoutContext ctx, int availableWidth) {
+        int safeWidth = preferredWidth > 0
+            ? Math.clamp(preferredWidth, 1, availableWidth)
+            : Math.max(1, availableWidth);
+        LytRect savedBounds = bounds;
+        bounds = new LytRect(0, 0, safeWidth, 0);
+        try {
+            FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(document.getLayoutMode());
+            var minSizes = computeNodeMinSizes(ctx);
+            FlowchartLayoutResult result = strategy.layout(document, minSizes);
+            if (result != null) {
+                this.layout = result;
+                this.precomputedLayoutWidth = safeWidth;
+                int desiredHeight = result.getHeight() + CANVAS_PADDING * 2;
+                preferredHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
+                    : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
+                int diagramWidth = result.getWidth() + CANVAS_PADDING * 2;
+                preferredWidth = Math.min(diagramWidth, safeWidth);
+                GuideDebugLog.debugAlways(
+                    "[GuideNH-Mermaid] precomputeLayout OK layoutHeight={} preferredHeight={}",
+                    result.getHeight(), preferredHeight);
+                GuideDebugLog.debugAlways(
+                    "[GuideNH-Mermaid] precomputeLayout set explicitWidth={} layoutWidth={} safeWidth={}",
+                    preferredWidth, result.getWidth(), safeWidth);
+            } else {
+                GuideDebugLog.debugAlways(
+                    "[GuideNH-Mermaid] precomputeLayout FAILED result=null safeWidth={}",
+                    safeWidth);
+            }
+        } finally {
+            bounds = savedBounds;
+        }
+    }
+
     @Override
     protected void afterExternalLayout() {
-        // The Java layout pre-pass no longer calls computeLayout, so the
-        // diagram layout would never be computed. Compute it here from the
-        // Rust-computed bounds, using a GuideText-backed LayoutContext.
-        if (layout != null) return; // already computed (direct layout() call)
         int safeWidth = preferredWidth > 0
             ? Math.clamp(preferredWidth, 1, Math.max(1, bounds.width()))
             : Math.max(1, bounds.width());
-        LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
-            @Override
-            public float getAdvance(int codePoint, com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
-                return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
-            }
-            @Override
-            public int getLineHeight(com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
-                return GuideText.lineHeight(s);
-            }
-        });
-        FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(document.getLayoutMode());
-        var minSizes = computeNodeMinSizes(fallbackCtx);
-        layout = strategy.layout(document, minSizes);
 
-        // After computing diagram layout, derive the desired viewport height,
-        // write it back to bounds, set preferredHeight for the next Rust pass,
-        // and trigger a re-layout so the corrected height takes effect.
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] afterExternalLayout entered layout={} safeWidth={} precomputedLayoutWidth={} bounds.height={}",
+            layout != null, safeWidth, precomputedLayoutWidth, bounds.height());
+
+        // Phase 1: ensure layout result matches the actual canvas width.
+        // Width matches precompute → reuse cached layout (no ELK recompute).
+        // Width mismatch or no precompute → recompute at the correct width.
+        if (layout == null || precomputedLayoutWidth <= 0 || precomputedLayoutWidth != safeWidth) {
+            LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
+                @Override
+                public float getAdvance(int codePoint, com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
+                    return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
+                }
+                @Override
+                public int getLineHeight(com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
+                    return GuideText.lineHeight(s);
+                }
+            });
+            FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(document.getLayoutMode());
+            var minSizes = computeNodeMinSizes(fallbackCtx);
+            layout = strategy.layout(document, minSizes);
+            GuideDebugLog.debugAlways(
+                "[GuideNH-Mermaid] afterExternalLayout recomputed ELK layout={}",
+                layout != null);
+        }
+
+        // Phase 2: if layout is valid, correct bounds height if needed (兜底).
         if (layout != null) {
             int desiredHeight = layout.getHeight() + CANVAS_PADDING * 2;
-            int newHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
+            int expectedHeight = preferredHeight > 0
+                ? Math.max(48, preferredHeight)
                 : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
-            if (newHeight != bounds.height()) {
-                preferredHeight = newHeight;
-                bounds = new LytRect(bounds.x(), bounds.y(), bounds.width(), newHeight);
-                LytDocument doc = getDocument();
-                if (doc != null) {
-                    doc.invalidateLayout();
-                }
+            if (bounds.height() != expectedHeight) {
+                GuideDebugLog.debugAlways(
+                    "[GuideNH-Mermaid] afterExternalLayout correcting bounds height {} -> {}",
+                    bounds.height(), expectedHeight);
+                bounds = new LytRect(bounds.x(), bounds.y(), bounds.width(), expectedHeight);
             }
         }
+
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] afterExternalLayout exit layout={} bounds.height={}",
+            layout != null, bounds.height());
     }
 
     @Override

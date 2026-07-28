@@ -1,9 +1,13 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
@@ -21,6 +25,14 @@ public class LytListItem extends LytVBox {
      * Updated in {@link #computeBoxLayout} so that {@link #render} avoids an O(N) sibling scan every frame.
      */
     private int cachedOrderedNumber = -1;
+
+    public LytListItem() {
+        // paddingLeft is read by the Rust layout engine and creates the content
+        // indentation (replaces the legacy computeBoxLayout's x+margin pass).
+        // Markers are drawn relative to the border box (getBounds()) and land in
+        // the padding slot left of the content — matching the old render() semantics.
+        setPaddingLeft(LEVEL_MARGIN);
+    }
 
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
@@ -46,6 +58,24 @@ public class LytListItem extends LytVBox {
             cachedOrderedNumber = number;
         } else {
             cachedOrderedNumber = -1;
+        }
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        super.computePrimitives(c);
+        if (cachedOrderedNumber >= 0) {
+            String label = cachedOrderedNumber + ".";
+            int width = GuideText.measureWidth(label, style);
+            var bounds = getBounds();
+            int x = bounds.x() + LEVEL_MARGIN - width - 2;
+            c.emit(new GuideRenderPrimitive.DrawText(label, x, bounds.y(), style));
+        } else {
+            var bounds = getBounds();
+            var markerLine = getMarkerLineBounds();
+            int bulletY = markerLine.y() + (markerLine.height() - BULLET_SIZE) / 2;
+            int argb = SymbolicColor.BODY_TEXT.resolve(LightDarkMode.current());
+            c.emit(new GuideRenderPrimitive.FillRect(bounds.x() + BULLET_X_OFFSET, bulletY, BULLET_SIZE, BULLET_SIZE, argb));
         }
     }
 
@@ -83,5 +113,25 @@ public class LytListItem extends LytVBox {
         }
         LytRect bounds = getBounds();
         return new LytRect(bounds.x(), bounds.y(), bounds.width(), context.getLineHeight(style));
+    }
+
+    /** Context-free overload for use in {@link #computePrimitives}. */
+    private LytRect getMarkerLineBounds() {
+        if (!children.isEmpty()) {
+            LytBlock firstChild = children.getFirst();
+            if (firstChild instanceof LytParagraph paragraph) {
+                LytRect firstTextRun = paragraph.getFirstTextRunBounds();
+                if (firstTextRun != null) {
+                    return firstTextRun;
+                }
+                LytRect firstLine = paragraph.getFirstLineBounds();
+                if (firstLine != null) {
+                    return new LytRect(firstLine.x(), firstLine.y(), firstLine.width(), GuideText.lineHeight(style));
+                }
+            }
+            return firstChild.getBounds();
+        }
+        LytRect bounds = getBounds();
+        return new LytRect(bounds.x(), bounds.y(), bounds.width(), GuideText.lineHeight(style));
     }
 }

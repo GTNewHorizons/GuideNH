@@ -20,6 +20,7 @@ import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
@@ -27,6 +28,8 @@ import lombok.Setter;
 
 public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends LytBlock
     implements DocumentDragTarget, InteractiveElement {
+
+    private static final boolean HEADLESS = Boolean.getBoolean("guidenh.headlessRender");
 
     private static final float ZOOM_STEP = 1.1f;
     private static final float MIN_ZOOM = 0.5f;
@@ -168,15 +171,15 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     }
 
     public float getActiveZoom() {
-        return visualZoom.value();
+        return HEADLESS ? zoom : visualZoom.value();
     }
 
     public int getVisualOffsetX() {
-        return visualContentOffsetX.rounded();
+        return HEADLESS ? contentOffsetX : visualContentOffsetX.rounded();
     }
 
     public int getVisualOffsetY() {
-        return visualContentOffsetY.rounded();
+        return HEADLESS ? contentOffsetY : visualContentOffsetY.rounded();
     }
 
     public int getScaledOriginX() {
@@ -305,7 +308,10 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     @Override
     public void computePrimitives(PrimitiveCollector c) {
-        if (!diagramReady()) return;
+        boolean ready = diagramReady();
+        GuideDebugLog.debugAlways("[GuideNH-Mermaid] computePrimitives diagramReady={} bounds={}",
+            ready, bounds);
+        if (!ready) return;
         LytRect b = getBounds();
         if (b == null) return;
 
@@ -331,10 +337,24 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
         float activeZoom = getActiveZoom();
         LytRect inner = getInnerViewport();
-        int baseX = inner.x() + getVisualOffsetX() - getScaledOriginX();
-        int baseY = inner.y() + getVisualOffsetY() - getScaledOriginY();
+        int offsetX = getVisualOffsetX();
+        int offsetY = getVisualOffsetY();
+        if (HEADLESS) {
+            // Headless: center diagram in viewport.
+            // Small diagram → centered in viewport; large diagram → center-cropped.
+            int scaledContentW = Math.round(contentWidth() * activeZoom);
+            int scaledContentH = Math.round(contentHeight() * activeZoom);
+            offsetX = (inner.width() - scaledContentW) / 2;
+            offsetY = (inner.height() - scaledContentH) / 2;
+        }
+        int baseX = inner.x() + offsetX - getScaledOriginX();
+        int baseY = inner.y() + offsetY - getScaledOriginY();
 
+        // Clip diagram primitives to the inner viewport (prevent overflow to
+        // subsequent page content).
+        c.pushScissor(inner.x(), inner.y(), inner.width(), inner.height());
         emitDiagramPrimitives(c, baseX, baseY, activeZoom);
+        c.popScissor();
     }
 
     /**

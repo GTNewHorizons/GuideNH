@@ -17,6 +17,7 @@ import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidLayoutPrecomputer;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
@@ -108,6 +109,10 @@ public class MermaidScript implements LytScript {
                     }
                 }
             }
+            // Pre-compute diagram layout before first Rust layout so the canvas
+            // gets a correct preferredHeight and the VBox receives its real height
+            // in the initial layout pass (no second pass needed).
+            precomputeMindmapLayout(block, ctx);
             ctx.replace(block);
         } catch (IllegalArgumentException e) {
             GuideDebugLog.error("[GuideNH] [MermaidScript] Failed to parse Mermaid source: {}", sourceText, e);
@@ -133,6 +138,10 @@ public class MermaidScript implements LytScript {
                     }
                 }
             }
+            // Pre-compute diagram layout before first Rust layout so the canvas
+            // gets a correct preferredHeight and the VBox receives its real height
+            // in the initial layout pass (no second pass needed).
+            precomputeFlowchartLayout(block, ctx);
             ctx.replace(block);
         } catch (IllegalArgumentException e) {
             GuideDebugLog.error("[GuideNH] [MermaidScript] Failed to parse flowchart source: {}", sourceText, e);
@@ -151,6 +160,40 @@ public class MermaidScript implements LytScript {
             }
         }
         ctx.replace(codeBlock);
+    }
+
+    /**
+     * Pre-compute the flowchart ELK layout using a GuideText-based fallback
+     * context, cache the result on the canvas, and set preferredHeight so
+     * Rust's first layout pass allocates the correct canvas height.
+     */
+    private static void precomputeFlowchartLayout(LytMermaidFlowchart block, ScriptContext ctx) {
+        int pageWidth = ctx.document().getAvailableWidth();
+        if (pageWidth <= 0) {
+            pageWidth = 480; // fallback: typical page content width
+        }
+        GuideDebugLog.debugAlways("[GuideNH-Mermaid] precomputeFlowchartLayout entered pageWidth={}", pageWidth);
+        MermaidLayoutPrecomputer.precomputeFlowchartLayout(block, pageWidth);
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] precomputeFlowchartLayout exit explicitHeight={}",
+            block.getCanvas().getExplicitHeight());
+    }
+
+    /**
+     * Pre-compute the mindmap layout using a GuideText-based fallback context,
+     * cache the result on the canvas, and set preferredHeight so Rust's first
+     * layout pass allocates the correct canvas height.
+     */
+    private static void precomputeMindmapLayout(LytMermaidMindmap block, ScriptContext ctx) {
+        int pageWidth = ctx.document().getAvailableWidth();
+        if (pageWidth <= 0) {
+            pageWidth = 480; // fallback: typical page content width
+        }
+        GuideDebugLog.debugAlways("[GuideNH-Mermaid] precomputeMindmapLayout entered pageWidth={}", pageWidth);
+        MermaidLayoutPrecomputer.precomputeMindmapLayout(block, pageWidth);
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] precomputeMindmapLayout exit explicitHeight={}",
+            block.getCanvas().getExplicitHeight());
     }
 
     private void replaceWithError(ScriptContext ctx, String message) {

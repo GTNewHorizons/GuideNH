@@ -85,10 +85,25 @@ public class TableCompiler extends BlockTagCompiler {
     private static String extractKramdownExpression(String content) {
         int start = content.indexOf('{');
         int end = content.lastIndexOf('}');
+        String stripped;
         if (start >= 0 && end > start) {
-            return content.substring(start + 1, end)
+            stripped = content.substring(start + 1, end)
                 .trim();
+        } else {
+            stripped = content.trim();
         }
-        return "";
+        // Try double quotes first
+        int firstQuote = stripped.indexOf('"');
+        int lastQuote = stripped.lastIndexOf('"');
+        if (firstQuote >= 0 && lastQuote > firstQuote) {
+            return stripped.substring(firstQuote + 1, lastQuote);
+        }
+        // Try single quotes
+        firstQuote = stripped.indexOf('\'');
+        lastQuote = stripped.lastIndexOf('\'');
+        if (firstQuote >= 0 && lastQuote > firstQuote) {
+            return stripped.substring(firstQuote + 1, lastQuote);
+        }
+        return stripped;
     }
 }

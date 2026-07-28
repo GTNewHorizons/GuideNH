@@ -22,6 +22,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguage;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguageDetector;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeCompiler;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidLayoutPrecomputer;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
@@ -201,6 +202,16 @@ public class PreCompiler extends BlockTagCompiler {
     private @Nullable LytMermaidMindmap compileMermaidMindmap(String normalized) {
         try {
             LytMermaidMindmap block = new LytMermaidMindmap(MindmapParser.parse(normalized), normalized);
+            // Pre-compute diagram layout before first Rust layout so the canvas
+            // gets a correct preferredHeight and the VBox receives its real height
+            // in the initial layout pass (no second pass needed).
+            int pageWidth = 480; // no page-width info available at compile time
+            GuideDebugLog.debugAlways(
+                "[GuideNH-Mermaid] [PreCompiler] precomputeMindmapLayout entered pageWidth={}", pageWidth);
+            MermaidLayoutPrecomputer.precomputeMindmapLayout(block, pageWidth);
+            GuideDebugLog.debugAlways(
+                "[GuideNH-Mermaid] [PreCompiler] precomputeMindmapLayout exit explicitHeight={}",
+                block.getCanvas().getExplicitHeight());
             GuideDebugLog
                 .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid mindmap block ({} chars)", normalized.length());
             return block;
@@ -214,6 +225,16 @@ public class PreCompiler extends BlockTagCompiler {
     private LytMermaidFlowchart compileMermaidFlowchart(String normalized) {
         var document = FlowchartParser.parse(normalized);
         LytMermaidFlowchart block = new LytMermaidFlowchart(document, normalized);
+        // Pre-compute diagram layout before first Rust layout so the canvas
+        // gets a correct preferredHeight and the VBox receives its real height
+        // in the initial layout pass (no second pass needed).
+        int pageWidth = 480; // no page-width info available at compile time
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] [PreCompiler] precomputeFlowchartLayout entered pageWidth={}", pageWidth);
+        MermaidLayoutPrecomputer.precomputeFlowchartLayout(block, pageWidth);
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] [PreCompiler] precomputeFlowchartLayout exit explicitHeight={}",
+            block.getCanvas().getExplicitHeight());
         GuideDebugLog
             .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid flowchart stub ({} chars)", normalized.length());
         return block;

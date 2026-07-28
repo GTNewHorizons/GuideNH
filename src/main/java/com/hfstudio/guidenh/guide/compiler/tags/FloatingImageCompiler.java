@@ -13,9 +13,10 @@ import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
-import com.hfstudio.guidenh.guide.document.block.ContentAlign;
-import com.hfstudio.guidenh.guide.document.block.ContentWrapMode;
+import com.hfstudio.guidenh.guide.compiler.TagCompiler;
+import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.ImageRegionAnnotation;
+import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -28,8 +29,10 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 
-public class FloatingImageCompiler extends FlowTagCompiler {
+public class FloatingImageCompiler implements TagCompiler {
 
     public static final String TAG_NAME = "FloatingImage";
 
@@ -45,20 +48,100 @@ public class FloatingImageCompiler extends FlowTagCompiler {
     }
 
     @Override
-    protected void compile(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
+    public void compileBlockContext(PageCompiler compiler, LytBlockContainer parent, MdxJsxFlowElement el) {
+        String wrapAttr = el.getAttributeString("wrap", null);
+        String alignAttr = el.getAttributeString("align", null);
+
+        // Document‑float path: align is explicitly "left" or "right" and wrap is not "inline".
+        // LytDocumentFloat is appended directly to the block‑level parent, exactly as
+        // BlockTagCompiler.applyBlockEmbed does (see BlockTagCompiler.java:101‑108).
+        if (!"inline".equals(wrapAttr) && ("left".equals(alignAttr) || "right".equals(alignAttr))) {
+            LytImageBlock block = buildImageBlock(compiler, parent, el);
+            if (block == null) return;
+            boolean floatRight = "right".equals(alignAttr);
+            LytDocumentFloat docFloat = new LytDocumentFloat(block, floatRight);
+            parent.append(docFloat);
+            return;
+        }
+
+        // Inline fallback: wrap in paragraph and use the inline‑block path.
+        var paragraph = new LytParagraph();
+        compileInline(compiler, paragraph, el);
+        parent.append(paragraph);
+    }
+
+    @Override
+    public void compileFlowContext(PageCompiler compiler, LytFlowParent parent, MdxJsxTextElement el) {
+        compileInline(compiler, parent, el);
+    }
+
+    /**
+     * Inline path: build the image block and wrap in a {@link LytFlowInlineBlock}
+     * with FLOAT_LEFT / FLOAT_RIGHT / INLINE alignment.
+     * <p>
+     * Used by:
+     * <ul>
+     *   <li>{@link #compileFlowContext} – the parent is the actual flow container</li>
+     *   <li>{@link #compileBlockContext} inline fallback – the parent is a freshly
+     *       created {@link LytParagraph} that will be appended to the block container</li>
+     * </ul>
+     */
+    private void compileInline(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
+        LytImageBlock block = buildImageBlock(compiler, parent, el);
+        if (block == null) return;
+
+        String wrap = el.getAttributeString("wrap", null);
+        String align = el.getAttributeString("align", "left");
+        var inlineBlock = new LytFlowInlineBlock();
+        inlineBlock.setBlock(block);
+        if ("inline".equals(wrap)) {
+            inlineBlock.setAlignment(InlineBlockAlignment.INLINE);
+            parent.append(inlineBlock);
+            return;
+        }
+        switch (align) {
+            case "left" -> {
+                inlineBlock.setAlignment(InlineBlockAlignment.FLOAT_LEFT);
+                block.setMarginRight(5);
+                block.setMarginBottom(5);
+            }
+            case "right" -> {
+                inlineBlock.setAlignment(InlineBlockAlignment.FLOAT_RIGHT);
+                block.setMarginLeft(5);
+                block.setMarginBottom(5);
+            }
+            default -> {
+                parent.append(compiler.createErrorFlowContent("Invalid align. Must be left or right.", el));
+                return;
+            }
+        }
+        parent.append(inlineBlock);
+    }
+
+    /**
+     * Shared block-building logic used by both
+     * {@link #compileBlockContext(PageCompiler, LytBlockContainer, MdxJsxFlowElement)}
+     * (document‑float path) and
+     * {@link #compileInline(PageCompiler, LytFlowParent, MdxJsxElementFields)}
+     * (inline path).
+     *
+     * @return the fully‑configured {@link LytImageBlock}, or {@code null} on parse failure
+     */
+    @Nullable
+    private static LytImageBlock buildImageBlock(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
         var src = el.getAttributeString("src", null);
         if (src == null || src.trim()
             .isEmpty()) {
-            parent.appendError(compiler, "FloatingImage requires a non-empty src attribute.", el);
-            return;
+            errorSink.appendError(compiler, "FloatingImage requires a non-empty src attribute.", el);
+            return null;
         }
         var align = el.getAttributeString("align", "left");
         var title = el.getAttributeString("title", null);
         var alt = el.getAttributeString("alt", null);
-        CropSpec crop = parseCropSpec(compiler, parent, el);
-        ScaleSpec scale = parseScaleSpec(compiler, parent, el);
+        CropSpec crop = parseCropSpec(compiler, errorSink, el);
+        ScaleSpec scale = parseScaleSpec(compiler, errorSink, el);
         if (crop == null || scale == null) {
-            return;
+            return null;
         }
 
         LytImageBlock block = new LytImageBlock();
@@ -93,11 +176,11 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         }
         block.setSrc(resolvedSrc);
 
-        var wholeImageSound = GuideSoundParsers.parseAttributes(compiler, parent, el, "soundSrc");
+        var wholeImageSound = GuideSoundParsers.parseAttributes(compiler, errorSink, el, "soundSrc");
         if (wholeImageSound != null) {
             var soundAnnotation = new ImageRegionAnnotation(false, ConstantColor.WHITE, 1);
             soundAnnotation.setSound(wholeImageSound);
-            soundAnnotation.setSoundTrigger(parseTrigger(compiler, parent, el));
+            soundAnnotation.setSoundTrigger(parseTrigger(compiler, errorSink, el));
             block.addAnnotation(soundAnnotation);
         }
 
@@ -106,10 +189,10 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         if (children != null) {
             for (var child : children) {
                 if (child instanceof MdxJsxElementFields annEl && "ImageAnnotation".equals(annEl.name())) {
-                    var ann = parseImageAnnotation(compiler, parent, annEl);
+                    var ann = parseImageAnnotation(compiler, errorSink, annEl);
                     block.addAnnotation(ann);
                 } else if (child instanceof MdxJsxElementFields soundEl && "SoundArea".equals(soundEl.name())) {
-                    var ann = parseSoundArea(compiler, parent, soundEl);
+                    var ann = parseSoundArea(compiler, errorSink, soundEl);
                     if (ann != null) {
                         block.addAnnotation(ann);
                     }
@@ -121,51 +204,7 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         block.setExplicitWidth(crop.width());
         block.setExplicitHeight(crop.height());
 
-        // Parse wrap mode to choose float strategy
-        String wrap = el.getAttributeString("wrap", null);
-        ContentWrapMode wrapMode = ContentWrapMode.fromString(wrap);
-
-        // Document-float path: square/tight/through → LytDocumentFloat → Rust float table
-        if (wrapMode.isDocumentFloat()) {
-            ContentAlign alignMode = ContentAlign.fromString(align);
-            boolean floatRight = alignMode == ContentAlign.RIGHT;
-            // Margins for document float are added by LayoutStyleExtractor
-            // via FLOAT_GAP (see LayoutStyleExtractor floatSide handling).
-            LytDocumentFloat docFloat = new LytDocumentFloat(block, floatRight);
-            var floatInlineBlock = new LytFlowInlineBlock();
-            floatInlineBlock.setBlock(docFloat);
-            floatInlineBlock.setAlignment(InlineBlockAlignment.INLINE);
-            parent.append(floatInlineBlock);
-            return;
-        }
-
-        // Inline / legacy-float path: wrap in LytFlowInlineBlock (existing behaviour)
-        var inlineBlock = new LytFlowInlineBlock();
-        inlineBlock.setBlock(block);
-        boolean inlineWrap = "inline".equals(wrap);
-        if (inlineWrap) {
-            inlineBlock.setAlignment(InlineBlockAlignment.INLINE);
-            parent.append(inlineBlock);
-            return;
-        }
-        switch (align) {
-            case "left" -> {
-                inlineBlock.setAlignment(InlineBlockAlignment.FLOAT_LEFT);
-                block.setMarginRight(5);
-                block.setMarginBottom(5);
-            }
-            case "right" -> {
-                inlineBlock.setAlignment(InlineBlockAlignment.FLOAT_RIGHT);
-                block.setMarginLeft(5);
-                block.setMarginBottom(5);
-            }
-            default -> {
-                parent.append(compiler.createErrorFlowContent("Invalid align. Must be left or right.", el));
-                return;
-            }
-        }
-
-        parent.append(inlineBlock);
+        return block;
     }
 
     /**
@@ -184,9 +223,9 @@ public class FloatingImageCompiler extends FlowTagCompiler {
      * Child MDX content is compiled as the rich-text tooltip body.
      */
     @NotNull
-    private static ImageRegionAnnotation parseImageAnnotation(PageCompiler compiler, LytFlowParent parent,
+    private static ImageRegionAnnotation parseImageAnnotation(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields annEl) {
-        ImageRegionAnnotation ann = parseImageAnnotationRegion(compiler, parent, annEl, true);
+        ImageRegionAnnotation ann = parseImageAnnotationRegion(compiler, errorSink, annEl, true);
 
         // Compile tooltip rich-text content from child elements.
         var contentBox = new LytVBox();
@@ -195,39 +234,39 @@ public class FloatingImageCompiler extends FlowTagCompiler {
             .isEmpty()) {
             ann.setTooltip(new ContentTooltip(contentBox));
         }
-        ann.setSound(GuideSoundParsers.parseAttributes(compiler, parent, annEl));
-        ann.setSoundTrigger(parseTrigger(compiler, parent, annEl));
+        ann.setSound(GuideSoundParsers.parseAttributes(compiler, errorSink, annEl));
+        ann.setSoundTrigger(parseTrigger(compiler, errorSink, annEl));
 
         return ann;
     }
 
-    private static ImageRegionAnnotation parseSoundArea(PageCompiler compiler, LytFlowParent parent,
+    private static ImageRegionAnnotation parseSoundArea(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el) {
-        var sound = GuideSoundParsers.parseAttributes(compiler, parent, el);
+        var sound = GuideSoundParsers.parseAttributes(compiler, errorSink, el);
         if (sound == null) {
-            parent.appendError(compiler, "SoundArea requires a sound or src attribute.", el);
+            errorSink.appendError(compiler, "SoundArea requires a sound or src attribute.", el);
             return null;
         }
-        ImageRegionAnnotation ann = parseImageAnnotationRegion(compiler, parent, el, false);
+        ImageRegionAnnotation ann = parseImageAnnotationRegion(compiler, errorSink, el, false);
         ann.setSound(sound);
-        ann.setSoundTrigger(parseTrigger(compiler, parent, el));
+        ann.setSoundTrigger(parseTrigger(compiler, errorSink, el));
         return ann;
     }
 
-    private static ImageRegionAnnotation parseImageAnnotationRegion(PageCompiler compiler, LytFlowParent parent,
+    private static ImageRegionAnnotation parseImageAnnotationRegion(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el, boolean allowBorder) {
-        int x = MdxAttrs.getInt(compiler, parent, el, "x", -1);
-        int y = MdxAttrs.getInt(compiler, parent, el, "y", -1);
-        int w = MdxAttrs.getInt(compiler, parent, el, "w", -1);
-        int h = MdxAttrs.getInt(compiler, parent, el, "h", -1);
+        int x = MdxAttrs.getInt(compiler, errorSink, el, "x", -1);
+        int y = MdxAttrs.getInt(compiler, errorSink, el, "y", -1);
+        int w = MdxAttrs.getInt(compiler, errorSink, el, "w", -1);
+        int h = MdxAttrs.getInt(compiler, errorSink, el, "h", -1);
         boolean wholeImage = x < 0 && y < 0 && w < 0 && h < 0;
 
-        boolean showBorder = allowBorder && MdxAttrs.getBoolean(compiler, parent, el, "border", false);
-        int borderThickness = allowBorder ? MdxAttrs.getInt(compiler, parent, el, "borderThickness", 1) : 1;
+        boolean showBorder = allowBorder && MdxAttrs.getBoolean(compiler, errorSink, el, "border", false);
+        int borderThickness = allowBorder ? MdxAttrs.getInt(compiler, errorSink, el, "borderThickness", 1) : 1;
 
         ColorValue borderColor;
         if (allowBorder && el.getAttribute("borderColor") != null) {
-            borderColor = MdxAttrs.getColor(compiler, parent, el, "borderColor", ConstantColor.WHITE);
+            borderColor = MdxAttrs.getColor(compiler, errorSink, el, "borderColor", ConstantColor.WHITE);
         } else {
             borderColor = allowBorder ? new ConstantColor(0xFF000000 | RANDOM.nextInt(0x1000000)) : ConstantColor.WHITE;
         }
@@ -243,9 +282,9 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         return new ImageRegionAnnotation(ax, ay, aw, ah, showBorder, borderColor, borderThickness);
     }
 
-    private static GuideSoundTrigger parseTrigger(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
+    private static GuideSoundTrigger parseTrigger(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
         return GuideSoundTrigger
-            .parse(MdxAttrs.getString(compiler, parent, el, "trigger", null), GuideSoundTrigger.CLICK);
+            .parse(MdxAttrs.getString(compiler, errorSink, el, "trigger", null), GuideSoundTrigger.CLICK);
     }
 
     @Override
@@ -267,28 +306,28 @@ public class FloatingImageCompiler extends FlowTagCompiler {
     }
 
     @Nullable
-    private static CropSpec parseCropSpec(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
+    private static CropSpec parseCropSpec(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
         String widthValue = el.getAttributeString("width", null);
         String widthAlias = el.getAttributeString("w", null);
         String heightValue = el.getAttributeString("height", null);
         String heightAlias = el.getAttributeString("h", null);
         if (widthValue != null && widthAlias != null) {
-            parent.appendError(compiler, "FloatingImage cannot use both width and w.", el);
+            errorSink.appendError(compiler, "FloatingImage cannot use both width and w.", el);
             return null;
         }
         if (heightValue != null && heightAlias != null) {
-            parent.appendError(compiler, "FloatingImage cannot use both height and h.", el);
+            errorSink.appendError(compiler, "FloatingImage cannot use both height and h.", el);
             return null;
         }
-        Integer x = parseRequiredIntAttr(compiler, parent, el, "x");
-        Integer y = parseRequiredIntAttr(compiler, parent, el, "y");
-        Integer width = parseRequiredAliasedIntAttr(compiler, parent, el, "width", "w");
-        Integer height = parseRequiredAliasedIntAttr(compiler, parent, el, "height", "h");
+        Integer x = parseRequiredIntAttr(compiler, errorSink, el, "x");
+        Integer y = parseRequiredIntAttr(compiler, errorSink, el, "y");
+        Integer width = parseRequiredAliasedIntAttr(compiler, errorSink, el, "width", "w");
+        Integer height = parseRequiredAliasedIntAttr(compiler, errorSink, el, "height", "h");
         if (x == null || y == null || width == null || height == null) {
             return null;
         }
         if (x < 0 || y < 0 || width <= 0 || height <= 0) {
-            parent.appendError(
+            errorSink.appendError(
                 compiler,
                 "FloatingImage crop values must be non-negative and width/height must be positive.",
                 el);
@@ -298,62 +337,62 @@ public class FloatingImageCompiler extends FlowTagCompiler {
     }
 
     @Nullable
-    private static ScaleSpec parseScaleSpec(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
-        Double scaleX = parseDoubleAttr(compiler, parent, el, "scaleX", 1.0d);
-        Double scaleY = parseDoubleAttr(compiler, parent, el, "scaleY", 1.0d);
+    private static ScaleSpec parseScaleSpec(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
+        Double scaleX = parseDoubleAttr(compiler, errorSink, el, "scaleX", 1.0d);
+        Double scaleY = parseDoubleAttr(compiler, errorSink, el, "scaleY", 1.0d);
         if (scaleX == null || scaleY == null) {
             return null;
         }
         if (scaleX <= 0.0d || scaleY <= 0.0d) {
-            parent.appendError(compiler, "FloatingImage scaleX and scaleY must be positive.", el);
+            errorSink.appendError(compiler, "FloatingImage scaleX and scaleY must be positive.", el);
             return null;
         }
         return new ScaleSpec(scaleX, scaleY);
     }
 
     @Nullable
-    private static Integer parseRequiredAliasedIntAttr(PageCompiler compiler, LytFlowParent parent,
+    private static Integer parseRequiredAliasedIntAttr(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el, String primaryName, String aliasName) {
         String primaryValue = el.getAttributeString(primaryName, null);
         String aliasValue = el.getAttributeString(aliasName, null);
         if (primaryValue != null && aliasValue != null) {
-            parent
+            errorSink
                 .appendError(compiler, "FloatingImage cannot use both " + primaryName + " and " + aliasName + ".", el);
             return null;
         }
         String resolved = primaryValue != null ? primaryValue : aliasValue;
         if (resolved == null || resolved.trim()
             .isEmpty()) {
-            parent.appendError(compiler, "FloatingImage requires x, y, width or w, and height or h.", el);
+            errorSink.appendError(compiler, "FloatingImage requires x, y, width or w, and height or h.", el);
             return null;
         }
         try {
             return Integer.parseInt(resolved.trim());
         } catch (NumberFormatException ex) {
-            parent.appendError(compiler, "FloatingImage " + primaryName + " must be an integer.", el);
+            errorSink.appendError(compiler, "FloatingImage " + primaryName + " must be an integer.", el);
             return null;
         }
     }
 
     @Nullable
-    private static Integer parseRequiredIntAttr(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el,
+    private static Integer parseRequiredIntAttr(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
         String name) {
         String value = el.getAttributeString(name, null);
         if (value == null || value.trim()
             .isEmpty()) {
-            parent.appendError(compiler, "FloatingImage requires x, y, width or w, and height or h.", el);
+            errorSink.appendError(compiler, "FloatingImage requires x, y, width or w, and height or h.", el);
             return null;
         }
         try {
             return Integer.parseInt(value.trim());
         } catch (NumberFormatException ex) {
-            parent.appendError(compiler, "FloatingImage " + name + " must be an integer.", el);
+            errorSink.appendError(compiler, "FloatingImage " + name + " must be an integer.", el);
             return null;
         }
     }
 
     @Nullable
-    private static Double parseDoubleAttr(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el,
+    private static Double parseDoubleAttr(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
         String name, double defaultValue) {
         String value = el.getAttributeString(name, null);
         if (value == null || value.trim()
@@ -363,7 +402,7 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         try {
             return Double.parseDouble(value.trim());
         } catch (NumberFormatException ex) {
-            parent.appendError(compiler, "FloatingImage " + name + " must be a number.", el);
+            errorSink.appendError(compiler, "FloatingImage " + name + " must be a number.", el);
             return null;
         }
     }

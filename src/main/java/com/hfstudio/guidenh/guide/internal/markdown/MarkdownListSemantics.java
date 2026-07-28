@@ -17,64 +17,119 @@ public class MarkdownListSemantics {
 
     private MarkdownListSemantics() {}
 
+    /**
+     * Detects whether the given {@code <li>} children contain a GFM task-list
+     * marker ({@code [x]} / {@code [ ]}) in the first paragraph.
+     *
+     * <p>This method is PURE DETECTION — it does NOT mutate the AST tree.
+     * The returned {@link TaskMarker} carries the prefix length so callers
+     * can strip the prefix for display without permanently altering the AST.
+     * This is critical because the same {@code ParsedGuidePage} (and its AST)
+     * may be compiled multiple times (e.g. by {@code CompileWorker} then by
+     * {@code RenderPageService}); mutation would cause the second compile to
+     * miss the marker.
+     *
+     * @param children the {@code <li>} element's children
+     * @return a {@link TaskMarker} describing the detected marker, or {@code null}
+     */
     public static @Nullable TaskMarker extractTaskMarker(List<? extends MdAstAnyContent> children) {
-        if (children.size() != 1) {
+        // Find the first <p> child (nested <li> may have [<p>, <ul>])
+        MdxJsxFlowElement p = null;
+        for (var child : children) {
+            if (child instanceof MdxJsxFlowElement el && "p".equals(el.name())) {
+                p = el;
+                break;
+            }
+        }
+        if (p == null) {
             return null;
         }
-        MdAstAnyContent firstChild = children.getFirst();
-        // Post-conversion: <p> element wrapping the task text
-        if (firstChild instanceof MdxJsxFlowElement p && "p".equals(p.name())) {
-            var pChildren = p.children();
-            if (pChildren.isEmpty()) {
-                return null;
-            }
 
-            // Build full text by concatenating all MdAstText children (micromark label
-            // resolution may split "[x]" across multiple text nodes)
-            StringBuilder fullText = new StringBuilder();
-            for (Object child : pChildren) {
-                if (child instanceof MdAstText text) {
-                    fullText.append(text.value);
+        var pChildren = p.children();
+        if (pChildren.isEmpty()) {
+            return null;
+        }
+
+        // Use recursive toText() to capture full text across inline formatting
+        // (e.g. "[x] **Bold** task" has text nodes only for "[x] " and " task",
+        // with the "Bold" inside a non-text MdxJsxTextElement).
+        String fullText = p.toText();
+
+        Matcher matcher = TASK_PATTERN.matcher(fullText);
+        if (!matcher.matches()) {
+            return null;
+        }
+
+        boolean checked = !" ".equals(matcher.group(1));
+        // remainingText is computed from the regex; the AST text nodes are NOT modified.
+        String remainingText = matcher.group(2);
+        int prefixLen = fullText.length() - remainingText.length();
+
+        // Find the first text node (for callers to locate the text to strip).
+        MdAstText firstTextNode = null;
+        for (Object child : pChildren) {
+            if (child instanceof MdAstText text) {
+                firstTextNode = text;
+                break;
+            }
+        }
+
+        if (firstTextNode == null) {
+            return null;
+        }
+
+        return new TaskMarker(checked, remainingText, firstTextNode, prefixLen);
+    }
+
+    /**
+     * Strips the task-marker prefix from the first {@code <p>} child's text
+     * nodes in-place. Callers MUST save original values beforehand and restore
+     * them after compilation to keep the AST immutable.
+     *
+     * @param p          the {@code <p>} element whose text children to modify
+     * @param prefixLen  number of characters to strip from the start
+     * @return a list of original text values in order (for later restoration)
+     */
+    public static List<String> stripPrefixInPlace(MdxJsxFlowElement p, int prefixLen) {
+        var saved = new java.util.ArrayList<String>();
+        int remainingToStrip = prefixLen;
+        for (Object child : p.children()) {
+            if (child instanceof MdAstText text) {
+                saved.add(text.value);
+                if (remainingToStrip > 0) {
+                    int stripFromThis = Math.min(remainingToStrip, text.value.length());
+                    text.setValue(text.value.substring(stripFromThis));
+                    remainingToStrip -= stripFromThis;
                 }
             }
+        }
+        return saved;
+    }
 
-            if (fullText.isEmpty()) {
-                return null;
+    /**
+     * Restores text nodes to their original values after a temporary
+     * {@link #stripPrefixInPlace} call.
+     */
+    public static void restoreTextValues(MdxJsxFlowElement p, List<String> savedValues) {
+        int idx = 0;
+        for (Object child : p.children()) {
+            if (child instanceof MdAstText text && idx < savedValues.size()) {
+                text.setValue(savedValues.get(idx++));
             }
+        }
+    }
 
-            Matcher matcher = TASK_PATTERN.matcher(fullText);
-            if (!matcher.matches()) {
-                return null;
+    /** Finds the first {@code <p>} child in an {@code <li>}'s children. */
+    @Nullable
+    public static MdxJsxFlowElement findFirstP(List<? extends MdAstAnyContent> children) {
+        for (var child : children) {
+            if (child instanceof MdxJsxFlowElement el && "p".equals(el.name())) {
+                return el;
             }
-
-            boolean checked = !" ".equals(matcher.group(1));
-            int prefixLen = fullText.length() - matcher.group(2).length();
-
-            // Strip the task prefix from text children, spanning multiple nodes if needed
-            int remainingToStrip = prefixLen;
-            MdAstText firstTextNode = null;
-            for (Object child : pChildren) {
-                if (child instanceof MdAstText text) {
-                    if (firstTextNode == null) {
-                        firstTextNode = text;
-                    }
-                    if (remainingToStrip > 0) {
-                        int stripFromThis = Math.min(remainingToStrip, text.value.length());
-                        text.setValue(text.value.substring(stripFromThis));
-                        remainingToStrip -= stripFromThis;
-                    }
-                }
-            }
-
-            if (firstTextNode == null) {
-                return null;
-            }
-
-            return new TaskMarker(checked, firstTextNode.value, firstTextNode);
         }
         return null;
     }
 
     @Desugar
-    public record TaskMarker(boolean checked, String remainingText, MdAstText textNode) {}
+    public record TaskMarker(boolean checked, String remainingText, MdAstText textNode, int prefixLen) {}
 }

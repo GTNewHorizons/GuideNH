@@ -23,6 +23,7 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
     private final String sourceText;
     @Getter
     private final LytCodeBlockToolbar toolbar = new LytCodeBlockToolbar();
+    @Getter
     private final LytMermaidFlowchartCanvas canvas;
 
     public LytMermaidFlowchart(FlowchartDocument flowchart, String sourceText) {
@@ -36,6 +37,7 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
             flowchart,
             nodeContent != null ? nodeContent : Collections.emptyMap());
 
+        setFullWidth(true);
         setPadding(6);
         setGap(4);
         setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);

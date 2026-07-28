@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -91,6 +92,7 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
     private final MindmapDocument mindmap;
 
     private DiagramLayout layout;
+    private int precomputedLayoutWidth;
 
     public LytMermaidMindmapCanvas(MindmapDocument mindmap, Map<String, LytBlock> nodeContentBlocks) {
         this.mindmap = mindmap;
@@ -166,46 +168,95 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         return new LytRect(x, y, safeWidth, viewportHeight);
     }
 
+    /**
+     * Pre-compute diagram layout before the first Rust layout pass and set
+     * preferredHeight so Rust allocates the correct canvas height immediately.
+     * Caches the layout result for reuse in afterExternalLayout when the
+     * actual bounds width matches the pre-computation width.
+     *
+     * @param ctx            LayoutContext backed by GuideText-based FontMetrics
+     * @param availableWidth estimated canvas content width (page width or
+     *                       placeholder width)
+     */
+    public void precomputeLayout(LayoutContext ctx, int availableWidth) {
+        int safeWidth = preferredWidth > 0
+            ? Math.max(1, Math.min(preferredWidth, availableWidth))
+            : Math.max(1, availableWidth);
+        this.layout = buildLayout(ctx, safeWidth);
+        this.precomputedLayoutWidth = safeWidth;
+        if (layout != null) {
+            int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
+            int newPreferredHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
+                : Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
+            if (preferredHeight > 0 && safeWidth < resolvePreferredViewportWidth()) {
+                newPreferredHeight = Math.max(newPreferredHeight, Math.min(MAX_HEIGHT, desiredHeight));
+            }
+            preferredHeight = newPreferredHeight;
+            int diagramWidth = layout.diagramWidth() + CANVAS_PADDING * 2;
+            preferredWidth = Math.min(diagramWidth, safeWidth);
+            GuideDebugLog.debugAlways(
+                "[GuideNH-Mermaid] precomputeLayout OK diagramHeight={} preferredHeight={}",
+                layout.diagramHeight(), preferredHeight);
+            GuideDebugLog.debugAlways(
+                "[GuideNH-Mermaid] precomputeLayout set explicitWidth={} diagramWidth={} safeWidth={}",
+                preferredWidth, layout.diagramWidth(), safeWidth);
+        } else {
+            GuideDebugLog.debugAlways(
+                "[GuideNH-Mermaid] precomputeLayout FAILED layout=null safeWidth={}",
+                safeWidth);
+        }
+    }
+
     @Override
     protected void afterExternalLayout() {
-        // The Java layout pre-pass no longer calls computeLayout, so the
-        // diagram layout would never be computed. Compute it here from the
-        // Rust-computed bounds, using a GuideText-backed LayoutContext.
-        if (layout != null) return;
         int safeWidth = preferredWidth > 0
             ? Math.max(1, Math.min(preferredWidth, Math.max(1, bounds.width())))
             : Math.max(1, bounds.width());
-        LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
-            @Override
-            public float getAdvance(int codePoint, ResolvedTextStyle s) {
-                return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
-            }
-            @Override
-            public int getLineHeight(ResolvedTextStyle s) {
-                return GuideText.lineHeight(s);
-            }
-        });
-        layout = buildLayout(fallbackCtx, safeWidth);
 
-        // After computing diagram layout, derive the desired viewport height,
-        // write it back to bounds, set preferredHeight for the next Rust pass,
-        // and trigger a re-layout so the corrected height takes effect.
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] afterExternalLayout entered layout={} safeWidth={} precomputedLayoutWidth={} bounds.height={}",
+            layout != null, safeWidth, precomputedLayoutWidth, bounds.height());
+
+        // Phase 1: ensure layout result matches the actual canvas width.
+        // Width matches precompute → reuse cached layout (no recompute).
+        // Width mismatch or no precompute → recompute at the correct width.
+        if (layout == null || precomputedLayoutWidth <= 0 || precomputedLayoutWidth != safeWidth) {
+            LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
+                @Override
+                public float getAdvance(int codePoint, ResolvedTextStyle s) {
+                    return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
+                }
+                @Override
+                public int getLineHeight(ResolvedTextStyle s) {
+                    return GuideText.lineHeight(s);
+                }
+            });
+            layout = buildLayout(fallbackCtx, safeWidth);
+            GuideDebugLog.debugAlways(
+                "[GuideNH-Mermaid] afterExternalLayout recomputed layout={}",
+                layout != null);
+        }
+
+        // Phase 2: if layout is valid, correct bounds height if needed (兜底).
         if (layout != null) {
             int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
-            int newHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
+            int expectedHeight = preferredHeight > 0
+                ? Math.max(48, preferredHeight)
                 : Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
             if (preferredHeight > 0 && safeWidth < resolvePreferredViewportWidth()) {
-                newHeight = Math.max(newHeight, Math.min(MAX_HEIGHT, desiredHeight));
+                expectedHeight = Math.max(expectedHeight, Math.min(MAX_HEIGHT, desiredHeight));
             }
-            if (newHeight != bounds.height()) {
-                preferredHeight = newHeight;
-                bounds = new LytRect(bounds.x(), bounds.y(), bounds.width(), newHeight);
-                LytDocument doc = getDocument();
-                if (doc != null) {
-                    doc.invalidateLayout();
-                }
+            if (bounds.height() != expectedHeight) {
+                GuideDebugLog.debugAlways(
+                    "[GuideNH-Mermaid] afterExternalLayout correcting bounds height {} -> {}",
+                    bounds.height(), expectedHeight);
+                bounds = new LytRect(bounds.x(), bounds.y(), bounds.width(), expectedHeight);
             }
         }
+
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] afterExternalLayout exit layout={} bounds.height={}",
+            layout != null, bounds.height());
     }
 
     @Override
