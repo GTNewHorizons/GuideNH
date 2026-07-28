@@ -160,6 +160,14 @@ public class LytContentTabsHeader extends LytBlock implements InteractiveElement
     }
 
     @Override
+    public int getExplicitHeight() {
+        if (titles.isEmpty()) {
+            return 0;
+        }
+        return GuideText.lineHeight(IDLE_STYLE) + HEADER_PAD_TOP + HEADER_PAD_BOTTOM;
+    }
+
+    @Override
     public boolean usePrimitives() {
         return true;
     }

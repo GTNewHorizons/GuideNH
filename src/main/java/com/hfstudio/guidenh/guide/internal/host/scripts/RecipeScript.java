@@ -121,6 +121,7 @@ public class RecipeScript implements LytScript {
                 return NeiRecipeLookup.readResultSlot(h, ri);
             }
         };
+        boolean handlerFilterEliminatedAll = false;
         List<Object> handlers = RecipeCompiler
             .filterHandlers(rawHandlers, ph.handlerName, ph.handlerId, ph.handlerOrder, metadataReader);
         if (!handlers.isEmpty()) {
@@ -147,16 +148,10 @@ public class RecipeScript implements LytScript {
                 return;
             }
         } else if (hasHandlerFilter) {
-            if (ph.fallbackText != null && !ph.fallbackText.isEmpty()) {
-                String handlerPart = "";
-                if (ph.handlerName != null || ph.handlerId != null) {
-                    handlerPart = " with handler " + (ph.handlerName != null ? ph.handlerName : ph.handlerId);
-                }
-                showFallback(ctx, ph, "No recipe found for " + ph.idStr + handlerPart);
-            } else if (GuideDebugLog.isDebugEnabled()) {
+            handlerFilterEliminatedAll = true;
+            if (GuideDebugLog.isDebugEnabled()) {
                 GuideDebugLog.debugAlways("Recipe handler filter eliminated all candidates for {}", ph.idStr);
             }
-            return;
         }
 
         // Integration recipe entries
@@ -201,9 +196,21 @@ public class RecipeScript implements LytScript {
         }
 
         // Vanilla recipe fallback
+        String fallbackMsg;
+        if (handlerFilterEliminatedAll) {
+            String filterInfo = "";
+            if (ph.handlerName != null || ph.handlerId != null) {
+                filterInfo = " with handler " + (ph.handlerName != null ? ph.handlerName : ph.handlerId);
+            } else if (ph.handlerOrder >= 0) {
+                filterInfo = " (handler order=" + ph.handlerOrder + ")";
+            }
+            fallbackMsg = "No recipe found for " + ph.idStr + filterInfo;
+        } else {
+            fallbackMsg = "No recipe found for " + ph.idStr;
+        }
         List<RecipeLookup.Entry> entries = usageQuery ? Collections.emptyList() : RecipeLookup.findByOutput(item);
         if (entries.isEmpty()) {
-            showFallback(ctx, ph, "No recipe found for " + ph.idStr);
+            showFallback(ctx, ph, fallbackMsg);
             return;
         }
 
@@ -221,7 +228,7 @@ public class RecipeScript implements LytScript {
             ctx.replace(buildResult(boxes));
             return;
         }
-        showFallback(ctx, ph, "No recipe found for " + ph.idStr);
+        showFallback(ctx, ph, fallbackMsg);
     }
 
     @SuppressWarnings("unchecked")

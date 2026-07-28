@@ -392,6 +392,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private final LinkedHashMap<String, StructureLibSceneBinding> structureLibBindings = new LinkedHashMap<>();
     private final LinkedHashMap<String, LongSet> bindingFootprints = new LinkedHashMap<>();
     private final List<SnbtPlacement> snbtPlacements = new ArrayList<>();
+    private final List<Runnable> deferredBlockMutations = new ArrayList<>();
     @Nullable
     private GuideSceneStructureSnapshot initialLevelSnapshot;
     private final List<StructureLibSceneMetadata.ChannelData> selectableStructureLibChannels = new ArrayList<>();
@@ -1254,6 +1255,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         snbtPlacements.add(placement);
     }
 
+    public void addDeferredBlockMutation(Runnable mutation) {
+        deferredBlockMutations.add(mutation);
+    }
+
     public void setSnbtPlacements(List<SnbtPlacement> placements) {
         snbtPlacements.clear();
         snbtPlacements.addAll(placements);
@@ -1320,6 +1325,12 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                 ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
             }
         }
+
+        // Phase 3: deferred block mutations (ReplaceBlock / RemoveBlocks)
+        for (Runnable mutation : deferredBlockMutations) {
+            mutation.run();
+        }
+        deferredBlockMutations.clear();
     }
 
     /**

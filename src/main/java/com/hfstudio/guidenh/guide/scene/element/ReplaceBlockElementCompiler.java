@@ -11,6 +11,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
@@ -106,21 +108,43 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
         int bdz = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dz", 1));
         boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
 
-        ReplaceBlockExecutor.execute(
-            level,
-            fromMatcher,
-            fromNbt,
-            toBlock,
-            toMeta,
-            toNbt,
-            toMatcher.getBlockId(),
-            hasBounds,
-            bx,
-            by,
-            bz,
-            bdx,
-            bdy,
-            bdz,
-            formed);
+        LytGuidebookScene scene = AnnotationTagCompiler.CURRENT_SCENE.get();
+        if (scene != null) {
+            NBTTagCompound deferredFromNbt = fromNbt;
+            NBTTagCompound deferredToNbt = toNbt;
+            scene.addDeferredBlockMutation(() -> ReplaceBlockExecutor.execute(
+                level,
+                fromMatcher,
+                deferredFromNbt,
+                toBlock,
+                toMeta,
+                deferredToNbt,
+                toMatcher.getBlockId(),
+                hasBounds,
+                bx,
+                by,
+                bz,
+                bdx,
+                bdy,
+                bdz,
+                formed));
+        } else {
+            ReplaceBlockExecutor.execute(
+                level,
+                fromMatcher,
+                fromNbt,
+                toBlock,
+                toMeta,
+                toNbt,
+                toMatcher.getBlockId(),
+                hasBounds,
+                bx,
+                by,
+                bz,
+                bdx,
+                bdy,
+                bdz,
+                formed);
+        }
     }
 }
