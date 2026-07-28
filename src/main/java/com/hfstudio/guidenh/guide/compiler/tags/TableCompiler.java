@@ -27,6 +27,7 @@ public class TableCompiler extends BlockTagCompiler {
 
         // Parse align attribute back to list
         String alignStr = el.getAttributeString("align", "");
+        el.removeAttribute("align");
 
         boolean firstRow = true;
         int rowIndex = 0;
@@ -73,6 +74,10 @@ public class TableCompiler extends BlockTagCompiler {
                 }
                 rowIndex++;
             }
+        }
+        if (table.getChildren().isEmpty()) {
+            parent.appendError(compiler, "Empty table: no rows found", el);
+            return;
         }
         parent.append(table);
     }

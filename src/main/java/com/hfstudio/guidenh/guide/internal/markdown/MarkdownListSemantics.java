@@ -24,17 +24,53 @@ public class MarkdownListSemantics {
         MdAstAnyContent firstChild = children.getFirst();
         // Post-conversion: <p> element wrapping the task text
         if (firstChild instanceof MdxJsxFlowElement p && "p".equals(p.name())) {
-            if (p.children()
-                .isEmpty()) {
+            var pChildren = p.children();
+            if (pChildren.isEmpty()) {
                 return null;
             }
-            if (p.children()
-                .getFirst() instanceof MdAstText text) {
-                Matcher matcher = TASK_PATTERN.matcher(text.value);
-                if (matcher.matches()) {
-                    return new TaskMarker(!" ".equals(matcher.group(1)), matcher.group(2), text);
+
+            // Build full text by concatenating all MdAstText children (micromark label
+            // resolution may split "[x]" across multiple text nodes)
+            StringBuilder fullText = new StringBuilder();
+            for (var child : pChildren) {
+                if (child instanceof MdAstText text) {
+                    fullText.append(text.value);
                 }
             }
+
+            if (fullText.isEmpty()) {
+                return null;
+            }
+
+            Matcher matcher = TASK_PATTERN.matcher(fullText);
+            if (!matcher.matches()) {
+                return null;
+            }
+
+            boolean checked = !" ".equals(matcher.group(1));
+            int prefixLen = fullText.length() - matcher.group(2).length();
+
+            // Strip the task prefix from text children, spanning multiple nodes if needed
+            int remainingToStrip = prefixLen;
+            MdAstText firstTextNode = null;
+            for (var child : pChildren) {
+                if (child instanceof MdAstText text) {
+                    if (firstTextNode == null) {
+                        firstTextNode = text;
+                    }
+                    if (remainingToStrip > 0) {
+                        int stripFromThis = Math.min(remainingToStrip, text.value.length());
+                        text.setValue(text.value.substring(stripFromThis));
+                        remainingToStrip -= stripFromThis;
+                    }
+                }
+            }
+
+            if (firstTextNode == null) {
+                return null;
+            }
+
+            return new TaskMarker(checked, firstTextNode.value, firstTextNode);
         }
         return null;
     }

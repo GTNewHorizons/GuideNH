@@ -136,6 +136,7 @@ public class LytTable extends LytBlock {
      * serialization. {@code x} is the table's left edge in document coords.
      */
     public void layoutColumns(int x, int availableWidth) {
+        if (columns.isEmpty()) return;
         int innerWidth = Math.max(0, availableWidth - (columns.size() + 1) * CELL_BORDER);
         int totalPreferredWidth = 0;
         int flexibleColumns = 0;

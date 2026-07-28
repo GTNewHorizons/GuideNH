@@ -63,6 +63,7 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
+import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
@@ -645,63 +646,6 @@ public class PageCompiler {
         parent.append(wrapFloatAwareIfNeeded(paragraph));
     }
 
-    private LytBlock compileTable(GfmTable astTable, List<Integer> widthHints) {
-        var table = new LytTable();
-        table.setMarginBottom(DEFAULT_ELEMENT_SPACING);
-
-        var astRows = astTable.children();
-        // The GFM table parser swallows a trailing kramdown attribute line such as
-        // `{: widths="..." }` as an extra row; drop it during rendering so it does
-        // not appear as the last visible row of the table.
-        int rowCount = astRows.size();
-        if (rowCount > 0) {
-            var lastRow = astRows.get(rowCount - 1);
-            String lastRowText = getTableRowText(lastRow);
-            if (lastRowText != null && TABLE_ATTRIBUTE_LINE.matcher(lastRowText.trim())
-                .matches()) {
-                if (widthHints == null || widthHints.isEmpty()) {
-                    Matcher matcher = TABLE_ATTRIBUTE_LINE.matcher(lastRowText.trim());
-                    if (matcher.matches()) {
-                        widthHints = parseWidthHintsFromMetaExpression(matcher.group(1));
-                    }
-                }
-                rowCount--;
-            }
-        }
-
-        boolean firstRow = true;
-        int rowIndex = 0;
-        for (int rowI = 0; rowI < rowCount; rowI++) {
-            var astRow = astRows.get(rowI);
-            var row = table.appendRow();
-            if (firstRow) {
-                row.modifyStyle(style -> style.bold(true));
-                firstRow = false;
-            }
-
-            var astCells = astRow.children();
-            for (int i = 0; i < astCells.size(); i++) {
-                if (rowIndex == 0 && i < widthHints.size() && widthHints.get(i) > 0) {
-                    table.getOrCreateColumn(i)
-                        .setPreferredWidth(widthHints.get(i));
-                }
-                var cell = row.appendCell();
-                // Apply alignment
-                if (astTable.align != null && i < astTable.align.size()) {
-                    switch (astTable.align.get(i)) {
-                        case CENTER -> cell.modifyStyle(style -> style.alignment(TextAlignment.CENTER));
-                        case RIGHT -> cell.modifyStyle(style -> style.alignment(TextAlignment.RIGHT));
-                    }
-                }
-
-                compileTableCellContent(astCells.get(i), cell);
-            }
-            rowIndex++;
-        }
-
-        return wrapFloatAwareIfNeeded(table);
-    }
-
     public static LytBlock wrapFloatAwareIfNeeded(LytBlock block) {
         if (block instanceof LytParagraph || block instanceof LytDocumentFloat
             || block instanceof LytFloatAwareBlock
@@ -709,18 +653,6 @@ public class PageCompiler {
             return block;
         }
         return new LytFloatAwareBlock(block);
-    }
-
-    private @Nullable String getTableRowText(GfmTableRow row) {
-        StringBuilder sb = new StringBuilder();
-        for (var cell : row.children()) {
-            if (!sb.isEmpty()) {
-                sb.append(' ');
-            }
-            sb.append(cell.toText());
-        }
-        String text = sb.toString();
-        return text.isEmpty() ? null : text;
     }
 
     public void compileFlowContext(MdAstParent<?> markdownParent, LytFlowParent layoutParent) {
@@ -744,9 +676,18 @@ public class PageCompiler {
             } else if (compileInlineDollarLatex(layoutParent, astText.value)) {
                 layoutChild = null;
             } else {
-                var text = new LytFlowText();
-                text.setText(astText.value);
-                layoutChild = text;
+                String value = astText.value;
+                if (value.indexOf('§') >= 0) {
+                    List<LytFlowContent> fragments = parseSectionFormatting(value);
+                    for (var fragment : fragments) {
+                        layoutParent.append(fragment);
+                    }
+                    layoutChild = null;
+                } else {
+                    var text = new LytFlowText();
+                    text.setText(value);
+                    layoutChild = text;
+                }
             }
         } else if (content instanceof MdxJsxTextElement el) {
             if ("Spoiler".equals(el.name())) {
@@ -1145,4 +1086,146 @@ public class PageCompiler {
 
     @Desugar
     public record State<T> (String name, Class<T> dataClass, T defaultValue) {}
+
+    // ---- § color/format code parsing ----
+
+    /**
+     * Parses Minecraft § color/format codes in {@code text} and returns a list of
+     * styled flow content fragments (plain {@link LytFlowText} or {@link LytFlowSpan}
+     * wrapping a text node).
+     */
+    private static List<LytFlowContent> parseSectionFormatting(String text) {
+        if (text.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<LytFlowContent> result = new ArrayList<>();
+        StringBuilder segment = new StringBuilder();
+
+        // Current style state.  Boolean null = inherit/not set.
+        ConstantColor color = null;
+        Boolean bold = null;
+        Boolean italic = null;
+        Boolean underlined = null;
+        Boolean strikethrough = null;
+        Boolean obfuscated = null;
+
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (ch == '§' && i + 1 < text.length()) {
+                char code = text.charAt(i + 1);
+                int mappedColor = mapSectionColor(code);
+                if (mappedColor != -1 || isSectionFormatCode(code)) {
+                    // Valid § code – flush current segment and apply
+                    flushSectionSegment(result, segment, color, bold, italic, underlined, strikethrough, obfuscated);
+
+                    if (mappedColor != -1) {
+                        // §0-§f color: reset all formatting and set colour
+                        color = new ConstantColor(mappedColor);
+                        bold = false;
+                        italic = false;
+                        underlined = false;
+                        strikethrough = false;
+                        obfuscated = false;
+                    } else {
+                        // §k-§o, §r: format code
+                        switch (Character.toLowerCase(code)) {
+                            case 'l' -> bold = true;
+                            case 'o' -> italic = true;
+                            case 'm' -> strikethrough = true;
+                            case 'n' -> underlined = true;
+                            case 'k' -> obfuscated = true;
+                            case 'r' -> {
+                                color = null;
+                                bold = null;
+                                italic = null;
+                                underlined = null;
+                                strikethrough = null;
+                                obfuscated = null;
+                            }
+                            default -> { /* unreachable – isSectionFormatCode already validated */ }
+                        }
+                    }
+                    i++; // skip the format-code character
+                    continue;
+                }
+            }
+            segment.append(ch);
+        }
+
+        flushSectionSegment(result, segment, color, bold, italic, underlined, strikethrough, obfuscated);
+        return result;
+    }
+
+    /** Appends the accumulated {@code segment} text as either plain or styled flow content. */
+    private static void flushSectionSegment(List<LytFlowContent> result, StringBuilder segment,
+            ConstantColor color, Boolean bold, Boolean italic, Boolean underlined,
+            Boolean strikethrough, Boolean obfuscated) {
+        if (segment.isEmpty()) {
+            return;
+        }
+        String text = segment.toString();
+        segment.setLength(0);
+
+        if (color == null && bold == null && italic == null && underlined == null
+            && strikethrough == null && obfuscated == null) {
+            result.add(LytFlowText.of(text));
+            return;
+        }
+
+        var span = new LytFlowSpan();
+        var builder = TextStyle.builder();
+        if (color != null) {
+            builder = builder.color(color);
+        }
+        if (bold != null) {
+            builder = builder.bold(bold);
+        }
+        if (italic != null) {
+            builder = builder.italic(italic);
+        }
+        if (underlined != null) {
+            builder = builder.underlined(underlined);
+        }
+        if (strikethrough != null) {
+            builder = builder.strikethrough(strikethrough);
+        }
+        if (obfuscated != null) {
+            builder = builder.obfuscated(obfuscated);
+        }
+        span.setStyle(builder.build());
+        span.appendText(text);
+        result.add(span);
+    }
+
+    /** Returns ARGB color int for §0-§f, or -1 if {@code code} is not a colour code. */
+    private static int mapSectionColor(char code) {
+        return switch (Character.toLowerCase(code)) {
+            case '0' -> 0xFF000000; // Black
+            case '1' -> 0xFF0000AA; // Dark Blue
+            case '2' -> 0xFF00AA00; // Dark Green
+            case '3' -> 0xFF00AAAA; // Dark Aqua
+            case '4' -> 0xFFAA0000; // Dark Red
+            case '5' -> 0xFFAA00AA; // Dark Purple
+            case '6' -> 0xFFFFAA00; // Gold
+            case '7' -> 0xFFAAAAAA; // Gray
+            case '8' -> 0xFF555555; // Dark Gray
+            case '9' -> 0xFF5555FF; // Blue
+            case 'a' -> 0xFF55FF55; // Green
+            case 'b' -> 0xFF55FFFF; // Aqua
+            case 'c' -> 0xFFFF5555; // Red
+            case 'd' -> 0xFFFF55FF; // Light Purple
+            case 'e' -> 0xFFFFFF55; // Yellow
+            case 'f' -> 0xFFFFFFFF; // White
+            default -> -1;
+        };
+    }
+
+    /** Returns true for §k/l/m/n/o/r (format codes, not colour codes). */
+    private static boolean isSectionFormatCode(char code) {
+        return switch (Character.toLowerCase(code)) {
+            case 'k', 'l', 'm', 'n', 'o', 'r' -> true;
+            default -> false;
+        };
+    }
 }

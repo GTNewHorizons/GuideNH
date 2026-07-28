@@ -308,15 +308,6 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                         overlayRustRects.add(rustRect);
                     }
                 }
-                // Post pass: let blocks re-apply state that depends on their
-                // children's final bounds (e.g. scroll offsets) BEFORE the
-                // cull-bounds union is recomputed from the moved subtrees.
-                for (int i = 0; i < numLayouts; i++) {
-                    LytNode node = serializer.getNodeByFlatIndex(i);
-                    if (node instanceof LytBlock lb) {
-                        lb.afterExternalLayout();
-                    }
-                }
                 // Upload unique glyph bitmaps (hi-res, rasterized by Rust at
                 // render_scale) to the atlas. Placement is already baked into
                 // the per-glyph quads below.
@@ -401,6 +392,17 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                             entry.getValue()
                                 .size(),
                             entry.getKey());
+                    }
+                }
+                // Post pass: let blocks re-apply state that depends on their
+                // children's final bounds (e.g. scroll offsets) BEFORE the
+                // cull-bounds union is recomputed from the moved subtrees.
+                // Runs AFTER glyph-data injection so onLayoutMoved() shifts
+                // existing glyph quads together with the block position.
+                for (int i = 0; i < numLayouts; i++) {
+                    LytNode node = serializer.getNodeByFlatIndex(i);
+                    if (node instanceof LytBlock lb) {
+                        lb.afterExternalLayout();
                     }
                 }
             }

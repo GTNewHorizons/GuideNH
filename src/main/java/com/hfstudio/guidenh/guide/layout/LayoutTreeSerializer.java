@@ -273,7 +273,7 @@ public class LayoutTreeSerializer {
                 floatIntents.put(block, pendingFloatSide);
                 pendingFloatSide = 0;
             }
-            if (block instanceof LytTable table) {
+            if (block instanceof LytTable table && !table.getColumns().isEmpty()) {
                 // Column widths must be resolved before serialization so cells
                 // carry their column width constraint. The Java pre-pass is
                 // removed, so layoutColumns is called here with the available

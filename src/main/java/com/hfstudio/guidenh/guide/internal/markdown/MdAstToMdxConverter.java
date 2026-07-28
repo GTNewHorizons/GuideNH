@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -46,6 +47,12 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstThematicBreak;
 import com.hfstudio.guidenh.libs.micromark.extensions.gfm.Align;
 
 public final class MdAstToMdxConverter {
+
+    /**
+     * Matches a kramdown-style attribute line ({@code {: ... }}) that the GFM
+     * table parser may swallow as an extra table row.
+     */
+    private static final Pattern TABLE_ATTRIBUTE_LINE = Pattern.compile("^\\{:\\s*(.+?)\\s*}$");
 
     private MdAstToMdxConverter() {}
 
@@ -260,7 +267,15 @@ public final class MdAstToMdxConverter {
                 }
                 replacement = el;
             } else if (child instanceof GfmTableRow row) {
-                replacement = createFlow("tr", row.children());
+                // Detect kramdown attribute line ({: ...}) swallowed by GFM table parser
+                String rowText = getRowText(row);
+                if (rowText != null && TABLE_ATTRIBUTE_LINE.matcher(rowText).matches()) {
+                    replacement = new MdxJsxFlowElement();
+                    replacement.setName("table-meta");
+                    replacement.addAttribute("content", rowText);
+                } else {
+                    replacement = createFlow("tr", row.children());
+                }
             } else if (child instanceof GfmTableCell cell) {
                 replacement = createFlow("td", cell.children());
             } else if (child instanceof MdAstThematicBreak) {
@@ -398,5 +413,22 @@ public final class MdAstToMdxConverter {
         String v = t.value.trim();
         if (v.startsWith("{:") && v.endsWith("}")) return v;
         return null;
+    }
+
+    /**
+     * Concatenates the text content of all cells in a GfmTableRow, separated by
+     * spaces. Returns null if the resulting text is empty (after trim).
+     */
+    @Nullable
+    private static String getRowText(GfmTableRow row) {
+        StringBuilder sb = new StringBuilder();
+        for (var cell : row.children()) {
+            if (!sb.isEmpty()) {
+                sb.append(' ');
+            }
+            sb.append(cell.toText());
+        }
+        String text = sb.toString().trim();
+        return text.isEmpty() ? null : text;
     }
 }

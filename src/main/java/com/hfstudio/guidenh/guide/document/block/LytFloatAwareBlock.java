@@ -28,6 +28,7 @@ public class LytFloatAwareBlock extends LytBlock {
     public LytFloatAwareBlock(LytBlock inner) {
         this.inner = inner;
         inner.parent = this;
+        setFullWidth(inner.isFullWidth());
     }
 
     @Override
