@@ -1,6 +1,7 @@
 ---
 navigation:
   title: VisualTest Index
+  parent: index.md
   position: 9999
 ---
 

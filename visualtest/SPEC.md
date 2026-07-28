@@ -7,18 +7,21 @@
 
 ## 运行方式
 
+**结构约定（实证修正）**：引擎只扫描固定 folder `guidenh`（DataDrivenGuideLoader.AUTO_GUIDE_FOLDER），
+独立 guide 不可行。fixture 挂在自有资源包的 `assets/guidenh/guidenh/_en_us/visualtest/` 子树下，
+页面合并进 `guidenh:guidenh` 指南（仅开发期 -D 注入，不影响发布）。页面 id 规则：
+`guidenh:visualtest/<子文件夹>/<文件>.md`（如 `guidenh:visualtest/mermaid/mindmap.md`）。
+frontmatter 的 parent 一律写 `visualtest/index.md`（语料子树根），visualtest/index.md 的 parent 为 `index.md`。
+
 ```bash
-# 全量渲染语料库（scale=2 为视觉检查默认档）
+# 渲染语料库指定页面（--list 逗号分隔；allPages 会连主指南一起渲染，不用）
 ./gradlew runClient25 \
   -Dguidenh.guide.sources=D:/Projects/GuideNH/visualtest/resourcepack \
   -Dguidenh.headlessRender=true \
-  -Dguidenh.renderpage.guide=guidenh:visualtest \
-  -Dguidenh.renderpage.allPages=true \
+  -Dguidenh.renderpage.guide=guidenh:guidenh \
+  -Dguidenh.renderpage.list=guidenh:visualtest/mermaid/mindmap.md,guidenh:visualtest/mermaid/flowchart.md \
   -Dguidenh.renderpage.out=screenshots_visualtest \
   -Dguidenh.renderpage.width=900 -Dguidenh.renderpage.scale=2
-
-# 单页：page id = guidenh: + _en_us/ 下相对路径（含子文件夹）
-#   -Dguidenh.renderpage.page=guidenh:mermaid/mindmap.md
 ```
 
 ## 编写规范
@@ -30,7 +33,7 @@
    ---
    navigation:
      title: <英文标题>
-     parent: index.md
+     parent: visualtest/index.md
      position: <号段内递减，大者靠前>
    ---
    ```
@@ -115,7 +118,7 @@
 **tables/wide.md** — 5 列宽表、超长英文词单元格、多行单元格。
 **tables/cjk.md** — CJK 表头/单元格/混合、CJK 长串。
 **tables/metadata.md** — `{: widths="120,80" }` 列宽、宽窄组合。
-**tables/csv.md** — `<CsvTable src>` + `csv` 代码块两种形式（header/widths 变体；csv 资源放 `_en_us/assets/`）。
+**tables/csv.md** — `<CsvTable src>` + `csv` 代码块两种形式（header/widths 变体；csv 资源放 `_en_us/visualtest/assets/`）。
 - 不变式（各文件）：总宽 ≤ 页宽；折行不溢出列界；行高一致；列分隔线对齐。
 
 ### code/
@@ -138,7 +141,7 @@
 - `$$...$$` 独立行、`<Latex>` block 形式、scale=1.5、valign 变体、color、带 tooltip。
 - 不变式：水平居中；缩放不溢出；段距一致。
 
-### images/（图片资源：新增纯色/格子测试 PNG 放 `_en_us/assets/`）
+### images/（图片资源：新增纯色/格子测试 PNG 放 `_en_us/visualtest/assets/`）
 
 **images/basic.md** — `![alt](src)` 小/中/宽图、居中 align、图注(title)。
 **images/float.md** — `wrap="square|tight|through"` × `align="left|right"` 图片 + 环绕文字 + `<br clear="both">`。
