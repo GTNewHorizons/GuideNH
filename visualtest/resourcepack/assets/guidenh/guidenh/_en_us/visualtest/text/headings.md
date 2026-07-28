@@ -42,6 +42,8 @@ The heading above this paragraph and the one below both render decorative separa
 
 Expected: No part of any heading separator line visually overlaps or cuts through heading text characters on any line.
 
---- a horizontal rule separator
+---
+
+The line above is a thematic break (three dashes on its own line).
 
 Expected: The `---` thematic break renders as a standalone horizontal line; it does not collide with the preceding heading separator or the following heading text.

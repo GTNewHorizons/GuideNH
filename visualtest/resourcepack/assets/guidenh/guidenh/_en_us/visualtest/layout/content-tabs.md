@@ -4,7 +4,7 @@ navigation:
   position: 8270
 ---
 
-TEST GOAL / 测试目标：<ContentTabs> 多 Tab（不同内容类型）、title/default/defaultIndex/color/icon 变体
+TEST GOAL / 测试目标：ContentTabs 多 Tab（不同内容类型）、title/default/defaultIndex/color/icon 变体
 
 INVARIANTS / 不变式：Tab 头与内容对应；切换 Tab 显示正确内容；title/color/icon 渲染正确
 

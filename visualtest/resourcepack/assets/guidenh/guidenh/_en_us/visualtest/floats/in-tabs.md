@@ -17,7 +17,7 @@ Expected: A `ContentTabs` with three tabs. The second tab contains a floating im
 This tab contains only text. No float is present here.
 </Tab>
 <Tab title="Float">
-<FloatingImage src="../assets/red-64.png" wrap="square" align="left" width="64" height="64" scaleX="2" scaleY="2" title="tab float" />
+<FloatingImage src="../assets/red-64.png" wrap="square" align="left" width="64" height="64" x="0" y="0" scaleX="2" scaleY="2" title="tab float" />
 
 This text wraps around the floating image inside the tab. The float must be contained within the tab content bounds — it must not leak into adjacent tabs or outside the `ContentTabs` container. When switching to other tabs the float should not be visible.
 </Tab>
@@ -47,7 +47,7 @@ This text wraps to the left of the floating scene inside the tab. The scene is r
 
 Expected: A left float appears above the `ContentTabs` block. The `ContentTabs` block itself is not compressed by the external float — it renders at full available width.
 
-<FloatingImage src="../assets/wide-256x64.png" wrap="square" align="left" width="256" height="64" scaleX="0.75" scaleY="1" title="external before" />
+<FloatingImage src="../assets/wide-256x64.png" wrap="square" align="left" width="256" height="64" x="0" y="0" scaleX="0.75" scaleY="1" title="external before" />
 
 This paragraph wraps around the external float above the tabs. The float precedes the `ContentTabs` block.
 
@@ -73,6 +73,6 @@ More content inside the tabs.
 </Tab>
 </ContentTabs>
 
-<FloatingImage src="../assets/checker-128.png" wrap="square" align="right" width="128" height="128" scaleX="0.75" scaleY="0.75" title="external after" />
+<FloatingImage src="../assets/checker-128.png" wrap="square" align="right" width="128" height="128" x="0" y="0" scaleX="0.75" scaleY="0.75" title="external after" />
 
 This paragraph wraps to the left of the external float that follows the `ContentTabs` block. The float appears after the tabs and should not affect the internal layout of the tabs themselves.

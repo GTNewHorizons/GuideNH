@@ -80,7 +80,7 @@ Wrapping paragraph text beside the floated image. This text fills the space to t
 | fullWidth table | Page width | Lane width if bug present |
 | Table wrapped in FloatAwareBlock | Full width | Check with bounds JSON |
 
-<br clear="both">
+<br clear="all">
 
 ## K4 Replication: Float + FullWidth Code Block
 
@@ -93,4 +93,4 @@ Wrapping paragraph beside the right-floated image. The text fills the space to t
 ```
 K4 fullWidth code block
 ```
-<br clear="both">
+<br clear="all">

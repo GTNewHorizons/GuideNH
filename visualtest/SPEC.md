@@ -148,6 +148,7 @@ junction 保留无害但不要依赖。
 6. 结构文字用英文；被测对象内容按需。
 7. 每文件头部用**一行普通文本**写明：测试目标 + 不变式编号（会显示在截图里，兼作自解释）。**禁止 `<!-- -->`**——实证会被当正文渲染。
 8. 语法参考：`wiki/resourcepack/assets/guidenh/guidenh/_en_us/*.md`（官方文档页，
+9. `<br clear>` 合法值只有 left/right/all/none（BreakCompiler.java:21-30），**禁止 both**（会渲染错误文本）；浮动清除统一用 `clear="all"`。写散文引述标签必须放反引号（否则 MDX 当活标签）。
    含真实用例）；不确定的属性名以 `TagAttributeRegistry.java` 为准，禁止臆造。
 
 ## 文件夹与号段
@@ -172,6 +173,57 @@ junction 保留无害但不要依赖。
 | stress/ | 7600 | 混合压力页 |
 
 > position 分配规则：每文件夹内从号段顶端递减、间隔 10；新增文件夹时更新本表。
+
+## 裁决台账（2026-07-28 首轮：63 页全渲染 + geometric 53 + VLM 810 → K3 裁决）
+
+初筛管道：geometric 53 条 + VLM 810 条（含 overlay 误扫）→ pass1 意图分诊（INTENDED 15 / KNOWN 28 /
+SUSPECT 129 / FP 128）→ K3 截图逐簇裁决。以下结论全部有截图证据。
+
+### A. 真实引擎问题（截图证实，进统一修复队列）
+
+| # | 问题 | 证据（页） |
+|---|---|---|
+| A1 | mermaid 占位框（已定性，疑迁移丢失） | mermaid/* + stress |
+| A2 | JSX `<table align>` 空列崩溃 LytTable.java:176 | layout/align（用例已禁用待恢复） |
+| A3 | **ContentTabs 头高度≈0，内容与 tab 条重叠**；icon 压标题 | layout/content-tabs、floats/in-tabs、stress；geometric ContentTabsHeader h=0 ×10 佐证 |
+| A4 | **details 正文左缘裁切约 1 字符**（"T→is""D→iamond""S→ystem"） | layout/details |
+| A5 | **角落图例在 TL/BL/BR 被绘图区边缘裁剪**（TR 正常） | charts/options |
+| A6 | **展示 LaTeX 不居中**（全部左对齐，违反居中不变式） | latex/display、stress |
+| A7 | `<Latex>` 行内公式掉到下一行（backlog 旧录，截图实证） | latex/inline 全页 |
+| A8 | **`$...$`/`$$...$$` 简写完全不解析，原样输出**（新发现） | latex/inline、stress |
+| A9 | **ImportStructure 后 ReplaceBlock/RemoveBlocks 未作用于导入方块**（三场景渲染一致） | scenes/import |
+| A10 | **RecipeFor/RecipesFor/handler 过滤/fallbackText 全部只渲染 "[Recipe]" 占位**（仅 `<Recipe id>` 正常） | nei/recipes |
+| A11 | **fullWidth Column 内代码块不撑满容器**（K4 家族实证；表格能撑满） | images/fullwidth |
+| A12 | **任务列表 `- [x]` 无复选框/无标记渲染**（新发现） | stress（lists/tasks 待复核） |
+| A13 | **§ 颜色/格式码完全不生效原样输出**（`<Color>` 标签正常对照） | text/section-codes 全页 |
+
+### B. 未复现 → 进游戏验证（金标准）
+
+- K1 巨型 §：50 连续 § 全部正常尺寸，**未复现** → 进游戏对照主指南 markdown.md
+- K2 标题分隔线穿字：headings 页分隔线干净，**未复现** → 进游戏验证
+- 实体 Y 偏移悬浮：entities 页羊/苦力怕/玩家贴地正常，**未复现** → 进游戏验证
+- GameScene tab 内浮动占满整行、文字不环绕：证据较弱，标 suspect 待复核
+
+### C. Fixture 缺陷（已修/修复中）
+
+- C1 `clear="both"` 非法值 ×47（合法值 left/right/all/none）→ **已修**（8 文件）
+- C2 `<FloatingImage>` 缺 x/y 编译报错（floats/in-tabs、wrap-modes）→ 修复中
+- C3 content-tabs.md 的 ContentTabs 直接含文本节点（7:31 编译错误）→ 修复中
+- C4 headings.md `---` 与文字同行导致直出 → 修复中
+- C5 entities.md 场景视角太窄，第二实体出画 → 修复中
+- C6 cjk/tables/headings "超长"用例长度不足触发折行 → 加长（弱优先级）
+- C7 stress `{: widths=}` 直出 → 待对照 tables/metadata.md 重渲染后定性（引擎 vs 写法）
+
+### D. 离线基建问题
+
+- 无头批量渲染累积 OOM（63 页批次 ~42 页后 heap space；分流：批次 ≤40 页）
+- 初筛员把 `*_overlay.png` 当独立页面扫描（125 vs 63 页，成本翻倍+噪声）→ screen.py 需过滤
+
+### E. VLM 系统性误报（初筛员 prompt 调优输入）
+
+- 页面右缘"文字硬截"（~11 条/10 页）：文字排到页宽边界的正常排版+瓦片边界伪影
+- 瓦片接缝伪影 ~20 条；bounds overlay 辅助线当内容
+- 调优：右缘裁剪 finding 需文字明显截半才报；overlay 不扫
 
 ## 逐文件规格
 

@@ -20,7 +20,7 @@ Expected: Three images stacked vertically on the left side; text flows to the ri
 
 This paragraph flows to the right of three consecutive left floats. Each float occupies its own vertical position on the left margin without overlapping the previous float. The layout engine tracks the cumulative float region and adjusts the text lane accordingly. The third float sits below the second, and text continues on the right of all three.
 
-<br clear="both">
+<br clear="all">
 
 ## Left-Right Paired Floats
 
@@ -32,7 +32,7 @@ Expected: One image floats left and another floats right simultaneously; text fi
 
 This paragraph flows in the space between the left and right floats. The left float claims space on the left side and the right float claims space on the right side. The text occupies the reduced horizontal lane between them. Multiple lines of text demonstrate the centred text column created by opposing floats.
 
-<br clear="both">
+<br clear="all">
 
 ## Float Immediately Followed by Float
 
@@ -44,7 +44,7 @@ Expected: A right float appears directly below a left float with no text between
 
 Text after the pair of adjacent floats. The first float occupies the left side and the second float occupies the right side. There is no intervening text or clear between them — the engine handles float stacking at the same vertical level.
 
-<br clear="both">
+<br clear="all">
 
 ## br clear="left"
 
@@ -58,7 +58,7 @@ Text between the floats to show the wrapping lane.
 <br clear="left">
 This line starts below the left float after `clear="left"` but the right float is still active and text wraps around it.
 
-<br clear="both">
+<br clear="all">
 
 ## br clear="right"
 
@@ -72,16 +72,16 @@ Text in the lane between floats.
 <br clear="right">
 This line starts below the right float after `clear="right"` but the left float is still active and text wraps around it.
 
-<br clear="both">
+<br clear="all">
 
-## br clear="both"
+## br clear="all"
 
-Expected: Text after `<br clear="both">` starts below both cleared floats; full width is restored.
+Expected: Text after `<br clear="all">` starts below both cleared floats; full width is restored.
 
 <FloatingImage src="../assets/red-64.png" wrap="square" align="left" width="64" height="64" scaleX="2" scaleY="2" title="left" />
 
 <FloatingImage src="../assets/checker-128.png" wrap="square" align="right" width="128" height="128" scaleX="0.5" scaleY="0.5" title="right" />
 
 Text in the lane.
-<br clear="both">
-This line starts below both floats after `clear="both"`. The full page width is restored and text flows normally from margin to margin without any active float constraint.
+<br clear="all">
+This line starts below both floats after `clear="all"`. The full page width is restored and text flows normally from margin to margin without any active float constraint.

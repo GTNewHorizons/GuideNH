@@ -16,7 +16,7 @@ Expected: `CsvTable` floats left with `wrap="square"`; text wraps to the right o
 
 This paragraph flows to the right of the CSV table. The table registers as a left-side document float and subsequent paragraphs shrink their available width to avoid it, just like a CSS `float: left`. Multiple lines of text here demonstrate the wrapping effect around the floated table.
 
-<br clear="both">
+<br clear="all">
 
 ## Floating Code Block
 
@@ -32,7 +32,7 @@ public class FloatTest {
 
 This paragraph flows to the right of the floated code block. The code block registers as a left-side document float and the text fills the remaining width. The code block background and syntax highlighting should render correctly within the float region.
 
-<br clear="both">
+<br clear="all">
 
 ## Floating GameScene
 
@@ -44,7 +44,7 @@ Expected: `GameScene` floats left with `wrap="square"`; text wraps to the right 
 
 This paragraph flows to the right of the scene viewport. The `wrap="square" align="left"` combination registers the scene as a left-side document float. All subsequent paragraphs narrow their available width until the float clears. This demonstrates that block-level 3D scenes participate in the float system.
 
-<br clear="both">
+<br clear="all">
 
 ## Floating Recipe
 
@@ -54,7 +54,7 @@ Expected: `Recipe` floats left with `wrap="square"`; text wraps to the right. NE
 
 This paragraph flows to the right of the recipe box. The recipe registers as a left-side document float. In a real GTNH environment the recipe grid renders; in headless mode the fallback text is shown. The float behavior (text wrapping) should work identically in both cases.
 
-<br clear="both">
+<br clear="all">
 
 ## Floating Chart (BarChart)
 
@@ -66,7 +66,7 @@ Expected: `BarChart` floats left with `wrap="square"`; text wraps to the right o
 
 This paragraph flows to the right of the bar chart. The chart registers as a left-side document float. Text fills the available space beside the chart, demonstrating that chart components also participate in the floating layout system.
 
-<br clear="both">
+<br clear="all">
 
 ## Floating Column Container
 

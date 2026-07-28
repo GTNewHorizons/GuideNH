@@ -39,7 +39,7 @@ Expected: BlockImage floats to the left with square wrap; text wraps around its 
 
 Surrounding paragraph text that wraps around the left-floated BlockImage. The block renders as a 3D diamond block preview at scale 4. Text fills the available space to the right and continues below the image. Additional filler ensures multiple wrapping lines are visible.
 
-<br clear="both">
+<br clear="all">
 
 ## BlockImage wrap="square" align="right"
 
@@ -49,7 +49,7 @@ Expected: BlockImage floats to the right with square wrap; text wraps around its
 
 Surrounding paragraph text that wraps around the right-floated BlockImage. The block renders as a 3D stone block preview at scale 4. Text fills the space to the left and continues below. Additional filler ensures visible wrapping.
 
-<br clear="both">
+<br clear="all">
 
 ## BlockImage align="center"
 
@@ -69,7 +69,7 @@ Expected: BlockImage floats left within a paragraph or inline flow; text wraps a
 
 Text before the floated BlockImage. <BlockImage id="minecraft:diamond_block" scale="3" float="left" /> This text appears after the inline BlockImage and wraps around its right side. The float attribute is the legacy inline floating mechanism for flow context. Additional filler ensures wrapping behavior is visible across multiple lines.
 
-<br clear="both">
+<br clear="all">
 
 ## BlockImage float="right" (Flow Context)
 
@@ -77,7 +77,7 @@ Expected: BlockImage floats right within a paragraph or inline flow; text wraps 
 
 Text before the right-floated BlockImage. <BlockImage id="minecraft:redstone_block" scale="3" float="right" /> This text appears before the floated image and wraps around its left side. Additional filler ensures wrapping behavior is visible across multiple lines.
 
-<br clear="both">
+<br clear="all">
 
 ## ItemImage Comparison (Block-Style at Large Scale)
 

@@ -14,7 +14,7 @@ Expected: The full 64×64 red image is displayed at native size. Crop matches th
 
 <FloatingImage src="../assets/red-64.png" align="left" x="0" y="0" width="64" height="64" title="full red 64x64" />
 
-<br clear="both">
+<br clear="all">
 
 ## Cropped Top-Left Quadrant
 
@@ -22,7 +22,7 @@ Expected: Only the top-left 32×32 pixels of the red image are displayed. The cr
 
 <FloatingImage src="../assets/red-64.png" align="left" x="0" y="0" width="32" height="32" title="top-left 32x32 crop" />
 
-<br clear="both">
+<br clear="all">
 
 ## Cropped Center with w and h Aliases
 
@@ -30,7 +30,7 @@ Expected: The center 32×32 pixels of the checker image are displayed using the 
 
 <FloatingImage src="../assets/checker-128.png" align="left" x="48" y="48" w="32" h="32" title="center 32x32 using w/h" />
 
-<br clear="both">
+<br clear="all">
 
 ## Scale Stretch (scaleX)
 
@@ -38,7 +38,7 @@ Expected: The 32×32 cropped region of the wide image is stretched horizontally 
 
 <FloatingImage src="../assets/wide-256x64.png" align="left" x="0" y="0" width="32" height="32" scaleX="3" scaleY="1" title="stretch X 3x" />
 
-<br clear="both">
+<br clear="all">
 
 ## Scale Stretch (scaleY)
 
@@ -46,7 +46,7 @@ Expected: The 32×32 cropped region of the tall image is stretched vertically (s
 
 <FloatingImage src="../assets/tall-64x256.png" align="left" x="0" y="0" width="32" height="32" scaleX="1" scaleY="3" title="stretch Y 3x" />
 
-<br clear="both">
+<br clear="all">
 
 ## Whole-Image Annotation
 
@@ -58,7 +58,7 @@ Expected: Hovering anywhere over the image displays the tooltip text "This annot
   </ImageAnnotation>
 </FloatingImage>
 
-<br clear="both">
+<br clear="all">
 
 ## Region Annotation with Border
 
@@ -70,7 +70,7 @@ Expected: The annotated region (10,10)-(50,30) has a visible red border (borderC
   </ImageAnnotation>
 </FloatingImage>
 
-<br clear="both">
+<br clear="all">
 
 ## Multiple Annotations
 
@@ -85,7 +85,7 @@ Expected: Two annotation regions on the same image. The left half (0,0)-(64,128)
   </ImageAnnotation>
 </FloatingImage>
 
-<br clear="both">
+<br clear="all">
 
 ## Annotation on Scaled Crop
 
@@ -97,7 +97,7 @@ Expected: The cropped region (0,0)-(64,64) is stretched (scaleX=2, scaleY=1.5). 
   </ImageAnnotation>
 </FloatingImage>
 
-<br clear="both">
+<br clear="all">
 
 ## SoundArea (Click Region)
 
@@ -107,7 +107,7 @@ Expected: The left half (0,0)-(32,64) is a clickable SoundArea that would play a
   <SoundArea x="0" y="0" w="32" h="64" sound="guidenh:test.left_click" />
 </FloatingImage>
 
-<br clear="both">
+<br clear="all">
 
 ## SoundArea (Hover Trigger)
 
@@ -117,4 +117,4 @@ Expected: The right half (32,0)-(32,64) is a SoundArea with trigger="hover". Hov
   <SoundArea x="32" y="0" w="32" h="64" sound="guidenh:test.right_hover" trigger="hover" />
 </FloatingImage>
 
-<br clear="both">
+<br clear="all">

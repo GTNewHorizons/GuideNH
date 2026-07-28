@@ -12,7 +12,7 @@ INVARIANTS / 不变式：整体无可感知异常，以人工/多模态审阅为
 
 <FloatingImage src="../assets/red-64.png" align="left" wrap="square" x="0" y="0" width="64" height="64" title="Crafting icon" />
 
-This section demonstrates a floating image alongside a pipe table with column width metadata. The `FloatingImage` uses `wrap="square"` and `align="left"` so text wraps to its right side. The table below lists basic crafting materials required for the machine assembly. After the table, `<br clear="both">` resets the float context.
+This section demonstrates a floating image alongside a pipe table with column width metadata. The `FloatingImage` uses `wrap="square"` and `align="left"` so text wraps to its right side. The table below lists basic crafting materials required for the machine assembly. After the table, `<br clear="all">` resets the float context.
 
 | Material | Amount | Source |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ This section demonstrates a floating image alongside a pipe table with column wi
 | Diamond | 2 | Loot |
 {: widths="100,60,80" }
 
-<br clear="both">
+<br clear="all">
 
 Expected: Floating image sits to the left of the table; text wraps around the image; the table occupies the full width below the float after `clear`.
 
