@@ -53,6 +53,18 @@ public class GuidebookLevelRenderer {
 
     public static final GuidebookLevelRenderer INSTANCE = new GuidebookLevelRenderer();
     public static final int FULL_BRIGHTNESS = 15728880;
+    /**
+     * When {@code true}, the {@code enableLightmap}/{@code disableLightmap} pair is
+     * skipped during rendering. This is used by headless offscreen rendering because
+     * Angelica's GL state machine (glsm) multi-texture simulation inside the lightmap
+     * window zeros fragment outputs. Since blocks already render at full brightness
+     * ({@link #FULL_BRIGHTNESS}), skipping the lightmap pair is visually lossless.
+     * <p>
+     * Default {@code false}; set to {@code true} in
+     * {@link com.hfstudio.guidenh.guide.internal.headless.DocumentOffscreenFramebuffer#renderAll}
+     * before the tile loop and restored in {@code finally}.
+     */
+    public static boolean skipLightmapForOffscreen = false;
     public static final ResourceLocation RAIN_TEXTURE = new ResourceLocation("textures/environment/rain.png");
     public static final ResourceLocation SNOW_TEXTURE = new ResourceLocation("textures/environment/snow.png");
     public static final int WEATHER_RENDER_RADIUS = 10;
@@ -249,6 +261,7 @@ public class GuidebookLevelRenderer {
                 GL11.glDisable(GL_LIGHTING);
                 GL11.glDisable(GL_BLEND);
                 GL11.glEnable(GL_CULL_FACE);
+                GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
                 GL11.glEnable(GL_ALPHA_TEST);
                 GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
                 GL11.glEnable(GL_TEXTURE_2D);
@@ -273,7 +286,10 @@ public class GuidebookLevelRenderer {
                     var filledBlocks = level.getFilledBlocks();
                     var tileEntities = level.getTileEntities();
 
-                    mc.entityRenderer.enableLightmap(partialTicks);
+                    boolean lightmapSkipped = skipLightmapForOffscreen;
+                    if (!lightmapSkipped) {
+                        mc.entityRenderer.enableLightmap(partialTicks);
+                    }
                     try {
                         setRenderPass(0);
                         GL11.glDisable(GL_BLEND);
@@ -302,7 +318,9 @@ public class GuidebookLevelRenderer {
                             renderParticlesInContext(particles, partialTicks);
                         }
                     } finally {
-                        mc.entityRenderer.disableLightmap(partialTicks);
+                        if (!lightmapSkipped) {
+                            mc.entityRenderer.disableLightmap(partialTicks);
+                        }
                     }
                 } catch (Throwable t) {
                     log(t);
@@ -359,8 +377,12 @@ public class GuidebookLevelRenderer {
                     continue;
                 }
                 Block block = level.getBlock(p[0], p[1], p[2]);
-                if (block == null) continue;
-                if (!block.canRenderInPass(pass)) continue;
+                if (block == null) {
+                    continue;
+                }
+                if (!block.canRenderInPass(pass)) {
+                    continue;
+                }
                 try {
                     TileEntity tileEntity = level.getTileEntity(p[0], p[1], p[2]);
                     if (GuideGregTechTileSupport.isGregTechTileEntity(tileEntity)

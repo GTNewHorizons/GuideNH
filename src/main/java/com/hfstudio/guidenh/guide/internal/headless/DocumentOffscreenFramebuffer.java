@@ -20,6 +20,7 @@ import com.hfstudio.guidenh.guide.render.GuideRenderEngine;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuidebookSceneRenderer;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
+import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 
 /**
  * Renders a list of already-laid-out document primitives to an offscreen FBO and
@@ -107,6 +108,9 @@ public final class DocumentOffscreenFramebuffer {
         outputG.setRenderingHint(
             RenderingHints.KEY_INTERPOLATION,
             RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+
+        boolean prevSkipLightmap = GuidebookLevelRenderer.skipLightmapForOffscreen;
+        GuidebookLevelRenderer.skipLightmapForOffscreen = true;
 
         try {
             int prevDisplayWidth = minecraft.displayWidth;
@@ -202,6 +206,7 @@ public final class DocumentOffscreenFramebuffer {
                 }
             }
         } finally {
+            GuidebookLevelRenderer.skipLightmapForOffscreen = prevSkipLightmap;
             outputG.dispose();
         }
 

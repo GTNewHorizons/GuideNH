@@ -93,6 +93,7 @@ public class GuideNhHeadlessRenderDriver {
     private final HeadlessRenderConfig config;
     private long watchdogDeadlineNanos;
     private int stableTickCount = 0;
+    private boolean renderPending = false;
 
     // ---- batch state ---------------------------------------------------------
 
@@ -257,7 +258,9 @@ public class GuideNhHeadlessRenderDriver {
             case IDLE -> handleIdle(mc);
             case LOADING_WORLD -> handleLoadingWorld(mc);
             case WORLD_STABLE -> handleWorldStable(mc);
-            case RENDERING -> handleRendering(mc);
+            case RENDERING -> {
+                // Rendering is performed in onRenderTick; ClientTick only handles watchdog.
+            }
             default -> {}
         }
     }
@@ -323,56 +326,19 @@ public class GuideNhHeadlessRenderDriver {
             failedPageIds.clear();
 
             state = State.RENDERING;
+            renderPending = true;
             GuideDebugLog.infoAlways(
-                "[GuideNH] [HeadlessRender] Batch render start: {} pages (watchdog {}s)",
+                "[GuideNH] [HeadlessRender] Batch render start: {} pages (watchdog {}s), deferred to RenderTickEvent",
                 ids.size(), 360L + ids.size() * 120L);
             System.out.println("[GuideNH] [HeadlessRender] Batch render start: "
-                + ids.size() + " pages");
-
-            // Process first page on this tick; handleRendering will continue
-            handleRendering(mc);
+                + ids.size() + " pages, deferred to RenderTickEvent");
 
         } else {
-            // ---- single-page mode: unchanged behaviour ------------------------
-            state = State.DONE;
-
-            GuideDebugLog.infoAlways("[GuideNH] [HeadlessRender] Rendering page...");
-            try {
-                RenderPageService.ensureFontEngineReady();
-                var req = new RenderPageService.RenderPageRequest(
-                    config.guideId(),
-                    config.pageId(),
-                    config.mdFile(),
-                    config.language(),
-                    config.width(),
-                    config.outDir(),
-                    config.emitBoundsJson(),
-                    config.emitDebugOverlay(),
-                    config.scale()
-                );
-                RenderPageService.RenderPageResult result = RenderPageService.render(req);
-
-                String message = "[GuideNH] [HeadlessRender] Screenshot written: " + result.pngPath()
-                    + " (" + result.widthPx() + "x" + result.heightPx() + ")";
-                GuideDebugLog.infoAlways(message);
-                System.out.println(message);
-
-                FMLCommonHandler.instance().exitJava(0, false);
-            } catch (RenderPageService.RenderPageException e) {
-                GuideDebugLog.error(
-                    "[GuideNH] [HeadlessRender] Render failed at stage {}: {}",
-                    e.getStage(), e.getMessage());
-                System.err.println(
-                    "[GuideNH] [HeadlessRender] Render failed at stage " + e.getStage()
-                        + ": " + e.getMessage());
-                FMLCommonHandler.instance().exitJava(1, false);
-            } catch (Throwable t) {
-                GuideDebugLog.error(
-                    "[GuideNH] [HeadlessRender] Unhandled exception during render", t);
-                System.err.println(
-                    "[GuideNH] [HeadlessRender] Unhandled exception: " + t.getMessage());
-                FMLCommonHandler.instance().exitJava(1, false);
-            }
+            // ---- single-page mode: defer render to RenderTickEvent ------------
+            state = State.RENDERING;
+            renderPending = true;
+            GuideDebugLog.infoAlways(
+                "[GuideNH] [HeadlessRender] Single-page render deferred to RenderTickEvent");
         }
     }
 
@@ -426,9 +392,8 @@ public class GuideNhHeadlessRenderDriver {
     }
 
     /**
-     * Render one page per invocation.  Called from {@link #tick()} when
-     * {@code state == RENDERING}, and also directly from {@link #handleWorldStable(Minecraft)}
-     * for the first page.
+     * Render one page per invocation.  Called from {@link #onRenderTick(TickEvent.RenderTickEvent)}
+     * when {@code state == RENDERING} in batch mode.
      */
     private void handleRendering(Minecraft mc) {
         if (pageIndex >= batchPageIds.size()) {
@@ -509,5 +474,95 @@ public class GuideNhHeadlessRenderDriver {
         }
 
         FMLCommonHandler.instance().exitJava(failCount > 0 ? 1 : 0, false);
+    }
+
+    // ---- render-tick handler (frame rendering cycle) -------------------------
+
+    /**
+     * Execute deferred rendering inside the frame rendering cycle (RenderTickEvent.END).
+     *
+     * <p>Angelica's Tessellator mixins route draws through VBO/VAO paths whose internal state
+     * is tied to the frame rendering pass.  Running {@link RenderPageService#render} inside
+     * {@link TickEvent.ClientTickEvent} (outside frame) caused silent zero-fragment output.
+     * This handler shifts execution into the frame cycle to validate that hypothesis.
+     *
+     * <p>Both single-page and batch modes are handled here.  Batch mode renders all remaining
+     * pages in one go (equivalent to the original per-tick loop, just inside the frame render
+     * cycle instead of client tick).
+     */
+    @SubscribeEvent
+    public void onRenderTick(TickEvent.RenderTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        if (!renderPending) {
+            return;
+        }
+        renderPending = false;
+
+        if (state != State.RENDERING) {
+            return;
+        }
+
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc == null) {
+            return;
+        }
+
+        if (config.allPages() || config.listPath() != null) {
+            // Batch mode: render all remaining pages in this render frame
+            while (pageIndex < batchPageIds.size()) {
+                handleRendering(mc);
+            }
+            // finishBatch is called by handleRendering when all pages are done (JVM exits)
+        } else {
+            // Single-page mode
+            renderSinglePage();
+        }
+    }
+
+    /**
+     * Execute a single-page render and exit the JVM with the appropriate code.
+     *
+     * <p>Extracted from the old {@code handleWorldStable} single-page path.
+     */
+    private void renderSinglePage() {
+        GuideDebugLog.infoAlways("[GuideNH] [HeadlessRender] Rendering page...");
+        try {
+            RenderPageService.ensureFontEngineReady();
+            var req = new RenderPageService.RenderPageRequest(
+                config.guideId(),
+                config.pageId(),
+                config.mdFile(),
+                config.language(),
+                config.width(),
+                config.outDir(),
+                config.emitBoundsJson(),
+                config.emitDebugOverlay(),
+                config.scale()
+            );
+            RenderPageService.RenderPageResult result = RenderPageService.render(req);
+
+            String message = "[GuideNH] [HeadlessRender] Screenshot written: " + result.pngPath()
+                + " (" + result.widthPx() + "x" + result.heightPx() + ")";
+            GuideDebugLog.infoAlways(message);
+            System.out.println(message);
+
+            FMLCommonHandler.instance().exitJava(0, false);
+        } catch (RenderPageService.RenderPageException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [HeadlessRender] Render failed at stage {}: {}",
+                e.getStage(), e.getMessage());
+            System.err.println(
+                "[GuideNH] [HeadlessRender] Render failed at stage " + e.getStage()
+                    + ": " + e.getMessage());
+            FMLCommonHandler.instance().exitJava(1, false);
+        } catch (Throwable t) {
+            GuideDebugLog.error(
+                "[GuideNH] [HeadlessRender] Unhandled exception during render", t);
+            System.err.println(
+                "[GuideNH] [HeadlessRender] Unhandled exception: " + t.getMessage());
+            FMLCommonHandler.instance().exitJava(1, false);
+        }
     }
 }
