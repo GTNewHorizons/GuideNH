@@ -299,6 +299,23 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(document.getLayoutMode());
         var minSizes = computeNodeMinSizes(fallbackCtx);
         layout = strategy.layout(document, minSizes);
+
+        // After computing diagram layout, derive the desired viewport height,
+        // write it back to bounds, set preferredHeight for the next Rust pass,
+        // and trigger a re-layout so the corrected height takes effect.
+        if (layout != null) {
+            int desiredHeight = layout.getHeight() + CANVAS_PADDING * 2;
+            int newHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
+                : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
+            if (newHeight != bounds.height()) {
+                preferredHeight = newHeight;
+                bounds = new LytRect(bounds.x(), bounds.y(), bounds.width(), newHeight);
+                LytDocument doc = getDocument();
+                if (doc != null) {
+                    doc.invalidateLayout();
+                }
+            }
+        }
     }
 
     @Override

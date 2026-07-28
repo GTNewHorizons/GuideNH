@@ -186,6 +186,26 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
             }
         });
         layout = buildLayout(fallbackCtx, safeWidth);
+
+        // After computing diagram layout, derive the desired viewport height,
+        // write it back to bounds, set preferredHeight for the next Rust pass,
+        // and trigger a re-layout so the corrected height takes effect.
+        if (layout != null) {
+            int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
+            int newHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
+                : Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
+            if (preferredHeight > 0 && safeWidth < resolvePreferredViewportWidth()) {
+                newHeight = Math.max(newHeight, Math.min(MAX_HEIGHT, desiredHeight));
+            }
+            if (newHeight != bounds.height()) {
+                preferredHeight = newHeight;
+                bounds = new LytRect(bounds.x(), bounds.y(), bounds.width(), newHeight);
+                LytDocument doc = getDocument();
+                if (doc != null) {
+                    doc.invalidateLayout();
+                }
+            }
+        }
     }
 
     @Override

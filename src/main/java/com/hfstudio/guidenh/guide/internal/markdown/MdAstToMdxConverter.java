@@ -418,15 +418,30 @@ public final class MdAstToMdxConverter {
     /**
      * Concatenates the text content of all cells in a GfmTableRow, separated by
      * spaces. Returns null if the resulting text is empty (after trim).
+     * <p>
+     * Iterates as {@link Object} and uses instanceof to handle both
+     * {@link GfmTableCell} (original) and {@link MdxJsxFlowElement} (post-conversion
+     * {@code <td>}) child types, avoiding ClassCastException when the row's
+     * children list contains mixed types.
      */
     @Nullable
     private static String getRowText(GfmTableRow row) {
         StringBuilder sb = new StringBuilder();
-        for (var cell : row.children()) {
-            if (!sb.isEmpty()) {
-                sb.append(' ');
+        for (Object cell : row.children()) {
+            String cellText = null;
+            if (cell instanceof GfmTableCell tableCell) {
+                cellText = tableCell.toText();
+            } else if (cell instanceof MdxJsxFlowElement flowElem && "td".equals(flowElem.name())) {
+                cellText = flowElem.toText();
+            } else if (cell instanceof MdAstNode node) {
+                cellText = node.toText();
             }
-            sb.append(cell.toText());
+            if (cellText != null && !cellText.isEmpty()) {
+                if (!sb.isEmpty()) {
+                    sb.append(' ');
+                }
+                sb.append(cellText);
+            }
         }
         String text = sb.toString().trim();
         return text.isEmpty() ? null : text;

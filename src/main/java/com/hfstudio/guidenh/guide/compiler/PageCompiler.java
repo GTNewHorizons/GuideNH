@@ -75,6 +75,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstFlowContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
@@ -282,16 +283,34 @@ public class PageCompiler {
         root.addChild(heading);
         var headingTextNode = new MdAstText();
         headingTextNode.setValue(headingText);
-        heading.addChild(headingTextNode);
+        safeAddChild(heading, headingTextNode);
 
         var errorParagraph = new MdxJsxFlowElement();
         errorParagraph.setName("p");
         root.addChild(errorParagraph);
         var errorTextNode = new MdAstText();
         errorTextNode.setValue(errorText);
-        errorParagraph.addChild(errorTextNode);
+        safeAddChild(errorParagraph, errorTextNode);
 
         return root;
+    }
+
+    /**
+     * Adds a child node to an {@link MdxJsxFlowElement} with type validation.
+     * If the node is a valid {@link MdAstFlowContent} (the expected child type),
+     * it is added via the normal {@code addChild} path. Otherwise, raw-type
+     * access is used as a safe fallback to bypass the type constraint — this
+     * prevents the error page builder itself from crashing when attempting to
+     * add phrasing content (e.g. {@link MdAstText}) that is semantically valid
+     * inside flow elements like {@code <h1>} or {@code <p>}.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void safeAddChild(MdxJsxFlowElement element, MdAstNode node) {
+        if (node instanceof MdAstFlowContent) {
+            element.addChild(node);
+        } else {
+            ((List) element.children()).add(node);
+        }
     }
 
     public static GuidePage buildErrorGuidePage(PageCollection pages, ExtensionCollection extensions, String sourcePack,

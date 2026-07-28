@@ -85,6 +85,8 @@ public class FloatingImageScript implements LytScript {
         image.setMarginLeft(placeholder.getMarginLeft());
         image.setMarginRight(placeholder.getMarginRight());
         image.setMarginBottom(placeholder.getMarginBottom());
+        image.setExplicitWidth(placeholder.getExplicitWidth());
+        image.setExplicitHeight(placeholder.getExplicitHeight());
         for (ImageRegionAnnotation ann : placeholder.getAnnotations()) {
             image.addAnnotation(ann);
         }

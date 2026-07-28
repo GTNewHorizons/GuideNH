@@ -32,7 +32,7 @@ public class MarkdownListSemantics {
             // Build full text by concatenating all MdAstText children (micromark label
             // resolution may split "[x]" across multiple text nodes)
             StringBuilder fullText = new StringBuilder();
-            for (var child : pChildren) {
+            for (Object child : pChildren) {
                 if (child instanceof MdAstText text) {
                     fullText.append(text.value);
                 }
@@ -53,7 +53,7 @@ public class MarkdownListSemantics {
             // Strip the task prefix from text children, spanning multiple nodes if needed
             int remainingToStrip = prefixLen;
             MdAstText firstTextNode = null;
-            for (var child : pChildren) {
+            for (Object child : pChildren) {
                 if (child instanceof MdAstText text) {
                     if (firstTextNode == null) {
                         firstTextNode = text;

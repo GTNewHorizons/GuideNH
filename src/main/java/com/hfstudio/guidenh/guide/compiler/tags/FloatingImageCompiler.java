@@ -13,7 +13,10 @@ import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.block.ContentAlign;
+import com.hfstudio.guidenh.guide.document.block.ContentWrapMode;
 import com.hfstudio.guidenh.guide.document.block.ImageRegionAnnotation;
+import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
@@ -114,10 +117,31 @@ public class FloatingImageCompiler extends FlowTagCompiler {
             }
         }
 
-        // Wrap it in a flow content inline block
+        // Forward crop dimensions as explicit size for Rust measure_image
+        block.setExplicitWidth(crop.width());
+        block.setExplicitHeight(crop.height());
+
+        // Parse wrap mode to choose float strategy
+        String wrap = el.getAttributeString("wrap", null);
+        ContentWrapMode wrapMode = ContentWrapMode.fromString(wrap);
+
+        // Document-float path: square/tight/through → LytDocumentFloat → Rust float table
+        if (wrapMode.isDocumentFloat()) {
+            ContentAlign alignMode = ContentAlign.fromString(align);
+            boolean floatRight = alignMode == ContentAlign.RIGHT;
+            // Margins for document float are added by LayoutStyleExtractor
+            // via FLOAT_GAP (see LayoutStyleExtractor floatSide handling).
+            LytDocumentFloat docFloat = new LytDocumentFloat(block, floatRight);
+            var floatInlineBlock = new LytFlowInlineBlock();
+            floatInlineBlock.setBlock(docFloat);
+            floatInlineBlock.setAlignment(InlineBlockAlignment.INLINE);
+            parent.append(floatInlineBlock);
+            return;
+        }
+
+        // Inline / legacy-float path: wrap in LytFlowInlineBlock (existing behaviour)
         var inlineBlock = new LytFlowInlineBlock();
         inlineBlock.setBlock(block);
-        String wrap = el.getAttributeString("wrap", null);
         boolean inlineWrap = "inline".equals(wrap);
         if (inlineWrap) {
             inlineBlock.setAlignment(InlineBlockAlignment.INLINE);
