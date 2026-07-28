@@ -155,21 +155,23 @@ junction 保留无害但不要依赖。
 | 文件夹 | position 号段 | 主题 |
 |---|---|---|
 | (root) index.md | 9999 | 语料索引 |
-| text/ | 9000-9099 | 标题、段落、行内样式、§码、链接、CJK、行内标签、脚注 |
-| lists/ | 8900-8999 | 列表（含任务列表） |
-| tables/ | 8800-8899 | 表格（含 widths 元数据、CsvTable） |
-| code/ | 8700-8799 | 代码块（语言、宽高属性、特殊 lang 渲染） |
-| latex/ | 8600-8699 | LaTeX 行内/展示 |
-| images/ | 8500-8599 | 图片、BlockImage、FloatingImage、fullWidth |
-| floats/ | 8400-8499 | 浮动系统矩阵（wrap×内容×align×clear） |
-| layout/ | 8300-8399 | Row/Column、details、align、ContentTabs、SizeBox |
-| charts/ | 8200-8299 | 5 种图表 + 函数图 + 选项 |
-| mermaid/ | 8100-8199 | mindmap 双模式/形状/NodeContent、flowchart 嵌套/箭头/边标签 |
-| nei/ | 8000-8099 | Recipe 三标签 + ItemGrid |
-| scenes/ | 7900-7999 | GameScene 全子标签 |
-| meta/ | 7800-7899 | frontmatter 变体、SubPages、CategoryIndex |
-| overflow/ | 7700-7799 | 超高元素、SizeBox、恰好满页（无视口分页器） |
-| stress/ | 7600-7699 | 混合压力页 |
+| text/ | 9000-8930 | 标题、段落、行内样式、§码、链接、CJK、行内标签、脚注 |
+| lists/ | 8900-8880 | 列表（含任务列表） |
+| tables/ | 8800-8760 | 表格（含 widths 元数据、CsvTable） |
+| code/ | 8700-8690 | 代码块（语言、宽高属性、特殊 lang 渲染） |
+| latex/ | 8600-8590 | LaTeX 行内/展示 |
+| images/ | 8500-8460 | 图片、BlockImage、FloatingImage、fullWidth |
+| floats/ | 8400-8370 | 浮动系统矩阵（wrap×内容×align×clear） |
+| layout/ | 8300-8270 | Row/Column、details、align、ContentTabs（SizeBox 不存在，已并入 code/blocks.md） |
+| charts/ | 8260-8220 | 5 种图表 + 函数图 + 选项 |
+| mermaid/ | 8190-8150 | mindmap 双模式/形状/NodeContent、flowchart 嵌套/箭头/边标签 |
+| nei/ | 8000-7990 | Recipe 三标签 + ItemGrid |
+| scenes/ | 7900-7840 | GameScene 全子标签 + test-structure.snbt |
+| meta/ | 7800-7770（辅助页 1-2） | frontmatter 变体、SubPages、Category |
+| overflow/ | 7700-7680 | 超高元素、恰好满页、滚动容器（无视口分页器） |
+| stress/ | 7600 | 混合压力页 |
+
+> position 分配规则：每文件夹内从号段顶端递减、间隔 10；新增文件夹时更新本表。
 
 ## 逐文件规格
 
@@ -363,6 +365,7 @@ junction 保留无害但不要依赖。
 | example_structure.snbt 缺失 | scenes/import.md（补测试资源） |
 | mermaid 占位框（**已确认真实引擎问题**：游戏内与离线一致只渲染占位标签框，疑 ELK/异步绘制链迁移丢失） | mermaid/*.md；已进游戏对照定性 |
 | JSX `<table align>` 空 columns 布局崩溃（**真实引擎崩溃**：NoSuchElementException at LytTable.layoutColumns LytTable.java:176；tr/td JSX 解析出 0 列；疑 BlockTagCompiler align 代理与 TableCompiler align 语义冲突） | layout/align.md JSX 表格用例已文字化禁用，修复后恢复 |
+| 无头批量渲染累积 OOM（**离线基建问题**：63 页批次在第 ~42 页后 Java heap space（NEI-worker 线程先 OOM），41/63 成功后连续失败；疑似跨页资源未释放——截图世界/纹理/NEI 工件泄漏。分流策略：批次 ≤40 页或分批重跑） | 全量渲染分两批实证；修复候选：每页渲染后强制释放场景世界+纹理缓存 |
 
 ## 断言翻译指引（棘轮）
 
