@@ -30,7 +30,6 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
         this.sourceText = sourceText != null ? sourceText : "";
         this.canvas = new LytMermaidMindmapCanvas(mindmap, nodeContent != null ? nodeContent : Collections.emptyMap());
 
-        setFullWidth(true);
         setPadding(6);
         setGap(4);
         setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);

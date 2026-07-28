@@ -37,7 +37,6 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
             flowchart,
             nodeContent != null ? nodeContent : Collections.emptyMap());
 
-        setFullWidth(true);
         setPadding(6);
         setGap(4);
         setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);

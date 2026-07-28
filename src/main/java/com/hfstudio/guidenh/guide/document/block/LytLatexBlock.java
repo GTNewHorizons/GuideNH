@@ -123,6 +123,18 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         int lineHeight = GuideText.lineHeight(null);
         formulaDisplayH = scaleSourceMetricCeil(sourceHeightPx, lineHeight);
         formulaDisplayW = scaleSourceMetricCeil(sourceWidthPx, lineHeight);
+        // baselineAscent must also be computed here — the Java layout pre-pass
+        // has been removed (Rust is sole geometry authority), so computeLayout()
+        // is never called. The Rust inline post-pass uses this value as param
+        // (align=1) to anchor the formula's math baseline at the text baseline.
+        int depthDisplay = scaleSourceMetricRound(sourceDepthPx, lineHeight);
+        int alignOffset = switch (valign) {
+            case CENTER -> (lineHeight - formulaDisplayH) / 2;
+            case BOTTOM -> lineHeight - formulaDisplayH;
+            case BASELINE -> lineHeight - formulaDisplayH + depthDisplay;
+            default -> 0; // TOP
+        };
+        baselineAscent = lineHeight - (alignOffset + offsetY);
     }
 
     @Override

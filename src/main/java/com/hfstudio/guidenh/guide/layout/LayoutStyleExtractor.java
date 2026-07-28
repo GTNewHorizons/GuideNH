@@ -7,8 +7,10 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBox;
 import com.hfstudio.guidenh.guide.document.block.LytCodeBlockToolbar;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
+import com.hfstudio.guidenh.guide.document.block.LytFloatAwareBlock;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytItemGrid;
+import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytSizeBox;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytSlotGrid;
@@ -119,6 +121,19 @@ public final class LayoutStyleExtractor {
 
         if (explicitW > 0) {
             sizeWOff = dimPx(fbb, explicitW);
+        }
+
+        // ---- full-width / centering: force 100% width for root-level stretching ---
+        // In a taffy root node (document-sequence block), width: Auto shrink-wraps
+        // to content — the node never stretches to the available width even when
+        // align_self=Stretch or the inner child uses align_self=Center. Setting
+        // explicit 100% width resolves against the available space in taffy, so
+        // the container fills the page width and the inner align_self
+        // (Stretch/Center) works correctly within this full-width context.
+        boolean needFullWidth = block.isFullWidth()
+            || (block instanceof LytFloatAwareBlock fb && fb.getInner() instanceof LytLatexDisplayBlock);
+        if (needFullWidth && explicitW <= 0) {
+            sizeWOff = dimPercent(fbb, 100);
         }
 
         if (explicitH > 0) {
@@ -255,6 +270,11 @@ public final class LayoutStyleExtractor {
         return com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension.createDimension(fbb, px, (byte) 1);
     }
 
+    /** Percentage value (resolves against available space in taffy). */
+    public static int dimPercent(FlatBufferBuilder fbb, float pct) {
+        return com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension.createDimension(fbb, pct, (byte) 2);
+    }
+
     /**
      * Read an int padding field from LytBox via reflection.
      * {@code LytBox.paddingLeft/Top/Right/Bottom} are {@code protected}, not
@@ -309,6 +329,12 @@ public final class LayoutStyleExtractor {
     }
 
     private static byte getAlignSelf(LytBlock block) {
+        // Block-level (display) LaTeX formulas must be horizontally centered.
+        if (block instanceof LytLatexDisplayBlock) return 2; // Center
+        // LytFloatAwareBlock wrapping LytLatexDisplayBlock: propagate center alignment
+        // so the wrapper does not swallow the centering (the wrapper is the flat node,
+        // not the inner display block).
+        if (block instanceof LytFloatAwareBlock fb && fb.getInner() instanceof LytLatexDisplayBlock) return 2; // Center
         if (block.isFullWidth()) return 4; // Stretch
         // Item grids wrap by available width — stretch so the wrap engages.
         if (block instanceof LytItemGrid) return 4;

@@ -443,8 +443,8 @@ fn measure_latex(nodes: &[FlatNode], idx: usize) -> Size<f32> {
         None => return Size::ZERO,
     };
     Size {
-        width: latex.raw_w() * latex.user_scale(),
-        height: (latex.raw_h() + 8.0) * latex.user_scale(),
+        width: latex.raw_w(),
+        height: latex.raw_h() + 8.0,
     }
 }
 
