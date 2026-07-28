@@ -297,7 +297,7 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 
 ```yaml
 item_ids:
-  - guidenh:guide
+  - minecraft:book
 navigation:
   title: Root
   parent: index.md

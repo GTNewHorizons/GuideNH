@@ -4,9 +4,9 @@ import com.gtnewhorizon.gtnhlib.config.Config;
 import com.gtnewhorizon.gtnhlib.config.Config.Comment;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultBoolean;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultFloat;
+import com.gtnewhorizon.gtnhlib.config.Config.DefaultStringList;
 import com.gtnewhorizon.gtnhlib.config.Config.RangeFloat;
 import com.gtnewhorizon.gtnhlib.config.Config.RequiresMcRestart;
-import com.gtnewhorizon.gtnhlib.config.Config.Sync;
 import com.gtnewhorizon.gtnhlib.config.ConfigException;
 import com.gtnewhorizon.gtnhlib.config.ConfigurationManager;
 import com.hfstudio.guidenh.GuideNH;
@@ -203,17 +203,18 @@ public class ModConfig {
         @DefaultBoolean(false)
         public boolean sceneEditorSnapCenterEnabled = false;
 
-        @Comment("Whether scene export features are available. "
-            + "This controls the scene editor, structure export commands, and Region Wand selection/export. "
-            + "On multiplayer servers this value is synced from the server. "
-            + "If the server does not have GuideNH installed, scene export is disabled.")
+        @Comment("Whether client-side scene export features are available. "
+            + "This controls the scene editor, structure export commands, and Region Wand selection/export.")
         @DefaultBoolean(true)
-        @Sync
         public boolean sceneExportEnabled = true;
 
-        @Comment("Whether the Region Wand selection box remains visible after switching away from the wand.")
+        @Comment("Whether the Region Wand selection box remains visible after switching away from a bound item.")
         @DefaultBoolean(true)
         public boolean regionWandPersistentSelectionRender = true;
+
+        @Comment("Client-side Region Wand bindings stored as item registry id and metadata pairs.")
+        @DefaultStringList({})
+        public String[] regionWandBindings = {};
 
         @Comment("Client-global Region Wand export mode used for selection exports.")
         public RegionWandExportMode regionWandExportMode = RegionWandExportMode.SNBT;

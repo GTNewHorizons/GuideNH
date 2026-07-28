@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExportMode;
-import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 
 import lombok.Getter;
@@ -37,8 +37,7 @@ public class SceneEditorOpenService {
             return createInitialSession(false, null);
         }
 
-        ItemStack held = player.getHeldItem();
-        RegionWandExportMode mode = RegionWandItem.getExportMode();
+        RegionWandExportMode mode = RegionWandExporter.getExportMode();
         // blocks/blocks_e modes generate <GameScene><Block> MDX, not SNBT ImportStructure.
         // Open blank so the editor doesn't pre-fill with the wrong format.
         if (mode == RegionWandExportMode.BLOCKS || mode == RegionWandExportMode.BLOCKS_ENTITIES) {
@@ -46,7 +45,7 @@ public class SceneEditorOpenService {
         }
 
         boolean includeEntities = mode.includeEntities();
-        String structureSnbt = RegionWandItem.exportSelectionAsStructureSnbt(player.worldObj, held, includeEntities);
+        String structureSnbt = RegionWandExporter.exportSelectionAsStructureSnbt(player.worldObj, includeEntities);
         return createInitialSession(true, structureSnbt);
     }
 
@@ -55,8 +54,7 @@ public class SceneEditorOpenService {
         if (player == null || !RegionWandSelection.hasCompleteSelection()) {
             return null;
         }
-        ItemStack held = player.getHeldItem();
-        RegionWandExportMode mode = RegionWandItem.getExportMode();
+        RegionWandExportMode mode = RegionWandExporter.getExportMode();
         if (mode == RegionWandExportMode.BLOCKS || mode == RegionWandExportMode.BLOCKS_ENTITIES) {
             return null;
         }
@@ -75,8 +73,7 @@ public class SceneEditorOpenService {
     }
 
     OpenResult createInitialSession(@Nullable ItemStack held, @Nullable String structureSnbt) {
-        boolean canImportSelection = held != null && held.getItem() instanceof RegionWandItem
-            && RegionWandItem.hasCompleteSelection(held);
+        boolean canImportSelection = RegionWandSelection.isBound(held) && RegionWandSelection.hasCompleteSelection();
         return createInitialSession(canImportSelection, structureSnbt);
     }
 
