@@ -1,8 +1,9 @@
-# visualtest 视觉测试语料库规格
+# visualtest 视觉测试语料库规格 v2
 
-> 本文件是 fixture 语料库的唯一权威规格。每个测试页面按本规格编写；
-> 每个确认的问题类最终翻译为 harness 断言绑定对应文件（棘轮）。
-> 语料组织：语义文件夹（不用数字前缀），简单 → 复杂递进，实地测试最后。
+> 本文件是 fixture 语料库的唯一权威规格。v2 基于代码级特性普查（TagAttributeRegistry /
+> 各 TagCompiler / Lyt* 块类 / Frontmatter），目标：引擎支持的每个特性都有专页详测。
+> 组织：语义文件夹（不用数字前缀），简单 → 复杂递进。引擎无分页器（单遍连续布局），
+> 原 pagination/ 改题为 overflow/（视口溢出与滚动容器行为）。
 
 ## 运行方式
 
@@ -14,210 +15,246 @@
   -Dguidenh.renderpage.guide=guidenh:visualtest \
   -Dguidenh.renderpage.allPages=true \
   -Dguidenh.renderpage.out=screenshots_visualtest \
-  -Dguidenh.renderpage.width=900 \
-  -Dguidenh.renderpage.scale=2
-
-# 单页
-./gradlew runClient25 \
-  -Dguidenh.guide.sources=D:/Projects/GuideNH/visualtest/resourcepack \
-  -Dguidenh.headlessRender=true \
-  -Dguidenh.renderpage.guide=guidenh:visualtest \
-  -Dguidenh.renderpage.page=guidenh:text/headings.md \
-  -Dguidenh.renderpage.out=screenshots_visualtest \
   -Dguidenh.renderpage.width=900 -Dguidenh.renderpage.scale=2
-```
 
-页面 id 规则：`guidenh:` + `_en_us/` 下的相对路径（含子文件夹），如 `guidenh:text/headings.md`。
+# 单页：page id = guidenh: + _en_us/ 下相对路径（含子文件夹）
+#   -Dguidenh.renderpage.page=guidenh:mermaid/mindmap.md
+```
 
 ## 编写规范
 
-1. **单焦点**：一个文件只测一类问题；文件内多个用例均为该类问题的变体。
-2. **自解释**：每个用例前一行说明文字写"此处应当：……"，使人工/AI 审阅时预期可见。
-3. **frontmatter**（参照主指南格式）：
+1. **单焦点**：一个文件只测一类特性；文件内多个用例为该特性的变体组合。
+2. **自解释**：每个用例前一行说明文字写"此处应当：……"，使人工/AI 审阅预期可见。
+3. **frontmatter**：
    ```yaml
    ---
    navigation:
      title: <英文标题>
      parent: index.md
-     position: <见各文件夹号段>
+     position: <号段内递减，大者靠前>
    ---
    ```
-4. 页面语言文件夹统一用 `_en_us`（加载兜底最稳）；CJK 测试内容直接写在页面正文里。
-5. 页面保持短（1-3 屏）；分页专项除外。
-6. 结构文字用英文（与主指南一致）；被测对象内容按需（CJK 用例用中文）。
-7. 每个文件头部注释（`<!-- -->`）写明：测试目标 + 预期不变式清单编号，与本文档条目一一对应。
+4. 页面统一放 `_en_us/`（加载兜底最稳）；CJK 测试内容直接写正文。
+5. 页面保持短（1-3 屏）；overflow/ 与压力页除外。
+6. 结构文字用英文；被测对象内容按需。
+7. 每文件头部 `<!-- -->` 注释写明：测试目标 + 不变式编号，与本文档条目对应。
+8. 语法参考：`wiki/resourcepack/assets/guidenh/guidenh/_en_us/*.md`（官方文档页，
+   含真实用例）；不确定的属性名以 `TagAttributeRegistry.java` 为准，禁止臆造。
 
 ## 文件夹与号段
 
 | 文件夹 | position 号段 | 主题 |
 |---|---|---|
-| (root) index.md | 0 | 语料索引：全部页面 + 各自测试目标 |
-| text/ | 100-199 | 标题、段落、行内样式、§颜色码、链接、CJK |
-| lists/ | 200-299 | 列表 |
-| tables/ | 300-399 | 表格 |
-| code/ | 400-499 | 代码块 |
-| latex/ | 500-599 | LaTeX |
-| images/ | 600-699 | 图片、浮动、fullWidth |
-| charts/ | 700-799 | 图表 |
-| nei/ | 800-899 | NEI 配方框 |
-| scenes/ | 900-999 | GameScene |
-| pagination/ | 1000-1099 | 分页边界 |
-| stress/ | 1100-1199 | 混合压力 |
+| (root) index.md | 9999 | 语料索引 |
+| text/ | 9000-9099 | 标题、段落、行内样式、§码、链接、CJK、行内标签、脚注 |
+| lists/ | 8900-8999 | 列表（含任务列表） |
+| tables/ | 8800-8899 | 表格（含 widths 元数据、CsvTable） |
+| code/ | 8700-8799 | 代码块（语言、宽高属性、特殊 lang 渲染） |
+| latex/ | 8600-8699 | LaTeX 行内/展示 |
+| images/ | 8500-8599 | 图片、BlockImage、FloatingImage、fullWidth |
+| floats/ | 8400-8499 | 浮动系统矩阵（wrap×内容×align×clear） |
+| layout/ | 8300-8399 | Row/Column、details、align、ContentTabs、SizeBox |
+| charts/ | 8200-8299 | 5 种图表 + 函数图 + 选项 |
+| mermaid/ | 8100-8199 | mindmap 双模式/形状/NodeContent、flowchart 嵌套/箭头/边标签 |
+| nei/ | 8000-8099 | Recipe 三标签 + ItemGrid |
+| scenes/ | 7900-7999 | GameScene 全子标签 |
+| meta/ | 7800-7899 | frontmatter 变体、SubPages、CategoryIndex |
+| overflow/ | 7700-7799 | 超高元素、SizeBox、恰好满页（无视口分页器） |
+| stress/ | 7600-7699 | 混合压力页 |
 
 ## 逐文件规格
 
-### text/
+### text/（行内与文本）
 
-**text/headings.md** — 标题层级与分隔线（关联 backlog K2）
-- 内容：H1-H4 各两级连续；标题后紧跟正文；标题后紧跟标题（无正文间隔）；长标题折行。
-- 不变式：分隔线不穿字（线 y 坐标与文本行 bbox 不相交）；连续标题间距一致；长标题折行后不溢出右边距。
+**text/headings.md** — 标题层级与分隔线（backlog K2）
+- H1-H6 全级；标题紧跟正文；标题紧跟标题；长标题折行。
+- 不变式：分隔线不穿字；连续标题间距一致；长标题不溢出右边距。
 
 **text/paragraphs.md** — 段落与换行
-- 内容：多段落、软换行 vs 空行分段、恰好满行宽度的段落、单字段落。
-- 不变式：行间距一致；段间距 = 1.5×行间距（以引擎实际规格为准，断言时用实测基线）；无异常空白带。
+- 多段落、软换行 vs 空行、恰好满行宽段落、单字段落、`<br>` 与 `<br clear>`。
+- 不变式：行距/段距一致；无异常空白带。
 
-**text/inline-styles.md** — 行内样式
-- 内容：粗/斜/删除线/行内代码/组合嵌套；行内代码含长 token。
-- 不变式：样式不泄漏到后续文本；行内代码背景框不压相邻行。
+**text/inline-marks.md** — 全部行内标记
+- `**粗**` `*斜*` `***粗斜***` `~~删~~` `~删~` `++下划线++` `^^波浪^^` `::强调点::` `==高亮==` `` `代码` `` `<kbd>` `<sub>` `<sup>` `<span>` 及互相嵌套。
+- 不变式：样式不泄漏后续文本；嵌套渲染正确；装饰线不压上下行。
 
-**text/section-codes.md** — § 颜色码（关联 backlog K1：巨型"§"撑爆图集）
-- 内容：§ 全部颜色码逐行展示；§l/§o/§r 组合；超长 § 串（50 个连续 § 码）；正文夹杂孤立 "§" 字面量。
-- 不变式：无巨型字形渲染（§ 符号本身不可见或按字面小号渲染）；颜色切换正确；图集不被撑爆（整页字形尺寸一致）。
+**text/section-codes.md** — § 颜色码（backlog K1）
+- § 全色码逐行；§l/§o/§r 组合；50 连续 § 码；孤立 "§" 字面量；`<Color id/color>` 对照。
+- 不变式：无巨型字形；颜色切换正确；字形尺寸全页一致。
 
-**text/links.md** — 链接与行内 tooltip
-- 内容：页内锚链接、跨页链接、外链样式、带 tooltip 的行内元素。
-- 不变式：链接着色+下划线一致；点击区 bbox 与文本 bbox 一致（bounds JSON 可断言）。
+**text/links.md** — 链接全家族
+- 页内锚 `<a name>` + 跳转、跨页 `[text](page.md)`、外链、自动链接（裸 URL）、参考式 `[ref][]`、`&[音效](sound:...)`、`<CommandLink>`、`<SoundLink>`、带 title(tooltip) 链接。
+- 不变式：着色/下划线一致；点击区 bbox = 文本 bbox（bounds JSON 可断言）。
 
 **text/cjk-mixed.md** — 中英混排
-- 内容：中英混排段落、全角标点行、CJK 长串无空格换行、英文长词（40+ 字符）断行、CJK+行内代码混排。
-- 不变式：CJK 在任意位置断行不溢出；英文长词不溢出右边距；混排基线一致。
+- 中英混排、全角标点、CJK 无空格长串换行、40+ 字符英文长词、CJK+行内代码/链接混排。
+- 不变式：任意断行不溢出；混排基线一致。
+
+**text/inline-game-tags.md** — 游戏内联标签
+- `<ItemImage>`（id/scale/label 左右/format）、`<ItemLink>`（showIcon/showText/linksTo）、`<KeyBind>`、`<PlayerName>`、`<Tooltip label>`（行内触发）、`<Spoiler>`。
+- 不变式：图标与文本基线对齐；行高不被图标异常撑大；tooltip 触发区正确。
+
+**text/footnotes.md** — 脚注
+- `[^a]` 引用多个 + `<FootnoteList>`。
+- 不变式：引用渲染为上标链接；列表收集完整。
 
 ### lists/
 
-**lists/basic.md** — 列表基础
-- 内容：无序 3 级嵌套、有序 3 级嵌套、有序无序混合嵌套。
-- 不变式：缩进逐级一致；标记与文本间距一致；嵌套列表不错位。
+**lists/basic.md** — 列表基础：`*` `-` `+` 无序 3 级、有序 3 级（含 `start`）、混合嵌套。
+- 不变式：缩进/标记间距逐级一致。
 
-**lists/rich.md** — 富内容列表项
-- 内容：列表项内含多段落、行内代码、链接、展示公式、小表格。
-- 不变式：续行与首行文本左对齐；嵌入块不破坏后续列表编号。
+**lists/rich.md** — 富内容列表项：项内多段落、代码块、链接、展示公式、小表格、图片。
+- 不变式：续行左对齐；嵌入块不破坏编号。
+
+**lists/tasks.md** — 任务列表：`- [x]` `- [ ]` 混合、嵌套、富文本标签。
+- 不变式：复选框与文本对齐；状态样式区分。
 
 ### tables/
 
-**tables/basic.md** — 窄表与对齐
-- 内容：2 列窄表、3 列左/中/右对齐表。
-- 不变式：列分隔线对齐；单元格文本不压线。
-
-**tables/wide.md** — 宽表与长单元格
-- 内容：5 列宽表、超长英文单词单元格、多行单元格。
-- 不变式：表格总宽 ≤ 页宽；长内容折行不溢出列边界。
-
-**tables/cjk.md** — CJK 表格
-- 内容：全 CJK 表头+单元格、中英混合单元格、CJK 长串单元格。
-- 不变式：CJK 单元格折行正确；行高一致。
-
-**tables/pagebreak.md** — 跨页表格（与 pagination 联动）
-- 内容：行数足以跨页的长表格（含表头）。
-- 不变式：跨页断点在行边界；无半行截断；断点前后行距一致。
+**tables/basic.md** — 2 列窄表、3 列对齐表（左/中/右）。
+**tables/wide.md** — 5 列宽表、超长英文词单元格、多行单元格。
+**tables/cjk.md** — CJK 表头/单元格/混合、CJK 长串。
+**tables/metadata.md** — `{: widths="120,80" }` 列宽、宽窄组合。
+**tables/csv.md** — `<CsvTable src>` + `csv` 代码块两种形式（header/widths 变体；csv 资源放 `_en_us/assets/`）。
+- 不变式（各文件）：总宽 ≤ 页宽；折行不溢出列界；行高一致；列分隔线对齐。
 
 ### code/
 
-**code/blocks.md** — 代码块
-- 内容：多语言代码块（xml/java/json/文本）、80+ 列长行、含空行代码块、单行代码块、特殊字符（`<>&"§`）。
-- 不变式：长行不溢出代码框（折行或截断策略符合引擎规格）；背景框包裹所有行；语言标签不压代码。
+**code/blocks.md** — 代码块全变体
+- 多语言（xml/java/json/python/无语言）、80+ 列长行、空行、单行、特殊字符 `<>&"§`、`width= height=` 固定视口（滚动容器）、缩进代码块。
+- 不变式：长行策略符合规格；背景框包裹全行；固定视口出现滚动条而非溢出。
+
+**code/special-langs.md** — 特殊 lang 渲染
+- `tree`/`filetree`（含 `{:icon=}` 后缀）、`csv`（对照 tables/csv.md）。
+- 不变式：渲染为树/表格而非纯文本代码。
 
 ### latex/
 
-**latex/inline.md** — 行内公式（关联 backlog：行内 LaTeX 掉到下一行）
-- 内容：行文中嵌入 $E=mc^2$、$\frac{1}{2}$、$\sqrt{x}$ 的行内公式；"contains X and also Y in the same line" 最小复现（照抄 markdown.md 现行失败用例）。
-- 不变式：行内公式与同行文字基线对齐、水平位于文本流正确位置（不掉到下一行、不留异常空隙）；分数撑行高时上下行不压字。
+**latex/inline.md** — 行内公式（backlog：行内掉行）
+- `$E=mc^2$`、`$\frac{1}{2}$`、`$\sqrt{x}$` 行文嵌入；"contains X and also Y in the same line" 最小复现。
+- 不变式：基线对齐、水平位置在文本流正确处；分数撑行不压字。
 
 **latex/display.md** — 展示公式
-- 内容：独立行展示公式、scale=1.5 放大、valign 变体、带 tooltip 公式。
-- 不变式：展示公式水平居中；缩放公式不溢出；相邻段落间距一致。
+- `$$...$$` 独立行、`<Latex>` block 形式、scale=1.5、valign 变体、color、带 tooltip。
+- 不变式：水平居中；缩放不溢出；段距一致。
 
-### images/
+### images/（图片资源：新增纯色/格子测试 PNG 放 `_en_us/assets/`）
 
-**images/basic.md** — 图片基础（图片资源放 `_en_us/assets/` 复用主指南示例图或新增纯色测试图）
-- 内容：小/中/宽图各一、居中图、图注。
-- 不变式：图片不变形；图注与图片间距一致。
+**images/basic.md** — `![alt](src)` 小/中/宽图、居中 align、图注(title)。
+**images/float.md** — `wrap="square|tight|through"` × `align="left|right"` 图片 + 环绕文字 + `<br clear="both">`。
+**images/fullwidth.md** — fullWidth 图片/表格/代码块对照（backlog K4：LytFloatAwareBlock 包装层丢 fullWidth）。
+**images/floating-image.md** — `<FloatingImage>` 全家：裁剪 x/y/w/h、scaleX/scaleY、`<ImageAnnotation>` 热区、`<SoundArea>`（标注不发声，仅查渲染）。
+**images/block-item.md** — `<BlockImage>`（scale/wrap/align/float）+ 块状 ItemImage 对照。
+- 不变式：不变形；环绕不压图无异常空洞；clear 后顶对齐；fullWidth 实宽=内容宽（bounds 可断言）。
 
-**images/float.md** — 浮动图片
-- 内容：左浮+右浮图片与环绕文字、连续浮动、浮动后清除。
-- 不变式：文字环绕不压图、不留异常空洞；清除浮动后段落顶对齐。
+### floats/（浮动系统矩阵——用户点名）
 
-**images/fullwidth.md** — fullWidth 元素（关联 backlog K4：LytFloatAwareBlock 包装层未设 fullWidth）
-- 内容：fullWidth 图片、fullWidth 表格、普通宽度对照组。
-- 不变式：fullWidth 元素实际渲染宽度 = 页内容宽（bounds JSON 可断言 width 值）。
+**floats/wrap-modes.md** — wrap 六模式
+- `square`/`tight`/`through`/`top-bottom`/`behind`/`front` 各一例（图片）+ 文字环绕。
+- 不变式：各模式环绕行为符合 ContentWrapMode 语义；behind/front 层序正确。
+
+**floats/content-types.md** — 任意块可浮
+- 浮动：表格、代码块、GameScene、Recipe、图表、Column 容器（各一）。
+- 不变式：非段落块（LytFloatAwareBlock 路径）可用宽度缩减正确、不与浮动重叠。
+
+**floats/multi.md** — 多浮动与清除
+- 连续左浮 3 个、左右对浮、浮动紧跟浮动、`<br clear="left|right|both">` 三变体。
+- 不变式：浮动间不重叠；clear 后文字从浮动底边以下开始。
+
+**floats/in-tabs.md** — ContentTabs × 浮动（用户点名 contentTab 浮动）
+- `<ContentTabs>` 内 Tab 里放浮动图片/场景；tabs 块前后再放浮动。
+- 不变式：tab 内浮动不泄漏到 tab 外；tabs 块自身（fullWidth+LytFloatAwareBlock 路径）不受外部浮动异常压缩。
+
+### layout/
+
+**layout/row-column.md** — `<Row>`/`<Column>`：gap 变体、alignItems 四值、fullWidth、嵌套 Row in Column。
+**layout/align.md** — 块级 align：left/center/right 图片、表格、场景对照。
+**layout/details.md** — `<details>` open/closed、内嵌表格/代码/图片、连续多个。
+**layout/content-tabs.md** — `<ContentTabs>`：3-4 Tab（不同内容类型）、title/default/defaultIndex/color/icon 变体。
+**layout/size-box.md** — 固定宽高滚动容器（代码块 width/height 之外的通用形式，如存在；若仅代码块支持则并入 code/blocks.md 并在偏差记录说明）。
+- 不变式：flex 间距/对齐正确；details 开合高度正确；Tab 头与内容对齐；溢出容器出滚动条。
 
 ### charts/
 
-**charts/basic.md** — 图表（语法参照主指南 charts.md / function-graphs.md）
-- 内容：折线、柱状、饼图各一；CSV 数据源；函数图。
-- 不变式：图表不溢出容器；坐标轴文字可读不重叠。
+**charts/bar-column.md** — `<BarChart>` `<ColumnChart>` + `<Series>`（data/points/color/icon）+ `<PieInset>`。
+**charts/line-scatter.md** — `<LineChart>`（numericX）`<ScatterChart>` + `<LineSeries>`。
+**charts/pie.md** — `<PieChart>` + `<Slice>`（startAngle/clockwise/labelPosition）。
+**charts/function.md** — `<FunctionGraph>`+`<Plot>`+`<Point>`、`<Function>` 简写、xRange/quadrants。
+**charts/options.md** — legend 五值、cornerLegend、轴 label/min/max/step/unit/tickFormat、grid 开关与颜色。
+- 不变式：不溢出容器；轴文字不重叠；图例不压图。
+
+### mermaid/（用户点名：含嵌套子节点）
+
+**mermaid/mindmap.md** — mindmap 双模式（默认根居中左右交替 + TIDY_TREE）、节点形状（圆角/圆/六边/云/爆炸）、**多层嵌套子节点**（≥4 层）。
+- 不变式：树连线正确、节点不重叠、深层嵌套不串层。
+
+**mermaid/flowchart.md** — flowchart：节点形状（stadium/rounded/diamond/rect/cylinder/subprocess/double-circle）、箭头样式（实线/虚线/点线 × 三角/圆/叉头）、边标签、classDef/linkStyle。
+- 不变式：箭头方向正确、标签不压线、形状渲染齐全。
+
+**mermaid/subgraphs.md** — **嵌套 subgraph**（用户点名）：2 层、3 层嵌套（≤4 层配色上限）、subgraph 间跨边。
+- 不变式：嵌套框包含关系正确、配色分层、跨边不穿框。
+
+**mermaid/node-content.md** — `<NodeContent id>` 富内容节点（节点内嵌格式化文本/列表/小图）。
+- 不变式：富内容在节点框内布局正确。
+
+**mermaid/large.md** — 大图（20+ 节点）：容器内缩放/平移初始状态、超出容器时行为。
+- 不变式：初始视口合理、不无限撑高页面。
 
 ### nei/
 
-**nei/recipes.md** — NEI 配方框
-- 内容：嵌入 NEI 配方框（参照主指南现有用法）。
-- 不变式：配方框完整渲染、裁剪区正确（关联 scale 修复的 glScissor 路径回归哨兵）。
+**nei/recipes.md** — `<Recipe id>`、`<RecipeFor input/output 过滤>`、`<RecipesFor limit>`、handlerName/handlerOrder、fallbackText（无配方时）。
+**nei/item-grid.md** — `<ItemGrid>` 多物品网格（Row/Column 子项）。
+- 不变式：配方框完整渲染、裁剪正确（glScissor 回归哨兵）；fallback 文本正常。
 
-### scenes/
+### scenes/（GameScene 全子标签；语法参照主指南 scene-*.md）
 
-**scenes/blocks.md** — 基础方块场景
-- 内容：单方块、多方块朝向（熔炉四向）、非全方块（台阶/楼梯/栅栏）、透明方块（水+玻璃）。
-- 不变式：场景内容位于场景背景框内、尺寸匹配（scale 修复回归哨兵）；方块纹理完整。
+**scenes/blocks.md** — `<Block>`（id/meta/facing/nbt/formed）、`<PlaceBlock>`、`<ReplaceBlock>`、`<RemoveBlocks>`（回归哨兵：scale 修复）。
+**scenes/entities.md** — `<Entity>`（NBT 变体）、`<RemoveEntity>`（backlog：实体 Y 偏移复现）。
+**scenes/annotations.md** — 五种注解（Block/Box/Line/Diamond/Text）+ `<LinePoint>` + `<BlockAnnotationTemplate>`。
+**scenes/effects.md** — `<Particle>`、`<Weather>` 雨雪、`<PlaySound>`（仅查渲染存在性）。
+**scenes/camera.md** — perspective 三值、rotateX/Y/Z、offset/center、`<IsometricCamera>`、zoom。
+**scenes/import.md** — `<ImportStructure>`（snbt 资源放 assets/）、`<ImportStructureLib>` + `<Tier>`/`<Channel>`/`<Facing>`/`<Rotation>`/`<Flip>`/`<Orientation>`/GT 标记（环境不允许的记偏差）。
+**scenes/ponder.md** — `<ImportPonder>` 关键帧时间线（若依赖外部资源则最小用例+偏差记录）。
+- 不变式：场景内容在背景框内、尺寸匹配；实体贴地；注解对位；效果不出场景区。
 
-**scenes/entities.md** — 实体场景（关联 backlog：实体 Y 偏移）
-- 内容：实体站立在草方块上（羊/僵尸/玩家）最小复现；NBT 定制实体。
-- 不变式：实体底部与支撑方块顶面接触（无悬浮）；实体居中于场景。
+### meta/
 
-**scenes/annotations.md** — 场景注解
-- 内容：文字注解、坐标轴标签、DiamondAnnotation。
-- 不变式：注解文字位置与目标方块对应（缩放路径回归哨兵：注解也走 documentOrigin）。
+**meta/frontmatter.md** — navigation.icon/icon_texture/icons 变体、categories、item_ids、author/date（侧边栏不可见时以加载无错+正文正常为准）。
+**meta/zoom-small.md** — frontmatter `zoom: 0.8`。
+**meta/zoom-large.md** — frontmatter `zoom: 1.5`。
+**meta/indexes.md** — `<SubPages>`、`<CategoryIndex category>`。
+- 不变式：加载无错；zoom 页渲染缩放正确；索引列表完整。
 
-**scenes/effects.md** — 天气与粒子
-- 内容：雨、雪、billboard 粒子。
-- 不变式：效果在场景区域内渲染；无全屏泄漏。
+### overflow/（原 pagination/，引擎无分页器）
 
-**scenes/import.md** — 结构导入（环境允许时）
-- 内容：ImportStructureLib 最小用例（若缺资源则改为占位说明页并在偏差记录标注）。
-- 不变式：导入结构完整渲染。
+**overflow/tall-element.md** — 高度 >1 屏的 GameScene、超长表格、超大 mermaid。
+- 不变式：不崩溃不死循环；整体渲染完整（长截图机制下全高输出）。
 
-### pagination/
+**overflow/exact-fit.md** — 恰好整数屏内容、末尾单元素页。
+- 不变式：无异常尾部空白；满屏元素不溢出。
 
-**pagination/tall-element.md** — 超页高元素
-- 内容：高度 >1 页的场景、高表格。
-- 不变式：不崩溃、不无限循环；元素截断/溢出策略符合引擎规格（断言以规格文字为准）。
-
-**pagination/orphan-heading.md** — 孤行标题
-- 内容：构造"标题恰好落在页底、正文在次页"的用例（用填充段落精确控制）。
-- 不变式：标题不孤行（随正文移入次页）或按引擎规格处理；无标题与正文跨页分离。
-
-**pagination/exact-fit.md** — 恰好满页与空页边界
-- 内容：恰好满一页的内容；两页内容之间无残余空白页。
-- 不变式：不产生全空白尾页；满页元素不溢出。
+**overflow/scroll-containers.md** — 固定视口（代码块 width/height、LytSizeBox 路径）内嵌超长内容。
+- 不变式：容器内滚动而非页面级溢出。
 
 ### stress/
 
-**stress/mixed.md** — 混合压力页（最后编写）
-- 内容：上述全部语法类别按真实文档密度混合：标题+表格+代码+公式+图+场景+列表同页。
-- 不变式：整体无可感知异常（此页以人工/多模态审阅为主，断言从简）。
+**stress/mixed.md** — 全语法混合压力页（最后编写）：标题+表格+代码+公式+图+浮动+tabs+图表+mermaid+场景同页。
+- 不变式：整体无可感知异常（以人工/多模态审阅为主）。
 
 ## backlog 复现映射
 
 | backlog 项 | 复现文件 |
 |---|---|
-| K1 巨型"§"撑爆图集 | text/section-codes.md |
+| K1 巨型"§" | text/section-codes.md |
 | K2 标题分隔线穿字 | text/headings.md |
 | K4 fullWidth 不满宽 | images/fullwidth.md |
-| 实体 Y 偏移悬浮 | scenes/entities.md |
+| 实体 Y 偏移 | scenes/entities.md |
 | 行内 LaTeX 掉行 | latex/inline.md |
-| recipes.md::gamescene:40 物化失败 | scenes/import.md（如可复现） |
-| example_structure.snbt 缺失 | scenes/import.md（补充测试资源时一并处理） |
+| recipes.md::gamescene:40 物化失败 | scenes/import.md |
+| example_structure.snbt 缺失 | scenes/import.md（补测试资源） |
 
 ## 断言翻译指引（棘轮）
 
-1. 问题确认后，先把不变式写成 bounds JSON 上的几何断言（宽/高/相交/包含），进 harness；
-2. 几何表达不了的（字形美观、颜色），保留为视觉巡检项，在本文档对应条目标注"仅视觉"；
-3. 修复完成 = 对应断言进 harness 且全量门禁绿 + 该 fixture 页截图复核通过。
+1. 问题确认后先把不变式写成 bounds JSON 几何断言进 harness；
+2. 几何表达不了的标"仅视觉"；
+3. 修复完成 = 断言进 harness + 全量门禁绿 + 该 fixture 截图复核通过。
