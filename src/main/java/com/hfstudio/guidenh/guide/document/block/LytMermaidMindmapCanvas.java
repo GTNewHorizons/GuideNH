@@ -8,6 +8,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.shapes.FlowchartShapes;
+import com.hfstudio.guidenh.guide.layout.Layouts;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
@@ -332,13 +334,11 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
             Math.max(1, Math.round(node.height * activeZoom)));
         LytRect boxRect = rect;
         NodeColors colors = resolveColors(node.node);
-        c.emit(new GuideRenderPrimitive.FillRect(boxRect.x(), boxRect.y(), boxRect.width(), boxRect.height(),
-            colors.background));
-        int borderThickness = node.node.getShape() == MermaidNodeShape.BANG ? 2 : 1;
-        c.emit(new GuideRenderPrimitive.DrawBorder(
-            boxRect.x(), boxRect.y(), boxRect.width(), boxRect.height(),
-            borderThickness, borderThickness, borderThickness, borderThickness, colors.border));
-        c.emit(new GuideRenderPrimitive.FillRect(boxRect.x(), boxRect.y(), 3, boxRect.height(), colors.accent));
+        MermaidNodeShape shape = node.node.getShape();
+        FlowchartShapes.emitShape(c, shape, boxRect, colors.background, colors.border);
+        if (FlowchartShapes.hasAccentBar(shape)) {
+            c.emit(new GuideRenderPrimitive.FillRect(boxRect.x(), boxRect.y(), 3, boxRect.height(), colors.accent));
+        }
 
         ResolvedTextStyle style = getOrScaleStyle(node.depth == 0 ? ROOT_TEXT_STYLE : NODE_TEXT_STYLE, activeZoom);
         ResolvedTextStyle badgeStyle = getOrScaleStyle(ICON_TEXT_STYLE, activeZoom);
@@ -568,6 +568,24 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         LayoutContext localContext = new LayoutContext(context).withVisualScale(context.getVisualScale());
         int contentWidth = Math.clamp(maxNodeTextWidth + 60, 96, 240);
         block.layout(localContext, 0, 0, contentWidth);
+        // LytVBox.computeBoxLayout is a stub (Rust is sole layout authority for
+        // the normal document pipeline). For embedded NodeContent blocks inside
+        // Mermaid diagrams there is no Rust pass, so we must lay the children out
+        // manually to obtain non-zero visual bounds.
+        if (block instanceof LytVBox vbox) {
+            List<LytBlock> blockChildren = new ArrayList<>();
+            for (LytNode child : vbox.getChildren()) {
+                if (child instanceof LytBlock b) blockChildren.add(b);
+            }
+            if (!blockChildren.isEmpty()) {
+                // Content VBox created by compileNodeContentBlock has default
+                // padding (0), gap (0), and alignItems (START).
+                Layouts.verticalLayout(localContext, blockChildren,
+                    0, 0, contentWidth,
+                    0, 0, 0, 0,
+                    vbox.getGap(), vbox.getAlignItems());
+            }
+        }
         LytRect visualBounds = resolveBlockVisualBounds(block);
         return new NodeContentLayout(block, visualBounds);
     }

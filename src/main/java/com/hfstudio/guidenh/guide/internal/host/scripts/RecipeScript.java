@@ -154,7 +154,9 @@ public class RecipeScript implements LytScript {
             }
         }
 
-        // Integration recipe entries
+        // Integration recipe entries — skip when handler filter eliminated all candidates
+        // (user explicitly filtered to a non-existent handler, so no recipe content should render)
+        if (!handlerFilterEliminatedAll) {
         List<RecipeEntry> recipeEntries = usageQuery ? Collections.emptyList()
             : GuideNhIntegrationRegistry.global()
                 .findCraftingRecipeEntries(targetStack);
@@ -194,6 +196,7 @@ public class RecipeScript implements LytScript {
                 return;
             }
         }
+        }
 
         // Vanilla recipe fallback
         String fallbackMsg;
@@ -205,6 +208,10 @@ public class RecipeScript implements LytScript {
                 filterInfo = " (handler order=" + ph.handlerOrder + ")";
             }
             fallbackMsg = "No recipe found for " + ph.idStr + filterInfo;
+            // All handlers were eliminated by the filter — show fallbackText directly,
+            // skip vanilla recipe fallback entirely.
+            showFallback(ctx, ph, fallbackMsg);
+            return;
         } else {
             fallbackMsg = "No recipe found for " + ph.idStr;
         }

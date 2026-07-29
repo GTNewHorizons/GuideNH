@@ -122,8 +122,12 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
                 if (v > dMax) dMax = v;
             }
         }
+        // R4-14: BarChart is horizontal: the value axis is the horizontal (X) axis but the author's
+        // semantic "yAxis" attributes (yAxisMin/yAxisMax/yAxisStep/yAxisTickFormat/yAxisUnit) control
+        // the numeric axis. Use yAxis for range, tick format, and value label; xAxis remains the
+        // category (vertical) axis and controls grid appearance.
         AxisRange xRange = AxisRange
-            .compute(xAxis.getMin(), xAxis.getMax(), xAxis.getStep(), Math.min(0d, dMin), Math.max(0d, dMax));
+            .compute(yAxis.getMin(), yAxis.getMax(), yAxis.getStep(), Math.min(0d, dMin), Math.max(0d, dMax));
         xRangeCache = xRange;
 
         // Estimate left-side (category) and bottom (value tick) insets.
@@ -137,7 +141,8 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         }
         leftInset += 6;
         int bottomInset = lh + 4;
-        if (xAxis.getLabel() != null && !xAxis.getLabel()
+        // R4-14: yAxis label (value axis) goes below the bottom, xAxis label (category) goes on the left.
+        if (yAxis.getLabel() != null && !yAxis.getLabel()
             .isEmpty()) {
             bottomInset += lh + 2;
         }
@@ -145,22 +150,24 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         plotCache = inner;
         if (inner.width() <= 4 || inner.height() <= 4) return inner;
 
-        // Grid (vertical lines correspond to X values).
+        // Grid (vertical lines correspond to value axis ticks).
         for (double t = xRange.min; t <= xRange.max + 1e-9; t += xRange.step) {
             float gx = CartesianChartRenderer.mapX(t, xRange, inner);
             if (xAxis.isGridVisible()) {
                 c.emit(new GuideRenderPrimitive.DrawLine(gx, inner.y(), gx, inner.bottom(), 1f, xAxis.getGridColor()));
             }
-            String s = xAxis.formatTick(t);
+            // R4-14: Use yAxis tick formatting (tickFormat + unit) for the value axis.
+            String s = yAxis.formatTick(t);
             int sw = GuideText.measureWidth(s, style);
             GuideText.emitText(c, s, (int) gx - sw / 2, inner.bottom() + 3, style);
         }
-        if (xAxis.getLabel() != null && !xAxis.getLabel()
+        // R4-14: yAxis label at bottom (value axis label).
+        if (yAxis.getLabel() != null && !yAxis.getLabel()
             .isEmpty()) {
-            int sw = GuideText.measureWidth(xAxis.getLabel(), style);
+            int sw = GuideText.measureWidth(yAxis.getLabel(), style);
             GuideText.emitText(
                 c,
-                xAxis.getLabel(),
+                yAxis.getLabel(),
                 inner.x() + (inner.width() - sw) / 2,
                 inner.bottom() + 3 + lh + 2,
                 style);
@@ -173,6 +180,15 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
             int sw = GuideText.measureWidth(cat, style);
             float cy = inner.y() + categoryHeight * (i + 0.5f);
             GuideText.emitText(c, cat, inner.x() - sw - 4, (int) cy - lh / 2, style);
+        }
+        // R4-14: X (category) axis label on the left side, below the last category label.
+        if (xAxis.getLabel() != null && !xAxis.getLabel()
+            .isEmpty()) {
+            int xsw = GuideText.measureWidth(xAxis.getLabel(), style);
+            int xLabelX = inner.x() - xsw - 4;
+            float lastCatCy = inner.y() + categoryHeight * (categoryCount - 0.5f);
+            int xLabelY = (int) lastCatCy + lh / 2 + 2;
+            GuideText.emitText(c, xAxis.getLabel(), xLabelX, xLabelY, style);
         }
 
         // Border.
@@ -194,22 +210,36 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
                 xAxis.getAxisColor()));
 
         int seriesCount = series.size();
+        // R4-1: Detect single-value mode where seriesCount == categoryCount and each series has
+        // exactly one value. In this mode, map each series directly to its corresponding category row.
+        boolean singleValueMode = seriesCount == categoryCount && seriesCount > 0;
+        if (singleValueMode) {
+            for (ChartSeries s : series) {
+                if (s.getYs().length != 1) {
+                    singleValueMode = false;
+                    break;
+                }
+            }
+        }
         float baselineX = CartesianChartRenderer.mapX(0d, xRange, inner);
         ResolvedTextStyle valueStyle = textStyle(getLabelColor());
         if (seriesCount > 0) {
             float clusterHeight = categoryHeight * barWidthRatio;
-            float barHeight = clusterHeight / seriesCount;
+            int effSeriesCount = singleValueMode ? 1 : seriesCount;
+            float barHeight = clusterHeight / effSeriesCount;
             for (int ci = 0; ci < categoryCount; ci++) {
                 float clusterCenter = inner.y() + categoryHeight * (ci + 0.5f);
                 float clusterTop = clusterCenter - clusterHeight / 2f;
-                for (int si = 0; si < seriesCount; si++) {
-                    ChartSeries s = series.get(si);
-                    if (ci >= s.getYs().length) continue;
-                    double v = s.getYs()[ci];
+                for (int si = 0; si < effSeriesCount; si++) {
+                    int seriesIdx = singleValueMode ? ci : si;
+                    ChartSeries s = series.get(seriesIdx);
+                    int valueIdx = singleValueMode ? 0 : ci;
+                    if (valueIdx >= s.getYs().length) continue;
+                    double v = s.getYs()[valueIdx];
                     float endX = CartesianChartRenderer.mapX(v, xRange, inner);
                     float y0 = clusterTop + barHeight * si;
                     float y1 = y0 + barHeight - 0.5f;
-                    int key = encodeKey(si, ci);
+                    int key = encodeKey(singleValueMode ? ci : si, ci);
                     boolean hovered = key == hoveredKey;
                     float xLeft = Math.min(endX, baselineX);
                     float xRight = Math.max(endX, baselineX);
@@ -370,23 +400,32 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         }
         if (series.isEmpty()) return -1;
         int seriesCount = series.size();
+        boolean singleValueMode = seriesCount == categoryCount && seriesCount > 0;
+        if (singleValueMode) {
+            for (ChartSeries s : series) {
+                if (s.getYs().length != 1) { singleValueMode = false; break; }
+            }
+        }
         float clusterHeight = categoryHeight * barWidthRatio;
-        float barHeight = clusterHeight / seriesCount;
+        int effSeriesCount = singleValueMode ? 1 : seriesCount;
+        float barHeight = clusterHeight / effSeriesCount;
         float baselineX = CartesianChartRenderer.mapX(0d, xRangeCache, plotCache);
         for (int ci = 0; ci < categoryCount; ci++) {
             float clusterCenter = plotCache.y() + categoryHeight * (ci + 0.5f);
             float clusterTop = clusterCenter - clusterHeight / 2f;
-            for (int si = 0; si < seriesCount; si++) {
-                ChartSeries s = series.get(si);
-                if (ci >= s.getYs().length) continue;
-                double v = s.getYs()[ci];
+            for (int si = 0; si < effSeriesCount; si++) {
+                int seriesIdx = singleValueMode ? ci : si;
+                ChartSeries s = series.get(seriesIdx);
+                int valueIdx = singleValueMode ? 0 : ci;
+                if (valueIdx >= s.getYs().length) continue;
+                double v = s.getYs()[valueIdx];
                 float endX = CartesianChartRenderer.mapX(v, xRangeCache, plotCache);
                 float y0 = clusterTop + barHeight * si;
                 float y1 = y0 + barHeight;
                 float xLeft = Math.min(endX, baselineX);
                 float xRight = Math.max(endX, baselineX);
                 if (x >= xLeft && x <= xRight && y >= y0 && y <= y1) {
-                    return encodeKey(si, ci);
+                    return encodeKey(singleValueMode ? ci : si, ci);
                 }
             }
         }
@@ -482,20 +521,29 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
 
         int categoryCount = Math.max(categories.length, maxSeriesLength());
         int seriesCount = series.size();
+        boolean singleValueMode = seriesCount == categoryCount && seriesCount > 0;
+        if (singleValueMode) {
+            for (ChartSeries s : series) {
+                if (s.getYs().length != 1) { singleValueMode = false; break; }
+            }
+        }
         float categoryHeight = (float) plotCache.height() / categoryCount;
         float clusterHeight = categoryHeight * barWidthRatio;
-        float barHeight = clusterHeight / seriesCount;
+        int effSeriesCount = singleValueMode ? 1 : seriesCount;
+        float barHeight = clusterHeight / effSeriesCount;
         float baselineX = CartesianChartRenderer.mapX(0d, xRangeCache, plotCache);
 
         for (int ci = 0; ci < categoryCount; ci++) {
             float clusterCenter = plotCache.y() + categoryHeight * (ci + 0.5f);
             float clusterTop = clusterCenter - clusterHeight / 2f;
 
-            for (int si = 0; si < seriesCount; si++) {
-                ChartSeries s = series.get(si);
-                if (ci >= s.getYs().length) continue;
+            for (int si = 0; si < effSeriesCount; si++) {
+                int seriesIdx = singleValueMode ? ci : si;
+                ChartSeries s = series.get(seriesIdx);
+                int valueIdx = singleValueMode ? 0 : ci;
+                if (valueIdx >= s.getYs().length) continue;
 
-                double v = s.getYs()[ci];
+                double v = s.getYs()[valueIdx];
                 float endX = CartesianChartRenderer.mapX(v, xRangeCache, plotCache);
                 float y0 = clusterTop + barHeight * si;
                 float y1 = y0 + barHeight - 0.5f;

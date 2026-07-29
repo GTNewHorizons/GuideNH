@@ -86,13 +86,20 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
                     default -> formatPercent(slice.getValue() / total);
                 };
                 int tw = GuideText.measureWidth(text, labelStyle);
+                // R4-16: OUTSIDE labels use labelR = drawRadius + lh + 4f so text is pushed clear of
+                // the pie boundary instead of sitting only 4px out. The clamp is relaxed by tw/2 on
+                // left/right and lh/2 on top/bottom so large-slice labels are not pulled back inside.
                 float labelR = pos == ChartLabelPosition.OUTSIDE || pos == ChartLabelPosition.ABOVE
-                    || pos == ChartLabelPosition.BELOW ? drawRadius + 4f : drawRadius * 0.6f;
+                    || pos == ChartLabelPosition.BELOW ? drawRadius + Math.max(lh + 2f, 8f) : drawRadius * 0.6f;
                 float tx = cx + (float) Math.cos(mid) * labelR - tw / 2f;
                 float ty = cy + (float) Math.sin(mid) * labelR - lh / 2f;
-                // Clamp label inside the plot rectangle so OUTSIDE labels do not overflow the chart frame.
-                int clampedTx = Math.max(plotRect.x(), Math.min(plotRect.right() - tw, (int) tx));
-                int clampedTy = Math.max(plotRect.y(), Math.min(plotRect.bottom() - lh, (int) ty));
+                // Clamp label with relaxed bounds so outside labels project beyond the pie without
+                // overflowing the chart frame entirely.
+                int relaxedLeft = plotRect.x() - (pos == ChartLabelPosition.OUTSIDE ? tw / 2 : 0);
+                int relaxedRight = plotRect.right() - tw + (pos == ChartLabelPosition.OUTSIDE ? tw / 2 : 0);
+                int clampedTx = Math.max(relaxedLeft, Math.min(relaxedRight, (int) tx));
+                int clampedTy = Math.max(plotRect.y() - (pos == ChartLabelPosition.OUTSIDE ? lh / 2 : 0),
+                    Math.min(plotRect.bottom() - lh + (pos == ChartLabelPosition.OUTSIDE ? lh / 2 : 0), (int) ty));
                 GuideText.emitText(c, text, clampedTx, clampedTy, labelStyle);
             }
             angle += sweep;

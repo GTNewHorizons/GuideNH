@@ -227,7 +227,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (title != null && !title.isEmpty()) {
             fixedChromeHeight += context.getLineHeight(TITLE_STYLE) + TITLE_GAP;
         }
-        int legendHeight = measureLegendHeight(plotWidth);
+        // R4-15: Skip bottom legend space when corner legend is active.
+        boolean hasCornerLegend = cornerLegendPosition != CornerLegendPosition.NONE;
+        int legendHeight = hasCornerLegend ? 0 : measureLegendHeight(plotWidth);
         if (legendHeight > 0) {
             fixedChromeHeight += legendHeight + LEGEND_GAP_ABOVE;
         }
@@ -293,7 +295,9 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         int plotRight = contentRight;
         int plotTop = contentTop;
         int legendWidth = Math.max(0, plotRight - plotLeft);
-        int legendHeight = measureLegendHeight(legendWidth);
+        // R4-15: When corner legend is active, skip the bottom legend entirely — no space reservation.
+        boolean hasCornerLegend = cornerLegendPosition != CornerLegendPosition.NONE;
+        int legendHeight = hasCornerLegend ? 0 : measureLegendHeight(legendWidth);
         int plotBottom = contentBottom - AXIS_PAD_BOTTOM - (legendHeight > 0 ? legendHeight + LEGEND_GAP_ABOVE : 0);
         if (plotRight - plotLeft <= 16 || plotBottom - plotTop <= 16) {
             return;
@@ -650,8 +654,34 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             if ((x1 < plotRect.x() && x2 < plotRect.x()) || (x1 > plotRect.right() && x2 > plotRect.right())) {
                 continue;
             }
+            // R4-15: Quadrant mask clipping — skip segments whose data endpoints are both outside
+            // the allowed quadrants.
+            if (explicitQuadrantMask != 0 && explicitQuadrantMask != 0xF) {
+                double dx1 = unmapX(x1);
+                double dy1 = unmapY(y1);
+                double dx2 = unmapX(x2);
+                double dy2 = unmapY(y2);
+                if (!isPointInQuadrant(dx1, dy1, explicitQuadrantMask)
+                    && !isPointInQuadrant(dx2, dy2, explicitQuadrantMask)) {
+                    continue;
+                }
+            }
             c.emit(new GuideRenderPrimitive.DrawLine(x1, y1, x2, y2, thickness, color));
         }
+    }
+
+    /**
+     * R4-15: Check whether a data point falls within the allowed quadrant mask.
+     * Bits 0-3 correspond to quadrants 1-4 (Q1: x>=0,y>=0, Q2: x<0,y>=0, Q3: x<0,y<0, Q4: x>=0,y<0).
+     */
+    private static boolean isPointInQuadrant(double dataX, double dataY, int mask) {
+        int q;
+        if (dataX >= 0d) {
+            q = dataY >= 0d ? 1 : 4;
+        } else {
+            q = dataY >= 0d ? 2 : 3;
+        }
+        return (mask & (1 << (q - 1))) != 0;
     }
 
     private void renderMarkedPoints(PrimitiveCollector c, LytRect plotRect) {

@@ -73,7 +73,8 @@ public class MermaidParser {
         TRAPEZOID_C("/[", "]/", MermaidNodeShape.TRAPEZOID),
         TRAPEZOID_D("\\", "\\", MermaidNodeShape.TRAPEZOID),
         SQUARE("[", "]", MermaidNodeShape.SQUARE),
-        DOUBLE_CIRCLE("((", "))", MermaidNodeShape.DOUBLE_CIRCLE),
+        DOUBLE_CIRCLE("(((", ")))", MermaidNodeShape.DOUBLE_CIRCLE),
+        CIRCLE("((", "))", MermaidNodeShape.CIRCLE),
         ROUNDED("(", ")", MermaidNodeShape.ROUNDED),
         BANG("))", "((", MermaidNodeShape.BANG),
         CLOUD(")", "(", MermaidNodeShape.CLOUD);
@@ -92,22 +93,12 @@ public class MermaidParser {
         public static NodeShapeResult match(String rest) {
             if (rest == null || rest.isEmpty()) return null;
             for (NodeShapePattern pattern : values()) {
-                // BANG/CLOUD are declared after all valid flowchart shapes, so they
-                // can never match first in this startsWith loop — no flowchart node
+                // BANG/CLOUD are declared after all valid shapes, so they
+                // can never match first in this startsWith loop — no node
                 // shape syntax starts with ) or )).
                 if (rest.startsWith(pattern.open) && rest.endsWith(pattern.close)) {
                     String inner = rest.substring(pattern.open.length(), rest.length() - pattern.close.length())
                         .trim();
-                    if (pattern == DOUBLE_CIRCLE) {
-                        if (inner.startsWith("(") && inner.endsWith(")")) {
-                            return new NodeShapeResult(
-                                null,
-                                inner.substring(1, inner.length() - 1)
-                                    .trim(),
-                                MermaidNodeShape.DOUBLE_CIRCLE);
-                        }
-                        return new NodeShapeResult(null, inner, MermaidNodeShape.CIRCLE);
-                    }
                     return new NodeShapeResult(null, inner, pattern.shape);
                 }
             }
@@ -126,16 +117,6 @@ public class MermaidParser {
                     .trim();
                 String label = text.substring(openIndex + pattern.open.length(), length)
                     .trim();
-                if (pattern == DOUBLE_CIRCLE) {
-                    if (label.startsWith("(") && label.endsWith(")")) {
-                        return new ShapeMatch(
-                            prefix,
-                            label.substring(1, label.length() - 1)
-                                .trim(),
-                            MermaidNodeShape.DOUBLE_CIRCLE);
-                    }
-                    return new ShapeMatch(prefix, label, MermaidNodeShape.CIRCLE);
-                }
                 return new ShapeMatch(prefix, label, pattern.shape);
             }
             return null;

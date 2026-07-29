@@ -40,6 +40,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.ListCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ListItemCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MarkTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.NodeContentTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ParagraphCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PlayerNameTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PreCompiler;
@@ -148,6 +149,7 @@ public class DefaultExtensions {
                 new FootnoteListCompiler(),
                 new StructureViewCompiler(),
                 new MermaidCompiler(),
+                new NodeContentTagCompiler(),
                 new CsvTableCompiler(),
                 new ColumnChartCompiler(),
                 new BarChartCompiler(),

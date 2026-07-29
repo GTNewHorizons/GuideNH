@@ -55,7 +55,7 @@ public class CameraSettings {
     public void setPerspectivePreset(PerspectivePreset preset) {
         switch (preset) {
             case ISOMETRIC_NORTH_EAST:
-                setIsometricYawPitchRoll(225, 30, 0);
+                setIsometricYawPitchRoll(45, 30, 0);
                 break;
             case ISOMETRIC_NORTH_WEST:
                 setIsometricYawPitchRoll(135, 30, 0);

@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.shapes.FlowchartShapes;
+import com.hfstudio.guidenh.guide.layout.Layouts;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
@@ -218,6 +220,24 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 LayoutContext localContext = new LayoutContext(context).withVisualScale(context.getVisualScale());
                 int contentWidth = Math.clamp(maxTextWidth + 60, 96, 240);
                 block.layout(localContext, 0, 0, contentWidth);
+                // LytVBox.computeBoxLayout is a stub (Rust is sole layout authority
+                // for the normal document pipeline). For embedded NodeContent blocks
+                // inside Mermaid diagrams there is no Rust pass, so we must lay the
+                // children out manually to obtain non-zero visual bounds.
+                if (block instanceof LytVBox vbox) {
+                    List<LytBlock> blockChildren = new ArrayList<>();
+                    for (LytNode child : vbox.getChildren()) {
+                        if (child instanceof LytBlock b) blockChildren.add(b);
+                    }
+                    if (!blockChildren.isEmpty()) {
+                        // Content VBox created by compileNodeContentBlock has
+                        // default padding (0), gap (0), alignItems (START).
+                        Layouts.verticalLayout(localContext, blockChildren,
+                            0, 0, contentWidth,
+                            0, 0, 0, 0,
+                            vbox.getGap(), vbox.getAlignItems());
+                    }
+                }
                 LytRect vb = resolveBlockVisualBounds(block);
                 textWidth = vb.width();
                 textHeight = vb.height();
