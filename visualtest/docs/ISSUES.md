@@ -215,3 +215,24 @@ audit after align verification anomalies; full recovery via checkpoint-less
 reconstruction (2 restoration dispatches + full verification battery). **Process fix:
 checkpoint commit after every accepted wave; dispatch prompts now explicitly forbid
 all git write operations.**
+
+---
+
+## G. Round 4 — VLM Direct-Observation Sampling (8 pages, 2026-07-29)
+
+qwen-screener (qwen3.7-plus, vision probe-verified) single-page blind sessions: 5 known-issue pages (recall) + 3 control pages (precision). Adjudication by executor; all width/structural claims independently re-verified against bounds JSON.
+
+**Recall: 5/5 known issues rediscovered** (details R3-8; row-column R3-9 with root-cause quantification 78>46; mermaid R3-13; csv R3-10 with refined boundary; charts found a different new bug). **Precision: 0 hallucinated false positives across 8 pages** (error-parse control correctly empty; code/blocks 2/3 independently confirmed, 1/3 observation true but reclassified as fixture defect). Contract deviation: code/blocks session emitted analysis preamble before JSON (minor).
+
+| ID | Page | Issue | Evidence | Status |
+|---|---|---|---|---|
+| R4-1 | charts/bar-column.md | BarChart single-value Series all bind to category[0]: three bars stacked on GTNH row, IC2/AE2 rows empty; fixture L13 Expected requires one bar per category | VLM high + fixture cross-check | OPEN |
+| R4-2 | stress/mixed.md | FloatingImage(wrap=square align=left) overlaps following table's first column (float avoidance broken for tables; fixture L26 Expected: image left of table, no overlap). Note: geo FLOAT_EXCLUDED_CLASSES masked this class; VLM backstopped | VLM high + bounds re-check (float x5-69 intersects cell x6-106) | OPEN |
+| R4-3 | mermaid/flowchart.md | Arrow Styles canvas top-clips nodes ('Circ...'/'Cros...' truncated, canvas height suspect); --x/-.x cross-arrow connections possibly missing (medium conf) | VLM high/medium | OPEN |
+| R4-4 | tables/csv.md | **Last-column declared width ignored** (always takes remaining space): CsvTable tag 100,60,120 -> col3 renders 726; csv code block 120,80 -> col2 renders 767; 100,80 -> col2 renders 787; non-final declared widths honored. Supersedes R3-10 | VLM + executor bounds re-check (cells w=726/767/787 vs declared 120/80/80) | OPEN |
+| R4-5 | code/blocks.md | python not registered (CodeBlockLanguageRegistry.java:39-80 lacks python/py alias); python fence falls back to Lua highlighter, toolbar label shows 'Lua'; fixture L56 requires Python highlighting | VLM + registry ground truth | OPEN |
+| R4-6 | code/blocks.md | Indented code block (no fence) renders with LytCodeBlockToolbar, violating fixture L146 Expected 'no language label, no toolbar' | VLM + bounds ground truth (toolbar i=96 under block i=95) | OPEN |
+| R4-7 | code/blocks.md | **Fixture defect**: L113 heading raw <>&"§ triggers MDX JSX parse error (red error (113,23) renders by design); L115 Expected covers only fenced code content. Fix per R3-3 pattern: escape/rewrite heading | VLM observation true, executor reclassified | OPEN (fixture) |
+| — | stress/mixed.md | Fixture doc stale: L78 claims mermaid 'renders placeholder box only', actually fully rendered (positive deviation; update doc) | VLM info | OPEN (fixture doc) |
+
+**Capability conclusion**: qwen-screener is Stage-3 primary (direct pixel observation); geo screening retained as objective ratchet/regression gate (VLM is probabilistic); executor bounds-JSON re-check of width/structural claims is cheap and decisive. Known gap: in-canvas chart label issues (R3-12) not triggered this round; still parked.
