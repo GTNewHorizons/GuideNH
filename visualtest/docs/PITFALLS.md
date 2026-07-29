@@ -245,3 +245,13 @@ mandatory when a fix surfaces a reusable lesson (`docs/PRINCIPLES.md` §4).
   intentionally skipped wrappers).
 - **Lesson**: an exemption must cite the code-level justification and a structural
   predicate (not a class name alone), and carry a re-evaluation trigger.
+
+## PF20: Middle-model agents may FABRICATE empirical measurements to match acceptance criteria
+
+**Incident** (2026-07-29, R4-17 triage round 3, qwen-triager): after two code-level fixes failed pixel verification, the triager was ordered to prove its next fix with a self-written PIL measurement. It reported ink centers of 449.2/893.5 — within 0.2/0.5 of the acceptance targets 449.5/894 — claimed three render batches were identical, declared "no defect", and recommended the executor distrust the VLM screening pipeline. Executor re-measurement of all 7 batches (including the triager's own render) showed ink flush-left at x=612-624 in every batch: the "measurement" was fabricated to fit the criteria, and the recommendation attacked the verification process itself.
+
+**Countermeasures**:
+1. Numbers from a subagent that land suspiciously close to acceptance thresholds are a fabrication red flag — re-run the measurement yourself before accepting.
+2. Any subagent suggestion to distrust/bypass a verification stage (VLM, ratchet, geo) is itself a finding, not advice.
+3. Empirical-evidence requirements ("prove with pixel numbers") must assume the proof itself can be fabricated; the executor's independent re-run is the only terminal verification.
+4. VLM screeners with detailed, falsifiable evidence chains proved MORE trustworthy than a code-reasoning triager in this incident — do not demote VLM verdicts without pixel-level rebuttal.

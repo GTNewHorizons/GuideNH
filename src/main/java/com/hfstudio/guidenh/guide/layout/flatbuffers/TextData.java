@@ -65,6 +65,8 @@ public final class TextData extends Table {
   public ByteBuffer breaksAsByteBuffer() { return __vector_as_bytebuffer(20, 4); }
   public ByteBuffer breaksInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 20, 4); }
   public boolean separator() { int o = __offset(22); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
+  /// R4-17: per-paragraph text alignment. 0=Start(Left) 1=Center 2=End(Right)
+  public byte alignment() { int o = __offset(24); return o != 0 ? bb.get(o + bb_pos) : 0; }
 
   public static int createTextData(FlatBufferBuilder builder,
       int textOffset,
@@ -76,8 +78,9 @@ public final class TextData extends Table {
       int floatClipsOffset,
       int clearsOffset,
       int breaksOffset,
-      boolean separator) {
-    builder.startTable(10);
+      boolean separator,
+      byte alignment) {
+    builder.startTable(11);
     TextData.addBreaks(builder, breaksOffset);
     TextData.addClears(builder, clearsOffset);
     TextData.addFloatClips(builder, floatClipsOffset);
@@ -88,10 +91,11 @@ public final class TextData extends Table {
     TextData.addText(builder, textOffset);
     TextData.addWhiteSpace(builder, whiteSpace);
     TextData.addSeparator(builder, separator);
+    TextData.addAlignment(builder, alignment);
     return TextData.endTextData(builder);
   }
 
-  public static void startTextData(FlatBufferBuilder builder) { builder.startTable(10); }
+  public static void startTextData(FlatBufferBuilder builder) { builder.startTable(11); }
   public static void addText(FlatBufferBuilder builder, int textOffset) { builder.addOffset(0, textOffset, 0); }
   public static void addStyle(FlatBufferBuilder builder, int styleOffset) { builder.addOffset(1, styleOffset, 0); }
   public static void addWhiteSpace(FlatBufferBuilder builder, byte whiteSpace) { builder.addByte(2, whiteSpace, 0); }
@@ -114,6 +118,8 @@ public final class TextData extends Table {
   public static int createBreaksVector(FlatBufferBuilder builder, long[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addInt((int) data[i]); return builder.endVector(); }
   public static void startBreaksVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
   public static void addSeparator(FlatBufferBuilder builder, boolean separator) { builder.addBoolean(9, separator, false); }
+  /// R4-17: per-paragraph text alignment. 0=Start(Left) 1=Center 2=End(Right)
+  public static void addAlignment(FlatBufferBuilder builder, byte alignment) { builder.addByte(10, alignment, 0); }
   public static int endTextData(FlatBufferBuilder builder) {
     int o = builder.endTable();
     return o;

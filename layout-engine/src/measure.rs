@@ -151,6 +151,8 @@ pub(crate) fn measure_text(
     let style = td.style().unwrap();
     let font_size = style.font_size();
     let font_scale = style.font_scale();
+    // R4-17: read per-paragraph text alignment from FlatBuffer
+    let alignment = td.alignment_();
 
     // Rich multi-style spans (TextData.spans) → builder ranges. Spans cover
     // the full text in document order, so span byte boundaries index into it.
@@ -291,6 +293,7 @@ pub(crate) fn measure_text(
                     font_scale,
                     max_width: max_w,
                     justify,
+                    alignment,
                 };
                 let shaped = crate::parley_text::shape_paragraph(&mut fs.parley, &req);
                 for mut g in shaped.glyphs {
@@ -331,6 +334,7 @@ pub(crate) fn measure_text(
                 font_scale,
                 max_width: max_w,
                 justify,
+                alignment,
             };
             let shaped = crate::parley_text::shape_paragraph(&mut fs.parley, &req);
             let mut h = shaped.content_height;
@@ -356,7 +360,13 @@ pub(crate) fn measure_text(
     (
         Size {
             width: match available.width {
-                AvailableSpace::Definite(max_w) => (shaped_max_x.min(max_w)).max(1.0),
+                AvailableSpace::Definite(max_w) => {
+                    if alignment == 1 || alignment == 2 {
+                        max_w.max(1.0)
+                    } else {
+                        (shaped_max_x.min(max_w)).max(1.0)
+                    }
+                }
                 _ => shaped_max_x.max(1.0),
             },
             height: shaped_h.max(1.0),

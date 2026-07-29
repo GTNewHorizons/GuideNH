@@ -224,6 +224,8 @@ pub struct ShapeRequest<'a> {
     pub font_scale: f32,
     pub max_width: f32,
     pub justify: bool,
+    /// R4-17: per-paragraph text alignment. 0=Start(Left) 1=Center 2=End(Right)
+    pub alignment: i8,
 }
 
 /// A shaped glyph in paragraph-local coordinates: (x, y) is the pen position
@@ -382,11 +384,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         let mut layout = b.build(&clean);
         break_with_floats(&mut layout, req, &merged_floats, scaled);
         layout.align(
-            if req.justify {
-                Alignment::Justify
-            } else {
-                Alignment::Start
-            },
+            resolve_alignment(req.justify, req.alignment),
             AlignmentOptions::default(),
         );
         layout
@@ -465,13 +463,24 @@ fn break_and_align(layout: &mut Layout<SpanBrush>, req: &ShapeRequest) {
         break_with_floats(layout, req, req.floats, est_h);
     }
     layout.align(
-        if req.justify {
-            Alignment::Justify
-        } else {
-            Alignment::Start
-        },
+        resolve_alignment(req.justify, req.alignment),
         AlignmentOptions::default(),
     );
+}
+
+/// R4-17: resolve text alignment from justify flag and per-paragraph alignment.
+/// justify takes precedence; otherwise map alignment byte to parley Alignment.
+/// 0=Start(Left) 1=Center 2=End(Right)
+fn resolve_alignment(justify: bool, alignment: i8) -> Alignment {
+    if justify {
+        Alignment::Justify
+    } else {
+        match alignment {
+            1 => Alignment::Center,
+            2 => Alignment::End,
+            _ => Alignment::Start,
+        }
+    }
 }
 
 fn break_with_floats(

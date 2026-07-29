@@ -100,15 +100,63 @@
     "msg": "full-width image boxes fill parent width (A11 ratchet)"
    }
   ],
-  "visualtest_tables_metadata.md": [
-   {
-    "exists": {
-     "cls": "LytTable"
+   "visualtest_tables_metadata.md": [
+    {
+     "exists": {
+      "cls": "LytTable"
+     },
+     "msg": "metadata table renders (A14 ratchet)"
     },
-    "msg": "metadata table renders (A14 ratchet)"
-   }
-  ],
-  "visualtest_nei_recipes.md": [
+    {
+     "count": {
+      "cls": "LytTableCell",
+      "ge": 6
+     },
+     "msg": "R4-4: metadata tables have cells (column widths respected)"
+    }
+   ],
+   "visualtest_tables_csv.md": [
+    {
+     "count": {
+      "cls": "LytTableCell",
+      "ge": 10
+     },
+     "msg": "R4-4: CSV tables have cells (column widths respected)"
+    }
+   ],
+   "visualtest_code_special-langs.md": [
+    {
+     "count": {
+      "cls": "LytItemImage",
+      "ge": 3
+     },
+     "msg": "filetree {:iconItem=} icons exist (R2-3 ratchet)"
+    },
+    {
+     "attr": {
+      "cls": "LytItemImage",
+      "field": "w",
+      "gt": 0
+     },
+     "msg": "filetree item icons reserve real width (R2-3 ratchet)"
+    },
+    {
+     "attr": {
+      "cls": "LytItemImage",
+      "field": "h",
+      "gt": 0
+     },
+      "msg": "filetree item icons reserve real height (R2-3 ratchet)"
+     },
+     {
+      "count": {
+       "cls": "LytTableCell",
+       "ge": 4
+      },
+      "msg": "R4-4: special-langs csv has cells (column widths respected)"
+     }
+    ],
+   "visualtest_nei_recipes.md": [
    {
     "count": {
      "cls": "LytNeiRecipeBox",
@@ -147,33 +195,8 @@
      "field": "h",
      "gt": 0
     },
-    "msg": "every LytItemImage reserves real height, h>0 (R2-2/R2-3 ratchet, was 0 before fix)"
-   }
-  ],
-  "visualtest_code_special-langs.md": [
-   {
-    "count": {
-     "cls": "LytItemImage",
-     "ge": 3
-    },
-    "msg": "filetree {:iconItem=} icons exist (R2-3 ratchet)"
-   },
-   {
-    "attr": {
-     "cls": "LytItemImage",
-     "field": "w",
-     "gt": 0
-    },
-    "msg": "filetree item icons reserve real width (R2-3 ratchet)"
-   },
-   {
-    "attr": {
-     "cls": "LytItemImage",
-     "field": "h",
-     "gt": 0
-    },
-    "msg": "filetree item icons reserve real height (R2-3 ratchet)"
-   }
-  ]
- }
+     "msg": "every LytItemImage reserves real height, h>0 (R2-2/R2-3 ratchet, was 0 before fix)"
+    }
+   ]
+  }
 }

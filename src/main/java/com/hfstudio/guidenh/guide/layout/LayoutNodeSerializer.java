@@ -291,8 +291,20 @@ public final class LayoutNodeSerializer {
         }
         boolean separator = (block instanceof LytHeading heading)
             && (heading.getDepth() == 1 || heading.getDepth() == 2);
+        // R4-17: read per-paragraph text alignment from resolved style
+        byte alignmentByte = 0; // default: Start(Left)
+        if (block instanceof LytParagraph par) {
+            var resolved = par.resolveStyle();
+            if (resolved != null && resolved.alignment() != null) {
+                alignmentByte = switch (resolved.alignment()) {
+                    case CENTER -> 1;
+                    case RIGHT -> 2;
+                    default -> 0; // LEFT
+                };
+            }
+        }
         return TextData
-            .createTextData(fbb, strOff, styleOff, wsByte, inlineBlocksVec, 0, spansVec, 0, clearsVec, breaksVec, separator);
+            .createTextData(fbb, strOff, styleOff, wsByte, inlineBlocksVec, 0, spansVec, 0, clearsVec, breaksVec, separator, alignmentByte);
     }
 
     /** One text run with its resolved style, in document order. */

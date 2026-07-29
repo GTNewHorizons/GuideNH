@@ -315,7 +315,20 @@ public class LayoutTreeSerializer {
                 // removed, so layoutColumns is called here with the available
                 // width from the serialize() parameter. (x=0 is safe — column.x
                 // is overwritten by Rust.)
-                table.layoutColumns(0, Math.round(serializeAvailWidth - 2.0f * CONTENT_PAD));
+                // R4-18 fix: When ALL columns have declared preferred widths,
+                // use the sum of declared widths as the table's natural width
+                // instead of the full available width. This allows tables to
+                // shrink to content width when not explicitly set to fullWidth.
+                int availW = Math.round(serializeAvailWidth - 2.0f * CONTENT_PAD);
+                boolean allDeclared = table.getColumns().stream().allMatch(c -> c.getPreferredWidth() > 0);
+                if (allDeclared && !table.isFullWidth()) {
+                    int sumPreferred = table.getColumns().stream().mapToInt(c -> c.getPreferredWidth()).sum();
+                    int borders = (table.getColumns().size() + 1) * LytTable.CELL_BORDER;
+                    int naturalW = sumPreferred + borders;
+                    table.layoutColumns(0, Math.min(naturalW, availW));
+                } else {
+                    table.layoutColumns(0, availW);
+                }
                 // Table cells keep the Java-computed COLUMN widths (the column
                 // model resolves preferred/flexible widths) so cell content
                 // wraps at the column width; heights are Rust-measured so

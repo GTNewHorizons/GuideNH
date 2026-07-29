@@ -160,9 +160,16 @@ public class LytTable extends LytBlock {
                 colX += column.width + CELL_BORDER;
             }
 
-            if (assignedWidth < innerWidth) {
+            // Only distribute remainder to flexible (undeclared) columns.
+            // When all columns have declared widths, the table stays at the
+            // sum of declared widths (natural width) — the last column must
+            // NOT absorb the leftover space (R4-4 fix).
+            if (flexibleColumns > 0 && assignedWidth < innerWidth) {
+                int leftover = innerWidth - assignedWidth;
                 var lastCol = columns.getLast();
-                lastCol.width += innerWidth - assignedWidth;
+                if (lastCol.preferredWidth == 0) {
+                    lastCol.width += leftover;
+                }
             }
             return;
         }

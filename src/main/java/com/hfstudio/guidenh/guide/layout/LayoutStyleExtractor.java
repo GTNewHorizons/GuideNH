@@ -133,8 +133,12 @@ public final class LayoutStyleExtractor {
         // explicit 100% width resolves against the available space in taffy, so
         // the container fills the page width and the inner align_self
         // (Stretch/Center) works correctly within this full-width context.
+        // R4-18 fix: removed `|| block instanceof LytFloatAwareBlock` — the
+        // FloatAwareBlock constructor copies inner.isFullWidth(), so
+        // block.isFullWidth() already covers the fullWidth case. The blanket
+        // instanceof check forced 100% width on ALL float-aware blocks
+        // (including natural-width tables), preventing content-based shrink.
         boolean needFullWidth = block.isFullWidth()
-            || block instanceof LytFloatAwareBlock
             || adj.alignItems() != 0;
         if (needFullWidth && explicitW <= 0) {
             sizeWOff = dimPercent(fbb, 100);

@@ -114,6 +114,8 @@ table TextData {
   separator: bool = false;    // T6b-4: heading paragraph (depth 1/2) — Rust emits a kind=3
                               // DecorationRect for the last line's full float-compressed window
                               // so Java can draw a themed separator across the real text area.
+  alignment: byte = 0;        // R4-17: per-paragraph text alignment.
+                              // 0=Start(Left) 1=Center 2=End(Right)
 }
 
 /// One in-paragraph clear break (`<br clear="..."/>`). `raw_offset` is the
