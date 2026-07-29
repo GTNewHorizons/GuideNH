@@ -150,6 +150,12 @@ def default_msg(rule_type, params):
     elif rule_type == 'inside_parent':
         pad = params.get('pad', 0)
         return f"expect {cls} inside parent with pad={pad}"
+    elif rule_type == 'attr':
+        field = params.get('field', '?')
+        for op in ('gt', 'ge', 'eq', 'le', 'lt'):
+            if op in params:
+                return f"expect {cls}.{field} {op}={params[op]} for every node"
+        return f"expect {cls}.{field} constraint"
     return f"rule {rule_type} on {cls}"
 
 
@@ -270,6 +276,27 @@ def check_inside_parent(blocks, nodes_of_cls, parent_of, params):
 # 单页评估
 # ============================================================
 
+def check_attr(nodes_of_cls, params):
+    """attr: {cls, field: x|y|w|h, gt|ge|eq|le|lt: N} — 每个 C 节点的数值字段均需满足比较；无节点视为失败"""
+    cls = params['cls']
+    field = params['field']
+    if not nodes_of_cls:
+        return (False, f"expected {cls} nodes for attr check, none found")
+    for idx, node in nodes_of_cls:
+        actual = node.get(field)
+        if actual is None:
+            return (False, f"{cls} node #{idx} missing field '{field}'")
+        for op in ('gt', 'ge', 'eq', 'le', 'lt'):
+            if op not in params:
+                continue
+            expected = params[op]
+            ok = {'gt': actual > expected, 'ge': actual >= expected, 'eq': actual == expected,
+                  'le': actual <= expected, 'lt': actual < expected}[op]
+            if not ok:
+                return (False, f"{cls} node #{idx} {field}={actual} violates {op}={expected}")
+    return (True, None)
+
+
 def validate_rule_structure(rule_obj):
     """
     验证规则对象结构。
@@ -281,7 +308,7 @@ def validate_rule_structure(rule_obj):
 
     # 找出 rule_type key（排除 msg、_readme 等元数据）
     known_keys = {'count', 'exists', 'absent', 'centered',
-                  'width_ratio', 'max_height', 'max_width', 'inside_parent'}
+                  'width_ratio', 'max_height', 'max_width', 'inside_parent', 'attr'}
     rule_type = None
     params = None
     for k, v in rule_obj.items():
@@ -302,7 +329,7 @@ def validate_rule_structure(rule_obj):
         return (False, f"params for {rule_type} is not a dict", None, None)
 
     if 'cls' not in params and rule_type in ('count', 'exists', 'absent', 'centered',
-                                              'width_ratio', 'max_height', 'max_width', 'inside_parent'):
+                                              'width_ratio', 'max_height', 'max_width', 'inside_parent', 'attr'):
         return (False, f"missing 'cls' in {rule_type} params", None, None)
 
     # 验证 count 有操作符
@@ -328,6 +355,13 @@ def validate_rule_structure(rule_obj):
     if rule_type == 'centered':
         if 'tol' not in params:
             return (False, "centered rule missing 'tol'", None, None)
+
+    # 验证 attr 有合法 field 与至少一个比较操作符
+    if rule_type == 'attr':
+        if params.get('field') not in ('x', 'y', 'w', 'h'):
+            return (False, "attr rule field must be one of x/y/w/h", None, None)
+        if not any(op in params for op in ('gt', 'ge', 'eq', 'le', 'lt')):
+            return (False, "attr rule missing gt/ge/eq/le/lt operator", None, None)
 
     msg = rule_obj.get('msg')
     if msg is None or not isinstance(msg, str) or msg.strip() == '':
@@ -391,6 +425,8 @@ def evaluate_page(page_stem, page_json_path, assertions_list):
                 passed, failure_text = check_max_width(blocks, nodes_of_cls, parent_of, params)
             elif rule_type == 'inside_parent':
                 passed, failure_text = check_inside_parent(blocks, nodes_of_cls, parent_of, params)
+            elif rule_type == 'attr':
+                passed, failure_text = check_attr(nodes_of_cls, params)
             else:
                 passed = False
                 failure_text = f"RULE ERROR: unknown rule type '{rule_type}'"

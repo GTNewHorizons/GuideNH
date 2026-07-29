@@ -1,44 +1,179 @@
 {
-  "_readme": "append-only; see docs/PRINCIPLES.md",
-  "pages": {
-    "visualtest_lists_tasks.md": [
-      {"count": {"cls": "LytTaskListItem", "eq": 18}, "msg": "task list items render as dedicated class (A12/A16 ratchet)"},
-      {"exists": {"cls": "LytList"}, "msg": "task list has list container"}
-    ],
-    "visualtest_lists_basic.md": [
-      {"count": {"cls": "LytListItem", "ge": 20}, "msg": "basic list items count >= 20 (A12 ratchet)"}
-    ],
-    "visualtest_latex_display.md": [
-      {"exists": {"cls": "LytLatexDisplayBlock"}, "msg": "display LaTeX blocks exist (A6 ratchet)"},
-      {"centered": {"cls": "LytLatexDisplayBlock", "tol": 3}, "msg": "display LaTeX blocks centered in parent within 3px (A6 ratchet)"}
-    ],
-    "visualtest_mermaid_flowchart.md": [
-      {"exists": {"cls": "LytMermaidFlowchartCanvas"}, "msg": "mermaid flowchart canvas exists (A1 ratchet)"}
-    ],
-    "visualtest_mermaid_mindmap.md": [
-      {"exists": {"cls": "LytMermaidMindmapCanvas"}, "msg": "mermaid mindmap canvas exists (A1 ratchet)"}
-    ],
-    "visualtest_mermaid_subgraphs.md": [
-      {"exists": {"cls": "LytMermaidFlowchartCanvas"}, "msg": "mermaid subgraphs flowchart canvas exists (A1 ratchet)"}
-    ],
-    "visualtest_mermaid_large.md": [
-      {"max_height": {"cls": "LytMermaidFlowchartCanvas", "le": 400}, "msg": "large flowchart canvas height capped (A1 no-infinite-stretch ratchet)"},
-      {"max_height": {"cls": "LytMermaidMindmapCanvas", "le": 400}, "msg": "large mindmap canvas height capped (A1 no-infinite-stretch ratchet)"}
-    ],
-    "visualtest_code_blocks.md": [
-      {"width_ratio": {"cls": "LytCodeBlock", "of": "parent", "ge": 0.95}, "msg": "code blocks fill parent width (K4/A11 ratchet)"}
-    ],
-    "visualtest_images_fullwidth.md": [
-      {"width_ratio": {"cls": "LytVBox", "of": "parent", "ge": 0.95}, "msg": "full-width image boxes fill parent width (A11 ratchet)"}
-    ],
-    "visualtest_tables_metadata.md": [
-      {"exists": {"cls": "LytTable"}, "msg": "metadata table renders (A14 ratchet)"}
-    ],
-    "visualtest_nei_recipes.md": [
-      {"count": {"cls": "LytNeiRecipeBox", "ge": 6}, "msg": "NEI recipe boxes count >= 6 (A10 ratchet)"}
-    ],
-    "visualtest_latex_inline.md": [
-      {"exists": {"cls": "LytLatexBlock"}, "msg": "inline LaTeX blocks exist (A7/A8a ratchet)"}
-    ]
-  }
+ "_readme": "append-only; see docs/PRINCIPLES.md",
+ "pages": {
+  "visualtest_lists_tasks.md": [
+   {
+    "count": {
+     "cls": "LytTaskListItem",
+     "eq": 18
+    },
+    "msg": "task list items render as dedicated class (A12/A16 ratchet)"
+   },
+   {
+    "exists": {
+     "cls": "LytList"
+    },
+    "msg": "task list has list container"
+   }
+  ],
+  "visualtest_lists_basic.md": [
+   {
+    "count": {
+     "cls": "LytListItem",
+     "ge": 20
+    },
+    "msg": "basic list items count >= 20 (A12 ratchet)"
+   }
+  ],
+  "visualtest_latex_display.md": [
+   {
+    "exists": {
+     "cls": "LytLatexDisplayBlock"
+    },
+    "msg": "display LaTeX blocks exist (A6 ratchet)"
+   },
+   {
+    "centered": {
+     "cls": "LytLatexDisplayBlock",
+     "tol": 3
+    },
+    "msg": "display LaTeX blocks centered in parent within 3px (A6 ratchet)"
+   }
+  ],
+  "visualtest_mermaid_flowchart.md": [
+   {
+    "exists": {
+     "cls": "LytMermaidFlowchartCanvas"
+    },
+    "msg": "mermaid flowchart canvas exists (A1 ratchet)"
+   }
+  ],
+  "visualtest_mermaid_mindmap.md": [
+   {
+    "exists": {
+     "cls": "LytMermaidMindmapCanvas"
+    },
+    "msg": "mermaid mindmap canvas exists (A1 ratchet)"
+   }
+  ],
+  "visualtest_mermaid_subgraphs.md": [
+   {
+    "exists": {
+     "cls": "LytMermaidFlowchartCanvas"
+    },
+    "msg": "mermaid subgraphs flowchart canvas exists (A1 ratchet)"
+   }
+  ],
+  "visualtest_mermaid_large.md": [
+   {
+    "max_height": {
+     "cls": "LytMermaidFlowchartCanvas",
+     "le": 400
+    },
+    "msg": "large flowchart canvas height capped (A1 no-infinite-stretch ratchet)"
+   },
+   {
+    "max_height": {
+     "cls": "LytMermaidMindmapCanvas",
+     "le": 400
+    },
+    "msg": "large mindmap canvas height capped (A1 no-infinite-stretch ratchet)"
+   }
+  ],
+  "visualtest_code_blocks.md": [
+   {
+    "width_ratio": {
+     "cls": "LytCodeBlock",
+     "of": "parent",
+     "ge": 0.95
+    },
+    "msg": "code blocks fill parent width (K4/A11 ratchet)"
+   }
+  ],
+  "visualtest_images_fullwidth.md": [
+   {
+    "width_ratio": {
+     "cls": "LytVBox",
+     "of": "parent",
+     "ge": 0.95
+    },
+    "msg": "full-width image boxes fill parent width (A11 ratchet)"
+   }
+  ],
+  "visualtest_tables_metadata.md": [
+   {
+    "exists": {
+     "cls": "LytTable"
+    },
+    "msg": "metadata table renders (A14 ratchet)"
+   }
+  ],
+  "visualtest_nei_recipes.md": [
+   {
+    "count": {
+     "cls": "LytNeiRecipeBox",
+     "ge": 6
+    },
+    "msg": "NEI recipe boxes count >= 6 (A10 ratchet)"
+   }
+  ],
+  "visualtest_latex_inline.md": [
+   {
+    "exists": {
+     "cls": "LytLatexBlock"
+    },
+    "msg": "inline LaTeX blocks exist (A7/A8a ratchet)"
+   }
+  ],
+  "visualtest_text_inline-game-tags.md": [
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 8
+    },
+    "msg": "inline item images exist (R2-2 ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "w",
+     "gt": 0
+    },
+    "msg": "every LytItemImage reserves real width, w>0 (R2-2/R2-3 ratchet, was 0 before fix)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "h",
+     "gt": 0
+    },
+    "msg": "every LytItemImage reserves real height, h>0 (R2-2/R2-3 ratchet, was 0 before fix)"
+   }
+  ],
+  "visualtest_code_special-langs.md": [
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 3
+    },
+    "msg": "filetree {:iconItem=} icons exist (R2-3 ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "w",
+     "gt": 0
+    },
+    "msg": "filetree item icons reserve real width (R2-3 ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "h",
+     "gt": 0
+    },
+    "msg": "filetree item icons reserve real height (R2-3 ratchet)"
+   }
+  ]
+ }
 }

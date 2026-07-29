@@ -289,6 +289,18 @@ Image resources are in `_en_us/visualtest/assets/` (pure-colour and checkerboard
 ### `meta/zoom-small.md`
 - Frontmatter `zoom: 0.8`.
 
+### `meta/error-parse.md`
+
+- **Purpose**: Whole-page and attribute-level error rendering (R2-5 ratchet).
+- **Contents**: An intentionally malformed `<ItemImage id={} />` tag that raises an
+  attribute error during compilation, plus two color references
+  (`<Color id="red">` tag and `§4` section code) on the same page.
+- **Invariants**: The attribute error text renders in red `ERROR_TEXT`
+  (rgb(255,0,0)), not gray body text; the Color-tag and section-code references
+  render their respective reds — proving span colors work generally and isolating
+  the single-style serialization path (PF13). If a future change makes the error
+  text gray again, this page catches it by eye or pixel scan.
+
 ### `meta/zoom-large.md`
 - Frontmatter `zoom: 1.5`.
 

@@ -131,3 +131,63 @@ mandatory when a fix surfaces a reusable lesson (`docs/PRINCIPLES.md` §4).
   text. Decide explicitly which stage owns which rule, and test the full
   round-trip, not each stage in isolation.
 - **Reference**: issue N2 (`docs/ISSUES.md`).
+
+## PF12 — Metrics cached only in computeLayout() are load-bearing bugs waiting to happen
+
+- **Symptom (R2-2)**: Inline and standalone `LytItemImage` with `label="left"` drew
+  the icon on top of the label text; inline item images reserved zero space.
+- **Root cause**: `labelTextW`/`labelTextH` and the element bounds were only
+  populated when `computeLayout()` ran. After the Java layout pre-pass was removed
+  (see `LytDocument.java:261-262`), those caches stayed at their zero defaults —
+  but the drawing code still trusted them (`iconX = baseX + labelTextW + gap` with
+  `labelTextW == 0`).
+- **Lesson**: Any metric that is cached during layout and consumed during drawing
+  must have a draw-time fallback (recompute on demand via static measurement, e.g.
+  `GuideText.measureWidth`) or be produced at serialization time. When an
+  architectural pass is removed, grep for every field "cached from the last layout
+  pass" — each one is a latent zero.
+- **Reference**: issue R2-2/R2-3 (`docs/ISSUES.md`).
+
+## PF13 — Single-style fast paths silently drop span styles
+
+- **Symptom (R2-5)**: Error text created by `createErrorFlowContent()` rendered
+  gray instead of red — but only when the error was alone in its paragraph.
+- **Root cause**: `LayoutNodeSerializer.buildTextData()` serializes rich spans
+  only when `needsRichSpans()` finds >= 2 distinct resolved styles. A paragraph
+  whose entire content is one uniformly-styled span (e.g. all-red error text)
+  falls into the single-style legacy path, whose base color comes from the
+  *paragraph* style — the span's style is discarded. Mixed paragraphs (body text +
+  red error inline) worked, which masked the bug: the same error span renders red
+  inline but gray standalone.
+- **Lesson**: Every "optimization" that selects between a rich path and a fast
+  path based on uniformity must define what happens to the *single* non-default
+  style. Test style features both inline (mixed) and standalone (uniform) — the
+  two serialization paths differ.
+- **Reference**: issue R2-5 (`docs/ISSUES.md`).
+
+## PF14 — Measure with one font, draw with another
+
+- **Symptom (R2-1)**: Mermaid node/edge labels rendered in the pixelated vanilla
+  bitmap font and overflowed node borders.
+- **Root cause**: Layout measured text width with the engine font
+  (`GuideText.measureWidth`, cosmic-text) but the canvas emitted
+  `GuideRenderPrimitive.DrawText`, which draws with the vanilla bitmap font.
+  Different glyph widths → text wider than the box it was measured for.
+- **Lesson**: For every text-drawing call site, ask "which font shaped the
+  measurement for this text?" Measurement and rasterization must use the same
+  font pipeline (`GuideText.emitText` end-to-end). A render that mixes smooth
+  body text with pixelated labels on one page is the visible signature.
+- **Reference**: issue R2-1 (`docs/ISSUES.md`).
+
+## PF15 — "Benign" classifications in screeners need re-evaluation triggers
+
+- **Symptom (infra D3)**: The geometric screener reported 0 findings on pages
+  with completely broken inline item images.
+- **Root cause**: `ZERO_SIZE_BENIGN_CLASSES` in `screen.py` listed `LytItemImage`
+  as known-benign based on round-1 measurements. When zero-size later became the
+  actual defect (R2-2/R2-3), the whitelist suppressed exactly the signal that
+  would have caught it.
+- **Lesson**: Every screener whitelist entry must carry its justification and a
+  re-evaluation trigger (e.g. "re-check after any change to X's layout path").
+  A whitelist calibrated against a buggy baseline encodes the bug as the norm.
+- **Reference**: infra issue D3 (`docs/ISSUES.md`).

@@ -64,7 +64,7 @@ FLOAT_CLASS = "LytDocumentFloat"
 FLOAT_EXCLUDED_TEXT_CLASSES = ["LytParagraph", "LytHeading", "LytListBlock"]
 
 # zero_size 规则降级为 info 的已知良性类（首轮实测数据支撑）
-ZERO_SIZE_BENIGN_CLASSES = ["LytThematicBreak", "LytItemImage"]
+ZERO_SIZE_BENIGN_CLASSES = ["LytThematicBreak"]  # LytItemImage removed 2026-07-29: zero-size was the R2-2 defect (D3), not benign
 ZERO_SIZE_BENIGN_EVIDENCE_SUFFIX = " (已知良性类，待校准确认)"
 
 # ============================================================
