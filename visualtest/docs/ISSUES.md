@@ -87,6 +87,35 @@ All entries verified by visual inspection.
 
 ---
 
+## Round 2 Issues (2026-07-29, Human-Reported, Executor-Characterized)
+
+| # | Issue | Evidence | Root-Cause Hypothesis | Status |
+|---|---|---|---|---|
+| R2-1 | **Mermaid node/edge-label text renders in the vanilla bitmap font, not the engine (parley) text pipeline** — mixed fonts on one page; node text also overflows node borders (vanilla glyphs wider than engine-measured) | `mermaid/flowchart` render 2026-07-29 112407; VLM v3 category "字体渲染路径异常" ×2 | Mermaid canvas label drawing bypasses the GuideText/parley path; text measurement and rasterisation disagree | `OPEN` |
+| R2-2 | **ItemImage as inline flow element reserves zero space** — icons overlap labels and neighbouring lines; line height not expanded | `text/inline-game-tags` render 112406; bounds JSON: all 8 `LytItemImage` nodes report `w=0, h=0` | Inline item-image size metadata not propagated to the flow layout (same family as pitfall PF6) | `OPEN` |
+| R2-3 | **FileTree `{:iconItem=}`/`{:iconPng=}` icons misplaced** — icons missing, overlapping row text, or drawn below the row spilling outside the block | `code/special-langs` render 112406 (inventory tree; diamond icon spills onto next section) | Same zero-size family as R2-2 | `OPEN` |
+| R2-4 | **Inline LaTeX much improved but visually heavy** — formulas render noticeably larger than surrounding text; tall formulas expand line height aggressively | `latex/inline` render 112407 | Inline style should render closer to text size (TeX inline vs display style); size/spacing refinement | `OPEN` |
+| R2-5 | **Some errors render as normal text instead of red** — whole-page parse failures via `buildErrorPage` compile the error text as plain body paragraphs (no `ERROR_TEXT` styling); flow/block errors via `createErrorFlowContent` are red and unaffected | `PageCompiler.buildErrorPage` (:273-285) code reading; in-game observation | Error page builder bypasses error styling | `OPEN` |
+
+### Round 2 Infrastructure Findings
+
+| # | Issue | Details |
+|---|---|---|
+| D3 | **Geometric screener miscalibration masked R2-2/R2-3 for the entire round 1**: `screen.py` `ZERO_SIZE_BENIGN_CLASSES` contains `LytItemImage` (classified benign from round-1 measurements). Zero-size item images are now confirmed to be the defect, not benign. Action: remove `LytItemImage` from the benign list once R2-2/R2-3 are fixed, and add a ratchet assertion (`LytItemImage` w/h > 0). | `screen.py:56` |
+
+### Screener Prompt Efficacy Test (2026-07-29, 4 probe pages, qwen3-vl-plus)
+
+| Metric | Prompt v2 | Prompt v3 |
+|---|---|---|
+| R2-1 (mermaid font path) | Missed (symptoms flagged, misdiagnosed) | **Detected with correct diagnosis** (new category 字体渲染路径异常 ×2) |
+| R2-2 (ItemImage overlap) | Detected | Detected, evidence anchored to page INVARIANTS |
+| R2-3 (filetree icons) | Detected | Detected, evidence anchored to page Expected text |
+| Findings / est. false positives | 25 / ~15 | 26 / ~14 |
+
+Prompt v3 changes: new category 字体渲染路径异常; instruction to use in-page `Expected:` text as the authoritative intent baseline; spoiler black bars / TEST GOAL headers declared intended; anti-FP rules (tree indentation, section headings). Remaining FPs are low-cost adjudication noise. Geometric layer: 0 findings on all 4 pages (see D3).
+
+---
+
 ## B. Not Reproduced → In-Game Verification Required (Gold Standard)
 
 | # | Observation | Notes |
