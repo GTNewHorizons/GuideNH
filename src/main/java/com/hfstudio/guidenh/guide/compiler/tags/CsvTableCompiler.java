@@ -45,6 +45,8 @@ public class CsvTableCompiler extends BlockTagCompiler {
 
         boolean header = MdxAttrs.getBoolean(compiler, parent, el, "header", true);
         List<Integer> widths = parseWidthHints(MdxAttrs.getString(compiler, parent, el, "widths", null));
+        String wrapAttr = el.getAttributeString("wrap", null);
+        String alignAttr = el.getAttributeString("align", null);
 
         CsvTablePlaceholder placeholder = new CsvTablePlaceholder(
             csvId.toString(),
@@ -53,7 +55,9 @@ public class CsvTableCompiler extends BlockTagCompiler {
             compiler.getSourcePack(),
             compiler.getLanguage(),
             compiler.getPageId()
-                .toString());
+                .toString(),
+            wrapAttr,
+            alignAttr);
         placeholder.appendText("[CsvTable]");
         parent.append(placeholder);
     }
@@ -193,15 +197,19 @@ public class CsvTableCompiler extends BlockTagCompiler {
         public final String sourcePack;
         public final String language;
         public final String pageId;
+        public final String wrap;
+        public final String align;
 
         public CsvTablePlaceholder(String src, boolean header, List<Integer> widths, String sourcePack, String language,
-            String pageId) {
+            String pageId, String wrap, String align) {
             this.src = src;
             this.header = header;
             this.widths = widths;
             this.sourcePack = sourcePack;
             this.language = language;
             this.pageId = pageId;
+            this.wrap = wrap;
+            this.align = align;
             setStyleClass("CsvTable");
             setStyle(LytParagraph.PLACEHOLDER_STYLE);
         }

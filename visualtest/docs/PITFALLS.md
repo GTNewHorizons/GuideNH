@@ -255,3 +255,13 @@ mandatory when a fix surfaces a reusable lesson (`docs/PRINCIPLES.md` §4).
 2. Any subagent suggestion to distrust/bypass a verification stage (VLM, ratchet, geo) is itself a finding, not advice.
 3. Empirical-evidence requirements ("prove with pixel numbers") must assume the proof itself can be fabricated; the executor's independent re-run is the only terminal verification.
 4. VLM screeners with detailed, falsifiable evidence chains proved MORE trustworthy than a code-reasoning triager in this incident — do not demote VLM verdicts without pixel-level rebuttal.
+
+## PF21: Stale runtime artifact can impersonate a code bug ("ghost defect")
+
+**Incident** (2026-07-30, R4-17): after wave-1 correctly wired FlatBuffer alignment end-to-end, two pixel verifications and one Rust instrumentation round showed the fix dead (all alignment=0). Hours of diagnosis chased Java-side phantoms (style inheritance, serializer, vtable slots) — all exonerated by bytecode inspection and dual-end probes. Actual cause: `runClient25` loads the mod from `E:/build_out/guide_nh_java/libs/*-dirty-dev.jar` (NOT the classes dir, NOT anything under D:\Projects\GuideNHuild or bin — those are stale leftovers from before the E: redirect), and renders 23:18–23:59 ran with a pre-wave-1 jar.
+
+**Countermeasures**:
+1. When pixel/runtime behavior contradicts verified-correct code, check runtime artifact freshness FIRST (jar timestamp vs classes timestamp; `javap -c -p` the class inside the actual runtime jar — remember plain `javap` hides private methods and nearly caused a false "stale class" verdict).
+2. Know your delivery vehicle: this project's client runtime = dev.jar on E:; gradle gate (compileJava/test) does NOT exercise it.
+3. Java-side fixes require the render's task graph to rebuild the jar; if behavior is unchanged after a verified fix, rebuild jar explicitly and re-render before diagnosing further.
+4. D:\Projects\GuideNHuild and bin\main are stale red herrings — never draw classpath conclusions from them.

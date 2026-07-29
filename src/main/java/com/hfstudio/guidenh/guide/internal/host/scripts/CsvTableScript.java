@@ -8,8 +8,11 @@ import net.minecraft.util.ResourceLocation;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler.CsvTablePlaceholder;
+import com.hfstudio.guidenh.guide.document.block.ContentAlign;
+import com.hfstudio.guidenh.guide.document.block.ContentWrapMode;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
@@ -74,7 +77,13 @@ public class CsvTableScript implements LytScript {
                 "");
             LytBlock table = CsvTableCompiler.buildTable(runtimeCompiler, rows, ph.header, ph.widths);
             if (table != null) {
-                ctx.replace(table);
+                if (ph.wrap != null) {
+                    ContentWrapMode wrapMode = ContentWrapMode.fromString(ph.wrap);
+                    ContentAlign align = ContentAlign.fromString(ph.align);
+                    ctx.replace(BlockTagCompiler.embedBlock(table, wrapMode, align));
+                } else {
+                    ctx.replace(table);
+                }
             } else {
                 ctx.replace(LytParagraph.error("[CsvTable] Failed to parse CSV: " + ph.src));
             }
