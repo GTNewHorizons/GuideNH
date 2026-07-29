@@ -59,13 +59,17 @@ VLM_SYSTEM_PROMPT = """你是一个排版缺陷检测员。分析图像中的排
 VLM_USER_TEXT = "请检测此图像区域的排版和渲染缺陷。"
 
 # ---- 几何检测常量 ----
-# sibling_intersection 排除规则：LytDocumentFloat 与文本类块对的合法环绕重叠不报告
+# sibling_intersection 排除规则：LytDocumentFloat 与特定块对的合法环绕重叠不报告
+# LytFloatAwareBlock 全宽包裹，CSS float 模型设计使然；LytDocumentFloat.getBounds 返回 inner 可视边界而流式高度为 0
 FLOAT_CLASS = "LytDocumentFloat"
-FLOAT_EXCLUDED_TEXT_CLASSES = ["LytParagraph", "LytHeading", "LytListBlock"]
+FLOAT_EXCLUDED_CLASSES = ["LytParagraph", "LytHeading", "LytListBlock", "LytFloatAwareBlock"]
 
 # zero_size 规则降级为 info 的已知良性类（首轮实测数据支撑）
 ZERO_SIZE_BENIGN_CLASSES = ["LytThematicBreak"]  # LytItemImage removed 2026-07-29: zero-size was the R2-2 defect (D3), not benign
 ZERO_SIZE_BENIGN_EVIDENCE_SUFFIX = " (已知良性类，待校准确认)"
+
+# geometric 子命令：文件名时间戳提取正则
+TIMESTAMP_RE = re.compile(r'^(.+)_(\d{4}-\d{2}-\d{2}_\d{6})\.(png|json)$')
 
 # ============================================================
 # 工具函数
@@ -114,6 +118,15 @@ def iou(a, b):
     if union <= 0:
         return 0.0
     return inter / union
+
+
+def _contains(outer, inner):
+    """检查 outer bbox [x,y,w,h] 是否完全包含 inner（含边界重合）"""
+    ox, oy, ow, oh = outer
+    ix, iy, iw, ih = inner
+    return (ox <= ix and oy <= iy and
+            ox + ow >= ix + iw and
+            oy + oh >= iy + ih)
 
 
 # ============================================================
@@ -175,6 +188,25 @@ def build_parent_map(blocks):
     return parent_map
 
 
+def _has_non_zero_descendant(blocks, pos):
+    """
+    检查 blocks[pos] 是否有后代含非零 bbox（w>0 且 h>0）。
+    后代判定：pos 之后 depth > blocks[pos].depth 的连续节点段。
+    """
+    if pos >= len(blocks) - 1:
+        return False
+    parent_depth = blocks[pos].get('depth', 1)
+    for i in range(pos + 1, len(blocks)):
+        child_depth = blocks[i].get('depth', 1)
+        if child_depth <= parent_depth:
+            break
+        w = blocks[i].get('w', 0)
+        h = blocks[i].get('h', 0)
+        if w > 0 and h > 0:
+            return True
+    return False
+
+
 def run_geometric(shots_dir, page_width, out_path):
     """
     执行几何检测：
@@ -183,35 +215,48 @@ def run_geometric(shots_dir, page_width, out_path):
     c) 出页边界 (x<0 or y<0)
     d) 兄弟相交 (同 parent 的直接子节点 IoU > 0.05)
     """
-    # 搜集所有 PNG 文件
-    png_files = []
+    # 搜集所有 PNG/JSON 文件，按 stem 分组取时间戳最新
+    png_by_stem = {}  # stem -> (path, ts)
+    json_by_stem = {}  # stem -> (path, ts)
     for fname in os.listdir(shots_dir):
-        if fname.lower().endswith('.png'):
-            base = os.path.splitext(fname)[0]
-            json_path = os.path.join(shots_dir, base + '.json')
-            if os.path.isfile(json_path):
-                png_files.append((os.path.join(shots_dir, fname), json_path, base))
+        m = TIMESTAMP_RE.match(fname)
+        if not m:
+            continue
+        stem = m.group(1)
+        ts = m.group(2)
+        ext = m.group(3)
+        path = os.path.join(shots_dir, fname)
+        if ext == 'png':
+            # 取时间戳最新的 PNG（关键：比较下标 [1] 的 ts，而非 [0] 的路径字符串）
+            if stem not in png_by_stem or ts > png_by_stem[stem][1]:
+                png_by_stem[stem] = (path, ts)
+        else:
+            if stem not in json_by_stem or ts > json_by_stem[stem][1]:
+                json_by_stem[stem] = (path, ts)
 
-    eprint(f"[info] 找到 {len(png_files)} 个带 bounds JSON 的 PNG")
+    # 按 stem 配对
+    png_files = []
+    for stem in png_by_stem:
+        if stem not in json_by_stem:
+            eprint(f"[warn] 跳过 {stem}: 无对应 JSON")
+            continue
+        png_files.append((png_by_stem[stem][0], json_by_stem[stem][0], stem))
+
+    eprint(f"[info] 找到 {len(png_files)} 个带 bounds JSON 的 PNG（按 stem 去重后）")
 
     all_pages = []
     total_findings = 0
 
-    for png_path, json_path, base_name in png_files:
+    for png_path, json_path, page_name in png_files:
         blocks = load_json(json_path)
         if blocks is None or not isinstance(blocks, list):
-            eprint(f"[warn] 跳过 {base_name}: 无效的 bounds JSON")
+            eprint(f"[warn] 跳过 {page_name}: 无效的 bounds JSON")
             continue
-
-        # 页面名 = 不含时间戳的部分
-        # 格式如 "__mediawiki_category_charts--636861727473.md_2026-07-28_004636"
-        # 尝试剥离末尾 _YYYY-MM-DD_HHMMSS
-        page_name = re.sub(r'_\d{4}-\d{2}-\d{2}_\d{6}$', '', base_name)
 
         page_findings = []
 
         # --- 检查 (a)(b)(c)：逐块 ---
-        for blk in blocks:
+        for pos, blk in enumerate(blocks):
             x = blk.get('x', 0)
             y = blk.get('y', 0)
             w = blk.get('w', 0)
@@ -236,6 +281,9 @@ def run_geometric(shots_dir, page_width, out_path):
                 if cls in ZERO_SIZE_BENIGN_CLASSES:
                     severity = "info"
                     evidence += ZERO_SIZE_BENIGN_EVIDENCE_SUFFIX
+                elif not _has_non_zero_descendant(blocks, pos):
+                    # 无非零后代 -> 合法空容器，不报告
+                    continue
                 page_findings.append({
                     "page": page_name,
                     "rule": "zero_size",
@@ -270,9 +318,16 @@ def run_geometric(shots_dir, page_width, out_path):
                     # 跳过一方为 LytDocumentFloat 且另一方为文本类块的合法环绕重叠
                     a_cls = a.get('cls', '')
                     b_cls = b.get('cls', '')
-                    if (a_cls == FLOAT_CLASS and b_cls in FLOAT_EXCLUDED_TEXT_CLASSES) or \
-                       (b_cls == FLOAT_CLASS and a_cls in FLOAT_EXCLUDED_TEXT_CLASSES):
+                    if (a_cls == FLOAT_CLASS and b_cls in FLOAT_EXCLUDED_CLASSES) or \
+                       (b_cls == FLOAT_CLASS and a_cls in FLOAT_EXCLUDED_CLASSES):
                         continue
+                    # 祖孙包含豁免：深度小的块完全包含深度大的块则为祖孙关系（因中间 wrapper 被跳过），跳过不报
+                    a_depth = a.get('depth', 1)
+                    b_depth = b.get('depth', 1)
+                    if a_depth != b_depth:
+                        if (_contains(bbox_a, bbox_b) and a_depth < b_depth) or \
+                           (_contains(bbox_b, bbox_a) and b_depth < a_depth):
+                            continue
                     overlap = iou(bbox_a, bbox_b)
                     if overlap > 0.05:
                         # 按块 id 排序，避免 A∩B/B∩A 重复报告
