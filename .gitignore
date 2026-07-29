@@ -75,3 +75,4 @@ tools/visual-inspection/.env
 __pycache__/
 *.pyc
 .venv/
+visualtest/local/
