@@ -107,7 +107,7 @@ pub fn create_measure_closure<'a>(
             ),
             2 => (measure_image(flat_nodes, index), None),
             3 => (measure_slot(flat_nodes, index), None),
-            4 => (measure_thematic_break(flat_nodes, index, known), None),
+            4 => (measure_thematic_break(flat_nodes, index, known, available), None),
             8 => (measure_latex(flat_nodes, index), None),
              20 => (measure_recipe_box(flat_nodes, index), None),
              21 => (measure_pie_chart(flat_nodes, index, known, available, visual_scale), None),
@@ -355,7 +355,10 @@ pub(crate) fn measure_text(
 
     (
         Size {
-            width: shaped_max_x.max(1.0),
+            width: match available.width {
+                AvailableSpace::Definite(max_w) => (shaped_max_x.min(max_w)).max(1.0),
+                _ => shaped_max_x.max(1.0),
+            },
             height: shaped_h.max(1.0),
         },
         shaped_floor,
@@ -424,14 +427,19 @@ fn measure_thematic_break(
     nodes: &[FlatNode],
     idx: usize,
     known: Size<Option<f32>>,
+    available: Size<AvailableSpace>,
 ) -> Size<f32> {
     let node = &nodes[idx];
     let tb = match node.break_() {
         Some(t) => t,
         None => return Size::ZERO,
     };
+    let fallback_w = match available.width {
+        AvailableSpace::Definite(a) => a.max(0.0),
+        _ => 0.0,
+    };
     Size {
-        width: known.width.unwrap_or(0.0),
+        width: known.width.unwrap_or(fallback_w),
         height: tb.height(),
     }
 }

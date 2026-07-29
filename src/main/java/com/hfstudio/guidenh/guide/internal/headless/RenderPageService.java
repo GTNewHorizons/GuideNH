@@ -35,6 +35,7 @@ import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.layout.LayoutTreeSerializer;
 import com.hfstudio.guidenh.guide.layout.RustFontMetrics;
 import com.hfstudio.guidenh.guide.layout.SystemFontProvider;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
@@ -471,7 +472,7 @@ public final class RenderPageService {
     }
 
     private static void walkBlocksForJson(LytNode node, int depth, JsonArray target) {
-        if (node instanceof LytBlock block) {
+        if (node instanceof LytBlock block && !LayoutTreeSerializer.shouldSkipInBoundsDump(node)) {
             LytRect bounds = block.getBounds();
             if (bounds != null) {
                 var obj = new JsonObject();

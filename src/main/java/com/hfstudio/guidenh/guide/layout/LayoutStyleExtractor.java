@@ -56,9 +56,9 @@ public final class LayoutStyleExtractor {
      * to position:absolute.
      */
     public record NodeAdjustments(int marginT, int marginR, int marginB, int marginL, FloatAbs abs, int floatSide,
-        int columnWidth) {
+        int columnWidth, byte alignItems) {
 
-        public static final NodeAdjustments ZERO = new NodeAdjustments(0, 0, 0, 0, null, 0, 0);
+        public static final NodeAdjustments ZERO = new NodeAdjustments(0, 0, 0, 0, null, 0, 0, (byte) 0);
     }
 
     /**
@@ -68,7 +68,10 @@ public final class LayoutStyleExtractor {
         byte display = getDisplay(block);
         byte flexDir = getFlexDirection(block);
         byte flexWrap = getFlexWrap(block);
-        byte alignItems = getAlignItems(block);
+        // align_items override from eliminated LytAlignedBlock: when a wrapper
+        // inherits ContentAlign.CENTER/RIGHT, its align_items is set to Center/End
+        // so children keep natural width and are positioned accordingly.
+        byte alignItems = adj.alignItems() != 0 ? adj.alignItems() : getAlignItems(block);
         byte alignSelf = getAlignSelf(block);
         byte justify = 0; // default: Start
 
@@ -131,7 +134,8 @@ public final class LayoutStyleExtractor {
         // the container fills the page width and the inner align_self
         // (Stretch/Center) works correctly within this full-width context.
         boolean needFullWidth = block.isFullWidth()
-            || (block instanceof LytFloatAwareBlock fb && fb.getInner() instanceof LytLatexDisplayBlock);
+            || block instanceof LytFloatAwareBlock
+            || adj.alignItems() != 0;
         if (needFullWidth && explicitW <= 0) {
             sizeWOff = dimPercent(fbb, 100);
         }

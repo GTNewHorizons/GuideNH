@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.ContentAlign;
 import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
@@ -51,7 +52,10 @@ public class LayoutTreeSerializer {
         .define(
             "--lyt-text-justify",
             com.hfstudio.guidenh.guide.style.token.TokenType.INT,
-            new com.hfstudio.guidenh.guide.style.token.IntValue(1));
+                new com.hfstudio.guidenh.guide.style.token.IntValue(1));
+
+    /** Padding subtracted from available width for table column layout (matches Rust layout.rs:17). */
+    private static final int CONTENT_PAD = 5;
 
     private final List<LytBlock> flatNodes = new ArrayList<>();
     private final Map<LytNode, Integer> nodeToIndex = new IdentityHashMap<>();
@@ -78,6 +82,14 @@ public class LayoutTreeSerializer {
      * Filled from the Java-laid-out inner bounds at wrapper-elimination time.
      */
     private final List<FloatRect> floatRects = new ArrayList<>();
+    /**
+     * Alignment intents inherited from eliminated {@link LytAlignedBlock} wrappers.
+     * Keys are flat nodes (nearest non-eliminated ancestors of a non-LEFT AlignedBlock);
+     * values are Taffy align_items bytes: 1=Center, 2=End.
+     * Applied in {@link LayoutStyleExtractor#build} to override the default Stretch
+     * so the wrapper centres/right-aligns its children with natural width.
+     */
+    private final Map<LytBlock, Byte> alignIntents = new IdentityHashMap<>();
     /** Available width (px) from the last serialize() — needed by flattenTree for table column layout. */
     private float serializeAvailWidth;
 
@@ -91,6 +103,7 @@ public class LayoutTreeSerializer {
         floatIntents.clear();
         columnWidths.clear();
         floatRects.clear();
+        alignIntents.clear();
         this.serializeAvailWidth = availWidth;
 
         flattenTree(root);
@@ -119,6 +132,7 @@ public class LayoutTreeSerializer {
             // removed — opaque containers now declare their size through explicit
             // dimensions or Rust-side measure functions. See Flag constant in
             // LayoutStyleExtractor (kept as historical comment).
+            byte alignIntent = alignIntents.getOrDefault(block, (byte) 0);
             var adj = new LayoutStyleExtractor.NodeAdjustments(
                 (int) mo.top(),
                 (int) mo.right(),
@@ -126,7 +140,8 @@ public class LayoutTreeSerializer {
                 (int) mo.left(),
                 absoluteFloats.get(block),
                 floatIntents.getOrDefault(block, 0),
-                columnWidths.getOrDefault(block, 0));
+                columnWidths.getOrDefault(block, 0),
+                alignIntent);
             int styleOff = LayoutStyleExtractor.build(fbb, block, flags, adj);
             List<LayoutNodeSerializer.InlineRef> inlineRefs = new ArrayList<>();
             if (block instanceof LytParagraph par) {
@@ -223,16 +238,24 @@ public class LayoutTreeSerializer {
     }
 
     private void flattenTree(LytNode node) {
-        flattenTree(node, MarginAccum.ZERO, 0);
+        flattenTree(node, MarginAccum.ZERO, 0, null);
     }
 
     /**
-     * @param inherited    margins accumulated from eliminated ancestors
-     * @param pendingFloat a float wrapper's anchor node was just emitted
-     *                     up-stack; the first non-eliminated block descendant
-     *                     becomes its absolutely-positioned child
+     * @param inherited       margins accumulated from eliminated ancestors
+     * @param pendingFloat    a float wrapper's anchor node was just emitted
+     *                        up-stack; the first non-eliminated block descendant
+     *                        becomes its absolutely-positioned child
+     * @param nearestAncestor the most recent non-eliminated {@link LytBlock}
+     *                        ancestor in the current tree path, or {@code null}
+     *                        at the root. When an {@link LytAlignedBlock} with
+     *                        non-{@link ContentAlign#LEFT} is eliminated, its
+     *                        alignment intent is recorded on this ancestor so
+     *                        its style can be adjusted (align_items → Center/End)
+     *                        during serialization.
      */
-    private void flattenTree(LytNode node, MarginAccum inherited, int pendingFloatSide) {
+    private void flattenTree(LytNode node, MarginAccum inherited, int pendingFloatSide,
+        @javax.annotation.Nullable LytBlock nearestAncestor) {
         if (shouldEliminate(node)) {
             // Add this node's margins to the inherited accumulator
             MarginAccum total = inherited;
@@ -252,8 +275,20 @@ public class LayoutTreeSerializer {
                 floatRects.add(new FloatRect(frect, df.isFloatRight()));
                 childSide = df.isFloatRight() ? 2 : 1;
             }
+            // Capture alignment from eliminated AlignedBlock on the nearest
+            // non-eliminated ancestor (the wrapper that owns the flex container
+            // for its children). The ancestor's align_items will override the
+            // default Stretch so children keep natural width and are positioned.
+            if (node instanceof LytAlignedBlock aligned && nearestAncestor != null) {
+                ContentAlign a = aligned.getAlign();
+                if (a == ContentAlign.CENTER) {
+                    alignIntents.put(nearestAncestor, (byte) 1); // Center
+                } else if (a == ContentAlign.RIGHT) {
+                    alignIntents.put(nearestAncestor, (byte) 2); // End
+                }
+            }
             for (LytNode child : node.getChildren()) {
-                flattenTree(child, total, childSide);
+                flattenTree(child, total, childSide, nearestAncestor);
             }
             return;
         }
@@ -280,7 +315,7 @@ public class LayoutTreeSerializer {
                 // removed, so layoutColumns is called here with the available
                 // width from the serialize() parameter. (x=0 is safe — column.x
                 // is overwritten by Rust.)
-                table.layoutColumns(0, Math.round(serializeAvailWidth));
+                table.layoutColumns(0, Math.round(serializeAvailWidth - 2.0f * CONTENT_PAD));
                 // Table cells keep the Java-computed COLUMN widths (the column
                 // model resolves preferred/flexible widths) so cell content
                 // wraps at the column width; heights are Rust-measured so
@@ -343,12 +378,13 @@ public class LayoutTreeSerializer {
             }
         }
 
+        LytBlock ancestorForChildren = (node instanceof LytBlock b) ? b : nearestAncestor;
         for (LytNode child : node.getChildren()) {
-            flattenTree(child, MarginAccum.ZERO, pendingFloatSide);
+            flattenTree(child, MarginAccum.ZERO, pendingFloatSide, ancestorForChildren);
         }
     }
 
-    private boolean shouldEliminate(LytNode node) {
+    private static boolean shouldEliminate(LytNode node) {
         // Flow classes don't extend LytNode — use class name check
         String name = node.getClass()
             .getName();
@@ -413,5 +449,14 @@ public class LayoutTreeSerializer {
                 }
             }
         }
+    }
+
+    /**
+     * Returns true when a node should be excluded from the bounds dump JSON:
+     * the node is eliminated and its bounds are zero-size (width &lt;= 0 or height &lt;= 0).
+     */
+    public static boolean shouldSkipInBoundsDump(LytNode node) {
+        return shouldEliminate(node) && node.getBounds() != null
+            && (node.getBounds().width() <= 0 || node.getBounds().height() <= 0);
     }
 }
