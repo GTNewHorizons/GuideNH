@@ -17,6 +17,10 @@ import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.ImageRegionAnnotation;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
+import com.hfstudio.guidenh.guide.document.block.ContentAlign;
+import com.hfstudio.guidenh.guide.document.block.ContentWrapMode;
+import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
+import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -52,22 +56,35 @@ public class FloatingImageCompiler implements TagCompiler {
         String wrapAttr = el.getAttributeString("wrap", null);
         String alignAttr = el.getAttributeString("align", null);
 
-        // Document‑float path: align is explicitly "left" or "right" and wrap is not "inline".
-        // LytDocumentFloat is appended directly to the block‑level parent, exactly as
-        // BlockTagCompiler.applyBlockEmbed does (see BlockTagCompiler.java:101‑108).
-        if (!"inline".equals(wrapAttr) && ("left".equals(alignAttr) || "right".equals(alignAttr))) {
-            LytImageBlock block = buildImageBlock(compiler, parent, el);
-            if (block == null) return;
-            boolean floatRight = "right".equals(alignAttr);
-            LytDocumentFloat docFloat = new LytDocumentFloat(block, floatRight);
+        var wrapMode = ContentWrapMode.fromString(wrapAttr);
+        var align = ContentAlign.fromString(alignAttr);
+
+        // Inline wrap: fall through to the inline‑block path inside a paragraph.
+        if (wrapMode == ContentWrapMode.INLINE) {
+            var paragraph = new LytParagraph();
+            compileInline(compiler, paragraph, el);
+            parent.append(paragraph);
+            return;
+        }
+
+        // Build the image block for all non‑inline modes.
+        LytImageBlock imageBlock = buildImageBlock(compiler, parent, el);
+        if (imageBlock == null) return;
+
+        // Square / tight / through → document float (same as BlockTagCompiler.applyBlockEmbed).
+        if (wrapMode.isDocumentFloat()) {
+            LytDocumentFloat docFloat = new LytDocumentFloat(imageBlock, align == ContentAlign.RIGHT);
             parent.append(docFloat);
             return;
         }
 
-        // Inline fallback: wrap in paragraph and use the inline‑block path.
-        var paragraph = new LytParagraph();
-        compileInline(compiler, paragraph, el);
-        parent.append(paragraph);
+        // Behind / front / top‑bottom → aligned block path (matching
+        // BlockTagCompiler.applyBlockEmbed: lines 105‑108), not a document float.
+        LytBlock result = imageBlock;
+        if (align != ContentAlign.LEFT) {
+            result = new LytAlignedBlock(result, align);
+        }
+        parent.append(PageCompiler.wrapFloatAwareIfNeeded(result));
     }
 
     @Override
@@ -319,8 +336,8 @@ public class FloatingImageCompiler implements TagCompiler {
             errorSink.appendError(compiler, "FloatingImage cannot use both height and h.", el);
             return null;
         }
-        Integer x = parseRequiredIntAttr(compiler, errorSink, el, "x");
-        Integer y = parseRequiredIntAttr(compiler, errorSink, el, "y");
+        Integer x = parseOptionalIntAttr(compiler, errorSink, el, "x", 0);
+        Integer y = parseOptionalIntAttr(compiler, errorSink, el, "y", 0);
         Integer width = parseRequiredAliasedIntAttr(compiler, errorSink, el, "width", "w");
         Integer height = parseRequiredAliasedIntAttr(compiler, errorSink, el, "height", "h");
         if (x == null || y == null || width == null || height == null) {
@@ -363,7 +380,7 @@ public class FloatingImageCompiler implements TagCompiler {
         String resolved = primaryValue != null ? primaryValue : aliasValue;
         if (resolved == null || resolved.trim()
             .isEmpty()) {
-            errorSink.appendError(compiler, "FloatingImage requires x, y, width or w, and height or h.", el);
+            errorSink.appendError(compiler, "FloatingImage requires width or w, and height or h.", el);
             return null;
         }
         try {
@@ -382,6 +399,22 @@ public class FloatingImageCompiler implements TagCompiler {
             .isEmpty()) {
             errorSink.appendError(compiler, "FloatingImage requires x, y, width or w, and height or h.", el);
             return null;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ex) {
+            errorSink.appendError(compiler, "FloatingImage " + name + " must be an integer.", el);
+            return null;
+        }
+    }
+
+    @Nullable
+    private static Integer parseOptionalIntAttr(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
+        String name, int defaultValue) {
+        String value = el.getAttributeString(name, null);
+        if (value == null || value.trim()
+            .isEmpty()) {
+            return defaultValue;
         }
         try {
             return Integer.parseInt(value.trim());

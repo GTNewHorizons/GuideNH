@@ -12,9 +12,13 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
+import com.hfstudio.guidenh.guide.document.block.ContentAlign;
+import com.hfstudio.guidenh.guide.document.block.ContentWrapMode;
+import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
+import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidFlowchart;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
 import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
@@ -35,6 +39,8 @@ public class PreCompiler extends BlockTagCompiler {
     private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
     private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
         .compile("(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
+    private static final Pattern CODEBLOCK_META_WRAP = Pattern.compile("(^|\\s)wrap=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
+    private static final Pattern CODEBLOCK_META_ALIGN = Pattern.compile("(^|\\s)align=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
 
     @Override
     public Set<String> getTagNames() {
@@ -95,7 +101,10 @@ public class PreCompiler extends BlockTagCompiler {
         if (forcedHeight != null) {
             codeBlock.setForcedBodyHeight(forcedHeight);
         }
-        parent.append(codeBlock);
+        // Parse wrap/align from fence meta for float embedding (R4-9)
+        ContentWrapMode wrapMode = ContentWrapMode.fromString(parseCodeBlockWrapMeta(meta));
+        ContentAlign align = ContentAlign.fromString(parseCodeBlockAlignMeta(meta));
+        parent.append(applyBlockEmbed(codeBlock, wrapMode, align));
     }
 
     private LytBlock compileCsvCodeBlock(PageCompiler compiler, String source, @Nullable String meta) {
@@ -308,5 +317,50 @@ public class PreCompiler extends BlockTagCompiler {
         } catch (NumberFormatException ignored) {
             return null;
         }
+    }
+
+    private static @Nullable String parseCodeBlockWrapMeta(@Nullable String meta) {
+        if (meta == null || meta.trim()
+            .isEmpty()) {
+            return null;
+        }
+        Matcher matcher = CODEBLOCK_META_WRAP.matcher(meta);
+        if (!matcher.find()) {
+            return null;
+        }
+        String value = matcher.group(3) != null ? matcher.group(3)
+            : matcher.group(4) != null ? matcher.group(4) : matcher.group(5);
+        return (value == null || value.trim()
+            .isEmpty()) ? null : value.trim();
+    }
+
+    private static @Nullable String parseCodeBlockAlignMeta(@Nullable String meta) {
+        if (meta == null || meta.trim()
+            .isEmpty()) {
+            return null;
+        }
+        Matcher matcher = CODEBLOCK_META_ALIGN.matcher(meta);
+        if (!matcher.find()) {
+            return null;
+        }
+        String value = matcher.group(3) != null ? matcher.group(3)
+            : matcher.group(4) != null ? matcher.group(4) : matcher.group(5);
+        return (value == null || value.trim()
+            .isEmpty()) ? null : value.trim();
+    }
+
+    /**
+     * Applies floating/alignment embed to a block, consistent with
+     * {@link BlockTagCompiler#applyBlockEmbed} semantics for JSX wrap/align.
+     * Duplicated here because {@code applyBlockEmbed} is private in the parent.
+     */
+    private static LytBlock applyBlockEmbed(LytBlock node, ContentWrapMode wrapMode, ContentAlign align) {
+        if (wrapMode.isDocumentFloat()) {
+            return new LytDocumentFloat(node, align == ContentAlign.RIGHT);
+        }
+        if (align != ContentAlign.LEFT) {
+            node = new LytAlignedBlock(node, align);
+        }
+        return PageCompiler.wrapFloatAwareIfNeeded(node);
     }
 }

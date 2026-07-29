@@ -16,6 +16,50 @@ use taffy::prelude::*;
 /// Java document padding (5px each side).
 const CONTENT_PAD: f32 = 5.0;
 
+/// Compute the available horizontal lane (absolute x and width) for a block
+/// at the given absolute Y, consulting the float table.  If floats fully
+/// block the lane at start_y, push down past the nearest blocking float's
+/// bottom and retry.  Returns (lane_x, lane_width, adjusted_y).
+///
+/// Mirrors the Java LytFloatAwareBlock.computeLayout loop:
+/// query left/right floats at the current Y; if the resulting lane has
+/// positive width, use it; otherwise find the next float bottom below and
+/// skip to it.
+fn compute_lane(
+    start_y: f32,
+    content_x: f32,
+    content_w: f32,
+    float_table: &[FloatRect],
+) -> (f32, f32, f32) {
+    let mut lane_y = start_y;
+    loop {
+        let mut x0 = content_x;
+        let mut x1 = content_x + content_w;
+        let mut max_bottom: Option<f32> = None;
+        for f in float_table {
+            if f.y + f.h <= lane_y || f.y >= lane_y + 1.0 {
+                continue;
+            }
+            if f.right {
+                x1 = x1.min(f.x);
+            } else {
+                x0 = x0.max(f.x + f.w);
+            }
+            let b = f.y + f.h;
+            max_bottom = Some(max_bottom.map_or(b, |p| p.max(b)));
+        }
+        let lane_w = x1 - x0;
+        if lane_w > 0.0 {
+            return (x0, lane_w, lane_y);
+        }
+        // Fully blocked — jump below the blocking floats.
+        match max_bottom {
+            Some(b) => lane_y = b,
+            None => return (content_x, content_w, lane_y),
+        }
+    }
+}
+
 /// Document-flow pusher (v1). Owns the single authoritative float table and
 /// drives the top-level sequence in document order: top-level paragraphs are
 /// shaped directly against the live table (real per-line wrapping — the
@@ -189,9 +233,12 @@ pub fn compute_layout(
             continue;
         }
 
-        // Block container / image / slot / latex / break: top-level gets the
-        // full content width (legacy verticalLayout stretches top blocks).
+        // Block container / image / slot / latex / break: compute the
+        // horizontal lane from the float table so blocks avoid overlapping
+        // with left/right floats (Java LytFloatAwareBlock behavior).
         let by = content_y + cursor;
+        let (lane_x, lane_w, lane_y) =
+            compute_lane(by, content_x, content_w, &float_table);
         let (w, h, _sub) = build_subtree(
             &mut taffy,
             idx,
@@ -202,9 +249,9 @@ pub fn compute_layout(
             visual_scale,
             &mut abs_positions,
             &mut sizes,
-            content_x,
-            by,
-            Some(content_w),
+            lane_x,
+            lane_y,
+            Some(lane_w),
         );
         sizes[idx] = (w, h);
         if let Some(c) = fb.style().map(|s| s.clear()) {
@@ -223,7 +270,10 @@ pub fn compute_layout(
                 }
             }
         }
-        cursor += h + mt + mb;
+        // Advance cursor past the block. If compute_lane pushed the block
+        // down (lane_y > by), account for the gap; if CSS clear already
+        // pushed beyond that, respect the clear.
+        cursor = (lane_y - content_y).max(cursor) + h + mt + mb;
     }
 
     // Inline post-pass: anchor inline blocks at their parley InlineBox

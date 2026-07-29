@@ -469,17 +469,15 @@ fn break_and_align(layout: &mut Layout<SpanBrush>, req: &ShapeRequest) {
 }
 
 /// R4-17: resolve text alignment from justify flag and per-paragraph alignment.
-/// justify takes precedence; otherwise map alignment byte to parley Alignment.
+/// Paragraph-level alignment (1=Center, 2=End) takes precedence over justify.
+/// Justify is applied only when alignment is default (0=Start/Left).
 /// 0=Start(Left) 1=Center 2=End(Right)
 fn resolve_alignment(justify: bool, alignment: i8) -> Alignment {
-    if justify {
-        Alignment::Justify
-    } else {
-        match alignment {
-            1 => Alignment::Center,
-            2 => Alignment::End,
-            _ => Alignment::Start,
-        }
+    match alignment {
+        1 => Alignment::Center,
+        2 => Alignment::End,
+        _ if justify => Alignment::Justify,
+        _ => Alignment::Start,
     }
 }
 

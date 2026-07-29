@@ -78,16 +78,23 @@ public class LytDocumentFloat extends LytBlock {
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        // Measure natural width without fullWidth expansion, then relayout at
+        // the measured width so the inner does not stretch to page width (R4-9).
+        boolean wasFullWidth = inner.isFullWidth();
+        inner.setFullWidth(false);
+        var naturalBounds = inner.layout(context, x, y, availableWidth);
+        inner.setFullWidth(wasFullWidth);
+        int innerWidth = naturalBounds.width();
+
         if (floatRight) {
-            var naturalBounds = inner.layout(context, x, y, availableWidth);
-            int innerWidth = naturalBounds.width();
             int rx = x + availableWidth - innerWidth;
             inner.layout(context, rx, y, innerWidth);
             context.addRightFloat(
                 new LytRect(rx - FLOAT_GAP, y, innerWidth + FLOAT_GAP, naturalBounds.height() + FLOAT_GAP));
         } else {
-            var innerBounds = inner.layout(context, x, y, availableWidth);
-            context.addLeftFloat(new LytRect(x, y, innerBounds.width() + FLOAT_GAP, innerBounds.height() + FLOAT_GAP));
+            inner.layout(context, x, y, innerWidth);
+            context.addLeftFloat(
+                new LytRect(x, y, innerWidth + FLOAT_GAP, naturalBounds.height() + FLOAT_GAP));
         }
         return new LytRect(x, y, 0, 0);
     }
