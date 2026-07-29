@@ -163,3 +163,55 @@ Prompt v3 changes: new category 字体渲染路径异常; instruction to use in-
 **Tuning actions**:
 - Right-edge crop: report only when text is visibly halved at a non-boundary position.
 - Overlay files: excluded from VLM scan.
+
+
+---
+
+## F. Round 3 (2026-07-29): Full-Corpus Re-render + Screening (geo + VLM v3 + ratchet)
+
+Round 3 ran the first full-corpus geometric screening (64 pages incl. new fixture
+`meta/error-parse.md`) after the R2 fixes, with cursor-triager/cursor-screener
+agents in the loop for the first time. All engine fixes shipped in commit
+`f9a5b9eb`; fixture corrections in `f90cfec5`; screener calibration in `d9d2693f`.
+Final state: gradle gate green, 64/64 rendered, **geo 0 findings**, ratchet 21/21.
+
+### Closed
+
+| # | Issue | Root cause | Resolution |
+|---|-------|-----------|------------|
+| R3-1 | **Systematic 3-5px width overflow (429 geo findings)**: full-width blocks/tables resolved against page width 900 instead of content width 890 | `LayoutTreeSerializer` passed full `serializeAvailWidth` to `layoutColumns`; `needFullWidth` only covered latex-display wrappers | width budget 900→890 end-to-end; `needFullWidth` generalized to all `LytFloatAwareBlock`. Pre-existing since Java pre-pass removal; never caught because geo had no full-corpus/latest-only run |
+| R3-2 | **ThematicBreak (and wrapper) zero width** on headings/zoom pages | `measure_thematic_break` used `known.width.unwrap_or(0.0)` | fallback to `available.width` Definite (same pattern as mediawiki list) |
+| R3-3 | **meta/indexes paragraph w=1005 + zero-width inline list** | fixture Expected prose contained a *live* inline `<Category>` tag | fixture: backtick-wrapped (f90cfec5) |
+| R3-4 | **align=center/right never worked**: pre-R3 hidden by wrapper shrink-wrap; post-DS-F1 child stretched to wrapper width | `ContentAlign` dropped when `LytAlignedBlock` eliminated in serialization; Rust had no block-level align | align intent lowered to taffy `align_items` on nearest non-eliminated ancestor (bounds-verified: center x=418, right x=831, left x=5) |
+| R3-5 | **Paragraph bbox width unclamped** (floats/content-types #48 w=939) | `measure_text` returned raw `shaped_max_x` | clamped to Definite `max_w`; pixel scan confirmed metadata-only (0 ink past content edge) |
+| R3-6 | **LytAlignedBlock exported as (0,0,0,0)** → 6 geo zero_size errors | eliminated wrappers kept in bounds JSON | `shouldSkipInBoundsDump` predicate wired into `RenderPageService.walkBlocksForJson` |
+| R3-7 | **stress/mixed zero-height WidthBox** | redundant empty `<FootnoteList />` in fixture (compiler renders children only; real list injected by preprocessor) | fixture line removed; geo zero_size rule refined to flag only nodes with non-zero descendants |
+| R3-infra | geo screener miscalibrations: historical renders processed (no latest-only); float-geometry FP; ancestor-containment FP; ts-comparison tuple-index bug | screen.py | all fixed (d9d2693f); full corpus now 64 pages / 0 findings |
+
+### Open (confirmed this round, scheduled for next round)
+
+| # | Issue | Evidence | Priority |
+|---|-------|----------|----------|
+| R3-8 | **layout/details: open details block — image exceeds viewport bottom (193 vs 150), paragraph overlaps image** | bounds cross-check CONFIRMED (i=15 para ∩ i=16 image; i=16 bottom > i=13 viewport bottom) | high |
+| R3-9 | **layout/row-column: width=120 column — paragraph and image at same y, image bottom (860) exceeds WidthBox bottom (813)** | bounds CONFIRMED (i=52/i=53 vs i=49) | high |
+| R3-10 | **CSV `widths=120,80` not honored in csv code-block variant** (second column w=767/787 instead of 80) | bounds CONFIRMED by two independent cross-checks (tables_csv i=168/i=192, special-langs i=139/i=154) | medium |
+| R3-11 | **BlockImage `align` attribute dropped at compile time** (`BlockImageCompiler` does not route through `applyBlockEmbed`) | triager evidence `BlockImageCompiler.java:21-53`; align.md BlockImage section scenes at depth=1 | medium |
+| R3-12 | **Chart in-canvas label cluster (pie/bar-column/options/function): VLM reports label clipping/overlap inside chart canvases** | bounds cannot see in-canvas text (INDETERMINATE ×14); needs in-canvas bounds export or targeted visual check | medium |
+| R3-13 | **Mermaid edge labels pressed against node edges** (carried from R2; VLM re-flagged post-font-fix) | visual; label positioning algorithm, not font path | low |
+
+### Round-3 VLM adjudication statistics
+
+108 error-level findings adjudicated via cursor-screener structural cross-check:
+CONFIRMED_STRUCTURAL 7 (→ R3-8/9/10), INTENDED ~30 (float geometry, fixture-declared
+crop/annotation/pressure cases), CONTRADICTED ~45 (bounds show normal structure),
+INDETERMINATE ~26 (in-canvas text, 3D scene content, font rasterization — bounds-blind).
+warn-level (170) not individually adjudicated; sampled — same FP families.
+
+### Process incident (recorded as pitfall PF16)
+
+A ds-coder agent reverted ~14 working-tree files to a pre-R2 state mid-round
+(git-level wipe of 4 accepted waves of uncommitted work). Detected via signature-line
+audit after align verification anomalies; full recovery via checkpoint-less
+reconstruction (2 restoration dispatches + full verification battery). **Process fix:
+checkpoint commit after every accepted wave; dispatch prompts now explicitly forbid
+all git write operations.**

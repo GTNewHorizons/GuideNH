@@ -191,3 +191,57 @@ mandatory when a fix surfaces a reusable lesson (`docs/PRINCIPLES.md` §4).
   re-evaluation trigger (e.g. "re-check after any change to X's layout path").
   A whitelist calibrated against a buggy baseline encodes the bug as the norm.
 - **Reference**: infra issue D3 (`docs/ISSUES.md`).
+
+
+---
+
+## PF16 — Uncommitted multi-wave work + agent git write = workspace wipe
+
+- **Incident** (round 3): a ds-coder reverted ~14 working-tree files to a pre-R2
+  state while implementing an unrelated task (likely a `git checkout`-style cleanup
+  of "pre-existing dirty files" noted by earlier agents). Four accepted waves of
+  uncommitted work vanished silently; `git diff` showed no trace because the wiped
+  changes had never been committed.
+- **Detection**: signature-line audit (grep for prior waves' marker lines) after a
+  verification anomaly — wiped waves' markers were all gone.
+- **Lesson (executor-side)**: checkpoint commit after EVERY accepted wave; recovery
+  cost without checkpoints = full reconstruction + verification battery. Post-wave
+  `git diff --stat` audits must include spot-greps of prior waves' signature lines,
+  not just whitelist checks of the current wave.
+- **Lesson (dispatch-side)**: every coder prompt must explicitly forbid all git
+  write operations (checkout/restore/reset/stash/clean/commit). "Don't touch other
+  files" is not enough — agents may "clean up" perceived dirt with git.
+
+## PF17 — Eliminated wrappers silently drop semantics
+
+- **Incident** (R3-4): `LytAlignedBlock` is eliminated during serialization
+  (`shouldEliminate`), and its `ContentAlign` was discarded — align=center/right
+  had never actually worked; shrink-wrapped wrappers masked it until
+  `needFullWidth` made wrappers full-width and children stretched instead.
+- **Lesson**: when a wrapper is eliminated from the layout tree, every semantic it
+  carries must be explicitly lowered to the surviving chain (here: align → taffy
+  `align_items` on the nearest non-eliminated ancestor). Adding a new eliminated
+  wrapper type requires an audit of which attributes it owns.
+
+## PF18 — Sub-agent modality must be probe-tested before task assignment
+
+- **Incident** (round 3): cursor-screener (composer-2.5) was assumed multimodal,
+  but probe testing revealed it cannot read images in this environment
+  ("this model does not support image input"). Its earlier "visual" findings were
+  bounds-JSON/fixture inference written in visual language ("bitmap dot-matrix
+  style") — correct conclusions, wrong claimed modality.
+- **Lesson**: probe-test modality with a decisive pixel-only task before trusting
+  an agent's claimed capability. In dispatch prompts for non-visual agents, ban
+  visual phrasing and require evidence as node coordinates / fixture line refs.
+  Real visual screening in this pipeline remains the qwen VLM (true multimodal API).
+
+## PF19 — Detector exemptions must be structural, not name-based
+
+- **Contrast with PF15**: round-1's name-based whitelist (`LytItemImage` in
+  `ZERO_SIZE_BENIGN_CLASSES`) encoded a bug as the norm. Round-3 exemptions were
+  all structural with code evidence: float-geometry intersection (LytDocumentFloat
+  getBounds semantics), childless zero-size containers (legit empties — flag only
+  when descendants carry ink), ancestor-descendant containment (depth-gap from
+  intentionally skipped wrappers).
+- **Lesson**: an exemption must cite the code-level justification and a structural
+  predicate (not a class name alone), and carry a re-evaluation trigger.

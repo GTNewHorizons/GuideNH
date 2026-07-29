@@ -35,6 +35,19 @@ and VLM screenshot screening. Screeners produce findings, not verdicts. Known
 screener failure modes (tile seams, overlay misreads, right-edge false positives)
 are recorded in `docs/ISSUES.md` section E.
 
+Geometric rules (calibrated round 3): latest-render-only input selection (group by
+page stem, newest timestamp); `overflow_width` (x+w > page_width+2); `zero_size`
+(only flagged when descendants carry non-zero bounds — childless empties are
+legitimate); `sibling_intersection` (float-geometry pairs and ancestor-descendant
+containment excluded with code-level justification, see PF19).
+
+Agent-assisted loop (round 3+): VLM findings are cross-checked by a structure
+analyst agent (cursor-screener — **no image modality, see PF18**; it verifies each
+finding against bounds JSON + fixture Expected text and classifies
+CONFIRMED_STRUCTURAL / INTENDED / CONTRADICTED / INDETERMINATE). Root-cause
+diagnosis of confirmed issues is delegated to a diagnosis agent (cursor-triager)
+whose diagnosis sheets hand off directly to fix agents.
+
 ### Stage 4 — Adjudication
 
 A high-capability reviewer (human or K3-class agent) merges findings into

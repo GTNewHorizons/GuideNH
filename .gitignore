@@ -76,3 +76,6 @@ __pycache__/
 *.pyc
 .venv/
 visualtest/local/
+
+# personal agent-ops notes (not project documentation)
+visualtest/docs/EXECUTOR-CALIBRATION.md
