@@ -21,6 +21,6 @@ Expected: <SubPages /> renders an unordered list of links to child pages (indexe
 
 ## Category
 
-Expected: <Category name="visualtest" /> renders a listing of all pages that declare categories: [visualtest] in their frontmatter, including pages from meta/ and auxiliary pages. (Note: <CategoryIndex> has no compiler in the engine; <Category> is the real tag.)
+Expected: `<Category name="visualtest" />` renders a listing of all pages that declare categories: [visualtest] in their frontmatter, including pages from meta/ and auxiliary pages. (Note: `<CategoryIndex>` has no compiler in the engine; `<Category>` is the real tag.)
 
 <Category name="visualtest" />

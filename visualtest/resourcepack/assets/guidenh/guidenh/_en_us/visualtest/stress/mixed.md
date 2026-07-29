@@ -116,6 +116,4 @@ For more details on rendering, consult the [main guide](https://example.com/guid
 
 [^stress]: This stress page systematically exercises feature interactions — float with table, tabs with chart, LaTeX with CJK, scene with mermaid — to surface cross-feature layout defects.
 
-<FootnoteList />
-
 Expected: Task checkboxes render in mixed states; link is clickable; footnote appears in the list at page bottom.
