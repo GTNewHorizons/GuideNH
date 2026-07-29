@@ -51,12 +51,24 @@ public enum LinkDefinition {
         1),
     DASHED_CIRCLE_REV("o-.", MermaidEdgeStyle.DASHED, false, true, MermaidArrowHead.NONE, MermaidArrowHead.CIRCLE, '.',
         1),
+    DASHED_CROSS_FWD("-.x", MermaidEdgeStyle.DASHED, true, false, MermaidArrowHead.CROSS, MermaidArrowHead.NONE, '.', 1),
+    DASHED_CROSS_REV("x-.", MermaidEdgeStyle.DASHED, false, true, MermaidArrowHead.NONE, MermaidArrowHead.CROSS, '.', 1),
+    DASHED_CROSS_BOTH("x-.x", MermaidEdgeStyle.DASHED, true, true, MermaidArrowHead.CROSS, MermaidArrowHead.CROSS, '.',
+        1),
 
     // ── Dotted (tilde) ─────────────────────────────────────
     DOTTED_ARROW("~~>", MermaidEdgeStyle.DOTTED, true, false, MermaidArrowHead.TRIANGLE, MermaidArrowHead.NONE, '~', 2),
     DOTTED_LINK("~~~", MermaidEdgeStyle.DOTTED, false, false, MermaidArrowHead.NONE, MermaidArrowHead.NONE, '~', 2),
     DOTTED_REV("<~~~", MermaidEdgeStyle.DOTTED, false, true, MermaidArrowHead.NONE, MermaidArrowHead.TRIANGLE, '~', 2),
     DOTTED_BOTH("<~~>", MermaidEdgeStyle.DOTTED, true, true, MermaidArrowHead.TRIANGLE, MermaidArrowHead.TRIANGLE, '~',
+        2),
+    DOTTED_CIRCLE_FWD("~~o", MermaidEdgeStyle.DOTTED, true, false, MermaidArrowHead.CIRCLE, MermaidArrowHead.NONE, '~',
+        2),
+    DOTTED_CIRCLE_REV("o~~", MermaidEdgeStyle.DOTTED, false, true, MermaidArrowHead.NONE, MermaidArrowHead.CIRCLE, '~',
+        2),
+    DOTTED_CROSS_FWD("~~x", MermaidEdgeStyle.DOTTED, true, false, MermaidArrowHead.CROSS, MermaidArrowHead.NONE, '~', 2),
+    DOTTED_CROSS_REV("x~~", MermaidEdgeStyle.DOTTED, false, true, MermaidArrowHead.NONE, MermaidArrowHead.CROSS, '~', 2),
+    DOTTED_CROSS_BOTH("x~~x", MermaidEdgeStyle.DOTTED, true, true, MermaidArrowHead.CROSS, MermaidArrowHead.CROSS, '~',
         2),
 
     // ── Invisible ──────────────────────────────────────────

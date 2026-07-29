@@ -187,6 +187,7 @@ pub struct SpanStyle {
     pub start: usize,
     pub end: usize,
     pub bold: bool,
+    pub baseline_shift: f32,
 }
 
 /// One inline block to place: byte index of its U+FFFC anchor in the
@@ -309,9 +310,14 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         push_inlines(&mut b, req.inlines, &box_clean_idx, false);
         let mut layout = b.build(&clean);
         break_and_align(&mut layout, req);
-        let (glyphs, markers, max_x, h, floor, last_window) = collect_layout(
+        let (mut glyphs, markers, max_x, h, floor, last_window) = collect_layout(
             &layout, req.floats, req.para_abs_y, req.para_x, req.max_width, &clean_clears,
         );
+        // R4-21: apply per-span baseline shift to glyph Y coordinates
+        for g in &mut glyphs {
+            let bs = req.spans.get(g.span_index as usize).map_or(0.0, |s| s.baseline_shift);
+            g.y += bs * scaled;
+        }
         return ParleyShaped {
             glyphs,
             markers,
@@ -390,9 +396,15 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
         layout
     };
 
-    let (glyphs, markers, max_x, content_height, clear_floor, last_window) = collect_layout(
+    let (mut glyphs, markers, max_x, content_height, clear_floor, last_window) = collect_layout(
         &layout2, &merged_floats, req.para_abs_y, req.para_x, req.max_width, &clean_clears,
     );
+
+    // R4-21: apply per-span baseline shift to glyph Y coordinates
+    for g in &mut glyphs {
+        let bs = req.spans.get(g.span_index as usize).map_or(0.0, |s| s.baseline_shift);
+        g.y += bs * scaled;
+    }
 
     ParleyShaped {
         glyphs,

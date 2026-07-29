@@ -203,7 +203,7 @@ public final class GuideText {
         FlatBufferBuilder fbb = new FlatBufferBuilder(1024);
         int strOff = fbb.createString(text);
         int styleOff = TextStyle
-            .createTextStyle(fbb, BASE_FONT_SIZE, bold, italic, fontScale, 0xFFFFFFFFL, 0L, false, false, 0L, false);
+            .createTextStyle(fbb, BASE_FONT_SIZE, bold, italic, fontScale, 0xFFFFFFFFL, 0L, false, false, 0L, false, 0.0f);
         int inputOff = ShapeTextInput.createShapeTextInput(fbb, strOff, styleOff, -1.0f, renderScale);
         fbb.finish(inputOff);
         byte[] result = LayoutBridge.shapeText(LayoutBridge.getFontHandle(), fbb.sizedByteArray());

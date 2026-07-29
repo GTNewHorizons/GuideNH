@@ -167,6 +167,7 @@ pub(crate) fn measure_text(
                     start: pos,
                     end: pos + t.len(),
                     bold: st.bold(),
+                    baseline_shift: st.baseline_shift(),
                 });
                 pos += t.len();
             }
@@ -264,6 +265,7 @@ pub(crate) fn measure_text(
                                 start: ns - lo,
                                 end: ne - lo,
                                 bold: sp.bold,
+                                baseline_shift: sp.baseline_shift,
                             })
                         } else {
                             None

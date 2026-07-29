@@ -60,7 +60,8 @@ public class FootnotePreprocessor {
                 }
                 break;
             }
-            definitions.put(id, definition.toString());
+            // Keep first definition; ignore subsequent definitions with the same id
+            definitions.putIfAbsent(id, definition.toString());
         }
 
         String transformedBody = replaceReferences(body.toString(), definitions);
@@ -92,29 +93,48 @@ public class FootnotePreprocessor {
     }
 
     private static String replaceReferences(String body, Map<String, String> definitions) {
-        Matcher matcher = REFERENCE.matcher(body);
-        StringBuilder buffer = new StringBuilder(body.length());
+        if (body.isEmpty()) {
+            return body;
+        }
+
+        List<String> lines = GuideStringLines.splitLines(body);
+        StringBuilder result = new StringBuilder(body.length());
         int nextNumber = 1;
         Map<String, Integer> numbers = new LinkedHashMap<>();
-        while (matcher.find()) {
-            String id = matcher.group(1)
-                .trim();
-            Integer number = numbers.get(id);
-            if (number == null) {
-                number = nextNumber++;
-                numbers.put(id, number);
-            }
 
-            if (!definitions.containsKey(id)) {
-                matcher.appendReplacement(buffer, Matcher.quoteReplacement(matcher.group(0)));
+        for (String line : lines) {
+            String trimmed = line.trim();
+            // Skip Expected: and INVARIANTS lines — they are test/spec documentation, not page content
+            if (trimmed.startsWith("Expected:") || trimmed.startsWith("INVARIANTS")) {
+                appendLine(result, line);
                 continue;
             }
 
-            String replacement = "<Tooltip label=\"[" + number + "]\">" + definitions.get(id) + "</Tooltip>";
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
+            Matcher matcher = REFERENCE.matcher(line);
+            StringBuilder sb = new StringBuilder(line.length());
+            while (matcher.find()) {
+                String id = matcher.group(1)
+                    .trim();
+
+                // Undefined references: leave as-is, consume no number
+                if (!definitions.containsKey(id)) {
+                    matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(0)));
+                    continue;
+                }
+
+                Integer number = numbers.get(id);
+                if (number == null) {
+                    number = nextNumber++;
+                    numbers.put(id, number);
+                }
+
+                String replacement = "<sup>[" + number + "]</sup>";
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+            }
+            matcher.appendTail(sb);
+            appendLine(result, sb.toString());
         }
-        matcher.appendTail(buffer);
-        return buffer.toString();
+        return result.toString();
     }
 
     private static String trimDefinitionIndent(String line) {

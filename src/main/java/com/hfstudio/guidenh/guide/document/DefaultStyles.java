@@ -31,7 +31,8 @@ public class DefaultStyles {
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
 
     public static final TextStyle BODY_TEXT = TextStyle.builder()
         .font(UNIFORM_FONT)

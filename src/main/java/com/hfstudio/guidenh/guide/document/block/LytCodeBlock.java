@@ -45,6 +45,9 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     @Getter
     private String codeText = "";
+
+    @Getter
+    private boolean toolbarVisible = true;
     private String normalizedCodeText = "";
     @Getter
     private String languageFenceName = "";
@@ -93,6 +96,22 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         append(toolbar);
         append(bodyViewport);
         syncToolbar();
+    }
+
+    @Override
+    public List<? extends LytNode> getChildren() {
+        // When toolbar is hidden, exclude it from the children list so the
+        // Rust layout engine and PrimitiveCollector do not process it.
+        // The internal children list (including toolbar) is still maintained
+        // for direct field access (render, mouse click, etc.).
+        if (!toolbarVisible) {
+            return List.of(bodyViewport);
+        }
+        return super.getChildren();
+    }
+
+    public void setToolbarVisible(boolean toolbarVisible) {
+        this.toolbarVisible = toolbarVisible;
     }
 
     public void setCodeText(String codeText) {
@@ -151,7 +170,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {
         // Scrollbar-related interactions are handled by beginDrag/dragTo (mouseDown can start a drag directly).
-        return toolbar.mouseClicked(screen, x, y, button, doubleClick);
+        if (toolbarVisible && toolbar.mouseClicked(screen, x, y, button, doubleClick)) {
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -159,7 +181,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         if (button != 0) {
             return false;
         }
-        if (toolbar.getBounds()
+        if (toolbarVisible && toolbar.getBounds()
             .contains(documentX, documentY)) {
             return false;
         }
@@ -276,10 +298,18 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
         int safeWidth = preferredBodyWidth > 0 ? Math.max(1, Math.min(availableWidth, preferredBodyWidth))
             : Math.max(1, availableWidth);
-        toolbar.setPreferredWidth(safeWidth);
-        LytRect toolbarBounds = toolbar.layout(context, x, y, safeWidth);
 
-        int bodyY = toolbarBounds.bottom() + getGap();
+        int toolbarHeight;
+        int bodyY;
+        if (toolbarVisible) {
+            toolbar.setPreferredWidth(safeWidth);
+            LytRect toolbarBounds = toolbar.layout(context, x, y, safeWidth);
+            toolbarHeight = toolbarBounds.height() + getGap();
+            bodyY = toolbarBounds.bottom() + getGap();
+        } else {
+            toolbarHeight = 0;
+            bodyY = y;
+        }
         int bodyAvailableWidth = safeWidth;
 
         LytRect measuredBody = body.layout(context, x, bodyY, bodyAvailableWidth);
@@ -296,7 +326,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         bodyViewport.layout(context, x, bodyY, bodyAvailableWidth);
         setBodyScrollOffset(bodyScrollOffsetY);
         snapVisualScrollToTarget();
-        return new LytRect(x, y, safeWidth, toolbarBounds.height() + getGap() + viewportHeight);
+        return new LytRect(x, y, safeWidth, toolbarHeight + viewportHeight);
     }
 
     // ---- derived geometry (computed from current bounds; no layout-time fields) ----
@@ -342,7 +372,9 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         }
         context.fillRect(ownBounds, CODE_BACKGROUND);
 
-        toolbar.render(context);
+        if (toolbarVisible) {
+            toolbar.render(context);
+        }
 
         renderScrollbar(context);
         new BorderRenderer()

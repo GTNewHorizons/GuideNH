@@ -70,7 +70,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
     private static final ResolvedTextStyle ROOT_TEXT_STYLE = new ResolvedTextStyle(
         1f,
         true,
@@ -86,7 +87,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
     private static final ResolvedTextStyle ICON_TEXT_STYLE = new ResolvedTextStyle(
         0.85f,
         false,
@@ -102,7 +104,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
 
     private final FlowchartDocument document;
     private final Map<String, NodeContentLayout> nodeContentLayouts = new LinkedHashMap<>();

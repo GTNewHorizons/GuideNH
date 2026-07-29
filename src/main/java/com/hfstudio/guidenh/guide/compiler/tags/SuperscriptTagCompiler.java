@@ -18,7 +18,7 @@ public class SuperscriptTagCompiler extends FlowTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
         LytFlowSpan span = new LytFlowSpan();
-        span.modifyStyle(style -> style.fontScale(0.85f));
+        span.modifyStyle(style -> style.fontScale(0.85f).baselineShift(-0.3f));
         compiler.compileFlowContext(el.children(), span);
         parent.append(span);
     }

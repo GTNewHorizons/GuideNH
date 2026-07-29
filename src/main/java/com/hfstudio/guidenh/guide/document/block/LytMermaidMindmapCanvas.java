@@ -55,7 +55,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
     private static final ResolvedTextStyle NODE_TEXT_STYLE = new ResolvedTextStyle(
         1f,
         false,
@@ -71,7 +72,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
     private static final ResolvedTextStyle ICON_TEXT_STYLE = new ResolvedTextStyle(
         0.85f,
         false,
@@ -87,7 +89,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
 
     private final MindmapDocument mindmap;
 
@@ -150,11 +153,9 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
             : Math.max(1, availableWidth);
         layout = buildLayout(context, safeWidth);
         int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
-        int viewportHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
-            : Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
-        if (preferredHeight > 0 && safeWidth < resolvePreferredViewportWidth()) {
-            viewportHeight = Math.max(viewportHeight, Math.min(MAX_HEIGHT, desiredHeight));
-        }
+        int viewportHeight = preferredHeight > 0
+            ? Math.max(48, Math.max(preferredHeight, desiredHeight))
+            : Math.max(MIN_HEIGHT, desiredHeight);
         int viewportWidth = Math.max(1, safeWidth - CANVAS_PADDING * 2);
         int innerViewportHeight = Math.max(1, viewportHeight - CANVAS_PADDING * 2);
         restoreViewportAfterLayout(
@@ -186,14 +187,12 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         this.precomputedLayoutWidth = safeWidth;
         if (layout != null) {
             int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
-            int newPreferredHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
-                : Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
-            if (preferredHeight > 0 && safeWidth < resolvePreferredViewportWidth()) {
-                newPreferredHeight = Math.max(newPreferredHeight, Math.min(MAX_HEIGHT, desiredHeight));
-            }
+            int newPreferredHeight = preferredHeight > 0
+                ? Math.max(48, Math.max(preferredHeight, desiredHeight))
+                : Math.max(MIN_HEIGHT, desiredHeight);
             preferredHeight = newPreferredHeight;
             int diagramWidth = layout.diagramWidth() + CANVAS_PADDING * 2;
-            preferredWidth = Math.min(diagramWidth, safeWidth);
+            preferredWidth = diagramWidth;
             GuideDebugLog.debugAlways(
                 "[GuideNH-Mermaid] precomputeLayout OK diagramHeight={} preferredHeight={}",
                 layout.diagramHeight(), preferredHeight);
@@ -241,11 +240,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         if (layout != null) {
             int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
             int expectedHeight = preferredHeight > 0
-                ? Math.max(48, preferredHeight)
-                : Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, desiredHeight));
-            if (preferredHeight > 0 && safeWidth < resolvePreferredViewportWidth()) {
-                expectedHeight = Math.max(expectedHeight, Math.min(MAX_HEIGHT, desiredHeight));
-            }
+                ? Math.max(48, Math.max(preferredHeight, desiredHeight))
+                : Math.max(MIN_HEIGHT, desiredHeight);
             if (bounds.height() != expectedHeight) {
                 GuideDebugLog.debugAlways(
                     "[GuideNH-Mermaid] afterExternalLayout correcting bounds height {} -> {}",

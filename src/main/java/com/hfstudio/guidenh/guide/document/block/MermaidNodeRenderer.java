@@ -87,7 +87,8 @@ public final class MermaidNodeRenderer {
             base.alignment(),
             base.dropShadow(),
             base.backgroundColor(),
-            base.inlineCode());
+            base.inlineCode(),
+            base.baselineShift());
     }
 
     public static ResolvedTextStyle getOrScaleStyle(Map<ResolvedTextStyle, ResolvedTextStyle> cache,

@@ -1374,7 +1374,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             TextAlignment.LEFT,
             false,
             null,
-            false);
+            false,
+            0.0f);
     }
 
     @SuppressWarnings("unused")

@@ -59,6 +59,16 @@ public class PreCompiler extends BlockTagCompiler {
         String lang = el.getAttributeString("lang", null);
         String meta = el.getAttributeString("meta", null);
 
+        // Indented code block (no lang attribute) → plain text, no toolbar, no language detection
+        if (lang == null) {
+            LytCodeBlock codeBlock = new LytCodeBlock();
+            codeBlock.setCodeContent("text", codeText);
+            codeBlock.setToolbarVisible(false);
+            codeBlock.applyLanguage(new CodeBlockLanguage("text", "Text"));
+            parent.append(codeBlock);
+            return;
+        }
+
         CodeBlockLanguage language = CodeBlockLanguageDetector.detect(lang, codeText);
 
         // CSV table

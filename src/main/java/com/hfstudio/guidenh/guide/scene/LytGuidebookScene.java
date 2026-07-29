@@ -6687,7 +6687,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                 style.alignment(),
                 style.dropShadow(),
                 style.backgroundColor(),
-                style.inlineCode());
+                style.inlineCode(),
+                style.baselineShift());
             float z = Math.max(0.0001f, lastDocZoom);
             int textW = Math.round(context.getStringWidth(loadStatusText, coloredStyle) / z);
             int textH = Math.round(context.getLineHeight(coloredStyle) / z);

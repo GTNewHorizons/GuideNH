@@ -57,7 +57,8 @@ public class LytContentTabsHeader extends LytBlock implements InteractiveElement
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
     private static final ResolvedTextStyle IDLE_STYLE = new ResolvedTextStyle(
         1.0f,
         false,
@@ -73,7 +74,8 @@ public class LytContentTabsHeader extends LytBlock implements InteractiveElement
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
 
     private final List<String> titles;
     private final ColorValue accentColor;

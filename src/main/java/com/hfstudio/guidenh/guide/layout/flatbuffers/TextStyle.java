@@ -37,6 +37,7 @@ public final class TextStyle extends Table {
   public boolean strikethrough() { int o = __offset(18); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
   public long highlightArgb() { int o = __offset(20); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
   public boolean inlineCode() { int o = __offset(22); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
+  public float baselineShift() { int o = __offset(24); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
 
   public static int createTextStyle(FlatBufferBuilder builder,
       float fontSize,
@@ -48,8 +49,10 @@ public final class TextStyle extends Table {
       boolean underline,
       boolean strikethrough,
       long highlightArgb,
-      boolean inlineCode) {
-    builder.startTable(10);
+      boolean inlineCode,
+      float baselineShift) {
+    builder.startTable(11);
+    TextStyle.addBaselineShift(builder, baselineShift);
     TextStyle.addHighlightArgb(builder, highlightArgb);
     TextStyle.addFont(builder, font);
     TextStyle.addColor(builder, color);
@@ -63,7 +66,7 @@ public final class TextStyle extends Table {
     return TextStyle.endTextStyle(builder);
   }
 
-  public static void startTextStyle(FlatBufferBuilder builder) { builder.startTable(10); }
+  public static void startTextStyle(FlatBufferBuilder builder) { builder.startTable(11); }
   public static void addFontSize(FlatBufferBuilder builder, float fontSize) { builder.addFloat(0, fontSize, 14.0f); }
   public static void addBold(FlatBufferBuilder builder, boolean bold) { builder.addBoolean(1, bold, false); }
   public static void addItalic(FlatBufferBuilder builder, boolean italic) { builder.addBoolean(2, italic, false); }
@@ -74,6 +77,7 @@ public final class TextStyle extends Table {
   public static void addStrikethrough(FlatBufferBuilder builder, boolean strikethrough) { builder.addBoolean(7, strikethrough, false); }
   public static void addHighlightArgb(FlatBufferBuilder builder, long highlightArgb) { builder.addInt(8, (int) highlightArgb, (int) 0L); }
   public static void addInlineCode(FlatBufferBuilder builder, boolean inlineCode) { builder.addBoolean(9, inlineCode, false); }
+  public static void addBaselineShift(FlatBufferBuilder builder, float baselineShift) { builder.addFloat(10, baselineShift, 0.0f); }
   public static int endTextStyle(FlatBufferBuilder builder) {
     int o = builder.endTable();
     return o;

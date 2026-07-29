@@ -424,7 +424,8 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
             TextAlignment.LEFT,
             false,
             null,
-            false);
+            false,
+            0.0f);
     }
 
     public static String formatPercent(double ratio) {

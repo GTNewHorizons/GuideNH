@@ -71,6 +71,7 @@ table TextStyle {
   strikethrough: bool = false;
   highlight_argb: uint = 0;   // span background fill (0 = none)
   inline_code: bool = false;  // highlight geometry variant (no side padding)
+  baseline_shift: float = 0.0;  // R4-21: vertical offset in EM (fraction of font_size×font_scale); sup=-0.3 sub=+0.3
 }
 
 // ═══════════════════ 节点数据类型 ═══════════════════

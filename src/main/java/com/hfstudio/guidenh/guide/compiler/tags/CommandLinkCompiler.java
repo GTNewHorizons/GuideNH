@@ -41,7 +41,14 @@ public class CommandLinkCompiler extends FlowTagCompiler {
         link.setData("close", closeGuide);
         link.setData("title", title);
 
-        compiler.compileFlowContext(el.children(), link);
+        var children = el.children();
+        if (children.isEmpty()) {
+            // Self-closing: synthesize visible label from attributes
+            String label = title.isEmpty() ? command : title;
+            link.appendText(label);
+        } else {
+            compiler.compileFlowContext(children, link);
+        }
         parent.append(link);
     }
 
