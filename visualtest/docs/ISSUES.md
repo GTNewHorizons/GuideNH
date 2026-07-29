@@ -236,3 +236,43 @@ qwen-screener (qwen3.7-plus, vision probe-verified) single-page blind sessions: 
 | — | stress/mixed.md | Fixture doc stale: L78 claims mermaid 'renders placeholder box only', actually fully rendered (positive deviation; update doc) | VLM info | OPEN (fixture doc) |
 
 **Capability conclusion**: qwen-screener is Stage-3 primary (direct pixel observation); geo screening retained as objective ratchet/regression gate (VLM is probabilistic); executor bounds-JSON re-check of width/structural claims is cheap and decisive. Known gap: in-canvas chart label issues (R3-12) not triggered this round; still parked.
+
+### G2. Round 4 Full-Corpus VLM Screening (64/64 pages, 2026-07-29)
+
+6 waves, one page per qwen-screener session. Executor adjudication with independent ground truth: fixture Expected text, bounds-JSON re-checks, source-image pixel analysis, registry/source wiring greps. Screener calibration: 1 false negative (special-langs csv widths — table column-width eyeballing unreliable; width claims MUST be bounds-verified), precision otherwise high.
+
+**New engine issues (OPEN):**
+
+| ID | Page(s) | Issue | Evidence |
+|---|---|---|---|
+| R4-8 | floats/multi.md | FloatingImage without x/y errors out ("requires x, y, width or w, and height or h") — float position should be layout-computed; 13 instances page-wide | fixture L15+ has width/height but no x/y; stress/mixed with x="0" y="0" renders fine |
+| R4-9 | floats/content-types.md | CsvTable + fenced CodeBlock floats fail: render full-width instead of left-float, paragraph occluded behind table | VLM high + bounds (i=4 float w=890 overlaps paragraph i=48) |
+| R4-10 | floats/wrap-modes.md | wrap=behind / front / top-bottom all degrade to square-wrap behavior | VLM high ×3, bounds-backed |
+| R4-11 | mermaid/mindmap.md | Mindmap rendering broken: deep-nesting hierarchy collapses (nodes Echo/Foxtrot/Hotel/India missing, Golf rendered as sibling of root), 'Tag' node text missing (empty black rect), all shapes render as rectangles (hexagon/bang syntax ignored), root not centered | VLM high ×2 + medium ×2 vs fixture Expected |
+| R4-12 | mermaid/node-content.md | NodeContent MDX element unhandled (red error '(7:18)'); rich-content nodes in mindmap + flowchart degrade to empty blue boxes | VLM high ×4 |
+| R4-13 | (extends R4-3) mermaid/large.md mindmap, overflow/tall-element.md | Mermaid canvas viewport clips node labels at edges (canvas sizing insufficient); flowchart large-page crop is INTENDED per Expected, mindmap clipping is not | VLM high |
+| R4-14 | charts/options.md | yAxis attribute family (yAxisLabel/yAxisMax/yAxisTickFormat/yAxisUnit) not wired in runtime chart renderer — grep: only TagAttributeRegistry (autocomplete) + siteexport implement them | VLM medium ×4 + executor grep ground truth |
+| R4-15 | charts/function.md | FunctionGraph quadrants='1,4' clipping not applied (curve extends into left half); fenced variant adds unexpected bottom legend (medium) | VLM high + medium |
+| R4-16 | charts/pie.md | labelPosition='outside': large-slice label still renders inside slice (possible intentional fallback) | VLM medium — INDETERMINATE |
+| R4-17 | tables/basic.md | Pipe-table column alignment (:---:/---:) not applied — center/right columns render flush-left | VLM high, fixture Expected explicit |
+| R4-18 | images/fullwidth.md | Natural-width table inside Column does not shrink to content width (renders full 890) — possible shared root with R4-4 width computation | VLM high + bounds |
+| R4-19 | text/footnotes.md | Footnote cluster: refs not superscript (invariant violation); numbering offset starts at [2] ([^rich] shows [6] for 5 items); rich formatting inside footnote definitions not rendered; repeated definition wins over first | VLM high ×3 + warn; fixture invariants explicit |
+| R4-20 | text/links.md | CommandLink + SoundLink render as empty paragraphs (bounds: LytParagraph w=1) — elements produce no visible output | VLM high + bounds ground truth |
+| R4-21 | text/inline-marks.md | <sub>/<sup> render at text baseline with no vertical offset | VLM high, fixture Expected explicit |
+| R4-22 | text/inline-marks.md, meta/zoom-large.md | Inline code span styling weak: monospace font uncertain at runtime render (background present) | VLM medium ×2 — warn |
+| R4-23 | text/section-codes.md | §r may not reset bold ('reset to normal' retains bold appearance) | VLM medium — warn |
+| R4-24 | scenes/annotations.md | Scene annotations largely broken: DiamondAnnotation golden renders white-dashed + second diamond missing; LineAnnotation blue polyline/arrow/points missing; TextAnnotation absent entirely; BlockAnnotationTemplate not applied | VLM high ×4 |
+| R4-25 | scenes/entities.md | Second grass block + entity (zombie/skeleton at x=1.5) missing in 2 scenes; player nametag visibility doubtful (medium) | VLM high ×2 + medium |
+| R4-26 | scenes/effects.md | Weather Rain + Snow effects completely missing (Expected explicitly declares visible rain columns / snow flakes) | VLM high ×2 |
+| R4-27 | scenes/camera.md | IsometricCamera NE preset renders near-top-down, inconsistent with explicit yaw=45 pitch=30 twin scene | VLM medium — warn |
+| R4-28 | scenes/effects.md | Particle visibility insufficient (5-name variants + smoke) — particle size 0.15 may be subpixel in static capture | VLM low ×2 — PENDING-IN-GAME |
+| R4-29 | images/floating-image.md | crop region not applied before scaleX/scaleY (cropped-blue-only region renders blue+green; cropped-orange-only renders orange+purple) | VLM medium + executor PIL ground truth on source PNGs (wide top/bottom split, tall left/right split confirmed) |
+| R4-30 | lists/rich.md | Inline + block images inside list items overflow item height, occluding following item text and own caption | VLM high ×2, bounds-backed |
+| R4-31 | images/basic.md | Center-aligned LytImage (align=center) renders flush-left (i=25 x=5) — LytImage align attr drop, sibling of R3-11 | VLM high, fixture Expected explicit |
+| R4-32 | nei/recipes.md | handlerOrder out-of-range fallback broken: malformed recipe box (3×2 grid, oversized clipped arrow, missing output slot) instead of fallback text | VLM high, bounds-detailed |
+| R4-33 | meta/indexes.md | SubPages list renders above page title at very top (y=4, bounds i=0-5) — design intent unclear | bounds ground truth — INDETERMINATE |
+| R4-34 | overflow/scroll-containers.md | Horizontal scrollbar not visible for long-line viewport (Expected declares it appears); also python→Lua label (R4-5 second occurrence) | VLM medium — warn |
+
+**R4-4 scope extension**: last-column declared-width ignore also hits pipe tables with {: widths} metadata (tables/metadata.md 3 tables: 767/686/687 vs declared 80/150/50) and code/special-langs.md csv fences (767 vs 80, executor bounds re-check after screener false negative). Root likely in shared table width distribution.
+
+**Adjudicated INTENDED / not-a-bug**: charts/line-scatter hover tooltip (static capture limitation); mermaid/large flowchart center-crop (Expected-declared); scenes/ponder StructureLib degradation + red message (fixture-declared environment-limited); PlaySound '[Scene] no supported elements' red message (render-existence-only scene; suggest non-error styling as design note); mermaid/subgraphs label proximity (normal layout); meta/indexes two-column category imbalance (alphabetical grouping); charts/options grid-color low-conf (indeterminate, parked).
