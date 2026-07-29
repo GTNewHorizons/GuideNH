@@ -128,10 +128,11 @@ public class GuideLatexTextureCache {
      * @param formula       LaTeX source string
      * @param fillColorArgb ARGB fill colour
      * @param sourceScale   jlatexmath render scale (e.g. 100.0f)
+     * @param style         jlatexmath style constant (STYLE_DISPLAY or STYLE_TEXT)
      * @return cache key string
      */
-    public static String buildTextureCacheKey(String formula, int fillColorArgb, float sourceScale) {
-        return toHexColor(fillColorArgb) + ':' + buildScaleKey(sourceScale) + ':' + formula;
+    public static String buildTextureCacheKey(String formula, int fillColorArgb, float sourceScale, int style) {
+        return toHexColor(fillColorArgb) + ':' + buildScaleKey(sourceScale) + ':' + style + ':' + formula;
     }
 
     /**
@@ -139,10 +140,11 @@ public class GuideLatexTextureCache {
      *
      * @param formula     LaTeX source string
      * @param sourceScale jlatexmath render scale
+     * @param style       jlatexmath style constant (STYLE_DISPLAY or STYLE_TEXT)
      * @return size cache key string
      */
-    public static String buildSizeCacheKey(String formula, float sourceScale) {
-        return buildScaleKey(sourceScale) + ':' + formula;
+    public static String buildSizeCacheKey(String formula, float sourceScale, int style) {
+        return buildScaleKey(sourceScale) + ':' + style + ':' + formula;
     }
 
     public static String buildScaleKey(float sourceScale) {

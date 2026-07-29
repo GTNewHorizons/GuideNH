@@ -99,6 +99,18 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         this.scale = Math.max(0.125f, scale);
     }
 
+    @Override
+    public int getExplicitWidth() {
+        if (!showIcon && labelPosition == null) return -1;
+        return computeContentSize()[0];
+    }
+
+    @Override
+    public int getExplicitHeight() {
+        if (!showIcon && labelPosition == null) return -1;
+        return computeContentSize()[1];
+    }
+
     /** Kept for backward compatibility. Prefer {@link #setShowTooltip(boolean)}. */
     public void setTooltipSuppressed(boolean suppressed) {
         this.showTooltip = !suppressed;
@@ -145,6 +157,54 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     /** Overrides the default inline Y offset for the label text only. Does not affect the icon. */
     public void setLabelYOffsetOverride(@Nullable Integer override) {
         this.labelYOffsetOverride = override;
+    }
+
+    /**
+     * Computes the full content size of this block (icon + label when both
+     * present, icon-only or text-only otherwise). Mirrors computeLayout
+     * arithmetic using static GuideText measurement.
+     *
+     * @return int[]{width, height}
+     */
+    private int[] computeContentSize() {
+        int iconSize = Math.round(BASE_SIZE * scale);
+        boolean hasLabel = labelPosition != null && stack != null;
+
+        if (!showIcon && !hasLabel) {
+            return new int[]{0, 0};
+        }
+        if (!hasLabel) {
+            return new int[]{iconSize, iconSize};
+        }
+
+        ResolvedTextStyle textStyle = resolveLabelStyle();
+        String text = resolveLabelText();
+        int textW = GuideText.measureWidth(text, textStyle);
+        int textH = GuideText.lineHeight(textStyle);
+
+        if (!showIcon) {
+            return new int[]{textW, textH};
+        }
+
+        // showIcon + hasLabel — total width is same for label="left" and label="right"
+        int labelYOffset = inline && showIcon
+            ? Math.round(
+                (labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET) * scale)
+            : 0;
+        int textTop = (iconSize - textH) / 2 + labelYOffset;
+        int top = Math.min(0, textTop);
+        int bottom = Math.max(iconSize, textTop + textH);
+        int totalW = iconSize + labelGap() + textW;
+        int totalH = Math.max(0, bottom - top);
+        return new int[]{totalW, totalH};
+    }
+
+    /**
+     * Computes the inline size (width, height) for serialization when no
+     * LayoutContext is available. Delegates to {@link #computeContentSize()}.
+     */
+    public int[] measureSerializedInlineSize() {
+        return computeContentSize();
     }
 
     @Override
@@ -208,6 +268,12 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         if (hasLabel) {
             ResolvedTextStyle textStyle = resolveLabelStyle();
             String text = resolveLabelText();
+            // On-the-spot measurement when the layout-pass cache is unpopulated
+            // (Java layout pre-pass was removed — computeLayout may not run).
+            if (labelTextW <= 0) {
+                labelTextW = GuideText.measureWidth(text, textStyle);
+                labelTextH = GuideText.lineHeight(textStyle);
+            }
             int textVCenter = showIcon ? (iconSize - labelTextH) / 2 : 0;
             int labelYOffset = inline && showIcon
                 ? Math

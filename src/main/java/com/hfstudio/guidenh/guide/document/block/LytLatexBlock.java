@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.document.block;
 import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
+import org.scilab.forge.jlatexmath.TeXConstants;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -44,6 +45,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
     private final float sourceScale;
     @Getter
     private final float userScale;
+    private final int style;
     @Nullable
     private final GuideTooltip tooltip;
     @Getter
@@ -76,7 +78,9 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
 
     public LytLatexBlock(String formula, int fillColorArgb, float sourceScale, float userScale,
         @Nullable GuideTooltip tooltip, LatexVerticalAlign valign, int offsetX, int offsetY) {
-        this(formula, new LatexRenderOptions(fillColorArgb, sourceScale, userScale, tooltip, valign, offsetX, offsetY));
+        this(formula,
+            new LatexRenderOptions(TeXConstants.STYLE_DISPLAY, fillColorArgb, sourceScale, userScale, tooltip, valign,
+                offsetX, offsetY));
     }
 
     public LytLatexBlock(String formula, LatexRenderOptions options) {
@@ -84,6 +88,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         this.fillColorArgb = options.fillColorArgb();
         this.sourceScale = options.sourceScale();
         this.userScale = options.userScale();
+        this.style = options.style();
         this.tooltip = options.tooltip();
         this.valign = options.valign();
         this.offsetX = options.offsetX();
@@ -190,7 +195,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
             return sourceWidthPx > 0 && sourceHeightPx > 0;
         }
         sourceMetricsResolved = true;
-        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale);
+        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale, style);
         if (size == null) {
             return false;
         }
@@ -235,7 +240,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
             return;
         }
 
-        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
+        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale, style);
         if (tex == null) {
             return;
         }
@@ -259,7 +264,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
             return;
         }
 
-        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
+        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale, style);
         if (tex == null) {
             return;
         }

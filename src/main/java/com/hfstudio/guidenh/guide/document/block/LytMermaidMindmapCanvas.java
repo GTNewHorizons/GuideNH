@@ -379,7 +379,7 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
             for (String line : node.lines) {
                 int lineWidth = GuideText.measureWidth(line, style);
                 int textX = rect.x() + Math.max(paddingX, (rect.width() - lineWidth) / 2);
-                c.emit(new GuideRenderPrimitive.DrawText(line, textX, textY, style));
+                GuideText.emitText(c, line, textX, textY, style);
                 textY += lineHeight;
             }
         }

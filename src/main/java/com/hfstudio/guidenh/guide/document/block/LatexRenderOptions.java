@@ -1,13 +1,14 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import org.jetbrains.annotations.Nullable;
+import org.scilab.forge.jlatexmath.TeXConstants;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 
 @Desugar
-public record LatexRenderOptions(int fillColorArgb, float sourceScale, float userScale, @Nullable GuideTooltip tooltip,
-    LatexVerticalAlign valign, int offsetX, int offsetY) {
+public record LatexRenderOptions(int style, int fillColorArgb, float sourceScale, float userScale,
+    @Nullable GuideTooltip tooltip, LatexVerticalAlign valign, int offsetX, int offsetY) {
 
     public static final int DEFAULT_FILL_COLOR_ARGB = 0xFFFFFFFF;
     public static final float DEFAULT_SOURCE_SCALE = 100.0f;
@@ -23,10 +24,14 @@ public record LatexRenderOptions(int fillColorArgb, float sourceScale, float use
         if (valign == null) {
             valign = LatexVerticalAlign.BASELINE;
         }
+        if (style != TeXConstants.STYLE_DISPLAY && style != TeXConstants.STYLE_TEXT) {
+            style = TeXConstants.STYLE_DISPLAY;
+        }
     }
 
     public static final class Builder {
 
+        private int style = TeXConstants.STYLE_DISPLAY;
         private int fillColorArgb = DEFAULT_FILL_COLOR_ARGB;
         private float sourceScale = DEFAULT_SOURCE_SCALE;
         private float userScale = DEFAULT_USER_SCALE;
@@ -37,6 +42,11 @@ public record LatexRenderOptions(int fillColorArgb, float sourceScale, float use
         private int offsetY;
 
         private Builder() {}
+
+        public Builder style(int style) {
+            this.style = style;
+            return this;
+        }
 
         public Builder fillColorArgb(int fillColorArgb) {
             this.fillColorArgb = fillColorArgb;
@@ -70,7 +80,7 @@ public record LatexRenderOptions(int fillColorArgb, float sourceScale, float use
         }
 
         public LatexRenderOptions build() {
-            return new LatexRenderOptions(fillColorArgb, sourceScale, userScale, tooltip, valign, offsetX, offsetY);
+            return new LatexRenderOptions(style, fillColorArgb, sourceScale, userScale, tooltip, valign, offsetX, offsetY);
         }
     }
 }

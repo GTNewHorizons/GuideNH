@@ -78,7 +78,8 @@ public class GuideLatexRenderer {
 
     /**
      * Returns the pixel dimensions {@code [widthPx, heightPx, depthPx]} of {@code formula} rendered at
-     * {@code sourceScale}, or {@code null} if the formula is invalid/failed.
+     * {@code sourceScale} with the given jlatexmath {@code style}, or {@code null} if the formula is
+     * invalid/failed.
      *
      * <p>
      * {@code depthPx} is the typographic depth in jlatexmath pixels, the number of pixels the formula
@@ -91,9 +92,11 @@ public class GuideLatexRenderer {
      * @param formula       LaTeX source string
      * @param fillColorArgb ARGB colour (only used for cache key uniformity; does not affect size)
      * @param sourceScale   jlatexmath render size parameter
+     * @param style         jlatexmath style constant ({@link TeXConstants#STYLE_DISPLAY} or
+     *                      {@link TeXConstants#STYLE_TEXT})
      * @return [widthPx, heightPx, depthPx] or null on parse failure
      */
-    public int[] measureSize(String formula, int fillColorArgb, float sourceScale) {
+    public int[] measureSize(String formula, int fillColorArgb, float sourceScale, int style) {
         if (formula == null || formula.isEmpty()) {
             return null;
         }
@@ -101,7 +104,7 @@ public class GuideLatexRenderer {
             return null;
         }
 
-        String sizeKey = GuideLatexTextureCache.buildSizeCacheKey(formula, sourceScale);
+        String sizeKey = GuideLatexTextureCache.buildSizeCacheKey(formula, sourceScale, style);
         int[] cached = GuideLatexTextureCache.INSTANCE.getSize(sizeKey);
         if (cached != null) {
             return cached;
@@ -109,7 +112,7 @@ public class GuideLatexRenderer {
 
         try {
             TeXFormula texFormula = new TeXFormula(formula);
-            TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
+            TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(style)
                 .setSize(sourceScale)
                 .setFGColor(new Color(fillColorArgb, true))
                 .build();
@@ -137,9 +140,11 @@ public class GuideLatexRenderer {
      * @param formula       LaTeX source string
      * @param fillColorArgb ARGB colour for the glyph pixels
      * @param sourceScale   jlatexmath render quality (e.g. 100.0f)
+     * @param style         jlatexmath style constant ({@link TeXConstants#STYLE_DISPLAY} or
+     *                      {@link TeXConstants#STYLE_TEXT})
      * @return [textureId, widthPx, heightPx] or null on failure
      */
-    public int[] getOrCreateTexture(String formula, int fillColorArgb, float sourceScale) {
+    public int[] getOrCreateTexture(String formula, int fillColorArgb, float sourceScale, int style) {
         if (formula == null || formula.isEmpty()) {
             return null;
         }
@@ -147,7 +152,7 @@ public class GuideLatexRenderer {
             return null;
         }
 
-        String texKey = GuideLatexTextureCache.buildTextureCacheKey(formula, fillColorArgb, sourceScale);
+        String texKey = GuideLatexTextureCache.buildTextureCacheKey(formula, fillColorArgb, sourceScale, style);
         int[] cached = GuideLatexTextureCache.INSTANCE.getTexture(texKey);
         if (cached != null) {
             return cached;
@@ -155,7 +160,7 @@ public class GuideLatexRenderer {
 
         try {
             TeXFormula texFormula = new TeXFormula(formula);
-            TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
+            TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(style)
                 .setSize(sourceScale)
                 .setFGColor(new Color(fillColorArgb, true))
                 .build();
@@ -169,7 +174,7 @@ public class GuideLatexRenderer {
             int textureId = uploadToGL(image, w, h);
             GuideLatexTextureCache.INSTANCE.putTexture(texKey, textureId, w, h);
 
-            String sizeKey = GuideLatexTextureCache.buildSizeCacheKey(formula, sourceScale);
+            String sizeKey = GuideLatexTextureCache.buildSizeCacheKey(formula, sourceScale, style);
             int d = getIconDepthPx(icon);
             GuideLatexTextureCache.INSTANCE.putSize(sizeKey, w, h, d);
 

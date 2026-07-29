@@ -217,6 +217,22 @@ public final class LayoutNodeSerializer {
             for (LytFlowContent fc : par.getContent()) {
                 collectSpanParts(fc, resolved, spanParts);
             }
+            // Single-style override: if all content resolves to one distinct style
+            // that differs from the paragraph's own resolved style, the base run
+            // style must come from that single span style — not the paragraph
+            // style — so that the single span's appearance is preserved without
+            // needing rich spans (needsRichSpans requires >=2 distinct styles).
+            if (spanParts.size() == 1 && resolved != null && !spanParts.get(0).style.equals(resolved)) {
+                var partStyle = spanParts.get(0).style;
+                bold = partStyle.bold();
+                italic = partStyle.italic();
+                if (partStyle.fontScale() != 1f) {
+                    fontScale = partStyle.fontScale();
+                }
+                baseColor = GuideText.resolveColor(partStyle) & 0xFFFFFFFFL;
+                wsByte = partStyle.whiteSpace() == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1
+                    : 0;
+            }
             // Clear breaks: record each <br clear> at its raw byte offset so the
             // Rust pusher can drop the following lines below the cleared floats.
             int[] clearOff = new int[] { 0 };

@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.document.block;
 import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
+import org.scilab.forge.jlatexmath.TeXConstants;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -48,6 +49,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
     private final float sourceScale;
     @Getter
     private final float userScale;
+    private final int style;
     @Nullable
     private final GuideTooltip tooltip;
     @Getter
@@ -67,6 +69,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
         this(
             formula,
             new LatexRenderOptions(
+                TeXConstants.STYLE_DISPLAY,
                 fillColorArgb,
                 sourceScale,
                 userScale,
@@ -81,6 +84,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
         this.fillColorArgb = options.fillColorArgb();
         this.sourceScale = options.sourceScale();
         this.userScale = options.userScale();
+        this.style = options.style();
         this.tooltip = options.tooltip();
         this.offsetX = options.offsetX();
         this.offsetY = options.offsetY();
@@ -111,7 +115,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
     /** Lazy-compute formula display dimensions using static font metrics. */
     private void computeFormulaDisplay() {
         formulaDisplayComputed = true;
-        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale);
+        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale, style);
         if (size == null) {
             formulaDisplayW = 0;
             formulaDisplayH = 0;
@@ -126,7 +130,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         formulaDisplayComputed = true;
-        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale);
+        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale, style);
         if (size == null) {
             formulaDisplayW = 0;
             formulaDisplayH = 0;
@@ -156,7 +160,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
             return;
         }
 
-        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
+        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale, style);
         if (tex == null) {
             return;
         }
@@ -182,7 +186,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
             return;
         }
 
-        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
+        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale, style);
         if (tex == null) {
             return;
         }

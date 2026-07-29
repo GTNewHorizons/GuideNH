@@ -277,20 +277,28 @@ public class PageCompiler {
     public static MdAstRoot buildErrorPage(String headingText, String errorText) {
         var root = new MdAstRoot();
 
+        // <h1><Color id="error_text">headingText</Color></h1>
         var heading = new MdxJsxFlowElement();
         heading.setName("h1");
         heading.addAttribute("depth", 1);
         root.addChild(heading);
+        var headingColor = new MdxJsxTextElement("Color", new ArrayList<>());
+        headingColor.addAttribute("id", "error_text");
         var headingTextNode = new MdAstText();
         headingTextNode.setValue(headingText);
-        safeAddChild(heading, headingTextNode);
+        headingColor.addChild(headingTextNode);
+        safeAddChild(heading, headingColor);
 
+        // <p><Color id="error_text">errorText</Color></p>
         var errorParagraph = new MdxJsxFlowElement();
         errorParagraph.setName("p");
         root.addChild(errorParagraph);
+        var errorColor = new MdxJsxTextElement("Color", new ArrayList<>());
+        errorColor.addAttribute("id", "error_text");
         var errorTextNode = new MdAstText();
         errorTextNode.setValue(errorText);
-        safeAddChild(errorParagraph, errorTextNode);
+        errorColor.addChild(errorTextNode);
+        safeAddChild(errorParagraph, errorColor);
 
         return root;
     }
@@ -815,6 +823,7 @@ public class PageCompiler {
                 var block = new LytLatexBlock(
                     segment.getValue(),
                     LatexRenderOptions.builder()
+                        .style(org.scilab.forge.jlatexmath.TeXConstants.STYLE_TEXT)
                         .valign(LatexVerticalAlign.BASELINE)
                         .build());
                 layoutParent.append(LytFlowInlineBlock.of(block));

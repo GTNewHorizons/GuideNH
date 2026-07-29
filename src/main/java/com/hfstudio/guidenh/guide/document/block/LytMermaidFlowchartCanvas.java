@@ -478,11 +478,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             int labelPadX = Math.max(2, Math.round(4 * activeZoom));
             int labelPadY = Math.max(1, Math.round(2 * activeZoom));
             ResolvedTextStyle labelStyle = getOrScaleStyle(NODE_TEXT_STYLE, activeZoom);
-            c.emit(new GuideRenderPrimitive.DrawText(
-                label,
-                sgRect.x() + labelPadX,
-                sgRect.y() + labelPadY,
-                labelStyle));
+            GuideText.emitText(c, label, sgRect.x() + labelPadX, sgRect.y() + labelPadY, labelStyle);
         }
 
         for (var child : subgraph.getChildren()) {
@@ -691,7 +687,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         int bgX = screenX - textWidth / 2 - pad;
         int bgY = screenY - textHeight / 2 - pad;
         c.emit(new GuideRenderPrimitive.FillRect(bgX, bgY, textWidth + pad * 2, textHeight + pad * 2, bgColor));
-        c.emit(new GuideRenderPrimitive.DrawText(label, screenX - textWidth / 2, screenY - textHeight / 2, labelStyle));
+        GuideText.emitText(c, label, screenX - textWidth / 2, screenY - textHeight / 2, labelStyle);
     }
 
     private void emitNodesPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
@@ -808,7 +804,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 for (int i = 0; i < lines.size(); i++) {
                     int lineWidth = GuideText.measureWidth(lines.get(i), style);
                     int textX = contentArea.x() + Math.max(0, (visibleWidth - lineWidth) / 2);
-                    c.emit(new GuideRenderPrimitive.DrawText(lines.get(i), textX, baseTextY + i * lineHeight, style));
+                    GuideText.emitText(c, lines.get(i), textX, baseTextY + i * lineHeight, style);
                 }
             }
         }

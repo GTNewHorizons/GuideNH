@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytGuiSprite;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
+import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
 import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
@@ -328,6 +329,10 @@ public class LayoutTreeSerializer {
                         && imb.getExplicitHeight() > 0) {
                         vw = imb.getExplicitWidth();
                         vh = imb.getExplicitHeight();
+                    } else if (ib instanceof LytItemImage itemImg) {
+                        int[] size = itemImg.measureSerializedInlineSize();
+                        vw = size[0];
+                        vh = size[1];
                     } else {
                         LytRect b = ib.getBounds();
                         vw = b != null ? b.width() : 0;

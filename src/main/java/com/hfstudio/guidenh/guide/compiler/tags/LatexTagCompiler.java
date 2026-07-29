@@ -93,6 +93,7 @@ public class LatexTagCompiler implements TagCompiler {
         return new LytLatexBlock(
             formula,
             LatexRenderOptions.builder()
+                .style(org.scilab.forge.jlatexmath.TeXConstants.STYLE_TEXT)
                 .fillColorArgb(fillColor)
                 .sourceScale(sourceScale)
                 .userScale(userScale)
