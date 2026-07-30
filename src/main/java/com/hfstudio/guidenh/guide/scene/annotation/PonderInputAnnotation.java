@@ -111,10 +111,17 @@ public class PonderInputAnnotation extends OverlayAnnotation {
         Vector3f screen = camera.worldToScreen(worldPos.x, worldPos.y, worldPos.z);
 
         int docOx = 0, docOy = 0, scroll = 0;
+        float zoom = 1.0f;
         if (context instanceof VanillaRenderContext vrc) {
             docOx = vrc.getDocumentOriginX();
             docOy = vrc.getDocumentOriginY();
             scroll = vrc.getScrollOffsetY();
+            zoom = vrc.getZoom();
+        }
+        if (zoom != 1.0f) {
+            docOx = Math.round(docOx / zoom);
+            docOy = Math.round(docOy / zoom);
+            scroll = Math.round(scroll / zoom);
         }
 
         int cx = viewport.x() + viewport.width() / 2 + Math.round(screen.x) - docOx;
