@@ -5,6 +5,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytAxisBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBox;
+import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
 import com.hfstudio.guidenh.guide.document.block.LytCodeBlockToolbar;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytFloatAwareBlock;
@@ -94,6 +95,11 @@ public final class LayoutStyleExtractor {
         // Size boxes with a preferred width reserve exactly that width.
         if (block instanceof LytSizeBox sb && sb.getPreferredWidth() > 0 && explicitW <= 0) {
             explicitW = sb.getPreferredWidth();
+        }
+        // Code blocks with a preferred body width (from width= fence meta) reserve that width
+        // so the Rust layout engine constrains the code block instead of measuring naturally.
+        if (block instanceof LytCodeBlock cb && cb.getPreferredBodyWidth() > 0 && explicitW <= 0) {
+            explicitW = cb.getPreferredBodyWidth();
         }
         // Scroll containers clip their content through an inner LytViewportBox
         // (which declares the viewport height itself), so no container-level

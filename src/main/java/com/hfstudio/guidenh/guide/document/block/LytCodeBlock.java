@@ -161,6 +161,10 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
 
     public void setForcedBodyHeight(int forcedBodyHeight) {
         this.forcedBodyHeight = Math.max(0, forcedBodyHeight);
+        // Make the viewport height visible to the Rust layout serializer:
+        // propagate the forced height (or -1 for auto) so serialization sees it
+        // before Rust measures. Aligns with computeBoxLayout semantics.
+        bodyViewport.setExplicitHeight(this.forcedBodyHeight > 0 ? this.forcedBodyHeight : -1);
     }
 
     public int getBodyLineCount() {

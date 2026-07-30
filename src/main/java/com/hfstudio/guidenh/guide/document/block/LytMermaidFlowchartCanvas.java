@@ -159,6 +159,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         emitSubgraphsPrimitives(c, baseX, baseY, activeZoom);
         emitEdgesPrimitives(c, baseX, baseY, activeZoom);
         emitNodesPrimitives(c, baseX, baseY, activeZoom);
+        emitEdgeLabelsPrimitives(c, baseX, baseY, activeZoom);
     }
 
     @Override
@@ -352,13 +353,13 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 preferredHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
                     : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
                 int diagramWidth = result.getWidth() + CANVAS_PADDING * 2;
-                preferredWidth = Math.min(diagramWidth, safeWidth);
+                preferredWidth = diagramWidth;
                 GuideDebugLog.debugAlways(
-                    "[GuideNH-Mermaid] precomputeLayout OK layoutHeight={} preferredHeight={}",
-                    result.getHeight(), preferredHeight);
+                    "[GuideNH-Mermaid] precomputeLayout OK layoutHeight={} preferredHeight={} diagramWidth={}",
+                    result.getHeight(), preferredHeight, diagramWidth);
                 GuideDebugLog.debugAlways(
-                    "[GuideNH-Mermaid] precomputeLayout set explicitWidth={} layoutWidth={} safeWidth={}",
-                    preferredWidth, result.getWidth(), safeWidth);
+                    "[GuideNH-Mermaid] precomputeLayout explicitWidth={} safeWidth={}",
+                    preferredWidth, safeWidth);
             } else {
                 GuideDebugLog.debugAlways(
                     "[GuideNH-Mermaid] precomputeLayout FAILED result=null safeWidth={}",
@@ -380,9 +381,11 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             layout != null, safeWidth, precomputedLayoutWidth, bounds.height());
 
         // Phase 1: ensure layout result matches the actual canvas width.
-        // Width matches precompute → reuse cached layout (no ELK recompute).
-        // Width mismatch or no precompute → recompute at the correct width.
-        if (layout == null || precomputedLayoutWidth <= 0 || precomputedLayoutWidth != safeWidth) {
+        // If actual bounds.width() differs from the width used during
+        // precompute, the ELK layout may be suboptimal or clipped, so
+        // recompute at the actual canvas width.
+        int actualWidth = Math.max(1, bounds.width() - CANVAS_PADDING * 2);
+        if (layout == null || precomputedLayoutWidth <= 0 || precomputedLayoutWidth != bounds.width()) {
             LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
                 @Override
                 public float getAdvance(int codePoint, com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
@@ -396,9 +399,10 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(document.getLayoutMode());
             var minSizes = computeNodeMinSizes(fallbackCtx);
             layout = strategy.layout(document, minSizes);
+            precomputedLayoutWidth = (int) bounds.width();
             GuideDebugLog.debugAlways(
-                "[GuideNH-Mermaid] afterExternalLayout recomputed ELK layout={}",
-                layout != null);
+                "[GuideNH-Mermaid] afterExternalLayout recomputed ELK at boundsWidth={} layout={}",
+                bounds.width(), layout != null);
         }
 
         // Phase 2: if layout is valid, correct bounds height if needed (兜底).
@@ -618,8 +622,21 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 }
             }
 
+        }
+    }
+
+    /**
+     * Emit edge labels in a separate pass <em>after</em> nodes have been
+     * drawn, so labels appear on top of node shapes rather than being
+     * obscured by them (R4-39).
+     */
+    private void emitEdgeLabelsPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
+        if (layout == null) return;
+        for (EdgePath edgePath : layout.getEdgePaths()) {
+            FlowchartEdge flowEdge = lookupEdge(edgePath.getFromId(), edgePath.getToId(), edgePath.getEdgeId());
+            String label = flowEdge != null ? flowEdge.getLabel() : null;
             if (label != null && !label.isEmpty()) {
-                emitEdgeLabelPrimitives(c, points, baseX, baseY, activeZoom, label);
+                emitEdgeLabelPrimitives(c, edgePath.getPoints(), baseX, baseY, activeZoom, label);
             }
         }
     }

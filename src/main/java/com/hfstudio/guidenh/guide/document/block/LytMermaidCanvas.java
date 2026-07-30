@@ -340,8 +340,16 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         int offsetX = getVisualOffsetX();
         int offsetY = getVisualOffsetY();
         if (HEADLESS) {
-            // Headless: center diagram in viewport.
-            // Small diagram → centered in viewport; large diagram → center-cropped.
+            // Headless: fit diagram in viewport with fit-to-view zoom.
+            int contentW = contentWidth();
+            int contentH = contentHeight();
+            if (contentW > 0 && contentH > 0) {
+                float fitZoom = Math.min(1f, Math.min(
+                    (float) inner.width() / contentW,
+                    (float) inner.height() / contentH));
+                zoom = fitZoom;
+                activeZoom = zoom;
+            }
             int scaledContentW = Math.round(contentWidth() * activeZoom);
             int scaledContentH = Math.round(contentHeight() * activeZoom);
             offsetX = (inner.width() - scaledContentW) / 2;
@@ -429,19 +437,17 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     protected static LytRect resolveNodeContentRect(NodeContentLayout contentLayout, LytRect nodeRect, int paddingX,
         int contentY, float activeZoom) {
+        int availW = Math.max(1, nodeRect.width() - paddingX * 2);
+        int availH = Math.max(1, nodeRect.y() + nodeRect.height() - contentY);
         return new LytRect(
             nodeRect.x() + paddingX,
             contentY,
-            Math.max(
-                1,
-                Math.round(
-                    contentLayout.visualBounds()
-                        .width() * activeZoom)),
-            Math.max(
-                1,
-                Math.round(
-                    contentLayout.visualBounds()
-                        .height() * activeZoom)));
+            Math.min(
+                Math.max(1, Math.round(contentLayout.visualBounds().width() * activeZoom)),
+                availW),
+            Math.min(
+                Math.max(1, Math.round(contentLayout.visualBounds().height() * activeZoom)),
+                availH));
     }
 
     // ---- primitives-path helpers for node content blocks ----
@@ -468,7 +474,10 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     /**
      * Overload that prepares the content viewport from a NodeContentLayout
-     * and a screen-space content area, then delegates to the 5-arg variant.
+     * and a screen-space content area, then renders the block clipped to
+     * {@code innerViewport ∩ contentArea} (the node's inner content boundary,
+     * NOT the centered contentViewport) to prevent text overflow beyond the
+     * node bounds.
      */
     protected void emitNodeContentPrimitives(PrimitiveCollector c, NodeContentLayout contentLayout,
         LytRect contentArea, float activeZoom) {
@@ -494,7 +503,18 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
             cvpY = contentArea.y() + (contentArea.height() - rawViewport.height()) / 2;
         }
         LytRect contentViewport = new LytRect(cvpX, cvpY, rawViewport.width(), rawViewport.height());
-        emitNodeContentPrimitives(c, contentLayout.block(), contentViewport, contentLayout.visualBounds(), activeZoom);
+        // Scissor uses node contentArea (not centered contentViewport) to
+        // prevent text overflow beyond the node's inner boundary.
+        LytRect innerViewport = getInnerViewport();
+        LytRect clip = intersect(innerViewport, contentArea);
+        if (clip == null) return;
+        int originX = contentViewport.x() - Math.round(contentLayout.visualBounds().x() * activeZoom);
+        int originY = contentViewport.y() - Math.round(contentLayout.visualBounds().y() * activeZoom);
+        c.pushScissor(clip.x(), clip.y(), clip.width(), clip.height());
+        c.pushTransform(originX, originY, activeZoom);
+        c.collectFrom(contentLayout.block());
+        c.popTransform();
+        c.popScissor();
     }
 
     public record NodeHit(LytNode node, FlowInteractionPath flowPath, int localX, int localY) {
