@@ -66,6 +66,7 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
@@ -2472,7 +2473,20 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             context.restoreExternalRenderState();
 
             if (!overlays.isEmpty()) {
-                LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
+                float zoom = 1.0f;
+                if (context instanceof VanillaRenderContext vrc) {
+                    zoom = vrc.getZoom();
+                }
+                LytRect viewport;
+                if (zoom != 1.0f) {
+                    int docAbsX = Math.round(absX / zoom);
+                    int docAbsY = Math.round(absY / zoom);
+                    int docW = Math.max(1, Math.round(w / zoom));
+                    int docH = Math.max(1, Math.round(h / zoom));
+                    viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, docAbsX, docAbsY, docW, docH);
+                } else {
+                    viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
+                }
                 context.pushLocalScissor(sceneRect);
                 try {
                     for (var o : overlays) {

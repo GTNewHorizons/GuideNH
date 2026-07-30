@@ -52,10 +52,17 @@ public class DiamondAnnotation extends OverlayAnnotation {
     public void render(CameraSettings camera, RenderContext context, LytRect viewport) {
         var rect = getBoundingRect(camera, viewport);
         int docOx = 0, docOy = 0, scroll = 0;
+        float zoom = 1.0f;
         if (context instanceof VanillaRenderContext vrc) {
             docOx = vrc.getDocumentOriginX();
             docOy = vrc.getDocumentOriginY();
             scroll = vrc.getScrollOffsetY();
+            zoom = vrc.getZoom();
+        }
+        if (zoom != 1.0f) {
+            docOx = Math.round(docOx / zoom);
+            docOy = Math.round(docOy / zoom);
+            scroll = Math.round(scroll / zoom);
         }
         LytRect drawRect = new LytRect(rect.x() - docOx, rect.y() - docOy + scroll, rect.width(), rect.height());
 
