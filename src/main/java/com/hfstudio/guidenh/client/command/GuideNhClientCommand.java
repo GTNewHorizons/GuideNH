@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
@@ -436,7 +437,11 @@ public class GuideNhClientCommand extends CommandBase {
     }
 
     private void bindHeldItem(ICommandSender sender, boolean bind) throws CommandException {
-        EntityPlayer player = getCommandSenderAsPlayer(sender);
+        EntityPlayer player = Minecraft.getMinecraft().thePlayer;
+        if (player == null) {
+            send(sender, GuidebookText.RegionWandNoHeldItem);
+            return;
+        }
         ItemStack held = player.getHeldItem();
         if (held == null) {
             send(sender, GuidebookText.RegionWandNoHeldItem);
