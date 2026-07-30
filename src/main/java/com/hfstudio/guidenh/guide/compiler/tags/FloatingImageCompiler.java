@@ -224,9 +224,10 @@ public class FloatingImageCompiler implements TagCompiler {
             }
         }
 
-        // Forward crop dimensions as explicit size for Rust measure_image
-        block.setExplicitWidth(crop.width());
-        block.setExplicitHeight(crop.height());
+        // Forward crop dimensions × scale as explicit size for Rust measure_image
+        // so that scaleX/scaleY are reflected in the final measured size.
+        block.setExplicitWidth((int) Math.round(crop.width() * scale.scaleX()));
+        block.setExplicitHeight((int) Math.round(crop.height() * scale.scaleY()));
 
         return block;
     }
