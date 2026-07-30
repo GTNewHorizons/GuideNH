@@ -2,7 +2,7 @@
 
 Welcome, <PlayerName />.
 
-You are reading this page through <ItemImage id="guidenh:guide" /> **GuideNH**, an in-game guide framework designed for rich, data-driven documentation.
+You are reading this page through **GuideNH**, an in-game guide framework designed for rich, data-driven documentation.
 
 GuideNH is far more than a simple guide. It brings multiple features together in a single guide interface: Markdown text, item links, crafting recipes, keybind hints, tooltips, and interactive scene previews.
 

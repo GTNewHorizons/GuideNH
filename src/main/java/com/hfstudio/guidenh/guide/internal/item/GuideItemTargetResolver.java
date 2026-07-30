@@ -17,7 +17,7 @@ public class GuideItemTargetResolver {
 
     @Nullable
     public static GuideOpenTarget resolve(@Nullable ItemStack stack, Iterable<MutableGuide> guides) {
-        var guideId = GuideItem.getGuideId(stack);
+        var guideId = getRequestedGuideId(stack);
         if (guideId != null) {
             return new GuideOpenTarget(guideId, null);
         }
@@ -48,6 +48,17 @@ public class GuideItemTargetResolver {
         }
 
         return null;
+    }
+
+    @Nullable
+    private static ResourceLocation getRequestedGuideId(@Nullable ItemStack stack) {
+        if (stack == null || !stack.hasTagCompound()) {
+            return null;
+        }
+        var tag = stack.getTagCompound();
+        String guideId = tag.hasKey("GuideId") ? tag.getString("GuideId")
+            : tag.hasKey("guideId") ? tag.getString("guideId") : null;
+        return guideId == null || guideId.isEmpty() ? null : new ResourceLocation(guideId);
     }
 
     @Desugar

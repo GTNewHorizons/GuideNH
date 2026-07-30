@@ -7,7 +7,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.AxisAlignedBB;
 
-import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhServerStructureAccess;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 
@@ -55,7 +55,7 @@ public class GuideNhRegionExportServerHandler implements IMessageHandler<GuideNh
         int sizeZ = message.getSizeZ();
         if (sizeX <= 0 || sizeY <= 0
             || sizeZ <= 0
-            || GuideStructureVolume.exceedsLimit(sizeX, sizeY, sizeZ, RegionWandItem.MAX_EXPORT_BLOCKS)) {
+            || GuideStructureVolume.exceedsLimit(sizeX, sizeY, sizeZ, RegionWandExporter.MAX_EXPORT_BLOCKS)) {
             return null;
         }
         if (!GuideNhServerStructureAccess.isSameDimension(player, message.getDimensionId())) {
@@ -68,9 +68,9 @@ public class GuideNhRegionExportServerHandler implements IMessageHandler<GuideNh
         int maxY = y + sizeY - 1;
         int maxZ = z + sizeZ - 1;
         if (!message.isIncludeEntities()) {
-            return RegionWandItem.exportRegionAsStructureSnbt(player.worldObj, x, y, z, sizeX, sizeY, sizeZ);
+            return RegionWandExporter.exportRegionAsStructureSnbt(player.worldObj, x, y, z, sizeX, sizeY, sizeZ);
         }
-        return RegionWandItem
+        return RegionWandExporter
             .exportSnbt(
                 player.worldObj,
                 x,

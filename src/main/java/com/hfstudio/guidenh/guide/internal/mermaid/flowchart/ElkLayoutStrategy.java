@@ -234,10 +234,8 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
         // We extract internal bend points from each segment in local coords,
         // then use the ElkPort root position as the authoritative stitch point.
         for (SplitChain sc : splitChains) {
-            List<FlowchartLayoutResult.Point> merged = new ArrayList<>();
 
-            List<ElkEdge> chainEdges = new ArrayList<>();
-            chainEdges.addAll(sc.srcEdges);
+            List<ElkEdge> chainEdges = new ArrayList<>(sc.srcEdges);
             chainEdges.add(sc.externalEdge);
             chainEdges.addAll(sc.tgtEdges);
             splitEdges.addAll(chainEdges);
@@ -245,7 +243,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             // External edge (already root-relative)
             List<FlowchartLayoutResult.Point> extPts = edgePoints(sc.externalEdge, root, cfg.canvasPadding());
             if (extPts.isEmpty()) continue;
-            merged.addAll(extPts);
+            List<FlowchartLayoutResult.Point> merged = new ArrayList<>(extPts);
 
             // Prepend source internal segments (outermost to innermost).
             for (int i = sc.srcPorts.size() - 1; i >= 0; i--) {

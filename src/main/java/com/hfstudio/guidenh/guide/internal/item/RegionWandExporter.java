@@ -9,14 +9,11 @@ import java.util.List;
 import java.util.Map;
 
 import net.minecraft.block.Block;
-import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
@@ -26,17 +23,13 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.ForgeDirection;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
-import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
-import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureExportAccess;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureData;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureFileStore;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
@@ -50,15 +43,10 @@ import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportAccess;
 import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportPipeline;
 import com.hfstudio.guidenh.guide.scene.snapshot.WorldStructureExportAccess;
 
-import cpw.mods.fml.common.eventhandler.Event;
-import cpw.mods.fml.common.eventhandler.EventPriority;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-
 /**
- * Selection wand that exports a small block region either as an inline {@code <GameScene>} snippet
- * (legacy mode) or as a structure SNBT compatible with {@code <ImportStructure>} (default).
+ * Serializes client-selected regions into GuideNH scene formats.
  */
-public class RegionWandItem extends Item {
+public class RegionWandExporter {
 
     public static final int MAX_EXPORT_BLOCKS = 1_000_000;
     public static final double DEFAULT_REACH_DISTANCE = 5.0D;
@@ -71,93 +59,15 @@ public class RegionWandItem extends Item {
     private static int lastClientSelectionZ;
     private static long lastClientExportActionMillis;
 
-    public RegionWandItem() {
-        super();
-        setUnlocalizedName("region_wand");
-        setTextureName(GuideNH.MODID + ":" + "region_wand");
-        setMaxStackSize(1);
-        setCreativeTab(CreativeTabs.tabTools);
-        MinecraftForge.EVENT_BUS.register(this);
-    }
-
-    @Override
-    public boolean onBlockStartBreak(ItemStack stack, int x, int y, int z, EntityPlayer player) {
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) {
-            return false;
-        }
-        if (player.worldObj.isRemote) {
-            applySelectionAction(stack, player, SelectionAction.POS1, x, y, z);
-        }
-        return true;
-    }
-
-    public static void handleRightClickBlock(ItemStack stack, EntityPlayer player, World world, int x, int y, int z) {
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) {
-            return;
-        }
-        if (player.isSneaking()) {
-            exportToClipboard(stack, player, world);
-            return;
-        }
-        applySelectionAction(stack, player, SelectionAction.POS2, x, y, z);
-    }
-
-    @Override
-    public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) {
-            if (world.isRemote) {
-                send(player, GuidebookText.SceneExportDisabled);
-            }
-            return stack;
-        }
-        if (player.isSneaking()) {
-            if (!world.isRemote || beginClientExportAction()) {
-                exportToClipboard(stack, player, world);
-            }
-        } else {
-            int[] target = world.isRemote ? resolveLookingAtSelection(player, world, true) : null;
-            if (target != null) {
-                applySelectionAction(stack, player, SelectionAction.POS2, target[0], target[1], target[2]);
-            }
-        }
-        return stack;
-    }
-
-    public static void onLeftClickBlock(ItemStack stack, EntityPlayer player, int x, int y, int z) {
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) {
-            return;
-        }
-        applySelectionAction(stack, player, SelectionAction.POS1, x, y, z);
-    }
-
-    public static void setPos(ItemStack stack, int which, int x, int y, int z) {
-        RegionWandSelection.setPos(which, x, y, z);
-    }
-
-    public static int @Nullable [] getPos(ItemStack stack, int which) {
-        return RegionWandSelection.getPos(which);
-    }
+    private RegionWandExporter() {}
 
     public static RegionWandExportMode getExportMode() {
         RegionWandExportMode mode = ModConfig.ui.regionWandExportMode;
         return mode != null ? mode : RegionWandExportMode.SNBT;
     }
 
-    public static boolean hasCompleteSelection(ItemStack stack) {
-        return RegionWandSelection.hasCompleteSelection();
-    }
-
-    public static void clearSelection(ItemStack stack) {
-        RegionWandSelection.clear();
-    }
-
     @Nullable
-    public static String exportSelectionAsStructureSnbt(World world, ItemStack stack) {
-        return exportSelectionAsStructureSnbt(world, stack, false);
-    }
-
-    @Nullable
-    public static String exportSelectionAsStructureSnbt(World world, ItemStack stack, boolean includeEntities) {
+    public static String exportSelectionAsStructureSnbt(World world, boolean includeEntities) {
         if (world == null) {
             return null;
         }
@@ -193,25 +103,6 @@ public class RegionWandItem extends Item {
     }
 
     @Nullable
-    public static String exportSelectionAsStructureSnbt(GuidebookLevel level, ItemStack stack) {
-        if (level == null) {
-            return null;
-        }
-        RegionWandSelection.Bounds bounds = RegionWandSelection.getBounds();
-        if (bounds == null) {
-            return null;
-        }
-
-        int minX = bounds.minX();
-        int minY = bounds.minY();
-        int minZ = bounds.minZ();
-        int dx = bounds.sizeX();
-        int dy = bounds.sizeY();
-        int dz = bounds.sizeZ();
-        return exportRegionAsStructureSnbt(level, minX, minY, minZ, dx, dy, dz);
-    }
-
-    @Nullable
     public static String exportRegionAsStructureSnbt(World world, int minX, int minY, int minZ, int sizeX, int sizeY,
         int sizeZ) {
         if (world == null || sizeX <= 0 || sizeY <= 0 || sizeZ <= 0) {
@@ -233,14 +124,8 @@ public class RegionWandItem extends Item {
             maxZ,
             sizeX,
             sizeY,
-            sizeZ).text();
-    }
-
-    @Nullable
-    public static String exportRegionAsStructureSnbt(GuidebookLevel level, int minX, int minY, int minZ, int sizeX,
-        int sizeY, int sizeZ) {
-        GuideStructureData structureData = exportRegionAsStructureData(level, minX, minY, minZ, sizeX, sizeY, sizeZ);
-        return structureData != null ? GuideTextNbtCodec.writeStructureSnbt(structureData.getRoot()) : null;
+            sizeZ,
+            List.of()).text();
     }
 
     @Nullable
@@ -268,8 +153,8 @@ public class RegionWandItem extends Item {
             sizeZ).structure();
     }
 
-    public static void exportToClipboard(ItemStack stack, EntityPlayer player, World world) {
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) {
+    public static void exportToClipboard(EntityPlayer player, World world) {
+        if (!ModConfig.ui.sceneExportEnabled) {
             if (world != null && world.isRemote) {
                 send(player, GuidebookText.SceneExportDisabled);
             }
@@ -356,10 +241,6 @@ public class RegionWandItem extends Item {
                 send(player, GuidebookText.RegionWandCopyFailed, getErrorMessage(t));
             }
         }
-    }
-
-    public static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-        return exportBlocks(world, minX, minY, minZ, maxX, maxY, maxZ, List.of());
     }
 
     public static ExportResult exportBlocks(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
@@ -490,11 +371,6 @@ public class RegionWandItem extends Item {
     }
 
     public static ExportResult exportSnbt(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-        int dx, int dy, int dz) {
-        return exportSnbt(new WorldStructureExportAccess(world), minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz);
-    }
-
-    public static ExportResult exportSnbt(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
         int dx, int dy, int dz, List<Entity> entities) {
         return exportSnbt(
             new WorldStructureExportAccess(world),
@@ -508,11 +384,6 @@ public class RegionWandItem extends Item {
             dy,
             dz,
             entities);
-    }
-
-    public static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
-        int maxY, int maxZ, int dx, int dy, int dz) {
-        return exportSnbt(access, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, List.of());
     }
 
     private static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
@@ -650,22 +521,6 @@ public class RegionWandItem extends Item {
     @Desugar
     private record ExportPayload(GuideStructureData structure, int nonAir, int teCount, int entityCount) {}
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    @Override
-    public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean advanced) {
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) {
-            list.add(GuidebookText.SceneExportDisabled.text());
-            return;
-        }
-        int[] p1 = getPos(stack, 1);
-        int[] p2 = getPos(stack, 2);
-        list.add(GuidebookText.RegionWandTooltipSelect.text());
-        list.add(GuidebookText.RegionWandTooltipExport.text());
-        list.add(GuidebookText.RegionWandTooltipMode.text(getExportMode().getDisplayName()));
-        if (p1 != null) list.add(GuidebookText.RegionWandTooltipPos.text(1, p1[0], p1[1], p1[2]));
-        if (p2 != null) list.add(GuidebookText.RegionWandTooltipPos.text(2, p2[0], p2[1], p2[2]));
-    }
-
     public static void send(EntityPlayer player, GuidebookText key, Object... args) {
         player.addChatMessage(new ChatComponentTranslation(key.getTranslationKey(), args));
     }
@@ -723,14 +578,13 @@ public class RegionWandItem extends Item {
         return Vec3.createVectorHelper(x, y, z);
     }
 
-    public static void applySelectionAction(ItemStack stack, EntityPlayer player, SelectionAction action, int x, int y,
-        int z) {
-        applySelectionAction(stack, player, action, x, y, z, true);
+    public static void applySelectionAction(EntityPlayer player, SelectionAction action, int x, int y, int z) {
+        applySelectionAction(player, action, x, y, z, true);
     }
 
-    public static void applySelectionAction(ItemStack stack, EntityPlayer player, SelectionAction action, int x, int y,
-        int z, boolean sendFeedback) {
-        if (stack == null || player == null || action == null) {
+    public static void applySelectionAction(EntityPlayer player, SelectionAction action, int x, int y, int z,
+        boolean sendFeedback) {
+        if (player == null || action == null) {
             return;
         }
         if (sendFeedback && player.worldObj != null
@@ -740,19 +594,19 @@ public class RegionWandItem extends Item {
         }
         switch (action) {
             case POS1:
-                setPos(stack, 1, x, y, z);
+                RegionWandSelection.setPos(1, x, y, z);
                 if (sendFeedback) {
                     send(player, GuidebookText.RegionWandChatPos, 1, x, y, z);
                 }
                 break;
             case POS2:
-                setPos(stack, 2, x, y, z);
+                RegionWandSelection.setPos(2, x, y, z);
                 if (sendFeedback) {
                     send(player, GuidebookText.RegionWandChatPos, 2, x, y, z);
                 }
                 break;
             case CLEAR:
-                clearSelection(stack);
+                RegionWandSelection.clear();
                 if (sendFeedback) {
                     send(player, GuidebookText.RegionWandSelectionCleared);
                 }
@@ -760,84 +614,6 @@ public class RegionWandItem extends Item {
             default:
                 break;
         }
-    }
-
-    public static boolean applySelectionActionFromNetwork(EntityPlayer player, SelectionAction action, int x, int y,
-        int z) {
-        if (player == null || action == null) {
-            return false;
-        }
-        ItemStack held = player.getHeldItem();
-        if (held == null || !(held.getItem() instanceof RegionWandItem)) {
-            return false;
-        }
-        applySelectionAction(held, player, action, x, y, z);
-        return true;
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        EntityPlayer player = event.entityPlayer;
-        if (player == null) return;
-        if (event.world == null || !event.world.isRemote) return;
-        ItemStack held = player.getHeldItem();
-        if (held == null || !(held.getItem() instanceof RegionWandItem)) return;
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) return;
-
-        if (event.action == PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) {
-            handleLeftClickBlock(event, held, player);
-            return;
-        }
-        if (event.action == PlayerInteractEvent.Action.RIGHT_CLICK_BLOCK) {
-            handleRightClickBlock(event, held, player);
-            return;
-        }
-        if (event.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR && player.isSneaking()) {
-            handleRightClickAir(event, held, player);
-        }
-    }
-
-    public static void handleLeftClickBlock(PlayerInteractEvent event, ItemStack stack, EntityPlayer player) {
-        if (player.isSneaking()) {
-            applySelectionAction(stack, player, SelectionAction.CLEAR, 0, 0, 0);
-        } else {
-            int[] target = resolveLookingAtSelection(player, event.world, true);
-            if (target != null) {
-                applySelectionAction(stack, player, SelectionAction.POS1, target[0], target[1], target[2]);
-            } else {
-                onLeftClickBlock(stack, player, event.x, event.y, event.z);
-            }
-        }
-        event.useBlock = Event.Result.DENY;
-        event.useItem = Event.Result.DENY;
-        event.setCanceled(true);
-    }
-
-    public static void handleRightClickBlock(PlayerInteractEvent event, ItemStack stack, EntityPlayer player) {
-        if (player.isSneaking()) {
-            if (beginClientExportAction()) {
-                exportToClipboard(stack, player, event.world);
-            }
-        } else {
-            int[] target = resolveLookingAtSelection(player, event.world, true);
-            if (target != null) {
-                applySelectionAction(stack, player, SelectionAction.POS2, target[0], target[1], target[2]);
-            } else {
-                handleRightClickBlock(stack, player, event.world, event.x, event.y, event.z);
-            }
-        }
-        event.useBlock = Event.Result.DENY;
-        event.useItem = Event.Result.DENY;
-        event.setCanceled(true);
-    }
-
-    public static void handleRightClickAir(PlayerInteractEvent event, ItemStack stack, EntityPlayer player) {
-        if (beginClientExportAction()) {
-            exportToClipboard(stack, player, event.world);
-        }
-        event.useBlock = Event.Result.DENY;
-        event.useItem = Event.Result.DENY;
-        event.setCanceled(true);
     }
 
     public static boolean beginClientSelectionAction(SelectionAction action, int x, int y, int z) {
@@ -867,28 +643,8 @@ public class RegionWandItem extends Item {
 
     public enum SelectionAction {
 
-        POS1(1),
-        POS2(2),
-        CLEAR(3);
-
-        private final int id;
-
-        SelectionAction(int id) {
-            this.id = id;
-        }
-
-        public int id() {
-            return id;
-        }
-
-        @Nullable
-        public static SelectionAction byId(int id) {
-            for (SelectionAction action : values()) {
-                if (action.id == id) {
-                    return action;
-                }
-            }
-            return null;
-        }
+        POS1,
+        POS2,
+        CLEAR
     }
 }

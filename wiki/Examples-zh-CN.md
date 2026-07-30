@@ -29,7 +29,7 @@ GuideNH 已经在 `wiki/resourcepack/` 中内置了一份运行时示例指南�
 
 ```yaml
 item_ids:
-  - guidenh:guide
+  - minecraft:book
 navigation:
   title: Root
   icon_texture: test1.png

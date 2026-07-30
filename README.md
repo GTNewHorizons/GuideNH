@@ -58,7 +58,7 @@
 
 In game:
 
-* Use `/give Developer guidenh:guide` to get the demo guide book.
+* Press `G` to open the guide home page.
 * Hold `G` while hovering an indexed item to jump to its guide entry.
 * Press `F3+T` to reload edited guide resources.
 

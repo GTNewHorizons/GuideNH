@@ -88,11 +88,12 @@ public class CylinderShape implements ShapeRenderer {
         int cx = x + w / 2, rx = w / 2, r = Math.max(3, h / 4);
         int top = y + r, bot = y + h - r;
         return String.format(
-            "<path d=\"M %d,%d A %d,%d 0 0,1 %d,%d L %d,%d A %d,%d 0 0,1 %d,%d Z\" fill=\"%s\"/>\n"
-                + "<ellipse cx=\"%d\" cy=\"%d\" rx=\"%d\" ry=\"%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"/>\n"
-                + "<path d=\"M %d,%d A %d,%d 0 0,1 %d,%d\" fill=\"none\" stroke=\"%s\" stroke-width=\"1.5\"/>\n"
-                + "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"1.5\"/>\n"
-                + "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"1.5\"/>",
+            """
+                <path d="M %d,%d A %d,%d 0 0,1 %d,%d L %d,%d A %d,%d 0 0,1 %d,%d Z" fill="%s"/>
+                <ellipse cx="%d" cy="%d" rx="%d" ry="%d" fill="%s" stroke="%s" stroke-width="1.5"/>
+                <path d="M %d,%d A %d,%d 0 0,1 %d,%d" fill="none" stroke="%s" stroke-width="1.5"/>
+                <line x1="%d" y1="%d" x2="%d" y2="%d" stroke="%s" stroke-width="1.5"/>
+                <line x1="%d" y1="%d" x2="%d" y2="%d" stroke="%s" stroke-width="1.5"/>""",
             x,
             top,
             rx,

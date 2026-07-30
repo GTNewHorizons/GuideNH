@@ -308,7 +308,7 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 
 ```yaml
 item_ids:
-  - guidenh:guide
+  - minecraft:book
 navigation:
   title: Root
   parent: index.md

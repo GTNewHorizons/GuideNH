@@ -1,8 +1,5 @@
 package com.hfstudio.guidenh;
 
-import net.minecraft.init.Items;
-import net.minecraftforge.oredict.ShapelessOreRecipe;
-
 import com.hfstudio.guidenh.integration.GuideNhIntegrationBootstrap;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 import com.hfstudio.guidenh.network.GuideNhNetworkEvents;
@@ -12,14 +9,10 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.registry.GameRegistry;
 
 public class CommonProxy {
 
     public void preInit(FMLPreInitializationEvent event) {
-        GameRegistry.registerItem(GuideNH.GUIDE_ITEM, "guide");
-        GameRegistry.registerItem(GuideNH.REGION_WAND, "region_wand");
-        GameRegistry.addRecipe(new ShapelessOreRecipe(GuideNH.GUIDE_ITEM, Items.book, Items.compass));
         GuideNhNetwork.initCommon();
         GuideNhIntegrationBootstrap.preInitCommon();
         FMLCommonHandler.instance()
