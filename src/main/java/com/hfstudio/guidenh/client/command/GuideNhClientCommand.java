@@ -93,8 +93,8 @@ public class GuideNhClientCommand extends CommandBase {
                 if (!requireSceneExportEnabled(sender)) return;
                 clearSelection(sender);
             }
-            case "bind" -> bindHeldItem(sender, true);
-            case "unbind" -> bindHeldItem(sender, false);
+            case "bind" -> updateRegionWandBinding(sender, true);
+            case "unbind" -> updateRegionWandBinding(sender, false);
             default -> send(sender, GuidebookText.CommandClientUsage);
         }
     }
@@ -436,7 +436,12 @@ public class GuideNhClientCommand extends CommandBase {
         send(sender, GuidebookText.RegionWandSelectionCleared);
     }
 
-    private void bindHeldItem(ICommandSender sender, boolean bind) throws CommandException {
+    private void updateRegionWandBinding(ICommandSender sender, boolean bind) {
+        if (!bind) {
+            boolean changed = RegionWandSelection.clearBinding();
+            send(sender, changed ? GuidebookText.RegionWandUnbound : GuidebookText.RegionWandNotBound);
+            return;
+        }
         EntityPlayer player = Minecraft.getMinecraft().thePlayer;
         if (player == null) {
             send(sender, GuidebookText.RegionWandNoHeldItem);
@@ -447,12 +452,8 @@ public class GuideNhClientCommand extends CommandBase {
             send(sender, GuidebookText.RegionWandNoHeldItem);
             return;
         }
-        boolean changed = bind ? RegionWandSelection.bind(held) : RegionWandSelection.unbind(held);
-        if (bind) {
-            send(sender, changed ? GuidebookText.RegionWandBound : GuidebookText.RegionWandAlreadyBound);
-            return;
-        }
-        send(sender, changed ? GuidebookText.RegionWandUnbound : GuidebookText.RegionWandNotBound);
+        boolean changed = RegionWandSelection.bind(held);
+        send(sender, changed ? GuidebookText.RegionWandBound : GuidebookText.RegionWandAlreadyBound);
     }
 
     private boolean requireSceneExportEnabled(ICommandSender sender) {

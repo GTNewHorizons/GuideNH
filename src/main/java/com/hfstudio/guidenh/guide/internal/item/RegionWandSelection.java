@@ -2,10 +2,8 @@ package com.hfstudio.guidenh.guide.internal.item;
 
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -57,25 +55,22 @@ public class RegionWandSelection {
             return false;
         }
         ensureBindingsInitialized();
-        Set<String> bindings = new LinkedHashSet<>(bindingCache.keys());
-        if (!bindings.add(key)) {
+        if (bindingCache.keys()
+            .size() == 1 && bindingCache.keys()
+                .contains(key)) {
             return false;
         }
-        saveBindings(bindings);
+        saveBinding(key);
         return true;
     }
 
-    public static boolean unbind(ItemStack stack) {
-        String key = bindingKey(stack);
-        if (key == null) {
-            return false;
-        }
+    public static boolean clearBinding() {
         ensureBindingsInitialized();
-        Set<String> bindings = new LinkedHashSet<>(bindingCache.keys());
-        if (!bindings.remove(key)) {
+        if (bindingCache.keys()
+            .isEmpty()) {
             return false;
         }
-        saveBindings(bindings);
+        saveBinding(null);
         return true;
     }
 
@@ -91,16 +86,17 @@ public class RegionWandSelection {
     }
 
     public static synchronized void reloadBindings() {
-        Set<String> bindings = new LinkedHashSet<>();
+        String binding = null;
         String[] configuredBindings = ModConfig.ui.regionWandBindings;
         if (configuredBindings != null) {
-            for (String binding : configuredBindings) {
-                if (binding != null && !binding.isEmpty()) {
-                    bindings.add(binding);
+            for (String candidate : configuredBindings) {
+                if (candidate != null && !candidate.isEmpty()) {
+                    binding = candidate;
+                    break;
                 }
             }
         }
-        bindingCache = createBindingCache(bindings);
+        bindingCache = createBindingCache(binding != null ? Set.of(binding) : Set.of());
         bindingsInitialized = true;
     }
 
@@ -121,10 +117,10 @@ public class RegionWandSelection {
         }
     }
 
-    private static void saveBindings(Set<String> bindings) {
-        Set<String> sortedBindings = new TreeSet<>(bindings);
-        ModConfig.ui.regionWandBindings = sortedBindings.toArray(new String[0]);
-        bindingCache = createBindingCache(sortedBindings);
+    private static void saveBinding(@Nullable String binding) {
+        Set<String> keys = binding != null ? Set.of(binding) : Set.of();
+        ModConfig.ui.regionWandBindings = keys.toArray(new String[0]);
+        bindingCache = createBindingCache(keys);
         bindingsInitialized = true;
         ModConfig.save();
     }

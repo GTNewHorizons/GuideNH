@@ -212,7 +212,7 @@ public class ModConfig {
         @DefaultBoolean(true)
         public boolean regionWandPersistentSelectionRender = true;
 
-        @Comment("Client-side Region Wand bindings stored as item registry id and metadata pairs.")
+        @Comment("Client-side Region Wand binding stored as an item registry id and metadata pair.")
         @DefaultStringList({})
         public String[] regionWandBindings = {};
 
