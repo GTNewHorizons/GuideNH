@@ -92,6 +92,8 @@ public class LayoutTreeSerializer {
     private final Map<LytBlock, Byte> alignIntents = new IdentityHashMap<>();
     /** Available width (px) from the last serialize() — needed by flattenTree for table column layout. */
     private float serializeAvailWidth;
+    /** Visual scale from the last serialize() — needed by flattenTree for inline-block dimension computation. */
+    private float serializeVisualScale;
 
     record FloatRect(LytRect rect, boolean right) {}
 
@@ -105,6 +107,7 @@ public class LayoutTreeSerializer {
         floatRects.clear();
         alignIntents.clear();
         this.serializeAvailWidth = availWidth;
+        this.serializeVisualScale = visualScale;
 
         flattenTree(root);
 
@@ -369,10 +372,51 @@ public class LayoutTreeSerializer {
                     } else if (ib instanceof LytGuiSprite gs) {
                         vw = Math.max(1, gs.getExplicitWidth());
                         vh = Math.max(1, gs.getExplicitHeight());
-                    } else if (ib instanceof LytImage image && image.getExplicitWidth() > 0
-                        && image.getExplicitHeight() > 0) {
-                        vw = image.getExplicitWidth();
-                        vh = image.getExplicitHeight();
+                    } else if (ib instanceof LytImage image) {
+                        // LytImage after script materialization: compute displayed
+                        // dimensions from texture, crop, scale, and DEFAULT_LAYOUT_SCALE
+                        // (mirrors LytImage.computeLayout).  The Java layout pre-pass is
+                        // removed so ib.getBounds() is LytRect.empty(); relying on the
+                        // explicit-dimensions guard alone would leave size_h=0, making
+                        // Rust inline_block_height() return 0 and inline_line_growth()
+                        // stay 0 — the paragraph never grows to include the image, and
+                        // the parent flex container (LytListItem) omits the image height.
+                        if (image.getExplicitWidth() > 0) {
+                            vw = image.getExplicitWidth();
+                        } else {
+                            var tex = image.getTexture();
+                            if (tex != null && !tex.isMissing()) {
+                                var size = tex.getSize();
+                                int sourceW = image.getCropWidth() > 0
+                                    ? image.getCropWidth() : size.width();
+                                vw = Math.max(1, (int) Math.round(
+                                    sourceW * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleX()));
+                            } else {
+                                LytRect b = ib.getBounds();
+                                vw = b != null ? b.width() : 0;
+                            }
+                        }
+                        if (image.getExplicitHeight() > 0) {
+                            vh = image.getExplicitHeight();
+                        } else {
+                            var tex = image.getTexture();
+                            if (tex != null && !tex.isMissing()) {
+                                var size = tex.getSize();
+                                int sourceH = image.getCropHeight() > 0
+                                    ? image.getCropHeight() : size.height();
+                                vh = Math.max(1, (int) Math.round(
+                                    sourceH * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleY()));
+                            } else {
+                                LytRect b = ib.getBounds();
+                                vh = b != null ? b.height() : 0;
+                            }
+                        }
+                        // Apply visual scale (mirrors LytImage.computeLayout)
+                        float vs = serializeVisualScale;
+                        if (vs < 0.999f) {
+                            vw = Math.max(1, Math.round(vw * vs));
+                            vh = Math.max(1, Math.round(vh * vs));
+                        }
                     } else if (ib instanceof LytImageBlock imb && imb.getExplicitWidth() > 0
                         && imb.getExplicitHeight() > 0) {
                         vw = imb.getExplicitWidth();
