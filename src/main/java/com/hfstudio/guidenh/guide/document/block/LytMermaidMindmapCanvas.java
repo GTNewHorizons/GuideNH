@@ -589,10 +589,13 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
      * block in the subtree obtains non-empty bounds visible to
      * {@link #resolveBlockVisualBounds} and the primitive collector.
      * <p>
-     * {@link LytVBox#computeBoxLayout} is a stub that does not lay out
-     * children (Rust is sole layout authority).  For NodeContent inside
-     * Mermaid diagrams there is no Rust pass, so we must manually
-     * position all children recursively.
+     * Uses <b>post-order</b> traversal: subtrees are laid out first, then
+     * siblings are positioned via {@link Layouts#verticalLayout}.  This
+     * ordering is required because {@link LytList} and {@link LytListItem}
+     * have real {@code computeBoxLayout} that recursively lay out children;
+     * a pre-order pass would re-layout those children a second time at
+     * incorrect coordinates (offset relative to 0 instead of the parent's
+     * actual Y position).
      */
     private static void layoutContentSubtree(LayoutContext context, LytBlock block, int contentWidth) {
         if (!(block instanceof LytVBox vbox)) return;
@@ -601,17 +604,16 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
             if (child instanceof LytBlock b) blockChildren.add(b);
         }
         if (blockChildren.isEmpty()) return;
+        // Post-order: lay out child subtrees before positioning siblings.
+        for (LytBlock child : blockChildren) {
+            layoutContentSubtree(context, child, contentWidth);
+        }
         // Content VBox created by compileNodeContentBlock has default
         // padding (0), gap (0), and alignItems (START).
         Layouts.verticalLayout(context, blockChildren,
             0, 0, contentWidth,
             0, 0, 0, 0,
             vbox.getGap(), vbox.getAlignItems());
-        // Recurse into nested containers so deeper nesting (list inside
-        // list, list item with paragraph, etc.) also gets laid out.
-        for (LytBlock child : blockChildren) {
-            layoutContentSubtree(context, child, contentWidth);
-        }
     }
 
     private void measureSideTree(NodeLayout node) {

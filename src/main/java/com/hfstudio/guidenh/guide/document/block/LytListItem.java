@@ -36,12 +36,22 @@ public class LytListItem extends LytVBox {
 
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
-        // cachedOrderedNumber is computed in afterExternalLayout now (the
-        // Java layout pre-pass no longer calls computeLayout). Retain margin
-        // offset for direct layout() calls (internal use by parent blocks).
+        // Manual layout path — only reached from layoutContentSubtree for Mermaid
+        // NodeContent (no Rust pass).  paddingLeft (LEVEL_MARGIN) is already
+        // applied by LytBox.computeLayout before this method; the extra margin
+        // below creates content indentation leaving the bullet/number zone
+        // visible.  Normal document pipeline bypasses this (Rust is authoritative).
         var margin = LEVEL_MARGIN;
-        var bounds = super.computeBoxLayout(context, x + margin, y, availableWidth - margin);
-        return bounds.expand(LEVEL_MARGIN, 0, 0, 0);
+        int cursorY = y;
+        int contentAvailWidth = Math.max(1, availableWidth - margin);
+        int maxContentWidth = 0;
+        for (LytBlock child : children) {
+            var childBounds = child.layout(context, x + margin, cursorY, contentAvailWidth);
+            cursorY += childBounds.height();
+            maxContentWidth = Math.max(maxContentWidth, childBounds.width());
+        }
+        int contentHeight = Math.max(0, cursorY - y);
+        return new LytRect(x, y, maxContentWidth + margin, contentHeight);
     }
 
     @Override
