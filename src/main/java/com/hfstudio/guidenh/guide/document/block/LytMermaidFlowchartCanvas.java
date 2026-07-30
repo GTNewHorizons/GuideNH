@@ -224,20 +224,11 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 // for the normal document pipeline). For embedded NodeContent blocks
                 // inside Mermaid diagrams there is no Rust pass, so we must lay the
                 // children out manually to obtain non-zero visual bounds.
-                if (block instanceof LytVBox vbox) {
-                    List<LytBlock> blockChildren = new ArrayList<>();
-                    for (LytNode child : vbox.getChildren()) {
-                        if (child instanceof LytBlock b) blockChildren.add(b);
-                    }
-                    if (!blockChildren.isEmpty()) {
-                        // Content VBox created by compileNodeContentBlock has
-                        // default padding (0), gap (0), alignItems (START).
-                        Layouts.verticalLayout(localContext, blockChildren,
-                            0, 0, contentWidth,
-                            0, 0, 0, 0,
-                            vbox.getGap(), vbox.getAlignItems());
-                    }
-                }
+                // Recursively lay out all LytVBox containers (including LytList,
+                // LytListItem, etc.) so nested content such as list items obtains
+                // non-empty bounds visible to resolveBlockVisualBounds and the
+                // primitive collector.
+                layoutContentSubtree(localContext, block, contentWidth);
                 LytRect vb = resolveBlockVisualBounds(block);
                 textWidth = vb.width();
                 textHeight = vb.height();
@@ -284,6 +275,38 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             result.put(nodeId, new NodeMinSize(width, height));
         }
         return result;
+    }
+
+    /**
+     * Recursively lay out all LytVBox containers inside {@code block},
+     * including nested ones (LytList / LytListItem / LytVBox), so every
+     * block in the subtree obtains non-empty bounds visible to
+     * {@link LytMermaidCanvas#resolveBlockVisualBounds} and the primitive
+     * collector.
+     * <p>
+     * {@link LytVBox#computeBoxLayout} is a stub that does not lay out
+     * children (Rust is sole layout authority).  For NodeContent inside
+     * Mermaid diagrams there is no Rust pass, so we must manually
+     * position all children recursively.
+     */
+    private static void layoutContentSubtree(LayoutContext context, LytBlock block, int contentWidth) {
+        if (!(block instanceof LytVBox vbox)) return;
+        List<LytBlock> blockChildren = new ArrayList<>();
+        for (LytNode child : vbox.getChildren()) {
+            if (child instanceof LytBlock b) blockChildren.add(b);
+        }
+        if (blockChildren.isEmpty()) return;
+        // Content VBox created by compileNodeContentBlock has default
+        // padding (0), gap (0), alignItems (START).
+        Layouts.verticalLayout(context, blockChildren,
+            0, 0, contentWidth,
+            0, 0, 0, 0,
+            vbox.getGap(), vbox.getAlignItems());
+        // Recurse into nested containers so deeper nesting (list inside
+        // list, list item with paragraph, etc.) also gets laid out.
+        for (LytBlock child : blockChildren) {
+            layoutContentSubtree(context, child, contentWidth);
+        }
     }
 
     private void restoreViewportAfterLayout(int previousOffsetX, int previousOffsetY, int previousViewportWidth,
