@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -48,11 +49,17 @@ public class LytImage extends LytBlock implements InteractiveElement {
     private int explicitWidth = -1;
     @Getter
     private int explicitHeight = -1;
+    @Getter
     private int cropX;
+    @Getter
     private int cropY;
+    @Getter
     private int cropWidth = -1;
+    @Getter
     private int cropHeight = -1;
+    @Getter
     private double scaleX = 1.0d;
+    @Getter
     private double scaleY = 1.0d;
 
     @Getter
@@ -151,7 +158,20 @@ public class LytImage extends LytBlock implements InteractiveElement {
             ResourceLocation resolvedTex = texture.getTexture();
             int texId = resolvedTex != null ? getGlTextureId(resolvedTex) : -1;
             if (texId >= 0) {
-                // Full texture UV — matches the legacy fillTexturedRect behavior
+                // Compute UV from crop rect, or full texture when no cropping.
+                LytSize texSize = texture.getSize();
+                float u1, v1, u2, v2;
+                if (cropWidth > 0) {
+                    u1 = (float) cropX / texSize.width();
+                    v1 = (float) cropY / texSize.height();
+                    u2 = (float) (cropX + cropWidth) / texSize.width();
+                    v2 = (float) (cropY + cropHeight) / texSize.height();
+                } else {
+                    u1 = 0f;
+                    v1 = 0f;
+                    u2 = 1f;
+                    v2 = 1f;
+                }
                 c.emit(
                     new GuideRenderPrimitive.BlitTexture(
                         texId,
@@ -159,10 +179,10 @@ public class LytImage extends LytBlock implements InteractiveElement {
                         bounds.y(),
                         bounds.width(),
                         bounds.height(),
-                        0f,
-                        0f,
-                        1f,
-                        1f));
+                        u1,
+                        v1,
+                        u2,
+                        v2));
             } else {
                 // Texture object not (yet) registered with the TextureManager —
                 // fall back to the missing-texture sprite instead of leaving an

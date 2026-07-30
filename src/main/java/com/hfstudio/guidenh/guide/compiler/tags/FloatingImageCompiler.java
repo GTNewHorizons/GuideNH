@@ -59,8 +59,8 @@ public class FloatingImageCompiler implements TagCompiler {
         var wrapMode = ContentWrapMode.fromString(wrapAttr);
         var align = ContentAlign.fromString(alignAttr);
 
-        // Inline wrap: fall through to the inline‑block path inside a paragraph.
-        if (wrapMode == ContentWrapMode.INLINE) {
+        // Inline wrap: only explicit wrap="inline" goes to the inline‑block path.
+        if ("inline".equals(wrapAttr)) {
             var paragraph = new LytParagraph();
             compileInline(compiler, paragraph, el);
             parent.append(paragraph);
@@ -70,6 +70,13 @@ public class FloatingImageCompiler implements TagCompiler {
         // Build the image block for all non‑inline modes.
         LytImageBlock imageBlock = buildImageBlock(compiler, parent, el);
         if (imageBlock == null) return;
+
+        // No explicit wrap + left/right align → document float (matching legacy behaviour).
+        if (wrapAttr == null && ("left".equals(alignAttr) || "right".equals(alignAttr))) {
+            LytDocumentFloat docFloat = new LytDocumentFloat(imageBlock, "right".equals(alignAttr));
+            parent.append(docFloat);
+            return;
+        }
 
         // Square / tight / through → document float (same as BlockTagCompiler.applyBlockEmbed).
         if (wrapMode.isDocumentFloat()) {

@@ -54,6 +54,19 @@ public final class MdAstToMdxConverter {
      */
     private static final Pattern TABLE_ATTRIBUTE_LINE = Pattern.compile("^\\{:\\s*(.+?)\\s*}$");
 
+    /**
+     * Matches an inline attribute block {@code {key=value key="value" key='value'}}
+     * attached to a Markdown image or link, e.g. {@code {align=center}}.
+     */
+    private static final Pattern INLINE_ATTR_BLOCK = Pattern.compile("^\\{(.+)\\}$");
+
+    /**
+     * Matches a single attribute key=value pair inside {@code {...}}.
+     * Supports unquoted values, double-quoted, and single-quoted values.
+     */
+    private static final Pattern INLINE_ATTR_PAIR = Pattern.compile(
+        "(\\w+)=\"([^\"]*)\"|(\\w+)='([^']*)'|(\\w+)=(\\w+)");
+
     private MdAstToMdxConverter() {}
 
     /**
@@ -168,6 +181,7 @@ public final class MdAstToMdxConverter {
                 if (image.title != null) {
                     el.addAttribute("title", image.title);
                 }
+                consumeTrailingAttributes(children, i, el);
                 replacement = el;
             } else if (child instanceof MdAstImageReference ref) {
                 MdxJsxTextElement el = createText("img", new ArrayList<>());
@@ -183,6 +197,7 @@ public final class MdAstToMdxConverter {
                 if (ref.alt != null) {
                     el.addAttribute("alt", ref.alt);
                 }
+                consumeTrailingAttributes(children, i, el);
                 replacement = el;
             } else if (child instanceof MdAstInlineCode code) {
                 MdxJsxTextElement el = createText("code", new ArrayList<>());
@@ -229,6 +244,16 @@ public final class MdAstToMdxConverter {
                     replacement = new MdxJsxFlowElement();
                     replacement.setName("table-meta");
                     replacement.addAttribute("content", kramdownMeta);
+                } else if (isSoloAlignedImageParagraph(p)) {
+                    // R4-31: standalone paragraph with only {align=...} image →
+                    // promote to block-level <img> so it goes through
+                    // ImageCompiler.compileBlockContext and produces a proper
+                    // LytAlignedBlock (instead of inline LytFlowInlineBlock).
+                    MdxJsxTextElement imgEl = (MdxJsxTextElement) p.children().get(0);
+                    MdxJsxFlowElement flowImg = new MdxJsxFlowElement();
+                    flowImg.setName("img");
+                    flowImg.attributes().addAll(imgEl.attributes());
+                    replacement = flowImg;
                 } else {
                     replacement = createFlow("p", p.children());
                 }
@@ -398,6 +423,66 @@ public final class MdAstToMdxConverter {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * Checks if the child at {@code index + 1} is an {@link MdAstText} containing
+     * an inline attribute block ({@code {key=value ...}}). If so, parses the
+     * attributes and adds them to the given {@link MdxJsxTextElement}, then
+     * removes the consumed text node from the children list.
+     * <p>
+     * This bridges the gap between Markdown image syntax {@code ![alt](src){align=center}}
+     * and the JSX attribute representation expected by tag compilers (R4-31).
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static void consumeTrailingAttributes(List<?> children, int index, MdxJsxTextElement el) {
+        int nextIdx = index + 1;
+        if (nextIdx >= children.size()) return;
+        Object next = children.get(nextIdx);
+        if (!(next instanceof MdAstText text)) return;
+        String trimmed = text.value.trim();
+        java.util.regex.Matcher blockMatcher = INLINE_ATTR_BLOCK.matcher(trimmed);
+        if (!blockMatcher.matches()) return;
+
+        String inner = blockMatcher.group(1).trim();
+        java.util.regex.Matcher pairMatcher = INLINE_ATTR_PAIR.matcher(inner);
+        boolean found = false;
+        while (pairMatcher.find()) {
+            found = true;
+            // Group 1/2: double-quoted value; 3/4: single-quoted; 5/6: unquoted
+            String name = pairMatcher.group(1) != null ? pairMatcher.group(1)
+                : pairMatcher.group(3) != null ? pairMatcher.group(3)
+                : pairMatcher.group(5);
+            String value = pairMatcher.group(2) != null ? pairMatcher.group(2)
+                : pairMatcher.group(4) != null ? pairMatcher.group(4)
+                : pairMatcher.group(6);
+            if (name != null && value != null) {
+                el.addAttribute(name, value);
+            }
+        }
+        if (found) {
+            children.remove(nextIdx);
+        }
+    }
+
+    /**
+     * Checks if a paragraph has been converted to contain only a single
+     * {@code <img>} element with an {@code align} attribute. Such paragraphs
+     * come from standalone Markdown image syntax with kramdown-style alignment,
+     * e.g. {@code ![alt](src){align=center}} on its own line.
+     * <p>
+     * These should be promoted to block-level {@code <img>} so that
+     * {@link com.hfstudio.guidenh.guide.compiler.tags.ImageCompiler} can
+     * produce a block-level {@code LytAlignedBlock} at compile time, avoiding
+     * the inline {@code LytFlowInlineBlock} wrapper that cannot position
+     * block-level alignment nodes (R4-31).
+     */
+    private static boolean isSoloAlignedImageParagraph(MdAstParagraph p) {
+        if (p.children().size() != 1) return false;
+        Object sole = p.children().get(0);
+        if (!(sole instanceof MdxJsxTextElement imgEl)) return false;
+        if (!"img".equals(imgEl.name())) return false;
+        return imgEl.getAttribute("align") != null;
     }
 
     /**

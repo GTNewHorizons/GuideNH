@@ -496,12 +496,16 @@ public final class LayoutNodeSerializer {
                 naturalW = size.width();
                 naturalH = size.height();
             }
-            // We can't access private explicitWidth/explicitHeight from here,
-            // but the explicit fields from schema default to -1 so Rust can
-            // detect "not set" and fall through to naturalW * scaleX.
-            // Read them via the setter's backing concept — if the image has
-            // explicit dimensions they are encoded in the LytImage's layout output.
-            // For now, naturalW/naturalH give the Rust side usable dimensions.
+            // Pass crop / scale / explicit fields so the Rust ImageData path
+            // receives the same crop information as the Java Blit path.
+            cropX = img.getCropX();
+            cropY = img.getCropY();
+            cropW = img.getCropWidth();
+            cropH = img.getCropHeight();
+            scaleX = (float) img.getScaleX();
+            scaleY = (float) img.getScaleY();
+            explicitW = img.getExplicitWidth();
+            explicitH = img.getExplicitHeight();
         }
 
         return ImageData

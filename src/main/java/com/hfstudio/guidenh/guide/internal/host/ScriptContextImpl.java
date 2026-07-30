@@ -59,6 +59,7 @@ class ScriptContextImpl implements ScriptContext {
         // discussion of why Flow and Block trees are separate and how this bridge works.
         //
         if (node instanceof LytFlowInlineBlock wrapper && newNode instanceof LytBlock newBlock) {
+            inheritUid(wrapper, newBlock);
             wrapper.setBlock(newBlock);
             document.invalidateLayout();
             recordResult(newBlock);
