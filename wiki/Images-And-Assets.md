@@ -39,6 +39,8 @@ other mods directly.
 | `height` / `h` | yes | crop height in source-image pixels; exactly one spelling must be used |
 | `scaleX` | no | horizontal display multiplier, default `1.0` |
 | `scaleY` | no | vertical display multiplier, default `1.0` |
+| `displayWidth` | no | final display width in pixels; preserves the crop aspect ratio when used alone |
+| `displayHeight` | no | final display height in pixels; preserves the crop aspect ratio when used alone |
 | `wrap` | no | `inline` for true inline placement, otherwise use the normal wrapping modes |
 | `align` | no | `left` or `right` for floating placement; ignored when `wrap="inline"` |
 | `title` | no | tooltip/title text |
@@ -48,9 +50,13 @@ other mods directly.
 
 ### Notes
 
-- `x`, `y`, `width` / `w`, and `height` / `h` are all required together
+- `x`, `y`, `width` / `w`, and `height` / `h` are all required together when cropping
+- when the crop attributes are all omitted, `displayWidth` or `displayHeight` displays the full source image
 - `width` and `height` now describe the crop rectangle, not the final display size
-- the final display size is `cropWidth * scaleX` by `cropHeight * scaleY`
+- `scaleX` and `scaleY` calculate the final display size as `cropWidth * scaleX` by `cropHeight * scaleY`
+- `displayWidth` or `displayHeight` sets the final display size in pixels; when only one is present, the other dimension is calculated from the crop aspect ratio
+- providing both `displayWidth` and `displayHeight` allows intentional non-proportional stretching
+- `displayWidth` / `displayHeight` cannot be combined with `scaleX` / `scaleY`
 - single-axis stretching is supported by setting only one scale differently
 - `width` with `w`, or `height` with `h`, is invalid and renders a visible error
 - old `FloatingImage width/height as display size` content is intentionally breaking and must be migrated manually
@@ -65,8 +71,8 @@ other mods directly.
   y="0"
   width="32"
   height="32"
-  scaleX="2.0"
-  scaleY="2.0"
+  displayWidth="64"
+  displayHeight="64"
   wrap="inline"
   title="Example"
 />

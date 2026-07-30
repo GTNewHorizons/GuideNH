@@ -12,6 +12,7 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 public class ImageScript implements LytScript {
 
@@ -52,9 +53,8 @@ public class ImageScript implements LytScript {
             return;
         }
 
-        byte[] imageData = ctx.loadAsset(imageId);
         LytImage image = new LytImage();
-        image.setImage(imageId, imageData); // null imageData → GuidePageTexture.missing()
+        image.setTexture(imageId, GuidePageTexture.loadCached(imageId, () -> ctx.loadAsset(imageId)));
 
         String alt = placeholder.getAlt();
         if (alt != null && !alt.isEmpty()) image.setAlt(alt);

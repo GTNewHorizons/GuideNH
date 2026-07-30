@@ -27,9 +27,10 @@ Relative path (`test1.png` in the same directory):
 
 Inline image mixed with text: here ![inline](test1.png) is an inline image.
 
-`<FloatingImage>` now crops first and scales second. `x`, `y`, `width` / `w`, and `height` / `h` select the
-source rectangle on the original image. `scaleX` and `scaleY` then resize that cropped result, including
-single-axis stretching.
+`<FloatingImage>` crops first and then determines the display size. `x`, `y`, `width` / `w`, and `height` / `h`
+select the source rectangle on the original image. `scaleX` and `scaleY` resize that cropped result by a multiplier.
+`displayWidth` and `displayHeight` specify final pixel dimensions instead. One display dimension preserves the crop
+aspect ratio; both allow stretching. Display dimensions cannot be combined with `scaleX` or `scaleY`.
 
 Cropped 64×64 region displayed at native size:
 
@@ -37,7 +38,11 @@ Cropped 64×64 region displayed at native size:
 
 Cropped 64×64 region stretched to 200×80:
 
-<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" scaleX="3.125" scaleY="1.25" title="stretch 200x80" />
+<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" displayWidth="200" displayHeight="80" title="stretch 200x80" />
+
+Set only one final dimension to preserve the cropped image ratio:
+
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="64" height="32" displayWidth="160" title="160x80 proportional crop" />
 
 Cross-mod texture with true inline placement:
 
