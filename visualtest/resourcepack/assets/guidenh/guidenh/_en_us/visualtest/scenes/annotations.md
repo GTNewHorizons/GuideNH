@@ -10,7 +10,7 @@ INVARIANTS / 不变式：注解对位正确、颜色/粗细生效、hover toolti
 
 ## DiamondAnnotation Marker
 
-Expected: Bright green diamond at the center of the beacon top; tooltip shows "Activated Beacon" text. Second diamond at (2.5, 1.5, 0.5) is red.
+Expected: Gold diamond (#FFD24C) at the center of the beacon top (gray outer ring by design); tooltip shows "Activated Beacon" text (interactive, out-of-scope in static screenshots). Second diamond at (2.5, 1.5, 0.5) is red.
 
 <GameScene width="256" height="160" zoom={4} interactive={true}>
   <Block id="minecraft:diamond_block" x="-1" z="-1" />
