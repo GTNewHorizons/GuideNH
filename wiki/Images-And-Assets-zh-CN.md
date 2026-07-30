@@ -39,6 +39,8 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 | `height` / `h` | 是 | 原图裁剪高度，单位为源图像像素；两种写法只能二选一 |
 | `scaleX` | 否 | 水平显示缩放倍率，默认 `1.0` |
 | `scaleY` | 否 | 垂直显示缩放倍率，默认 `1.0` |
+| `displayWidth` | 否 | 最终显示宽度，单位为像素；单独使用时按裁剪区域比例计算高度 |
+| `displayHeight` | 否 | 最终显示高度，单位为像素；单独使用时按裁剪区域比例计算宽度 |
 | `wrap` | 否 | `inline` 表示真正行内放置，其他值使用常规环绕模式 |
 | `align` | 否 | 浮动时使用 `left` 或 `right`；`wrap="inline"` 时会被忽略 |
 | `title` | 否 | tooltip/title 文本 |
@@ -48,9 +50,13 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 
 ### 说明
 
-- `x`、`y`、`width` / `w`、`height` / `h` 必须四个一起写
+- 裁剪时必须同时提供 `x`、`y`、`width` / `w` 与 `height` / `h`
+- 全部省略裁剪属性时，可使用 `displayWidth` 或 `displayHeight` 显示整张源图
 - `width` 和 `height` 现在表示裁剪区域，不再表示最终显示尺寸
-- 最终显示尺寸等于 `cropWidth * scaleX` 与 `cropHeight * scaleY`
+- `scaleX` 与 `scaleY` 会将最终显示尺寸计算为 `cropWidth * scaleX` 与 `cropHeight * scaleY`
+- `displayWidth` 或 `displayHeight` 以像素指定最终显示尺寸；只提供其中一个时，另一个尺寸按裁剪区域宽高比自动计算
+- 同时提供 `displayWidth` 与 `displayHeight` 时，可按指定尺寸进行非等比拉伸
+- `displayWidth` / `displayHeight` 不能与 `scaleX` / `scaleY` 同时使用
 - 支持单轴拉伸，只修改一个缩放值即可
 - 同时写 `width` 和 `w`，或同时写 `height` 和 `h`，都会渲染可见错误
 - 旧版把 `width` / `height` 当作显示尺寸的 `<FloatingImage>` 内容会发生破坏性变更，需要手动迁移
@@ -65,8 +71,8 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
   y="0"
   width="32"
   height="32"
-  scaleX="2.0"
-  scaleY="2.0"
+  displayWidth="64"
+  displayHeight="64"
   wrap="inline"
   title="Example"
 />

@@ -1063,7 +1063,7 @@ public class GuideScreenEditorTextActions {
         String selected = start < end ? sanitizeAttributeValue(source.substring(start, end)) : "";
         String imagePath = selected.isEmpty() ? "test1.png" : selected;
         String replacement = "<FloatingImage src=\"" + imagePath
-            + "\" x=\"0\" y=\"0\" width=\"128\" height=\"128\" scaleX=\"1.0\" scaleY=\"1.0\" wrap=\"inline\" title=\"Example\" />";
+            + "\" x=\"0\" y=\"0\" width=\"128\" height=\"128\" displayWidth=\"128\" displayHeight=\"128\" wrap=\"inline\" title=\"Example\" />";
         int caretStart = start + replacement.indexOf(imagePath);
         return new Result(
             source.substring(0, start) + replacement + source.substring(end),

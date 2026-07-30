@@ -27,7 +27,7 @@ categories:
 
 段落内嵌图：这是一张图 ![inline](test1.png) 嵌在文字里。
 
-`<FloatingImage>` 现在采用“先裁剪，再缩放”的语义。`x`、`y`、`width` / `w`、`height` / `h` 用于从原图中选取子区域，`scaleX` 和 `scaleY` 再决定这个裁剪结果的最终显示尺寸，并支持单轴拉伸。
+`<FloatingImage>` 采用“先裁剪，再确定显示尺寸”的语义。`x`、`y`、`width` / `w`、`height` / `h` 用于从原图中选取子区域。`scaleX` 和 `scaleY` 按倍率缩放裁剪结果；`displayWidth` 和 `displayHeight` 则直接以像素指定最终尺寸。只提供一个显示尺寸时会保持裁剪区域比例，两个都提供时可拉伸。显示尺寸不能与 `scaleX` 或 `scaleY` 同时使用。
 
 裁剪 64×64 区域并按原始大小显示：
 
@@ -35,7 +35,11 @@ categories:
 
 将裁剪出的 64×64 区域拉伸到 200×80：
 
-<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" scaleX="3.125" scaleY="1.25" title="stretch 200x80" />
+<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" displayWidth="200" displayHeight="80" title="拉伸到 200x80" />
+
+只设置一个最终尺寸时，会保持裁剪区域比例：
+
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="64" height="32" displayWidth="160" title="等比 160x80 裁剪" />
 
 跨模组纹理并真正行内放置：
 
