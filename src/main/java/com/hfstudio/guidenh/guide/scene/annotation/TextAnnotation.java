@@ -222,7 +222,6 @@ public class TextAnnotation extends OverlayAnnotation {
                 localViewport);
             int bx = bubble.x();
             int by = bubble.y();
-            LayoutContext layoutContext = new LayoutContext(new MinecraftFontMetrics());
 
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -243,9 +242,14 @@ public class TextAnnotation extends OverlayAnnotation {
                 applyFade(getBackgroundArgb(), fade));
             drawConnector(cx, cy, bubble, applyFade(borderArgb, fade));
 
-            richContent.layout(layoutContext, bx + PADDING_X, by + PADDING_Y, measure.availableWidth());
-            GL11.glEnable(GL11.GL_TEXTURE_2D);
-            richContent.render(context);
+            if (measure.availableWidth() > 0 && measure.boxHeight() > 0) {
+                LayoutContext layoutContext = new LayoutContext(new MinecraftFontMetrics());
+                richContent.layout(layoutContext, bx + PADDING_X, by + PADDING_Y, measure.availableWidth());
+                GL11.glEnable(GL11.GL_TEXTURE_2D);
+                richContent.render(context);
+            } else {
+                GL11.glEnable(GL11.GL_TEXTURE_2D);
+            }
             GL11.glColor4f(1f, 1f, 1f, 1f);
             GL11.glDisable(GL11.GL_BLEND);
             return;

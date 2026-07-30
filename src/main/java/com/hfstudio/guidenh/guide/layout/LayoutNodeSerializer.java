@@ -507,6 +507,24 @@ public final class LayoutNodeSerializer {
             explicitW = img.getExplicitWidth();
             explicitH = img.getExplicitHeight();
         }
+        if (block instanceof LytImageBlock imb) {
+            // LytImageBlock extends LytParagraph (not LytImage) so the
+            // LytImage branch above is never entered. Read explicit
+            // dimensions, scale, and crop so Rust measure_image can
+            // size the image correctly. Without this, ImageData retains
+            // all defaults (naturalW=0, naturalH=0, explicitW=-1f) and
+            // measure_image returns 1x1 — the block-level image collapses,
+            // and the parent container (e.g. LytListItem as column flex)
+            // does not stretch to include the visual image height.
+            explicitW = imb.getExplicitWidth();
+            explicitH = imb.getExplicitHeight();
+            scaleX = (float) imb.getScaleX();
+            scaleY = (float) imb.getScaleY();
+            cropX = imb.getCropX();
+            cropY = imb.getCropY();
+            cropW = imb.getCropWidth();
+            cropH = imb.getCropHeight();
+        }
 
         return ImageData
             .createImageData(fbb, naturalW, naturalH, cropX, cropY, cropW, cropH, scaleX, scaleY, explicitW, explicitH);

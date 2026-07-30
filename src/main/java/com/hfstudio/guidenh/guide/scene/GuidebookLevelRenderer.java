@@ -804,7 +804,8 @@ public class GuidebookLevelRenderer {
         GuidebookSceneLayerSelection layerSelection, int[] bounds, GuidebookSceneWeatherType weatherType, int x, int z,
         float alpha, float centerY, int pooledColumnIndex) {
         int precipitationBottom = Math.max(bounds[1], level.getPrecipitationHeight(x, z, bounds[1], bounds[4]));
-        int precipitationTop = bounds[4] + 1;
+        int headroom = (int) Math.ceil(GuidebookSceneWeatherSupport.resolveSpawnHeadroom(weatherType));
+        int precipitationTop = Math.max(bounds[4] + 1, precipitationBottom + headroom);
         if (precipitationBottom > precipitationTop) {
             return null;
         }

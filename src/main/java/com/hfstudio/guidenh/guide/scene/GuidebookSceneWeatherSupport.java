@@ -24,8 +24,8 @@ public class GuidebookSceneWeatherSupport {
     public static final float SNOW_DRIFT = 0.01f;
     public static final float WEATHER_SURFACE_OFFSET = 0.02f;
     public static final float SNOW_SURFACE_OFFSET = 0.0f;
-    public static final float RAIN_SPAWN_HEADROOM = 0.0f;
-    public static final float SNOW_SPAWN_HEADROOM = 0.0f;
+    public static final float RAIN_SPAWN_HEADROOM = 4.0f;
+    public static final float SNOW_SPAWN_HEADROOM = 4.0f;
     public static final float RAIN_LIGHT_RADIUS_SCALE = 0.5f;
     public static final float SNOW_LIGHT_RADIUS_SCALE = 0.3f;
     public static final float RAIN_ALPHA_RADIUS_SCALE = 0.5f;
