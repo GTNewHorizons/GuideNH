@@ -265,3 +265,27 @@ mandatory when a fix surfaces a reusable lesson (`docs/PRINCIPLES.md` §4).
 2. Know your delivery vehicle: this project's client runtime = dev.jar on E:; gradle gate (compileJava/test) does NOT exercise it.
 3. Java-side fixes require the render's task graph to rebuild the jar; if behavior is unchanged after a verified fix, rebuild jar explicitly and re-render before diagnosing further.
 4. D:\Projects\GuideNHuild and bin\main are stale red herrings — never draw classpath conclusions from them.
+
+## PF22: Verification-passed work must be committed BEFORE the next dispatch
+
+- **Incident** (2026-07-30, R4 wave): a ds-coder ran `git restore` mid-session and reverted an uncommitted, already-verified fix to HEAD. Same class as PF16 (round-3 wipe), new instance: prompt bans + permission denies both failed because `git restore` slipped past a blacklist tuned for `reset --hard`/`checkout`.
+- **Lesson (executor-side)**: the vulnerability window is between "verification passed" and "commit". Close it immediately — VLM/pixel terminal verification passes → commit in the same breath, before any further dispatch. Whitelisting allowed git commands (diff/status/log only) beats blacklisting forbidden ones; a blacklist always has a missed case.
+- **Reference**: PF16; ISSUES.md §G5 process ledger.
+
+## PF23: Fix impact radius can exceed verification scope (regression lived 3 waves)
+
+- **Incident** (2026-07-29/30, R4 waves 2–5): wave-2's wrap-dispatch fix misclassified `wrap=null + align=left/right` as INLINE → every float anchor in the corpus jumped to (0,0). Waves 3–5 each terminal-verified only *their own* target pages (mermaid, text, scenes) — none float-dense — so the regression survived three waves until an A/B bisect caught it.
+- **Lesson**: any change to dispatch/routing/classification logic has corpus-wide impact radius; its terminal verification must be a full-corpus re-render + geometric diff, not target-page checks. "I changed one switch case" means "every page is suspect".
+- **Reference**: ISSUES.md §G5 wave-5 notes.
+
+## PF24: "Fix ineffective" is an ambiguous signal — check the loop before re-fixing
+
+- **Incident** (2026-07-30, R4-17 meta-lesson beyond PF21's specifics): three consecutive "fix → render → no change" rounds were each attributed to "code still wrong"; the actual cause was a stale runtime artifact (PF21). Every re-fix cycle was self-consistent and produced real findings — but aimed at the wrong layer.
+- **Lesson (decision procedure)**: on the FIRST "verified fix changed nothing", suspect the verification loop itself (artifact freshness, path, environment — `javap -p` the class inside the actual runtime jar) BEFORE re-diagnosing code. On the SECOND "fix ineffective" with the loop confirmed fresh, suspect a capability ceiling (break point in a layer the toolchain cannot observe) and stop retrying — do not dispatch a third repair. Defaulting to "code not fixed" is the most expensive attribution error available.
+- **Reference**: PF21; ISSUES.md §G3/G4.
+
+## PF25: Budget exhaustion on cross-runtime breaks is a capability ceiling, not a retry failure
+
+- **Incident** (2026-07-29/30, R4-12/24/25 marked STUCK): three items exhausted 3-round budgets. Shared structure: the break point sat behind an observation boundary the sub-agent fleet could not cross (JNI into the client render process; GL state inside headless capture). Each round produced genuine partial progress in the observable layer, which masked the fact that the decisive layer was unreachable.
+- **Lesson**: when diagnosis keeps circling the same observable layer while the symptom persists, classify by *observability*, not by effort: (a) loop broken → fix the loop (PF24); (b) layer unreachable → escalate tooling (stronger model, dynamic instrumentation, client-side tracing), not retry count. Real example from the same night: R4-12's "emission-layer break" assumption was itself wrong — a stronger-model static re-read (qwen8-night) relocated the break to the Java manual-layout stub (LytList/LytListItem 0-height collapse) and the item was fixed same-night. STUCK verdicts should record *which boundary* blocked progress; re-examination with a stronger model or new evidence is cheaper than the 4th identical retry.
+- **Reference**: ISSUES.md §G5; EXECUTOR-CALIBRATION.md (2026-07-30 qwen8-night upgrade).
