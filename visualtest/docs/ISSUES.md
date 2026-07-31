@@ -387,3 +387,28 @@ qwen-screener (qwen3.7-plus, vision probe-verified) single-page blind sessions: 
 **Low-confidence items (NOT chased this wave)**: scenes/annotations thin LineAnnotation lines (0.45) + TextAnnotation ordering (0.55); scenes/effects particle counts (0.40-0.45). Given this session's repeated VLM scene misreads (PF26 beacon, PF28 black pages, PF29 wrap), these are likely false positives; recommend focused confirmation before any fix.
 
 **Wave ledger**: commits 784d9bd0 (R5-2+R5-5) → d6bebe61 (R5-1 fixture) → 1f36e354 (BreakWord) → 8e77e62e (wrap fixtures). PF29 recorded. qwen8-night ran the decisive R5-3/4 reframe (probe + clean restore + clean DLL rebuild); cursor-diagnostician delivered R5-1/R5-2/R5-5 static roots; ds-reviewer ACCEPT'd R5-2/R5-5.
+
+## I. Round 6 + LaTeX Inline Special (2026-08-01 ~00:00-03:00)
+
+### I0. LaTeX inline special action (user-directed)
+
+**P1 inline formula oversize → FIXED** (9a684d16). User reported LaTeX inline rendering "still not ideal." qwen8-night identified the main issue: inline formulas calibrated to body LINE HEIGHT (10) instead of x-HEIGHT (~7 = GuideText.ascent()) → ~1.43× oversized. Fix: LytLatexBlock calibration target lineHeight→GuideText.ascent(), insets excluded from ratio, baselineAscent scaled proportionally (Rust baseline anchoring untouched, fraction bar stays on text baseline). Verified: bounds (E=mc² h 15→12, ratio 1.5→1.2; fraction lines 20-21→17, no overflow) + VLM (inline proportionate to text, fraction baseline correct, display page unchanged). Secondary findings (P3 valign not independently passed to Rust — currently invisible/no slack; P4 baseline correct per fixture) recorded, not fixed (low priority).
+
+### I1. Round 6 screening + adjudication
+
+Render 64/64 (2 batches, no OOM — PF28 mitigation: orphan-kill + sleep between batches + overlay dropped). Geometric: 3 findings = floats_multi sibling_intersection (fixture-expected). VLM ×4 + targeted re-checks.
+
+**False "regression" claims exonerated by objective bounds (PF26/PF29/PF30 discipline)**:
+- text/cjk-mixed + text/headings "single-line not wrapping" (VLM conf 0.95) → bounds show CJK i=13 h=19 (2 lines), H1 i=14 h=26 (3 lines): WRAPPING. VLM saw the full-width first line and missed subsequent lines.
+- scenes/effects "PlaySound scene empty/black" (conf 0.6) → nonblack=6.2%, content present. Misread.
+- tables/basic alignment "left not center/right" (conf 0.7) → R4-17 verified alignment exact; short values hard to judge. Misread.
+
+**Two real new defects found + fixed**:
+- **R6-1 ItemGrid no row-wrap → FIXED** (13eecb47). 6/9-item grids rendered single row; fixture expects 2 rows / 3×3. Root: LayoutStyleExtractor lowered LytItemGrid as flex row+wrap without explicit content width (unlike LytSlotGrid) → shrink-wrap single row. First fix attempt gave 2 columns (explicitW=54 is border-box; padding=5/side ate 10px → content 44 → 2 cols). Refined: explicitW = min(3,slotCount)×OUTER_SIZE + horizontal padding → 3 columns. Verified bounds: all grids 3 cols (x=10/28/46); 3-item 1 row, 6-item 2 rows, 9-item 3×3, ore-4 3+1.
+- **R6-2 code blocks wrap (BreakWord regression) → FIXED** (1f33f1b0). The R5 BreakWord fix (1f36e354/1f33f1b0 lineage) made long code lines emergency-break at narrow container width → code wrapped instead of overflowing/scrolling. Root: Rust text path never read TextData.white_space (schema had it, Java wrote it). Fix: new white_space value 2 (Pre/NoWrap, byte field — no flatc regen); LytCodeBlock body PRE_WRAP→PRE; LayoutNodeSerializer PRE→2; Rust reads white_space, ==2 → TextWrapMode::NoWrap + OverflowWrap::Normal + break_all_lines(None) + natural-width measure; 0/1 paths byte-identical (prose BreakWord preserved). Verified (qwen8-night probe): code nodes white_space=2 reach Rust, NoWrap active (python block 106px viewport, 150+ char line h=50 single-line); VLM: code single-line, cjk/headings still wrap (ws=0), csv ok (ws=1), error-parse ok. Reviewer ACCEPT (parley 0.11 source verified, anti-pattern 4/4 clean). NOTE: horizontal scroll UI itself is R4-36 residual (separate missing feature); R6-2 restores single-line+overflow (no wrap).
+
+**Disclosed side effect (accepted)**: PageCompiler:939 error blocks also use PRE → now white_space=2 (NoWrap). Error blocks are pre-formatted (hard break per line); error-parse VLM verified red error text renders readable, no overflow. Residual edge case: pathologically long single-line source in an error block now overflows/clips instead of wrapping (no horizontal scroll on error viewport). Accepted as semantically correct for pre-formatted diagnostic text.
+
+### I2. Round 6 verdict
+
+LaTeX P1 fixed; 2 real defects (R6-1, R6-2) found+fixed+verified+reviewed; 3 VLM false-regression claims exonerated by objective measurement; PF30 recorded. Carried: R4-25 STUCK (Angelica entities), R4-36 horizontal scroll axis, code_blocks P1 fixture defect, scenes low-confidence items (annotations thin lines/text order, effects particles — likely false positives given session's scene-VLM unreliability), stress_mixed fixture-stale mermaid note. Commits: 9a684d16 (LaTeX) → 1f33f1b0 (R6-2) → 13eecb47 (R6-1).
