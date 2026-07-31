@@ -15,7 +15,7 @@ use std::sync::Arc;
 use parley::fontique;
 use parley::{
     Alignment, AlignmentOptions, FontContext, FontData, FontFamily, FontFamilyName, FontWeight,
-    GenericFamily, InlineBox, InlineBoxKind, Layout, LayoutContext, LineHeight,
+    GenericFamily, InlineBox, InlineBoxKind, Layout, LayoutContext, LineHeight, OverflowWrap,
     PositionedLayoutItem, StyleProperty,
 };
 
@@ -70,6 +70,13 @@ impl ParleyFonts {
         builder.push_default(StyleProperty::FontFamily(FontFamily::Single(
             FontFamilyName::Generic(GenericFamily::SansSerif),
         )));
+        // R5-3/R5-4: emergency-break unbreakable runs (no-space CJK strings /
+        // overlong titles) at the line's advance limit instead of overflowing
+        // the content box. Mirrors CSS `overflow-wrap: break-word` — only
+        // lines with no fitting soft break point get intra-word breaks; normal
+        // text keeps breaking at spaces (NOT BreakAll, so Latin words do not
+        // fragment).
+        builder.push_default(StyleProperty::OverflowWrap(OverflowWrap::BreakWord));
         if bold {
             builder.push_default(StyleProperty::FontWeight(FontWeight::BOLD));
         }
@@ -423,6 +430,13 @@ fn push_defaults(b: &mut parley::RangedBuilder<SpanBrush>, scaled: f32) {
     b.push_default(StyleProperty::FontFamily(FontFamily::Single(
         FontFamilyName::Generic(GenericFamily::SansSerif),
     )));
+    // R5-3/R5-4: emergency-break unbreakable runs (no-space CJK strings /
+    // overlong titles) at the line's advance limit instead of overflowing
+    // the content box. Mirrors CSS `overflow-wrap: break-word` — only
+    // lines with no fitting soft break point get intra-word breaks; normal
+    // text keeps breaking at spaces (NOT BreakAll, so Latin words do not
+    // fragment).
+    b.push_default(StyleProperty::OverflowWrap(OverflowWrap::BreakWord));
     b.push_default(StyleProperty::Brush(SpanBrush(0)));
 }
 
