@@ -57,7 +57,7 @@ mindmap
 
 ## Deep Nesting (6 Levels)
 
-Expected: Deeply nested nodes maintain correct indentation and connection lines; no visual overlap between sibling branches.
+Expected: In default mindmap mode a deep single-child chain renders as a horizontal spine (each child centered on its parent's row, depth expressed along X) with elbow connection lines and no sibling overlap; vertical top-down hierarchy is the tidy-tree mode (see section above). (Engine enhancement candidate: vertical stagger for deep unary chains to match reference mermaid.)
 
 ```mermaid
 mindmap
