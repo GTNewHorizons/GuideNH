@@ -49,13 +49,13 @@ Top-aligned (valign=top): <Latex formula="x^2" valign="top" /> is flush with the
 
 Manual offset: <Latex formula="E=mc^2" offsetX="2" offsetY="-1" /> nudged right 2 px and up 1 px.
 
-### `$formula$` / `$$formula$$` shorthand
+### `$$formula$$` shorthand
 
-Use `$formula$` for inline formulas in text, and `$$formula$$` for standalone display formulas with default parameters.
+Use `$$formula$$` for formulas in Markdown with default parameters. It renders inline when embedded in text and as a centred display formula when it is the only paragraph content.
 
-Inline shorthands: $E=mc^2$ and $a^2+b^2=c^2$
+Inline shorthands: $$E=mc^2$$ and $$a^2+b^2=c^2$$
 
-Inline fraction: $\frac{1}{2}$
+Inline fraction: $$\frac{1}{2}$$
 
 $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 
