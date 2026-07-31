@@ -32,7 +32,7 @@ This body text follows an H6 heading. All six heading levels have been demonstra
 
 Expected: H5 and H6 render at progressively smaller sizes; separator lines remain below text; no overlap.
 
-# H1: Very Long Heading That Should Wrap Across Multiple Lines to Test Overflow and Line Break Behavior Within Heading Text Itself
+# H1: Very Long Heading That Should Wrap Across Multiple Lines to Test Overflow and Line Break Behavior Within Heading Text Itself Plus Additional Words Appended To Push The Total Heading Width Beyond The Nine Hundred Pixel Test Page Width So That Word Boundary Wrapping Is Actually Exercised At This Render Scale And Verified
 
 Expected: Long heading text wraps at word boundaries; text does not overflow the right page margin; the heading separator line stays below the wrapped block, not cutting through any line of text.
 

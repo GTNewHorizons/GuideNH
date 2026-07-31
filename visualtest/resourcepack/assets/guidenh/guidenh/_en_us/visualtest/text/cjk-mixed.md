@@ -30,7 +30,7 @@ Expected: Full-width punctuation （，。！？【】「」） does not break t
 
 Expected: Long consecutive CJK text wraps at glyph boundaries; no overflow beyond right margin.
 
-这是一个没有空格的长中文串测试用来验证引擎的断行行为是否正确因为中文没有空格所以引擎需要根据字符边界自动换行不能溢出到右边距外面同时也不能在错误的位置断行
+这是一个没有空格的长中文串测试用来验证引擎的断行行为是否正确因为中文没有空格所以引擎需要根据字符边界自动换行不能溢出到右边距外面同时也不能在错误的位置断行这一段继续延伸以超过测试页宽从而强制触发字形边界断行引擎应当在到达右边距时自动换到下一行而不是让文本溢出容器外面这是检验长串连续表意文字折行能力的关键用例补充内容确保总宽度超过九百像素迫使引擎真正执行折行
 
 ## Long English Word (40+ Characters)
 
