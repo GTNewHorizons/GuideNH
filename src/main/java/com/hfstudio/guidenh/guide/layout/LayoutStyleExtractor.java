@@ -92,6 +92,21 @@ public final class LayoutStyleExtractor {
         if (block instanceof LytSlotGrid sg && explicitW <= 0) {
             explicitW = sg.getWidth() * LytSlot.OUTER_SIZE;
         }
+        // Item grids: fixed 3-column semantic — explicit width so the row-wrap
+        // wraps to min(3, slotCount) columns (6 → 2 rows, 9 → 3×3, 1-3 → single
+        // row, 4+ → compact 3+1). Without this, size_w=auto shrink-wraps to a
+        // single row regardless of slot count.
+        // Taffy 0.12 sizes are BorderBox by default (Style::DEFAULT box_sizing =
+        // BorderBox): size_w covers padding, so horizontal padding must be added
+        // to leave cols×OUTER_SIZE of CONTENT width for the wrapped slot row.
+        // LytItemGrid pads 5/side (LytItemGrid ctor) — bare cols×OUTER_SIZE (=54
+        // for 3 cols) left only 44px content and wrapped to two 18px slots/line.
+        // (LytSlotGrid has zero padding, so its width×OUTER_SIZE needs no pad.)
+        if (block instanceof LytItemGrid ig && explicitW <= 0) {
+            explicitW = Math.min(3, ig.getSlotCount()) * LytSlot.OUTER_SIZE
+                + readLytBoxPadding(ig, "paddingLeft")
+                + readLytBoxPadding(ig, "paddingRight");
+        }
         // Size boxes with a preferred width reserve exactly that width.
         if (block instanceof LytSizeBox sb && sb.getPreferredWidth() > 0 && explicitW <= 0) {
             explicitW = sb.getPreferredWidth();

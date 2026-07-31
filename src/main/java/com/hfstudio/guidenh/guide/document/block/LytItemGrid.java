@@ -19,7 +19,11 @@ public class LytItemGrid extends LytBox {
 
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
-        var cols = Math.max(1, availableWidth / LytSlot.OUTER_SIZE);
+        // Fixed 3-column semantic: cols = min(3, slotCount) — mirrors the
+        // lowering rule in LayoutStyleExtractor (explicitW = cols * OUTER_SIZE
+        // + horizontal padding; Taffy 0.12 sizes are border-box, so padding is
+        // included in size_w and must be added back to reach the content width).
+        var cols = Math.max(1, Math.min(3, slots.size()));
         var rows = (slots.size() + cols - 1) / cols;
 
         for (int i = 0; i < slots.size(); i++) {
@@ -46,5 +50,10 @@ public class LytItemGrid extends LytBox {
         var slot = new LytSlot(stacks);
         slots.add(slot);
         append(slot);
+    }
+
+    /** Number of added slots — drives the fixed 3-column lowering rule. */
+    public int getSlotCount() {
+        return slots.size();
     }
 }
