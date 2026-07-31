@@ -334,3 +334,42 @@ qwen-screener (qwen3.7-plus, vision probe-verified) single-page blind sessions: 
 **R4-25 → STUCK-v2 (boundary precisely recorded).** Root localized by elimination to Angelica (2.1.36) GLSM/VBO downstream of doRender: Java side fully exonerated (doRender emits, matrices PRE==POST identical for both entities, renderPos frame-level and equal, no culling branch, scale-independent). Three fix attempts failed: Tessellator flush (reverted), skipLightmapForOffscreen gate on entity path (reverted), -Dangelica.debugDisplayLists=true experiment (no effect). Existing code comment (GuidebookLevelRenderer.java:59-66) documents the same Angelica failure mode for the block path. Boundary: fixing requires Angelica 2.1.36 mixin-source analysis (sources unavailable) or a preview-path immediate-mode entity renderer bypassing Angelica — a dedicated scoped task, not a retry. OPEN QUESTION: whether multi-entity scenes render correctly IN-GAME (if yes, this is preview-harness-only severity).
 
 **Escalation wave ledger**: qwen8-night ran 5 diagnosis rounds (R4-12 re-read, R4-24/25 boundary refutation, 3 probe rounds) — all closed single-round with evidence; one executor false-premise challenge (PF26) absorbed honestly; cursor-diagnostician delivered the final static root (scale double-channel). Commits: 98413454 (R4-12) → be1b77aa (docs PF22-25) → 010c688b (R4-24) → 83dbf779 (fixture) → b1992495 (Ponder latent).
+
+## H. Round 5 — Full-Corpus Re-screen (64/64 pages, 2026-07-31 ~22:00-23:00)
+
+**Mandate**: user directive — run a fresh screening round per workflow; old unfixables stay STUCK. Render scale=2 (standard), bounds on, overlay dropped this round (OOM mitigation).
+
+**Render**: 64 pages in batches; native-memory OOM incidents (PF28) blacked 3 scene pages + failed effects.md in one batch — all 4 re-rendered clean and pixel-verified non-black (nonblack 5-8%). Geometric screen: 64 pages, 3 findings = floats_multi sibling_intersection warns (fixture-expected, carried). VLM: qwen-screener ×4 (16 pages each) + 2 targeted re-check waves.
+
+### H1. New confirmed defects (registered, open — fixable)
+
+- **R5-1 mermaid/mindmap deep-nesting flatten** (error, conf 0.9): "Deep Nesting (6 Levels)" renders all 9 nodes in a single horizontal row — no vertical hierarchy, no parent-child indentation. Default Layout and TIDY_TREE sections on the same page render correctly as trees → bug specific to deep linear chains in mindmap layout. Fixture expects correct indentation + connection lines, no sibling overlap.
+- **R5-2 nei/item-grid ore-dictionary resolution** (error, conf 0.95): "Grid with Ore Dictionary Entries" renders only 2 of 4 items (stick + redstone); ore-dict names `ingotIron`/`ingotGold` fail to resolve/render. The 3/6/9-item id-based grids on the same page render correctly → bug specific to ore-dictionary name resolution.
+- **R5-3 text/cjk-mixed no-wrap overflow** (warn→error, conf 0.7): long spaceless CJK string renders as a single unbroken line to the right edge; fixture requires wrap at glyph boundaries, no overflow. (Sub-finding "inline code/link styles missing" was OVERSTATED — styles present but subtle; not a defect.)
+- **R5-4 text/headings long-H1 no-wrap** (warn, conf 0.6): very long H1 renders single-line spanning page width, borderline overflow. Likely shares root with R5-3 (long-text-without-break-opportunities wrapping). Verify together.
+- **R5-5 scenes/effects PlaySound-only scene error overlay** (warn, conf 0.95): a scene containing only a (non-visual) PlaySound element renders the note block BUT also a red "[Scene] Scene has no supported elements" error overlay. Either suppress the error for sound-only scenes or treat PlaySound as a supported element.
+
+### H2. Low-confidence / needs-confirmation (not yet confirmed defects)
+
+- scenes/annotations LineAnnotation thin lines (yellow 0.06 / blue 0.08) nearly invisible against dark background (conf 0.45) — could be low-contrast or genuine alpha/thickness issue.
+- scenes/annotations TextAnnotation vertical ordering (anchored appears above independent; fixture implies independent at top) (conf 0.55) — could be projection interpretation.
+- scenes/effects particle counts (default billboard + 5 named variants) hard to confirm at resolution (conf 0.40-0.45).
+
+### H3. False positives closed this round
+
+- mermaid/flowchart "all nodes rectangles" — MISREAD; 7 shapes (stadium/diamond/cylinder/subprocess/double-circle) render distinctly (conf 0.95).
+- mermaid/node-content "runtime node truncated" — MISREAD; runtime node complete (ItemImage + bold/italic + 2 paragraphs), R4-12 fix holds (conf 0.9).
+
+### H4. Carried / known
+
+- **R4-25 STUCK** (scenes/entities second entity) — correctly re-flagged by screener as known; root in Angelica render layer, dedicated task pending.
+- **P1 code/blocks L113** MDX special-char parse error — carried fixture defect.
+- floats/multi sibling overlap — fixture-expected.
+
+### H5. Positive finding (fixture maintenance)
+
+- stress/mixed: mermaid flowchart now renders COMPLETE (Gather→Smelt→Assemble→Activate with arrows), but fixture still says "Known issue: renders placeholder box only" + checks a "placeholder rendered" task. The mermaid placeholder issue (FIXTURES.md line 357) appears RESOLVED — fixture note is stale and should be updated.
+
+### H6. Round-5 verdict
+
+5 confirmed new defects (R5-1..R5-5, all fixable, none STUCK), 3 low-confidence items pending confirmation, 2 false positives closed, 1 positive fixture-stale finding, R4-25 carried STUCK. The corpus is otherwise clean: charts/code/floats/images/latex/layout/lists/tables/meta/overflow all pass. Infrastructure lesson PF28 recorded (black GL pages under batch memory pressure).
