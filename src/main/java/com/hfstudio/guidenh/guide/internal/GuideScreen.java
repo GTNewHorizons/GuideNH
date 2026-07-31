@@ -91,6 +91,7 @@ import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
@@ -2870,6 +2871,32 @@ public class GuideScreen extends GuiContainer
         }
         drawButtonTooltip(mouseX, mouseY);
         debugOverlay.onFrameStart();
+        renderDebugOverlay(mouseX, mouseY);
+    }
+
+    private void renderDebugOverlay(int mouseX, int mouseY) {
+        if (!ModConfig.debug.guiDebugMode) {
+            return;
+        }
+        if (isGuideEditorActive()) {
+            LytDocument previewDocument = guideEditorLayoutMode != GuideScreenEditorLayoutMode.EDITOR_ONLY
+                && guideEditorPreviewPage != null ? guideEditorPreviewPage.document() : null;
+            debugOverlay.render(
+                width,
+                height,
+                mouseX,
+                mouseY,
+                getGuideEditorPreviewX(),
+                getGuideEditorContentTop(),
+                getGuideEditorPreviewPaneWidth(),
+                getGuideEditorPreviewPaneHeight(),
+                guideEditorPreviewScrollY,
+                1.0f,
+                previewDocument,
+                getGuideEditorDebugComponents(),
+                fontRendererObj);
+            return;
+        }
         var activeDocument = getActiveDocument();
         debugOverlay.render(
             width,
@@ -2884,6 +2911,62 @@ public class GuideScreen extends GuiContainer
             currentZoom,
             activeDocument,
             fontRendererObj);
+    }
+
+    private List<DebugComponent.ComponentEntry> getGuideEditorDebugComponents() {
+        List<DebugComponent.ComponentEntry> components = new ArrayList<>(buttonList.size() + 4);
+        for (Object buttonObject : buttonList) {
+            if (buttonObject instanceof GuideIconButton button && button.visible) {
+                components.add(
+                    new DebugComponent.SimpleComponentEntry(
+                        "Button:" + button.getRole()
+                            .name(),
+                        new LytRect(button.xPosition, button.yPosition, button.width, button.height),
+                        button.getTooltip(),
+                        100));
+            }
+        }
+        if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null) {
+            components.add(
+                new DebugComponent.SimpleComponentEntry("MarkdownEditor", guideEditorTextArea.getBounds(), null, 100));
+        }
+        if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.EDITOR_ONLY) {
+            int previewX = getGuideEditorPreviewX();
+            int previewY = getGuideEditorContentTop();
+            int previewWidth = getGuideEditorPreviewPaneWidth();
+            int previewHeight = getGuideEditorPreviewPaneHeight();
+            if (previewWidth > 0 && previewHeight > 0) {
+                components.add(
+                    new DebugComponent.SimpleComponentEntry(
+                        "PreviewPane",
+                        new LytRect(previewX, previewY, previewWidth, previewHeight),
+                        null,
+                        -1));
+                if (guideEditorPreviewPage != null && guideEditorPreviewPage.document() != null
+                    && guideEditorPreviewPage.document()
+                        .getContentHeight() > previewHeight) {
+                    components.add(
+                        new DebugComponent.SimpleComponentEntry(
+                            "PreviewScrollbar",
+                            new LytRect(previewX + previewWidth - SCROLLBAR_W, previewY, SCROLLBAR_W, previewHeight),
+                            null,
+                            100));
+                }
+            }
+        }
+        if (guideEditorLayoutMode == GuideScreenEditorLayoutMode.SPLIT) {
+            components.add(
+                new DebugComponent.SimpleComponentEntry(
+                    "SplitDivider",
+                    new LytRect(
+                        getGuideEditorDividerX() - 2,
+                        getGuideEditorContentTop(),
+                        5,
+                        getGuideEditorPreviewPaneHeight()),
+                    null,
+                    100));
+        }
+        return components;
     }
 
     private void drawGuideButtons(int mouseX, int mouseY) {

@@ -16,6 +16,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
+import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
@@ -111,6 +112,10 @@ public class SceneEditorMultilineTextArea {
                 }
             }
         });
+    }
+
+    public LytRect getBounds() {
+        return new LytRect(x, y, width, height);
     }
 
     public SceneEditorMultilineTextArea(FontRenderer fontRenderer, ClipboardAccess clipboardAccess) {
