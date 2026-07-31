@@ -57,10 +57,10 @@ import org.jspecify.annotations.NonNull;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
-import com.hfstudio.guidenh.guide.Guides;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageTitleResolver;
@@ -144,7 +144,7 @@ public class GuideSearch implements AutoCloseable {
     }
 
     public void indexAll() {
-        String fingerprint = fingerprint(Guides.getAll());
+        String fingerprint = fingerprint(GuideRegistry.getAll());
         cancelPendingWork();
         indexedLanguages.clear();
         warnedAboutLanguage.clear();
@@ -176,7 +176,7 @@ public class GuideSearch implements AutoCloseable {
             throw new UncheckedIOException("Failed to reset the guide search index.", e);
         }
 
-        for (var guide : Guides.getAll()) {
+        for (var guide : GuideRegistry.getAll()) {
             index(guide);
         }
     }
@@ -368,7 +368,7 @@ public class GuideSearch implements AutoCloseable {
                 var guideId = new ResourceLocation(document.get(IndexSchema.FIELD_GUIDE_ID));
                 var pageId = new ResourceLocation(document.get(IndexSchema.FIELD_PAGE_ID));
 
-                var guide = Guides.getById(guideId);
+                var guide = GuideRegistry.getById(guideId);
                 if (guide == null) {
                     GuideDebugLog.warn(
                         "[GuideNH] [GuideSearch] Search index produced guide id {} which couldn't be found.",
