@@ -1615,6 +1615,20 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         soundCues.clear();
     }
 
+    /**
+     * Whether the scene carries any content mountable by {@code SceneScript}: a non-empty level,
+     * sound cues (PlaySound), static particles, static weather effects, or annotations.
+     * Aligned with the render ({@code LytGuidebookScene} render path) and export
+     * ({@code GameSceneExportRunner}) treatment of "empty" scenes.
+     */
+    public boolean hasMountableSceneContent() {
+        return !level.isEmpty()
+            || !soundCues.isEmpty()
+            || !staticSceneParticles.isEmpty()
+            || !staticWeatherEffects.isEmpty()
+            || !annotations.isEmpty();
+    }
+
     public boolean isLoading() {
         return isLoading && (System.nanoTime() - loadingRequestedAt) / 1_000_000L >= LOADING_DEBOUNCE_MS;
     }

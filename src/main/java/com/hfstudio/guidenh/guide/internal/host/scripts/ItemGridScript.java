@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.guide.internal.host.scripts;
 
 import net.minecraft.item.ItemStack;
 
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler.ItemGridEntry;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemGridCompiler.ItemGridPlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytItemGrid;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -29,8 +32,8 @@ public class ItemGridScript implements LytScript {
         if (event.type() == EventType.MOUNT && node instanceof ItemGridPlaceholder ph) {
             LytItemGrid grid = new LytItemGrid();
             int resolved = 0;
-            for (String itemId : ph.itemIds) {
-                ItemStack stack = resolveItemId(itemId.trim());
+            for (ItemGridEntry entry : ph.entries) {
+                ItemStack stack = resolveEntry(entry);
                 if (stack != null) {
                     grid.addItem(stack);
                     resolved++;
@@ -44,7 +47,18 @@ public class ItemGridScript implements LytScript {
         }
     }
 
-    private static ItemStack resolveItemId(String itemId) {
-        return GuideDisplayItemStacks.resolveItemStack(itemId, "minecraft");
+    @Nullable
+    private static ItemStack resolveEntry(ItemGridEntry entry) {
+        // Prefer the direct item id; fall back to the ore dictionary name.
+        if (entry.id() != null && !entry.id().isEmpty()) {
+            ItemStack stack = GuideDisplayItemStacks.resolveItemStack(entry.id(), "minecraft");
+            if (stack != null) {
+                return stack;
+            }
+        }
+        if (entry.ore() != null && !entry.ore().isEmpty()) {
+            return GuideDisplayItemStacks.resolveOreStack(entry.ore());
+        }
+        return null;
     }
 }

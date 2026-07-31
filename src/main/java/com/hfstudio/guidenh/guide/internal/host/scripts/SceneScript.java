@@ -267,7 +267,7 @@ public class SceneScript implements LytScript {
             }
         }
 
-        if (level.isEmpty()) {
+        if (!scene.hasMountableSceneContent()) {
             ctx.replace(LytParagraph.error("[Scene] Scene has no supported elements"));
             return;
         }
