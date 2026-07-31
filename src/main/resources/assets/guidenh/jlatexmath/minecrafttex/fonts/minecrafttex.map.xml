@@ -164,7 +164,7 @@
   <SymbolMapping name="digamma" ch="57561" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="div" ch="247" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="divideontimes" ch="57562" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
-  <SymbolMapping name="dot" ch="57563" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
+  <SymbolMapping name="dot" ch="729" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="doteqdot" ch="57564" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="dotplus" ch="57565" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
   <SymbolMapping name="doubleacute" ch="57566" fontId="guidenh_minecrafttex_rm10" boldId="guidenh_minecrafttex_bx10" />
