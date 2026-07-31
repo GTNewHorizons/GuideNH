@@ -373,3 +373,17 @@ qwen-screener (qwen3.7-plus, vision probe-verified) single-page blind sessions: 
 ### H6. Round-5 verdict
 
 5 confirmed new defects (R5-1..R5-5, all fixable, none STUCK), 3 low-confidence items pending confirmation, 2 false positives closed, 1 positive fixture-stale finding, R4-25 carried STUCK. The corpus is otherwise clean: charts/code/floats/images/latex/layout/lists/tables/meta/overflow all pass. Infrastructure lesson PF28 recorded (black GL pages under batch memory pressure).
+
+### H7. Round 5 Fix Wave closure (2026-08-01 ~00:00)
+
+**R5-2 → CLOSED** (784d9bd0). ItemGridCompiler now reads id+ore (mirrors ItemLinkCompiler), carries ItemGridEntry(id,ore), appendError on both-empty; ItemGridScript resolves id-first then resolveOreStack (mirrors ItemLinkScript/ItemImageScript). Reviewer ACCEPT (anti-pattern 4/4 clean, ItemLink同构 verified). VLM: ore-dict grid 4/4 (stick/iron ingot/gold ingot/redstone), id grids no regression.
+
+**R5-5 → CLOSED** (784d9bd0). LytGuidebookScene.hasMountableSceneContent() = level OR soundCues OR particles OR weather OR annotations; SceneScript:270 uses it (was level.isEmpty()). Pure-empty scene still errors (fallback intact). Reviewer ACCEPT. VLM: effects PlaySound scene red error gone, note block + controls present, other scenes no regression.
+
+**R5-3/R5-4 → RECLASSIFIED non-defect + hardened** (PF29). qwen8-night dynamic probing: at the 900 render the CJK string (natural 693px) and H1 (684px) are both < 890px content width → single-line CORRECT, overflow=false; at width=480 both wrap (CJK glyph-boundary, H1 word-boundary). The parley OverflowWrap::BreakWord fix (1f36e354) is correct + regression-clean (7 text/table/code/mermaid pages no over-breaking) + effective at constrained width → KEPT as robustness (real ~480 book pages benefit). Fixtures lengthened (8e77e62e) to overflow at 900; VLM verified CJK wraps 2 lines (no overflow, right edge 887≤895) and H1 wraps 3 lines (separator below, no collision). Net: wrapping correct AND now meaningfully tested at the render width.
+
+**R5-1 → fixture-resolved** (d6bebe61). Diagnostician reframed: MINDMAP-mode layoutSideTree:659-663 DELIBERATELY centers single children on the parent row → deep unary chains render as a horizontal spine (depth along X) by design; vertical hierarchy is TIDY_TREE's job (renders deep trees correctly, confirmed). Not an engine bug. Fixture Expected updated to document the default-mode semantics; engine vertical-stagger enhancement recorded as optional future work.
+
+**Low-confidence items (NOT chased this wave)**: scenes/annotations thin LineAnnotation lines (0.45) + TextAnnotation ordering (0.55); scenes/effects particle counts (0.40-0.45). Given this session's repeated VLM scene misreads (PF26 beacon, PF28 black pages, PF29 wrap), these are likely false positives; recommend focused confirmation before any fix.
+
+**Wave ledger**: commits 784d9bd0 (R5-2+R5-5) → d6bebe61 (R5-1 fixture) → 1f36e354 (BreakWord) → 8e77e62e (wrap fixtures). PF29 recorded. qwen8-night ran the decisive R5-3/4 reframe (probe + clean restore + clean DLL rebuild); cursor-diagnostician delivered R5-1/R5-2/R5-5 static roots; ds-reviewer ACCEPT'd R5-2/R5-5.
