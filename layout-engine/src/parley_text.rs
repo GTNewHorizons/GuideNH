@@ -16,7 +16,7 @@ use parley::fontique;
 use parley::{
     Alignment, AlignmentOptions, FontContext, FontData, FontFamily, FontFamilyName, FontWeight,
     GenericFamily, InlineBox, InlineBoxKind, Layout, LayoutContext, LineHeight, OverflowWrap,
-    PositionedLayoutItem, StyleProperty,
+    PositionedLayoutItem, StyleProperty, TextWrapMode,
 };
 
 /// Custom brush: carries the source span index (TextData.spans) through
@@ -234,6 +234,12 @@ pub struct ShapeRequest<'a> {
     pub justify: bool,
     /// R4-17: per-paragraph text alignment. 0=Start(Left) 1=Center 2=End(Right)
     pub alignment: i8,
+    /// FlatBuffer TextData.white_space: 0=Normal 1=PreWrap 2=Pre/NoWrap
+    /// (code blocks). Value 2 disables soft wrapping AND emergency
+    /// (break-word) wrapping so a long unbreakable code line stays on one
+    /// line and overflows horizontally instead of wrapping inside the
+    /// container.
+    pub white_space: i8,
 }
 
 /// A shaped glyph in paragraph-local coordinates: (x, y) is the pen position
@@ -312,7 +318,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
     // ── One-pass: fast path when no float inlines ──
     if !has_float {
         let mut b = parley.layout_cx.ranged_builder(&mut parley.font_cx, &clean, 1.0, true);
-        push_defaults(&mut b, scaled);
+        push_defaults(&mut b, scaled, req.white_space);
         push_spans(&mut b, req.spans, &adjust, &clean);
         push_inlines(&mut b, req.inlines, &box_clean_idx, false);
         let mut layout = b.build(&clean);
@@ -342,7 +348,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
     // participate as inline boxes so their anchor line positions are correct.
     let layout1 = {
         let mut b = parley.layout_cx.ranged_builder(&mut parley.font_cx, &clean, 1.0, true);
-        push_defaults(&mut b, scaled);
+        push_defaults(&mut b, scaled, req.white_space);
         push_spans(&mut b, req.spans, &adjust, &clean);
         push_inlines(&mut b, req.inlines, &box_clean_idx, false);
         let mut layout = b.build(&clean);
@@ -391,11 +397,15 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
     // Pass 2: skip float inline boxes, shape with constrained widths.
     let layout2 = {
         let mut b = parley.layout_cx.ranged_builder(&mut parley.font_cx, &clean, 1.0, true);
-        push_defaults(&mut b, scaled);
+        push_defaults(&mut b, scaled, req.white_space);
         push_spans(&mut b, req.spans, &adjust, &clean);
         push_inlines(&mut b, req.inlines, &box_clean_idx, true);
         let mut layout = b.build(&clean);
-        break_with_floats(&mut layout, req, &merged_floats, scaled);
+        if req.white_space == 2 {
+            layout.break_all_lines(None);
+        } else {
+            break_with_floats(&mut layout, req, &merged_floats, scaled);
+        }
         layout.align(
             resolve_alignment(req.justify, req.alignment),
             AlignmentOptions::default(),
@@ -424,19 +434,29 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
     }
 }
 
-fn push_defaults(b: &mut parley::RangedBuilder<SpanBrush>, scaled: f32) {
+fn push_defaults(b: &mut parley::RangedBuilder<SpanBrush>, scaled: f32, white_space: i8) {
     b.push_default(StyleProperty::FontSize(scaled));
     b.push_default(StyleProperty::LineHeight(LineHeight::FontSizeRelative(10.0 / 9.0)));
     b.push_default(StyleProperty::FontFamily(FontFamily::Single(
         FontFamilyName::Generic(GenericFamily::SansSerif),
     )));
-    // R5-3/R5-4: emergency-break unbreakable runs (no-space CJK strings /
-    // overlong titles) at the line's advance limit instead of overflowing
-    // the content box. Mirrors CSS `overflow-wrap: break-word` — only
-    // lines with no fitting soft break point get intra-word breaks; normal
-    // text keeps breaking at spaces (NOT BreakAll, so Latin words do not
-    // fragment).
-    b.push_default(StyleProperty::OverflowWrap(OverflowWrap::BreakWord));
+    if white_space == 2 {
+        // R6-2: white_space=2 (Pre/NoWrap, code blocks). NoWrap disables soft
+        // wrapping and OverflowWrap::Normal disables the emergency break-word
+        // pass, so a long unbreakable code line keeps its natural single line
+        // and overflows horizontally (the narrow container scrolls) instead of
+        // being chopped at the container's advance limit.
+        b.push_default(StyleProperty::TextWrapMode(TextWrapMode::NoWrap));
+        b.push_default(StyleProperty::OverflowWrap(OverflowWrap::Normal));
+    } else {
+        // R5-3/R5-4: emergency-break unbreakable runs (no-space CJK strings /
+        // overlong titles) at the line's advance limit instead of overflowing
+        // the content box. Mirrors CSS `overflow-wrap: break-word` — only
+        // lines with no fitting soft break point get intra-word breaks; normal
+        // text keeps breaking at spaces (NOT BreakAll, so Latin words do not
+        // fragment).
+        b.push_default(StyleProperty::OverflowWrap(OverflowWrap::BreakWord));
+    }
     b.push_default(StyleProperty::Brush(SpanBrush(0)));
 }
 
@@ -482,7 +502,12 @@ fn push_inlines(
 }
 
 fn break_and_align(layout: &mut Layout<SpanBrush>, req: &ShapeRequest) {
-    if req.floats.is_empty() {
+    if req.white_space == 2 {
+        // R6-2: white_space=2 (Pre/NoWrap). Break at hard breaks only —
+        // break_all_lines(None) means max advance f32::MAX and NoWrap ignores
+        // the advance anyway, so every code line stays on one line.
+        layout.break_all_lines(None);
+    } else if req.floats.is_empty() {
         layout.break_all_lines(Some(req.max_width));
     } else {
         let est_h = req.font_size * req.font_scale * (10.0 / 9.0);

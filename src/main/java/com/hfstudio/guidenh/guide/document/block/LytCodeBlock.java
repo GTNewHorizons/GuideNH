@@ -88,7 +88,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
         body.setPaddingTop(BODY_PADDING);
         body.setPaddingBottom(BODY_PADDING);
         body.modifyStyle(
-            style -> style.whiteSpace(WhiteSpaceMode.PRE_WRAP)
+            style -> style.whiteSpace(WhiteSpaceMode.PRE)
                 .color(CODE_DEFAULT));
 
         bodyViewport.setFullWidth(true);

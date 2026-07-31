@@ -208,8 +208,10 @@ public final class LayoutNodeSerializer {
                 }
                 // Base run tint (single-style runs fall back to this color).
                 baseColor = GuideText.resolveColor(resolved) & 0xFFFFFFFFL;
-                wsByte = resolved.whiteSpace() == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1
-                    : 0;
+                var resolvedWs = resolved.whiteSpace();
+                wsByte = resolvedWs == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1
+                    : resolvedWs == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE ? (byte) 2
+                    : (byte) 0;
             }
 
             // Rich spans: per-leaf resolved styles in document order (concatenated
@@ -230,8 +232,10 @@ public final class LayoutNodeSerializer {
                     fontScale = partStyle.fontScale();
                 }
                 baseColor = GuideText.resolveColor(partStyle) & 0xFFFFFFFFL;
-                wsByte = partStyle.whiteSpace() == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1
-                    : 0;
+                var partWs = partStyle.whiteSpace();
+                wsByte = partWs == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1
+                    : partWs == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE ? (byte) 2
+                    : (byte) 0;
             }
             // Clear breaks: record each <br clear> at its raw byte offset so the
             // Rust pusher can drop the following lines below the cleared floats.

@@ -153,6 +153,10 @@ pub(crate) fn measure_text(
     let font_scale = style.font_scale();
     // R4-17: read per-paragraph text alignment from FlatBuffer
     let alignment = td.alignment_();
+    // R6-2: read white_space from FlatBuffer (0=Normal 1=PreWrap 2=Pre/NoWrap).
+    // Value 2 disables wrapping for code blocks; the Rust shaping path was not
+    // reading this before and always used Wrap+BreakWord.
+    let white_space = td.white_space();
 
     // Rich multi-style spans (TextData.spans) → builder ranges. Spans cover
     // the full text in document order, so span byte boundaries index into it.
@@ -296,6 +300,7 @@ pub(crate) fn measure_text(
                     max_width: max_w,
                     justify,
                     alignment,
+                    white_space,
                 };
                 let shaped = crate::parley_text::shape_paragraph(&mut fs.parley, &req);
                 for mut g in shaped.glyphs {
@@ -337,6 +342,7 @@ pub(crate) fn measure_text(
                 max_width: max_w,
                 justify,
                 alignment,
+                white_space,
             };
             let shaped = crate::parley_text::shape_paragraph(&mut fs.parley, &req);
             let mut h = shaped.content_height;
@@ -365,6 +371,12 @@ pub(crate) fn measure_text(
                 AvailableSpace::Definite(max_w) => {
                     if alignment == 1 || alignment == 2 {
                         max_w.max(1.0)
+                    } else if white_space == 2 {
+                        // R6-2: Pre/NoWrap code — the measured width is the
+                        // shaped natural width of the longest line (NOT clamped
+                        // to the container), so the narrow scroll container
+                        // lays out one unbroken line and scrolls horizontally.
+                        shaped_max_x.max(1.0)
                     } else {
                         (shaped_max_x.min(max_w)).max(1.0)
                     }
