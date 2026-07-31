@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -38,6 +40,7 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
@@ -53,6 +56,7 @@ import com.hfstudio.guidenh.guide.document.block.ResponsiveVisualSizing;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
@@ -73,9 +77,11 @@ import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneFloorGridAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
-import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheEntry;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureSnapshot;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityStateSupport;
+import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
+import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
@@ -103,16 +109,19 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.Ae2Helpers;
 import com.hfstudio.guidenh.integration.ae2.Ae2PonderSupport;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildResult;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
+import it.unimi.dsi.fastutil.longs.LongSet;
 import lombok.Getter;
+import lombok.Setter;
 
-public class LytGuidebookScene extends LytBlock {
+public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     public static class PonderWeatherColumnReservation {
 
@@ -237,16 +246,32 @@ public class LytGuidebookScene extends LytBlock {
     private int cachedPonderBtnScreenW;
     private int cachedPonderBtnScreenH;
 
+    @Getter
     private boolean interactive = true;
 
+    @Getter
+    @Setter
     private boolean sceneButtonsVisible = true;
+    @Getter
     private boolean bottomControlsVisible = true;
     private boolean isLoading;
+    private long loadingRequestedAt;
+    private static final int LOADING_DEBOUNCE_MS = 200;
+    private boolean loadFailed;
+    @Getter
     private float loadProgress;
     private String loadStatusText = "";
+    private int loadStatusColor = 0xFFFFFFFF;
+    @Getter
+    @Setter
     private boolean reserveBottomControlArea = true;
+    @Getter
     private boolean visibleLayerSliderEnabled;
+    @Getter
+    @Setter
     private boolean forceOriginAxesVisible;
+    @Getter
+    @Setter
     private boolean forceHideOriginAxes;
 
     public static int SCENE_BG_COLOR = 0xFF0A0A10;
@@ -273,15 +298,24 @@ public class LytGuidebookScene extends LytBlock {
     public static final int DEFAULT_WIDTH = 256;
     public static final int DEFAULT_HEIGHT = 192;
 
+    @Getter
     private GuidebookLevel level = new GuidebookLevel();
+    @Getter
     private CameraSettings camera = new CameraSettings();
     private int width = DEFAULT_WIDTH;
     private int height = DEFAULT_HEIGHT;
+    @Getter
+    @Setter
     private int sceneBackgroundColor = SCENE_BG_COLOR;
+    @Getter
+    @Setter
     private int sceneBorderColor = SCENE_BORDER_COLOR;
+    @Getter
+    @Setter
     private boolean showBackground = true;
     @Nullable
     private LytSize cameraViewportOverride;
+    @Getter
     private final List<SceneAnnotation> annotations = new ArrayList<>();
 
     // Reuse annotation partitions instead of allocating new lists every frame.
@@ -339,6 +373,8 @@ public class LytGuidebookScene extends LytBlock {
     private int sceneButtonsAbsY;
     private int lastBtnScreenSize;
     private int lastBtnScreenStep;
+    private final List<LytRect> cachedSceneButtonBounds = new ArrayList<>();
+    private final List<GuideIconButton.Role> cachedSceneButtonBoundRoles = new ArrayList<>();
     private boolean cachedSceneButtonRolesDirty = true;
     private boolean cachedSceneButtonsVisible = true;
     private boolean cachedSceneHasAnnotations = true;
@@ -347,12 +383,17 @@ public class LytGuidebookScene extends LytBlock {
     private boolean cachedBlockStatsButtonEnabled = true;
     private GuideIconButton.Role[] cachedSceneButtonRoles = SCENE_BUTTONS_SHOWN;
 
+    @Getter
     private boolean annotationsVisible = true;
     @Nullable
     private Integer visibleLayerOverride;
     @Nullable
     private StructureLibSceneMetadata structureLibSceneMetadata;
     private final LinkedHashMap<String, StructureLibSceneBinding> structureLibBindings = new LinkedHashMap<>();
+    private final LinkedHashMap<String, LongSet> bindingFootprints = new LinkedHashMap<>();
+    private final List<SnbtPlacement> snbtPlacements = new ArrayList<>();
+    @Nullable
+    private GuideSceneStructureSnapshot initialLevelSnapshot;
     private final List<StructureLibSceneMetadata.ChannelData> selectableStructureLibChannels = new ArrayList<>();
     @Getter
     private int structureLibCurrentTier = 1;
@@ -366,7 +407,6 @@ public class LytGuidebookScene extends LytBlock {
     @Nullable
     private StructureLibPreviewSelection pendingStructureLibPreviewSelection;
     private final LinkedHashMap<String, StructureLibPreviewSelection> seededStructureLibPreviewSelections = new LinkedHashMap<>();
-    private boolean initialStateCaptured;
     private boolean initialAnnotationsVisible = true;
     @Nullable
     private Integer initialVisibleLayerOverride;
@@ -375,9 +415,8 @@ public class LytGuidebookScene extends LytBlock {
     private final LinkedHashMap<String, StructureLibPreviewSelection> initialStructureLibSelectionsByBinding = new LinkedHashMap<>();
     private final LinkedHashMap<String, StructureLibPreviewSelection> initialPendingStructureLibSelectionsByBinding = new LinkedHashMap<>();
     private boolean initialStructureLibHatchHighlightEnabled;
-    @Nullable
-    private GuideSceneStructureCacheEntry initialStructureState;
     private boolean gridButtonEnabled = true;
+    @Getter
     private boolean gridVisible = false;
     private boolean initialGridVisible = false;
     private boolean blockStatsEnabled = false;
@@ -395,6 +434,7 @@ public class LytGuidebookScene extends LytBlock {
     private final List<SceneBlockStatsEntry> cachedBlockStatsEntries = new ArrayList<>();
     private boolean blockStatsDirty = true;
     private boolean blockStatsWidthsDirty = true;
+    private int cachedBottomControlGeometryHash;
     private int cachedBlockStatsItemWidth = BLOCK_STATS_ITEM_SIZE;
     private int cachedBlockStatsContentWidth;
     private int blockStatsMaxWidth = BLOCK_STATS_DEFAULT_MAX_WIDTH;
@@ -442,6 +482,7 @@ public class LytGuidebookScene extends LytBlock {
     private AxisAlignedBB hoveredEntityBounds;
     @Nullable
     private MovingObjectPosition hoveredEntityHitResult;
+    @Setter
     private int @Nullable [] hoveredStructureLibHatch;
     private int currentMouseAbsX = -1;
     private int currentMouseAbsY = -1;
@@ -543,7 +584,6 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void captureInitialInteractiveState() {
-        initialStateCaptured = true;
         initialAnnotationsVisible = annotationsVisible;
         initialVisibleLayerOverride = visibleLayerOverride;
         initialStructureLibCurrentTier = structureLibCurrentTier;
@@ -564,10 +604,25 @@ public class LytGuidebookScene extends LytBlock {
         initialBlockStatsVisible = blockStatsVisible;
     }
 
-    public void captureInitialStructureStateIfAbsent() {
-        if (initialStructureState == null && !level.isEmpty()) {
-            initialStructureState = GuideSceneStructureCacheEntry.capture(this);
+    public void queueStructureLibSelectionBuild(StructureLibSceneBinding binding,
+        @Nullable StructureLibPreviewSelection selection) {
+        executeStructureBuild(binding, selection);
+    }
+
+    private void executeStructureBuild(StructureLibSceneBinding binding,
+        @Nullable StructureLibPreviewSelection selection) {
+
+        if (binding == null) return;
+
+        if (selection != null) {
+            binding.applyPreviewSelection(selection);
         }
+
+        rebuild();
+    }
+
+    public void setInitialLevelSnapshot(@Nullable GuideSceneStructureSnapshot snapshot) {
+        this.initialLevelSnapshot = snapshot;
     }
 
     public void resetInteractiveState() {
@@ -584,30 +639,7 @@ public class LytGuidebookScene extends LytBlock {
         hoveredEntityHitResult = null;
         hoveredStructureLibHatch = null;
         clearAnnotationHover();
-        if (initialStateCaptured) {
-            float[] capturedInitialCam = initialCam.clone();
-            if (initialStructureState != null) {
-                initialStructureState.restoreInto(this);
-                initialCam = capturedInitialCam;
-            }
-            annotationsVisible = initialAnnotationsVisible;
-            visibleLayerOverride = initialVisibleLayerOverride;
-            structureLibCurrentTier = initialStructureLibCurrentTier;
-            structureLibChannelOverrides.clear();
-            structureLibChannelOverrides.putAll(initialStructureLibChannelOverrides);
-            for (Map.Entry<String, StructureLibSceneBinding> entry : structureLibBindings.entrySet()) {
-                StructureLibSceneBinding binding = entry.getValue();
-                StructureLibPreviewSelection selection = initialStructureLibSelectionsByBinding.get(entry.getKey());
-                if (selection != null) {
-                    binding.applyPreviewSelection(selection);
-                }
-                binding.setPendingSelection(initialPendingStructureLibSelectionsByBinding.get(entry.getKey()));
-            }
-            bindPrimaryStructureLibState(getPrimaryStructureLibBinding());
-            structureLibHatchHighlightEnabled = initialStructureLibHatchHighlightEnabled;
-            gridVisible = initialGridVisible;
-            resetBlockStatsInteractiveState();
-        }
+        resetBlockStatsInteractiveState();
         if (ponderSceneData != null) {
             ponderCurrentTick = 0;
             ponderPaused = true;
@@ -1139,6 +1171,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void bindPrimaryStructureLibState(@Nullable StructureLibSceneBinding binding) {
+        int previousBottomControlGeometryHash = bottomControlGeometryHash();
         this.structureLibSceneMetadata = binding != null ? binding.getMetadata() : null;
         this.structureLibChannelOverrides.clear();
         this.selectableStructureLibChannels.clear();
@@ -1148,6 +1181,7 @@ public class LytGuidebookScene extends LytBlock {
             this.structureLibHatchHighlightEnabled = false;
             this.hoveredStructureLibHatch = null;
             this.pendingStructureLibPreviewSelection = null;
+            invalidateBottomControlLayoutIfNeeded(previousBottomControlGeometryHash);
             return;
         }
         this.structureLibCurrentTier = binding.getCurrentTier();
@@ -1174,6 +1208,7 @@ public class LytGuidebookScene extends LytBlock {
         }
         binding.setSelectionChangeListener(structureLibSelectionChangeListener);
         pendingStructureLibPreviewSelection = binding.getPendingSelection();
+        invalidateBottomControlLayoutIfNeeded(previousBottomControlGeometryHash);
     }
 
     public void setStructureLibSceneMetadata(@Nullable StructureLibSceneMetadata structureLibSceneMetadata) {
@@ -1199,47 +1234,120 @@ public class LytGuidebookScene extends LytBlock {
         bindPrimaryStructureLibState(primary);
     }
 
+    public void setStructureLibImportResult(@Nullable String name, @Nullable StructureLibImportResult importResult) {
+        StructureLibSceneBinding binding = resolveStructureLibBinding(name);
+        if (binding == null) {
+            binding = registerStructureLibBinding(name);
+        }
+        binding.setLastSuccessfulImportResult(importResult);
+    }
+
+    @Nullable
+    public StructureLibImportResult getStructureLibImportResult(@Nullable String name) {
+        StructureLibSceneBinding binding = resolveStructureLibBinding(name);
+        return binding != null ? binding.getLastSuccessfulImportResult() : null;
+    }
+
+    // ========== SNBT placements (ImportStructure) ==========
+
+    public void addSnbtPlacement(SnbtPlacement placement) {
+        snbtPlacements.add(placement);
+    }
+
+    public void setSnbtPlacements(List<SnbtPlacement> placements) {
+        snbtPlacements.clear();
+        snbtPlacements.addAll(placements);
+    }
+
+    public List<SnbtPlacement> getSnbtPlacements() {
+        return Collections.unmodifiableList(snbtPlacements);
+    }
+
+    public void clearSnbtPlacements() {
+        snbtPlacements.clear();
+    }
+
+    // ========== Unified build / clear / rebuild ==========
+
     /**
-     * Rebuilds all StructureLib blocks in this scene by re-importing every binding
-     * that has a rebuild recipe with its current selection. Called when the user
-     * drags a tier or channel slider.
+     * Build all blocks in the scene from registered SNBT placements and StructureLib bindings.
+     * Called after element compilers have registered their configs,
+     * and on every rebuild (slider change, reset, etc.).
      */
-    public void rebuildStructureLib() {
+    public void build() {
         GuidebookLevel sceneLevel = getLevel();
-        sceneLevel.clear();
-        StructureLibSceneImportService importService = new StructureLibSceneImportService();
+        if (sceneLevel == null) return;
+
+        // Phase 1: SNBT static placements (ImportStructure)
+        for (SnbtPlacement p : snbtPlacements) {
+            NBTTagCompound root = SnbtPreParseCache.get(p.getSrc());
+            if (root == null) {
+                GuideDebugLog.warn("[Scene] SNBT cache miss for {} during build", p.getSrc());
+                continue;
+            }
+            ImportStructureElementCompiler.placeStructure(
+                sceneLevel,
+                root,
+                p.getOffsetX(),
+                p.getOffsetY(),
+                p.getOffsetZ(),
+                p.isFormed(),
+                null,
+                null,
+                p.getSrc());
+        }
+
+        // Phase 2: StructureLib dynamic structures
+        StructureLibBuildService svc = new StructureLibBuildService();
         for (StructureLibSceneBinding binding : structureLibBindings.values()) {
-            if (!binding.hasRebuildRecipe()) {
-                continue;
-            }
-            StructureLibImportRequest request = binding.buildRebuildRequest();
-            if (request == null) {
-                continue;
-            }
-            StructureLibImportResult result = importService.importScene(request);
-            if (!result.isSuccess()) {
-                continue;
-            }
-            for (StructureLibImportResult.PlacedBlock placedBlock : result.getBlocks()) {
-                Block block = placedBlock.getBlock();
-                if (block == null || block == Blocks.air) {
-                    continue;
-                }
-                int bx = placedBlock.getX() + binding.getRebuildOffsetX();
-                int by = Math.clamp(placedBlock.getY() + binding.getRebuildOffsetY(), 0, sceneLevel.getHeight() - 1);
-                int bz = placedBlock.getZ() + binding.getRebuildOffsetZ();
-                GuidebookPreviewBlockPlacer.place(
-                    sceneLevel,
-                    bx,
-                    by,
-                    bz,
-                    block,
-                    placedBlock.getMeta(),
-                    placedBlock.getTileTag(),
-                    placedBlock.getBlockId());
+            if (!binding.hasRebuildRecipe()) continue;
+            StructureLibBuildRequest request = binding.buildRebuildRequest();
+            if (request == null) continue;
+            StructureLibBuildResult result = svc.build(request);
+            if (!result.success() || result.blocks()
+                .isEmpty()) continue;
+
+            int offsetX = binding.getRebuildOffsetX();
+            int offsetY = binding.getRebuildOffsetY();
+            int offsetZ = binding.getRebuildOffsetZ();
+            for (StructureLibBuildResult.PlacedBlock pb : result.blocks()) {
+                Block block = pb.block();
+                if (block == null || block == Blocks.air) continue;
+                int bx = pb.x() + offsetX;
+                int by = Math.clamp(pb.y() + offsetY, 0, sceneLevel.getHeight() - 1);
+                int bz = pb.z() + offsetZ;
+                GuidebookPreviewBlockPlacer.place(sceneLevel, bx, by, bz, block, pb.meta(), pb.tileTag(), pb.blockId());
                 ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
             }
         }
+    }
+
+    /**
+     * Clear all blocks from the scene level.
+     */
+    public void clear() {
+        GuidebookLevel sceneLevel = getLevel();
+        if (sceneLevel != null) {
+            sceneLevel.clear();
+        }
+    }
+
+    /**
+     * Rebuild the entire scene: clear all blocks and build from scratch.
+     * Replaces the old {@link #rebuildStructureLib()} which only handled StructureLib.
+     */
+    public void rebuild() {
+        clear();
+        build();
+    }
+
+    /**
+     * @deprecated Use {@link #rebuild()} instead. This method now clears the entire level
+     *             and rebuilds all block sources (SNBT + StructureLib).
+     */
+    @Deprecated
+    public void rebuildStructureLib() {
+        rebuild();
     }
 
     @Nullable
@@ -1495,56 +1603,52 @@ public class LytGuidebookScene extends LytBlock {
         soundCues.clear();
     }
 
-    public boolean isInteractive() {
-        return interactive;
-    }
-
-    public boolean isSceneButtonsVisible() {
-        return sceneButtonsVisible;
-    }
-
-    public void setSceneButtonsVisible(boolean sceneButtonsVisible) {
-        this.sceneButtonsVisible = sceneButtonsVisible;
-    }
-
     public boolean isLoading() {
-        return isLoading;
+        return isLoading && (System.nanoTime() - loadingRequestedAt) / 1_000_000L >= LOADING_DEBOUNCE_MS;
     }
 
     public void setLoading(boolean loading) {
+        if (loading) {
+            this.loadingRequestedAt = System.nanoTime();
+        }
         this.isLoading = loading;
-    }
-
-    public float getLoadProgress() {
-        return loadProgress;
+        if (loading) {
+            this.loadFailed = false;
+            this.loadStatusColor = 0xFFFFFFFF;
+        }
     }
 
     public void setLoadProgress(int done, int total) {
         this.loadProgress = total > 0 ? (float) done / (float) total : 0f;
         this.loadStatusText = "Loading import (" + done + "/" + total + ")...";
+        this.loadStatusColor = 0xFFFFFFFF;
+        this.loadFailed = false;
     }
 
-    public boolean isBottomControlsVisible() {
-        return bottomControlsVisible;
+    public void setLoadFailure(String message) {
+        setLoading(true);
+        this.loadFailed = true;
+        this.loadProgress = 0f;
+        this.loadStatusText = message != null && !message.trim()
+            .isEmpty() ? message.trim() : "StructureLib preview failed";
+        this.loadStatusColor = 0xFFFF5555;
+    }
+
+    public void clearLoadState() {
+        this.isLoading = false;
+        this.loadFailed = false;
+        this.loadProgress = 0f;
+        this.loadStatusText = "";
+        this.loadStatusColor = 0xFFFFFFFF;
     }
 
     public void setBottomControlsVisible(boolean bottomControlsVisible) {
+        int previousBottomControlGeometryHash = bottomControlGeometryHash();
         this.bottomControlsVisible = bottomControlsVisible;
         clearCachedVisibleLayerSliderRects();
         clearCachedTierSliderRects();
         clearCachedChannelSliderRects();
-    }
-
-    public boolean isReserveBottomControlArea() {
-        return reserveBottomControlArea;
-    }
-
-    public void setReserveBottomControlArea(boolean reserveBottomControlArea) {
-        this.reserveBottomControlArea = reserveBottomControlArea;
-    }
-
-    public boolean isVisibleLayerSliderEnabled() {
-        return visibleLayerSliderEnabled;
+        invalidateBottomControlLayoutIfNeeded(previousBottomControlGeometryHash);
     }
 
     public void setVisibleLayerSliderEnabled(boolean visibleLayerSliderEnabled) {
@@ -1552,56 +1656,8 @@ public class LytGuidebookScene extends LytBlock {
         clearCachedVisibleLayerSliderRects();
     }
 
-    public boolean isForceOriginAxesVisible() {
-        return forceOriginAxesVisible;
-    }
-
-    public void setForceOriginAxesVisible(boolean forceOriginAxesVisible) {
-        this.forceOriginAxesVisible = forceOriginAxesVisible;
-    }
-
-    public boolean isForceHideOriginAxes() {
-        return forceHideOriginAxes;
-    }
-
-    public void setForceHideOriginAxes(boolean forceHideOriginAxes) {
-        this.forceHideOriginAxes = forceHideOriginAxes;
-    }
-
-    public GuidebookLevel getLevel() {
-        return level;
-    }
-
-    public CameraSettings getCamera() {
-        return camera;
-    }
-
-    public int getSceneBackgroundColor() {
-        return sceneBackgroundColor;
-    }
-
-    public void setSceneBackgroundColor(int sceneBackgroundColor) {
-        this.sceneBackgroundColor = sceneBackgroundColor;
-    }
-
-    public int getSceneBorderColor() {
-        return sceneBorderColor;
-    }
-
-    public void setSceneBorderColor(int sceneBorderColor) {
-        this.sceneBorderColor = sceneBorderColor;
-    }
-
-    public boolean isShowBackground() {
-        return showBackground;
-    }
-
-    public void setShowBackground(boolean showBackground) {
-        this.showBackground = showBackground;
-    }
-
     /**
-     * Collects all {@link com.hfstudio.guidenh.guide.document.block.LytParagraph} rich-content
+     * Collects all {@link LytParagraph} rich-content
      * roots from text annotations across both static annotations and Ponder keyframe sets.
      * Callers should dispatch MOUNT events into each returned paragraph so that inline
      * placeholders (e.g. {@code <ItemImage>}) are materialized before first render.
@@ -1625,25 +1681,9 @@ public class LytGuidebookScene extends LytBlock {
         return result;
     }
 
-    public List<SceneAnnotation> getAnnotations() {
-        return annotations;
-    }
-
-    public boolean isAnnotationsVisible() {
-        return annotationsVisible;
-    }
-
-    public boolean isGridVisible() {
-        return gridVisible;
-    }
-
     public void setGridVisible(boolean gridVisible) {
         this.gridVisible = gridVisible;
         cachedSceneButtonRolesDirty = true;
-    }
-
-    public void setHoveredStructureLibHatch(int @Nullable [] hoveredStructureLibHatch) {
-        this.hoveredStructureLibHatch = hoveredStructureLibHatch;
     }
 
     private void notifyStructureLibSelectionChanged() {
@@ -1684,6 +1724,32 @@ public class LytGuidebookScene extends LytBlock {
         return ponderControlAreaHeight() + visibleLayerSliderAreaHeight()
             + structureLibTierSliderAreaHeight()
             + structureLibChannelSliderAreaHeight();
+    }
+
+    private int bottomControlGeometryHash() {
+        return Objects.hash(
+            interactive,
+            bottomControlsVisible,
+            ponderSceneData != null,
+            visibleLayerSliderEnabled,
+            hasVisibleLayerData(),
+            hasStructureLibTierData(),
+            selectableStructureLibChannels.size());
+    }
+
+    private void invalidateBottomControlLayoutIfNeeded(int previousBottomControlGeometryHash) {
+        int currentBottomControlGeometryHash = bottomControlGeometryHash();
+        if (cachedBottomControlGeometryHash == 0) {
+            cachedBottomControlGeometryHash = currentBottomControlGeometryHash;
+        }
+        if (previousBottomControlGeometryHash == currentBottomControlGeometryHash) {
+            return;
+        }
+        cachedBottomControlGeometryHash = currentBottomControlGeometryHash;
+        clearCachedVisibleLayerSliderRects();
+        clearCachedTierSliderRects();
+        clearCachedChannelSliderRects();
+        invalidateDocumentLayout();
     }
 
     public boolean hasStructureLibHatchData() {
@@ -2913,15 +2979,12 @@ public class LytGuidebookScene extends LytBlock {
         int x = switch (blockStatsDock) {
             case LEFT -> sceneRect.x() - BLOCK_STATS_DOCK_GAP - boxWidth;
             case RIGHT -> outerRect.right() + buttonColumnReserve() + BLOCK_STATS_DOCK_GAP;
-            case TOP -> sceneRect.x();
-            case BOTTOM -> sceneRect.x();
-            case INSIDE -> sceneRect.x();
+            case TOP, INSIDE, BOTTOM -> sceneRect.x();
         };
         int y = switch (blockStatsDock) {
-            case LEFT, RIGHT -> sceneRect.y();
+            case LEFT, RIGHT, INSIDE -> sceneRect.y();
             case TOP -> sceneRect.y() - BLOCK_STATS_DOCK_GAP - boxHeight;
             case BOTTOM -> outerRect.bottom() + BLOCK_STATS_DOCK_GAP;
-            case INSIDE -> sceneRect.y();
         };
         LytRect box = cachedBlockStatsBoxRect = updateCachedRect(cachedBlockStatsBoxRect, x, y, boxWidth, boxHeight);
         LytRect viewport = cachedBlockStatsViewportRect = updateCachedRect(
@@ -3331,6 +3394,9 @@ public class LytGuidebookScene extends LytBlock {
             screenRect.width(),
             screenRect.height());
 
+        cachedSceneButtonBounds.clear();
+        cachedSceneButtonBoundRoles.clear();
+
         // Draw each button in layout coords wrapped in the context's GL transform.
         int layoutGap = BTN_OUTSIDE_GAP;
         int layoutSize = BTN_SIZE;
@@ -3365,6 +3431,10 @@ public class LytGuidebookScene extends LytBlock {
                 && mx < btnScreen.right()
                 && my < btnScreen.bottom();
             drawOneSceneButton(bx, by, layoutSize, role, hover);
+
+            cachedSceneButtonBounds.add(btnScreen);
+            cachedSceneButtonBoundRoles.add(role);
+
             if (role == roles[0]) {
                 sceneButtonsAbsX = btnScreen.x();
                 sceneButtonsAbsY = btnScreen.y();
@@ -4253,8 +4323,16 @@ public class LytGuidebookScene extends LytBlock {
             }
         } else {
             if (isPanButton(dragButton)) {
-                camera.setOffsetX(camera.getOffsetX() + dx);
-                camera.setOffsetY(camera.getOffsetY() - dy);
+                // Standard orbit camera pan: move target along camera right/up in world space.
+                // Screen (dx, dy) → world delta = R⁻¹ · (dx/s, -dy/s, 0)
+                float s = 10.0f * camera.getZoom();
+                Vector3f delta = new Vector3f(-dx / s, dy / s, 0);
+                new Matrix4f().rotateY((float) Math.toRadians(-camera.getRotationY()))
+                    .rotateX((float) Math.toRadians(-camera.getRotationX()))
+                    .rotateZ((float) Math.toRadians(-camera.getRotationZ()))
+                    .transformPosition(delta);
+                var rc = camera.getRotationCenter();
+                camera.setRotationCenter(rc.x() + delta.x, rc.y() + delta.y, rc.z() + delta.z);
             } else if (isRotateButton(dragButton)) {
                 camera.setRotationY(camera.getRotationY() + dx * DRAG_ROTATE_SENSITIVITY);
                 camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
@@ -4264,6 +4342,14 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     public void endDrag() {
+        // Standard orbit camera: pan and rotate are orthogonal. No consolidation needed.
+        // Zero any residual offset from initialization.
+        if (camera.getOffsetX() != 0f || camera.getOffsetY() != 0f) {
+            camera.setOffsetX(0);
+            camera.setOffsetY(0);
+            visualCamOffX.snapTo(0);
+            visualCamOffY.snapTo(0);
+        }
         this.dragButton = -1;
         this.draggingVisibleLayerSlider = false;
         this.draggingStructureLibTierSlider = false;
@@ -4619,6 +4705,11 @@ public class LytGuidebookScene extends LytBlock {
             }
         }
         updatePonderState();
+    }
+
+    @Nullable
+    private String resolvePreviewBindingKey(StructureLibSceneBinding binding) {
+        return binding != null ? binding.getBindingKey() : null;
     }
 
     public void ponderTogglePlay() {
@@ -6517,7 +6608,7 @@ public class LytGuidebookScene extends LytBlock {
     }
 
     private void drawLoadProgressOverlay(RenderContext context, LytRect sceneRect) {
-        if (!isLoading || sceneRect.isEmpty()) return;
+        if (!isLoading() || sceneRect.isEmpty()) return;
 
         int barWidth = Math.max(24, sceneRect.width() * 3 / 5);
         int barX = sceneRect.x() + (sceneRect.width() - barWidth) / 2;
@@ -6525,21 +6616,37 @@ public class LytGuidebookScene extends LytBlock {
         int trackH = 4;
 
         // Track
-        context.fillRect(new LytRect(barX, barY, barWidth, trackH), 0x6622262C);
+        context.fillRect(new LytRect(barX, barY, barWidth, trackH), loadFailed ? 0x66AA2222 : 0x6622262C);
         // Fill (amber yellow)
         int fillW = Math.round(barWidth * loadProgress);
         if (fillW > 0) {
-            context.fillRect(new LytRect(barX, barY, fillW, trackH), LOADING_FILL_COLOR);
+            context.fillRect(new LytRect(barX, barY, fillW, trackH), loadFailed ? 0xFFFF5555 : LOADING_FILL_COLOR);
         }
         // Status text
         if (loadStatusText != null && !loadStatusText.isEmpty()) {
             var style = VISIBLE_LAYER_SLIDER_TEXT_STYLE;
+            var coloredStyle = new ResolvedTextStyle(
+                style.fontScale(),
+                style.bold(),
+                style.italic(),
+                style.underlined(),
+                style.wavyUnderline(),
+                style.dottedUnderline(),
+                style.strikethrough(),
+                style.obfuscated(),
+                style.font(),
+                new ConstantColor(loadStatusColor),
+                style.whiteSpace(),
+                style.alignment(),
+                style.dropShadow(),
+                style.backgroundColor(),
+                style.inlineCode());
             float z = Math.max(0.0001f, lastDocZoom);
-            int textW = Math.round(context.getStringWidth(loadStatusText, style) / z);
-            int textH = Math.round(context.getLineHeight(style) / z);
+            int textW = Math.round(context.getStringWidth(loadStatusText, coloredStyle) / z);
+            int textH = Math.round(context.getLineHeight(coloredStyle) / z);
             int textX = barX + (barWidth - textW) / 2;
             int textY = barY - textH - 4;
-            context.drawText(loadStatusText, textX, textY, style);
+            context.drawText(loadStatusText, textX, textY, coloredStyle);
         }
     }
 
@@ -6911,5 +7018,55 @@ public class LytGuidebookScene extends LytBlock {
             return minValue;
         }
         return Math.min(value, maxValue);
+    }
+
+    // Debug implementation
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> components = new ArrayList<>();
+
+        // Timeline slider (bottom area when ponder active)
+        if (ponderSceneData != null && bounds != null) {
+            int sliderHeight = SCENE_SLIDER_AREA_HEIGHT;
+            int sliderY = bounds.y() + bounds.height() - sliderHeight;
+            LytRect sliderBounds = new LytRect(bounds.x(), sliderY, bounds.width(), sliderHeight);
+            String state = ponderPaused ? "Paused" : "Playing";
+            components.add(
+                new SimpleComponentEntry(
+                    "TimelineSlider",
+                    sliderBounds,
+                    "Tick: " + ponderCurrentTick + ", " + state,
+                    10));
+        }
+
+        // Scene buttons (zoom in/out, reset view, toggle annotations, etc.)
+        for (int i = 0; i < cachedSceneButtonBounds.size(); i++) {
+            LytRect btnBounds = cachedSceneButtonBounds.get(i);
+            GuideIconButton.Role role = cachedSceneButtonBoundRoles.get(i);
+            String roleName = role.name()
+                .replace("_", " ");
+            boolean active = isSceneButtonActive(role);
+            String extra = active ? "Active" : "Inactive";
+            components.add(new SimpleComponentEntry("SceneBtn:" + roleName, btnBounds, extra, 15));
+        }
+
+        // Ponder buttons (prev, play/pause, restart)
+        if (ponderSceneData != null && cachedPonderBtnScreenW > 0 && cachedPonderBtnScreenH > 0) {
+            GuideIconButton.Role[] ponderRoles = PONDER_BUTTON_ROLES;
+            for (int i = 0; i < ponderRoles.length; i++) {
+                int bx = cachedPonderBtnAbsX + i * cachedPonderBtnScreenW;
+                LytRect btnBounds = new LytRect(
+                    bx,
+                    cachedPonderBtnAbsY,
+                    cachedPonderBtnScreenW,
+                    cachedPonderBtnScreenH);
+                String roleName = ponderRoles[i].name()
+                    .replace("_", " ");
+                components.add(new SimpleComponentEntry("PonderBtn:" + roleName, btnBounds, "Button " + i, 15));
+            }
+        }
+
+        return components;
     }
 }

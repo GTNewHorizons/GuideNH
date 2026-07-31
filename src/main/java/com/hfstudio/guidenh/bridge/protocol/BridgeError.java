@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.bridge.protocol;
 
+import lombok.Getter;
+
+@Getter
 public class BridgeError {
 
     private final String code;
@@ -12,15 +15,4 @@ public class BridgeError {
         this.retryable = retryable;
     }
 
-    public String getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public boolean isRetryable() {
-        return retryable;
-    }
 }

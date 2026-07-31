@@ -8,5 +8,5 @@ public interface StructureLibPreviewItemProvider {
 
     void appendPreviewItems(List<ItemStack> stacks);
 
-    default void configureTrigger(ItemStack triggerStack, StructureLibPreviewSelection selection) {}
+    default void configureTrigger(ItemStack triggerStack, StructureLibBuildRequest request) {}
 }

@@ -4,9 +4,14 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.Layouts;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Lays out its children vertically.
  */
+@Getter
+@Setter
 public class LytHBox extends LytAxisBox {
 
     private boolean wrap = true;
@@ -30,11 +35,4 @@ public class LytHBox extends LytAxisBox {
             wrap);
     }
 
-    public boolean isWrap() {
-        return wrap;
-    }
-
-    public void setWrap(boolean wrap) {
-        this.wrap = wrap;
-    }
 }

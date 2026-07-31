@@ -4,10 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Configuration for a small pie chart rendered inside another chart's plot area.
  * Used by {@link LytColumnChart} / {@link LytBarChart} to overlay summary pies in a corner.
  */
+@Getter
 public class PieInsetSpec {
 
     public enum Position {
@@ -25,66 +29,29 @@ public class PieInsetSpec {
     private final List<PieSlice> slices = new ArrayList<>();
     private int size = 60;
     private Position position = Position.TOP_RIGHT;
+    @Setter
     private float startAngleDeg = -90f;
+    @Setter
     private boolean clockwise = true;
     private String title = "";
+    @Setter
     private int titleColor = 0xFFE0E0E0;
-
-    public List<PieSlice> getSlices() {
-        return slices;
-    }
 
     public void setSlices(List<PieSlice> newSlices) {
         slices.clear();
         if (newSlices != null) slices.addAll(newSlices);
     }
 
-    public int getSize() {
-        return size;
-    }
-
     public void setSize(int size) {
         if (size > 16) this.size = size;
-    }
-
-    public Position getPosition() {
-        return position;
     }
 
     public void setPosition(Position position) {
         if (position != null) this.position = position;
     }
 
-    public float getStartAngleDeg() {
-        return startAngleDeg;
-    }
-
-    public void setStartAngleDeg(float startAngleDeg) {
-        this.startAngleDeg = startAngleDeg;
-    }
-
-    public boolean isClockwise() {
-        return clockwise;
-    }
-
-    public void setClockwise(boolean clockwise) {
-        this.clockwise = clockwise;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
     public void setTitle(String title) {
         this.title = title != null ? title : "";
-    }
-
-    public int getTitleColor() {
-        return titleColor;
-    }
-
-    public void setTitleColor(int titleColor) {
-        this.titleColor = titleColor;
     }
 
     public static Position parsePosition(String raw, Position fallback) {

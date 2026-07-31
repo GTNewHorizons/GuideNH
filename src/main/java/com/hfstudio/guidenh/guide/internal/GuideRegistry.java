@@ -17,6 +17,8 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
+import lombok.Getter;
+
 /**
  * Internal registry for Guides.
  */
@@ -29,6 +31,7 @@ public class GuideRegistry {
     // Merged between data-driven and in-code guides
     public static volatile Map<ResourceLocation, MutableGuide> mergedGuides = Map.of();
     private static volatile NavigationTree mergedNavigationTree = new NavigationTree();
+    @Getter
     private static volatile long navigationRevision = 1L;
     private static volatile long cachedNavigationRevision = Long.MIN_VALUE;
 
@@ -64,10 +67,6 @@ public class GuideRegistry {
             }
             return mergedNavigationTree;
         }
-    }
-
-    public static long getNavigationRevision() {
-        return navigationRevision;
     }
 
     /**

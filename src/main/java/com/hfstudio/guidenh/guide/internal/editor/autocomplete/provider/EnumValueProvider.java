@@ -30,8 +30,7 @@ public class EnumValueProvider implements AutocompleteProvider {
 
     @Override
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
-        if (!(ctx instanceof MdxValueContext)) return Collections.emptyList();
-        MdxValueContext mdx = (MdxValueContext) ctx;
+        if (!(ctx instanceof MdxValueContext mdx)) return Collections.emptyList();
 
         for (AttributeSpec spec : TagAttributeRegistry.get(mdx.getTagName())) {
             if (!spec.getName()

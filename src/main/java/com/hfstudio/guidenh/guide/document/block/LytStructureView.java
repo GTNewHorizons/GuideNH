@@ -10,6 +10,8 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 public class LytStructureView extends LytBlock {
 
     public static class BlockEntry {
@@ -36,6 +38,7 @@ public class LytStructureView extends LytBlock {
 
     private int viewWidth = DEFAULT_WIDTH;
     private int viewHeight = DEFAULT_HEIGHT;
+    @Getter
     private final List<BlockEntry> blocks = new ArrayList<>();
     // Cache the painter-order sorted list so we do not allocate + sort every render frame.
     // Invalidated whenever addBlock mutates the underlying list.
@@ -51,10 +54,6 @@ public class LytStructureView extends LytBlock {
             blocks.add(new BlockEntry(x, y, z, stack));
             sortedCache = null;
         }
-    }
-
-    public List<BlockEntry> getBlocks() {
-        return blocks;
     }
 
     @Override

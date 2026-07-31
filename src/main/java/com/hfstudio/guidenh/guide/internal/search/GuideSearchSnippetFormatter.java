@@ -62,7 +62,7 @@ public class GuideSearchSnippetFormatter {
         return root;
     }
 
-    static String expandHighlightMarkup(String fragmentMarkup) {
+    public static String expandHighlightMarkup(String fragmentMarkup) {
         var plain = new StringBuilder();
         var ranges = parseRanges(fragmentMarkup, plain);
         if (ranges.isEmpty()) {
@@ -79,9 +79,9 @@ public class GuideSearchSnippetFormatter {
             while (end < plain.length() && isTokenChar(plain.charAt(end - 1)) && isTokenChar(plain.charAt(end))) {
                 end++;
             }
-            if (!expanded.isEmpty() && start <= expanded.get(expanded.size() - 1)
+            if (!expanded.isEmpty() && start <= expanded.getLast()
                 .endExclusive()) {
-                var previous = expanded.remove(expanded.size() - 1);
+                var previous = expanded.removeLast();
                 expanded.add(new IntRange(previous.startInclusive(), Math.max(previous.endExclusive(), end)));
             } else {
                 expanded.add(new IntRange(start, end));
@@ -219,9 +219,9 @@ public class GuideSearchSnippetFormatter {
     }
 
     @Desugar
-    record IntRange(int startInclusive, int endExclusive) {
+    public record IntRange(int startInclusive, int endExclusive) {
 
-        IntRange {
+        public IntRange {
             if (startInclusive < 0 || endExclusive < startInclusive) {
                 throw new IndexOutOfBoundsException("Invalid range: [" + startInclusive + ", " + endExclusive + ")");
             }

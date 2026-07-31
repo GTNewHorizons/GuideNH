@@ -69,9 +69,22 @@ public class TagAttributeRegistry {
             "FloatingImage",
             new AttributeSpec("src", AttrType.FILE_PATH),
             new AttributeSpec("align", AttrType.STRING),
+            new AttributeSpec("wrap", AttrType.STRING),
             new AttributeSpec("title", AttrType.STRING),
+            new AttributeSpec("alt", AttrType.STRING),
+            new AttributeSpec("x", AttrType.INT),
+            new AttributeSpec("y", AttrType.INT),
             new AttributeSpec("width", AttrType.INT),
-            new AttributeSpec("height", AttrType.INT));
+            new AttributeSpec("height", AttrType.INT),
+            new AttributeSpec("w", AttrType.INT),
+            new AttributeSpec("h", AttrType.INT),
+            new AttributeSpec("scaleX", AttrType.FLOAT),
+            new AttributeSpec("scaleY", AttrType.FLOAT),
+            new AttributeSpec("displayWidth", AttrType.INT),
+            new AttributeSpec("displayHeight", AttrType.INT),
+            new AttributeSpec("sound", AttrType.STRING),
+            new AttributeSpec("soundSrc", AttrType.FILE_PATH),
+            new AttributeSpec("trigger", AttrType.STRING));
         register("Color", new AttributeSpec("id", AttrType.COLOR), new AttributeSpec("color", AttrType.COLOR));
         register("KeyBind", new AttributeSpec("id", AttrType.KEY_BIND), new AttributeSpec("action", AttrType.STRING));
         register(

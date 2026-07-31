@@ -271,10 +271,7 @@ public class HomePageController {
         if (next < 0) {
             return 0;
         }
-        if (next > maxScroll) {
-            return maxScroll;
-        }
-        return next;
+        return Math.min(next, maxScroll);
     }
 
     private int getScrollOffset(HomePageSection section) {

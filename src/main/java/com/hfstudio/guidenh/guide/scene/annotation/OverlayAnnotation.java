@@ -4,14 +4,17 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 
+import lombok.Getter;
+
+@Getter
 public abstract class OverlayAnnotation extends SceneAnnotation {
 
+    /**
+     * -- GETTER --
+     * Returns the current fade multiplier in the range
+     * .
+     */
     private float fade = 1f;
-
-    /** Returns the current fade multiplier in the range {@code [0, 1]}. */
-    public float getFade() {
-        return fade;
-    }
 
     /**
      * Sets the fade multiplier applied to all rendered alpha values.

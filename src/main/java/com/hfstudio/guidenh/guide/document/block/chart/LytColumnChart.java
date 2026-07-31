@@ -6,8 +6,12 @@ import java.util.List;
 import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Clustered column chart. The X axis is categorical (see {@link #setCategories}); the Y axis is numeric.
@@ -17,7 +21,7 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
  * Optional combo extensions: {@link #setLineOverlays} adds line series drawn over the bars sharing the
  * same Y axis; {@link #setPieInset} draws a small pie chart in a corner of the plot area for summary share.
  */
-public class LytColumnChart extends LytChartBase {
+public class LytColumnChart extends LytChartBase implements DebugComponent {
 
     private static final int LINE_THICKNESS = 1;
     private static final int LINE_POINT_RADIUS = 2;
@@ -26,8 +30,12 @@ public class LytColumnChart extends LytChartBase {
     /** Extra horizontal space reserved on the chart's right side when pie inset is RIGHT_OUTSIDE. */
     private static final int PIE_OUTSIDE_GAP = 6;
 
+    @Getter
     private List<ChartSeries> series = new ArrayList<>();
+    @Getter
     private List<ChartSeries> lineOverlays = new ArrayList<>();
+    @Getter
+    @Setter
     private PieInsetSpec pieInset;
     private String[] categories = new String[0];
     private ChartAxisOptions xAxis = new ChartAxisOptions();
@@ -41,24 +49,8 @@ public class LytColumnChart extends LytChartBase {
         this.series = series != null ? series : new ArrayList<>();
     }
 
-    public List<ChartSeries> getSeries() {
-        return series;
-    }
-
     public void setLineOverlays(List<ChartSeries> overlays) {
         this.lineOverlays = overlays != null ? overlays : new ArrayList<>();
-    }
-
-    public List<ChartSeries> getLineOverlays() {
-        return lineOverlays;
-    }
-
-    public void setPieInset(PieInsetSpec pieInset) {
-        this.pieInset = pieInset;
-    }
-
-    public PieInsetSpec getPieInset() {
-        return pieInset;
     }
 
     public void setCategories(String[] categories) {
@@ -429,5 +421,55 @@ public class LytColumnChart extends LytChartBase {
         if (si < 0 || si >= series.size()) return null;
         return series.get(si)
             .getTooltipExtra();
+    }
+
+    // Debug implementation
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> components = new ArrayList<>();
+
+        if (series.isEmpty() || plotCache.isEmpty() || yRangeCache == null) {
+            return components;
+        }
+
+        int categoryCount = Math.max(categories.length, maxSeriesLength());
+        int seriesCount = series.size();
+        float categoryWidth = (float) plotCache.width() / categoryCount;
+        float clusterWidth = categoryWidth * barWidthRatio;
+        float barWidth = clusterWidth / seriesCount;
+        float baselineY = CartesianChartRenderer.mapY(0d, yRangeCache, plotCache);
+
+        for (int ci = 0; ci < categoryCount; ci++) {
+            float clusterCenter = plotCache.x() + categoryWidth * (ci + 0.5f);
+            float clusterLeft = clusterCenter - clusterWidth / 2f;
+
+            for (int si = 0; si < seriesCount; si++) {
+                ChartSeries s = series.get(si);
+                if (ci >= s.getYs().length) continue;
+
+                double v = s.getYs()[ci];
+                float topY = CartesianChartRenderer.mapY(v, yRangeCache, plotCache);
+                float x0 = clusterLeft + barWidth * si;
+                float x1 = x0 + barWidth - 0.5f;
+
+                float yTop = Math.min(topY, baselineY);
+                float yBot = Math.max(topY, baselineY);
+
+                LytRect barBounds = new LytRect(
+                    (int) x0,
+                    (int) yTop,
+                    Math.max(1, (int) (x1 - x0)),
+                    Math.max(1, (int) (yBot - yTop)));
+
+                String cat = ci < categories.length ? categories[ci] : Integer.toString(ci + 1);
+                String label = s.getName() + "[" + cat + "]";
+                String extra = String.format("Value: %.1f", v);
+
+                components.add(new SimpleComponentEntry("Column:" + label, barBounds, extra, 15));
+            }
+        }
+
+        return components;
     }
 }

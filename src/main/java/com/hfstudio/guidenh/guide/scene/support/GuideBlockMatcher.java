@@ -5,9 +5,11 @@ import net.minecraft.block.Block;
 import org.jetbrains.annotations.Nullable;
 
 import cpw.mods.fml.common.registry.GameRegistry;
+import lombok.Getter;
 
 public class GuideBlockMatcher {
 
+    @Getter
     private final String blockId;
     @Nullable
     private final Integer meta;
@@ -58,10 +60,6 @@ public class GuideBlockMatcher {
         return new GuideBlockMatcher(trimmed.substring(0, blockIdEnd), meta);
     }
 
-    public String getBlockId() {
-        return blockId;
-    }
-
     @Nullable
     public Integer getMeta() {
         return meta;
@@ -99,7 +97,7 @@ public class GuideBlockMatcher {
 
     private boolean matchesCandidate(@Nullable String candidate) {
         String normalizedCandidate = normalizeResolvedBlockId(candidate);
-        return normalizedCandidate != null && blockId.equals(normalizedCandidate);
+        return blockId.equals(normalizedCandidate);
     }
 
     @Nullable

@@ -77,7 +77,7 @@ public class GfmTableMdastExtension {
         }
 
         var stack = context.getStack();
-        var node = (MdAstInlineCode) stack.get(stack.size() - 1);
+        var node = (MdAstInlineCode) stack.getLast();
         node.value = value;
         context.exit(token);
     }

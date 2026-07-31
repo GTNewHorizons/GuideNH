@@ -21,11 +21,11 @@ public final class ExpAnimatedTexturePartFrame extends Struct {
     }
 
     public int index() {
-        return bb.getShort(bb_pos + 0) & 0xFFFF;
+        return bb.getShort(bb_pos) & 0xFFFF;
     }
 
     public void mutateIndex(int index) {
-        bb.putShort(bb_pos + 0, (short) index);
+        bb.putShort(bb_pos, (short) index);
     }
 
     public int time() {

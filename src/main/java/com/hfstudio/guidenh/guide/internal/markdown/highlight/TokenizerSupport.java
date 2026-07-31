@@ -14,7 +14,7 @@ public class TokenizerSupport {
             return;
         }
         if (!out.isEmpty()) {
-            CodeHighlightToken last = out.get(out.size() - 1);
+            CodeHighlightToken last = out.getLast();
             if (last.type() == type) {
                 out.set(out.size() - 1, new CodeHighlightToken(last.text() + text, type));
                 return;

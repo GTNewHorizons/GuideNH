@@ -4,6 +4,9 @@ import java.util.Locale;
 
 import com.hfstudio.guidenh.guide.compiler.tags.SerializedEnum;
 
+import lombok.Getter;
+
+@Getter
 public enum AlignItems implements SerializedEnum {
 
     CENTER,
@@ -16,7 +19,4 @@ public enum AlignItems implements SerializedEnum {
         this.serializedName = name().toLowerCase(Locale.ROOT);
     }
 
-    public String getSerializedName() {
-        return serializedName;
-    }
 }

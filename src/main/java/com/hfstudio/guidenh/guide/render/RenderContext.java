@@ -128,6 +128,11 @@ public interface RenderContext {
     void fillCircle(float cx, float cy, float radius, int argbColor);
 
     /**
+     * Fill an ellipse with a single color (polygon approximation).
+     */
+    void fillEllipse(float cx, float cy, float rx, float ry, int argbColor);
+
+    /**
      * Draw a circular outline (polygon approximation).
      */
     void drawCircleOutline(float cx, float cy, float radius, float thickness, int argbColor);
@@ -179,6 +184,11 @@ public interface RenderContext {
                 blitTexture(resolvedTexture, rect.x(), rect.y(), 0, 0, rect.width(), rect.height());
             }
         }
+    }
+
+    default void fillTexturedRect(LytRect rect, GuidePageTexture texture, int sourceX, int sourceY, int sourceWidth,
+        int sourceHeight) {
+        fillTexturedRect(rect, texture);
     }
 
     /**

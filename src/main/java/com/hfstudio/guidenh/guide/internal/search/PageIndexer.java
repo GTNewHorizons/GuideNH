@@ -21,7 +21,6 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
-import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public class PageIndexer implements IndexingContext {
 
@@ -75,9 +74,8 @@ public class PageIndexer implements IndexingContext {
         } else if (content instanceof MdAstDefinition || content instanceof MdAstYamlFrontmatter) {
             // Handled via conversion
         } else {
-            GuideDebugLog.warnAlways(
-                "[GuideNH] [PageIndexer] Unhandled node type in guide search indexing: {}",
-                ((UnistNode) content).type());
+            GuideDebugLog
+                .warnAlways("[GuideNH] [PageIndexer] Unhandled node type in guide search indexing: {}", content.type());
         }
     }
 

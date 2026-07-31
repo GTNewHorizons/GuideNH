@@ -21,11 +21,11 @@ public final class ExpVec3 extends Struct {
     }
 
     public float x() {
-        return bb.getFloat(bb_pos + 0);
+        return bb.getFloat(bb_pos);
     }
 
     public void mutateX(float x) {
-        bb.putFloat(bb_pos + 0, x);
+        bb.putFloat(bb_pos, x);
     }
 
     public float y() {

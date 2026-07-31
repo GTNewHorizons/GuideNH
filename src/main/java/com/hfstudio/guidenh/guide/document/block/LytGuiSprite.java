@@ -12,6 +12,8 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuiSprite;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 /**
  * Render a {@link GuiSprite}.
  */
@@ -20,6 +22,7 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
     @Nullable
     private GuiSprite sprite;
 
+    @Getter
     private ColorValue color = ConstantColor.WHITE;
 
     @Nullable
@@ -27,6 +30,7 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
 
     private boolean hovered;
 
+    @Getter
     private LytSize size = new LytSize(16, 16);
 
     public LytGuiSprite() {}
@@ -45,20 +49,12 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
         this.sprite = sprite;
     }
 
-    public ColorValue getColor() {
-        return color;
-    }
-
     public void setColor(ColorValue color) {
         this.color = color != null ? color : ConstantColor.WHITE;
     }
 
     public void setHoverColor(@Nullable ColorValue hoverColor) {
         this.hoverColor = hoverColor;
-    }
-
-    public LytSize getSize() {
-        return size;
     }
 
     public void setSize(LytSize size) {

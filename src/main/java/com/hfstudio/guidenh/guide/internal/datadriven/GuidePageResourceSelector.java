@@ -16,15 +16,52 @@ public class GuidePageResourceSelector {
 
     private GuidePageResourceSelector() {}
 
-    public static @Nullable SelectedPageResource select(ResourceLocation sourceId) {
+    /**
+     * Selects the best resource pack that contains the given resource location.
+     * <p>
+     * Uses the pre-built reverse index for O(1) lookup. If the index is ready
+     * but the key is absent, returns null immediately (the resource is guaranteed
+     * not to exist in any indexed pack).
+     * <p>
+     * Only falls back to a full scan if the index has not been built yet
+     * (e.g. during very early init).
+     */
+    public static @Nullable SelectedPack select(ResourceLocation sourceId) {
         return select(sourceId, DataDrivenGuideLoader.getActiveResourcePacks());
     }
 
-    public static @Nullable SelectedPageResource select(ResourceLocation sourceId,
+    public static @Nullable SelectedPack select(ResourceLocation sourceId,
         Iterable<? extends IResourcePack> resourcePacks) {
-        SelectedPageResource winner = null;
-        int winnerPriority = 0;
-        boolean winnerPriorityResolved = false;
+        // O(1) index lookup
+        List<DataDrivenGuideLoader.PackCandidate> candidates = DataDrivenGuideLoader.getCandidatesFor(sourceId);
+        if (candidates != null && !candidates.isEmpty()) {
+            DataDrivenGuideLoader.PackCandidate best = candidates.get(0);
+            for (int i = 1; i < candidates.size(); i++) {
+                if (candidates.get(i)
+                    .shouldReplace(best)) {
+                    best = candidates.get(i);
+                }
+            }
+            return new SelectedPack(sourceId, best.pack(), best.loadPriority());
+        }
+
+        // Index says it doesn't exist — fast null
+        if (DataDrivenGuideLoader.isIndexPopulated()) {
+            return null;
+        }
+
+        // Index not built yet — emergency full scan
+        return selectFullScan(sourceId, resourcePacks);
+    }
+
+    /**
+     * Full-scan fallback used only when the index hasn't been built yet.
+     * Reads bytes for comparison (loadPriority requires frontmatter parsing).
+     */
+    private static @Nullable SelectedPack selectFullScan(ResourceLocation sourceId,
+        Iterable<? extends IResourcePack> resourcePacks) {
+        SelectedPack winner = null;
+        byte[] winnerBytes = null;
         int order = 0;
         for (IResourcePack resourcePack : resourcePacks) {
             byte[] bytes = DataDrivenGuideLoader.readBytes(resourcePack, sourceId);
@@ -32,95 +69,86 @@ public class GuidePageResourceSelector {
                 continue;
             }
             int candidateOrder = order++;
+            int candidatePriority = readLoadPriority(sourceId, bytes);
             if (winner == null) {
-                winner = new SelectedPageResource(sourceId, resourcePack, bytes, 0, candidateOrder);
+                winner = new SelectedPack(sourceId, resourcePack, candidatePriority);
+                winnerBytes = bytes;
                 continue;
             }
-            if (!winnerPriorityResolved) {
-                winnerPriority = readLoadPriority(winner.sourceId(), winner.bytes());
-                winner = winner.withLoadPriority(winnerPriority);
-                winnerPriorityResolved = true;
-            }
-            int candidatePriority = readLoadPriority(sourceId, bytes);
-            SelectedPageResource candidate = new SelectedPageResource(
-                sourceId,
+            DataDrivenGuideLoader.PackCandidate candidate = new DataDrivenGuideLoader.PackCandidate(
                 resourcePack,
-                bytes,
                 candidatePriority,
                 candidateOrder);
-            if (candidate.shouldReplace(winner)) {
-                winner = candidate;
-                winnerPriority = candidatePriority;
-                winnerPriorityResolved = true;
+            DataDrivenGuideLoader.PackCandidate current = new DataDrivenGuideLoader.PackCandidate(
+                winner.pack(),
+                winner.loadPriority(),
+                order - 2);
+            if (candidate.shouldReplace(current)) {
+                winner = new SelectedPack(sourceId, resourcePack, candidatePriority);
+                winnerBytes = bytes;
             }
-        }
-        if (winner != null && !winnerPriorityResolved) {
-            winner = winner.withLoadPriority(readLoadPriority(winner.sourceId(), winner.bytes()));
         }
         return winner;
     }
 
-    public static @Nullable SelectedPageResource selectFirstPresent(Iterable<? extends IResourcePack> resourcePacks,
+    /**
+     * Selects the first resource location found from the given candidates.
+     * Used by the editor and runtime navigation where the caller has a
+     * localized → default → raw fallback chain.
+     * <p>
+     * This does NOT use the index — it does a targeted scan of only the given
+     * candidate IDs. For bulk page loading during reload, use {@link #select}
+     * instead.
+     */
+    public static @Nullable SelectedPack selectFirstPresent(Iterable<? extends IResourcePack> resourcePacks,
         ResourceLocation... sourceIds) {
         if (sourceIds == null || sourceIds.length == 0) {
             return null;
         }
-        var winners = new SelectedPageResource[sourceIds.length];
-        var winnerPriorities = new int[sourceIds.length];
-        var winnerPriorityResolved = new boolean[sourceIds.length];
-        var orders = new int[sourceIds.length];
-        for (IResourcePack resourcePack : resourcePacks) {
-            for (int i = 0; i < sourceIds.length; i++) {
-                ResourceLocation sourceId = sourceIds[i];
-                if (sourceId == null) {
-                    continue;
-                }
-                byte[] bytes = DataDrivenGuideLoader.readBytes(resourcePack, sourceId);
-                if (bytes == null) {
-                    continue;
-                }
-                int candidateOrder = orders[i]++;
-                if (winners[i] == null) {
-                    winners[i] = new SelectedPageResource(sourceId, resourcePack, bytes, 0, candidateOrder);
-                    continue;
-                }
-                if (!winnerPriorityResolved[i]) {
-                    winnerPriorities[i] = readLoadPriority(winners[i].sourceId(), winners[i].bytes());
-                    winners[i] = winners[i].withLoadPriority(winnerPriorities[i]);
-                    winnerPriorityResolved[i] = true;
-                }
-                int candidatePriority = readLoadPriority(sourceId, bytes);
-                SelectedPageResource candidate = new SelectedPageResource(
-                    sourceId,
-                    resourcePack,
-                    bytes,
-                    candidatePriority,
-                    candidateOrder);
-                if (candidate.shouldReplace(winners[i])) {
-                    winners[i] = candidate;
-                    winnerPriorities[i] = candidatePriority;
-                    winnerPriorityResolved[i] = true;
+
+        // Fast path: try index first
+        if (DataDrivenGuideLoader.isIndexPopulated()) {
+            for (ResourceLocation sourceId : sourceIds) {
+                if (sourceId == null) continue;
+                var candidates = DataDrivenGuideLoader.getCandidatesFor(sourceId);
+                if (candidates != null && !candidates.isEmpty()) {
+                    return new SelectedPack(
+                        sourceId,
+                        candidates.get(0)
+                            .pack(),
+                        candidates.get(0)
+                            .loadPriority());
                 }
             }
+            return null;
         }
-        for (int i = 0; i < winners.length; i++) {
-            SelectedPageResource winner = winners[i];
-            if (winner != null) {
-                if (!winnerPriorityResolved[i]) {
-                    winner = winner.withLoadPriority(readLoadPriority(winner.sourceId(), winner.bytes()));
-                    winners[i] = winner;
+
+        // Slow path: full scan
+        return selectFirstPresentFullScan(resourcePacks, sourceIds);
+    }
+
+    private static @Nullable SelectedPack selectFirstPresentFullScan(Iterable<? extends IResourcePack> resourcePacks,
+        ResourceLocation... sourceIds) {
+        for (IResourcePack resourcePack : resourcePacks) {
+            for (ResourceLocation sourceId : sourceIds) {
+                if (sourceId == null) continue;
+                if (DataDrivenGuideLoader.readBytes(resourcePack, sourceId) != null) {
+                    return new SelectedPack(sourceId, resourcePack, 0);
                 }
-                return winner;
             }
         }
         return null;
     }
 
-    public static @Nullable SelectedPageResource selectFirstPresent(List<IResourcePack> resourcePacks,
+    public static @Nullable SelectedPack selectFirstPresent(List<IResourcePack> resourcePacks,
         ResourceLocation... sourceIds) {
         return selectFirstPresent((Iterable<? extends IResourcePack>) resourcePacks, sourceIds);
     }
 
+    /**
+     * Parses loadPriority from frontmatter for a given page's bytes.
+     * Used during full-scan fallback and by MediaWikiSpecialDataIndexer.
+     */
     public static int readLoadPriority(ResourceLocation sourceId, byte[] bytes) {
         String source = new String(bytes, StandardCharsets.UTF_8);
         String yamlText = PageCompiler.extractFrontmatterText(PageCompiler.normalizeLineEndings(stripBom(source)));
@@ -137,9 +165,23 @@ public class GuidePageResourceSelector {
     }
 
     private static String stripBom(String source) {
-        return source.startsWith("\uFEFF") ? source.substring(1) : source;
+        return source.startsWith("﻿") ? source.substring(1) : source;
     }
 
+    /**
+     * A resource location found in a specific resource pack.
+     * <p>
+     * Unlike the old {@code SelectedPageResource}, this does NOT carry the page bytes —
+     * the caller is expected to call {@link DataDrivenGuideLoader#readBytes} separately.
+     */
+    @Desugar
+    public record SelectedPack(ResourceLocation sourceId, IResourcePack pack, int loadPriority) {}
+
+    /**
+     * @deprecated Use {@link SelectedPack} instead. Bytes are no longer included;
+     *             read them separately via {@link DataDrivenGuideLoader#readBytes}.
+     */
+    @Deprecated
     @Desugar
     public record SelectedPageResource(ResourceLocation sourceId, IResourcePack resourcePack, byte[] bytes,
         int loadPriority, int order) {

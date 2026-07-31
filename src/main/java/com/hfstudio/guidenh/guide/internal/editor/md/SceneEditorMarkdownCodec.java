@@ -286,9 +286,9 @@ public class SceneEditorMarkdownCodec {
 
         try {
             model.addElement(parseElement(element, source));
-        } catch (UnsupportedSubsetException ignored) {
+        } catch (UnsupportedSubsetException exception) {
             if (isKnownSceneTag(tagName)) {
-                throw ignored;
+                throw exception;
             }
             String rawText = extractRawNodeText(node, source);
             if (rawText != null && !rawText.trim()

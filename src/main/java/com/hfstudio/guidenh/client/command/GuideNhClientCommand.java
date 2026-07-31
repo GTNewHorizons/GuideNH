@@ -6,17 +6,20 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideMEProxy;
@@ -25,11 +28,10 @@ import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorScreen;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExportMode;
-import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 import com.hfstudio.guidenh.guide.internal.localization.GuidePageLangDumpOutputPaths;
 import com.hfstudio.guidenh.guide.internal.localization.GuidePageLangDumpTask;
-import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureExportAccess;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureCoordinateParser;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
 import com.hfstudio.guidenh.guide.siteexport.ExportTask;
@@ -40,7 +42,8 @@ import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteOutputPaths;
 public class GuideNhClientCommand extends CommandBase {
 
     public static final String[] ROOT_SUB_COMMANDS = { "editor", "guideeditor", "guideedit", "list", "open", "reload",
-        "search", "export", "exportsite", "exportstructure", "dumppagelang", "pos1", "pos2", "clearselection" };
+        "search", "export", "exportsite", "exportstructure", "dumppagelang", "pos1", "pos2", "clearselection", "bind",
+        "unbind" };
     public static final String[] EXPORT_STRUCTURE_FLAGS = { "--mode", "snbt", "snbt_e", "blocks", "blocks_e" };
     public static final String[] EXPORT_SITE_FLAGS = { "--ponder-frames", "--ponder-every-tick" };
 
@@ -90,6 +93,8 @@ public class GuideNhClientCommand extends CommandBase {
                 if (!requireSceneExportEnabled(sender)) return;
                 clearSelection(sender);
             }
+            case "bind" -> updateRegionWandBinding(sender, true);
+            case "unbind" -> updateRegionWandBinding(sender, false);
             default -> send(sender, GuidebookText.CommandClientUsage);
         }
     }
@@ -158,7 +163,7 @@ public class GuideNhClientCommand extends CommandBase {
     }
 
     private void toggleGuideEditor(ICommandSender sender) {
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) {
+        if (!ModConfig.ui.sceneExportEnabled) {
             send(sender, GuidebookText.SceneExportDisabled);
             return;
         }
@@ -362,13 +367,13 @@ public class GuideNhClientCommand extends CommandBase {
         boolean includeEntities = mode.includeEntities();
         List<Entity> entities = includeEntities ? collectEntities(player, x, y, z, maxX, maxY, maxZ) : List.of();
         if (mode == RegionWandExportMode.BLOCKS || mode == RegionWandExportMode.BLOCKS_ENTITIES) {
-            return RegionWandItem.exportBlocks(player.worldObj, x, y, z, maxX, maxY, maxZ, entities)
+            return RegionWandExporter.exportBlocks(player.worldObj, x, y, z, maxX, maxY, maxZ, entities)
                 .text();
         }
         if (!includeEntities) {
-            return RegionWandItem.exportRegionAsStructureSnbt(player.worldObj, x, y, z, sizeX, sizeY, sizeZ);
+            return RegionWandExporter.exportRegionAsStructureSnbt(player.worldObj, x, y, z, sizeX, sizeY, sizeZ);
         }
-        return RegionWandItem.exportSnbt(player.worldObj, x, y, z, maxX, maxY, maxZ, sizeX, sizeY, sizeZ, entities)
+        return RegionWandExporter.exportSnbt(player.worldObj, x, y, z, maxX, maxY, maxZ, sizeX, sizeY, sizeZ, entities)
             .text();
     }
 
@@ -431,8 +436,28 @@ public class GuideNhClientCommand extends CommandBase {
         send(sender, GuidebookText.RegionWandSelectionCleared);
     }
 
+    private void updateRegionWandBinding(ICommandSender sender, boolean bind) {
+        if (!bind) {
+            boolean changed = RegionWandSelection.clearBinding();
+            send(sender, changed ? GuidebookText.RegionWandUnbound : GuidebookText.RegionWandNotBound);
+            return;
+        }
+        EntityPlayer player = Minecraft.getMinecraft().thePlayer;
+        if (player == null) {
+            send(sender, GuidebookText.RegionWandNoHeldItem);
+            return;
+        }
+        ItemStack held = player.getHeldItem();
+        if (held == null) {
+            send(sender, GuidebookText.RegionWandNoHeldItem);
+            return;
+        }
+        boolean changed = RegionWandSelection.bind(held);
+        send(sender, changed ? GuidebookText.RegionWandBound : GuidebookText.RegionWandAlreadyBound);
+    }
+
     private boolean requireSceneExportEnabled(ICommandSender sender) {
-        if (GuideNhStructureExportAccess.canUseSceneExport()) {
+        if (ModConfig.ui.sceneExportEnabled) {
             return true;
         }
         send(sender, GuidebookText.SceneExportDisabled);

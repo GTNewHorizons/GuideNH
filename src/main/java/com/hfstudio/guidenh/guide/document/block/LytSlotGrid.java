@@ -9,12 +9,20 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class LytSlotGrid extends LytBox {
 
+    @Getter
     private final int width;
+    @Getter
     private final int height;
     private final LytSlot[] slots;
+    @Getter
+    @Setter
     private boolean renderEmptySlots = true;
+    @Getter
     private boolean renderSlotBackground = true;
 
     public LytSlotGrid(int width, int height) {
@@ -75,18 +83,6 @@ public class LytSlotGrid extends LytBox {
         }
     }
 
-    public boolean isRenderEmptySlots() {
-        return renderEmptySlots;
-    }
-
-    public void setRenderEmptySlots(boolean renderEmptySlots) {
-        this.renderEmptySlots = renderEmptySlots;
-    }
-
-    public boolean isRenderSlotBackground() {
-        return renderSlotBackground;
-    }
-
     public void setRenderSlotBackground(boolean renderSlotBackground) {
         this.renderSlotBackground = renderSlotBackground;
         for (LytSlot slot : slots) {
@@ -94,14 +90,6 @@ public class LytSlotGrid extends LytBox {
                 configureSlot(slot);
             }
         }
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
     }
 
     @Nullable

@@ -21,11 +21,11 @@ public final class ExpCameraSettings extends Struct {
     }
 
     public float yaw() {
-        return bb.getFloat(bb_pos + 0);
+        return bb.getFloat(bb_pos);
     }
 
     public void mutateYaw(float yaw) {
-        bb.putFloat(bb_pos + 0, yaw);
+        bb.putFloat(bb_pos, yaw);
     }
 
     public float pitch() {

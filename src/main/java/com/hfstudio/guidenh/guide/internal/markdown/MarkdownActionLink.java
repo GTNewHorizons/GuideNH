@@ -3,12 +3,14 @@ package com.hfstudio.guidenh.guide.internal.markdown;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.Getter;
+
 public class MarkdownActionLink {
 
     private MarkdownActionLink() {}
 
     public static boolean mayContain(String text) {
-        return text != null && text.indexOf("&[") >= 0;
+        return text != null && text.contains("&[");
     }
 
     public static List<Segment> split(String text) {
@@ -115,6 +117,7 @@ public class MarkdownActionLink {
 
         private final String text;
         private final String href;
+        @Getter
         private final boolean link;
 
         public Segment(String text, String href, boolean link) {
@@ -131,9 +134,6 @@ public class MarkdownActionLink {
             return href;
         }
 
-        public boolean isLink() {
-            return link;
-        }
     }
 
     private static class ParsedLink {

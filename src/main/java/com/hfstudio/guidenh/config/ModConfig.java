@@ -6,9 +6,9 @@ import com.gtnewhorizon.gtnhlib.config.Config.DefaultBoolean;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultEnum;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultFloat;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultString;
+import com.gtnewhorizon.gtnhlib.config.Config.DefaultStringList;
 import com.gtnewhorizon.gtnhlib.config.Config.RangeFloat;
 import com.gtnewhorizon.gtnhlib.config.Config.RequiresMcRestart;
-import com.gtnewhorizon.gtnhlib.config.Config.Sync;
 import com.gtnewhorizon.gtnhlib.config.ConfigException;
 import com.gtnewhorizon.gtnhlib.config.ConfigurationManager;
 import com.hfstudio.guidenh.GuideNH;
@@ -34,6 +34,105 @@ public class ModConfig {
         @DefaultBoolean(false)
         @RequiresMcRestart
         public boolean enableDebugMode = false;
+
+        @Comment("Enable GUI Debug Overlay Mode (activated with C+CTRL+SHIFT+ALT in Guide screens)")
+        @DefaultBoolean(false)
+        public boolean guiDebugMode = false;
+
+        @Comment("Show hovered element info in debug overlay")
+        @DefaultBoolean(true)
+        public boolean showHoveredInfo = true;
+
+        @Comment("Show hovered element position")
+        @DefaultBoolean(true)
+        public boolean showHoveredPosition = true;
+
+        @Comment("Show hovered element size")
+        @DefaultBoolean(true)
+        public boolean showHoveredSize = true;
+
+        @Comment("Show hovered element theme/style")
+        @DefaultBoolean(true)
+        public boolean showHoveredTheme = true;
+
+        @Comment("Show hovered element extra info (type-specific details)")
+        @DefaultBoolean(true)
+        public boolean showHoveredExtra = true;
+
+        @Comment("Show hovered element outline border")
+        @DefaultBoolean(true)
+        public boolean showHoveredOutline = true;
+
+        @Comment("Show parent element info in debug overlay")
+        @DefaultBoolean(false)
+        public boolean showParentInfo = false;
+
+        @Comment("Show parent element position")
+        @DefaultBoolean(true)
+        public boolean showParentPosition = true;
+
+        @Comment("Show parent element size")
+        @DefaultBoolean(true)
+        public boolean showParentSize = true;
+
+        @Comment("Show parent element theme/style")
+        @DefaultBoolean(true)
+        public boolean showParentTheme = true;
+
+        @Comment("Show parent element outline border")
+        @DefaultBoolean(true)
+        public boolean showParentOutline = true;
+
+        @Comment("Show FPS counter in debug overlay")
+        @DefaultBoolean(true)
+        public boolean showFps = true;
+
+        @Comment("Show memory usage in debug overlay")
+        @DefaultBoolean(true)
+        public boolean showMemory = true;
+
+        @Comment("Show mouse position in debug overlay")
+        @DefaultBoolean(true)
+        public boolean showMousePosition = true;
+
+        @Comment("Debug text color (ARGB format)")
+        public int debugTextColor = 0xFFC47BA1;
+
+        @Comment("Debug outline border color (ARGB format, 0 to mirror text color)")
+        public int debugOutlineColor = 0;
+
+        @Comment("Debug cursor dot color (ARGB format)")
+        public int debugCursorColor = 0xCC00FF00;
+
+        @Comment("Debug text scale factor")
+        @DefaultFloat(0.8f)
+        @RangeFloat(min = 0.5f, max = 2.0f)
+        public float debugTextScale = 0.8f;
+
+        @Comment("Debug outline border thickness")
+        @DefaultFloat(2.0f)
+        @RangeFloat(min = 0.5f, max = 5.0f)
+        public float debugOutlineThickness = 2.0f;
+
+        @Comment("Dashed border animation cycle duration in milliseconds")
+        @DefaultFloat(2000.0f)
+        @RangeFloat(min = 500.0f, max = 10000.0f)
+        public float debugDashAnimationCycleMs = 2000.0f;
+
+        @Comment("Dashed border line width in pixels")
+        @DefaultFloat(2.0f)
+        @RangeFloat(min = 0.5f, max = 5.0f)
+        public float debugDashWidth = 2.0f;
+
+        @Comment("Dashed border dash segment length in pixels")
+        @DefaultFloat(4.0f)
+        @RangeFloat(min = 1.0f, max = 20.0f)
+        public float debugDashOnLength = 4.0f;
+
+        @Comment("Dashed border gap segment length in pixels")
+        @DefaultFloat(4.0f)
+        @RangeFloat(min = 1.0f, max = 20.0f)
+        public float debugDashOffLength = 4.0f;
     }
 
     @Comment("UI section (persisted across sessions)")
@@ -77,6 +176,10 @@ public class ModConfig {
         @DefaultBoolean(true)
         public boolean confirmExternalLinks = true;
 
+        @Comment("Whether the first-open welcome popup should be shown.")
+        @DefaultBoolean(true)
+        public boolean welcomePopupEnabled = true;
+
         @Comment("Whether mouse wheel scroll zooms the 3D scene preview (while cursor is over it). "
             + "When false, scroll always goes to page scroll. Default: true.")
         @DefaultBoolean(true)
@@ -114,17 +217,18 @@ public class ModConfig {
         @DefaultBoolean(false)
         public boolean sceneEditorSnapCenterEnabled = false;
 
-        @Comment("Whether scene export features are available. "
-            + "This controls the scene editor, structure export commands, and Region Wand selection/export. "
-            + "On multiplayer servers this value is synced from the server. "
-            + "If the server does not have GuideNH installed, scene export is disabled.")
+        @Comment("Whether client-side scene export features are available. "
+            + "This controls the scene editor, structure export commands, and Region Wand selection/export.")
         @DefaultBoolean(true)
-        @Sync
         public boolean sceneExportEnabled = true;
 
-        @Comment("Whether the Region Wand selection box remains visible after switching away from the wand.")
+        @Comment("Whether the Region Wand selection box remains visible after switching away from a bound item.")
         @DefaultBoolean(true)
         public boolean regionWandPersistentSelectionRender = true;
+
+        @Comment("Client-side Region Wand binding stored as an item registry id and metadata pair.")
+        @DefaultStringList({})
+        public String[] regionWandBindings = {};
 
         @Comment("Client-global Region Wand export mode used for selection exports.")
         public RegionWandExportMode regionWandExportMode = RegionWandExportMode.SNBT;

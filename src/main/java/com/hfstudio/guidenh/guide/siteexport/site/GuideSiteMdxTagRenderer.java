@@ -8,6 +8,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
@@ -61,10 +62,16 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNode;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapNodeContentExtractor;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartNode;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNodeContentExtractor;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiListContext;
@@ -697,40 +704,40 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String applyFormatMarkersHtml(String format, String escapedText) {
-        String open = "";
-        String close = "";
+        StringBuilder open = new StringBuilder();
+        StringBuilder close = new StringBuilder();
         String s = format;
         boolean changed = true;
         while (changed) {
             changed = false;
             if (isHtmlWrapped(s, "~~")) {
-                open = "<s>" + open;
-                close = close + "</s>";
+                open.insert(0, "<s>");
+                close.append("</s>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "**")) {
-                open = "<strong>" + open;
-                close = close + "</strong>";
+                open.insert(0, "<strong>");
+                close.append("</strong>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "__") || isHtmlWrapped(s, "++")) {
-                open = "<u>" + open;
-                close = close + "</u>";
+                open.insert(0, "<u>");
+                close.append("</u>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "^^")) {
-                open = "<span style=\"text-decoration:underline wavy\">" + open;
-                close = close + "</span>";
+                open.insert(0, "<span style=\"text-decoration:underline wavy\">");
+                close.append("</span>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "::")) {
-                open = "<span style=\"text-decoration:underline dotted\">" + open;
-                close = close + "</span>";
+                open.insert(0, "<span style=\"text-decoration:underline dotted\">");
+                close.append("</span>");
                 s = s.substring(2, s.length() - 2);
                 changed = true;
             } else if (isHtmlWrapped(s, "*") || isHtmlWrapped(s, "_")) {
-                open = "<em>" + open;
-                close = close + "</em>";
+                open.insert(0, "<em>");
+                close.append("</em>");
                 s = s.substring(1, s.length() - 1);
                 changed = true;
             }
@@ -1344,9 +1351,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         StringBuilder text = new StringBuilder();
         collectStructureText(text, element.children());
-        FileTreeModel model = FileTreeParser.parse(
-            text.toString()
-                .trim());
+        return renderFileTree(text.toString(), defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+    }
+
+    @Override
+    public String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler) {
+        FileTreeModel model = FileTreeParser.parse(source.trim());
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-file-tree\">");
         for (FileTreeEntry entry : model.entries()) {
@@ -1508,16 +1520,16 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 ResourceLocation assetId = IdUtils.resolveLink(src, currentPageId);
                 byte[] data = guide.loadAsset(assetId);
                 if (data != null) {
-                    source = MermaidMindmapParser.normalize(new String(data, StandardCharsets.UTF_8));
+                    source = MermaidSourceExtractor.normalize(new String(data, StandardCharsets.UTF_8));
                 }
             } catch (Exception ignored) {}
         }
         if (source == null) {
             ParsedGuidePage parsedPage = currentPageId != null ? parsedPagesById.get(currentPageId) : null;
-            source = MermaidMindmapNodeContentExtractor
+            source = MindmapNodeContentExtractor
                 .extractDiagramSource(element, parsedPage != null ? parsedPage.getSource() : null);
             if (source == null) {
-                source = MermaidMindmapNodeContentExtractor.extractDiagramSource(element.children());
+                source = MermaidSourceExtractor.extractDiagramSource(element.children());
             }
         }
         source = source != null ? source.trim() : "";
@@ -1525,45 +1537,55 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderError("Empty Mermaid diagram");
         }
         try {
-            MermaidMindmapDocument doc = MermaidMindmapParser.parse(source);
-            return GuideSiteGraphRenderer.renderMermaidTree(
-                doc,
-                compileMermaidNodeHtml(
-                    element,
-                    currentPageId,
-                    doc,
-                    defaultNamespace,
-                    templates,
-                    sceneResolver,
-                    compiler));
+            MermaidDiagramType type = MermaidDiagramType.detect(source);
+            return switch (type) {
+                case MINDMAP -> {
+                    MindmapDocument doc = MindmapParser.parse(source);
+                    yield GuideSiteGraphRenderer.renderMermaidTree(
+                        doc,
+                        compileMermaidNodeHtml(
+                            element,
+                            currentPageId,
+                            doc,
+                            defaultNamespace,
+                            templates,
+                            sceneResolver,
+                            compiler));
+                }
+                case FLOWCHART -> {
+                    FlowchartDocument doc = FlowchartParser.parse(source);
+                    Map<String, String> nodeHtml = compileFlowchartNodeHtml(
+                        element,
+                        currentPageId,
+                        doc,
+                        defaultNamespace,
+                        templates,
+                        sceneResolver,
+                        compiler);
+                    yield GuideSiteGraphRenderer.renderFlowchart(doc, nodeHtml);
+                }
+                case UNKNOWN -> CODE_BLOCK_RENDERER.render("mermaid", source);
+            };
         } catch (Exception ex) {
             return CODE_BLOCK_RENDERER.render("mermaid", source);
         }
     }
 
     private Map<String, String> compileMermaidNodeHtml(MdxJsxElementFields element,
-        @Nullable ResourceLocation currentPageId, MermaidMindmapDocument doc, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, MindmapDocument doc, String defaultNamespace,
         GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
         GuideSiteHtmlCompiler compiler) {
-        Map<String, MermaidMindmapNode> nodesById = new LinkedHashMap<>();
+        Map<String, MindmapNode> nodesById = new LinkedHashMap<>();
         collectMermaidNodes(nodesById, doc.getRoot());
-        Map<String, String> nodeHtml = new LinkedHashMap<>();
-        for (MdxJsxFlowElement nodeContent : MermaidMindmapNodeContentExtractor
-            .collectNodeContentElements(element.children())) {
-            String id = MermaidMindmapNodeContentExtractor.readNodeContentId(nodeContent);
-            if (id == null || !nodesById.containsKey(id) || nodeHtml.containsKey(id)) {
-                continue;
-            }
-            nodeHtml.put(
-                id,
-                compiler.compileFragment(
-                    nodeContent.children(),
-                    templates,
-                    defaultNamespace,
-                    sceneResolver,
-                    currentPageId));
-        }
-        for (MermaidMindmapNode node : nodesById.values()) {
+        Map<String, String> nodeHtml = compileMermaidNodeContentBlocks(
+            element,
+            nodesById.keySet(),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler);
+        for (MindmapNode node : nodesById.values()) {
             if (nodeHtml.containsKey(node.getId()) || !shouldCompileMermaidRichLabel(node)) {
                 continue;
             }
@@ -1582,14 +1604,73 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return nodeHtml;
     }
 
-    private void collectMermaidNodes(Map<String, MermaidMindmapNode> nodesById, MermaidMindmapNode node) {
+    private Map<String, String> compileMermaidNodeContentBlocks(MdxJsxElementFields element, Set<String> validNodeIds,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+        Map<String, String> nodeHtml = new LinkedHashMap<>();
+        for (MdxJsxFlowElement nodeContent : MermaidSourceExtractor.collectNodeContentElements(element.children())) {
+            String id = MermaidSourceExtractor.readNodeContentId(nodeContent);
+            if (id == null || !validNodeIds.contains(id) || nodeHtml.containsKey(id)) {
+                continue;
+            }
+            nodeHtml.put(
+                id,
+                compiler.compileFragment(
+                    nodeContent.children(),
+                    templates,
+                    defaultNamespace,
+                    sceneResolver,
+                    currentPageId));
+        }
+        return nodeHtml;
+    }
+
+    private Map<String, String> compileFlowchartNodeHtml(MdxJsxElementFields element,
+        @Nullable ResourceLocation currentPageId, FlowchartDocument doc, String defaultNamespace,
+        GuideSiteTemplateRegistry templates, GuideSiteHtmlCompiler.SceneResolver sceneResolver,
+        GuideSiteHtmlCompiler compiler) {
+        Map<String, String> nodeHtml = compileMermaidNodeContentBlocks(
+            element,
+            doc.getNodes()
+                .keySet(),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler);
+        for (FlowchartNode node : doc.getNodes()
+            .values()) {
+            if (nodeHtml.containsKey(node.getId())) {
+                continue;
+            }
+            String labelSource = node.getLabelSource();
+            if (labelSource == null) continue;
+            String normalized = MermaidParser.normalizeLabel(labelSource);
+            String plain = MermaidParser.toPlainText(normalized);
+            if (normalized.equals(plain)) continue;
+            ParsedGuidePage parsed = PageCompiler
+                .parse(resolveSourcePack(currentPageId), "en_us", currentPageId, normalized);
+            nodeHtml.put(
+                node.getId(),
+                compiler.compileInlineFragment(
+                    parsed.getAstRoot()
+                        .children(),
+                    templates,
+                    defaultNamespace,
+                    sceneResolver,
+                    currentPageId));
+        }
+        return nodeHtml;
+    }
+
+    private void collectMermaidNodes(Map<String, MindmapNode> nodesById, MindmapNode node) {
         nodesById.putIfAbsent(node.getId(), node);
-        for (MermaidMindmapNode child : node.getChildren()) {
+        for (MindmapNode child : node.getChildren()) {
             collectMermaidNodes(nodesById, child);
         }
     }
 
-    private boolean shouldCompileMermaidRichLabel(MermaidMindmapNode node) {
+    private boolean shouldCompileMermaidRichLabel(MindmapNode node) {
         String labelSource = node.getLabelSource();
         return labelSource != null && !labelSource.trim()
             .isEmpty() && !labelSource.equals(node.getText());

@@ -48,7 +48,6 @@ public class GuideBuilder {
     private final Set<ExtensionPoint<?>> disableDefaultsForExtensionPoints = Collections
         .newSetFromMap(new IdentityHashMap<>());
     private boolean register = true;
-    private GuideItemSettings itemSettings = GuideItemSettings.DEFAULT;
 
     GuideBuilder(ResourceLocation id) {
         this.id = Objects.requireNonNull(id, "id");
@@ -223,15 +222,6 @@ public class GuideBuilder {
     }
 
     /**
-     * Configure the generic guide item provided by GuideME. If you are using this code API to register your guide, you
-     * are encouraged to register your own guide item instead of using the generic one.
-     */
-    public GuideBuilder itemSettings(GuideItemSettings settings) {
-        this.itemSettings = settings;
-        return this;
-    }
-
-    /**
      * Creates the guide.
      */
     public Guide build() {
@@ -246,8 +236,7 @@ public class GuideBuilder {
             developmentSourceNamespace,
             indices,
             extensionCollection,
-            availableToOpenHotkey,
-            itemSettings);
+            availableToOpenHotkey);
 
         if (developmentSourceFolder != null && watchDevelopmentSources) {
             guide.watchDevelopmentSources();

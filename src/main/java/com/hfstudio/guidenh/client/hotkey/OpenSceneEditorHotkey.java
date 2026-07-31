@@ -6,9 +6,9 @@ import net.minecraft.util.ChatComponentTranslation;
 
 import org.lwjgl.input.Keyboard;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorScreen;
-import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureExportAccess;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -46,7 +46,7 @@ public class OpenSceneEditorHotkey {
         }
 
         while (OPEN_SCENE_EDITOR_KEY.isPressed()) {
-            if (!GuideNhStructureExportAccess.canUseSceneExport()) {
+            if (!ModConfig.ui.sceneExportEnabled) {
                 mc.thePlayer.addChatMessage(
                     new ChatComponentTranslation(GuidebookText.SceneExportDisabled.getTranslationKey()));
                 continue;

@@ -12,6 +12,7 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 public class FloatingImageScript implements LytScript {
 
@@ -53,20 +54,36 @@ public class FloatingImageScript implements LytScript {
             return;
         }
 
-        byte[] imageData = ctx.loadAsset(imageId);
         LytImage image = new LytImage();
-        image.setImage(imageId, imageData); // null imageData → GuidePageTexture.missing()
+        image.setTexture(imageId, GuidePageTexture.loadCached(imageId, () -> ctx.loadAsset(imageId)));
 
         String alt = placeholder.getAlt();
         if (alt != null && !alt.isEmpty()) image.setAlt(alt);
         String title = placeholder.getTitle();
         if (title != null && !title.isEmpty()) {
             image.setTitle(title);
-        } else if (imageData == null) {
-            image.setTitle("Missing image: " + src);
+        } else if (image.getTexture()
+            .isMissing()) {
+                image.setTitle("Missing image: " + src);
+            }
+        if (!image.getTexture()
+            .isMissing()) {
+            var size = image.getTexture()
+                .getSize();
+            int cropRight = placeholder.getCropX() + placeholder.getCropWidth();
+            int cropBottom = placeholder.getCropY() + placeholder.getCropHeight();
+            if (cropRight > size.width() || cropBottom > size.height()) {
+                replaceFlowError(ctx, isWrapped, "[FloatingImage] Crop rectangle exceeds source image bounds: " + src);
+                return;
+            }
         }
-        image.setExplicitWidth(placeholder.getExplicitWidth());
-        image.setExplicitHeight(placeholder.getExplicitHeight());
+        image.setCropRect(
+            placeholder.getCropX(),
+            placeholder.getCropY(),
+            placeholder.getCropWidth(),
+            placeholder.getCropHeight());
+        image.setScale(placeholder.getScaleX(), placeholder.getScaleY());
+        image.setDisplaySize(placeholder.getDisplayWidth(), placeholder.getDisplayHeight());
         image.setMarginTop(placeholder.getMarginTop());
         image.setMarginLeft(placeholder.getMarginLeft());
         image.setMarginRight(placeholder.getMarginRight());

@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.bridge.preview;
 
 import java.util.List;
 
+import lombok.Getter;
+
+@Getter
 public class PreviewSearchResult {
 
     private final String capability;
@@ -28,22 +31,6 @@ public class PreviewSearchResult {
             computeVersion(safeEntries),
             List.copyOf(safeEntries.subList(start, end)),
             nextCursor);
-    }
-
-    public String getCapability() {
-        return capability;
-    }
-
-    public int getVersion() {
-        return version;
-    }
-
-    public List<PreviewSearchEntry> getEntries() {
-        return entries;
-    }
-
-    public String getNextCursor() {
-        return nextCursor;
     }
 
     private static int parseCursor(String cursor, int size) {

@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.client.hotkey.OpenGuideHomeHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.internal.DefaultGuideResourcePackManager;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePackWatcher;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
@@ -68,6 +69,8 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.SpecialScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.StructureScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.SubPagesScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.TooltipScript;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.ElkWarmupWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
 import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
@@ -92,15 +95,13 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
 import cpw.mods.fml.relauncher.Side;
+import lombok.Getter;
 
 public class ClientProxy extends CommonProxy {
 
+    @Getter
     private static final LytHost lytHost = new LytHost();
     private static final CompileWorker compileWorker = new CompileWorker();
-
-    public static LytHost getLytHost() {
-        return lytHost;
-    }
 
     public static CompileWorker getWorker() {
         return compileWorker;
@@ -128,8 +129,10 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void init(FMLInitializationEvent event) {
         super.init(event);
+        RegionWandSelection.reloadBindings();
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(new GuideReloadListener());
+        DefaultGuideResourcePackManager.init();
         ClientCommandHandler.instance.registerCommand(new GuideNhClientCommand());
         StructureExportBootstrap.registerClientCommands();
         GuideNhClientBridgeController.init();
@@ -172,6 +175,8 @@ public class ClientProxy extends CommonProxy {
             .submit(new LytHostWorkItem(lytHost));
         MasterScheduler.getInstance()
             .submit(new SearchIndexWorkItem());
+        MasterScheduler.getInstance()
+            .submit(new ElkWarmupWorkItem());
 
         // Phase 3: LytScript registrations
         lytHost.registerScript("CommandLink", new CommandLinkScript());
@@ -236,6 +241,7 @@ public class ClientProxy extends CommonProxy {
     public void completeInit(FMLLoadCompleteEvent event) {
         super.completeInit(event);
         GuideDevelopmentResourcePackWatcher.init();
+        GuideReloadListener.markBootComplete();
         MasterScheduler.getInstance()
             .submit(new DevWatchWorkItem());
         GuideOnStartup.init();

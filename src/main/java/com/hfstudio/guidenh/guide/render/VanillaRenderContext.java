@@ -21,24 +21,33 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class VanillaRenderContext implements RenderContext {
 
     public static final RenderItem ITEM_RENDERER = new RenderItem();
 
     private final FontRenderer fontRenderer;
+    @Getter
+    @Setter
     private int screenHeight;
 
+    @Setter
     private LightDarkMode lightDarkMode;
+    @Setter
     private LytRect viewport;
 
     private final Deque<LytRect> scissorStack = new ArrayDeque<>();
 
+    @Getter
     private int documentOriginX = 0;
     private int documentOriginY = 0;
 
     private int scrollOffsetY = 0;
     private float preciseScrollOffsetY = 0f;
 
+    @Getter
     private float zoom = 1.0f;
 
     public VanillaRenderContext(LightDarkMode mode, LytRect viewport, int screenHeight) {
@@ -48,21 +57,9 @@ public class VanillaRenderContext implements RenderContext {
         this.fontRenderer = Minecraft.getMinecraft().fontRenderer;
     }
 
-    public void setLightDarkMode(LightDarkMode mode) {
-        this.lightDarkMode = mode;
-    }
-
-    public void setViewport(LytRect viewport) {
-        this.viewport = viewport;
-    }
-
     public void setDocumentOrigin(int absX, int absY) {
         this.documentOriginX = absX;
         this.documentOriginY = absY;
-    }
-
-    public int getDocumentOriginX() {
-        return documentOriginX;
     }
 
     @Override
@@ -85,10 +82,6 @@ public class VanillaRenderContext implements RenderContext {
         return scrollOffsetY;
     }
 
-    public float getZoom() {
-        return zoom;
-    }
-
     public void setZoom(float zoom) {
         this.zoom = zoom > 0f ? zoom : 1.0f;
     }
@@ -100,14 +93,6 @@ public class VanillaRenderContext implements RenderContext {
             Math.round((rect.y() - preciseScrollOffsetY) * zoom) + documentOriginY,
             Math.max(1, Math.round(rect.width() * zoom)),
             Math.max(1, Math.round(rect.height() * zoom)));
-    }
-
-    public int getScreenHeight() {
-        return screenHeight;
-    }
-
-    public void setScreenHeight(int screenHeight) {
-        this.screenHeight = screenHeight;
     }
 
     @Override
@@ -453,6 +438,52 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
+    public void fillTexturedRect(LytRect rect, GuidePageTexture texture, int sourceX, int sourceY, int sourceWidth,
+        int sourceHeight) {
+        if (texture == null || texture.isMissing()) {
+            fillRect(rect, 0xFF333333);
+            drawBorder(rect, 0xFFFF00FF, 1);
+            return;
+        }
+        ResourceLocation resolvedTexture = texture.getTexture();
+        if (resolvedTexture == null) {
+            fillRect(rect, 0xFF333333);
+            drawBorder(rect, 0xFFFF00FF, 1);
+            return;
+        }
+        int naturalWidth = Math.max(
+            1,
+            texture.getSize()
+                .width());
+        int naturalHeight = Math.max(
+            1,
+            texture.getSize()
+                .height());
+        float u0 = sourceX / (float) naturalWidth;
+        float v0 = sourceY / (float) naturalHeight;
+        float u1 = (sourceX + sourceWidth) / (float) naturalWidth;
+        float v1 = (sourceY + sourceHeight) / (float) naturalHeight;
+        Minecraft.getMinecraft()
+            .getTextureManager()
+            .bindTexture(resolvedTexture);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+        int x = rect.x();
+        int y = rect.y();
+        int w = rect.width();
+        int h = rect.height();
+        var tess = Tessellator.instance;
+        tess.startDrawingQuads();
+        tess.addVertexWithUV(x, y + h, 0, u0, v1);
+        tess.addVertexWithUV(x + w, y + h, 0, u1, v1);
+        tess.addVertexWithUV(x + w, y, 0, u1, v0);
+        tess.addVertexWithUV(x, y, 0, u0, v0);
+        tess.draw();
+    }
+
+    @Override
     public void pushScissor(LytRect rect) {
         LytRect effective;
         if (!scissorStack.isEmpty()) {
@@ -641,6 +672,25 @@ public class VanillaRenderContext implements RenderContext {
         for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
             double a = (Math.PI * 2.0 * i) / CIRCLE_SEGMENTS;
             tess.addVertex(cx + (float) (Math.cos(a) * radius), cy + (float) (Math.sin(a) * radius), 0);
+        }
+        tess.draw();
+        endShapeDraw();
+    }
+
+    @Override
+    public void fillEllipse(float cx, float cy, float rx, float ry, int argbColor) {
+        if (rx <= 0f || ry <= 0f) {
+            return;
+        }
+        beginShapeDraw();
+        applyArgb(argbColor);
+        var tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLE_FAN);
+        tessColor(tess, argbColor);
+        tess.addVertex(cx, cy, 0);
+        for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
+            double a = (Math.PI * 2.0 * i) / CIRCLE_SEGMENTS;
+            tess.addVertex(cx + (float) (Math.cos(a) * rx), cy + (float) (Math.sin(a) * ry), 0);
         }
         tess.draw();
         endShapeDraw();

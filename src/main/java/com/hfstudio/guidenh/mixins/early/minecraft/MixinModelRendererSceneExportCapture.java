@@ -149,9 +149,8 @@ public abstract class MixinModelRendererSceneExportCapture {
     @Unique
     private void guidenh$renderModelGeometry(float scale) {
         Tessellator tessellator = Tessellator.instance;
-        for (int i = 0; i < cubeList.size(); ++i) {
-            cubeList.get(i)
-                .render(tessellator, scale);
+        for (ModelBox modelBox : cubeList) {
+            modelBox.render(tessellator, scale);
         }
     }
 
@@ -160,9 +159,8 @@ public abstract class MixinModelRendererSceneExportCapture {
         if (childModels == null) {
             return;
         }
-        for (int i = 0; i < childModels.size(); ++i) {
-            childModels.get(i)
-                .render(scale);
+        for (ModelRenderer childModel : childModels) {
+            childModel.render(scale);
         }
     }
 }

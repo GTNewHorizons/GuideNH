@@ -189,7 +189,7 @@ public class ItemLinkScript implements LytScript {
             : createIcon(stack, showTooltip);
         if (icon != null && "left".equals(iconPosition)) {
             span.getChildren()
-                .add(0, icon);
+                .addFirst(icon);
             icon.setParent(span);
         }
         if (shouldShowText && !hasText) {

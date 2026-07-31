@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import java.util.Objects;
 
+import lombok.Getter;
+
+@Getter
 public class AutocompleteKey {
 
     public enum MatchType {
@@ -44,38 +47,19 @@ public class AutocompleteKey {
         return new AutocompleteKey(MatchType.FENCE_LANGUAGE, null, null);
     }
 
-    public MatchType getType() {
-        return type;
-    }
-
-    public String getTagName() {
-        return tagName;
-    }
-
-    public String getAttrName() {
-        return attrName;
-    }
-
     public boolean matches(MatchType queryType, String queryTag, String queryAttr) {
         if (type != queryType) return false;
-        switch (type) {
-            case TAG_NAME:
-            case FENCE_LANGUAGE:
-                return true;
-            case ATTR_NAME:
-                return tagName.equals("*") || tagName.equals(queryTag);
-            case ATTR_VALUE:
-                return (tagName.equals("*") || tagName.equals(queryTag))
-                    && (attrName.equals("*") || attrName.equals(queryAttr));
-            default:
-                return false;
-        }
+        return switch (type) {
+            case TAG_NAME, FENCE_LANGUAGE -> true;
+            case ATTR_NAME -> tagName.equals("*") || tagName.equals(queryTag);
+            case ATTR_VALUE -> (tagName.equals("*") || tagName.equals(queryTag))
+                && (attrName.equals("*") || attrName.equals(queryAttr));
+        };
     }
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof AutocompleteKey)) return false;
-        AutocompleteKey that = (AutocompleteKey) o;
+        if (!(o instanceof AutocompleteKey that)) return false;
         return type == that.type && Objects.equals(tagName, that.tagName) && Objects.equals(attrName, that.attrName);
     }
 

@@ -17,6 +17,8 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.Layouts;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 /**
  * Layout document. Has a viewport and an overall size which may exceed the document size vertically, but not
  * horizontally.
@@ -25,6 +27,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     private static final FlowInteractionPath EMPTY_FLOW_PATH = FlowInteractionPath.empty();
 
+    @Getter
     private final List<LytBlock> blocks = new ArrayList<>();
 
     @Nullable
@@ -33,6 +36,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     @Nullable
     private DocumentInteractionSnapshot hoveredElement;
 
+    @Getter
     private boolean live;
 
     // Cached list of blocks intersecting the last rendered viewport. Invalidated whenever the
@@ -49,10 +53,6 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     public int getContentHeight() {
         return layout != null ? layout.contentHeight() : 0;
-    }
-
-    public List<LytBlock> getBlocks() {
-        return blocks;
     }
 
     @Override
@@ -113,10 +113,6 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
     public boolean hasLayout() {
         return layout != null;
-    }
-
-    public boolean isLive() {
-        return live;
     }
 
     public void setLive(boolean live) {
@@ -267,9 +263,6 @@ public class LytDocument extends LytNode implements LytBlockContainer {
 
         return null;
     }
-
-    @Override
-    public void onMouseEnter(@Nullable LytFlowContent hoveredContent) {}
 
     @Desugar
     public record Layout(int availableWidth, int contentHeight, LytRect bounds) {}

@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -26,7 +25,6 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
-import com.hfstudio.guidenh.guide.GuideItemSettings;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -48,6 +46,8 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSyntheticPageFactory.Synthe
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
+import lombok.Getter;
+
 /**
  * Encapsulates a Guide, which consists of a collection of Markdown pages and associated content, loaded from a
  * guide-specific subdirectory of resource packs.
@@ -57,6 +57,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     private final ResourceLocation id;
     private final String defaultNamespace;
     private final String folder;
+    @Getter
     private final String defaultLanguage;
     private final Map<ResourceLocation, ParsedGuidePage> developmentPages = new HashMap<>();
     private final Map<ResourceLocation, GuidePageFailure> pageFailures = new HashMap<>();
@@ -82,7 +83,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     private static final int MAX_STRONG_RUNTIME_PAGES = 64;
     private final Map<ParsedGuidePage, GuidePage> compiledPagesWeak = Collections.synchronizedMap(new WeakHashMap<>());
     private final Map<ResourceLocation, GuidePage> compiledPagesStrong = Collections
-        .synchronizedMap(new LinkedHashMap<ResourceLocation, GuidePage>(64, 0.75f, true) {
+        .synchronizedMap(new LinkedHashMap<>(64, 0.75f, true) {
 
             @Override
             protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
@@ -90,8 +91,13 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             }
         });
     private final ExtensionCollection extensions;
+    /**
+     * -- GETTER --
+     *
+     * @return True if this guide should be considered for use in the global open guide hotkey.
+     */
+    @Getter
     private final boolean availableToOpenHotkey;
-    private final GuideItemSettings itemSettings;
     private final GuideDevelopmentSourceLayout developmentSourceLayout;
 
     @Nullable
@@ -104,8 +110,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
 
     public MutableGuide(ResourceLocation id, String defaultNamespace, String folder, String defaultLanguage,
         @Nullable Path developmentSourceFolder, @Nullable String developmentSourceNamespace,
-        Map<Class<?>, PageIndex> indices, ExtensionCollection extensions, boolean availableToOpenHotkey,
-        GuideItemSettings itemSettings) {
+        Map<Class<?>, PageIndex> indices, ExtensionCollection extensions, boolean availableToOpenHotkey) {
         this.id = id;
         this.defaultNamespace = defaultNamespace;
         this.folder = folder;
@@ -116,7 +121,6 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         this.indices = indices;
         this.extensions = extensions;
         this.availableToOpenHotkey = availableToOpenHotkey;
-        this.itemSettings = itemSettings;
     }
 
     @Override
@@ -327,13 +331,6 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         return extensions;
     }
 
-    /**
-     * @return True if this guide should be considered for use in the global open guide hotkey.
-     */
-    public boolean isAvailableToOpenHotkey() {
-        return availableToOpenHotkey;
-    }
-
     public void watchDevelopmentSources() {
         if (watcher != null) {
             return;
@@ -342,6 +339,21 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         watcher = new GuideSourceWatcher(developmentSourceNamespace, folder, defaultLanguage, developmentSourceFolder);
         Runtime.getRuntime()
             .addShutdownHook(new Thread(watcher::close));
+    }
+
+    public boolean hasDevelopmentSources() {
+        return watcher != null;
+    }
+
+    public void tickDevelopmentSources() {
+        if (pages == null || watcher == null) {
+            return;
+        }
+
+        var changes = watcher.takeChanges();
+        if (!changes.isEmpty()) {
+            applyChanges(changes);
+        }
     }
 
     @Override
@@ -539,14 +551,6 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         GuideRegistry.invalidateMergedNavigationTree();
     }
 
-    public GuideItemSettings getItemSettings() {
-        return itemSettings;
-    }
-
-    public String getDefaultLanguage() {
-        return defaultLanguage;
-    }
-
     private boolean canLoadDevelopmentSource(ResourceLocation id) {
         if (developmentSourceFolder == null) {
             return false;
@@ -619,7 +623,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         }
 
         long startNanos = System.nanoTime();
-        var previousSyntheticIds = new HashSet<>(syntheticPages.keySet());
+        // var previousSyntheticIds = new HashSet<>(syntheticPages.keySet());
         CategoryIndex categoryIndex = getIndex(CategoryIndex.class);
         Map<ResourceLocation, ParsedGuidePage> rebuiltPages = MediaWikiSyntheticPageFactory.buildPages(
             this,

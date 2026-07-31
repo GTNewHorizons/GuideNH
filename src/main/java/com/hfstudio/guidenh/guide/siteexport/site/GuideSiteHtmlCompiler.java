@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -25,8 +25,11 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -69,6 +72,12 @@ public class GuideSiteHtmlCompiler {
         @Nullable
         String render(MdxJsxElementFields element, String defaultNamespace, @Nullable ResourceLocation currentPageId,
             GuideSiteTemplateRegistry templates, SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler);
+
+        @Nullable
+        default String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
+            GuideSiteTemplateRegistry templates, SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+            return null;
+        }
     }
 
     public interface SceneResolver {
@@ -300,7 +309,7 @@ public class GuideSiteHtmlCompiler {
             return compileListItemMdx(el, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if ("pre".equals(el.name())) {
-            return compileCodeBlockMdx(el);
+            return compileCodeBlockMdx(el, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if ("table".equals(el.name())) {
             return compileTableMdx(el, templates, defaultNamespace, currentPageId, sceneResolver);
@@ -524,7 +533,8 @@ public class GuideSiteHtmlCompiler {
             + "</li>";
     }
 
-    private String compileCodeBlockMdx(MdxJsxElementFields el) {
+    private String compileCodeBlockMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String codeText = extractTextFromElement(el);
         String lang = el.getAttributeString("lang", null);
         String meta = el.getAttributeString("meta", null);
@@ -539,12 +549,26 @@ public class GuideSiteHtmlCompiler {
             return GuideSiteGraphRenderer.renderCsvTable(codeText, true);
         }
         if ("tree".equals(lang) || "filetree".equals(lang)) {
-            return GuideSiteGraphRenderer.renderFileTree(codeText);
+            String rendered = mdxTagRenderer
+                .renderFileTree(codeText, defaultNamespace, currentPageId, templates, sceneResolver, this);
+            return rendered != null ? rendered : GuideSiteGraphRenderer.renderFileTree(codeText);
         }
         if ("mermaid".equals(lang)) {
             try {
-                MermaidMindmapDocument doc = MermaidMindmapParser.parse(codeText);
-                return GuideSiteGraphRenderer.renderMermaidTree(doc);
+                MermaidDiagramType type = MermaidDiagramType.detect(codeText);
+                switch (type) {
+                    case MINDMAP -> {
+                        MindmapDocument doc = MindmapParser.parse(codeText);
+                        return GuideSiteGraphRenderer.renderMermaidTree(doc);
+                    }
+                    case FLOWCHART -> {
+                        FlowchartDocument doc = FlowchartParser.parse(codeText);
+                        return GuideSiteGraphRenderer.renderFlowchart(doc);
+                    }
+                    case UNKNOWN -> {
+                        return CODE_BLOCK_RENDERER.render("mermaid", codeText, width, height);
+                    }
+                }
             } catch (Exception ignored) {
                 return CODE_BLOCK_RENDERER.render("mermaid", codeText, width, height);
             }
@@ -585,8 +609,7 @@ public class GuideSiteHtmlCompiler {
         String[] aligns = alignStr.isEmpty() ? new String[0] : alignStr.split(",");
         boolean firstRow = true;
         for (Object child : el.children()) {
-            if (child instanceof MdxJsxFlowElement && "tr".equals(((MdxJsxFlowElement) child).name())) {
-                MdxJsxFlowElement tr = (MdxJsxFlowElement) child;
+            if (child instanceof MdxJsxFlowElement tr && "tr".equals(tr.name())) {
                 html.append("<tr>");
                 int cellIdx = 0;
                 for (Object cellChild : tr.children()) {
@@ -685,12 +708,12 @@ public class GuideSiteHtmlCompiler {
         if (el.children()
             .size() != 1
             || !(el.children()
-                .get(0) instanceof MdAstText)) {
+                .getFirst() instanceof MdAstText)) {
             return null;
         }
         return MarkdownLatexShorthand.extractSoleDisplayFormula(
             ((MdAstText) el.children()
-                .get(0)).value);
+                .getFirst()).value);
     }
 
     private String compileTooltip(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
@@ -833,26 +856,112 @@ public class GuideSiteHtmlCompiler {
         }
         String title = element.getAttributeString("title", null);
         String alt = element.getAttributeString("alt", title != null ? title : "");
-        Integer width = parsePositiveInt(element.getAttributeString("width", null));
-        Integer height = parsePositiveInt(element.getAttributeString("height", null));
+        String widthValue = element.getAttributeString("width", null);
+        String widthAlias = element.getAttributeString("w", null);
+        String heightValue = element.getAttributeString("height", null);
+        String heightAlias = element.getAttributeString("h", null);
+        if (widthValue != null && widthAlias != null) {
+            return renderExportError("FloatingImage cannot use both width and w.");
+        }
+        if (heightValue != null && heightAlias != null) {
+            return renderExportError("FloatingImage cannot use both height and h.");
+        }
+        Integer cropX = parsePositiveOrZeroInt(element.getAttributeString("x", null));
+        Integer cropY = parsePositiveOrZeroInt(element.getAttributeString("y", null));
+        Integer cropWidth = parseAliasedPositiveInt(element, "width", "w");
+        Integer cropHeight = parseAliasedPositiveInt(element, "height", "h");
+        String displayWidthValue = element.getAttributeString("displayWidth", null);
+        String displayHeightValue = element.getAttributeString("displayHeight", null);
+        Integer explicitDisplayWidth = parsePositiveInt(displayWidthValue);
+        Integer explicitDisplayHeight = parsePositiveInt(displayHeightValue);
+        Double scaleX = parsePositiveDouble(element.getAttributeString("scaleX", null), 1.0d);
+        Double scaleY = parsePositiveDouble(element.getAttributeString("scaleY", null), 1.0d);
+        if (scaleX == null || scaleY == null) {
+            return renderExportError("FloatingImage scaleX and scaleY must be positive numbers.");
+        }
+        if ((displayWidthValue != null && explicitDisplayWidth == null)
+            || (displayHeightValue != null && explicitDisplayHeight == null)) {
+            return renderExportError("FloatingImage displayWidth and displayHeight must be positive integers.");
+        }
+        boolean hasExplicitDisplaySize = explicitDisplayWidth != null || explicitDisplayHeight != null;
+        if (hasExplicitDisplaySize && (element.getAttributeString("scaleX", null) != null
+            || element.getAttributeString("scaleY", null) != null)) {
+            return renderExportError("FloatingImage displayWidth/displayHeight cannot be used with scaleX/scaleY.");
+        }
         String src = resolveImageSource(rawSrc, currentPageId);
-
-        StringBuilder style = new StringBuilder();
-        if ("right".equals(element.getAttributeString("align", "left"))) {
-            style.append("float:right;margin:0 0 5px 5px;");
+        boolean inlineWrap = "inline".equals(element.getAttributeString("wrap", null));
+        String align = element.getAttributeString("align", "left");
+        if (!inlineWrap && !"left".equals(align) && !"right".equals(align)) {
+            return renderExportError("FloatingImage align must be left or right unless wrap=\"inline\".");
+        }
+        StringBuilder wrapperStyle = new StringBuilder();
+        if (inlineWrap) {
+            wrapperStyle.append("display:inline-block;vertical-align:middle;");
+        } else if ("right".equals(align)) {
+            wrapperStyle.append("float:right;margin:0 0 5px 5px;");
         } else {
-            style.append("float:left;margin:0 5px 5px 0;");
+            wrapperStyle.append("float:left;margin:0 5px 5px 0;");
         }
-        if (width != null) {
-            style.append("width:")
-                .append(width)
-                .append("px;");
+        if (!hasCropAttributes(element)) {
+            if (!hasExplicitDisplaySize) {
+                return renderExportError(
+                    "FloatingImage requires non-negative x and y, plus positive width or w and height or h.");
+            }
+            if (explicitDisplayWidth != null) {
+                wrapperStyle.append("width:")
+                    .append(explicitDisplayWidth)
+                    .append("px;");
+            }
+            if (explicitDisplayHeight != null) {
+                wrapperStyle.append("height:")
+                    .append(explicitDisplayHeight)
+                    .append("px;");
+            }
+            String imageStyle = explicitDisplayWidth != null && explicitDisplayHeight != null
+                ? "width:100%;height:100%;"
+                : explicitDisplayWidth != null ? "width:100%;height:auto;" : "width:auto;height:100%;";
+            List<ImageAnnotationExport> annotations = collectImageAnnotations(
+                element,
+                templates,
+                defaultNamespace,
+                currentPageId,
+                sceneResolver,
+                null,
+                null);
+            return buildFloatingImageHtml(
+                src,
+                alt,
+                title,
+                wrapperStyle.toString(),
+                imageStyle,
+                false,
+                0,
+                0,
+                0,
+                0,
+                1.0d,
+                1.0d,
+                inlineWrap,
+                annotations);
         }
-        if (height != null) {
-            style.append("height:")
-                .append(height)
-                .append("px;");
+        if (cropX == null || cropY == null || cropWidth == null || cropHeight == null) {
+            return renderExportError(
+                "FloatingImage requires non-negative x and y, plus positive width or w and height or h.");
         }
+
+        double displayWidth = explicitDisplayWidth != null ? explicitDisplayWidth
+            : explicitDisplayHeight != null ? explicitDisplayHeight * cropWidth / (double) cropHeight
+                : cropWidth * scaleX;
+        double displayHeight = explicitDisplayHeight != null ? explicitDisplayHeight
+            : explicitDisplayWidth != null ? explicitDisplayWidth * cropHeight / (double) cropWidth
+                : cropHeight * scaleY;
+        double effectiveScaleX = displayWidth / cropWidth;
+        double effectiveScaleY = displayHeight / cropHeight;
+        wrapperStyle.append("width:")
+            .append(toCssNumber(displayWidth))
+            .append("px;height:")
+            .append(toCssNumber(displayHeight))
+            .append("px;");
 
         List<ImageAnnotationExport> annotations = collectImageAnnotations(
             element,
@@ -860,46 +969,31 @@ public class GuideSiteHtmlCompiler {
             defaultNamespace,
             currentPageId,
             sceneResolver,
-            width,
-            height);
-        if (annotations.isEmpty()) {
-            return buildImageTag("guide-image guide-floating-image", src, alt, title, style.toString(), width, height);
-        }
+            cropWidth,
+            cropHeight);
+        return buildFloatingImageHtml(
+            src,
+            alt,
+            title,
+            wrapperStyle.toString(),
+            "",
+            true,
+            cropX,
+            cropY,
+            cropWidth,
+            cropHeight,
+            effectiveScaleX,
+            effectiveScaleY,
+            inlineWrap,
+            annotations);
+    }
 
-        StringBuilder html = new StringBuilder();
-        html.append("<span class=\"guide-floating-image-wrap\" style=\"")
-            .append(escapeAttribute(style.toString()))
-            .append("\">");
-        html.append(buildImageTag("guide-image guide-floating-image", src, alt, title, null, width, height));
-        for (ImageAnnotationExport annotation : annotations) {
-            html.append("<span class=\"guide-image-annotation");
-            if (annotation.templateId != null) {
-                html.append(" guide-tooltip");
-            }
-            html.append("\"");
-            if (annotation.templateId != null) {
-                html.append(" data-template=\"")
-                    .append(escapeAttribute(annotation.templateId))
-                    .append("\"");
-            }
-            if (annotation.sound != null) {
-                GuideSiteSoundExport.appendDataAttributes(
-                    html,
-                    annotation.sound,
-                    annotation.soundTrigger,
-                    annotation.soundSrc,
-                    this::escapeAttribute);
-            }
-            appendOptionalDataAttribute(html, "data-source-x", annotation.sourceX);
-            appendOptionalDataAttribute(html, "data-source-y", annotation.sourceY);
-            appendOptionalDataAttribute(html, "data-source-width", annotation.sourceWidth);
-            appendOptionalDataAttribute(html, "data-source-height", annotation.sourceHeight);
-            html.append(" style=\"")
-                .append(escapeAttribute(annotation.style))
-                .append("\"></span>");
-        }
-        html.append("</span>");
-        return html.toString();
+    private boolean hasCropAttributes(MdxJsxElementFields element) {
+        return element.getAttributeString("x", null) != null || element.getAttributeString("y", null) != null
+            || element.getAttributeString("width", null) != null
+            || element.getAttributeString("w", null) != null
+            || element.getAttributeString("height", null) != null
+            || element.getAttributeString("h", null) != null;
     }
 
     private List<ImageAnnotationExport> collectImageAnnotations(MdxJsxElementFields element,
@@ -987,15 +1081,11 @@ public class GuideSiteHtmlCompiler {
 
     private GuideSiteSoundExport.MdxSoundAttributes soundAttributes(MdxJsxElementFields element,
         String soundSourceAttributeName) {
-        return new GuideSiteSoundExport.MdxSoundAttributes() {
-
-            @Override
-            public @Nullable String value(String name) {
-                if ("src".equals(name) && !"src".equals(soundSourceAttributeName)) {
-                    return element.getAttributeString(soundSourceAttributeName, null);
-                }
-                return element.getAttributeString(name, null);
+        return name -> {
+            if ("src".equals(name) && !"src".equals(soundSourceAttributeName)) {
+                return element.getAttributeString(soundSourceAttributeName, null);
             }
+            return element.getAttributeString(name, null);
         };
     }
 
@@ -1008,6 +1098,79 @@ public class GuideSiteHtmlCompiler {
             .append("=\"")
             .append(value)
             .append("\"");
+    }
+
+    private String buildFloatingImageHtml(String src, String alt, @Nullable String title, String wrapperStyle,
+        String imageStyle, boolean cropped, int cropX, int cropY, int cropWidth, int cropHeight, double scaleX,
+        double scaleY, boolean inlineWrap, List<ImageAnnotationExport> annotations) {
+        StringBuilder html = new StringBuilder();
+        html.append("<span class=\"guide-floating-image-wrap");
+        if (inlineWrap) {
+            html.append(" guide-floating-image-inline");
+        }
+        html.append("\" style=\"")
+            .append(escapeAttribute(wrapperStyle))
+            .append("\">");
+        html.append("<img class=\"guide-image guide-floating-image\" src=\"")
+            .append(escapeAttribute(src))
+            .append("\" alt=\"")
+            .append(escapeAttribute(alt != null ? alt : ""))
+            .append("\"");
+        if (title != null && !title.isEmpty()) {
+            html.append(" title=\"")
+                .append(escapeAttribute(title))
+                .append("\"");
+        }
+        if (!imageStyle.isEmpty()) {
+            html.append(" style=\"")
+                .append(escapeAttribute(imageStyle))
+                .append("\"");
+        }
+        if (cropped) {
+            html.append(" data-crop-x=\"")
+                .append(cropX)
+                .append("\" data-crop-y=\"")
+                .append(cropY)
+                .append("\" data-crop-width=\"")
+                .append(cropWidth)
+                .append("\" data-crop-height=\"")
+                .append(cropHeight)
+                .append("\" data-scale-x=\"")
+                .append(toCssNumber(scaleX))
+                .append("\" data-scale-y=\"")
+                .append(toCssNumber(scaleY))
+                .append("\"");
+        }
+        html.append(" loading=\"lazy\" decoding=\"async\">");
+        for (ImageAnnotationExport annotation : annotations) {
+            html.append("<span class=\"guide-image-annotation");
+            if (annotation.templateId != null) {
+                html.append(" guide-tooltip");
+            }
+            html.append("\"");
+            if (annotation.templateId != null) {
+                html.append(" data-template=\"")
+                    .append(escapeAttribute(annotation.templateId))
+                    .append("\"");
+            }
+            if (annotation.sound != null) {
+                GuideSiteSoundExport.appendDataAttributes(
+                    html,
+                    annotation.sound,
+                    annotation.soundTrigger,
+                    annotation.soundSrc,
+                    this::escapeAttribute);
+            }
+            appendOptionalDataAttribute(html, "data-source-x", annotation.sourceX);
+            appendOptionalDataAttribute(html, "data-source-y", annotation.sourceY);
+            appendOptionalDataAttribute(html, "data-source-width", annotation.sourceWidth);
+            appendOptionalDataAttribute(html, "data-source-height", annotation.sourceHeight);
+            html.append(" style=\"")
+                .append(escapeAttribute(annotation.style))
+                .append("\"></span>");
+        }
+        html.append("</span>");
+        return html.toString();
     }
 
     private String compileLatex(MdxJsxElementFields element, boolean display, GuideSiteTemplateRegistry templates) {
@@ -1099,7 +1262,7 @@ public class GuideSiteHtmlCompiler {
                 .append(escapeAttribute(templateId))
                 .append("\"");
         }
-        if (style.length() > 0) {
+        if (!style.isEmpty()) {
             html.append(" style=\"")
                 .append(escapeAttribute(style.toString()))
                 .append("\"");
@@ -1433,6 +1596,30 @@ public class GuideSiteHtmlCompiler {
         }
     }
 
+    @Nullable
+    private Integer parseAliasedPositiveInt(MdxJsxElementFields element, String primaryName, String aliasName) {
+        String primaryValue = element.getAttributeString(primaryName, null);
+        String aliasValue = element.getAttributeString(aliasName, null);
+        if (primaryValue != null && aliasValue != null) {
+            return null;
+        }
+        return parsePositiveInt(primaryValue != null ? primaryValue : aliasValue);
+    }
+
+    @Nullable
+    private Double parsePositiveDouble(@Nullable String raw, double fallback) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return fallback;
+        }
+        try {
+            double value = Double.parseDouble(raw.trim());
+            return value > 0.0d ? value : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     private float parseFloat(@Nullable String raw, float fallback) {
         if (raw == null || raw.trim()
             .isEmpty()) {
@@ -1443,6 +1630,25 @@ public class GuideSiteHtmlCompiler {
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private String toCssNumber(double value) {
+        long integral = Math.round(value);
+        if (Math.abs(value - integral) < 0.000001d) {
+            return Long.toString(integral);
+        }
+        String text = Double.toString(value);
+        if (!text.contains(".")) {
+            return text;
+        }
+        int trimIndex = text.length();
+        while (trimIndex > 0 && text.charAt(trimIndex - 1) == '0') {
+            trimIndex--;
+        }
+        if (trimIndex > 0 && text.charAt(trimIndex - 1) == '.') {
+            trimIndex--;
+        }
+        return text.substring(0, trimIndex);
     }
 
     private boolean readBoolean(MdxJsxElementFields element, String name, boolean fallback) {
@@ -1603,8 +1809,8 @@ public class GuideSiteHtmlCompiler {
 
         private static String decodeUriPart(String value) {
             try {
-                return URLDecoder.decode(value, "UTF-8");
-            } catch (UnsupportedEncodingException | IllegalArgumentException ignored) {
+                return URLDecoder.decode(value, StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException ignored) {
                 return value.replace("%20", " ");
             }
         }

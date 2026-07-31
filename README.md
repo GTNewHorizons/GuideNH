@@ -15,9 +15,13 @@
 
 ## **Introduction**
 
-* <span style="color: #ff6600;">GuideNH</span> is an in-game guide framework for Minecraft **1.7.10** / Forge **10.13.4.1614**.
+* <span style="color: #ff6600;">GuideNH</span> is an in-game guide framework for Minecraft **1.7.10**
 * It ports and extends GuideME-style Markdown documentation for GTNH-era modpacks.
 * It is designed for authoring rich guide books directly from resource-pack style Markdown files.
+
+## Required Dependencies
+
+* [GTNHLib (>= 0.11.16)](https://github.com/GTNewHorizons/GTNHLib)
 
 ## **Features**
 
@@ -54,9 +58,45 @@
 
 In game:
 
-* Use `/give Developer guidenh:guide` to get the demo guide book.
+* Press `G` to open the guide home page.
 * Hold `G` while hovering an indexed item to jump to its guide entry.
 * Press `F3+T` to reload edited guide resources.
+
+## **DefaultGuide**
+
+GuideNH automatically creates `config/guidenh/DefaultGuide/` on the client.
+It also supports `config/guidenh/DefaultGuide.zip` as a standard full resource pack, and the zip is preferred when both exist.
+
+This directory uses a native namespace-root layout:
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- shared_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
+```
+
+The directory starts empty. Add your own pages and assets there when you want a client-side default guide source.
+
+If you use `DefaultGuide.zip`, use the normal full resource-pack layout:
+
+```text
+config/guidenh/DefaultGuide.zip
+`-- assets/
+    `-- <modid>/
+        `-- guidenh/
+            |-- assets/
+            |-- _en_us/
+            `-- _zh_cn/
+```
+
+`wiki/resourcepack/` remains the repository example resource pack. It keeps the outer `assets/` directory because it is
+used for documentation and bundled examples.
 
 ## **Authoring Example**
 
@@ -93,6 +133,35 @@ assets/<modid>/guidenh/
 `-- _zh_cn/
     |-- index.md
     `-- machines.md
+```
+
+### **DefaultGuide Folder**
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- shared_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
+```
+
+### **DefaultGuide Zip**
+
+```text
+config/guidenh/DefaultGuide.zip
+`-- assets/
+    `-- <modid>/
+        `-- guidenh/
+            |-- assets/
+            |   `-- shared_structure.snbt
+            |-- _en_us/
+            |   `-- index.md
+            `-- _zh_cn/
+                `-- index.md
 ```
 
 ### **Register A Guide**

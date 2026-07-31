@@ -811,10 +811,18 @@ p {
     display: inline-block;
     max-width: 100%;
     vertical-align: top;
+    overflow: hidden;
 }
 
 .guide-floating-image-wrap .guide-floating-image {
     float: none;
+    display: block;
+    max-width: none;
+}
+
+.guide-floating-image-wrap.guide-floating-image-inline {
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .guide-image-annotation {

@@ -27,30 +27,37 @@ Relative path (`test1.png` in the same directory):
 
 Inline image mixed with text: here ![inline](test1.png) is an inline image.
 
-`<FloatingImage>` accepts `width` / `height` (pixels): giving one keeps the aspect ratio; giving both **stretches** the image (ratio not preserved); giving neither falls back to the default natural / 4 + availableWidth clamp.
+`<FloatingImage>` crops first and then determines the display size. `x`, `y`, `width` / `w`, and `height` / `h`
+select the source rectangle on the original image. `scaleX` and `scaleY` resize that cropped result by a multiplier.
+`displayWidth` and `displayHeight` specify final pixel dimensions instead. One display dimension preserves the crop
+aspect ratio; both allow stretching. Display dimensions cannot be combined with `scaleX` or `scaleY`.
 
-Fixed 64×64 (single dim, keeps ratio):
+Cropped 64×64 region displayed at native size:
 
-<FloatingImage src="test1.png" align="left" width="64" title="width=64" />
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="64" height="64" title="crop 64x64" />
 
-Forced 200×80 stretch (ratio not preserved):
+Cropped 64×64 region stretched to 200×80:
 
-<FloatingImage src="test1.png" align="right" width="200" height="80" title="stretch 200x80" />
+<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" displayWidth="200" displayHeight="80" title="stretch 200x80" />
 
-Fixed height 40 (width derived):
+Set only one final dimension to preserve the cropped image ratio:
 
-<FloatingImage src="test1.png" align="left" height="40" title="height=40" />
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="64" height="32" displayWidth="160" title="160x80 proportional crop" />
+
+Cross-mod texture with true inline placement:
+
+Text before <FloatingImage src="minecraft:textures/gui/options_background.png" x="0" y="0" width="32" height="32" scaleX="0.75" scaleY="0.75" wrap="inline" title="inline crop" /> text after.
 
 ## ImageAnnotation
 
 `<ImageAnnotation>` children attach hover tooltips (and optional colored borders) to rectangular
-regions of a `<FloatingImage>`. Coordinates (`x`, `y`, `w`, `h`) are in **image pixels**; the
-region is automatically scaled when the image is resized or stretched. Omitting all four covers the
+regions of a `<FloatingImage>`. Coordinates (`x`, `y`, `w`, `h`) are in **cropped-image pixels**; the
+region is automatically scaled when the cropped image is resized or stretched. Omitting all four covers the
 entire image.
 
 Whole-image annotation (hover anywhere over the image to see the tooltip):
 
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation>
     This tooltip appears when you hover over **any part** of the image.
   </ImageAnnotation>
@@ -58,7 +65,7 @@ Whole-image annotation (hover anywhere over the image to see the tooltip):
 
 Region annotation with a visible red border (x=10, y=10, w=60, h=40):
 
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
     Hovering the **red-bordered region** shows this tooltip.
   </ImageAnnotation>
@@ -66,7 +73,7 @@ Region annotation with a visible red border (x=10, y=10, w=60, h=40):
 
 Multiple annotations on one image — each region shows a different tooltip:
 
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
     Left half
   </ImageAnnotation>
@@ -75,11 +82,11 @@ Multiple annotations on one image — each region shows a different tooltip:
   </ImageAnnotation>
 </FloatingImage>
 
-Stretched image (200×80) with an annotation that follows the stretch:
+Scaled crop with an annotation that follows the stretch:
 
-<FloatingImage src="test1.png" align="right" width="200" height="80">
-  <ImageAnnotation x="0" y="0" w="128" h="128" border borderColor="#FFFFFF44" borderThickness="2">
-    Left portion of the stretched image.
+<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" scaleX="3.125" scaleY="1.25">
+  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FFFFFF44" borderThickness="2">
+    Entire cropped region after stretching.
   </ImageAnnotation>
 </FloatingImage>
 
@@ -95,7 +102,7 @@ actual `.ogg` files should be placed below `assets/guidenh/sounds/`.
   **Rich text sound link**
 </SoundLink>
 
-<FloatingImage src="test1.png" align="left" width="128" sound="guidenh:guide.sample_click">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128" sound="guidenh:guide.sample_click">
   <SoundArea x="0" y="0" w="64" h="128" sound="guidenh:guide.sample_left" />
   <SoundArea x="64" y="0" w="64" h="128" sound="guidenh:guide.sample_hover" trigger="hover" />
   <ImageAnnotation x="16" y="16" w="32" h="32" border borderColor="#FFFFCC44"

@@ -193,7 +193,9 @@ public class GuideSitePageCollector {
 
     private static List<String> discoverLanguages(@Nullable ResourceLocation guideId) {
         var merged = new LinkedHashSet<String>();
-        var discovered = DataDrivenGuideLoader.discoverGuideLanguages();
+        // scanAndBuildAll triggers a full scan; this is only used during site export (offline tool)
+        var scan = DataDrivenGuideLoader.scanAndBuildAll(DataDrivenGuideLoader.AUTO_GUIDE_FOLDER);
+        var discovered = scan.discoveredLanguages();
         if (guideId != null) {
             var languages = discovered.get(guideId);
             if (languages != null) {

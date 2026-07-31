@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
@@ -81,18 +81,19 @@ public class GuideSiteHrefResolver {
             return "";
         }
         String normalizedUrl = externalUri.toString();
-        StringBuilder href = new StringBuilder(resolveSitePath(currentPageId, "_site/external-link.html"));
+        String exportLanguage = "en_us";
+        ExportContext exportContext = EXPORT_CONTEXT.get();
+        if (exportContext != null && exportContext.language != null && !exportContext.language.isEmpty()) {
+            exportLanguage = exportContext.language;
+        }
+        StringBuilder href = new StringBuilder(
+            resolveSitePath(currentPageId, GuideSiteLocalizedText.externalLinkPagePath(exportLanguage)));
         href.append("?target=")
             .append(urlEncode(normalizedUrl));
         if (label != null && !label.trim()
             .isEmpty()) {
             href.append("&label=")
                 .append(urlEncode(label.trim()));
-        }
-        ExportContext exportContext = EXPORT_CONTEXT.get();
-        if (exportContext != null && exportContext.language != null && !exportContext.language.isEmpty()) {
-            href.append("&lang=")
-                .append(urlEncode(exportContext.language));
         }
         return href.toString();
     }
@@ -207,11 +208,7 @@ public class GuideSiteHrefResolver {
     }
 
     private static String urlEncode(String value) {
-        try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("UTF-8 should always be supported", e);
-        }
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     public static class ContextScope implements AutoCloseable {

@@ -366,6 +366,12 @@ public enum GuidebookText implements LocalizationEnum {
     RegionWandCopyFailed,
     RegionWandModeSwitched,
     RegionWandSelectionCleared,
+    RegionWandBound,
+    RegionWandAlreadyBound,
+    RegionWandUnbound,
+    RegionWandNotBound,
+    RegionWandNoHeldItem,
+    RegionWandTooltipBound,
     RegionWandTooltipSelect,
     RegionWandTooltipExport,
     RegionWandTooltipMode,
@@ -390,7 +396,12 @@ public enum GuidebookText implements LocalizationEnum {
     PonderPlayPause,
     PonderRestart,
     ToggleGrid,
-    ToggleBlockStats;
+    ToggleBlockStats,
+    FlowchartCopyPlan,
+    FlowchartCopyPlanSuccess,
+    FlowchartCopyPlanFailure,
+
+    ;
 
     @Override
     public String getTranslationKey() {

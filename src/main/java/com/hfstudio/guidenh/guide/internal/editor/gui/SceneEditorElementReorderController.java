@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.guide.internal.editor.gui;
 
 import java.util.List;
 
+import lombok.Getter;
+
+@Getter
 public class SceneEditorElementReorderController {
 
     private boolean dragging;
@@ -22,18 +25,6 @@ public class SceneEditorElementReorderController {
         this.draggedIndex = draggedIndex;
         this.insertionIndex = draggedIndex;
         return true;
-    }
-
-    public boolean isDragging() {
-        return dragging;
-    }
-
-    public int getDraggedIndex() {
-        return draggedIndex;
-    }
-
-    public int getInsertionIndex() {
-        return insertionIndex;
     }
 
     public void updateDrag(int mouseY, List<RowMetrics> rows) {
@@ -89,6 +80,7 @@ public class SceneEditorElementReorderController {
         return new MoveOperation(fromIndex, toIndex);
     }
 
+    @Getter
     public static class RowMetrics {
 
         private final int top;
@@ -99,19 +91,12 @@ public class SceneEditorElementReorderController {
             this.height = height;
         }
 
-        public int getTop() {
-            return top;
-        }
-
-        public int getHeight() {
-            return height;
-        }
-
         public int getCenterY() {
             return top + height / 2;
         }
     }
 
+    @Getter
     public static class MoveOperation {
 
         private final int fromIndex;
@@ -120,14 +105,6 @@ public class SceneEditorElementReorderController {
         public MoveOperation(int fromIndex, int toIndex) {
             this.fromIndex = fromIndex;
             this.toIndex = toIndex;
-        }
-
-        public int getFromIndex() {
-            return fromIndex;
-        }
-
-        public int getToIndex() {
-            return toIndex;
         }
 
         public boolean hasMove() {

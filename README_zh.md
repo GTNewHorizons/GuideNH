@@ -15,9 +15,13 @@
 
 ## **简介**
 
-* <span style="color: #ff6600;">GuideNH</span> 是面向 Minecraft **1.7.10** / Forge **10.13.4.1614** 的游戏内指南框架。
+* <span style="color: #ff6600;">GuideNH</span> 是面向 Minecraft **1.7.10** 的游戏内指南框架。
 * 它移植并扩展了 GuideME 风格的 Markdown 指南系统，适合 GTNH 时代的整合包与大型模组。
 * 它允许作者直接用资源包结构中的 Markdown 文件编写复杂指南书。
+
+## 依赖需求
+
+* [GTNHLib (>= 0.11.16)](https://github.com/GTNewHorizons/GTNHLib)
 
 ## **功能**
 
@@ -54,9 +58,44 @@
 
 进入游戏后：
 
-* 使用 `/give Developer guidenh:guide` 获取演示指南书。
+* 按 `G` 打开指南主页。
 * 鼠标悬停在已建立索引的物品上并按住 `G`，可以跳转到对应指南页面。
 * 按 `F3+T` 可以重新加载已编辑的指南资源。
+
+## **DefaultGuide**
+
+GuideNH 会在客户端自动创建 `config/guidenh/DefaultGuide/`。
+它还支持把 `config/guidenh/DefaultGuide.zip` 作为标准完整资源包加载，并且当 zip 与目录同时存在时优先使用 zip。
+
+这个目录使用原生命名空间根布局：
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- shared_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
+```
+
+该目录默认为空。需要客户端默认指南源时，请把你自己的页面和资源放在这里。
+
+如果你使用 `DefaultGuide.zip`，请采用标准完整资源包布局：
+
+```text
+config/guidenh/DefaultGuide.zip
+`-- assets/
+    `-- <modid>/
+        `-- guidenh/
+            |-- assets/
+            |-- _en_us/
+            `-- _zh_cn/
+```
+
+`wiki/resourcepack/` 仍然是仓库内的示例资源包。它保留外层 `assets/` 目录，用于文档说明和内置示例。
 
 ## **编写示例**
 
@@ -93,6 +132,35 @@ assets/<modid>/guidenh/
 `-- _zh_cn/
     |-- index.md
     `-- machines.md
+```
+
+### **DefaultGuide 目录**
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- assets/
+        |   `-- shared_structure.snbt
+        |-- _en_us/
+        |   `-- index.md
+        `-- _zh_cn/
+            `-- index.md
+```
+
+### **DefaultGuide Zip**
+
+```text
+config/guidenh/DefaultGuide.zip
+`-- assets/
+    `-- <modid>/
+        `-- guidenh/
+            |-- assets/
+            |   `-- shared_structure.snbt
+            |-- _en_us/
+            |   `-- index.md
+            `-- _zh_cn/
+                `-- index.md
 ```
 
 ### **注册指南**

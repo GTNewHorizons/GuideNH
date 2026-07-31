@@ -26,36 +26,61 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 
 ## `FloatingImage`
 
-`<FloatingImage>` 是 GuideNH 用于左浮动 / 右浮动图片布局的专用标签。
+`<FloatingImage>` 用于渲染“先裁剪、再缩放”的位图区域，既可以配合文字浮动，也可以真正作为段落内联内容使用。它还支持显式 `modid:path` 纹理 id，因此可以直接引用其他模组的纹理资源。
 
 ### 属性
 
 | 属性 | 必需 | 含义 |
 | --- | --- | --- |
 | `src` | 是 | 图片路径 |
-| `align` | 否 | `left` 或 `right`，默认 `left` |
+| `x` | 是 | 原图裁剪起始 X，单位为源图像像素 |
+| `y` | 是 | 原图裁剪起始 Y，单位为源图像像素 |
+| `width` / `w` | 是 | 原图裁剪宽度，单位为源图像像素；两种写法只能二选一 |
+| `height` / `h` | 是 | 原图裁剪高度，单位为源图像像素；两种写法只能二选一 |
+| `scaleX` | 否 | 水平显示缩放倍率，默认 `1.0` |
+| `scaleY` | 否 | 垂直显示缩放倍率，默认 `1.0` |
+| `displayWidth` | 否 | 最终显示宽度，单位为像素；单独使用时按裁剪区域比例计算高度 |
+| `displayHeight` | 否 | 最终显示高度，单位为像素；单独使用时按裁剪区域比例计算宽度 |
+| `wrap` | 否 | `inline` 表示真正行内放置，其他值使用常规环绕模式 |
+| `align` | 否 | 浮动时使用 `left` 或 `right`；`wrap="inline"` 时会被忽略 |
 | `title` | 否 | tooltip/title 文本 |
-| `width` | 否 | 显式宽度（像素） |
-| `height` | 否 | 显式高度（像素） |
 | `sound` | 否 | 整张图片点击时播放的音效事件 |
-| `src` | 是 | 图片路径；在 `<SoundArea>` 上使用时表示音效文件路径 |
+| `soundSrc` | 否 | 整张图片使用的音效文件路径 |
 | `trigger` | 否 | 默认 `click`，也可以写 `hover` 以悬停播放 |
 
 ### 说明
 
-- 只给一个尺寸时会保持纵横比
-- 两个尺寸都给时会拉伸图片
-- 非法的 `align` 值会渲染为内联错误
+- 裁剪时必须同时提供 `x`、`y`、`width` / `w` 与 `height` / `h`
+- 全部省略裁剪属性时，可使用 `displayWidth` 或 `displayHeight` 显示整张源图
+- `width` 和 `height` 现在表示裁剪区域，不再表示最终显示尺寸
+- `scaleX` 与 `scaleY` 会将最终显示尺寸计算为 `cropWidth * scaleX` 与 `cropHeight * scaleY`
+- `displayWidth` 或 `displayHeight` 以像素指定最终显示尺寸；只提供其中一个时，另一个尺寸按裁剪区域宽高比自动计算
+- 同时提供 `displayWidth` 与 `displayHeight` 时，可按指定尺寸进行非等比拉伸
+- `displayWidth` / `displayHeight` 不能与 `scaleX` / `scaleY` 同时使用
+- 支持单轴拉伸，只修改一个缩放值即可
+- 同时写 `width` 和 `w`，或同时写 `height` 和 `h`，都会渲染可见错误
+- 旧版把 `width` / `height` 当作显示尺寸的 `<FloatingImage>` 内容会发生破坏性变更，需要手动迁移
+- `src` 可以是相对路径、根路径，或显式 `modid:path` 纹理 id，例如 `minecraft:textures/gui/options_background.png`
 
 ### 示例
 
 ````md
-<FloatingImage src="test1.png" align="left" width="64" title="Example" />
+<FloatingImage
+  src="minecraft:textures/gui/options_background.png"
+  x="0"
+  y="0"
+  width="32"
+  height="32"
+  displayWidth="64"
+  displayHeight="64"
+  wrap="inline"
+  title="Example"
+/>
 ````
 
 ## `ImageAnnotation`
 
-`<ImageAnnotation>` 是 `<FloatingImage>` 的子标签，用于为图片的矩形区域附加富文本 tooltip（以及可选的彩色边框）。坐标以**图片像素**为单位，当图片被缩放或拉伸时会自动等比例调整。
+`<ImageAnnotation>` 是 `<FloatingImage>` 的子标签，用于为图片的矩形区域附加富文本 tooltip（以及可选的彩色边框）。坐标以**裁剪后子图像像素**为单位，当裁剪后的图像被缩放或拉伸时会自动等比例调整。
 
 ### 属性
 
@@ -86,7 +111,7 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 整图注解：
 
 ````md
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation>
     鼠标悬停在图片任意位置都会显示此 tooltip。
   </ImageAnnotation>
@@ -96,7 +121,7 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 带可见边框的区域注解：
 
 ````md
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
     悬停在**红框区域**内显示此 tooltip。
   </ImageAnnotation>
@@ -106,7 +131,7 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 同一图片上的多个注解：
 
 ````md
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
     左半部分
   </ImageAnnotation>
@@ -120,7 +145,15 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 tooltip 或边框，也可以直接在 `<ImageAnnotation>` 上写 `sound`。
 
 ````md
-<FloatingImage src="test1.png" align="left" width="128" sound="guidenh:image.click">
+<FloatingImage
+  src="test1.png"
+  align="left"
+  x="0"
+  y="0"
+  width="128"
+  height="128"
+  sound="guidenh:image.click"
+>
   <SoundArea x="0" y="0" w="64" h="64" sound="guidenh:image.left" />
   <SoundArea x="64" y="0" w="64" h="64" sound="guidenh:image.right" trigger="hover" />
   <ImageAnnotation x="10" y="10" w="40" h="40" border sound="guidenh:image.note">
@@ -129,7 +162,7 @@ tooltip 或边框，也可以直接在 `<ImageAnnotation>` 上写 `sound`。
 </FloatingImage>
 ````
 
-`<FloatingImage sound="...">` 会覆盖整张图片。区域音效使用图片像素坐标，
+`<FloatingImage sound="...">` 会覆盖整张图片。区域音效使用裁剪后子图像坐标，
 并遵循与 tooltip 相同的重叠优先级：靠后的区域优先响应。
 
 ## 内容嵌入与文字环绕
@@ -166,7 +199,17 @@ tooltip 或边框，也可以直接在 `<ImageAnnotation>` 上写 `sound`。
 使用新 `wrap` 属性的左浮动图片：
 
 ````md
-<FloatingImage src="test1.png" wrap="square" align="left" width="64" />
+<FloatingImage
+  src="test1.png"
+  wrap="square"
+  align="left"
+  x="0"
+  y="0"
+  width="128"
+  height="128"
+  scaleX="0.5"
+  scaleY="0.5"
+/>
 
 此段落文字将流向图片右侧……
 ````
@@ -191,8 +234,8 @@ tooltip 或边框，也可以直接在 `<ImageAnnotation>` 上写 `sound`。
 <ItemImage id="minecraft:diamond" align="right" />
 ````
 
-> **注意** — `<FloatingImage>` 自身也支持 `align="left/right"` 属性（历史原因保留）。
-> 新内容建议改用上述通用的 `wrap` + `align` 方式，适用于任何块级标签。
+> **注意** — `wrap="inline"` 现在会让 `<FloatingImage>` 真正作为行内内容放置。
+> 在 inline 模式下，`align` 会被忽略，而不是报错。
 
 ## 导航纹理图标
 

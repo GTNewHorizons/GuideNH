@@ -14,6 +14,9 @@ import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class LytSlot extends LytBlock implements InteractiveElement {
 
     public static final int ITEM_SIZE = 16;
@@ -30,7 +33,11 @@ public class LytSlot extends LytBlock implements InteractiveElement {
     private static final int SLOT_BORDER_LIGHT = 0xFFFFFFFF;
     private static final int SLOT_INNER_BG = 0xFF8B8B8B;
 
+    @Getter
+    @Setter
     private boolean largeSlot;
+    @Getter
+    @Setter
     private boolean renderSlotBackground = true;
     private final List<ItemStack> stacks;
     private long cachedCycleId = -1;
@@ -42,22 +49,6 @@ public class LytSlot extends LytBlock implements InteractiveElement {
 
     public LytSlot(List<ItemStack> stacks) {
         this.stacks = stacks != null ? stacks : List.of();
-    }
-
-    public boolean isLargeSlot() {
-        return largeSlot;
-    }
-
-    public void setLargeSlot(boolean largeSlot) {
-        this.largeSlot = largeSlot;
-    }
-
-    public boolean isRenderSlotBackground() {
-        return renderSlotBackground;
-    }
-
-    public void setRenderSlotBackground(boolean renderSlotBackground) {
-        this.renderSlotBackground = renderSlotBackground;
     }
 
     @Override

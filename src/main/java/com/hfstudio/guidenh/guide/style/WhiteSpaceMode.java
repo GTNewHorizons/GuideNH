@@ -1,8 +1,11 @@
 package com.hfstudio.guidenh.guide.style;
 
+import lombok.Getter;
+
 /**
  * See <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/white-space">...</a>
  */
+@Getter
 public enum WhiteSpaceMode {
 
     NORMAL(true, true),
@@ -27,11 +30,4 @@ public enum WhiteSpaceMode {
         this.collapseSegmentBreaks = collapseSegmentBreaks;
     }
 
-    public boolean isCollapseWhitespace() {
-        return collapseWhitespace;
-    }
-
-    public boolean isCollapseSegmentBreaks() {
-        return collapseSegmentBreaks;
-    }
 }

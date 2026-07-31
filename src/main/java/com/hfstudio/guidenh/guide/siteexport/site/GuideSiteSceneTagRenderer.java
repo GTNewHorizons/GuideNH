@@ -378,20 +378,18 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                 .isEmpty() ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.placeholderPath()
                     : TRANSPARENT_PIXEL;
 
-        StringBuilder html = new StringBuilder();
-        html.append("<div class=\"guide-tooltip-scene-placeholder\" style=\"width:")
-            .append(normalizedWidth)
-            .append("px;height:")
-            .append(normalizedHeight)
-            .append("px;\">")
-            .append("<img src=\"")
-            .append(escapeAttributeStatic(src))
-            .append("\" alt=\"3D scene preview\" loading=\"lazy\" decoding=\"async\" width=\"")
-            .append(normalizedWidth)
-            .append("\" height=\"")
-            .append(normalizedHeight)
-            .append("\"></div>");
-        return html.toString();
+        String html = "<div class=\"guide-tooltip-scene-placeholder\" style=\"width:" + normalizedWidth
+            + "px;height:"
+            + normalizedHeight
+            + "px;\">"
+            + "<img src=\""
+            + escapeAttributeStatic(src)
+            + "\" alt=\"3D scene preview\" loading=\"lazy\" decoding=\"async\" width=\""
+            + normalizedWidth
+            + "\" height=\""
+            + normalizedHeight
+            + "\"></div>";
+        return html;
     }
 
     private AnnotationPayload resolveAnnotationPayload(MdxJsxElementFields element, String defaultNamespace,

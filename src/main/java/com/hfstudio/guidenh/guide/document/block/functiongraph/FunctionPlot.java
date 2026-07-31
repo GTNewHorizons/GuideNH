@@ -1,10 +1,13 @@
 package com.hfstudio.guidenh.guide.document.block.functiongraph;
 
+import lombok.Getter;
+
 /**
  * One curve definition inside a {@link LytFunctionGraph}. Each plot owns a parsed expression, an
  * optional inverse flag (so {@code x = f(y)} curves can be drawn by sweeping y), an optional domain
  * predicate, and the colour / label used for tooltips and legends.
  */
+@Getter
 public class FunctionPlot {
 
     private final String expressionText;
@@ -29,34 +32,6 @@ public class FunctionPlot {
         this.color = color;
         this.label = label;
         this.autoPointSpec = autoPointSpec != null ? autoPointSpec : AutoPointSpec.NONE;
-    }
-
-    public String getExpressionText() {
-        return expressionText;
-    }
-
-    public FunctionExpr getExpression() {
-        return expression;
-    }
-
-    public boolean isInverse() {
-        return inverse;
-    }
-
-    public DomainPredicate getDomain() {
-        return domain;
-    }
-
-    public int getColor() {
-        return color;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public AutoPointSpec getAutoPointSpec() {
-        return autoPointSpec;
     }
 
     /**

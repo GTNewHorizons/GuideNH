@@ -31,6 +31,7 @@ GuideNH 是一个面向 GTNH 时代 Minecraft 模组的游戏内指南框架。�
 | `wiki/resourcepack/` | 模组在构建时使用的运行时指南源目录 |
 | `wiki/resourcepack/assets/guidenh/guidenh/` | 内置示例指南页面与资源 |
 | `build/resources/main/assets/` | 开发运行时由 Gradle 复制后的运行时指南资源输出目录 |
+| `config/guidenh/DefaultGuide/` | 客户端启动时自动创建的本地运行时指南目录 |
 
 ## 两层 Markdown
 
@@ -43,12 +44,13 @@ GuideNH 有意将文档编写分成两层：
 
 ## 快速编写清单
 
-1. 将运行时指南文件放在 `wiki/resourcepack/assets/<modid>/guidenh/` 下。
-2. 添加 `_en_us/`、`_zh_cn/` 之类的语言目录。
+1. 如果你想放普通加载的本地运行时指南，请把文件放在 `config/guidenh/DefaultGuide/<modid>/guidenh/` 下。
+2. 在这个运行时目录中使用 `_en_us/`、`_zh_cn/` 之类的语言目录。
 3. 将 Markdown 页面放入这些语言目录中。
 4. 如果希望页面出现在侧边导航中，请在 frontmatter 中声明导航元数据。
 5. 页面私有资源使用相对路径，指南根资源使用 `/...` 形式的根路径。
-6. 编写 3D 游戏场景时，可根据需要组合 `<GameScene>`、`<ImportStructure>`、`<ImportStructureLib>`、`<RemoveBlocks>` 和 `<BlockAnnotationTemplate>`。
+6. 如果你是在编辑会打包进 jar 的仓库示例资源包，请使用 `wiki/resourcepack/assets/<modid>/guidenh/`。
+7. 编写 3D 游戏场景时，可根据需要组合 `<GameScene>`、`<ImportStructure>`、`<ImportStructureLib>`、`<RemoveBlocks>` 和 `<BlockAnnotationTemplate>`。
 
 ## 快速迭代
 
@@ -75,3 +77,14 @@ GuideNH 有意将文档编写分成两层：
 - `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt`
 
 在阅读本 wiki 时，这些文件是查看真实运行示例的最佳入口。现在两份 `index.md` 都包含了 `ImportStructureLib`、`RemoveBlocks` 和 `BlockAnnotationTemplate` 的混合场景示例。
+
+`DefaultGuide` 用于客户端本地运行时内容，目录采用原生命名空间根布局：
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- _en_us/
+        |-- _zh_cn/
+        `-- assets/
+```

@@ -32,7 +32,7 @@ public class GuideBlockBoundsResolver {
 
         try {
             AxisAlignedBB selectedBounds = block.getSelectedBoundingBoxFromPool(fakeWorld, x, y, z);
-            if (selectedBounds != null && isNonEmpty(selectedBounds)) {
+            if (isNonEmpty(selectedBounds)) {
                 return selectedBounds;
             }
         } catch (Throwable ignored) {}
@@ -75,7 +75,7 @@ public class GuideBlockBoundsResolver {
             World fakeWorld = level.getOrCreateFakeWorld();
             block.setBlockBoundsBasedOnState(fakeWorld, x, y, z);
             AxisAlignedBB selectedBounds = block.getSelectedBoundingBoxFromPool(fakeWorld, x, y, z);
-            if (selectedBounds != null && isNonEmpty(selectedBounds)) {
+            if (isNonEmpty(selectedBounds)) {
                 return copyOf(selectedBounds);
             }
         } catch (Throwable ignored) {}
@@ -108,7 +108,7 @@ public class GuideBlockBoundsResolver {
         AxisAlignedBB bestBounds = null;
         double bestDistanceSq = Double.POSITIVE_INFINITY;
         for (AxisAlignedBB collisionBox : collisionBoxes) {
-            if (collisionBox == null || !isNonEmpty(collisionBox)) {
+            if (!isNonEmpty(collisionBox)) {
                 continue;
             }
             var intercept = collisionBox.calculateIntercept(rayStart, rayEnd);
@@ -162,7 +162,7 @@ public class GuideBlockBoundsResolver {
     public static AxisAlignedBB mergeCollisionBounds(List<AxisAlignedBB> collisionBoxes) {
         AxisAlignedBB merged = null;
         for (AxisAlignedBB collisionBox : collisionBoxes) {
-            if (collisionBox == null || !isNonEmpty(collisionBox)) {
+            if (!isNonEmpty(collisionBox)) {
                 continue;
             }
             merged = merged == null ? copyOf(collisionBox) : merged.func_111270_a(collisionBox);

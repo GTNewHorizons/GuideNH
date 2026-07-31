@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.mixins;
 
+import org.jspecify.annotations.NonNull;
+
 import com.gtnewhorizon.gtnhmixins.builders.IMixins;
 import com.gtnewhorizon.gtnhmixins.builders.ITargetMod;
 import com.gtnewhorizon.gtnhmixins.builders.MixinBuilder;
@@ -13,10 +15,10 @@ public enum Mixins implements IMixins {
     EARLY(Side.CLIENT, "forge.AccessorForgeHooksClient", "forge.AccessorGuiIngameForge", "fml.AccessorFMLClientHandler",
         "minecraft.AccessorAbstractResourcePack", "minecraft.AccessorFallbackResourceManager",
         "minecraft.AccessorSimpleReloadableResourceManager", "forge.AccessorShapedOreRecipe",
-        "forge.AccessorShapelessOreRecipe", "minecraft.MixinModelRendererSceneExportCapture",
-        "minecraft.MixinTessellatorSceneExportCapture"),
+        "forge.AccessorShapelessOreRecipe"),
 
-    BQ_PANEL_HOVER(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.MixinPanelButtonQuest"),
+    BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.MixinPanelButtonQuest", "compat.MixinPanelTextBox",
+        "compat.AccessorPanelTextBox", "compat.AccessorPanelTextBoxHotZone"),
 
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
 
@@ -31,6 +33,10 @@ public enum Mixins implements IMixins {
 
     WR_CBE_UNLOADED_JAM_STATE(Side.CLIENT, Phase.LATE, Mods.WirelessRedstoneCore,
         "compat.wirelessredstone.MixinRedstoneEther"),
+
+    BLOCK_RENDERER_6343(Side.CLIENT, Phase.LATE, Mods.BlockRenderer6343,
+        "compat.blockrenderer6343.AccessorConstructableData",
+        "compat.blockrenderer6343.AccessorGTNEIMultiblockHandler"),
 
     ;
 
@@ -48,7 +54,7 @@ public enum Mixins implements IMixins {
     }
 
     @Override
-    public MixinBuilder getBuilder() {
+    public @NonNull MixinBuilder getBuilder() {
         return builder;
     }
 }

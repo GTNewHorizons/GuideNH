@@ -18,13 +18,14 @@ import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-public class MediaWikiGeneratedListBlock extends LytBlock implements InteractiveElement {
+public class MediaWikiGeneratedListBlock extends LytBlock implements InteractiveElement, DebugComponent {
 
     private static final int TOP_PADDING = 6;
     private static final int BOTTOM_PADDING = 6;
@@ -353,5 +354,42 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
             moved.setClickableBounds(clickableBounds.move(deltaX, deltaY));
             return moved;
         }
+    }
+
+    // Debug implementation
+
+    @Override
+    public List<DebugComponent.ComponentEntry> getDebugComponents() {
+        List<DebugComponent.ComponentEntry> components = new ArrayList<>();
+
+        for (int i = 0; i < rowLayouts.size(); i++) {
+            RowLayout row = rowLayouts.get(i);
+
+            if (row.entry() != null) {
+                // Entry row
+                String title = row.entry()
+                    .title();
+                if (title == null || title.isEmpty()) {
+                    title = "Entry" + i;
+                }
+                String extra = "PageID: " + row.entry()
+                    .pageId();
+                components.add(
+                    new DebugComponent.SimpleComponentEntry("ListEntry:" + title, row.clickableBounds(), extra, 10));
+            } else if (row.header() != null) {
+                // Header row
+                components.add(
+                    new DebugComponent.SimpleComponentEntry(
+                        "ListHeader:" + row.header(),
+                        row.bounds(),
+                        "Section header",
+                        5));
+            } else {
+                // Empty row
+                components.add(new DebugComponent.SimpleComponentEntry("EmptyListRow", row.bounds(), "No entries", 5));
+            }
+        }
+
+        return components;
     }
 }

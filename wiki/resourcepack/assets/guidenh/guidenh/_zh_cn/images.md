@@ -27,27 +27,31 @@ categories:
 
 段落内嵌图：这是一张图 ![inline](test1.png) 嵌在文字里。
 
-`<FloatingImage>` 支持 `width` / `height`（像素）属性：只给一维则按纹理原比例换算另一维，两维都给则**拉伸**（不保比例），都不给则沿用默认尺寸。
+`<FloatingImage>` 采用“先裁剪，再确定显示尺寸”的语义。`x`、`y`、`width` / `w`、`height` / `h` 用于从原图中选取子区域。`scaleX` 和 `scaleY` 按倍率缩放裁剪结果；`displayWidth` 和 `displayHeight` 则直接以像素指定最终尺寸。只提供一个显示尺寸时会保持裁剪区域比例，两个都提供时可拉伸。显示尺寸不能与 `scaleX` 或 `scaleY` 同时使用。
 
-固定 64×64（等比缩到 64）：
+裁剪 64×64 区域并按原始大小显示：
 
-<FloatingImage src="test1.png" align="left" width="64" title="width=64" />
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="64" height="64" title="crop 64x64" />
 
-同一张图强制 200×80 拉伸（不保比例）：
+将裁剪出的 64×64 区域拉伸到 200×80：
 
-<FloatingImage src="test1.png" align="right" width="200" height="80" title="stretch 200x80" />
+<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" displayWidth="200" displayHeight="80" title="拉伸到 200x80" />
 
-固定高度 40（宽度按比例换算）：
+只设置一个最终尺寸时，会保持裁剪区域比例：
 
-<FloatingImage src="test1.png" align="left" height="40" title="height=40" />
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="64" height="32" displayWidth="160" title="等比 160x80 裁剪" />
+
+跨模组纹理并真正行内放置：
+
+前文 <FloatingImage src="minecraft:textures/gui/options_background.png" x="0" y="0" width="32" height="32" scaleX="0.75" scaleY="0.75" wrap="inline" title="inline crop" /> 后文。
 
 ## ImageAnnotation
 
-`<ImageAnnotation>` 是 `<FloatingImage>` 的子标签，用于为图片的矩形区域添加悬停 tooltip 和可选的彩色边框。坐标（`x`、`y`、`w`、`h`）以**图片像素**为单位；当图片被缩放或拉伸时，注解区域会随之自动缩放。省略全部四个坐标时，注解覆盖整张图片。
+`<ImageAnnotation>` 是 `<FloatingImage>` 的子标签，用于为图片的矩形区域添加悬停 tooltip 和可选的彩色边框。坐标（`x`、`y`、`w`、`h`）以**裁剪后子图像像素**为单位；当裁剪后的图像被缩放或拉伸时，注解区域会随之自动缩放。省略全部四个坐标时，注解覆盖整张图片。
 
 整图注解（鼠标悬停在图片任意位置均显示 tooltip）：
 
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation>
     悬停在图片**任意位置**都会显示此 tooltip。
   </ImageAnnotation>
@@ -55,7 +59,7 @@ categories:
 
 区域注解，显示红色边框（x=10, y=10, w=60, h=40）：
 
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
     悬停在**红色边框区域**内显示此 tooltip。
   </ImageAnnotation>
@@ -63,7 +67,7 @@ categories:
 
 同一张图上的多个注解——每个区域显示不同 tooltip：
 
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
     左半部分
   </ImageAnnotation>
@@ -72,11 +76,11 @@ categories:
   </ImageAnnotation>
 </FloatingImage>
 
-拉伸图（200×80）上的注解会随拉伸自动适配：
+缩放后的裁剪图，注解会随拉伸自动适配：
 
-<FloatingImage src="test1.png" align="right" width="200" height="80">
-  <ImageAnnotation x="0" y="0" w="128" h="128" border borderColor="#FFFFFF44" borderThickness="2">
-    拉伸图左侧区域。
+<FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" scaleX="3.125" scaleY="1.25">
+  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FFFFFF44" borderThickness="2">
+    整个裁剪区域在拉伸后的范围。
   </ImageAnnotation>
 </FloatingImage>
 
@@ -88,7 +92,7 @@ categories:
   **富文本音效链接**
 </SoundLink>
 
-<FloatingImage src="test1.png" align="left" width="128" sound="guidenh:guide.sample_click">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128" sound="guidenh:guide.sample_click">
   <SoundArea x="0" y="0" w="64" h="128" sound="guidenh:guide.sample_left" />
   <SoundArea x="64" y="0" w="64" h="128" sound="guidenh:guide.sample_hover" trigger="hover" />
   <ImageAnnotation x="16" y="16" w="32" h="32" border borderColor="#FFFFCC44"

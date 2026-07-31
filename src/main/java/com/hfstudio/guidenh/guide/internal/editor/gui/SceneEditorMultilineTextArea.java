@@ -20,7 +20,6 @@ import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstListContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstListItem;
@@ -28,6 +27,8 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
+
+import lombok.Getter;
 
 public class SceneEditorMultilineTextArea {
 
@@ -60,9 +61,11 @@ public class SceneEditorMultilineTextArea {
     private int horizontalOffsetPixels;
     private final SmoothFloatState visualVerticalOffsetPixels = new SmoothFloatState();
     private final SmoothFloatState visualHorizontalOffsetPixels = new SmoothFloatState();
+    @Getter
     private boolean wrapEnabled;
     private boolean verticalScrollbarVisible;
     private boolean horizontalScrollbarVisible;
+    @Getter
     private boolean focused;
     private boolean selectingWithMouse;
     private boolean panningWithMiddleMouse;
@@ -336,10 +339,6 @@ public class SceneEditorMultilineTextArea {
         syncImeFocusProxy();
     }
 
-    public boolean isWrapEnabled() {
-        return wrapEnabled;
-    }
-
     public void setWrapEnabled(boolean wrapEnabled) {
         if (this.wrapEnabled == wrapEnabled) {
             return;
@@ -351,10 +350,6 @@ public class SceneEditorMultilineTextArea {
         rebuildLayoutCache();
         ensureCursorVisible();
         syncImeFocusProxy();
-    }
-
-    public boolean isFocused() {
-        return focused;
     }
 
     public void setBackgroundHighlight(int startIndex, int endIndex) {
@@ -697,7 +692,7 @@ public class SceneEditorMultilineTextArea {
 
         // 1. Try AST-based list continuation
         MdAstRoot root = MdAst.fromMarkdown(text, GuideMarkdownOptions.runtime());
-        MdAstToMdxConverter.convert(root, Collections.<String, MdAstDefinition>emptyMap());
+        MdAstToMdxConverter.convert(root, Collections.emptyMap());
         MdAstListItem item = findEnclosingListItem(root, cursor);
         if (item != null) {
             int lineStart = findLineStart(text, cursor - 1);

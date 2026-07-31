@@ -1,9 +1,12 @@
 package com.hfstudio.guidenh.integration.gregtech;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.block.Block;
@@ -17,6 +20,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
@@ -30,6 +34,7 @@ import gregtech.api.metatileentity.BaseMetaPipeEntity;
 import gregtech.api.metatileentity.MetaPipeEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
+import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.HatchElementBuilder;
 import gregtech.common.blocks.ItemMachines;
@@ -50,7 +55,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static ItemStack applyOreDictUnificationImpl(ItemStack stack) {
         ItemStack unified = GTOreDictUnificator.setStack(stack.copy());
         return unified != null ? unified : stack;
@@ -68,7 +73,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static void registerDummyWorldImpl(Class<?> worldClass) {
         GregTechAPI.addDummyWorld(worldClass);
     }
@@ -84,7 +89,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean isGregTechTileEntityImpl(TileEntity tileEntity) {
         return tileEntity instanceof IGregTechTileEntity;
     }
@@ -100,7 +105,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean isMultiblockControllerImpl(TileEntity tileEntity) {
         IGregTechTileEntity gtTile = (IGregTechTileEntity) tileEntity;
         IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
@@ -119,7 +124,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static int resolveMetaTileIdImpl(TileEntity tileEntity) {
         return ((IGregTechTileEntity) tileEntity).getMetaTileID();
     }
@@ -135,7 +140,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean hasValidMetaTileBindingImpl(TileEntity tileEntity) {
         IMetaTileEntity meta = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
         if (meta == null) {
@@ -159,7 +164,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean repairMetaTileBindingImpl(TileEntity tileEntity) {
         IGregTechTileEntity gtTile = (IGregTechTileEntity) tileEntity;
         IMetaTileEntity existingMeta = gtTile.getMetaTileEntity();
@@ -223,7 +228,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     @Nullable
     private static Integer getMetaTileBaseTypeImpl(int metaTileId) {
         IMetaTileEntity[] entities = GregTechAPI.METATILEENTITIES;
@@ -248,7 +253,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean initializeMetaTileImpl(TileEntity tileEntity, int metaTileId,
         @Nullable NBTTagCompound tileTag) {
         if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
@@ -263,7 +268,7 @@ public class GregTechHelpers {
         return Mods.GregTech.isModLoaded() && isMachineItemImpl(item);
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean isMachineItemImpl(Item item) {
         return item instanceof ItemMachines;
     }
@@ -272,7 +277,7 @@ public class GregTechHelpers {
         return stack != null && Mods.GregTech.isModLoaded() && isMachineStackImpl(stack);
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean isMachineStackImpl(ItemStack stack) {
         return stack.getItem() instanceof ItemMachines && ItemMachines.getMetaTileEntity(stack) != null;
     }
@@ -286,7 +291,7 @@ public class GregTechHelpers {
         } catch (Throwable ignored) {}
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static void appendMachineStacksImpl(List<ItemStack> stacks) {
         Block blockMachines = GregTechAPI.sBlockMachines;
         Object[] metaTileEntities = GregTechAPI.METATILEENTITIES;
@@ -312,7 +317,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     @Nullable
     private static Integer getMachineControllerBaseMetaImpl(Block block, int meta) {
         Item item = Item.getItemFromBlock(block);
@@ -336,7 +341,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     @Nullable
     private static TileEntity createMachineControllerTileImpl(World world, Block block, int meta,
         @Nullable ItemStack stack) {
@@ -369,7 +374,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean initializeMachineControllerTileImpl(TileEntity tileEntity, int meta,
         @Nullable ItemStack stack) {
         if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
@@ -403,7 +408,7 @@ public class GregTechHelpers {
         } catch (Throwable ignored) {}
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static void applyPreviewControllerFacingImpl(TileEntity tileEntity) {
         if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
             return;
@@ -423,7 +428,7 @@ public class GregTechHelpers {
         } catch (Throwable ignored) {}
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static void setActiveImpl(TileEntity tileEntity, boolean active) {
         if (tileEntity instanceof IGregTechTileEntity gtTile) {
             gtTile.setActive(active);
@@ -440,7 +445,7 @@ public class GregTechHelpers {
         } catch (Throwable ignored) {}
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static void enableHatchPreviewChannelImpl(ItemStack triggerStack) {
         ChannelDataAccessor.setChannelData(triggerStack, GTStructureChannels.HATCH.get(), 1);
     }
@@ -455,14 +460,14 @@ public class GregTechHelpers {
         } catch (Throwable ignored) {}
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static void refreshPreviewHatchListImpl(TileEntity controllerTile, ItemStack triggerStack,
         List<String> warnings) {
         if (!(controllerTile instanceof IGregTechTileEntity gtTile)) return;
         IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
         if (!(metaTileEntity instanceof MTEMultiBlockBase multiBlockBase)) return;
         multiBlockBase.clearHatches();
-        multiBlockBase.checkMachine(gtTile, triggerStack);
+        checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
     }
 
     public static void synchronizeMultiblockPreviewState(@Nullable TileEntity controllerTile,
@@ -480,7 +485,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static void synchronizeMultiblockPreviewStateImpl(TileEntity controllerTile,
         @Nullable ItemStack triggerStack, boolean activeController, @Nullable List<String> warnings) {
         if (!(controllerTile instanceof IGregTechTileEntity gtTile)) {
@@ -494,21 +499,37 @@ public class GregTechHelpers {
         try {
             boolean activeBefore = gtTile.isActive();
             Boolean machineBefore = readPreviewMachineState(multiBlockBase);
-            multiBlockBase.clearHatches();
-            boolean valid = multiBlockBase.checkMachine(gtTile, triggerStack);
-            boolean machineApplied = applyPreviewMachineState(multiBlockBase, valid);
-            Boolean machineAfter = readPreviewMachineState(multiBlockBase);
-            if (!valid) {
-                logInfoOnce(
-                    "preview-state-sync-invalid:" + describeTile(controllerTile),
-                    "GregTech preview state sync kept invalid structure state for {}",
-                    describeTile(controllerTile));
-            }
-            if (shouldActivatePreviewController(activeController, valid)) {
+            boolean valid;
+            boolean machineApplied;
+            if (triggerStack != null && triggerStack.stackSize > 0) {
+                applyTierFromTriggerStack(metaTileEntity, triggerStack);
+                machineApplied = applyPreviewMachineState(multiBlockBase, true);
                 gtTile.setActive(true);
                 gtTile.issueTextureUpdate();
                 applyPreviewTextureUpdate(metaTileEntity);
+                refreshHatchTexturesInWorld(controllerTile, metaTileEntity);
+                valid = true;
+            } else {
+                multiBlockBase.clearHatches();
+                List<StructureError> structureErrors = checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
+                valid = structureErrors.isEmpty();
+                machineApplied = applyPreviewMachineState(multiBlockBase, valid);
+                if (!valid) {
+                    appendPreviewStructureWarning(warnings, structureErrors);
+                    logInfoOnce(
+                        "preview-state-sync-invalid:" + describeTile(controllerTile),
+                        "GregTech preview state sync kept invalid structure state for {}",
+                        describeTile(controllerTile));
+                }
+                if (shouldActivatePreviewController(activeController, valid)) {
+                    gtTile.setActive(true);
+                }
+                if (activeController) {
+                    gtTile.issueTextureUpdate();
+                    applyPreviewTextureUpdate(metaTileEntity);
+                }
             }
+            Boolean machineAfter = readPreviewMachineState(multiBlockBase);
             GuideDebugLog.info(
                 "GregTech preview sync controller={} meta={} facing={} valid={} activeRequested={} activeBefore={} activeAfter={} machineBefore={} machineAfter={} machineApplied={}",
                 describeTile(controllerTile),
@@ -529,6 +550,106 @@ public class GregTechHelpers {
         }
     }
 
+    private static void refreshHatchTexturesInWorld(TileEntity controllerTile, Object metaTileEntity) {
+        if (controllerTile == null || metaTileEntity == null) return;
+        int casingTextureId = -1;
+        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
+            try {
+                Method method = type.getDeclaredMethod("getCasingTextureId");
+                method.setAccessible(true);
+                casingTextureId = (int) method.invoke(metaTileEntity);
+                break;
+            } catch (NoSuchMethodException ignored) {} catch (Throwable ignored) {
+                return;
+            }
+        }
+        if (casingTextureId < 0) return;
+        World world;
+        try {
+            world = controllerTile.getWorldObj();
+        } catch (Throwable ignored) {
+            return;
+        }
+        if (!(world instanceof GuidebookFakeWorld fakeWorld)) return;
+        GuidebookLevel level = fakeWorld.getGuidebookLevel();
+        if (level == null) return;
+        for (TileEntity tileEntity : level.getTileEntities()) {
+            if (!isGregTechTileEntity(tileEntity)) continue;
+            IMetaTileEntity metaTile = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            if (metaTile instanceof MTEHatch hatch) {
+                hatch.updateTexture(casingTextureId);
+            }
+        }
+    }
+
+    private static void applyTierFromTriggerStack(Object metaTileEntity, ItemStack triggerStack) {
+        int tier = triggerStack.stackSize;
+        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
+            for (Field field : type.getDeclaredFields()) {
+                if (field.getType() != Integer.TYPE) continue;
+                if (!field.getName()
+                    .toLowerCase(Locale.ROOT)
+                    .matches(".*(?:tier|casing).*")) continue;
+                try {
+                    field.setAccessible(true);
+                    field.setInt(metaTileEntity, tier);
+                } catch (Throwable ignored) {}
+            }
+        }
+    }
+
+    private static List<StructureError> checkPreviewMachine(MTEMultiBlockBase multiBlockBase,
+        IGregTechTileEntity gtTile, @Nullable ItemStack triggerStack) {
+        List<StructureError> errors = new ArrayList<>();
+        multiBlockBase.checkMachine(gtTile, triggerStack, errors);
+        return errors;
+    }
+
+    private static void appendPreviewStructureWarning(@Nullable List<String> warnings, List<StructureError> errors) {
+        if (warnings == null || errors.isEmpty()) {
+            return;
+        }
+        String details = describeStructureErrors(errors);
+        String warning = "GregTech structure check reported: " + details;
+        if (!warnings.contains(warning)) {
+            warnings.add(warning);
+        }
+    }
+
+    private static String describeStructureErrors(List<StructureError> errors) {
+        StringBuilder builder = new StringBuilder();
+        for (StructureError error : errors) {
+            String description = describeStructureError(error);
+            if (description.isEmpty()) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append("; ");
+            }
+            builder.append(description);
+        }
+        return builder.isEmpty() ? "unknown structure error" : builder.toString();
+    }
+
+    private static String describeStructureError(@Nullable StructureError error) {
+        if (error == null) {
+            return "";
+        }
+        try {
+            String displayString = error.getDisplayString();
+            if (displayString != null && !displayString.trim()
+                .isEmpty()) {
+                return displayString.trim();
+            }
+        } catch (Throwable ignored) {}
+        try {
+            return error.getId()
+                .name();
+        } catch (Throwable ignored) {
+            return "unknown structure error";
+        }
+    }
+
     public static boolean applyPreviewMachineState(@Nullable Object multiBlockController, boolean formed) {
         if (multiBlockController == null) {
             return false;
@@ -542,9 +663,7 @@ public class GregTechHelpers {
                 field.setAccessible(true);
                 field.setBoolean(multiBlockController, formed);
                 return true;
-            } catch (NoSuchFieldException ignored) {
-                continue;
-            } catch (Throwable ignored) {
+            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
                 return false;
             }
         }
@@ -580,9 +699,7 @@ public class GregTechHelpers {
                 }
                 field.setAccessible(true);
                 return field.getBoolean(multiBlockController);
-            } catch (NoSuchFieldException ignored) {
-                continue;
-            } catch (Throwable ignored) {
+            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
                 return null;
             }
         }
@@ -601,7 +718,7 @@ public class GregTechHelpers {
         } catch (Throwable ignored) {}
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static void applyDefaultFacingImpl(TileEntity tileEntity) {
         if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
             return;
@@ -632,7 +749,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     @Nullable
     private static Block getBlockMachinesImpl() {
         return GregTechAPI.sBlockMachines;
@@ -650,7 +767,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     @Nullable
     private static Object[] getMetaTileEntitiesImpl() {
         return GregTechAPI.METATILEENTITIES;
@@ -668,7 +785,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     @Nullable
     private static Object getMetaTileEntityFromItemImpl(ItemStack stack) {
         return ItemMachines.getMetaTileEntity(stack);
@@ -678,7 +795,7 @@ public class GregTechHelpers {
         return Mods.GregTech.isModLoaded() && isMTEHatchImpl(metaTileEntity);
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean isMTEHatchImpl(Object metaTileEntity) {
         return metaTileEntity instanceof MTEHatch;
     }
@@ -687,7 +804,7 @@ public class GregTechHelpers {
         return Mods.GregTech.isModLoaded() && isHatchElementBuilderImpl(candidate);
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static boolean isHatchElementBuilderImpl(Object candidate) {
         return candidate instanceof HatchElementBuilder;
     }
@@ -703,7 +820,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static int getHatchBuilderHintImpl(Object hatchBuilder) {
         return ((AccessorHatchElementBuilder) hatchBuilder).guidenh$getHint();
     }
@@ -720,7 +837,7 @@ public class GregTechHelpers {
         }
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     @Nullable
     private static ItemStack getStackFormFromMetaTileImpl(Object metaTileEntity) {
         return ((IMetaTileEntity) metaTileEntity).getStackForm(1L);
@@ -841,7 +958,7 @@ public class GregTechHelpers {
         } catch (Throwable ignored) {}
     }
 
-    @Optional.Method(modid = "gregtech")
+    @Optional.Method(modid = "gregtech_nh")
     private static void preparePipeConnectionsImpl(GuidebookLevel level) {
         for (TileEntity te : level.getTileEntities()) {
             if (!(te instanceof BaseMetaPipeEntity basePipeEntity)) {
@@ -861,12 +978,12 @@ public class GregTechHelpers {
                     continue;
                 }
                 if (isSamePipeType(metaPipe, adj)) {
-                    connections |= dir.flag;
+                    connections |= (byte) dir.flag;
                     continue;
                 }
                 try {
                     if (metaPipe.canConnect(dir, adj)) {
-                        connections |= dir.flag;
+                        connections |= (byte) dir.flag;
                     }
                 } catch (Throwable ignored) {}
             }

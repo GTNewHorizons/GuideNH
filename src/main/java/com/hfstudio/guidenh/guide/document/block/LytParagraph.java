@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.jetbrains.annotations.Nullable;
@@ -10,18 +12,31 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
+import com.hfstudio.guidenh.guide.internal.debug.DebugFlowContainer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.flow.FlowBuilder;
+import com.hfstudio.guidenh.guide.layout.flow.LineElement;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 
-public class LytParagraph extends LytBlock implements LytFlowContainer {
+import lombok.Getter;
+import lombok.Setter;
+
+public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlowContainer {
 
     protected final FlowBuilder content = new FlowBuilder();
 
+    @Getter
+    @Setter
     protected int paddingLeft;
+    @Getter
+    @Setter
     protected int paddingTop;
+    @Getter
+    @Setter
     protected int paddingRight;
+    @Getter
+    @Setter
     protected int paddingBottom;
 
     @Nullable
@@ -150,38 +165,6 @@ public class LytParagraph extends LytBlock implements LytFlowContainer {
         content.clear();
     }
 
-    public int getPaddingLeft() {
-        return paddingLeft;
-    }
-
-    public void setPaddingLeft(int paddingLeft) {
-        this.paddingLeft = paddingLeft;
-    }
-
-    public int getPaddingTop() {
-        return paddingTop;
-    }
-
-    public void setPaddingTop(int paddingTop) {
-        this.paddingTop = paddingTop;
-    }
-
-    public int getPaddingRight() {
-        return paddingRight;
-    }
-
-    public void setPaddingRight(int paddingRight) {
-        this.paddingRight = paddingRight;
-    }
-
-    public int getPaddingBottom() {
-        return paddingBottom;
-    }
-
-    public void setPaddingBottom(int paddingBottom) {
-        this.paddingBottom = paddingBottom;
-    }
-
     /**
      * Quick shorthand to create a paragrpah of plain text.
      */
@@ -236,5 +219,27 @@ public class LytParagraph extends LytBlock implements LytFlowContainer {
         paragraph.setStyle(ERROR_STYLE);
         paragraph.appendText(text);
         return paragraph;
+    }
+
+    // Debug implementation
+
+    @Override
+    @Nullable
+    public FlowContentEntry pickFlowContent(int x, int y) {
+        LineElement element = content.pick(x, y);
+        if (element != null) {
+            return new FlowContentEntry(element.getFlowContent(), element.bounds);
+        }
+        return null;
+    }
+
+    @Override
+    public List<FlowContentEntry> getAllFlowContent() {
+        List<FlowContentEntry> entries = new ArrayList<>();
+        for (LytFlowContent flowContent : getContent()) {
+            content.enumerateContentBounds(flowContent)
+                .forEach(bounds -> entries.add(new FlowContentEntry(flowContent, bounds)));
+        }
+        return entries;
     }
 }

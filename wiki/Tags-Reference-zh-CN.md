@@ -57,7 +57,7 @@
 | `<FootnoteList>` | 运行时 Markdown 脚注使用的限宽脚注容器 | `width` |
 | `<ItemGrid>` | 紧凑物品图标网格 | 子元素必须是 `<ItemIcon id="..."/>` 或 `<ItemIcon ore="..."/>` |
 | `<BlockImage>` | 非交互式的 3D 单方块预览 | `id` 或 `ore`，`scale`，`float`，`perspective`，`nbt` |
-| `<FloatingImage>` | 浮动图片块 | `src`, `align`, `title`, `width`, `height` |
+| `<FloatingImage>` | 支持浮动或真正行内放置的裁剪图片块 | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | 导航子页面列表 | `id`, `alphabetical` |
 | `<Category>` | 分类页面列表 | `name`, `rows` |
 | `<Special>` | 内置 MediaWiki 特殊页面列表 | `name`, `rows` |
@@ -474,6 +474,16 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 ### `<FloatingImage>`
 
 完整行为请参见 [图片与资源](Images-And-Assets-zh-CN)。
+
+快速规则：
+
+- `src` 支持相对路径、根路径，以及显式 `modid:path` 纹理 id
+- `x`、`y`、`width` / `w`、`height` / `h` 用于描述原图上的裁剪区域，且必须全部提供
+- `scaleX` 与 `scaleY` 用于缩放裁剪结果，并支持横向 / 纵向独立拉伸
+- `displayWidth` 与 `displayHeight` 以像素指定最终尺寸；只提供一个值时保持裁剪区域比例，两个值都提供时可拉伸
+- `displayWidth` / `displayHeight` 不能与 `scaleX` / `scaleY` 同时使用
+- `wrap="inline"` 会让图片真正作为行内内容插入文本流；此时 `align` 会被忽略
+- 旧内容如果把 `width` / `height` 当成最终显示尺寸，需要手动迁移
 
 ### `<SubPages>`、`<Category>` 与 `<Special>`
 

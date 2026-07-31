@@ -11,7 +11,6 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade.BuildContext;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
@@ -34,11 +33,11 @@ public class StructureLibSceneBuilder {
         return build(task, null);
     }
 
-    public StructureLibSceneBuildResult build(StructureLibExportTaskSpec task, BuildContext context) {
-        return build(task, context, null);
+    public StructureLibSceneBuildResult build(StructureLibExportTaskSpec task, GuidebookLevel buildContext) {
+        return build(task, buildContext, null);
     }
 
-    public StructureLibSceneBuildResult build(StructureLibExportTaskSpec task, BuildContext context,
+    public StructureLibSceneBuildResult build(StructureLibExportTaskSpec task, GuidebookLevel context,
         GuidebookLevel targetLevel) {
         boolean useSurvivalConstruct = task.isGtPlaceHatches() || GregTechHelpers.getMachineControllerBaseMeta(
             task.getController()
@@ -51,7 +50,6 @@ public class StructureLibSceneBuilder {
                 StructureLibSceneOptions.GREGTECH_ACTIVE_CONTROLLER_OPTION,
                 task.isGtActiveController())
             .withIntegrationOption(StructureLibSceneOptions.GREGTECH_PLACE_HATCHES_OPTION, task.isGtPlaceHatches())
-            .withIntegrationOption(StructureLibPreviewSelection.SURVIVAL_CONSTRUCT_OPTION, useSurvivalConstruct)
             .withIntegrationOption(
                 StructureLibPreviewSelection.SURVIVAL_FILL_EMPTY_HATCHES_OPTION,
                 useSurvivalConstruct && !task.isGtPlaceHatches());
@@ -67,8 +65,7 @@ public class StructureLibSceneBuilder {
                 .getFlip(),
             task.getTier(),
             selection);
-        StructureLibImportResult result = context != null ? importService.importScene(request, context)
-            : importService.importScene(request);
+        StructureLibImportResult result = importService.importScene(request);
         ArrayList<String> warnings = new ArrayList<>(task.getWarnings());
         warnings.addAll(result.getWarnings());
         if (!result.isSuccess()) {

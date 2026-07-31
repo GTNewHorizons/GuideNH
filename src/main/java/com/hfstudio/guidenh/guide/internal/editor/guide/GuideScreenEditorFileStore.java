@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -17,9 +16,12 @@ import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
+import lombok.Getter;
+
 public class GuideScreenEditorFileStore {
 
     private final Path resourcePacksRoot;
+    @Getter
     private final Path packRoot;
     private final Path packMetaPath;
 
@@ -34,10 +36,6 @@ public class GuideScreenEditorFileStore {
             .resolve("resourcepacks");
         Path packRoot = resourcePacks.resolve("NewGuide");
         return new GuideScreenEditorFileStore(resourcePacks, packRoot);
-    }
-
-    public Path getPackRoot() {
-        return packRoot;
     }
 
     public Path resolvePagePath(MutableGuide guide, ResourceLocation pageId, String language) {
@@ -152,7 +150,7 @@ public class GuideScreenEditorFileStore {
     private Path resolveExistingWritableSelectedSourcePath(MutableGuide guide, ResourceLocation pageId,
         String language) {
         var resourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
-        GuidePageResourceSelector.SelectedPageResource selected = GuidePageResourceSelector.selectFirstPresent(
+        GuidePageResourceSelector.SelectedPack selected = GuidePageResourceSelector.selectFirstPresent(
             resourcePacks,
             toResourcePackPageId(guide, pageId, language),
             language != null && !language.equals(guide.getDefaultLanguage())
@@ -162,7 +160,7 @@ public class GuideScreenEditorFileStore {
         if (selected == null) {
             return null;
         }
-        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.resourcePack());
+        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.pack());
         if (resourcePackFile == null || !resourcePackFile.isDirectory()) {
             return null;
         }
@@ -203,13 +201,10 @@ public class GuideScreenEditorFileStore {
     @Nullable
     private Path findWritableResourcePackRootContainingAsset(ResourceLocation... assetIds) {
         var resourcePacks = DataDrivenGuideLoader.getActiveResourcePacks();
-        GuidePageResourceSelector.SelectedPageResource selected = GuidePageResourceSelector
+        GuidePageResourceSelector.SelectedPack selected = GuidePageResourceSelector
             .selectFirstPresent(resourcePacks, assetIds);
-        if (selected == null) {
-            return null;
-        }
-        IResourcePack resourcePack = selected.resourcePack();
-        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(resourcePack);
+        if (selected == null) return null;
+        File resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.pack());
         if (resourcePackFile == null || !resourcePackFile.isDirectory()) {
             return null;
         }
@@ -244,11 +239,14 @@ public class GuideScreenEditorFileStore {
     }
 
     private String buildPackMeta() {
-        return "{\n" + "  \"pack\": {\n"
-            + "    \"pack_format\": 1,\n"
-            + "    \"description\": \"NewGuide\"\n"
-            + "  }\n"
-            + "}\n";
+        return """
+            {
+              "pack": {
+                "pack_format": 1,
+                "description": "NewGuide"
+              }
+            }
+            """;
     }
 
     private String normalizePageFileName(String pagePath) {

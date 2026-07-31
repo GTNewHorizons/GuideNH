@@ -31,7 +31,6 @@ import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageInd
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
-import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
@@ -44,7 +43,6 @@ import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheEntry;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheKey;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
-import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.support.BlockAnnotationTemplateExpander;
@@ -58,6 +56,8 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelectio
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneImportService;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
+
+import lombok.Getter;
 
 public class SceneEditorSceneNodePreviewApplier {
 
@@ -79,8 +79,7 @@ public class SceneEditorSceneNodePreviewApplier {
 
     void apply(SceneEditorSession session, LytGuidebookScene scene,
         @Nullable StructureLibPreviewSelection structureLibSelectionOverride) {
-        GuideSceneStructureCacheKey cacheKey = structureFingerprintResolver
-            .buildForPreview(session, workingRoot, structureLibSelectionOverride);
+        GuideSceneStructureCacheKey cacheKey = structureFingerprintResolver.buildForPreview(session, workingRoot);
         if (cacheKey == null) {
             applySceneContent(session, scene, structureLibSelectionOverride, true);
             return;
@@ -186,7 +185,6 @@ public class SceneEditorSceneNodePreviewApplier {
                 appendAnnotation(scene, node.getAnnotationElement());
                 return;
             default:
-                return;
         }
     }
 
@@ -234,21 +232,9 @@ public class SceneEditorSceneNodePreviewApplier {
         boolean formed = parseBooleanAttribute(node.getAttribute("formed"));
         Integer requestedChannel = parseIntegerAttribute(node.getAttribute("channel"));
         String structureName = normalizeAttribute(node.getAttribute("name"));
-        StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
         StructureLibSceneOptions options = readStructureLibSceneOptions(node);
-        StructureLibPreviewSelection defaultSelection = options.createSelection(requestedChannel);
-        StructureLibPreviewSelection selection = structureLibSelectionOverride != null
-            ? ImportStructureLibElementCompiler
-                .mergePersistentOptions(structureLibSelectionOverride, defaultSelection, options)
-            : binding.getPendingSelection() != null
-                ? ImportStructureLibElementCompiler
-                    .mergePersistentOptions(binding.getPendingSelection(), defaultSelection, options)
-                : scene.getPendingStructureLibPreviewSelection(structureName) != null
-                    ? ImportStructureLibElementCompiler.mergePersistentOptions(
-                        scene.getPendingStructureLibPreviewSelection(structureName),
-                        defaultSelection,
-                        options)
-                    : defaultSelection;
+        StructureLibPreviewSelection selection = structureLibSelectionOverride != null ? structureLibSelectionOverride
+            : options.createSelection(requestedChannel);
 
         StructureLibImportRequest request = new StructureLibImportRequest(
             controller,
@@ -256,10 +242,9 @@ public class SceneEditorSceneNodePreviewApplier {
             StructureLibSceneOptions.resolveFacing(node.getAttribute("facing"), options),
             StructureLibSceneOptions.resolveRotation(node.getAttribute("rotation"), options),
             StructureLibSceneOptions.resolveFlip(node.getAttribute("flip"), options),
-            Integer.valueOf(selection.getMasterTier()),
-            ImportStructureLibElementCompiler.applyControllerDefaults(controller, selection, options),
+            requestedChannel,
+            selection,
             options);
-        scene.setPendingStructureLibPreviewSelection(structureName, request.getPreviewSelection());
         StructureLibImportResult result = structureLibImportService.importScene(request);
         attachStructureLibMetadata(scene, structureName, request, result);
         if (!result.isSuccess()) {
@@ -516,6 +501,7 @@ public class SceneEditorSceneNodePreviewApplier {
         return true;
     }
 
+    @Getter
     private static class PreviewApplyResult {
 
         private final boolean structureCacheable;
@@ -524,9 +510,6 @@ public class SceneEditorSceneNodePreviewApplier {
             this.structureCacheable = structureCacheable;
         }
 
-        public boolean isStructureCacheable() {
-            return structureCacheable;
-        }
     }
 
     private List<SceneAnnotation> toRuntimeAnnotations(SceneEditorElementModel element) {
@@ -762,7 +745,7 @@ public class SceneEditorSceneNodePreviewApplier {
 
     public static boolean parseBooleanAttribute(@Nullable String value) {
         String normalized = normalizeAttribute(value);
-        return normalized != null && Boolean.parseBoolean(normalized);
+        return Boolean.parseBoolean(normalized);
     }
 
     private static int parseIntegerAttributeOrDefault(@Nullable String value, int defaultValue) {

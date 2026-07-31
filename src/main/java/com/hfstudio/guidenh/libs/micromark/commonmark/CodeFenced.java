@@ -180,7 +180,7 @@ public class CodeFenced {
             return ok.step(code);
         }
 
-        class NonLazyLineStateMachine {
+        public static class NonLazyLineStateMachine {
 
             private final TokenizeContext context;
             private final Tokenizer.Effects effects;

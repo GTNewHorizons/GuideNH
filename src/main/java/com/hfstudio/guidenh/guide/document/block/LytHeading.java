@@ -6,8 +6,11 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 public class LytHeading extends LytParagraph {
 
+    @Getter
     private int depth = 1;
     // Horizontal offset from bounds.x() to the float-adjusted text start position
     private int separatorXOffset = 0;
@@ -16,10 +19,6 @@ public class LytHeading extends LytParagraph {
     public LytHeading() {
         setMarginTop(5);
         setMarginBottom(5);
-    }
-
-    public int getDepth() {
-        return depth;
     }
 
     public void setDepth(int depth) {

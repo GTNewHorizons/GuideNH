@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.integration.betterquesting;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 /**
  * A snapshot of a quest's display attributes for the current player, produced by {@link BqHelpers}.
  * This class does not reference any BetterQuesting types directly so it is safe to load when BQ
@@ -9,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class QuestDisplay {
 
+    @Getter
     private final QuestState state;
     @Nullable
     private final String name;
@@ -19,10 +22,6 @@ public class QuestDisplay {
         this.state = state;
         this.name = name;
         this.description = description;
-    }
-
-    public QuestState getState() {
-        return state;
     }
 
     @Nullable

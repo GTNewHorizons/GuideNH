@@ -7,11 +7,15 @@ import net.minecraft.client.gui.FontRenderer;
 
 import com.github.bsideup.jabel.Desugar;
 
+import lombok.Getter;
+
 public class SceneEditorMultilineTextLayoutCache {
 
     private final List<VisualLine> visualLines = new ArrayList<>();
     private List<VisualLine> readonlyVisualLines = List.of();
+    @Getter
     private int contentWidthPixels;
+    @Getter
     private int contentHeightPixels;
 
     public void rebuild(String text, FontRenderer fontRenderer, int textWidth, boolean wrapEnabled, int lineHeight) {
@@ -44,14 +48,6 @@ public class SceneEditorMultilineTextLayoutCache {
 
     public List<VisualLine> getVisualLines() {
         return readonlyVisualLines;
-    }
-
-    public int getContentWidthPixels() {
-        return contentWidthPixels;
-    }
-
-    public int getContentHeightPixels() {
-        return contentHeightPixels;
     }
 
     private void appendLogicalLine(String logicalLine, int lineStart, boolean endsWithNewline,

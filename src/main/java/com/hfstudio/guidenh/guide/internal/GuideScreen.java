@@ -91,7 +91,7 @@ import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
-import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlayRenderer;
+import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorActionRegistry;
@@ -112,7 +112,7 @@ import com.hfstudio.guidenh.guide.internal.home.HomePageLayout;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.NavigationState;
 import com.hfstudio.guidenh.guide.internal.input.GuideKeyBindingSupport;
-import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
@@ -127,6 +127,8 @@ import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipRenderSupport;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeContent;
+import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeScreen;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
@@ -268,7 +270,7 @@ public class GuideScreen extends GuiContainer
     private final HomePageController homePageController = new HomePageController();
     private final MinecraftFontMetrics layoutFontMetrics = new MinecraftFontMetrics();
     private final CodeBlockClipboardService codeBlockClipboardService = new CodeBlockClipboardService();
-    private final GuideDebugOverlayRenderer debugOverlayRenderer = new GuideDebugOverlayRenderer();
+    private final GuideDebugOverlay debugOverlay = new GuideDebugOverlay();
     private final GuideScreenScrollbarOutline scrollbarOutline = new GuideScreenScrollbarOutline();
     private final GuideScreenEditorFileStore guideEditorFileStore = GuideScreenEditorFileStore.createDefault();
     private final Map<Integer, GuideIconButton> guideEditorActionButtons = new LinkedHashMap<>();
@@ -585,6 +587,23 @@ public class GuideScreen extends GuiContainer
             && OpenGuideHotkey.isKeyHeld();
         GuideSoundPlayback.stopAll();
         mc.displayGuiScreen(screen);
+        showWelcomeIfNeeded(screen);
+    }
+
+    private static void showWelcomeIfNeeded(GuiScreen parent) {
+        if (!ModConfig.ui.welcomePopupEnabled) {
+            return;
+        }
+
+        GuideWelcomeContent.LoadedContent content = GuideWelcomeContent.load();
+        if (content.source()
+            .trim()
+            .isEmpty()) {
+            return;
+        }
+
+        Minecraft.getMinecraft()
+            .displayGuiScreen(new GuideWelcomeScreen(parent, content));
     }
 
     private static GuideScreenViewState contentState(ResourceLocation guideId, @Nullable PageAnchor anchor) {
@@ -793,7 +812,7 @@ public class GuideScreen extends GuiContainer
             .getNavigation()
             .recallNavigationState(guideId);
         LinkedHashSet<ResourceLocation> updated = new LinkedHashSet<>(
-            saved.expandedPageIds() != null ? saved.expandedPageIds() : Collections.<ResourceLocation>emptySet());
+            saved.expandedPageIds() != null ? saved.expandedPageIds() : Collections.emptySet());
         if (expanded) {
             updated.add(pageId);
         } else {
@@ -896,11 +915,6 @@ public class GuideScreen extends GuiContainer
             return;
         }
         guideEditorSuppressTextFocusUntilGuideHotkeyRelease = false;
-    }
-
-    @Override
-    public boolean doesGuiPauseGame() {
-        return false;
     }
 
     @Override
@@ -1921,7 +1935,6 @@ public class GuideScreen extends GuiContainer
                 runGuideEditorTextMutation(
                     () -> guideEditorTextArea
                         .applyEdit(result.getText(), result.getSelectionStart(), result.getSelectionEnd()));
-                return;
         }
     }
 
@@ -2192,9 +2205,7 @@ public class GuideScreen extends GuiContainer
             ensureLayout();
             clampScroll();
         } else if (btn == btnSearch) {
-            if (isSearchPage()) {
-                return;
-            } else if (currentRoute != null && currentRoute.isHome()) {
+            if (isSearchPage()) {} else if (currentRoute != null && currentRoute.isHome()) {
                 restoreViewState(GuideScreenViewState.of(GuideScreenRoute.homeSearch(""), 0));
                 focusSearchField();
             } else {
@@ -2259,7 +2270,7 @@ public class GuideScreen extends GuiContainer
                 ResourceLocation prevGuideId = prev.route() != null ? prev.route()
                     .guideId() : null;
                 ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
-                boolean guideChanged = !java.util.Objects.equals(oldGuideId, prevGuideId);
+                boolean guideChanged = !Objects.equals(oldGuideId, prevGuideId);
                 Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
                 restoreViewState(prev);
                 if (guideChanged) {
@@ -2297,7 +2308,7 @@ public class GuideScreen extends GuiContainer
                 ResourceLocation nextGuideId = next.route() != null ? next.route()
                     .guideId() : null;
                 ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
-                boolean guideChanged = !java.util.Objects.equals(oldGuideId, nextGuideId);
+                boolean guideChanged = !Objects.equals(oldGuideId, nextGuideId);
                 Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
                 restoreViewState(next);
                 if (guideChanged) {
@@ -2417,7 +2428,7 @@ public class GuideScreen extends GuiContainer
             int sizeX = bounds[3] - bounds[0] + 1;
             int sizeY = bounds[4] - bounds[1] + 1;
             int sizeZ = bounds[5] - bounds[2] + 1;
-            GuideStructureData structureData = RegionWandItem
+            GuideStructureData structureData = RegionWandExporter
                 .exportRegionAsStructureData(level, bounds[0], bounds[1], bounds[2], sizeX, sizeY, sizeZ);
             registeredSceneLabels.add(registration.label);
             if (structureData != null) {
@@ -2521,8 +2532,8 @@ public class GuideScreen extends GuiContainer
     private static void registerRuntimeScenes(GuidePage page) {
         LytDocument doc = page.document();
         if (doc == null) return;
-        java.util.List<LytGuidebookScene> list = page.scenes();
-        java.util.ArrayDeque<LytNode> pending = new java.util.ArrayDeque<>();
+        List<LytGuidebookScene> list = page.scenes();
+        ArrayDeque<LytNode> pending = new ArrayDeque<>();
         pending.add(doc);
         int found = 0;
         while (!pending.isEmpty()) {
@@ -2844,7 +2855,20 @@ public class GuideScreen extends GuiContainer
             GuideScreenNeiBridge.drawNativeNeiTooltip(this, mouseX, mouseY);
         }
         drawButtonTooltip(mouseX, mouseY);
-        debugOverlayRenderer.render(mc, partialTicks, mouseX, mouseY);
+        debugOverlay.onFrameStart();
+        debugOverlay.render(
+            width,
+            height,
+            mouseX,
+            mouseY,
+            contentX,
+            getDocumentViewportY(),
+            contentW,
+            getDocumentViewportHeight(),
+            Math.round(visualScrollY),
+            currentZoom,
+            layoutDocument,
+            fontRendererObj);
     }
 
     private void drawGuideButtons(int mouseX, int mouseY) {
@@ -3859,14 +3883,10 @@ public class GuideScreen extends GuiContainer
      */
     private static String formatBottomBar(String sourceDisplay, String authorsStr, @Nullable String dateVal,
         @Nullable String updatedVal) {
-        String authorPart = authorsStr.isEmpty() ? ""
-            : GuidebookText.PageMetaAuthor.text("\u00A7o" + authorsStr + "\u00A7r\u00A77");
-        String datePart = dateVal != null ? GuidebookText.PageMetaDate.text("\u00A7o" + dateVal + "\u00A7r\u00A77")
-            : "";
-        String updatedPart = updatedVal != null
-            ? GuidebookText.PageMetaUpdated.text("\u00A7o" + updatedVal + "\u00A7r\u00A77")
-            : "";
-        return GuidebookText.PageMetaContentFrom.text("\u00A7o" + sourceDisplay + "\u00A7r\u00A77") + authorPart
+        String authorPart = authorsStr.isEmpty() ? "" : GuidebookText.PageMetaAuthor.text("§o" + authorsStr + "§r§7");
+        String datePart = dateVal != null ? GuidebookText.PageMetaDate.text("§o" + dateVal + "§r§7") : "";
+        String updatedPart = updatedVal != null ? GuidebookText.PageMetaUpdated.text("§o" + updatedVal + "§r§7") : "";
+        return GuidebookText.PageMetaContentFrom.text("§o" + sourceDisplay + "§r§7") + authorPart
             + datePart
             + updatedPart;
     }
@@ -4270,7 +4290,7 @@ public class GuideScreen extends GuiContainer
         FontRenderer itemFont = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
         LytRect bounds = resolveTooltipBounds(interaction);
         TooltipLayout itemLayout = computeHoveringTextLayout(itemLines, mouseX, mouseY, itemFont, bounds);
-        String coordText = "\u00a76" + pos[0] + ", " + pos[1] + ", " + pos[2];
+        String coordText = "§6" + pos[0] + ", " + pos[1] + ", " + pos[2];
         // §6 = gold color; the coordinate tooltip renders above the main block tooltip.
         // drawHoveringText(list, x, y, font) draws starting at (x+12, y-12).
         // We want the debug tooltip to appear above the default position (mouseY - 12).
@@ -4864,6 +4884,9 @@ public class GuideScreen extends GuiContainer
     protected void mouseClicked(int mouseX, int mouseY, int button) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
+        if (debugOverlay.handleMouseClick(mouseX, mouseY, button)) {
+            return;
+        }
         if (handleNavBarContextMenuClick(mouseX, mouseY, button)) {
             return;
         }
@@ -4986,7 +5009,7 @@ public class GuideScreen extends GuiContainer
             }
             Integer markerTarget = scrollbarOutline.findJumpTarget(mouseX, mouseY);
             if (markerTarget != null) {
-                scrollY = markerTarget.intValue();
+                scrollY = markerTarget;
                 clampScroll();
                 snapVisualScrollToTarget();
                 return;
@@ -5386,14 +5409,11 @@ public class GuideScreen extends GuiContainer
 
     @Nullable
     private Path resolveContextResourcePackPath(MutableGuide targetGuide, ResourceLocation pageId, String language) {
-        GuidePageResourceSelector.SelectedPageResource selected = resolveContextSelectedResource(
-            targetGuide,
-            pageId,
-            language);
+        GuidePageResourceSelector.SelectedPack selected = resolveContextSelectedResource(targetGuide, pageId, language);
         if (selected == null) {
             return null;
         }
-        var resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.resourcePack());
+        var resourcePackFile = DataDrivenGuideLoader.getResourcePackFile(selected.pack());
         if (resourcePackFile == null) {
             return null;
         }
@@ -5417,11 +5437,8 @@ public class GuideScreen extends GuiContainer
     @Nullable
     private IResourcePack resolveContextResourcePack(MutableGuide targetGuide, ResourceLocation pageId,
         String language) {
-        GuidePageResourceSelector.SelectedPageResource selected = resolveContextSelectedResource(
-            targetGuide,
-            pageId,
-            language);
-        return selected != null ? selected.resourcePack() : null;
+        GuidePageResourceSelector.SelectedPack selected = resolveContextSelectedResource(targetGuide, pageId, language);
+        return selected != null ? selected.pack() : null;
     }
 
     private ResourceLocation resolveGuidePageSourceId(MutableGuide targetGuide, ResourceLocation pageId,
@@ -5434,7 +5451,7 @@ public class GuideScreen extends GuiContainer
     }
 
     @Nullable
-    private GuidePageResourceSelector.SelectedPageResource resolveContextSelectedResource(MutableGuide targetGuide,
+    private GuidePageResourceSelector.SelectedPack resolveContextSelectedResource(MutableGuide targetGuide,
         ResourceLocation pageId, String language) {
         ResourceLocation localizedSourceId = resolveGuidePageSourceId(targetGuide, pageId, language);
         ResourceLocation defaultSourceId = language != null && !language.equals(targetGuide.getDefaultLanguage())
@@ -5763,9 +5780,7 @@ public class GuideScreen extends GuiContainer
             draggingDocument = false;
             return;
         }
-        if (state == 0) {
-            return;
-        }
+        if (state == 0) {}
     }
 
     @Nullable
@@ -6040,6 +6055,9 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean handleDebugHudToggleKey(int keyCode) {
+        if (debugOverlay.handleKeyPress((char) 0, keyCode)) {
+            return true;
+        }
         if (keyCode != Keyboard.KEY_F3 || !ModConfig.debug.enableDebugMode || mc == null || mc.gameSettings == null) {
             return false;
         }

@@ -1,8 +1,10 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.minecraft.util.ResourceLocation;
@@ -40,14 +42,13 @@ import com.hfstudio.guidenh.guide.scene.SceneViewportMetrics;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
+import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureSnapshot;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibImportRequest;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibRuntimeFacade;
-import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
@@ -56,9 +57,9 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 public class SceneScript implements LytScript {
 
     private static final String KEY_STATE = "scene.state";
-    private static final String STATE_SCAN = "SCAN";
-    private static final String STATE_POLL = "POLL";
-    private static final String STATE_COMPILE = "COMPILE";
+    private static final String STATE_INIT = "INIT";
+    private static final String STATE_AWAIT_SNBT = "AWAIT_SNBT";
+    private static final String STATE_BUILD = "BUILD";
     private static final String KEY_AST = "scene.ast";
     private static final String KEY_SCENE = "scene.object";
     private static final String KEY_TICKETS = "scene.tickets";
@@ -86,185 +87,274 @@ public class SceneScript implements LytScript {
         if (!(node instanceof ScenePlaceholder ph)) return;
 
         var state = (String) ctx.data()
-            .getOrDefault(KEY_STATE, STATE_SCAN);
+            .getOrDefault(KEY_STATE, STATE_INIT);
         switch (state) {
-            case STATE_SCAN -> doScan(ph, ctx);
-            case STATE_POLL -> doPoll(ph, ctx);
-            case STATE_COMPILE -> doCompile(ph, ctx);
+            case STATE_INIT -> doInit(ph, ctx);
+            case STATE_AWAIT_SNBT -> doAwaitSnbt(ph, ctx);
+            case STATE_BUILD -> doBuild(ph, ctx);
+            default -> ctx.replace(LytParagraph.error("[Scene] Unknown async state: " + state));
         }
     }
 
-    private void doScan(ScenePlaceholder ph, ScriptContext ctx) {
+    private void doInit(ScenePlaceholder ph, ScriptContext ctx) {
         if (ph.childrenSource == null || ph.childrenSource.trim()
             .isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
             return;
         }
 
-        // Parse AST once; cache in ctx.data() so it survives re-entry
-        var ast = ph.childrenAst;
+        MdAstRoot ast = readOrCreateAst(ph, ctx);
         if (ast == null) {
-            try {
-                ast = MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
-                MdAstToMdxConverter.convert(ast, Collections.emptyMap());
-                ctx.data()
-                    .put(KEY_AST, ast);
-            } catch (Exception e) {
-                GuideDebugLog.error("[SceneScript] Failed to parse scene children", e);
+            ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
+            return;
+        }
+
+        List<String> tickets = new ArrayList<>();
+
+        // Walk children, kick off async SNBT preparse for ImportStructure
+        for (UnistNode child : ast.children()) {
+            MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
+            if (el == null) {
+                continue;
+            }
+
+            if ("ImportStructure".equals(el.name())) {
+                queueSnbtPreparse(ph, ctx.getPageCollection(), el, tickets);
+            }
+            // ImportStructureLib / BlockStats — handled in BUILD phase by their compilers
+        }
+
+        ctx.data()
+            .put(KEY_TICKETS, tickets);
+        ctx.data()
+            .put(KEY_STATE, STATE_AWAIT_SNBT);
+        ctx.yield();
+    }
+
+    private void doAwaitSnbt(ScenePlaceholder ph, ScriptContext ctx) {
+        @SuppressWarnings("unchecked")
+        List<String> tickets = (List<String>) ctx.data()
+            .get(KEY_TICKETS);
+
+        if (tickets == null || tickets.isEmpty()) {
+            ctx.data()
+                .put(KEY_STATE, STATE_BUILD);
+            doBuild(ph, ctx);
+            return;
+        }
+
+        boolean allDone = true;
+        for (String ticket : tickets) {
+            if (!AsyncWorker.isDone(ticket)) {
+                allDone = false;
+                break;
+            }
+        }
+
+        if (!allDone) {
+            ctx.yield();
+            return;
+        }
+
+        // All tickets complete — proceed to BUILD
+        ctx.data()
+            .put(KEY_STATE, STATE_BUILD);
+        doBuild(ph, ctx);
+    }
+
+    private void doBuild(ScenePlaceholder ph, ScriptContext ctx) {
+        if (ph.childrenSource == null || ph.childrenSource.trim()
+            .isEmpty()) {
+            ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
+            return;
+        }
+
+        LytGuidebookScene scene = createSceneShell(ph);
+        GuidebookLevel level = scene.getLevel();
+        if (level == null) {
+            level = new GuidebookLevel();
+            scene.setLevel(level);
+        }
+        CameraSettings camera = scene.getCamera();
+        if (camera == null) {
+            camera = new CameraSettings();
+            scene.setCamera(camera);
+        }
+
+        applyCameraAndViewport(ph, scene, level, camera);
+
+        ExceptionCollector errorSink = new ExceptionCollector();
+        PageCollection pageCollection = ctx.getPageCollection();
+        ExtensionCollection extensions = pageCollection instanceof Guide guide ? guide.getExtensions()
+            : ExtensionCollection.EMPTY;
+        PageCompiler runtimeCompiler = new PageCompiler(
+            pageCollection != null ? pageCollection : new StubPageCollection(),
+            extensions,
+            ph.sourcePack,
+            ph.language,
+            new ResourceLocation(ph.pageDomain, ph.pagePath),
+            ph.childrenSource != null ? ph.childrenSource : "");
+
+        MdAstRoot ast = (MdAstRoot) ctx.data()
+            .get(KEY_AST);
+        if (ast == null) {
+            ast = readOrCreateAst(ph, ctx);
+            if (ast == null) {
                 ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
                 return;
             }
         }
 
-        // Create empty scene skeleton immediately so the user sees a frame.
-        // Use same dimensions doCompile will compute from ph.
-        var scene = new LytGuidebookScene();
+        // Setup element compilers — ALL of them, including ImportStructureLib
+        Map<String, SceneElementTagCompiler> elementCompilers = new HashMap<>();
+        if (ph.sceneElementCompilers != null) {
+            for (SceneElementTagCompiler compiler : ph.sceneElementCompilers) {
+                for (String name : compiler.getTagNames()) {
+                    elementCompilers.put(name, compiler);
+                }
+            }
+        }
+
+        boolean[] blockStatsExplicitlySet = { false };
+        LytGuidebookScene previousScene = AnnotationTagCompiler.CURRENT_SCENE.get();
+        AnnotationTagCompiler.CURRENT_SCENE.set(scene);
+        try {
+            final GuidebookLevel compileLevel = level;
+            final CameraSettings compileCamera = camera;
+            final MdAstRoot compileAst = ast;
+            GuideSceneStructureCompileScope.run(true, () -> {
+                for (UnistNode child : compileAst.children()) {
+                    MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
+                    if (el == null) {
+                        continue;
+                    }
+
+                    if (ctx.timeToYield()) {
+                        ctx.yield();
+                        return;
+                    }
+
+                    if ("BlockStats".equals(el.name())) {
+                        applyBlockStatsConfig(scene, el);
+                        blockStatsExplicitlySet[0] = true;
+                        continue;
+                    }
+
+                    SceneElementTagCompiler compiler = elementCompilers.get(el.name());
+                    if (compiler != null) {
+                        compiler.compile(compileLevel, compileCamera, runtimeCompiler, errorSink, el);
+                    }
+                }
+            });
+        } finally {
+            if (previousScene != null) {
+                AnnotationTagCompiler.CURRENT_SCENE.set(previousScene);
+            } else {
+                AnnotationTagCompiler.CURRENT_SCENE.remove();
+            }
+        }
+
+        dispatchSceneSubtrees(scene, ctx);
+
+        // Unified build — places both SNBT and StructureLib blocks
+        scene.build();
+
+        // Set metadata on scene from binding results
+        for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
+            StructureLibSceneMetadata metadata = binding.getMetadata();
+            if (metadata != null) {
+                scene.setStructureLibSceneMetadata(binding.getName(), metadata);
+            }
+        }
+
+        if (level.isEmpty()) {
+            ctx.replace(LytParagraph.error("[Scene] Scene has no supported elements"));
+            return;
+        }
+
+        if (!blockStatsExplicitlySet[0]) {
+            scene.setBlockStatsEnabled(true);
+            scene.setBlockStatsVisible(ModConfig.ui.sceneBlockStatsVisible);
+            scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
+        }
+
+        finalizeSceneGeometry(ph, scene, level, camera);
+        scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
+        scene.clearLoadState();
+        attachSelectionListeners(scene);
+        scene.initializePonderTimelineBaseline();
+        scene.captureInitialInteractiveState();
+        scene.snapshotInitialCamera();
+
+        ctx.replace(scene);
+        ctx.markComplete();
+    }
+
+    @Nullable
+    private MdAstRoot readOrCreateAst(ScenePlaceholder ph, ScriptContext ctx) {
+        MdAstRoot cached = (MdAstRoot) ctx.data()
+            .get(KEY_AST);
+        if (cached != null) {
+            return cached;
+        }
+        MdAstRoot ast = ph.childrenAst;
+        if (ast != null) {
+            ctx.data()
+                .put(KEY_AST, ast);
+            return ast;
+        }
+        try {
+            ast = MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
+            MdAstToMdxConverter.convert(ast, Collections.emptyMap());
+            ctx.data()
+                .put(KEY_AST, ast);
+            return ast;
+        } catch (Exception exception) {
+            GuideDebugLog.error("[SceneScript] Failed to parse scene children", exception);
+            return null;
+        }
+    }
+
+    private LytGuidebookScene createSceneShell(ScenePlaceholder ph) {
+        LytGuidebookScene scene = new LytGuidebookScene();
         scene.setSceneSize(ph.width > 0 ? ph.width : 320, ph.height > 0 ? ph.height : 180);
         scene.setInteractive(ph.interactive);
         scene.setShowBackground(ph.showBackground);
         scene.setVisibleLayerSliderEnabled(ph.allowLayerSlider);
         scene.setGridButtonEnabled(ph.gridButtonEnabled);
         scene.setGridVisible(ph.showGrid);
+        return scene;
+    }
 
-        var pc = ctx.getPageCollection();
-        var tickets = new java.util.ArrayList<String>();
-
-        for (var child : ast.children()) {
-            var el = SceneTagCompiler.unwrapSceneElement(child);
-            if (el == null) continue;
-
-            switch (el.name()) {
-                case "ImportStructureLib" -> {
-                    var controller = el.getAttributeString("controller", null);
-                    if (controller == null || controller.trim()
-                        .isEmpty()) continue;
-                    controller = controller.trim();
-                    var request = buildImportRequest(ph, el);
-                    if (request != null) {
-                        var ticket = "lib:" + controller;
-                        AsyncWorker.submit(ticket, () -> { new StructureLibRuntimeFacade().importScene(request); });
-                        tickets.add(ticket);
-                    }
-                }
-                case "ImportStructure" -> {
-                    var src = el.getAttributeString("src", null);
-                    if (src == null || src.isEmpty()) continue;
-                    ResourceLocation absSrc;
-                    try {
-                        absSrc = IdUtils.resolveLink(src, new ResourceLocation(ph.pageDomain, ph.pagePath));
-                    } catch (IllegalArgumentException e) {
-                        continue;
-                    }
-                    var data = pc != null ? pc.loadAsset(absSrc) : null;
-                    if (data == null) continue;
-                    var ticket = "snbt:" + absSrc;
-                    AsyncWorker.submit(ticket, () -> {
-                        try {
-                            var root = ImportStructureElementCompiler.readStructureNbt(data);
-                            SnbtPreParseCache.put(absSrc, root);
-                        } catch (Exception e) {
-                            GuideDebugLog.warn("[SceneScript] SNBT pre-parse failed: {}", absSrc, e);
-                        }
-                    });
-                    tickets.add(ticket);
-                }
+    private void queueSnbtPreparse(ScenePlaceholder ph, @Nullable PageCollection pageCollection, MdxJsxElementFields el,
+        List<String> tickets) {
+        String src = el.getAttributeString("src", null);
+        if (src == null || src.isEmpty()) {
+            return;
+        }
+        ResourceLocation absoluteSrc;
+        try {
+            absoluteSrc = IdUtils.resolveLink(src, new ResourceLocation(ph.pageDomain, ph.pagePath));
+        } catch (IllegalArgumentException exception) {
+            return;
+        }
+        byte[] data = pageCollection != null ? pageCollection.loadAsset(absoluteSrc) : null;
+        if (data == null) {
+            return;
+        }
+        String ticket = "snbt:" + absoluteSrc;
+        AsyncWorker.submit(ticket, () -> {
+            try {
+                SnbtPreParseCache.put(absoluteSrc, ImportStructureElementCompiler.readStructureNbt(data));
+            } catch (Exception exception) {
+                GuideDebugLog.warn("[SceneScript] SNBT pre-parse failed: {}", absoluteSrc, exception);
             }
-        }
-
-        if (tickets.isEmpty()) {
-            ctx.data()
-                .put(KEY_STATE, STATE_COMPILE);
-            ctx.data()
-                .put(KEY_SCENE, scene);
-            doCompile(ph, ctx);
-            return;
-        }
-
-        // Show placeholder immediately with progress bar
-        scene.setLoading(true);
-        scene.setLoadProgress(0, tickets.size());
-        ctx.data()
-            .put(KEY_SCENE, scene);
-        ctx.data()
-            .put(KEY_TICKETS, tickets);
-        ctx.data()
-            .put(KEY_STATE, STATE_POLL);
-        ctx.replace(scene);
-        ctx.yield();
+        });
+        tickets.add(ticket);
     }
 
-    @Nullable
-    private static StructureLibImportRequest buildImportRequest(ScenePlaceholder ph, MdxJsxElementFields el) {
-        var controller = el.getAttributeString("controller", null);
-        if (controller == null || controller.trim()
-            .isEmpty()) return null;
-
-        return new StructureLibImportRequest(
-            controller.trim(),
-            el.getAttributeString("piece", null),
-            StructureLibSceneOptions.resolveFacing(el.getAttributeString("facing", null), null),
-            StructureLibSceneOptions.resolveRotation(el.getAttributeString("rotation", null), null),
-            StructureLibSceneOptions.resolveFlip(el.getAttributeString("flip", null), null),
-            1,
-            null);
-    }
-
-    @SuppressWarnings("unchecked")
-    private void doPoll(ScenePlaceholder ph, ScriptContext ctx) {
-        var tickets = (java.util.List<String>) ctx.data()
-            .get(KEY_TICKETS);
-        var scene = (LytGuidebookScene) ctx.data()
-            .get(KEY_SCENE);
-        if (tickets == null || scene == null) {
-            ctx.data()
-                .put(KEY_STATE, STATE_COMPILE);
-            doCompile(ph, ctx);
-            return;
-        }
-
-        // Count completed tickets and update progress bar
-        int done = 0;
-        for (var ticket : tickets) {
-            if (AsyncWorker.isDone(ticket)) done++;
-        }
-        scene.setLoadProgress(done, tickets.size());
-
-        if (done >= tickets.size()) {
-            ctx.data()
-                .put(KEY_STATE, STATE_COMPILE);
-            doCompile(ph, ctx);
-        } else {
-            ctx.yield();
-        }
-    }
-
-    private void doCompile(ScenePlaceholder ph, ScriptContext ctx) {
-        if (ph.childrenSource == null || ph.childrenSource.trim()
-            .isEmpty()) {
-            ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
-            return;
-        }
-
-        // Reuse scene from doScan if available, else create fresh
-        var existingScene = (LytGuidebookScene) ctx.data()
-            .get(KEY_SCENE);
-        final var hadTickets = ctx.data()
-            .containsKey(KEY_TICKETS);
-        final LytGuidebookScene scene = existingScene != null ? existingScene : new LytGuidebookScene();
-        var level = scene.getLevel();
-        if (level == null) {
-            level = new GuidebookLevel();
-            scene.setLevel(level);
-        }
-        final GuidebookLevel finalLevel = level;
-        var camera = scene.getCamera();
-        if (camera == null) {
-            camera = new CameraSettings();
-            scene.setCamera(camera);
-        }
-        final CameraSettings finalCamera = camera;
-
-        // Apply camera settings from placeholder (if not already set by doScan)
+    private void applyCameraAndViewport(ScenePlaceholder ph, LytGuidebookScene scene, GuidebookLevel level,
+        CameraSettings camera) {
         if (ph.perspective != null && !ph.perspective.trim()
             .isEmpty()) {
             camera.setPerspectivePreset(PerspectivePreset.fromSerializedName(ph.perspective.trim()));
@@ -281,127 +371,21 @@ public class SceneScript implements LytScript {
                 Float.isNaN(ph.centerY) ? 0 : ph.centerY,
                 Float.isNaN(ph.centerZ) ? 0 : ph.centerZ);
         }
-
         int width = ph.width > 0 ? ph.width : 320;
         int height = ph.height > 0 ? ph.height : 180;
         camera.setViewportSize(width, height);
         scene.setSceneSize(width, height);
-
-        // Parse children source
-        ExceptionCollector errorSink = new ExceptionCollector();
-        PageCollection pc = ctx.getPageCollection();
-        ExtensionCollection extensions = pc instanceof Guide guide ? guide.getExtensions() : ExtensionCollection.EMPTY;
-        PageCompiler runtimeCompiler = new PageCompiler(
-            pc != null ? pc : new StubPageCollection(),
-            extensions,
-            ph.sourcePack,
-            ph.language,
-            new ResourceLocation(ph.pageDomain, ph.pagePath),
-            ph.childrenSource != null ? ph.childrenSource : "");
-        // Use cached AST from doScan if available, else parse from source
-        MdAstRoot ast = (MdAstRoot) ctx.data()
-            .get(KEY_AST);
-        if (ast == null) {
-            ast = ph.childrenAst;
-        }
-        if (ast == null) {
-            try {
-                ast = MdAst.fromMarkdown(ph.childrenSource, GuideMarkdownOptions.runtime());
-                MdAstToMdxConverter.convert(ast, Collections.emptyMap());
-            } catch (Exception e) {
-                GuideDebugLog.error("[GuideNH] [SceneScript] Failed to parse scene children", e);
-                ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
-                return;
-            }
-        }
-        final MdAstRoot finalAst = ast;
-
-        // Build element compiler map from placeholder (set at compile time by SceneTagCompiler)
-        Map<String, SceneElementTagCompiler> elementCompilers = new HashMap<>();
-        if (ph.sceneElementCompilers != null) {
-            for (var ec : ph.sceneElementCompilers) {
-                for (String name : ec.getTagNames()) {
-                    elementCompilers.put(name, ec);
-                }
-            }
-        }
-
-        // Update scene properties (created in doScan for async path, or fresh here)
         scene.setLevel(level);
         scene.setCamera(camera);
-        scene.setSceneSize(width, height);
         scene.setInteractive(ph.interactive);
         scene.setShowBackground(ph.showBackground);
         scene.setVisibleLayerSliderEnabled(ph.allowLayerSlider);
         scene.setGridButtonEnabled(ph.gridButtonEnabled);
         scene.setGridVisible(ph.showGrid);
+    }
 
-        // NB: Phase 2 used GuideSceneStructureCache (fingerprint-based) to avoid
-        // recompiling complex scenes on every page visit. Phase 3 compiles from scratch
-        // each mount. The cache requires StructureFingerprintResolver + compile-time
-        // fingerprint computation, which is not practical to restore in a MOUNT-time script.
-        // Low priority — scene compilation is usually fast enough that recompilation
-        // per mount is acceptable.
-
-        // Compile scene elements with CURRENT_SCENE set so that element compilers
-        // (ImportPonderElementCompiler, ImportStructureLibElementCompiler, annotations, etc.)
-        // can call scene.attachPonderData(), scene.addAnnotation(), etc.
-        var prevScene = AnnotationTagCompiler.CURRENT_SCENE.get();
-        AnnotationTagCompiler.CURRENT_SCENE.set(scene);
-        final boolean[] blockStatsExplicitlySet = { false };
-        try {
-            GuideSceneStructureCompileScope.run(true, () -> {
-                for (UnistNode child : finalAst.children()) {
-                    MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
-                    if (el == null) continue;
-                    // Handle BlockStats — not a SceneElementTagCompiler, special-cased in Phase 2
-                    if ("BlockStats".equals(el.name())) {
-                        applyBlockStatsConfig(scene, el);
-                        blockStatsExplicitlySet[0] = true;
-                        continue;
-                    }
-                    SceneElementTagCompiler ec = elementCompilers.get(el.name());
-                    if (ec != null) {
-                        ec.compile(finalLevel, finalCamera, runtimeCompiler, errorSink, el);
-                    }
-                }
-            });
-        } finally {
-            if (prevScene != null) {
-                AnnotationTagCompiler.CURRENT_SCENE.set(prevScene);
-            } else {
-                AnnotationTagCompiler.CURRENT_SCENE.remove();
-            }
-        }
-
-        // Dispatch MOUNT events into annotation tooltip subtrees (Recipe/Scene placeholders)
-        for (var annotation : scene.getAnnotations()) {
-            var tooltip = annotation.getTooltip();
-            if (tooltip instanceof ContentTooltip ct) {
-                var content = ct.getContent();
-                if (content instanceof LytNode root) {
-                    ctx.dispatchSubtree(root);
-                }
-            }
-        }
-        // Dispatch MOUNT events into text annotation rich-content subtrees (e.g. inline <ItemImage>)
-        for (LytParagraph rich : scene.collectTextAnnotationRichContent()) {
-            ctx.dispatchSubtree(rich);
-        }
-
-        if (level.isEmpty()) {
-            ctx.replace(LytParagraph.error("[Scene] Scene has no supported elements"));
-            return;
-        }
-
-        // Apply implicit block stats for non-empty scenes without explicit BlockStats
-        if (!blockStatsExplicitlySet[0]) {
-            scene.setBlockStatsEnabled(true);
-            scene.setBlockStatsVisible(ModConfig.ui.sceneBlockStatsVisible);
-            scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
-        }
-
-        // Determine rotation center; fall back to level center
+    private void finalizeSceneGeometry(ScenePlaceholder ph, LytGuidebookScene scene, GuidebookLevel level,
+        CameraSettings camera) {
         float[] center;
         if (!ph.explicitCenter) {
             center = level.getCenter();
@@ -413,8 +397,9 @@ public class SceneScript implements LytScript {
 
         boolean explicitOffX = !Float.isNaN(ph.offsetX);
         boolean explicitOffY = !Float.isNaN(ph.offsetY);
+        int width = ph.width > 0 ? ph.width : 320;
+        int height = ph.height > 0 ? ph.height : 180;
 
-        // Auto-zoom: measure at zoom=1/offset=0, then fit to viewport at 85% fill
         if (Float.isNaN(ph.zoom)) {
             camera.setZoom(1f);
             camera.setOffsetX(0f);
@@ -432,12 +417,10 @@ public class SceneScript implements LytScript {
                     camera.setZoom(autoZoom);
                 }
             }
-            // Restore explicit offsets zeroed for measurement
             if (explicitOffX) camera.setOffsetX(ph.offsetX);
             if (explicitOffY) camera.setOffsetY(ph.offsetY);
         }
 
-        // Auto-size: save offsets, measure at offset=0, restore
         if (!ph.explicitWidth || !ph.explicitHeight) {
             float savedOffX = camera.getOffsetX();
             float savedOffY = camera.getOffsetY();
@@ -459,39 +442,37 @@ public class SceneScript implements LytScript {
             camera.setOffsetY(savedOffY);
         }
 
-        // Auto-center: shift projected scene center to viewport origin.
-        // Applied only when neither rotation center nor screen offsets are author-specified.
         if (!ph.explicitCenter && !explicitOffX && !explicitOffY) {
             camera.setOffsetX(0f);
             camera.setOffsetY(0f);
-            var sc = camera.worldToScreen(center[0], center[1], center[2]);
-            camera.setOffsetX(-sc.x);
-            camera.setOffsetY(sc.y);
+            var screenCenter = camera.worldToScreen(center[0], center[1], center[2]);
+            camera.setOffsetX(-screenCenter.x);
+            camera.setOffsetY(screenCenter.y);
         }
 
-        scene.initializePonderTimelineBaseline();
-        scene.captureInitialInteractiveState();
-        scene.snapshotInitialCamera();
-        scene.setStructureLibSelectionChangeListener(selection -> scene.rebuildStructureLib());
-        for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
-            if (binding.getName() != null && binding.hasRebuildRecipe()) {
-                binding.setSelectionChangeListener(selection -> scene.rebuildStructureLib());
-            }
-        }
-        scene.setLoading(false);
-        if (!hadTickets) {
-            ctx.replace(scene);
-        }
-        ctx.markComplete();
     }
 
-    /**
-     * Applies BlockStats element attributes to the scene.
-     * <p>
-     * NB: Full BlockStats restoration (BlockStat sub-elements, filters, implicit enable)
-     * requires the Phase 2 compileBlockStatsElement() logic (~100 lines). This minimal
-     * restoration handles the most common attribute-only use case.
-     */
+    private void dispatchSceneSubtrees(LytGuidebookScene scene, ScriptContext ctx) {
+        for (var annotation : scene.getAnnotations()) {
+            var tooltip = annotation.getTooltip();
+            if (tooltip instanceof ContentTooltip contentTooltip) {
+                if (contentTooltip.getContent() instanceof LytNode root) {
+                    ctx.dispatchSubtree(root);
+                }
+            }
+        }
+        for (LytParagraph paragraph : scene.collectTextAnnotationRichContent()) {
+            ctx.dispatchSubtree(paragraph);
+        }
+    }
+
+    private void attachSelectionListeners(LytGuidebookScene scene) {
+        for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
+            binding.setSelectionChangeListener(selection -> scene.rebuild());
+        }
+        scene.setStructureLibSelectionChangeListener(selection -> scene.rebuild());
+    }
+
     private static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {
         String visibleStr = el.getAttributeString("visible", null);
         if (visibleStr != null) scene.setBlockStatsVisible(Boolean.parseBoolean(visibleStr));

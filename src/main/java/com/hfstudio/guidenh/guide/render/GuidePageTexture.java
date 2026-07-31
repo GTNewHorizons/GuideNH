@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -23,6 +24,7 @@ import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import cpw.mods.fml.relauncher.ReflectionHelper;
+import lombok.Getter;
 
 public class GuidePageTexture {
 
@@ -36,6 +38,7 @@ public class GuidePageTexture {
 
     @Nullable
     private final ResourceLocation sourceId;
+    @Getter
     private final LytSize size;
     private byte @Nullable [] imageData;
     @Nullable
@@ -64,6 +67,11 @@ public class GuidePageTexture {
         return MISSING;
     }
 
+    @Nullable
+    public static synchronized GuidePageTexture getCached(ResourceLocation id) {
+        return CACHE.get(id);
+    }
+
     public static GuidePageTexture of(ResourceLocation texture) {
         return new GuidePageTexture(texture, 256, 256);
     }
@@ -84,6 +92,11 @@ public class GuidePageTexture {
             GuideDebugLog.error("Failed to load guide page texture {}", id, t);
             return missing();
         }
+    }
+
+    public static GuidePageTexture loadCached(ResourceLocation id, Supplier<byte[]> assetLoader) {
+        GuidePageTexture cached = getCached(id);
+        return cached != null ? cached : load(id, assetLoader.get());
     }
 
     public static synchronized void clear() {
@@ -199,10 +212,6 @@ public class GuidePageTexture {
                 t);
             return null;
         }
-    }
-
-    public LytSize getSize() {
-        return size;
     }
 
     @Nullable

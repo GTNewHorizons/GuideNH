@@ -63,8 +63,6 @@ public class NavigationState {
         return currentAnchor;
     }
 
-    // ---- Page history (browser-style linear history with back/forward) ----
-
     public void recordPageHistory(GuideScreenViewState state) {
         if (state == null) return;
         if (pageHistoryIndex >= 0 && pageHistoryIndex < pageHistory.size()
@@ -73,7 +71,7 @@ public class NavigationState {
             return;
         }
         while (pageHistory.size() > pageHistoryIndex + 1) {
-            pageHistory.remove(pageHistory.size() - 1);
+            pageHistory.removeLast();
         }
         pageHistory.add(state);
         pageHistoryIndex = pageHistory.size() - 1;
@@ -134,14 +132,10 @@ public class NavigationState {
                 .equals(anchorB.pageId());
     }
 
-    // ---- Legacy content state (delegates to page history) ----
-
     public void rememberContentState(@Nullable GuideScreenViewState state) {
         if (!isRememberable(state)) return;
         recordPageHistory(state);
     }
-
-    // ---- Nav bar state ----
 
     public void rememberNavBarState(ResourceLocation guideId, GuideNavBarState state) {
         if (state != null) {
@@ -161,8 +155,6 @@ public class NavigationState {
         return state != null ? state : GuideNavBarState.defaultState();
     }
 
-    // ---- Bookmarks ----
-
     public boolean isBookmarked(ResourceLocation pageId) {
         return bookmarks.contains(pageId);
     }
@@ -177,24 +169,20 @@ public class NavigationState {
         return bookmarks;
     }
 
-    // ---- Home history (for home page widget display) ----
-
     public void recordHomeHistory(ResourceLocation guideId, ResourceLocation pageId) {
-        homeHistory.add(0, new HomeHistoryEntry(guideId, pageId));
+        homeHistory.addFirst(new HomeHistoryEntry(guideId, pageId));
     }
 
     public List<HomeHistoryEntry> homeHistory() {
         return homeHistory;
     }
 
-    // ---- Validation ----
-
     public boolean isRememberable(@Nullable GuideScreenViewState state) {
         if (state == null) return false;
         GuideScreenRoute route = state.route();
         if (route == null || !route.isContent()) return false;
         PageAnchor anchor = route.anchor();
-        return anchor != null && isSupportedContentAnchor(anchor) && isValidContentRoute(route);
+        return isSupportedContentAnchor(anchor) && isValidContentRoute(route);
     }
 
     public static boolean isSupportedContentAnchor(@Nullable PageAnchor anchor) {

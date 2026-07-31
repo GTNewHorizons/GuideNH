@@ -8,7 +8,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
 
+@Getter
 public class GuideNhStructureRequestMessage implements IMessage {
 
     public static final byte ACTION_CACHE = 0;
@@ -113,40 +115,8 @@ public class GuideNhStructureRequestMessage implements IMessage {
         return packets;
     }
 
-    public byte getAction() {
-        return action;
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public int getZ() {
-        return z;
-    }
-
     public String getStructureText() {
         return new String(structureBytes, StandardCharsets.UTF_8);
-    }
-
-    public byte[] getStructureBytes() {
-        return structureBytes;
-    }
-
-    public int getTransferId() {
-        return transferId;
-    }
-
-    public int getChunkIndex() {
-        return chunkIndex;
-    }
-
-    public int getChunkCount() {
-        return chunkCount;
     }
 
     public boolean isChunkedStructureTransfer() {

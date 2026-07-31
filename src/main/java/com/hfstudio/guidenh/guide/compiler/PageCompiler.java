@@ -86,6 +86,8 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
+import lombok.Getter;
+
 public class PageCompiler {
 
     /**
@@ -102,9 +104,17 @@ public class PageCompiler {
         Collections.emptyList());
 
     private final PageCollection pages;
+    @Getter
     private final ExtensionCollection extensions;
+    @Getter
     private final String sourcePack;
+    @Getter
     private final String language;
+    /**
+     * -- GETTER --
+     * Get the current page id.
+     */
+    @Getter
     private final ResourceLocation pageId;
     private final String pageContent;
     private final Map<String, MdAstDefinition> definitions = new HashMap<>();
@@ -164,63 +174,27 @@ public class PageCompiler {
 
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation id, String pageContent) {
         pageContent = pageContent != null ? pageContent : "";
-        long parseStartedAt = System.nanoTime();
-        long stageStartedAt = parseStartedAt;
         pageContent = normalizeLineEndings(pageContent);
-        long normalizeNs = System.nanoTime() - stageStartedAt;
-
-        stageStartedAt = System.nanoTime();
         pageContent = FootnotePreprocessor.preprocess(pageContent);
-        long footnoteNs = System.nanoTime() - stageStartedAt;
-
-        stageStartedAt = System.nanoTime();
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
-        long sourceFrontmatterNs = System.nanoTime() - stageStartedAt;
-
-        stageStartedAt = System.nanoTime();
         MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(pageContent);
-        long latexMaskNs = System.nanoTime() - stageStartedAt;
-
-        stageStartedAt = System.nanoTime();
         String parseContent = MdxCommentMasker.mask(latexMask.source());
-        long commentMaskNs = System.nanoTime() - stageStartedAt;
 
         MdAstRoot astRoot;
         String parseFailureMessage = null;
         UnistPoint parseFailureFrom = null;
         UnistPoint parseFailureTo = null;
         Frontmatter frontmatter;
-        long markdownParseNs = 0L;
-        long latexRestoreNs = 0L;
-        long htmlNormalizeNs = 0L;
-        long mdAstConvertNs = 0L;
         try {
-            stageStartedAt = System.nanoTime();
             astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
-            markdownParseNs = System.nanoTime() - stageStartedAt;
-
-            stageStartedAt = System.nanoTime();
             MarkdownLatexShorthand.restore(astRoot, latexMask);
-            latexRestoreNs = System.nanoTime() - stageStartedAt;
-
-            stageStartedAt = System.nanoTime();
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
-            htmlNormalizeNs = System.nanoTime() - stageStartedAt;
 
-            // Collect definitions before conversion (converter needs them
-            // for link/image reference resolution).
-            stageStartedAt = System.nanoTime();
             Map<String, MdAstDefinition> definitions = GuideMarkdownDefinitions.collect(astRoot);
-
-            // Parse frontmatter BEFORE conversion — the converter removes
-            // MdAstYamlFrontmatter from children.
             frontmatter = parseFrontmatter(id, astRoot);
-
             MdAstToMdxConverter.convert(astRoot, definitions);
-            mdAstConvertNs = System.nanoTime() - stageStartedAt;
         } catch (RuntimeException t) {
             if (t instanceof ParseException e) {
-                markdownParseNs = System.nanoTime() - stageStartedAt;
                 parseFailureFrom = e.getFrom();
                 parseFailureTo = e.getTo();
             }
@@ -231,28 +205,9 @@ public class PageCompiler {
             frontmatter = new Frontmatter(null, Collections.emptyMap());
         }
 
-        long astFrontmatterNs = System.nanoTime() - stageStartedAt;
         if (parseFailureMessage != null && sourceFrontmatter.navigationEntry() != null) {
             frontmatter = sourceFrontmatter;
         }
-
-        long totalNs = System.nanoTime() - parseStartedAt;
-        GuideDebugLog.info(
-            "[GuideNH] [PageCompiler] Parsed page {} lang={} totalNs={} normalizeNs={} footnoteNs={} sourceFrontmatterNs={} latexMaskNs={} commentMaskNs={} markdownParseNs={} latexRestoreNs={} htmlNormalizeNs={} mdAstConvertNs={} astFrontmatterNs={} parseFailed={}",
-            id,
-            language,
-            totalNs,
-            normalizeNs,
-            footnoteNs,
-            sourceFrontmatterNs,
-            latexMaskNs,
-            commentMaskNs,
-            markdownParseNs,
-            latexRestoreNs,
-            htmlNormalizeNs,
-            mdAstConvertNs,
-            astFrontmatterNs,
-            parseFailureMessage != null);
 
         return new ParsedGuidePage(
             sourcePack,
@@ -289,7 +244,7 @@ public class PageCompiler {
             null, // astRoot — triggers lazy parse on first getAstRoot()
             sourceFrontmatter,
             language,
-            null, // no parse failure yet
+            null,
             null,
             null);
     }
@@ -381,10 +336,6 @@ public class PageCompiler {
             }
         }
         return null;
-    }
-
-    public ExtensionCollection getExtensions() {
-        return extensions;
     }
 
     public <T extends Extension> List<T> getExtensions(ExtensionPoint<T> extensionPoint) {
@@ -604,8 +555,7 @@ public class PageCompiler {
 
     public void compileBlockContext(List<? extends MdAstAnyContent> children, LytBlockContainer layoutParent) {
         LytBlock previousLayoutChild = null;
-        for (int i = 0; i < children.size(); i++) {
-            var child = children.get(i);
+        for (MdAstAnyContent child : children) {
             LytBlock layoutChild = null;
 
             if (child instanceof MdxJsxFlowElement el) {
@@ -671,7 +621,7 @@ public class PageCompiler {
 
     private void compileParagraphBlock(MdAstParagraph astParagraph, LytBlockContainer parent) {
         var children = astParagraph.children();
-        if (children.size() == 1 && children.get(0) instanceof MdAstText soleText) {
+        if (children.size() == 1 && children.getFirst() instanceof MdAstText soleText) {
             String formula = MarkdownLatexShorthand.extractSoleDisplayFormula(soleText.value);
             if (formula != null) {
                 var displayBlock = new LytLatexDisplayBlock(
@@ -764,7 +714,7 @@ public class PageCompiler {
     private @Nullable String getTableRowText(GfmTableRow row) {
         StringBuilder sb = new StringBuilder();
         for (var cell : row.children()) {
-            if (sb.length() > 0) {
+            if (!sb.isEmpty()) {
                 sb.append(' ');
             }
             sb.append(cell.toText());
@@ -951,7 +901,7 @@ public class PageCompiler {
                 continue;
             }
             if (Character.isWhitespace(ch) && !inQuotes) {
-                if (current.length() > 0) {
+                if (!current.isEmpty()) {
                     tokens.add(current.toString());
                     current.setLength(0);
                 }
@@ -959,7 +909,7 @@ public class PageCompiler {
             }
             current.append(ch);
         }
-        if (current.length() > 0) {
+        if (!current.isEmpty()) {
             tokens.add(current.toString());
         }
         return tokens;
@@ -1055,23 +1005,8 @@ public class PageCompiler {
         return IdUtils.resolveId(idText, pageId.getResourceDomain());
     }
 
-    /**
-     * Get the current page id.
-     */
-    public ResourceLocation getPageId() {
-        return pageId;
-    }
-
     public ResourceLocation getGuideId() {
         return pages.getId();
-    }
-
-    public String getLanguage() {
-        return language;
-    }
-
-    public String getSourcePack() {
-        return sourcePack;
     }
 
     public PageCollection getPageCollection() {
@@ -1129,7 +1064,7 @@ public class PageCompiler {
     public String getCurrentSourceText() {
         List<SourceSlice> sourceSlices = getCompilerState(SOURCE_SLICE_STACK);
         if (!sourceSlices.isEmpty()) {
-            return sourceSlices.get(sourceSlices.size() - 1)
+            return sourceSlices.getLast()
                 .source();
         }
         return pageContent;

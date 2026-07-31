@@ -6,6 +6,8 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+
 /**
  * A document-level float block that wraps an inner block and registers it as a left-side or
  * right-side CSS-style float in the shared {@link LayoutContext}.
@@ -35,6 +37,7 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
  * }
  * </pre>
  */
+@Getter
 public class LytDocumentFloat extends LytBlock {
 
     private static final int FLOAT_GAP = 5;
@@ -52,10 +55,6 @@ public class LytDocumentFloat extends LytBlock {
         this.floatRight = floatRight;
     }
 
-    public LytBlock getInner() {
-        return inner;
-    }
-
     @Override
     public void replaceChild(LytNode oldChild, LytNode newChild) {
         if (oldChild != inner || !(newChild instanceof LytBlock)) return;
@@ -64,10 +63,6 @@ public class LytDocumentFloat extends LytBlock {
         inner.parent = this;
         LytDocument doc = getDocument();
         if (doc != null) doc.invalidateLayout();
-    }
-
-    public boolean isFloatRight() {
-        return floatRight;
     }
 
     @Override
@@ -94,6 +89,11 @@ public class LytDocumentFloat extends LytBlock {
             context.addLeftFloat(new LytRect(x, y, innerBounds.width() + FLOAT_GAP, innerBounds.height() + FLOAT_GAP));
         }
         return new LytRect(x, y, 0, 0);
+    }
+
+    @Override
+    public LytRect getBounds() {
+        return inner != null ? inner.getBounds() : super.getBounds();
     }
 
     @Override

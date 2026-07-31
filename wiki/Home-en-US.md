@@ -31,6 +31,7 @@ GuideNH is an in-game guide framework for GTNH-era Minecraft mods. This wiki doc
 | `wiki/resourcepack/` | Runtime guide source tree used by the mod at build time |
 | `wiki/resourcepack/assets/guidenh/guidenh/` | Example built-in guide pages and assets |
 | `build/resources/main/assets/` | Gradle output where the runtime guide assets are copied for development runs |
+| `config/guidenh/DefaultGuide/` | Client-local runtime guide directory created automatically at startup |
 
 ## Two Markdown Layers
 
@@ -43,12 +44,13 @@ The wiki explains the runtime syntax, but it does not use the runtime tags direc
 
 ## Quick Authoring Checklist
 
-1. Put runtime guide files under `wiki/resourcepack/assets/<modid>/guidenh/`.
-2. Add language folders such as `_en_us/` and `_zh_cn/`.
+1. Put client-local runtime guide files under `config/guidenh/DefaultGuide/<modid>/guidenh/` when you want a normal loaded local guide source.
+2. Use `_en_us/` and `_zh_cn/` language folders in that runtime directory.
 3. Put markdown pages inside those language folders.
 4. Declare navigation metadata in frontmatter when you want a page to appear in the sidebar.
 5. Use relative asset paths for page-local files and rooted `/...` paths for guide-root assets.
-6. For 3D scenes, compose `<GameScene>` with `<ImportStructure>`, `<ImportStructureLib>`, `<RemoveBlocks>`, and `<BlockAnnotationTemplate>` as needed.
+6. Use `wiki/resourcepack/assets/<modid>/guidenh/` when editing the repository example pack that is bundled into the jar.
+7. For 3D scenes, compose `<GameScene>` with `<ImportStructure>`, `<ImportStructureLib>`, `<RemoveBlocks>`, and `<BlockAnnotationTemplate>` as needed.
 
 ## Fast Iteration
 
@@ -76,3 +78,14 @@ The bundled example guide currently lives here:
 - `wiki/resourcepack/assets/guidenh/guidenh/assets/example_structure.snbt`
 
 Those files are the best place to inspect real, running examples while reading this wiki. The two `index.md` pages now include mixed scene samples for `ImportStructureLib`, `RemoveBlocks`, and `BlockAnnotationTemplate`.
+
+Use `DefaultGuide` for local runtime content with the native namespace-root layout:
+
+```text
+config/guidenh/DefaultGuide/
+`-- <modid>/
+    `-- guidenh/
+        |-- _en_us/
+        |-- _zh_cn/
+        `-- assets/
+```

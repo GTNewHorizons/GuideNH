@@ -8,6 +8,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideLocalizedFrontmatterMerger {
 
@@ -16,8 +17,25 @@ public class GuideLocalizedFrontmatterMerger {
     private GuideLocalizedFrontmatterMerger() {}
 
     public static String merge(String fallbackSource, String localizedSource) {
+        long t0 = System.nanoTime();
+        String result = mergeInternal(fallbackSource, localizedSource);
+        long t1 = System.nanoTime();
+        long totalUs = (t1 - t0) / 1000;
+        if (totalUs > 1_000) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [FrontmatterMerger] merge() took {}us, fallbackLen={} localizedLen={}",
+                totalUs,
+                fallbackSource.length(),
+                localizedSource.length());
+        }
+        return result;
+    }
+
+    private static String mergeInternal(String fallbackSource, String localizedSource) {
+        long t0 = System.nanoTime();
         String normalizedFallback = PageCompiler.normalizeLineEndings(fallbackSource);
         String normalizedLocalized = PageCompiler.normalizeLineEndings(localizedSource);
+        long t1 = System.nanoTime();
         SourceParts fallbackParts = SourceParts.split(normalizedFallback);
         if (fallbackParts.frontmatter() == null) {
             return normalizedLocalized;
@@ -27,19 +45,35 @@ public class GuideLocalizedFrontmatterMerger {
         if (localizedParts.frontmatter() == null) {
             return fallbackParts.withBody(normalizedLocalized);
         }
+        long t2 = System.nanoTime();
 
         Map<String, Object> fallbackFrontmatter = readMap(fallbackParts.frontmatter());
         Map<String, Object> localizedFrontmatter = readMap(localizedParts.frontmatter());
+        long t3 = System.nanoTime();
         if (fallbackFrontmatter == null || localizedFrontmatter == null) {
             return normalizedLocalized;
         }
 
         boolean changed = mergeMissingKeys(fallbackFrontmatter, localizedFrontmatter);
         changed |= mergeNavigation(fallbackFrontmatter, localizedFrontmatter);
+        long t4 = System.nanoTime();
         if (!changed) {
             return normalizedLocalized;
         }
-        return SourceParts.withFrontmatterAndBody(writeMap(localizedFrontmatter), localizedParts.body());
+        String result = SourceParts.withFrontmatterAndBody(writeMap(localizedFrontmatter), localizedParts.body());
+        long t5 = System.nanoTime();
+        long totalUs = (t5 - t0) / 1000;
+        if (totalUs > 1_000) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [FrontmatterMerger] mergeInternal normalize={}us split={}us yamlLoad={}us mergeKeys={}us writeMap={}us total={}us",
+                (t1 - t0) / 1000,
+                (t2 - t1) / 1000,
+                (t3 - t2) / 1000,
+                (t4 - t3) / 1000,
+                (t5 - t4) / 1000,
+                totalUs);
+        }
+        return result;
     }
 
     private static Yaml createYaml() {

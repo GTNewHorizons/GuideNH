@@ -4,6 +4,7 @@ import java.util.WeakHashMap;
 
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 
@@ -27,7 +28,7 @@ public class NeiAnimationTicker {
             TRACKED.put(handler, Boolean.TRUE);
             if (!registered) {
                 registered = true;
-                cpw.mods.fml.common.FMLCommonHandler.instance()
+                FMLCommonHandler.instance()
                     .bus()
                     .register(new NeiAnimationTicker());
             }

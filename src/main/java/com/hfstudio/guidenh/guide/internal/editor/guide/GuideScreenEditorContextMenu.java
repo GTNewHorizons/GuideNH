@@ -16,6 +16,8 @@ import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 
+import lombok.Getter;
+
 public class GuideScreenEditorContextMenu {
 
     public static final int ITEM_HEIGHT = 14;
@@ -41,10 +43,13 @@ public class GuideScreenEditorContextMenu {
 
     public static final class Entry {
 
+        @Getter
         private final String label;
         @Nullable
         private final GuideScreenEditorAction action;
+        @Getter
         private final List<Entry> children;
+        @Getter
         private final boolean separator;
 
         private Entry(String label, @Nullable GuideScreenEditorAction action, List<Entry> children, boolean separator) {
@@ -67,21 +72,9 @@ public class GuideScreenEditorContextMenu {
             return new Entry("", null, List.of(), true);
         }
 
-        public String getLabel() {
-            return label;
-        }
-
         @Nullable
         public GuideScreenEditorAction getAction() {
             return action;
-        }
-
-        public List<Entry> getChildren() {
-            return children;
-        }
-
-        public boolean isSeparator() {
-            return separator;
         }
 
         public boolean isLeaf() {
@@ -95,6 +88,7 @@ public class GuideScreenEditorContextMenu {
 
     private final List<Entry> entries;
     private final List<MenuPane> panes = new ArrayList<>();
+    @Getter
     private boolean open;
     private int draggingScrollbarPaneIndex = -1;
     private int scrollbarGrabOffset;
@@ -102,10 +96,6 @@ public class GuideScreenEditorContextMenu {
 
     public GuideScreenEditorContextMenu(List<Entry> entries) {
         this.entries = entries != null ? List.copyOf(new ArrayList<>(entries)) : List.of();
-    }
-
-    public boolean isOpen() {
-        return open;
     }
 
     public void open(int mouseX, int mouseY, int viewportWidth, int viewportHeight, FontRenderer fontRenderer) {

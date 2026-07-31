@@ -24,38 +24,66 @@ GuideNH resolves the path and loads the binary asset from the guide content root
 
 ## `FloatingImage`
 
-`<FloatingImage>` is the GuideNH-specific tag for float-left / float-right image layout.
+`<FloatingImage>` renders a cropped bitmap region that can float with text or sit truly inline inside a
+paragraph. It also accepts explicit `modid:path` texture ids, so it can reference texture assets from
+other mods directly.
 
 ### Attributes
 
 | Attribute | Required | Meaning |
 | --- | --- | --- |
 | `src` | yes | image path |
-| `align` | no | `left` or `right`, default `left` |
+| `x` | yes | crop start X in source-image pixels |
+| `y` | yes | crop start Y in source-image pixels |
+| `width` / `w` | yes | crop width in source-image pixels; exactly one spelling must be used |
+| `height` / `h` | yes | crop height in source-image pixels; exactly one spelling must be used |
+| `scaleX` | no | horizontal display multiplier, default `1.0` |
+| `scaleY` | no | vertical display multiplier, default `1.0` |
+| `displayWidth` | no | final display width in pixels; preserves the crop aspect ratio when used alone |
+| `displayHeight` | no | final display height in pixels; preserves the crop aspect ratio when used alone |
+| `wrap` | no | `inline` for true inline placement, otherwise use the normal wrapping modes |
+| `align` | no | `left` or `right` for floating placement; ignored when `wrap="inline"` |
 | `title` | no | tooltip/title text |
-| `width` | no | explicit width in pixels |
-| `height` | no | explicit height in pixels |
 | `sound` | no | sound event played by the whole image |
-| `src` | yes | image path; when used on `<SoundArea>`, the sound file path |
+| `soundSrc` | no | sound file path for the whole image |
 | `trigger` | no | `click` by default, or `hover` for hover playback |
 
 ### Notes
 
-- giving only one dimension keeps aspect ratio
-- giving both dimensions stretches the image
-- invalid `align` values render an inline error
+- `x`, `y`, `width` / `w`, and `height` / `h` are all required together when cropping
+- when the crop attributes are all omitted, `displayWidth` or `displayHeight` displays the full source image
+- `width` and `height` now describe the crop rectangle, not the final display size
+- `scaleX` and `scaleY` calculate the final display size as `cropWidth * scaleX` by `cropHeight * scaleY`
+- `displayWidth` or `displayHeight` sets the final display size in pixels; when only one is present, the other dimension is calculated from the crop aspect ratio
+- providing both `displayWidth` and `displayHeight` allows intentional non-proportional stretching
+- `displayWidth` / `displayHeight` cannot be combined with `scaleX` / `scaleY`
+- single-axis stretching is supported by setting only one scale differently
+- `width` with `w`, or `height` with `h`, is invalid and renders a visible error
+- old `FloatingImage width/height as display size` content is intentionally breaking and must be migrated manually
+- `src` may be relative, rooted, or an explicit `modid:path` texture id such as `minecraft:textures/gui/options_background.png`
 
 ### Example
 
 ````md
-<FloatingImage src="test1.png" align="left" width="64" title="Example" />
+<FloatingImage
+  src="minecraft:textures/gui/options_background.png"
+  x="0"
+  y="0"
+  width="32"
+  height="32"
+  displayWidth="64"
+  displayHeight="64"
+  wrap="inline"
+  title="Example"
+/>
 ````
 
 ## `ImageAnnotation`
 
 `<ImageAnnotation>` is a child element of `<FloatingImage>` that attaches a rich-text tooltip (and
 an optional colored border) to a rectangular region of the image. Coordinates are specified in
-**image pixels** and are automatically proportionally scaled when the image is resized or stretched.
+**cropped-image pixels** and are automatically proportionally scaled when the cropped image is resized
+or stretched.
 
 ### Attributes
 
@@ -86,7 +114,7 @@ an optional colored border) to a rectangular region of the image. Coordinates ar
 Whole-image annotation:
 
 ````md
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation>
     Hover anywhere on the image to see this tooltip.
   </ImageAnnotation>
@@ -96,7 +124,7 @@ Whole-image annotation:
 Region annotation with a visible border:
 
 ````md
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
     This is the **highlighted region** tooltip.
   </ImageAnnotation>
@@ -106,7 +134,7 @@ Region annotation with a visible border:
 Multiple regions on one image:
 
 ````md
-<FloatingImage src="test1.png" align="left" width="128">
+<FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
   <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
     Left half
   </ImageAnnotation>
@@ -120,7 +148,15 @@ Image regions can also play sounds. Use `<SoundArea>` when you only need sound, 
 directly on `<ImageAnnotation>` when the same region also has a tooltip or border.
 
 ````md
-<FloatingImage src="test1.png" align="left" width="128" sound="guidenh:image.click">
+<FloatingImage
+  src="test1.png"
+  align="left"
+  x="0"
+  y="0"
+  width="128"
+  height="128"
+  sound="guidenh:image.click"
+>
   <SoundArea x="0" y="0" w="64" h="64" sound="guidenh:image.left" />
   <SoundArea x="64" y="0" w="64" h="64" sound="guidenh:image.right" trigger="hover" />
   <ImageAnnotation x="10" y="10" w="40" h="40" border sound="guidenh:image.note">
@@ -129,7 +165,7 @@ directly on `<ImageAnnotation>` when the same region also has a tooltip or borde
 </FloatingImage>
 ````
 
-`<FloatingImage sound="...">` covers the whole image. Region sounds use image-pixel coordinates
+`<FloatingImage sound="...">` covers the whole image. Region sounds use cropped-image coordinates
 and obey the same overlap priority as tooltips: later regions win.
 
 ## Content Embedding and Text Wrapping
@@ -167,7 +203,17 @@ For `wrap=square/tight/through`:
 Left-floating image using the new `wrap` attribute:
 
 ````md
-<FloatingImage src="test1.png" wrap="square" align="left" width="64" />
+<FloatingImage
+  src="test1.png"
+  wrap="square"
+  align="left"
+  x="0"
+  y="0"
+  width="128"
+  height="128"
+  scaleX="0.5"
+  scaleY="0.5"
+/>
 
 Paragraph text that flows to the right of the image...
 ````
@@ -192,9 +238,8 @@ Right-aligned item image:
 <ItemImage id="minecraft:diamond" align="right" />
 ````
 
-> **Note** — `<FloatingImage>` also supports its own `align="left/right"` attribute for
-> historical reasons. For new content, prefer the universal `wrap` + `align` approach above,
-> which works on any block tag.
+> **Note** — `wrap="inline"` now gives `<FloatingImage>` true inline placement inside flow text.
+> In inline mode, `align` is ignored instead of producing an error.
 
 ## Navigation Texture Icons
 

@@ -25,6 +25,7 @@ import com.hfstudio.guidenh.integration.ae2.network.GuideNhAe2CableBatchReplyMes
 import com.hfstudio.guidenh.integration.ae2.network.GuideNhAe2CableBatchRequestMessage;
 import com.hfstudio.guidenh.network.GuideNhNetwork;
 
+import appeng.parts.CableBusContainer;
 import appeng.parts.networking.PartCable;
 import appeng.tile.networking.TileCableBus;
 import cpw.mods.fml.common.Optional;
@@ -227,7 +228,7 @@ public class Ae2CableStructureSupport {
     private static Ae2CablePreviewSnapshot captureSnapshotFromWorldTile(TileEntity tileEntity,
         @Nullable World exportWorldForAe2) {
         TileEntity workTe = resolveServerCableBusTile(tileEntity, exportWorldForAe2);
-        appeng.parts.CableBusContainer container = resolveCableContainer(workTe);
+        CableBusContainer container = resolveCableContainer(workTe);
         if (container == null) {
             return null;
         }
@@ -300,7 +301,7 @@ public class Ae2CableStructureSupport {
 
     @Optional.Method(modid = "appliedenergistics2")
     @Nullable
-    public static appeng.parts.CableBusContainer resolveCableContainer(@Nullable TileEntity tileEntity) {
+    public static CableBusContainer resolveCableContainer(@Nullable TileEntity tileEntity) {
         if (tileEntity instanceof TileCableBus cableBus) {
             return cableBus.getCableBus();
         }

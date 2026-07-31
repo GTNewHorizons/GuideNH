@@ -37,7 +37,7 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
-import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlayRenderer;
+import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorDraftTextController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorElementContextMenuController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorElementController;
@@ -82,7 +82,6 @@ import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorPreviewCame
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapModes;
 import com.hfstudio.guidenh.guide.internal.editor.preview.SceneEditorSnapService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
-import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureExportAccess;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipRenderSupport;
 import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
@@ -207,7 +206,7 @@ public class SceneEditorScreen extends GuiScreen {
     private final Random elementColorRandom;
     private final SceneEditorHoverMenuState addElementMenuState;
     private final SceneEditorMarkdownPanelState markdownPanelState;
-    private final GuideDebugOverlayRenderer debugOverlayRenderer;
+    private final GuideDebugOverlay debugOverlay;
 
     private GuideIconButton closeButton;
     private GuideIconButton resetPreviewButton;
@@ -359,7 +358,7 @@ public class SceneEditorScreen extends GuiScreen {
         this.elementPanelScrollState = new SceneEditorScrollState();
         this.addElementMenuState = new SceneEditorHoverMenuState();
         this.markdownPanelState = SceneEditorMarkdownPanelState.fromConfig(false);
-        this.debugOverlayRenderer = new GuideDebugOverlayRenderer();
+        this.debugOverlay = new GuideDebugOverlay();
         this.previewScene = null;
         this.activePreviewScene = null;
         this.activePointDrag = null;
@@ -397,7 +396,7 @@ public class SceneEditorScreen extends GuiScreen {
         if (mc == null) {
             return;
         }
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) {
+        if (!ModConfig.ui.sceneExportEnabled) {
             if (mc.thePlayer != null) {
                 mc.thePlayer.addChatMessage(
                     new ChatComponentTranslation(GuidebookText.SceneExportDisabled.getTranslationKey()));
@@ -593,7 +592,7 @@ public class SceneEditorScreen extends GuiScreen {
             applyServerSelectionToBlankSession(serverSnbt);
             return;
         }
-        if (baseSnbt == null || currentSnbt == null || !baseSnbt.equals(currentSnbt)) {
+        if (baseSnbt == null || !baseSnbt.equals(currentSnbt)) {
             return;
         }
         if (serverSnbt.equals(currentSnbt)) {
@@ -675,13 +674,14 @@ public class SceneEditorScreen extends GuiScreen {
             exportPreviewScreenshot();
             return;
         }
-        if (button.id == ADD_ELEMENT_BUTTON_ID) {
-            return;
-        }
+        if (button.id == ADD_ELEMENT_BUTTON_ID) {}
     }
 
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
+        if (debugOverlay.handleKeyPress(typedChar, keyCode)) {
+            return;
+        }
         if (closeConfirmDialogOpen) {
             if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_E) {
                 closeConfirmDialogOpen = false;
@@ -779,7 +779,8 @@ public class SceneEditorScreen extends GuiScreen {
 
         if (closeConfirmDialogOpen) {
             drawCloseConfirmDialog(mouseX, mouseY);
-            debugOverlayRenderer.render(mc, partialTicks, mouseX, mouseY);
+            debugOverlay.onFrameStart();
+            debugOverlay.render(width, height, mouseX, mouseY, 0, 0, width, height, 0, 1.0f, null, fontRendererObj);
             return;
         }
 
@@ -807,7 +808,8 @@ public class SceneEditorScreen extends GuiScreen {
         } else {
             drawPreviewSceneHoverTooltip(mouseX, mouseY);
         }
-        debugOverlayRenderer.render(mc, partialTicks, mouseX, mouseY);
+        debugOverlay.onFrameStart();
+        debugOverlay.render(width, height, mouseX, mouseY, 0, 0, width, height, 0, 1.0f, null, fontRendererObj);
     }
 
     @Override
@@ -854,7 +856,6 @@ public class SceneEditorScreen extends GuiScreen {
                 && (previewScene.containsSceneViewport(mouseX, mouseY)
                     || previewScene.containsBottomControlSlider(mouseX, mouseY))) {
                 previewScene.scroll(mouseX, mouseY, wheelDelta);
-                return;
             }
         }
     }
@@ -863,6 +864,9 @@ public class SceneEditorScreen extends GuiScreen {
     protected void mouseClicked(int mouseX, int mouseY, int button) {
         activeMouseDragButton = button;
         activeMouseDragStartedAt = Minecraft.getSystemTime();
+        if (debugOverlay.handleMouseClick(mouseX, mouseY, button)) {
+            return;
+        }
         if (closeConfirmDialogOpen) {
             handleCloseConfirmDialogClick(mouseX, mouseY, button);
             return;
@@ -2714,9 +2718,8 @@ public class SceneEditorScreen extends GuiScreen {
         int previewReserved = 220;
         int toggleReserved = SceneEditorScreenLayout.MARKDOWN_TOGGLE_WIDTH + 2;
         int computed = this.width - rightReserved - previewReserved - toggleReserved;
-        return Math.max(
-            SceneEditorScreenLayout.MIN_LEFT_OPEN_WIDTH,
-            Math.min(SceneEditorScreenLayout.MAX_LEFT_OPEN_WIDTH, computed));
+        return Math
+            .clamp(computed, SceneEditorScreenLayout.MIN_LEFT_OPEN_WIDTH, SceneEditorScreenLayout.MAX_LEFT_OPEN_WIDTH);
     }
 
     private boolean isInsidePreviewInteractionArea(int mouseX, int mouseY) {
@@ -3700,7 +3703,7 @@ public class SceneEditorScreen extends GuiScreen {
             : session.getSceneModel()
                 .getPreviewHeight();
         int scale = screenshotMenuController.getScale();
-        String resolutionHint = (hintW * scale) + " \u00D7 " + (hintH * scale);
+        String resolutionHint = (hintW * scale) + " × " + (hintH * scale);
         this.drawString(this.fontRendererObj, resolutionHint, hintBounds.x(), hintBounds.y(), PANEL_MUTED_TEXT);
     }
 

@@ -9,6 +9,7 @@ import org.lwjgl.input.Keyboard;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExportMode;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -42,18 +43,19 @@ public class CycleRegionWandModeHotkey {
 
         Minecraft mc = Minecraft.getMinecraft();
         while (CYCLE_REGION_WAND_MODE_KEY.isPressed()) {
+            if (mc.thePlayer == null || !RegionWandSelection.isBound(mc.thePlayer.getHeldItem())) {
+                continue;
+            }
             RegionWandExportMode currentMode = ModConfig.ui.regionWandExportMode != null
                 ? ModConfig.ui.regionWandExportMode
                 : RegionWandExportMode.SNBT;
             RegionWandExportMode nextMode = currentMode.next();
             ModConfig.ui.regionWandExportMode = nextMode;
             ModConfig.save();
-            if (mc.thePlayer != null) {
-                mc.thePlayer.addChatMessage(
-                    new ChatComponentTranslation(
-                        GuidebookText.RegionWandModeSwitched.getTranslationKey(),
-                        nextMode.getDisplayName()));
-            }
+            mc.thePlayer.addChatMessage(
+                new ChatComponentTranslation(
+                    GuidebookText.RegionWandModeSwitched.getTranslationKey(),
+                    nextMode.getDisplayName()));
         }
     }
 }

@@ -1,0 +1,12 @@
+{
+    "package": "com.hfstudio.guidenh.mixins.late.compat.blockrenderer6343",
+    "refmap": "mixins.guidenh.refmap.json",
+    "target": "@NOOBFUSCATE",
+    "minVersion": "0.8.5-GTNH",
+    "compatibilityLevel": "JAVA_8",
+    "required": false,
+    "mixins": [
+        "AccessorConstructableData",
+        "AccessorGTNEIMultiblockHandler"
+    ]
+}

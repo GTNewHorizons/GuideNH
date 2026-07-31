@@ -7,6 +7,8 @@ import net.minecraft.util.Vec3;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class GuideEntityRayPicker {
 
     private GuideEntityRayPicker() {}
@@ -56,6 +58,7 @@ public class GuideEntityRayPicker {
             .getBoundingBox(bounds.minX, bounds.minY, bounds.minZ, bounds.maxX, bounds.maxY, bounds.maxZ);
     }
 
+    @Getter
     public static class Hit {
 
         private final Entity entity;
@@ -70,20 +73,5 @@ public class GuideEntityRayPicker {
             this.distanceSq = distanceSq;
         }
 
-        public Entity getEntity() {
-            return entity;
-        }
-
-        public AxisAlignedBB getBounds() {
-            return bounds;
-        }
-
-        public MovingObjectPosition getHitResult() {
-            return hitResult;
-        }
-
-        public double getDistanceSq() {
-            return distanceSq;
-        }
     }
 }

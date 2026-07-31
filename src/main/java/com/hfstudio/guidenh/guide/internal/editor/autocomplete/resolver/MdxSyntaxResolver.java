@@ -96,8 +96,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolvePlainTextWord(text, cursorIndex);
     }
 
-    // ---- YAML frontmatter ----
-
     @Nullable
     private TextSyntaxContext resolveFrontmatter(MdAstYamlFrontmatter yaml, String text, int cursorIndex) {
         String line = getLineAt(text, cursorIndex);
@@ -217,8 +215,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return i > 0 && i < trimmed.length() && (trimmed.charAt(i) == '.' || trimmed.charAt(i) == ')');
     }
 
-    // ---- Code fence language ----
-
     @Nullable
     private TextSyntaxContext resolveFenceLanguage(MdAstCode code, String text, int cursorIndex) {
         UnistPosition pos = code.position();
@@ -244,8 +240,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             cursorIndex,
             new FenceLanguageContext(langStart, cursorIndex, partial));
     }
-
-    // ---- Markdown link/image URL ----
 
     @Nullable
     private MdAstResource findEnclosingLink(UnistNode node, int cursorIndex) {
@@ -280,8 +274,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             urlEnd,
             new MdxValueContext(tagName, "url", urlStart, urlEnd, partial, '\0'));
     }
-
-    // ---- Tag start ----
 
     @Nullable
     private TextSyntaxContext resolveTagStart(String text, int cursorIndex, @Nullable String parentTagName) {
@@ -339,8 +331,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return Character.isLetterOrDigit(c) || c == '-';
     }
 
-    // ---- MDX element ----
-
     @Nullable
     private MdxJsxElementFields findEnclosingMdxElement(UnistNode node, int cursorIndex) {
         UnistPosition pos = node.position();
@@ -380,8 +370,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         if (tagName == null) return resolvePlainTextWord(text, cursorIndex);
 
         for (var attrNode : element.attributes()) {
-            if (!(attrNode instanceof MdxJsxAttribute)) continue;
-            MdxJsxAttribute attr = (MdxJsxAttribute) attrNode;
+            if (!(attrNode instanceof MdxJsxAttribute attr)) continue;
             if (attr.name == null || attr.name.isEmpty()) continue;
 
             UnistPosition pos = attrNode.position();
@@ -418,8 +407,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolvePlainTextWord(text, cursorIndex);
     }
 
-    // ---- Generic AST search ----
-
     @SuppressWarnings("unchecked")
     @Nullable
     private <T extends UnistNode> T findEnclosingNode(UnistNode node, int cursorIndex, Class<T> type) {
@@ -446,8 +433,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
         return null;
     }
-
-    // ---- Attribute resolution utilities ----
 
     private TextSyntaxContext resolvePlainTextWord(String text, int cursorIndex) {
         return SyntaxUtils.resolveWord(text, cursorIndex);
@@ -501,8 +486,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new MdxAttrNameContext(tagName, nameStart, nameEnd, partial));
     }
 
-    // ---- Text scanning helpers ----
-
     private static int findOpeningTagEnd(String text, int tagStart) {
         boolean inSingle = false;
         boolean inDouble = false;
@@ -543,10 +526,9 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                 pos++;
                 continue;
             }
-            pos++;
-            while (pos < tagEnd && isAttributeNameChar(text.charAt(pos))) {
+            do {
                 pos++;
-            }
+            } while (pos < tagEnd && isAttributeNameChar(text.charAt(pos)));
             int afterName = skipSpaces(text, pos, tagEnd);
             if (afterName >= tagEnd || text.charAt(afterName) != '=') {
                 pos = afterName;

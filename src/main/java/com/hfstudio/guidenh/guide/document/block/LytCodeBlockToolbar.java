@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
@@ -10,7 +12,6 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
-import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightTheme;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
@@ -20,9 +21,11 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Setter;
+
 public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
 
-    private static final GuiSprite COPY_SPRITE = new GuiSprite(
+    static final GuiSprite COPY_SPRITE = new GuiSprite(
         GuideIconButton.TEX,
         0,
         48,
@@ -39,28 +42,35 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
     private static final ConstantColor DEFAULT_TOOLBAR_TEXT = new ConstantColor(CODE_THEME.toolbarTextArgb());
 
     private final LytParagraph languageLabel = new LytParagraph();
-    private final LytGuiSprite copyButton = new LytGuiSprite(COPY_SPRITE, new LytSize(16, 16));
+    private final LytButton copySourceButton;
+    private final List<LytButton> extraButtons = new ArrayList<>();
 
     private ColorValue toolbarBackground = DEFAULT_TOOLBAR_BACKGROUND;
     private ColorValue toolbarBorder = DEFAULT_TOOLBAR_BORDER;
     private ColorValue toolbarText = DEFAULT_TOOLBAR_TEXT;
 
     private String copyText = "";
-    private boolean copied;
-    private long copiedUntilMillis;
     private int preferredWidth;
+    @Setter
     private boolean copyButtonVisible = true;
 
     public LytCodeBlockToolbar() {
+        copySourceButton = new LytButton(COPY_SPRITE, new LytSize(16, 16));
+        copySourceButton.setColor(toolbarText);
+        copySourceButton.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
+        copySourceButton.setOnClick(screen -> screen.copyCodeBlock(copyText));
+        copySourceButton.setTooltipFunction((pressed) -> {
+            if (pressed) return GuidebookText.CodeBlockCopySuccess.text();
+            return GuidebookText.CodeBlockCopy.text();
+        });
+
         languageLabel.setMarginTop(0);
         languageLabel.setMarginBottom(0);
         languageLabel.modifyStyle(
             style -> style.bold(true)
                 .color(toolbarText));
-        copyButton.setColor(toolbarText);
-        copyButton.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
         append(languageLabel);
-        append(copyButton);
+        append(copySourceButton);
         setPaddingLeft(8);
         setPaddingTop(4);
         setPaddingRight(8);
@@ -78,12 +88,14 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
         this.copyText = copyText != null ? copyText : "";
     }
 
-    public void setPreferredWidth(int preferredWidth) {
-        this.preferredWidth = Math.max(0, preferredWidth);
+    public void addButton(LytButton button) {
+        extraButtons.add(button);
+        append(button);
+        if (getDocument() != null) getDocument().invalidateLayout();
     }
 
-    public void setCopyButtonVisible(boolean copyButtonVisible) {
-        this.copyButtonVisible = copyButtonVisible;
+    public void setPreferredWidth(int preferredWidth) {
+        this.preferredWidth = Math.max(0, preferredWidth);
     }
 
     public void setToolbarBackground(ColorValue toolbarBackground) {
@@ -98,65 +110,70 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
     public void setToolbarText(ColorValue toolbarText) {
         this.toolbarText = toolbarText != null ? toolbarText : DEFAULT_TOOLBAR_TEXT;
         languageLabel.modifyStyle(style -> style.color(this.toolbarText));
-        copyButton.setColor(this.toolbarText);
+        copySourceButton.setColor(this.toolbarText);
+        for (LytButton btn : extraButtons) {
+            btn.setColor(this.toolbarText);
+        }
+    }
+
+    private List<LytButton> visibleButtons() {
+        List<LytButton> result = new ArrayList<>(extraButtons.size() + 1);
+        result.addAll(extraButtons);
+        if (copyButtonVisible) {
+            result.add(copySourceButton);
+        }
+        return result;
     }
 
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
         int toolbarWidth = preferredWidth > 0 ? Math.min(availableWidth, preferredWidth) : availableWidth;
-        int labelWidth = Math.max(1, toolbarWidth - (copyButtonVisible ? 16 + 8 : 0));
+        List<LytButton> buttons = visibleButtons();
+        int buttonCount = buttons.size();
+        int buttonsWidth = buttonCount * 16 + Math.max(0, buttonCount - 1) * 4;
+        int labelWidth = Math.max(1, toolbarWidth - (buttonsWidth > 0 ? buttonsWidth + 8 : 0));
         LytRect labelBounds = languageLabel.layout(context, x, y, labelWidth);
-        int buttonX = x + Math.max(0, toolbarWidth - 16);
-        LytRect buttonBounds = copyButtonVisible ? copyButton.layout(context, buttonX, y, 16) : LytRect.empty();
-        int height = Math.max(16, Math.max(labelBounds.height(), copyButtonVisible ? buttonBounds.height() : 0));
-        float labelY = y + (height - labelBounds.height()) / 2f + TEXT_CENTERING_OFFSET_Y;
-        languageLabel.setLayoutPos(new LytPoint(labelBounds.x(), labelY));
-        if (copyButtonVisible) {
-            copyButton.setLayoutPos(new LytPoint(buttonX, y + (height - buttonBounds.height()) / 2f));
-        } else {
-            copyButton.setLayoutPos(new LytPoint(x + toolbarWidth, y));
+        int height = Math.max(16, labelBounds.height());
+        int btnX = x + Math.max(0, toolbarWidth - 16);
+        for (int i = buttons.size() - 1; i >= 0; i--) {
+            LytButton btn = buttons.get(i);
+            LytRect btnBounds = btn.layout(context, btnX, y, 16);
+            btn.setLayoutPos(new LytPoint(btnX, y + (height - btnBounds.height()) / 2f));
+            height = Math.max(height, btnBounds.height());
+            btnX -= 20;
         }
+        languageLabel.setLayoutPos(
+            new LytPoint(labelBounds.x(), y + (height - labelBounds.height()) / 2f + TEXT_CENTERING_OFFSET_Y));
         return new LytRect(x, y, toolbarWidth, height);
     }
 
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {
-        if (!copyButtonVisible) {
-            return false;
+        if (button != 0) return false;
+        for (LytButton btn : visibleButtons()) {
+            if (btn.mouseClicked(screen, x, y, button, doubleClick)) return true;
         }
-        LytRect bounds = copyButton.getBounds();
-        if (button != 0 || bounds == null || !bounds.contains(x, y)) {
-            return false;
-        }
-        boolean success = screen.copyCodeBlock(copyText);
-        if (success) {
-            markCopied();
-        }
-        return success;
+        return false;
     }
 
     @Override
     public Optional<GuideTooltip> getTooltip(float x, float y) {
-        if (!copyButtonVisible) {
-            return Optional.empty();
+        for (LytButton btn : extraButtons) {
+            Optional<GuideTooltip> tip = btn.getTooltip(x, y);
+            if (tip.isPresent()) return tip;
         }
-        LytRect bounds = copyButton.getBounds();
-        if (bounds != null && bounds.contains((int) x, (int) y)) {
-            return Optional.of(new TextTooltip(getCopyTooltipText()));
+        if (copyButtonVisible) {
+            return copySourceButton.getTooltip(x, y);
         }
         return Optional.empty();
-    }
-
-    public void setPaddingBottom(int paddingBottom) {
-        this.paddingBottom = paddingBottom;
     }
 
     @Override
     public void render(RenderContext context) {
         context.fillRect(bounds, toolbarBackground);
         languageLabel.render(context);
-        if (copyButtonVisible) {
-            copyButton.render(context);
+        for (LytButton btn : visibleButtons()) {
+            btn.render(context);
         }
         if (getBorderTop().width() > 0 || getBorderLeft().width() > 0
             || getBorderRight().width() > 0
@@ -164,18 +181,5 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
             new BorderRenderer()
                 .render(context, bounds, getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom());
         }
-    }
-
-    private void markCopied() {
-        copied = true;
-        copiedUntilMillis = System.currentTimeMillis() + COPY_TOOLTIP_RESET_DELAY_MILLIS;
-    }
-
-    private String getCopyTooltipText() {
-        if (copied && System.currentTimeMillis() < copiedUntilMillis) {
-            return GuidebookText.CodeBlockCopySuccess.text();
-        }
-        copied = false;
-        return GuidebookText.CodeBlockCopy.text();
     }
 }

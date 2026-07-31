@@ -1,6 +1,6 @@
 ---
 item_ids:
-  - guidenh:guide
+  - minecraft:book
 navigation:
   title: GuideNH Examples
   position: 200
@@ -63,3 +63,12 @@ You may ~~need~~ a <Color color="#ff0000">door</Color> <Color id="RED">door</Col
 <BlockImage id="minecraft:crafting_table" />
 
 <ItemLink id="minecraft:stick" />
+
+## BetterQuesting Description Links
+
+When BetterQuesting is installed, quest descriptions can open GuideNH pages with BQ-compatible wrapping and click handling:
+
+```text
+[guide]guidenh:navigation-guide[/guide]
+[guide page=guidenh:navigation-guide]Open the navigation guide[/guide]
+```

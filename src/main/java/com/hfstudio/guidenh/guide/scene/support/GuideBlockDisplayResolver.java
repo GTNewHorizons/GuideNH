@@ -210,7 +210,7 @@ public class GuideBlockDisplayResolver {
             }
         } catch (Throwable ignored) {}
         try {
-            ItemStack pickedStack = block.getPickBlock(target, world, x, y, z);
+            ItemStack pickedStack = block.getPickBlock(target, world, x, y, z, player);
             return pickedStack != null ? pickedStack.copy() : null;
         } catch (Throwable ignored) {
             return null;

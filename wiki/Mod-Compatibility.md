@@ -36,6 +36,30 @@ Do not list both encodings for the same quest in one page's `quest_ids`; they no
 
 When a quest id is indexed by a page, both `<QuestLink>` and `<QuestCard>` will route the click to that guide page instead of opening the BetterQuesting quest GUI directly.
 
+### Linking from BetterQuesting descriptions to GuideNH pages
+
+BetterQuesting quest descriptions can link back into GuideNH with a `[guide]` tag. The tag is parsed by GuideNH only when BetterQuesting is loaded, and then rendered through BetterQuesting's native hyperlink-aware text box, so BQ word wrapping, scrolling and click hit boxes stay compatible.
+
+Use the page id as the target:
+
+```text
+[guide]guidenh:navigation-guide[/guide]
+```
+
+If the target page exists, the visible link text is replaced with that guide page's title. The `.md` suffix is optional, so `guidenh:navigation-guide` and `guidenh:navigation-guide.md` point to the same page when the markdown page exists.
+
+Use `page=` when you want custom visible text:
+
+```text
+[guide page=guidenh:navigation-guide]Open the navigation guide[/guide]
+```
+
+The link is shown in BetterQuesting's normal hyperlink color with underline styling, shows a GuideNH tooltip on hover, and opens the target GuideNH page when clicked. Page anchors are also supported:
+
+```text
+[guide page=guidenh:navigation-guide#navigation-fields]Navigation fields[/guide]
+```
+
 ### `<QuestLink>` and `<QuestCard>`
 
 Both tags accept a BetterQuesting quest id via `id` and decide their appearance from the player's progress at compile time:
@@ -89,5 +113,6 @@ This path is independent of the inventory item-tooltip path, so hovering items i
 - `<QuestLink>` and `<QuestCard>` are not registered, so pages that use them fall back to the standard "unknown tag" error rendering until you remove the tag.
 - `quest_ids` frontmatter entries are still parsed and stored under `additionalProperties`, but nothing reads them.
 - The hotkey's quest-hover branch becomes a no-op.
+- BetterQuesting `[guide]...[/guide]` description links are never parsed because the BetterQuesting text box and related mixins are not loaded.
 
 This means a guide that targets BetterQuesting can be authored once and silently degrade in environments where BetterQuesting is not installed.

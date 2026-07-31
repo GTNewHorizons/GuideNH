@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 import com.hfstudio.guidenh.integration.bartworks.BartWorksFakeWorldIntegration;
 import com.hfstudio.guidenh.integration.betterquesting.BetterQuestingQuestHoverProvider;
+import com.hfstudio.guidenh.integration.betterquesting.BqGuidePageUriHandler;
 import com.hfstudio.guidenh.integration.buildcraft.BuildCraftBlockDisplayProvider;
 import com.hfstudio.guidenh.integration.buildcraft.BuildCraftPreviewPrepareContributor;
 import com.hfstudio.guidenh.integration.carpentersblocks.CarpentersBlocksBlockDisplayNameProvider;
@@ -77,6 +78,8 @@ public class GuideNhClientIntegrationBootstrap {
         }
 
         if (Mods.BetterQuesting.isModLoaded()) {
+            BqGuidePageUriHandler.register();
+
             GuideNhClientIntegrationRegistry.global()
                 .registerQuestHoverProvider(new BetterQuestingQuestHoverProvider());
         }

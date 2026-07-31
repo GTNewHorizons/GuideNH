@@ -4,6 +4,8 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class SceneEditorNumericFieldController {
 
     private final boolean integerMode;
@@ -14,7 +16,9 @@ public class SceneEditorNumericFieldController {
     private final Consumer<Float> nullableValueApplier;
     private final boolean allowEmptyDraft;
 
+    @Getter
     private float value;
+    @Getter
     private String draftText;
     private boolean validationError;
 
@@ -58,14 +62,6 @@ public class SceneEditorNumericFieldController {
             valueApplier,
             nullableValueApplier,
             true);
-    }
-
-    public float getValue() {
-        return value;
-    }
-
-    public String getDraftText() {
-        return draftText;
     }
 
     public void setDraftText(String draftText) {

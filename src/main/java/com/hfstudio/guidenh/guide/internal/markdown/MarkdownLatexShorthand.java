@@ -16,6 +16,8 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstLiteral;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 
+import lombok.Getter;
+
 /**
  * Utility for detecting and splitting {@code $$formula$$} shorthand LaTeX expressions
  * inside Markdown text nodes.
@@ -188,9 +190,19 @@ public class MarkdownLatexShorthand {
     }
 
     /** A text-or-formula segment produced by {@link #split}. */
+    @Getter
     public static final class Segment {
 
+        /**
+         * -- GETTER --
+         * Returns the raw text or formula string.
+         */
         private final String value;
+        /**
+         * -- GETTER --
+         * Returns
+         * if this segment holds a LaTeX formula.
+         */
         private final boolean formula;
 
         private Segment(String value, boolean formula) {
@@ -208,14 +220,5 @@ public class MarkdownLatexShorthand {
             return new Segment(value, true);
         }
 
-        /** Returns {@code true} if this segment holds a LaTeX formula. */
-        public boolean isFormula() {
-            return formula;
-        }
-
-        /** Returns the raw text or formula string. */
-        public String getValue() {
-            return value;
-        }
     }
 }

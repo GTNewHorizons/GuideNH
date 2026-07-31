@@ -13,15 +13,6 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 public class GuideMEServerProxy implements GuideMEProxy {
 
     @Override
-    public @Nullable String getGuideDisplayName(ResourceLocation guideId) {
-        var guide = GuideRegistry.getById(guideId);
-        if (guide == null) return null;
-        var settings = guide.getItemSettings();
-        return settings.displayName()
-            .orElse(null);
-    }
-
-    @Override
     public boolean openGuide(EntityPlayer player, ResourceLocation guideId, @Nullable PageAnchor anchor) {
         return false;
     }

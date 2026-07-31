@@ -69,7 +69,7 @@ public class RootTokenizeContext implements TokenizeContext {
     @Override
     @Nullable
     public Tokenizer.Event getLastEvent() {
-        return !getEvents().isEmpty() ? getEvents().get(getEvents().size() - 1) : null;
+        return !getEvents().isEmpty() ? getEvents().getLast() : null;
     }
 
     public RootTokenizeContext(Tokenizer tokenizer) {
@@ -99,7 +99,7 @@ public class RootTokenizeContext implements TokenizeContext {
         tokenizer.main();
 
         // Exit if we’re not done, resolve might change stuff.
-        if (!Objects.equals(tokenizer.chunks.get(tokenizer.chunks.size() - 1), Codes.eof)) {
+        if (!Objects.equals(tokenizer.chunks.getLast(), Codes.eof)) {
             return List.of();
         }
 
@@ -190,12 +190,12 @@ public class RootTokenizeContext implements TokenizeContext {
      * Constructs that are not <code>partial</code> are set here.
      */
     @Override
-    public Construct getCurrentConstruct() {
+    public @org.jspecify.annotations.Nullable Construct getCurrentConstruct() {
         return currentConstruct;
     }
 
     @Override
-    public void setCurrentConstruct(Construct currentConstruct) {
+    public void setCurrentConstruct(@org.jspecify.annotations.Nullable Construct currentConstruct) {
         this.currentConstruct = currentConstruct;
     }
 

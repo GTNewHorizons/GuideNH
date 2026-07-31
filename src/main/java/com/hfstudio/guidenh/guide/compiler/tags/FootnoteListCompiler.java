@@ -3,8 +3,6 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
-import com.hfstudio.guidenh.guide.compiler.IndexingContext;
-import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytWidthBox;
@@ -25,8 +23,4 @@ public class FootnoteListCompiler extends BlockTagCompiler {
         parent.append(box);
     }
 
-    @Override
-    public void index(IndexingContext indexer, MdxJsxElementFields el, IndexingSink sink) {
-        indexer.indexContent(el.children(), sink);
-    }
 }

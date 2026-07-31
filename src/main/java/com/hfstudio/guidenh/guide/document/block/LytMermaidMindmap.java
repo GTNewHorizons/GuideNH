@@ -7,22 +7,25 @@ import java.util.Optional;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapDocument;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Getter;
+
+@Getter
 public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
 
-    private final MermaidMindmapDocument mindmap;
+    private final MindmapDocument mindmap;
     private final String sourceText;
     private final LytCodeBlockToolbar toolbar = new LytCodeBlockToolbar();
     private final LytMermaidMindmapCanvas canvas;
 
-    public LytMermaidMindmap(MermaidMindmapDocument mindmap, String sourceText) {
+    public LytMermaidMindmap(MindmapDocument mindmap, String sourceText) {
         this(mindmap, sourceText, Collections.emptyMap());
     }
 
-    public LytMermaidMindmap(MermaidMindmapDocument mindmap, String sourceText, Map<String, LytBlock> nodeContent) {
+    public LytMermaidMindmap(MindmapDocument mindmap, String sourceText, Map<String, LytBlock> nodeContent) {
         this.mindmap = mindmap;
         this.sourceText = sourceText != null ? sourceText : "";
         this.canvas = new LytMermaidMindmapCanvas(mindmap, nodeContent != null ? nodeContent : Collections.emptyMap());
@@ -41,22 +44,6 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
 
         append(toolbar);
         append(canvas);
-    }
-
-    public MermaidMindmapDocument getMindmap() {
-        return mindmap;
-    }
-
-    public String getSourceText() {
-        return sourceText;
-    }
-
-    public LytCodeBlockToolbar getToolbar() {
-        return toolbar;
-    }
-
-    public LytMermaidMindmapCanvas getCanvas() {
-        return canvas;
     }
 
     public void setPreferredSize(int width, int height) {

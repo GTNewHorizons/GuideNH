@@ -4,12 +4,17 @@ import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class SceneEditorSelectionState {
 
     @Nullable
     private UUID selectedElementId;
     @Nullable
     private String selectedHandleId;
+    @Getter
+    @Setter
     private boolean dragging;
 
     @Nullable
@@ -30,11 +35,4 @@ public class SceneEditorSelectionState {
         this.selectedHandleId = selectedHandleId;
     }
 
-    public boolean isDragging() {
-        return dragging;
-    }
-
-    public void setDragging(boolean dragging) {
-        this.dragging = dragging;
-    }
 }

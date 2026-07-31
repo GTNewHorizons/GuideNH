@@ -15,15 +15,22 @@ import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class DiamondAnnotation extends OverlayAnnotation {
 
     public static final ResourceLocation TEXTURE = new ResourceLocation("guidenh", "textures/guide/diamond.png");
 
     public static final int SIZE = 16;
 
+    @Getter
     private final Vector3f pos;
+    @Getter
     private final ColorValue color;
     private final ColorValue outerColor;
+    @Getter
+    @Setter
     private boolean alwaysOnTop;
 
     public DiamondAnnotation(Vector3f pos, ColorValue color) {
@@ -31,22 +38,6 @@ public class DiamondAnnotation extends OverlayAnnotation {
         this.color = color;
         this.outerColor = new ConstantColor(0xFFCCCCCC);
         this.alwaysOnTop = false;
-    }
-
-    public Vector3f getPos() {
-        return pos;
-    }
-
-    public ColorValue getColor() {
-        return color;
-    }
-
-    public boolean isAlwaysOnTop() {
-        return alwaysOnTop;
-    }
-
-    public void setAlwaysOnTop(boolean alwaysOnTop) {
-        this.alwaysOnTop = alwaysOnTop;
     }
 
     @Override

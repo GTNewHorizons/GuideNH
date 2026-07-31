@@ -126,10 +126,31 @@ function layoutImageAnnotations(root) {
     const y = Number(annotation.dataset.sourceY || 0);
     const width = Number(annotation.dataset.sourceWidth || 1);
     const height = Number(annotation.dataset.sourceHeight || 1);
-    annotation.style.left = `${(x / image.naturalWidth) * 100}%`;
-    annotation.style.top = `${(y / image.naturalHeight) * 100}%`;
-    annotation.style.width = `${(width / image.naturalWidth) * 100}%`;
-    annotation.style.height = `${(height / image.naturalHeight) * 100}%`;
+    const cropWidth = Number(image.dataset.cropWidth || image.naturalWidth || 1);
+    const cropHeight = Number(image.dataset.cropHeight || image.naturalHeight || 1);
+    annotation.style.left = `${(x / cropWidth) * 100}%`;
+    annotation.style.top = `${(y / cropHeight) * 100}%`;
+    annotation.style.width = `${(width / cropWidth) * 100}%`;
+    annotation.style.height = `${(height / cropHeight) * 100}%`;
+  }
+}
+
+function layoutCroppedFloatingImage(image) {
+  const cropX = Number(image.dataset.cropX || 0);
+  const cropY = Number(image.dataset.cropY || 0);
+  const cropWidth = Number(image.dataset.cropWidth || image.naturalWidth || 1);
+  const cropHeight = Number(image.dataset.cropHeight || image.naturalHeight || 1);
+  const scaleX = Number(image.dataset.scaleX || 1);
+  const scaleY = Number(image.dataset.scaleY || 1);
+  image.style.position = "absolute";
+  image.style.left = `${-cropX * scaleX}px`;
+  image.style.top = `${-cropY * scaleY}px`;
+  image.style.width = `${image.naturalWidth * scaleX}px`;
+  image.style.height = `${image.naturalHeight * scaleY}px`;
+  const wrapper = image.closest(".guide-floating-image-wrap");
+  if (wrapper instanceof HTMLElement) {
+    wrapper.style.width = `${cropWidth * scaleX}px`;
+    wrapper.style.height = `${cropHeight * scaleY}px`;
   }
 }
 
@@ -140,9 +161,17 @@ function installImageAnnotations(root) {
       continue;
     }
     if (image.complete) {
+      if (image.dataset.cropWidth) {
+        layoutCroppedFloatingImage(image);
+      }
       layoutImageAnnotations(root);
     } else {
-      image.addEventListener("load", () => layoutImageAnnotations(root), { once: true });
+      image.addEventListener("load", () => {
+        if (image.dataset.cropWidth) {
+          layoutCroppedFloatingImage(image);
+        }
+        layoutImageAnnotations(root);
+      }, { once: true });
     }
   }
   window.addEventListener("resize", () => layoutImageAnnotations(root), { passive: true });

@@ -20,7 +20,6 @@ public class EntityNameProvider implements AutocompleteProvider {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public List<AutocompleteCandidate> provide(AutocompleteContext ctx, int limit) {
         String partial = ctx.getPartialText()
             .toLowerCase();

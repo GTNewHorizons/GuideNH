@@ -15,12 +15,16 @@ import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFence
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytCodeBlock;
+import com.hfstudio.guidenh.guide.document.block.LytMermaidFlowchart;
 import com.hfstudio.guidenh.guide.document.block.LytMermaidMindmap;
 import com.hfstudio.guidenh.guide.internal.csv.CsvTableParser;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguage;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockLanguageDetector;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeCompiler;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidMindmapParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
+import com.hfstudio.guidenh.guide.internal.mermaid.MermaidSourceExtractor;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
@@ -41,7 +45,7 @@ public class PreCompiler extends BlockTagCompiler {
         // Extract code text from children — should be a single MdAstText child
         String codeText = "";
         var children = el.children();
-        if (!children.isEmpty() && children.get(0) instanceof MdAstText text) {
+        if (!children.isEmpty() && children.getFirst() instanceof MdAstText text) {
             codeText = text.value;
         }
 
@@ -71,7 +75,7 @@ public class PreCompiler extends BlockTagCompiler {
 
         // Mermaid
         if ("mermaid".equals(language.id())) {
-            LytMermaidMindmap mermaidBlock = tryCompileMermaidMindmap(codeText);
+            LytBlock mermaidBlock = compileMermaid(codeText);
             if (mermaidBlock != null) {
                 parent.append(mermaidBlock);
                 return;
@@ -92,8 +96,6 @@ public class PreCompiler extends BlockTagCompiler {
         }
         parent.append(codeBlock);
     }
-
-    // ---- CSV code block compilation ----
 
     private LytBlock compileCsvCodeBlock(PageCompiler compiler, String source, @Nullable String meta) {
         List<List<String>> rows = CsvTableParser.parse(source);
@@ -153,7 +155,7 @@ public class PreCompiler extends BlockTagCompiler {
                 continue;
             }
             if (Character.isWhitespace(ch) && !inQuotes) {
-                if (current.length() > 0) {
+                if (!current.isEmpty()) {
                     tokens.add(current.toString());
                     current.setLength(0);
                 }
@@ -161,7 +163,7 @@ public class PreCompiler extends BlockTagCompiler {
             }
             current.append(ch);
         }
-        if (current.length() > 0) {
+        if (!current.isEmpty()) {
             tokens.add(current.toString());
         }
         return tokens;
@@ -181,25 +183,50 @@ public class PreCompiler extends BlockTagCompiler {
     @Desugar
     private record CsvFenceMeta(boolean header, List<Integer> widthHints) {}
 
-    // ---- Mermaid ----
+    private @Nullable LytBlock compileMermaid(String source) {
+        String normalized = MermaidSourceExtractor.normalize(source);
+        if (normalized.isEmpty()) {
+            return null;
+        }
 
-    private @Nullable LytMermaidMindmap tryCompileMermaidMindmap(String source) {
+        MermaidDiagramType diagramType = MermaidDiagramType.detect(normalized);
+
+        return switch (diagramType) {
+            case MINDMAP -> compileMermaidMindmap(normalized);
+            case FLOWCHART -> compileMermaidFlowchart(normalized);
+            case UNKNOWN -> compileMermaidUnknown(normalized);
+        };
+    }
+
+    private @Nullable LytMermaidMindmap compileMermaidMindmap(String normalized) {
         try {
-            String normalized = MermaidMindmapParser.normalize(source);
-            LytMermaidMindmap block = new LytMermaidMindmap(MermaidMindmapParser.parse(normalized), normalized);
+            LytMermaidMindmap block = new LytMermaidMindmap(MindmapParser.parse(normalized), normalized);
             GuideDebugLog
-                .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid runtime block ({} chars)", normalized.length());
+                .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid mindmap block ({} chars)", normalized.length());
             return block;
         } catch (IllegalArgumentException e) {
-            GuideDebugLog.error(
-                "[GuideNH] [PreCompiler] Failed to parse fenced Mermaid runtime block from source: {}",
-                source,
-                e);
+            GuideDebugLog
+                .error("[GuideNH] [PreCompiler] Failed to parse fenced Mermaid mindmap block: {}", normalized, e);
             return null;
         }
     }
 
-    // ---- Static helpers (copied from PageCompiler) ----
+    private LytMermaidFlowchart compileMermaidFlowchart(String normalized) {
+        var document = FlowchartParser.parse(normalized);
+        LytMermaidFlowchart block = new LytMermaidFlowchart(document, normalized);
+        GuideDebugLog
+            .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid flowchart stub ({} chars)", normalized.length());
+        return block;
+    }
+
+    private LytCodeBlock compileMermaidUnknown(String normalized) {
+        LytCodeBlock codeBlock = new LytCodeBlock();
+        codeBlock.setCodeContent("mermaid", normalized);
+        codeBlock.setLanguageDisplayName("Mermaid (stub)");
+        GuideDebugLog
+            .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid unknown stub ({} chars)", normalized.length());
+        return codeBlock;
+    }
 
     private static boolean isFileTreeFence(@Nullable String fenceLanguage) {
         if (fenceLanguage == null) {

@@ -5,6 +5,8 @@ import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 public class GuidebookSceneLayerSelection {
 
     public enum Mode {
@@ -13,7 +15,9 @@ public class GuidebookSceneLayerSelection {
         EACH
     }
 
+    @Getter
     private final Mode mode;
+    @Getter
     private final Set<Integer> visibleLayers;
     @Nullable
     private final Integer singleExportLayer;
@@ -46,14 +50,6 @@ public class GuidebookSceneLayerSelection {
 
     public boolean shouldRenderAllFaces() {
         return mode != Mode.ALL;
-    }
-
-    public Mode getMode() {
-        return mode;
-    }
-
-    public Set<Integer> getVisibleLayers() {
-        return visibleLayers;
     }
 
     @Nullable

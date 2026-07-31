@@ -11,6 +11,7 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideLocalizedPageSourceResolver {
 
@@ -38,11 +39,21 @@ public class GuideLocalizedPageSourceResolver {
      */
     public static ParsedGuidePage parseFrontmatterOnly(String sourcePack, String language, String contentRootFolder,
         ResourceLocation pageId, byte[] fileBytes) {
-        return PageCompiler.parseFrontmatterOnly(
-            sourcePack,
-            language,
-            pageId,
-            resolve(language, contentRootFolder, pageId, fileBytes, null).source());
+        long t0 = System.nanoTime();
+        String resolvedSource = resolve(language, contentRootFolder, pageId, fileBytes, null).source();
+        long t1 = System.nanoTime();
+        ParsedGuidePage result = PageCompiler.parseFrontmatterOnly(sourcePack, language, pageId, resolvedSource);
+        long t2 = System.nanoTime();
+        long totalUs = (t2 - t0) / 1000;
+        if (totalUs > 5_000) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [PageSourceResolver] parseFrontmatterOnly {} resolve={}us parse={}us total={}us",
+                pageId,
+                (t1 - t0) / 1000,
+                (t2 - t1) / 1000,
+                totalUs);
+        }
+        return result;
     }
 
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation pageId,
@@ -57,17 +68,30 @@ public class GuideLocalizedPageSourceResolver {
 
     public static ResolvedGuidePageSource resolve(String language, String contentRootFolder, ResourceLocation pageId,
         byte[] fileBytes, @Nullable String localizedSourceOverride) {
+        long t0 = System.nanoTime();
         String langKey = buildLangKey(contentRootFolder, pageId);
         String localizedSource = hasText(localizedSourceOverride) ? decodeNewlines(localizedSourceOverride)
             : findLocalizedPageSource(langKey, language);
+        long t1 = System.nanoTime();
         String fallbackSource = new String(fileBytes, StandardCharsets.UTF_8);
+        long t2 = System.nanoTime();
         if (localizedSource == null || localizedSource.isEmpty()) {
             return new ResolvedGuidePageSource(fallbackSource, false, null);
         }
-        return new ResolvedGuidePageSource(
-            GuideLocalizedFrontmatterMerger.merge(fallbackSource, localizedSource),
-            true,
-            langKey);
+        String merged = GuideLocalizedFrontmatterMerger.merge(fallbackSource, localizedSource);
+        long t3 = System.nanoTime();
+        long totalUs = (t3 - t0) / 1000;
+        if (totalUs > 2_000) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [PageSourceResolver] resolve {} i18nLookup={}us newString={}us merge={}us total={}us langKey={}",
+                pageId,
+                (t1 - t0) / 1000,
+                (t2 - t1) / 1000,
+                (t3 - t2) / 1000,
+                totalUs,
+                langKey);
+        }
+        return new ResolvedGuidePageSource(merged, true, langKey);
     }
 
     public static String buildLangKey(String contentRootFolder, ResourceLocation pageId) {

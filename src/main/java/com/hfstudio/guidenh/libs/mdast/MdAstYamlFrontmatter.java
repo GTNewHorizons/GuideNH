@@ -23,7 +23,7 @@ public class MdAstYamlFrontmatter extends MdAstNode implements MdAstAnyContent {
     }
 
     @Override
-    protected void readJson(JsonObject jsonObject) throws IOException {
+    protected void readJson(JsonObject jsonObject) {
         value = readJsonString(jsonObject, "value", "");
     }
 

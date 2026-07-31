@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -12,7 +10,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class ListCompiler extends BlockTagCompiler {
 
-    private static final Set<String> TAG_NAMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("ul", "ol")));
+    private static final Set<String> TAG_NAMES = Set.of("ul", "ol");
 
     @Override
     public Set<String> getTagNames() {
