@@ -76,6 +76,16 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
     private int sourceDepthPx;
     private int sourceRefHeightPx;
 
+    /**
+     * Total icon insets (2px per side) applied by
+     * {@code GuideLatexRenderer.setInsets(2,2,2,2)} to every measured icon and
+     * the calibration "x". Removed from the width/height before the scaling
+     * ratio so the fixed padding does not distort the scale once the target is
+     * the (smaller) body x-height; the same insets are re-added scaled by the
+     * ratio as display padding.
+     */
+    private static final int LATEX_INSET_PX = 4;
+
     public LytLatexBlock(String formula, int fillColorArgb, float sourceScale, float userScale,
         @Nullable GuideTooltip tooltip, LatexVerticalAlign valign, int offsetX, int offsetY) {
         this(formula,
@@ -126,13 +136,14 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
             return;
         }
         int lineHeight = GuideText.lineHeight(null);
-        formulaDisplayH = scaleSourceMetricCeil(sourceHeightPx, lineHeight);
-        formulaDisplayW = scaleSourceMetricCeil(sourceWidthPx, lineHeight);
+        float scaleFactor = inlineScaleFactor();
+        formulaDisplayH = scaleSourceMetricCeil(sourceHeightPx, scaleFactor);
+        formulaDisplayW = scaleSourceMetricCeil(sourceWidthPx, scaleFactor);
         // baselineAscent must also be computed here — the Java layout pre-pass
         // has been removed (Rust is sole geometry authority), so computeLayout()
         // is never called. The Rust inline post-pass uses this value as param
         // (align=1) to anchor the formula's math baseline at the text baseline.
-        int depthDisplay = scaleSourceMetricRound(sourceDepthPx, lineHeight);
+        int depthDisplay = scaleSourceDepthRound(sourceDepthPx, scaleFactor);
         int alignOffset = switch (valign) {
             case CENTER -> (lineHeight - formulaDisplayH) / 2;
             case BOTTOM -> lineHeight - formulaDisplayH;
@@ -153,8 +164,9 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         }
 
         int lineHeight = context.getLineHeight(null);
-        formulaDisplayH = scaleSourceMetricCeil(sourceHeightPx, lineHeight);
-        formulaDisplayW = scaleSourceMetricCeil(sourceWidthPx, lineHeight);
+        float scaleFactor = inlineScaleFactor();
+        formulaDisplayH = scaleSourceMetricCeil(sourceHeightPx, scaleFactor);
+        formulaDisplayW = scaleSourceMetricCeil(sourceWidthPx, scaleFactor);
 
         int alignOffset = switch (valign) {
             case CENTER -> (lineHeight - formulaDisplayH) / 2;
@@ -162,17 +174,14 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
             case BASELINE -> {
                 // Align the formula's math baseline with the text baseline.
                 //
-                // Both calibrateRefHeight() and measureSize() apply the same Insets value,
-                // so the bottom-inset term B cancels out in the algebra:
+                // The depth is scaled by the same content-only scale factor s
+                // (inlineScaleFactor) as the display height, so the anchor
+                // offset follows the same algebra as before the target change:
                 //
-                // text_baseline = (refH - B) * lineHeight / refH
-                // formula_ascent = (size[1] - B - size[2]) * lineHeight * userScale / refH
-                // alignOffset = text_baseline - formula_ascent
-                // = (lineHeight - displayH) + size[2] * lineHeight * userScale / refH
-                // = (lineHeight - displayH) + depthDisplay
+                // alignOffset = lineHeight - displayH + depthDisplay
                 //
                 // For depth-zero formulas (size[2]==0) this is identical to BOTTOM.
-                int depthDisplay = scaleSourceMetricRound(sourceDepthPx, lineHeight);
+                int depthDisplay = scaleSourceDepthRound(sourceDepthPx, scaleFactor);
                 yield lineHeight - formulaDisplayH + depthDisplay;
             }
             default -> 0; // TOP
@@ -206,12 +215,57 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         return sourceWidthPx > 0 && sourceHeightPx > 0;
     }
 
-    private int scaleSourceMetricCeil(int sourceMetric, int lineHeight) {
-        return (int) Math.max(1, Math.ceil((double) sourceMetric * lineHeight * userScale / sourceRefHeightPx));
+    /**
+     * Body x-height the inline formula calibrates against: a source "x" must
+     * display at the surrounding text's x-height, not at the full line height
+     * (the previous lineHeight target made inline formulas ≈ lineHeight /
+     * x-height ≈ 1.43× larger than body text).
+     *
+     * <p>The inline flow carries no style context (the line height is queried
+     * with a {@code null} style, i.e. font scale 1), so the target is
+     * {@link GuideText#ascent()} at the base font scale.
+     */
+    private float inlineCalibrationTarget() {
+        return GuideText.ascent();
     }
 
-    private int scaleSourceMetricRound(int sourceMetric, int lineHeight) {
-        return (int) Math.round((double) sourceMetric * lineHeight * userScale / sourceRefHeightPx);
+    /**
+     * Display pixels per source-content pixel for this block: the calibration
+     * "x" content height (sourceRefHeightPx minus the 2px icon insets applied
+     * by {@code GuideLatexRenderer#setInsets(2,2,2,2)}) maps to the body
+     * x-height × userScale. Keeping the insets out of the ratio avoids the
+     * fixed +4px padding distorting the scale once the target is the smaller
+     * x-height — with the old full-height ratio a simple inline formula's box
+     * matched the line height instead of the x-height (≈ lineHeight / x-height
+     * ≈ 1.43× too large).
+     */
+    private float inlineScaleFactor() {
+        float contentRefHeight = Math.max(1f, sourceRefHeightPx - LATEX_INSET_PX);
+        return inlineCalibrationTarget() * userScale / contentRefHeight;
+    }
+
+    /**
+     * Scales an icon metric (width/height, insets included) to display pixels:
+     * the insets are removed before the ratio so only the glyph content is
+     * scaled to the x-height target, then the fixed display padding (the same
+     * insets re-added in display pixels) keeps the blit rect from clipping the
+     * glyph. Because the padding is scaled by the same factor it is ≈ 0 at the
+     * x-height target, so it does not re-inflate the box.
+     */
+    private int scaleSourceMetricCeil(int sourceMetric, float scaleFactor) {
+        int content = Math.max(0, sourceMetric - LATEX_INSET_PX);
+        int displayPadding = (int) Math.round(LATEX_INSET_PX * scaleFactor);
+        return Math.max(1, (int) Math.ceil(content * scaleFactor) + displayPadding);
+    }
+
+    /**
+     * Scales the typographic depth to display pixels. The depth is already
+     * content-only (jlatexmath's {@code TeXIcon#getTrueIconDepth()} excludes
+     * the icon insets), so it is scaled on the same basis as the width/height
+     * content, keeping the math-baseline algebra consistent.
+     */
+    private int scaleSourceDepthRound(int sourceDepthPx, float scaleFactor) {
+        return (int) Math.round(sourceDepthPx * scaleFactor);
     }
 
     @Override
