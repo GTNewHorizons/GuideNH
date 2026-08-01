@@ -21,12 +21,15 @@ public class LytHeading extends LytParagraph {
 
     /**
      * Per-depth vertical margins: the space before a heading grows with its
-     * level (H1 16 / H2 12 / H3 10 / H4+ 8), giving big section titles room
-     * to "breathe" before the following text. Index 0 is the depth-agnostic
-     * fallback used when no valid depth is assigned.
+     * level (H1 20 / H2 18 / H3 14 / H4 12 / H5-H6 10) while the space after
+     * stays small (H1-H2 8 / H3 6 / H4+ 5). The strong top/bottom ratio makes
+     * a heading "breathe" above while binding it to its own content below
+     * (taffy adds margins, no collapsing), so parent-child and sibling heading
+     * gaps stay distinguishable. Index 0 is the depth-agnostic fallback used
+     * when no valid depth is assigned.
      */
-    private static final int[] HEADING_MARGIN_TOP = { 5, 16, 12, 10, 8, 8, 8 };
-    private static final int[] HEADING_MARGIN_BOTTOM = { 5, 8, 7, 6, 5, 5, 5 };
+    private static final int[] HEADING_MARGIN_TOP = { 5, 20, 18, 14, 12, 10, 10 };
+    private static final int[] HEADING_MARGIN_BOTTOM = { 5, 8, 8, 6, 5, 5, 5 };
 
     public void setDepth(int depth) {
         this.depth = depth;
@@ -59,9 +62,15 @@ public class LytHeading extends LytParagraph {
         }
     }
 
+    /**
+     * Fixed gap between the lowest glyph bottom and the separator line, so the
+     * rule never grazes descender tails (g/p/y) regardless of how far they
+     * hang below the baseline.
+     */
+    private static final int HEADING_SEPARATOR_GAP = 5;
+
     private void emitSeparator(PrimitiveCollector c, int argb) {
-        var bounds = getBounds();
-        int sepY = bounds.bottom() - 1;
+        int sepY = separatorY();
         int[] ext = separatorExtent();
         c.emit(new GuideRenderPrimitive.FillRect(ext[0], sepY, ext[1], 1, argb));
     }
@@ -78,10 +87,34 @@ public class LytHeading extends LytParagraph {
     }
 
     private void emitSeparatorLegacy(RenderContext context, SymbolicColor color) {
-        var bounds = getBounds();
-        int sepY = bounds.bottom() - 1;
+        int sepY = separatorY();
         int[] ext = separatorExtent();
         context.fillRect(ext[0], sepY, ext[1], 1, color);
+    }
+
+    /**
+     * The separator's vertical position: a fixed gap below the actual lowest
+     * glyph bottom (baseline + real descender extent), decoupled from the
+     * block bounds bottom whose distance to the text depends on the font's
+     * ascent/descent allocation. Falls back to the block bottom when no glyph
+     * run is available (legacy/no-Rust path).
+     */
+    private int separatorY() {
+        var data = getGlyphData();
+        if (data != null) {
+            float maxBottom = Float.NEGATIVE_INFINITY;
+            boolean found = false;
+            for (var run : data.runs()) {
+                for (var g : run.glyphs()) {
+                    maxBottom = Math.max(maxBottom, g.y() + g.h());
+                    found = true;
+                }
+            }
+            if (found) {
+                return Math.round(maxBottom) + HEADING_SEPARATOR_GAP;
+            }
+        }
+        return getBounds().bottom() - 1;
     }
 
     /**

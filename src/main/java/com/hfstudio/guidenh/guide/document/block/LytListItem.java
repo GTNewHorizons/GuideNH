@@ -15,7 +15,13 @@ public class LytListItem extends LytVBox {
 
     public static final int LEVEL_MARGIN = 10;
     private static final int BULLET_SIZE = 2;
-    private static final int BULLET_X_OFFSET = 5;
+    /**
+     * Shared marker gutter: both the unordered bullet and the ordered number
+     * right-align to this line (bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET),
+     * so every marker hangs from one vertical line and the text starts uniformly
+     * at bounds.x() + LEVEL_MARGIN (the item's content box via paddingLeft).
+     */
+    private static final int MARKER_GUTTER_OFFSET = 2;
 
     private final ResolvedTextStyle style = DefaultStyles.BODY_TEXT.mergeWith(DefaultStyles.BASE_STYLE);
 
@@ -79,14 +85,21 @@ public class LytListItem extends LytVBox {
             int width = GuideText.measureWidth(label, style);
             var bounds = getBounds();
             var markerLine = getMarkerLineBounds();
-            int x = bounds.x() + LEVEL_MARGIN - width - 2;
+            // Right-aligned to the shared marker gutter: the number's right
+            // edge lands on bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET,
+            // the same hanging line the unordered bullet right-aligns to.
+            int x = bounds.x() + LEVEL_MARGIN - width - MARKER_GUTTER_OFFSET;
             c.emit(new GuideRenderPrimitive.DrawText(label, x, markerLine.y(), style));
         } else {
             var bounds = getBounds();
             var markerLine = getMarkerLineBounds();
             int bulletY = markerLine.y() + (markerLine.height() - BULLET_SIZE) / 2;
             int argb = SymbolicColor.BODY_TEXT.resolve(LightDarkMode.current());
-            c.emit(new GuideRenderPrimitive.FillRect(bounds.x() + BULLET_X_OFFSET, bulletY, BULLET_SIZE, BULLET_SIZE, argb));
+            // Right-align the bullet to the same hanging line as ordered
+            // numbers (LEVEL_MARGIN - MARKER_GUTTER_OFFSET), so both marker
+            // types share one gutter and text starts uniformly at LEVEL_MARGIN.
+            int bulletX = bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET - BULLET_SIZE;
+            c.emit(new GuideRenderPrimitive.FillRect(bulletX, bulletY, BULLET_SIZE, BULLET_SIZE, argb));
         }
     }
 
@@ -97,13 +110,16 @@ public class LytListItem extends LytVBox {
             var width = context.getWidth(label, style);
             var bounds = getBounds();
             var markerLine = getMarkerLineBounds(context);
-            var x = bounds.x() + LEVEL_MARGIN - width - 2;
+            // Same shared-gutter anchor as computePrimitives: right edge at
+            // bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET.
+            var x = bounds.x() + LEVEL_MARGIN - width - MARKER_GUTTER_OFFSET;
             context.drawText(label, x, markerLine.y(), style);
         } else {
             var bounds = getBounds();
             var markerLine = getMarkerLineBounds(context);
             int bulletY = markerLine.y() + (markerLine.height() - BULLET_SIZE) / 2;
-            context.fillRect(bounds.x() + BULLET_X_OFFSET, bulletY, BULLET_SIZE, BULLET_SIZE, SymbolicColor.BODY_TEXT);
+            int bulletX = bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET - BULLET_SIZE;
+            context.fillRect(bulletX, bulletY, BULLET_SIZE, BULLET_SIZE, SymbolicColor.BODY_TEXT);
         }
         super.render(context);
     }

@@ -12,6 +12,13 @@ public class LytWidthBox extends LytVBox {
 
     public void setPreferredWidth(int preferredWidth) {
         this.preferredWidth = Math.max(0, preferredWidth);
+        // preferredWidth <= 0 means "no fixed width constraint": signal full
+        // width through the fullWidth mechanism (same pattern as
+        // LytDetailsBlock/LytCodeBlock) so LayoutStyleExtractor serializes
+        // size_w=100% and the authoritative Rust layout stretches this box to
+        // the available content width. (Rust has no knowledge of preferredWidth
+        // itself — serializing 0 as auto would shrink-wrap to content width.)
+        setFullWidth(this.preferredWidth <= 0);
     }
 
     @Override

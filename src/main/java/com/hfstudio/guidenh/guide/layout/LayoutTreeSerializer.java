@@ -12,6 +12,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.ContentAlign;
 import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytBox;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytGuiSprite;
 import com.hfstudio.guidenh.guide.document.block.LytImage;
@@ -19,6 +20,7 @@ import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
 import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
+import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
@@ -260,7 +262,7 @@ public class LayoutTreeSerializer {
     }
 
     private void flattenTree(LytNode node) {
-        flattenTree(node, MarginAccum.ZERO, 0, null);
+        flattenTree(node, MarginAccum.ZERO, 0, null, 0f);
     }
 
     /**
@@ -275,9 +277,17 @@ public class LayoutTreeSerializer {
      *                        alignment intent is recorded on this ancestor so
      *                        its style can be adjusted (align_items → Center/End)
      *                        during serialization.
+     * @param listPadAccum    horizontal padding (px) accumulated from every
+     *                        ancestor {@link LytListItem}'s paddingLeft. Blocks
+     *                        nested inside list items lay out in the item's
+     *                        content box AFTER this padding; table column widths
+     *                        are constrained by it so a table does not "escape"
+     *                        the item indentation by laying out at the full
+     *                        document width (which would force the shrink-wrapped
+     *                        list wider than the page content box).
      */
     private void flattenTree(LytNode node, MarginAccum inherited, int pendingFloatSide,
-        @javax.annotation.Nullable LytBlock nearestAncestor) {
+        @javax.annotation.Nullable LytBlock nearestAncestor, float listPadAccum) {
         if (shouldEliminate(node)) {
             // Add this node's margins to the inherited accumulator
             MarginAccum total = inherited;
@@ -310,7 +320,7 @@ public class LayoutTreeSerializer {
                 }
             }
             for (LytNode child : node.getChildren()) {
-                flattenTree(child, total, childSide, nearestAncestor);
+                flattenTree(child, total, childSide, nearestAncestor, listPadAccum);
             }
             return;
         }
@@ -337,11 +347,19 @@ public class LayoutTreeSerializer {
                 // removed, so layoutColumns is called here with the available
                 // width from the serialize() parameter. (x=0 is safe — column.x
                 // is overwritten by Rust.)
+                // List-item containment: a table nested inside LytListItems lays
+                // out in the item's CONTENT box, which starts after the item's
+                // paddingLeft. listPadAccum carries the total padding of all
+                // ancestor list items, so the pinned column widths sum to the
+                // item content width instead of the full document width — a
+                // full-width table would otherwise force the shrink-wrapped
+                // list wider than the page content box (the table "escapes"
+                // the item indentation).
                 // R4-18 fix: When ALL columns have declared preferred widths,
                 // use the sum of declared widths as the table's natural width
                 // instead of the full available width. This allows tables to
                 // shrink to content width when not explicitly set to fullWidth.
-                int availW = Math.round(serializeAvailWidth - 2.0f * CONTENT_PAD);
+                int availW = Math.max(1, Math.round(serializeAvailWidth - 2.0f * CONTENT_PAD - listPadAccum));
                 boolean allDeclared = table.getColumns().stream().allMatch(c -> c.getPreferredWidth() > 0);
                 if (allDeclared && !table.isFullWidth()) {
                     int sumPreferred = table.getColumns().stream().mapToInt(c -> c.getPreferredWidth()).sum();
@@ -455,8 +473,32 @@ public class LayoutTreeSerializer {
         }
 
         LytBlock ancestorForChildren = (node instanceof LytBlock b) ? b : nearestAncestor;
+        // Descend with the accumulated list-item padding: a LytListItem's
+        // paddingLeft is applied to its own children's content box, so it is
+        // added for the subtree below it.
+        float childListPad = listPadAccum;
+        if (node instanceof LytListItem item) {
+            childListPad += readListItemPaddingLeft(item);
+        }
         for (LytNode child : node.getChildren()) {
-            flattenTree(child, MarginAccum.ZERO, pendingFloatSide, ancestorForChildren);
+            flattenTree(child, MarginAccum.ZERO, pendingFloatSide, ancestorForChildren, childListPad);
+        }
+    }
+
+    /**
+     * Reads a {@link LytListItem}'s {@code paddingLeft} via reflection (the
+     * field is protected on {@link LytBox}, mirroring
+     * {@link LayoutStyleExtractor#readLytBoxPadding}). Falls back to
+     * {@link LytListItem#LEVEL_MARGIN} if the field is unreadable.
+     */
+    private static float readListItemPaddingLeft(LytListItem item) {
+        try {
+            var field = LytBox.class.getDeclaredField("paddingLeft");
+            field.setAccessible(true);
+            int pad = field.getInt(item);
+            return pad > 0 ? pad : LytListItem.LEVEL_MARGIN;
+        } catch (Exception e) {
+            return LytListItem.LEVEL_MARGIN;
         }
     }
 
