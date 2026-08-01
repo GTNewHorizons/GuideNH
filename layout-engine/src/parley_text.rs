@@ -380,7 +380,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
                     },
                     y: abs_y,
                     w: spec.width.max(1.0),
-                    h: spec.height.max(scaled * 1.45),
+                    h: spec.height.max(scaled * 1.55),
                     right: side == 2,
                 };
                 para_floats.push(fl);
@@ -436,7 +436,7 @@ pub fn shape_paragraph(parley: &mut ParleyFonts, req: &ShapeRequest) -> ParleySh
 
 fn push_defaults(b: &mut parley::RangedBuilder<SpanBrush>, scaled: f32, white_space: i8) {
     b.push_default(StyleProperty::FontSize(scaled));
-    b.push_default(StyleProperty::LineHeight(LineHeight::FontSizeRelative(1.45)));
+    b.push_default(StyleProperty::LineHeight(LineHeight::FontSizeRelative(1.55)));
     b.push_default(StyleProperty::FontFamily(FontFamily::Single(
         FontFamilyName::Generic(GenericFamily::SansSerif),
     )));
@@ -510,7 +510,7 @@ fn break_and_align(layout: &mut Layout<SpanBrush>, req: &ShapeRequest) {
     } else if req.floats.is_empty() {
         layout.break_all_lines(Some(req.max_width));
     } else {
-        let est_h = req.font_size * req.font_scale * 1.45;
+        let est_h = req.font_size * req.font_scale * 1.55;
         break_with_floats(layout, req, req.floats, est_h);
     }
     layout.align(

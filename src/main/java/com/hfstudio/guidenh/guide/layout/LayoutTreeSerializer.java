@@ -55,7 +55,7 @@ public class LayoutTreeSerializer {
                 new com.hfstudio.guidenh.guide.style.token.IntValue(1));
 
     /** Padding subtracted from available width for table column layout (matches Rust layout.rs:17). */
-    private static final int CONTENT_PAD = 5;
+    private static final int CONTENT_PAD = 14;
 
     /**
      * Minimum available width (px) for justified text. Parley's Justify has no

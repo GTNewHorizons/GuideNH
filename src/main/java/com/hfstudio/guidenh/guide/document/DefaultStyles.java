@@ -62,13 +62,13 @@ public class DefaultStyles {
         .color(ConstantColor.WHITE)
         .build();
     public static final TextStyle HEADING2 = TextStyle.builder()
-        .fontScale(1.3f)
+        .fontScale(1.4f)
         .bold(true)
         .font(null)
         .color(ConstantColor.WHITE)
         .build();
     public static final TextStyle HEADING3 = TextStyle.builder()
-        .fontScale(1.18f)
+        .fontScale(1.15f)
         .bold(true)
         .font(null)
         .color(ConstantColor.WHITE)

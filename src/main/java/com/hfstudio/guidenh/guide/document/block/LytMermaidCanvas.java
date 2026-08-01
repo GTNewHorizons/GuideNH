@@ -59,7 +59,7 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
      * width equals {@code contentWidth} — keeping node sizing identical to the
      * pre-Rust Java path (LytParagraph used to claim the full availableWidth).
      */
-    private static final int RUST_CONTENT_PAD = 5;
+    private static final int RUST_CONTENT_PAD = 14;
 
     private int contentOffsetX;
     private int contentOffsetY;
@@ -491,7 +491,7 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
      * <p>
      * <b>Coordinate system:</b> the FlatLayout/glyph coordinates come back
      * <b>relative to the subtree's serialized root</b> (the root sits at the
-     * engine's {@code CONTENT_PAD} inset — i.e. (5,5) for this subtree). Both
+     * engine's {@code CONTENT_PAD} inset — i.e. (14,14) for this subtree). Both
      * {@link #resolveBlockVisualBounds} and {@link #emitNodeContentPrimitives}
      * consume that same shifted space (the viewport origin subtracts
      * {@code visualBounds.x()/y()} while the block/glyph coordinates include

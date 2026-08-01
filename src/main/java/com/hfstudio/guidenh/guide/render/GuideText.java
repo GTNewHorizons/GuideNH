@@ -40,9 +40,9 @@ public final class GuideText {
 
     /** Base em size for guide body text (typography P1: 9 → 11). */
     public static final float BASE_FONT_SIZE = 11f;
-    /** Line height at scale 1 = BASE_FONT_SIZE × 1.45 (round(15.95) = 16;
-     * mirrored by parley_text.rs push_defaults FontSizeRelative(1.45)). */
-    public static final int BASE_LINE_HEIGHT = 16;
+    /** Line height at scale 1 = BASE_FONT_SIZE × 1.55 (round(17.05) = 17;
+     * mirrored by parley_text.rs push_defaults FontSizeRelative(1.55)). */
+    public static final int BASE_LINE_HEIGHT = 17;
 
     /**
      * Cache key includes the display pixel ratio: bitmaps are rasterized per
@@ -72,7 +72,7 @@ public final class GuideText {
         return Math.round(shape(text, style).width());
     }
 
-    /** Line height: 16 × fontScale (11px base × 1.45 line-height ratio). */
+    /** Line height: 17 × fontScale (11px base × 1.55 line-height ratio). */
     public static int lineHeight(@Nullable ResolvedTextStyle style) {
         float scale = style != null ? style.fontScale() : 1f;
         return Math.max(1, Math.round(BASE_LINE_HEIGHT * scale));

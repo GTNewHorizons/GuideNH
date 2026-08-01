@@ -13,8 +13,8 @@ use flatbuffers::FlatBufferBuilder;
 use taffy::prelude::*;
 
 /// Document content-box padding, matching the legacy synthetic root and the
-/// Java document padding (5px each side).
-const CONTENT_PAD: f32 = 5.0;
+/// Java document padding (14px each side).
+const CONTENT_PAD: f32 = 14.0;
 
 /// Compute the available horizontal lane (absolute x and width) for a block
 /// at the given absolute Y, consulting the float table.  If floats fully
@@ -832,7 +832,7 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
     // slant at draw time (MC §o parity; forwarding both would double-slant).
     let layout = font_system
         .parley
-        .layout_styled(text, scaled, 1.45, style.bold(), max_w);
+        .layout_styled(text, scaled, 1.55, style.bold(), max_w);
     let content_height = layout.height();
     let ascent = layout
         .lines()
@@ -888,7 +888,7 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
             width: max_x,
             height: content_height.max(1.0),
             ascent,
-            line_height: scaled * 1.45,
+            line_height: scaled * 1.55,
             glyphs: Some(glyphs_vec),
             bitmaps: Some(bitmaps_vec),
         },

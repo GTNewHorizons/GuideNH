@@ -77,7 +77,7 @@ public class FootnotePreprocessor {
         if (!result.isEmpty()) {
             result.append('\n');
         }
-        result.append("<FootnoteList width=\"220\">\n\n");
+        result.append("<FootnoteList width=\"0\">\n\n");
         result.append("## Footnotes\n\n");
         int index = 1;
         for (var entry : definitions.entrySet()) {
