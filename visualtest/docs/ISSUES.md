@@ -459,3 +459,23 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
 ### K6. R8 verdict
 
 2 regressions/defects fixed (mindmap height clamp, NodeContent inline positioning); ratchet integrated into screening (PF31, WORKFLOW Stage 3); confirmation round CLEAN. Corpus stable: visual screening shows no new problems; remaining items are documented known/STUCK/architectural. Cumulative R4-R8: 34 original R4 issues + R5-R8 findings resolved or categorized; the fix wave converged from ~5 defects/round (R5) to 2 (R6) to 1 (R7) to 2 ratchet-caught (R8) to 0 (confirmation).
+
+## L. Narrow-width (480) screening round (2026-08-02 ~01:00)
+
+**Motivation** (user-directed): all prior screening ran at width=900, but the typical guidebook content width is ~480 (mermaid precompute fallback comment: "typical page content width"). Width-dependent behaviors (wrapping, grid columns, table natural width, float reflow, mermaid viewport) had never been exercised at the real book width. (Related: PF29 test-width mismatch — the cjk/headings fixtures had to be lengthened to wrap at 900, a symptom of testing at an unrepresentative width.)
+
+**Render**: full corpus at width=480, scale=2 (PNG 960px), to `screenshots_narrow/`. 64/64 ok.
+
+**Geometric (--page-width 960)**: 3 findings = floats_multi sibling_intersection (fixture-expected). **No overflow_width at 480** — the layout adapts to book width without blocks exceeding the page width.
+
+**VLM ×4 findings — all adjudicated EXPECTED width-adaptive behavior (no real defects)**:
+- **mermaid/mindmap + node-content clipping** (conf 0.75-0.85): mindmap content wider than the 480 canvas → right subtree / runtime node clipped at the canvas edge (mid-word text truncation is pixel-clipping at the viewport boundary, not a wrap failure). This is the mermaid viewport model (fixed viewport + pan/zoom; the mindmap is height-clamped to 320 per R8 and width-clipped to page width). In the interactive book the user pans/zooms; the headless screenshot shows only the initial viewport. EXPECTED.
+- **floats/content-types floating table full-width** (conf 0.6): a wide floating CsvTable at 480 leaves no room for text to wrap beside it → text flows below. Standard float behavior (float too wide to wrap beside → text drops below). EXPECTED.
+- **meta/indexes category title ellipsis** (conf 0.85): long category title gracefully truncated with ellipsis ("Indexes (SubPages + Cate...") in the narrow column. Legitimate UI degradation. EXPECTED.
+- Known items re-confirmed: code_blocks P1, lists/rich N3, mermaid edge labels R3-13, R4-25 entities, scene low-confidence items.
+
+**Verdict**: the corpus adapts well to the real book width (480) — graceful wrapping, viewport clipping, float reflow, ellipsis truncation; no overflow, no broken layout. **No real defects at narrow width.**
+
+**Potential enhancement (not a defect)**: the mermaid mindmap uses a fixed viewport (clip + pan/zoom) at narrow width, while the flowchart has headless fit-to-view zoom (R4-37). Adding fit-to-view to the mindmap would make it consistent with the flowchart and show the full mindmap at narrow widths without initial clipping. Recorded as a candidate feature task.
+
+**Workflow change**: multi-width screening added — screen at BOTH the test width (900) AND the representative book width (480) to catch width-dependent issues (see WORKFLOW Stage 3 / USAGE). Expected narrow-width behaviors documented here so future screeners don't re-flag them.
