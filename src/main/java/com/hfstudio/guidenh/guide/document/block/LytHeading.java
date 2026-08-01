@@ -22,14 +22,17 @@ public class LytHeading extends LytParagraph {
     /**
      * Per-depth vertical margins: the space before a heading grows with its
      * level (H1 20 / H2 18 / H3 14 / H4 12 / H5-H6 10) while the space after
-     * stays small (H1-H2 8 / H3-H6 7). The strong top/bottom ratio makes a
+     * stays small (H1-H2 6 / H3-H6 7; the top two were trimmed 8→6 so the
+     * separator-to-body gap lands ≈10-12px combined with
+     * {@link #HEADING_SEPARATOR_GAP}). The strong top/bottom ratio makes a
      * heading "breathe" above while binding it to its own content below
      * (taffy adds margins, no collapsing), so parent-child and sibling heading
-     * gaps stay distinguishable. Index 0 is the depth-agnostic fallback used
-     * when no valid depth is assigned.
+     * gaps stay distinguishable. Consecutive headings collapse instead of
+     * summing — see {@link #collapseBottomForAdjacent()}. Index 0 is the
+     * depth-agnostic fallback used when no valid depth is assigned.
      */
     private static final int[] HEADING_MARGIN_TOP = { 5, 20, 18, 14, 12, 10, 10 };
-    private static final int[] HEADING_MARGIN_BOTTOM = { 5, 8, 8, 7, 7, 7, 7 };
+    private static final int[] HEADING_MARGIN_BOTTOM = { 5, 6, 6, 7, 7, 7, 7 };
 
     public void setDepth(int depth) {
         this.depth = depth;
@@ -46,6 +49,22 @@ public class LytHeading extends LytParagraph {
         int idx = (depth >= 1 && depth <= 6) ? depth : 0;
         setMarginTop(HEADING_MARGIN_TOP[idx]);
         setMarginBottom(HEADING_MARGIN_BOTTOM[idx]);
+    }
+
+    /**
+     * CSS-style margin collapse for consecutive headings. Taffy sums adjacent
+     * margins without collapsing, so two headings with no body between them
+     * would keep both the first's bottom and the second's top margin (H3 7 +
+     * H4 12 = 19px — the "hole" between consecutive headings). When this
+     * heading is directly followed by another heading (detected at compile time
+     * in {@code HeadingCompiler}), its bottom margin is zeroed so the pair
+     * keeps only the following heading's top margin. Because every depth's top
+     * margin in {@link #HEADING_MARGIN_TOP} is ≥ every shallower heading's
+     * bottom margin in {@link #HEADING_MARGIN_BOTTOM}, this equals the CSS
+     * {@code max()} collapse rule. Heading→body spacing is unaffected.
+     */
+    public void collapseBottomForAdjacent() {
+        setMarginBottom(0);
     }
 
     @Override
