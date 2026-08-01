@@ -57,6 +57,17 @@ public class LayoutTreeSerializer {
     /** Padding subtracted from available width for table column layout (matches Rust layout.rs:17). */
     private static final int CONTENT_PAD = 5;
 
+    /**
+     * Minimum available width (px) for justified text. Parley's Justify has no
+     * inter-word spacing cap: below ~60 chars per line it stretches the leftover
+     * space into wide word caves ("rivers"), so narrow columns fall back to left
+     * alignment (ragged right) instead. Wide columns keep the
+     * {@link #TEXT_JUSTIFY} theme token's decision, and per-paragraph
+     * center/right alignment is unaffected — it outranks justify in Rust's
+     * resolve_alignment (parley_text.rs).
+     */
+    private static final float JUSTIFY_MIN_WIDTH = 550f;
+
     private final List<LytBlock> flatNodes = new ArrayList<>();
     private final Map<LytNode, Integer> nodeToIndex = new IdentityHashMap<>();
     /** Margins accumulated from eliminated ancestors, applied during style extraction. */
@@ -156,10 +167,18 @@ public class LayoutTreeSerializer {
         }
 
         int nodesVec = fbb.createVectorOfTables(nodeOffsets);
-        byte justify = (byte) com.hfstudio.guidenh.guide.style.token.GuideThemeManager.instance()
-            .active()
-            .int_(TEXT_JUSTIFY)
-            .value();
+        // Narrow-column typography: justify is only enabled when the available
+        // width is wide enough for ~60 chars/line; below that the stretched
+        // inter-word spaces form rivers/word caves, so the paragraph falls back
+        // to left alignment. Per-paragraph alignment (center/right) is untouched:
+        // Rust's resolve_alignment already ranks it above justify.
+        byte justify = 0;
+        if (availWidth >= JUSTIFY_MIN_WIDTH) {
+            justify = (byte) com.hfstudio.guidenh.guide.style.token.GuideThemeManager.instance()
+                .active()
+                .int_(TEXT_JUSTIFY)
+                .value();
+        }
         int inputOff = LayoutInput.createLayoutInput(fbb, availWidth, visualScale, renderScale, justify, nodesVec);
         fbb.finish(inputOff);
         return fbb.sizedByteArray();

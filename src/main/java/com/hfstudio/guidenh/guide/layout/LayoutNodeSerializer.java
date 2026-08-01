@@ -160,10 +160,12 @@ public final class LayoutNodeSerializer {
 
     private static int buildTextData(FlatBufferBuilder fbb, LytBlock block, List<InlineRef> inlineRefs) {
         String text = "";
-        // Base em size matches the legacy MC font cell (FONT_HEIGHT = 9); the
-        // guide's line height is FONT_HEIGHT+1 = 10, which text.rs mirrors as
-        // size × 10/9. fontScale (headings etc.) scales both proportionally.
-        float fontSize = 9f;
+        // Base em size mirrors GuideText.BASE_FONT_SIZE = 11; line height is
+        // size × 1.45 (≈ BASE_LINE_HEIGHT = 16 at scale 1) across every Rust
+        // path (parley_text.rs shape_paragraph, layout.rs emitText, measure.rs
+        // empty-paragraph fallback). fontScale (headings etc.) scales both
+        // proportionally: Rust computes scaled = fontSize × fontScale.
+        float fontSize = 11f;
         boolean bold = false;
         boolean italic = false;
         float fontScale = 1f;
@@ -200,7 +202,8 @@ public final class LayoutNodeSerializer {
             if (resolved != null) {
                 // The ResolvedTextStyle doesn't carry fontSize directly;
                 // default to paragraph's font data or whatever is available.
-                // For now the Rust side uses font_size * font_scale * 1.4 fallback.
+                // The Rust side uses font_size * font_scale * 1.45 for the
+                // empty-paragraph line-height fallback (see measure.rs).
                 bold = resolved.bold();
                 italic = resolved.italic();
                 if (resolved.fontScale() != 1f) {

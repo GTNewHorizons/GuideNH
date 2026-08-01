@@ -19,6 +19,15 @@ public class LytHeading extends LytParagraph {
         setMarginBottom(5);
     }
 
+    /**
+     * Per-depth vertical margins: the space before a heading grows with its
+     * level (H1 16 / H2 12 / H3 10 / H4+ 8), giving big section titles room
+     * to "breathe" before the following text. Index 0 is the depth-agnostic
+     * fallback used when no valid depth is assigned.
+     */
+    private static final int[] HEADING_MARGIN_TOP = { 5, 16, 12, 10, 8, 8, 8 };
+    private static final int[] HEADING_MARGIN_BOTTOM = { 5, 8, 7, 6, 5, 5, 5 };
+
     public void setDepth(int depth) {
         this.depth = depth;
         var style = switch (depth) {
@@ -31,12 +40,18 @@ public class LytHeading extends LytParagraph {
             default -> DefaultStyles.BODY_TEXT;
         };
         setStyle(style);
+        int idx = (depth >= 1 && depth <= 6) ? depth : 0;
+        setMarginTop(HEADING_MARGIN_TOP[idx]);
+        setMarginBottom(HEADING_MARGIN_BOTTOM[idx]);
     }
 
     @Override
     public void computePrimitives(PrimitiveCollector c) {
         super.computePrimitives(c);
 
+        // Separators stay reserved for the top two levels: the monotonic size
+        // ladder + bold white now distinguish H3-H6 from body text without a
+        // rule line (judgment per P2 typography pass — H3 gets no fainter line).
         if (depth == 1) {
             emitSeparator(c, SymbolicColor.HEADER1_SEPARATOR.resolve(LightDarkMode.current()));
         } else if (depth == 2) {

@@ -314,7 +314,7 @@ pub(crate) fn measure_text(
                     all_markers.push(m);
                 }
                 let sh = if shaped.content_height <= 0.0 {
-                    font_size * font_scale * (10.0 / 9.0)
+                    font_size * font_scale * 1.45
                 } else {
                     shaped.content_height
                 };
@@ -347,7 +347,7 @@ pub(crate) fn measure_text(
             let shaped = crate::parley_text::shape_paragraph(&mut fs.parley, &req);
             let mut h = shaped.content_height;
             if h <= 0.0 {
-                h = font_size * font_scale * (10.0 / 9.0);
+                h = font_size * font_scale * 1.45;
             }
             if !shaped.markers.is_empty() {
                 h += inline_line_growth(nodes, idx, &shaped.markers);

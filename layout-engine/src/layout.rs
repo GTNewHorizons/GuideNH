@@ -832,7 +832,7 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
     // slant at draw time (MC §o parity; forwarding both would double-slant).
     let layout = font_system
         .parley
-        .layout_styled(text, scaled, 10.0 / 9.0, style.bold(), max_w);
+        .layout_styled(text, scaled, 1.45, style.bold(), max_w);
     let content_height = layout.height();
     let ascent = layout
         .lines()
@@ -888,7 +888,7 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
             width: max_x,
             height: content_height.max(1.0),
             ascent,
-            line_height: scaled * (10.0 / 9.0),
+            line_height: scaled * 1.45,
             glyphs: Some(glyphs_vec),
             bitmaps: Some(bitmaps_vec),
         },

@@ -48,33 +48,48 @@ public class DefaultStyles {
         .color(SymbolicColor.CRAFTING_RECIPE_TYPE)
         .build();
 
+    /**
+     * Heading size ladder — strictly monotonic decreasing (H1 > H2 > ... > H6)
+     * so section depth reads from glyph size alone. All headings are bold and
+     * white to stay clearly distinct from the regular gray body text
+     * ({@link SymbolicColor#BODY_TEXT} #d2d2d2), compensating for the low
+     * contrast between title white and body gray.
+     */
     public static final TextStyle HEADING1 = TextStyle.builder()
-        .fontScale(1.3f)
+        .fontScale(1.5f)
         .bold(true)
         .font(null)
         .color(ConstantColor.WHITE)
         .build();
     public static final TextStyle HEADING2 = TextStyle.builder()
-        .fontScale(1.1f)
+        .fontScale(1.3f)
+        .bold(true)
         .font(null)
+        .color(ConstantColor.WHITE)
         .build();
     public static final TextStyle HEADING3 = TextStyle.builder()
-        .fontScale(1f)
+        .fontScale(1.18f)
+        .bold(true)
         .font(null)
+        .color(ConstantColor.WHITE)
         .build();
     public static final TextStyle HEADING4 = TextStyle.builder()
-        .fontScale(1.1f)
+        .fontScale(1.08f)
         .bold(true)
         .font(UNIFORM_FONT)
+        .color(ConstantColor.WHITE)
         .build();
     public static final TextStyle HEADING5 = TextStyle.builder()
         .fontScale(1f)
         .bold(true)
         .font(UNIFORM_FONT)
+        .color(ConstantColor.WHITE)
         .build();
     public static final TextStyle HEADING6 = TextStyle.builder()
-        .fontScale(1f)
+        .fontScale(0.95f)
+        .bold(true)
         .font(UNIFORM_FONT)
+        .color(ConstantColor.WHITE)
         .build();
 
     public static final TextStyle SEARCH_RESULT_HIGHLIGHT = TextStyle.builder()

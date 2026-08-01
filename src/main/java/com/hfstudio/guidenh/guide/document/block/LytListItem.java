@@ -78,8 +78,9 @@ public class LytListItem extends LytVBox {
             String label = cachedOrderedNumber + ".";
             int width = GuideText.measureWidth(label, style);
             var bounds = getBounds();
+            var markerLine = getMarkerLineBounds();
             int x = bounds.x() + LEVEL_MARGIN - width - 2;
-            c.emit(new GuideRenderPrimitive.DrawText(label, x, bounds.y(), style));
+            c.emit(new GuideRenderPrimitive.DrawText(label, x, markerLine.y(), style));
         } else {
             var bounds = getBounds();
             var markerLine = getMarkerLineBounds();
@@ -95,8 +96,9 @@ public class LytListItem extends LytVBox {
             String label = cachedOrderedNumber + ".";
             var width = context.getWidth(label, style);
             var bounds = getBounds();
+            var markerLine = getMarkerLineBounds(context);
             var x = bounds.x() + LEVEL_MARGIN - width - 2;
-            context.drawText(label, x, bounds.y(), style);
+            context.drawText(label, x, markerLine.y(), style);
         } else {
             var bounds = getBounds();
             var markerLine = getMarkerLineBounds(context);

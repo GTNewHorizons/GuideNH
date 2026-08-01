@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import lombok.Getter;
@@ -13,6 +14,8 @@ public class LytList extends LytVBox {
     public LytList(boolean ordered, int start) {
         this.ordered = ordered;
         this.start = start;
+        setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
+        setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
     }
 
     public int getDepth() {

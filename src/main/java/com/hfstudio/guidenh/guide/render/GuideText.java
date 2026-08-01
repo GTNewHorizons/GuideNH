@@ -38,10 +38,11 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
  */
 public final class GuideText {
 
-    /** Base em size matching the legacy MC font cell (FONT_HEIGHT = 9). */
-    public static final float BASE_FONT_SIZE = 9f;
-    /** Line height at scale 1: FONT_HEIGHT + 1 = 10 (mirrored by text.rs). */
-    public static final int BASE_LINE_HEIGHT = 10;
+    /** Base em size for guide body text (typography P1: 9 → 11). */
+    public static final float BASE_FONT_SIZE = 11f;
+    /** Line height at scale 1 = BASE_FONT_SIZE × 1.45 (round(15.95) = 16;
+     * mirrored by parley_text.rs push_defaults FontSizeRelative(1.45)). */
+    public static final int BASE_LINE_HEIGHT = 16;
 
     /**
      * Cache key includes the display pixel ratio: bitmaps are rasterized per
@@ -71,7 +72,7 @@ public final class GuideText {
         return Math.round(shape(text, style).width());
     }
 
-    /** Line height: 10 × fontScale (matches the legacy guide model). */
+    /** Line height: 16 × fontScale (11px base × 1.45 line-height ratio). */
     public static int lineHeight(@Nullable ResolvedTextStyle style) {
         float scale = style != null ? style.fontScale() : 1f;
         return Math.max(1, Math.round(BASE_LINE_HEIGHT * scale));

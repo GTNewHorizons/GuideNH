@@ -23,6 +23,7 @@ public class TableCompiler extends BlockTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         LytTable table = new LytTable();
+        table.setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
         table.setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
 
         // Parse align attribute back to list
