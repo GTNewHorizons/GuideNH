@@ -75,7 +75,7 @@ Expected: Inline LaTeX aligns with CJK baseline; display formulas are centered; 
 
 ## Build Preview
 
-A `GameScene` with diamond blocks and a beacon is annotated with `DiamondAnnotation` markers. Below the scene, a `mermaid` flowchart diagram is shown (known issue: renders placeholder box only).
+A `GameScene` with diamond blocks and a beacon is annotated with `DiamondAnnotation` markers. Below the scene, a `mermaid` flowchart diagram is shown (renders fully — placeholder issue resolved in R4-R7 fix waves).
 
 <GameScene width="320" height="160" zoom={4} interactive={true}>
   <Block id="minecraft:diamond_block" x="-1" z="-1" />
@@ -91,7 +91,7 @@ A `GameScene` with diamond blocks and a beacon is annotated with `DiamondAnnotat
   </DiamondAnnotation>
 </GameScene>
 
-Below is a flowchart of the build process. Known issue: renders placeholder box only.
+Below is a flowchart of the build process. Renders fully (placeholder issue resolved).
 
 ```mermaid
 flowchart LR
@@ -100,7 +100,7 @@ flowchart LR
   C --> D[Activate]
 ```
 
-Expected: Scene renders diamond blocks at corners, beacon in center, two diamond annotations with distinct colors; mermaid shows placeholder box per known issue.
+Expected: Scene renders diamond blocks at corners, beacon in center, two diamond annotations with distinct colors; mermaid renders the full flowchart (placeholder issue resolved).
 
 ## Summary
 
@@ -109,7 +109,7 @@ The following task list tracks verification items for this mixed syntax stress p
 - [x] Floating image with table wrapping
 - [x] ContentTabs containing code and chart
 - [ ] Inline LaTeX with CJK alignment verified
-- [x] Mermaid placeholder rendered
+- [x] Mermaid flowchart rendered fully (placeholder issue resolved)
 - [ ] GameScene annotations match expected positions
 
 For more details on rendering, consult the [main guide](https://example.com/guidenh). A reference footnote[^stress] collects observations.

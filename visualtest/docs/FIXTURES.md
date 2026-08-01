@@ -354,6 +354,6 @@ The engine has no paginator. Former `pagination/` renamed to `overflow/`.
 | Inline LaTeX line drop | `latex/inline.md` |
 | ImportStructure materialisation failure at `scene/import.md` recipes.md::gamescene:40 | `scenes/import.md` |
 | Missing `example_structure.snbt` | `scenes/import.md` (supplementary test resource) |
-| Mermaid placeholder box (**confirmed real engine issue**: in-game and offline consistent, placeholder box only; suspected ELK/async render chain migration loss) | `mermaid/*.md` |
+| ~~Mermaid placeholder box~~ (**RESOLVED** R4-R7: mermaid now renders fully in-game and offline; was ELK/async render chain migration loss, fixed across mermaid fix waves) | `mermaid/*.md` |
 | JSX `<table align>` empty-column layout crash (**real engine crash**: `NoSuchElementException` at `LytTable.layoutColumns` `LytTable.java:176`; tr/td JSX parses to 0 columns; suspected semantic conflict between `BlockTagCompiler.align` proxy and `TableCompiler.align`) | `layout/align.md` JSX table cases disabled in text, to be restored after fix |
 | Batch OOM (**infrastructure issue**: ~page 42 of 63 triggers Java heap space, NEI-worker thread first; 41/63 succeeded then consecutive failures; suspected cross-page resource leaking. Mitigation: batches ≤40 pages) | Full corpus split into two batches |

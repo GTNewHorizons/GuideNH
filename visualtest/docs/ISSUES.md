@@ -412,3 +412,21 @@ Render 64/64 (2 batches, no OOM — PF28 mitigation: orphan-kill + sleep between
 ### I2. Round 6 verdict
 
 LaTeX P1 fixed; 2 real defects (R6-1, R6-2) found+fixed+verified+reviewed; 3 VLM false-regression claims exonerated by objective measurement; PF30 recorded. Carried: R4-25 STUCK (Angelica entities), R4-36 horizontal scroll axis, code_blocks P1 fixture defect, scenes low-confidence items (annotations thin lines/text order, effects particles — likely false positives given session's scene-VLM unreliability), stress_mixed fixture-stale mermaid note. Commits: 9a684d16 (LaTeX) → 1f33f1b0 (R6-2) → 13eecb47 (R6-1).
+
+## J. Round 7 (2026-08-01 ~22:00-23:00)
+
+**Render**: 64/64. One transient native crash (NTSTATUS 0xC000041D fatal user callback) on a 4-page verify render — succeeded on clean retry; not code-related (same pages rendered fine in the full batch; layout gate passed). PF28 mitigation held for the full batch (no OOM).
+
+**Geometric**: 3 findings = floats_multi sibling_intersection (fixture-expected, consistent all rounds).
+
+**R7-1 → NEW REGRESSION found + FIXED** (12b0b826). VLM (conf 0.85) flagged latex/display formulas left-aligned (x=5) instead of centered (INVARIANT 水平居中). Objective bounds bisection: centered (x≈400) in 2026-07-29 renders, left (x=5) from 2026-07-30 — regression introduced by **b52e2ab1 (R4-18 table natural-width fix)**, which removed `|| block instanceof LytFloatAwareBlock` from LayoutStyleExtractor.needFullWidth. That clause (added by A6) forced the FloatAware wrapper around display LaTeX to full-width so the inner align_self=Center had room to center; removing it shrink-wrapped the wrapper to formula width, making Center geometrically void. Fix: restore a NARROW rule — `(block instanceof LytFloatAwareBlock fb && fb.getInner() instanceof LytLatexDisplayBlock)` → full-width — without restoring the blanket FloatAware clause (which would re-break R4-18 natural-width tables). Verified: all 11 display formulas centered (center≈450, x≈(890-w)/2+5); tables/metadata natural width (203/354/253, R4-18 preserved); csv full-width is its own pre-existing design (doesn't match the narrow condition). Reviewer ACCEPT (anti-pattern 4/4 clean). NOTE: this regression survived R5/R6 screening because those rounds' LaTeX checks focused on inline scale (P1) and didn't re-check display centering; the ratchet has a `centered tol=3` assertion that should have caught it — worth checking why it didn't fire (assertion may target a different node or be disabled).
+
+**Recurring VLM misreads re-confirmed (PF26/29/30)**: text/cjk-mixed + text/headings "single-line not wrapping" (conf 0.6) — bounds confirm CJK i=13 h=19 (2 lines), headings wrapped; 3rd occurrence of this exact misread (screener sees full-width first line, misses subsequent lines).
+
+**Recurring low-confidence scene item (deferred)**: scenes/effects PlaySound scene viewport reported empty/black (conf 0.7, R6+R7). R5-5 fixed the error overlay (scene now mounts); whether the anchor note_block renders in that specific scene is a secondary scene-rendering subtlety (PlaySound is non-visual; test is "render existence only"). Grouped with other deferred scene items (annotations thin lines/text order, effects particles) — scene VLM findings have been unreliable this session (PF26/28); recommend focused confirmation if pursued.
+
+**Known carried**: code_blocks L113 P1 (fixture), lists/rich N3 table-in-list full-width (R4-18-residual), mermaid edge labels R3-13 (low), R4-25 entities STUCK (Angelica), R4-36 horizontal scroll axis.
+
+**Fixture maintenance (documentation discipline)**: stress_mixed.md + FIXTURES.md mermaid "placeholder box only" notes updated to RESOLVED — mermaid renders fully in-game and offline (confirmed across R6/R7 mermaid pages all clean; the ELK/async migration loss was fixed in the R4 mermaid waves).
+
+**Round 7 verdict**: 1 real regression (R7-1 display centering) found via VLM + objective bisection, fixed at root (R4-18 collateral), verified, reviewed. Corpus otherwise stable post-R6 global text changes (BreakWord/NoWrap/LaTeX scale all hold at corpus scale). Commits: 12b0b826 (R7-1) + fixture/docs maintenance.
