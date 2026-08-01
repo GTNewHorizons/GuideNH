@@ -479,3 +479,28 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
 **Potential enhancement (not a defect)**: the mermaid mindmap uses a fixed viewport (clip + pan/zoom) at narrow width, while the flowchart has headless fit-to-view zoom (R4-37). Adding fit-to-view to the mindmap would make it consistent with the flowchart and show the full mindmap at narrow widths without initial clipping. Recorded as a candidate feature task.
 
 **Workflow change**: multi-width screening added — screen at BOTH the test width (900) AND the representative book width (480) to catch width-dependent issues (see WORKFLOW Stage 3 / USAGE). Expected narrow-width behaviors documented here so future screeners don't re-flag them.
+
+## M. Typography Optimization Arc — qwen8-night 8-round free critique (2026-08-02 ~01:00-05:45)
+
+**Origin** (user-directed): after the narrow-width (480) screening round exposed the width gap, the user directed a typography optimization pass — qwen8-night freely critiques typography (no prescribed direction) each round, executor implements, iterate until qwen8-night judges typography good. Goal: 排版让人舒服 (comfortable reading).
+
+**Comfort score progression**: 5.5 → 6.5 → 5.5 → 6.5 → 7 → 7 → 8 → **9/10**. Round 8 verdict: **调优类空间已尽，排版优化良好** (tuning space exhausted; remaining items are feature gaps, not comfort tuning).
+
+**Implemented (7 rounds of tuning)**:
+- **Base metrics**: font size 9→11, line-height ratio 1.11→1.55 (parley FontSizeRelative + layout.rs/measure.rs literals + GuideText.BASE_LINE_HEIGHT 16→17), page margins CONTENT_PAD 5→14 (Rust + Java mirrors LayoutTreeSerializer/LytMermaidCanvas).
+- **Heading hierarchy**: monotonic fontScale ladder (H1 1.5 / H2 1.4 / H3 1.15 / H4 1.08 / H5 1.0 / H6 0.95, all bold white), graded margins (top>bottom, higher=bigger), consecutive-heading margin collapse (HeadingCompiler adjacent detection → collapseBottomForAdjacent, H3→H4 gap 19→12px), separator descender gap (+5px, no descender clipping), H1/H2 separator-to-body spacing tightened.
+- **Lists**: unified marker hanging-line (ordered + bullet right-align to same gutter), marker↔text gap 2→5, bullet size 2→3, list/table block margins, table column width constrained to list-item content box.
+- **Footnote**: full-width (LytWidthBox preferredWidth≤0 → fullWidth, reusing the code-block/details full-width path; separator line full-width).
+- **Table**: header row flag + 2px emphasized bottom separator (header bold was pre-existing).
+- **Links/inline semantics**: links default underlined (not just hover), SoundLink gold + no-underline (de-homogenized from nav links), KeyBind bold + brighten (key affordance).
+
+**Verified each round**: gate TOTAL ISSUES: 0, ratchet 24/24 green (all typography changes preserve geometric assertions), qwen8-night free re-review at book width 480.
+
+**Feature gaps documented (need new engine capability, NOT comfort tuning)**:
+- **F1 wavy underline / emphasis dots not rendered**: the Rust glyph-run main path models only underline/strikethrough/highlight (schema TextStyle has no wavy/dotted fields; emit_decorations kind 0/1/2 only). The Java drawTextDecorations has wavy/dots drawing (params tuned in round 5) but is a DEAD PATH for the main Rust rendering. Fix requires: fbs schema wavy/dotted fields → Rust SpanStyleInfo + emit_decorations kind 4/5 → Java consumption reusing the tuned drawing. (This is the H1 gap from the narrow-width round.)
+- **F2 inline key-cap box**: kbd/KeyBind need a bordered+rounded+padded inline box primitive (currently bold text only). Affects `<kbd>`/`<KeyBind>`.
+- **Optional semantic**: PlayerName has no distinctive style (readable via context, not a comfort issue).
+
+**Method note**: qwen8-night free critique (no prescribed direction) was the driver; it correctly distinguished tuning (parameters/rhythm) from feature gaps (missing engine capability) and flagged when tuning space was exhausted. Two misperceptions were caught by objective bounds verification (list-table indentation was already fixed; italic line-start "shift" was inherent italic slant). The wavy/dots Java-path tuning (round 5) had no effect because the main rendering path is Rust — a reminder to verify which rendering path is live before tuning its parameters.
+
+**Verdict**: typography optimization reached 9/10, tuning space exhausted. Remaining work is feature implementation (F1/F2), not tuning.
