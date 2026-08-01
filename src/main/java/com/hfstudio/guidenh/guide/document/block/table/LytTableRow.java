@@ -9,6 +9,9 @@ import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * A row in {@link LytTable}. Contains {@link LytTableCell}.
  * <p>
@@ -20,6 +23,16 @@ public class LytTableRow extends LytBlock {
 
     private final LytTable table;
     private final List<LytTableCell> cells = new ArrayList<>();
+
+    /**
+     * Whether this row is the table's header row. Set by the table compilers
+     * (GFM markdown tables treat the first row as the header). The table
+     * renderer draws a thicker separator below it to visually distinguish the
+     * header from data rows.
+     */
+    @Getter
+    @Setter
+    private boolean header;
 
     public LytTableRow(LytTable table) {
         this.table = table;

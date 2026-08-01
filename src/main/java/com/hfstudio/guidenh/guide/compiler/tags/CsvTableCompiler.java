@@ -113,6 +113,7 @@ public class CsvTableCompiler extends BlockTagCompiler {
             var row = table.appendRow();
             if (firstRow && header) {
                 row.modifyStyle(style -> style.bold(true));
+                row.setHeader(true);
             }
             for (int columnIndex = 0; columnIndex < values.size(); columnIndex++) {
                 if (rowIndex == 0 && columnIndex < widthHints.size() && widthHints.get(columnIndex) > 0) {

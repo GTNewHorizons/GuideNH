@@ -14,14 +14,14 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 public class LytListItem extends LytVBox {
 
     public static final int LEVEL_MARGIN = 10;
-    private static final int BULLET_SIZE = 2;
+    private static final int BULLET_SIZE = 3;
     /**
      * Shared marker gutter: both the unordered bullet and the ordered number
      * right-align to this line (bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET),
      * so every marker hangs from one vertical line and the text starts uniformly
      * at bounds.x() + LEVEL_MARGIN (the item's content box via paddingLeft).
      */
-    private static final int MARKER_GUTTER_OFFSET = 2;
+    private static final int MARKER_GUTTER_OFFSET = 5;
 
     private final ResolvedTextStyle style = DefaultStyles.BODY_TEXT.mergeWith(DefaultStyles.BASE_STYLE);
 

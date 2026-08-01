@@ -19,6 +19,13 @@ public class LytTable extends LytBlock {
      * Width of border around cells.
      */
     public static final int CELL_BORDER = 1;
+
+    /**
+     * Thickness of the horizontal separator drawn below the header row.
+     * Deliberately thicker than the 1px data-row separators so the header row
+     * is visually distinct.
+     */
+    public static final int HEADER_SEPARATOR_THICKNESS = 2;
     private final List<LytTableRow> rows = new ArrayList<>();
 
     @Getter
@@ -81,7 +88,7 @@ public class LytTable extends LytBlock {
                     row.getBounds()
                         .bottom(),
                     bounds.width(),
-                    1,
+                    row.isHeader() ? HEADER_SEPARATOR_THICKNESS : 1,
                     SymbolicColor.TABLE_BORDER.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
         }
         // Cells are children — collectFrom traversal handles them
@@ -104,7 +111,7 @@ public class LytTable extends LytBlock {
                 row.getBounds()
                     .bottom(),
                 bounds.width(),
-                1,
+                row.isHeader() ? HEADER_SEPARATOR_THICKNESS : 1,
                 SymbolicColor.TABLE_BORDER);
         }
 

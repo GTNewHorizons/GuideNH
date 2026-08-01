@@ -50,6 +50,7 @@ public class TableCompiler extends BlockTagCompiler {
                 LytTableRow row = table.appendRow();
                 if (firstRow) {
                     row.modifyStyle(style -> style.bold(true));
+                    row.setHeader(true);
                     firstRow = false;
                 }
 

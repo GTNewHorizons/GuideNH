@@ -22,14 +22,14 @@ public class LytHeading extends LytParagraph {
     /**
      * Per-depth vertical margins: the space before a heading grows with its
      * level (H1 20 / H2 18 / H3 14 / H4 12 / H5-H6 10) while the space after
-     * stays small (H1-H2 8 / H3 6 / H4+ 5). The strong top/bottom ratio makes
-     * a heading "breathe" above while binding it to its own content below
+     * stays small (H1-H2 8 / H3-H6 7). The strong top/bottom ratio makes a
+     * heading "breathe" above while binding it to its own content below
      * (taffy adds margins, no collapsing), so parent-child and sibling heading
      * gaps stay distinguishable. Index 0 is the depth-agnostic fallback used
      * when no valid depth is assigned.
      */
     private static final int[] HEADING_MARGIN_TOP = { 5, 20, 18, 14, 12, 10, 10 };
-    private static final int[] HEADING_MARGIN_BOTTOM = { 5, 8, 8, 6, 5, 5, 5 };
+    private static final int[] HEADING_MARGIN_BOTTOM = { 5, 8, 8, 7, 7, 7, 7 };
 
     public void setDepth(int depth) {
         this.depth = depth;

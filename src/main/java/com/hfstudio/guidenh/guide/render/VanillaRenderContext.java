@@ -270,37 +270,45 @@ public class VanillaRenderContext implements RenderContext {
             Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
         }
         if (hasWavyUnderline) {
-            // Draw a 2px-tall sine-like zig-zag using 1x1 rects: pattern of 4 px period.
+            // M3: the old wavy was 1x1px with ±1 amplitude — swallowed by the
+            // dark page background. Use a ±2px, 2px-thick 8-phase sine, tinted
+            // lighter than the body gray.
+            int waveColor = brightenDecorationColor(color);
             for (int i = 0; i < decoratedWidth; i++) {
-                int phase = i & 3; // 0,1,2,3
-                int dy = (phase == 0 || phase == 2) ? 0 : (phase == 1 ? -1 : 1);
-                Gui.drawRect(x + i, decorationY + dy, x + i + 1, decorationY + dy + 1, color);
+                int dy = (int) Math.round(Math.sin(i * Math.PI / 4.0) * 2.0);
+                Gui.drawRect(x + i, decorationY + dy, x + i + 1, decorationY + dy + 2, waveColor);
             }
         }
         if (hasDottedUnderline) {
-            // Center a single 2x2 dot under each rendered character cell.
-            int cursor = 0;
-            boolean bold = style.bold();
-            boolean visibleGlyphSeen = false;
-            int len = drawn.length();
-            for (int i = 0; i < len; i++) {
-                char c = drawn.charAt(i);
-                if (GuideFontCompat.isFormattingCodeStart(drawn, i)) {
-                    bold = GuideFontCompat.determineBold(bold, drawn.charAt(i + 1));
-                    i++;
-                    continue;
-                }
-                float advance = GuideFontCompat.getRenderedAdvance(fontRenderer, c, bold, visibleGlyphSeen);
-                int cw = Math.round(advance * scale);
-                if (cw <= 0) {
-                    continue;
-                }
-                int dotX = x + cursor + Math.max(0, (cw - 2) / 2);
-                Gui.drawRect(dotX, decorationY, dotX + 2, decorationY + 2, color);
-                cursor += cw;
-                visibleGlyphSeen = true;
+            // M3: one 2x2 dot per character was too sparse; draw 3x3 dots on a
+            // fixed 4px cadence, tinted lighter than the body gray.
+            int dotColor = brightenDecorationColor(color);
+            int dotSize = 3;
+            int step = 4;
+            for (int dotX = x + step / 2; dotX + dotSize <= x + decoratedWidth; dotX += step) {
+                Gui.drawRect(dotX, decorationY - 1, dotX + dotSize, decorationY + dotSize - 1, dotColor);
             }
         }
+    }
+
+    /**
+     * Wavy/dots decorations are thin; a faint tint is swallowed by the page
+     * background (M3). In dark mode blend the text color toward white so the
+     * decoration reads against the body gray; light mode keeps the original
+     * dark color, which already contrasts on the light page.
+     */
+    private int brightenDecorationColor(int color) {
+        if (lightDarkMode != LightDarkMode.DARK_MODE) {
+            return color;
+        }
+        int a = color & 0xFF000000;
+        int r = (color >>> 16) & 0xFF;
+        int g = (color >>> 8) & 0xFF;
+        int b = color & 0xFF;
+        r = r + (255 - r) * 3 / 4;
+        g = g + (255 - g) * 3 / 4;
+        b = b + (255 - b) * 3 / 4;
+        return a | (r << 16) | (g << 8) | b;
     }
 
     @Override
