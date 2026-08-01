@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
+import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.tags.KeyBindTagCompiler;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.internal.host.EventType;
@@ -29,7 +30,8 @@ public class KeyBindScript implements LytScript {
             var mapping = KeyBindTagCompiler.findMapping(bindId);
             String display = mapping != null ? KeyBindTagCompiler.describeMapping(mapping) : "[" + bindId + "]";
             placeholder.setText(display);
-            placeholder.setStyle(TextStyle.EMPTY);
+            placeholder.setStyle(
+                TextStyle.builder().bold(true).color(new ConstantColor(0xFFE8EDF5)).build());
             ctx.replace(placeholder);
         }
     }
