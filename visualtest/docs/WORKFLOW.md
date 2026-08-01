@@ -41,13 +41,21 @@ page stem, newest timestamp); `overflow_width` (x+w > page_width+2); `zero_size`
 legitimate); `sibling_intersection` (float-geometry pairs and ancestor-descendant
 containment excluded with code-level justification, see PF19).
 
-Ratchet assertions () **MUST run as part of every screening round**, alongside
+Ratchet assertions (`assert_bounds.py`) **MUST run as part of every screening round**, alongside
 the geometric and VLM passes — not only as the final Stage 6 gate. The ratchet's mechanical
-assertions (, , , ) catch layout regressions that VLM
+assertions (`centered`, `max_height`, `exists`, `count`) catch layout regressions that VLM
 screening misses: the R7-1 display-centering and R8 mindmap-height regressions both survived
 multiple VLM rounds yet were caught immediately once the ratchet ran (see PF31). Run:
-;
-any  line is a confirmed regression to fix before adjudicating VLM findings.
+`py -3 tools/visual-inspection/assert_bounds.py --shots <dir> --assertions visualtest/ratchet/assertions.json`;
+any `not ok` line is a confirmed regression to fix before adjudicating VLM findings.
+
+**Multi-width screening**: screen at BOTH the test width (900) AND the representative book
+width (~480, the typical guidebook content width) — width-dependent behaviors (wrapping, grid
+columns, table natural width, float reflow, mermaid viewport clipping) only manifest at the width
+you test (see PF29 and ISSUES §L). Render the narrow pass to a separate output dir
+(`screenshots_narrow`) and run geometric with `--page-width 960` (480×2). Expected narrow-width
+behaviors (mermaid viewport clip + pan/zoom, wide-float text-below, ellipsis title truncation) are
+documented in ISSUES §L — do not re-flag them as defects.
 
 Agent-assisted loop (round 3+): VLM findings are cross-checked by a structure
 analyst agent (cursor-screener — **no image modality, see PF18**; it verifies each
