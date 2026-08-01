@@ -156,8 +156,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         layout = buildLayout(context, safeWidth);
         int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
         int viewportHeight = preferredHeight > 0
-            ? Math.max(48, Math.max(preferredHeight, desiredHeight))
-            : Math.max(MIN_HEIGHT, desiredHeight);
+            ? Math.max(48, preferredHeight)
+            : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
         int viewportWidth = Math.max(1, safeWidth - CANVAS_PADDING * 2);
         int innerViewportHeight = Math.max(1, viewportHeight - CANVAS_PADDING * 2);
         restoreViewportAfterLayout(
@@ -190,8 +190,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         if (layout != null) {
             int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
             int newPreferredHeight = preferredHeight > 0
-                ? Math.max(48, Math.max(preferredHeight, desiredHeight))
-                : Math.max(MIN_HEIGHT, desiredHeight);
+                ? Math.max(48, preferredHeight)
+                : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
             preferredHeight = newPreferredHeight;
             int diagramWidth = layout.diagramWidth() + CANVAS_PADDING * 2;
             preferredWidth = diagramWidth;
@@ -242,8 +242,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         if (layout != null) {
             int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
             int expectedHeight = preferredHeight > 0
-                ? Math.max(48, Math.max(preferredHeight, desiredHeight))
-                : Math.max(MIN_HEIGHT, desiredHeight);
+                ? Math.max(48, preferredHeight)
+                : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
             if (bounds.height() != expectedHeight) {
                 GuideDebugLog.debugAlways(
                     "[GuideNH-Mermaid] afterExternalLayout correcting bounds height {} -> {}",
