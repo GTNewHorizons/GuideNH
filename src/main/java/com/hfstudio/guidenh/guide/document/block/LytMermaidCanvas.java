@@ -1,6 +1,9 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,7 +19,17 @@ import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.guide.layout.LayoutBridge;
+import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.layout.LayoutTreeSerializer;
+import com.hfstudio.guidenh.guide.layout.Layouts;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutResult;
+import com.hfstudio.guidenh.guide.render.GlyphRunData;
+import com.hfstudio.guidenh.guide.render.GlyphRunGroup;
+import com.hfstudio.guidenh.guide.render.GlyphRunHolder;
+import com.hfstudio.guidenh.guide.render.GuideGlyphAtlas;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -36,6 +49,17 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     private static final float MAX_ZOOM = 2.5f;
     static final ConstantColor PANEL_BACKGROUND = new ConstantColor(0x1A0C1117);
     static final ConstantColor PANEL_BORDER = new ConstantColor(0x66434C57);
+
+    /**
+     * Rust layout engine's document content-box padding (layout-engine
+     * {@code CONTENT_PAD}, layout.rs:17). The engine insets every serialized
+     * tree by this amount on all sides. A standalone NodeContent subtree
+     * serialized through {@link #layoutNodeContentWithRust} must therefore
+     * inflate its requested available width by 2×PAD so the inner content
+     * width equals {@code contentWidth} — keeping node sizing identical to the
+     * pre-Rust Java path (LytParagraph used to claim the full availableWidth).
+     */
+    private static final int RUST_CONTENT_PAD = 5;
 
     private int contentOffsetX;
     private int contentOffsetY;
@@ -451,6 +475,218 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     }
 
     // ---- primitives-path helpers for node content blocks ----
+
+    /**
+     * Lay out a Mermaid NodeContent root block through the Rust layout engine
+     * — the same serialize → measureLayout → writeback pipeline the main
+     * document uses ({@code LytDocument.createLayout}). This is required
+     * because NodeContent subtrees live off the document tree
+     * ({@code nodeContentBlocks}; {@link #getChildren()} is empty), so they
+     * never reach the document's Rust pass and their inline blocks keep a zero
+     * x-position (LytItemImage draws at {@code bounds.x()} → line start). A
+     * dedicated {@link LayoutTreeSerializer} + {@link LayoutBridge#measureLayout}
+     * pass runs Rust's inline post-pass on the subtree, which anchors each
+     * inline block at its paragraph marker's pen position and writes the real x
+     * back into its bounds.
+     * <p>
+     * <b>Coordinate system:</b> the FlatLayout/glyph coordinates come back
+     * <b>relative to the subtree's serialized root</b> (the root sits at the
+     * engine's {@code CONTENT_PAD} inset — i.e. (5,5) for this subtree). Both
+     * {@link #resolveBlockVisualBounds} and {@link #emitNodeContentPrimitives}
+     * consume that same shifted space (the viewport origin subtracts
+     * {@code visualBounds.x()/y()} while the block/glyph coordinates include
+     * the identical inset), so the existing viewport translation stays valid
+     * without any extra offset math.
+     * <p>
+     * Falls back to the Java manual layout ({@link #layoutContentSubtree}) when
+     * the native bridge is unavailable (font handle 0) or the measure pass
+     * fails, so NodeContent stays visible in environments without a loaded
+     * layout engine. Paragraph glyph runs are wiped before the pass so a failed
+     * pass never renders stale runs at outdated coordinates.
+     *
+     * @param context      layout context (font metrics + visual scale)
+     * @param block        the NodeContent root block (usually the LytVBox
+     *                     produced by {@code compileNodeContentBlock})
+     * @param contentWidth the content width used to lay the block out
+     */
+    protected void layoutNodeContentWithRust(LayoutContext context, LytBlock block, int contentWidth) {
+        LayoutContext localContext = new LayoutContext(context).withVisualScale(context.getVisualScale());
+        // Root's own Java bounds are meaningless (LytVBox.computeBoxLayout is a
+        // stub), but keep the call so the Java fallback sees the same
+        // preconditions as before.
+        block.layout(localContext, 0, 0, contentWidth);
+        clearGlyphRuns(block);
+        long fontHandle = LayoutBridge.getFontHandle();
+        if (fontHandle != 0) {
+            try {
+                var serializer = new LayoutTreeSerializer();
+                byte[] input = serializer.serialize(
+                    block,
+                    contentWidth + 2 * RUST_CONTENT_PAD,
+                    localContext.getVisualScale(),
+                    DisplayScale.scaleFactor());
+                byte[] result = LayoutBridge.measureLayout(fontHandle, input);
+                if (result.length > 0) {
+                    var flatResult = LayoutResult.getRootAsLayoutResult(ByteBuffer.wrap(result));
+                    // Upload unique glyph bitmaps to the shared atlas (keys are
+                    // content-stable, so repeated uploads are no-ops).
+                    var atlas = GuideGlyphAtlas.instance();
+                    int numBitmaps = flatResult.bitmapsLength();
+                    for (int bi = 0; bi < numBitmaps; bi++) {
+                        var bmp = flatResult.bitmaps(bi);
+                        if (bmp == null) continue;
+                        int w = (int) bmp.w();
+                        int h = (int) bmp.h();
+                        if (w <= 0 || h <= 0) continue;
+                        ByteBuffer rgbaBuf = bmp.rgbaAsByteBuffer();
+                        byte[] rgba = new byte[rgbaBuf.remaining()];
+                        rgbaBuf.get(rgba);
+                        atlas.upload(bmp.key(), rgba, w, h);
+                    }
+                    // Writeback: every serialized subtree block gets its
+                    // Rust-computed bounds (glyph runs and inline blocks
+                    // included). The vector is index-aligned with the
+                    // serializer's flat nodes.
+                    int numLayouts = flatResult.nodesLength();
+                    for (int i = 0; i < numLayouts; i++) {
+                        var fl = flatResult.nodes(i);
+                        if (fl == null) continue;
+                        LytNode node = serializer.getNodeByFlatIndex(i);
+                        if (!(node instanceof LytBlock lb)) continue;
+                        lb.applyExternalLayout(new LytRect(
+                            Math.round(fl.x()),
+                            Math.round(fl.y()),
+                            Math.max(0, Math.round(fl.w())),
+                            Math.max(0, Math.round(fl.h()))));
+                    }
+                    // Inject glyph runs (final subtree-space quads) and span
+                    // decoration rects into the paragraphs so they render rich
+                    // text exactly like the main document pipeline.
+                    Map<Integer, List<GlyphRunGroup>> runsByNode = new HashMap<>();
+                    int numRuns = flatResult.glyphRunsLength();
+                    for (int ri = 0; ri < numRuns; ri++) {
+                        var fbRun = flatResult.glyphRuns(ri);
+                        if (fbRun == null) continue;
+                        int numGlyphs = fbRun.glyphsLength();
+                        var placed = new ArrayList<GuideRenderPrimitive.PlacedGlyph>(numGlyphs);
+                        for (int gi = 0; gi < numGlyphs; gi++) {
+                            var fbg = fbRun.glyphs(gi);
+                            if (fbg != null) {
+                                placed.add(new GuideRenderPrimitive.PlacedGlyph(
+                                    fbg.bitmapKey(),
+                                    fbg.x(),
+                                    fbg.y(),
+                                    fbg.w(),
+                                    fbg.h(),
+                                    (int) fbg.lineIndex()));
+                            }
+                        }
+                        runsByNode.computeIfAbsent((int) fbRun.nodeIndex(), k -> new ArrayList<>())
+                            .add(new GlyphRunGroup(placed, (int) fbRun.argb(), fbRun.shear()));
+                    }
+                    Map<Integer, List<GuideRenderPrimitive.FillRect>> backgroundsByNode = new HashMap<>();
+                    Map<Integer, List<GuideRenderPrimitive.FillRect>> linesByNode = new HashMap<>();
+                    Map<Integer, List<GuideRenderPrimitive.FillRect>> separatorsByNode = new HashMap<>();
+                    int numDecorations = flatResult.decorationsLength();
+                    for (int di = 0; di < numDecorations; di++) {
+                        var d = flatResult.decorations(di);
+                        if (d == null) continue;
+                        var rect = new GuideRenderPrimitive.FillRect(
+                            Math.round(d.x()),
+                            Math.round(d.y()),
+                            Math.round(d.w()),
+                            Math.round(d.h()),
+                            (int) d.argb());
+                        if (d.kind() == 3) {
+                            separatorsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                                .add(rect);
+                        } else if (d.kind() == 0) {
+                            backgroundsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                                .add(rect);
+                        } else {
+                            linesByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                                .add(rect);
+                        }
+                    }
+                    for (var entry : runsByNode.entrySet()) {
+                        LytNode node = serializer.getNodeByFlatIndex(entry.getKey());
+                        if (node instanceof GlyphRunHolder holder) {
+                            holder.setGlyphData(new GlyphRunData(
+                                entry.getValue(),
+                                backgroundsByNode.getOrDefault(entry.getKey(), List.of()),
+                                linesByNode.getOrDefault(entry.getKey(), List.of()),
+                                separatorsByNode.getOrDefault(entry.getKey(), List.of())));
+                        }
+                    }
+                    // Post pass: blocks that derive state from children's final
+                    // bounds (e.g. ordered-list numbers) re-apply it now.
+                    for (int i = 0; i < numLayouts; i++) {
+                        LytNode node = serializer.getNodeByFlatIndex(i);
+                        if (node instanceof LytBlock lb) {
+                            lb.afterExternalLayout();
+                        }
+                    }
+                    return;
+                }
+            } catch (Exception e) {
+                GuideDebugLog.warnAlways(
+                    "[GuideNH-Mermaid] NodeContent Rust layout failed; falling back to Java layout", e);
+            }
+        }
+        // Fallback: Java manual layout (the LytVBox stub is not a real pass).
+        layoutContentSubtree(localContext, block, contentWidth);
+    }
+
+    /**
+     * Recursively lay out all LytVBox containers inside {@code block},
+     * including nested ones (LytList / LytListItem / LytVBox), so every block
+     * in the subtree obtains non-empty bounds visible to
+     * {@link #resolveBlockVisualBounds} and the primitive collector. This is
+     * the Java fallback used when the Rust layout engine is unavailable — the
+     * normal document pipeline and the NodeContent Rust pass never reach it.
+     * <p>
+     * Uses <b>post-order</b> traversal: subtrees are laid out first, then
+     * siblings are positioned via {@link Layouts#verticalLayout}. This ordering
+     * is required because {@link LytList} and {@link LytListItem} have real
+     * {@code computeBoxLayout} that recursively lay out children; a pre-order
+     * pass would re-layout those children a second time at incorrect
+     * coordinates (offset relative to 0 instead of the parent's actual Y
+     * position).
+     */
+    protected static void layoutContentSubtree(LayoutContext context, LytBlock block, int contentWidth) {
+        if (!(block instanceof LytVBox vbox)) return;
+        List<LytBlock> blockChildren = new ArrayList<>();
+        for (LytNode child : vbox.getChildren()) {
+            if (child instanceof LytBlock b) blockChildren.add(b);
+        }
+        if (blockChildren.isEmpty()) return;
+        // Post-order: lay out child subtrees before positioning siblings.
+        for (LytBlock child : blockChildren) {
+            layoutContentSubtree(context, child, contentWidth);
+        }
+        // Content VBox created by compileNodeContentBlock has default
+        // padding (0), gap (0), and alignItems (START).
+        Layouts.verticalLayout(context, blockChildren,
+            0, 0, contentWidth,
+            0, 0, 0, 0,
+            vbox.getGap(), vbox.getAlignItems());
+    }
+
+    /**
+     * Recursively wipe glyph runs in the subtree so a failed Rust pass never
+     * leaves stale runs rendering at outdated coordinates (mirrors
+     * {@code LytDocument.clearGlyphRuns}).
+     */
+    private static void clearGlyphRuns(LytBlock block) {
+        if (block instanceof GlyphRunHolder holder) {
+            holder.setGlyphData(null);
+        }
+        for (LytNode child : block.getChildren()) {
+            if (child instanceof LytBlock childBlock) {
+                clearGlyphRuns(childBlock);
+            }
+        }
+    }
 
     /**
      * Emit primitives for a node content block using the collector, replacing

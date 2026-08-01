@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.shapes.FlowchartShapes;
-import com.hfstudio.guidenh.guide.layout.Layouts;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
@@ -567,53 +566,16 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         }
         LayoutContext localContext = new LayoutContext(context).withVisualScale(context.getVisualScale());
         int contentWidth = Math.clamp(maxNodeTextWidth + 60, 96, 240);
-        block.layout(localContext, 0, 0, contentWidth);
-        // LytVBox.computeBoxLayout is a stub (Rust is sole layout authority for
-        // the normal document pipeline). For embedded NodeContent blocks inside
-        // Mermaid diagrams there is no Rust pass, so we must lay the children out
-        // manually to obtain non-zero visual bounds.
-        // Recursively lay out all LytVBox containers (including LytList,
-        // LytListItem, etc.) so nested content such as list items obtains
-        // non-empty bounds visible to resolveBlockVisualBounds and the
-        // primitive collector. Without recursion, nested containers (e.g.
-        // LytList → LytListItem → LytParagraph) never have layout() called
-        // on their children, keeping them at (0,0,0,0) — invisible.
-        layoutContentSubtree(localContext, block, contentWidth);
+        // LytVBox.computeBoxLayout is a stub (Rust is the sole layout authority
+        // for the normal document pipeline), so NodeContent subtrees — which
+        // never reach the document's Rust pass — used to be laid out manually.
+        // The Rust engine now lays the subtree out directly (including the
+        // inline post-pass that anchors inline ItemImage bounds at their text
+        // pen position), with a Java fallback for environments without the
+        // native bridge.
+        layoutNodeContentWithRust(localContext, block, contentWidth);
         LytRect visualBounds = resolveBlockVisualBounds(block);
         return new NodeContentLayout(block, visualBounds);
-    }
-
-    /**
-     * Recursively lay out all LytVBox containers inside {@code block},
-     * including nested ones (LytList / LytListItem / LytVBox), so every
-     * block in the subtree obtains non-empty bounds visible to
-     * {@link #resolveBlockVisualBounds} and the primitive collector.
-     * <p>
-     * Uses <b>post-order</b> traversal: subtrees are laid out first, then
-     * siblings are positioned via {@link Layouts#verticalLayout}.  This
-     * ordering is required because {@link LytList} and {@link LytListItem}
-     * have real {@code computeBoxLayout} that recursively lay out children;
-     * a pre-order pass would re-layout those children a second time at
-     * incorrect coordinates (offset relative to 0 instead of the parent's
-     * actual Y position).
-     */
-    private static void layoutContentSubtree(LayoutContext context, LytBlock block, int contentWidth) {
-        if (!(block instanceof LytVBox vbox)) return;
-        List<LytBlock> blockChildren = new ArrayList<>();
-        for (LytNode child : vbox.getChildren()) {
-            if (child instanceof LytBlock b) blockChildren.add(b);
-        }
-        if (blockChildren.isEmpty()) return;
-        // Post-order: lay out child subtrees before positioning siblings.
-        for (LytBlock child : blockChildren) {
-            layoutContentSubtree(context, child, contentWidth);
-        }
-        // Content VBox created by compileNodeContentBlock has default
-        // padding (0), gap (0), and alignItems (START).
-        Layouts.verticalLayout(context, blockChildren,
-            0, 0, contentWidth,
-            0, 0, 0, 0,
-            vbox.getGap(), vbox.getAlignItems());
     }
 
     private void measureSideTree(NodeLayout node) {
