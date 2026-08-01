@@ -41,6 +41,14 @@ page stem, newest timestamp); `overflow_width` (x+w > page_width+2); `zero_size`
 legitimate); `sibling_intersection` (float-geometry pairs and ancestor-descendant
 containment excluded with code-level justification, see PF19).
 
+Ratchet assertions () **MUST run as part of every screening round**, alongside
+the geometric and VLM passes — not only as the final Stage 6 gate. The ratchet's mechanical
+assertions (, , , ) catch layout regressions that VLM
+screening misses: the R7-1 display-centering and R8 mindmap-height regressions both survived
+multiple VLM rounds yet were caught immediately once the ratchet ran (see PF31). Run:
+;
+any  line is a confirmed regression to fix before adjudicating VLM findings.
+
 Agent-assisted loop (round 3+): VLM findings are cross-checked by a structure
 analyst agent (cursor-screener — **no image modality, see PF18**; it verifies each
 finding against bounds JSON + fixture Expected text and classifies

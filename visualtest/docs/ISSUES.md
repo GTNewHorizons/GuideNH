@@ -430,3 +430,32 @@ LaTeX P1 fixed; 2 real defects (R6-1, R6-2) found+fixed+verified+reviewed; 3 VLM
 **Fixture maintenance (documentation discipline)**: stress_mixed.md + FIXTURES.md mermaid "placeholder box only" notes updated to RESOLVED — mermaid renders fully in-game and offline (confirmed across R6/R7 mermaid pages all clean; the ELK/async migration loss was fixed in the R4 mermaid waves).
 
 **Round 7 verdict**: 1 real regression (R7-1 display centering) found via VLM + objective bisection, fixed at root (R4-18 collateral), verified, reviewed. Corpus otherwise stable post-R6 global text changes (BreakWord/NoWrap/LaTeX scale all hold at corpus scale). Commits: 12b0b826 (R7-1) + fixture/docs maintenance.
+
+## K. Round 8 + Confirmation Round closure (2026-08-01 ~23:00 - 2026-08-02 ~01:00)
+
+### K1. Ratchet first-run (PF31 discovery)
+
+Running `assert_bounds.py` for the first time (it had never been executed in prior rounds — PF31) caught what VLM screening missed:
+- `centered tol=3` (display LaTeX) — would have caught R7-1 in R5/R6 (display formulas left-aligned x=5). Confirmed it passes post-R7-1-fix.
+- `max_height le 400` (large mindmap) — **NEW failure**: large mindmap canvas h=438 > 400.
+
+### K2. R8 — large mindmap height regression → FIXED (6f5050aa)
+
+Bisection: mindmap h=320 (2026-07-29, capped) → 438 (2026-07-30+, uncapped); flowchart stayed 320 throughout. Root: LytMermaidMindmapCanvas had MAX_HEIGHT=320 constant but never applied it (computeLayout/afterExternalLayout used `max(MIN_HEIGHT, desired)` — floor only, no ceiling), unlike flowchart which clamps `clamp(desired, MIN_HEIGHT, MAX_HEIGHT)` in 3 places. When the R4-wave LayoutStyleExtractor changes altered the canvas width, the mindmap reflowed to its natural height (438) with no cap. Fix: mirror flowchart's clamp in mindmap's 3 places (computeLayout:158-160, precomputeLayout:192-195, afterExternalLayout:244-246) + freeze preferredHeight to `max(48, preferred)`. Verified: mindmap h 438→320 (matches flowchart); ratchet 24/24 green; VLM large mindmap tree root-centered with viewport pan/zoom (same UX as 23-node flowchart); other mindmap pages (Default/TIDY_TREE/Deep Nesting) unchanged. Reviewer ACCEPT.
+
+### K3. R8 — mermaid NodeContent inline ItemImage positioning → FIXED (3d65d02a)
+
+VLM (R8) caught: runtime node's inline diamond ItemImage rendered at line START (overlapping "Runtime" → "🔷ime"), should be inline at end (after "and inline"). Pre-existing bug missed by R5-R7 (screeners checked "icon present" not "icon position"). Root: NodeContent subtrees are off-tree (LytMermaidCanvas.nodeContentBlocks), never go through Rust inline_post_pass; LytParagraph.computeLayout lays inline blocks at (0,0) expecting Rust to assign pen_x, but NodeContent uses Java manual layout (layoutContentSubtree, VBox-vertical only) → inline ItemImage stuck at x=0. Fix (method A): route NodeContent root through the same Rust layout as the main document (new shared LytMermaidCanvas.layoutNodeContentWithRust: serialize → measureLayout → writeback incl. inline_post_pass + glyph injection + atlas upload), with Java post-order fallback (preserves R4-12 list semantics) on Rust failure. RUST_CONTENT_PAD=5 aligns content width. Verified: runtime icon at end (correct), preview list 3 items with bullets (R4-12 not regressed), all 5 mermaid pages clean (flowchart Result recipe box frame-identical to pre-change). Reviewer ACCEPT (coordinate cancellation, node-width preservation, R4-12 fallback all source-verified; render log confirms Rust path active, no fallback).
+
+### K4. Confirmation round → CLEAN
+
+Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = floats_multi expected; **ratchet 24/24 green**; VLM **no new confirmed defects** — only documented known items (code_blocks L113 P1 fixture defect; lists/rich N3 table-in-list full-width = R4-18-residual; R4-25 entities STUCK = Angelica layer; scenes/annotations blue-polyline + text-order + effects PlaySound note_block = low-confidence scene items). The recurring cjk/headings "single-line" VLM misread was correctly suppressed this round (screener recognized the documented misread pattern). **Visual screening reached the clean termination condition.**
+
+### K5. Latent items recorded
+
+- **Cross-thread measureLayout (latent)**: NodeContent layout now calls LayoutBridge.measureLayout (shared FontSystem handle). If a future PreCompiler path holds NodeContent blocks while the guidenh-compile thread runs concurrently with the Client thread, this becomes concurrent mutable access to the FontSystem handle — needs serialization protection if that path emerges. Not triggered currently (compile-thread precompute has no NodeContent blocks; all measureLayout observed on Client thread).
+- **Carried architectural/STUCK**: R4-25 (Angelica entities), R4-18-residual (no-declared-width table natural width), R4-36 (code-block horizontal scroll axis), code_blocks L113 (MDX special-char fixture defect), scenes low-confidence items.
+
+### K6. R8 verdict
+
+2 regressions/defects fixed (mindmap height clamp, NodeContent inline positioning); ratchet integrated into screening (PF31, WORKFLOW Stage 3); confirmation round CLEAN. Corpus stable: visual screening shows no new problems; remaining items are documented known/STUCK/architectural. Cumulative R4-R8: 34 original R4 issues + R5-R8 findings resolved or categorized; the fix wave converged from ~5 defects/round (R5) to 2 (R6) to 1 (R7) to 2 ratchet-caught (R8) to 0 (confirmation).
