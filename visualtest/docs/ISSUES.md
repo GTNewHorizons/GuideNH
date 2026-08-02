@@ -706,3 +706,31 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
   executor records them and reports to the user; no self-directed green light.
 - **Remaining scene text** (F7b-2/3/4) stays on the established hybrid pattern
   if/when pursued; currently parked.
+
+## W. Architecture Audit 2026-08-02 — full record (see ARCHITECTURE-AUDIT.md)
+
+Five parallel read-only audits completed; full findings, evidence and the
+status-tracked action list live in `docs/ARCHITECTURE-AUDIT.md` (handoff
+document for the next round). Headline findings:
+
+- **Unregistered active legacy block**: `LytNeiRecipeBox` (HostDraw, MC
+  pixel-font title :274) — never in the path map (now registered, §W → path
+  map updated).
+- **Principle conformance**: text/document flow conformant; hotspots = charts/
+  function-graph/mermaid data→pixel (S1), table column-width allocation (S2),
+  Layouts.java + scroll containers (S3), manual grids (S4) — S1/S2 are
+  schema-requiring framework changes, **PENDING USER decision**.
+- **Text-presentation pipeline gaps** (root: span-pipeline phase 3 never
+  implemented): T5 clip/wrap (10+ duplicate implementations with semantic
+  forks), T1 decoration, T2 dropShadow, T4 metrics, T3 baseline, T6 type
+  scale — all additive fixes; program green-light **PENDING USER**.
+- **Verification probes**: P1 inside_parent (primitive exists, 0 uses), P2
+  table-column geometry, P4 screenshot-list freshness, P5 log-scan tool —
+  low-cost, do-in-round; P7/P8 need schema/new export.
+- **fbs schema evolution**: Java-side regen command undocumented — blocks all
+  schema-requiring items (A5 prerequisite).
+- **Dead code A-class** (orphan constants ×2, LytGenericRecipeBox class,
+  CornerLegendRenderer render, redundant bounds-pair, stale comments) —
+  deletable in normal rounds.
+- **Path map refreshed**: WORKFLOW §4.2/§4.3 updated (5 migrated rows removed,
+  NEI/annotations/fallbacks registered, M2 marked done).

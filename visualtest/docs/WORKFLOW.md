@@ -201,15 +201,17 @@ the Rust engine, Java declares structure/style and consumes written-back bounds.
 
 ### 4.2 Legacy-path blocks (shrink list)
 
-| Block | Path | Reason it violates §2.1/§2.2 |
+| Block | Path | Status |
 |---|---|---|
-| `LytGuidebookScene` slider labels | HostDraw → MC `FontRenderer` | Pixel font, Java geometry |
-| `MediaWikiSpecialGeneratedBlock` (Special Index) | HostDraw → MC `FontRenderer` | Pixel font, Java geometry |
-| Table vertical separators | Java `column.x` bookkeeping | Java re-derives line positions; must consume Rust column boundaries |
-| Task-list checkbox | `bounds.y() + 1` manual offset | Java pixel math; must declare baseline intent |
-| Inline LaTeX anchor | Java-computed `baselineAscent` | Java computes geometry; Rust must anchor |
-| Geometry write-back | Java `moveLayoutPos` translation chains | Java moves coordinates; Rust should output absolute coords |
-| `Layouts.java` pre-pass | **Live fallback** (Mermaid NodeContent fontHandle==0 path, tooltip/editor/annotation chains) | Not dead code — see §4.3 M1 |
+| `LytNeiRecipeBox` title/chrome | HostDraw → MC `FontRenderer` (usePrimitives false, :274 drawString) | ACTIVE, not yet migrated — audit 2026-08-02 found it unregistered |
+| `LytGuidebookScene` remaining text (Block Stats :3306/:3319, load-state :6863, Ponder hover :6657/:6664) | HostDraw inside F7b escape hatch | Parked (F7b-2/3/4) — extend hybrid pattern if pursued |
+| Annotation renderers (`TextAnnotation` :295, `PonderInputAnnotation` :146-150, `InWorldAnnotationRenderer` :609-714) | MC `FontRenderer` in 3D overlay | Escape-hatch candidates — register, do not force-migrate |
+| Fallback `render()` paths (`LytParagraph` :422, `LytListItem` :123) | MC `FontRenderer` via direct render() callers | Root cause: tooltip/annotation bypass collector — fix collector path once |
+| `CornerLegendRenderer` legacy `render()`/`ellipsize(RenderContext,…)` | Legacy variant | DEAD (no callers) — delete |
+| `LytGenericRecipeBox` class | Legacy + emitText dual path | DEAD (no callers) — delete |
+| Geometry write-back | Java `moveLayoutPos` chains | Live only for 3 scroll containers (SizeBox/CodeBlock/Details) + `Layouts.alignChildren` (M1 chain); dormant in main pipeline |
+| `Layouts.java` pre-pass | **Live fallback** (Mermaid NodeContent fontHandle==0, tooltip/editor/annotation chains) | Not dead — §4.3 M1 prerequisites |
+| Table column-width allocation | Java `layoutColumns` geometry | S2 — needs Rust Grid (schema); separators already Rust cell-bounds (F3) |
 
 ### 4.3 Migration milestones
 
@@ -221,8 +223,10 @@ the Rust engine, Java declares structure/style and consumes written-back bounds.
    requires two prerequisites (eliminate the Mermaid fallback by forcing font
    initialization, migrate the non-document layout chains) and is a later
    milestone, not a zero-risk cleanup.
-2. **M2 — Converge blocks to primitives**: migrate the legacy-path blocks
-   (slider labels, Special Index) to the Rust-glyph primitives path.
+2. **M2 — Converge blocks to primitives**: DONE for slider labels (F7b-1
+   hybrid) and Special/List index (F7a/F7c). Remaining: LytNeiRecipeBox title,
+   fallback render() paths (via collector fix), annotation renderers
+   (escape-hatch register) — see ARCHITECTURE-AUDIT.md §4.
 3. **M3 — Remove legacy infrastructure**: delete the `RenderContext.drawText`
    family and the `VanillaRenderContext` FontRenderer delegation.
 4. **M4 — Clean FlatBuffer legacy fields**: remove schema fields left over from
