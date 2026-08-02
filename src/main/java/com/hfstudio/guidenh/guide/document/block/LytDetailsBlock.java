@@ -29,6 +29,21 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     private static final int PADDING = 6;
     private static final int GAP = 4;
     private static final int BORDER_WIDTH = 1;
+    /**
+     * Top margin on the summary-marker paragraph (in px) that optically centers
+     * the ">"/"v" marker glyphs against the summary text. The marker glyphs are
+     * mid-em symbols whose ink sits higher inside their 1.55x line-height box
+     * than the text's visual (x-height) centerline; the row's alignItems CENTER
+     * aligns whole line-height boxes, so the marker needs its own box nudged
+     * down. Taffy's CENTER aligns the margin box, which shifts the marker's
+     * content box down by half this margin (same declaration pattern as the
+     * search-result icon rows, GuideSearchResultDocumentBuilder
+     * RESULT_ICON_MARGIN_TOP). A 1px margin = 0.5px downward shift; measured
+     * against the actual guide font (Microsoft YaHei) ">" sits ~0.55px high and
+     * "v" ~0px off the x-height middle, so half a pixel puts ">" on the
+     * centerline with only a negligible nudge to "v".
+     */
+    private static final int SUMMARY_MARKER_ALIGN_MARGIN_TOP = 1;
     private static final int SCROLLBAR_WIDTH = 5;
     private static final int SCROLLBAR_GAP = 4;
     private static final int MIN_SCROLLBAR_THUMB = 14;
@@ -66,7 +81,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         summaryRow.setFullWidth(true);
         summaryRow.setAlignItems(AlignItems.CENTER);
 
-        summaryMarker.setMarginTop(0);
+        summaryMarker.setMarginTop(SUMMARY_MARKER_ALIGN_MARGIN_TOP);
         summaryMarker.setMarginBottom(0);
         summaryMarker.modifyStyle(
             style -> style.bold(true)
