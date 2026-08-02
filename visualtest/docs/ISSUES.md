@@ -650,3 +650,16 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
   legacy text blocks: LytGuidebookScene (F7b — hybrid design pending),
   LytListItem:123 label, annotation renderers, LytParagraph:422 /
   LytGenericRecipeBox:93 / CornerLegendRenderer legacy fallbacks.
+
+## T. Special fixture coverage (2026-08-02, CLOSED)
+
+- Added meta/special.md: `<Special name="SpecialPages" />` (static catalog, 6
+  groups, 2 columns — always non-empty), `<Special name="Categories" rows="2" />`
+  (CategoryIndex grid), `<Special name="AllPages" rows="3" />` (index-backed;
+  renders empty-state "No pages available" pre-warm — legitimately verifies
+  EMPTY_STYLE path). All data local (MediaWikiListContext/static catalog), no
+  wiki backend needed.
+- **F7a visual verification gap CLOSED**: VLM confirms all Special text smooth
+  system font (no 8×8 pixel font), borders intact (top/bottom 1px, no extra
+  lines — DrawBorder fix holds), 2-column layouts correct at 900/480, TEST
+  GOAL backticks render as text (N-A2 holds).
