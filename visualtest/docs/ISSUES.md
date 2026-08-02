@@ -746,3 +746,17 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   (S1/S2/S3/S4/S5) in AUDIT §2.4 (local). A7/A8 CLOSED, audit decisions
   §6-1/§6-2 RESOLVED. Remaining pending: A4 green-light (§6-3) + scene text
   F7b-2/3/4 (§6-4).
+
+- **SubPages links render at page top (y<19), overlapping the TEST GOAL line
+  (OPEN, pre-existing)** — first exposed by `meta/indexes.md` fixture render
+  2026-08-02 (batch 211250): two blue child-page links ("Index Sub Page B/A")
+  drawn above the fixture's first paragraph (y=19) and absent from the bounds
+  JSON (render output vs bounds discrepancy). Ruled OUT of scope for T5-1
+  (diff touches only GuideText/MediaWiki blocks/CornerLegend; special.md
+  pixel-identical to prior batch; geometry zero-new). Suspect: SubPages block
+  path bypasses Rust layout or render-order issue — needs diagnosis in a
+  dedicated round.
+- **T5-1 residue (cosmetic, next cleanup round)**: dead anonymous FontMetrics
+  getAdvance override at MediaWikiSpecialGeneratedBlock.java:510-514 after wrap
+  migration; reviewer suggests archiving WidthHarness/CharsHarness into
+  git-ignored src/test for future re-verification.
