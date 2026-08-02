@@ -883,3 +883,24 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   recovery = leaf-bypass manual draw (like F7a/F7c) or shapeUncached+Rust path; (3) F7a/F7c
   manual FillRect hover underlines (MediaWikiGeneratedListBlock:425-431 /
   MediaWikiSpecialGeneratedBlock:1188-1193) kept as leaf-internal exempt (plain underline only).
+
+- **T3-min done (ac7c80d3): AlignItems::Baseline enum plumbing (4 layers), DEGRADED to bottom-edge.**
+  AlignItems +BASELINE (ordinal 3); fbs align_items comment +4=Baseline (byte field, no regen);
+  LayoutStyleExtractor.getAlignItems +case BASELINE->4; style_convert.rs +4=>AlignItems::BASELINE
+  (taffy 0.12.1). baseline-align.md fixture (3 mixed-height Rows baseline/start/center controls)
+  + ratchet LytHBox exists (31 assertions). Gate TOTAL ISSUES 0; ratchet 31/31.
+  **CRITICAL honest semantics**: taffy 0.12.1 AlignItems::BASELINE exists BUT GuideNH leaf measure
+  returns only Size<f32> (taffy 0.12.1 measure signature cannot report baseline; leaves always
+  first_baselines=NONE) -> BASELINE degrades to BOTTOM-EDGE alignment (baseline.unwrap_or(height)),
+  NOT true text-baseline. Fixture INVARIANTS documents this.
+- **T3 -> P7 follow-up (true baseline, deferred, larger task)**: real text-baseline alignment
+  needs baseline metric export (Rust/parley ascent -> taffy first_baselines), possibly taffy API
+  upgrade or custom measure variant + bounds JSON baseline/ascent field (AUDIT P7). Far beyond
+  T3's ~10 lines. No current doc-model use case (inline ItemImage/text alignment uses Rust
+  inline_post_pass + InlineBlockRef.align, independent of taffy AlignItems).
+- **F5-2 clarification (AUDIT association invalid)**: AUDIT cited F5-2 marginTop=1 hack
+  (LytDetailsBlock:46,84) as baseline-loss evidence. Investigation: F5-2 is glyph-INK optics
+  (>/v marker ink sits high in 1.55x line box; CENTER aligns the margin box so marginTop=1 nudges
+  content box down ~0.5px for MS YaHei). Unrelated to baseline metrics; NO flexbox alignment mode
+  (Start/Center/End/Stretch/Baseline) can replace it. F5-2 KEPT. The AUDIT T3 rationale (F5-2
+  proves baseline loss) does not hold.
