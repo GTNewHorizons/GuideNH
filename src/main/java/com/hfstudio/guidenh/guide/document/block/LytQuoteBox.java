@@ -86,6 +86,16 @@ public class LytQuoteBox extends LytBlock implements LytBlockContainer {
         content.append(block);
     }
 
+    /**
+     * The container holding this quote box's body paragraphs, nested below the
+     * optional title row. The blockquote compiler clears the body's edge
+     * paragraph margins against it so the title row's spacing is carried by the
+     * root's gap instead of the first body paragraph's own top margin.
+     */
+    public LytVBox getBodyContainer() {
+        return content;
+    }
+
     @Override
     public void removeChild(LytNode node) {
         content.removeChild(node);

@@ -99,14 +99,34 @@ public class BlockquoteCompiler extends BlockTagCompiler {
     }
 
     private void normalizeBlockMargins(LytNode box) {
-        var boxChildren = box.getChildren();
-        if (!boxChildren.isEmpty()) {
-            if (boxChildren.getFirst() instanceof LytParagraph) {
-                ((LytParagraph) boxChildren.getFirst()).setMarginTop(0);
-            }
-            if (boxChildren.getLast() instanceof LytParagraph) {
-                ((LytParagraph) boxChildren.getLast()).setMarginBottom(0);
-            }
+        // The alert/quote box title row is an independent margin-less paragraph,
+        // so the FIRST BODY paragraph still carries the block-paragraph top
+        // margin (5) that would otherwise double the title-row gap (VBox gap 4 +
+        // margin 5 ≈ the reported one-line blank band). The plain blockquote has
+        // no title row and its children ARE the body paragraphs.
+        if (box instanceof LytQuoteBox quoteBox) {
+            // Body paragraphs live in a nested content container below the title
+            // row; clear the first body paragraph's top margin so the title-row
+            // spacing is carried by the container's gap alone.
+            clearFirstParagraphTopMargin(quoteBox.getBodyContainer());
+            return;
+        }
+        var children = box.getChildren();
+        // LytAlertBox always carries its title row at index 0 (appended in its
+        // constructor), so the first BODY paragraph is at index 1.
+        int firstBody = box instanceof LytAlertBox ? 1 : 0;
+        if (children.size() > firstBody && children.get(firstBody) instanceof LytParagraph first) {
+            first.setMarginTop(0);
+        }
+        if (!children.isEmpty() && children.getLast() instanceof LytParagraph last) {
+            last.setMarginBottom(0);
+        }
+    }
+
+    private static void clearFirstParagraphTopMargin(LytNode container) {
+        var children = container.getChildren();
+        if (!children.isEmpty() && children.getFirst() instanceof LytParagraph first) {
+            first.setMarginTop(0);
         }
     }
 

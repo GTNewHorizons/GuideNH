@@ -190,6 +190,10 @@ pub fn compute_layout(
         }
 
         if node_type == 1 {
+            // CSS-preposed margin: this paragraph's top margin opens the gap
+            // above its box, so the box starts at the already-advanced cursor
+            // (mirrors taffy subtrees and the legacy Java pusher).
+            cursor += mt;
             let para_abs_y = content_y + cursor;
             let para_x = content_x;
             let avail = Size {
@@ -219,7 +223,7 @@ pub fn compute_layout(
             );
             abs_positions[idx] = (para_x, para_abs_y);
             sizes[idx] = (sz.width, sz.height);
-            cursor += sz.height + mt + mb;
+            cursor += sz.height + mb;
             // A trailing in-paragraph clear does not stretch this paragraph's
             // box; it pushes the flow that follows it below the cleared float.
             // Advance the cursor to that floor so the next block (a callout)
@@ -236,6 +240,9 @@ pub fn compute_layout(
         // Block container / image / slot / latex / break: compute the
         // horizontal lane from the float table so blocks avoid overlapping
         // with left/right floats (Java LytFloatAwareBlock behavior).
+        // CSS-preposed margin: advance past the top margin first, so the lane
+        // query and the block box both start at the margin box top.
+        cursor += mt;
         let by = content_y + cursor;
         let (lane_x, lane_w, lane_y) =
             compute_lane(by, content_x, content_w, &float_table);
@@ -273,7 +280,7 @@ pub fn compute_layout(
         // Advance cursor past the block. If compute_lane pushed the block
         // down (lane_y > by), account for the gap; if CSS clear already
         // pushed beyond that, respect the clear.
-        cursor = (lane_y - content_y).max(cursor) + h + mt + mb;
+        cursor = (lane_y - content_y).max(cursor) + h + mb;
     }
 
     // Inline post-pass: anchor inline blocks at their parley InlineBox
