@@ -384,3 +384,23 @@ items pass.
 - **Comfort tuning programs**: designated rounds where the aesthetic reviewer
   critiques freely (no prescribed direction) against a comfort target; the
   tuning/ratchet conflict is handled per §3.3.
+
+### Stage 6 — Infrastructure Protocol (binding on all implementer dispatches)
+
+Implementers never run shared or expensive infrastructure commands (gradle
+builds, tests, gates, cargo builds, DLL copies, headless renders, ratchet runs).
+Parallel implementers competing for the build daemon caused resource
+contention; verification is the executor's sole duty. Instead, dispatches carry
+two tripwire rules:
+
+1. **Infrastructure tripwire**: the moment an implementer needs a shared
+   command, it stops and files an infrastructure request (the
+   `infrastructure-request` slot of its report) instead of running it.
+2. **Boundary tripwire**: the moment implementation requires touching files
+   outside the whitelist (Rust sources, dependencies, fixtures), the implementer
+   stops and reports it — it never extends its own scope.
+
+The executor serializes and batches all verification commands after implementer
+reports return, and routes the results back (re-dispatch or acceptance input).
+Implementer self-verification is limited to static self-checks: diff
+completeness, whitelist compliance, ban-list compliance, logic review.
