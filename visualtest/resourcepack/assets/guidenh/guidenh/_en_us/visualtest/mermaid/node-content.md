@@ -4,7 +4,7 @@ navigation:
   position: 8160
 ---
 
-TEST GOAL / 测试目标：<NodeContent id> 富内容节点（节点内嵌格式化文本 / 列表）
+TEST GOAL / 测试目标：`<NodeContent id>` 富内容节点（节点内嵌格式化文本 / 列表）
 
 INVARIANTS / 不变式：富内容在节点框内布局正确
 

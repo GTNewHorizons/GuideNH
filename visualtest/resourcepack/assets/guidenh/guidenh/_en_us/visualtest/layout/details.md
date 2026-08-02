@@ -4,7 +4,7 @@ navigation:
   position: 8280
 ---
 
-TEST GOAL / 测试目标：<details> open/closed、内嵌表格/代码/图片、连续多个
+TEST GOAL / 测试目标：details open/closed、内嵌表格/代码/图片、连续多个
 
 INVARIANTS / 不变式：open 时内容可见、closed 时仅摘要行；内嵌块在内容区内正常渲染；连续 details 不相互干扰
 

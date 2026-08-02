@@ -9,7 +9,7 @@ item_ids:
   - guidenh:visualtest_fake_item
 ---
 
-TEST GOAL / 测试目标：<SubPages> navigation child listing + <Category name> category member listing
+TEST GOAL / 测试目标：`<SubPages>` navigation child listing + `<Category name>` category member listing
 
 INVARIANTS / 不变式：SubPages renders a link list of child pages; Category renders a listing of pages in the given category; no compile errors.
 
