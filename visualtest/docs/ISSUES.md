@@ -581,3 +581,30 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
   declared assumptions code-supported, no anti-patterns).
 - **Note**: separator alignment is now objectively verifiable (pixel probe);
   consider a future ratchet/audit probe per §3.1.3.
+
+## Q. F7a — Special Index pixel-font migration (2026-08-02, CLOSED)
+
+- **Symptom** (user-reported): Special Index text rendered in MC 8×8 pixel
+  font, inconsistent with body font; measure/draw dual-source (layout-time
+  FontFacts used GuideText/Rust metrics, render-time used MC FontRenderer).
+- **Fix**: MediaWikiSpecialGeneratedBlock → usePrimitives + computePrimitives:
+  5 texts via GuideText.emitText, all render-time metrics switched to
+  GuideText.measureWidth/lineHeight (17px line height, same source as layout),
+  non-text elements to FillRect/RenderItem/BlitTexture/DrawBorder,
+  estimateEntryHeight hardcoded 9 → GuideText line height. Independent review
+  REJECTed first attempt on DrawBorder argument order (bottom/right slots
+  swapped → bottom border lost, extra right line for asymmetric borders);
+  re-dispatch fixed arg order, semantics verified against legacy
+  BorderRenderer. Two benign deviations accepted: getGlTextureId silent catch
+  (repo convention), RenderItem overlay for stackSize!=1.
+- **Verification**: gate TOTAL ISSUES: 0; ratchet 24/24; VLM confirms pixel
+  font eliminated, rhythm consistent, no regression; code-level border
+  verification (no fixture triggers `<Special>` — coverage gap registered).
+- **Coverage gap**: no fixture uses `<Special>`; the Special block's visual
+  result (borders, hover underline) is only verifiable in-game or after adding
+  a `<Special>` fixture page. Registered for fixture coverage round.
+- **Remaining legacy text blocks** (path map, shrink list): LytGuidebookScene
+  (F7b — hybrid HostDraw+primitives design needed), MediaWikiGeneratedListBlock
+  (F7c), LytListItem:123 label, annotation renderers (in-world overlay, not
+  document path), LytParagraph:422/LytGenericRecipeBox:93/CornerLegendRenderer
+  legacy fallbacks.
