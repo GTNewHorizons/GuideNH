@@ -1,13 +1,11 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
-import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
-import com.hfstudio.guidenh.guide.layout.FontMetrics;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
@@ -147,105 +145,12 @@ public final class MermaidNodeRenderer {
         return Math.round(width);
     }
 
-    public static List<String> wrapText(RenderContext context, ResolvedTextStyle style, String text, int maxWidth) {
-        return wrapText(new LayoutContext(new FontMetrics() {
-
-            @Override
-            public float getAdvance(int codePoint, ResolvedTextStyle s) {
-                return context.getStringWidth(new String(Character.toChars(codePoint)), s);
-            }
-
-            @Override
-            public int getLineHeight(ResolvedTextStyle s) {
-                return context.getLineHeight(s);
-            }
-        }), style, text, maxWidth);
-    }
-
     public static List<String> wrapText(LayoutContext context, ResolvedTextStyle style, String text, int maxWidth) {
-        List<String> result = new ArrayList<>();
-        GuideStringLines.visitLines(text != null ? text : "", (paragraph, lineIndex) -> {
-            if (paragraph.isEmpty()) {
-                result.add("");
-                return true;
-            }
-
-            StringBuilder line = new StringBuilder();
-            scanWords(paragraph, word -> appendWrappedWord(result, line, context, style, word, maxWidth));
-            if (!line.isEmpty()) {
-                result.add(line.toString());
-            }
-            return true;
-        });
-        return result;
-    }
-
-    private static boolean appendWrappedWord(List<String> result, StringBuilder line, LayoutContext context,
-        ResolvedTextStyle style, String word, int maxWidth) {
-        if (line.isEmpty()) {
-            if (measureText(context, style, word) <= maxWidth) {
-                line.append(word);
-            } else {
-                appendBrokenWord(result, line, context, style, word, maxWidth);
-            }
-            return true;
-        }
-
-        String candidate = line + " " + word;
-        if (measureText(context, style, candidate) <= maxWidth) {
-            line.append(' ')
-                .append(word);
-            return true;
-        }
-
-        result.add(line.toString());
-        line.setLength(0);
-        if (measureText(context, style, word) <= maxWidth) {
-            line.append(word);
-        } else {
-            appendBrokenWord(result, line, context, style, word, maxWidth);
-        }
-        return true;
-    }
-
-    public static void scanWords(String text, WordVisitor visitor) {
-        int start = -1;
-        for (int index = 0, length = text.length(); index <= length; index++) {
-            char value = index < length ? text.charAt(index) : ' ';
-            if (Character.isWhitespace(value)) {
-                if (start >= 0) {
-                    if (!visitor.accept(text.substring(start, index))) {
-                        return;
-                    }
-                    start = -1;
-                }
-            } else if (start < 0) {
-                start = index;
-            }
-        }
-    }
-
-    private static void appendBrokenWord(List<String> result, StringBuilder line, LayoutContext context,
-        ResolvedTextStyle style, String word, int maxWidth) {
-        StringBuilder fragment = new StringBuilder();
-        for (int offset = 0; offset < word.length();) {
-            int codePoint = word.codePointAt(offset);
-            String next = fragment + new String(Character.toChars(codePoint));
-            if (!fragment.isEmpty() && measureText(context, style, next) > maxWidth) {
-                result.add(fragment.toString());
-                fragment.setLength(0);
-            }
-            fragment.appendCodePoint(codePoint);
-            offset += Character.charCount(codePoint);
-        }
-        if (!fragment.isEmpty()) {
-            line.append(fragment);
-        }
-    }
-
-    @FunctionalInterface
-    public interface WordVisitor {
-
-        boolean accept(String word);
+        // A4 unified text pipeline: word-first wrapping + codepoint-level
+        // breaking of overlong words, measured by GuideText (Rust font system).
+        // LayoutContext is no longer used for measurement — GuideText.wrap
+        // measures with its own GuideText adapters, which are the same source
+        // as the former LayoutContext-based measurement (measurement-neutral).
+        return GuideText.wrap(text, maxWidth, style);
     }
 }
