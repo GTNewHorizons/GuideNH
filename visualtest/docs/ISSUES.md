@@ -608,3 +608,23 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
   (F7c), LytListItem:123 label, annotation renderers (in-world overlay, not
   document path), LytParagraph:422/LytGenericRecipeBox:93/CornerLegendRenderer
   legacy fallbacks.
+
+## R. Aesthetic Baseline & N-A1/N-A2 (2026-08-02, CLOSED)
+
+- **Aesthetic baseline** (Stage 4, 12 representative pages @480, §3.2 checklist):
+  8/10 — heading rhythm natural (CSS-front fix confirmed), block spacing
+  intentional, inline harmony good, font ecosystem unified (F7a effect),
+  colour comfort high. Two new findings:
+- **N-A1 details embedded table overflow** (error): details content viewport
+  inset (PADDING 6 + BORDER 1 = 7px/side) never entered the Rust layout tree —
+  updateContentPosition shifted x by +7 without narrowing width; fullWidth
+  viewport + margin (Taffy 0.12: explicit percent(100) not narrowed by margin)
+  kept width = detailsWidth → 7px right overflow on viewport and embedded
+  table (900/480 bounds confirmed). Fix: content margin declaration + drop
+  setFullWidth → stretch resolves width = detailsWidth−14, right edge
+  details.right−7. Verified: all 7 details blocks viewport/table right ≤
+  details right at both widths; ratchet 24/24.
+- **N-A2 TEST GOAL grey-block** (warn): bare `<details>`/`<SubPages>`/
+  `<NodeContent>` in TEST GOAL headers parsed as HTML/JSX → rendered as grey
+  rect. Fix: backtick-wrap in details.md/indexes.md/node-content.md (fixture
+  copy fix, dedicated commits).
