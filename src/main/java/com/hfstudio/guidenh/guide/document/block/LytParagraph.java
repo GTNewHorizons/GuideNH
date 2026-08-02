@@ -120,7 +120,13 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
                 if (spanOwners != null && si < spanOwners.size() && isSpoilerHidden(spanOwners.get(si))) {
                     emitSpoilerMask(c, group);
                 } else {
-                    c.emit(new GuideRenderPrimitive.DrawGlyphRun(atlasTex, group.glyphs(), group.argb(), group.shear()));
+                    c.emit(
+                        new GuideRenderPrimitive.DrawGlyphRun(
+                            atlasTex,
+                            group.glyphs(),
+                            group.argb(),
+                            group.shear(),
+                            resolveStyle().dropShadow()));
                 }
             }
             for (GuideRenderPrimitive.FillRect line : glyphData.lines()) {

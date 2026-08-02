@@ -36,6 +36,12 @@ public class GuideRenderEngine {
     private static final RenderItem ITEM_RENDERER = new RenderItem();
     /** Synthetic-italic slant factor for sheared glyph runs (MC §o parity). */
     private static final float GLYPH_SHEAR_K = 0.25f;
+    /**
+     * Drop-shadow offset in document units (MC drawStringWithShadow x+1/y+1
+     * parity). Applied in document space before the document→screen transform,
+     * so scale=1 → 1px and headless scale=2 → 2 device pixels.
+     */
+    private static final float SHADOW_OFFSET = 1f;
 
     private final GuideGlyphAtlas glyphAtlas;
     private final GuidebookSceneRenderer sceneRenderer;
@@ -373,6 +379,23 @@ public class GuideRenderEngine {
         tess.setColorRGBA_I((r << 16) | (g << 8) | b, a);
     }
 
+    /**
+     * MC 1.7.10 drop-shadow tint: alpha preserved (a==0 → opaque), each RGB
+     * channel ×25/100 (integer math; equivalent to MC's
+     * {@code (color & 0xFCFCFC) >> 2}). The atlas is a white single-channel
+     * bitmap, so a dark tint yields a dark shadow with the text's alpha.
+     */
+    private static int shadowArgb(int argb) {
+        int a = (argb >>> 24) & 0xFF;
+        if (a == 0) {
+            a = 0xFF;
+        }
+        int r = ((argb >>> 16) & 0xFF) * 25 / 100;
+        int g = ((argb >>> 8) & 0xFF) * 25 / 100;
+        int b = (argb & 0xFF) * 25 / 100;
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
     // ---- draw primitives ------------------------------------------------------
 
     private void drawFillRect(GuideRenderPrimitive.FillRect f) {
@@ -479,9 +502,35 @@ public class GuideRenderEngine {
         int atlasTex = dg.atlasId();
         if (atlasTex <= 0) return;
         Transform t = currentTransform();
-        // Synthetic-italic slant (MC §o parity): x shifts right proportional to
-        // the distance above the run's bottom edge.
         boolean shear = dg.shear();
+        beginTexturedQuads(atlasTex);
+        int missingAtlas = 0;
+        if (dg.shadow()) {
+            // Drop-shadow pass first (painted below the main text): the whole
+            // run translated +1/+1 document units and tinted by shadowArgb.
+            missingAtlas = emitGlyphQuads(glyphs, t, shear, shadowArgb(dg.argb()), SHADOW_OFFSET, SHADOW_OFFSET);
+        }
+        missingAtlas = Math.max(missingAtlas, emitGlyphQuads(glyphs, t, shear, dg.argb(), 0f, 0f));
+        if (missingAtlas > 0 && GuideDebugLog.isLayoutOverlayEnabled()) {
+            GuideDebugLog.warnAlways(
+                "[TRC] DrawGlyphRun: {} glyphs missing from atlas (run size={})",
+                missingAtlas,
+                glyphs.size());
+        }
+    }
+
+    /**
+     * Emit one glyph pass into the current textured-quads session: every glyph
+     * translated by {@code dx}/{@code dy} document units (before the
+     * document→screen transform) and tinted by {@code argb}. When {@code shear}
+     * is on, the shear baseline is computed from this pass's own (already
+     * offset) glyphs, so the pass is a rigid translation of the un-offset run —
+     * the slant angle is preserved independently of the offset (dx/dy do not
+     * change the italic tilt). Returns the number of glyphs whose atlas bitmap
+     * is missing (for the debug warning).
+     */
+    private int emitGlyphQuads(List<GuideRenderPrimitive.PlacedGlyph> glyphs, Transform t, boolean shear, int argb,
+        float dx, float dy) {
         float shearBaseY = 0f;
         if (shear) {
             for (GuideRenderPrimitive.PlacedGlyph g : glyphs) {
@@ -489,10 +538,9 @@ public class GuideRenderEngine {
             }
             shearBaseY = shearBaseY * t.scale + t.ty;
         }
-        beginTexturedQuads(atlasTex);
-        color(dg.argb());
+        color(argb);
         Tessellator tess = Tessellator.instance;
-        tessColor(tess, dg.argb());
+        tessColor(tess, argb);
         int missingAtlas = 0;
         for (GuideRenderPrimitive.PlacedGlyph g : glyphs) {
             // UV coordinates from glyph atlas
@@ -502,8 +550,8 @@ public class GuideRenderEngine {
                 continue;
             }
             // Keep subpixel precision: vertices are float, only the atlas UV is fixed.
-            float x = g.x() * t.scale + t.tx;
-            float y = g.y() * t.scale + t.ty;
+            float x = (g.x() + dx) * t.scale + t.tx;
+            float y = (g.y() + dy) * t.scale + t.ty;
             float w = g.w() * t.scale;
             float h = g.h() * t.scale;
             float xTop = x;
@@ -521,12 +569,7 @@ public class GuideRenderEngine {
             tess.addVertexWithUV(xTop + w, y, 0, uv.u2(), uv.v()); // top-right → glyph top row
             tess.addVertexWithUV(xTop, y, 0, uv.u(), uv.v()); // top-left → glyph top row
         }
-        if (missingAtlas > 0 && GuideDebugLog.isLayoutOverlayEnabled()) {
-            GuideDebugLog.warnAlways(
-                "[TRC] DrawGlyphRun: {} glyphs missing from atlas (run size={})",
-                missingAtlas,
-                glyphs.size());
-        }
+        return missingAtlas;
     }
 
     private void drawLine(GuideRenderPrimitive.DrawLine dl) {

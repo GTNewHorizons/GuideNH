@@ -170,7 +170,13 @@ public final class GuideText {
                     g.h(),
                     (int) g.lineIndex()));
         }
-        c.emit(new GuideRenderPrimitive.DrawGlyphRun(tex, glyphs, resolveColor(style)));
+        c.emit(
+            new GuideRenderPrimitive.DrawGlyphRun(
+                tex,
+                glyphs,
+                resolveColor(style),
+                false,
+                style != null && style.dropShadow()));
     }
 
     /** Per-codepoint advance (cached; used by RustFontMetrics). */
