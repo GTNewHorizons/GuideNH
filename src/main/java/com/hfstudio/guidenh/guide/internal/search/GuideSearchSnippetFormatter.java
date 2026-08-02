@@ -9,6 +9,7 @@ import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
+import com.hfstudio.guidenh.guide.render.GuideText;
 
 public class GuideSearchSnippetFormatter {
 
@@ -41,12 +42,20 @@ public class GuideSearchSnippetFormatter {
             return new LytFlowSpan();
         }
         if (maxVisibleChars <= ELLIPSIS.length()) {
-            return LytFlowText.of(ELLIPSIS.substring(0, maxVisibleChars));
+            return LytFlowText.of(GuideText.clipToChars(ELLIPSIS, maxVisibleChars, GuideText.ClipSuffix.NONE));
         }
 
         var plainText = toPlainText(content);
         int clippedChars = Math.max(0, maxVisibleChars - ELLIPSIS.length());
-        while (clippedChars > 0 && Character.isWhitespace(plainText.charAt(clippedChars - 1))) {
+        // Codepoint-aware trailing-whitespace trim: clippedChars is a codepoint
+        // budget, so index the plain text by codepoint offset, never charAt
+        // (which could land inside a surrogate pair).
+        while (clippedChars > 0) {
+            int offset = Character.offsetByCodePoints(plainText, 0, clippedChars);
+            int lastCodepoint = plainText.codePointBefore(offset);
+            if (!Character.isWhitespace(lastCodepoint)) {
+                break;
+            }
             clippedChars--;
         }
 
@@ -154,7 +163,7 @@ public class GuideSearchSnippetFormatter {
 
             @Override
             public void text(String value) {
-                count[0] += value.length();
+                count[0] += value.codePointCount(0, value.length());
             }
         });
         return count[0];
@@ -180,7 +189,7 @@ public class GuideSearchSnippetFormatter {
         if (content instanceof LytFlowText textNode) {
             var clipped = new LytFlowText();
             var text = textNode.getText();
-            clipped.setText(text.substring(0, Math.min(text.length(), remainingChars)));
+            clipped.setText(GuideText.clipToChars(text, remainingChars, GuideText.ClipSuffix.NONE));
             clipped.setStyle(textNode.getStyle());
             clipped.setHoverStyle(textNode.getHoverStyle());
             return clipped;

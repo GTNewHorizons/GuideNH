@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class CommandLinkCompiler extends FlowTagCompiler {
@@ -59,7 +60,7 @@ public class CommandLinkCompiler extends FlowTagCompiler {
             sb.append(tooltipTitle)
                 .append("\n");
         }
-        var displayCmd = command.length() > 25 ? command.substring(0, 25) + "..." : command;
+        var displayCmd = GuideText.clipToChars(command, 28, GuideText.ClipSuffix.DOTS3);
         sb.append(displayCmd);
         return new TextTooltip(sb.toString());
     }

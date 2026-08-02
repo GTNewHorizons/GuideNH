@@ -332,24 +332,40 @@ public final class GuideText {
     /**
      * Character-level truncation by codepoint count (codepoint-aware; never
      * splits a surrogate pair). The suffix is counted against
-     * {@code maxChars}: when the text fits, it is returned unchanged; otherwise
-     * it is truncated to {@code maxChars - suffixCodepoints} codepoints and the
-     * suffix is appended. When {@code maxChars <= suffix length} (the suffix
-     * alone consumes the budget), or {@code maxChars <= 0}, the empty string is
-     * returned.
+     * {@code maxChars}: when the full text fits within the <em>complete</em>
+     * budget ({@code maxChars}) it is returned unchanged (no suffix appended);
+     * otherwise it is truncated to {@code maxChars - suffixCodepoints}
+     * codepoints and the suffix is appended. When the text does not fit and
+     * {@code maxChars <= suffix length} (the suffix alone consumes the budget),
+     * or {@code maxChars <= 0}, the empty string is returned (宁空勿溢).
+     *
+     * <p>Semantic invariant: the result's codepoint count is
+     * {@code <= maxChars}. Mirrors {@link #clipToWidth}'s
+     * fits-in-full-budget semantics — the fits check uses the complete budget,
+     * so a text that fits is never truncated to make room for the suffix.
      *
      * <p>Pure string logic — no font measurement involved, so it is unaffected
      * by {@link #isAvailable()}.
      */
     public static String clipToChars(String text, int maxChars, ClipSuffix suffix) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
         ClipSuffix eff = suffix != null ? suffix : ClipSuffix.NONE;
         String suffixText = suffixText(eff);
         int suffixCount = suffixText.codePointCount(0, suffixText.length());
-        if (text == null || maxChars <= 0 || suffixCount >= maxChars) {
+        if (maxChars <= 0) {
             return "";
         }
-        if (text.codePointCount(0, text.length()) <= maxChars - suffixCount) {
+        // Fits-in-full-budget (mirrors clipToWidth's ④ full-fits check): the
+        // complete text fits within maxChars, so it is returned unchanged. This
+        // must precede the suffix-budget guard — a fitting text must not be
+        // truncated just to reserve space for the suffix.
+        if (text.codePointCount(0, text.length()) <= maxChars) {
             return text;
+        }
+        if (suffixCount >= maxChars) {
+            return "";
         }
         StringBuilder sb = new StringBuilder();
         int remaining = maxChars - suffixCount;

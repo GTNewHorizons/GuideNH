@@ -25,6 +25,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
+import com.hfstudio.guidenh.guide.render.GuideText;
 
 /**
  * Generates static HTML and SVG markup for chart, function-graph, file-tree,
@@ -2064,7 +2065,7 @@ public class GuideSiteGraphRenderer {
                 .append("\" y=\"")
                 .append(rowY)
                 .append("\" font-size=\"9\" fill=\"#FFFFFF\" font-family=\"inherit\">")
-                .append(esc(ellipsize(plot.getLabel(), maxChars)))
+                .append(esc(GuideText.clipToChars(plot.getLabel(), maxChars, GuideText.ClipSuffix.DOTS3)))
                 .append("</text>");
             rowY += CORNER_LEGEND_ROW_H;
         }
@@ -2157,7 +2158,7 @@ public class GuideSiteGraphRenderer {
                 .append("\" y=\"")
                 .append(rowY)
                 .append("\" font-size=\"9\" fill=\"#FFFFFF\" font-family=\"inherit\">")
-                .append(esc(ellipsize(item.name, maxChars)))
+                .append(esc(GuideText.clipToChars(item.name, maxChars, GuideText.ClipSuffix.DOTS3)))
                 .append("</text>");
             rowY += CORNER_LEGEND_ROW_H;
         }
@@ -2362,19 +2363,6 @@ public class GuideSiteGraphRenderer {
         int itemW = Math.clamp((w - 2 * PADDING) / series.size(), 60, 100);
         int cols = Math.max(1, (w - 2 * PADDING) / itemW);
         return (int) Math.ceil((double) series.size() / cols) * (LEGEND_ROW_H + 2) + LEGEND_GAP;
-    }
-
-    private static String ellipsize(String text, int maxChars) {
-        if (text == null || text.isEmpty() || maxChars <= 0) {
-            return "";
-        }
-        if (text.length() <= maxChars) {
-            return text;
-        }
-        if (maxChars <= 3) {
-            return text.substring(0, maxChars);
-        }
-        return text.substring(0, maxChars - 3) + "...";
     }
 
     private static int clamp(int value, int min, int max) {
