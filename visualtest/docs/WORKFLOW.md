@@ -209,13 +209,18 @@ the Rust engine, Java declares structure/style and consumes written-back bounds.
 | Task-list checkbox | `bounds.y() + 1` manual offset | Java pixel math; must declare baseline intent |
 | Inline LaTeX anchor | Java-computed `baselineAscent` | Java computes geometry; Rust must anchor |
 | Geometry write-back | Java `moveLayoutPos` translation chains | Java moves coordinates; Rust should output absolute coords |
-| `Layouts.java` pre-pass | Dead code (retired) | Java layout remnant — delete on contact |
+| `Layouts.java` pre-pass | **Live fallback** (Mermaid NodeContent fontHandle==0 path, tooltip/editor/annotation chains) | Not dead code — see §4.3 M1 |
 
 ### 4.3 Migration milestones
 
-1. **M1 — Delete dead leftovers**: remove retired Java layout pre-pass remnants
-   (`Layouts.java`-driven code paths returning empty geometry). Zero risk; do
-   first when a round touches the area.
+1. **M1 — Correct the legacy-inventory record, delete only true dead leftovers**:
+   investigation (2026-08-02) found `Layouts.java` is NOT dead — it backs the
+   Mermaid NodeContent Java fallback (fontHandle==0 startup window) and the
+   tooltip/editor/annotation/page-title/inline-block layout chains. M1 scope is
+   therefore: delete obsolete comments now; deleting `Layouts.java` itself
+   requires two prerequisites (eliminate the Mermaid fallback by forcing font
+   initialization, migrate the non-document layout chains) and is a later
+   milestone, not a zero-risk cleanup.
 2. **M2 — Converge blocks to primitives**: migrate the legacy-path blocks
    (slider labels, Special Index) to the Rust-glyph primitives path.
 3. **M3 — Remove legacy infrastructure**: delete the `RenderContext.drawText`
