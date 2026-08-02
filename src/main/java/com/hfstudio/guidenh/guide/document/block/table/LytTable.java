@@ -67,13 +67,15 @@ public class LytTable extends LytBlock {
     @Override
     public void computePrimitives(PrimitiveCollector c) {
         var bounds = getBounds();
-        // Column border lines (vertical lines between columns)
+        // Column border lines (vertical lines between columns). X comes from the
+        // Rust-written cell bounds of the row with the most cells (F3 — Java
+        // must not compute geometry). column.x/column.width are x=0
+        // serialization-time declarations and must not drive drawing.
+        var sourceRow = widestRow();
         for (int i = 0; i < columns.size() - 1; i++) {
-            var column = columns.get(i);
-            var colRight = column.x + column.width;
             c.emit(
                 new GuideRenderPrimitive.FillRect(
-                    colRight,
+                    columnSeparatorX(sourceRow, i),
                     bounds.y(),
                     1,
                     bounds.height(),
@@ -98,10 +100,9 @@ public class LytTable extends LytBlock {
     public void render(RenderContext context) {
         // Render the table cell borders
         var bounds = getBounds();
+        var sourceRow = widestRow();
         for (int i = 0; i < columns.size() - 1; i++) {
-            var column = columns.get(i);
-            var colRight = column.x + column.width;
-            context.fillRect(colRight, bounds.y(), 1, bounds.height(), SymbolicColor.TABLE_BORDER);
+            context.fillRect(columnSeparatorX(sourceRow, i), bounds.y(), 1, bounds.height(), SymbolicColor.TABLE_BORDER);
         }
 
         for (int i = 0; i < rows.size() - 1; i++) {
@@ -118,6 +119,61 @@ public class LytTable extends LytBlock {
         for (var row : rows) {
             row.render(context);
         }
+    }
+
+    /**
+     * The row with the most cells (first row wins ties). Its Rust-written cell
+     * bounds are the source for vertical separator positions — all rows share
+     * the table's column x-structure, so one row's cell boundaries stand in
+     * for every row. {@code null} when the table has no rows (then no
+     * vertical separators can be derived; column model is the fallback).
+     */
+    private LytTableRow widestRow() {
+        LytTableRow widest = null;
+        for (var row : rows) {
+            if (widest == null || row.getChildren().size() > widest.getChildren().size()) {
+                widest = row;
+            }
+        }
+        return widest;
+    }
+
+    /**
+     * Document-space x of the vertical separator between column {@code i} and
+     * {@code i + 1}, derived from the Rust-written cell bounds of
+     * {@code sourceRow} (F3 — the line positions must come from Rust layout
+     * data, never from Java-computed column geometry).
+     * <p>
+     * Primary reference: {@code cell[i].getBounds().right()} — the left edge of
+     * the 1px CELL_BORDER gutter between adjacent cells. This mirrors the
+     * horizontal separators, which are drawn at {@code row.getBounds().bottom()}
+     * (the top edge of the row gutter), so vertical and horizontal lines meet at
+     * the cell corners. The alternative {@code cell[i+1].getBounds().x()} is the
+     * gutter's right edge — exactly 1px right of {@code right()} while the gutter
+     * is CELL_BORDER wide — and their integer midpoint degenerates to the left
+     * edge, so {@code right()} is the stable choice. When cell {@code i}'s
+     * bounds are missing, the boundary is recovered from the right neighbour's
+     * {@code cell[i+1].x() - CELL_BORDER}.
+     * <p>
+     * Fallback: when the widest row has no usable Rust bounds for this boundary
+     * (no rows, fewer cells than columns, or bounds not written back), the
+     * legacy column-model position {@code column.x + column.width} is used. This
+     * only guards degenerate / pre-layout paths — after a Rust layout pass every
+     * flat node (cells included) receives a written-back rect.
+     */
+    private int columnSeparatorX(LytTableRow sourceRow, int i) {
+        if (sourceRow != null && i + 1 < sourceRow.getChildren().size()) {
+            var cells = sourceRow.getChildren();
+            LytRect left = cells.get(i).getBounds();
+            LytRect right = cells.get(i + 1).getBounds();
+            if (!left.isEmpty()) {
+                return left.right();
+            }
+            if (!right.isEmpty()) {
+                return right.x() - CELL_BORDER;
+            }
+        }
+        return columns.get(i).x + columns.get(i).width;
     }
 
     public LytTableRow appendRow() {

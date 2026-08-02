@@ -345,8 +345,10 @@ public class LayoutTreeSerializer {
                 // Column widths must be resolved before serialization so cells
                 // carry their column width constraint. The Java pre-pass is
                 // removed, so layoutColumns is called here with the available
-                // width from the serialize() parameter. (x=0 is safe — column.x
-                // is overwritten by Rust.)
+                // width from the serialize() parameter. (x=0 is fine — column.x
+                // is a serialization-time declaration only and is never
+                // overwritten by Rust; the table's vertical separators are
+                // derived from Rust-written cell bounds, not from column.x.)
                 // List-item containment: a table nested inside LytListItems lays
                 // out in the item's CONTENT box, which starts after the item's
                 // paddingLeft. listPadAccum carries the total padding of all
