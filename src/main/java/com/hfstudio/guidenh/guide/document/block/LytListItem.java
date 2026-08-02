@@ -80,6 +80,12 @@ public class LytListItem extends LytVBox {
     @Override
     public void computePrimitives(PrimitiveCollector c) {
         super.computePrimitives(c);
+        if (hasOwnMarker()) {
+            // Subclasses with a custom gutter marker (e.g. the task checkbox)
+            // draw it themselves; skip the shared bullet/number so both never
+            // paint the same slot.
+            return;
+        }
         if (cachedOrderedNumber >= 0) {
             String label = cachedOrderedNumber + ".";
             int width = GuideText.measureWidth(label, style);
@@ -105,26 +111,39 @@ public class LytListItem extends LytVBox {
 
     @Override
     public void render(RenderContext context) {
-        if (cachedOrderedNumber >= 0) {
-            String label = cachedOrderedNumber + ".";
-            var width = context.getWidth(label, style);
-            var bounds = getBounds();
-            var markerLine = getMarkerLineBounds(context);
-            // Same shared-gutter anchor as computePrimitives: right edge at
-            // bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET.
-            var x = bounds.x() + LEVEL_MARGIN - width - MARKER_GUTTER_OFFSET;
-            context.drawText(label, x, markerLine.y(), style);
-        } else {
-            var bounds = getBounds();
-            var markerLine = getMarkerLineBounds(context);
-            int bulletY = markerLine.y() + (markerLine.height() - BULLET_SIZE) / 2;
-            int bulletX = bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET - BULLET_SIZE;
-            context.fillRect(bulletX, bulletY, BULLET_SIZE, BULLET_SIZE, SymbolicColor.BODY_TEXT);
+        if (!hasOwnMarker()) {
+            if (cachedOrderedNumber >= 0) {
+                String label = cachedOrderedNumber + ".";
+                var width = context.getWidth(label, style);
+                var bounds = getBounds();
+                var markerLine = getMarkerLineBounds(context);
+                // Same shared-gutter anchor as computePrimitives: right edge at
+                // bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET.
+                var x = bounds.x() + LEVEL_MARGIN - width - MARKER_GUTTER_OFFSET;
+                context.drawText(label, x, markerLine.y(), style);
+            } else {
+                var bounds = getBounds();
+                var markerLine = getMarkerLineBounds(context);
+                int bulletY = markerLine.y() + (markerLine.height() - BULLET_SIZE) / 2;
+                int bulletX = bounds.x() + LEVEL_MARGIN - MARKER_GUTTER_OFFSET - BULLET_SIZE;
+                context.fillRect(bulletX, bulletY, BULLET_SIZE, BULLET_SIZE, SymbolicColor.BODY_TEXT);
+            }
         }
         super.render(context);
     }
 
-    private LytRect getMarkerLineBounds(RenderContext context) {
+    /**
+     * Whether this list item draws its own gutter marker (e.g. the task
+     * checkbox) instead of the shared bullet / ordered number. Subclasses with
+     * a custom marker must override to return {@code true} so {@link
+     * #computePrimitives(PrimitiveCollector)} and {@link #render(RenderContext)}
+     * skip the shared marker slot (both would otherwise double-draw).
+     */
+    protected boolean hasOwnMarker() {
+        return false;
+    }
+
+    protected LytRect getMarkerLineBounds(RenderContext context) {
         if (!children.isEmpty()) {
             LytBlock firstChild = children.getFirst();
             if (firstChild instanceof LytParagraph paragraph) {
@@ -144,7 +163,7 @@ public class LytListItem extends LytVBox {
     }
 
     /** Context-free overload for use in {@link #computePrimitives}. */
-    private LytRect getMarkerLineBounds() {
+    protected LytRect getMarkerLineBounds() {
         if (!children.isEmpty()) {
             LytBlock firstChild = children.getFirst();
             if (firstChild instanceof LytParagraph paragraph) {

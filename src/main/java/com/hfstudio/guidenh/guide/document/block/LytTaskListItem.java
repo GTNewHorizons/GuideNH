@@ -31,12 +31,23 @@ public class LytTaskListItem extends LytListItem {
     }
 
     @Override
+    protected boolean hasOwnMarker() {
+        // The checkbox replaces the shared bullet / ordered number — the
+        // superclass must not also paint a marker in the gutter.
+        return true;
+    }
+
+    @Override
     public void computePrimitives(PrimitiveCollector c) {
         super.computePrimitives(c);
         LytRect bounds = getBounds();
         int boxSize = 7;
         int boxX = bounds.x() + 1;
-        int boxY = bounds.y() + 1;
+        // Vertically center the checkbox on the marker's first-line text run
+        // (bounds written back by Rust): the checkbox's vertical center lands
+        // on the first line's vertical center, matching the bullet alignment.
+        LytRect markerLine = getMarkerLineBounds();
+        int boxY = markerLine.y() + (markerLine.height() - boxSize) / 2;
         int argb = SymbolicColor.BODY_TEXT.resolve(LightDarkMode.current());
         c.emit(new GuideRenderPrimitive.DrawBorder(boxX, boxY, boxSize, boxSize, 1, 1, 1, 1, argb));
         if (checked) {
@@ -50,7 +61,10 @@ public class LytTaskListItem extends LytListItem {
         LytRect bounds = getBounds();
         int boxSize = 7;
         int boxX = bounds.x() + 1;
-        int boxY = bounds.y() + 1;
+        // Same marker-line anchor as computePrimitives: center the checkbox on
+        // the first-line text run bounds (Rust layout authority).
+        LytRect markerLine = getMarkerLineBounds(context);
+        int boxY = markerLine.y() + (markerLine.height() - boxSize) / 2;
         context.drawBorder(new LytRect(boxX, boxY, boxSize, boxSize), context.resolveColor(SymbolicColor.BODY_TEXT), 1);
         if (checked) {
             context.fillRect(boxX + 2, boxY + 2, 3, 3, SymbolicColor.LINK);
