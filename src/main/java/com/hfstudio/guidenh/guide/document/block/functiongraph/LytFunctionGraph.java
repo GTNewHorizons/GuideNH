@@ -340,10 +340,6 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         }
     }
 
-    /**
-     * Migrated to {@link #computePrimitives}; the legacy path is unreachable
-     * (the collector only invokes it when {@link #usePrimitives()} is false).
-     */
     @Override
     public void render(RenderContext context) {}
 

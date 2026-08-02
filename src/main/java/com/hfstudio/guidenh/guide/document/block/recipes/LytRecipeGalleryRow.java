@@ -24,7 +24,6 @@ public class LytRecipeGalleryRow extends LytHBox {
 
     /** Recipe box block types eligible for gallery grouping. */
     public static boolean isRecipeBox(LytBlock block) {
-        return block instanceof LytNeiRecipeBox || block instanceof LytStandardRecipeBox
-            || block instanceof LytGenericRecipeBox;
+        return block instanceof LytNeiRecipeBox || block instanceof LytStandardRecipeBox;
     }
 }

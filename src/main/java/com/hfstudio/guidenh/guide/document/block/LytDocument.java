@@ -258,8 +258,12 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     }
 
     private Layout createLayout(LayoutContext context, int availableWidth) {
-        // The Java layout pre-pass has been removed. The tree is serialized
-        // without a pre-layout step; Rust is the sole authority for geometry.
+        // The Java layout pre-pass is gone from the main document pipeline: the
+        // tree is serialized without a pre-layout step and Rust is the sole
+        // authority for document geometry. The Java pre-pass (Layouts.java) is
+        // still live for the non-document chains — tooltip / annotation / editor
+        // / page-title / inline-block (Mermaid fallback) — which bypass the
+        // collector and lay out via LayoutContext directly.
 
         // --- Rust layout pipeline (sole authority for geometry) ---
         int contentHeight = 0;

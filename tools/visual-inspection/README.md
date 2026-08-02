@@ -177,3 +177,32 @@ depth 4: LytTableCell         ← 父: LytTableRow
 depth 5: LytParagraph         ← 父: LytTableCell
 depth 4: LytTableCell         ← 父: LytTableRow（与前一个 LytTableCell 是兄弟）
 ```
+
+
+## 4. check_freshness — 截图新鲜度校验（A2/P4）
+
+防"陈旧截图清单误报"（F7c 教训）：校验页清单中每页是否都有最新批次截图、截图是否新鲜。
+
+```bash
+py -3 tools/visual-inspection/check_freshness.py --shots <截图目录> --list <页清单> [--stale-min 10]
+```
+
+- 页清单格式：一行一个 `guidenh:visualtest/<path>.md`，`#` 开头为注释
+- 截图命名 `<page_stem>_<YYYY-MM-DD_HHMMSS>.png`，按 stem 取最新批次
+- 三态：OK / MISSING（无截图）/ STALE（最新截图 mtime 早于清单 mtime + stale-min 分钟）
+- 有 MISSING 或 STALE 时退出码 1；TAP 风格输出对齐 assert_bounds.py
+- `--self-test`：内置 OK/MISSING/STALE 三态冒烟用例
+- 纯标准库，禁第三方依赖
+
+## 5. scan_logs — 日志扫描（A2/P5）
+
+落实 WORKFLOW §3.1.5 日志卫生强制项：渲染轮次客户端日志命中 `glyph atlas full` / `OutOfMemory` 告警即判定该轮失败。
+
+```bash
+py -3 tools/visual-inspection/scan_logs.py [--logs run/client_new/logs] [--pattern "glyph atlas full"]
+```
+
+- 扫描 `*.log`、`*.log.gz`（gzip 流式解压）与 `latest.log`
+- 每条命中输出：文件、行号、行内容；有命中或读取错误退出码 1
+- `--self-test`：内置样本日志（两种模式 + 噪声）验证命中与退出码
+- 纯标准库，禁第三方依赖

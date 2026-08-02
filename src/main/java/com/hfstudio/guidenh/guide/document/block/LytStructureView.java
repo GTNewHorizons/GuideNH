@@ -133,10 +133,6 @@ public class LytStructureView extends LytBlock {
         c.popScissor();
     }
 
-    /**
-     * Migrated to {@link #computePrimitives}; the legacy path is unreachable
-     * (the collector only invokes it when {@link #usePrimitives()} is false).
-     */
     @Override
     public void render(RenderContext context) {}
 

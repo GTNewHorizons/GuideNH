@@ -197,6 +197,42 @@
     },
      "msg": "every LytItemImage reserves real height, h>0 (R2-2/R2-3 ratchet, was 0 before fix)"
     }
+   ],
+   "visualtest_layout_details.md": [
+    {
+     "inside_parent": {
+      "cls": "LytViewportBox",
+      "pad": 6
+     },
+     "msg": "A2: details content viewport stays inside details block (N-A1 7px right-overflow regression guard, was +7px before fix)"
+    }
+   ],
+   "visualtest_layout_callouts.md": [
+    {
+     "inside_parent": {
+      "cls": "LytAlertBox",
+      "pad": 6
+     },
+     "msg": "A2: callout (alert) box stays inside its parent block (F8 callout overflow guard)"
+    }
+   ],
+   "visualtest_layout_content-tabs.md": [
+    {
+     "inside_parent": {
+      "cls": "LytContentTabsBlock",
+      "pad": 6
+     },
+     "msg": "A2: tab content block stays inside its parent (tab container overflow guard)"
+    }
+   ],
+   "visualtest_layout_row-column.md": [
+    {
+     "inside_parent": {
+      "cls": "LytHBox",
+      "pad": 6
+     },
+     "msg": "A2: row layout box stays inside its parent (row/column container overflow guard)"
+    }
    ]
   }
 }

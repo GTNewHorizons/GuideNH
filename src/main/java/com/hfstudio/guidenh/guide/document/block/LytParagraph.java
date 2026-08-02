@@ -410,7 +410,9 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
     public void render(RenderContext context) {
         // All block-tree rendering goes through computePrimitives (usePrimitives
         // always returns true when content exists). This legacy-path fallback is
-        // only reached by direct render() callers (e.g. GuideScreen pageTitle).
+        // only reached by direct render() callers outside the document pipeline
+        // (tooltip / annotation / editor chains, e.g. ContentTooltip content and
+        // TextAnnotation rich content).
         if (flowContent.isEmpty()) return;
         if (glyphData != null && !glyphData.runs()
             .isEmpty()) return;
@@ -470,14 +472,6 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
                 collectSpanOwnersRecursive(child, out);
             }
         }
-    }
-
-    public @Nullable LytRect getFirstLineBounds() {
-        if (glyphData != null && !glyphData.runs()
-            .isEmpty()) {
-            return firstLineBoundsFromGlyphs();
-        }
-        return null;
     }
 
     public @Nullable LytRect getFirstTextRunBounds() {

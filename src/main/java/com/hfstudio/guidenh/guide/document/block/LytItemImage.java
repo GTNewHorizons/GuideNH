@@ -306,7 +306,6 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
 
     @Override
     public void render(RenderContext context) {
-        // Unused: LytItemImage uses the primitives path (usePrimitives() == true).
     }
 
     @Override

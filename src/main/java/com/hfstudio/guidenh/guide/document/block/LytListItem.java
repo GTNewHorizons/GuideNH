@@ -151,7 +151,7 @@ public class LytListItem extends LytVBox {
                 if (firstTextRun != null) {
                     return firstTextRun;
                 }
-                LytRect firstLine = paragraph.getFirstLineBounds();
+                LytRect firstLine = paragraph.getFirstTextRunBounds();
                 if (firstLine != null) {
                     return new LytRect(firstLine.x(), firstLine.y(), firstLine.width(), context.getLineHeight(style));
                 }
@@ -171,7 +171,7 @@ public class LytListItem extends LytVBox {
                 if (firstTextRun != null) {
                     return firstTextRun;
                 }
-                LytRect firstLine = paragraph.getFirstLineBounds();
+                LytRect firstLine = paragraph.getFirstTextRunBounds();
                 if (firstLine != null) {
                     return new LytRect(firstLine.x(), firstLine.y(), firstLine.width(), GuideText.lineHeight(style));
                 }

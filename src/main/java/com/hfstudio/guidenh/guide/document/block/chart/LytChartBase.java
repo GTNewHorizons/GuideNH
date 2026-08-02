@@ -316,10 +316,6 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         ChartLegendRenderer.emit(c, legendLayout, textStyle);
     }
 
-    /**
-     * Migrated to {@link #computePrimitives}; the legacy path is unreachable
-     * (the collector only invokes it when {@link #usePrimitives()} is false).
-     */
     @Override
     public final void render(RenderContext context) {}
 

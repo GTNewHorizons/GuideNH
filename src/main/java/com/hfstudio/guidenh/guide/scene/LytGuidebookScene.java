@@ -156,10 +156,6 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public static final int ORIGIN_Z_AXIS_COLOR = 0xFF64A8FF;
     public static final ResolvedTextStyle VISIBLE_LAYER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
-    public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
-        .mergeWith(DefaultStyles.BASE_STYLE);
-    public static final ResolvedTextStyle STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
-        .mergeWith(DefaultStyles.BASE_STYLE);
     /**
      * GuideText glyph-pipeline styles for the 3 bottom-control slider labels
      * (F7b phase 1). Dedicated constants — {@link #VISIBLE_LAYER_SLIDER_TEXT_STYLE}
