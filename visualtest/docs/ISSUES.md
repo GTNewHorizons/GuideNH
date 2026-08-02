@@ -559,3 +559,25 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
 - **Verification**: gate TOTAL ISSUES: 0; ratchet 24/24; geometric 65 pages 3
   known (floats_multi); log clean; independent review ACCEPT (4 redlines PASS,
   no anti-pattern hits); VLM confirms all four fixes effective.
+
+## P. F3 — Table separator dual-track offset (2026-08-02, CLOSED)
+
+- **Symptom** (user-reported): table cell AABB does not hug the separator lines;
+  first characters look padded. Investigation found the offset was systematic:
+  separators were drawn from Java `column.x` computed at x=0 basis during
+  serialization, while Rust wrote back cell bounds in real document coordinates
+  (CONTENT_PAD=14) — a 14px offset on every separator (pixel-measured:
+  line at x=435 vs cell boundary 449/450). The `moveLayoutPos` translation chain
+  had no caller in the Rust pipeline (dormant); the serializer comment claiming
+  "column.x is overwritten by Rust" was false.
+- **Fix**: separators now derive x from Rust-written-back cell bounds
+  (`widestRow()` + `columnSeparatorX()`, both computePrimitives and render
+  paths); column-width allocation stays Java (declared intent → size_w);
+  fallback chain (no row / missing bounds) degrades to pre-fix behavior without
+  new offset; stale comment corrected.
+- **Verification**: gate TOTAL ISSUES: 0; pixel-level check at both widths
+  (900/480) on basic/wide/csv/metadata/cjk — every separator exactly at cell
+  right edge; ratchet 24/24; independent review ACCEPT (redlines PASS, 5
+  declared assumptions code-supported, no anti-patterns).
+- **Note**: separator alignment is now objectively verifiable (pixel probe);
+  consider a future ratchet/audit probe per §3.1.3.
