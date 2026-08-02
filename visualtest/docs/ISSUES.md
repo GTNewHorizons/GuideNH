@@ -688,3 +688,21 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
   the label-emission section (failure coupling).
 - **Path-map**: scene slider labels migrated; remaining legacy text in scene:
   Block Stats (F7b-2), load-state (F7b-3), Ponder hover (F7b-4, deferred).
+
+## V. Blocked decision: Scene3D primitive-ization (2026-08-02, USER DECISION — escape hatch accepted)
+
+- **Context**: F7b-1 migrated scene slider labels via hybrid (HostDraw escape
+  hatch + collect-time emitText). The root-cause-level alternative — turning
+  scene 3D rendering into a first-class primitive (`RenderScene3D` /
+  `GuidebookSceneRenderer` are stubs) — is a major framework change with large
+  cost and low glue-reuse value.
+- **User decision**: Scene stays on the normal escape hatch (HostDraw/legacy
+  hybrid is the legitimate pattern for scene blocks). Scene3D
+  primitive-ization is NOT to be pursued; major framework changes of this
+  class are recorded as blocked items and escalated to the user for decision
+  rather than self-directed.
+- **Policy recorded**: major framework changes (new primitives, pipeline
+  rewrites, schema evolution with wide blast radius) are BLOCKED items —
+  executor records them and reports to the user; no self-directed green light.
+- **Remaining scene text** (F7b-2/3/4) stays on the established hybrid pattern
+  if/when pursued; currently parked.
