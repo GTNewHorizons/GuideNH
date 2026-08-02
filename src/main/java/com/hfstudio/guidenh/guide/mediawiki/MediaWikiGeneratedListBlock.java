@@ -4,15 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.ITextureObject;
+import net.minecraft.util.ResourceLocation;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.document.block.BorderRenderer;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -20,7 +24,12 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
@@ -56,7 +65,6 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
         .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
     private static final ResolvedTextStyle EMPTY_STYLE = DefaultStyles.BODY_TEXT.mergeWith(DefaultStyles.BASE_STYLE);
-    private static final BorderRenderer BORDER_RENDERER = new BorderRenderer();
 
     private final List<MediaWikiListEntry> entries = new ArrayList<>();
     private final List<RowLayout> rowLayouts = new ArrayList<>();
@@ -187,10 +195,15 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
     }
 
     @Override
-    public void render(RenderContext context) {
-        renderBorders(context);
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        emitBorders(c);
         for (RowLayout rowLayout : rowLayouts) {
-            if (!context.intersectsViewport(rowLayout.bounds())) {
+            if (c.isCulled(rowLayout.bounds())) {
                 continue;
             }
 
@@ -200,11 +213,11 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
                 int emptyTextY = rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         EMPTY_STYLE,
                         rowLayout.bounds()
                             .height());
-                context.drawText(
+                emitText(
+                    c,
                     emptyText,
                     rowLayout.bounds()
                         .x(),
@@ -217,11 +230,11 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
                 int headerTextY = rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         HEADER_STYLE,
                         rowLayout.bounds()
                             .height());
-                context.drawText(
+                emitText(
+                    c,
                     rowLayout.header(),
                     rowLayout.bounds()
                         .x(),
@@ -235,7 +248,6 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
             int rowTextY = rowLayout.bounds()
                 .y()
                 + verticalCenterOffset(
-                    context,
                     rowStyle,
                     rowLayout.bounds()
                         .height());
@@ -245,12 +257,18 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
                 .y()
                 + (rowLayout.bounds()
                     .height() - LIST_MARKER_SIZE) / 2;
-            context.fillRect(markerX, markerY, LIST_MARKER_SIZE, LIST_MARKER_SIZE, LIST_MARKER_COLOR);
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    markerX,
+                    markerY,
+                    LIST_MARKER_SIZE,
+                    LIST_MARKER_SIZE,
+                    LIST_MARKER_COLOR.resolve(LightDarkMode.current())));
             int textX = markerX + LIST_MARKER_SIZE + LIST_MARKER_GAP;
             GuidePageIcon icon = entry.icon();
             if (icon != null) {
-                renderIcon(
-                    context,
+                emitIcon(
+                    c,
                     icon,
                     textX,
                     rowLayout.bounds()
@@ -261,16 +279,16 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
             }
 
             String renderedTitle = clipToWidth(
-                context,
                 entry.title(),
                 Math.max(
                     1,
                     rowLayout.bounds()
-                        .right() - textX));
+                        .right() - textX),
+                rowStyle);
             int clickableWidth = textX - rowLayout.bounds()
                 .x();
             if (renderedTitle != null && !renderedTitle.isEmpty()) {
-                clickableWidth += context.getStringWidth(renderedTitle, rowStyle);
+                clickableWidth += GuideText.measureWidth(renderedTitle, rowStyle);
             }
             rowLayout.setClickableBounds(
                 new LytRect(
@@ -281,9 +299,16 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
                     Math.max(0, clickableWidth),
                     rowLayout.bounds()
                         .height()));
-            context.drawText(renderedTitle, textX, rowTextY, rowStyle);
+            emitText(c, renderedTitle, textX, rowTextY, rowStyle);
         }
     }
+
+    /**
+     * Migrated to {@link #computePrimitives}; the legacy path is unreachable
+     * (the collector only invokes it when {@link #usePrimitives()} is false).
+     */
+    @Override
+    public void render(RenderContext context) {}
 
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {
@@ -333,44 +358,105 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
         return null;
     }
 
-    private void renderIcon(RenderContext context, GuidePageIcon icon, int x, int y) {
+    private void emitIcon(PrimitiveCollector c, GuidePageIcon icon, int x, int y) {
         if (icon.isItemIcon() && icon.resolveCurrentItemStack() != null) {
-            context.renderItemIcon(icon.resolveCurrentItemStack(), x, y);
+            c.emit(new GuideRenderPrimitive.RenderItem(icon.resolveCurrentItemStack(), x, y));
             return;
         }
-        if (icon.resolveCurrentTexture() != null) {
-            context.fillTexturedRect(new LytRect(x, y, ICON_SIZE, ICON_SIZE), icon.resolveCurrentTexture());
+        GuidePageTexture texture = icon.resolveCurrentTexture();
+        if (texture == null || texture.isMissing()) {
+            return;
+        }
+        ResourceLocation resolvedTexture = texture.getTexture();
+        int texId = resolvedTexture != null ? getGlTextureId(resolvedTexture) : -1;
+        if (texId >= 0) {
+            c.emit(new GuideRenderPrimitive.BlitTexture(texId, x, y, ICON_SIZE, ICON_SIZE, 0f, 0f, 1f, 1f));
         }
     }
 
-    private int verticalCenterOffset(RenderContext context, ResolvedTextStyle style, int boxHeight) {
-        return Math.max(0, (boxHeight - context.getLineHeight(style)) / 2);
+    private int verticalCenterOffset(ResolvedTextStyle style, int boxHeight) {
+        return Math.max(0, (boxHeight - GuideText.lineHeight(style)) / 2);
     }
 
-    private void renderBorders(RenderContext context) {
+    private void emitBorders(PrimitiveCollector c) {
         if (getBorderTop().width() <= 0 && getBorderLeft().width() <= 0
             && getBorderRight().width() <= 0
             && getBorderBottom().width() <= 0) {
             return;
         }
-        BORDER_RENDERER.render(context, bounds, getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom());
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                getBorderTop().width(),
+                getBorderLeft().width(),
+                getBorderBottom().width(),
+                getBorderRight().width(),
+                resolveBorderArgb()));
     }
 
-    private String clipToWidth(RenderContext context, String text, int maxWidth) {
-        if (text == null || text.isEmpty() || context.getStringWidth(text, LINK_STYLE) <= maxWidth) {
+    private int resolveBorderArgb() {
+        // DrawBorder is single-color; use the first side that declares one.
+        // This block's callers set top+bottom with the same color
+        // (SymbolicColor.TABLE_BORDER), so the single color is exact here.
+        BorderStyle[] sides = { getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom() };
+        for (BorderStyle side : sides) {
+            var color = side.color();
+            if (color != null) {
+                return color.resolve(LightDarkMode.current());
+            }
+        }
+        return 0xFF000000;
+    }
+
+    private String clipToWidth(String text, int maxWidth, ResolvedTextStyle style) {
+        if (text == null || text.isEmpty() || GuideText.measureWidth(text, style) <= maxWidth) {
             return text == null ? "" : text;
         }
 
-        int ellipsisWidth = context.getStringWidth("...", LINK_STYLE);
+        int ellipsisWidth = GuideText.measureWidth("...", style);
         if (ellipsisWidth >= maxWidth) {
             return "";
         }
 
         int end = text.length();
-        while (end > 0 && context.getStringWidth(text.substring(0, end), LINK_STYLE) + ellipsisWidth > maxWidth) {
+        while (end > 0 && GuideText.measureWidth(text.substring(0, end), style) + ellipsisWidth > maxWidth) {
             end--;
         }
         return end <= 0 ? "..." : text.substring(0, end) + "...";
+    }
+
+    /**
+     * Emits {@code text} through the unified {@link GuideText} glyph pipeline
+     * at document position {@code (x, lineTop)} — {@code lineTop} is the line
+     * top (baseline = lineTop + ascent × fontScale), not the MC baseline.
+     * <p>
+     * GuideText does not paint decorations; the underline of
+     * {@link #HOVER_LINK_STYLE} is therefore drawn manually as a 1px
+     * {@link GuideRenderPrimitive.FillRect} 1px below the baseline, spanning
+     * the measured text width (same width the glyph run occupies).
+     */
+    private static void emitText(PrimitiveCollector c, String text, int x, int lineTop, ResolvedTextStyle style) {
+        GuideText.emitText(c, text, x, lineTop, style);
+        if (style != null && style.underlined() && text != null && !text.isEmpty()) {
+            int width = GuideText.measureWidth(text, style);
+            int underlineY = Math.round(GuideText.baselineOf(lineTop, style)) + 1;
+            c.emit(new GuideRenderPrimitive.FillRect(x, underlineY, width, 1, GuideText.resolveColor(style)));
+        }
+    }
+
+    private static int getGlTextureId(ResourceLocation res) {
+        try {
+            ITextureObject tex = Minecraft.getMinecraft()
+                .getTextureManager()
+                .getTexture(res);
+            return tex != null ? tex.getGlTextureId() : -1;
+        } catch (Throwable t) {
+            // Headless (unit tests) or texture unavailable: skip drawing.
+            return -1;
+        }
     }
 
     private static class RowLayout {
