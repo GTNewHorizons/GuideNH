@@ -233,6 +233,14 @@
      },
      "msg": "A2: row layout box stays inside its parent (row/column container overflow guard)"
     }
+   ],
+   "visualtest_latex_inline-xheight.md": [
+    {
+     "exists": {
+      "cls": "LytLatexBlock"
+     },
+     "msg": "inline LaTeX blocks exist on x-height calibration page (T4 x_height ratchet)"
+    }
    ]
   }
 }
