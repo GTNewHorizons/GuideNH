@@ -531,3 +531,31 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
      visualZoom/scaleFactor (直接验证候选2 activeZoom 是否病态).
 - **Next**: 用户游戏内按上述打点复现一次 → 定位乘子 → 修复; 修复验收 = 游戏内
   洪泛消失或位图尺寸回归正常量级.
+
+## O. Comfort Fix Round 1 — F5-1/F5-2/F5-3/F8 (2026-08-02, CLOSED)
+
+- **F8 heading/callout vertical gap** (user-reported: 标题与正文空行太多; callout 标题栏空行):
+  Root cause = Rust top-level pusher applied margins **post-posed** (`cursor += h + mt + mb`),
+  so the heading's large margin-top (H1 20px) landed between heading and body
+  (26px gap). taffy subtrees and the retired Java layout were CSS-front; the
+  pusher was the migration bug. Fix: prepose `mt` in both paragraph and block
+  paths (layout.rs), heading→body gap 26→11px; callout title→body margin zeroed
+  (BlockquoteCompiler first-body margin-top, LytQuoteBox getBodyContainer);
+  reverted a wrong-model Java collapse added earlier that over-collapsed under
+  CSS semantics. Verified: ratchet 24/24, geometric 3 known, VLM confirms
+  compact rhythm, body-paragraph spacing unchanged, float/clear paths intact.
+  Commits: 62b0db08.
+- **F5-1 task checkbox alignment** (user-reported): checkbox anchored
+  `bounds.y()+1` (top-aligned). Fix: vertical center on marker first-line text
+  geometry (Rust-written-back glyph bounds, same mechanism as bullets).
+  Commit: 1a8ae489.
+- **F5-2 details marker alignment** (user-reported): ">"/"v" optically high and
+  smaller. Fix: summaryMarker marginTop=1 structural declaration (taffy CENTER
+  aligns margin boxes; 0.5px optical trade-off declared). Commit: 02ca4d82.
+- **F5-3 inline LaTeX metrics** (user-reported): formula glyphs oversize
+  (calibrated to font ascent, not x-height) and depth-anchor drift. Fix:
+  x-height calibration (0.625×ascent), single-ceil texture scaling, bottom-inset
+  aware depth rounding (removes ~2s px systematic drift). Commits: 240f69bb.
+- **Verification**: gate TOTAL ISSUES: 0; ratchet 24/24; geometric 65 pages 3
+  known (floats_multi); log clean; independent review ACCEPT (4 redlines PASS,
+  no anti-pattern hits); VLM confirms all four fixes effective.
