@@ -719,8 +719,9 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   map updated).
 - **Principle conformance**: text/document flow conformant; hotspots = charts/
   function-graph/mermaid data→pixel (S1), table column-width allocation (S2),
-  Layouts.java + scroll containers (S3), manual grids (S4) — S1/S2 are
-  schema-requiring framework changes, **PENDING USER decision**.
+  Layouts.java + scroll containers (S3), manual grids (S4) — reclassified
+  2026-08-02 by leaf-boundary exemption (below; AUDIT §2.4): leaf-interior
+  domains, not violations, no migration required.
 - **Text-presentation pipeline gaps** (root: span-pipeline phase 3 never
   implemented): T5 clip/wrap (10+ duplicate implementations with semantic
   forks), T1 decoration, T2 dropShadow, T4 metrics, T3 baseline, T6 type
@@ -735,3 +736,13 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   deletable in normal rounds.
 - **Path map refreshed**: WORKFLOW §4.2/§4.3 updated (5 migrated rows removed,
   NEI/annotations/fallbacks registered, M2 marked done).
+
+- **Leaf-boundary exemption (user directive 2026-08-02)** — Rust layout
+  authority ends at tree leaf nodes; leaf-interior rendering is private (any
+  means incl. Java, Rust public APIs usable); piercing leaf internals forbidden
+  (no schema leaf-private state, no Rust leaf-internal models); obligation:
+  leaf-interior text/metrics MUST use Rust text API; tree-level structure stays
+  Rust-authoritative. Full text WORKFLOW §2.1.1; hotspot reclassification
+  (S1/S2/S3/S4/S5) in AUDIT §2.4 (local). A7/A8 CLOSED, audit decisions
+  §6-1/§6-2 RESOLVED. Remaining pending: A4 green-light (§6-3) + scene text
+  F7b-2/3/4 (§6-4).

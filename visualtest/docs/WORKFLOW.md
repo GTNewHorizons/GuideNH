@@ -37,8 +37,25 @@ is an architectural violation:
 - Geometry write-back must not require Java-side coordinate translation chains
   (`moveLayoutPos`); Rust outputs absolute coordinates.
 
-The reviewer checks every fix for **new Java geometry computation** and rejects
-it (see §5 Stage 6, review item 4).
+The reviewer checks every fix for **new tree-level Java geometry computation**
+and rejects it (see §5 Stage 6, review item 4).
+
+#### 2.1.1 Leaf-boundary exemption (user directive 2026-08-02)
+
+The Rust layout engine's authority ends at the tree's **leaf nodes**. A leaf
+block (chart, function-graph, mermaid canvas, image, scroll container, grid,
+table) exposes only its declared size/position/margin to the tree. HOW it
+renders its interior is private: interior geometry (data→pixel mapping,
+column-width allocation, tick/bar/pie-angle math, grid placement,
+scroll-range computation) may be computed by any means, including Java, using
+Rust's public APIs as convenient. Architecture must NOT pierce leaf internals:
+the schema must not carry leaf-private state, Rust must not model leaf-internal
+data structures, and no layer may reach into a leaf's private fields.
+Non-negotiable obligation: leaf-interior TEXT and font metrics MUST go through
+the Rust text API (emitText/measure) — MC FontRenderer inside a leaf remains a
+§2.2 violation. Tree-level structure (document flow, block placement, row
+heights of Rust-modeled tables) stays Rust-authoritative. The §2.1 review item
+("no new Java geometry computation") applies to tree-level geometry only.
 
 ### 2.2 Migration: legacy rendering shrinks only
 
@@ -311,7 +328,8 @@ Fixes are executed under executor orchestration:
    the acceptance criteria, and the known failure modes (deleted tests,
    commented-out errors, empty catches, scope creep, silent downgrades,
    patch-style special-casing), plus four architecture-specific checks:
-   (a) no new Java geometry computation (§2.1);
+   (a) no new tree-level Java geometry computation (§2.1; leaf-interior
+       geometry exempt — §2.1.1);
    (b) no new legacy-path usage (§2.2);
    (c) no test-asset weakening (§2.4);
    (d) no new unregistered assumptions about the rendering path being live
