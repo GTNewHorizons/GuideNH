@@ -45,6 +45,20 @@ public final class GuideText {
     public static final int BASE_LINE_HEIGHT = 17;
 
     /**
+     * x-height / ascent ratio used to approximate the body x-height from the
+     * font ascent. The Rust shape pipeline exposes no x-height metric
+     * (ShapeTextResult carries width / height / ascent / line_height only), so
+     * the x-height is derived as a fixed fraction of {@link #ascent()}.
+     *
+     * <p>Rationale: for the guide's UI sans-serif the font ascent is ≈0.75-0.85em
+     * and the x-height ≈0.5em, i.e. x-height ≈ 0.5/0.8 = 0.625 × ascent — the
+     * middle of the commonly cited 0.6-0.65 range. This is a typographic
+     * average, not a per-font metric (the actual ratio of the loaded system
+     * font may differ by a few percent).
+     */
+    private static final float X_HEIGHT_RATIO = 0.625f;
+
+    /**
      * Cache key includes the display pixel ratio: bitmaps are rasterized per
      * render scale, so a GUI-scale change must not hit stale entries (C-5).
      */
@@ -94,6 +108,17 @@ public final class GuideText {
         float a = shape("x", null).ascent();
         cachedBaseAscent = a;
         return a;
+    }
+
+    /**
+     * Approximate body x-height at scale 1: {@link #ascent()} ×
+     * {@link #X_HEIGHT_RATIO}. Unlike {@link #ascent()} (the font ascent,
+     * ≈0.75-0.85em — the top of tall letters/ascenders), this measures a
+     * lower-case "x", i.e. the height lowercase body letters actually occupy.
+     * Multiply by fontScale for scaled styles.
+     */
+    public static float xHeight() {
+        return ascent() * X_HEIGHT_RATIO;
     }
 
     /** Baseline Y for a line whose top is {@code lineTop} at the given style. */
