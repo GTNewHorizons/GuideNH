@@ -663,3 +663,28 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
   system font (no 8×8 pixel font), borders intact (top/bottom 1px, no extra
   lines — DrawBorder fix holds), 2-column layouts correct at 900/480, TEST
   GOAL backticks render as text (N-A2 holds).
+
+## U. F7b-1 — Scene slider labels hybrid migration (2026-08-02, CLOSED)
+
+- **Symptom** (user-reported): scene slider labels ("Layer: All" etc.) in MC
+  8×8 pixel font.
+- **Fix** (first hybrid-mode migration): usePrimitives + computePrimitives =
+  collect-time slider-label geometry (GuideText.measureWidth, no /z) +
+  emitLegacy(this) HostDraw wrapper (3D/controls/tracks untouched) + 3×
+  GuideText.emitText emitted AFTER the HostDraw primitive (painter's order);
+  suppressLegacyText flag set at collect, snapshot-consumed at render() entry
+  (design's try/finally would double-draw — corrected); dedicated
+  *_SLIDER_LABEL_TEXT_STYLE fontScale 0.8 (line height 14 ==
+  SCENE_SLIDER_AREA_HEIGHT, glyph ≈9px close to MC). Block Stats / load-state /
+  Ponder labels remain legacy (phases 2-4).
+- **Verification**: gate 0; render scenes blocks/ponder/entities 900+480;
+  ratchet 24/24; VLM: labels smooth system font, HostDraw parts intact,
+  no regression; review ACCEPT (snapshot-trap structure holds, flag lifecycle
+  correct on pipeline/direct/legacy-subtree paths, redlines PASS).
+- **Follow-ups registered** (non-blocking): orphan constants
+  STRUCTURELIB_TIER/CHANNEL_SLIDER_TEXT_STYLE now unreferenced; direct-path
+  (editor preview/export) labels render at 0.8 — accepted for
+  what-you-see-is-what-you-get consistency; optional exception hardening of
+  the label-emission section (failure coupling).
+- **Path-map**: scene slider labels migrated; remaining legacy text in scene:
+  Block Stats (F7b-2), load-state (F7b-3), Ponder hover (F7b-4, deferred).
