@@ -65,6 +65,8 @@ import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
@@ -157,6 +159,27 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
     public static final ResolvedTextStyle STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
+        .mergeWith(DefaultStyles.BASE_STYLE);
+    /**
+     * GuideText glyph-pipeline styles for the 3 bottom-control slider labels
+     * (F7b phase 1). Dedicated constants — {@link #VISIBLE_LAYER_SLIDER_TEXT_STYLE}
+     * is still shared with the legacy loading-status text and must not change.
+     * fontScale 0.8 → line height round(17 × 0.8) = 14 = {@link #SCENE_SLIDER_AREA_HEIGHT},
+     * so the emitted text fits its row exactly (cap height ≈ 9px, matching the
+     * legacy MC pixel font's footprint).
+     */
+    public static final ResolvedTextStyle VISIBLE_LAYER_SLIDER_LABEL_TEXT_STYLE = DefaultStyles.BODY_TEXT.toBuilder()
+        .fontScale(0.8f)
+        .build()
+        .mergeWith(DefaultStyles.BASE_STYLE);
+    public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_LABEL_TEXT_STYLE = DefaultStyles.BODY_TEXT.toBuilder()
+        .fontScale(0.8f)
+        .build()
+        .mergeWith(DefaultStyles.BASE_STYLE);
+    public static final ResolvedTextStyle STRUCTURELIB_CHANNEL_SLIDER_LABEL_TEXT_STYLE = DefaultStyles.BODY_TEXT
+        .toBuilder()
+        .fontScale(0.8f)
+        .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
     public static final ResolvedTextStyle BLOCK_STATS_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
@@ -2275,18 +2298,17 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     @Override
     public void render(RenderContext context) {
-        int sceneW = layoutSceneWidth > 0 ? layoutSceneWidth
-            : getBounds().width() - buttonColumnReserve() - layoutSceneOffsetX;
-        if (sceneW < 16) sceneW = 16;
-        int sliderAreaHeight = getBottomControlAreaHeight();
-        int sceneH = layoutSceneHeight > 0 ? layoutSceneHeight : Math.max(16, getBounds().height() - sliderAreaHeight);
-        int totalH = reserveBottomControlArea ? Math.max(sceneH + sliderAreaHeight, getBounds().height())
-            : Math.max(sceneH, getBounds().height());
-        LytRect outerRect = new LytRect(
-            getBounds().x() + layoutSceneOffsetX,
-            getBounds().y() + layoutSceneOffsetY,
-            sceneW,
-            sceneH + (reserveBottomControlArea ? sliderAreaHeight : 0));
+        // F7b hybrid: when this frame's collection claimed the slider labels for
+        // the GuideText pipeline (computePrimitives emitted them after the
+        // HostDraw), suppress the legacy drawText for them. Consume immediately
+        // so a direct render() (scene editor / legacy subtree) never inherits a
+        // stale claim from an earlier pipeline frame.
+        boolean suppressLegacyText = this.suppressLegacyText;
+        this.suppressLegacyText = false;
+        LytRect outerRect = resolveSceneOuterRect();
+        // Scene content height = outerRect minus the bottom-control band (when reserved).
+        int sceneH = outerRect.height() - (reserveBottomControlArea ? getBottomControlAreaHeight() : 0);
+        int sceneW = outerRect.width();
         LytRect sceneRect = cachedSceneRect = updateCachedRect(
             cachedSceneRect,
             outerRect.x(),
@@ -2336,7 +2358,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             this.cachedScreenRect = updateCachedRect(cachedScreenRect, absX, absY, w, h);
             renderSceneBackground(context, sceneRect);
             drawLoadProgressOverlay(context, sceneRect);
-            drawBottomControls(context, outerRect);
+            drawBottomControls(context, outerRect, suppressLegacyText);
             drawBlockStatsOverlay(context, sceneRect, outerRect);
             renderSceneBorder(context, sceneRect);
             if (interactive && sceneButtonsVisible) {
@@ -2514,7 +2536,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             applyCapturedCameraState(savedCameraState);
         }
 
-        drawBottomControls(context, outerRect);
+        drawBottomControls(context, outerRect, suppressLegacyText);
 
         // Draw border AFTER the 3D content so border pixels always sit on top.
         renderSceneBorder(context, sceneRect);
@@ -2522,6 +2544,111 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (interactive && sceneButtonsVisible) {
             drawSceneButtons(context, sceneRect, screenRect);
         }
+    }
+
+    // ---- F7b hybrid: primitive pipeline ------------------------------------
+
+    /**
+     * The scene is a leaf block (no {@link #getChildren()}), so there is no
+     * double-traversal risk from opting into {@code computePrimitives}.
+     */
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    /**
+     * Hybrid mode (F7b phase 1): the entire legacy 3D scene rendering (background,
+     * border, buttons, slider tracks, Block Stats box, scrollbars) is kept as a
+     * single {@code HostDraw} emitted by {@link PrimitiveCollector#emitLegacy};
+     * the 3 bottom-control slider labels are emitted as GuideText glyph runs
+     * <em>after</em> it (painter's order — text sits on top of the scene).
+     * <p>
+     * Hard constraint: text must be emitted during the <em>collection</em> phase
+     * — {@code render()} runs later, inside the HostDraw at <em>execute</em>
+     * time, where emitText would be dropped by the snapshot-then-execute pipeline
+     * (LytDocument takes {@code pc.result()} before {@code engine.execute}).
+     * <p>
+     * {@code suppressLegacyText} is claimed here and consumed at the top of
+     * {@link #render}, so the legacy path skips the 3 labels while the direct
+     * render path (scene editor / legacy subtree) still draws them with the MC
+     * font.
+     */
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        suppressLegacyText = true;
+        c.emitLegacy(this);
+
+        if (hasBottomControls() && !isPonderPlaying()) {
+            LytRect outerRect = resolveSceneOuterRect();
+            if (hasStructureLibTierSlider()) {
+                emitSliderLabel(
+                    c,
+                    getStructureLibTierSliderLabel(),
+                    STRUCTURELIB_TIER_SLIDER_LABEL_TEXT_STYLE,
+                    outerRect,
+                    resolveStructureLibTierRowIndex());
+            }
+            if (hasVisibleLayerSlider()) {
+                emitSliderLabel(
+                    c,
+                    getVisibleLayerSliderLabel(),
+                    VISIBLE_LAYER_SLIDER_LABEL_TEXT_STYLE,
+                    outerRect,
+                    resolveVisibleLayerRowIndex());
+            }
+            for (StructureLibSceneMetadata.ChannelData channelData : getBottomControlStructureLibChannels()) {
+                emitSliderLabel(
+                    c,
+                    getStructureLibChannelSliderLabel(channelData),
+                    STRUCTURELIB_CHANNEL_SLIDER_LABEL_TEXT_STYLE,
+                    outerRect,
+                    resolveStructureLibChannelRowIndex(channelData.getChannelId()));
+            }
+        }
+    }
+
+    /**
+     * Emit one slider label as a GuideText glyph run at its document position.
+     * Mirrors the legacy render gate: the label is only emitted when the slider
+     * track actually renders (non-empty layout-space track rect).
+     */
+    private void emitSliderLabel(PrimitiveCollector c, String label, ResolvedTextStyle style, LytRect outerRect,
+        int rowIndex) {
+        if (label == null || label.isEmpty()) {
+            return;
+        }
+        LytRect renderTrackRect = resolveSliderTrackLayoutRect(
+            outerRect.x(),
+            outerRect.y(),
+            outerRect.width(),
+            outerRect.height(),
+            rowIndex);
+        if (renderTrackRect.isEmpty()) {
+            return;
+        }
+        SliderLabelGeometry g = computeSliderLabelGeometry(label, style, outerRect, rowIndex);
+        GuideText.emitText(c, label, g.textX(), g.textY(), style);
+    }
+
+    /**
+     * Document-space rect for the scene plus its bottom-control band. Mirrors
+     * the computation previously inlined at the top of {@link #render}; extracted
+     * so {@link #computePrimitives} (collection phase) derives exactly the same
+     * outerRect the legacy render path uses. Frame-invariant: it only reads
+     * layout fields and {@link #getBounds()}.
+     */
+    private LytRect resolveSceneOuterRect() {
+        int sceneW = layoutSceneWidth > 0 ? layoutSceneWidth
+            : getBounds().width() - buttonColumnReserve() - layoutSceneOffsetX;
+        if (sceneW < 16) sceneW = 16;
+        int sliderAreaHeight = getBottomControlAreaHeight();
+        int sceneH = layoutSceneHeight > 0 ? layoutSceneHeight : Math.max(16, getBounds().height() - sliderAreaHeight);
+        return new LytRect(
+            getBounds().x() + layoutSceneOffsetX,
+            getBounds().y() + layoutSceneOffsetY,
+            sceneW,
+            sceneH + (reserveBottomControlArea ? sliderAreaHeight : 0));
     }
 
     private void renderSceneBackground(RenderContext context, LytRect sceneRect) {
@@ -2562,6 +2689,17 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     private int lastAbsX, lastAbsY, lastW, lastH;
     private float lastDocZoom = 1.0f;
+    /**
+     * F7b hybrid claim flag: set by {@link #computePrimitives} (collection
+     * phase) when the 3 bottom-control slider labels are emitted as GuideText
+     * primitives right after the legacy HostDraw. {@link #render} runs later,
+     * inside the HostDraw at execute time, and must then skip its own legacy
+     * drawText for those labels. The flag is read and consumed at the top of
+     * {@link #render} so a direct render() call (scene editor preview / legacy
+     * subtree fallback, where computePrimitives never ran) still draws the
+     * labels with the MC font as before.
+     */
+    private boolean suppressLegacyText;
     private int lastOuterAbsX, lastOuterAbsY, lastOuterW, lastOuterH;
     /** Width reserved for the inner 3D scene (bounds.width minus the button column). */
     private int layoutSceneWidth;
@@ -6529,7 +6667,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
     }
 
-    private void drawBottomControls(RenderContext context, LytRect outerRect) {
+    private void drawBottomControls(RenderContext context, LytRect outerRect, boolean suppressLegacyText) {
         clearCachedVisibleLayerSliderRects();
         clearCachedTierSliderRects();
         clearCachedChannelSliderRects();
@@ -6547,13 +6685,13 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         if (!isPonderPlaying()) {
             if (hasStructureLibTierSlider()) {
-                drawStructureLibTierSlider(context, outerRect);
+                drawStructureLibTierSlider(context, outerRect, suppressLegacyText);
             }
             if (hasVisibleLayerSlider()) {
-                drawVisibleLayerSlider(context, outerRect);
+                drawVisibleLayerSlider(context, outerRect, suppressLegacyText);
             }
             for (StructureLibSceneMetadata.ChannelData channelData : getBottomControlStructureLibChannels()) {
-                drawStructureLibChannelSlider(context, outerRect, channelData);
+                drawStructureLibChannelSlider(context, outerRect, channelData, suppressLegacyText);
             }
         }
     }
@@ -6726,7 +6864,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
     }
 
-    private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {
+    private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect, boolean suppressLegacyText) {
         int rowIndex = resolveVisibleLayerRowIndex();
         LytRect screenTrackRect = resolveVisibleLayerSliderTrackRect();
         LytRect renderTrackRect = resolveSliderTrackLayoutRect(
@@ -6753,7 +6891,15 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         String label = getVisibleLayerSliderLabel();
         logSliderGeometry("visible-layer", screenGeometry, rowIndex, label, outerRect);
-        drawSlider(context, renderGeometry, highlighted, outerRect, rowIndex, label, VISIBLE_LAYER_SLIDER_TEXT_STYLE);
+        drawSlider(
+            context,
+            renderGeometry,
+            highlighted,
+            outerRect,
+            rowIndex,
+            label,
+            VISIBLE_LAYER_SLIDER_LABEL_TEXT_STYLE,
+            suppressLegacyText);
     }
 
     private void applyVisibleLayerSliderAt(int mouseX) {
@@ -6796,7 +6942,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             .hitRect();
     }
 
-    private void drawStructureLibTierSlider(RenderContext context, LytRect outerRect) {
+    private void drawStructureLibTierSlider(RenderContext context, LytRect outerRect, boolean suppressLegacyText) {
         int rowIndex = resolveStructureLibTierRowIndex();
         LytRect screenTrackRect = resolveStructureLibTierSliderTrackRect();
         LytRect renderTrackRect = resolveSliderTrackLayoutRect(
@@ -6830,7 +6976,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             outerRect,
             rowIndex,
             label,
-            STRUCTURELIB_TIER_SLIDER_TEXT_STYLE);
+            STRUCTURELIB_TIER_SLIDER_LABEL_TEXT_STYLE,
+            suppressLegacyText);
     }
 
     private void applyStructureLibTierSliderAt(int mouseX) {
@@ -6902,7 +7049,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private void drawStructureLibChannelSlider(RenderContext context, LytRect outerRect,
-        StructureLibSceneMetadata.ChannelData channelData) {
+        StructureLibSceneMetadata.ChannelData channelData, boolean suppressLegacyText) {
         int rowIndex = resolveStructureLibChannelRowIndex(channelData.getChannelId());
         LytRect screenTrackRect = resolveStructureLibChannelSliderTrackRect(channelData.getChannelId());
         LytRect renderTrackRect = resolveSliderTrackLayoutRect(
@@ -6945,7 +7092,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             outerRect,
             rowIndex,
             label,
-            STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
+            STRUCTURELIB_CHANNEL_SLIDER_LABEL_TEXT_STYLE,
+            suppressLegacyText);
     }
 
     private void applyStructureLibChannelSliderAt(String channelId, int mouseX) {
@@ -6990,19 +7138,43 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private void drawSlider(RenderContext context, GuideSliderRenderer.SliderGeometry geometry, boolean highlighted,
-        LytRect outerRect, int rowIndex, String label, ResolvedTextStyle style) {
+        LytRect outerRect, int rowIndex, String label, ResolvedTextStyle style, boolean suppressLegacyText) {
         context.beginLocalView();
         GuideSliderRenderer.render(Gui::drawRect, geometry, highlighted);
         context.endLocalView();
 
-        float z = Math.max(0.0001f, lastDocZoom);
-        int textWidth = Math.round(context.getStringWidth(label, style) / z);
-        int textHeight = Math.round(context.getLineHeight(style) / z);
+        // F7b hybrid: in the primitive pipeline the label is emitted as a
+        // GuideText glyph run right after the legacy HostDraw (see
+        // computePrimitives), so the legacy drawText here only runs on the direct
+        // render path (scene editor / legacy subtree fallback), where
+        // computePrimitives never claimed the label.
+        if (!suppressLegacyText) {
+            SliderLabelGeometry labelGeometry = computeSliderLabelGeometry(label, style, outerRect, rowIndex);
+            context.drawText(label, labelGeometry.textX(), labelGeometry.textY(), style);
+        }
+    }
+
+    /**
+     * Document-space position for a bottom-control slider label row: horizontally
+     * centered within {@code outerRect}, vertically centered inside the 14px
+     * {@link #SCENE_SLIDER_AREA_HEIGHT} row at {@code rowIndex}. Single source of
+     * truth for the label geometry shared by the legacy drawText path and the
+     * GuideText {@code emitText} path (F7b hybrid). Metrics are GuideText doc
+     * units — no {@code /zoom} conversion (the legacy getStringWidth→/z
+     * screen→doc division no longer applies).
+     */
+    private SliderLabelGeometry computeSliderLabelGeometry(String label, ResolvedTextStyle style, LytRect outerRect,
+        int rowIndex) {
+        int textWidth = GuideText.measureWidth(label, style);
+        int textHeight = GuideText.lineHeight(style);
         int textX = outerRect.x() + (outerRect.width() - textWidth) / 2;
         int rowTop = bottomControlAreaTop(outerRect.bottom()) + rowIndex * SCENE_SLIDER_AREA_HEIGHT;
         int textY = rowTop + (SCENE_SLIDER_AREA_HEIGHT - textHeight) / 2;
-        context.drawText(label, textX, textY, style);
+        return new SliderLabelGeometry(textX, textY);
     }
+
+    /** Document-space (textX, textY) for a slider label (line-top origin). */
+    private record SliderLabelGeometry(int textX, int textY) {}
 
     private void logBottomControlState(String phase, LytRect outerRect, int bottomControlAreaHeight) {
         // Skip the per-frame string construction (key + describeRect + varargs boxing) entirely
