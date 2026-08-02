@@ -41,6 +41,8 @@ public final class ShapeTextResult extends Table {
   public int bitmapsLength() { int o = __offset(14); return o != 0 ? __vector_len(o) : 0; }
   public com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap.Vector bitmapsVector() { return bitmapsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap.Vector()); }
   public com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap.Vector bitmapsVector(com.hfstudio.guidenh.guide.layout.flatbuffers.GlyphBitmap.Vector obj) { int o = __offset(14); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
+  public float xHeight() { int o = __offset(16); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public float capHeight() { int o = __offset(18); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
 
   public static int createShapeTextResult(FlatBufferBuilder builder,
       float width,
@@ -48,8 +50,12 @@ public final class ShapeTextResult extends Table {
       float ascent,
       float lineHeight,
       int glyphsOffset,
-      int bitmapsOffset) {
-    builder.startTable(6);
+      int bitmapsOffset,
+      float xHeight,
+      float capHeight) {
+    builder.startTable(8);
+    ShapeTextResult.addCapHeight(builder, capHeight);
+    ShapeTextResult.addXHeight(builder, xHeight);
     ShapeTextResult.addBitmaps(builder, bitmapsOffset);
     ShapeTextResult.addGlyphs(builder, glyphsOffset);
     ShapeTextResult.addLineHeight(builder, lineHeight);
@@ -59,7 +65,7 @@ public final class ShapeTextResult extends Table {
     return ShapeTextResult.endShapeTextResult(builder);
   }
 
-  public static void startShapeTextResult(FlatBufferBuilder builder) { builder.startTable(6); }
+  public static void startShapeTextResult(FlatBufferBuilder builder) { builder.startTable(8); }
   public static void addWidth(FlatBufferBuilder builder, float width) { builder.addFloat(0, width, 0.0f); }
   public static void addHeight(FlatBufferBuilder builder, float height) { builder.addFloat(1, height, 0.0f); }
   public static void addAscent(FlatBufferBuilder builder, float ascent) { builder.addFloat(2, ascent, 0.0f); }
@@ -70,6 +76,8 @@ public final class ShapeTextResult extends Table {
   public static void addBitmaps(FlatBufferBuilder builder, int bitmapsOffset) { builder.addOffset(5, bitmapsOffset, 0); }
   public static int createBitmapsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
   public static void startBitmapsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
+  public static void addXHeight(FlatBufferBuilder builder, float xHeight) { builder.addFloat(6, xHeight, 0.0f); }
+  public static void addCapHeight(FlatBufferBuilder builder, float capHeight) { builder.addFloat(7, capHeight, 0.0f); }
   public static int endShapeTextResult(FlatBufferBuilder builder) {
     int o = builder.endTable();
     return o;

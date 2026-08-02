@@ -846,6 +846,12 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
         .next()
         .map(|l| l.metrics().baseline - l.metrics().block_min_coord)
         .unwrap_or(scaled);
+    // T4: first-run real x_height/cap_height (shaped-size px, skrifa OS/2
+    // sxHeight/sCapHeight scaled by font size); RunMetrics is Copy so this
+    // value-extension ends all borrows before collect_layout below.
+    let run_metrics = layout.lines().next().and_then(|l| l.runs().next()).map(|r| *r.metrics());
+    let x_height = run_metrics.and_then(|m| m.x_height).unwrap_or(ascent * 0.625);
+    let cap_height = run_metrics.and_then(|m| m.cap_height).unwrap_or(ascent * 0.7);
     let (glyphs, _markers, max_x, _content_height, _clear_floor, _last_window) =
         crate::parley_text::collect_layout(&layout, &[], 0.0, 0.0, max_w.unwrap_or(f32::MAX), &[]);
     let (quads, bitmaps) = crate::parley_text::rasterize_out_glyphs(&glyphs, render_scale);
@@ -898,6 +904,8 @@ pub fn shape_text_cmd(font_system: &mut GuideFontSystem, input_bytes: &[u8]) -> 
             line_height: scaled * 1.55,
             glyphs: Some(glyphs_vec),
             bitmaps: Some(bitmaps_vec),
+            x_height,
+            cap_height,
         },
     );
     fbb.finish(result, None);

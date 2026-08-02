@@ -536,6 +536,8 @@ table ShapeTextResult {
   line_height: float;
   glyphs: [PlacedGlyph];    // buffer-local quads (origin = text top-left)
   bitmaps: [GlyphBitmap];
+  x_height: float = 0.0;   // T4: baseline->lowercase x top, shaped-size px (first run); Rust fallback ascent*0.625
+  cap_height: float = 0.0; // T4: baseline->cap top, shaped-size px (first run); Rust fallback ascent*0.7
 }
 
 table RenderGlyph {
