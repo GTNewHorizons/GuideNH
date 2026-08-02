@@ -6,7 +6,6 @@ import java.util.Map;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuideText;
-import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public final class MermaidNodeRenderer {
@@ -126,10 +125,6 @@ public final class MermaidNodeRenderer {
 
     public static int measureText(LayoutContext context, ResolvedTextStyle style, String text) {
         return measureTextInternal(style, text, context::getAdvance);
-    }
-
-    public static int measureText(RenderContext context, ResolvedTextStyle style, String text) {
-        return context.getStringWidth(text, style);
     }
 
     public static int measureTextInternal(ResolvedTextStyle style, String text, AdvanceFunction advance) {

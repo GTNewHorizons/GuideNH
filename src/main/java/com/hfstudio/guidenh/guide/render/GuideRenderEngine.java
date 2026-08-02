@@ -39,7 +39,11 @@ public class GuideRenderEngine {
     /**
      * Drop-shadow offset in document units (MC drawStringWithShadow x+1/y+1
      * parity). Applied in document space before the document→screen transform,
-     * so scale=1 → 1px and headless scale=2 → 2 device pixels.
+     * so scale=1 → 1px and headless scale=2 → 2 device pixels. For sheared
+     * (italic) runs this is the vertical drop (+1*scale) and the nominal
+     * non-slant horizontal shift; the per-glyph shear transform makes the
+     * actual horizontal drop (1-K)*scale (K = {@link #GLYPH_SHEAR_K}) — the
+     * same geometry as MC's italic shadow.
      */
     private static final float SHADOW_OFFSET = 1f;
 
@@ -556,8 +560,12 @@ public class GuideRenderEngine {
         beginTexturedQuads(atlasTex);
         int missingAtlas = 0;
         if (dg.shadow()) {
-            // Drop-shadow pass first (painted below the main text): the whole
-            // run translated +1/+1 document units and tinted by shadowArgb.
+            // Drop-shadow pass first (painted below the main text): the run
+            // offset by SHADOW_OFFSET and tinted by shadowArgb. Non-slanted
+            // runs shift +1/+1 document units; sheared runs shift horizontally
+            // by (1-K)*scale (K = GLYPH_SHEAR_K) and vertically +1*scale — the
+            // shear transform of the vertical drop, same geometry as MC italic
+            // shadow.
             missingAtlas = emitGlyphQuads(glyphs, t, shear, shadowArgb(dg.argb()), SHADOW_OFFSET, SHADOW_OFFSET);
         }
         missingAtlas = Math.max(missingAtlas, emitGlyphQuads(glyphs, t, shear, dg.argb(), 0f, 0f));
@@ -573,11 +581,12 @@ public class GuideRenderEngine {
      * Emit one glyph pass into the current textured-quads session: every glyph
      * translated by {@code dx}/{@code dy} document units (before the
      * document→screen transform) and tinted by {@code argb}. When {@code shear}
-     * is on, the shear baseline is computed from this pass's own (already
-     * offset) glyphs, so the pass is a rigid translation of the un-offset run —
-     * the slant angle is preserved independently of the offset (dx/dy do not
-     * change the italic tilt). Returns the number of glyphs whose atlas bitmap
-     * is missing (for the debug warning).
+     * is on, the shear baseline is computed from the un-offset glyph geometry
+     * ({@code g.y() + g.h()}, before dx/dy), so both the shadow and main passes
+     * share the same baseline and the offset pass is a rigid translation of the
+     * un-offset run — the slant angle is preserved independently of the offset
+     * (dx/dy do not change the italic tilt). Returns the number of glyphs whose
+     * atlas bitmap is missing (for the debug warning).
      */
     private int emitGlyphQuads(List<GuideRenderPrimitive.PlacedGlyph> glyphs, Transform t, boolean shear, int argb,
         float dx, float dy) {

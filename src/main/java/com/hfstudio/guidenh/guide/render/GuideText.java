@@ -337,6 +337,11 @@ public final class GuideText {
      * fits-in-full-budget semantics — the fits check uses the complete budget,
      * so a text that fits is never truncated to make room for the suffix.
      *
+     * <p>Corner case: when the full text fits ({@code codePointCount <=
+     * maxChars}) it is returned unchanged (no suffix appended) even if the
+     * suffix alone would not fit the budget — the fits-in-full-budget check
+     * precedes the suffix-space reservation.
+     *
      * <p>Pure string logic — no font measurement involved, so it is unaffected
      * by {@link #isAvailable()}.
      */
