@@ -803,3 +803,31 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   confirms zero change).
 - **T5 follow-up (dead code, deferred)**: MermaidNodeRenderer.measureText(RenderContext) :131-133
   is dead (zero callers) but kept as public API; candidate for A-class cleanup round.
+
+- **T2 done (d1c18d53): drop shadow capability for Rust-backed text path.** DrawGlyphRun
+  +shadow component; GuideRenderEngine.drawGlyphRun dual-pass (shadow=true renders offset
+  second pass beneath main: SHADOW_OFFSET=1 doc unit right-down, shadowArgb=RGB x25/100 ==
+  MC (c&0xFCFCFC)>>2 alpha-preserved, same textured-quad batch); shadow=false bit-identical
+  to original single pass (reviewer IEEE-754 zero-regression proof). GuideText.emitText:179
+  passes style.dropShadow() (null-safe, ~50 sites); LytParagraph:129 passes
+  resolveStyle().dropShadow() (paragraph/heading). Pure Java, zero schema/Rust.
+  **Pipeline-ready, default UNWIRED**: no current style sets dropShadow=true for Rust-path
+  text (plain paragraphs resolve to BASE_STYLE.dropShadow=false; BODY_TEXT is NOT the
+  paragraph style - only list markers/MediaWiki/scene use it). Enabling dropShadow on
+  BASE_STYLE / compile-time setStyle / HEADING* produces shadow. Whether to wire a default
+  is a VISUAL DESIGN DECISION (changes all text appearance), out of T2 scope.
+  **Verification journey (recorded for method honesty)**: initial BODY_TEXT.dropShadow(true)
+  toggle gave ZERO pixel change (2.8M px identical) - wrong verification target (paragraphs
+  don't use BODY_TEXT). Isolation hardcode shadow=true at LytParagraph:129 -> 88644 changed
+  px (render path works). BASE_STYLE.dropShadow=true (real style chain) -> 88644 changed px
+  IDENTICAL count => resolveStyle->drawGlyphRun chain fully functional. Diagnostician
+  confirmed root cause = style attribution (a), not resolution-drop (b); mergeWith propagates
+  dropShadow (TextStyle:50,67). All toggles reverted; ratchet 28/28 (shadow render-layer,
+  bounds unaffected); reviewer ACCEPT (anti-pattern 4/4).
+- **T2 follow-ups (non-blocking, cleanup round)**: (1) emitGlyphQuads javadoc :526-527 says
+  "already offset glyphs" but shearBaseY uses un-offset (comment inaccurate, behavior correct);
+  (2) drawGlyphRun:510 / SHADOW_OFFSET javadoc claim "+1/+1" but italic runs offset (1-K)*scale
+  horizontally (sub-pixel, MC-italic-compatible); (3) add persistent shadowArgb/DrawGlyphRun
+  shadow test to src/test (coder harness was temporary); (4) shadowArgb a==0->0xFF deviates
+  from MC pure-alpha-preserve (per task spec + codebase tessColor convention; alpha=0 text
+  would show ghost halo - edge case).
