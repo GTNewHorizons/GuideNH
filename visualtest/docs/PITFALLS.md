@@ -325,3 +325,18 @@ mandatory when a fix surfaces a reusable lesson (`docs/WORKFLOW.md` §2.7).
 - **Root cause of the gap**: the ratchet was treated as a final/CI gate ("CI-ready, not yet wired"), not as a per-round screening pass. VLM screening is subjective and misses geometric regressions (a formula at x=5 vs x=400, a canvas 438 vs 320 — both "look fine" to a screener checking content presence). Mechanical assertions are objective and catch these.
 - **Lesson**: run `assert_bounds.py` as part of EVERY screening round, alongside geometric + VLM (now mandated in WORKFLOW Stage 3). Any `not ok` is a confirmed regression. The ratchet complements VLM: VLM catches content/visual defects, the ratchet catches geometric regressions. Neither alone is sufficient. (Also: when a regression is found, bisect via per-render bounds history — both these regressions were precisely bisected to their commit window using stored bounds JSON timestamps.)
 - **Reference**: WORKFLOW.md Stage 3; ISSUES.md §K.
+
+## PF33 — Audit/review snapshots are process documents, not public artifacts
+
+- **Symptom**: the 2026-08-02 five-audit handoff (`ARCHITECTURE-AUDIT.md`)
+  was committed to Git as a tracked public document.
+- **Root cause**: executor classified "documentation" as tracked material
+  without separating *process documents* (audit snapshots, review records,
+  calibration notes — time-bound, executor-facing, rapidly superseded) from
+  *stable public documents* (principles, workflow, issue ledger, path map).
+- **Lesson**: audit/review/calibration snapshots are git-ignored local files
+  (same class as `EXECUTOR-CALIBRATION.md`, .gitignore:81). Only stable
+  ledger and principle documents enter Git history. If an audit produces
+  durable conclusions, fold them into the stable docs (ISSUES/WORKFLOW) at
+  the time; the snapshot itself stays local.
+- **Reference**: corrected in commit after 3f9e67be.

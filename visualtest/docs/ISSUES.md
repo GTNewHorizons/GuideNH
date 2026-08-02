@@ -709,9 +709,10 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
 
 ## W. Architecture Audit 2026-08-02 — full record (see ARCHITECTURE-AUDIT.md)
 
-Five parallel read-only audits completed; full findings, evidence and the
-status-tracked action list live in `docs/ARCHITECTURE-AUDIT.md` (handoff
-document for the next round). Headline findings:
+Five parallel read-only audits completed. **Full findings, evidence and
+the status-tracked action list live in the LOCAL (git-ignored) handoff
+document `docs/ARCHITECTURE-AUDIT.md`** — process document, not tracked (PF33).
+The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headline findings:
 
 - **Unregistered active legacy block**: `LytNeiRecipeBox` (HostDraw, MC
   pixel-font title :274) — never in the path map (now registered, §W → path
