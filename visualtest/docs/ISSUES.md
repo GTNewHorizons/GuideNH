@@ -831,3 +831,26 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   shadow test to src/test (coder harness was temporary); (4) shadowArgb a==0->0xFF deviates
   from MC pure-alpha-preserve (per task spec + codebase tessColor convention; alpha=0 text
   would show ghost halo - edge case).
+
+- **T4 done (e7592981 + probe 1919b13f): real font x_height/cap_height from Rust.** Schema
+  ShapeTextResult append x_height/cap_height (id 6/7, =0.0, append-only wire-compatible).
+  Rust layout.rs reads first-run parley RunMetrics.x_height/cap_height (skrifa OS/2
+  sxHeight/sCapHeight, font-size-scaled), fallback ascent*0.625 / ascent*0.7 (never 0.0).
+  Java GuideText.xHeight() reads shape("x").xHeight() real field; removed X_HEIGHT_RATIO.
+  Regenerated ShapeTextResult.java + TextData.java drift normalization (add-call order only,
+  vtable offsets/field ids wire-identical). Rebuilt release DLL + natives. AUDIT cited
+  cosmic-text but project uses parley 0.11->skrifa 0.43.2 (natively exposes metrics, no
+  dependency upgrade). Sole visual consumer: inline LaTeX sizing (F5-3 oversize target).
+  Verification: gate TOTAL ISSUES 0 (Rust+Java integration); T4-ACTIVE pixel-proof
+  latex/inline height 2008->1996px while latex/display control 0px; ratchet 29/29 (added
+  latex/inline-xheight.md probe fixture + LytLatexBlock exists assertion); geometric zero-new.
+  **Screener 'formula x undersize' adjudicated via harness (objective)**: xHeight/ascent=0.475
+  (bit-exact Arial OS/2 sxHeight 1062/2048*11=5.704102), 23.95% smaller than old 0.625*ascent=7.5.
+  T4 emits CORRECT real metrics, NOT a bug; undersize is the intended F5-3 oversize correction
+  (old target 7.5 > body x 5.70 = oversize; new target 5.70 = body x). Engine resolves SansSerif
+  to system Arial for Latin (CJK falls back msyh).
+- **T4 follow-up (calibration tuning, deferred)**: residual formula-vs-body visual mismatch is
+  a property of the jlatexmath inline calibration formula (LytLatexBlock.inlineScaleFactor with
+  LATEX_INSET_PX / sourceRefHeightPx), not T4. If formula sizing complaints arise, tune the
+  calibration formula (target is now real x_height); the cross-font mismatch (body Arial vs
+  jlatexmath math font) may be irreducible without calibrating against the actual body font.
