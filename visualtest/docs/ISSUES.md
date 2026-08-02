@@ -760,3 +760,25 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   getAdvance override at MediaWikiSpecialGeneratedBlock.java:510-514 after wrap
   migration; reviewer suggests archiving WidthHarness/CharsHarness into
   git-ignored src/test for future re-verification.
+
+- **T5-2 done (791e689a): G4 char-level truncation unified + clipToChars root-fix.**
+  Migrated to GuideText.clipToChars (codepoint/surrogate-safe): CommandLinkCompiler
+  buildTooltip (28=25+3), GuideSiteGraphRenderer corner-legend ellipsize (removed),
+  GuideSearchSnippetFormatter whole-chain (countVisibleChars/clipNode/ellipsis/trailing-trim,
+  budget UTF-16->codepoint). **clipToChars root-fix**: T5-2 first exercised clipToChars
+  and surfaced a T5-1 latent defect — it judged "full text fits" against the CONTENT
+  budget (maxChars-suffixCount), unconditionally reserving suffix space and over-truncating
+  text that fit (e.g. ("abcdefgh",10,DOTS3) gave "abcdefg..." not "abcdefgh"). Fixed to
+  fits-in-full-budget (codePointCount<=maxChars -> as-is), symmetric with clipToWidth;
+  invariant result codepoints <= maxChars.
+  Behavior changes (declared, accurate per reviewer): (1) CommandLink commands of 26-28
+  codepoints now render FULL (was "25+...") — fits-in-full-budget; >28 still clip to
+  25+"..." (original clip length); surrogate commands no longer split. (2) SearchSnippet
+  budget counts codepoints not UTF-16 (emoji snippets marginally longer; budget source
+  GuideScreen:6754 still UTF-16, bounded pixel heuristic). (3) siteexport labels maxChars<=3
+  -> empty (ning-kong-wu-yi; corner unreachable in practice, legend text width >=~30px =>
+  maxChars>=5); BMP otherwise behavior-preserving post-fix.
+  Verification: gate TOTAL ISSUES 0; render 21/21; ratchet 28/28; geometric zero-new;
+  harness 63/0 + 234/0 (invariant matrix 6 texts x 3 suffix x max 0..10, no lone surrogates);
+  reviewer ACCEPT (anti-pattern 4/4 clean). Minor doc note (non-blocking): clipToChars
+  Javadoc could state the corner "suffix alone doesn't fit but full text fits -> return full".
