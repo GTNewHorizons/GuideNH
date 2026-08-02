@@ -5,7 +5,7 @@
 Traps discovered during fix rounds, recorded so they are debugged once. Each entry
 states the symptom, the root cause, the fix reference, and the lesson. Read the
 relevant entries before modifying code in the affected area. New entries are
-mandatory when a fix surfaces a reusable lesson (`docs/PRINCIPLES.md` §4).
+mandatory when a fix surfaces a reusable lesson (`docs/WORKFLOW.md` §2.7).
 
 ---
 

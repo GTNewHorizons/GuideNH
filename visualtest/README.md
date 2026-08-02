@@ -8,7 +8,7 @@ an executable assertion ratchet.
 
 This documentation set serves both human contributors and AI agents. All tracked
 documents are written in formal English and must remain free of machine-local
-paths, credentials, and personal data (see `docs/PRINCIPLES.md` §2).
+paths, credentials, and personal data (see `docs/WORKFLOW.md` §2.9).
 
 ## Document Map
 
@@ -20,7 +20,7 @@ paths, credentials, and personal data (see `docs/PRINCIPLES.md` §2).
 | `docs/FIXTURES.md` | Per-file fixture specifications and fixture authoring conventions. |
 | `docs/ISSUES.md` | Issue registry: adjudication ledgers, fix closure ledger, new and pre-existing issues. |
 | `docs/PITFALLS.md` | Engine traps and lessons learned during fix rounds. Read before touching related code. |
-| `docs/PRINCIPLES.md` | Contribution principles binding on all changes to this system. |
+| `docs/PRINCIPLES.md` | Historic stub — principles integrated into `docs/WORKFLOW.md` §2/§3. |
 | `ratchet/assertions.json` | Executable regression assertions over render bounds JSON (see `docs/WORKFLOW.md` §6). |
 
 ## Quick Start
@@ -37,4 +37,4 @@ paths, credentials, and personal data (see `docs/PRINCIPLES.md` §2).
 Tracked (public): this directory's documentation, the fixture corpus, and the
 ratchet assertions. Untracked (private): render output under `run/`, local scratch
 under `visualtest/local/`, API credentials, and machine-specific notes. Details in
-`docs/PRINCIPLES.md` §2.
+`docs/WORKFLOW.md` §2.9.
