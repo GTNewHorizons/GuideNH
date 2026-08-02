@@ -4,7 +4,7 @@
 
 This document specifies every fixture page in the visual test corpus. Each entry states the test goal and the layout invariants that the page must satisfy. The fixture corpus targets every feature supported by the engine, with dedicated pages arranged from simple to complex within semantic folder groups.
 
-Total page count: **63** (across 15 subdirectories plus root index).
+Total page count: **65** (across 15 subdirectories plus root index).
 
 ---
 
@@ -192,9 +192,13 @@ Image resources are in `_en_us/visualtest/assets/` (pure-colour and checkerboard
 - `<details>` open/closed, embedded tables/code/images, multiple consecutive details.
 
 ### `layout/content-tabs.md`
-- `<ContentTabs>`: 3–4 tabs (different content types), `title`/`default`/`defaultIndex`/`color`/`icon` variants.
+- `<ContentTabs>`: 3–4 tabs (different content types), `title`/`default`/`defaultIndex`/`color`/`icon` variants; appended "Text and PNG Icons" section covers `icon=` (TEXT) and `iconPng=` heading icons.
 
-**Shared invariants (all layout files)**: Flex spacing and alignment correct; details open/close height correct; tab headers aligned with content; overflow containers produce scroll bars.
+### `layout/callouts.md` — Callouts and Blockquotes
+- Plain blockquote (multi-paragraph); all five GitHub alerts (NOTE/TIP/IMPORTANT/WARNING/CAUTION); custom `{: ... }` quotes with TEXT / ITEM / PNG icons; bare-keyword trap (`> NOTE:` hits the Note alert); alert-marker-alone boundary (literal `[!NOTE]` retained in body); blockquote mixing a nested list and paragraphs.
+- **Invariants**: Alerts render a 3px type-coloured left border (NOTE blue / TIP green / IMPORTANT purple / WARNING gold / CAUTION red) plus a title row with the type-coloured symbol icon and i18n label; custom quotes apply `color=` to the 3px left border and render a header row only when `title`/`icon` are present; plain blockquotes keep the grey background with a 2px border and no title row; `> NOTE:` bare keyword still matches the Note alert; `[!NOTE]` alone on its line followed by a blank line leaves the literal marker in the alert body (known boundary, expected behaviour).
+
+**Shared invariants (all layout files)**: Flex spacing and alignment correct; details open/close height correct; tab headers aligned with content; callout/alert boxes keep their accent border and title row; overflow containers produce scroll bars.
 
 ---
 

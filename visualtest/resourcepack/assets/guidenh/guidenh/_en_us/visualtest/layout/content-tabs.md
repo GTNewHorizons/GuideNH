@@ -97,3 +97,31 @@ Configuration details.
 Output visualization.
 </Tab>
 </ContentTabs>
+
+## Text and PNG Icons
+
+Expected: ContentTabs with a title heading that renders the plain-text icon `</>` before the bold title "Code Style"; the tab strip and content render normally.
+
+<ContentTabs icon="</>" title="Code Style">
+<Tab title="Java">
+```java
+int x = 42;
+```
+</Tab>
+<Tab title="XML">
+```xml
+<Block id="minecraft:diamond_block" />
+```
+</Tab>
+</ContentTabs>
+
+Expected: ContentTabs with a title heading that renders the 8×8 red-64.png image icon before the bold title "Red Theme"; the tab strip and content render normally.
+
+<ContentTabs iconPng="../assets/red-64.png" title="Red Theme">
+<Tab title="Overview">
+Overview content with an image heading icon.
+</Tab>
+<Tab title="Config">
+Configuration details.
+</Tab>
+</ContentTabs>
