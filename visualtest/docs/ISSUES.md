@@ -628,3 +628,25 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
   `<NodeContent>` in TEST GOAL headers parsed as HTML/JSX → rendered as grey
   rect. Fix: backtick-wrap in details.md/indexes.md/node-content.md (fixture
   copy fix, dedicated commits).
+
+## S. F7c — MediaWiki list-page pixel-font migration (2026-08-02, CLOSED)
+
+- **Fix**: MediaWikiGeneratedListBlock migrated (same pattern as F7a):
+  usePrimitives+computePrimitives, 3 texts (empty/header/title) via
+  GuideText.emitText, all render metrics (vertical center, clipToWidth,
+  clickableWidth) GuideText-sourced, list markers/icons/borders to primitives
+  (DrawBorder arg order verified against GuideRenderPrimitive — learned from
+  F7a REJECT), hover underline manual FillRect, BORDER_RENDERER removed.
+  Verified by fixture (meta/indexes pages render this block): VLM confirms all
+  text smooth system font, F/I columns consistent, no regression; independent
+  review ACCEPT (redlines PASS, no anti-patterns, 4 declared assumptions
+  verified, differences vs F7a all justified).
+- **Verification note**: an initial VLM pass misreported "F column still pixel
+  font" because the executor reused a stale screenshot list (pre-migration
+  render). Diagnosis (code + pixel timeline) proved migration complete; the
+  re-check with fresh renders passed. Lesson: screenshot lists must be
+  regenerated after each render batch (never reused across code changes).
+- **Path-map update**: mediawiki package now fully migrated (F7a+F7c); remaining
+  legacy text blocks: LytGuidebookScene (F7b — hybrid design pending),
+  LytListItem:123 label, annotation renderers, LytParagraph:422 /
+  LytGenericRecipeBox:93 / CornerLegendRenderer legacy fallbacks.
