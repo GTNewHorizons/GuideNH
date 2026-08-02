@@ -72,6 +72,8 @@ table TextStyle {
   highlight_argb: uint = 0;   // span background fill (0 = none)
   inline_code: bool = false;  // highlight geometry variant (no side padding)
   baseline_shift: float = 0.0;  // R4-21: vertical offset in EM (fraction of font_size×font_scale); sup=-0.3 sub=+0.3
+  wavy_underline: bool = false;    // T1: wavy underline decoration (Rust emits DecorationRect kind 4)
+  dotted_underline: bool = false;  // T1: dotted underline decoration (Rust emits DecorationRect kind 5)
 }
 
 // ═══════════════════ 节点数据类型 ═══════════════════

@@ -707,6 +707,8 @@ struct SpanStyleInfo {
     strikethrough: bool,
     highlight_argb: u32,
     inline_code: bool,
+    wavy_underline: bool,
+    dotted_underline: bool,
 }
 
 fn span_style_table(node: &FlatNode) -> Vec<SpanStyleInfo> {
@@ -721,6 +723,8 @@ fn span_style_table(node: &FlatNode) -> Vec<SpanStyleInfo> {
                 strikethrough: st.strikethrough(),
                 highlight_argb: st.highlight_argb(),
                 inline_code: st.inline_code(),
+                wavy_underline: st.wavy_underline(),
+                dotted_underline: st.dotted_underline(),
             });
         }
     }
@@ -797,6 +801,38 @@ fn emit_decorations<'a>(
                     h: 1.0,
                     argb: st.color,
                     kind: 1,
+                },
+            ));
+        }
+        if st.wavy_underline {
+            // T1: wavy underline — wave amplitude band 2px tall (Java draws the
+            // squiggle inside this rect). Same geometry as the underline band.
+            out.push(DecorationRect::create(
+                fbb,
+                &DecorationRectArgs {
+                    node: node_index,
+                    x: node_x + e.min_x,
+                    y: node_y + e.baseline + 1.0,
+                    w,
+                    h: 2.0,
+                    argb: st.color,
+                    kind: 4,
+                },
+            ));
+        }
+        if st.dotted_underline {
+            // T1: dotted underline — same band as underline; Java rasterizes
+            // the dot pattern inside the rect.
+            out.push(DecorationRect::create(
+                fbb,
+                &DecorationRectArgs {
+                    node: node_index,
+                    x: node_x + e.min_x,
+                    y: node_y + e.baseline + 1.0,
+                    w,
+                    h: 1.0,
+                    argb: st.color,
+                    kind: 5,
                 },
             ));
         }

@@ -234,6 +234,14 @@
      "msg": "A2: row layout box stays inside its parent (row/column container overflow guard)"
     }
    ],
+   "visualtest_text_decorations.md": [
+    {
+     "exists": {
+      "cls": "LytParagraph"
+     },
+     "msg": "decorations fixture locked into corpus (T1 underline/wavy/dots/strike ratchet)"
+    }
+   ],
    "visualtest_latex_inline-xheight.md": [
     {
      "exists": {

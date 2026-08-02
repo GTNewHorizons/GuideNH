@@ -38,6 +38,8 @@ public final class TextStyle extends Table {
   public long highlightArgb() { int o = __offset(20); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
   public boolean inlineCode() { int o = __offset(22); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
   public float baselineShift() { int o = __offset(24); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+  public boolean wavyUnderline() { int o = __offset(26); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
+  public boolean dottedUnderline() { int o = __offset(28); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
 
   public static int createTextStyle(FlatBufferBuilder builder,
       float fontSize,
@@ -50,14 +52,18 @@ public final class TextStyle extends Table {
       boolean strikethrough,
       long highlightArgb,
       boolean inlineCode,
-      float baselineShift) {
-    builder.startTable(11);
+      float baselineShift,
+      boolean wavyUnderline,
+      boolean dottedUnderline) {
+    builder.startTable(13);
     TextStyle.addBaselineShift(builder, baselineShift);
     TextStyle.addHighlightArgb(builder, highlightArgb);
     TextStyle.addFont(builder, font);
     TextStyle.addColor(builder, color);
     TextStyle.addFontScale(builder, fontScale);
     TextStyle.addFontSize(builder, fontSize);
+    TextStyle.addDottedUnderline(builder, dottedUnderline);
+    TextStyle.addWavyUnderline(builder, wavyUnderline);
     TextStyle.addInlineCode(builder, inlineCode);
     TextStyle.addStrikethrough(builder, strikethrough);
     TextStyle.addUnderline(builder, underline);
@@ -66,7 +72,7 @@ public final class TextStyle extends Table {
     return TextStyle.endTextStyle(builder);
   }
 
-  public static void startTextStyle(FlatBufferBuilder builder) { builder.startTable(11); }
+  public static void startTextStyle(FlatBufferBuilder builder) { builder.startTable(13); }
   public static void addFontSize(FlatBufferBuilder builder, float fontSize) { builder.addFloat(0, fontSize, 14.0f); }
   public static void addBold(FlatBufferBuilder builder, boolean bold) { builder.addBoolean(1, bold, false); }
   public static void addItalic(FlatBufferBuilder builder, boolean italic) { builder.addBoolean(2, italic, false); }
@@ -78,6 +84,8 @@ public final class TextStyle extends Table {
   public static void addHighlightArgb(FlatBufferBuilder builder, long highlightArgb) { builder.addInt(8, (int) highlightArgb, (int) 0L); }
   public static void addInlineCode(FlatBufferBuilder builder, boolean inlineCode) { builder.addBoolean(9, inlineCode, false); }
   public static void addBaselineShift(FlatBufferBuilder builder, float baselineShift) { builder.addFloat(10, baselineShift, 0.0f); }
+  public static void addWavyUnderline(FlatBufferBuilder builder, boolean wavyUnderline) { builder.addBoolean(11, wavyUnderline, false); }
+  public static void addDottedUnderline(FlatBufferBuilder builder, boolean dottedUnderline) { builder.addBoolean(12, dottedUnderline, false); }
   public static int endTextStyle(FlatBufferBuilder builder) {
     int o = builder.endTable();
     return o;

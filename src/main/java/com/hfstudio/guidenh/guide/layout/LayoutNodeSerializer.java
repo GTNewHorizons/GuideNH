@@ -256,7 +256,7 @@ public final class LayoutNodeSerializer {
 
         int strOff = fbb.createString(text);
         int styleOff = TextStyle
-            .createTextStyle(fbb, fontSize, bold, italic, fontScale, baseColor, 0L, false, false, 0L, false, 0.0f);
+            .createTextStyle(fbb, fontSize, bold, italic, fontScale, baseColor, 0L, false, false, 0L, false, 0.0f, false, false);
         int inlineBlocksVec = 0;
         if (!inlineRefs.isEmpty()) {
             int[] refs = new int[inlineRefs.size()];
@@ -402,7 +402,9 @@ public final class LayoutNodeSerializer {
             style.strikethrough(),
             highlight,
             inlineCode,
-            style.baselineShift());
+            style.baselineShift(),
+            style.wavyUnderline(),
+            style.dottedUnderline());
     }
 
     /**
