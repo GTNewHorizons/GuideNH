@@ -782,3 +782,24 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   harness 63/0 + 234/0 (invariant matrix 6 texts x 3 suffix x max 0..10, no lone surrogates);
   reviewer ACCEPT (anti-pattern 4/4 clean). Minor doc note (non-blocking): clipToChars
   Javadoc could state the corner "suffix alone doesn't fit but full text fits -> return full".
+
+- **T5-3 done (1670539b): mermaid node wrap unified to GuideText.wrap.** MermaidNodeRenderer
+  (guide/document/block/) wrapText(LayoutContext,...) now delegates to GuideText.wrap
+  (signature unchanged; 3 call sites FlowchartCanvas:236/:814 + MindmapCanvas:507 untouched;
+  measurement neutral, both paths GuideText/Rust-backed). Deleted dead wrapText(RenderContext)
+  overload (zero callers, violated leaf obligation via MC fontRenderer) + wrap-only helpers
+  scanWords/appendWrappedWord/appendBrokenWord/WordVisitor (-102/+7). Kept measureTextInternal
+  (reviewer-verified active via measureText(LayoutContext) -> badge/edge-label measurement).
+  Behavior changes (declared): long-word breaking fragment back-fill -> independent lines
+  (long-word/CJK no-space labels -> taller node boxes); empty lines dropped (mermaid labels
+  single-line tokens, unaffected); sub-pixel measurement neutral. Current fixtures all
+  single-line -> ZERO breakpoint change. Verification: gate TOTAL ISSUES 0; render mermaid
+  4/4; ratchet 28/28 (5 mermaid assertions ok on fresh batch = geometry zero-change confirmed);
+  geometric zero-new; harness 41/0; reviewer ACCEPT (anti-pattern 4/4).
+- **T5 follow-up (coverage gap, deferred)**: mermaid wrap->node-box-size geometry path has NO
+  multi-line/long-word fixture (all 4 mermaid fixtures single-line). Add a forced-wrap fixture
+  (node label >180px or long no-space word triggering codepoint break) + ratchet assertion to
+  lock node box height, preventing silent geometry regression. Non-blocking (current ratchet
+  confirms zero change).
+- **T5 follow-up (dead code, deferred)**: MermaidNodeRenderer.measureText(RenderContext) :131-133
+  is dead (zero callers) but kept as public API; candidate for A-class cleanup round.
