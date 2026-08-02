@@ -79,8 +79,23 @@
     },
     "msg": "large mindmap canvas height capped (A1 no-infinite-stretch ratchet)"
    }
-  ],
-  "visualtest_code_blocks.md": [
+   ],
+   "visualtest_mermaid_wrap-long-labels.md": [
+    {
+     "exists": {
+      "cls": "LytMermaidFlowchartCanvas"
+     },
+     "msg": "mermaid wrap long-label canvas exists (T5 wrap-to-node-box ratchet)"
+    },
+    {
+     "max_height": {
+      "cls": "LytMermaidFlowchartCanvas",
+      "le": 400
+     },
+     "msg": "wrapped-label canvas height capped (T5 no-infinite-stretch ratchet)"
+    }
+   ],
+   "visualtest_code_blocks.md": [
    {
     "width_ratio": {
      "cls": "LytCodeBlock",
