@@ -356,6 +356,7 @@ public final class LayoutStyleExtractor {
             return switch (ax.getAlignItems()) {
                 case CENTER -> 1;
                 case END    -> 2;
+                case BASELINE -> 4;
                 // START -> Stretch: preserve existing behavior for the many blocks
                 // that never call setAlignItems() and keep the LytAxisBox default.
                 default -> 3;

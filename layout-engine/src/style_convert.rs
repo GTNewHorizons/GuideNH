@@ -75,6 +75,7 @@ pub fn flat_style_to_taffy(fb: &FbStyle) -> Style {
             1 => Some(AlignItems::CENTER),
             2 => Some(AlignItems::FLEX_END),
             3 => Some(AlignItems::STRETCH),
+            4 => Some(AlignItems::BASELINE),
             _ => Some(AlignItems::FLEX_START),
         },
         align_self: match fb.align_self() {

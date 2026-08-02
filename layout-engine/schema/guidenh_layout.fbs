@@ -17,7 +17,7 @@ table Style {
   display: byte = 0;           // 0=Flex 1=Grid 2=Block 3=None
   flex_direction: byte = 1;    // 0=Row 1=Column
   flex_wrap: byte = 0;         // 0=NoWrap 1=Wrap
-  align_items: byte = 0;       // 0=Start 1=Center 2=End 3=Stretch
+  align_items: byte = 0;       // 0=Start 1=Center 2=End 3=Stretch 4=Baseline
   align_self: byte = 0;        // 0=Auto 1=Start 2=Center 3=End 4=Stretch
   justify_content: byte = 0;   // 0=Start 1=Center 2=End 3=SpaceBetween 4=SpaceAround 5=SpaceEvenly
   gap_w: Dimension;

@@ -249,6 +249,14 @@
      },
      "msg": "inline LaTeX blocks exist on x-height calibration page (T4 x_height ratchet)"
     }
+   ],
+   "visualtest_layout_baseline-align.md": [
+    {
+     "exists": {
+      "cls": "LytHBox"
+     },
+     "msg": "baseline-align fixture locked into corpus (T3-min baseline routing ratchet)"
+    }
    ]
   }
 }
