@@ -95,7 +95,21 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
 
         content.parent = this;
         content.setGap(4);
-        content.setFullWidth(true);
+        // No setFullWidth(true) on purpose: fullWidth serializes as an explicit
+        // align-self Stretch, which under Taffy 0.12 resolves against the viewport
+        // width WITHOUT subtracting the declared margins — the viewport would
+        // overflow the details body by 2*(PADDING+BORDER_WIDTH) on each side.
+        // Leaving the cross size auto makes align-self Auto, so it inherits this
+        // block's default alignItems Stretch (LayoutStyleExtractor returns Stretch
+        // for every non-LytAxisBox container), and the stretch computes the width
+        // as details body width minus the margins below.
+        // Inset the content viewport inside the details body by the padding +
+        // border (7px/side): Rust positions the viewport at details.x+7. Declared
+        // as margins (LytDetailsBlock is a plain LytBlock — it has no box
+        // padding/border to serialize; LayoutStyleExtractor carries block
+        // margins to the FlatBuffer style verbatim).
+        content.setMarginLeft(PADDING + BORDER_WIDTH);
+        content.setMarginRight(PADDING + BORDER_WIDTH);
 
         summaryRow.append(summaryMarker);
         summaryRow.append(summaryContent);
