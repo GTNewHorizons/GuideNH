@@ -504,3 +504,30 @@ Full re-screen (geo + ratchet + VLM ×4) after R8 fixes: geometric 3 findings = 
 **Method note**: qwen8-night free critique (no prescribed direction) was the driver; it correctly distinguished tuning (parameters/rhythm) from feature gaps (missing engine capability) and flagged when tuning space was exhausted. Two misperceptions were caught by objective bounds verification (list-table indentation was already fixed; italic line-start "shift" was inherent italic slant). The wavy/dots Java-path tuning (round 5) had no effect because the main rendering path is Rust — a reminder to verify which rendering path is live before tuning its parameters.
 
 **Verdict**: typography optimization reached 9/10, tuning space exhausted. Remaining work is feature implementation (F1/F2), not tuning.
+
+## N. F4 — glyph atlas full 巨型字形 (PENDING-IN-GAME, 2026-08-02)
+
+- **Symptom**: 游戏内浏览真实指南书时渲染 mermaid flowchart 触发海量 WARN
+  `glyph atlas full, dropping glyph key=... (978x1110)`; fml-client-2.log 中 10140 条
+  (10:06:19-10:08:03), 位图尺寸 533-1434px (正常 11px 字形 ~15x20px), ~97.5 WARN/s.
+- **Evidence**: 洪泛始于 mermaid canvas `computePrimitives diagramReady=true
+  bounds=...663x320`; 字体 msyh.ttc 无内嵌位图表 (fontTools 验证无 EBDT/CBDT/sbix).
+- **Diagnosis** (ds-coder 插桩诊断, 插桩 6 处已还原, git diff 0): 离线不可复现 —
+  headless 所有路径上限 11 × 2.5(MAX_ZOOM) × 4(guiScale) = 110ppem, 洪泛要求
+  fontScale × render_scale ≈ 76-173 (位图 840-1900ppem). 候选排序:
+  1. NodeContent Rust 光栅化 `size = g.font_size × render_scale`
+     (layout-engine/src/parley_text.rs:741) — 触发点/机制契合最高;
+  2. MermaidNodeRenderer.scaleTextStyle `fontScale × zoom` 叠乘
+     (MermaidNodeRenderer.java:74-76) — 唯一能把 fontScale 顶到 38-86 的通道;
+  3. swash ColorBitmap(StrikeWith::BestFit) (parley_text.rs:757-760) — 基本排除
+     (msyh 无位图 strike, 位图尺寸与 size 严格成正比).
+- **Status**: PENDING-IN-GAME. 需游戏内打点复现; 打点建议 (Rust 侧需重建+DLL):
+  1. parley_text.rs:741 size>60 时打印 g.font_size / render_scale / 位图 w×h —
+     font_size≈900→候选1/2 样式膨胀; render_scale≈40+→DisplayScale 异常; 正常但
+     位图≈1000px→候选3 回退字体;
+  2. layout.rs:830 shape_text_cmd scaled>30 时打印 font_size/font_scale/scaled;
+  3. GuideText.java:202 shapeUncached fontScale>2 时打印来源文本;
+  4. LytMermaidCanvas.java:334 computePrimitives 打印 getActiveZoom()/zoom/
+     visualZoom/scaleFactor (直接验证候选2 activeZoom 是否病态).
+- **Next**: 用户游戏内按上述打点复现一次 → 定位乘子 → 修复; 修复验收 = 游戏内
+  洪泛消失或位图尺寸回归正常量级.
