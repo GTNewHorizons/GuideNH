@@ -278,13 +278,14 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
                 textX += ICON_SIZE + ICON_GAP;
             }
 
-            String renderedTitle = clipToWidth(
+            String renderedTitle = GuideText.clipToWidth(
                 entry.title(),
                 Math.max(
                     1,
                     rowLayout.bounds()
                         .right() - textX),
-                rowStyle);
+                rowStyle,
+                GuideText.ClipSuffix.DOTS3);
             int clickableWidth = textX - rowLayout.bounds()
                 .x();
             if (renderedTitle != null && !renderedTitle.isEmpty()) {
@@ -409,23 +410,6 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
             }
         }
         return 0xFF000000;
-    }
-
-    private String clipToWidth(String text, int maxWidth, ResolvedTextStyle style) {
-        if (text == null || text.isEmpty() || GuideText.measureWidth(text, style) <= maxWidth) {
-            return text == null ? "" : text;
-        }
-
-        int ellipsisWidth = GuideText.measureWidth("...", style);
-        if (ellipsisWidth >= maxWidth) {
-            return "";
-        }
-
-        int end = text.length();
-        while (end > 0 && GuideText.measureWidth(text.substring(0, end), style) + ellipsisWidth > maxWidth) {
-            end--;
-        }
-        return end <= 0 ? "..." : text.substring(0, end) + "...";
     }
 
     /**

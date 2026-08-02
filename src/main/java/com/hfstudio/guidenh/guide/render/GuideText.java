@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ShapeTextInput;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ShapeTextResult;
@@ -194,6 +195,175 @@ public final class GuideText {
         return w;
     }
 
+    /** Truncation suffix policy for {@link #clipToWidth} and {@link #clipToChars}. */
+    public enum ClipSuffix {
+        /** Hard truncation, no suffix appended. */
+        NONE,
+        /** ASCII three dots {@code "..."}. */
+        DOTS3,
+        /** Typographic ellipsis {@code "…"} (U+2026). */
+        UNICODE_ELLIPSIS
+    }
+
+    /**
+     * Word-first line wrapping: splits {@code text} on whitespace (line
+     * breaks preserved first via {@link GuideStringLines#splitLines}, then
+     * words within each line) and packs words into lines of at most
+     * {@code maxWidth} pixels (measured with {@link #measureWidth}). A word
+     * that does not fit is broken at codepoint granularity via
+     * {@link #advanceOf} — codepoint-aware, so surrogate pairs are never split
+     * (no {@code charAt} scanning). Output lines carry no leading or trailing
+     * whitespace; empty input lines are dropped.
+     *
+     * <p><b>Degradation semantics:</b> when {@link #isAvailable()} is false no
+     * measurement is possible, so the text is returned untouched as a single
+     * line (no wrapping). Returns an empty list for {@code null} / empty input.
+     */
+    public static List<String> wrap(String text, int maxWidth, @Nullable ResolvedTextStyle style) {
+        if (text == null || text.isEmpty()) {
+            return List.of();
+        }
+        if (!isAvailable()) {
+            return List.of(text);
+        }
+        int budget = Math.max(1, maxWidth);
+        List<String> lines = new ArrayList<>();
+        for (String rawLine : GuideStringLines.splitLines(text)) {
+            String line = rawLine != null ? rawLine.trim() : "";
+            if (line.isEmpty()) {
+                continue;
+            }
+            if (measureWidth(line, style) <= budget) {
+                lines.add(line);
+                continue;
+            }
+            String[] words = line.split("\\s+");
+            StringBuilder current = new StringBuilder();
+            for (String word : words) {
+                if (word.isEmpty()) {
+                    continue;
+                }
+                String candidate = current.length() == 0 ? word : current + " " + word;
+                if (measureWidth(candidate, style) <= budget) {
+                    current.setLength(0);
+                    current.append(candidate);
+                    continue;
+                }
+                if (current.length() > 0) {
+                    lines.add(current.toString());
+                    current.setLength(0);
+                }
+                appendBrokenWord(word, budget, style, lines);
+            }
+            if (current.length() > 0) {
+                lines.add(current.toString());
+            }
+        }
+        return lines;
+    }
+
+    /**
+     * Pixel-level truncation: returns the longest codepoint prefix of
+     * {@code text} whose rendered width, together with {@code suffix}, does
+     * not exceed {@code maxWidth}.
+     *
+     * <p><b>Semantic invariant: the result's rendered width is
+     * {@code <= maxWidth}.</b> The suffix width counts against the budget; when
+     * the suffix alone does not fit ({@code suffixWidth > maxWidth}), or when
+     * even a single codepoint plus the suffix overflows, the empty string is
+     * returned (宁空勿溢 — rather empty than overflowing). When the full text
+     * fits, it is returned unchanged.
+     *
+     * <p>Implementation: codepoints are accumulated via
+     * {@link #advanceOf(int, ResolvedTextStyle)} — never {@code substring} +
+     * {@link #measureWidth} shrink loops, which would create one unique shape
+     * cache key per prefix and blow up shaping to O(n²). The final result is
+     * then re-verified with {@link #measureWidth} and codepoints are backed off
+     * until it fits, because the per-codepoint advance sum differs from the
+     * shaped run by subpixels.
+     *
+     * <p><b>Degradation semantics:</b> when {@link #isAvailable()} is false no
+     * measurement is possible, so the original text is returned untouched.
+     */
+    public static String clipToWidth(String text, int maxWidth, @Nullable ResolvedTextStyle style,
+        ClipSuffix suffix) {
+        if (!isAvailable()) {
+            return text;
+        }
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        ClipSuffix eff = suffix != null ? suffix : ClipSuffix.NONE;
+        String suffixText = suffixText(eff);
+        int budget = Math.max(0, maxWidth);
+        int suffixWidth = suffixText.isEmpty() ? 0 : measureWidth(suffixText, style);
+        if (suffixWidth > budget) {
+            return "";
+        }
+        if (measureWidth(text, style) <= budget) {
+            return text;
+        }
+        int contentBudget = budget - suffixWidth;
+        StringBuilder sb = new StringBuilder();
+        float accumulated = 0f;
+        int offset = 0;
+        while (offset < text.length()) {
+            int codePoint = text.codePointAt(offset);
+            accumulated += advanceOf(codePoint, style);
+            if (accumulated > contentBudget) {
+                break;
+            }
+            sb.appendCodePoint(codePoint);
+            offset += Character.charCount(codePoint);
+        }
+        if (sb.length() == 0) {
+            // Even a single codepoint plus the suffix cannot fit.
+            return "";
+        }
+        // Conservative backoff: advanceOf sums and shaped runs differ by
+        // subpixels; drop codepoints until the measured width fits.
+        while (sb.length() > 0 && measureWidth(sb.toString() + suffixText, style) > budget) {
+            int last = sb.codePointBefore(sb.length());
+            sb.delete(sb.length() - Character.charCount(last), sb.length());
+        }
+        return sb.length() == 0 ? "" : sb + suffixText;
+    }
+
+    /**
+     * Character-level truncation by codepoint count (codepoint-aware; never
+     * splits a surrogate pair). The suffix is counted against
+     * {@code maxChars}: when the text fits, it is returned unchanged; otherwise
+     * it is truncated to {@code maxChars - suffixCodepoints} codepoints and the
+     * suffix is appended. When {@code maxChars <= suffix length} (the suffix
+     * alone consumes the budget), or {@code maxChars <= 0}, the empty string is
+     * returned.
+     *
+     * <p>Pure string logic — no font measurement involved, so it is unaffected
+     * by {@link #isAvailable()}.
+     */
+    public static String clipToChars(String text, int maxChars, ClipSuffix suffix) {
+        ClipSuffix eff = suffix != null ? suffix : ClipSuffix.NONE;
+        String suffixText = suffixText(eff);
+        int suffixCount = suffixText.codePointCount(0, suffixText.length());
+        if (text == null || maxChars <= 0 || suffixCount >= maxChars) {
+            return "";
+        }
+        if (text.codePointCount(0, text.length()) <= maxChars - suffixCount) {
+            return text;
+        }
+        StringBuilder sb = new StringBuilder();
+        int remaining = maxChars - suffixCount;
+        int offset = 0;
+        int taken = 0;
+        while (offset < text.length() && taken < remaining) {
+            int codePoint = text.codePointAt(offset);
+            sb.appendCodePoint(codePoint);
+            offset += Character.charCount(codePoint);
+            taken++;
+        }
+        return sb + suffixText;
+    }
+
     /** Resolve the style's color to ARGB (default opaque white). */
     public static int resolveColor(@Nullable ResolvedTextStyle style) {
         int color = style != null && style.color() != null ? style.color()
@@ -205,6 +375,47 @@ public final class GuideText {
     }
 
     // ---- internals -----------------------------------------------------------
+
+    private static String suffixText(ClipSuffix suffix) {
+        return switch (suffix) {
+            case NONE -> "";
+            case DOTS3 -> "...";
+            case UNICODE_ELLIPSIS -> "\u2026";
+        };
+    }
+
+    /**
+     * Codepoint-level line breaking for a single word that does not fit on the
+     * current line. Accumulates per-codepoint advances via
+     * {@link #advanceOf} (no substring re-measure loops, no {@code charAt}
+     * surrogate-pair splitting); a single codepoint wider than the budget is
+     * emitted on its own line (a glyph cannot be split).
+     */
+    private static void appendBrokenWord(String word, int maxWidth, @Nullable ResolvedTextStyle style,
+        List<String> output) {
+        if (measureWidth(word, style) <= maxWidth) {
+            output.add(word);
+            return;
+        }
+        StringBuilder current = new StringBuilder();
+        float accumulated = 0f;
+        int offset = 0;
+        while (offset < word.length()) {
+            int codePoint = word.codePointAt(offset);
+            float advance = advanceOf(codePoint, style);
+            if (current.length() > 0 && accumulated + advance > maxWidth) {
+                output.add(current.toString());
+                current.setLength(0);
+                accumulated = 0f;
+            }
+            current.appendCodePoint(codePoint);
+            accumulated += advance;
+            offset += Character.charCount(codePoint);
+        }
+        if (current.length() > 0) {
+            output.add(current.toString());
+        }
+    }
 
     private static ShapeTextResult shape(String text, @Nullable ResolvedTextStyle style) {
         boolean bold = style != null && style.bold();

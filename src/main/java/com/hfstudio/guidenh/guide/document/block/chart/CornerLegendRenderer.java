@@ -102,34 +102,15 @@ public class CornerLegendRenderer {
                         MARKER_HEIGHT,
                         entry.color()));
             }
-            GuideText.emitText(c, ellipsize(entry.name(), maxTextWidth), textX, rowY, TEXT_STYLE);
+            GuideText.emitText(
+                c,
+                GuideText.clipToWidth(entry.name(), maxTextWidth, TEXT_STYLE, GuideText.ClipSuffix.DOTS3),
+                textX,
+                rowY,
+                TEXT_STYLE);
             rowY += lineHeight + ENTRY_GAP;
             drawn++;
         }
-    }
-
-    /** {@link GuideText}-based ellipsize variant. */
-    public static String ellipsize(String text, int maxWidth) {
-        if (text == null || text.isEmpty() || maxWidth <= 0) {
-            return "";
-        }
-        if (GuideText.measureWidth(text, TEXT_STYLE) <= maxWidth) {
-            return text;
-        }
-        String suffix = "...";
-        int suffixWidth = GuideText.measureWidth(suffix, TEXT_STYLE);
-        if (suffixWidth > maxWidth) {
-            return "";
-        }
-        int end = text.length();
-        while (end > 0) {
-            String candidate = text.substring(0, end) + suffix;
-            if (GuideText.measureWidth(candidate, TEXT_STYLE) <= maxWidth) {
-                return candidate;
-            }
-            end--;
-        }
-        return suffix;
     }
 
     private static int clamp(int value, int min, int max) {

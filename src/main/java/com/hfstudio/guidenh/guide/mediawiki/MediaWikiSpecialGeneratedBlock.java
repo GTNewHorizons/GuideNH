@@ -289,7 +289,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     private static final int HEADER_MARGIN_BOTTOM = 5;
     private static final int LOAD_MORE_HEIGHT = 18;
     private static final int LOAD_MORE_MARGIN_TOP = 2;
-    private static final String ELLIPSIS = "...";
     private static final ConstantColor LIST_MARKER_COLOR = ConstantColor.WHITE;
     private static final ResolvedTextStyle LINK_STYLE = TextStyle.builder()
         .apply(DefaultStyles.BODY_TEXT)
@@ -598,11 +597,12 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
 
             if (row.header()) {
                 rowLayout.setClickableBounds(LytRect.empty());
-                String renderedHeader = clipToWidth(
+                String renderedHeader = GuideText.clipToWidth(
                     row.title(),
                     rowLayout.bounds()
                         .width(),
-                    HEADER_STYLE);
+                    HEADER_STYLE,
+                    GuideText.ClipSuffix.DOTS3);
                 int headerTextY = rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
@@ -649,7 +649,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     - LIST_MARKER_SIZE
                     - LIST_MARKER_GAP
                     - (row.icon() != null ? ICON_SIZE + ICON_GAP : 0));
-            List<String> subtitleLines = wrapLines(row.subtitle(), textMaxWidth, SUBTITLE_STYLE);
+            List<String> subtitleLines = GuideText.wrap(row.subtitle(), textMaxWidth, SUBTITLE_STYLE);
             int markerX = rowLayout.bounds()
                 .x();
             int contentTop = rowLayout.bounds()
@@ -669,13 +669,14 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 emitIcon(c, row.icon(), textX, contentTop + Math.max(0, (contentHeight - ICON_SIZE) / 2));
                 textX += ICON_SIZE + ICON_GAP;
             }
-            String renderedTitle = clipToWidth(
+            String renderedTitle = GuideText.clipToWidth(
                 row.title(),
                 Math.max(
                     1,
                     rowLayout.bounds()
                         .right() - textX),
-                rowStyle);
+                rowStyle,
+                GuideText.ClipSuffix.DOTS3);
             String fullTitle = row.title() != null ? row.title() : "";
             boolean titleClipped = isClipped(renderedTitle, fullTitle);
             String fullSubtitle = row.subtitle() != null ? row.subtitle() : "";
@@ -1070,7 +1071,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
 
     private int computeEntryHeight(LayoutContext context, MediaWikiSpecialListEntry entry, int columnWidth) {
         int textMaxWidth = computeTextMaxWidth(columnWidth, entry.icon() != null);
-        List<String> subtitleLines = wrapLines(context, entry.subtitle(), textMaxWidth, SUBTITLE_STYLE);
+        List<String> subtitleLines = GuideText.wrap(entry.subtitle(), textMaxWidth, SUBTITLE_STYLE);
         if (subtitleLines.isEmpty()) {
             return ENTRY_HEIGHT;
         }
@@ -1101,129 +1102,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         return Math.max(1, columnWidth - LIST_MARKER_SIZE - LIST_MARKER_GAP - (hasIcon ? ICON_SIZE + ICON_GAP : 0));
     }
 
-    private List<String> wrapLines(LayoutContext context, @Nullable String text, int maxWidth,
-        ResolvedTextStyle style) {
-        if (text == null || text.isEmpty()) {
-            return List.of();
-        }
-        ArrayList<String> lines = new ArrayList<>();
-        for (String rawLine : GuideStringLines.splitLines(text)) {
-            appendWrappedLine(context, rawLine, maxWidth, style, lines);
-        }
-        return lines;
-    }
-
-    private List<String> wrapLines(@Nullable String text, int maxWidth, ResolvedTextStyle style) {
-        if (text == null || text.isEmpty()) {
-            return List.of();
-        }
-        ArrayList<String> lines = new ArrayList<>();
-        for (String rawLine : GuideStringLines.splitLines(text)) {
-            appendWrappedLine(rawLine, maxWidth, style, lines);
-        }
-        return lines;
-    }
-
-    private void appendWrappedLine(LayoutContext context, String rawLine, int maxWidth, ResolvedTextStyle style,
-        List<String> output) {
-        String line = rawLine != null ? rawLine.trim() : "";
-        if (line.isEmpty()) {
-            return;
-        }
-        if (measureTextWidth(context, style, line) <= maxWidth) {
-            output.add(line);
-            return;
-        }
-        String[] words = line.split("\\s+");
-        StringBuilder current = new StringBuilder();
-        for (String word : words) {
-            if (word == null || word.isEmpty()) {
-                continue;
-            }
-            String candidate = current.isEmpty() ? word : current + " " + word;
-            if (measureTextWidth(context, style, candidate) <= maxWidth) {
-                current.setLength(0);
-                current.append(candidate);
-                continue;
-            }
-            if (!current.isEmpty()) {
-                output.add(current.toString());
-                current.setLength(0);
-            }
-            appendBrokenWord(context, word, maxWidth, style, output);
-        }
-        if (!current.isEmpty()) {
-            output.add(current.toString());
-        }
-    }
-
-    private void appendWrappedLine(String rawLine, int maxWidth, ResolvedTextStyle style, List<String> output) {
-        String line = rawLine != null ? rawLine.trim() : "";
-        if (line.isEmpty()) {
-            return;
-        }
-        if (GuideText.measureWidth(line, style) <= maxWidth) {
-            output.add(line);
-            return;
-        }
-        String[] words = line.split("\\s+");
-        StringBuilder current = new StringBuilder();
-        for (String word : words) {
-            if (word == null || word.isEmpty()) {
-                continue;
-            }
-            String candidate = current.isEmpty() ? word : current + " " + word;
-            if (GuideText.measureWidth(candidate, style) <= maxWidth) {
-                current.setLength(0);
-                current.append(candidate);
-                continue;
-            }
-            if (!current.isEmpty()) {
-                output.add(current.toString());
-                current.setLength(0);
-            }
-            appendBrokenWord(word, maxWidth, style, output);
-        }
-        if (!current.isEmpty()) {
-            output.add(current.toString());
-        }
-    }
-
-    private void appendBrokenWord(LayoutContext context, String word, int maxWidth, ResolvedTextStyle style,
-        List<String> output) {
-        if (measureTextWidth(context, style, word) <= maxWidth) {
-            output.add(word);
-            return;
-        }
-        int start = 0;
-        while (start < word.length()) {
-            int end = start + 1;
-            while (end <= word.length() && measureTextWidth(context, style, word.substring(start, end)) <= maxWidth) {
-                end++;
-            }
-            int safeEnd = Math.max(start + 1, end - 1);
-            output.add(word.substring(start, safeEnd));
-            start = safeEnd;
-        }
-    }
-
-    private void appendBrokenWord(String word, int maxWidth, ResolvedTextStyle style, List<String> output) {
-        if (GuideText.measureWidth(word, style) <= maxWidth) {
-            output.add(word);
-            return;
-        }
-        int start = 0;
-        while (start < word.length()) {
-            int end = start + 1;
-            while (end <= word.length() && GuideText.measureWidth(word.substring(start, end), style) <= maxWidth) {
-                end++;
-            }
-            int safeEnd = Math.max(start + 1, end - 1);
-            output.add(word.substring(start, safeEnd));
-            start = safeEnd;
-        }
-    }
-
     private boolean areLinesClipped(List<String> renderedLines, String originalText) {
         if (originalText == null || originalText.isEmpty()) {
             return false;
@@ -1239,20 +1117,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             }
         }
         return false;
-    }
-
-    private int measureTextWidth(LayoutContext context, ResolvedTextStyle style, String text) {
-        if (text == null || text.isEmpty()) {
-            return 0;
-        }
-        float width = 0f;
-        int offset = 0;
-        while (offset < text.length()) {
-            int codePoint = text.codePointAt(offset);
-            width += context.getAdvance(codePoint, style);
-            offset += Character.charCount(codePoint);
-        }
-        return Math.round(width);
     }
 
     private void emitIcon(PrimitiveCollector c, GuidePageIcon icon, int x, int y) {
@@ -1304,28 +1168,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         return 0xFF000000;
     }
 
-    private String clipToWidth(String text, int maxWidth, ResolvedTextStyle style) {
-        if (text == null || text.isEmpty() || GuideText.measureWidth(text, style) <= maxWidth) {
-            return text == null ? "" : text;
-        }
-
-        int ellipsisWidth = GuideText.measureWidth(ELLIPSIS, style);
-        if (ellipsisWidth >= maxWidth) {
-            return ELLIPSIS;
-        }
-
-        int end = text.length();
-        while (end > 0 && GuideText.measureWidth(text.substring(0, end), style) + ellipsisWidth > maxWidth) {
-            end--;
-        }
-        return end <= 0 ? ELLIPSIS : text.substring(0, end) + ELLIPSIS;
-    }
-
     private boolean isClipped(String rendered, String original) {
         if (original == null || original.isEmpty()) {
             return false;
         }
-        return rendered != null && rendered.endsWith("...") && !rendered.equals(original);
+        return rendered != null && !rendered.equals(original);
     }
 
     /**
