@@ -4,7 +4,7 @@
 
 This document specifies every fixture page in the visual test corpus. Each entry states the test goal and the layout invariants that the page must satisfy. The fixture corpus targets every feature supported by the engine, with dedicated pages arranged from simple to complex within semantic folder groups.
 
-Total page count: **65** (across 15 subdirectories plus root index).
+Total page count: **66** (across 15 subdirectories plus root index).
 
 ---
 
@@ -316,6 +316,10 @@ Image resources are in `_en_us/visualtest/assets/` (pure-colour and checkerboard
 
 ### `meta/indexes-sub-b.md`
 - Child page used by `indexes.md` for SubPages testing. Supports the SubPages feature verification.
+
+### `meta/special.md`
+- `<Special>` tag family (MediaWikiSpecialGeneratedBlock F7a): `<Special name="SpecialPages" />` grouped special-page catalog (static, always non-empty); `<Special name="Categories" rows="2" />` category grid (CategoryIndex-derived); `<Special name="AllPages" rows="3" />` page grid (index-backed; empty-state fallback allowed).
+- **Invariants**: SpecialPages renders the grouped 2-column catalog with group headers, clickable link rows and top/bottom 1px borders; all Special blocks render through the primitives/GuideText path (no 8×8 MC pixel font); no compile errors.
 
 **Invariants (all meta files)**: Loads without error; zoom pages render at correct scale; index lists are complete.
 
