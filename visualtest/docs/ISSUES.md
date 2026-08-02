@@ -854,3 +854,32 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   LATEX_INSET_PX / sourceRefHeightPx), not T4. If formula sizing complaints arise, tune the
   calibration formula (target is now real x_height); the cross-font mismatch (body Arial vs
   jlatexmath math font) may be irreducible without calibrating against the actual body font.
+
+- **T1 done (T1a 48e8a4cd + T1b a7e613bb): wavy/dots underline decorations through Rust pipeline.**
+  T1a (Rust emits): schema TextStyle append wavy_underline/dotted_underline bool (id 11/12,
+  append-only); DecorationRect table unchanged (kind byte, 4=wavy/5=dots value conventions);
+  LayoutNodeSerializer.buildFbTextStyle serializes them (previously silently dropped); Rust
+  SpanStyleInfo +2 fields, span_style_table reads, emit_decorations adds kind=4 (h=2.0 wave
+  band) + kind=5 (h=1.0) reusing underline geometry. T1b (Java renders): new DrawDecorationLine
+  primitive (x/y/w/h/argb/kind); LytDocument routes kind 4/5 to dedicated list (no longer
+  swallowed into plain lines bucket; kind 0/1/2/3 byte-identical, reviewer -U0 verified);
+  GlyphRunData +decorations field (4-arg compat ctor); LytParagraph emits + moveDecorations
+  on layout move; GuideRenderEngine.drawDecorationLine kind 4 batched sine wave
+  (dy=round(sin(i*PI/4)*2)) / kind 5 batched 3x3 dots 4px step, via brightenDecorationColor,
+  batched shape-quads (math migrated line-by-line from drawTextDecorations legacy).
+  Markdown ^^wavy^^/::dotted::/++underline++/~~strike~~ already compiled to span styles
+  (DelUWaveMarkCompiler). decorations.md fixture (4 decorations + combination + long-text wrap)
+  + ratchet exists (30 assertions).
+  Verification: gate TOTAL ISSUES 0; screener pixel-confirmed all four - wavy = visible
+  sinusoidal oscillation, dotted = discrete dots, plain = straight-solid, strike = midline,
+  combination + long-text wrap aligned no leak; ratchet 30/30; geometric zero-new; both
+  reviewers ACCEPT (anti-pattern 4/4). Note: T1a missed src/test GlyphDiag.java:127
+  createTextStyle call site (git-ignored; executor build-fixed).
+- **T1 follow-ups (edge cases, deferred)**: (1) mermaid node content kind 4/5 still renders
+  straight (LytMermaidCanvas:614 uses 4-arg GlyphRunData ctor, decorations=List.of()) -
+  mermaid labels rarely have wavy/dots; (2) LytItemImage ^^/:: label markup parsed
+  (buildFormatStyle:418-425) but lost at render (emitText emits no decorations, shapeUncached
+  doesn't serialize wavy/dots; LytItemImage is node_type 0 leaf bypassing TextData/spans) -
+  recovery = leaf-bypass manual draw (like F7a/F7c) or shapeUncached+Rust path; (3) F7a/F7c
+  manual FillRect hover underlines (MediaWikiGeneratedListBlock:425-431 /
+  MediaWikiSpecialGeneratedBlock:1188-1193) kept as leaf-internal exempt (plain underline only).
