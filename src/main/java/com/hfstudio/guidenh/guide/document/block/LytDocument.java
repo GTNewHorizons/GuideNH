@@ -358,6 +358,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                 Map<Integer, List<GuideRenderPrimitive.FillRect>> backgroundsByNode = new HashMap<>();
                 Map<Integer, List<GuideRenderPrimitive.FillRect>> linesByNode = new HashMap<>();
                 Map<Integer, List<GuideRenderPrimitive.FillRect>> separatorsByNode = new HashMap<>();
+                Map<Integer, List<GuideRenderPrimitive.DrawDecorationLine>> decorationsByNode = new HashMap<>();
                 int numDecorations = flatResult.decorationsLength();
                 for (int di = 0; di < numDecorations; di++) {
                     var d = flatResult.decorations(di);
@@ -376,6 +377,20 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                         backgroundsByNode
                             .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
                             .add(rect);
+                    } else if (d.kind() == 4 || d.kind() == 5) {
+                        // Wavy (4) / dotted (5) decorations keep their kind so
+                        // the render engine can pick the sine / dot brush — they
+                        // must NOT fall into the plain-line (lines) bucket.
+                        decorationsByNode
+                            .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                            .add(
+                                new GuideRenderPrimitive.DrawDecorationLine(
+                                    d.x(),
+                                    d.y(),
+                                    d.w(),
+                                    d.h(),
+                                    (int) d.argb(),
+                                    d.kind()));
                     } else {
                         linesByNode
                             .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
@@ -390,7 +405,8 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                                 entry.getValue(),
                                 backgroundsByNode.getOrDefault(entry.getKey(), List.of()),
                                 linesByNode.getOrDefault(entry.getKey(), List.of()),
-                                separatorsByNode.getOrDefault(entry.getKey(), List.of())));
+                                separatorsByNode.getOrDefault(entry.getKey(), List.of()),
+                                decorationsByNode.getOrDefault(entry.getKey(), List.of())));
                         GuideDebugLog.warnAlways(
                             "Layout: set {} glyph groups on paragraph at flat index {}",
                             entry.getValue()

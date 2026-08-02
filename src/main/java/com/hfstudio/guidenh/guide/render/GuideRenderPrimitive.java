@@ -15,7 +15,7 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
  * GuideRenderEngine applies the current transform stack to convert to screen coordinates:
  * {@code screen = doc * scale + (tx, ty)}.
  */
-public sealed interface GuideRenderPrimitive permits GuideRenderPrimitive.PushTransform,GuideRenderPrimitive.PopTransform,GuideRenderPrimitive.PushScissor,GuideRenderPrimitive.PopScissor,GuideRenderPrimitive.PushScreenScissor,GuideRenderPrimitive.PopScreenScissor,GuideRenderPrimitive.FillRect,GuideRenderPrimitive.GradientFill,GuideRenderPrimitive.DrawBorder,GuideRenderPrimitive.BlitTexture,GuideRenderPrimitive.DrawGlyphRun,GuideRenderPrimitive.DrawLine,GuideRenderPrimitive.DrawTriangle,GuideRenderPrimitive.DrawCircle,GuideRenderPrimitive.DrawCircleOutline,GuideRenderPrimitive.DrawPolygon,GuideRenderPrimitive.RenderItem,GuideRenderPrimitive.DrawText,GuideRenderPrimitive.RenderScene3D,GuideRenderPrimitive.HostDraw {
+public sealed interface GuideRenderPrimitive permits GuideRenderPrimitive.PushTransform,GuideRenderPrimitive.PopTransform,GuideRenderPrimitive.PushScissor,GuideRenderPrimitive.PopScissor,GuideRenderPrimitive.PushScreenScissor,GuideRenderPrimitive.PopScreenScissor,GuideRenderPrimitive.FillRect,GuideRenderPrimitive.GradientFill,GuideRenderPrimitive.DrawBorder,GuideRenderPrimitive.BlitTexture,GuideRenderPrimitive.DrawGlyphRun,GuideRenderPrimitive.DrawDecorationLine,GuideRenderPrimitive.DrawLine,GuideRenderPrimitive.DrawTriangle,GuideRenderPrimitive.DrawCircle,GuideRenderPrimitive.DrawCircleOutline,GuideRenderPrimitive.DrawPolygon,GuideRenderPrimitive.RenderItem,GuideRenderPrimitive.DrawText,GuideRenderPrimitive.RenderScene3D,GuideRenderPrimitive.HostDraw {
 
     /**
      * Push a translate+scale onto the transform stack. The new frame maps
@@ -89,6 +89,16 @@ public sealed interface GuideRenderPrimitive permits GuideRenderPrimitive.PushTr
             this(atlasId, glyphs, argb, shear, false);
         }
     }
+
+    /**
+     * Wavy (kind=4) or dotted (kind=5) underline decoration emitted from a
+     * Rust span's decoration rect. {@code x}/{@code y}/{@code w}/{@code h} are
+     * the decoration band in absolute document coordinates (top-left origin);
+     * {@code argb} is the span text color; {@code kind} selects the brush at
+     * draw time (4 = wavy sine, 5 = dotted).
+     */
+    record DrawDecorationLine(float x, float y, float w, float h, int argb, byte kind)
+        implements GuideRenderPrimitive {}
 
     /** Line (thick or thin). */
     record DrawLine(float x1, float y1, float x2, float y2, float thickness, int argb)

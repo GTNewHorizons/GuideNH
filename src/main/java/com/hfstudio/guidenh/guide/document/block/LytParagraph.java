@@ -132,6 +132,11 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
             for (GuideRenderPrimitive.FillRect line : glyphData.lines()) {
                 c.emit(line);
             }
+            // Wavy / dotted decorations (kind 4/5) draw on top, after the
+            // plain underline / strikethrough lines.
+            for (GuideRenderPrimitive.DrawDecorationLine decoration : glyphData.decorations()) {
+                c.emit(decoration);
+            }
             return;
         }
         // Fallback: glyph data unavailable — emit text through GuideText so the
@@ -372,7 +377,8 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
                 movedGroups,
                 moveRects(glyphData.backgrounds(), deltaX, deltaY),
                 moveRects(glyphData.lines(), deltaX, deltaY),
-                moveRects(glyphData.separators(), deltaX, deltaY));
+                moveRects(glyphData.separators(), deltaX, deltaY),
+                moveDecorations(glyphData.decorations(), deltaX, deltaY));
         }
     }
 
@@ -384,6 +390,25 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
         List<GuideRenderPrimitive.FillRect> moved = new ArrayList<>(rects.size());
         for (var r : rects) {
             moved.add(new GuideRenderPrimitive.FillRect(r.x() + deltaX, r.y() + deltaY, r.w(), r.h(), r.argb()));
+        }
+        return moved;
+    }
+
+    private static List<GuideRenderPrimitive.DrawDecorationLine> moveDecorations(
+        List<GuideRenderPrimitive.DrawDecorationLine> decorations, int deltaX, int deltaY) {
+        if (decorations.isEmpty() || (deltaX == 0 && deltaY == 0)) {
+            return decorations;
+        }
+        List<GuideRenderPrimitive.DrawDecorationLine> moved = new ArrayList<>(decorations.size());
+        for (var d : decorations) {
+            moved.add(
+                new GuideRenderPrimitive.DrawDecorationLine(
+                    d.x() + deltaX,
+                    d.y() + deltaY,
+                    d.w(),
+                    d.h(),
+                    d.argb(),
+                    d.kind()));
         }
         return moved;
     }

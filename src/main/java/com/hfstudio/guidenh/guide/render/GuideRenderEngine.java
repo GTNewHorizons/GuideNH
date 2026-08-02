@@ -125,6 +125,7 @@ public class GuideRenderEngine {
                     case GuideRenderPrimitive.DrawBorder db -> drawBorder(db);
                     case GuideRenderPrimitive.BlitTexture bt -> drawBlitTexture(bt);
                     case GuideRenderPrimitive.DrawGlyphRun dg -> drawGlyphRun(dg);
+                    case GuideRenderPrimitive.DrawDecorationLine dd -> drawDecorationLine(dd);
                     case GuideRenderPrimitive.DrawLine dl -> drawLine(dl);
                     case GuideRenderPrimitive.DrawTriangle dt -> drawTriangle(dt);
                     case GuideRenderPrimitive.DrawCircle dc -> drawCircle(dc);
@@ -408,6 +409,55 @@ public class GuideRenderEngine {
         tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
         tess.addVertex(r.x() + r.width(), r.y(), 0);
         tess.addVertex(r.x(), r.y(), 0);
+    }
+
+    /**
+     * Wavy (kind=4) and dotted (kind=5) underline decorations emitted from
+     * Rust span geometry. Both paint as batched shape quads (no per-pixel
+     * Gui.drawRect), mirroring {@link #drawFillRect}'s
+     * beginShapeQuads/color/tessColor/addVertex pattern.
+     * <ul>
+     * <li>kind=4: one 1×2 quad per pixel step along the band, vertically
+     * offset by the same ±2px, 2px-thick 8-phase sine (PI/4) the legacy
+     * {@link #drawTextDecorations} wavy used.</li>
+     * <li>kind=5: 3×3 dots on a fixed 4px cadence, mirroring the legacy
+     * dotted math (start at band + step/2, first dot at y−1).</li>
+     * </ul>
+     * Colors are run through {@link #brightenDecorationColor} exactly like the
+     * legacy decorations path so they read against the dark page background.
+     */
+    private void drawDecorationLine(GuideRenderPrimitive.DrawDecorationLine d) {
+        int argb = brightenDecorationColor(d.argb());
+        beginShapeQuads();
+        color(argb);
+        Tessellator tess = Tessellator.instance;
+        tessColor(tess, argb);
+        if (d.kind() == 4) {
+            for (int i = 0; i < d.w(); i++) {
+                float dy = (float) Math.round(Math.sin(i * Math.PI / 4.0) * 2.0);
+                float x0 = sx(d.x() + i);
+                float x1 = sx(d.x() + i + 1);
+                float y0 = sy(d.y() + dy);
+                float y1 = sy(d.y() + dy + 2);
+                tess.addVertex(x0, y1, 0);
+                tess.addVertex(x1, y1, 0);
+                tess.addVertex(x1, y0, 0);
+                tess.addVertex(x0, y0, 0);
+            }
+        } else if (d.kind() == 5) {
+            float dotSize = 3f;
+            float step = 4f;
+            for (float dotX = d.x() + step / 2; dotX + dotSize <= d.x() + d.w(); dotX += step) {
+                float x0 = sx(dotX);
+                float x1 = sx(dotX + dotSize);
+                float y0 = sy(d.y() - 1);
+                float y1 = sy(d.y() - 1 + dotSize);
+                tess.addVertex(x0, y1, 0);
+                tess.addVertex(x1, y1, 0);
+                tess.addVertex(x1, y0, 0);
+                tess.addVertex(x0, y0, 0);
+            }
+        }
     }
 
     private void drawGradientFill(GuideRenderPrimitive.GradientFill g) {
