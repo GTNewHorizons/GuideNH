@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.ITextureObject;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -15,10 +17,10 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.document.block.BorderRenderer;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.layout.FontMetrics;
@@ -28,8 +30,12 @@ import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
@@ -306,7 +312,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
     private static final ResolvedTextStyle EMPTY_STYLE = DefaultStyles.BODY_TEXT.mergeWith(DefaultStyles.BASE_STYLE);
-    private static final BorderRenderer BORDER_RENDERER = new BorderRenderer();
 
     private final List<RowLayout> rowLayouts = new ArrayList<>();
     private MediaWikiSpecialPageResult result = MediaWikiSpecialPageModels.info(
@@ -560,10 +565,15 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     }
 
     @Override
-    public void render(RenderContext context) {
-        renderBorders(context);
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        emitBorders(c);
         for (RowLayout rowLayout : rowLayouts) {
-            if (!context.intersectsViewport(rowLayout.bounds())) {
+            if (c.isCulled(rowLayout.bounds())) {
                 continue;
             }
 
@@ -573,11 +583,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 int emptyTextY = rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         EMPTY_STYLE,
                         rowLayout.bounds()
                             .height());
-                context.drawText(
+                emitText(
+                    c,
                     emptyText,
                     rowLayout.bounds()
                         .x(),
@@ -589,7 +599,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             if (row.header()) {
                 rowLayout.setClickableBounds(LytRect.empty());
                 String renderedHeader = clipToWidth(
-                    context,
                     row.title(),
                     rowLayout.bounds()
                         .width(),
@@ -597,11 +606,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 int headerTextY = rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         HEADER_STYLE,
                         rowLayout.bounds()
                             .height());
-                context.drawText(
+                emitText(
+                    c,
                     renderedHeader,
                     rowLayout.bounds()
                         .x(),
@@ -616,11 +625,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 int loadMoreY = rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         rowStyle,
                         rowLayout.bounds()
                             .height());
-                context.drawText(
+                emitText(
+                    c,
                     GuidebookText.SpecialPageShowMore.text(),
                     rowLayout.bounds()
                         .x(),
@@ -640,22 +649,27 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     - LIST_MARKER_SIZE
                     - LIST_MARKER_GAP
                     - (row.icon() != null ? ICON_SIZE + ICON_GAP : 0));
-            List<String> subtitleLines = wrapLines(context, row.subtitle(), textMaxWidth, SUBTITLE_STYLE);
+            List<String> subtitleLines = wrapLines(row.subtitle(), textMaxWidth, SUBTITLE_STYLE);
             int markerX = rowLayout.bounds()
                 .x();
             int contentTop = rowLayout.bounds()
-                .y() + rowContentTop(context, rowStyle, subtitleLines);
-            int contentHeight = rowContentHeight(context, rowStyle, subtitleLines);
+                .y() + rowContentTop(rowStyle, subtitleLines);
+            int contentHeight = rowContentHeight(rowStyle, subtitleLines);
             int markerY = contentTop + Math.max(0, (contentHeight - LIST_MARKER_SIZE) / 2);
-            context.fillRect(markerX, markerY, LIST_MARKER_SIZE, LIST_MARKER_SIZE, LIST_MARKER_COLOR);
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    markerX,
+                    markerY,
+                    LIST_MARKER_SIZE,
+                    LIST_MARKER_SIZE,
+                    LIST_MARKER_COLOR.resolve(LightDarkMode.current())));
 
             int textX = markerX + LIST_MARKER_SIZE + LIST_MARKER_GAP;
             if (row.icon() != null) {
-                renderIcon(context, row.icon(), textX, contentTop + Math.max(0, (contentHeight - ICON_SIZE) / 2));
+                emitIcon(c, row.icon(), textX, contentTop + Math.max(0, (contentHeight - ICON_SIZE) / 2));
                 textX += ICON_SIZE + ICON_GAP;
             }
             String renderedTitle = clipToWidth(
-                context,
                 row.title(),
                 Math.max(
                     1,
@@ -670,36 +684,35 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 : rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         rowStyle,
                         rowLayout.bounds()
                             .height());
-            context.drawText(renderedTitle, textX, titleY, rowStyle);
+            emitText(c, renderedTitle, textX, titleY, rowStyle);
 
             int clickableWidth = textX - rowLayout.bounds()
                 .x();
             if (renderedTitle != null && !renderedTitle.isEmpty()) {
-                clickableWidth += context.getStringWidth(renderedTitle, rowStyle);
+                clickableWidth += GuideText.measureWidth(renderedTitle, rowStyle);
             }
-            int clickableHeight = context.getLineHeight(rowStyle);
+            int clickableHeight = GuideText.lineHeight(rowStyle);
 
             if (row.subtitle() != null && !row.subtitle()
                 .isEmpty()) {
                 boolean subtitleClipped = areLinesClipped(subtitleLines, fullSubtitle);
-                int subtitleY = contentTop + context.getLineHeight(rowStyle) + TITLE_SUBTITLE_GAP;
+                int subtitleY = contentTop + GuideText.lineHeight(rowStyle) + TITLE_SUBTITLE_GAP;
                 for (String subtitleLine : subtitleLines) {
-                    context.drawText(subtitleLine, textX, subtitleY, SUBTITLE_STYLE);
+                    emitText(c, subtitleLine, textX, subtitleY, SUBTITLE_STYLE);
                     clickableWidth = Math.max(
                         clickableWidth,
                         textX - rowLayout.bounds()
-                            .x() + context.getStringWidth(subtitleLine, SUBTITLE_STYLE));
-                    subtitleY += context.getLineHeight(SUBTITLE_STYLE);
+                            .x() + GuideText.measureWidth(subtitleLine, SUBTITLE_STYLE));
+                    subtitleY += GuideText.lineHeight(SUBTITLE_STYLE);
                 }
                 clickableWidth = Math.max(
                     clickableWidth,
                     textX - rowLayout.bounds()
                         .x());
-                clickableHeight = rowContentHeight(context, rowStyle, subtitleLines);
+                clickableHeight = rowContentHeight(rowStyle, subtitleLines);
                 rowLayout.setTooltip(
                     titleClipped || subtitleClipped ? new TextTooltip(fullTitle + "\n" + fullSubtitle)
                         : titleClipped ? new TextTooltip(fullTitle)
@@ -722,6 +735,13 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     Math.max(ICON_SIZE, clickableHeight)) : LytRect.empty());
         }
     }
+
+    /**
+     * Migrated to {@link #computePrimitives}; the legacy path is unreachable
+     * (the collector only invokes it when {@link #usePrimitives()} is false).
+     */
+    @Override
+    public void render(RenderContext context) {}
 
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {
@@ -1027,25 +1047,25 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         return findClickableRow(x, y);
     }
 
-    private int verticalCenterOffset(RenderContext context, ResolvedTextStyle style, int boxHeight) {
-        return Math.max(0, (boxHeight - context.getLineHeight(style)) / 2);
+    private int verticalCenterOffset(ResolvedTextStyle style, int boxHeight) {
+        return Math.max(0, (boxHeight - GuideText.lineHeight(style)) / 2);
     }
 
-    private int rowContentTop(RenderContext context, ResolvedTextStyle style, List<String> subtitleLines) {
+    private int rowContentTop(ResolvedTextStyle style, List<String> subtitleLines) {
         if (subtitleLines.isEmpty()) {
             return 0;
         }
         return ENTRY_VERTICAL_PADDING_TOP;
     }
 
-    private int rowContentHeight(RenderContext context, ResolvedTextStyle style, List<String> subtitleLines) {
+    private int rowContentHeight(ResolvedTextStyle style, List<String> subtitleLines) {
         if (subtitleLines.isEmpty()) {
-            return Math.max(context.getLineHeight(style), ICON_SIZE);
+            return Math.max(GuideText.lineHeight(style), ICON_SIZE);
         }
         return Math.max(
             ICON_SIZE,
-            context.getLineHeight(style) + TITLE_SUBTITLE_GAP
-                + context.getLineHeight(SUBTITLE_STYLE) * subtitleLines.size());
+            GuideText.lineHeight(style) + TITLE_SUBTITLE_GAP
+                + GuideText.lineHeight(SUBTITLE_STYLE) * subtitleLines.size());
     }
 
     private int computeEntryHeight(LayoutContext context, MediaWikiSpecialListEntry entry, int columnWidth) {
@@ -1070,9 +1090,10 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             1,
             GuideStringLines.splitLines(entry.subtitle())
                 .size());
+        int lineHeight = GuideText.lineHeight(SUBTITLE_STYLE);
         return Math.max(
             ENTRY_HEIGHT,
-            ENTRY_VERTICAL_PADDING_TOP + Math.max(ICON_SIZE, 9 + TITLE_SUBTITLE_GAP + 9 * lineCount)
+            ENTRY_VERTICAL_PADDING_TOP + Math.max(ICON_SIZE, lineHeight + TITLE_SUBTITLE_GAP + lineHeight * lineCount)
                 + ENTRY_VERTICAL_PADDING_BOTTOM);
     }
 
@@ -1092,14 +1113,13 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         return lines;
     }
 
-    private List<String> wrapLines(RenderContext context, @Nullable String text, int maxWidth,
-        ResolvedTextStyle style) {
+    private List<String> wrapLines(@Nullable String text, int maxWidth, ResolvedTextStyle style) {
         if (text == null || text.isEmpty()) {
             return List.of();
         }
         ArrayList<String> lines = new ArrayList<>();
         for (String rawLine : GuideStringLines.splitLines(text)) {
-            appendWrappedLine(context, rawLine, maxWidth, style, lines);
+            appendWrappedLine(rawLine, maxWidth, style, lines);
         }
         return lines;
     }
@@ -1137,13 +1157,12 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         }
     }
 
-    private void appendWrappedLine(RenderContext context, String rawLine, int maxWidth, ResolvedTextStyle style,
-        List<String> output) {
+    private void appendWrappedLine(String rawLine, int maxWidth, ResolvedTextStyle style, List<String> output) {
         String line = rawLine != null ? rawLine.trim() : "";
         if (line.isEmpty()) {
             return;
         }
-        if (context.getStringWidth(line, style) <= maxWidth) {
+        if (GuideText.measureWidth(line, style) <= maxWidth) {
             output.add(line);
             return;
         }
@@ -1154,7 +1173,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 continue;
             }
             String candidate = current.isEmpty() ? word : current + " " + word;
-            if (context.getStringWidth(candidate, style) <= maxWidth) {
+            if (GuideText.measureWidth(candidate, style) <= maxWidth) {
                 current.setLength(0);
                 current.append(candidate);
                 continue;
@@ -1163,7 +1182,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 output.add(current.toString());
                 current.setLength(0);
             }
-            appendBrokenWord(context, word, maxWidth, style, output);
+            appendBrokenWord(word, maxWidth, style, output);
         }
         if (!current.isEmpty()) {
             output.add(current.toString());
@@ -1188,16 +1207,15 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         }
     }
 
-    private void appendBrokenWord(RenderContext context, String word, int maxWidth, ResolvedTextStyle style,
-        List<String> output) {
-        if (context.getStringWidth(word, style) <= maxWidth) {
+    private void appendBrokenWord(String word, int maxWidth, ResolvedTextStyle style, List<String> output) {
+        if (GuideText.measureWidth(word, style) <= maxWidth) {
             output.add(word);
             return;
         }
         int start = 0;
         while (start < word.length()) {
             int end = start + 1;
-            while (end <= word.length() && context.getStringWidth(word.substring(start, end), style) <= maxWidth) {
+            while (end <= word.length() && GuideText.measureWidth(word.substring(start, end), style) <= maxWidth) {
                 end++;
             }
             int safeEnd = Math.max(start + 1, end - 1);
@@ -1237,37 +1255,67 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         return Math.round(width);
     }
 
-    private void renderIcon(RenderContext context, GuidePageIcon icon, int x, int y) {
+    private void emitIcon(PrimitiveCollector c, GuidePageIcon icon, int x, int y) {
         if (icon.isItemIcon() && icon.resolveCurrentItemStack() != null) {
-            context.renderItemIcon(icon.resolveCurrentItemStack(), x, y);
+            c.emit(new GuideRenderPrimitive.RenderItem(icon.resolveCurrentItemStack(), x, y));
             return;
         }
-        if (icon.resolveCurrentTexture() != null) {
-            context.fillTexturedRect(new LytRect(x, y, ICON_SIZE, ICON_SIZE), icon.resolveCurrentTexture());
+        GuidePageTexture texture = icon.resolveCurrentTexture();
+        if (texture == null || texture.isMissing()) {
+            return;
+        }
+        ResourceLocation resolvedTexture = texture.getTexture();
+        int texId = resolvedTexture != null ? getGlTextureId(resolvedTexture) : -1;
+        if (texId >= 0) {
+            c.emit(new GuideRenderPrimitive.BlitTexture(texId, x, y, ICON_SIZE, ICON_SIZE, 0f, 0f, 1f, 1f));
         }
     }
 
-    private void renderBorders(RenderContext context) {
+    private void emitBorders(PrimitiveCollector c) {
         if (getBorderTop().width() <= 0 && getBorderLeft().width() <= 0
             && getBorderRight().width() <= 0
             && getBorderBottom().width() <= 0) {
             return;
         }
-        BORDER_RENDERER.render(context, bounds, getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom());
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                getBorderTop().width(),
+                getBorderLeft().width(),
+                getBorderBottom().width(),
+                getBorderRight().width(),
+                resolveBorderArgb()));
     }
 
-    private String clipToWidth(RenderContext context, String text, int maxWidth, ResolvedTextStyle style) {
-        if (text == null || text.isEmpty() || context.getStringWidth(text, style) <= maxWidth) {
+    private int resolveBorderArgb() {
+        // DrawBorder is single-color; use the first side that declares one.
+        // This block's callers set top+bottom with the same color
+        // (SymbolicColor.TABLE_BORDER), so the single color is exact here.
+        BorderStyle[] sides = { getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom() };
+        for (BorderStyle side : sides) {
+            var color = side.color();
+            if (color != null) {
+                return color.resolve(LightDarkMode.current());
+            }
+        }
+        return 0xFF000000;
+    }
+
+    private String clipToWidth(String text, int maxWidth, ResolvedTextStyle style) {
+        if (text == null || text.isEmpty() || GuideText.measureWidth(text, style) <= maxWidth) {
             return text == null ? "" : text;
         }
 
-        int ellipsisWidth = context.getStringWidth("...", style);
+        int ellipsisWidth = GuideText.measureWidth(ELLIPSIS, style);
         if (ellipsisWidth >= maxWidth) {
             return ELLIPSIS;
         }
 
         int end = text.length();
-        while (end > 0 && context.getStringWidth(text.substring(0, end), style) + ellipsisWidth > maxWidth) {
+        while (end > 0 && GuideText.measureWidth(text.substring(0, end), style) + ellipsisWidth > maxWidth) {
             end--;
         }
         return end <= 0 ? ELLIPSIS : text.substring(0, end) + ELLIPSIS;
@@ -1278,6 +1326,37 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             return false;
         }
         return rendered != null && rendered.endsWith("...") && !rendered.equals(original);
+    }
+
+    /**
+     * Emits {@code text} through the unified {@link GuideText} glyph pipeline
+     * at document position {@code (x, lineTop)} — {@code lineTop} is the line
+     * top (baseline = lineTop + ascent × fontScale), not the MC baseline.
+     * <p>
+     * GuideText does not paint decorations; the underline of
+     * {@link #HOVER_LINK_STYLE} is therefore drawn manually as a 1px
+     * {@link GuideRenderPrimitive.FillRect} 1px below the baseline, spanning
+     * the measured text width (same width the glyph run occupies).
+     */
+    private static void emitText(PrimitiveCollector c, String text, int x, int lineTop, ResolvedTextStyle style) {
+        GuideText.emitText(c, text, x, lineTop, style);
+        if (style != null && style.underlined() && text != null && !text.isEmpty()) {
+            int width = GuideText.measureWidth(text, style);
+            int underlineY = Math.round(GuideText.baselineOf(lineTop, style)) + 1;
+            c.emit(new GuideRenderPrimitive.FillRect(x, underlineY, width, 1, GuideText.resolveColor(style)));
+        }
+    }
+
+    private static int getGlTextureId(ResourceLocation res) {
+        try {
+            ITextureObject tex = Minecraft.getMinecraft()
+                .getTextureManager()
+                .getTexture(res);
+            return tex != null ? tex.getGlTextureId() : -1;
+        } catch (Throwable t) {
+            // Headless (unit tests) or texture unavailable: skip drawing.
+            return -1;
+        }
     }
 
     @Desugar
