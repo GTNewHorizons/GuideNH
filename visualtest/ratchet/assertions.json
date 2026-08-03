@@ -180,14 +180,22 @@
     "msg": "NEI recipe boxes count >= 6 (A10 ratchet)"
    }
   ],
-  "visualtest_latex_inline.md": [
-   {
-    "exists": {
-     "cls": "LytLatexBlock"
+   "visualtest_latex_inline.md": [
+    {
+     "exists": {
+      "cls": "LytLatexBlock"
+     },
+     "msg": "inline LaTeX blocks exist (A7/A8a ratchet)"
     },
-    "msg": "inline LaTeX blocks exist (A7/A8a ratchet)"
-   }
-  ],
+    {
+     "attr": {
+      "cls": "LytLatexBlock",
+      "field": "h",
+      "ge": 12
+     },
+     "msg": "inline formula heights stay >= 12px (P1b2 true-inset fix: measured min 12px, was 6-13px pre-fix)"
+    }
+   ],
   "visualtest_text_inline-game-tags.md": [
    {
     "count": {
@@ -257,14 +265,22 @@
      "msg": "decorations fixture locked into corpus (T1 underline/wavy/dots/strike ratchet)"
     }
    ],
-   "visualtest_latex_inline-xheight.md": [
-    {
-     "exists": {
-      "cls": "LytLatexBlock"
+    "visualtest_latex_inline-xheight.md": [
+     {
+      "exists": {
+       "cls": "LytLatexBlock"
+      },
+      "msg": "inline LaTeX blocks exist on x-height calibration page (T4 x_height ratchet)"
      },
-     "msg": "inline LaTeX blocks exist on x-height calibration page (T4 x_height ratchet)"
-    }
-   ],
+      {
+       "attr": {
+        "cls": "LytLatexBlock",
+        "field": "h",
+        "ge": 8
+       },
+       "msg": "x-height calibration page formula heights stay >= 8px (P1b2 true-inset fix: measured min 8px post-fix, was 6-12px pre-fix)"
+      }
+     ],
    "visualtest_layout_baseline-align.md": [
     {
      "exists": {

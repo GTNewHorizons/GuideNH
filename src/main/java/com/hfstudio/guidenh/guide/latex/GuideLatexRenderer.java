@@ -32,6 +32,16 @@ public class GuideLatexRenderer {
     /** Maps sourceScale float (rounded to string) -> calibrated reference height in pixels. */
     private final ConcurrentHashMap<String, Integer> refHeightCache = new ConcurrentHashMap<>();
 
+    /**
+     * Maps (sourceScale:style:formula) size-key -> the TeXIcon baseline ratio
+     * from {@link TeXIcon#getBaseLine()}: the distance from the icon's top edge
+     * to its math baseline, expressed as a fraction of the icon's total height
+     * (insets included), in {@code [0,1]}. Kept in exact float form so the
+     * inline anchor computation never round-trips through an intermediate
+     * ceil of the icon depth (see {@code LytLatexBlock}).
+     */
+    private final ConcurrentHashMap<String, Float> baselineRatioCache = new ConcurrentHashMap<>();
+
     protected GuideLatexRenderer() {}
 
     /**
@@ -39,8 +49,20 @@ public class GuideLatexRenderer {
      * {@code sourceScale}. Subsequent calls with the same scale are instant (cached).
      * Safe to call from any thread; does not touch OpenGL.
      *
+     * <p>The returned height is the full TeXIcon height — the "x" glyph content plus the
+     * true 2px/side icon insets. It does NOT include the phantom {@code (int)(0.18f*size)}
+     * per-side padding the single-param {@link TeXIcon#setInsets(Insets)} adds, because this
+     * method (and every other icon construction below) calls the two-arg
+     * {@code setInsets(insets, true)} explicitly: the single-param variant delegates to
+     * {@code setInsets(insets, false)}, silently inflating every side by
+     * {@code (int)(0.18f*size)} — 18px extra per side at the default size 100, turning the
+     * intended 2px padding into a 20px one and distorting every height ratio derived from it.
+     * Consumers that need the bare glyph height subtract {@code LATEX_INSET_PX = 4} (the two
+     * real 2px sides); consumers of the display path re-add the legacy padding difference to
+     * preserve the accepted baseline sizes (see {@code LytLatexDisplayBlock}).
+     *
      * @param sourceScale jlatexmath render size parameter
-     * @return pixel height of a lower-case "x" glyph at the given scale
+     * @return pixel height of a lower-case "x" glyph (content + true 2px/side insets) at the given scale
      */
     public int calibrateRefHeight(float sourceScale) {
         String key = GuideLatexTextureCache.buildScaleKey(sourceScale);
@@ -51,7 +73,9 @@ public class GuideLatexRenderer {
                     .setSize(sourceScale)
                     .setFGColor(new Color(DEFAULT_FILL_COLOR_ARGB, true))
                     .build();
-                icon.setInsets(new Insets(2, 2, 2, 2));
+                // Two-arg form (trueValues): keep the intended 2px/side insets. The
+                // single-arg setInsets(Insets) would add (int)(0.18f*size) per side.
+                icon.setInsets(new Insets(2, 2, 2, 2), true);
                 int h = icon.getIconHeight();
                 return Math.max(1, h);
             } catch (ParseException e) {
@@ -116,10 +140,13 @@ public class GuideLatexRenderer {
                 .setSize(sourceScale)
                 .setFGColor(new Color(fillColorArgb, true))
                 .build();
-            icon.setInsets(new Insets(2, 2, 2, 2));
+            // Two-arg form (trueValues): real 2px/side insets — the single-arg
+            // setInsets(Insets) silently adds (int)(0.18f*size) per side instead.
+            icon.setInsets(new Insets(2, 2, 2, 2), true);
             int w = icon.getIconWidth();
             int h = icon.getIconHeight();
             int d = getIconDepthPx(icon);
+            baselineRatioCache.put(sizeKey, icon.getBaseLine());
             GuideLatexTextureCache.INSTANCE.putSize(sizeKey, w, h, d);
             return new int[] { w, h, d };
         } catch (ParseException e) {
@@ -132,6 +159,83 @@ public class GuideLatexRenderer {
             return null;
         }
     }
+
+    /**
+     * Returns the TeXIcon math-baseline ratio for {@code formula} rendered at {@code sourceScale}
+     * with the given jlatexmath {@code style}, or {@code 0f} if the formula is invalid/failed.
+     *
+     * <p>
+     * The ratio is exactly {@link TeXIcon#getBaseLine()}: the distance from the icon's top edge
+     * to its math baseline divided by the icon's total height (the true 2px/side insets
+     * included — the icons are built with the two-arg {@code setInsets(insets, true)}, NOT the
+     * single-arg variant, which silently adds {@code (int)(0.18f*size)} per side), a
+     * value in {@code [0,1]}. It is deliberately kept in this exact float form — NOT rounded via
+     * {@code ceil(getTrueIconDepth())} — so consumers can compute the display depth as
+     * {@code displayH * (1 - ratio)} with a single rounding at the end, instead of rounding the
+     * source depth twice.
+     *
+     * <p>
+     * Safe to call from any thread; does NOT upload any OpenGL texture.
+     *
+     * @param formula       LaTeX source string
+     * @param fillColorArgb ARGB colour (only used for cache key uniformity; does not affect size)
+     * @param sourceScale   jlatexmath render size parameter
+     * @param style         jlatexmath style constant ({@link TeXConstants#STYLE_DISPLAY} or
+     *                      {@link TeXConstants#STYLE_TEXT})
+     * @return baseline ratio in [0,1], or 0f on parse failure
+     */
+    public float measureBaselineRatio(String formula, int fillColorArgb, float sourceScale, int style) {
+        if (formula == null || formula.isEmpty()) {
+            return 0f;
+        }
+        if (GuideLatexTextureCache.INSTANCE.hasFailed(formula)) {
+            return 0f;
+        }
+
+        String sizeKey = GuideLatexTextureCache.buildSizeCacheKey(formula, sourceScale, style);
+        Float cached = baselineRatioCache.get(sizeKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        try {
+            TeXFormula texFormula = new TeXFormula(formula);
+            TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(style)
+                .setSize(sourceScale)
+                .setFGColor(new Color(fillColorArgb, true))
+                .build();
+            // Two-arg form (trueValues): real 2px/side insets — the single-arg
+            // setInsets(Insets) silently adds (int)(0.18f*size) per side instead.
+            icon.setInsets(new Insets(2, 2, 2, 2), true);
+            float ratio = icon.getBaseLine();
+            baselineRatioCache.put(sizeKey, ratio);
+            trimBaselineRatioCacheIfNeeded();
+            return ratio;
+        } catch (ParseException e) {
+            GuideDebugLog.warnAlways("[GuideNH/LaTeX] Parse error measuring baseline '{}': {}", formula, e.getMessage());
+            return 0f;
+        } catch (Exception e) {
+            GuideDebugLog.warnAlways("[GuideNH/LaTeX] Unexpected error measuring baseline '{}': {}", formula, e.getMessage(), e);
+            return 0f;
+        }
+    }
+
+    private void trimBaselineRatioCacheIfNeeded() {
+        if (baselineRatioCache.size() <= MAX_BASELINE_RATIO_ENTRIES) {
+            return;
+        }
+        int removeCount = baselineRatioCache.size() - MAX_BASELINE_RATIO_ENTRIES;
+        for (String key : baselineRatioCache.keySet()) {
+            if (removeCount <= 0) {
+                return;
+            }
+            if (baselineRatioCache.remove(key) != null) {
+                removeCount--;
+            }
+        }
+    }
+
+    private static final int MAX_BASELINE_RATIO_ENTRIES = 512;
 
     /**
      * Returns (and caches) the OpenGL texture for {@code formula}.
@@ -164,7 +268,9 @@ public class GuideLatexRenderer {
                 .setSize(sourceScale)
                 .setFGColor(new Color(fillColorArgb, true))
                 .build();
-            icon.setInsets(new Insets(2, 2, 2, 2));
+            // Two-arg form (trueValues): real 2px/side insets — the single-arg
+            // setInsets(Insets) silently adds (int)(0.18f*size) per side instead.
+            icon.setInsets(new Insets(2, 2, 2, 2), true);
             icon.setForeground(new Color(fillColorArgb, true));
 
             BufferedImage image = renderToImage(icon);
@@ -176,6 +282,7 @@ public class GuideLatexRenderer {
 
             String sizeKey = GuideLatexTextureCache.buildSizeCacheKey(formula, sourceScale, style);
             int d = getIconDepthPx(icon);
+            baselineRatioCache.put(sizeKey, icon.getBaseLine());
             GuideLatexTextureCache.INSTANCE.putSize(sizeKey, w, h, d);
 
             return new int[] { textureId, w, h };

@@ -73,27 +73,46 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
     private boolean sourceMetricsResolved;
     private int sourceWidthPx;
     private int sourceHeightPx;
-    private int sourceDepthPx;
     private int sourceRefHeightPx;
+    /**
+     * Exact jlatexmath math-baseline ratio from
+     * {@code GuideLatexRenderer.measureBaselineRatio} (see
+     * {@link TeXIcon#getBaseLine()}: baseline distance from the icon top as a
+     * fraction of the icon's total height, insets included, in [0,1]). Used
+     * instead of a source-pixel depth so the display depth is rounded exactly
+     * once, at display resolution.
+     */
+    private float sourceBaseLineRatio;
 
     /**
      * Total icon insets (2px per side) applied by
-     * {@code GuideLatexRenderer.setInsets(2,2,2,2)} to every measured icon and
-     * the calibration "x". Removed from the calibration height before the
-     * scaling ratio so the fixed padding does not distort the scale once the
-     * target is the (smaller) body x-height; the display box then scales the
-     * whole icon (content + insets) uniformly, so the padding is present but
-     * scaled, never inflating the glyph itself.
+     * {@code GuideLatexRenderer.setInsets(new Insets(2,2,2,2), true)} to every measured icon
+     * and the calibration "x". The two-arg (trueValues) form is essential here: the single-arg
+     * {@code setInsets(Insets)} delegates to {@code setInsets(insets, false)} and silently adds
+     * {@code (int)(0.18f*size)} to every side — 18px extra per side at the default size 100, i.e.
+     * the "2px" padding was actually 20px/side (40px total per dimension). That phantom padding
+     * inflated {@code sourceRefHeightPx} so badly that this 4px subtraction could not recover the
+     * true x-content height, and inline formulas rendered ≈0.67× the body x-height. With the
+     * real 2px/side insets, {@code sourceRefHeightPx - LATEX_INSET_PX} is again the calibration
+     * "x" glyph content height; the fixed padding is removed from the calibration height before
+     * the scaling ratio so it does not distort the scale once the target is the (smaller) body
+     * x-height; the display box then scales the whole icon (content + insets) uniformly, so the
+     * padding is present but scaled, never inflating the glyph itself.
      */
     private static final int LATEX_INSET_PX = 4;
 
     /**
-     * Bottom inset (px) of the jlatexmath icon (the renderer's symmetric
-     * {@code setInsets(2,2,2,2)}). It is part of the measured icon height but
-     * NOT part of the true depth, so the formula's math baseline sits this
-     * many source px above the icon's bottom edge.
+     * Perceptual size compensation applied on top of the exact x-height
+     * calibration target. TeX math is designed with tight lower-case metrics
+     * (Computer Modern's x-height is small relative to its cap height, and
+     * formulas mostly consist of lower-case letters), so an inline formula
+     * whose body letters exactly equal the surrounding CJK text's x-height
+     * still reads as noticeably smaller than the body text. This factor
+     * restores visual weight parity: the calibration "x" targets
+     * {@code x-height × 1.2} instead of the raw x-height (user report:
+     * "公式字体过小").
      */
-    private static final int LATEX_BOTTOM_INSET_PX = LATEX_INSET_PX / 2;
+    private static final float INLINE_PERCEPTUAL_FACTOR = 1.2f;
 
     public LytLatexBlock(String formula, int fillColorArgb, float sourceScale, float userScale,
         @Nullable GuideTooltip tooltip, LatexVerticalAlign valign, int offsetX, int offsetY) {
@@ -152,7 +171,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         // has been removed (Rust is sole geometry authority), so computeLayout()
         // is never called. The Rust inline post-pass uses this value as param
         // (align=1) to anchor the formula's math baseline at the text baseline.
-        int depthDisplay = scaleSourceDepthRound(sourceHeightPx, sourceDepthPx, formulaDisplayH);
+        int depthDisplay = scaleSourceDepthFromBaseline(sourceBaseLineRatio, formulaDisplayH);
         int alignOffset = switch (valign) {
             case CENTER -> (lineHeight - formulaDisplayH) / 2;
             case BOTTOM -> lineHeight - formulaDisplayH;
@@ -192,8 +211,14 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
                 //
                 // alignOffset = lineHeight - displayH + depthDisplay
                 //
-                // For depth-zero formulas (size[2]==0) this is identical to BOTTOM.
-                int depthDisplay = scaleSourceDepthRound(sourceHeightPx, sourceDepthPx, formulaDisplayH);
+                // The depth is derived from the exact TeXIcon#getBaseLine()
+                // ratio (baseline fraction of the icon height), so it is
+                // rounded exactly once at display resolution — the old path
+                // ceil'd the source depth then rounded again after scaling,
+                // introducing ≤1-2px anchor drift.
+                //
+                // For depth-zero formulas this is identical to BOTTOM.
+                int depthDisplay = scaleSourceDepthFromBaseline(sourceBaseLineRatio, formulaDisplayH);
                 yield lineHeight - formulaDisplayH + depthDisplay;
             }
             default -> 0; // TOP
@@ -224,13 +249,13 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         }
         sourceWidthPx = size[0];
         sourceHeightPx = size[1];
-        sourceDepthPx = size[2];
         sourceRefHeightPx = GuideLatexRenderer.INSTANCE.calibrateRefHeight(sourceScale);
+        sourceBaseLineRatio = GuideLatexRenderer.INSTANCE.measureBaselineRatio(formula, fillColorArgb, sourceScale, style);
         return sourceWidthPx > 0 && sourceHeightPx > 0;
     }
 
     /**
-     * Body x-height the inline formula calibrates against: a source "x" must
+     * Body size the inline formula calibrates against: a source "x" must
      * display at the surrounding text's x-height, not at the full line height
      * (the previous lineHeight target made inline formulas ≈ lineHeight /
      * x-height ≈ 1.43× larger than body text) and not at the font ascent
@@ -240,20 +265,32 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
      * <p>The inline flow carries no style context (the line height is queried
      * with a {@code null} style, i.e. font scale 1), so the target is
      * {@link GuideText#xHeight()} at the base font scale.
+     *
+     * <p>The exact x-height target is then multiplied by
+     * {@link #INLINE_PERCEPTUAL_FACTOR} (×1.2): matching the raw x-height was
+     * still perceptually too small next to CJK body text, because TeX math
+     * glyphs follow their own design conventions (a lower x-height relative to
+     * the em than most body fonts), so formula body letters need a small
+     * upward nudge to read as the same visual weight as the surrounding text
+     * (user report: "公式字体过小").
      */
     private float inlineCalibrationTarget() {
-        return GuideText.xHeight();
+        return GuideText.xHeight() * INLINE_PERCEPTUAL_FACTOR;
     }
 
     /**
      * Display pixels per source-content pixel for this block: the calibration
-     * "x" content height (sourceRefHeightPx minus the 2px icon insets applied
-     * by {@code GuideLatexRenderer#setInsets(2,2,2,2)}) maps to the body
-     * x-height × userScale. Keeping the insets out of the ratio avoids the
-     * fixed +4px padding distorting the scale once the target is the smaller
-     * x-height — with the old full-height ratio a simple inline formula's box
-     * matched the line height instead of the x-height (≈ lineHeight / x-height
-     * ≈ 1.43× too large).
+     * "x" content height (sourceRefHeightPx minus the true 2px/side icon
+     * insets applied by {@code GuideLatexRenderer#setInsets(new Insets(2,2,2,2), true)})
+     * maps to the body x-height × {@link #INLINE_PERCEPTUAL_FACTOR} × userScale.
+     * Keeping the insets out of the ratio avoids the fixed +4px padding
+     * distorting the scale once the target is the smaller x-height — with the
+     * old full-height ratio a simple inline formula's box matched the line
+     * height instead of the x-height (≈ lineHeight / x-height ≈ 1.43× too
+     * large). Note the two-arg inset call is mandatory: the single-arg
+     * {@code setInsets(Insets)} adds a phantom {@code (int)(0.18f*size)} per
+     * side, which made this subtraction undershoot the real content by 36px
+     * and shrank inline formulas to ≈0.67× the body x-height.
      */
     private float inlineScaleFactor() {
         float contentRefHeight = Math.max(1f, sourceRefHeightPx - LATEX_INSET_PX);
@@ -262,11 +299,12 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
 
     /**
      * Scales an icon metric (width/height, insets included) to display pixels.
-     * The whole source icon (glyph content + the symmetric 2px/side insets) is
-     * scaled in a single ceil: the texture is blitted with full UV coverage
-     * into a {@code displayW}×{@code displayH} box, so the display box is
-     * exactly the uniform scale of the source icon. One ceil over the whole
-     * icon replaces the old double rounding (content ceil + separately rounded
+     * The whole source icon (glyph content + the symmetric 2px/side insets of
+     * {@code setInsets(new Insets(2,2,2,2), true)}) is scaled in a single
+     * ceil: the texture is blitted with full UV coverage into a
+     * {@code displayW}×{@code displayH} box, so the display box is exactly
+     * the uniform scale of the source icon. One ceil over the whole icon
+     * replaces the old double rounding (content ceil + separately rounded
      * scaled inset) and can never clip the glyph.
      */
     private int scaleSourceMetricCeil(int sourceMetric, float scaleFactor) {
@@ -274,17 +312,23 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
     }
 
     /**
-     * Display distance from the formula's math baseline to the icon bottom:
-     * the true content depth ({@code TeXIcon#getTrueIconDepth()}, which
-     * excludes the icon insets) plus the 2px bottom inset, scaled to display
-     * pixels by the actual texture scale ({@code formulaDisplayH} /
-     * {@code sourceHeightPx}). The texture is the full icon (insets included)
-     * drawn uniformly into the displayH-tall box, so its math baseline sits
-     * this far above the box bottom — the old depth-only term (depth × scale)
-     * ignored the bottom inset and drifted the anchor up by ≈2 × scale px.
+     * Display distance from the formula's math baseline to the icon bottom,
+     * derived directly from the exact jlatexmath baseline ratio instead of a
+     * source-pixel depth. {@link TeXIcon#getBaseLine()} returns the distance
+     * from the icon's top edge to its math baseline as a fraction of the
+     * icon's total height (the true 2px/side insets of the two-arg
+     * {@code setInsets(insets, true)} included), so the math baseline sits
+     * {@code formulaDisplayH × (1 - ratio)} above the bottom of the uniformly
+     * scaled display box. This is rounded exactly once, at display resolution
+     * — the old path computed
+     * {@code round(displayH × (ceil(getTrueIconDepth()) + 2) / sourceHeightPx)},
+     * which ceil'd the source depth first and then rounded the scaled result,
+     * a double rounding that drifted the anchor by ≤1-2px. It also replaces
+     * the old depth-plus-bottom-inset bookkeeping: the insets are already part
+     * of the icon height the ratio is measured against.
      */
-    private int scaleSourceDepthRound(int sourceHeightPx, int sourceDepthPx, int formulaDisplayH) {
-        return (int) Math.round(formulaDisplayH * (sourceDepthPx + LATEX_BOTTOM_INSET_PX) / (float) sourceHeightPx);
+    private int scaleSourceDepthFromBaseline(float baseLineRatio, int formulaDisplayH) {
+        return Math.max(0, (int) Math.round(formulaDisplayH * (1f - baseLineRatio)));
     }
 
     @Override
