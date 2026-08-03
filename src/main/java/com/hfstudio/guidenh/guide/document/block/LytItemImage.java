@@ -32,6 +32,14 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
 
     public static final int BASE_SIZE = 16;
 
+    /**
+     * Optical padding (layout px, applied after scale) reserved on each side of
+     * an inline item icon's ink bounds so the visible glyph never touches
+     * adjacent text. Only used on the no-label inline path; the label path and
+     * the block (non-inline) path keep the legacy 16px cell.
+     */
+    private static final int INLINE_OPTICAL_PAD = 2;
+
     /** Theme token: gap between the item icon and its label text. */
     private static final TokenKey<DimensionValue> LABEL_GAP = TokenKey
         .define("--lyt-item-image-label-gap", TokenType.DIMENSION, DimensionValue.px(2));
@@ -174,6 +182,17 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
             return new int[]{0, 0};
         }
         if (!hasLabel) {
+            // Optical tight advance for inline icons: shrink the cell to the
+            // ink width + PAD on each side instead of the full 16px square, so
+            // the gap to the following text is consistent across items. Falls
+            // back to the legacy 16px cell when ink metrics are unavailable.
+            if (inline) {
+                IconMetrics m = stack != null ? IconMetrics.forStack(stack) : null;
+                if (m != null) {
+                    int tightW = Math.round(m.width * scale) + 2 * INLINE_OPTICAL_PAD;
+                    return new int[]{tightW, iconSize};
+                }
+            }
             return new int[]{iconSize, iconSize};
         }
 
@@ -293,6 +312,17 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
 
         if (showIcon) {
             int renderX = iconX;
+            if (inline && !hasLabel) {
+                // Optical tight placement on the no-label inline path: shift the
+                // icon so its ink left edge sits INLINE_OPTICAL_PAD px from the
+                // cell's left edge, mirroring the tight advance computed in
+                // computeContentSize. Null metrics (atlas not ready / missingno)
+                // keep the legacy offset of 0.
+                IconMetrics m = stack != null ? IconMetrics.forStack(stack) : null;
+                if (m != null) {
+                    renderX = iconX - Math.round(m.inkLeft * scale) + INLINE_OPTICAL_PAD;
+                }
+            }
             int renderY = baseY + getInlineVisualYOffset();
             if (scale == 1f) {
                 c.emit(new GuideRenderPrimitive.RenderItem(stack, renderX, renderY));
