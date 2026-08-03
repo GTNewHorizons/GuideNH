@@ -420,47 +420,43 @@ public class GuideRenderEngine {
      * Rust span geometry. Both paint as batched shape quads (no per-pixel
      * Gui.drawRect), mirroring {@link #drawFillRect}'s
      * beginShapeQuads/color/tessColor/addVertex pattern.
-     * <ul>
-     * <li>kind=4: one 1×2 quad per pixel step along the band, vertically
-     * offset by the same ±2px, 2px-thick 8-phase sine (PI/4) the legacy
-     * {@link #drawTextDecorations} wavy used.</li>
-     * <li>kind=5: 3×3 dots on a fixed 4px cadence, mirroring the legacy
-     * dotted math (start at band + step/2, first dot at y−1).</li>
-     * </ul>
+     * <p>
+     * The brush geometry is rasterized once by {@link DecorationRasterizer}
+     * (the single shared source of wave/dot shape — no per-call-site hardcoded
+     * copies) into doc-px fragments carrying coverage alpha: the wavy line is a
+     * sub-pixel-sampled sine and the dots are soft-edged circles. Each fragment
+     * is emitted as a quad with per-vertex alpha; the rasterizer merges
+     * adjacent same-alpha columns so a saturated run stays one quad instead of
+     * one quad per doc px.
+     * <p>
      * Colors are run through {@link #brightenDecorationColor} exactly like the
      * legacy decorations path so they read against the dark page background.
      */
     private void drawDecorationLine(GuideRenderPrimitive.DrawDecorationLine d) {
+        List<DecorationRasterizer.Fragment> fragments =
+            DecorationRasterizer.rasterize(d.x(), d.y(), d.w(), d.kind());
+        if (fragments.isEmpty()) {
+            return;
+        }
         int argb = brightenDecorationColor(d.argb());
         beginShapeQuads();
-        color(argb);
         Tessellator tess = Tessellator.instance;
-        tessColor(tess, argb);
-        if (d.kind() == 4) {
-            for (int i = 0; i < d.w(); i++) {
-                float dy = (float) Math.round(Math.sin(i * Math.PI / 4.0) * 2.0);
-                float x0 = sx(d.x() + i);
-                float x1 = sx(d.x() + i + 1);
-                float y0 = sy(d.y() + dy);
-                float y1 = sy(d.y() + dy + 2);
-                tess.addVertex(x0, y1, 0);
-                tess.addVertex(x1, y1, 0);
-                tess.addVertex(x1, y0, 0);
-                tess.addVertex(x0, y0, 0);
-            }
-        } else if (d.kind() == 5) {
-            float dotSize = 3f;
-            float step = 4f;
-            for (float dotX = d.x() + step / 2; dotX + dotSize <= d.x() + d.w(); dotX += step) {
-                float x0 = sx(dotX);
-                float x1 = sx(dotX + dotSize);
-                float y0 = sy(d.y() - 1);
-                float y1 = sy(d.y() - 1 + dotSize);
-                tess.addVertex(x0, y1, 0);
-                tess.addVertex(x1, y1, 0);
-                tess.addVertex(x1, y0, 0);
-                tess.addVertex(x0, y0, 0);
-            }
+        for (DecorationRasterizer.Fragment f : fragments) {
+            // P4R2: composite the coverage with the tint's own alpha byte —
+            // final = round(coverage × tintAlpha / 255). Replacing the alpha
+            // byte (as before) discarded a semi-transparent text color's
+            // opacity; an opaque tint (alpha 255) yields exactly the coverage.
+            int fragArgb = decorationArgb(f.alpha(), argb);
+            color(fragArgb);
+            tessColor(tess, fragArgb);
+            float x0 = sx(f.x());
+            float x1 = sx(f.x() + f.w());
+            float y0 = sy(f.y());
+            float y1 = sy(f.y() + f.h());
+            tess.addVertex(x0, y1, 0);
+            tess.addVertex(x1, y1, 0);
+            tess.addVertex(x1, y0, 0);
+            tess.addVertex(x0, y0, 0);
         }
     }
 
@@ -838,24 +834,36 @@ public class GuideRenderEngine {
         if (hasUnderline) {
             Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
         }
-        if (hasWavyUnderline) {
-            // M3: the old wavy was 1x1px with ±1 amplitude — swallowed by the
-            // dark page background. Use a ±2px, 2px-thick 8-phase sine, tinted
-            // lighter than the body gray.
-            int waveColor = brightenDecorationColor(color);
-            for (int i = 0; i < decoratedWidth; i++) {
-                int dy = (int) Math.round(Math.sin(i * Math.PI / 4.0) * 2.0);
-                Gui.drawRect(x + i, decorationY + dy, x + i + 1, decorationY + dy + 2, waveColor);
-            }
-        }
-        if (hasDottedUnderline) {
-            // M3: one 2x2 dot per character was too sparse; draw 3x3 dots on a
-            // fixed 4px cadence, tinted lighter than the body gray.
-            int dotColor = brightenDecorationColor(color);
-            int dotSize = 3;
-            int step = 4;
-            for (int dotX = x + step / 2; dotX + dotSize <= x + decoratedWidth; dotX += step) {
-                Gui.drawRect(dotX, decorationY - 1, dotX + dotSize, decorationY + dotSize - 1, dotColor);
+        if (hasWavyUnderline || hasDottedUnderline) {
+            // P4R2: kind 4/5 fragments carry coverage alpha down to ~16/255
+            // (dot corners) and sub-25 (wave zero crossings). If ALPHA_TEST is
+            // left enabled by a caller (tooltip escape chain), GL_GREATER 0.1
+            // would clip those soft-edge pixels. Scope the draw like
+            // beginShape so the coverage gradient always reaches the framebuffer.
+            GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+            GL11.glDisable(GL11.GL_ALPHA_TEST);
+            try {
+                if (hasWavyUnderline) {
+                    // M3: the old wavy was 1x1px with ±1 amplitude — swallowed by the
+                    // dark page background. Use a ±2px, 2px-thick 8-phase sine, tinted
+                    // lighter than the body gray, rasterized by the shared
+                    // DecorationRasterizer with coverage alpha (sub-pixel sampling).
+                    int waveColor = brightenDecorationColor(color);
+                    for (DecorationRasterizer.Fragment f : DecorationRasterizer.rasterize(x, decorationY, decoratedWidth, 4)) {
+                        Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), waveColor));
+                    }
+                }
+                if (hasDottedUnderline) {
+                    // M3: one 2x2 dot per character was too sparse; draw 3px soft-edged
+                    // circular dots on a fixed 4px cadence via the shared
+                    // DecorationRasterizer, tinted lighter than the body gray.
+                    int dotColor = brightenDecorationColor(color);
+                    for (DecorationRasterizer.Fragment f : DecorationRasterizer.rasterize(x, decorationY, decoratedWidth, 5)) {
+                        Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), dotColor));
+                    }
+                }
+            } finally {
+                GL11.glPopAttrib();
             }
         }
     }
@@ -878,6 +886,21 @@ public class GuideRenderEngine {
         g = g + (255 - g) * 3 / 4;
         b = b + (255 - b) * 3 / 4;
         return a | (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Composite a rasterizer coverage alpha with the decoration tint's own
+     * alpha byte: final = round(coverage × tintAlpha / 255), round-half-up.
+     * Pure coverage would discard a semi-transparent text color's opacity (the
+     * tint's alpha byte was replaced, not multiplied); multiplying keeps the
+     * text color's transparency semantics while the coverage still shapes the
+     * brush edge. With an opaque tint (alpha 255) the result equals the
+     * coverage exactly.
+     */
+    private static int decorationArgb(int coverage, int tintArgb) {
+        int tintAlpha = (tintArgb >>> 24) & 0xFF;
+        int alpha = (coverage * tintAlpha + 127) / 255;
+        return (alpha << 24) | (tintArgb & 0xFFFFFF);
     }
 
     @SuppressWarnings("unchecked")

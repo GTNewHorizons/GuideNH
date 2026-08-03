@@ -269,25 +269,38 @@ public class VanillaRenderContext implements RenderContext {
         if (hasUnderline) {
             Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
         }
-        if (hasWavyUnderline) {
-            // M3: the old wavy was 1x1px with ±1 amplitude — swallowed by the
-            // dark page background. Use a ±2px, 2px-thick 8-phase sine, tinted
-            // lighter than the body gray.
-            int waveColor = brightenDecorationColor(color);
-            for (int i = 0; i < decoratedWidth; i++) {
-                int dy = (int) Math.round(Math.sin(i * Math.PI / 4.0) * 2.0);
-                Gui.drawRect(x + i, decorationY + dy, x + i + 1, decorationY + dy + 2, waveColor);
+        // P4R2: wavy/dotted coverage-alpha fragments must render even when the
+        // caller left GL_ALPHA_TEST enabled. The legacy tooltip path
+        // (GuideScreen.drawContentTooltip) disables only DEPTH_TEST before
+        // rendering ContentTooltip content, and restoreExternalRenderState()
+        // re-enables ALPHA_TEST as GL_GREATER 0.1 — under that alpha function
+        // every fragment with α≤25 is clipped: dot corner pixels (α≈16) and the
+        // wave's weakest rows (α<25) disappear, breaking exactly the soft edge
+        // this rasterizer produces. Scope the draw like beginShapeDraw does.
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        try {
+            if (hasWavyUnderline) {
+                // M3: the old wavy was 1x1px with ±1 amplitude — swallowed by the
+                // dark page background. Use a ±2px, 2px-thick 8-phase sine, tinted
+                // lighter than the body gray, rasterized by the shared
+                // DecorationRasterizer with coverage alpha (sub-pixel sampling).
+                int waveColor = brightenDecorationColor(color);
+                for (DecorationRasterizer.Fragment f : DecorationRasterizer.rasterize(x, decorationY, decoratedWidth, 4)) {
+                    Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), waveColor));
+                }
             }
-        }
-        if (hasDottedUnderline) {
-            // M3: one 2x2 dot per character was too sparse; draw 3x3 dots on a
-            // fixed 4px cadence, tinted lighter than the body gray.
-            int dotColor = brightenDecorationColor(color);
-            int dotSize = 3;
-            int step = 4;
-            for (int dotX = x + step / 2; dotX + dotSize <= x + decoratedWidth; dotX += step) {
-                Gui.drawRect(dotX, decorationY - 1, dotX + dotSize, decorationY + dotSize - 1, dotColor);
+            if (hasDottedUnderline) {
+                // M3: one 2x2 dot per character was too sparse; draw 3px soft-edged
+                // circular dots on a fixed 4px cadence via the shared
+                // DecorationRasterizer, tinted lighter than the body gray.
+                int dotColor = brightenDecorationColor(color);
+                for (DecorationRasterizer.Fragment f : DecorationRasterizer.rasterize(x, decorationY, decoratedWidth, 5)) {
+                    Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), dotColor));
+                }
             }
+        } finally {
+            GL11.glPopAttrib();
         }
     }
 
@@ -309,6 +322,21 @@ public class VanillaRenderContext implements RenderContext {
         g = g + (255 - g) * 3 / 4;
         b = b + (255 - b) * 3 / 4;
         return a | (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Composite a rasterizer coverage alpha with the decoration tint's own
+     * alpha byte: final = round(coverage × tintAlpha / 255), round-half-up.
+     * Pure coverage would discard a semi-transparent text color's opacity (the
+     * tint's alpha byte was replaced, not multiplied); multiplying keeps the
+     * text color's transparency semantics while the coverage still shapes the
+     * brush edge. With an opaque tint (alpha 255) the result equals the
+     * coverage exactly.
+     */
+    private static int decorationArgb(int coverage, int tintArgb) {
+        int tintAlpha = (tintArgb >>> 24) & 0xFF;
+        int alpha = (coverage * tintAlpha + 127) / 255;
+        return (alpha << 24) | (tintArgb & 0xFFFFFF);
     }
 
     @Override
