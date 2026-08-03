@@ -23,6 +23,8 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiListContext;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialDataIndex;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -69,6 +71,17 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 public class GuideNhHeadlessRenderDriver {
 
     // ---- config --------------------------------------------------------------
+
+    /**
+     * Max time (ms) to block before the first headless page render for the MediaWiki
+     * special-data index warmup (scheduled asynchronously by MutableGuide) to complete.
+     * Bounded so a stuck warmup worker can never hang the headless render forever;
+     * on timeout we log a warning and continue.
+     */
+    private static final long MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS = 30_000L;
+
+    /** Poll interval (ms) while waiting for the MediaWiki warmup worker. */
+    private static final long MEDIA_WIKI_WARMUP_POLL_MILLIS = 25L;
 
     /** Immutable snapshot of JVM property configuration. */
     public record HeadlessRenderConfig(
@@ -314,6 +327,12 @@ public class GuideNhHeadlessRenderDriver {
             return;
         }
 
+        // Both batch and single-page modes must not render before the async MediaWiki
+        // special-data warmup is ready: Special pages compile against the guide's
+        // MediaWikiListContext, and a not-yet-warmed guide serves an empty fallback
+        // (MediaWikiSpecialDataIndex.empty()), which renders as an empty 96 px page.
+        awaitMediaWikiWarmup();
+
         if (config.allPages() || config.listPath() != null) {
             // ---- batch mode: prepare, then let handleRendering loop -----------
             List<String> ids;
@@ -355,6 +374,70 @@ public class GuideNhHeadlessRenderDriver {
             renderPending = true;
             GuideDebugLog.infoAlways(
                 "[GuideNH] [HeadlessRender] Single-page render deferred to RenderTickEvent");
+        }
+    }
+
+    // ---- MediaWiki warmup gate ------------------------------------------------
+
+    /**
+     * Block until the target guide's MediaWiki special-data index warmup has completed,
+     * or until {@link #MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS} elapses (timeout → warning log
+     * and continue; the affected Special pages may render as empty fallbacks).
+     *
+     * <p>In {@link MutableGuide}, the async warmup is <em>triggered</em> by the first
+     * {@link MutableGuide#getMediaWikiListContext()} call; until it finishes the guide
+     * serves a fallback context whose {@link MediaWikiSpecialDataIndex} is the empty
+     * singleton.  Therefore the first call here both schedules the warmup and inspects
+     * it, and subsequent polls detect completion once the real index replaces the empty
+     * fallback.  When the guide type has no async warmup (or it is already complete)
+     * this returns immediately.
+     */
+    private void awaitMediaWikiWarmup() {
+        ResourceLocation guideId = new ResourceLocation(config.guideId());
+        MutableGuide guide = GuideRegistry.getById(guideId);
+        if (guide == null) {
+            return;
+        }
+        MediaWikiListContext context = guide.getMediaWikiListContext();
+        if (context == null || context.specialDataIndex() != MediaWikiSpecialDataIndex.empty()) {
+            return; // no async warmup pending, or already complete
+        }
+        GuideDebugLog.infoAlways(
+            "[GuideNH] [HeadlessRender] Waiting for MediaWiki special-data warmup of guide {} (up to {} ms)",
+            guideId, MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS);
+
+        long deadlineNanos = System.nanoTime() + MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS * 1_000_000L;
+        boolean interrupted = false;
+        while (System.nanoTime() < deadlineNanos) {
+            try {
+                Thread.sleep(MEDIA_WIKI_WARMUP_POLL_MILLIS);
+            } catch (InterruptedException e) {
+                interrupted = true;
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [HeadlessRender] Interrupted while waiting for MediaWiki special-data warmup: {}",
+                    e.getMessage());
+                break;
+            }
+            context = guide.getMediaWikiListContext();
+            if (context != null && context.specialDataIndex() != MediaWikiSpecialDataIndex.empty()) {
+                long waitedMillis = (MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS * 1_000_000L
+                    - (deadlineNanos - System.nanoTime())) / 1_000_000L;
+                GuideDebugLog.infoAlways(
+                    "[GuideNH] [HeadlessRender] MediaWiki special-data warmup complete for guide {} "
+                        + "(waited {} ms of {} ms budget)",
+                    guideId, waitedMillis, MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS);
+                break;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+        if (context == null || context.specialDataIndex() == MediaWikiSpecialDataIndex.empty()) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [HeadlessRender] MediaWiki special-data warmup for guide {} not complete within {} ms; "
+                    + "proceeding — Special pages may render empty fallbacks",
+                guideId, MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS);
         }
     }
 
