@@ -32,8 +32,11 @@ import com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutInput;
+import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 /**
  * Serializes a Lyt document tree into a FlatBuffer LayoutInput byte array.
@@ -242,6 +245,64 @@ public class LayoutTreeSerializer {
             return new LayoutNodeSerializer.InlineRef(flatIndex, 2, img.getInlineVerticalOffset());
         }
         return new LayoutNodeSerializer.InlineRef(flatIndex, 0, 0f);
+    }
+
+    /**
+     * F-N2: declared px size for a {@link LytParagraph} lowered into inline flow
+     * (script error-fallback paragraphs). Width = {@link GuideText#measureWidth}
+     * of the longest line — multi-line error text carries no PRE, so the box
+     * must cover the widest line for the Rust InlineBox pen to advance past the
+     * whole block. Height = line count × {@link GuideText#lineHeight} so the
+     * declared box covers every line.
+     * <p>
+     * Returns {@code {0, 0}} (the previous zero-width behaviour) when the
+     * paragraph has no measurable text, so a broken message degrades to the old
+     * inline placement instead of misdeclaring a width.
+     */
+    private static int[] inlineParagraphSize(LytParagraph err) {
+        String text = collectParagraphText(err);
+        if (text.isEmpty()) {
+            GuideDebugLog
+                .debug("Layout: inline paragraph has no text content — zero-width inline block fallback");
+            return new int[] {0, 0};
+        }
+        ResolvedTextStyle style = err.resolveStyle();
+        int width = 0;
+        int lines = 0;
+        for (String line : text.split("\n", -1)) {
+            lines++;
+            width = Math.max(width, GuideText.measureWidth(line, style));
+        }
+        if (width <= 0) {
+            GuideDebugLog
+                .debug("Layout: inline paragraph text measurement failed (w=0) — zero-width inline block fallback");
+            return new int[] {0, 0};
+        }
+        return new int[] {width, Math.max(1, GuideText.lineHeight(style) * lines)};
+    }
+
+    /**
+     * Concatenates the plain text of a paragraph's flow content (mirrors
+     * {@code LytParagraph.collectPlainText}).
+     */
+    private static String collectParagraphText(LytParagraph par) {
+        StringBuilder sb = new StringBuilder();
+        for (LytFlowContent fc : par.getContent()) {
+            collectPlainText(fc, sb);
+        }
+        return sb.toString();
+    }
+
+    private static void collectPlainText(LytFlowContent fc, StringBuilder out) {
+        if (fc instanceof LytFlowText ft) {
+            out.append(ft.getText());
+        } else if (fc instanceof LytFlowInlineBlock) {
+            out.append(' '); // placeholder space for inline blocks
+        } else if (fc instanceof LytFlowSpan fs) {
+            for (LytFlowContent child : fs.getChildren()) {
+                collectPlainText(child, out);
+            }
+        }
     }
 
     /**
@@ -464,6 +525,20 @@ public class LayoutTreeSerializer {
                         int[] size = itemImg.measureSerializedInlineSize();
                         vw = size[0];
                         vh = size[1];
+                    } else if (ib instanceof LytParagraph errPar) {
+                        // F-N2: script error-fallback paragraphs (ItemImage /
+                        // ItemLink / FloatingImage / Image failures) previously
+                        // fell through to the else branch, which reads
+                        // getBounds() = LytRect.empty() → FloatAbs(0,0) → Rust
+                        // inline_block_width=0 → Parley InlineBox zero-width →
+                        // the paragraph pen never advances and the following
+                        // body text overlaps the red error text. Declare the px
+                        // box from the measured error text instead (Rust text
+                        // shaping shares the same font pipeline, so the declared
+                        // width matches the shaped advance the pen must skip).
+                        int[] errSize = inlineParagraphSize(errPar);
+                        vw = errSize[0];
+                        vh = errSize[1];
                     } else {
                         LytRect b = ib.getBounds();
                         vw = b != null ? b.width() : 0;
