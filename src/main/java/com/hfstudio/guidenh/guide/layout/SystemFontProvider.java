@@ -69,6 +69,29 @@ public final class SystemFontProvider implements FontProvider {
         return resolvedPath;
     }
 
+    /**
+     * Read fallback symbol-font bytes: Segoe UI Symbol (seguisym.ttf) on
+     * Windows — covers the callout icons ⓘ ✦ ➤ ⚠ ☢ (U+24D8/2726/27A4/26A0/2622)
+     * that msyh.ttc lacks. Other OSes get best-effort DejaVu / Apple Symbols
+     * candidates. Returns an empty array when nothing is found (callers skip).
+     */
+    @Override
+    public byte[] getFallbackFontData(String locale) {
+        Path fontPath = resolveFallbackSymbolFontPath();
+        if (fontPath == null) {
+            GuideDebugLog.warnAlways("SystemFontProvider: no fallback symbol font found for locale={}, skipping", locale);
+            return new byte[0];
+        }
+        try {
+            byte[] data = Files.readAllBytes(fontPath);
+            GuideDebugLog.warnAlways("SystemFontProvider: loaded fallback symbol font {} bytes from {}", data.length, fontPath);
+            return data;
+        } catch (IOException e) {
+            GuideDebugLog.warnAlways("SystemFontProvider: failed to read fallback symbol font {}: {}", fontPath, e.getMessage());
+            return new byte[0];
+        }
+    }
+
     // ---- platform detection ----
 
     private static Path resolveFontPath() {
@@ -81,6 +104,37 @@ public final class SystemFontProvider implements FontProvider {
         } else {
             return resolveLinuxFont();
         }
+    }
+
+    private static Path resolveFallbackSymbolFontPath() {
+        String os = System.getProperty("os.name")
+            .toLowerCase();
+        if (os.contains("win")) {
+            // Segoe UI Symbol — Windows always ships it; covers ⓘ ✦ ➤ ⚠ ☢
+            String windir = System.getenv("WINDIR");
+            if (windir == null) {
+                windir = "C:\\Windows";
+            }
+            Path seguisym = Paths.get(windir, "Fonts", "seguisym.ttf");
+            if (Files.exists(seguisym)) return seguisym;
+            // Fallback: Segoe UI Emoji (also carries the pictographs)
+            Path segoeemoji = Paths.get(windir, "Fonts", "seguiemj.ttf");
+            if (Files.exists(segoeemoji)) return segoeemoji;
+            return null;
+        } else if (os.contains("mac")) {
+            // Apple Symbols — covers common dingbats/symbols
+            Path appleSymbols = Paths.get("/System/Library/Fonts/Apple Symbols.ttf");
+            if (Files.exists(appleSymbols)) return appleSymbols;
+            return null;
+        }
+        // Linux best-effort: DejaVu Sans covers ⓘ ✦ ➤ ⚠ ☢
+        Path[] candidates = { Paths.get("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+            Paths.get("/usr/share/fonts/dejavu/DejaVuSans.ttf"),
+            Paths.get("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") };
+        for (Path p : candidates) {
+            if (Files.exists(p)) return p;
+        }
+        return null;
     }
 
     private static Path resolveWindowsFont() {

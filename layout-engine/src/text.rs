@@ -15,4 +15,8 @@ impl GuideFontSystem {
     pub fn load_font_data(&mut self, data: Vec<u8>) {
         self.parley.load_font_data(data);
     }
+
+    pub fn load_fallback_font_data(&mut self, data: Vec<u8>) {
+        self.parley.load_fallback_font_data(data);
+    }
 }

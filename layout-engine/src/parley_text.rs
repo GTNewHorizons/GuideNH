@@ -44,6 +44,38 @@ impl ParleyFonts {
             .collection
             .register_fonts(fontique::Blob::new(Arc::new(data)), None);
     }
+
+    /// Register an additional font file (e.g. a symbol font like
+    /// seguisym.ttf) and append its families to the Han fallback key so the
+    /// fontique Hani-fallback hack (collection/query.rs `set_fallbacks`) can
+    /// land Common-script symbols (ⓘ ✦ ➤ ⚠ ☢ — U+24D8/2726/27A4/26A0/2622)
+    /// that msyh.ttc lacks.
+    ///
+    /// Uses `append_fallbacks` — never `set_fallbacks` — so the system CJK
+    /// fallback list for the key is preserved and the symbol families land
+    /// AFTER it. Best-effort: empty data is a no-op.
+    pub fn load_fallback_font_data(&mut self, data: Vec<u8>) {
+        if data.is_empty() {
+            return;
+        }
+        let key = fontique::FallbackKey::new(fontique::Script::from_bytes(*b"Hani"), None);
+        let ids: Vec<fontique::FamilyId> = self
+            .font_cx
+            .collection
+            .register_fonts(fontique::Blob::new(Arc::new(data)), None)
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect();
+        if ids.is_empty() {
+            return;
+        }
+        // Warm the system Hani fallback cache first so the appended symbol
+        // families are ordered after the system CJK fallbacks.
+        let _warm: Vec<_> = self.font_cx.collection.fallback_families(key).collect();
+        for id in ids {
+            self.font_cx.collection.append_fallbacks(key, core::iter::once(id));
+        }
+    }
 }
 
 // ═══════════════ Phase 1: renderTextParley (window A/B) ═══════════════

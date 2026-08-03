@@ -48,6 +48,32 @@ pub extern "system" fn Java_com_hfstudio_guidenh_guide_layout_LayoutBridge_init(
     }
 }
 
+/// Java: static native void loadFallbackFont(long handle, byte[] fallbackData);
+/// Best-effort: registers a symbol font and appends it to the Han fallback
+/// key (see [`ParleyFonts::load_fallback_font_data`]). No-op on empty data
+/// or any error — never affects the existing font system.
+#[no_mangle]
+pub extern "system" fn Java_com_hfstudio_guidenh_guide_layout_LayoutBridge_loadFallbackFont(
+    mut env: JNIEnv,
+    _class: JClass,
+    handle: jlong,
+    fallback_data: JByteArray,
+) {
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        if handle == 0 {
+            return;
+        }
+        let data = jbytearray_to_vec(&mut env, &fallback_data).unwrap_or_default();
+        if data.is_empty() {
+            return;
+        }
+        let font_system = unsafe { &mut *(handle as *mut GuideFontSystem) };
+        font_system.load_fallback_font_data(data);
+    }));
+
+    let _ = result;
+}
+
 /// Java: static native byte[] measureLayout(long handle, byte[] input);
 #[no_mangle]
 pub extern "system" fn Java_com_hfstudio_guidenh_guide_layout_LayoutBridge_measureLayout(

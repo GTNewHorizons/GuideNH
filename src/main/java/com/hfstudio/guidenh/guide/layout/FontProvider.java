@@ -24,6 +24,18 @@ public interface FontProvider {
     byte[] getFontData(String locale);
 
     /**
+     * Read fallback symbol-font file bytes for the given locale (e.g. a
+     * symbols-only font covering glyphs the primary CJK font lacks).
+     *
+     * @param locale BCP 47 locale tag (e.g. {@code "zh_CN"}, {@code "en_US"})
+     * @return font file bytes, or an empty array if no fallback font could be
+     *         located (callers must skip when empty)
+     */
+    default byte[] getFallbackFontData(String locale) {
+        return new byte[0];
+    }
+
+    /**
      * Return the resolved font file path (for diagnostics / logging).
      *
      * @return the absolute path to the font file, or {@code "none"} if no font

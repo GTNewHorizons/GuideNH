@@ -2602,7 +2602,9 @@ public class GuideScreen extends GuiContainer
                 "GuideScreen: initializing Rust font system from {} ({} bytes)",
                 fontProvider.getFontPath(),
                 fontData.length);
-            LayoutBridge.setFontHandle(LayoutBridge.init(fontData, "zh_CN"));
+            long handle = LayoutBridge.init(fontData, "zh_CN");
+            LayoutBridge.setFontHandle(handle);
+            loadFallbackSymbolFont(fontProvider, handle);
         }
 
         var activeDocument = getActiveDocument();
@@ -2618,6 +2620,23 @@ public class GuideScreen extends GuiContainer
             lastLayoutWidth = layoutWidth;
             lastLayoutVisualScalePermille = layoutVisualScalePermille;
             invalidateScrollbarOutline();
+        }
+    }
+
+    /**
+     * Best-effort fallback symbol font registration (seguisym.ttf covers the
+     * callout icons ⓘ ✦ ➤ ⚠ ☢ that msyh.ttc lacks). Runs once right after
+     * font init; empty data and stale native libs are skipped/ignored.
+     */
+    private void loadFallbackSymbolFont(FontProvider fontProvider, long handle) {
+        if (handle == 0) return;
+        byte[] fallbackData = fontProvider.getFallbackFontData("zh_CN");
+        if (fallbackData.length == 0) return;
+        try {
+            LayoutBridge.loadFallbackFont(handle, fallbackData);
+        } catch (UnsatisfiedLinkError e) {
+            GuideDebugLog.warnAlways(
+                "GuideScreen: loadFallbackFont unavailable (stale native lib?): {}", e.getMessage());
         }
     }
 

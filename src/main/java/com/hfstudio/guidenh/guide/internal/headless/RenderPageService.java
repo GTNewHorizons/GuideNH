@@ -33,6 +33,7 @@ import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
+import com.hfstudio.guidenh.guide.layout.FontProvider;
 import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.LayoutTreeSerializer;
@@ -152,7 +153,26 @@ public final class RenderPageService {
                 "RenderPageService: initializing Rust font system from {} ({} bytes)",
                 fontProvider.getFontPath(),
                 fontData.length);
-            LayoutBridge.setFontHandle(LayoutBridge.init(fontData, "zh_CN"));
+            long handle = LayoutBridge.init(fontData, "zh_CN");
+            LayoutBridge.setFontHandle(handle);
+            loadFallbackSymbolFont(fontProvider, handle);
+        }
+    }
+
+    /**
+     * Best-effort fallback symbol font registration (seguisym.ttf covers the
+     * callout icons ⓘ ✦ ➤ ⚠ ☢ that msyh.ttc lacks). Runs once right after
+     * font init; empty data and stale native libs are skipped/ignored.
+     */
+    private static void loadFallbackSymbolFont(FontProvider fontProvider, long handle) {
+        if (handle == 0) return;
+        byte[] fallbackData = fontProvider.getFallbackFontData("zh_CN");
+        if (fallbackData.length == 0) return;
+        try {
+            LayoutBridge.loadFallbackFont(handle, fallbackData);
+        } catch (UnsatisfiedLinkError e) {
+            GuideDebugLog.warnAlways(
+                "RenderPageService: loadFallbackFont unavailable (stale native lib?): {}", e.getMessage());
         }
     }
 

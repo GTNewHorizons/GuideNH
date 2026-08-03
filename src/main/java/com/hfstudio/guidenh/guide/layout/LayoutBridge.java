@@ -77,6 +77,16 @@ public final class LayoutBridge {
     public static native long init(byte[] fontTtfData, String locale);
 
     /**
+     * Register fallback symbol-font data (e.g. seguisym.ttf) into the existing
+     * FontSystem and append it to the Han fallback key. Best-effort: a no-op on
+     * empty data; callers should pass {@code new byte[0]} to skip.
+     *
+     * @param handle       FontSystem handle from init()
+     * @param fallbackData font file bytes, or empty array to skip
+     */
+    public static native void loadFallbackFont(long handle, byte[] fallbackData);
+
+    /**
      * Measure the entire layout tree.
      * 
      * @param handle FontSystem handle from init()
