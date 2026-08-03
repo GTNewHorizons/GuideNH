@@ -112,7 +112,29 @@ public class LytImage extends LytBlock implements InteractiveElement {
         int sourceHeight = Math.max(1, cropHeight > 0 ? cropHeight : size.height());
         int width;
         int height;
-        if (explicitWidth > 0 || explicitHeight > 0) {
+        // Mirrors Rust measure_image (layout-engine/src/measure.rs) exactly:
+        // two explicit dimensions win as-is; a single explicit dimension
+        // (F-N1 whole-image display size) infers the missing axis from the
+        // natural aspect ratio (inferred = explicit × natural_other /
+        // natural_given, no per-axis scale on the inferred axis); otherwise
+        // fall back to natural × DEFAULT_LAYOUT_SCALE × scale. When the
+        // texture is missing the natural size is unreliable, so no inference
+        // happens and the legacy fallback applies.
+        boolean hasNatural = texture != null && !texture.isMissing() && sourceWidth > 0 && sourceHeight > 0;
+        if (explicitWidth > 0 && explicitHeight > 0) {
+            width = explicitWidth;
+            height = explicitHeight;
+        } else if (explicitWidth > 0 && hasNatural) {
+            width = explicitWidth;
+            height = Math.max(1, (int) Math.round(explicitWidth * (sourceHeight / (double) sourceWidth)));
+        } else if (explicitHeight > 0 && hasNatural) {
+            width = Math.max(1, (int) Math.round(explicitHeight * (sourceWidth / (double) sourceHeight)));
+            height = explicitHeight;
+        } else if (explicitWidth > 0 || explicitHeight > 0) {
+            // Single explicit dimension but the natural size is unavailable
+            // (missing / placeholder texture): no aspect-ratio inference —
+            // legacy behaviour, the explicit axis wins and the missing axis is
+            // natural × scale.
             width = explicitWidth > 0 ? explicitWidth : Math.max(1, (int) Math.round(sourceWidth * scaleX));
             height = explicitHeight > 0 ? explicitHeight : Math.max(1, (int) Math.round(sourceHeight * scaleY));
         } else {

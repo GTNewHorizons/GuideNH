@@ -42,7 +42,15 @@ public class FloatingImageCompiler implements TagCompiler {
 
     private static final Random RANDOM = new Random(0);
 
-    private record CropSpec(int x, int y, int width, int height) {}
+    /**
+     * Parsed crop / size specification. With both dimensions given this is a
+     * classic crop rectangle (x/y/width/height). With exactly one dimension
+     * given (hasWidth XOR hasHeight) it is a whole-image display size: the
+     * given dimension is the final display pixel size × scale and the missing
+     * dimension is inferred from the image's natural aspect ratio downstream
+     * (Rust measure_image and the Java mirror paths).
+     */
+    private record CropSpec(int x, int y, int width, int height, boolean hasWidth, boolean hasHeight) {}
 
     private record ScaleSpec(double scaleX, double scaleY) {}
 
@@ -181,8 +189,17 @@ public class FloatingImageCompiler implements TagCompiler {
         }
         block.setCropX(crop.x());
         block.setCropY(crop.y());
-        block.setCropWidth(crop.width());
-        block.setCropHeight(crop.height());
+        // F-N1 single-parameter mode (width-only / height-only) is a
+        // whole-image display size: no crop is applied and the missing explicit
+        // dimension stays -1 so downstream measurement infers it from the
+        // natural aspect ratio.
+        if (crop.hasWidth() && crop.hasHeight()) {
+            block.setCropWidth(crop.width());
+            block.setCropHeight(crop.height());
+        } else {
+            block.setCropWidth(-1);
+            block.setCropHeight(-1);
+        }
         block.setScaleX(scale.scaleX());
         block.setScaleY(scale.scaleY());
 
@@ -226,8 +243,19 @@ public class FloatingImageCompiler implements TagCompiler {
 
         // Forward crop dimensions × scale as explicit size for Rust measure_image
         // so that scaleX/scaleY are reflected in the final measured size.
-        block.setExplicitWidth((int) Math.round(crop.width() * scale.scaleX()));
-        block.setExplicitHeight((int) Math.round(crop.height() * scale.scaleY()));
+        // F-N1: in single-parameter mode the given dimension × scale is the
+        // explicit display size (missing axis inferred from natural aspect
+        // ratio); the missing dimension stays -1.
+        if (crop.hasWidth()) {
+            block.setExplicitWidth((int) Math.round(crop.width() * scale.scaleX()));
+        } else {
+            block.setExplicitWidth(-1);
+        }
+        if (crop.hasHeight()) {
+            block.setExplicitHeight((int) Math.round(crop.height() * scale.scaleY()));
+        } else {
+            block.setExplicitHeight(-1);
+        }
 
         return block;
     }
@@ -344,21 +372,37 @@ public class FloatingImageCompiler implements TagCompiler {
             errorSink.appendError(compiler, "FloatingImage cannot use both height and h.", el);
             return null;
         }
-        Integer x = parseOptionalIntAttr(compiler, errorSink, el, "x", 0);
-        Integer y = parseOptionalIntAttr(compiler, errorSink, el, "y", 0);
-        Integer width = parseRequiredAliasedIntAttr(compiler, errorSink, el, "width", "w");
-        Integer height = parseRequiredAliasedIntAttr(compiler, errorSink, el, "height", "h");
-        if (x == null || y == null || width == null || height == null) {
+        boolean hasWidth = (widthValue != null && !widthValue.trim()
+            .isEmpty()) || (widthAlias != null && !widthAlias.trim()
+                .isEmpty());
+        boolean hasHeight = (heightValue != null && !heightValue.trim()
+            .isEmpty()) || (heightAlias != null && !heightAlias.trim()
+                .isEmpty());
+        // F-N1: a single explicit dimension (width-only or height-only) is a
+        // valid whole-image display size; only the "both missing" case is an
+        // error.
+        if (!hasWidth && !hasHeight) {
+            errorSink.appendError(compiler, "FloatingImage requires width or w, and height or h.", el);
             return null;
         }
-        if (x < 0 || y < 0 || width <= 0 || height <= 0) {
+        Integer x = parseOptionalIntAttr(compiler, errorSink, el, "x", 0);
+        Integer y = parseOptionalIntAttr(compiler, errorSink, el, "y", 0);
+        Integer width = parseAliasedIntAttr(compiler, errorSink, el, "width", "w");
+        Integer height = parseAliasedIntAttr(compiler, errorSink, el, "height", "h");
+        if (x == null || y == null) {
+            return null;
+        }
+        if ((hasWidth && width == null) || (hasHeight && height == null)) {
+            return null;
+        }
+        if (x < 0 || y < 0 || (hasWidth && width <= 0) || (hasHeight && height <= 0)) {
             errorSink.appendError(
                 compiler,
                 "FloatingImage crop values must be non-negative and width/height must be positive.",
                 el);
             return null;
         }
-        return new CropSpec(x, y, width, height);
+        return new CropSpec(x, y, hasWidth ? width : -1, hasHeight ? height : -1, hasWidth, hasHeight);
     }
 
     @Nullable
@@ -375,8 +419,15 @@ public class FloatingImageCompiler implements TagCompiler {
         return new ScaleSpec(scaleX, scaleY);
     }
 
+    /**
+     * Parses an aliased integer attribute (primary name or alias) as optional.
+     * Returns {@code null} when the attribute is absent — a valid state under
+     * F-N1 single-parameter mode where exactly one dimension is required (the
+     * "both missing" error is reported by {@link #parseCropSpec}). A present
+     * but malformed value appends an error and returns {@code null}.
+     */
     @Nullable
-    private static Integer parseRequiredAliasedIntAttr(PageCompiler compiler, LytErrorSink errorSink,
+    private static Integer parseAliasedIntAttr(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields el, String primaryName, String aliasName) {
         String primaryValue = el.getAttributeString(primaryName, null);
         String aliasValue = el.getAttributeString(aliasName, null);
@@ -388,7 +439,6 @@ public class FloatingImageCompiler implements TagCompiler {
         String resolved = primaryValue != null ? primaryValue : aliasValue;
         if (resolved == null || resolved.trim()
             .isEmpty()) {
-            errorSink.appendError(compiler, "FloatingImage requires width or w, and height or h.", el);
             return null;
         }
         try {

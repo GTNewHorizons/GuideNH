@@ -79,23 +79,23 @@
     },
     "msg": "large mindmap canvas height capped (A1 no-infinite-stretch ratchet)"
    }
-   ],
-   "visualtest_mermaid_wrap-long-labels.md": [
-    {
-     "exists": {
-      "cls": "LytMermaidFlowchartCanvas"
-     },
-     "msg": "mermaid wrap long-label canvas exists (T5 wrap-to-node-box ratchet)"
+  ],
+  "visualtest_mermaid_wrap-long-labels.md": [
+   {
+    "exists": {
+     "cls": "LytMermaidFlowchartCanvas"
     },
-    {
-     "max_height": {
-      "cls": "LytMermaidFlowchartCanvas",
-      "le": 400
-     },
-     "msg": "wrapped-label canvas height capped (T5 no-infinite-stretch ratchet)"
-    }
-   ],
-   "visualtest_code_blocks.md": [
+    "msg": "mermaid wrap long-label canvas exists (T5 wrap-to-node-box ratchet)"
+   },
+   {
+    "max_height": {
+     "cls": "LytMermaidFlowchartCanvas",
+     "le": 400
+    },
+    "msg": "wrapped-label canvas height capped (T5 no-infinite-stretch ratchet)"
+   }
+  ],
+  "visualtest_code_blocks.md": [
    {
     "width_ratio": {
      "cls": "LytCodeBlock",
@@ -115,63 +115,63 @@
     "msg": "full-width image boxes fill parent width (A11 ratchet)"
    }
   ],
-   "visualtest_tables_metadata.md": [
-    {
-     "exists": {
-      "cls": "LytTable"
-     },
-     "msg": "metadata table renders (A14 ratchet)"
+  "visualtest_tables_metadata.md": [
+   {
+    "exists": {
+     "cls": "LytTable"
     },
-    {
-     "count": {
-      "cls": "LytTableCell",
-      "ge": 6
-     },
-     "msg": "R4-4: metadata tables have cells (column widths respected)"
-    }
-   ],
-   "visualtest_tables_csv.md": [
-    {
-     "count": {
-      "cls": "LytTableCell",
-      "ge": 10
-     },
-     "msg": "R4-4: CSV tables have cells (column widths respected)"
-    }
-   ],
-   "visualtest_code_special-langs.md": [
-    {
-     "count": {
-      "cls": "LytItemImage",
-      "ge": 3
-     },
-     "msg": "filetree {:iconItem=} icons exist (R2-3 ratchet)"
+    "msg": "metadata table renders (A14 ratchet)"
+   },
+   {
+    "count": {
+     "cls": "LytTableCell",
+     "ge": 6
     },
-    {
-     "attr": {
-      "cls": "LytItemImage",
-      "field": "w",
-      "gt": 0
-     },
-     "msg": "filetree item icons reserve real width (R2-3 ratchet)"
+    "msg": "R4-4: metadata tables have cells (column widths respected)"
+   }
+  ],
+  "visualtest_tables_csv.md": [
+   {
+    "count": {
+     "cls": "LytTableCell",
+     "ge": 10
     },
-    {
-     "attr": {
-      "cls": "LytItemImage",
-      "field": "h",
-      "gt": 0
-     },
-      "msg": "filetree item icons reserve real height (R2-3 ratchet)"
-     },
-     {
-      "count": {
-       "cls": "LytTableCell",
-       "ge": 4
-      },
-      "msg": "R4-4: special-langs csv has cells (column widths respected)"
-     }
-    ],
-   "visualtest_nei_recipes.md": [
+    "msg": "R4-4: CSV tables have cells (column widths respected)"
+   }
+  ],
+  "visualtest_code_special-langs.md": [
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 3
+    },
+    "msg": "filetree {:iconItem=} icons exist (R2-3 ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "w",
+     "gt": 0
+    },
+    "msg": "filetree item icons reserve real width (R2-3 ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "h",
+     "gt": 0
+    },
+    "msg": "filetree item icons reserve real height (R2-3 ratchet)"
+   },
+   {
+    "count": {
+     "cls": "LytTableCell",
+     "ge": 4
+    },
+    "msg": "R4-4: special-langs csv has cells (column widths respected)"
+   }
+  ],
+  "visualtest_nei_recipes.md": [
    {
     "count": {
      "cls": "LytNeiRecipeBox",
@@ -180,22 +180,22 @@
     "msg": "NEI recipe boxes count >= 6 (A10 ratchet)"
    }
   ],
-   "visualtest_latex_inline.md": [
-    {
-     "exists": {
-      "cls": "LytLatexBlock"
-     },
-     "msg": "inline LaTeX blocks exist (A7/A8a ratchet)"
+  "visualtest_latex_inline.md": [
+   {
+    "exists": {
+     "cls": "LytLatexBlock"
     },
-    {
-     "attr": {
-      "cls": "LytLatexBlock",
-      "field": "h",
-      "ge": 12
-     },
-     "msg": "inline formula heights stay >= 12px (P1b2 true-inset fix: measured min 12px, was 6-13px pre-fix)"
-    }
-   ],
+    "msg": "inline LaTeX blocks exist (A7/A8a ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytLatexBlock",
+     "field": "h",
+     "ge": 12
+    },
+    "msg": "inline formula heights stay >= 12px (P1b2 true-inset fix: measured min 12px, was 6-13px pre-fix)"
+   }
+  ],
   "visualtest_text_inline-game-tags.md": [
    {
     "count": {
@@ -218,76 +218,100 @@
      "field": "h",
      "gt": 0
     },
-     "msg": "every LytItemImage reserves real height, h>0 (R2-2/R2-3 ratchet, was 0 before fix)"
-    }
-   ],
-   "visualtest_layout_details.md": [
-    {
-     "inside_parent": {
-      "cls": "LytViewportBox",
-      "pad": 6
-     },
-     "msg": "A2: details content viewport stays inside details block (N-A1 7px right-overflow regression guard, was +7px before fix)"
-    }
-   ],
-   "visualtest_layout_callouts.md": [
-    {
-     "inside_parent": {
-      "cls": "LytAlertBox",
-      "pad": 6
-     },
-     "msg": "A2: callout (alert) box stays inside its parent block (F8 callout overflow guard)"
-    }
-   ],
-   "visualtest_layout_content-tabs.md": [
-    {
-     "inside_parent": {
-      "cls": "LytContentTabsBlock",
-      "pad": 6
-     },
-     "msg": "A2: tab content block stays inside its parent (tab container overflow guard)"
-    }
-   ],
-   "visualtest_layout_row-column.md": [
-    {
-     "inside_parent": {
-      "cls": "LytHBox",
-      "pad": 6
-     },
-     "msg": "A2: row layout box stays inside its parent (row/column container overflow guard)"
-    }
-   ],
-   "visualtest_text_decorations.md": [
-    {
-     "exists": {
-      "cls": "LytParagraph"
-     },
-     "msg": "decorations fixture locked into corpus (T1 underline/wavy/dots/strike ratchet)"
-    }
-   ],
-    "visualtest_latex_inline-xheight.md": [
-     {
-      "exists": {
-       "cls": "LytLatexBlock"
-      },
-      "msg": "inline LaTeX blocks exist on x-height calibration page (T4 x_height ratchet)"
-     },
-      {
-       "attr": {
-        "cls": "LytLatexBlock",
-        "field": "h",
-        "ge": 8
-       },
-       "msg": "x-height calibration page formula heights stay >= 8px (P1b2 true-inset fix: measured min 8px post-fix, was 6-12px pre-fix)"
-      }
-     ],
-   "visualtest_layout_baseline-align.md": [
-    {
-     "exists": {
-      "cls": "LytHBox"
-     },
-     "msg": "baseline-align fixture locked into corpus (T3-min baseline routing ratchet)"
-    }
-   ]
-  }
+    "msg": "every LytItemImage reserves real height, h>0 (R2-2/R2-3 ratchet, was 0 before fix)"
+   }
+  ],
+  "visualtest_layout_details.md": [
+   {
+    "inside_parent": {
+     "cls": "LytViewportBox",
+     "pad": 6
+    },
+    "msg": "A2: details content viewport stays inside details block (N-A1 7px right-overflow regression guard, was +7px before fix)"
+   }
+  ],
+  "visualtest_layout_callouts.md": [
+   {
+    "inside_parent": {
+     "cls": "LytAlertBox",
+     "pad": 6
+    },
+    "msg": "A2: callout (alert) box stays inside its parent block (F8 callout overflow guard)"
+   }
+  ],
+  "visualtest_layout_content-tabs.md": [
+   {
+    "inside_parent": {
+     "cls": "LytContentTabsBlock",
+     "pad": 6
+    },
+    "msg": "A2: tab content block stays inside its parent (tab container overflow guard)"
+   }
+  ],
+  "visualtest_layout_row-column.md": [
+   {
+    "inside_parent": {
+     "cls": "LytHBox",
+     "pad": 6
+    },
+    "msg": "A2: row layout box stays inside its parent (row/column container overflow guard)"
+   }
+  ],
+  "visualtest_text_decorations.md": [
+   {
+    "exists": {
+     "cls": "LytParagraph"
+    },
+    "msg": "decorations fixture locked into corpus (T1 underline/wavy/dots/strike ratchet)"
+   }
+  ],
+  "visualtest_latex_inline-xheight.md": [
+   {
+    "exists": {
+     "cls": "LytLatexBlock"
+    },
+    "msg": "inline LaTeX blocks exist on x-height calibration page (T4 x_height ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytLatexBlock",
+     "field": "h",
+     "ge": 8
+    },
+    "msg": "x-height calibration page formula heights stay >= 8px (P1b2 true-inset fix: measured min 8px post-fix, was 6-12px pre-fix)"
+   }
+  ],
+  "visualtest_layout_baseline-align.md": [
+   {
+    "exists": {
+     "cls": "LytHBox"
+    },
+    "msg": "baseline-align fixture locked into corpus (T3-min baseline routing ratchet)"
+   }
+  ],
+  "visualtest_images_single-param.md": [
+   {
+    "exists": {
+     "cls": "LytImage"
+    },
+    "msg": "F-N1: single-param FloatingImage renders as LytImage (no compile-time red error)"
+   },
+   {
+    "attr": {
+     "cls": "LytImage",
+     "field": "w",
+     "ge": 32
+    },
+    "msg": "F-N1: width-only(128) and height-only(inferred 32) images both reserve width >= 32px"
+   },
+   {
+    "attr": {
+     "cls": "LytImage",
+     "field": "h",
+     "ge": 32
+    },
+    "msg": "F-N1: width-only(inferred 32) and height-only(128) images both reserve height >= 32px"
+   }
+  ]
+ }
 }

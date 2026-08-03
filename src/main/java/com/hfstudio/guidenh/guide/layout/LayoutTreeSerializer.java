@@ -481,31 +481,46 @@ public class LayoutTreeSerializer {
                         // Rust inline_block_height() return 0 and inline_line_growth()
                         // stay 0 — the paragraph never grows to include the image, and
                         // the parent flex container (LytListItem) omits the image height.
-                        if (image.getExplicitWidth() > 0) {
-                            vw = image.getExplicitWidth();
+                        // F-N1: mirrors Rust measure_image — two explicit dimensions win;
+                        // a single explicit dimension infers the missing axis from the
+                        // natural aspect ratio (inferred = explicit × natural_other /
+                        // natural_given, no per-axis scale on the inferred axis);
+                        // otherwise the legacy natural × DEFAULT_LAYOUT_SCALE × scale
+                        // fallback applies.
+                        var tex = image.getTexture();
+                        boolean hasNatural = tex != null && !tex.isMissing();
+                        int natW = hasNatural
+                            ? (image.getCropWidth() > 0 ? image.getCropWidth() : tex.getSize().width())
+                            : 0;
+                        int natH = hasNatural
+                            ? (image.getCropHeight() > 0 ? image.getCropHeight() : tex.getSize().height())
+                            : 0;
+                        int ew = image.getExplicitWidth();
+                        int eh = image.getExplicitHeight();
+                        if (ew > 0 && eh > 0) {
+                            vw = ew;
+                            vh = eh;
+                        } else if (ew > 0 && natW > 0 && natH > 0) {
+                            vw = ew;
+                            vh = Math.max(1, (int) Math.round(ew * (natH / (double) natW)));
+                        } else if (eh > 0 && natW > 0 && natH > 0) {
+                            vw = Math.max(1, (int) Math.round(eh * (natW / (double) natH)));
+                            vh = eh;
                         } else {
-                            var tex = image.getTexture();
-                            if (tex != null && !tex.isMissing()) {
-                                var size = tex.getSize();
-                                int sourceW = image.getCropWidth() > 0
-                                    ? image.getCropWidth() : size.width();
+                            if (ew > 0) {
+                                vw = ew;
+                            } else if (hasNatural) {
                                 vw = Math.max(1, (int) Math.round(
-                                    sourceW * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleX()));
+                                    natW * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleX()));
                             } else {
                                 LytRect b = ib.getBounds();
                                 vw = b != null ? b.width() : 0;
                             }
-                        }
-                        if (image.getExplicitHeight() > 0) {
-                            vh = image.getExplicitHeight();
-                        } else {
-                            var tex = image.getTexture();
-                            if (tex != null && !tex.isMissing()) {
-                                var size = tex.getSize();
-                                int sourceH = image.getCropHeight() > 0
-                                    ? image.getCropHeight() : size.height();
+                            if (eh > 0) {
+                                vh = eh;
+                            } else if (hasNatural) {
                                 vh = Math.max(1, (int) Math.round(
-                                    sourceH * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleY()));
+                                    natH * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleY()));
                             } else {
                                 LytRect b = ib.getBounds();
                                 vh = b != null ? b.height() : 0;

@@ -418,15 +418,28 @@ fn measure_image(nodes: &[FlatNode], idx: usize) -> Size<f32> {
         Some(i) => i,
         None => return Size::ZERO,
     };
-    let w = if img.explicit_w() > 0.0 {
-        img.explicit_w()
+    let ew = img.explicit_w();
+    let eh = img.explicit_h();
+    let nw = img.natural_w();
+    let nh = img.natural_h();
+    // F-N1 single-parameter mode: exactly one explicit dimension is given
+    // (the other is <= 0) and the source image has a real natural size — infer
+    // the missing dimension from the natural aspect ratio:
+    //   inferred = explicit × natural_other / natural_given
+    // The inferred axis does NOT apply its own scale (the inferred value is
+    // already the final display pixel size). Two explicit dimensions win as-is;
+    // when both are missing (or natural size is unavailable) fall back to the
+    // legacy natural × scale behaviour.
+    let (w, h) = if ew > 0.0 && eh > 0.0 {
+        (ew, eh)
+    } else if ew > 0.0 && nw > 0.0 && nh > 0.0 {
+        (ew, ew * (nh / nw))
+    } else if eh > 0.0 && nw > 0.0 && nh > 0.0 {
+        (eh * (nw / nh), eh)
     } else {
-        img.natural_w() * img.scale_x()
-    };
-    let h = if img.explicit_h() > 0.0 {
-        img.explicit_h()
-    } else {
-        img.natural_h() * img.scale_y()
+        let w = if ew > 0.0 { ew } else { nw * img.scale_x() };
+        let h = if eh > 0.0 { eh } else { nh * img.scale_y() };
+        (w, h)
     };
     Size {
         width: w.max(1.0),
