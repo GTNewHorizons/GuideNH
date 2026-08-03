@@ -47,7 +47,9 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
+import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -119,6 +121,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
+import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import lombok.Getter;
@@ -282,6 +285,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private float loadProgress;
     private String loadStatusText = "";
     private int loadStatusColor = 0xFFFFFFFF;
+    /**
+     * Scene-level error message surfaced from the block-build pipeline (structure format
+     * unsupported, zero placeable blocks, etc.). Unlike {@link #loadStatusText} this renders
+     * unconditionally (no loading-state debounce) so a failed build can never silently show a
+     * blank background. Cleared by {@link #clearBuildError()}.
+     */
+    @Nullable
+    private String sceneBuildError;
     @Getter
     @Setter
     private boolean reserveBottomControlArea = true;
@@ -1303,6 +1314,18 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         GuidebookLevel sceneLevel = getLevel();
         if (sceneLevel == null) return;
 
+        clearBuildError();
+        LytErrorSink buildErrorSink = new LytErrorSink() {
+
+            @Override
+            public void appendError(PageCompiler compiler, String text, UnistNode node) {
+                if (sceneBuildError == null) {
+                    setBuildError(text);
+                }
+                GuideDebugLog.warnAlways("[GuideNH] [Scene] Structure build: {}", text);
+            }
+        };
+
         // Phase 1: SNBT static placements (ImportStructure)
         for (SnbtPlacement p : snbtPlacements) {
             NBTTagCompound root = SnbtPreParseCache.get(p.getSrc());
@@ -1318,7 +1341,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                 p.getOffsetZ(),
                 p.isFormed(),
                 null,
-                null,
+                buildErrorSink,
                 p.getSrc());
         }
 
@@ -1685,6 +1708,23 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         this.loadProgress = 0f;
         this.loadStatusText = "";
         this.loadStatusColor = 0xFFFFFFFF;
+    }
+
+    /**
+     * Records a build-time error on the scene (structure format unsupported, zero placeable
+     * blocks, etc.). The scene renders it as visible red text instead of a silent background.
+     */
+    public void setBuildError(@Nullable String message) {
+        this.sceneBuildError = message != null && !message.trim().isEmpty() ? message.trim() : null;
+    }
+
+    @Nullable
+    public String getBuildError() {
+        return sceneBuildError;
+    }
+
+    public void clearBuildError() {
+        this.sceneBuildError = null;
     }
 
     public void setBottomControlsVisible(boolean bottomControlsVisible) {
@@ -2354,6 +2394,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             this.cachedScreenRect = updateCachedRect(cachedScreenRect, absX, absY, w, h);
             renderSceneBackground(context, sceneRect);
             drawLoadProgressOverlay(context, sceneRect);
+            drawSceneBuildError(context, sceneRect);
             drawBottomControls(context, outerRect, suppressLegacyText);
             drawBlockStatsOverlay(context, sceneRect, outerRect);
             renderSceneBorder(context, sceneRect);
@@ -2365,6 +2406,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
         renderSceneBackground(context, sceneRect);
         drawLoadProgressOverlay(context, sceneRect);
+        drawSceneBuildError(context, sceneRect);
         this.renderedContentClip = updateCachedRect(this.renderedContentClip, clipX, clipY, clipW, clipH);
 
         LytSize camOverride = cameraViewportOverride;
@@ -4424,11 +4466,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private float getLogicalCameraOffsetX() {
-        return ponderSceneData != null ? ponderCamOffX : camera.getOffsetX();
+        // Ponder keyframe offsets and the ponder drag accumulate screen-space pixels
+        // (see applyCameraDrag's ponder branch); the camera view matrix applies them in world
+        // units, so convert with the projection scale s = 0.625 * 16 * zoom = 10 * zoom.
+        return ponderSceneData != null ? ponderCamOffX / (10f * ponderCamZoom) : camera.getOffsetX();
     }
 
     private float getLogicalCameraOffsetY() {
-        return ponderSceneData != null ? ponderCamOffY : camera.getOffsetY();
+        return ponderSceneData != null ? ponderCamOffY / (10f * ponderCamZoom) : camera.getOffsetY();
     }
 
     private float[] captureCameraState() {
@@ -5213,8 +5258,13 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private float[] resolveFullCameraAt(int kfIndex) {
+        // Ponder keyframe offsets are screen-space pixels (see applyCameraDrag's ponder branch).
+        // The base camera offset is world units (the view matrix applies it directly), so convert
+        // it to screen pixels here so the resolution is unit-consistent with keyframe overrides;
+        // getLogicalCameraOffsetX/Y convert back to world units at the render application point.
+        float baseZoom = camera.getZoom();
         float[] result = new float[] { camera.getZoom(), camera.getRotationX(), camera.getRotationY(),
-            camera.getRotationZ(), camera.getOffsetX(), camera.getOffsetY() };
+            camera.getRotationZ(), camera.getOffsetX() * (10f * baseZoom), camera.getOffsetY() * (10f * baseZoom) };
         boolean[] resolved = new boolean[6];
         int upper = Math.min(kfIndex, ponderSceneData.getKeyframeCount() - 1);
         for (int i = upper; i >= 0; i--) {
@@ -6858,6 +6908,41 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             int textY = barY - textH - 4;
             context.drawText(loadStatusText, textX, textY, coloredStyle);
         }
+    }
+
+    /**
+     * Draws the scene-level build error as red text centered in the scene. Renders whenever a
+     * build error was recorded (unconditional — unlike the loading overlay it is not gated on
+     * {@link #isLoading()}), so a failed structure build can never silently show a blank background.
+     */
+    private void drawSceneBuildError(RenderContext context, LytRect sceneRect) {
+        if (sceneBuildError == null || sceneRect.isEmpty()) {
+            return;
+        }
+        var style = VISIBLE_LAYER_SLIDER_TEXT_STYLE;
+        var coloredStyle = new ResolvedTextStyle(
+            style.fontScale(),
+            style.bold(),
+            style.italic(),
+            style.underlined(),
+            style.wavyUnderline(),
+            style.dottedUnderline(),
+            style.strikethrough(),
+            style.obfuscated(),
+            style.font(),
+            new ConstantColor(0xFFFF5555),
+            style.whiteSpace(),
+            style.alignment(),
+            true,
+            style.backgroundColor(),
+            style.inlineCode(),
+            style.baselineShift());
+        float z = Math.max(0.0001f, lastDocZoom);
+        int textW = Math.round(context.getStringWidth(sceneBuildError, coloredStyle) / z);
+        int textH = Math.round(context.getLineHeight(coloredStyle) / z);
+        int textX = sceneRect.x() + (sceneRect.width() - textW) / 2;
+        int textY = sceneRect.y() + sceneRect.height() / 2 - textH;
+        context.drawText(sceneBuildError, textX, textY, coloredStyle);
     }
 
     private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect, boolean suppressLegacyText) {

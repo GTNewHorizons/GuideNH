@@ -4,8 +4,10 @@ import java.util.Collections;
 import java.util.Set;
 
 import net.minecraft.block.Block;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 
@@ -141,43 +143,59 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
         if (errorSink == null) {
             errorSink = (c, text, node) -> {};
         }
-        if (!root.hasKey("palette") || !root.hasKey("blocks")) {
+        if (!root.hasKey("palette") || (!root.hasKey("blocks") && !root.hasKey("data"))) {
             errorSink.appendError(compiler, "Unsupported structure format (missing palette/blocks)", null);
             return;
         }
 
         NBTTagList paletteTag = root.getTagList("palette", 10);
-        String[] palette = new String[paletteTag.tagCount()];
-        for (int i = 0; i < paletteTag.tagCount(); i++) {
-            var entry = paletteTag.getCompoundTagAt(i);
-            palette[i] = entry.getString("Name");
+        // Modern regional-structure dialect: palette is a list of STRING block names and the
+        // block entries live under `data` (or `blocks`) with a string `state` naming the palette
+        // entry directly (or an int index into the string palette). Older region-wand exports use
+        // a compound palette ({Name:...}) plus integer `state` indices — that path is preserved
+        // verbatim below and is the only dialect these strings ever carry.
+        boolean modernDialect = false;
+        if (paletteTag.tagCount() == 0 && root.getTag("palette") instanceof NBTTagList rawPalette) {
+            modernDialect = rawPalette.func_150303_d() == 8;
         }
+        if (modernDialect) {
+            int placed = placeStructureModernDialect(level, root, offsetX, offsetY, offsetZ, formed, errorSink, src);
+            if (placed == 0) {
+                errorSink.appendError(compiler, "Structure had no placeable blocks: " + src, null);
+            }
+        } else {
+            String[] palette = new String[paletteTag.tagCount()];
+            for (int i = 0; i < paletteTag.tagCount(); i++) {
+                var entry = paletteTag.getCompoundTagAt(i);
+                palette[i] = entry.getString("Name");
+            }
 
-        NBTTagList blocksTag = root.getTagList("blocks", 10);
-        int placed = 0;
-        for (int i = 0; i < blocksTag.tagCount(); i++) {
-            var b = blocksTag.getCompoundTagAt(i);
-            int state = b.getInteger("state");
-            if (state < 0 || state >= palette.length) continue;
-            String name = palette[state];
-            Block block = (Block) Block.blockRegistry.getObject(name);
-            if (block == null) continue;
+            NBTTagList blocksTag = root.getTagList("blocks", 10);
+            int placed = 0;
+            for (int i = 0; i < blocksTag.tagCount(); i++) {
+                var b = blocksTag.getCompoundTagAt(i);
+                int state = b.getInteger("state");
+                if (state < 0 || state >= palette.length) continue;
+                String name = palette[state];
+                Block block = (Block) Block.blockRegistry.getObject(name);
+                if (block == null) continue;
 
-            int[] pos = b.getIntArray("pos");
-            if (pos.length < 3) continue;
-            int px = offsetX + pos[0];
-            int py = Math.clamp(offsetY + pos[1], 0, level.getHeight() - 1);
-            int pz = offsetZ + pos[2];
+                int[] pos = b.getIntArray("pos");
+                if (pos.length < 3) continue;
+                int px = offsetX + pos[0];
+                int py = Math.clamp(offsetY + pos[1], 0, level.getHeight() - 1);
+                int pz = offsetZ + pos[2];
 
-            int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
-            NBTTagCompound tileTag = b.hasKey("nbt", 10) ? b.getCompoundTag("nbt") : null;
-            GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, name, b);
-            ScenePreviewFormedState.updateAfterPlacement(level, px, py, pz, formed);
-            placed++;
-        }
+                int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
+                NBTTagCompound tileTag = b.hasKey("nbt", 10) ? b.getCompoundTag("nbt") : null;
+                GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, name, b);
+                ScenePreviewFormedState.updateAfterPlacement(level, px, py, pz, formed);
+                placed++;
+            }
 
-        if (placed == 0) {
-            errorSink.appendError(compiler, "Structure had no placeable blocks: " + src, null);
+            if (placed == 0) {
+                errorSink.appendError(compiler, "Structure had no placeable blocks: " + src, null);
+            }
         }
 
         // Spawn entities stored by the region-wand exporter (snbt+entities mode).
@@ -205,6 +223,56 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
                 }
             }
         }
+    }
+
+    /**
+     * Place blocks from a modern regional-structure SNBT dialect: {@code palette} is a list of
+     * string block names and the block entries live under {@code data} (or {@code blocks}) with a
+     * {@code state} that is either the palette string directly or an integer index into the string
+     * palette. Entries may carry the same optional {@code meta}/{@code nbt} fields as the legacy
+     * region-wand dialect.
+     *
+     * @return number of blocks successfully placed
+     */
+    private static int placeStructureModernDialect(GuidebookLevel level, NBTTagCompound root, int offsetX, int offsetY,
+        int offsetZ, boolean formed, LytErrorSink errorSink, ResourceLocation src) {
+        NBTTagList paletteTag = root.getTagList("palette", 8);
+        String[] palette = new String[paletteTag.tagCount()];
+        for (int i = 0; i < paletteTag.tagCount(); i++) {
+            palette[i] = paletteTag.getStringTagAt(i);
+        }
+
+        NBTTagList blocksTag = root.hasKey("data", 9) ? root.getTagList("data", 10) : root.getTagList("blocks", 10);
+        int placed = 0;
+        for (int i = 0; i < blocksTag.tagCount(); i++) {
+            var b = blocksTag.getCompoundTagAt(i);
+            String name = null;
+            NBTBase stateTag = b.getTag("state");
+            if (stateTag instanceof NBTTagString strTag) {
+                name = strTag.func_150285_a_();
+            } else if (stateTag != null) {
+                int state = b.getInteger("state");
+                if (state >= 0 && state < palette.length) {
+                    name = palette[state];
+                }
+            }
+            if (name == null || name.isEmpty()) continue;
+            Block block = (Block) Block.blockRegistry.getObject(name);
+            if (block == null) continue;
+
+            int[] pos = b.getIntArray("pos");
+            if (pos.length < 3) continue;
+            int px = offsetX + pos[0];
+            int py = Math.clamp(offsetY + pos[1], 0, level.getHeight() - 1);
+            int pz = offsetZ + pos[2];
+
+            int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
+            NBTTagCompound tileTag = b.hasKey("nbt", 10) ? b.getCompoundTag("nbt") : null;
+            GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, name, b);
+            ScenePreviewFormedState.updateAfterPlacement(level, px, py, pz, formed);
+            placed++;
+        }
+        return placed;
     }
 
     public static NBTTagCompound readStructureNbt(byte[] data) throws Exception {

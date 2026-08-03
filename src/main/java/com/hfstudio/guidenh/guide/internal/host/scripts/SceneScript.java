@@ -281,6 +281,16 @@ public class SceneScript implements LytScript {
         finalizeSceneGeometry(ph, scene, level, camera);
         scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
         scene.clearLoadState();
+        // Surface build failures instead of silently mounting an empty level: a structure whose
+        // format was unsupported or that placed zero blocks must show a visible error, and a scene
+        // that still ends up empty after a build attempt gets the same feedback through the scene's
+        // build-error channel (LytGuidebookScene#setBuildError).
+        if (level.isEmpty()) {
+            String message = scene.getBuildError() != null
+                ? scene.getBuildError()
+                : "Scene has no structure content (empty level)";
+            scene.setBuildError(message);
+        }
         attachSelectionListeners(scene);
         scene.initializePonderTimelineBaseline();
         scene.captureInitialInteractiveState();
@@ -386,13 +396,11 @@ public class SceneScript implements LytScript {
 
     private void finalizeSceneGeometry(ScenePlaceholder ph, LytGuidebookScene scene, GuidebookLevel level,
         CameraSettings camera) {
-        float[] center;
+        // Rotation center for the explicit-center case is set in applyCameraAndViewport;
+        // only the auto-center case (level bounds centre) is finalized here.
         if (!ph.explicitCenter) {
-            center = level.getCenter();
+            float[] center = level.getCenter();
             camera.setRotationCenter(center[0], center[1], center[2]);
-        } else {
-            center = new float[] { Float.isNaN(ph.centerX) ? 0f : ph.centerX, Float.isNaN(ph.centerY) ? 0f : ph.centerY,
-                Float.isNaN(ph.centerZ) ? 0f : ph.centerZ };
         }
 
         boolean explicitOffX = !Float.isNaN(ph.offsetX);
@@ -417,8 +425,6 @@ public class SceneScript implements LytScript {
                     camera.setZoom(autoZoom);
                 }
             }
-            if (explicitOffX) camera.setOffsetX(ph.offsetX);
-            if (explicitOffY) camera.setOffsetY(ph.offsetY);
         }
 
         if (!ph.explicitWidth || !ph.explicitHeight) {
@@ -442,12 +448,25 @@ public class SceneScript implements LytScript {
             camera.setOffsetY(savedOffY);
         }
 
-        if (!ph.explicitCenter && !explicitOffX && !explicitOffY) {
+        // Pan so the structure (level bounds centre) is inside the viewport. This runs even when an
+        // explicit rotation centre was requested — a rotation centre far from the structure (e.g.
+        // subnetworks centreY=-15) otherwise leaves the level entirely off-camera and the scene
+        // silently black. offsetX/offsetY are screen-space pan values (see SceneTagCompiler); the
+        // camera view matrix applies them in world units, so convert with the projection scale
+        // s = 0.625 * 16 * zoom = 10 * zoom.
+        float panScale = 10f * camera.getZoom();
+        if (!explicitOffX && !explicitOffY) {
             camera.setOffsetX(0f);
             camera.setOffsetY(0f);
-            var screenCenter = camera.worldToScreen(center[0], center[1], center[2]);
-            camera.setOffsetX(-screenCenter.x);
-            camera.setOffsetY(screenCenter.y);
+            if (!level.isEmpty()) {
+                float[] levelCenter = level.getCenter();
+                var screenCenter = camera.worldToScreen(levelCenter[0], levelCenter[1], levelCenter[2]);
+                camera.setOffsetX(-screenCenter.x / panScale);
+                camera.setOffsetY(screenCenter.y / panScale);
+            }
+        } else {
+            if (explicitOffX) camera.setOffsetX(ph.offsetX / panScale);
+            if (explicitOffY) camera.setOffsetY(ph.offsetY / panScale);
         }
 
     }

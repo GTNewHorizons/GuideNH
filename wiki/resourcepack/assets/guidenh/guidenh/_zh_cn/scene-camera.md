@@ -46,8 +46,13 @@ categories:
 
 * `perspective="isometric_north_east"` / `"isometric_north_west"` / `"up"` — 选择预设视角（yaw/pitch/roll）；
 * `rotateX` / `rotateY` / `rotateZ` — 在预设之上显式覆盖单个轴的旋转；
-* `offsetX` / `offsetY` — 屏幕空间平移（单位：方块）；
+* `offsetX` / `offsetY` — 屏幕空间相机平移，单位为**像素**（见[屏幕空间平移](#屏幕空间平移)）；
 * `centerX` / `centerY` / `centerZ` — 显式指定旋转中心（覆盖自动居中）。
+
+> **迁移说明（2026-08）**：旧版本文档将 `offsetX` / `offsetY` 描述为「单位：方块」，
+> 该表述已过时——偏移是**屏幕空间像素**，与场景缩放无关（相机内部按投影比例
+> `10 × zoom` 换算）。若你此前按旧的方块语义书写偏移值，请按目标屏幕位移重新调整；
+> 现在相同的像素偏移在任意缩放级别下都产生相同的视觉位移。
 
 NE 与 NW 预设对比：
 
@@ -75,7 +80,7 @@ NE 与 NW 预设对比：
 
 ## 屏幕空间平移
 
-`offsetX` / `offsetY` 平移——右侧场景向右下偏移 2/1 个方块：
+`offsetX` / `offsetY` 平移——右侧场景向右下偏移 2/1 像素（屏幕空间）：
 
 <Row>
   <GameScene width="160" height="128" zoom={4} interactive={true}>
