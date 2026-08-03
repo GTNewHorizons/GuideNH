@@ -1064,9 +1064,10 @@ fn measure_mediawiki_special_generated(
     const ENTRY_VERTICAL_PADDING_BOTTOM: f32 = 3.0;
     const LOAD_MORE_HEIGHT: f32 = 18.0;
     const LOAD_MORE_MARGIN_TOP: f32 = 2.0;
-    // Line heights: getLineHeight(LINK_STYLE) = 10, getLineHeight(SUBTITLE_STYLE) = 10
-    const TITLE_LINE_HEIGHT: f32 = 10.0;
-    const SUBTITLE_LINE_HEIGHT: f32 = 10.0;
+    // Line heights come from the serialized data: Java's
+    // GuideText.lineHeight(LINK_STYLE)/lineHeight(SUBTITLE_STYLE) (= 17 at
+    // scale 1). The fbs fields default to 10.0 for old serialized data.
+    // (Previously hardcoded 10.0 here, making the block ~1/3 too short.)
 
     let node = &nodes[idx];
     let data = match node.mediawiki_special_generated_data() {
@@ -1094,6 +1095,12 @@ fn measure_mediawiki_special_generated(
     let subtitle_line_word_counts = data.subtitle_line_word_counts();
     let subtitle_word_widths = data.subtitle_word_widths();
     let subtitle_space_width = data.subtitle_space_width();
+
+    // Real line heights serialized from Java (GuideText.lineHeight), mirroring
+    // computeEntryHeight/rowContentHeight's getLineHeight(LINK_STYLE) and
+    // getLineHeight(SUBTITLE_STYLE). fbs defaults to 10.0 for old data.
+    let title_line_height = data.link_line_height();
+    let subtitle_line_height = data.subtitle_line_height();
 
     let group_cnt = data.group_count().max(0) as usize;
     let group_title_widths = data.group_title_widths();
@@ -1215,8 +1222,8 @@ fn measure_mediawiki_special_generated(
         //   contentHeight = max(ICON_SIZE, getLineHeight(LINK_STYLE) + TITLE_SUBTITLE_GAP
         //                               + getLineHeight(SUBTITLE_STYLE) * subtitleLines.size())
         //   height = max(ENTRY_HEIGHT, ENTRY_VERTICAL_PADDING_TOP + contentHeight + ENTRY_VERTICAL_PADDING_BOTTOM)
-        let content_height = (TITLE_LINE_HEIGHT + TITLE_SUBTITLE_GAP
-            + SUBTITLE_LINE_HEIGHT * total_wrapped as f32)
+        let content_height = (title_line_height + TITLE_SUBTITLE_GAP
+            + subtitle_line_height * total_wrapped as f32)
             .max(ICON_SIZE);
         (ENTRY_VERTICAL_PADDING_TOP + content_height + ENTRY_VERTICAL_PADDING_BOTTOM)
             .max(ENTRY_HEIGHT)

@@ -858,7 +858,9 @@ public final class LayoutNodeSerializer {
                     entrySubtitleLineCountsOff,
                     subtitleLineWordCountsOff,
                     subtitleWordWidthsOff,
-                    impl.subtitleSpaceWidth());
+                    impl.subtitleSpaceWidth(),
+                    impl.linkLineHeight(),
+                    impl.subtitleLineHeight());
             }
         }
 
@@ -866,7 +868,7 @@ public final class LayoutNodeSerializer {
         return MediaWikiSpecialGeneratedData.createMediaWikiSpecialGeneratedData(
             fbb, maxContentHeight, 1, false, 0,
             0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 4.0f);
+            0, 0, 0, 0, 0, 0, 4.0f, 10.0f, 10.0f);
     }
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {

@@ -152,6 +152,20 @@ public final class MediaWikiSpecialGeneratedData extends Table {
    * Width of a space character in SUBTITLE_STYLE (for word-gap calculations).
    */
   public float subtitleSpaceWidth() { int o = __offset(32); return o != 0 ? bb.getFloat(o + bb_pos) : 4.0f; }
+  /**
+   * Line height of LINK_STYLE — GuideText.lineHeight(LINK_STYLE) (= 17 at
+   * scale 1). Mirrors Java computeEntryHeight's getLineHeight(LINK_STYLE) /
+   * rowContentHeight's GuideText.lineHeight(rowStyle). Default 10.0 keeps
+   * old serialized data (which lacked this field) rendering as before.
+   */
+  public float linkLineHeight() { int o = __offset(34); return o != 0 ? bb.getFloat(o + bb_pos) : 10.0f; }
+  /**
+   * Line height of SUBTITLE_STYLE — GuideText.lineHeight(SUBTITLE_STYLE)
+   * (= 17 at scale 1). Mirrors Java computeEntryHeight/rowContentHeight's
+   * GuideText.lineHeight(SUBTITLE_STYLE). Default 10.0 keeps old serialized
+   * data (which lacked this field) rendering as before.
+   */
+  public float subtitleLineHeight() { int o = __offset(36); return o != 0 ? bb.getFloat(o + bb_pos) : 10.0f; }
 
   public static int createMediaWikiSpecialGeneratedData(FlatBufferBuilder builder,
       float maxContentHeight,
@@ -168,8 +182,12 @@ public final class MediaWikiSpecialGeneratedData extends Table {
       int entrySubtitleLineCountsOffset,
       int subtitleLineWordCountsOffset,
       int subtitleWordWidthsOffset,
-      float subtitleSpaceWidth) {
-    builder.startTable(15);
+      float subtitleSpaceWidth,
+      float linkLineHeight,
+      float subtitleLineHeight) {
+    builder.startTable(17);
+    MediaWikiSpecialGeneratedData.addSubtitleLineHeight(builder, subtitleLineHeight);
+    MediaWikiSpecialGeneratedData.addLinkLineHeight(builder, linkLineHeight);
     MediaWikiSpecialGeneratedData.addSubtitleSpaceWidth(builder, subtitleSpaceWidth);
     MediaWikiSpecialGeneratedData.addSubtitleWordWidths(builder, subtitleWordWidthsOffset);
     MediaWikiSpecialGeneratedData.addSubtitleLineWordCounts(builder, subtitleLineWordCountsOffset);
@@ -188,7 +206,7 @@ public final class MediaWikiSpecialGeneratedData extends Table {
     return MediaWikiSpecialGeneratedData.endMediaWikiSpecialGeneratedData(builder);
   }
 
-  public static void startMediaWikiSpecialGeneratedData(FlatBufferBuilder builder) { builder.startTable(15); }
+  public static void startMediaWikiSpecialGeneratedData(FlatBufferBuilder builder) { builder.startTable(17); }
   public static void addMaxContentHeight(FlatBufferBuilder builder, float maxContentHeight) { builder.addFloat(0, maxContentHeight, 0.0f); }
   public static void addColumnCount(FlatBufferBuilder builder, int columnCount) { builder.addInt(1, columnCount, 1); }
   public static void addHasMore(FlatBufferBuilder builder, boolean hasMore) { builder.addBoolean(2, hasMore, false); }
@@ -223,6 +241,8 @@ public final class MediaWikiSpecialGeneratedData extends Table {
   public static int createSubtitleWordWidthsVector(FlatBufferBuilder builder, float[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]); return builder.endVector(); }
   public static void startSubtitleWordWidthsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
   public static void addSubtitleSpaceWidth(FlatBufferBuilder builder, float subtitleSpaceWidth) { builder.addFloat(14, subtitleSpaceWidth, 4.0f); }
+  public static void addLinkLineHeight(FlatBufferBuilder builder, float linkLineHeight) { builder.addFloat(15, linkLineHeight, 10.0f); }
+  public static void addSubtitleLineHeight(FlatBufferBuilder builder, float subtitleLineHeight) { builder.addFloat(16, subtitleLineHeight, 10.0f); }
   public static int endMediaWikiSpecialGeneratedData(FlatBufferBuilder builder) {
     int o = builder.endTable();
     return o;

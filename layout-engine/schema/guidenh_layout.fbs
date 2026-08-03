@@ -336,6 +336,17 @@ table MediaWikiSpecialGeneratedData {
   subtitle_word_widths: [float];
   /// Width of a space character in SUBTITLE_STYLE (for word-gap calculations).
   subtitle_space_width: float = 4.0;
+
+  /// Line height of LINK_STYLE — GuideText.lineHeight(LINK_STYLE) (= 17 at
+  /// scale 1). Mirrors Java computeEntryHeight's getLineHeight(LINK_STYLE) /
+  /// rowContentHeight's GuideText.lineHeight(rowStyle). Default 10.0 keeps
+  /// old serialized data (which lacked this field) rendering as before.
+  link_line_height: float = 10.0;
+  /// Line height of SUBTITLE_STYLE — GuideText.lineHeight(SUBTITLE_STYLE)
+  /// (= 17 at scale 1). Mirrors Java computeEntryHeight/rowContentHeight's
+  /// GuideText.lineHeight(SUBTITLE_STYLE). Default 10.0 keeps old serialized
+  /// data (which lacked this field) rendering as before.
+  subtitle_line_height: float = 10.0;
 }
 
 /// MediaWiki generated list sizing data (node_type 29).

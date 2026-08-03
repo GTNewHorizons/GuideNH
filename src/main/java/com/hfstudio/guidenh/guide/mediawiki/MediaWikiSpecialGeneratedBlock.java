@@ -95,7 +95,9 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             int[] entrySubtitleLineCounts,
             int[] subtitleLineWordCounts,
             float[] subtitleWordWidths,
-            float subtitleSpaceWidth) {}
+            float subtitleSpaceWidth,
+            float linkLineHeight,
+            float subtitleLineHeight) {}
     }
 
     private FontFacts.FontFactsImpl collectFontFactsImpl() {
@@ -110,7 +112,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             return new FontFacts.FontFactsImpl(
                 columnCount, false, 0, new float[0], new int[0], new float[0],
                 0, new float[0], new byte[0], new float[0], new int[0],
-                new int[0], new float[0], 0f);
+                new int[0], new float[0], 0f,
+                GuideText.lineHeight(LINK_STYLE), GuideText.lineHeight(SUBTITLE_STYLE));
         }
 
         if (!isGrouped) {
@@ -194,7 +197,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 groupTitleWidths, groupEntryCounts, groupEstimatedHeights,
                 totalEntryCount,
                 entryTitleWidths, entryHasIcon, entryEstimatedHeights, entrySubtitleLineCounts,
-                lwc, ww, spaceWidth);
+                lwc, ww, spaceWidth,
+                GuideText.lineHeight(LINK_STYLE), GuideText.lineHeight(SUBTITLE_STYLE));
         } else {
             // ── Grouped entries: one group per result group ──
             java.util.List<GroupLayout> groups = buildGroups(visibleResult);
@@ -269,7 +273,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 groupTitleWidths, groupEntryCounts, groupEstimatedHeights,
                 totalEntryCount,
                 entryTitleWidths, entryHasIcon, entryEstimatedHeights, entrySubtitleLineCounts,
-                lwc, ww, spaceWidth);
+                lwc, ww, spaceWidth,
+                GuideText.lineHeight(LINK_STYLE), GuideText.lineHeight(SUBTITLE_STYLE));
         }
     }
     private static final int SIDE_PADDING = 2;
