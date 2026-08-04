@@ -96,7 +96,8 @@ public class GuideNhHeadlessRenderDriver {
         boolean emitBoundsJson,
         boolean emitDebugOverlay,
         String worldName,
-        int scale
+        int scale,
+        boolean chrome
     ) {}
 
     // ---- state machine -------------------------------------------------------
@@ -123,6 +124,10 @@ public class GuideNhHeadlessRenderDriver {
     public GuideNhHeadlessRenderDriver(HeadlessRenderConfig config) {
         this.config = config;
         this.watchdogDeadlineNanos = System.nanoTime() + 360_000_000_000L;
+        if (config.chrome()) {
+            GuideDebugLog.infoAlways(
+                "[GuideNH] [HeadlessRender] chrome pass enabled: nav bar will be appended to page renders");
+        }
     }
 
     // ---- property parsing ----------------------------------------------------
@@ -213,6 +218,8 @@ public class GuideNhHeadlessRenderDriver {
             return null;
         }
 
+        boolean chrome = Boolean.parseBoolean(System.getProperty("guidenh.renderpage.chrome", "false"));
+
         Path mdPath = null;
         Path listPath = null;
         try {
@@ -240,7 +247,8 @@ public class GuideNhHeadlessRenderDriver {
             bounds,
             overlay,
             worldName,
-            scale
+            scale,
+            chrome
         );
     }
 
@@ -518,7 +526,8 @@ public class GuideNhHeadlessRenderDriver {
                 config.outDir(),
                 config.emitBoundsJson(),
                 config.emitDebugOverlay(),
-                config.scale()
+                config.scale(),
+                config.chrome()
             );
             RenderPageService.RenderPageResult result = RenderPageService.render(req);
 
@@ -638,7 +647,8 @@ public class GuideNhHeadlessRenderDriver {
                 config.outDir(),
                 config.emitBoundsJson(),
                 config.emitDebugOverlay(),
-                config.scale()
+                config.scale(),
+                config.chrome()
             );
             RenderPageService.RenderPageResult result = RenderPageService.render(req);
 

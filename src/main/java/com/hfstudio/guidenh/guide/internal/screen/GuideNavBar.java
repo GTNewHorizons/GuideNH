@@ -36,6 +36,7 @@ import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -1073,6 +1074,155 @@ public class GuideNavBar {
         var engine = LytDocument.getRenderEngine();
         engine.beginFrame(LytRect.empty(), DisplayScale.scaleFactor());
         engine.execute(prims);
+    }
+
+    // ---- headless chrome-pass collection (S2) ------------------------------
+
+    /**
+     * Headless chrome-pass collection: mirror of {@link #render} that emits the
+     * whole bar — band background, title bar, row geometry and GuideText glyph
+     * runs — as render primitives into {@code collector} instead of drawing to
+     * the GL framebuffer. Text goes through the exact same S1 pipeline
+     * (GuideText.emitText via {@link #renderRowTitle}); geometry that the live
+     * path draws with Gui.drawRect / drawVGradient / drawArrow is emitted as
+     * FillRect / GradientFill primitives. Texture-blit chrome (pin/new-page
+     * buttons, page mini-icons, bookmark icons) is intentionally not emitted
+     * (declared assumption in RenderPageService); row text x still advances
+     * past the icon slot to match the live bar. The body clip uses a
+     * document-space {@link PrimitiveCollector#pushScissor} (the headless
+     * variant of the live PushScreenScissor) so the clip scales with the
+     * offscreen render density exactly like the glyph runs.
+     */
+    public void collectPrimitives(@Nullable ResourceLocation currentGuideId,
+        @Nullable ResourceLocation currentPageId, @Nullable PageCollection pageCollection,
+        GuideBookmarkState bookmarkState, boolean showNewPageButton, PrimitiveCollector collector) {
+        updateVisualScroll();
+        int w = currentWidth();
+        int rowRight = x + w - 1;
+        int textRightBase = x + w - 2;
+        int bookmarkActionLeft = getBookmarkActionLeft(w);
+        int bookmarkIconX = bookmarkActionLeft + ACTION_PADDING_RIGHT;
+        collector.emit(new GuideRenderPrimitive.GradientFill(x, y, w, height, 0xE0151515, 0xE0101010));
+        collector.emit(new GuideRenderPrimitive.FillRect(rowRight, y, (x + w) - rowRight, height, 0xFF2A2A2A));
+
+        if (!isOpen()) {
+            emitArrowPrimitive(collector, x + w / 2 - 2, y + height / 2 - 3, true, 0xFF888888);
+            return;
+        }
+
+        collector.emit(new GuideRenderPrimitive.FillRect(x, y, w - 1, TITLE_H, 0xD0202020));
+        collector.emit(new GuideRenderPrimitive.FillRect(x, y + TITLE_H - 1, w - 1, 1, 0xFF2A2A2A));
+
+        int titleX = x + TITLE_TEXT_LEFT_PADDING;
+        int titleRight = (showNewPageButton ? getNewPageButtonX() : getPinButtonX()) - TITLE_BUTTON_GAP;
+        int titleW = Math.max(0, titleRight - titleX);
+        if (titleW > 0) {
+            String title = GuidebookText.NavigationTitle.text();
+            String renderedTitle = GuideText.measureWidth(title, TITLE_TEXT_STYLE) > titleW
+                ? GuideText.clipToWidth(title, titleW, TITLE_TEXT_STYLE, GuideText.ClipSuffix.UNICODE_ELLIPSIS)
+                : title;
+            GuideText.emitText(collector, renderedTitle, titleX, titleLineTop(), TITLE_TEXT_STYLE);
+        }
+
+        int bodyY = getBodyY();
+        int bodyHeight = getBodyHeight();
+        if (bodyHeight <= 0) {
+            return;
+        }
+
+        collector.pushScissor(x, bodyY, w, bodyHeight);
+
+        StickyStack stickyRows = computeStickyStack(bodyY);
+        int firstVisibleRow = getFirstVisibleRowIndex();
+        int stickyPointer = 0;
+        int nextStickyRowIndex = !stickyRows.isEmpty() ? stickyRows.rowIndexAt(0) : Integer.MAX_VALUE;
+        for (int rowIndex = firstVisibleRow; rowIndex < rows.size(); rowIndex++) {
+            Row row = rows.get(rowIndex);
+            int rowY = getRowY(rowIndex);
+            if (rowY >= getBodyBottom()) {
+                break;
+            }
+            if (rowIndex == nextStickyRowIndex) {
+                stickyPointer++;
+                nextStickyRowIndex = stickyPointer < stickyRows.size() ? stickyRows.rowIndexAt(stickyPointer)
+                    : Integer.MAX_VALUE;
+                continue;
+            }
+            collectRow(collector, row, rowY, rowRight, textRightBase, currentGuideId, currentPageId,
+                pageCollection, bookmarkState, bookmarkActionLeft, bookmarkIconX, false);
+        }
+        for (int stackIndex = 0; stackIndex < stickyRows.size(); stackIndex++) {
+            collectRow(collector, stickyRows.rowAt(stackIndex), stickyRows.rowYAt(stackIndex), rowRight,
+                textRightBase, currentGuideId, currentPageId, pageCollection, bookmarkState, bookmarkActionLeft,
+                bookmarkIconX, true);
+        }
+        collector.popScissor();
+    }
+
+    private void collectRow(PrimitiveCollector collector, Row row, int rowY, int rowRight, int textRightBase,
+        @Nullable ResourceLocation currentGuideId, @Nullable ResourceLocation currentPageId,
+        @Nullable PageCollection pageCollection, GuideBookmarkState bookmarkState, int bookmarkActionLeft,
+        int bookmarkIconX, boolean sticky) {
+        GuideNavProjection.DisplayRow displayRow = row.displayRow();
+        int indent = row.indent();
+        int rowX = x + 2 + indent;
+        boolean current = isCurrentRow(row, currentGuideId, currentPageId);
+        boolean bookmarkable = row.bookmarkable();
+
+        GuideDebugLog.infoAlways(
+            "[chrome] nav row y={} indent={} title={} kind={}",
+            rowY, indent, displayRow.title(), displayRow.kind());
+
+        if (sticky) {
+            collector.emit(new GuideRenderPrimitive.FillRect(x, rowY, rowRight - x, ROW_H, 0xF0181818));
+            collector.emit(new GuideRenderPrimitive.FillRect(x, rowY + ROW_H - 1, rowRight - x, 1, 0x802A2A2A));
+        }
+        if (current) {
+            collector.emit(new GuideRenderPrimitive.FillRect(x, rowY, rowRight - x, ROW_H, 0x40FFFFFF));
+        }
+
+        if (row.hasChildren()) {
+            emitArrowPrimitive(collector, rowX, rowY + 2, isCollapsed(row), 0xFFCCCCCC);
+        }
+
+        int textX = rowX + EXPAND_INDENT;
+        GuidePageIcon icon = displayRow.icon();
+        if (icon != null) {
+            // Headless: texture/item mini-icon blits are skipped (GUI texture and
+            // item rendering do not round-trip through the offscreen primitive
+            // pipeline); the text x still advances past the icon slot to match
+            // the live bar geometry.
+            textX += ICON_SIZE + 2;
+        }
+
+        int textRight = textRightBase;
+        if (bookmarkable) {
+            textRight -= ACTION_SLOT_W;
+        }
+        int maxTw = textRight - textX;
+        if (maxTw > 0) {
+            ResourceLocation pageId = row.pageId();
+            boolean failed = pageId != null && pageCollection != null && pageCollection.isPageFailed(pageId);
+            int color = getRowTextColor(current, false, failed);
+            renderRowTitle(Minecraft.getMinecraft(), collector, row, textX, rowY, maxTw, color, false,
+                DisplayScale.scaleFactor());
+        }
+    }
+
+    /** Emit the stepped expander/closed arrow as 1px quads (mirror of {@link #drawArrow}). */
+    private static void emitArrowPrimitive(PrimitiveCollector collector, int x, int y, boolean pointRight,
+        int color) {
+        if (pointRight) {
+            collector.emit(new GuideRenderPrimitive.FillRect(x, y, 1, 7, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 1, y + 1, 1, 5, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 2, y + 2, 1, 3, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 3, y + 3, 1, 1, color));
+        } else {
+            collector.emit(new GuideRenderPrimitive.FillRect(x, y, 7, 1, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 1, y + 1, 5, 1, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 2, y + 2, 3, 1, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 3, y + 3, 1, 1, color));
+        }
     }
 
     /** Line top that centers the row text's line box vertically in a ROW_H box. */

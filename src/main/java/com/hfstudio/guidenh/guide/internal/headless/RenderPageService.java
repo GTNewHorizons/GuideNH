@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -30,15 +32,19 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.ClientProxy;
+import com.hfstudio.guidenh.guide.internal.GuideBookmarkState;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
+import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
+import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
 import com.hfstudio.guidenh.guide.layout.FontProvider;
 import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.LayoutTreeSerializer;
 import com.hfstudio.guidenh.guide.layout.RustFontMetrics;
 import com.hfstudio.guidenh.guide.layout.SystemFontProvider;
+import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
@@ -82,6 +88,11 @@ public final class RenderPageService {
      * @param emitBoundsJson   if true, write a block-bounds JSON sidecar
      * @param emitDebugOverlay if true, write a debug overlay PNG
      * @param scale            render pixel-density multiplier (1-4; 1 = 1×, no scaling)
+     * @param chrome           if true, append the GuideNavBar chrome pass to the
+     *                         headless render (S2 verification channel). The nav
+     *                         bar occupies the left {@link #navBarWidth(int)}
+     *                         logical px and the document is shifted right; the
+     *                         bounds JSON stays in document coordinates.
      */
     public record RenderPageRequest(
         String guideId,
@@ -92,8 +103,25 @@ public final class RenderPageService {
         Path outDir,
         boolean emitBoundsJson,
         boolean emitDebugOverlay,
-        int scale
-    ) {}
+        int scale,
+        boolean chrome
+    ) {
+
+        /** Legacy 9-arg construction (in-game command path) — chrome defaults off. */
+        public RenderPageRequest(
+            String guideId,
+            String pageId,
+            Path mdFile,
+            String language,
+            int width,
+            Path outDir,
+            boolean emitBoundsJson,
+            boolean emitDebugOverlay,
+            int scale
+        ) {
+            this(guideId, pageId, mdFile, language, width, outDir, emitBoundsJson, emitDebugOverlay, scale, false);
+        }
+    }
 
     /**
      * @param pngPath        path of the written PNG
@@ -296,10 +324,33 @@ public final class RenderPageService {
 
         // ---- 6. Render ------------------------------------------------------
         int scale = req.scale();
+        int renderedWidth = req.width();
         BufferedImage image;
         try {
-            image = DocumentOffscreenFramebuffer.renderAll(
-                primitives, renderCtx, req.width(), contentHeight, 0x121216, scale);
+            if (req.chrome()) {
+                // Chrome pass: the document renders byte-identically to the
+                // chrome=false path (own renderAll call), and the GuideNavBar
+                // renders in a second offscreen pass at the left. The two are
+                // composited side by side (nav left, document right), mirroring
+                // the real GuideScreen layout (nav sidebar + content area).
+                BufferedImage docImage = DocumentOffscreenFramebuffer.renderAll(
+                    primitives, renderCtx, req.width(), contentHeight, 0x121216, scale);
+                List<GuideRenderPrimitive> navPrims = new ArrayList<>();
+                VanillaRenderContext navCtx = collectNavBarPrimitives(
+                    req, guide, compiledPage, contentHeight, navPrims);
+                int navW = navBarWidth(req.width());
+                BufferedImage navImage = DocumentOffscreenFramebuffer.renderAll(
+                    navPrims, navCtx, navW, contentHeight, 0x121216, scale);
+                image = composeChrome(docImage, navImage, navW * scale, 0x121216);
+                renderedWidth = req.width() + navW;
+                GuideDebugLog.infoAlways(
+                    "RenderPageService: chrome pass composed {} nav primitives into {}x{} output "
+                        + "(nav width {} logical px, scale {})",
+                    navPrims.size(), image.getWidth(), image.getHeight(), navW, scale);
+            } else {
+                image = DocumentOffscreenFramebuffer.renderAll(
+                    primitives, renderCtx, req.width(), contentHeight, 0x121216, scale);
+            }
         } catch (Exception e) {
             throw new RenderPageException(
                 RenderPageException.Stage.RENDER, "Offscreen rendering failed", e);
@@ -363,7 +414,7 @@ public final class RenderPageService {
 
         int blockCount = countBlocks(document);
         return new RenderPageResult(
-            pngPath, boundsJsonPath, req.width() * scale, contentHeight * scale, blockCount);
+            pngPath, boundsJsonPath, renderedWidth * scale, contentHeight * scale, blockCount);
     }
 
     // ---- compilation helpers ------------------------------------------------
@@ -440,6 +491,80 @@ public final class RenderPageService {
             // pages collection is not loaded yet
             return "Page not found: " + pageId + " (pages not loaded yet)";
         }
+    }
+
+    // ---- chrome pass helpers (S2 nav bar overlay) --------------------------
+
+    /**
+     * Nav bar open width for the headless chrome pass, mirroring
+     * {@code GuideScreen.resolveNavigationOpenWidth} under the full-width
+     * assumption (panelX = 0, panelW = page width): 18 % of the page width,
+     * floored at {@link GuideNavBar#MIN_DYNAMIC_OPEN_WIDTH} and capped by the
+     * panel minus padding. For the default 900 px page width this yields
+     * {@code max(110, 162) = 162} logical px.
+     */
+    private static int navBarWidth(int pageWidth) {
+        int requested = Math.max(
+            GuideNavBar.MIN_DYNAMIC_OPEN_WIDTH,
+            pageWidth * GuideNavBar.OPEN_WIDTH_SCREEN_PERCENT / 100);
+        int maxWidth = Math.max(GuideNavBar.WIDTH_CLOSED, pageWidth - 16 - 40);
+        return Math.min(requested, maxWidth);
+    }
+
+    /**
+     * Build a fresh GuideNavBar for the current guide, drive it to the same
+     * state the live screen would reach (open/pinned, current page's ancestors
+     * expanded) and collect its render primitives via
+     * {@link GuideNavBar#collectPrimitives}. The nav bar spans the full
+     * document height at x = 0; the returned context backs the second offscreen
+     * pass. Headless-only — never touches the live GuideScreen's nav bar.
+     */
+    private static VanillaRenderContext collectNavBarPrimitives(RenderPageRequest req, MutableGuide guide,
+        GuidePage compiledPage, int contentHeight, List<GuideRenderPrimitive> target) {
+        int navW = navBarWidth(req.width());
+        GuideNavBar navBar = new GuideNavBar();
+        navBar.setBounds(0, 0, contentHeight);
+        navBar.setOpenWidth(navW);
+        GuideBookmarkState bookmarkState = GuideBookmarkState.getSharedInstance();
+        NavigationTree tree = guide.getNavigationTree();
+        navBar.activateGuide(
+            guide.getId(),
+            GuideNavBarState.defaultState(),
+            tree,
+            bookmarkState,
+            compiledPage.id(),
+            Collections.emptySet());
+        navBar.setPinned(true);
+        navBar.update(-1, -1, tree, bookmarkState);
+        VanillaRenderContext navCtx = new VanillaRenderContext(
+            LightDarkMode.DARK_MODE, new LytRect(0, 0, navW, contentHeight), contentHeight);
+        var navCollector = new PrimitiveCollector(new LytRect(0, 0, navW, contentHeight), navCtx);
+        navBar.collectPrimitives(guide.getId(), compiledPage.id(), guide, bookmarkState, false, navCollector);
+        target.addAll(navCollector.result());
+        return navCtx;
+    }
+
+    /**
+     * Composite the two offscreen passes side by side: nav image at x = 0,
+     * document image shifted right by {@code navWidthPx} (scale-scaled nav
+     * width). The background fills the remaining band gap if the nav image is
+     * shorter than the document image.
+     */
+    private static BufferedImage composeChrome(BufferedImage docImage, BufferedImage navImage, int navWidthPx,
+        int backgroundRgb) {
+        int w = docImage.getWidth() + navWidthPx;
+        int h = Math.max(docImage.getHeight(), navImage.getHeight());
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = out.createGraphics();
+        try {
+            g.setColor(new Color(backgroundRgb));
+            g.fillRect(0, 0, w, h);
+            g.drawImage(navImage, 0, 0, null);
+            g.drawImage(docImage, navWidthPx, 0, null);
+        } finally {
+            g.dispose();
+        }
+        return out;
     }
 
     // ---- file naming --------------------------------------------------------
