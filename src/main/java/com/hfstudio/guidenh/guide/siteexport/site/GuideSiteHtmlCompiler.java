@@ -842,28 +842,124 @@ public class GuideSiteHtmlCompiler {
         if (heightValue != null && heightAlias != null) {
             return renderExportError("FloatingImage cannot use both height and h.");
         }
-        Integer cropX = parsePositiveOrZeroInt(element.getAttributeString("x", null));
-        Integer cropY = parsePositiveOrZeroInt(element.getAttributeString("y", null));
-        Integer cropWidth = parseAliasedPositiveInt(element, "width", "w");
-        Integer cropHeight = parseAliasedPositiveInt(element, "height", "h");
+        // F-N1 parity with FloatingImageCompiler.parseCropSpec: hasWidth /
+        // hasHeight are decided by raw attribute presence, so a present-but-
+        // malformed or non-positive dimension reports an error instead of
+        // silently falling back to the single-parameter path.
+        boolean hasWidth = hasText(widthValue) || hasText(widthAlias);
+        boolean hasHeight = hasText(heightValue) || hasText(heightAlias);
+        // A single explicit dimension (width-only or height-only) is a valid
+        // whole-image display size; only the "both missing" case is an error.
+        if (!hasWidth && !hasHeight) {
+            return renderExportError("FloatingImage requires width or w, and height or h.");
+        }
+        // Error semantics mirror FloatingImageCompiler.parseAliasedIntAttr /
+        // parseCropSpec: a present non-integer reports "must be an integer", a
+        // present-but-non-positive value reports the non-positive error.
+        Integer width = null;
+        if (hasWidth) {
+            StringBuilder widthError = new StringBuilder();
+            width = parsePresentDimension(widthValue != null ? widthValue : widthAlias, "width", widthError);
+            if (width == null) {
+                return renderExportError(widthError.toString());
+            }
+        }
+        Integer height = null;
+        if (hasHeight) {
+            StringBuilder heightError = new StringBuilder();
+            height = parsePresentDimension(heightValue != null ? heightValue : heightAlias, "height", heightError);
+            if (height == null) {
+                return renderExportError(heightError.toString());
+            }
+        }
+        // x/y are crop offsets and default to 0 when absent (mirrors the
+        // runtime); a present-but-malformed or negative value is still an error.
+        Integer cropX = parseOptionalNonNegativeInt(element.getAttributeString("x", null), 0);
+        Integer cropY = parseOptionalNonNegativeInt(element.getAttributeString("y", null), 0);
+        if (cropX == null || cropY == null) {
+            return renderExportError("FloatingImage x and y must be non-negative integers.");
+        }
         Double scaleX = parsePositiveDouble(element.getAttributeString("scaleX", null), 1.0d);
         Double scaleY = parsePositiveDouble(element.getAttributeString("scaleY", null), 1.0d);
-        if (cropX == null || cropY == null || cropWidth == null || cropHeight == null) {
-            return renderExportError(
-                "FloatingImage requires non-negative x and y, plus positive width or w and height or h.");
-        }
         if (scaleX == null || scaleY == null) {
             return renderExportError("FloatingImage scaleX and scaleY must be positive numbers.");
         }
         String src = resolveImageSource(rawSrc, currentPageId);
 
-        double displayWidth = cropWidth * scaleX;
-        double displayHeight = cropHeight * scaleY;
         boolean inlineWrap = "inline".equals(element.getAttributeString("wrap", null));
         String align = element.getAttributeString("align", "left");
         if (!inlineWrap && !"left".equals(align) && !"right".equals(align)) {
             return renderExportError("FloatingImage align must be left or right unless wrap=\"inline\".");
         }
+        List<ImageAnnotationExport> annotations = collectImageAnnotations(
+            element,
+            templates,
+            defaultNamespace,
+            currentPageId,
+            sceneResolver,
+            hasWidth && hasHeight ? width : null,
+            hasWidth && hasHeight ? height : null);
+
+        if (hasWidth && hasHeight) {
+            double displayWidth = width * scaleX;
+            double displayHeight = height * scaleY;
+            StringBuilder wrapperStyle = new StringBuilder();
+            if (inlineWrap) {
+                wrapperStyle.append("display:inline-block;vertical-align:middle;");
+            } else if ("right".equals(align)) {
+                wrapperStyle.append("float:right;margin:0 0 5px 5px;");
+            } else {
+                wrapperStyle.append("float:left;margin:0 5px 5px 0;");
+            }
+            wrapperStyle.append("width:")
+                .append(toCssNumber(displayWidth))
+                .append("px;height:")
+                .append(toCssNumber(displayHeight))
+                .append("px;");
+            return buildCroppedFloatingImageHtml(
+                src,
+                alt,
+                title,
+                wrapperStyle.toString(),
+                cropX,
+                cropY,
+                width,
+                height,
+                scaleX,
+                scaleY,
+                inlineWrap,
+                annotations);
+        }
+        return buildSingleParamFloatingImageHtml(
+            src,
+            alt,
+            title,
+            inlineWrap,
+            align,
+            hasWidth,
+            hasWidth ? width * scaleX : height * scaleY,
+            annotations);
+    }
+
+    /**
+     * Builds the HTML for an F-N1 single-parameter {@code FloatingImage}
+     * (width-only or height-only): whole-image display at the given dimension ×
+     * its scale, with the missing axis inferred from the image's natural aspect
+     * ratio. The export side has no runtime texture, so the natural ratio
+     * cannot be pre-computed here — instead the wrapper fixes only the given
+     * axis and the {@code <img>} keeps the other axis at {@code auto}, letting
+     * the browser derive it from the intrinsic ratio at render time.
+     *
+     * <p>The {@code guide-floating-image-wrap}/{@code guide-floating-image}
+     * classes are deliberately omitted: the site's {@code layoutCroppedFloatingImage()}
+     * recomputes wrapper/img sizes from crop {@code data-*} attributes with a
+     * {@code naturalWidth} fallback and would otherwise override the given
+     * dimension with the image's natural size. The inline style replicates the
+     * class-based wrapper behaviour instead.
+     */
+    private String buildSingleParamFloatingImageHtml(String src, String alt, @Nullable String title,
+        boolean inlineWrap, String align, boolean hasWidth, double displayDimension,
+        List<ImageAnnotationExport> annotations) {
         StringBuilder wrapperStyle = new StringBuilder();
         if (inlineWrap) {
             wrapperStyle.append("display:inline-block;vertical-align:middle;");
@@ -872,33 +968,51 @@ public class GuideSiteHtmlCompiler {
         } else {
             wrapperStyle.append("float:left;margin:0 5px 5px 0;");
         }
-        wrapperStyle.append("width:")
-            .append(toCssNumber(displayWidth))
-            .append("px;height:")
-            .append(toCssNumber(displayHeight))
-            .append("px;");
-
-        List<ImageAnnotationExport> annotations = collectImageAnnotations(
-            element,
-            templates,
-            defaultNamespace,
-            currentPageId,
-            sceneResolver,
-            cropWidth,
-            cropHeight);
-        return buildCroppedFloatingImageHtml(
-            src,
-            alt,
-            title,
-            wrapperStyle.toString(),
-            cropX,
-            cropY,
-            cropWidth,
-            cropHeight,
-            scaleX,
-            scaleY,
-            inlineWrap,
-            annotations);
+        wrapperStyle
+            .append("position:relative;display:inline-block;max-width:100%;vertical-align:top;overflow:hidden;");
+        if (hasWidth) {
+            wrapperStyle.append("width:")
+                .append(toCssNumber(displayDimension))
+                .append("px;");
+        } else {
+            wrapperStyle.append("height:")
+                .append(toCssNumber(displayDimension))
+                .append("px;");
+        }
+        StringBuilder html = new StringBuilder();
+        html.append("<span style=\"")
+            .append(escapeAttribute(wrapperStyle.toString()))
+            .append("\">");
+        html.append("<img class=\"guide-image\" src=\"")
+            .append(escapeAttribute(src))
+            .append("\" alt=\"")
+            .append(escapeAttribute(alt != null ? alt : ""))
+            .append("\"");
+        if (title != null && !title.isEmpty()) {
+            html.append(" title=\"")
+                .append(escapeAttribute(title))
+                .append("\"");
+        }
+        // Render the given display dimension as an intrinsic attribute and
+        // leave the missing axis auto (see the F-N1 javadoc above).
+        if (hasWidth) {
+            html.append(" width=\"")
+                .append(toCssNumber(displayDimension))
+                .append("\"");
+        } else {
+            html.append(" height=\"")
+                .append(toCssNumber(displayDimension))
+                .append("\"");
+        }
+        if (hasWidth) {
+            html.append(" style=\"display:block;width:100%;height:auto;\"");
+        } else {
+            html.append(" style=\"display:block;width:auto;height:100%;\"");
+        }
+        html.append(" loading=\"lazy\" decoding=\"async\">");
+        appendImageAnnotationSpans(html, annotations);
+        html.append("</span>");
+        return html.toString();
     }
 
     private List<ImageAnnotationExport> collectImageAnnotations(MdxJsxElementFields element,
@@ -1039,6 +1153,12 @@ public class GuideSiteHtmlCompiler {
             .append("\" data-scale-y=\"")
             .append(toCssNumber(scaleY))
             .append("\" loading=\"lazy\" decoding=\"async\">");
+        appendImageAnnotationSpans(html, annotations);
+        html.append("</span>");
+        return html.toString();
+    }
+
+    private void appendImageAnnotationSpans(StringBuilder html, List<ImageAnnotationExport> annotations) {
         for (ImageAnnotationExport annotation : annotations) {
             html.append("<span class=\"guide-image-annotation");
             if (annotation.templateId != null) {
@@ -1066,8 +1186,6 @@ public class GuideSiteHtmlCompiler {
                 .append(escapeAttribute(annotation.style))
                 .append("\"></span>");
         }
-        html.append("</span>");
-        return html.toString();
     }
 
     private String compileLatex(MdxJsxElementFields element, boolean display, GuideSiteTemplateRegistry templates) {
@@ -1480,6 +1598,27 @@ public class GuideSiteHtmlCompiler {
         }
     }
 
+    /**
+     * Parses an optional non-negative integer with a fallback for the absent
+     * case (mirrors {@code FloatingImageCompiler.parseOptionalIntAttr}): absent
+     * attributes yield the fallback (e.g. 0 for x/y), while a present-but-
+     * malformed or negative value yields {@code null} so the caller can report
+     * it. Used for F-N1 single-parameter FloatingImage x/y crop offsets.
+     */
+    @Nullable
+    private Integer parseOptionalNonNegativeInt(@Nullable String raw, int fallback) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return fallback;
+        }
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return value >= 0 ? value : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     private int readInt(MdxJsxElementFields element, String name, int fallback) {
         String raw = element.getAttributeString(name, null);
         if (raw == null || raw.trim()
@@ -1493,14 +1632,30 @@ public class GuideSiteHtmlCompiler {
         }
     }
 
+    /**
+     * Parses a FloatingImage width/height dimension that is known to be present
+     * in the raw attributes (non-blank). Mirrors {@code FloatingImageCompiler}:
+     * a malformed value appends "{name} must be an integer." to
+     * {@code errorMessage}, while a present-but-non-positive value appends the
+     * non-positive error. Returns the parsed positive value, or {@code null}
+     * with {@code errorMessage} populated on failure.
+     */
     @Nullable
-    private Integer parseAliasedPositiveInt(MdxJsxElementFields element, String primaryName, String aliasName) {
-        String primaryValue = element.getAttributeString(primaryName, null);
-        String aliasValue = element.getAttributeString(aliasName, null);
-        if (primaryValue != null && aliasValue != null) {
+    private Integer parsePresentDimension(String raw, String name, StringBuilder errorMessage) {
+        try {
+            int value = Integer.parseInt(raw.trim());
+            if (value <= 0) {
+                errorMessage
+                    .append("FloatingImage crop values must be non-negative and width/height must be positive.");
+                return null;
+            }
+            return value;
+        } catch (NumberFormatException ex) {
+            errorMessage.append("FloatingImage ")
+                .append(name)
+                .append(" must be an integer.");
             return null;
         }
-        return parsePositiveInt(primaryValue != null ? primaryValue : aliasValue);
     }
 
     @Nullable

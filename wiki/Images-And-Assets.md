@@ -33,10 +33,10 @@ other mods directly.
 | Attribute | Required | Meaning |
 | --- | --- | --- |
 | `src` | yes | image path |
-| `x` | yes | crop start X in source-image pixels |
-| `y` | yes | crop start Y in source-image pixels |
-| `width` / `w` | yes | crop width in source-image pixels; exactly one spelling must be used |
-| `height` / `h` | yes | crop height in source-image pixels; exactly one spelling must be used |
+| `x` | no | crop start X in source-image pixels; default `0` |
+| `y` | no | crop start Y in source-image pixels; default `0` |
+| `width` / `w` | at least one of `width` / `height` | width in source-image pixels (crop width when paired with `height`, otherwise a whole-image display width); exactly one spelling must be used |
+| `height` / `h` | at least one of `width` / `height` | height in source-image pixels (crop height when paired with `width`, otherwise a whole-image display height); exactly one spelling must be used |
 | `scaleX` | no | horizontal display multiplier, default `1.0` |
 | `scaleY` | no | vertical display multiplier, default `1.0` |
 | `wrap` | no | `inline` for true inline placement, otherwise use the normal wrapping modes |
@@ -48,9 +48,10 @@ other mods directly.
 
 ### Notes
 
-- `x`, `y`, `width` / `w`, and `height` / `h` are all required together
-- `width` and `height` now describe the crop rectangle, not the final display size
-- the final display size is `cropWidth * scaleX` by `cropHeight * scaleY`
+- `x` and `y` are optional crop offsets and default to `0`
+- at least one of `width` / `w` or `height` / `h` is required; providing neither renders a visible error
+- when both dimensions are given, `width` and `height` describe the crop rectangle, not the final display size; the final display size is `cropWidth * scaleX` by `cropHeight * scaleY`
+- when only one dimension is given, the image is displayed at that size and the missing axis is inferred from the image's natural aspect ratio (in-game and in the site export the behavior matches; the export side lets the browser derive the other axis from the intrinsic ratio)
 - single-axis stretching is supported by setting only one scale differently
 - `width` with `w`, or `height` with `h`, is invalid and renders a visible error
 - old `FloatingImage width/height as display size` content is intentionally breaking and must be migrated manually

@@ -507,7 +507,7 @@ See [Images And Assets](Images-And-Assets) for the full behavior.
 Quick rules:
 
 - `src` supports relative paths, rooted paths, and explicit `modid:path` texture ids
-- `x`, `y`, `width` / `w`, and `height` / `h` define the crop rectangle on the original image and must all be present
+- `x` and `y` are optional crop offsets (default `0`); at least one of `width` / `w` or `height` / `h` is required, and a single dimension infers the other axis from the image's natural aspect ratio
 - `scaleX` and `scaleY` resize the cropped result and support independent horizontal / vertical stretching
 - `wrap="inline"` places the image truly inline inside text flow; in that mode `align` is ignored
 - old content that used `width` / `height` as final display size must be migrated manually

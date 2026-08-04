@@ -88,7 +88,18 @@ public class GuideSiteLatexExporter {
             .setSize(sourceScale)
             .setFGColor(new Color(fillColorArgb, true))
             .build();
-        icon.setInsets(new Insets(2, 2, 2, 2));
+        // Two-arg form (trueValues): keep the intended 2px/side insets. The
+        // single-arg setInsets(Insets) delegates to setInsets(insets, false)
+        // and silently inflates every side by (int)(0.18f*size) — 18px extra
+        // per side at the default size 100, turning the intended 2px padding
+        // into 20px and distorting every size ratio derived from the icon.
+        // Same pitfall/fix as GuideLatexRenderer (see its calibrateRefHeight
+        // javadoc). No export-side legacyPaddingDiff compensation is needed:
+        // the formula icon and the calibration icon share this createIcon path
+        // (same sourceScale, same inset behavior), so the display ratio stays
+        // internally consistent, and the static site has no accepted-size
+        // baseline (no ratchet over export output).
+        icon.setInsets(new Insets(2, 2, 2, 2), true);
         icon.setForeground(new Color(fillColorArgb, true));
         return icon;
     }
