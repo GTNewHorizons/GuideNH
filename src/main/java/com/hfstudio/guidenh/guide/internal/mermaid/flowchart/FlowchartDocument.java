@@ -38,7 +38,15 @@ public class FlowchartDocument {
         @Nullable String copyValue) {
         this.direction = direction != null ? direction : FlowchartDirection.TB;
         Map<String, FlowchartNode> src = nodes != null ? nodes : Map.of();
-        this.nodes = Map.copyOf(new LinkedHashMap<>(src));
+        // NB: NOT Map.copyOf. JDK 9+ ImmutableCollections.MapN salts its hash
+        // table with a per-JVM random value (SALT32L = const * System.nanoTime()
+        // >> 16), so Map.copyOf's iteration order varies across JVM runs for
+        // the same content. Layout code iterates this map to order ELK node
+        // creation (and node min-size computation), and ELK preserves that
+        // order for equal-solution ties (isolated nodes, symmetric layers) —
+        // a per-run order flip moved mermaid nodes between renders. An
+        // unmodifiable LinkedHashMap keeps the deterministic parse order.
+        this.nodes = Collections.unmodifiableMap(new LinkedHashMap<>(src));
         this.edges = List.copyOf(new ArrayList<>(edges != null ? edges : List.of()));
         this.subgraphs = List.copyOf(new ArrayList<>(subgraphs != null ? subgraphs : List.of()));
         this.layoutMode = layoutMode != null ? layoutMode : FlowchartLayoutMode.BUILTIN;
