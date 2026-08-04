@@ -854,7 +854,8 @@ public class GuideSiteExportTask {
             templates,
             exporter,
             assetExporter,
-            itemIconResolver);
+            itemIconResolver,
+            true);
         if (baseScene == null) {
             return null;
         }
@@ -890,7 +891,8 @@ public class GuideSiteExportTask {
 
     private GuideSiteExportedScene exportSceneState(ParsedGuidePage parsedPage, LytGuidebookScene scene,
         GuideSiteTemplateRegistry templates, GuideSiteSceneRuntimeExporter exporter,
-        GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) throws Exception {
+        GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
+        boolean includePlaceholder) throws Exception {
         scene.getLevel()
             .prepareForStaticExport();
         GuideSiteSceneAnnotationSerializer.AnnotationPayload annotationPayload = GuideSiteSceneAnnotationSerializer
@@ -898,7 +900,7 @@ public class GuideSiteExportTask {
         String hoverTargetsJson = GuideSiteSceneHoverTargetSerializer
             .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
         String sceneSoundsJson = serializeSceneSounds(scene, parsedPage.getId(), assetExporter);
-        GuideSiteExportedScene runtimeExport = exporter.exportScene(scene);
+        GuideSiteExportedScene runtimeExport = exporter.exportScene(scene, includePlaceholder);
         return new GuideSiteExportedScene(
             runtimeExport.placeholderPath(),
             runtimeExport.scenePath(),
@@ -1118,7 +1120,18 @@ public class GuideSiteExportTask {
                         templates,
                         exporter,
                         assetExporter,
-                        itemIconResolver);
+                        itemIconResolver,
+                        false);
+                    exportedVariant = new GuideSiteExportedScene(
+                        baseScene.placeholderPath(),
+                        exportedVariant.scenePath(),
+                        exportedVariant.logicalWidth(),
+                        exportedVariant.logicalHeight(),
+                        exportedVariant.inWorldJson(),
+                        exportedVariant.overlayJson(),
+                        exportedVariant.hoverTargetsJson(),
+                        exportedVariant.sceneSoundsJson(),
+                        null);
                 }
                 if (exportedVariant == null) {
                     return null;

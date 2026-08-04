@@ -70,7 +70,12 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
         this.assets = assets;
     }
 
-    public GuideSiteExportedScene exportScene(LytGuidebookScene scene) throws Exception {
+    public GuideSiteExportedScene exportScene(LytGuidebookScene scene, boolean includePlaceholder) throws Exception {
+        if (!includePlaceholder) {
+            String scenePath = assets.writeShared("scenes", ".scene.gz", exportScenePayload(scene));
+            return new GuideSiteExportedScene(null, scenePath, scene.getSceneWidth(), scene.getSceneHeight());
+        }
+
         BufferedImage placeholderImage = renderPlaceholderImage(scene);
         Future<byte[]> placeholderEncoding = encodingExecutor.submit(() -> encodePng(placeholderImage));
         byte[] sceneBytes;
