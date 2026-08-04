@@ -59,6 +59,7 @@ public class GuideSiteSceneTessellatorCapture {
     private int currentVertexCount;
     @Nullable
     private String currentSourceTextureId;
+    private boolean capturingParticles;
 
     public GuideSiteSceneTessellatorCapture(GuideSiteAssetRegistry assets, TextureExportCache textureCache,
         Matrix4f inverseViewMatrix) {
@@ -103,6 +104,10 @@ public class GuideSiteSceneTessellatorCapture {
 
     public void setCurrentSourceTextureId(@Nullable String currentSourceTextureId) {
         this.currentSourceTextureId = currentSourceTextureId;
+    }
+
+    public void setCapturingParticles(boolean capturingParticles) {
+        this.capturingParticles = capturingParticles;
     }
 
     public void startDrawing(int drawMode) {
@@ -336,7 +341,6 @@ public class GuideSiteSceneTessellatorCapture {
 
     private MaterialKey createMaterialKey(@Nullable TextureExport texture) {
         boolean blendEnabled = GL11.glIsEnabled(GL11.GL_BLEND);
-        boolean cullEnabled = GL11.glIsEnabled(GL11.GL_CULL_FACE);
         boolean depthEnabled = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
 
         int transparency = mapTransparency(blendEnabled);
@@ -354,14 +358,14 @@ public class GuideSiteSceneTessellatorCapture {
         }
 
         return new MaterialKey(
-            "scene-mesh",
+            capturingParticles ? "scene-particle" : "scene-mesh",
             shaderName,
             texture != null ? texture.textureId : null,
             texture != null ? texture.texturePath : null,
             texture != null ? texture.sourceTextureId : null,
             texture != null && texture.linearFiltering,
             texture != null && texture.useMipmaps,
-            !cullEnabled,
+            true,
             transparency,
             depthTest);
     }

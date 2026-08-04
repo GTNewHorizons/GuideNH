@@ -170,7 +170,10 @@ function installImageAnnotations(root) {
       }, { once: true });
     }
   }
-  window.addEventListener("resize", () => layoutImageAnnotations(root), { passive: true });
+  if (!window.__guideImageAnnotationResizeInstalled) {
+    window.__guideImageAnnotationResizeInstalled = true;
+    window.addEventListener("resize", () => layoutImageAnnotations(document), { passive: true });
+  }
 }
 
 function installGuideSounds(root) {
@@ -297,12 +300,15 @@ function installGuideSounds(root) {
   });
 
   installSceneSounds(root, playElementSound);
-  window.addEventListener("pagehide", stopAll);
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      stopAll();
-    }
-  });
+  if (!window.__guideSoundLifecycleInstalled) {
+    window.__guideSoundLifecycleInstalled = true;
+    window.addEventListener("pagehide", () => window.GuideNHSounds?.stopAll?.());
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        window.GuideNHSounds?.stopAll?.();
+      }
+    });
+  }
   root.addEventListener("click", (event) => {
     const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
     if (link instanceof HTMLAnchorElement && !link.href.startsWith("javascript:")) {
@@ -649,7 +655,7 @@ function installTooltips(root) {
     },
   };
 
-  window.addEventListener("scroll", hideAll, { passive: true });
+  document.addEventListener("scroll", hideAll, { capture: true, passive: true });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       hideAll();
@@ -657,17 +663,231 @@ function installTooltips(root) {
   });
 }
 
+function installPageBehaviors(root) {
+  installMediaWikiSpecialFilters(root);
+  installIngredientCycling(root);
+  installImageAnnotations(root);
+  installGuideSounds(root);
+  installMermaidLayout(root);
+  installMermaidPanZoom(root);
+  installChartHoverTooltips(root);
+  hydrateVisibleScenes(root);
+}
+
+function navigationState(sidebar) {
+  const expanded = new Map();
+  for (const node of sidebar?.querySelectorAll?.("[data-guide-nav-node]") || []) {
+    expanded.set(node.dataset.guideNavNode, node.dataset.guideNavExpanded !== "false");
+  }
+  return {
+    expanded,
+    scrollTop: sidebar?.querySelector?.("[data-guide-navigation]")?.scrollTop || 0,
+  };
+}
+
+function setNavigationNodeExpanded(node, expanded) {
+  if (!(node instanceof HTMLElement) || !node.hasAttribute("data-guide-nav-expanded")) {
+    return;
+  }
+  node.dataset.guideNavExpanded = expanded ? "true" : "false";
+  const toggle = node.querySelector(":scope > [data-guide-nav-toggle]");
+  if (toggle instanceof HTMLButtonElement) {
+    toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+  }
+}
+
+function restoreNavigationState(sidebar, state, currentUrl) {
+  const nodes = sidebar.querySelectorAll("[data-guide-nav-node]");
+  for (const node of nodes) {
+    const saved = state.expanded.get(node.dataset.guideNavNode);
+    if (saved !== undefined) {
+      setNavigationNodeExpanded(node, saved);
+    }
+  }
+  const current = findCurrentNavigationLink(sidebar, currentUrl);
+  if (current) {
+    current.setAttribute("aria-current", "page");
+    for (let node = current.closest("[data-guide-nav-node]"); node; node = node.parentElement?.closest("[data-guide-nav-node]")) {
+      setNavigationNodeExpanded(node, true);
+    }
+  }
+  const navigation = sidebar.querySelector("[data-guide-navigation]");
+  if (navigation instanceof HTMLElement) {
+    navigation.scrollTop = state.scrollTop;
+    window.requestAnimationFrame(() => current?.scrollIntoView({ block: "nearest" }));
+  }
+}
+
+function findCurrentNavigationLink(root, url) {
+  const target = new URL(url, window.location.href);
+  for (const link of root.querySelectorAll("[data-guide-navigation] a[href]")) {
+    const candidate = new URL(link.getAttribute("href"), target);
+    if (candidate.origin === target.origin && candidate.pathname === target.pathname && candidate.search === target.search) {
+      return link;
+    }
+  }
+  return null;
+}
+
+function installNavigationUi(root) {
+  if (!(root instanceof HTMLElement) || root.dataset.guideNavigationUiInstalled === "true") {
+    return;
+  }
+  root.dataset.guideNavigationUiInstalled = "true";
+  root.addEventListener("click", (event) => {
+    const toggle = event.target instanceof Element ? event.target.closest("[data-guide-nav-toggle]") : null;
+    if (!(toggle instanceof HTMLButtonElement)) {
+      return;
+    }
+    const node = toggle.closest("[data-guide-nav-node]");
+    if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    event.preventDefault();
+    setNavigationNodeExpanded(node, node.dataset.guideNavExpanded === "false");
+  });
+}
+
+function installLanguageMenus(root) {
+  for (const menu of root.querySelectorAll("[data-guide-language-menu]")) {
+    const trigger = menu.querySelector(":scope > [data-guide-language-menu-trigger]");
+    const options = menu.querySelector(":scope > [data-guide-language-menu-options]");
+    if (!(trigger instanceof HTMLButtonElement) || !(options instanceof HTMLElement)) {
+      continue;
+    }
+    const close = () => {
+      trigger.setAttribute("aria-expanded", "false");
+      options.hidden = true;
+    };
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault();
+      const open = options.hidden;
+      for (const otherMenu of document.querySelectorAll("[data-guide-language-menu]")) {
+        const otherTrigger = otherMenu.querySelector(":scope > [data-guide-language-menu-trigger]");
+        const otherOptions = otherMenu.querySelector(":scope > [data-guide-language-menu-options]");
+        if (otherTrigger instanceof HTMLButtonElement && otherOptions instanceof HTMLElement) {
+          otherTrigger.setAttribute("aria-expanded", "false");
+          otherOptions.hidden = true;
+        }
+      }
+      trigger.setAttribute("aria-expanded", open ? "true" : "false");
+      options.hidden = !open;
+    });
+    menu.__guideLanguageMenuClose = close;
+  }
+  if (!window.__guideLanguageMenuDismissInstalled) {
+    window.__guideLanguageMenuDismissInstalled = true;
+    document.addEventListener("click", (event) => {
+      for (const menu of document.querySelectorAll("[data-guide-language-menu]")) {
+        if (event.target instanceof Node && menu.contains(event.target)) {
+          continue;
+        }
+        menu.__guideLanguageMenuClose?.();
+      }
+    });
+  }
+}
+
+function shouldHandleSiteNavigation(event, link) {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return false;
+  }
+  if (link.target || link.hasAttribute("download")) {
+    return false;
+  }
+  const target = new URL(link.href, window.location.href);
+  return target.origin === window.location.origin;
+}
+
+function installSiteRouter() {
+  let requestId = 0;
+  history.scrollRestoration = "manual";
+
+  const navigate = async (url, pushState) => {
+    const target = new URL(url, window.location.href);
+    const currentContent = document.getElementById("page-content");
+    const currentSidebar = document.querySelector(".guide-sidebar");
+    const currentLanguage = document.documentElement.lang;
+    if (!(currentContent instanceof HTMLElement) || !(currentSidebar instanceof HTMLElement)) {
+      window.location.assign(target);
+      return;
+    }
+    const activeRequest = ++requestId;
+    try {
+      const response = await fetch(target.href, { headers: { "X-Requested-With": "GuideNH" } });
+      if (!response.ok) {
+        throw new Error(`Page request failed: ${response.status}`);
+      }
+      const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
+      const nextContent = parsed.getElementById("page-content");
+      const nextSidebar = parsed.querySelector(".guide-sidebar");
+      const nextLanguage = parsed.documentElement.lang;
+      const nextLanguageSwitcher = parsed.querySelector(".guide-header-lang");
+      if (!nextContent || !nextSidebar || activeRequest !== requestId) {
+        return;
+      }
+
+      const state = navigationState(currentSidebar);
+      stopGuideSounds(currentContent);
+      stopIngredientCycling(currentContent);
+      disposeHydratedScenes(currentContent);
+      currentContent.replaceChildren(...Array.from(nextContent.childNodes, (node) => document.importNode(node, true)));
+      currentContent.className = nextContent.className;
+      document.title = parsed.title;
+      document.documentElement.lang = nextLanguage || currentLanguage;
+
+      currentSidebar.replaceChildren(...Array.from(nextSidebar.childNodes, (node) => document.importNode(node, true)));
+      const headerLanguage = document.querySelector(".guide-header-lang");
+      if (headerLanguage && nextLanguageSwitcher) {
+        headerLanguage.replaceChildren(...Array.from(nextLanguageSwitcher.childNodes, (node) => document.importNode(node, true)));
+      }
+      installSearchUi(currentSidebar);
+      installNavigationUi(currentSidebar);
+      installLanguageMenus(document);
+      restoreNavigationState(currentSidebar, state, target);
+      installPageBehaviors(currentContent);
+      const contentScroll = document.querySelector(".guide-content");
+      if (contentScroll instanceof HTMLElement) {
+        contentScroll.scrollTop = 0;
+      }
+      if (pushState) {
+        history.pushState({}, "", target);
+      }
+    } catch (error) {
+      console.warn("GuideNH site navigation failed; using a full-page load instead.", error);
+      window.location.assign(target);
+    }
+  };
+
+  document.addEventListener("click", (event) => {
+    const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!(link instanceof HTMLAnchorElement) || !shouldHandleSiteNavigation(event, link)) {
+      return;
+    }
+    event.preventDefault();
+    const target = new URL(link.href, window.location.href);
+    if (target.pathname === window.location.pathname && target.search === window.location.search) {
+      return;
+    }
+    navigate(link.href, true);
+  });
+  window.addEventListener("popstate", () => navigate(window.location.href, false));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  installSearchUi(document);
-  installMediaWikiSpecialFilters(document);
+  const sidebar = document.querySelector(".guide-sidebar");
+  const content = document.getElementById("page-content");
+  if (sidebar instanceof HTMLElement) {
+    installSearchUi(sidebar);
+    installNavigationUi(sidebar);
+    restoreNavigationState(sidebar, navigationState(sidebar), window.location.href);
+  }
+  installLanguageMenus(document);
   installTooltips(document);
-  installIngredientCycling(document);
-  installImageAnnotations(document);
-  installGuideSounds(document);
-  installMermaidLayout(document);
-  installMermaidPanZoom(document);
-  installChartHoverTooltips(document);
-  hydrateVisibleScenes(document);
+  if (content instanceof HTMLElement) {
+    installPageBehaviors(content);
+  }
+  installSiteRouter();
 });
 
 function installMermaidLayout(root) {

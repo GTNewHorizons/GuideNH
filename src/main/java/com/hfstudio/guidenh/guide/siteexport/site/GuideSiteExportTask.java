@@ -892,7 +892,7 @@ public class GuideSiteExportTask {
         GuideSiteTemplateRegistry templates, GuideSiteSceneRuntimeExporter exporter,
         GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) throws Exception {
         scene.getLevel()
-            .prepareForPreview();
+            .prepareForStaticExport();
         GuideSiteSceneAnnotationSerializer.AnnotationPayload annotationPayload = GuideSiteSceneAnnotationSerializer
             .serialize(scene, templates, parsedPage.getId(), assetExporter, itemIconResolver);
         String hoverTargetsJson = GuideSiteSceneHoverTargetSerializer
@@ -1095,7 +1095,7 @@ public class GuideSiteExportTask {
         GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
         GuideSiteExportedScene baseScene) throws Exception {
         SceneStateManifestPlan plan = buildSceneStateManifestPlan(scene);
-        if (plan == null || (plan.states.size() <= 1 && !plan.controls.containsKey("ponder"))) {
+        if (plan == null) {
             return null;
         }
 
@@ -1141,7 +1141,7 @@ public class GuideSiteExportTask {
     }
 
     private SceneStateManifestPlan buildSceneStateManifestPlan(LytGuidebookScene scene) {
-        if (scene == null || (!scene.isInteractive() && !scene.hasPonderData())) {
+        if (scene == null) {
             return null;
         }
 
@@ -1149,22 +1149,21 @@ public class GuideSiteExportTask {
         List<PonderTimelineKeyframe> ponderKeyframes = scene.hasPonderData()
             ? scene.getPonderTimelineKeyframesForExport()
             : List.of();
-        List<Integer> ponderTicks = buildPonderTickStates(scene, ponderKeyframes);
         List<StructureStatePlan> structurePlans = buildStructureStatePlans(scene);
 
-        long variantCount = multiplySceneVariantCounts(visibleLayers.size(), ponderTicks.size());
+        long staticVariantCount = visibleLayers.size();
         for (StructureStatePlan structurePlan : structurePlans) {
-            variantCount = multiplySceneVariantCounts(variantCount, structurePlan.stateCount());
-            if (variantCount > MAX_SCENE_STATE_VARIANTS) {
-                warnSceneStateVariantLimit(variantCount);
+            staticVariantCount = multiplySceneVariantCounts(staticVariantCount, structurePlan.stateCount());
+            if (staticVariantCount > MAX_SCENE_STATE_VARIANTS) {
+                warnSceneStateVariantLimit(staticVariantCount);
                 return null;
             }
         }
+        int ponderStateBudget = (int) Math.max(1L, MAX_SCENE_STATE_VARIANTS / staticVariantCount);
+        List<Integer> ponderTicks = buildPonderTickStates(scene, ponderKeyframes, ponderStateBudget);
+        long variantCount = multiplySceneVariantCounts(staticVariantCount, ponderTicks.size());
         if (variantCount > MAX_SCENE_STATE_VARIANTS) {
             warnSceneStateVariantLimit(variantCount);
-            return null;
-        }
-        if (variantCount <= 1 && !scene.hasPonderData()) {
             return null;
         }
         for (StructureStatePlan structurePlan : structurePlans) {
@@ -1172,13 +1171,11 @@ public class GuideSiteExportTask {
         }
 
         LinkedHashMap<String, Object> controls = new LinkedHashMap<>();
-        if (visibleLayers.size() > 1) {
-            LinkedHashMap<String, Object> visibleLayerControl = new LinkedHashMap<>();
-            visibleLayerControl.put("label", GuidebookText.SceneVisibleLayerLabel.text());
-            visibleLayerControl.put("allLabel", GuidebookText.SceneAll.text());
-            visibleLayerControl.put("max", visibleLayers.getLast());
-            controls.put("visibleLayer", visibleLayerControl);
-        }
+        LinkedHashMap<String, Object> visibleLayerControl = new LinkedHashMap<>();
+        visibleLayerControl.put("label", GuidebookText.SceneVisibleLayerLabel.text());
+        visibleLayerControl.put("allLabel", GuidebookText.SceneAll.text());
+        visibleLayerControl.put("max", visibleLayers.getLast());
+        controls.put("visibleLayer", visibleLayerControl);
         if (scene.hasPonderData() && !ponderTicks.isEmpty()) {
             LinkedHashMap<String, Object> ponderControl = new LinkedHashMap<>();
             ponderControl.put("label", "Ponder");
@@ -1294,8 +1291,7 @@ public class GuideSiteExportTask {
     }
 
     private List<Integer> buildVisibleLayerStates(LytGuidebookScene scene) {
-        if (scene == null || !scene.isVisibleLayerSliderEnabled()
-            || scene.getLevel() == null
+        if (scene == null || scene.getLevel() == null
             || scene.getLevel()
                 .isEmpty()) {
             return List.of(scene != null ? scene.getCurrentVisibleLayer() : 0);
@@ -1312,26 +1308,47 @@ public class GuideSiteExportTask {
         return layers;
     }
 
-    private List<Integer> buildPonderTickStates(LytGuidebookScene scene, List<PonderTimelineKeyframe> ponderKeyframes) {
+    private List<Integer> buildPonderTickStates(LytGuidebookScene scene, List<PonderTimelineKeyframe> ponderKeyframes,
+        int stateBudget) {
         if (scene == null || !scene.hasPonderData()) {
             return List.of(0);
         }
-        if (options.exportPonderEveryTick()) {
-            int totalTime = Math.max(0, scene.getPonderTotalTimeForExport());
+        int totalTime = Math.max(0, scene.getPonderTotalTimeForExport());
+        int maxStates = Math.max(1, stateBudget);
+        if (options.exportPonderEveryTick() && totalTime + 1 <= maxStates) {
             ArrayList<Integer> states = new ArrayList<>(totalTime + 1);
             for (int tick = 0; tick <= totalTime; tick++) {
                 states.add(tick);
             }
             return states.isEmpty() ? List.of(0) : states;
         }
-        ArrayList<Integer> states = new ArrayList<>(ponderKeyframes.size() + 2);
+        ArrayList<Integer> states = new ArrayList<>(maxStates);
         addUniquePonderTickState(states, scene.getPonderCurrentTickForExport());
+        if (states.size() < maxStates) {
+            addUniquePonderTickState(states, 0);
+        }
+        if (states.size() < maxStates) {
+            addUniquePonderTickState(states, totalTime);
+        }
+        if (!options.exportPonderEveryTick()) {
+            for (PonderTimelineKeyframe keyframe : ponderKeyframes) {
+                if (!keyframe.isHidden() && states.size() < maxStates) {
+                    addUniquePonderTickState(states, keyframe.getTime());
+                }
+            }
+            return states.isEmpty() ? List.of(0) : states;
+        }
+
         for (PonderTimelineKeyframe keyframe : ponderKeyframes) {
-            if (!keyframe.isHidden()) {
+            if (!keyframe.isHidden() && states.size() < maxStates) {
                 addUniquePonderTickState(states, keyframe.getTime());
             }
         }
-        addUniquePonderTickState(states, scene.getPonderTotalTimeForExport());
+        int sampledTickCount = Math.max(0, maxStates - states.size());
+        for (int sample = 1; sample <= sampledTickCount; sample++) {
+            addUniquePonderTickState(states, Math.round((float) sample * totalTime / (sampledTickCount + 1)));
+        }
+        states.sort(Integer::compareTo);
         return states.isEmpty() ? List.of(0) : states;
     }
 
@@ -1540,16 +1557,21 @@ public class GuideSiteExportTask {
                 .append(visibleLayer)
                 .append("|ponder=")
                 .append(ponderTick);
-            for (Map.Entry<String, StructureVariantState> structureEntry : structures.entrySet()) {
+            ArrayList<String> structureIds = new ArrayList<>(structures.keySet());
+            structureIds.sort(String::compareTo);
+            for (String structureId : structureIds) {
+                StructureVariantState structureState = structures.get(structureId);
                 key.append("|structure:")
-                    .append(structureEntry.getKey())
+                    .append(structureId)
                     .append("|tier=")
-                    .append(structureEntry.getValue().tier);
-                for (Map.Entry<String, Integer> channelEntry : structureEntry.getValue().channels.entrySet()) {
+                    .append(structureState.tier);
+                ArrayList<String> channelIds = new ArrayList<>(structureState.channels.keySet());
+                channelIds.sort(String::compareTo);
+                for (String channelId : channelIds) {
                     key.append("|channel:")
-                        .append(channelEntry.getKey())
+                        .append(channelId)
                         .append("=")
-                        .append(channelEntry.getValue());
+                        .append(structureState.channels.get(channelId));
                 }
             }
             return key.toString();
@@ -1672,11 +1694,15 @@ public class GuideSiteExportTask {
                     LinkedHashMap<String, Object> channelControl = new LinkedHashMap<>();
                     channelControl.put("id", channelData.getChannelId());
                     channelControl.put("label", channelData.getLabel());
-                    channelControl.put("min", channelData.getMinValue());
+                    channelControl.put(
+                        "min",
+                        channelValues.get(i)
+                            .getFirst());
                     channelControl.put(
                         "max",
                         channelValues.get(i)
                             .getLast());
+                    channelControl.put("values", new ArrayList<>(channelValues.get(i)));
                     channelControl.put("unsetLabel", GuidebookText.SceneNotSet.text());
                     channelControls.add(channelControl);
                 }

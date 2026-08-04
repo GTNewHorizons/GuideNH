@@ -221,7 +221,11 @@ public class GuidebookLevelRenderer {
         int glScissorH = (cy1 - cy0) * sf;
 
         try (var env = GuidebookFakeRenderEnvironment.enter(level, camera, partialTicks)) {
-            level.prepareForPreview();
+            if (GuideSiteSceneTessellatorCapture.getActive() != null) {
+                level.prepareForStaticExport();
+            } else {
+                level.prepareForPreview();
+            }
 
             GL11.glPushAttrib(
                 GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT
@@ -299,7 +303,17 @@ public class GuidebookLevelRenderer {
                             renderWeatherInContext(level, camera, layerSelection, weatherEffects, weatherAnimationTick);
                         }
                         if (!particles.isEmpty()) {
-                            renderParticlesInContext(particles, partialTicks);
+                            GuideSiteSceneTessellatorCapture capture = GuideSiteSceneTessellatorCapture.getActive();
+                            if (capture != null) {
+                                capture.setCapturingParticles(true);
+                            }
+                            try {
+                                renderParticlesInContext(particles, partialTicks);
+                            } finally {
+                                if (capture != null) {
+                                    capture.setCapturingParticles(false);
+                                }
+                            }
                         }
                     } finally {
                         mc.entityRenderer.disableLightmap(partialTicks);
@@ -484,9 +498,7 @@ public class GuidebookLevelRenderer {
                 OpenGlHelper
                     .setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float) lowerBits, (float) upperBits);
                 GL11.glColor4f(1f, 1f, 1f, 1f);
-                // Our guidebook camera already supplies world-space transforms, so pass raw
-                // interpolated coordinates here instead of letting RenderManager subtract the
-                // preview player position a second time via renderEntityStatic().
+                // The scene view matrix already transforms world coordinates relative to the camera.
                 renderManager.renderEntityWithPosYaw(
                     entity,
                     renderState.x(),

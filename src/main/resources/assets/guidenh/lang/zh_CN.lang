@@ -502,6 +502,7 @@ guideme.guidebook.SceneStructureLibHintBlockLabel=提示方块：
 guideme.guidebook.SceneStructureLibHintDotNumber=%s号
 guideme.guidebook.SceneStructureLibHoldShiftCandidates=按住Shift显示候选方块
 guideme.guidebook.SceneStructureLibTierLabel=等级
+guideme.guidebook.SceneStructureLibChannelLabel=信道
 guideme.guidebook.SceneStructureLibValidHatchesLabel=可用仓室：
 guideme.guidebook.SceneVisibleLayerLabel=层数
 guideme.guidebook.SceneLoading=加载中

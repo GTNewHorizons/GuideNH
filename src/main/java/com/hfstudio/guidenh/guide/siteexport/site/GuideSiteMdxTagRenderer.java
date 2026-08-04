@@ -399,14 +399,38 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             style.append("width:100%;");
         }
 
-        String body = compiler
-            .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId);
+        String body = compileLayoutBoxContent(
+            element,
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler);
         return "<div class=\"guide-layout guide-layout-" + (row ? "row" : "column")
             + "\" style=\""
             + escapeAttribute(style.toString())
             + "\">"
             + body
             + "</div>";
+    }
+
+    private String compileLayoutBoxContent(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+        ParsedGuidePage parsedPage = currentPageId != null ? parsedPagesById.get(currentPageId) : null;
+        String rawBody = parsedPage != null ? MdxBlockTagSourceExtractor.extractRawBody(element, parsedPage.getSource())
+            : null;
+        if (rawBody == null) {
+            return compiler
+                .compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId);
+        }
+        return compileBlockMarkdownFragment(
+            DetailsContentExtractor.dedent(rawBody),
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler);
     }
 
     private String renderStructure(MdxJsxElementFields element, @Nullable ResourceLocation currentPageId,

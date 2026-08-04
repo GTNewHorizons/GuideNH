@@ -3509,6 +3509,32 @@ function guidenhCreateHoverHighlightObject(s){
   return n;
 }
 
+function guidenhDisposeSceneGroup(s){
+  s.traverse(e=>{
+    e.geometry?.dispose?.();
+    let t=e.material;
+    if(Array.isArray(t)){
+      for(let n of t)n?.dispose?.();
+    }else t?.dispose?.();
+  });
+}
+
+let guidenhLoadScene=Ya;
+Ya=async function(...s){
+  let e=await guidenhLoadScene(...s),t=[];
+  e.group.traverse(n=>{
+    let i=n.material;
+    if(!i)return;
+    i.blending!==qt&&(i.transparent=!0,i.depthWrite=!1);
+    if(i.name!=="scene-particle"||!n.geometry)return;
+    n.geometry.computeBoundingBox();
+    let r=n.geometry.boundingBox?.getCenter(new C());
+    r&&(n.geometry.translate(-r.x,-r.y,-r.z),n.position.copy(r),t.push(n));
+  });
+  e.group.userData.guidenhBillboardMeshes=t;
+  return e;
+};
+
 async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
   let f=new Ki({alpha:!0,premultipliedAlpha:!1});
   f.useLegacyLights=!0;
@@ -3516,12 +3542,7 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
   let d=new _s(s),{cameraProps:p,group:g,animatedTextureParts:_}=await Ya(d,e,l),m=new kt;
   m.expandByObject(g);
   let u=m.getCenter(new C);
-  if(g.position.copy(u.clone().negate()),n){
-    let A=m.getSize(new C),q=Math.max(A.x,A.z)+2,F=new or(q,q,4294967295,4294967295);
-    F.material=new yn({transparent:!0,opacity:.5});
-    F.position.copy(new C(u.x,0,u.z));
-    g.add(F);
-  }
+  g.position.copy(u.clone().negate());
   let w=new tr;
   Ja(w);
   w.add(g);
@@ -3583,12 +3604,13 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
         for(let we of q.targetTextures)f.copyTextureToTexture(new ve(F,oe),fe[de.index],we);
       }
     }
+    for(let q of g.userData.guidenhBillboardMeshes??[])q.quaternion.copy(S.quaternion);
     f.render(w,S);
     let q=a.current,F=q?Tm(q,S,w):void 0;
     W(F?.hoverRuntimeTarget);
     c(F?.templateId);
   };
-  return f.setAnimationLoop(J),t.append(f.domElement),{dispose(){D||(console.debug("Disposing model viewer for %s",e),D=!0,W(void 0),R&&R.disconnect(),f.setAnimationLoop(null),t.removeChild(f.domElement),f.dispose(),M?.dispose(),c(void 0))},resetView(){M?.reset()},zoomIn(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:-120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},zoomOut(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},projectWorldPosition(A){if(!A||A.length<3||!f.domElement)return null;let q=new C(A[0],A[1],A[2]);g.localToWorld(q),q.project(S);if(!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isFinite(q.z))return null;let F=f.domElement.getBoundingClientRect();return{x:(q.x*.5+.5)*F.width,y:(-q.y*.5+.5)*F.height,z:q.z,visible:q.z>=-1&&q.z<=1}}};
+  return f.setAnimationLoop(J),t.append(f.domElement),{dispose(){D||(console.debug("Disposing model viewer for %s",e),D=!0,W(void 0),R&&R.disconnect(),f.setAnimationLoop(null),t.removeChild(f.domElement),f.dispose(),M?.dispose(),c(void 0))},async replaceScene(A,q=[],F=[],oe=[]){let{group:fe,animatedTextureParts:pe}=await Ya(d,A,l),he=new kt;he.expandByObject(fe);let de=he.getCenter(new C);fe.position.copy(de.clone().negate());for(let we of q)fe.add(jl(we));for(let we of F)fe.add(await $a(d,we));for(let we of oe){let ye=guidenhCreateHoverRuntimeTarget(we);ye&&(fe.add(ye.highlightObject),fe.add(ye.pickMesh))}w.add(fe),w.remove(g),guidenhDisposeSceneGroup(g),g=fe,_=pe},resetView(){M?.reset()},zoomIn(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:-120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},zoomOut(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},projectWorldPosition(A){if(!A||A.length<3||!f.domElement)return null;let q=new C(A[0],A[1],A[2]);g.localToWorld(q),q.project(S);if(!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isFinite(q.z))return null;let F=f.domElement.getBoundingClientRect();return{x:(q.x*.5+.5)*F.width,y:(-q.y*.5+.5)*F.height,z:q.z,visible:q.z>=-1&&q.z<=1}}};
 }
 
 function guidenhParseSceneArray(s,e){

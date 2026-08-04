@@ -159,10 +159,12 @@ function createSceneNode(documentRef, descriptor, variant) {
   if (variant?.sceneSrc) {
     node.setAttribute("data-scene-src", normalizeSceneAssetUrl(descriptor, variant.sceneSrc));
   }
-  setOrRemoveAttribute(node, "data-scene-in-world-annotations", variant?.inWorldAnnotationsJson);
-  setOrRemoveAttribute(node, "data-scene-overlay-annotations", variant?.overlayAnnotationsJson);
-  setOrRemoveAttribute(node, "data-guide-scene-sounds", variant?.sceneSoundsJson);
-  setOrRemoveAttribute(node, "data-scene-hover-targets", variant?.hoverTargetsJson);
+  if (variant) {
+    setOrRemoveAttribute(node, "data-scene-in-world-annotations", variant.inWorldAnnotationsJson);
+    setOrRemoveAttribute(node, "data-scene-overlay-annotations", variant.overlayAnnotationsJson);
+    setOrRemoveAttribute(node, "data-guide-scene-sounds", variant.sceneSoundsJson);
+    setOrRemoveAttribute(node, "data-scene-hover-targets", variant.hoverTargetsJson);
+  }
   applySceneGridDescriptor(node, descriptor);
   return node;
 }
@@ -598,11 +600,11 @@ function buildStateKey(state) {
   if (Object.keys(structures).length === 0) {
     return key;
   }
-  for (const structureId of Object.keys(structures)) {
+  for (const structureId of Object.keys(structures).sort()) {
     const structureState = structures[structureId] || {};
     key += `|structure:${structureId}|tier=${Math.max(1, Number(structureState.tier) || 1)}`;
     const channels = structureState.channels || {};
-    for (const channelId of Object.keys(channels)) {
+    for (const channelId of Object.keys(channels).sort()) {
       key += `|channel:${channelId}=${Math.max(0, Number(channels[channelId]) || 0)}`;
     }
   }
@@ -789,9 +791,9 @@ async function toggleSceneGrid(sceneContext) {
   const currentState = sceneContext.currentState ? cloneState(sceneContext.currentState) : null;
   const variant = currentState && sceneContext.manifest?.states ? sceneContext.manifest.states[buildStateKey(currentState)]
     : null;
-  await recreateSceneRuntime(sceneContext, variant);
-  if (currentState) {
-    sceneContext.currentState = currentState;
+  const recreated = await recreateSceneRuntime(sceneContext, variant, currentState);
+  if (!recreated) {
+    sceneContext.descriptor.gridVisible = !sceneContext.descriptor.gridVisible;
   }
 }
 
@@ -832,22 +834,17 @@ function createSliderVisual(documentRef, range) {
   return visual;
 }
 
-function createRangeControl(documentRef, labelText, min, max, currentValue, formatValue, onChange) {
+function createRangeControl(documentRef, labelText, min, max, currentValue, formatValue, onChange, allowedValues = null) {
   const wrapper = documentRef.createElement("label");
   wrapper.className = "scene-state-control";
 
   const header = documentRef.createElement("span");
-  header.className = "scene-state-control-header";
+  header.className = "scene-state-control-header scene-state-range-control-header";
   wrapper.append(header);
 
   const caption = documentRef.createElement("span");
   caption.className = "scene-state-control-label";
-  caption.textContent = labelText;
   header.append(caption);
-
-  const value = documentRef.createElement("span");
-  value.className = "scene-state-control-value";
-  header.append(value);
 
   const range = documentRef.createElement("input");
   range.className = "scene-state-range";
@@ -856,18 +853,33 @@ function createRangeControl(documentRef, labelText, min, max, currentValue, form
   range.max = String(max);
   range.step = "1";
 
-  const initialValue = Math.min(max, Math.max(min, Number(currentValue) || min));
-  range.value = String(initialValue);
+  const normalizedAllowedValues = Array.isArray(allowedValues)
+    ? [...new Set(allowedValues.map((value) => Number(value)).filter(Number.isFinite))].sort((left, right) => left - right)
+    : null;
+  const nearestValue = (rawValue) => {
+    const normalized = Math.min(max, Math.max(min, Number(rawValue) || min));
+    if (!normalizedAllowedValues?.length) {
+      return normalized;
+    }
+    return normalizedAllowedValues.reduce(
+      (nearest, candidate) => Math.abs(candidate - normalized) < Math.abs(nearest - normalized) ? candidate : nearest,
+      normalizedAllowedValues[0],
+    );
+  };
+  range.value = String(nearestValue(currentValue));
 
   const syncValue = () => {
-    const numericValue = Number(range.value) || min;
+    const numericValue = nearestValue(range.value);
+    if (Number(range.value) !== numericValue) {
+      range.value = String(numericValue);
+    }
     const displayValue = formatValue(numericValue);
-    value.textContent = displayValue;
+    caption.textContent = `${labelText}: ${displayValue}`;
     range.setAttribute("aria-valuetext", displayValue);
   };
 
   range.addEventListener("input", syncValue);
-  range.addEventListener("change", () => onChange(Number(range.value) || min));
+  range.addEventListener("change", () => onChange(nearestValue(range.value)));
   syncValue();
   const sliderWrap = documentRef.createElement("span");
   sliderWrap.className = "scene-state-slider-wrap";
@@ -877,7 +889,7 @@ function createRangeControl(documentRef, labelText, min, max, currentValue, form
   return wrapper;
 }
 
-function createPonderControl(documentRef, control, currentTick, onChange) {
+function createPonderControl(documentRef, control, currentTick, onChange, abortSignal) {
   const wrapper = documentRef.createElement("div");
   wrapper.className = "scene-state-control scene-ponder-control";
 
@@ -976,7 +988,47 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
     range.setAttribute("aria-valuetext", displayValue);
   };
 
+  let animationFrameId = 0;
+  let playing = false;
+  let playbackStartedAt = 0;
+  let playbackStartedTick = 0;
+  let lastSubmittedTick = -1;
+
+  const stopPlayback = () => {
+    playing = false;
+    if (animationFrameId) {
+      window.cancelAnimationFrame(animationFrameId);
+      animationFrameId = 0;
+    }
+    playButton.setAttribute("aria-pressed", "false");
+  };
+
+  const submitDisplayedTick = (tick) => {
+    const exportedTick = nearestExportedTick(tick);
+    if (exportedTick === lastSubmittedTick) {
+      return;
+    }
+    lastSubmittedTick = exportedTick;
+    onChange(exportedTick);
+  };
+
+  const advancePlayback = (timestamp) => {
+    if (!playing) {
+      return;
+    }
+    const totalTime = Number(range.max) || 0;
+    const nextTick = Math.min(totalTime, playbackStartedTick + (timestamp - playbackStartedAt) / 50);
+    setDisplayedTick(nextTick);
+    submitDisplayedTick(nextTick);
+    if (nextTick >= totalTime) {
+      stopPlayback();
+      return;
+    }
+    animationFrameId = window.requestAnimationFrame(advancePlayback);
+  };
+
   previousButton.addEventListener("click", () => {
+    stopPlayback();
     const current = Number(range.value) || 0;
     let previous = 0;
     for (const tick of visibleKeyframeTicks) {
@@ -987,22 +1039,30 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
       }
     }
     setDisplayedTick(previous);
+    lastSubmittedTick = nearestExportedTick(previous);
     onChange(previous);
   });
   playButton.addEventListener("click", () => {
-    const current = Number(range.value) || 0;
-    let next = uniqueTicks[uniqueTicks.length - 1] ?? current;
-    for (const tick of uniqueTicks) {
-      if (tick > current) {
-        next = tick;
-        break;
-      }
+    if (playing) {
+      stopPlayback();
+      return;
     }
-    setDisplayedTick(next);
-    onChange(next);
+    const current = Number(range.value) || 0;
+    const totalTime = Number(range.max) || 0;
+    playbackStartedTick = current >= totalTime ? 0 : current;
+    playbackStartedAt = performance.now();
+    playing = true;
+    playButton.setAttribute("aria-pressed", "true");
+    lastSubmittedTick = -1;
+    if (playbackStartedTick !== current) {
+      setDisplayedTick(playbackStartedTick);
+    }
+    animationFrameId = window.requestAnimationFrame(advancePlayback);
   });
   restartButton.addEventListener("click", () => {
+    stopPlayback();
     setDisplayedTick(0);
+    lastSubmittedTick = nearestExportedTick(0);
     onChange(0);
   });
   range.addEventListener("input", () => {
@@ -1012,11 +1072,14 @@ function createPonderControl(documentRef, control, currentTick, onChange) {
     range.setAttribute("aria-valuetext", displayValue);
   });
   range.addEventListener("change", () => {
+    stopPlayback();
     const tick = nearestExportedTick(Number(range.value) || 0);
     setDisplayedTick(tick);
+    lastSubmittedTick = tick;
     onChange(tick);
   });
 
+  abortSignal?.addEventListener("abort", stopPlayback, { once: true });
   setDisplayedTick(nearestExportedTick(currentTick));
   return wrapper;
 }
@@ -1044,8 +1107,12 @@ async function mountSceneStateControls(sceneContext) {
 
   if (controls.ponder) {
     host.append(
-      createPonderControl(documentRef, controls.ponder, sceneContext.currentState.ponderTick, (value) =>
-        updateSceneState(sceneContext, { ponderTick: value }),
+      createPonderControl(
+        documentRef,
+        controls.ponder,
+        sceneContext.currentState.ponderTick,
+        (value) => updateSceneState(sceneContext, { ponderTick: value }),
+        sceneContext.runtime.abortController?.signal,
       ),
     );
   }
@@ -1099,6 +1166,7 @@ async function mountSceneStateControls(sceneContext) {
               [channel.id]: value,
             },
           }),
+          channel.values,
         ),
       );
     }
@@ -1110,7 +1178,6 @@ async function mountSceneStateControls(sceneContext) {
       if (!structureId) {
         continue;
       }
-      const structureLabel = structure.label || structureId;
       const currentStructureState = sceneContext.currentState.structures?.[structureId] || { tier: 1, channels: {} };
       if (structure.tier && Number.isFinite(Number(structure.tier.min)) && Number.isFinite(Number(structure.tier.max))) {
         const min = Math.max(1, Number(structure.tier.min) || 1);
@@ -1118,7 +1185,7 @@ async function mountSceneStateControls(sceneContext) {
         host.append(
           createRangeControl(
             documentRef,
-            `${structureLabel} ${structure.tier.label || "Tier"}`,
+            structure.tier.label || "Tier",
             min,
             max,
             currentStructureState.tier,
@@ -1141,7 +1208,7 @@ async function mountSceneStateControls(sceneContext) {
           host.append(
             createRangeControl(
               documentRef,
-              `${structureLabel} ${channel.label || channel.id || "Channel"}`,
+              channel.label || channel.id || "Channel",
               min,
               max,
               currentStructureState.channels?.[channel.id] ?? min,
@@ -1156,6 +1223,7 @@ async function mountSceneStateControls(sceneContext) {
                     },
                   },
                 }),
+              channel.values,
             ),
           );
         }
@@ -1165,11 +1233,12 @@ async function mountSceneStateControls(sceneContext) {
 }
 
 async function updateSceneState(sceneContext, patch) {
-  if (!sceneContext.manifest || sceneContext.transitioning) {
+  if (!sceneContext.manifest) {
     return;
   }
 
-  const currentStructures = sceneContext.currentState?.structures || {};
+  const sourceState = sceneContext.pendingState || sceneContext.currentState || sceneContext.manifest.initialState;
+  const currentStructures = sourceState?.structures || {};
   const patchedStructures = patch?.structures || {};
   const mergedStructures = { ...currentStructures };
   for (const structureId of Object.keys(patchedStructures)) {
@@ -1184,53 +1253,103 @@ async function updateSceneState(sceneContext, patch) {
   }
 
   const nextState = cloneState({
-    ...sceneContext.currentState,
+    ...sourceState,
     ...patch,
     channels: {
-      ...(sceneContext.currentState?.channels || {}),
+      ...(sourceState?.channels || {}),
       ...(patch?.channels || {}),
     },
     structures: mergedStructures,
   });
-  const key = buildStateKey(nextState);
-  const variant = sceneContext.manifest.states[key];
-  if (!variant) {
-    console.warn("Missing exported scene variant for key %s", key);
+  sceneContext.pendingState = nextState;
+  if (sceneContext.transitioning) {
     return;
   }
 
   sceneContext.transitioning = true;
   try {
-    sceneContext.currentState = nextState;
-    await recreateSceneRuntime(sceneContext, variant);
+    while (sceneContext.pendingState) {
+      const requestedState = sceneContext.pendingState;
+      sceneContext.pendingState = null;
+      const key = buildStateKey(requestedState);
+      const variant = sceneContext.manifest.states[key];
+      if (!variant) {
+        console.warn("Missing exported scene variant for key %s", key);
+        continue;
+      }
+      await recreateSceneRuntime(sceneContext, variant, requestedState);
+    }
   } finally {
     sceneContext.transitioning = false;
   }
 }
 
-async function recreateSceneRuntime(sceneContext, variant) {
+async function recreateSceneRuntime(sceneContext, variant, nextState) {
   const parent = sceneContext.runtime?.wrapper?.parentNode;
   if (!parent) {
     return;
   }
 
   const replacement = createSceneNode(parent.ownerDocument, sceneContext.descriptor, variant);
-  sceneContext.descriptor = captureSceneDescriptor(replacement);
+  const nextDescriptor = captureSceneDescriptor(replacement);
   const split = splitOverlayAnnotations(
     parseSceneJsonAttribute(replacement.getAttribute("data-scene-overlay-annotations"), []),
   );
   replacement.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(split.vendorAnnotations));
+  const currentRuntime = sceneContext.runtime;
+  if (typeof currentRuntime?.controller?.replaceScene === "function") {
+    try {
+      await currentRuntime.controller.replaceScene(
+        replacement.dataset.sceneSrc,
+        parseSceneJsonAttribute(replacement.getAttribute("data-scene-in-world-annotations"), []),
+        split.vendorAnnotations,
+        parseSceneJsonAttribute(replacement.getAttribute("data-scene-hover-targets"), []),
+      );
+    } catch (error) {
+      console.warn("Failed to replace scene meshes in the existing renderer", error);
+      return false;
+    }
+    sceneContext.overlayRuntime?.dispose?.();
+    sceneContext.overlayRuntime = null;
+    sceneContext.descriptor = nextDescriptor;
+    sceneContext.htmlOverlayAnnotations = split.htmlAnnotations;
+    sceneContext.currentState = nextState;
+    attachSceneContext(sceneContext);
+    return true;
+  }
+  replacement.style.visibility = "hidden";
+  replacement.style.position = "absolute";
+  parent.insertBefore(replacement, currentRuntime.wrapper);
+  const nextRuntime = await setupVendorGameScene(replacement);
+  if (!nextRuntime?.wrapper?.isConnected) {
+    nextRuntime?.controller?.dispose?.();
+    nextRuntime?.tooltipBridge?.hide?.();
+    nextRuntime?.abortController?.abort?.();
+    replacement.remove();
+    return false;
+  }
+  nextRuntime.wrapper.style.visibility = "hidden";
+  nextRuntime.wrapper.style.position = "absolute";
+  sceneContext.overlayRuntime?.dispose?.();
+  sceneContext.overlayRuntime = null;
+  clearSceneContext(currentRuntime.wrapper);
+  currentRuntime.controller?.dispose?.();
+  currentRuntime.tooltipBridge?.hide?.();
+  currentRuntime.abortController?.abort?.();
+  parent.replaceChild(nextRuntime.wrapper, currentRuntime.wrapper);
+  nextRuntime.wrapper.style.removeProperty("visibility");
+  nextRuntime.wrapper.style.removeProperty("position");
+  sceneContext.runtime = nextRuntime;
+  sceneContext.descriptor = nextDescriptor;
   sceneContext.htmlOverlayAnnotations = split.htmlAnnotations;
-  parent.insertBefore(replacement, sceneContext.runtime.wrapper);
-
-  disposeSceneContext(sceneContext);
-  sceneContext.runtime = await setupVendorGameScene(replacement);
   if (!sceneContext.runtime?.wrapper?.isConnected) {
     disposeSceneContext(sceneContext, false);
-    return;
+    return false;
   }
+  sceneContext.currentState = nextState;
   attachSceneContext(sceneContext);
   await mountSceneStateControls(sceneContext);
+  return true;
 }
 
 async function initializeScene(node) {
@@ -1258,6 +1377,7 @@ async function initializeScene(node) {
     manifest: null,
     currentState: null,
     transitioning: false,
+    pendingState: null,
   };
 
   if (!sceneContext.runtime?.wrapper?.isConnected) {

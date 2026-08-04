@@ -258,8 +258,20 @@ img.game-scene.guide-scene {
     inset: 0 calc(8px * var(--gui-scale));
     z-index: 2;
     display: grid;
-    place-items: center;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: center;
+    column-gap: calc(4px * var(--gui-scale));
     pointer-events: none;
+}
+
+.scene-state-range-control-header {
+    display: flex;
+    justify-content: center;
+}
+
+.scene-state-range-control-header .scene-state-control-label {
+    min-width: 0;
+    text-align: center;
 }
 
 .scene-state-control-label {
@@ -268,14 +280,19 @@ img.game-scene.guide-scene {
     color: rgb(210, 210, 210);
     font-weight: 700;
     font-family: 'Pixeloid Sans', sans-serif;
-    text-align: center;
+    text-align: left;
     text-overflow: ellipsis;
     text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
     white-space: nowrap;
 }
 
 .scene-state-control-value {
-    display: none;
+    display: block;
+    color: rgb(255, 255, 255);
+    font-family: 'Pixeloid Sans', sans-serif;
+    text-align: right;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+    white-space: nowrap;
 }
 
 .scene-state-slider-wrap {
