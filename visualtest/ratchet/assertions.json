@@ -312,6 +312,144 @@
     },
     "msg": "F-N1: width-only(inferred 32) and height-only(128) images both reserve height >= 32px"
    }
+  ],
+  "visualtest_tags_block-stats.md": [
+   {
+    "exists": {
+     "cls": "LytGuidebookScene"
+    },
+    "msg": "P0: BlockStats scenes render as LytGuidebookScene blocks (no compile error)"
+   },
+   {
+    "attr": {
+     "cls": "LytGuidebookScene",
+     "field": "w",
+     "ge": 200
+    },
+    "msg": "P0: BlockStats scenes reserve real width >= 200px"
+   }
+  ],
+  "visualtest_tags_recipes-usage.md": [
+   {
+    "count": {
+     "cls": "LytNeiRecipeBox",
+     "ge": 3
+    },
+    "msg": "P0: RecipesUsage usage-query renders >= 3 LytNeiRecipeBox recipe boxes"
+   },
+   {
+    "attr": {
+     "cls": "LytNeiRecipeBox",
+     "field": "w",
+     "ge": 100
+    },
+    "msg": "P0: RecipesUsage recipe boxes reserve real width >= 100px"
+   }
+  ],
+  "visualtest_tags_quest-link.md": [
+   {
+    "count": {
+     "cls": "LytParagraph",
+     "ge": 8
+    },
+    "msg": "P0: QuestLink page renders >= 8 paragraphs (quest links + prose, no compile error)"
+   }
+  ],
+  "visualtest_mdx_file-tree.md": [
+   {
+    "exists": {
+     "cls": "LytFileTree"
+    },
+    "msg": "P0: MDX <FileTree> renders as LytFileTree block"
+   },
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 2
+    },
+    "msg": "P0: MDX FileTree {:iconItem=} rows render item icons"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "w",
+     "gt": 0
+    },
+    "msg": "P0: MDX FileTree item icons reserve real width (R2-3 family ratchet)"
+   }
+  ],
+  "visualtest_text_mark.md": [
+   {
+    "count": {
+     "cls": "LytParagraph",
+     "ge": 12
+    },
+    "msg": "P0: <mark> page renders its paragraphs (mark highlight spans in flow)"
+   },
+   {
+    "exists": {
+     "cls": "LytListItem"
+    },
+    "msg": "P0: <mark> inside list items renders (list + highlight composition locked)"
+   }
+  ],
+  "visualtest_text_item-link-dense.md": [
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 20
+    },
+    "msg": "P1: dense ItemLink page renders >= 20 item icons (827-usage density ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "w",
+     "gt": 0
+    },
+    "msg": "P1: every dense ItemLink icon reserves real width (R2-2 family ratchet)"
+   }
+  ],
+  "visualtest_text_color-named.md": [
+   {
+    "count": {
+     "cls": "LytParagraph",
+     "ge": 12
+    },
+    "msg": "P1: named <Color id=...> page renders its 16-colour rows"
+   }
+  ],
+  "visualtest_layout_callout-combos.md": [
+   {
+    "count": {
+     "cls": "LytAlertBox",
+     "ge": 5
+    },
+    "msg": "P1: multiple alert types render as LytAlertBox on one page (info/warn/danger combo)"
+   },
+   {
+    "exists": {
+     "cls": "LytVBox"
+    },
+    "msg": "P1: custom quotes / plain blockquotes render as quote boxes on the combos page"
+   }
+  ],
+  "visualtest_text_error-fallback.md": [
+   {
+    "attr": {
+     "cls": "LytParagraph",
+     "field": "w",
+     "ge": 200
+    },
+    "msg": "F-N2: error fallback paragraphs reserve real width >= 200px (no fallback-width collapse)"
+   },
+   {
+    "count": {
+     "cls": "LytParagraph",
+     "ge": 12
+    },
+    "msg": "F-N2: error-fallback page renders all error + trailing-prose paragraphs"
+   }
   ]
  }
 }
