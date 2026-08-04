@@ -904,3 +904,153 @@ The durable conclusions are folded into this ledger and WORKFLOW §4 here. Headl
   content box down ~0.5px for MS YaHei). Unrelated to baseline metrics; NO flexbox alignment mode
   (Start/Center/End/Stretch/Baseline) can replace it. F5-2 KEPT. The AUDIT T3 rationale (F5-2
   proves baseline loss) does not hold.
+
+## X. User-Reported Six Problems + Realcorpus Screening Arc (2026-08-03 ~ 2026-08-04, CLOSED)
+
+Full-chain arc: 6 user-reported problems (P1-P6) + 408-page realcorpus render + screener
+sweep (75 buckets) + confirmed patterns F-N1/N2/N3 + infra determinism + SideBar migration.
+All closed with dual verification (objective gate + independent review) per fix.
+
+### X.1 Six user problems — all CLOSED
+
+- **P1 inline LaTeX too small + baseline off (d246f34e, two rounds)**:
+  R1: INLINE_PERCEPTUAL_FACTOR=1.2f (TeX lowercase reads small next to CJK at exact
+  x-height parity); getBaseLine() exact ratio replaces ceil(getTrueIconDepth())+2 double
+  rounding (baselineRatioCache + measureBaselineRatio; dead sourceDepthPx /
+  LATEX_BOTTOM_INSET_PX removed). R2 ROOT CAUSE: jlatexmath TeXIcon.setInsets(Insets)
+  single-arg silently adds (int)(0.18f*size) per side — real inset 20px/side at size=100,
+  not the 2px every comment assumed; ~40px vertical padding baked into each texture made
+  the calibrated box half padding. All 4 sites switched to setInsets(insets, true);
+  LytLatexDisplayBlock legacyPaddingDiff re-adds the phantom padding to size+refH
+  (algebraic identity (Fc+40)/(Xc+40), display box ABI stable: 11/11 display blocks 0%
+  deviation). Evidence: $x$ ink 15px vs body x-height 12px = 1.25x (target 1.2); executor
+  pixel-verified the 1.33 tool artifact was the fixture's period caught by the 3px margin;
+  ratchet +2 h-floor assertions (35 total).
+- **P2/P6 ItemImage inline + ItemLink gap (fa8d262c)**: IconMetrics alpha-ink optical
+  advance — label-less inline ItemImage/ItemLink used uniform 16px cell zero-gap; now
+  tight advance round(inkW*scale)+2*PAD (PAD=2) + draw offset -inkLeft*scale+PAD; lazy
+  static cache, multi-pass merge, alpha>8 ink box, PNG fallback (runtime CPU frames
+  cleared after atlas upload). Widths: crafting_table 16->20, compass 16->18, diamond
+  64->52, emerald 64->48.
+- **P3 Special Index layout overflow (d4b941e4)**: looked like wrong floats; actually
+  MediaWikiSpecialGeneratedBlock grid overflow — Rust
+  measure_mediawiki_special_generated hardcoded line heights 10.0 vs Java 17px render.
+  fbs append-only link_line_height/subtitle_line_height (default 10.0 back-compat);
+  collectFontFactsImpl serializes real GuideText.lineHeight=17; box h 237->335, 6 rows
+  fit, zero ink below box. First Java-estimate unification attempt was misplaced
+  (render-verified, stashed dead-path).
+- **P4 wavy/dotted decorations too rough (a3d9cbb8, two rounds)**: three hardcoded Java
+  copies drew axis-aligned opaque 2x4px blocks (8-phase sine integer-rounded, 3x3 hard
+  dots, zero AA). R1: shared DecorationRasterizer (pure functions) — subpixel sine
+  sampling 0.25 doc px with per-column coverage alpha, circular dot mask with soft edge,
+  run-merge; all 3 call sites converged (wave: 2 -> 19 brightness levels; dots: 243 core
+  104/42 falloff); geometry params unchanged. R2 (review REJECT fixes): GL scope
+  (pushAttrib+disable GL_ALPHA_TEST+try/finally pop) around wavy/dotted on legacy paths
+  (tooltip chain restores GL_GREATER 0.1 which would cull alpha<=25 soft edges); alpha
+  compositing coverage*tintAlpha/255 (was coverage-replaces-alpha).
+- **P5 callout first-line blank + icon tofu (37042f76 + 66478eb2)**:
+  P5-A: bfe98e4f had dropped .trim() in trimLeadingDirectiveText — restored; LytAlertBox
+  h 67->50, body 34->17 single line. P5-B: callout icon glyphs ⓘ✦➤⚠☢ (U+24D8/2726/27A4/
+  26A0/2622, Common script) absent from msyh.ttc with no fallback path (fontique
+  FallbackMap tracks only 7 scripts; parley Hani-hack lands on msyh/SimSun) -> .notdef
+  tofu. Font fallback mechanism: Java feeds seguisym.ttf bytes (SystemFontProvider
+  candidates incl. Apple Symbols/DejaVu; empty-skip + UnsatisfiedLinkError guard) -> new
+  JNI LayoutBridge_loadFallbackFont -> ParleyFonts.load_fallback_font_data registers +
+  primes system Hani fallback cache + append_fallbacks (append, never set — CJK order
+  preserved). Layout JSON byte-identical with/without fallback (no primary-glyph theft);
+  tofu->real symbols confirmed (alert title run widths +1..3px).
+
+### X.2 Realcorpus screening patterns — all CLOSED
+
+- **F-N1 FloatingImage single-dimension (8e66d421)**: real corpus uses width-only (or
+  height-only) widely; compiler hard-rejected at parse time. Now single-dimension =
+  display-size semantics (full image, missing dim inferred from natural aspect, no extra
+  scale on inferred axis); two-dim crop semantics unchanged; natural<=0 falls back to
+  error path. Rust measure_image + compiler + 2 Java mirrors identical formula. 10
+  real-corpus images inferred within 1px; fixture single-param.md + 3 assertions.
+- **F-N2 script error fallback zero width (cbea6430)**: error LytParagraph.error inline
+  blocks fell to serializer else-branch -> FloatAbs(0,0) -> Parley InlineBox width 0 ->
+  pen never advanced -> overlap with body text (12+ real pages). New LytParagraph branch
+  declares FloatAbs from GuideText.measureWidth (longest line) x lineHeight*lines.
+  alchemic_router follow-up text x=39->494; sibling intersections 14->0 on 5 pages;
+  error-fallback.md fixture locks w>=200 (blind spot documented: node-disappears mode).
+- **F-N3 silent black scene viewports (5f026c66, two rounds)**: static hypothesis (modern
+  SNBT dialect) FALSIFIED by probes — real root cause camera geometry: explicit rotation
+  center skipped auto-centering (structure projected to y~-595); ponder/GameScene offsets
+  applied as world units though screen-space everywhere else (SceneTagCompiler doc,
+  auto-pan, ponder drag) — -75/-90 x 10xzoom threw structures offscreen. Fixes:
+  explicit-center scenes also centered (level center); offsets unified to screen px via
+  s=0.625*16*zoom=10xzoom; error channel (sceneBuildError + drawSceneBuildError red text,
+  never silent black); modern dialect parsing added forward-compat; wiki scene-camera.md
+  (en+zh) stale 'units: blocks' corrected. Evidence: subnetworks ROI 7.13%->32.26%,
+  crops 16.89%->23.56%, camera.md offset scene 9.68%->40.15%; 8-file affected-offset
+  inventory.
+
+### X.3 Infrastructure — CLOSED
+
+- **Warmup race (2315fd38)**: MediaWikiSpecialDataIndex async warmup vs headless batch —
+  13 alphabetically-early Special pages rendered as 96px empty fallback (warmup completed
+  1619ms AFTER page 12). handleWorldStable awaits warmup (poll specialDataIndex() !=
+  EMPTY singleton, 25ms, 30s cap + warning, interrupt-flag restored). All 13 restored
+  (allpages 48->954, doubleredirects 48->6078); log order warmup-complete < batch-start.
+- **Identity-hash iteration-order nondeterminism (d82a4575)**: same-build renders drifted
+  across JVM runs (mermaid arrangement, tasks 4px shift) — forced pixel-regression
+  exemptions. ROOT: FlowchartDocument Map.copyOf -> JDK ImmutableCollections.MapN salts
+  hash table with System.nanoTime() per JVM; getNodes() order feeds computeNodeMinSizes +
+  ELK node creation order; ELK keeps input order among equal solutions. One-line fix:
+  Collections.unmodifiableMap(new LinkedHashMap<>(src)). 25 pages rendered twice in
+  independent JVM runs: 24/25 pixel-identical (exemption list shrinks to nei_recipes only
+  — residual 1344px lives in external GTNH sprite-atlas registration order, unreachable).
+- **SideBar integration S1+S2 (3c6d8bce + f58f903c)**: GuideNavBar was the last GUI chrome
+  island on MC FontRenderer bitmap fonts. S1: all text to GuideText/Rust primitives
+  (drawPageTitle precedent, single execute after legacy rects; row fontScale 0.70 ==
+  lineHeight 12 == ROW_H; title 0.80; hover smooth scroll via pushScreenScissor
+  primitives; FontRenderer fallback when !isAvailable). S2: -Dguidenh.renderpage.chrome=
+  true headless pass (build.gradle.kts forwards key) — navbar primitives composed left
+  162 logical px (mirrors resolveNavigationOpenWidth), document shifted right, output
+  width+navW; document bounds byte-identical; verified 79 nav primitives, 2124x1622,
+  smooth AA text, 24px row pitch.
+
+### X.4 Screener sweep adjudications (75 buckets, 408 pages)
+
+- 9 pending items adjudicated: ZERO real engine bugs — 6 false positives (quest-ID
+  'AAAA...' misread as '&&&&' — homoglyph-run misread pattern registered; '|Iron|' was
+  resolved item names; 'Le el 1' was complete 'v' glyph at small size; NEI panel grey
+  bars; ponder annotations wrapped fine; icon-slot red placeholders are headless texture
+  absence), 3 content/fixture data (content-embed crop 128x128 vs 32x32 actual;
+  spatial-io allowLayerSlider={false} by design; overriddenpages red = icon placeholder
+  not text clipping).
+- New false-positive pattern for screener prompts: homoglyph long-run misread
+  (repeated same-char strings read as symbol runs).
+
+### X.5 Follow-ups registered (open)
+
+- **F4 glyph atlas full**: PENDING-IN-GAME (user repro) — see section N.
+- **R4-25 scene second entity**: STUCK (Angelica layer).
+- **resourcepack1 redeploy**: deployed snapshot still carries stale scene-camera 'blocks'
+  text (wiki source fixed in 5f026c66; snapshot is gitignored run/ content — redeploy is
+  an owner action); _en_gb variant exists only in the snapshot (structural asymmetry).
+- **ponder corpus offX/offY visual check**: pixel semantics now (auto.json -75/-90,
+  coke_oven.json -25/-50 etc.) — rendered correctly per F-N3 verification but worth a
+  visual pass on next deploy.
+- **Navbar follow-ups**: sticky-row text z-order in scrolled state composites above
+  sticky rects (single-execute consequence, reviewer-noted); navbar font metrics are
+  msyh-measured (other fonts need re-measure); >100 lines mirrored geometry between
+  collectPrimitives and render() (share a geometry data source).
+- **FlowchartNode.java:41 MapN residual**: same Map.copyOf pattern (extendedProperties);
+  iteration feeds CSS string building — order-insensitive today, note if styleOverride
+  strings ever become order-sensitive.
+- **site-export notes**: single-param regional ImageAnnotations not laid out by site JS
+  (app.js selector, documented); x/y error text is a merged message vs runtime's
+  per-attribute message; no headless export entry (probe-verified instead).
+- **Engine quirks documented (not bugs)**: [!NOTE] marker swallowed by parser — alert
+  detection keys on body first word; title=/color-only quote directives fall to plain
+  blockquote path (LytVBox, no header row); 3-digit hex colors malformed by parser.
+- **Deferred/standing**: F6 monospace font; F7b scene text; P7 true baseline (needs
+  baseline metric export + bounds baseline field); T4 calibration tuning (absorbed by
+  P1); shadow permanent fixture (needs trigger mechanism decision); T1 edge remnants
+  (mermaid kind 4/5 straight lines, LytItemImage ^^/::); A6 tooltip+NEI, A11
+  LytNeiRecipeBox, SubPages top rendering, A10 M1' (await decision).
+- **Ratchet/assertion state**: 55 assertions / 33 pinned pages; 34-page acceptance batch
+  (23 original + images/single-param + scenes/import + 9 expansion pages); pixel
+  regression exemption list = nei_recipes only.
