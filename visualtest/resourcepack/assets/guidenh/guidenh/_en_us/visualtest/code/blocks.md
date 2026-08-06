@@ -110,7 +110,7 @@ Expected: A code block with exactly one line of content renders with single-line
 { "key": "value", "enabled": true }
 ```
 
-## Special Characters <>&"§
+## Special Characters &lt;&gt;&amp;&quot;&sect;
 
 Expected: Angle brackets, ampersand, double quotes, and section sign render literally as code content; no HTML/XML entity interpretation inside the fence.
 
