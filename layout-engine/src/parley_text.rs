@@ -72,9 +72,22 @@ impl ParleyFonts {
         // Warm the system Hani fallback cache first so the appended symbol
         // families are ordered after the system CJK fallbacks.
         let _warm: Vec<_> = self.font_cx.collection.fallback_families(key).collect();
-        for id in ids {
-            self.font_cx.collection.append_fallbacks(key, core::iter::once(id));
+        for id in &ids {
+            self.font_cx.collection.append_fallbacks(key, core::iter::once(*id));
         }
+        // P5-C: register the symbol families as the leading generic Emoji
+        // family. ⚠ (U+26A0) / ☢ (U+2622) are classified emoji/pictograph by
+        // parley_data, so parley shapes them via `GenericFamily::Emoji`
+        // (parley shape/mod.rs:580-591) — the Hani fallback key above is
+        // bypassed entirely and the system resolves Segoe UI Emoji (COLR
+        // composite glyph), which collapses to a 22×10 fragment at 22px.
+        // `append_generic_families` lands the ids in `ours`, iterated before
+        // the system generic families (fontique collection/mod.rs:350-362),
+        // so the emoji query hits seguisym (Outline path, consistent with the
+        // monochrome pipeline) and stops.
+        self.font_cx
+            .collection
+            .append_generic_families(fontique::GenericFamily::Emoji, ids.iter().copied());
     }
 }
 
@@ -749,6 +762,54 @@ pub struct ParleyRasterGlyph {
     pub span_index: u32,
 }
 
+/// Glyph rasterization size ceiling — the F4 bleed-stop (defense-in-depth).
+///
+/// Diagnosis (numerically closed): the live 23s/441-WARN flood comes from
+/// glyphs rasterized at 1089–1452 ppem (bitmaps 966×1086 / 1402×1517),
+/// traced back to `size = g.font_size × render_scale` below. The normal
+/// live path tops out at 11 × 2.5(MAX_ZOOM) × 4 = 110 ppem; the
+/// fontScale≈33 injection point that feeds this multiplier is NOT yet
+/// located — every static path is value-bounded, so the oversized size must
+/// arrive via an unidentified live path.
+///
+/// THIS CLAMP IS THE TOURNIQUET, NOT THE FIX. The primary repair is
+/// locating and fixing the injection point (the diagnostic log emitted on
+/// the first clamp per key is the tracing payload for that hunt). This
+/// ceiling only stops the symptom: oversized glyphs rasterize at 128 ppem
+/// and — because the atlas key below is derived from the CLAMPED size —
+/// all oversize injections collapse onto one shared 128ppem atlas entry
+/// instead of flooding the glyph atlas with giant bitmaps.
+///
+/// Normal glyphs (≤110 ppem, i.e. the entire legitimate range) take the
+/// identical code path: `size` is untouched and the key is identical, so
+/// rasterization output is byte-for-byte unchanged.
+const MAX_RASTER_SIZE: f32 = 128.0;
+
+/// Fallback rasterization size for pathological font sizes — the F4
+/// root-cause repair (runtime-closed): ALL
+/// 186 giant glyphs arrived with fontScale=0.0. Java passes ShapeTextInput
+/// fontScale=0 → `scaled = font_size × font_scale = 0` → parley shapes at
+/// size 0 → `OutGlyph.font_size = 0` (or NaN on some paths). Then
+/// `raw_size = font_size × render_scale` is 0/NaN and the `> MAX_RASTER_SIZE`
+/// clamp above is vacuous (0>128=false; NaN>128=false) — swash renders at
+/// size 0/NaN and emits the glyph's raw outline coordinates as a giant
+/// bitmap (1371×1516 etc).
+///
+/// This fallback is NOT a clamp: it replaces an invalid size with a
+/// legitimate one. 22ppem = 11pt × 2 — the standard body size at the
+/// default 2× render scale — so these glyphs render at normal size instead
+/// of raw outline coordinates. Because the atlas key is derived from the
+/// final size, all fallback glyphs share one 22ppem atlas entry.
+const DEFAULT_RASTER_SIZE: f32 = 22.0;
+
+/// Atlas keys whose oversize clamp has already been reported. Process-wide
+/// so a flood spanning many layout calls still logs exactly once per key —
+/// the diagnostic must not itself become a log flood. A poisoned lock (a
+/// panic elsewhere in this thread) is skipped silently: reporting is
+/// best-effort and must never alter rasterization.
+static CLAMP_REPORTED: std::sync::LazyLock<std::sync::Mutex<std::collections::HashSet<u64>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashSet::new()));
+
 /// Rasterize shaped glyphs: pen positions → swash bitmaps, deduplicated by a
 /// stable content key (font bytes ptr, face index, glyph id, size). Pen
 /// positions snap to the integer grid — the MC pixel grid wants integer
@@ -770,7 +831,24 @@ pub fn rasterize_out_glyphs(
         else {
             continue;
         };
-        let size = g.font_size * render_scale;
+        let raw_size = g.font_size * render_scale;
+        // F4 bleed-stop: clamp the rasterization size before it reaches the
+        // swash scaler. Clamped glyphs share one key (derived below from the
+        // clamped size), so the atlas cannot be flooded by giant bitmaps.
+        let clamped = raw_size > MAX_RASTER_SIZE;
+        // F4 root-cause: fontScale=0 injection makes `font_size` 0 (or NaN),
+        // so raw_size is 0/NaN and the >MAX clamp above is vacuous
+        // (0>128=false; NaN>128=false) — swash would render at size 0/NaN and
+        // emit the glyph's raw outline coordinates as a giant bitmap. Fall
+        // back to DEFAULT_RASTER_SIZE instead. `clamped` keeps its exact
+        // meaning (`raw_size > MAX_RASTER_SIZE`, only ever true for finite
+        // positive raw_size); the two conditions are mutually exclusive.
+        let fallback = !raw_size.is_finite() || raw_size <= 0.0;
+        let size = if fallback {
+            DEFAULT_RASTER_SIZE
+        } else {
+            raw_size.min(MAX_RASTER_SIZE)
+        };
         let xi = (g.x * render_scale).trunc() as i32;
         let yi = (g.y * render_scale).trunc() as i32;
 
@@ -798,6 +876,29 @@ pub fn rasterize_out_glyphs(
                 let (w, hh) = (img.placement.width as u32, img.placement.height as u32);
                 if w == 0 || hh == 0 {
                     continue;
+                }
+                // F4 bleed-stop diagnostic: first oversize clamp per key logs
+                // the injection shape (font_size, render_scale, raw size,
+                // bitmap w×h) once, process-wide — enough to pinpoint the
+                // live injection point on the next reproduction without the
+                // diagnostic itself flooding the log.
+                if clamped {
+                    if let Ok(mut reported) = CLAMP_REPORTED.lock() {
+                        if reported.insert(key) {
+                            eprintln!(
+                                "[guide_layout_engine][WARN] glyph rasterize size clamped \
+                                 (F4 bleed-stop): font_size={} render_scale={} raw_size={} \
+                                 bitmap={}x{} clamped_to={}ppem glyph_id={}",
+                                g.font_size,
+                                render_scale,
+                                raw_size,
+                                w,
+                                hh,
+                                MAX_RASTER_SIZE,
+                                g.glyph_id
+                            );
+                        }
+                    }
                 }
                 let p = (img.placement.left, img.placement.top, w, hh);
                 bitmaps.push((key, w, hh, alpha_to_rgba(&img.data)));
