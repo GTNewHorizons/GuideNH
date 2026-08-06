@@ -58,6 +58,15 @@ VLM_SYSTEM_PROMPT = """你是一个排版缺陷检测员。分析图像中的排
 
 VLM_USER_TEXT = "请检测此图像区域的排版和渲染缺陷。"
 
+# ask 子命令使用的中性系统提示词（区别于粗筛的 VLM_SYSTEM_PROMPT）
+ASK_SYSTEM_PROMPT = """你是一个视觉问答助手。请严格针对用户提出的具体问题回答，不要泛泛描述整张图。
+
+要求：
+- 仅依据图中可见的证据作答；图中没有的信息不要猜测或编造。
+- 回答直接、具体、简洁，紧扣问题本身。
+- 若用户要求结构化输出（例如指定 JSON 格式、键名），严格按用户指定的格式输出，不要额外说明文字。
+- 若用户只关心局部区域，聚焦该区域回答，不要赘述其他区域内容。"""
+
 # ---- 几何检测常量 ----
 # sibling_intersection 排除规则：LytDocumentFloat 与特定块对的合法环绕重叠不报告
 # LytFloatAwareBlock 全宽包裹，CSS float 模型设计使然；LytDocumentFloat.getBounds 返回 inner 可视边界而流式高度为 0
@@ -410,11 +419,17 @@ def tile_image(pil_image, tile_h, overlap):
     return tiles
 
 
-def call_vlm_api(api_key, base_url, model, image_b64, timeout, prompt_text):
+def call_vlm_api(api_key, base_url, model, image_b64, timeout, prompt_text,
+                 system_prompt=VLM_SYSTEM_PROMPT, raw_out=None, require_json=True):
     """
     调用 OpenAI 兼容的 VLM API。
     返回: (result, error_detail) —— 成功时 result 为解析后的 JSON dict, error_detail 为 None；
           失败时 result 为 None, error_detail 为错误描述字符串（区分"API 调用失败"与"响应解析失败"）。
+
+    可选参数（ask 子命令使用，默认值保持 vlm 原有行为不变）：
+    - system_prompt: 覆盖 system 提示词（默认 VLM_SYSTEM_PROMPT）
+    - raw_out: 传入 dict 时，将模型回答原文写入 raw_out['content']
+    - require_json=False: 回答不是 JSON 时不视为失败（返回 (None, None)），原文仍写入 raw_out
     """
     url = f"{base_url}/chat/completions".rstrip('/')
     headers = {
@@ -424,7 +439,7 @@ def call_vlm_api(api_key, base_url, model, image_b64, timeout, prompt_text):
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": VLM_SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {
                 "role": "user",
                 "content": [
@@ -455,10 +470,15 @@ def call_vlm_api(api_key, base_url, model, image_b64, timeout, prompt_text):
                 eprint(f"[warn] API 返回无 choices")
                 return (None, f"API 调用失败: 响应无 choices, 原始响应: {preview}")
             content = choices[0].get('message', {}).get('content', '')
+            if raw_out is not None:
+                raw_out['content'] = content
             result = extract_json_block(content)
             if result is None:
-                preview = content[:200]
-                return (None, f"响应解析失败: {preview}")
+                if require_json:
+                    preview = content[:200]
+                    return (None, f"响应解析失败: {preview}")
+                # require_json=False：回答非 JSON 不视为失败（ask 场景），原文已写入 raw_out
+                return (None, None)
             return (result, None)
         except urllib.error.HTTPError as e:
             code = e.code
@@ -824,6 +844,159 @@ def run_vlm(shots_dir, pages_filter, model_override, tile_h, overlap, dry_run, o
 
 
 # ============================================================
+# Ask — 轻量针对性视觉问答
+# ============================================================
+
+def run_ask(files, prompt, model_override, dry_run, out_path):
+    """
+    轻量针对性视觉问答：指定具体 PNG 文件 + 自定义问题，整图直喂 VLM，不切片。
+    与 vlm 粗筛的根本区别：整图直喂 / 自定义 prompt / 自由回答 + 尽力结构化。
+    """
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    env = load_env(env_path)
+
+    if env is None:
+        eprint("[fatal] 未找到 .env 文件！")
+        eprint(f"[fatal] 请复制 {os.path.dirname(os.path.abspath(__file__))}/.env.example 为 .env 并填入 DASHSCOPE_API_KEY")
+        sys.exit(1)
+
+    api_key = env.get('DASHSCOPE_API_KEY', '').strip()
+
+    # dry-run 模式不需要真实 key（key 校验逻辑与 run_vlm 相同）
+    if not dry_run:
+        if not api_key or api_key.startswith('sk-在这里') or api_key == 'dummy':
+            eprint("[fatal] DASHSCOPE_API_KEY 未正确配置！")
+            eprint(f"[fatal] 请编辑 {env_path} 填入真实 API Key")
+            sys.exit(1)
+
+    base_url = env.get('VLM_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1').rstrip('/')
+    model = model_override or env.get('VLM_MODEL', 'qwen2.5-vl-32b-instruct')
+    timeout = int(env.get('VLM_TIMEOUT', '120'))
+
+    if not files:
+        eprint("[fatal] 没有指定任何文件")
+        sys.exit(1)
+
+    from PIL import Image
+
+    # Dry-run: 只打印将调用的文件与请求体大小，不发起 HTTP
+    if dry_run:
+        eprint(f"[dry-run] 模型: {model}")
+        eprint(f"[dry-run] Base URL: {base_url}")
+        prompt_len = len(prompt) + len(ASK_SYSTEM_PROMPT)
+        eprint(f"[dry-run] 提示词长度: {prompt_len} 字符 (系统 {len(ASK_SYSTEM_PROMPT)} + 用户 {len(prompt)})")
+        eprint(f"[dry-run] 匹配到 {len(files)} 个文件:")
+
+        for path in files:
+            try:
+                img = Image.open(path)
+                width, height = img.size
+                area = width * height
+                if area > 6_000_000:
+                    eprint(f"[warn] {path} 图片面积 {width}x{height}={area} 像素，超过 6,000,000，"
+                           f"细节可能受损，建议裁剪局部或使用 vlm 粗筛")
+                buf = BytesIO()
+                img.save(buf, format='PNG')
+                b64_size = len(base64.b64encode(buf.getvalue()).decode('ascii'))
+                req_body = json.dumps({
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": ASK_SYSTEM_PROMPT},
+                        {"role": "user", "content": [
+                            {"type": "text", "text": prompt},
+                            {"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}
+                        ]}
+                    ],
+                    "max_tokens": 1024,
+                    "temperature": 0.1
+                })
+                eprint(f"[dry-run]   {path}: 尺寸 {width}x{height}, 面积 {area}, "
+                       f"请求体 ~{len(req_body)} bytes, base64 ~{b64_size} bytes")
+            except Exception as e:
+                eprint(f"[warn] 无法打开 {path}: {e}")
+
+        print(json.dumps({"dry_run": True, "files": len(files)}))
+        return 0
+
+    # 正式运行：每文件独立调用，顺序处理（不并发）
+    answers = []
+    errors = []
+
+    for path in files:
+        try:
+            img = Image.open(path)
+        except Exception as e:
+            err = f"无法打开图片: {e}"
+            eprint(f"[warn] {err}: {path}")
+            answers.append({"file": path, "answer": None, "findings": [], "error": err})
+            errors.append({"file": path, "error": err})
+            continue
+
+        width, height = img.size
+        area = width * height
+        if area > 6_000_000:
+            eprint(f"[warn] {path} 图片面积 {width}x{height}={area} 像素，超过 6,000,000，"
+                   f"细节可能受损，建议裁剪局部或使用 vlm 粗筛")
+
+        eprint(f"[info] 处理文件 {path} ({width}x{height})")
+        try:
+            b64 = encode_image_png(img)
+        except Exception as e:
+            err = f"图片编码失败: {e}"
+            eprint(f"[warn] {err}: {path}")
+            answers.append({"file": path, "answer": None, "findings": [], "error": err})
+            errors.append({"file": path, "error": err})
+            continue
+
+        raw_out = {}
+        result, error_detail = call_vlm_api(
+            api_key, base_url, model, b64, timeout, prompt,
+            system_prompt=ASK_SYSTEM_PROMPT, raw_out=raw_out, require_json=False
+        )
+        if error_detail:
+            eprint(f"[warn] {path} 调用失败: {error_detail}")
+            answers.append({"file": path, "answer": None, "findings": [], "error": error_detail})
+            errors.append({"file": path, "error": error_detail})
+            continue
+
+        answer = raw_out.get('content', '')
+        findings = []
+        # 尽力而为：用 extract_json_block 提取到的 result 中取 findings 数组
+        # 模型按要求输出了结构化 JSON 含 findings 时提取；提取不到则为空数组
+        if isinstance(result, dict):
+            extracted = result.get('findings', [])
+            if isinstance(extracted, list):
+                findings = [_normalize_finding(f) for f in extracted if isinstance(f, dict)]
+            # result 是 JSON 但无 findings 键：整个 JSON 已原样保留在 answer（模型回答原文），findings 留空
+
+        answers.append({"file": path, "answer": answer, "findings": findings, "error": None})
+
+    output = {
+        "tool": "visual-inspection/screen.py",
+        "subcommand": "ask",
+        "model": model,
+        "files": list(files),
+        "prompt": prompt,
+        "answers": answers,
+        "errors": errors
+    }
+
+    if out_path:
+        save_json(out_path, output)
+        eprint(f"[info] ask 完成: {len(answers)} 个文件, {len(errors)} 条错误")
+        eprint(f"[info] 输出 -> {out_path}")
+        print(json.dumps({
+            "files_processed": len(files),
+            "errors_count": len(errors),
+            "output": out_path
+        }))
+    else:
+        print(json.dumps(output, ensure_ascii=False, indent=2))
+
+    return 0
+
+
+# ============================================================
 # Report 合并
 # ============================================================
 
@@ -957,6 +1130,15 @@ def main():
     p_vlm.add_argument('--dry-run', action='store_true', help='不发起 HTTP，仅打印信息')
     p_vlm.add_argument('--out', required=True, help='输出 JSON 路径')
 
+    # --- ask ---
+    p_ask = subparsers.add_parser('ask', help='轻量针对性视觉问答：指定文件+自定义问题，整图直喂')
+    p_ask.add_argument('--files', required=True, action='append',
+                       help='PNG 文件路径（可重复指定或以逗号分隔多个）')
+    p_ask.add_argument('--prompt', required=True, help='针对性问题文本（调用方自定义）')
+    p_ask.add_argument('--out', help='输出 JSON 路径（缺省打印到 stdout）')
+    p_ask.add_argument('--model', help='覆盖 .env 中的 VLM_MODEL')
+    p_ask.add_argument('--dry-run', action='store_true', help='不发起 HTTP，仅打印信息')
+
     # --- report ---
     p_rep = subparsers.add_parser('report', help='合并报告')
     p_rep.add_argument('--inputs', required=True, help='输入 JSON 路径（逗号分隔）')
@@ -975,6 +1157,15 @@ def main():
             args.shots, pages_filter, args.model,
             args.tile_h, args.overlap, args.dry_run, args.out
         )
+
+    elif args.command == 'ask':
+        files = []
+        for part in args.files:
+            for f in part.split(','):
+                f = f.strip()
+                if f:
+                    files.append(f)
+        return run_ask(files, args.prompt, args.model, args.dry_run, args.out)
 
     elif args.command == 'report':
         inputs = [s.strip() for s in args.inputs.split(',') if s.strip()]

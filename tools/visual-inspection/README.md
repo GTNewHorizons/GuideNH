@@ -21,7 +21,7 @@ cp .env.example .env
 ```
 DASHSCOPE_API_KEY=sk-你的密钥
 VLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-VLM_MODEL=qwen2.5-vl-32b-instruct
+VLM_MODEL=qwen3-vl-plus
 VLM_CONCURRENCY=4
 VLM_TIMEOUT=120
 ```
@@ -52,6 +52,62 @@ py -3 screen.py vlm --shots <截图目录> [--pages name1,name2] [--model 覆盖
 - `--dry-run` 仅打印信息，不发起 HTTP
 - 并发控制：`ThreadPoolExecutor(VLM_CONCURRENCY)`
 - API 失败时指数退避重试 3 次（1s/4s/16s）
+
+### ask — 轻量针对性视觉问答
+
+轻量针对性入口：指定具体 PNG 文件 + 自定义问题 prompt，整图直喂 VLM，快速得到针对性回答（供子代理做定点视觉检查，如"此图标是否渲染成豆腐块""导航栏第 3-4 行是否重影"）。
+
+```bash
+py -3 screen.py ask --files <图片1.png>[,<图片2.png>] --prompt "此图标是否渲染成豆腐块？" [--out 输出.json] [--model 覆盖.env] [--dry-run]
+```
+
+参数表：
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `--files` | 是 | PNG 文件路径（可重复指定或以逗号分隔多个；支持相对/绝对路径） |
+| `--prompt` | 是 | 针对性问题文本（调用方自定义） |
+| `--out` | 否 | 输出 JSON 路径；缺省打印到 stdout |
+| `--model` | 否 | 覆盖 .env 的 VLM_MODEL |
+| `--dry-run` | 否 | 只打印将调用的文件与请求体大小，不发起 HTTP |
+
+- **整图直喂，不切片**（与 vlm 粗筛的根本区别）；每文件独立调用、顺序处理（不并发）
+- **自定义 prompt**：系统提示词使用中性 `ASK_SYSTEM_PROMPT`（严格按用户问题回答、仅依据图中可见证据、回答直接具体、用户要求结构化时按其指定格式），区别于 vlm 粗筛的固定排版缺陷 prompt
+- **自由回答 + 尽力结构化**：`answer` 为模型回答原文（不加工）；`findings` 尽力而为——若模型按用户要求输出了结构化 JSON 且含 `findings` 数组则提取，否则为空数组
+- 图片面积 > 6,000,000 像素时打印 warn 提示（细节可能受损，建议裁剪局部或使用 vlm 粗筛），但仍继续尝试
+- 单文件失败不中断其他文件：该项 `error` 填错误描述（沿用 `call_vlm_api` 返回的 `error_detail` 原样）并追加进 `errors`
+
+输出 JSON schema：
+
+```json
+{
+  "tool": "visual-inspection/screen.py",
+  "subcommand": "ask",
+  "model": "qwen3-vl-plus",
+  "files": ["<file1>", "<file2>"],
+  "prompt": "<用户prompt原文>",
+  "answers": [
+    {
+      "file": "<file1>",
+      "answer": "<模型回答原文>",
+      "findings": [
+        {"bbox": [x, y, w, h], "class": "...", "severity": "...", "confidence": 0.0, "evidence": "..."}
+      ],
+      "error": null
+    }
+  ],
+  "errors": []
+}
+```
+
+与 vlm 粗筛的区别：
+
+| 维度 | vlm 粗筛 | ask |
+|------|----------|-----|
+| 输入 | 目录扫描全部 PNG | 指定具体文件 |
+| prompt | 固定 9 类排版缺陷 prompt | 调用方自定义 |
+| 图像 | 切瓦片 + 并发 + 去重 | 整图直喂、顺序处理 |
+| 输出 | 固定 findings schema | 自由回答 + 尽力结构化 |
 
 ### 3. report — 合并报告
 
@@ -97,7 +153,7 @@ py -3 screen.py report --inputs a.json,b.json --out triage.json
 {
   "tool": "visual-inspection/screen.py",
   "subcommand": "vlm",
-  "model": "qwen2.5-vl-32b-instruct",
+  "model": "qwen3-vl-plus",
   "total_pages": 5,
   "total_findings": 10,
   "findings": [
