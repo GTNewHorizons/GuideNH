@@ -33,12 +33,17 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     public static final int BASE_SIZE = 16;
 
     /**
-     * Optical padding (layout px, applied after scale) reserved on each side of
-     * an inline item icon's ink bounds so the visible glyph never touches
-     * adjacent text. Only used on the no-label inline path; the label path and
-     * the block (non-inline) path keep the legacy 16px cell.
+     * Optical advance adjustment (layout px, applied after scale) for the
+     * no-label inline path. The tightW advance ({@code inkW * scale + 2*PAD})
+     * and the renderX offset ({@code -inkLeft * scale + PAD}) must stay in
+     * lockstep through this shared constant. 0 = the icon's ink box fills its
+     * cell exactly (cell width = ink width); surrounding text glyphs already
+     * carry their own advance/bearing spacing, so a per-icon pad adds nothing
+     * but the "icon trailing kerning" gap the users reported. Only used on the
+     * no-label inline path; the label path and the block (non-inline) path
+     * keep the legacy 16px cell.
      */
-    private static final int INLINE_OPTICAL_PAD = 2;
+    private static final int INLINE_OPTICAL_PAD = 0;
 
     /** Theme token: gap between the item icon and its label text. */
     private static final TokenKey<DimensionValue> LABEL_GAP = TokenKey
@@ -183,9 +188,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         }
         if (!hasLabel) {
             // Optical tight advance for inline icons: shrink the cell to the
-            // ink width + PAD on each side instead of the full 16px square, so
-            // the gap to the following text is consistent across items. Falls
-            // back to the legacy 16px cell when ink metrics are unavailable.
+            // ink width (+ PAD on each side, PAD=0 by default) instead of the
+            // full 16px square, so the gap to the following text is consistent
+            // across items. Falls back to the legacy 16px cell when ink metrics
+            // are unavailable.
             if (inline) {
                 IconMetrics m = stack != null ? IconMetrics.forStack(stack) : null;
                 if (m != null) {
@@ -240,6 +246,17 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         }
         if (!hasLabel) {
             layoutYOffset = 0;
+            // Mirrors computeContentSize: the no-label inline path uses the
+            // same tight ink advance (PAD=0), so serialization-size and
+            // layout-size never disagree for the same block. Non-inline and
+            // label paths keep the legacy 16px cell.
+            if (inline) {
+                IconMetrics m = stack != null ? IconMetrics.forStack(stack) : null;
+                if (m != null) {
+                    int tightW = Math.round(m.width * scale) + 2 * INLINE_OPTICAL_PAD;
+                    return new LytRect(x, y, tightW, iconSize);
+                }
+            }
             return new LytRect(x, y, iconSize, iconSize);
         }
 
@@ -314,8 +331,8 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
             int renderX = iconX;
             if (inline && !hasLabel) {
                 // Optical tight placement on the no-label inline path: shift the
-                // icon so its ink left edge sits INLINE_OPTICAL_PAD px from the
-                // cell's left edge, mirroring the tight advance computed in
+                // icon so its ink left edge sits INLINE_OPTICAL_PAD (0) px from
+                // the cell's left edge, mirroring the tight advance computed in
                 // computeContentSize. Null metrics (atlas not ready / missingno)
                 // keep the legacy offset of 0.
                 IconMetrics m = stack != null ? IconMetrics.forStack(stack) : null;
