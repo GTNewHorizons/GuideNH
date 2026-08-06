@@ -3980,8 +3980,9 @@ public class GuideScreen extends GuiContainer
         if (pageTitle.isEmpty()) return;
 
         int reservedRight = (16 + TOOLBAR_GAP) * 5 + PANEL_PADDING + 4;
-        int availableW = Math.max(20, panelW - PANEL_PADDING - reservedRight);
-        int titleX = panelX + PANEL_PADDING;
+        int navReservedWidth = getNavigationReservedWidth();
+        int availableW = Math.max(20, panelW - PANEL_PADDING - navReservedWidth - reservedRight);
+        int titleX = panelX + PANEL_PADDING + navReservedWidth;
 
         // Single-pass layout: position is applied via GL translate, not layout coordinates.
         // Re-layout only when available width changes; avoids LayoutContext allocation each frame.
