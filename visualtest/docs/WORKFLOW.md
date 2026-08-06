@@ -295,6 +295,10 @@ Four automated passes over the latest render — all run **every round**:
    sight is not a substitute for geometry here — pixel/geometry inspection is
    the adjudication layer for spacing and alignment claims.
 
+VLM screening toolchain: `screen.py vlm` (coarse screening) and `screen.py ask`
+(targeted point Q&A, `--files` + `--prompt`) — reference:
+`tools/visual-inspection/README.md`.
+
 ### Stage 4 — Aesthetic Screening
 
 Aesthetic review (VLM agent with image modality, or the human owner) judges the

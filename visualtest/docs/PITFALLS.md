@@ -340,3 +340,14 @@ mandatory when a fix surfaces a reusable lesson (`docs/WORKFLOW.md` §2.7).
   durable conclusions, fold them into the stable docs (ISSUES/WORKFLOW) at
   the time; the snapshot itself stays local.
 - **Reference**: corrected in commit after 3f9e67be.
+
+## PF34: Parallel background agents × headless renders = native OOM — render is a SHARED resource, prompt-inject a lock protocol
+
+- **Incident** (2026-08-04, arc11 recon wave): the executor dispatched three background ds4f-general recon agents, each instructed to run its own headless renders via the watchdog. Three render JVMs spun up concurrently and exhausted native memory (16GB machine) — OOM. PF9/PF28 warned about concurrent gradle and batch memory pressure, but the *dispatch-level* multiplication (N background agents each rendering independently) was a new failure shape: no single agent did anything wrong; the system-level resource was oversubscribed.
+- **Lesson**: the headless render pipeline is a SHARED, unpriced resource. Every dispatch prompt whose task involves rendering MUST carry the shared-resource discipline block:
+  1. Before ANY render command, check occupancy: lock file `C:/Temp/opencode/render.lock` exists → busy; PowerShell check for any java.exe whose CommandLine contains `headlessRender` → busy (covers stale locks).
+  2. If busy: `sleep 30` and re-check, up to 10 retries; still busy → end with state "打回可重试 (render resource busy)" — never launch anyway.
+  3. If free: write the lock file (agent id + timestamp) BEFORE rendering, delete it immediately after (success or failure). Lock older than 15 min with no live headlessRender java.exe = stale, delete and proceed.
+  4. One render batch at a time, ≤3 pages per batch; after abnormal exits verify zero orphan JVMs (PF28).
+  The executor additionally keeps dispatch-level discipline: prefer serializing render-touching agents, and state in every such prompt that other agents may hold the resource.
+- **Reference**: user directive 2026-08-04 ("公共资源，需要明确向你请求" → simplified to prompt-injection lock); PF9; PF28.
