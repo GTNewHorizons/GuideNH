@@ -478,6 +478,13 @@ public class GuideNavBar {
                         : Integer.MAX_VALUE;
                     continue;
                 }
+                if (overlapsStickyRow(rowY, stickyRows)) {
+                    // Screen-level avoidance: this scrolling row's text band
+                    // intersects a sticky row's fixed screen band — drawing it
+                    // would double-print the same pixels (user report ②
+                    // ghosted/overlapping rows). The sticky row owns that band.
+                    continue;
+                }
                 titleScrollActive |= renderRow(
                     mc,
                     textCollector,
@@ -609,11 +616,33 @@ public class GuideNavBar {
             int defaultRowY = bodyY + index * ROW_H;
             int subtreeBoundaryY = getRowY(row.subtreeEndRowIndexExclusive());
             int rowBottomLimit = Math.min(nextRowY, subtreeBoundaryY);
-            int stickyRowY = Math.min(defaultRowY, rowBottomLimit - ROW_H);
+            // Screen-level lower bound at bodyY: a sticky row must never float
+            // up into the title band (X.5 z-order debt) — clamp it to the body
+            // top instead of letting it cross into the title area.
+            int stickyRowY = Math.max(bodyY, Math.min(defaultRowY, rowBottomLimit - ROW_H));
             stickyStack.setRowYAt(index, stickyRowY);
             nextRowY = stickyRowY;
         }
         return stickyStack;
+    }
+
+    /**
+     * Screen-level avoidance predicate: true when the given scrolling row's
+     * screen band {@code [rowY, rowY + ROW_H)} intersects any sticky row's
+     * fixed screen band {@code [rowYAt, rowYAt + ROW_H)}. The two y sources
+     * (getRowY vs computeStickyStack) are independent; without this guard a
+     * scrolling row passing through a sticky row's fixed screen band draws on
+     * the same pixels as the sticky row, which is the user report ②
+     * ghosted/overlapped rows root cause.
+     */
+    private static boolean overlapsStickyRow(int rowY, StickyStack stickyStack) {
+        for (int index = 0; index < stickyStack.size(); index++) {
+            int stickyY = stickyStack.rowYAt(index);
+            if (rowY < stickyY + ROW_H && rowY + ROW_H > stickyY) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void collectStickyAncestors(Row anchorRow) {
@@ -962,6 +991,18 @@ public class GuideNavBar {
         }
     }
 
+    /**
+     * Headless render-injection hook: snap the scroll state to an arbitrary
+     * offset (mirrors {@link #restoreState}, without touching expansion state).
+     * Lets the headless chrome pass render a single frame at any scroll
+     * position — used by RenderPageService to reproduce and regression-test the
+     * sticky/scroll overlap (system property {@code guidenh.renderpage.navscroll}).
+     */
+    public void setScrollY(int scrollY) {
+        this.scrollY = scrollY;
+        visualScrollY.snapTo(scrollY);
+    }
+
     private int getFirstVisibleRowIndex() {
         int firstVisibleRow = Math.floorDiv(visualScrollY.rounded() - CONTENT_PADDING - 1, ROW_H);
         return Math.clamp(firstVisibleRow, 0, rows.size());
@@ -1146,6 +1187,12 @@ public class GuideNavBar {
                 stickyPointer++;
                 nextStickyRowIndex = stickyPointer < stickyRows.size() ? stickyRows.rowIndexAt(stickyPointer)
                     : Integer.MAX_VALUE;
+                continue;
+            }
+            if (overlapsStickyRow(rowY, stickyRows)) {
+                // Screen-level avoidance (mirror of the live path): skip this
+                // scrolling row when its band intersects a sticky row's fixed
+                // screen band — avoids double-printed ghosted text.
                 continue;
             }
             collectRow(collector, row, rowY, rowRight, textRightBase, currentGuideId, currentPageId,

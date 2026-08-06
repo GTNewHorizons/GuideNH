@@ -536,6 +536,24 @@ public final class RenderPageService {
             Collections.emptySet());
         navBar.setPinned(true);
         navBar.update(-1, -1, tree, bookmarkState);
+        // Headless scroll injection: -Dguidenh.renderpage.navscroll=<px> renders
+        // this frame at the given scroll offset so the chrome pass can reproduce
+        // and regression-test the sticky/scroll overlap. Default 0 (absent)
+        // keeps the existing behaviour byte-identical.
+        String navScrollProp = System.getProperty("guidenh.renderpage.navscroll");
+        if (navScrollProp != null && !navScrollProp.isEmpty()) {
+            try {
+                int navScroll = Integer.parseInt(navScrollProp);
+                navBar.setScrollY(navScroll);
+                GuideDebugLog.infoAlways(
+                    "RenderPageService: nav bar scroll injected: {} px (guidenh.renderpage.navscroll)",
+                    navScroll);
+            } catch (NumberFormatException e) {
+                GuideDebugLog.warnAlways(
+                    "RenderPageService: ignoring invalid -Dguidenh.renderpage.navscroll={}",
+                    navScrollProp);
+            }
+        }
         VanillaRenderContext navCtx = new VanillaRenderContext(
             LightDarkMode.DARK_MODE, new LytRect(0, 0, navW, contentHeight), contentHeight);
         var navCollector = new PrimitiveCollector(new LytRect(0, 0, navW, contentHeight), navCtx);
