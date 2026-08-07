@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 
 import com.google.gson.GsonBuilder;
@@ -30,10 +31,16 @@ import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
+import com.hfstudio.guidenh.guide.document.block.LytHeading;
+import com.hfstudio.guidenh.guide.document.block.LytMermaidCanvas;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.internal.GuideBookmarkState;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
+import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
@@ -285,41 +292,83 @@ public final class RenderPageService {
                 "Mount failed for page " + mountPageId, e);
         }
 
-        // ---- 4. Layout ------------------------------------------------------
+        // ---- 4+5. Layout + primitive collection ------------------------------
+        // Optional headless guiscale injection (-Dguidenh.renderpage.guiscale=
+        // <1|2|3|4>): temporarily set gameSettings.guiScale so that
+        // DisplayScale.scaleFactor() — whose cache key includes guiScale —
+        // drives the Rust glyph rasterization scale like the live client's
+        // auto render_scale. Without this, headless renders always run at
+        // scaleFactor=1 (11 ppem glyphs) and can never cover the capacity
+        // surface that breaks at render_scale=4. The property is read once,
+        // the value is applied before layout and restored afterwards. Absent
+        // property = strict no-op (layout stays byte-identical).
         int contentHeight;
+        List<GuideRenderPrimitive> primitives;
+        VanillaRenderContext renderCtx;
+        Minecraft mc = Minecraft.getMinecraft();
+        int guiscaleInjection = parseGuiscaleInjection();
+        int previousGuiScale = 0;
+        if (guiscaleInjection > 0 && mc != null) {
+            previousGuiScale = mc.gameSettings.guiScale;
+            mc.gameSettings.guiScale = guiscaleInjection;
+            GuideDebugLog.infoAlways(
+                "RenderPageService: guiscale injection active: {} (layout render_scale simulation; "
+                    + "restored after layout/collect)",
+                guiscaleInjection);
+        }
         try {
-            var layoutCtx = new LayoutContext(new RustFontMetrics()).withVisualScale(1.0f);
-            document.updateLayout(layoutCtx, req.width());
-            contentHeight = document.getContentHeight();
-            if (contentHeight <= 0) {
+            try {
+                var layoutCtx = new LayoutContext(new RustFontMetrics()).withVisualScale(1.0f);
+                document.updateLayout(layoutCtx, req.width());
+                contentHeight = document.getContentHeight();
+                if (contentHeight <= 0) {
+                    throw new RenderPageException(
+                        RenderPageException.Stage.LAYOUT,
+                        "Document content height must be positive, got: " + contentHeight);
+                }
+            } catch (Exception e) {
                 throw new RenderPageException(
-                    RenderPageException.Stage.LAYOUT,
-                    "Document content height must be positive, got: " + contentHeight);
+                    RenderPageException.Stage.LAYOUT, "Layout failed", e);
+            }
+
+            try {
+                var fullViewport = new LytRect(0, 0, req.width(), contentHeight);
+                renderCtx = new VanillaRenderContext(
+                    LightDarkMode.LIGHT_MODE, fullViewport, contentHeight);
+                renderCtx.setDocumentOrigin(0, 0);
+                renderCtx.setScrollOffsetY(0);
+                renderCtx.setPreciseScrollOffsetY(0);
+                renderCtx.setZoom(1.0f);
+                renderCtx.setScreenViewport(fullViewport);
+
+            var pc = new PrimitiveCollector(fullViewport, renderCtx);
+            applyMermaidInjection(document);
+            pc.collectFrom(document);
+            primitives = pc.result();
+            // Headless toolbar-title injection (-Dguidenh.renderpage.title=true):
+            // overlay the page-title glyph run collected through the drawPageTitle
+            // equivalent path on top of the document primitives. Absent or any
+            // non-"true" value is a strict no-op — the primitive list stays
+            // byte-identical, so the default render output is unchanged.
+            if (isPageTitleInjectionEnabled()) {
+                List<GuideRenderPrimitive> titlePrims = collectToolbarTitlePrimitives(
+                    req, guide, compiledPage);
+                if (!titlePrims.isEmpty()) {
+                    List<GuideRenderPrimitive> merged = new ArrayList<>(
+                        primitives.size() + titlePrims.size());
+                    merged.addAll(primitives);
+                    merged.addAll(titlePrims);
+                    primitives = merged;
+                }
             }
         } catch (Exception e) {
             throw new RenderPageException(
-                RenderPageException.Stage.LAYOUT, "Layout failed", e);
-        }
-
-        // ---- 5. Collect primitives ------------------------------------------
-        List<GuideRenderPrimitive> primitives;
-        VanillaRenderContext renderCtx;
-        try {
-            var fullViewport = new LytRect(0, 0, req.width(), contentHeight);
-            renderCtx = new VanillaRenderContext(
-                LightDarkMode.LIGHT_MODE, fullViewport, contentHeight);
-            renderCtx.setDocumentOrigin(0, 0);
-            renderCtx.setScrollOffsetY(0);
-            renderCtx.setPreciseScrollOffsetY(0);
-            renderCtx.setZoom(1.0f);
-            renderCtx.setScreenViewport(fullViewport);
-
-            var pc = new PrimitiveCollector(fullViewport, renderCtx);
-            pc.collectFrom(document);
-            primitives = pc.result();
-        } catch (Exception e) {
-            throw new RenderPageException(
                 RenderPageException.Stage.RENDER, "Primitive collection failed", e);
+        }
+        } finally {
+            if (guiscaleInjection > 0 && mc != null) {
+                mc.gameSettings.guiScale = previousGuiScale;
+            }
         }
 
         // ---- 6. Render ------------------------------------------------------
@@ -560,6 +609,203 @@ public final class RenderPageService {
         navBar.collectPrimitives(guide.getId(), compiledPage.id(), guide, bookmarkState, false, navCollector);
         target.addAll(navCollector.result());
         return navCtx;
+    }
+
+    /**
+     * Headless mermaid canvas injection, mirroring the navscroll injection
+     * pattern above. Reads {@code -Dguidenh.renderpage.mermaidzoom} (double,
+     * 0 = no zoom injection) and {@code -Dguidenh.renderpage.mermaidoffset}
+     * ({@code "x,y"}, {@code "0,0"} = no offset injection) and applies them to
+     * every {@link LytMermaidCanvas} instance in the document before primitive
+     * collection, so the {@code HEADLESS} render branch can be verified for the
+     * zoom / drag paths without a live client. Absent or zero values are a
+     * strict no-op: the canvases keep their historical fit-to-view + centre
+     * behaviour byte-identical.
+     */
+    private static void applyMermaidInjection(LytDocument document) {
+        String zoomProp = System.getProperty("guidenh.renderpage.mermaidzoom");
+        String offsetProp = System.getProperty("guidenh.renderpage.mermaidoffset");
+        boolean zoomAbsent = zoomProp == null || zoomProp.isEmpty();
+        boolean offsetAbsent = offsetProp == null || offsetProp.isEmpty();
+        if (zoomAbsent && offsetAbsent) {
+            return;
+        }
+        float zoom = 0f;
+        if (!zoomAbsent) {
+            try {
+                zoom = (float) Double.parseDouble(zoomProp);
+            } catch (NumberFormatException e) {
+                GuideDebugLog.warnAlways(
+                    "RenderPageService: ignoring invalid -Dguidenh.renderpage.mermaidzoom={}",
+                    zoomProp);
+                return;
+            }
+        }
+        int offsetX = 0;
+        int offsetY = 0;
+        if (!offsetAbsent) {
+            String[] parts = offsetProp.split(",", -1);
+            if (parts.length != 2) {
+                GuideDebugLog.warnAlways(
+                    "RenderPageService: ignoring invalid -Dguidenh.renderpage.mermaidoffset={} (expected x,y)",
+                    offsetProp);
+                return;
+            }
+            try {
+                offsetX = Integer.parseInt(parts[0].trim());
+                offsetY = Integer.parseInt(parts[1].trim());
+            } catch (NumberFormatException e) {
+                GuideDebugLog.warnAlways(
+                    "RenderPageService: ignoring invalid -Dguidenh.renderpage.mermaidoffset={}",
+                    offsetProp);
+                return;
+            }
+        }
+        if (zoom <= 0f && offsetX == 0 && offsetY == 0) {
+            return;
+        }
+        GuideDebugLog.infoAlways(
+            "RenderPageService: mermaid canvas injection zoom={} offset=({},{})",
+            zoom, offsetX, offsetY);
+        applyMermaidInjectionRecursive(document, zoom, offsetX, offsetY);
+    }
+
+    private static void applyMermaidInjectionRecursive(LytNode node, float zoom, int offsetX, int offsetY) {
+        if (node instanceof LytMermaidCanvas<?> canvas) {
+            canvas.setHeadlessInjection(zoom, offsetX, offsetY);
+        }
+        for (var child : node.getChildren()) {
+            applyMermaidInjectionRecursive(child, zoom, offsetX, offsetY);
+        }
+    }
+
+    // ---- toolbar page-title injection (drawPageTitle equivalent) ------------
+
+    /**
+     * Headless toolbar page-title injection, mirroring the navscroll / mermaid
+     * injection pattern above. Reads {@code -Dguidenh.renderpage.title=true}
+     * (absent or any other value = strict no-op: the collected primitive list
+     * stays byte-identical) and, when enabled, overlays the toolbar page-title
+     * glyph run onto the document render via the same layout the live screen
+     * uses in {@code GuideScreen.drawPageTitle}: ordinary toolbar title placed
+     * from the toolbar band's left edge (panelX = 0, panelY = 0, panelW = page
+     * width, narrow-reading inset 0). This gives the toolbar title a headless
+     * verification channel — X.7's lesson was that the title band previously
+     * could only be judged by live eyesight.
+     */
+    private static boolean isPageTitleInjectionEnabled() {
+        return Boolean.parseBoolean(System.getProperty("guidenh.renderpage.title"));
+    }
+
+    /**
+     * Build the toolbar title paragraph the same way the live screen does
+     * ({@code GuideScreen.refreshCurrentPageTitle}'s document-title branch):
+     * the page's extracted H1 heading flow content when present, otherwise the
+     * navigation-tree node title, otherwise the page id. The paragraph is
+     * styled with {@link GuideScreen#TOOLBAR_TITLE_STYLE}.
+     */
+    private static LytParagraph buildToolbarPageTitle(MutableGuide guide, GuidePage page) {
+        LytParagraph title = new LytParagraph();
+        title.setStyle(GuideScreen.TOOLBAR_TITLE_STYLE);
+        LytHeading extracted = page.titleHeading();
+        if (extracted != null) {
+            for (LytFlowContent flowContent : extracted.getContent()) {
+                title.append(flowContent);
+            }
+        } else {
+            String resolvedTitle = null;
+            try {
+                var node = guide.getNavigationTree().getNodeById(page.id());
+                if (node != null) {
+                    resolvedTitle = node.title();
+                }
+            } catch (Throwable ignored) {}
+            if (resolvedTitle == null || resolvedTitle.isEmpty()) {
+                resolvedTitle = page.id().toString();
+            }
+            title.appendText(resolvedTitle);
+        }
+        return title;
+    }
+
+    /**
+     * Collect the toolbar title paragraph as render primitives positioned at
+     * its live-screen slot. Mirrors {@code GuideScreen.drawPageTitle}: same
+     * ordinary-toolbar titleX (toolbar band left edge + padding) / titleY
+     * formulas, same available-width reserve for the toolbar icon row, same
+     * title-screen viewport for culling. The primitives are emitted under
+     * {@code pushTransform(titleX, titleY, 1.0f)} so the glyphs land at the
+     * toolbar-band position in the final output.
+     *
+     * @return collected primitives; empty when the page carries no title text
+     */
+    private static List<GuideRenderPrimitive> collectToolbarTitlePrimitives(
+        RenderPageRequest req, MutableGuide guide, GuidePage page) {
+        LytParagraph titlePara = buildToolbarPageTitle(guide, page);
+        if (titlePara.isEmpty()) {
+            return List.of();
+        }
+
+        int panelX = 0;
+        int panelY = 0;
+        int panelW = req.width();
+        // Ordinary toolbar title (mirrors GuideScreen.drawPageTitle after the
+        // toolbar-title semantic change): placed from the toolbar band's left
+        // edge, no navbar/content-column avoidance; the reserved right-side
+        // icon area is kept.
+        int reservedRight = (16 + GuideScreen.TOOLBAR_GAP) * 5 + GuideScreen.PANEL_PADDING + 4;
+        int availableW = Math.max(
+            20, panelW - GuideScreen.PANEL_PADDING - reservedRight);
+        int titleX = panelX + GuideScreen.PANEL_PADDING;
+
+        // Single-pass layout at (0, 0): position is applied via the GL
+        // translate (pushTransform), matching GuideScreen.drawPageTitle.
+        var layoutCtx = new LayoutContext(new RustFontMetrics());
+        titlePara.layout(layoutCtx, 0, 0, availableW);
+        int titleH = titlePara.getBounds()
+            .height();
+        int titleY = Math.max(0, (GuideScreen.TOOLBAR_H - titleH) / 2) + panelY + 2;
+
+        LytRect titleScreenVp = new LytRect(
+            titleX, titleY, availableW, Math.max(titleH, GuideScreen.TOOLBAR_H));
+        var titleCtx = new VanillaRenderContext(
+            LightDarkMode.LIGHT_MODE, titleScreenVp, titleY + titleScreenVp.height());
+        var pc = new PrimitiveCollector(titleScreenVp, titleCtx);
+        pc.pushTransform(titleX, titleY, 1.0f);
+        pc.collectFrom(titlePara);
+        pc.popTransform();
+        GuideDebugLog.infoAlways(
+            "RenderPageService: toolbar page-title injected: '{}' at ({},{}) h={} availableW={} "
+                + "(guidenh.renderpage.title)",
+            titlePara.getTextContent(), titleX, titleY, titleH, availableW);
+        return pc.result();
+    }
+
+    /**
+     * Parse {@code -Dguidenh.renderpage.guiscale} (1-4) into an int injection
+     * value, mirroring the navscroll injection pattern. Absent, empty or
+     * invalid values return 0 (= no injection, layout stays byte-identical);
+     * invalid values are reported once with a WARN.
+     */
+    private static int parseGuiscaleInjection() {
+        String prop = System.getProperty("guidenh.renderpage.guiscale");
+        if (prop == null || prop.isEmpty()) {
+            return 0;
+        }
+        try {
+            int v = Integer.parseInt(prop);
+            if (v >= 1 && v <= 4) {
+                return v;
+            }
+            GuideDebugLog.warnAlways(
+                "RenderPageService: ignoring invalid -Dguidenh.renderpage.guiscale={} (expected 1-4)",
+                prop);
+        } catch (NumberFormatException e) {
+            GuideDebugLog.warnAlways(
+                "RenderPageService: ignoring invalid -Dguidenh.renderpage.guiscale={}",
+                prop);
+        }
+        return 0;
     }
 
     /**

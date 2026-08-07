@@ -235,6 +235,19 @@ public class GuideScreen extends GuiContainer
         btnGuideEditorLayoutEditorOnly, btnGuideEditorLayoutPreviewOnly, btnGuideEditorAdvancedToggle;
     public static final int TOOLBAR_H = 16;
     public static final int TOOLBAR_GAP = 3;
+
+    /**
+     * Toolbar page-title style: fontScale 0.8 → line height round(17×0.8) = 14
+     * &lt; TOOLBAR_H, mirroring {@code GuideNavBar.TITLE_FONT_SCALE}. The laid-out
+     * bounds height is the LytParagraph minimal estimate (10), so the centered
+     * titleY = (16-10)/2 + 2 = 5; glyph ink stays inside the 16px toolbar band.
+     */
+    public static final TextStyle TOOLBAR_TITLE_STYLE = TextStyle.builder()
+        .fontScale(0.8f)
+        .bold(true)
+        .font(null)
+        .color(SymbolicColor.WHITE)
+        .build();
     private static final int GUIDE_EDITOR_TOOLBAR_H = 16;
     private static final int GUIDE_EDITOR_MIN_SPLIT_PANE_W = 15;
     private static final int SCROLLBAR_W = SceneEditorMultilineTextArea.SCROLLBAR_SIZE;
@@ -525,7 +538,7 @@ public class GuideScreen extends GuiContainer
         this.parentScreen = parentScreen;
         applyRoute(route);
         pageTitle = new LytParagraph();
-        pageTitle.setStyle(DefaultStyles.HEADING1);
+        pageTitle.setStyle(TOOLBAR_TITLE_STYLE);
         try {
             this.fullWidth = ModConfig.ui.fullWidth;
         } catch (Throwable ignored) {
@@ -3980,9 +3993,14 @@ public class GuideScreen extends GuiContainer
         if (pageTitle.isEmpty()) return;
 
         int reservedRight = (16 + TOOLBAR_GAP) * 5 + PANEL_PADDING + 4;
-        int navReservedWidth = getNavigationReservedWidth();
-        int availableW = Math.max(20, panelW - PANEL_PADDING - navReservedWidth - reservedRight);
-        int titleX = panelX + PANEL_PADDING + navReservedWidth;
+        // Ordinary toolbar title (user decision): placed naturally from the
+        // toolbar band's left edge (panelX + PANEL_PADDING), unrelated to the
+        // content column — no more alignment to contentX. The navbar sits
+        // below the toolbar band (navY = panelY + TOOLBAR_H + 1), so the title
+        // has no navbar conflict and may fill the toolbar band; the reserved
+        // right-side icon area is kept.
+        int availableW = Math.max(20, panelW - PANEL_PADDING - reservedRight);
+        int titleX = panelX + PANEL_PADDING;
 
         // Single-pass layout: position is applied via GL translate, not layout coordinates.
         // Re-layout only when available width changes; avoids LayoutContext allocation each frame.
@@ -3996,7 +4014,12 @@ public class GuideScreen extends GuiContainer
         int titleY = Math.max(0, (TOOLBAR_H - titleH) / 2) + panelY + 2;
 
         var ctx = reusableContentTooltipCtx;
-        cachedTitleViewport = cachedRect(cachedTitleViewport, 0, 0, availableW, Math.max(titleH, TOOLBAR_H));
+        // Defensive clip for the legacy RenderContext fallback path only: the
+        // atlas-backed glyph runs (DrawGlyphRun) are NOT clipped by this
+        // viewport. The title stays inside the toolbar band because
+        // TOOLBAR_TITLE_STYLE's line height (round(17×0.8) = 14) fits under
+        // TOOLBAR_H — that style, not this clamp, is the actual constraint.
+        cachedTitleViewport = cachedRect(cachedTitleViewport, 0, 0, availableW, Math.min(titleH, TOOLBAR_H));
         ctx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
         ctx.setViewport(cachedTitleViewport);
         ctx.setScreenHeight(this.height);
