@@ -113,38 +113,20 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
     }
 
     /**
-     * Legacy padding difference that the pre-fix insets injected into every icon.
-     * Before the inset fix, every TeXIcon was built with the single-arg
-     * {@code setInsets(Insets)}, which delegates to {@code setInsets(insets, false)}
-     * and silently adds {@code (int)(0.18f*size)} to every side — at the default
-     * sourceScale=100 that made the intended 2px/side insets actually 20px/side
-     * (40px total per dimension). Every display formula icon AND the calibration
-     * "x" carried that padding, and the display page's block sizes were accepted
-     * and baselined against it.
-     *
-     * <p>Now {@code GuideLatexRenderer} builds every icon with the two-arg
-     * {@code setInsets(insets, true)} (true 2px/side), so every icon shrank by this
-     * padding difference in both dimensions. To keep the display page's visual size
-     * identical to the accepted baseline, the difference is re-added to BOTH the
-     * measured formula size and the calibrated reference:
-     *
-     * <pre>
-     *   displayH = (size + pad) * lineHeight * userScale / (refH + pad)
-     *           = (Fc + 40)     * lineHeight * userScale / (Xc + 40)     // pre-fix ratio, exact
-     * </pre>
-     *
-     * where {@code Fc}/{@code Xc} are the true glyph content heights. This is an
-     * exact identity for any formula size (the pad cancels out of the ratio only
-     * when applied to both terms), so the display blocks keep their baselined
-     * dimensions while the textures inside — now with only 2px padding — carry the
-     * real glyph pixels.
-     *
-     * @return per-dimension padding (px) the inset fix removed, e.g. 36 at sourceScale=100
+     * Display pixels per source-content pixel for this block, unified with the
+     * inline calibration standard (see {@link LytLatexBlock#inlineScaleFactor()}):
+     * the calibration "x" content height (refH minus the true 2px/side icon
+     * insets applied by {@code GuideLatexRenderer#setInsets(new Insets(2,2,2,2), true)})
+     * maps to the body x-height × {@code INLINE_PERCEPTUAL_FACTOR} × userScale.
+     * Display and inline formulas therefore share one calibration target (body
+     * x-height × 1.2), matching the mature convention (MathJax/KaTeX/LaTeX) where
+     * display and inline math render at the same size and only the internal
+     * layout differs (handled by the jlatexmath style, not here).
      */
-    private int legacyPaddingDiff() {
-        int oldInsetSide = 2 + (int) (0.18f * sourceScale); // single-arg setInsets(Insets) behavior
-        int newInsetSide = 2; // setInsets(insets, true)
-        return 2 * (oldInsetSide - newInsetSide);
+    private float displayScaleFactor() {
+        int refH = GuideLatexRenderer.INSTANCE.calibrateRefHeight(sourceScale);
+        float contentRefHeight = Math.max(1f, refH - LytLatexBlock.LATEX_INSET_PX);
+        return GuideText.xHeight() * LytLatexBlock.INLINE_PERCEPTUAL_FACTOR * userScale / contentRefHeight;
     }
 
     /** Lazy-compute formula display dimensions using static font metrics. */
@@ -156,14 +138,9 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
             formulaDisplayH = 0;
             return;
         }
-        int lineHeight = GuideText.lineHeight(null);
-        int refH = GuideLatexRenderer.INSTANCE.calibrateRefHeight(sourceScale);
-        // See legacyPaddingDiff(): the pre-fix ratio that the display baseline was
-        // accepted against had +40px padding on both size and refH (single-arg
-        // setInsets); re-add the removed padding to both so the boxes stay identical.
-        int pad = legacyPaddingDiff();
-        formulaDisplayH = (int) Math.max(1, Math.ceil((double) (size[1] + pad) * lineHeight * userScale / (refH + pad)));
-        formulaDisplayW = (int) Math.max(1, Math.ceil((double) (size[0] + pad) * lineHeight * userScale / (refH + pad)));
+        float scaleFactor = displayScaleFactor();
+        formulaDisplayH = Math.max(1, (int) Math.ceil(size[1] * scaleFactor));
+        formulaDisplayW = Math.max(1, (int) Math.ceil(size[0] * scaleFactor));
     }
 
     @Override
@@ -176,13 +153,9 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
             return new LytRect(x, y, availableWidth, 0);
         }
 
-        int lineHeight = context.getLineHeight(null);
-        int refH = GuideLatexRenderer.INSTANCE.calibrateRefHeight(sourceScale);
-        // See legacyPaddingDiff(): re-add the padding the inset fix removed so the
-        // display boxes stay at the accepted baseline sizes.
-        int pad = legacyPaddingDiff();
-        formulaDisplayH = (int) Math.max(1, Math.ceil((double) (size[1] + pad) * lineHeight * userScale / (refH + pad)));
-        formulaDisplayW = (int) Math.max(1, Math.ceil((double) (size[0] + pad) * lineHeight * userScale / (refH + pad)));
+        float scaleFactor = displayScaleFactor();
+        formulaDisplayH = Math.max(1, (int) Math.ceil(size[1] * scaleFactor));
+        formulaDisplayW = Math.max(1, (int) Math.ceil(size[0] * scaleFactor));
 
         return new LytRect(x, y, availableWidth, formulaDisplayH + 2 * verticalMargin());
     }

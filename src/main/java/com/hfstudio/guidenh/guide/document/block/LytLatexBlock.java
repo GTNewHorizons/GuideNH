@@ -99,7 +99,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
      * x-height; the display box then scales the whole icon (content + insets) uniformly, so the
      * padding is present but scaled, never inflating the glyph itself.
      */
-    private static final int LATEX_INSET_PX = 4;
+    static final int LATEX_INSET_PX = 4;
 
     /**
      * Perceptual size compensation applied on top of the exact x-height
@@ -112,7 +112,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
      * {@code x-height × 1.2} instead of the raw x-height (user report:
      * "公式字体过小").
      */
-    private static final float INLINE_PERCEPTUAL_FACTOR = 1.2f;
+    static final float INLINE_PERCEPTUAL_FACTOR = 1.2f;
 
     public LytLatexBlock(String formula, int fillColorArgb, float sourceScale, float userScale,
         @Nullable GuideTooltip tooltip, LatexVerticalAlign valign, int offsetX, int offsetY) {
