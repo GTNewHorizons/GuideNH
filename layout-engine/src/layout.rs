@@ -6,7 +6,7 @@ use crate::fb::{
     PlacedGlyph, PlacedGlyphArgs,
 };
 use crate::measure::{create_measure_closure, measure_text, GlyphAccum, NodeContext};
-use crate::parley_text::FloatRect;
+use crate::parley_text::{FloatRect, ParleyRasterGlyph};
 use crate::style_convert::flat_style_to_taffy;
 use crate::text::GuideFontSystem;
 use flatbuffers::FlatBufferBuilder;
@@ -15,6 +15,14 @@ use taffy::prelude::*;
 /// Document content-box padding, matching the legacy synthetic root and the
 /// Java document padding (14px each side).
 const CONTENT_PAD: f32 = 14.0;
+
+/// Synthetic-italic shear factor — MUST stay identical to the engine's
+/// `GuideRenderEngine.GLYPH_SHEAR_K` (0.25f). The draw-time shear moves each
+/// glyph's top edge right by `K × (baseY − y_top)` (see
+/// italic_kerning_compensate below). The Java constant is the single source
+/// of truth; this is the layout-side mirror so the compensation and the draw
+/// transform share the same slant parameter.
+const GLYPH_SHEAR_K: f32 = 0.25;
 
 /// Compute the available horizontal lane (absolute x and width) for a block
 /// at the given absolute Y, consulting the float table.  If floats fully
@@ -325,6 +333,16 @@ pub fn compute_layout(
                 .and_then(|t| t.style())
                 .map(|s| s.color())
                 .unwrap_or(0xFFFFFFFF);
+            // Single-style paragraphs carry no TextData.spans (LayoutNodeSerializer
+            // needsRichSpans), so their run falls back to the base TextStyle —
+            // which already carries the resolved italic flag. Without this, a
+            // whole-paragraph italic never sets shear (the shear=false bug) and
+            // never gets the kerning compensation either.
+            let base_italic = flat_nodes[i]
+                .text()
+                .and_then(|t| t.style())
+                .map(|s| s.italic())
+                .unwrap_or(false);
             let (quads, new_bitmaps) =
                 crate::parley_text::rasterize_out_glyphs(&acc.glyphs, render_scale);
             for (key, bw, bh, rgba) in new_bitmaps {
@@ -333,24 +351,55 @@ pub fn compute_layout(
                     bitmap_data.push((bw, bh, rgba));
                 }
             }
+            // Group rasterized quads by span (one GlyphRun per span, glyph
+            // order preserved within the run — parley emits a span's glyphs
+            // contiguously per line), then apply the synthetic-italic
+            // kerning compensation to sheared runs BEFORE emitting placed
+            // glyphs. baseY is run-wide (matching the engine's shearBaseY
+            // over the whole run), the cumulative shift accumulates per line
+            // (lines stack vertically, so a line's first glyph must not
+            // inherit the previous line's shift).
+            let mut run_quads: std::collections::BTreeMap<
+                u32,
+                Vec<ParleyRasterGlyph>,
+            > = Default::default();
+            for q in quads {
+                run_quads.entry(q.span_index).or_default().push(q);
+            }
             let mut groups: std::collections::BTreeMap<
                 u32,
                 Vec<flatbuffers::WIPOffset<PlacedGlyph>>,
             > = Default::default();
-            for q in quads {
-                groups.entry(q.span_index).or_default().push(PlacedGlyph::create(
-                    &mut fbb,
-                    &PlacedGlyphArgs {
-                        bitmap_key: q.bitmap_key,
-                        x: x + q.x,
-                        y: y + q.y,
-                        w: q.w,
-                        h: q.h,
-                        start: 0,
-                        end: 0,
-                        line_index: q.line_index,
-                    },
-                ));
+            for (si, mut rq) in run_quads {
+                if rq.is_empty() {
+                    continue;
+                }
+                let italic = span_styles
+                    .get(si as usize)
+                    .map(|s| s.italic)
+                    .unwrap_or(base_italic);
+                if italic {
+                    italic_kerning_compensate(&mut rq);
+                }
+                let placed = rq
+                    .into_iter()
+                    .map(|q| {
+                        PlacedGlyph::create(
+                            &mut fbb,
+                            &PlacedGlyphArgs {
+                                bitmap_key: q.bitmap_key,
+                                x: x + q.x,
+                                y: y + q.y,
+                                w: q.w,
+                                h: q.h,
+                                start: 0,
+                                end: 0,
+                                line_index: q.line_index,
+                            },
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                groups.insert(si, placed);
             }
             for (si, placed_offsets) in groups {
                 if placed_offsets.is_empty() {
@@ -359,7 +408,7 @@ pub fn compute_layout(
                 let (argb, shear) = span_styles
                     .get(si as usize)
                     .map(|s| (s.color, s.italic))
-                    .unwrap_or((base_color, false));
+                    .unwrap_or((base_color, base_italic));
                 let glyphs_vec = fbb.create_vector(&placed_offsets);
                 glyph_run_offsets.push(GlyphRun::create(
                     &mut fbb,
@@ -729,6 +778,53 @@ fn span_style_table(node: &FlatNode) -> Vec<SpanStyleInfo> {
         }
     }
     out
+}
+
+/// Synthetic-italic kerning compensation: per-glyph cumulative advance shift
+/// for a sheared run, restoring the upright sidebearings — the behavior of a
+/// true italic face's hmtx advances (the mature synthetic-italic practice).
+///
+/// The engine draws a sheared run by moving each glyph's TOP edge right by
+/// `K × (baseY − y_top)` and its bottom edge by the same amount minus
+/// `K × h` (GuideRenderEngine.emitGlyphQuads: `xTop = x + K·(baseY − y)`,
+/// `xBottom = x + K·(baseY − y − h)`), where `baseY` is the run's lowest
+/// quad bottom (`shearBaseY = max(g.y + g.h)` over the run, same file). But
+/// parley SHAPES the run upright — shaping knows nothing of the slant — so
+/// the italic ink overhangs its advance by that shear amount and glyphs
+/// visibly collide. Compensating each glyph by the CUMULATIVE overhang of the
+/// glyphs before it on the same line:
+///
+/// ```text
+/// x'_i = x_i + Σ_{j<i} K × (baseY − y_top_j)
+/// ```
+///
+/// moves every glyph exactly as far right as the sheared ink of its
+/// predecessors now intrudes, so the glyph-to-glyph spacing (at the tops)
+/// is bit-for-bit the upright sidebearing again. baseY and K must match the
+/// engine's values — baseY here is computed from the SAME quad geometry
+/// (`q.y + q.h`) the engine shears against, and [`GLYPH_SHEAR_K`] is the
+/// layout-side mirror of `GuideRenderEngine.GLYPH_SHEAR_K`.
+fn italic_kerning_compensate(run: &mut [ParleyRasterGlyph]) {
+    // Engine basis: baseY = max over the whole run of (quad top + quad
+    // height), i.e. the lowest quad bottom in document units. Runs span
+    // multiple lines (grouping is per span), so this is the global max —
+    // identical to the engine's single shearBaseY for the run.
+    let mut base_y = f32::MIN;
+    for q in run.iter() {
+        base_y = base_y.max(q.y + q.h);
+    }
+    let mut acc = 0.0f32;
+    let mut line = run[0].line_index;
+    for q in run.iter_mut() {
+        // Lines stack vertically: the first glyph of a new line must not
+        // inherit the accumulated shift of the line above.
+        if q.line_index != line {
+            acc = 0.0;
+            line = q.line_index;
+        }
+        q.x += acc;
+        acc += GLYPH_SHEAR_K * (base_y - q.y);
+    }
 }
 
 /// Emit span decoration rects (background highlights, underline,

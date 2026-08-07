@@ -239,6 +239,12 @@ pub struct SpanStyle {
     pub start: usize,
     pub end: usize,
     pub bold: bool,
+    /// Synthetic-italic flag, mirrored from the span's resolved style
+    /// (`TextStyle.italic`, serialized by LayoutNodeSerializer). Parley
+    /// shaping itself does not slant (no italic in the style properties), so
+    /// the flag rides along for the layout-side shear + kerning compensation
+    /// (layout.rs italic_kerning_compensate).
+    pub italic: bool,
     pub baseline_shift: f32,
 }
 
