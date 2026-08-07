@@ -42,9 +42,10 @@ public final class FlowchartShapes {
         }
     }
 
-    public static LytRect contentBounds(LytRect nodeRect, MermaidNodeShape shape, int cw, int ch, int padX, int padY) {
+    public static LytRect contentBounds(LytRect nodeRect, MermaidNodeShape shape, int cw, int ch, int padX, int padY,
+        float zoom) {
         ShapeRenderer renderer = RENDERERS.get(shape);
-        return renderer != null ? renderer.contentBounds(nodeRect, cw, ch, padX, padY) : nodeRect;
+        return renderer != null ? renderer.contentBounds(nodeRect, cw, ch, padX, padY, zoom) : nodeRect;
     }
 
     public static LytRect minNodeRect(MermaidNodeShape shape, int cw, int ch, int padX, int padY) {

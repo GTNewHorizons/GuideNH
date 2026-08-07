@@ -23,11 +23,11 @@ public class DoubleCircleShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;
-        int r = Math.min(nodeRect.width(), nodeRect.height()) / 2;
-        int insSide = (int) (r * Math.sqrt(2));
+        double r = Math.min(nodeRect.width(), nodeRect.height()) / 2.0;
+        int insSide = (int) Math.ceil(r * Math.sqrt(2));
         return new LytRect(cx - insSide / 2, cy - insSide / 2, insSide, insSide);
     }
 

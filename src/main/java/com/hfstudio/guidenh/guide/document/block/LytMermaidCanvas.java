@@ -46,7 +46,7 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     private static final float ZOOM_STEP = 1.1f;
     private static final float MIN_ZOOM = 0.5f;
-    private static final float MAX_ZOOM = 2.5f;
+    private static final float MAX_ZOOM = 5.0f;
     static final ConstantColor PANEL_BACKGROUND = new ConstantColor(0x1A0C1117);
     static final ConstantColor PANEL_BORDER = new ConstantColor(0x66434C57);
 
@@ -74,6 +74,17 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     private final Map<ResolvedTextStyle, ResolvedTextStyle> scaledStyleCache = new IdentityHashMap<>();
     private float lastScaledStyleZoom = Float.NaN;
+
+    /**
+     * Headless render injection, applied by RenderPageService from
+     * {@code -Dguidenh.renderpage.mermaidzoom} / {@code -Dguidenh.renderpage.mermaidoffset}
+     * (mirroring the navscroll injection pattern). Zero zoom and zero offsets
+     * mean "no injection": the {@code HEADLESS} branch then keeps the
+     * historical fit-to-view + centre behaviour byte-identical.
+     */
+    private float headlessZoomInjection;
+    private int headlessOffsetXInjection;
+    private int headlessOffsetYInjection;
 
     // Common interaction state
     protected Map<String, LytBlock> nodeContentBlocks;
@@ -194,8 +205,60 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         return Optional.empty();
     }
 
+    /**
+     * Active zoom used for rendering.
+     * <p>
+     * <b>Upper ceiling:</b> every path — interactive scroll, direct-write
+     * {@code snapTo}, and the headless injection branch — is bounded by
+     * {@link #MAX_ZOOM} on every read. The ceiling guards glyph rasterization:
+     * an unclamped huge zoom would push fontScale to enormous sizes and
+     * overflow the glyph atlas pages.
+     * <p>
+     * <b>Lower floor:</b> interactive zoom and headless zoom injection are
+     * floored at {@link #MIN_ZOOM}. The headless <em>fit-to-view</em> zoom
+     * (no injection) is exempt from the floor: it must stay at its exact
+     * computed value so a diagram larger than the viewport always fits
+     * (byte-identical no-injection regression). It is always {@code <= 1.0}
+     * by construction, so only the defensive upper bound applies.
+     * <p>
+     * <b>Tier quantization:</b> the interactive and headless-injection paths
+     * snap their value to the nearest {@link #ZOOM_STEP}^n tier (scroll steps
+     * are themselves powers of {@link #ZOOM_STEP}, so targets are natively
+     * near-tier). Quantizing the easing intermediate values keeps the fontScale
+     * — and therefore the GuideText shape cache key — stable during a zoom
+     * animation instead of changing every frame (the per-frame re-rasterize /
+     * per-glyph re-upload churn that collapsed the frame rate). The
+     * no-injection fit path is exempt: fitZoom is always {@code <= 1.0} and is
+     * returned unquantized (byte-identical no-injection regression).
+     */
     public float getActiveZoom() {
-        return HEADLESS ? zoom : visualZoom.value();
+        if (HEADLESS) {
+            if (headlessZoomInjection > 0f) {
+                return quantizeZoom(Math.clamp(zoom, MIN_ZOOM, MAX_ZOOM));
+            }
+            // No-injection fit-to-view: exact value, never quantized.
+            return Math.min(MAX_ZOOM, zoom);
+        }
+        float v = visualZoom.value();
+        return quantizeZoom(Math.clamp(v > 0f ? v : zoom, MIN_ZOOM, MAX_ZOOM));
+    }
+
+    /**
+     * Quantize a zoom value to the nearest {@code ZOOM_STEP^n} tier (n an
+     * integer), then clamp the tier back into {@code [MIN_ZOOM, MAX_ZOOM]}.
+     * <p>
+     * Order is semantically: clamp input, quantize, clamp tier. The final
+     * clamp guarantees the {@link #MAX_ZOOM} ceiling that guards glyph
+     * rasterization is never exceeded even when the nearest tier above
+     * {@code MAX_ZOOM} (1.1^17 ≈ 5.0545) would overshoot it — the returned
+     * value is always a 1.1^n tier except exactly at the [MIN, MAX] bounds.
+     */
+    private static float quantizeZoom(float value) {
+        if (value <= 0f) {
+            return value;
+        }
+        double tier = Math.pow(ZOOM_STEP, Math.round(Math.log(value) / Math.log(ZOOM_STEP)));
+        return (float) Math.clamp(tier, MIN_ZOOM, MAX_ZOOM);
     }
 
     public int getVisualOffsetX() {
@@ -311,6 +374,16 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         contentOffsetY = y;
     }
 
+    /**
+     * Apply headless zoom/offset injection. Zero zoom and zero offsets leave
+     * the {@code HEADLESS} branch on its historical fit-to-view + centre path.
+     */
+    public void setHeadlessInjection(float zoomInjection, int offsetX, int offsetY) {
+        this.headlessZoomInjection = zoomInjection;
+        this.headlessOffsetXInjection = offsetX;
+        this.headlessOffsetYInjection = offsetY;
+    }
+
     public int getRawOffsetX() {
         return contentOffsetX;
     }
@@ -332,6 +405,15 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     @Override
     public void computePrimitives(PrimitiveCollector c) {
+        // Drive the raw→visual easing chain at the entry of our own primitive
+        // collection (same pattern as LytCodeBlock driving updateVisualScroll in
+        // its computePrimitives): wheel-zoom (scroll) and drags write raw zoom /
+        // contentOffset, and getActiveZoom/getVisualOffsetX/Y read the visual
+        // side — without a per-frame driver the two stay permanently detached
+        // and the interaction never reaches the render. HEADLESS mode reads the
+        // raw values directly and the HEADLESS branch below overrides zoom /
+        // offset anyway, so this call is a no-op for headless rendering.
+        updateVisualState();
         boolean ready = diagramReady();
         GuideDebugLog.debugAlways("[GuideNH-Mermaid] computePrimitives diagramReady={} bounds={}",
             ready, bounds);
@@ -364,20 +446,39 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         int offsetX = getVisualOffsetX();
         int offsetY = getVisualOffsetY();
         if (HEADLESS) {
-            // Headless: fit diagram in viewport with fit-to-view zoom.
+            // Headless: fit diagram in viewport with fit-to-view zoom, unless
+            // a -Dguidenh.renderpage.mermaidzoom / mermaidoffset injection was
+            // applied via setHeadlessInjection. Without injection the
+            // historical fit-to-view + centre behaviour is preserved
+            // byte-identically.
             int contentW = contentWidth();
             int contentH = contentHeight();
             if (contentW > 0 && contentH > 0) {
                 float fitZoom = Math.min(1f, Math.min(
                     (float) inner.width() / contentW,
                     (float) inner.height() / contentH));
-                zoom = fitZoom;
-                activeZoom = zoom;
+                zoom = headlessZoomInjection > 0f ? headlessZoomInjection : fitZoom;
+                // Route the injected zoom through getActiveZoom so it shares the
+                // [MIN_ZOOM, MAX_ZOOM] clamp (an over-ceiling -D injection is
+                // clamped to MAX_ZOOM instead of overflowing the atlas pages).
+                // The no-injection fit-to-view value is preserved exactly (the
+                // diagram must always fit; byte-identical regression).
+                activeZoom = getActiveZoom();
+                if (headlessZoomInjection > 0f) {
+                    GuideDebugLog.infoAlways(
+                        "[GuideNH-Mermaid] headless zoom injection: requested={} quantized={}",
+                        zoom, activeZoom);
+                }
             }
             int scaledContentW = Math.round(contentWidth() * activeZoom);
             int scaledContentH = Math.round(contentHeight() * activeZoom);
-            offsetX = (inner.width() - scaledContentW) / 2;
-            offsetY = (inner.height() - scaledContentH) / 2;
+            if (headlessOffsetXInjection != 0 || headlessOffsetYInjection != 0) {
+                offsetX = headlessOffsetXInjection;
+                offsetY = headlessOffsetYInjection;
+            } else {
+                offsetX = (inner.width() - scaledContentW) / 2;
+                offsetY = (inner.height() - scaledContentH) / 2;
+            }
         }
         int baseX = inner.x() + offsetX - getScaledOriginX();
         int baseY = inner.y() + offsetY - getScaledOriginY();
@@ -396,6 +497,15 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     protected void emitDiagramPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {}
 
     protected ResolvedTextStyle getOrScaleStyle(ResolvedTextStyle base, float zoom) {
+        // The scaled-style cache is keyed by the base style only (not by zoom),
+        // so it must be invalidated whenever the zoom changes — otherwise the
+        // text fontScale would keep the stale zoom and text would stop scaling
+        // in sync with the node boxes. Clearing on zoom change rebuilds the
+        // cache for the current zoom (cheap: at most a handful of base styles).
+        if (Float.compare(zoom, lastScaledStyleZoom) != 0) {
+            lastScaledStyleZoom = zoom;
+            scaledStyleCache.clear();
+        }
         return MermaidNodeRenderer.getOrScaleStyle(scaledStyleCache, base, zoom);
     }
 
@@ -541,6 +651,11 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                         ByteBuffer rgbaBuf = bmp.rgbaAsByteBuffer();
                         byte[] rgba = new byte[rgbaBuf.remaining()];
                         rgbaBuf.get(rgba);
+                        if (w > 200 || h > 200) {
+                            GuideDebugLog.warnAlways(
+                                "[GuideNH] OVERSIZE glyph upload source=LytMermaidCanvas key={} w={} h={}",
+                                bmp.key(), w, h);
+                        }
                         atlas.upload(bmp.key(), rgba, w, h);
                     }
                     // Writeback: every serialized subtree block gets its

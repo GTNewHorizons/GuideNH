@@ -93,7 +93,7 @@ public class BangShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int w = nodeRect.width();
         int h = nodeRect.height();
         int cx = nodeRect.x() + w / 2;

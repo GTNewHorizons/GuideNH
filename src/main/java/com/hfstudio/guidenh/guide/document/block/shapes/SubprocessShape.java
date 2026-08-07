@@ -21,9 +21,15 @@ public class SubprocessShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
-        int innerX = nodeRect.x() + FRAME_WIDTH;
-        int innerW = nodeRect.width() - FRAME_WIDTH * 2;
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
+        // The frame inset must scale with zoom: the node rect is already in
+        // scaled render space, so an unscaled FRAME_WIDTH would carve a fixed
+        // logical-8px frame out of a scaled rect and shrink the content area
+        // faster than the (scaled) text, forcing spurious word-wrap/overflow
+        // on the zoomed path.
+        int frame = Math.max(1, Math.round(FRAME_WIDTH * zoom));
+        int innerX = nodeRect.x() + frame;
+        int innerW = nodeRect.width() - frame * 2;
         return new LytRect(innerX + padX, nodeRect.y() + padY, innerW - 2 * padX, nodeRect.height() - 2 * padY);
     }
 

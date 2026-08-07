@@ -71,7 +71,7 @@ public class CylinderShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int rx = nodeRect.width() / 2;
         int ry = Math.max(1, rx / 3);
         int extraV = Math.max(2, ry / 3);

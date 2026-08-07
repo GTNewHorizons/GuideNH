@@ -23,7 +23,7 @@ public class RectShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         return nodeRect.shrink(padX, padY, padX, padY);
     }
 

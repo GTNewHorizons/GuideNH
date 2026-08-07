@@ -44,6 +44,24 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     private static final int ICON_GAP_Y = 4;
     private static final int BADGE_PADDING_X = 4;
     private static final int BADGE_PADDING_Y = 2;
+    /**
+     * Minimum clearance between an edge label box and its endpoint node
+     * borders, in rendered-logical px (the coordinate space in which the
+     * label box and node rects are emitted). 1 logical px renders as
+     * {@code guidenh.renderpage.scale} image px, so at the standard scale=2
+     * the box always keeps ≥2 image px from the node border (R3-13).
+     */
+    private static final int EDGE_LABEL_GAP = 1;
+    /**
+     * Logical-px margin added to every node min-rect so the scaled
+     * render-time content rect never falls below the scaled text width after
+     * integer rounding. The size-time min-rect used to be exact (zero
+     * margin); on the zoomed path the render rect and paddings are rounded
+     * independently, which can lose up to ~1 scaled px of content width and
+     * push the wrap budget under the scaled text width, forcing spurious
+     * word-wrap on labels that fit exactly at zoom=1.
+     */
+    private static final int NODE_SIZE_ROUNDING_MARGIN = 2;
     private static final ConstantColor NODE_TEXT = new ConstantColor(0xFFD7DEE7);
     private static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(0xFFF1F6FB);
     private static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(0xFFB8C2CF);
@@ -260,8 +278,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
             LytRect minRect = FlowchartShapes
                 .minNodeRect(node.getShape(), contentW, contentH, NODE_PADDING_X, NODE_PADDING_Y);
-            int width = minRect.width();
-            int height = minRect.height();
+            int width = minRect.width() + NODE_SIZE_ROUNDING_MARGIN;
+            int height = minRect.height() + NODE_SIZE_ROUNDING_MARGIN;
 
             if (isRoot) {
                 width += 10;
@@ -311,12 +329,20 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             FlowchartLayoutResult result = strategy.layout(document, minSizes);
             if (result != null) {
                 this.layout = result;
-                this.precomputedLayoutWidth = safeWidth;
                 int desiredHeight = result.getHeight() + CANVAS_PADDING * 2;
                 preferredHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
                     : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
+                // Constrain the canvas explicit width to the available page
+                // width. The unbounded layout width (ELK output) may exceed the
+                // page 2x for large diagrams; Rust's layout engine then sizes
+                // the canvas to that explicit width and the page-level clamp in
+                // computeLayout never runs on the Rust path, pushing the whole
+                // diagram off-page (fit-to-view centred it inside an oversized
+                // canvas). Clamping here keeps the canvas inside the page and
+                // lets fit-to-view centre the diagram in the visible viewport.
                 int diagramWidth = result.getWidth() + CANVAS_PADDING * 2;
-                preferredWidth = diagramWidth;
+                preferredWidth = Math.min(diagramWidth, Math.max(1, safeWidth));
+                this.precomputedLayoutWidth = preferredWidth;
                 GuideDebugLog.debugAlways(
                     "[GuideNH-Mermaid] precomputeLayout OK layoutHeight={} preferredHeight={} diagramWidth={}",
                     result.getHeight(), preferredHeight, diagramWidth);
@@ -591,7 +617,9 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     /**
      * Emit edge labels in a separate pass <em>after</em> nodes have been
      * drawn, so labels appear on top of node shapes rather than being
-     * obscured by them (R4-39).
+     * obscured by them (R4-39). Each label is anchored at the edge path's
+     * midpoint but clamped into the free span between its endpoint node
+     * borders (R3-13).
      */
     private void emitEdgeLabelsPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
         if (layout == null) return;
@@ -599,7 +627,15 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             FlowchartEdge flowEdge = lookupEdge(edgePath.getFromId(), edgePath.getToId(), edgePath.getEdgeId());
             String label = flowEdge != null ? flowEdge.getLabel() : null;
             if (label != null && !label.isEmpty()) {
-                emitEdgeLabelPrimitives(c, edgePath.getPoints(), baseX, baseY, activeZoom, label);
+                emitEdgeLabelPrimitives(
+                    c,
+                    edgePath.getPoints(),
+                    layout.getPosition(edgePath.getFromId()),
+                    layout.getPosition(edgePath.getToId()),
+                    baseX,
+                    baseY,
+                    activeZoom,
+                    label);
             }
         }
     }
@@ -677,8 +713,22 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             thickness, color));
     }
 
-    private void emitEdgeLabelPrimitives(PrimitiveCollector c, List<FlowchartLayoutResult.Point> points, int baseX,
-        int baseY, float activeZoom, String label) {
+    /**
+     * Draw a single edge label. The label is anchored at the edge path's
+     * midpoint (measured by path length), then its background box is clamped
+     * into the free span between the two endpoint node borders so it keeps a
+     * constant {@link #EDGE_LABEL_GAP} clearance from both nodes. Previously
+     * the box was placed purely at the midpoint — with no minimum-gap
+     * constraint — so a label that nearly filled the gap pressed against a
+     * node border (right edge 1px at scale2), and integer rounding of the
+     * midpoint / half-width pushed it off-centre (R3-13). When the gap cannot
+     * hold the box at that clearance, the label is word-wrapped (with
+     * codepoint-level breaking of overlong words) and residual overlong
+     * fragments are ellipsized, so the box never overflows onto either node.
+     */
+    private void emitEdgeLabelPrimitives(PrimitiveCollector c, List<FlowchartLayoutResult.Point> points,
+        @Nullable FlowchartLayoutResult.NodePosition fromPos, @Nullable FlowchartLayoutResult.NodePosition toPos,
+        int baseX, int baseY, float activeZoom, String label) {
         float totalLen = 0f;
         float[] segLens = new float[points.size() - 1];
         for (int i = 1; i < points.size(); i++) {
@@ -690,30 +740,178 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         if (totalLen < 1f) return;
         float halfLen = totalLen * 0.5f;
         float accumulated = 0f;
-        float mx = points.getFirst().getX();
-        float my = points.getFirst().getY();
+        float midDocX = points.getFirst().getX();
+        float midDocY = points.getFirst().getY();
         for (int i = 0; i < segLens.length; i++) {
             if (accumulated + segLens[i] >= halfLen) {
                 float frac = (halfLen - accumulated) / Math.max(segLens[i], 0.0001f);
-                mx = points.get(i).getX()
+                midDocX = points.get(i).getX()
                     + (points.get(i + 1).getX() - points.get(i).getX()) * frac;
-                my = points.get(i).getY()
+                midDocY = points.get(i).getY()
                     + (points.get(i + 1).getY() - points.get(i).getY()) * frac;
                 break;
             }
             accumulated += segLens[i];
         }
-        int screenX = Math.round(scaled(baseX, Math.round(mx), activeZoom));
-        int screenY = Math.round(scaled(baseY, Math.round(my), activeZoom));
+
         ResolvedTextStyle labelStyle = getOrScaleStyle(NODE_TEXT_STYLE, activeZoom);
-        int textWidth = GuideText.measureWidth(label, labelStyle);
-        int textHeight = GuideText.lineHeight(labelStyle);
         int pad = Math.max(1, Math.round(2 * activeZoom));
         int bgColor = new ConstantColor(0xCC0C1117).resolve(LightDarkMode.current());
-        int bgX = screenX - textWidth / 2 - pad;
-        int bgY = screenY - textHeight / 2 - pad;
+
+        // Free span between the two endpoint node borders along the edge's
+        // dominant axis, expressed in the same scaled space as the label box.
+        // nearBorder = border the box must stay clear of on the source side;
+        // farBorder = border on the target side. When the endpoint nodes are
+        // unavailable (e.g. cross-compound edges) the constraint is skipped.
+        int nearBorder = 0;
+        int farBorder = 0;
+        boolean horizontal = true;
+        boolean constrained = false;
+        if (fromPos != null && toPos != null) {
+            int fromCx = fromPos.getX() + fromPos.getWidth() / 2;
+            int fromCy = fromPos.getY() + fromPos.getHeight() / 2;
+            int toCx = toPos.getX() + toPos.getWidth() / 2;
+            int toCy = toPos.getY() + toPos.getHeight() / 2;
+            horizontal = Math.abs(toCx - fromCx) >= Math.abs(toCy - fromCy);
+            if (horizontal) {
+                if (toCx >= fromCx) {
+                    nearBorder = fromPos.getX() + fromPos.getWidth();
+                    farBorder = toPos.getX();
+                } else {
+                    nearBorder = toPos.getX() + toPos.getWidth();
+                    farBorder = fromPos.getX();
+                }
+            } else {
+                if (toCy >= fromCy) {
+                    nearBorder = fromPos.getY() + fromPos.getHeight();
+                    farBorder = toPos.getY();
+                } else {
+                    nearBorder = toPos.getY() + toPos.getHeight();
+                    farBorder = fromPos.getY();
+                }
+            }
+            int nearScreen = horizontal
+                ? baseX + Math.round(nearBorder * activeZoom)
+                : baseY + Math.round(nearBorder * activeZoom);
+            int farScreen = horizontal
+                ? baseX + Math.round(farBorder * activeZoom)
+                : baseY + Math.round(farBorder * activeZoom);
+            constrained = farScreen > nearScreen;
+            if (constrained) {
+                nearBorder = nearScreen;
+                farBorder = farScreen;
+            }
+        }
+        int span = constrained ? farBorder - nearBorder : 0;
+
+        // Wrap the label so its box provably fits the gap with EDGE_LABEL_GAP
+        // clearance on both sides; a label that fits unchanged stays on a
+        // single line. Word-first wrapping preserves the full text; residual
+        // over-budget lines (e.g. a single glyph wider than the budget) are
+        // clipped so the box stays inside the gap (R3-13).
+        //
+        // The wrap budget is taken from the edge path's usable length (the
+        // total path length in rendered-logical px), NOT from the straight
+        // gap between the endpoint node borders. ELK routes edges as
+        // polylines; for routed edges the path length is far larger than the
+        // ~nodeSpacing straight gap, and mermaid renders edge labels
+        // horizontally along the path — so the budget must follow the path.
+        // Before this fix the budget wrongly used the node straight gap
+        // (span = nodeSpacing = 20px → budgetPx = 14), forcing every label
+        // wider than 14px ('Critical', 'Chinese 标签') into a per-glyph
+        // vertical column.
+        //
+        // R3-13 hard bound: the wrapped box must stay inside the straight
+        // node gap (span) so the label never presses against either endpoint
+        // node — the EDGE_LABEL_GAP clearance and the box-clamp below both
+        // assume boxWidth <= span - 2*EDGE_LABEL_GAP. When the path budget
+        // yields a box wider than the gap, the label is re-wrapped at the
+        // (narrower) gap budget so the FULL text is preserved in more lines
+        // instead of being truncated or overflowing onto the nodes.
+        List<String> lines = List.of(label);
+        if (constrained) {
+            int pathBudgetPx = Math.max(0, (int) Math.floor(totalLen * activeZoom))
+                - 2 * EDGE_LABEL_GAP - 2 * pad;
+            int gapBudgetPx = span - 2 * EDGE_LABEL_GAP - 2 * pad;
+            if (pathBudgetPx >= 1) {
+                List<String> wrapped = GuideText.wrap(label, pathBudgetPx, labelStyle);
+                if (!wrapped.isEmpty()) {
+                    lines = wrapped;
+                    int boxWidth = 0;
+                    for (String line : wrapped) {
+                        boxWidth = Math.max(boxWidth, GuideText.measureWidth(line, labelStyle));
+                    }
+                    // R3-13: if the path-budget box still cannot fit inside
+                    // the node gap, re-wrap at the gap budget (full text kept).
+                    if (gapBudgetPx >= 1 && boxWidth > gapBudgetPx) {
+                        List<String> gapWrapped = GuideText.wrap(label, gapBudgetPx, labelStyle);
+                        if (!gapWrapped.isEmpty()) {
+                            lines = gapWrapped;
+                        }
+                    }
+                    int hardBudget = Math.max(1, gapBudgetPx);
+                    for (int i = 0; i < lines.size(); i++) {
+                        String line = lines.get(i);
+                        int lineW = GuideText.measureWidth(line, labelStyle);
+                        if (lineW > hardBudget) {
+                            String clipped = GuideText.clipToWidth(line, hardBudget, labelStyle,
+                                GuideText.ClipSuffix.NONE);
+                            if (!clipped.isEmpty()) {
+                                lines.set(i, clipped);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        int lineHeight = GuideText.lineHeight(labelStyle);
+        int textWidth = 0;
+        for (String line : lines) {
+            textWidth = Math.max(textWidth, GuideText.measureWidth(line, labelStyle));
+        }
+        int textHeight = lines.size() * lineHeight;
+        int boxHalfW = textWidth / 2 + pad;
+        int boxHalfH = textHeight / 2 + pad;
+
+        // Label anchor. The old code rounded the doc-space midpoint to an
+        // integer before scaling and divided the half-width by integer
+        // truncation, which shifted the box off-centre by up to 1 logical px
+        // (2 rendered px at scale2) and pressed its near edge against the
+        // node border. Clamp the anchor so the box keeps EDGE_LABEL_GAP from
+        // both endpoint node borders.
+        float centerX = baseX + midDocX * activeZoom;
+        float centerY = baseY + midDocY * activeZoom;
+        if (constrained) {
+            float low = nearBorder + EDGE_LABEL_GAP + (horizontal ? boxHalfW : boxHalfH);
+            float high = farBorder - EDGE_LABEL_GAP - (horizontal ? boxHalfW : boxHalfH);
+            if (low <= high) {
+                if (horizontal) {
+                    centerX = Math.max(low, Math.min(centerX, high));
+                } else {
+                    centerY = Math.max(low, Math.min(centerY, high));
+                }
+            } else {
+                // Gap still too narrow after wrapping (e.g. a single glyph is
+                // wider than the budget): keep the label centred between the
+                // nodes rather than pushing it onto one of them.
+                float mid = (low + high) / 2f;
+                if (horizontal) {
+                    centerX = mid;
+                } else {
+                    centerY = mid;
+                }
+            }
+        }
+
+        int bgX = Math.round(centerX - textWidth / 2f) - pad;
+        int bgY = Math.round(centerY - textHeight / 2f) - pad;
         c.emit(new GuideRenderPrimitive.FillRect(bgX, bgY, textWidth + pad * 2, textHeight + pad * 2, bgColor));
-        GuideText.emitText(c, label, screenX - textWidth / 2, screenY - textHeight / 2, labelStyle);
+        int textTop = Math.round(centerY - textHeight / 2f);
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            int lineWidth = GuideText.measureWidth(line, labelStyle);
+            GuideText.emitText(c, line, Math.round(centerX - lineWidth / 2f), textTop + i * lineHeight, labelStyle);
+        }
     }
 
     private void emitNodesPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
@@ -768,7 +966,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
             int contentW = rect.width() - 2 * pdX;
             int contentH = rect.height() - 2 * pdY;
-            LytRect contentArea = FlowchartShapes.contentBounds(rect, node.getShape(), contentW, contentH, pdX, pdY);
+            LytRect contentArea = FlowchartShapes.contentBounds(rect, node.getShape(), contentW, contentH, pdX, pdY,
+                activeZoom);
             int textY = contentArea.y();
 
             String icon = node.getIcon();

@@ -95,11 +95,14 @@ public class CloudShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;
-        int r = Math.min(nodeRect.width(), nodeRect.height()) / 3;
-        int insSide = (int) (r * Math.sqrt(2));
+        // Compute the inscribed-side inset in float and round UP so the
+        // content rect never shrinks below the scaled text width through
+        // truncation ((int) casts were losing ~1px on the zoomed path).
+        double r = Math.min(nodeRect.width(), nodeRect.height()) / 3.0;
+        int insSide = (int) Math.ceil(r * Math.sqrt(2));
         int availW = Math.max(insSide - 2 * padX, 1);
         int availH = Math.max(insSide - 2 * padY, 1);
         int contentW = Math.min(availW, cw);
