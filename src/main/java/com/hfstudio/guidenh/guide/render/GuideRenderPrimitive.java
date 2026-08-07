@@ -73,22 +73,12 @@ public sealed interface GuideRenderPrimitive permits GuideRenderPrimitive.PushTr
      * synthetic-italic slant at draw time (fake-oblique, mirroring MC §o).
      * {@code shadow} asks the engine to paint a dark drop shadow offset +1/+1
      * document units beneath the run (MC drawStringWithShadow parity).
+     * <p>
+     * No atlas texture is carried: glyphs resolve to per-page atlas textures at
+     * draw time via {@link GuideGlyphAtlas#lookup}/{@link GuideGlyphAtlas#getTextureId}.
      */
-    record DrawGlyphRun(int atlasId, List<PlacedGlyph> glyphs, int argb, boolean shear, boolean shadow)
-        implements GuideRenderPrimitive {
-
-        public DrawGlyphRun(int atlasId, List<PlacedGlyph> glyphs) {
-            this(atlasId, glyphs, 0xFFFFFFFF, false, false);
-        }
-
-        public DrawGlyphRun(int atlasId, List<PlacedGlyph> glyphs, int argb) {
-            this(atlasId, glyphs, argb, false, false);
-        }
-
-        public DrawGlyphRun(int atlasId, List<PlacedGlyph> glyphs, int argb, boolean shear) {
-            this(atlasId, glyphs, argb, shear, false);
-        }
-    }
+    record DrawGlyphRun(List<PlacedGlyph> glyphs, int argb, boolean shear, boolean shadow)
+        implements GuideRenderPrimitive {}
 
     /**
      * Wavy (kind=4) or dotted (kind=5) underline decoration emitted from a

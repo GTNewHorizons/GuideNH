@@ -139,7 +139,6 @@ public final class GuideText {
             }
             atlas.upload(bmp.key(), rgba, (int) bmp.w(), (int) bmp.h());
         }
-        int tex = atlas.getTextureId();
         int n = shaped.glyphsLength();
         if (n == 0) {
             return;
@@ -159,7 +158,6 @@ public final class GuideText {
         }
         c.emit(
             new GuideRenderPrimitive.DrawGlyphRun(
-                tex,
                 glyphs,
                 resolveColor(style),
                 false,

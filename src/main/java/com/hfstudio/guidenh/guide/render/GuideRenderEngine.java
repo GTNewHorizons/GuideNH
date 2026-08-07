@@ -549,11 +549,8 @@ public class GuideRenderEngine {
     private void drawGlyphRun(GuideRenderPrimitive.DrawGlyphRun dg) {
         List<GuideRenderPrimitive.PlacedGlyph> glyphs = dg.glyphs();
         if (glyphs == null || glyphs.isEmpty()) return;
-        int atlasTex = dg.atlasId();
-        if (atlasTex <= 0) return;
         Transform t = currentTransform();
         boolean shear = dg.shear();
-        beginTexturedQuads(atlasTex);
         int missingAtlas = 0;
         if (dg.shadow()) {
             // Drop-shadow pass first (painted below the main text): the run
@@ -583,6 +580,10 @@ public class GuideRenderEngine {
      * un-offset run — the slant angle is preserved independently of the offset
      * (dx/dy do not change the italic tilt). Returns the number of glyphs whose
      * atlas bitmap is missing (for the debug warning).
+     * <p>
+     * Glyphs resolve to per-page atlas textures: whenever a glyph belongs to a
+     * different page than the current batch, the batch is flushed and rebound to
+     * that page's texture (multi-texture atlas pagination).
      */
     private int emitGlyphQuads(List<GuideRenderPrimitive.PlacedGlyph> glyphs, Transform t, boolean shear, int argb,
         float dx, float dy) {
@@ -595,15 +596,26 @@ public class GuideRenderEngine {
         }
         color(argb);
         Tessellator tess = Tessellator.instance;
-        tessColor(tess, argb);
         int missingAtlas = 0;
+        int batchPage = -1;
         for (GuideRenderPrimitive.PlacedGlyph g : glyphs) {
-            // UV coordinates from glyph atlas
-            GuideGlyphAtlas.GlyphUV uv = glyphAtlas.lookup(g.atlasKey());
-            if (uv == null) {
+            // Resolve the glyph's page + UV coordinates from the atlas.
+            GuideGlyphAtlas.GlyphSlot slot = glyphAtlas.lookup(g.atlasKey());
+            if (slot == null) {
                 missingAtlas++;
                 continue;
             }
+            if (slot.pageId() != batchPage) {
+                // Page switch: flush and rebind to the glyph's page texture.
+                beginTexturedQuads(glyphAtlas.getTextureId(slot.pageId()));
+                batchPage = slot.pageId();
+                // Per-vertex color must be set AFTER the batch starts:
+                // Tessellator.startDrawing resets hasColor, so a tessColor set
+                // before beginTexturedQuads would be wiped on the first batch
+                // (verts submitted without color data → invisible).
+                tessColor(tess, argb);
+            }
+            GuideGlyphAtlas.GlyphUV uv = slot.uv();
             // Keep subpixel precision: vertices are float, only the atlas UV is fixed.
             float x = (g.x() + dx) * t.scale + t.tx;
             float y = (g.y() + dy) * t.scale + t.ty;

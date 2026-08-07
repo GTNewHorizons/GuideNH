@@ -21,7 +21,6 @@ import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GlyphRunData;
 import com.hfstudio.guidenh.guide.render.GlyphRunGroup;
 import com.hfstudio.guidenh.guide.render.GlyphRunHolder;
-import com.hfstudio.guidenh.guide.render.GuideGlyphAtlas;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
@@ -111,8 +110,6 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
             for (GuideRenderPrimitive.FillRect bg : glyphData.backgrounds()) {
                 c.emit(bg);
             }
-            int atlasTex = GuideGlyphAtlas.instance()
-                .getTextureId();
             List<LytFlowContent> spanOwners = hasSpoiler() ? collectSpanOwners() : null;
             List<GlyphRunGroup> runs = glyphData.runs();
             for (int si = 0; si < runs.size(); si++) {
@@ -122,7 +119,6 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
                 } else {
                     c.emit(
                         new GuideRenderPrimitive.DrawGlyphRun(
-                            atlasTex,
                             group.glyphs(),
                             group.argb(),
                             group.shear(),
