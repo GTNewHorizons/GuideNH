@@ -1,5 +1,12 @@
 package com.hfstudio.guidenh.integration;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import net.minecraft.util.ResourceLocation;
+
+import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.guide.scene.snapshot.GuideStructureSnapshotRegistration;
 import com.hfstudio.guidenh.integration.ae2.Ae2BlockStatsProvider;
 import com.hfstudio.guidenh.integration.ae2.Ae2FakeWorldIntegration;
@@ -8,6 +15,7 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
 import com.hfstudio.guidenh.integration.bartworks.BartWorksFakeWorldIntegration;
 import com.hfstudio.guidenh.integration.betterquesting.BetterQuestingQuestHoverProvider;
+import com.hfstudio.guidenh.integration.betterquesting.BqGuidePageLinks;
 import com.hfstudio.guidenh.integration.betterquesting.BqGuidePageUriHandler;
 import com.hfstudio.guidenh.integration.buildcraft.BuildCraftBlockDisplayProvider;
 import com.hfstudio.guidenh.integration.buildcraft.BuildCraftPreviewPrepareContributor;
@@ -40,6 +48,10 @@ import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportPre
 import com.hfstudio.guidenh.integration.simpleskinbackport.SimpleSkinBackportSlimArmProvider;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibControllerIntegrationRegistry;
 import com.hfstudio.guidenh.integration.tinkerconstruct.TinkersConstructPreviewPrepareContributor;
+
+import betterquesting.api2.client.gui.context.QuestHoverRegistry;
+import betterquesting.api2.client.gui.context.QuestTooltipRegistry;
+import betterquesting.api2.client.gui.panels.content.PanelTextBox;
 
 public class GuideNhClientIntegrationBootstrap {
 
@@ -79,9 +91,29 @@ public class GuideNhClientIntegrationBootstrap {
 
         if (Mods.BetterQuesting.isModLoaded()) {
             BqGuidePageUriHandler.register();
+            PanelTextBox.registerTextProcessor(
+                new ResourceLocation("guidenh", "guide_page_links"),
+                BqGuidePageLinks::replaceGuideTags);
+            QuestTooltipRegistry.register((target, tooltip) -> {
+                if (target instanceof UUID) {
+                    OpenGuideHotkey.appendQuestTooltip((UUID) target, tooltip);
+                } else if (target instanceof Map.Entry<?, ?>) {
+                    Object key = ((Map.Entry<?, ?>) target).getKey();
+                    if (key instanceof UUID) {
+                        OpenGuideHotkey.appendQuestTooltip((UUID) key, tooltip);
+                    }
+                } else if (target instanceof String) {
+                    List<String> guideTooltip = BqGuidePageLinks.getTooltip((String) target);
+                    if (guideTooltip != null) {
+                        tooltip.addAll(guideTooltip);
+                    }
+                }
+            });
 
+            BetterQuestingQuestHoverProvider hoverProvider = new BetterQuestingQuestHoverProvider();
+            QuestHoverRegistry.register(hoverProvider);
             GuideNhClientIntegrationRegistry.global()
-                .registerQuestHoverProvider(new BetterQuestingQuestHoverProvider());
+                .registerQuestHoverProvider(hoverProvider);
         }
     }
 

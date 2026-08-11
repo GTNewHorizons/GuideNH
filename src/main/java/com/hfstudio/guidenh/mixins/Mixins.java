@@ -17,10 +17,6 @@ public enum Mixins implements IMixins {
         "minecraft.AccessorSimpleReloadableResourceManager", "forge.AccessorShapedOreRecipe",
         "forge.AccessorShapelessOreRecipe"),
 
-    BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.MixinPanelButtonQuest",
-        "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox",
-        "compat.betterquesting.AccessorPanelTextBoxHotZone"),
-
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
 
     FMP_BLOCK_MICRO_MATERIAL(Side.CLIENT, Phase.LATE, Mods.ForgeMultipart,
