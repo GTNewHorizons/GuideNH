@@ -9,11 +9,11 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.mixins.late.compat.logisticspipes.AccessorLogisticsTileGenericPipe;
 
 import cpw.mods.fml.common.Optional;
 import logisticspipes.pipes.basic.CoreUnroutedPipe;
 import logisticspipes.pipes.basic.LogisticsBlockGenericPipe;
+import logisticspipes.pipes.basic.LogisticsTileGenericPipe;
 import logisticspipes.renderer.state.PipeRenderState;
 
 public class LogisticsPipesHelpers {
@@ -38,10 +38,10 @@ public class LogisticsPipesHelpers {
             return null;
         }
         TileEntity te = level.getTileEntity(x, y, z);
-        if (!(te instanceof AccessorLogisticsTileGenericPipe)) {
+        if (!(te instanceof LogisticsTileGenericPipe lpPipe)) {
             return null;
         }
-        CoreUnroutedPipe pipe = ((AccessorLogisticsTileGenericPipe) te).getPipe();
+        CoreUnroutedPipe pipe = lpPipe.pipe;
         if (pipe == null || pipe.item == null) {
             return null;
         }
@@ -56,18 +56,17 @@ public class LogisticsPipesHelpers {
     @Optional.Method(modid = "LogisticsPipes")
     public static void prepare(GuidebookLevel level) {
         for (TileEntity te : level.getTileEntities()) {
-            if (!(te instanceof AccessorLogisticsTileGenericPipe tile)) {
+            if (!(te instanceof LogisticsTileGenericPipe tile)) {
                 continue;
             }
-            initializePipeState(tile, (TileEntity) tile, level);
+            initializePipeState(tile, level);
         }
     }
 
     @Optional.Method(modid = "LogisticsPipes")
-    private static void initializePipeState(AccessorLogisticsTileGenericPipe tile, TileEntity te,
-        GuidebookLevel level) {
-        CoreUnroutedPipe pipe = tile.getPipe();
-        PipeRenderState renderState = tile.getRenderState();
+    private static void initializePipeState(LogisticsTileGenericPipe tile, GuidebookLevel level) {
+        CoreUnroutedPipe pipe = tile.pipe;
+        PipeRenderState renderState = tile.renderState;
         if (pipe == null || renderState == null) {
             return;
         }
@@ -85,9 +84,9 @@ public class LogisticsPipesHelpers {
         } catch (Throwable ignored) {}
         // Compute connections from adjacent tiles. The tile's canPipeConnect() always
         // returns false on the client, so we delegate to the pipe directly instead
-        int x = te.xCoord;
-        int y = te.yCoord;
-        int z = te.zCoord;
+        int x = tile.xCoord;
+        int y = tile.yCoord;
+        int z = tile.zCoord;
         for (ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
             TileEntity adj = level.getTileEntity(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ);
             boolean connected = canConnect(pipe, adj, dir);

@@ -639,6 +639,7 @@ guidenh.compat.bq.locked=[Locked Quest]
 guidenh.compat.bq.missing=[Unknown Quest]
 guidenh.compat.bq.open_in_guide=Open in Guide
 guidenh.compat.bq.open_guide_page=Open GuideNH page
+guidenh.compat.bq.click_to_jump=Click to jump
 
 guidenh.mediawiki.contributor.abkqpo.name=ABKQPO
 guidenh.mediawiki.contributor.abkqpo.role=Owner

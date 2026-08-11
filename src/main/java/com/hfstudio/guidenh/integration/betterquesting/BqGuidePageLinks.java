@@ -109,7 +109,8 @@ public class BqGuidePageLinks {
         GuidePageLinkTarget target = GuidePageLinkTarget.resolve(anchor);
         List<String> tooltip = List.of(
             EnumChatFormatting.AQUA + I18n.format("guidenh.compat.bq.open_guide_page"),
-            EnumChatFormatting.GRAY + target.title());
+            EnumChatFormatting.GRAY + target.title(),
+            EnumChatFormatting.GRAY + I18n.format("guidenh.compat.bq.click_to_jump"));
         return putBounded(TOOLTIP_CACHE, url, tooltip);
     }
 

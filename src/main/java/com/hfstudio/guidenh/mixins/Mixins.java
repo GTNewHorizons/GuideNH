@@ -17,10 +17,6 @@ public enum Mixins implements IMixins {
         "minecraft.AccessorSimpleReloadableResourceManager", "forge.AccessorShapedOreRecipe",
         "forge.AccessorShapelessOreRecipe"),
 
-    BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.MixinPanelButtonQuest",
-        "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox",
-        "compat.betterquesting.AccessorPanelTextBoxHotZone"),
-
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
 
     FMP_BLOCK_MICRO_MATERIAL(Side.CLIENT, Phase.LATE, Mods.ForgeMultipart,
@@ -28,9 +24,6 @@ public enum Mixins implements IMixins {
 
     BC_TILE_GENERIC_PIPE(Side.CLIENT, Phase.LATE, Mods.BuildCraftTransport,
         "compat.buildcraft.AccessorTileGenericPipe"),
-
-    LP_TILE_GENERIC_PIPE(Side.CLIENT, Phase.LATE, Mods.LogisticsPipes,
-        "compat.logisticspipes.AccessorLogisticsTileGenericPipe"),
 
     WR_CBE_UNLOADED_JAM_STATE(Side.CLIENT, Phase.LATE, Mods.WirelessRedstoneCore,
         "compat.wirelessredstone.MixinRedstoneEther"),

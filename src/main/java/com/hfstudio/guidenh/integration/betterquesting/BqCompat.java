@@ -1,9 +1,6 @@
 package com.hfstudio.guidenh.integration.betterquesting;
 
 import java.util.List;
-import java.util.UUID;
-
-import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.GuideBuilder;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
@@ -18,9 +15,6 @@ import com.hfstudio.guidenh.integration.betterquesting.compiler.QuestLinkCompile
  * is missing from the classpath, so it can be statically referenced from the rest of the mod.
  */
 public class BqCompat {
-
-    @Nullable
-    public static volatile UUID currentHoveredQuestUuid;
 
     /**
      * Attaches the {@link QuestIndex} to the given guide builder. Safe to call when BQ is
@@ -40,21 +34,4 @@ public class BqCompat {
         compilers.add(new QuestCardCompiler());
     }
 
-    /**
-     * Returns the UUID of the BetterQuesting quest currently under the mouse cursor in the BQ
-     * quest line GUI, or {@code null} if no quest is hovered. Updated by the BQ-targeted mixin
-     * and consumed by the open-guide hotkey handler.
-     */
-    @Nullable
-    public static UUID getCurrentHoveredQuestUuid() {
-        return currentHoveredQuestUuid;
-    }
-
-    /**
-     * Sets the UUID of the BetterQuesting quest currently under the mouse cursor. Intended for
-     * use by the BQ-targeted mixin only. Pass {@code null} to clear.
-     */
-    public static void setCurrentHoveredQuestUuid(@Nullable UUID uuid) {
-        currentHoveredQuestUuid = uuid;
-    }
 }

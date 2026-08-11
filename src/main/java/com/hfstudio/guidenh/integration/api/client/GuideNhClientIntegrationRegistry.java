@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.integration.api.client;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,7 +29,7 @@ public class GuideNhClientIntegrationRegistry {
     private final List<PreviewPlayerModelProvider> previewPlayerModelProviders = new ArrayList<>();
     private final List<PreviewPlayerElytraProvider> previewPlayerElytraProviders = new ArrayList<>();
     private final List<PreviewBlockRenderProvider> previewBlockRenderProviders = new ArrayList<>();
-    private final List<QuestHoverProvider> questHoverProviders = new ArrayList<>();
+    private volatile List<QuestHoverProvider> questHoverProviders = Collections.emptyList();
 
     public GuideNhClientIntegrationRegistry() {}
 
@@ -92,13 +93,15 @@ public class GuideNhClientIntegrationRegistry {
         if (provider == null) {
             throw new IllegalArgumentException("provider");
         }
-        if (!questHoverProviders.contains(provider)) {
-            questHoverProviders.add(provider);
-        }
+        if (questHoverProviders.contains(provider)) return;
+
+        List<QuestHoverProvider> updatedProviders = new ArrayList<>(questHoverProviders);
+        updatedProviders.add(provider);
+        questHoverProviders = Collections.unmodifiableList(updatedProviders);
     }
 
-    public synchronized List<QuestHoverProvider> questHoverProviders() {
-        return List.copyOf(questHoverProviders);
+    public List<QuestHoverProvider> questHoverProviders() {
+        return questHoverProviders;
     }
 
     @Nullable
