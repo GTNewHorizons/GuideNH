@@ -113,7 +113,7 @@ import com.hfstudio.guidenh.guide.internal.home.HomePageLayout;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.NavigationState;
 import com.hfstudio.guidenh.guide.internal.input.GuideKeyBindingSupport;
-import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
@@ -2443,7 +2443,7 @@ public class GuideScreen extends GuiContainer
             int sizeX = bounds[3] - bounds[0] + 1;
             int sizeY = bounds[4] - bounds[1] + 1;
             int sizeZ = bounds[5] - bounds[2] + 1;
-            GuideStructureData structureData = RegionWandItem
+            GuideStructureData structureData = RegionWandExporter
                 .exportRegionAsStructureData(level, bounds[0], bounds[1], bounds[2], sizeX, sizeY, sizeZ);
             registeredSceneLabels.add(registration.label);
             if (structureData != null) {

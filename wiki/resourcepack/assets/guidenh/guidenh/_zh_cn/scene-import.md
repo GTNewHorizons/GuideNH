@@ -165,4 +165,4 @@ StructureLib 默认值可以写成子标签，点击 reset view 时会恢复这�
   </LineAnnotation>
 </GameScene>
 
-搭配区域选择魔棒：选区是客户端全局状态，所有魔棒共享同一组 Pos1/Pos2。左键设置 Pos1，右键设置 Pos2；两种点击都可以对准空气，按光标 reach 终点选取坐标。潜行 + 左键清空当前选区，潜行 + 右键按当前模式导出。也可以使用 `/guidenhc pos1 <x> <y> <z>`、`/guidenhc pos2 <x> <y> <z>`、`/guidenhc clearselection`，其中 `~` 坐标相对玩家。`/guidenhc exportstructure [--mode snbt|snbt_e|blocks|blocks_e]` 会导出当前选区，也可以额外传入 `<x> <y> <z> <sizeX> <sizeY> <sizeZ>`；这里的 `sizeX/sizeY/sizeZ` 对应 X/Y/Z 轴上的长、高、宽。Scene Editor 读取同一片客户端选区；如果服务端也安装了 GuideNH，会优先请求服务端按选区导出方块数据，从权威世界取得 TileEntity 信息。
+区域魔杖使用客户端全局选区。手持任意物品执行 `/guidenhc bind`，即可按物品 ID 与 metadata 绑定，NBT 不参与判断；手持同一 ID 与 metadata 的物品执行 `/guidenhc unbind` 可移除绑定。已绑定物品的 tooltip 会显示区域魔杖操作。左键设置 Pos1，右键设置 Pos2；两种点击都可以对准空气，按光标 reach 终点选取坐标。潜行 + 左键清空当前选区，潜行 + 右键按当前模式导出。也可以使用 `/guidenhc pos1 <x> <y> <z>`、`/guidenhc pos2 <x> <y> <z>`、`/guidenhc clearselection`，其中 `~` 坐标相对玩家。`/guidenhc exportstructure [--mode snbt|snbt_e|blocks|blocks_e]` 会导出当前选区，也可以额外传入 `<x> <y> <z> <sizeX> <sizeY> <sizeZ>`；这里的 `sizeX/sizeY/sizeZ` 对应 X/Y/Z 轴上的长、高、宽。选区和绑定均为客户端本地状态，因此服务端未安装 GuideNH 时也可使用。

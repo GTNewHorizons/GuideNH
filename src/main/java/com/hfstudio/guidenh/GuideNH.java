@@ -5,8 +5,6 @@ import static com.hfstudio.guidenh.GuideNH.MODNAME;
 
 import com.hfstudio.guidenh.guide.internal.GuideCommand;
 import com.hfstudio.guidenh.guide.internal.GuideNhBridgeCommand;
-import com.hfstudio.guidenh.guide.internal.item.GuideItem;
-import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
@@ -16,6 +14,7 @@ import cpw.mods.fml.common.event.FMLMissingMappingsEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
+import cpw.mods.fml.common.registry.GameRegistry;
 
 @Mod(
     modid = MODID,
@@ -38,10 +37,6 @@ public class GuideNH {
 
     @SidedProxy(clientSide = "com.hfstudio.guidenh.ClientProxy", serverSide = "com.hfstudio.guidenh.CommonProxy")
     public static CommonProxy proxy;
-
-    public static final GuideItem GUIDE_ITEM = new GuideItem();
-
-    public static final RegionWandItem REGION_WAND = new RegionWandItem();
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -70,5 +65,12 @@ public class GuideNH {
     }
 
     @Mod.EventHandler
-    public void onMissingMappings(FMLMissingMappingsEvent event) {}
+    public void onMissingMappings(FMLMissingMappingsEvent event) {
+        for (var mapping : event.get()) {
+            if (mapping.type == GameRegistry.Type.ITEM
+                && (mapping.name.equals(MODID + ":guide") || mapping.name.equals(MODID + ":region_wand"))) {
+                mapping.ignore();
+            }
+        }
+    }
 }

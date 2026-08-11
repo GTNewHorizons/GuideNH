@@ -1,4 +1,4 @@
-package com.hfstudio.guidenh.mixins.late.compat;
+package com.hfstudio.guidenh.mixins.late.compat.betterquesting;
 
 import java.util.List;
 

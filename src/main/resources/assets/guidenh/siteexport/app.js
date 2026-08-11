@@ -161,11 +161,15 @@ function installImageAnnotations(root) {
       continue;
     }
     if (image.complete) {
-      layoutCroppedFloatingImage(image);
+      if (image.dataset.cropWidth) {
+        layoutCroppedFloatingImage(image);
+      }
       layoutImageAnnotations(root);
     } else {
       image.addEventListener("load", () => {
-        layoutCroppedFloatingImage(image);
+        if (image.dataset.cropWidth) {
+          layoutCroppedFloatingImage(image);
+        }
         layoutImageAnnotations(root);
       }, { once: true });
     }

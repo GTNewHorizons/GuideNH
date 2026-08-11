@@ -25,7 +25,6 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
-import com.hfstudio.guidenh.guide.GuideItemSettings;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -99,8 +98,6 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
      */
     @Getter
     private final boolean availableToOpenHotkey;
-    @Getter
-    private final GuideItemSettings itemSettings;
     private final GuideDevelopmentSourceLayout developmentSourceLayout;
 
     @Nullable
@@ -113,8 +110,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
 
     public MutableGuide(ResourceLocation id, String defaultNamespace, String folder, String defaultLanguage,
         @Nullable Path developmentSourceFolder, @Nullable String developmentSourceNamespace,
-        Map<Class<?>, PageIndex> indices, ExtensionCollection extensions, boolean availableToOpenHotkey,
-        GuideItemSettings itemSettings) {
+        Map<Class<?>, PageIndex> indices, ExtensionCollection extensions, boolean availableToOpenHotkey) {
         this.id = id;
         this.defaultNamespace = defaultNamespace;
         this.folder = folder;
@@ -125,7 +121,6 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         this.indices = indices;
         this.extensions = extensions;
         this.availableToOpenHotkey = availableToOpenHotkey;
-        this.itemSettings = itemSettings;
     }
 
     @Override

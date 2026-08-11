@@ -1,6 +1,6 @@
 ---
 item_ids:
-  - guidenh:guide
+  - minecraft:book
 navigation:
   title: GuideNH 示例
   position: 200

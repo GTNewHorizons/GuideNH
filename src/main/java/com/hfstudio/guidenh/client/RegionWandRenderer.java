@@ -1,18 +1,22 @@
 package com.hfstudio.guidenh.client;
 
+import java.util.List;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
 import org.lwjgl.opengl.GL11;
 
+import com.gtnewhorizon.gtnhlib.blockpos.IBlockPos;
 import com.hfstudio.guidenh.config.ModConfig;
-import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
-import com.hfstudio.guidenh.guide.internal.item.RegionWandItem.SelectionAction;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter.SelectionAction;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
-import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureExportAccess;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
@@ -24,10 +28,10 @@ public class RegionWandRenderer {
         EntityClientPlayerMP player = mc.thePlayer;
         if (player == null) return;
         ItemStack heldWand = getHeldRegionWand(player);
-        boolean exportEnabled = GuideNhStructureExportAccess.canUseSceneExport();
+        boolean exportEnabled = ModConfig.ui.sceneExportEnabled;
         boolean holdingWand = heldWand != null && exportEnabled;
-        int[] p1 = RegionWandSelection.getPos(1);
-        int[] p2 = RegionWandSelection.getPos(2);
+        IBlockPos p1 = RegionWandSelection.getPosition(1);
+        IBlockPos p2 = RegionWandSelection.getPosition(2);
         boolean renderSelection = (p1 != null || p2 != null) && exportEnabled
             && (holdingWand || ModConfig.ui.regionWandPersistentSelectionRender);
         int[] target = holdingWand ? resolveTarget(mc, player) : null;
@@ -49,18 +53,18 @@ public class RegionWandRenderer {
         GL11.glLineWidth(2f);
 
         if (renderSelection && p1 != null) {
-            drawBox(p1[0], p1[1], p1[2], p1[0] + 1, p1[1] + 1, p1[2] + 1, 1f, 0.2f, 0.2f, 1f);
+            drawBox(p1.getX(), p1.getY(), p1.getZ(), p1.getX() + 1, p1.getY() + 1, p1.getZ() + 1, 1f, 0.2f, 0.2f, 1f);
         }
         if (renderSelection && p2 != null) {
-            drawBox(p2[0], p2[1], p2[2], p2[0] + 1, p2[1] + 1, p2[2] + 1, 0.2f, 0.4f, 1f, 1f);
+            drawBox(p2.getX(), p2.getY(), p2.getZ(), p2.getX() + 1, p2.getY() + 1, p2.getZ() + 1, 0.2f, 0.4f, 1f, 1f);
         }
         if (renderSelection && p1 != null && p2 != null) {
-            int minX = Math.min(p1[0], p2[0]);
-            int minY = Math.min(p1[1], p2[1]);
-            int minZ = Math.min(p1[2], p2[2]);
-            int maxX = Math.max(p1[0], p2[0]) + 1;
-            int maxY = Math.max(p1[1], p2[1]) + 1;
-            int maxZ = Math.max(p1[2], p2[2]) + 1;
+            int minX = Math.min(p1.getX(), p2.getX());
+            int minY = Math.min(p1.getY(), p2.getY());
+            int minZ = Math.min(p1.getZ(), p2.getZ());
+            int maxX = Math.max(p1.getX(), p2.getX()) + 1;
+            int maxY = Math.max(p1.getY(), p2.getY()) + 1;
+            int maxZ = Math.max(p1.getZ(), p2.getZ()) + 1;
             drawBox(minX, minY, minZ, maxX, maxY, maxZ, 0f, 0.79f, 0.95f, 0.9f); // #00CAF2
             drawFilled(minX, minY, minZ, maxX, maxY, maxZ, 0f, 0.79f, 0.95f, 0.15f);
         }
@@ -91,54 +95,76 @@ public class RegionWandRenderer {
         if (heldWand == null) {
             return;
         }
-        if (!GuideNhStructureExportAccess.canUseSceneExport()) {
+        if (!ModConfig.ui.sceneExportEnabled) {
             return;
         }
 
         event.setCanceled(true);
         if (event.button == 0) {
             if (player.isSneaking()) {
-                RegionWandItem.applySelectionAction(heldWand, player, SelectionAction.CLEAR, 0, 0, 0);
+                RegionWandExporter.applySelectionAction(player, SelectionAction.CLEAR, 0, 0, 0);
                 return;
             }
             int[] target = resolveTarget(mc, player);
             if (target != null) {
-                RegionWandItem
-                    .applySelectionAction(heldWand, player, SelectionAction.POS1, target[0], target[1], target[2]);
+                RegionWandExporter.applySelectionAction(player, SelectionAction.POS1, target[0], target[1], target[2]);
             }
             return;
         }
 
         if (player.isSneaking()) {
-            if (RegionWandItem.beginClientExportAction()) {
-                RegionWandItem.exportToClipboard(heldWand, player, mc.theWorld);
+            if (RegionWandExporter.beginClientExportAction()) {
+                RegionWandExporter.exportToClipboard(player, mc.theWorld);
             }
             return;
         }
         int[] target = resolveTarget(mc, player);
         if (target != null) {
-            RegionWandItem
-                .applySelectionAction(heldWand, player, SelectionAction.POS2, target[0], target[1], target[2]);
+            RegionWandExporter.applySelectionAction(player, SelectionAction.POS2, target[0], target[1], target[2]);
         }
+    }
+
+    @SubscribeEvent
+    public void onTooltip(ItemTooltipEvent event) {
+        if (!RegionWandSelection.isBound(event.itemStack)) {
+            return;
+        }
+        event.toolTip.add(1, GuidebookText.RegionWandTooltipBound.text());
+        event.toolTip.add(GuidebookText.RegionWandTooltipSelect.text());
+        event.toolTip.add(GuidebookText.RegionWandTooltipExport.text());
+        event.toolTip.add(
+            GuidebookText.RegionWandTooltipMode.text(
+                RegionWandExporter.getExportMode()
+                    .getDisplayName()));
+        appendPosition(event.toolTip, 1);
+        appendPosition(event.toolTip, 2);
     }
 
     private static ItemStack getHeldRegionWand(EntityClientPlayerMP player) {
         ItemStack held = player.getHeldItem();
-        if (held != null && held.getItem() instanceof RegionWandItem) {
+        if (RegionWandSelection.isBound(held)) {
             return held;
         }
         return null;
     }
 
+    private static void appendPosition(List<String> tooltip, int which) {
+        IBlockPos position = RegionWandSelection.getPosition(which);
+        if (position != null) {
+            tooltip
+                .add(GuidebookText.RegionWandTooltipPos.text(which, position.getX(), position.getY(), position.getZ()));
+        }
+    }
+
     private static int[] resolveTarget(Minecraft mc, EntityClientPlayerMP player) {
-        return RegionWandItem.resolveLookingAtSelection(player, mc.theWorld, true, getReachDistance(mc));
+        return RegionWandExporter.resolveLookingAtSelection(player, mc.theWorld, true, getReachDistance(mc));
     }
 
     private static double getReachDistance(Minecraft mc) {
         if (mc != null && mc.playerController != null) {
             return mc.playerController.getBlockReachDistance();
         }
-        return RegionWandItem.DEFAULT_REACH_DISTANCE;
+        return RegionWandExporter.DEFAULT_REACH_DISTANCE;
     }
 
     private static void drawTargetPreview(int x, int y, int z) {

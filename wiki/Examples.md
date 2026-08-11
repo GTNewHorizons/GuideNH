@@ -27,7 +27,7 @@ GuideNH already ships a runtime example guide in `wiki/resourcepack/`. This page
 
 ```yaml
 item_ids:
-  - guidenh:guide
+  - minecraft:book
 navigation:
   title: Root
   icon_texture: test1.png

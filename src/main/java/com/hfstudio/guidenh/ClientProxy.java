@@ -70,6 +70,7 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.SpecialScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.StructureScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.SubPagesScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.TooltipScript;
+import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.ElkWarmupWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
@@ -130,6 +131,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void init(FMLInitializationEvent event) {
         super.init(event);
+        RegionWandSelection.reloadBindings();
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(new GuideReloadListener());
         DefaultGuideResourcePackManager.init();

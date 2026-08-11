@@ -1,4 +1,4 @@
-package com.hfstudio.guidenh.mixins.late.compat;
+package com.hfstudio.guidenh.mixins.late.compat.betterquesting;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
@@ -11,6 +11,6 @@ public interface AccessorPanelTextBoxHotZone {
     @Accessor("location")
     IGuiRect guidenh$getLocation();
 
-    @Accessor("url")
-    String guidenh$getUrl();
+    @Accessor("link")
+    Object guidenh$getLink();
 }
