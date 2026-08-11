@@ -1,4 +1,4 @@
-package com.hfstudio.guidenh.mixins.late.compat;
+package com.hfstudio.guidenh.mixins.late.compat.betterquesting;
 
 import java.util.List;
 
@@ -33,9 +33,12 @@ public abstract class MixinPanelTextBox {
             AccessorPanelTextBoxHotZone accessor = (AccessorPanelTextBoxHotZone) hotZone;
             if (accessor.guidenh$getLocation()
                 .contains(mxt, myt)) {
-                List<String> tooltip = BqGuidePageLinks.getTooltip(accessor.guidenh$getUrl());
-                if (tooltip != null && !tooltip.isEmpty()) {
-                    cir.setReturnValue(tooltip);
+                Object link = accessor.guidenh$getLink();
+                if (link instanceof String) {
+                    List<String> tooltip = BqGuidePageLinks.getTooltip((String) link);
+                    if (tooltip != null && !tooltip.isEmpty()) {
+                        cir.setReturnValue(tooltip);
+                    }
                 }
                 return;
             }
