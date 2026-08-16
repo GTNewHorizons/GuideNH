@@ -3554,7 +3554,7 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     q&&(v.push(q),g.add(q.highlightObject),g.add(q.pickMesh));
   }
   let M,S=new Ei;
-  S.near=0;
+  S.near=-1000;
   S.far=3e4;
   let P=(A,q)=>{
     f.setSize(A,q);
