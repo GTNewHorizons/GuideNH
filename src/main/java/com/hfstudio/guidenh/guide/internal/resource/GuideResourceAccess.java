@@ -4,9 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import net.minecraft.client.resources.IResource;
 import net.minecraft.client.resources.IResourceManager;
@@ -19,12 +16,10 @@ import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 
 public class GuideResourceAccess {
 
-    private static final ConcurrentMap<ResourceLocation, Optional<byte[]>> FALLBACK_CACHE = new ConcurrentHashMap<>();
-
     private GuideResourceAccess() {}
 
     public static void clearCache() {
-        FALLBACK_CACHE.clear();
+        // Asset index is owned by DataDrivenGuideLoader; no separate negative cache to clear.
     }
 
     public static @Nullable byte[] readBytes(IResourceManager resourceManager, ResourceLocation id) {
@@ -40,18 +35,22 @@ public class GuideResourceAccess {
             }
         } catch (IOException ignored) {}
 
-        return FALLBACK_CACHE.computeIfAbsent(id, GuideResourceAccess::readFallbackBytes)
-            .orElse(null);
-    }
-
-    private static Optional<byte[]> readFallbackBytes(ResourceLocation id) {
-        for (var resourcePack : DataDrivenGuideLoader.getLastActiveResourcePacks()) {
-            byte[] bytes = DataDrivenGuideLoader.readBytes(resourcePack, id);
-            if (bytes != null) {
-                return Optional.of(bytes);
+        var candidates = DataDrivenGuideLoader.getAssetCandidatesFor(id);
+        if (candidates != null) {
+            for (var candidate : candidates) {
+                byte[] bytes = DataDrivenGuideLoader.readBytes(candidate.pack(), id);
+                if (bytes != null) {
+                    return bytes;
+                }
             }
         }
-        return Optional.empty();
+
+        if (DataDrivenGuideLoader.isIndexPopulated()) {
+            return null;
+        }
+
+        DataDrivenGuideLoader.ensureIndexReady(resourceManager);
+        return readBytes(resourceManager, id);
     }
 
     public static @Nullable InputStream openStream(IResourceManager resourceManager, ResourceLocation id) {
