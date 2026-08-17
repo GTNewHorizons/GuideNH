@@ -82,7 +82,7 @@ public class ExportTask {
                     Files.write(dest, bytes);
                     assetsCopied++;
                 } catch (IOException e) {
-                    GuideDebugLog.debugAlways("[GuideNH] [ExportTask] Skipping missing asset {}", id, e);
+                    GuideDebugLog.warnAlways("[GuideNH] [ExportTask] Skipping missing asset {}", id, e);
                 }
             }
         }

@@ -288,7 +288,7 @@ public class GuideSiteSceneTessellatorCapture {
             }
 
             if (exportMipLevel > 0) {
-                GuideDebugLog.debugAlways(
+                GuideDebugLog.debug(
                     "exportCurrentTexture: texture id={} is {}x{} - using mip level {} ({}x{}) for site export",
                     textureId,
                     level0Width,
@@ -297,7 +297,7 @@ public class GuideSiteSceneTessellatorCapture {
                     exportWidth,
                     exportHeight);
             } else {
-                GuideDebugLog.debugAlways(
+                GuideDebugLog.debug(
                     "exportCurrentTexture: exporting texture id={} ({}x{})",
                     textureId,
                     exportWidth,

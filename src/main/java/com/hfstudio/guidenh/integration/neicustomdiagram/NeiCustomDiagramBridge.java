@@ -216,7 +216,7 @@ public class NeiCustomDiagramBridge {
                 .getMethod("get");
             available = true;
         } catch (Throwable t) {
-            GuideDebugLog.debugAlways(
+            GuideDebugLog.warnAlways(
                 "[GuideNH] [NeiCustomDiagramBridge] nei-custom-diagram bridge unavailable: {}",
                 t.toString());
         }
@@ -331,8 +331,7 @@ public class NeiCustomDiagramBridge {
             METHOD_DIAGRAM_DRAW_BACKGROUND.invoke(diagram, diagramState);
             renderForeground(diagram, diagramState, guiScissorAbsX, guiScissorAbsY, gw, gh);
         } catch (Throwable t) {
-            GuideDebugLog
-                .debugAlways("[GuideNH] [NeiCustomDiagramBridge] Embedded nei-custom-diagram render failed", t);
+            GuideDebugLog.warnAlways("[GuideNH] [NeiCustomDiagramBridge] Embedded nei-custom-diagram render failed", t);
         } finally {
             GL11.glPopMatrix();
             GL11.glPopAttrib();
@@ -369,7 +368,7 @@ public class NeiCustomDiagramBridge {
             }
         } catch (Throwable t) {
             GuideDebugLog
-                .debugAlways("[GuideNH] [NeiCustomDiagramBridge] Embedded nei-custom-diagram tooltip lookup failed", t);
+                .warnAlways("[GuideNH] [NeiCustomDiagramBridge] Embedded nei-custom-diagram tooltip lookup failed", t);
         }
         return null;
     }

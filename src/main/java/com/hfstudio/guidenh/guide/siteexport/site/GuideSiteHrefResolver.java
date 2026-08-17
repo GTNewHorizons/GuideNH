@@ -61,7 +61,7 @@ public class GuideSiteHrefResolver {
                 : resolveTargetPageId(currentPageId, target);
             return resolvePageAnchor(currentPageId, new PageAnchor(targetPageId, fragment));
         } catch (IllegalArgumentException e) {
-            GuideDebugLog.debugAlways(
+            GuideDebugLog.warnAlways(
                 "[GuideNH] [GuideSiteHrefResolver] Failed to resolve href {} from page {}",
                 href,
                 currentPageId,

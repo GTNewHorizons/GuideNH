@@ -53,7 +53,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
             exportedIcons.put(cacheKey, exportedPath);
             return exportedPath;
         } catch (Throwable t) {
-            GuideDebugLog.debugAlways(
+            GuideDebugLog.warnAlways(
                 "[GuideNH] [GuideSiteItemIconExporter] Failed to export offline icon for {}",
                 GuideSiteItemSupport.itemId(stack),
                 t);

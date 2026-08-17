@@ -153,8 +153,8 @@ public class RecipeScript implements LytScript {
                     handlerPart = " with handler " + (ph.handlerName != null ? ph.handlerName : ph.handlerId);
                 }
                 showFallback(ctx, ph, "No recipe found for " + ph.idStr + handlerPart);
-            } else if (GuideDebugLog.isDebugEnabled()) {
-                GuideDebugLog.debugAlways("Recipe handler filter eliminated all candidates for {}", ph.idStr);
+            } else {
+                GuideDebugLog.debug("Recipe handler filter eliminated all candidates for {}", ph.idStr);
             }
             return;
         }
