@@ -48,7 +48,7 @@ public class MediaWikiSyntheticPageFactory {
             .removeIf(pageId -> !seenIds.contains(pageId));
         long categoryElapsedNanos = System.nanoTime() - categoryStartNanos;
         long totalElapsedNanos = System.nanoTime() - startNanos;
-        GuideDebugLog.infoAlways(
+        GuideDebugLog.info(
             "[GuideNH] [MediaWikiSyntheticPageFactory] Built {} synthetic pages in {} ms (special: {} ms, category: {} ms)",
             syntheticPages.size(),
             nanosToMillis(totalElapsedNanos),

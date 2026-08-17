@@ -74,7 +74,7 @@ public class CompileWorker {
             bulkQueue.clear();
             bulkQueue.addAll(pageIds);
         }
-        GuideDebugLog.infoAlways("[CompileWorker] startBulk {} pages", pageIds.size());
+        GuideDebugLog.info("[CompileWorker] startBulk {} pages", pageIds.size());
     }
 
     /**
@@ -204,7 +204,7 @@ public class CompileWorker {
         long tCompiled = System.nanoTime();
         compiledPages.put(pageId, compiled);
 
-        GuideDebugLog.infoAlways(
+        GuideDebugLog.info(
             "[CompileWorker] Compiled page={} parseMs={} compileMs={}",
             pageId,
             (tParsed - t0) / 1_000_000L,

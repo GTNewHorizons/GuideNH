@@ -16,10 +16,7 @@ public class NeiRecipeLookup {
 
     static {
         boolean ok = false;
-        if (!Mods.NotEnoughItems.isModLoaded()) {
-            GuideDebugLog.infoAlways(
-                "[GuideNH] [NeiRecipeLookup] NEI mod not loaded; GuideNH recipe rendering falls back to vanilla.");
-        } else {
+        if (Mods.NotEnoughItems.isModLoaded()) {
             try {
                 Class.forName(
                     "com.hfstudio.guidenh.integration.nei.NeiDirectCalls",

@@ -23,7 +23,6 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
-import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageChange;
@@ -375,7 +374,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         mediaWikiSpecialDataIndex = null;
         fallbackMediaWikiListContextRevision = Long.MIN_VALUE;
         requestedMediaWikiWarmupRevision = Long.MIN_VALUE;
-        GuideDebugLog.infoAlways(
+        GuideDebugLog.info(
             "[GuideNH] [MutableGuide] Closed guide {} and cleared caches developmentPages={}, syntheticPages={}, failures={}",
             id,
             developmentPageCount,
@@ -460,9 +459,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     public void validateAll() {
         // Iterate and compile all pages to warn about errors on startup
         for (var entry : developmentPages.entrySet()) {
-            if (ModConfig.debug.enableDebugMode) {
-                GuideDebugLog.infoAlways("[GuideNH] [MutableGuide] Compiling {}", entry.getKey());
-            }
+            GuideDebugLog.info("[GuideNH] [MutableGuide] Compiling {}", entry.getKey());
             getPage(entry.getKey());
         }
     }
@@ -632,7 +629,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             syntheticSourceCache,
             this::parseSyntheticPage);
         syntheticPages = Map.copyOf(rebuiltPages);
-        GuideDebugLog.infoAlways(
+        GuideDebugLog.info(
             "[GuideNH] [MutableGuide] Rebuilt {} synthetic pages in {} ms for guide {}",
             syntheticPages.size(),
             nanosToMillis(System.nanoTime() - startNanos),
@@ -684,13 +681,11 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             }
         }
         NavigationTree navigationSnapshot = aggregatedGuide.getNavigationTree();
-        if (ModConfig.debug.enableDebugMode) {
-            GuideDebugLog.infoAlways(
-                "[GuideNH] [MutableGuide] Scheduling MediaWiki cache warmup for guide {} revision {} with {} pages",
-                id,
-                revision,
-                pagesSnapshot.size());
-        }
+        GuideDebugLog.info(
+            "[GuideNH] [MutableGuide] Scheduling MediaWiki cache warmup for guide {} revision {} with {} pages",
+            id,
+            revision,
+            pagesSnapshot.size());
         mediaWikiRefreshController.requestRefresh(revision, () -> {
             try {
                 long startNanos = System.nanoTime();
@@ -713,14 +708,12 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
                     fallbackMediaWikiListContext = listContext;
                     fallbackMediaWikiListContextRevision = revision;
                 }
-                if (ModConfig.debug.enableDebugMode) {
-                    GuideDebugLog.infoAlways(
-                        "[GuideNH] [MutableGuide] Warmed MediaWiki caches asynchronously in {} ms for guide {} revision {} with {} pages",
-                        nanosToMillis(System.nanoTime() - startNanos),
-                        id,
-                        revision,
-                        pagesSnapshot.size());
-                }
+                GuideDebugLog.info(
+                    "[GuideNH] [MutableGuide] Warmed MediaWiki caches asynchronously in {} ms for guide {} revision {} with {} pages",
+                    nanosToMillis(System.nanoTime() - startNanos),
+                    id,
+                    revision,
+                    pagesSnapshot.size());
             } catch (Throwable t) {
                 synchronized (this) {
                     if (requestedMediaWikiWarmupRevision == revision) {

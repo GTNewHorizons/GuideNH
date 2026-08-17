@@ -81,7 +81,6 @@ public class GuideNhRuntimeBridgeServer {
         if (!running.getAndSet(false)) {
             return;
         }
-        GuideDebugLog.infoAlways("GuideNH runtime bridge server stopping");
         closeServerSocket();
         List<RuntimeBridgeConnection> snapshot;
         synchronized (connections) {
@@ -151,10 +150,6 @@ public class GuideNhRuntimeBridgeServer {
 
     private void handleClosedConnection(RuntimeBridgeConnection connection) {
         connections.remove(connection);
-        GuideDebugLog.infoAlways(
-            "GuideNH runtime bridge session closed for {}. activeConnections={}",
-            connection.getRemoteAddress(),
-            connections.size());
     }
 
     public static class RuntimeBridgeThreadFactory implements ThreadFactory {
