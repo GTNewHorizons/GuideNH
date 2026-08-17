@@ -28,7 +28,6 @@ import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportAccess;
 import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 
-import appeng.api.AEApi;
 import appeng.api.parts.IFacadePart;
 import appeng.api.parts.IPart;
 import appeng.api.parts.PartItemStack;
@@ -195,15 +194,8 @@ public class Ae2Helpers {
 
     @Optional.Method(modid = "appliedenergistics2")
     private static boolean isQuantumLinkCenter(TileQuantumBridge qnb) {
-        for (Block link : AEApi.instance()
-            .definitions()
-            .blocks()
-            .quantumLink()
-            .maybeBlock()
-            .asSet()) {
-            return qnb.getBlockType() == link;
-        }
-        return false;
+        Block link = (Block) Block.blockRegistry.getObject("appliedenergistics2:tile.BlockQuantumLinkChamber");
+        return link != null && qnb.getBlockType() == link;
     }
 
     @Optional.Method(modid = "appliedenergistics2")

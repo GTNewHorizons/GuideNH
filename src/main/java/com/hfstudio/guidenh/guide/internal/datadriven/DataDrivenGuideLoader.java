@@ -83,8 +83,7 @@ public class DataDrivenGuideLoader {
     private record ScanCache(List<File> packRoots, String folder, ScanResult result,
         Map<ResourceLocation, List<PackCandidate>> pagePackIndexSnapshot,
         Map<ResourceLocation, List<PackCandidate>> assetPackIndexSnapshot,
-        Map<File, List<String>> langFilePathsSnapshot,
-        Map<String, Map<String, String>> langKeys) {
+        Map<File, List<String>> langFilePathsSnapshot, Map<String, Map<String, String>> langKeys) {
 
         boolean matches(List<File> roots, String f) {
             return folder.equals(f) && packRoots.equals(roots);
@@ -515,9 +514,12 @@ public class DataDrivenGuideLoader {
             String childPath = relativePath.isEmpty() ? child.getName() : relativePath + "/" + child.getName();
             if (child.isDirectory()) {
                 collectAssetPaths(child, childPath, assetPaths);
-            } else if (child.isFile() && !child.getName().endsWith(".md") && !child.getName().endsWith(".lang")) {
-                assetPaths.add(childPath);
-            }
+            } else if (child.isFile() && !child.getName()
+                .endsWith(".md")
+                && !child.getName()
+                    .endsWith(".lang")) {
+                        assetPaths.add(childPath);
+                    }
         }
     }
 
