@@ -717,6 +717,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - `title`、`background`、`border`、`axisColor`、`gridColor`
 - `showGrid` / `showAxes`（默认 `true`）
 - `xRange="a..b"`（或 `xMin` / `xMax` 分写），`xStep` 控制刻度间距；Y 轴同理
+- `xLabel` / `yLabel` 分别在绘图区下方和上方显示类似 Excel 的轴标题，并支持内联 `$$...$$` LaTeX；没有显式 X 范围时，`domain="a..b"` 是兼容旧内容的 `xRange` 别名
 - `quadrants="1,2,3,4"` 或 `quadrants="all"` 强制可见象限；不写则默认仅第一象限，并在采样发现 `y < 0` 时自动追加第三、第四象限
 - `cornerLegend`、`cornerLegendWidth`、`cornerLegendHeight`、`cornerLegendBackground` 可以把带 `label` 的曲线显示为绘图区内部的紧凑图例
 
@@ -725,7 +726,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - `expr="..."`：表达式。支持 `+ - * / % ^`、后缀阶乘 `!`（gamma 推广至实数）、`|x|` 绝对值、`√`/`sqrt`、`∛`/`cbrt`、隐式乘法以及常量 `pi`、`tau`、`e`、`phi`。内建调用覆盖常规 trig/log/exp/rounding 函数，并提供双参数 `atan2`、`min`、`max`、`pow`、`hypot`、`mod`。
 - `inverse={true}` 将表达式解释为 `x = f(y)` 并旋转曲线。
 - `domain="a..b"`（x 上下界简写）或逗号分隔的比较子句，如 `x>=0, x<5`。
-- `color`、`label`。设置了非空 `label` 的曲线会自动出现在面板下方的图例里：一个小色块加曲线名，按从左到右排列，宽度不够时自动换到下一行。
+- `color`、`label`。设置非空名称的曲线会自动出现在面板下方的图例里：一个小色块加曲线名，按从左到右排列，宽度不够时自动换到下一行。
+- `tooltip` 会在计算出的提示信息后追加纯文本。`showFunction` 和 `showValues` 默认均为 `true`，设为 `false` 可分别隐藏函数式或实时 `(x, y)` 值。带有 `expr` 的 `<Plot>` / 内嵌 `<Function>` 可以写子 Markdown 和 GuideNH 标签，作为富文本 tooltip 正文。顺序始终为曲线 `label`、函数式、实时值、`tooltip` 文本、子节点富文本；缺省或关闭的计算行会按此顺序跳过。
 - `pointEveryX="step"` 按固定 x 间隔在该曲线上生成点。
 - `pointEveryY="step"` 在曲线与固定 y 间隔的交点处生成点，内部使用有上限的扫描和二分求解。
 - `autoPointLabel="none|x|y|xy"` 控制自动点标签，默认 `none`。
@@ -737,7 +739,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - 锚定到曲线：`plot="N"` 配合 `atX="v"` 或 `atY="v"`（运行时在该曲线 x 域上二分求解）。
 - 可选 `color`、`label`。
 
-交互：鼠标悬停曲线会高亮该曲线；按住可沿曲线滑动一个标记点。提示框第一行显示表达式，第二行显示 `(x, y)`；默认锚定在该点正上方，顶部空间不足时自动翻到下方。
+交互：鼠标悬停曲线会高亮该曲线；按住可沿曲线滑动一个标记点。若提供 `label`，提示框最上方先显示函数名，之后默认显示函数式和实时 `(x, y)` 值；可用对应开关关闭。提示框默认锚定在该点正上方，顶部空间不足时自动翻到下方。
 
 ## BetterQuesting 兼容标签
 

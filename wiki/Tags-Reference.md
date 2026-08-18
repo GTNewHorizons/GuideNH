@@ -771,6 +771,7 @@ Panel attributes (accepted by the container, the shorthand, and the fence header
 - `title`, `background`, `border`, `axisColor`, `gridColor`
 - `showGrid` / `showAxes` (default `true`)
 - `xRange="a..b"` (or `xMin` / `xMax` separately), `xStep` for tick spacing; same for the Y axis
+- `xLabel` / `yLabel` add Excel-style axis titles below and above the plot respectively. They support inline `$$...$$` LaTeX; `domain="a..b"` is a legacy alias for `xRange` when no explicit X range is present
 - `quadrants="1,2,3,4"` or `quadrants="all"` to force the visible quadrants; omit to start in quadrant 1 with auto-expansion when sampled `y < 0`
 - `cornerLegend`, `cornerLegendWidth`, `cornerLegendHeight`, and `cornerLegendBackground` show a compact legend inside the plot area using non-empty curve labels
 
@@ -779,7 +780,8 @@ Curve children (`<Plot>` / `<Function>`):
 - `expr="..."` &mdash; the expression. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` absolute value, `√` / `sqrt` / `∛` / `cbrt`, implicit multiplication, and the constants `pi`, `tau`, `e`, `phi` are supported. Built-in calls cover the standard trig/log/exp/rounding family plus two-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
 - `inverse={true}` evaluates the expression as `x = f(y)` and rotates the curve.
 - `domain="a..b"` (x bounds shorthand) or comma-separated clauses such as `x>=0, x<5`.
-- `color`, `label`. Any curve with a non-empty `label` is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+- `color`, `label`. Any curve with a non-empty label is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+- `tooltip` adds plain text below the computed tooltip. `showFunction` and `showValues` default to `true`; set either to `false` to hide the rendered equation or live `(x, y)` value respectively. A `<Plot>` / nested `<Function>` with `expr` may contain Markdown and GuideNH tags as a rich tooltip body. The order is always label, rendered equation, live values, `tooltip` text, then rich child content; omitted or disabled computed fields are skipped in that order.
 - `pointEveryX="step"` adds generated point markers at regular x intervals on that curve.
 - `pointEveryY="step"` adds generated point markers where the curve intersects regular y intervals, using a bounded search.
 - `autoPointLabel="none|x|y|xy"` controls generated point labels; default is `none`.
@@ -791,7 +793,7 @@ Marked points (`<Point>`):
 - Plot-anchored: `plot="N"` plus `atX="v"` or `atY="v"` (the runtime bisects on the plot's x-domain to find the matching `x`).
 - Optional `color`, `label`.
 
-Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip shows the expression on the first line and `(x, y)` on the second; it stays anchored above the point and flips below when there is no headroom.
+Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip starts with `label` when supplied, then the equation and live `(x, y)` value unless their switches are disabled; it stays anchored above the point and flips below when there is no headroom.
 
 ## BetterQuesting Compatibility Tags
 

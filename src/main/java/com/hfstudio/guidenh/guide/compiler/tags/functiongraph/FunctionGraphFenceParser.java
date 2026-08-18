@@ -98,7 +98,8 @@ public class FunctionGraphFenceParser {
 
     private static final String[] HEADER_KEYS = { "width", "height", "title", "background", "border", "axisColor",
         "gridColor", "showGrid", "showAxes", "xMin", "xMax", "yMin", "yMax", "xRange", "yRange", "xStep", "yStep",
-        "quadrants", "cornerLegend", "cornerLegendWidth", "cornerLegendHeight", "cornerLegendBackground" };
+        "domain", "xLabel", "yLabel", "quadrants", "cornerLegend", "cornerLegendWidth", "cornerLegendHeight",
+        "cornerLegendBackground" };
 
     private static void applyHeader(LytFunctionGraph graph, String line) {
         AttrMap attrs = parseKeyValues(line);
@@ -110,6 +111,14 @@ public class FunctionGraphFenceParser {
         String title = attrs.stringValue("title");
         if (title != null) {
             graph.setTitle(title);
+        }
+        String xLabel = attrs.stringValue("xLabel");
+        if (xLabel != null) {
+            graph.setXLabel(xLabel);
+        }
+        String yLabel = attrs.stringValue("yLabel");
+        if (yLabel != null) {
+            graph.setYLabel(yLabel);
         }
         String bg = attrs.stringValue("background");
         if (bg != null) {
@@ -167,6 +176,12 @@ public class FunctionGraphFenceParser {
         } else {
             double xMin = FunctionGraphAttrs.parseDouble(attrs.stringValue("xMin"), Double.NaN);
             double xMax = FunctionGraphAttrs.parseDouble(attrs.stringValue("xMax"), Double.NaN);
+            String domain = attrs.stringValue("domain");
+            if (domain != null && Double.isNaN(xMin) && Double.isNaN(xMax)) {
+                double[] r = FunctionGraphAttrs.parseRange(domain);
+                xMin = r[0];
+                xMax = r[1];
+            }
             if (!Double.isNaN(xMin) || !Double.isNaN(xMax)) {
                 graph.setExplicitXRange(xMin, xMax);
             }
@@ -208,13 +223,26 @@ public class FunctionGraphFenceParser {
         int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, FunctionGraphPalette.color(paletteIndex))
             : FunctionGraphPalette.color(paletteIndex);
         String label = attrs.stringValue("label");
+        String tooltip = attrs.stringValue("tooltip");
+        Boolean showFunction = attrs.boolValue("showFunction");
+        Boolean showValues = attrs.boolValue("showValues");
         AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
             attrs.stringValue("pointEveryX"),
             attrs.stringValue("pointEveryY"),
             attrs.stringValue("autoPointLabel"),
             attrs.stringValue("autoPointColor"),
             color);
-        return new FunctionPlot(exprText, ast, inv, domain, color, label, autoPointSpec);
+        return new FunctionPlot(
+            exprText,
+            ast,
+            inv,
+            domain,
+            color,
+            label,
+            autoPointSpec,
+            tooltip,
+            showFunction == null || showFunction,
+            showValues == null || showValues);
     }
 
     private static int findAttributePipe(String line) {
@@ -279,7 +307,7 @@ public class FunctionGraphFenceParser {
 
     private static boolean isPlotAttributeKey(String key) {
         return switch (key) {
-            case "color", "label", "domain", "inverse", "pointEveryX", "pointEveryY", "autoPointLabel", "autoPointColor" -> true;
+            case "color", "label", "tooltip", "showFunction", "showValues", "domain", "inverse", "pointEveryX", "pointEveryY", "autoPointLabel", "autoPointColor" -> true;
             default -> false;
         };
     }

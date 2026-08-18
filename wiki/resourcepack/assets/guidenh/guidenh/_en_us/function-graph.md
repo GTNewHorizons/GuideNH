@@ -18,7 +18,7 @@ Any curve given a `label` is also listed in a legend rendered just below the pan
 
 ## Fenced Block
 
-The first line of a `funcgraph` fence sets panel-wide attributes (`width`, `height`, `xRange=a..b` / `xMin` / `xMax` / `xStep`, `yRange` / `yMin` / `yMax` / `yStep`, `quadrants=1,2,3,4` or `all`, `title`, `background`, `border`, `axisColor`, `gridColor`, `showGrid`, `showAxes`). Each subsequent non-blank line is either an expression with optional pipe-delimited attributes, an explicit point `:x,y`, or a plot-anchored point `@plot=N atX=v` / `@plot=N atY=v`. Comments start with `#`.
+The first line of a `funcgraph` fence sets panel-wide attributes (`width`, `height`, `xRange=a..b` / `xMin` / `xMax` / `xStep`, `yRange` / `yMin` / `yMax` / `yStep`, `xLabel`, `yLabel`, `quadrants=1,2,3,4` or `all`, `title`, `background`, `border`, `axisColor`, `gridColor`, `showGrid`, `showAxes`). Each subsequent non-blank line is either an expression with optional pipe-delimited attributes, an explicit point `:x,y`, or a plot-anchored point `@plot=N atX=v` / `@plot=N atY=v`. Comments start with `#`.
 
 ```funcgraph
 width=360 height=220 xRange=-pi..pi yRange=-2..2 quadrants=all cornerLegend=topRight
@@ -31,10 +31,10 @@ x/2           | color=#88cc77 domain=-pi..pi
 
 ## `<FunctionGraph>` Container
 
-The container accepts the same panel attributes as the fence header. Children are `<Plot expr="..." />` (or `<Function expr="..." />`) for curves and `<Point ... />` for marked points. Plot attributes: `expr`, `inverse={true}` to treat the expression as `x = f(y)`, `domain="a..b"` or comma-separated clauses like `x>=0, x<=pi`, `color`, `label`. Point attributes: explicit `x` + `y`, or `plot="N"` plus either `atX="v"` or `atY="v"` to anchor on a curve.
+The container accepts the same panel attributes as the fence header. Children are `<Plot expr="..." />` (or `<Function expr="..." />`) for curves and `<Point ... />` for marked points. `label` is the curve name, and is shown in the legend and at the top of the default tooltip. `showFunction` and `showValues` control the computed tooltip lines. Tooltip content is ordered as label, function, values, `tooltip` text, then child Markdown. Point attributes: explicit `x` + `y`, or `plot="N"` plus either `atX="v"` or `atY="v"` to anchor on a curve.
 
 ```mdx
-<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all" cornerLegend="topRight">
+<FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" xLabel="Input" yLabel="Output" quadrants="all" cornerLegend="topRight">
   <Plot expr="sin(x)" color="#ff5566" label="sin x" pointEveryX="1" autoPointLabel="x"/>
   <Plot expr="x^2 / 4" color="#3399ff" domain="-4..4" label="x² / 4"/>
   <Plot expr="|x| - 1" color="#88cc77" label="|x| - 1" pointEveryY="1"/>
@@ -42,6 +42,22 @@ The container accepts the same panel attributes as the fence header. Children ar
   <Point plot="0" atX="1.5708"/>
 </FunctionGraph>
 ```
+
+```mdx
+<FunctionGraph xRange="-4..4" yRange="-2..6" cornerLegend="topRight">
+  <Plot expr="x^2" label="Quadratic fuel curve" tooltip="The sampled value follows the current cursor." showFunction={true} showValues={true}>
+    **Fuel efficiency** is evaluated live. See <ItemLink id="minecraft:coal" /> for a sample input.
+  </Plot>
+  <Plot expr="x - 1" label="Linear reference" showFunction={false} />
+</FunctionGraph>
+```
+
+<FunctionGraph xRange="-4..4" yRange="-2..6" cornerLegend="topRight">
+  <Plot expr="x^2" label="Quadratic fuel curve" tooltip="The sampled value follows the current cursor." showFunction={true} showValues={true}>
+    **Fuel efficiency** is evaluated live. See <ItemLink id="minecraft:coal" /> for a sample input.
+  </Plot>
+  <Plot expr="x - 1" label="Linear reference" showFunction={false} />
+</FunctionGraph>
 
 <FunctionGraph width="360" height="220" xRange="-6..6" yRange="-3..3" quadrants="all" cornerLegend="topRight">
   <Plot expr="sin(x)" color="#ff5566" label="sin x" pointEveryX="1" autoPointLabel="x"/>

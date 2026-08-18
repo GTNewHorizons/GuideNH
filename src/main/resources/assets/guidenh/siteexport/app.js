@@ -1148,6 +1148,12 @@ function installChartHoverTooltips(root) {
       el.hidden = false;
       positionPopup(el, ev);
     };
+    const showHtml = (html, ev) => {
+      const el = ensurePopup();
+      el.innerHTML = html;
+      el.hidden = false;
+      positionPopup(el, ev);
+    };
     const hide = () => {
       if (popupEl) popupEl.hidden = true;
     };
@@ -1163,7 +1169,19 @@ function installChartHoverTooltips(root) {
           const fx = parseFloat(px), fy = parseFloat(py);
           if (Number.isFinite(fx) && Number.isFinite(fy)) pts.push([fx, fy]);
         }
-        if (pts.length) plotData.push({ pts, label });
+        if (pts.length) {
+          plotData.push({
+            pts,
+            label,
+            label: poly.dataset.plotLabel || label,
+            expression: poly.dataset.plotExpression || label,
+            inverse: poly.dataset.plotInverse === "true",
+            showFunction: poly.dataset.plotShowFunction !== "false",
+            showValues: poly.dataset.plotShowValues !== "false",
+            tooltip: poly.dataset.plotTooltip || "",
+            tooltipHtml: poly.dataset.plotTooltipHtml || ""
+          });
+        }
       });
     }
     svg.querySelectorAll(".guide-chart-shape").forEach((shape) => {
@@ -1214,12 +1232,38 @@ function installChartHoverTooltips(root) {
         const THRESHOLD_CSS_PX = 10;
         if (bestDist > THRESHOLD_CSS_PX * svgUPerCssPx) { hide(); return; }
         const dataY = dom.yMin + (dom.bottom - best.svgY) / (dom.bottom - dom.top) * (dom.yMax - dom.yMin);
-        const expr = best.plot.label || "f(x)";
-        showText(`${expr}\nx = ${dataX.toFixed(3)}\ny = ${dataY.toFixed(3)}`, ev);
+        showHtml(buildFunctionGraphTooltip(best.plot, dataX, dataY), ev);
       });
       svg.addEventListener("mouseleave", hide);
     }
   }
+}
+
+function buildFunctionGraphTooltip(plot, dataX, dataY) {
+  const lines = [];
+  if (plot.label) lines.push(`<p>${escapeGuideTooltipHtml(plot.label)}</p>`);
+  if (plot.showFunction) {
+    const expression = plot.expression || "";
+    const hasAssignment = /^\s*[xy]\s*=/.test(expression);
+    lines.push(`<p>${escapeGuideTooltipHtml(hasAssignment ? expression : `${plot.inverse ? "x" : "y"} = ${expression}`)}</p>`);
+  }
+  if (plot.showValues) {
+    lines.push(`<p>x = ${dataX.toFixed(3)}, y = ${dataY.toFixed(3)}</p>`);
+  }
+  if (plot.tooltip) {
+    lines.push(`<p>${escapeGuideTooltipHtml(plot.tooltip).replace(/\\n/g, "<br>")}</p>`);
+  }
+  if (plot.tooltipHtml) lines.push(plot.tooltipHtml);
+  return lines.join("");
+}
+
+function escapeGuideTooltipHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function interpolateAtX(pts, x) {

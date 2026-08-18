@@ -1,5 +1,10 @@
 package com.hfstudio.guidenh.guide.document.block.functiongraph;
 
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
+
 import lombok.Getter;
 
 /**
@@ -17,6 +22,18 @@ public class FunctionPlot {
     private final int color;
     private final String label;
     private final AutoPointSpec autoPointSpec;
+    private final String tooltipText;
+    private final boolean showFunction;
+    private final boolean showValues;
+
+    @Nullable
+    private ContentTooltip richTooltip;
+    @Nullable
+    private LytParagraph richTooltipSummary;
+
+    /** HTML compiled by the site exporter from child Markdown. */
+    @Nullable
+    private String siteTooltipHtml;
 
     public FunctionPlot(String expressionText, FunctionExpr expression, boolean inverse, DomainPredicate domain,
         int color, String label) {
@@ -25,6 +42,12 @@ public class FunctionPlot {
 
     public FunctionPlot(String expressionText, FunctionExpr expression, boolean inverse, DomainPredicate domain,
         int color, String label, AutoPointSpec autoPointSpec) {
+        this(expressionText, expression, inverse, domain, color, label, autoPointSpec, null, true, true);
+    }
+
+    public FunctionPlot(String expressionText, FunctionExpr expression, boolean inverse, DomainPredicate domain,
+        int color, String label, AutoPointSpec autoPointSpec, @Nullable String tooltipText, boolean showFunction,
+        boolean showValues) {
         this.expressionText = expressionText != null ? expressionText : "";
         this.expression = expression != null ? expression : new FunctionExpr.Constant(Double.NaN);
         this.inverse = inverse;
@@ -32,6 +55,9 @@ public class FunctionPlot {
         this.color = color;
         this.label = label;
         this.autoPointSpec = autoPointSpec != null ? autoPointSpec : AutoPointSpec.NONE;
+        this.tooltipText = tooltipText;
+        this.showFunction = showFunction;
+        this.showValues = showValues;
     }
 
     /**
@@ -50,5 +76,25 @@ public class FunctionPlot {
             return Double.NaN;
         }
         return expression.evaluate(independent, 0d);
+    }
+
+    public void setRichTooltip(@Nullable ContentTooltip tooltip, @Nullable LytParagraph summary) {
+        this.richTooltip = tooltip;
+        this.richTooltipSummary = summary;
+    }
+
+    @Nullable
+    public ContentTooltip updateRichTooltip(String summary) {
+        if (richTooltip == null || richTooltipSummary == null) {
+            return null;
+        }
+        richTooltipSummary.clearContent();
+        richTooltipSummary.appendText(summary);
+        richTooltip.invalidateLayout();
+        return richTooltip;
+    }
+
+    public void setSiteTooltipHtml(@Nullable String siteTooltipHtml) {
+        this.siteTooltipHtml = siteTooltipHtml;
     }
 }

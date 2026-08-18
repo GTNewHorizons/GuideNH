@@ -203,6 +203,11 @@ public class GuideSiteHtmlCompiler {
         return compileBody(parsed, templates, () -> null);
     }
 
+    @Nullable
+    GuideSiteLatexExporter getLatexExporter() {
+        return latexExporter;
+    }
+
     public String compileBody(ParsedGuidePage parsed, GuideSiteTemplateRegistry templates,
         SceneResolver sceneResolver) {
         return compileChildren(
@@ -615,7 +620,7 @@ public class GuideSiteHtmlCompiler {
         if ("funcgraph".equals(lang) || "functiongraph".equals(lang)) {
             try {
                 LytFunctionGraph graph = FunctionGraphFenceParser.parse(codeText);
-                return GuideSiteGraphRenderer.renderFunctionGraph(graph);
+                return GuideSiteGraphRenderer.renderFunctionGraph(graph, latexExporter);
             } catch (RuntimeException ignored) {
                 return CODE_BLOCK_RENDERER.render(lang, codeText, width, height);
             }

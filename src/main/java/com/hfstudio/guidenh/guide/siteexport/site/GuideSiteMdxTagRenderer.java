@@ -281,7 +281,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             return renderScatterChart(element);
         }
         if ("FunctionGraph".equals(name) || "Function".equals(name)) {
-            return renderFunctionGraphTag(element);
+            return renderFunctionGraphTag(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
         }
         if ("QuestLink".equals(name)) {
             return renderQuestLink(element);
@@ -1837,7 +1837,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             cornerLegendBackground);
     }
 
-    private String renderFunctionGraphTag(MdxJsxElementFields element) {
+    private String renderFunctionGraphTag(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         int w = readInt(element, "width", 1280);
         int h = readInt(element, "height", 880);
         int bgColor = parseArgbAttr(element, "background", 0xFF1B1F23);
@@ -1847,6 +1849,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         boolean showGrid = readBoolean(element, "showGrid", true);
         boolean showAxes = readBoolean(element, "showAxes", true);
         String title = readOptional(element, "title");
+        String xLabel = readOptional(element, "xLabel");
+        String yLabel = readOptional(element, "yLabel");
         CornerLegendPosition cornerLegendPosition = ChartAttrParser
             .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
         int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
@@ -1869,6 +1873,22 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                     xRange.substring(xRangeSeparator + 2)
                         .trim());
             } catch (NumberFormatException ignored) {}
+        } else {
+            String domain = readOptional(element, "domain");
+            int domainSeparator = rangeSeparatorIndex(domain);
+            if (domainSeparator >= 0 && readOptional(element, "xMin") == null
+                && readOptional(element, "xMax") == null) {
+                try {
+                    xMin = Double.parseDouble(
+                        domain.substring(0, domainSeparator)
+                            .trim());
+                } catch (NumberFormatException ignored) {}
+                try {
+                    xMax = Double.parseDouble(
+                        domain.substring(domainSeparator + 2)
+                            .trim());
+                } catch (NumberFormatException ignored) {}
+            }
         }
         String yRange = readOptional(element, "yRange");
         int yRangeSeparator = rangeSeparatorIndex(yRange);
@@ -1884,7 +1904,13 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                         .trim());
             } catch (NumberFormatException ignored) {}
         }
-        List<FunctionPlot> plots = parsePlotChildren(element);
+        List<FunctionPlot> plots = parsePlotChildren(
+            element,
+            defaultNamespace,
+            currentPageId,
+            templates,
+            sceneResolver,
+            compiler);
         // Support self-closing usage like <Function expr="x^2" xRange="-2..4" />: when no nested
         // <Plot>/<Function> children exist but the outer element itself carries an expression,
         // treat the outer element as a single plot so the curve renders.
@@ -1895,7 +1921,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 String trimmed = selfExpr.trim();
                 boolean inverse = readBoolean(element, "inverse", false);
                 int color = parseArgbAttr(element, "color", FunctionGraphPalette.color(0));
-                String label = readOptional(element, "name");
+                String label = readOptional(element, "label");
+                String tooltip = readOptional(element, "tooltip");
+                boolean showFunction = readBoolean(element, "showFunction", true);
+                boolean showValues = readBoolean(element, "showValues", true);
                 DomainPredicate domain = DomainPredicate.parse(readOptional(element, "domain"));
                 AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
                     readOptional(element, "pointEveryX"),
@@ -1910,8 +1939,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                         inverse,
                         domain,
                         color,
-                        label != null ? label : trimmed,
-                        autoPointSpec));
+                        label,
+                        autoPointSpec,
+                        tooltip,
+                        showFunction,
+                        showValues));
             }
         }
         // Auto Y range when not specified
@@ -1947,6 +1979,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             w,
             h,
             title,
+            xLabel,
+            yLabel,
             bgColor,
             borderColor,
             axisColor,
@@ -1960,7 +1994,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             cornerLegendPosition,
             cornerLegendWidth,
             cornerLegendHeight,
-            cornerLegendBackground);
+            cornerLegendBackground,
+            compiler.getLatexExporter());
     }
 
     private int rangeSeparatorIndex(@Nullable String range) {
@@ -2111,8 +2146,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse {@code <Plot name="..." expr="...">} or {@code <Function name="..." expr="...">} children. */
-    private List<FunctionPlot> parsePlotChildren(MdxJsxElementFields element) {
+    /** Parse {@code <Plot label="..." expr="...">} or {@code <Function label="..." expr="...">} children. */
+    private List<FunctionPlot> parsePlotChildren(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
+        GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
         List<FunctionPlot> result = new ArrayList<>();
         int idx = 0;
         for (MdAstAnyContent child : element.children()) {
@@ -2137,7 +2174,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             }
             boolean inverse = readBoolean(c, "inverse", false);
             int color = parseArgbAttr(c, "color", FunctionGraphPalette.color(idx));
-            String label = readOptional(c, "name");
+            String label = readOptional(c, "label");
+            String tooltip = readOptional(c, "tooltip");
+            boolean showFunction = readBoolean(c, "showFunction", true);
+            boolean showValues = readBoolean(c, "showValues", true);
             DomainPredicate domain = DomainPredicate.parse(readOptional(c, "domain"));
             AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
                 readOptional(c, "pointEveryX"),
@@ -2145,15 +2185,24 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 readOptional(c, "autoPointLabel"),
                 readOptional(c, "autoPointColor"),
                 color);
-            result.add(
-                new FunctionPlot(
-                    exprText,
-                    FunctionExprParser.parse(exprText, inverse ? 1 : 0),
-                    inverse,
-                    domain,
-                    color,
-                    label != null ? label : exprText,
-                    autoPointSpec));
+            var plot = new FunctionPlot(
+                exprText,
+                FunctionExprParser.parse(exprText, inverse ? 1 : 0),
+                inverse,
+                domain,
+                color,
+                label,
+                autoPointSpec,
+                tooltip,
+                showFunction,
+                showValues);
+            if (readOptional(c, "expr") != null && c.children() != null
+                && !c.children()
+                    .isEmpty()) {
+                plot.setSiteTooltipHtml(
+                    compiler.compileFragment(c.children(), templates, defaultNamespace, sceneResolver, currentPageId));
+            }
+            result.add(plot);
             idx++;
         }
         return result;
@@ -2169,7 +2218,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             if (!"Point".equals(c.name())) {
                 continue;
             }
-            String label = readOptional(c, "name");
+            String label = readOptional(c, "label");
             if (label == null) {
                 label = "";
             }
