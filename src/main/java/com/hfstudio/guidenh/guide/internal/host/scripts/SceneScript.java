@@ -56,13 +56,13 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public class SceneScript implements LytScript {
 
-    private static final String KEY_STATE = "scene.state";
-    private static final String STATE_INIT = "INIT";
-    private static final String STATE_AWAIT_SNBT = "AWAIT_SNBT";
-    private static final String STATE_BUILD = "BUILD";
-    private static final String KEY_AST = "scene.ast";
-    private static final String KEY_SCENE = "scene.object";
-    private static final String KEY_TICKETS = "scene.tickets";
+    public static final String KEY_STATE = "scene.state";
+    public static final String STATE_INIT = "INIT";
+    public static final String STATE_AWAIT_SNBT = "AWAIT_SNBT";
+    public static final String STATE_BUILD = "BUILD";
+    public static final String KEY_AST = "scene.ast";
+    public static final String KEY_SCENE = "scene.object";
+    public static final String KEY_TICKETS = "scene.tickets";
 
     public SceneScript() {}
 
@@ -96,7 +96,7 @@ public class SceneScript implements LytScript {
         }
     }
 
-    private void doInit(ScenePlaceholder ph, ScriptContext ctx) {
+    public void doInit(ScenePlaceholder ph, ScriptContext ctx) {
         if (ph.childrenSource == null || ph.childrenSource.trim()
             .isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
@@ -131,7 +131,7 @@ public class SceneScript implements LytScript {
         ctx.yield();
     }
 
-    private void doAwaitSnbt(ScenePlaceholder ph, ScriptContext ctx) {
+    public void doAwaitSnbt(ScenePlaceholder ph, ScriptContext ctx) {
         @SuppressWarnings("unchecked")
         List<String> tickets = (List<String>) ctx.data()
             .get(KEY_TICKETS);
@@ -162,7 +162,7 @@ public class SceneScript implements LytScript {
         doBuild(ph, ctx);
     }
 
-    private void doBuild(ScenePlaceholder ph, ScriptContext ctx) {
+    public void doBuild(ScenePlaceholder ph, ScriptContext ctx) {
         if (ph.childrenSource == null || ph.childrenSource.trim()
             .isEmpty()) {
             ctx.replace(LytParagraph.error("[Scene] Empty scene: no scene elements"));
@@ -216,6 +216,9 @@ public class SceneScript implements LytScript {
         }
 
         boolean[] blockStatsExplicitlySet = { false };
+        List<String> compiledElements = new ArrayList<>();
+        List<String> skippedElements = new ArrayList<>();
+        int[] nonSceneChildren = { 0 };
         LytGuidebookScene previousScene = AnnotationTagCompiler.CURRENT_SCENE.get();
         AnnotationTagCompiler.CURRENT_SCENE.set(scene);
         try {
@@ -226,24 +229,28 @@ public class SceneScript implements LytScript {
                 for (UnistNode child : compileAst.children()) {
                     MdxJsxElementFields el = SceneTagCompiler.unwrapSceneElement(child);
                     if (el == null) {
+                        nonSceneChildren[0]++;
                         continue;
-                    }
-
-                    if (ctx.timeToYield()) {
-                        ctx.yield();
-                        return;
                     }
 
                     if ("BlockStats".equals(el.name())) {
                         applyBlockStatsConfig(scene, el);
                         blockStatsExplicitlySet[0] = true;
+                        skippedElements.add("<BlockStats> (configuration only)");
                         continue;
                     }
 
                     SceneElementTagCompiler compiler = elementCompilers.get(el.name());
-                    if (compiler != null) {
-                        compiler.compile(compileLevel, compileCamera, runtimeCompiler, errorSink, el);
+                    if (compiler == null) {
+                        skippedElements.add("<" + el.name() + "> (no registered scene compiler)");
+                        continue;
                     }
+                    compiledElements.add(
+                        "<" + el.name()
+                            + "> via "
+                            + compiler.getClass()
+                                .getSimpleName());
+                    compiler.compile(compileLevel, compileCamera, runtimeCompiler, errorSink, el);
                 }
             });
         } finally {
@@ -268,7 +275,22 @@ public class SceneScript implements LytScript {
         }
 
         if (level.isEmpty()) {
-            ctx.replace(LytParagraph.error("[Scene] Scene has no supported elements"));
+            List<String> registeredTagNames = new ArrayList<>(elementCompilers.keySet());
+            String diagnostic = describeEmptyScene(
+                ph.pageDomain + ":" + ph.pagePath,
+                ast.children()
+                    .size(),
+                compiledElements,
+                skippedElements,
+                errorSink.errors(),
+                registeredTagNames);
+            if (nonSceneChildren[0] > 0) {
+                diagnostic += ", nonSceneChildren=" + nonSceneChildren[0];
+            }
+            GuideDebugLog.warn("[GuideNH] [SceneScript] {}", diagnostic);
+            ctx.replace(
+                LytParagraph.error(
+                    "[Scene] Scene has no supported elements. Enable GuideNH debug mode for parsed element details."));
             return;
         }
 
@@ -294,7 +316,7 @@ public class SceneScript implements LytScript {
     }
 
     @Nullable
-    private MdAstRoot readOrCreateAst(ScenePlaceholder ph, ScriptContext ctx) {
+    public MdAstRoot readOrCreateAst(ScenePlaceholder ph, ScriptContext ctx) {
         MdAstRoot cached = (MdAstRoot) ctx.data()
             .get(KEY_AST);
         if (cached != null) {
@@ -318,7 +340,7 @@ public class SceneScript implements LytScript {
         }
     }
 
-    private LytGuidebookScene createSceneShell(ScenePlaceholder ph) {
+    public LytGuidebookScene createSceneShell(ScenePlaceholder ph) {
         LytGuidebookScene scene = new LytGuidebookScene();
         scene.setSceneSize(ph.width > 0 ? ph.width : 320, ph.height > 0 ? ph.height : 180);
         scene.setInteractive(ph.interactive);
@@ -329,7 +351,7 @@ public class SceneScript implements LytScript {
         return scene;
     }
 
-    private void queueSnbtPreparse(ScenePlaceholder ph, @Nullable PageCollection pageCollection, MdxJsxElementFields el,
+    public void queueSnbtPreparse(ScenePlaceholder ph, @Nullable PageCollection pageCollection, MdxJsxElementFields el,
         List<String> tickets) {
         String src = el.getAttributeString("src", null);
         if (src == null || src.isEmpty()) {
@@ -356,7 +378,7 @@ public class SceneScript implements LytScript {
         tickets.add(ticket);
     }
 
-    private void applyCameraAndViewport(ScenePlaceholder ph, LytGuidebookScene scene, GuidebookLevel level,
+    public void applyCameraAndViewport(ScenePlaceholder ph, LytGuidebookScene scene, GuidebookLevel level,
         CameraSettings camera) {
         if (ph.perspective != null && !ph.perspective.trim()
             .isEmpty()) {
@@ -387,7 +409,7 @@ public class SceneScript implements LytScript {
         scene.setGridVisible(ph.showGrid);
     }
 
-    private void finalizeSceneGeometry(ScenePlaceholder ph, LytGuidebookScene scene, GuidebookLevel level,
+    public void finalizeSceneGeometry(ScenePlaceholder ph, LytGuidebookScene scene, GuidebookLevel level,
         CameraSettings camera) {
         float[] center;
         if (!ph.explicitCenter) {
@@ -455,7 +477,7 @@ public class SceneScript implements LytScript {
 
     }
 
-    private void dispatchSceneSubtrees(LytGuidebookScene scene, ScriptContext ctx) {
+    public void dispatchSceneSubtrees(LytGuidebookScene scene, ScriptContext ctx) {
         for (var annotation : scene.getAnnotations()) {
             var tooltip = annotation.getTooltip();
             if (tooltip instanceof ContentTooltip contentTooltip) {
@@ -469,29 +491,55 @@ public class SceneScript implements LytScript {
         }
     }
 
-    private void attachSelectionListeners(LytGuidebookScene scene) {
+    public void attachSelectionListeners(LytGuidebookScene scene) {
         for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
             binding.setSelectionChangeListener(selection -> scene.rebuild());
         }
         scene.setStructureLibSelectionChangeListener(selection -> scene.rebuild());
     }
 
-    private static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {
+    public static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {
         String visibleStr = el.getAttributeString("visible", null);
         if (visibleStr != null) scene.setBlockStatsVisible(Boolean.parseBoolean(visibleStr));
         String enabledStr = el.getAttributeString("buttonEnabled", null);
         if (enabledStr != null) scene.setBlockStatsButtonEnabled(Boolean.parseBoolean(enabledStr));
     }
 
-    private static class ExceptionCollector implements LytErrorSink {
+    public static String describeEmptyScene(String pageId, int astChildCount, List<String> compiledElements,
+        List<String> skippedElements, List<String> compilerErrors, List<String> registeredTagNames) {
+        List<String> sortedRegisteredTags = new ArrayList<>(registeredTagNames);
+        Collections.sort(sortedRegisteredTags);
+        return "Scene produced no blocks or entities: page=" + pageId
+            + ", astChildren="
+            + astChildCount
+            + ", compiled="
+            + compiledElements
+            + ", skipped="
+            + skippedElements
+            + ", compilerErrors="
+            + compilerErrors
+            + ", registeredTags="
+            + sortedRegisteredTags;
+    }
+
+    public static class ExceptionCollector implements LytErrorSink {
+
+        public final List<String> errors = new ArrayList<>();
 
         @Override
         public void appendError(PageCompiler compiler, String text, UnistNode node) {
-            GuideDebugLog.warn("[GuideNH] [SceneScript] {}", text);
+            MdxJsxElementFields element = SceneTagCompiler.unwrapSceneElement(node);
+            String contextualText = element != null ? "<" + element.name() + ">: " + text : text;
+            errors.add(contextualText);
+            GuideDebugLog.warn("[GuideNH] [SceneScript] {}", contextualText);
+        }
+
+        List<String> errors() {
+            return errors;
         }
     }
 
-    private static class StubPageCollection implements PageCollection {
+    public static class StubPageCollection implements PageCollection {
 
         @Override
         public <T extends PageIndex> T getIndex(Class<T> c) {
