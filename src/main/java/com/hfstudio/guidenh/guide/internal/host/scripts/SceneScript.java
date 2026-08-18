@@ -282,9 +282,12 @@ public class SceneScript implements LytScript {
         scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
         scene.clearLoadState();
         attachSelectionListeners(scene);
+        // Capture the auto-fit camera + orbit pivot AFTER geometry finalization but BEFORE the
+        // ponder baseline (whose updatePonderState restores this pivot). Snapshotting first means
+        // the pivot is the real structure center, not a stale origin.
+        scene.snapshotInitialCamera();
         scene.initializePonderTimelineBaseline();
         scene.captureInitialInteractiveState();
-        scene.snapshotInitialCamera();
 
         ctx.replace(scene);
         ctx.markComplete();

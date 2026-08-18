@@ -4045,6 +4045,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             camera.setRotationZ(initialCam[3]);
             camera.setOffsetX(initialCam[4]);
             camera.setOffsetY(initialCam[5]);
+            camera.setRotationCenter(initialRotationCenter.x, initialRotationCenter.y, initialRotationCenter.z);
         }
     }
 
