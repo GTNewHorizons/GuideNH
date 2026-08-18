@@ -121,6 +121,19 @@ actual `.ogg` files should be placed below `assets/guidenh/sounds/`.
   <ItemImage id="minecraft:diamond" scale="6" />
 </Row>
 
+## ItemImage NBT
+
+`ItemImage` accepts an optional `nbt` attribute for item stack data. Inline SNBT in `id` remains
+supported; when both forms are present, the standalone `nbt` attribute is merged last.
+
+<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+
+<ItemImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+/>
+
 ### Inline Icon vs. Text Baseline
 
 Inline `<ItemImage>` icons are nudged upward by ~4 pixels (scaled by `scale`) so their visual center lines up with the surrounding text baseline. The label text receives a separate, smaller default nudge (-2 px). Both can be overridden independently.

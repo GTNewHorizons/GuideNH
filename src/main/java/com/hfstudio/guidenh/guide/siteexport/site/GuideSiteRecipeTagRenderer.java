@@ -373,6 +373,16 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     }
 
     @Override
+    public String render(MdxJsxElementFields element, String defaultNamespace, GuideSiteTemplateRegistry templates) {
+        exporter.setTooltipTemplates(templates);
+        try {
+            return render(element, defaultNamespace);
+        } finally {
+            exporter.setTooltipTemplates(null);
+        }
+    }
+
+    @Override
     public String render(String recipeId, String fallbackText, String defaultNamespace) {
         return renderInternal(
             new RenderRequest(

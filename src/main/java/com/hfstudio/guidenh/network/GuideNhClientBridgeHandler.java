@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.network;
 
-import net.minecraft.client.Minecraft;
-
+import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -17,8 +16,7 @@ public class GuideNhClientBridgeHandler implements IMessageHandler<GuideNhClient
     public IMessage onMessage(GuideNhClientBridgeMessage message, MessageContext ctx) {
         GuideNhClientBridgeDispatcher.dispatch(
             message,
-            task -> Minecraft.getMinecraft()
-                .func_152344_a(task),
+            GuideNhClientTaskScheduler::execute,
             GuideNhClientBridgeController.getInstance()::beginImportStructure);
         return null;
     }

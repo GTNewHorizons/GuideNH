@@ -993,9 +993,9 @@ public class PageCompiler {
             span.appendText(tildes + "^");
             span.appendBreak();
 
-            GuideDebugLog.warnAlways("[GuideNH] [PageCompiler] {}\n{}\n{}\n", text, line, tildes + "^");
+            GuideDebugLog.warn("[GuideNH] [PageCompiler] {}\n{}\n{}\n", text, line, tildes + "^");
         } else {
-            GuideDebugLog.warnAlways("[GuideNH] [PageCompiler] {}\n", text);
+            GuideDebugLog.warn("[GuideNH] [PageCompiler] {}\n", text);
         }
 
         return span;

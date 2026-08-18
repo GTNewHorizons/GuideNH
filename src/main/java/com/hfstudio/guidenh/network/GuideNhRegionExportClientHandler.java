@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.network;
 
-import net.minecraft.client.Minecraft;
-
+import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
@@ -15,10 +14,9 @@ public class GuideNhRegionExportClientHandler implements IMessageHandler<GuideNh
 
     @Override
     public IMessage onMessage(GuideNhRegionExportReplyMessage message, MessageContext ctx) {
-        Minecraft.getMinecraft()
-            .func_152344_a(
-                () -> GuideNhClientBridgeController.getInstance()
-                    .handleRegionExportReply(message));
+        GuideNhClientTaskScheduler.execute(
+            () -> GuideNhClientBridgeController.getInstance()
+                .handleRegionExportReply(message));
         return null;
     }
 }

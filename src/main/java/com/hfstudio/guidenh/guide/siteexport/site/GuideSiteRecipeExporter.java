@@ -19,6 +19,13 @@ public class GuideSiteRecipeExporter {
     /** NEI slot chrome is commonly {@code 18脳18} pixels; vanilla/GT handlers draw {@code 16脳16} items inset by 1px. */
     public static final int NEI_SLOT_GUI_PIXELS = 18;
 
+    @Nullable
+    private GuideSiteTemplateRegistry tooltipTemplates;
+
+    public void setTooltipTemplates(@Nullable GuideSiteTemplateRegistry tooltipTemplates) {
+        this.tooltipTemplates = tooltipTemplates;
+    }
+
     public String renderHtmlGrid(List<List<String>> ingredients, String resultItemId) {
         return renderGrid(
             unresolvedItems(ingredients),
@@ -97,9 +104,7 @@ public class GuideSiteRecipeExporter {
         html.append("<div class=\"recipe-result ingredient-box\" data-result-item-id=\"")
             .append(escapeHtml(resultItem.itemId()))
             .append("\">");
-        // Emit the native `title=` tooltip so hovering the result slot reports the
-        // ItemStack display name even though we don't register a full template.
-        GuideSiteItemHtml.appendIcon(html, resultItem, null, 1f, true);
+        appendTooltipIcon(html, resultItem);
         html.append("</div>");
         html.append("</section>");
         return html.toString();
@@ -269,7 +274,7 @@ public class GuideSiteRecipeExporter {
     private void appendSlotContents(StringBuilder html, List<GuideSiteExportedItem> safeCandidates) {
         for (int i = 0; i < safeCandidates.size(); i++) {
             int beforeIcon = html.length();
-            GuideSiteItemHtml.appendIcon(html, safeCandidates.get(i), null, 1f, true);
+            appendTooltipIcon(html, safeCandidates.get(i));
             if (safeCandidates.size() > 1 && i == 0) {
                 int classAttr = html.indexOf("class=\"", beforeIcon);
                 if (classAttr >= 0) {
@@ -278,6 +283,27 @@ public class GuideSiteRecipeExporter {
                 }
             }
         }
+    }
+
+    private void appendTooltipIcon(StringBuilder html, GuideSiteExportedItem item) {
+        GuideSiteTemplateRegistry templates = tooltipTemplates;
+        if (templates == null || item.isEmpty()) {
+            GuideSiteItemHtml.appendIcon(html, item, null);
+            return;
+        }
+
+        String label = item.displayName()
+            .isEmpty() ? item.itemId() : item.displayName();
+        String templateId = templates.create(
+            "<p>" + GuideSiteItemHtml.escapeHtml(label)
+                + "</p><p>"
+                + GuideSiteItemHtml.escapeHtml(item.itemId())
+                + "</p>");
+        html.append("<span class=\"guide-tooltip\" data-template=\"")
+            .append(GuideSiteItemHtml.escapeHtml(templateId))
+            .append("\">");
+        GuideSiteItemHtml.appendIcon(html, item, null);
+        html.append("</span>");
     }
 
     public List<List<String>> ingredientsFromVanillaEntry(RecipeLookup.Entry entry) {

@@ -34,6 +34,14 @@ public class ContentTooltip implements GuideTooltip {
         return layoutBox;
     }
 
+    /**
+     * Invalidates cached bounds after a dynamic tooltip body changes.
+     */
+    public void invalidateLayout() {
+        lastMaxWidth = -1;
+        layoutBox = LytRect.empty();
+    }
+
     @Override
     public void exportResources(ResourceExporter exporter) {
         ExportableResourceProvider.visit(content, exporter);

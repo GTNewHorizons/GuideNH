@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.debug;
 
+import java.util.List;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.util.ChatComponentText;
@@ -76,6 +78,30 @@ public class GuideDebugOverlay {
     public void render(int screenWidth, int screenHeight, int mouseX, int mouseY, int contentX, int contentY,
         int contentW, int contentH, int scrollY, float zoom, @Nullable LytDocument document,
         FontRenderer fontRenderer) {
+        render(
+            screenWidth,
+            screenHeight,
+            mouseX,
+            mouseY,
+            contentX,
+            contentY,
+            contentW,
+            contentH,
+            scrollY,
+            zoom,
+            document,
+            List.of(),
+            fontRenderer);
+    }
+
+    /**
+     * Render the debug overlay with document and screen-space component picking.
+     *
+     * @param screenComponents UI components whose bounds are already in screen coordinates
+     */
+    public void render(int screenWidth, int screenHeight, int mouseX, int mouseY, int contentX, int contentY,
+        int contentW, int contentH, int scrollY, float zoom, @Nullable LytDocument document,
+        List<DebugComponent.ComponentEntry> screenComponents, FontRenderer fontRenderer) {
         if (!ModConfig.debug.guiDebugMode) {
             return;
         }
@@ -95,16 +121,20 @@ public class GuideDebugOverlay {
             GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
             GL11.glTranslatef(0.0F, 0.0F, OVERLAY_Z);
 
-            HoveredElementInfo hoveredInfo = null;
+            HoveredElementInfo documentHoveredInfo = null;
             if (document != null) {
                 int docX = Math.round((mouseX - contentX) / zoom);
                 int docY = Math.round((mouseY - contentY) / zoom) + scrollY;
-                hoveredInfo = hoverDetector.detectHoveredElement(document, docX, docY);
+                documentHoveredInfo = hoverDetector.detectHoveredElement(document, docX, docY);
 
-                if (hoveredInfo != null) {
-                    adjustCoordinatesForRendering(hoveredInfo, contentX, contentY, scrollY, zoom);
+                if (documentHoveredInfo != null) {
+                    adjustCoordinatesForRendering(documentHoveredInfo, contentX, contentY, scrollY, zoom);
                 }
             }
+            ScreenComponentHit screenComponentHit = detectScreenComponent(screenComponents, mouseX, mouseY);
+            HoveredElementInfo hoveredInfo = screenComponentHit != null
+                && (documentHoveredInfo == null || screenComponentHit.priority() > 0) ? screenComponentHit.info()
+                    : documentHoveredInfo;
 
             controlPanel.updatePosition(screenWidth, screenHeight);
             controlPanel.render(mouseX, mouseY, fontRenderer);
@@ -117,6 +147,45 @@ public class GuideDebugOverlay {
             GL11.glPopAttrib();
         }
     }
+
+    @Nullable
+    private ScreenComponentHit detectScreenComponent(List<DebugComponent.ComponentEntry> components, int mouseX,
+        int mouseY) {
+        DebugComponent.ComponentEntry bestComponent = null;
+        int bestPriority = Integer.MIN_VALUE;
+        long bestArea = Long.MAX_VALUE;
+        for (DebugComponent.ComponentEntry component : components) {
+            if (!component.containsPoint(mouseX, mouseY)) {
+                continue;
+            }
+            var bounds = component.getBounds();
+            long area = (long) bounds.width() * bounds.height();
+            if (component.getPriority() > bestPriority || component.getPriority() == bestPriority && area < bestArea) {
+                bestComponent = component;
+                bestPriority = component.getPriority();
+                bestArea = area;
+            }
+        }
+        if (bestComponent == null) {
+            return null;
+        }
+        var bounds = bestComponent.getBounds();
+        HoveredElementInfo info = new HoveredElementInfo(
+            "ScreenComponent$" + bestComponent.getName(),
+            bounds.x(),
+            bounds.y(),
+            bounds.width(),
+            bounds.height(),
+            null);
+        info.setScreenCoordinates(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        info.addExtraInfo("Component: " + bestComponent.getName());
+        if (bestComponent.getExtraInfo() != null) {
+            info.addExtraInfo(bestComponent.getExtraInfo());
+        }
+        return new ScreenComponentHit(info, bestPriority);
+    }
+
+    private record ScreenComponentHit(HoveredElementInfo info, int priority) {}
 
     /**
      * Adjust element coordinates from document space to screen space.

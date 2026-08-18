@@ -10,7 +10,9 @@ import net.minecraftforge.oredict.OreDictionary;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
+import com.github.bsideup.jabel.Desugar;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
+import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -23,6 +25,8 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
  * {@code modid:name} (matches any metadata) or {@code modid:name:meta} (exact match only).
  */
 public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
+
+    private List<ItemIdExpressionBinding> itemIdExpressions = List.of();
 
     public ItemIndex() {
         super(
@@ -40,7 +44,8 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
         if (stack == null) return null;
         Item item = stack.getItem();
         if (item == null) return null;
-        return findByItem(item, stack.getItemDamage());
+        PageAnchor anchor = findDirect(item, stack.getItemDamage());
+        return anchor != null ? anchor : findExpression(stack);
     }
 
     /**
@@ -49,10 +54,38 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
     @Nullable
     public PageAnchor findByItem(Item item, int meta) {
         if (item == null) return null;
+        return findByStack(new ItemStack(item, 1, meta));
+    }
+
+    @Override
+    public void rebuild(List<ParsedGuidePage> pages) {
+        super.rebuild(pages);
+        itemIdExpressions = getItemIdExpressionBindings(pages);
+    }
+
+    @Override
+    public void update(List<ParsedGuidePage> allPages, List<GuidePageChange> changes) {
+        super.update(allPages, changes);
+        itemIdExpressions = getItemIdExpressionBindings(allPages);
+    }
+
+    @Nullable
+    private PageAnchor findDirect(Item item, int meta) {
         PageAnchor exact = get(ItemId.createNoCopy(item, meta, null));
         if (exact != null) return exact;
         if (meta != OreDictionary.WILDCARD_VALUE) {
             return get(ItemId.createNoCopy(item, OreDictionary.WILDCARD_VALUE, null));
+        }
+        return null;
+    }
+
+    @Nullable
+    private PageAnchor findExpression(ItemStack stack) {
+        for (ItemIdExpressionBinding binding : itemIdExpressions) {
+            if (binding.expression()
+                .matches(stack)) {
+                return binding.anchor();
+            }
         }
         return null;
     }
@@ -64,81 +97,113 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
     }
 
     public static List<Pair<ItemId, PageAnchor>> getItemAnchors(ParsedGuidePage page) {
-        var itemIdsNode = page.getFrontmatter()
-            .additionalProperties()
-            .get("item_ids");
-        if (itemIdsNode == null) {
-            return List.of();
-        }
-
-        List<?> itemIdList = normalizeItemIdEntries(page, itemIdsNode);
-        if (itemIdList == null) {
-            GuideDebugLog
-                .warnAlways("[GuideNH] [ItemIndex] Page {} contains malformed item_ids frontmatter", page.getId());
-            return List.of();
-        }
-
-        var itemAnchors = new ArrayList<Pair<ItemId, PageAnchor>>(itemIdList.size());
-
-        for (var listEntry : itemIdList) {
-            if (listEntry instanceof String itemIdStr) {
-                // Allow an optional "#anchor" suffix to link to a specific heading.
-                String anchor = null;
-                int hashIdx = itemIdStr.indexOf('#');
-                if (hashIdx != -1) {
-                    anchor = itemIdStr.substring(hashIdx + 1);
-                    itemIdStr = itemIdStr.substring(0, hashIdx);
-                }
-
-                ItemId itemId;
-                try {
-                    itemId = IdUtils.resolveItemId(
-                        itemIdStr,
-                        page.getId()
-                            .getResourceDomain());
-                } catch (IllegalArgumentException e) {
-                    GuideDebugLog.warnAlways(
-                        "[GuideNH] [ItemIndex] Page {} contains a malformed item_ids frontmatter entry: {}",
-                        page.getId(),
-                        listEntry);
-                    continue;
-                }
-
-                if (itemId == null) {
-                    GuideDebugLog.warnAlways(
-                        "[GuideNH] [ItemIndex] Page {} references an unknown item {} in its item_ids frontmatter",
-                        page.getId(),
-                        listEntry);
-                    continue;
-                }
-
-                itemAnchors.add(Pair.of(itemId, new PageAnchor(page.getId(), anchor)));
-            } else {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH] [ItemIndex] Page {} contains a malformed item_ids frontmatter entry: {}",
-                    page.getId(),
-                    listEntry);
-            }
-        }
-
+        var properties = page.getFrontmatter()
+            .additionalProperties();
+        var itemAnchors = new ArrayList<Pair<ItemId, PageAnchor>>();
+        appendDirectItemAnchors(itemAnchors, page, properties.get("item_id"), "item_id");
+        appendDirectItemAnchors(itemAnchors, page, properties.get("item_ids"), "item_ids");
         return itemAnchors;
     }
 
-    @Nullable
-    private static List<?> normalizeItemIdEntries(ParsedGuidePage page, Object itemIdsNode) {
-        if (itemIdsNode instanceof List<?>itemIdList) {
-            return itemIdList;
+    public static List<ItemIdExpressionBinding> getItemIdExpressionBindings(List<ParsedGuidePage> pages) {
+        var bindings = new ArrayList<ItemIdExpressionBinding>();
+        for (ParsedGuidePage page : pages) {
+            var properties = page.getFrontmatter()
+                .additionalProperties();
+            appendExpressionBindings(bindings, page, properties.get("item_id"), "item_id");
+            appendExpressionBindings(bindings, page, properties.get("item_ids"), "item_ids");
         }
-        if (itemIdsNode instanceof String itemIdEntry) {
-            String trimmed = itemIdEntry.trim();
-            if (trimmed.isEmpty()) {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH] [ItemIndex] Page {} contains an empty item_ids frontmatter entry",
-                    page.getId());
-                return List.of();
-            }
-            return List.of(trimmed);
-        }
-        return null;
+        return List.copyOf(bindings);
     }
+
+    private static void appendExpressionBindings(List<ItemIdExpressionBinding> bindings, ParsedGuidePage page,
+        Object value, String key) {
+        if (value == null) {
+            return;
+        }
+        if (value instanceof List<?>values) {
+            for (Object entry : values) {
+                appendExpressionBindings(bindings, page, entry, key);
+            }
+            return;
+        }
+        if (!(value instanceof String expressionSource)) {
+            GuideDebugLog.warn("[GuideNH] [ItemIndex] Page {} contains malformed {} frontmatter", page.getId(), key);
+            return;
+        }
+        ItemExpressionSource expressionSourceWithAnchor = splitAnchor(expressionSource);
+        ItemIdExpression expression = ItemIdExpression.parse(expressionSourceWithAnchor.expression());
+        if (expression == null) {
+            GuideDebugLog.warn(
+                "[GuideNH] [ItemIndex] Page {} contains an invalid {} expression: {}",
+                page.getId(),
+                key,
+                expressionSourceWithAnchor.expression());
+            return;
+        }
+        bindings.add(
+            new ItemIdExpressionBinding(expression, new PageAnchor(page.getId(), expressionSourceWithAnchor.anchor())));
+    }
+
+    private static void appendDirectItemAnchors(List<Pair<ItemId, PageAnchor>> itemAnchors, ParsedGuidePage page,
+        Object value, String key) {
+        if (value == null) {
+            return;
+        }
+        if (value instanceof List<?>values) {
+            for (Object entry : values) {
+                appendDirectItemAnchors(itemAnchors, page, entry, key);
+            }
+            return;
+        }
+        if (!(value instanceof String itemIdSource)) {
+            GuideDebugLog.warn("[GuideNH] [ItemIndex] Page {} contains malformed {} frontmatter", page.getId(), key);
+            return;
+        }
+
+        ItemExpressionSource itemIdWithAnchor = splitAnchor(itemIdSource);
+        if (!isDirectItemReference(itemIdWithAnchor.expression())) {
+            return;
+        }
+        try {
+            IdUtils.ParsedItemRef reference = IdUtils.parseItemRef(
+                itemIdWithAnchor.expression(),
+                page.getId()
+                    .getResourceDomain());
+            Item item = reference == null ? null : (Item) Item.itemRegistry.getObject(reference.rawKey());
+            if (item != null) {
+                ItemId itemId = ItemId.createNoCopy(item, reference.meta(), reference.nbt());
+                itemAnchors.add(Pair.of(itemId, new PageAnchor(page.getId(), itemIdWithAnchor.anchor())));
+            }
+        } catch (IllegalArgumentException e) {
+            GuideDebugLog.warn(
+                "[GuideNH] [ItemIndex] Page {} contains a malformed {} frontmatter entry: {}",
+                page.getId(),
+                key,
+                itemIdSource);
+        }
+    }
+
+    private static ItemExpressionSource splitAnchor(String source) {
+        int hashIndex = source.indexOf('#');
+        return hashIndex < 0 ? new ItemExpressionSource(source, null)
+            : new ItemExpressionSource(source.substring(0, hashIndex), source.substring(hashIndex + 1));
+    }
+
+    private static boolean isDirectItemReference(String value) {
+        return value.indexOf(' ') < 0 && value.indexOf('\t') < 0
+            && value.indexOf('|') < 0
+            && value.indexOf(',') < 0
+            && value.indexOf('!') < 0
+            && value.indexOf('<') < 0
+            && value.indexOf('>') < 0
+            && !value.startsWith("r/")
+            && !IdUtils.isNonNegativeInt(value);
+    }
+
+    @Desugar
+    public record ItemIdExpressionBinding(ItemIdExpression expression, PageAnchor anchor) {}
+
+    @Desugar
+    private record ItemExpressionSource(String expression, @Nullable String anchor) {}
 }

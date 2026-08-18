@@ -72,7 +72,7 @@ public class LytHost {
             long tMount = System.nanoTime();
             viewport.updateContent(newDoc.getAvailableWidth(), newDoc.getContentHeight());
             long tViewport = System.nanoTime();
-            GuideDebugLog.infoAlways(
+            GuideDebugLog.info(
                 "[LytHost] mountDocument uidMs={} attachAndScriptMs={} viewportMs={}",
                 (tAttach - tUid) / 1_000_000L,
                 (tMount - tAttach) / 1_000_000L,

@@ -55,7 +55,7 @@ public class GuideSitePageCollector {
             try {
                 languages = discoverLanguages(guide.getId());
             } catch (Throwable t) {
-                GuideDebugLog.debugAlways(
+                GuideDebugLog.debug(
                     "[GuideNH] [GuideSitePageCollector] Falling back to the guide default language for {}",
                     guide.getId(),
                     t);
@@ -79,7 +79,7 @@ public class GuideSitePageCollector {
                         path));
             }
         } catch (Throwable t) {
-            GuideDebugLog.debugAlways(
+            GuideDebugLog.debug(
                 "[GuideNH] [GuideSitePageCollector] Falling back to already loaded page ids for {}",
                 guide.getId(),
                 t);
@@ -156,9 +156,8 @@ public class GuideSitePageCollector {
         try {
             return discoverLanguages(null);
         } catch (Throwable t) {
-            GuideDebugLog.debugAlways(
-                "[GuideNH] [GuideSitePageCollector] Falling back to no discovered site export languages",
-                t);
+            GuideDebugLog
+                .debug("[GuideNH] [GuideSitePageCollector] Falling back to no discovered site export languages", t);
             return new ArrayList<>();
         }
     }

@@ -22,10 +22,26 @@ public class GuideResourceLanguageIndex {
 
     private static final Map<String, Map<String, String>> VALUES_BY_LANGUAGE = new ConcurrentHashMap<>();
 
+    /**
+     * Parsed {@code .lang} content keyed by a stable file identity (absolute path for loose
+     * packs, {@code <packFile>!<entry>} for zip packs). Lets repeated builds across languages
+     * and guide reloads reuse the same parsed entries instead of re-reading/parsing every file.
+     */
+    private static final Map<String, Map<String, String>> PARSED_LANG_BY_FILE = new ConcurrentHashMap<>();
+
     private GuideResourceLanguageIndex() {}
 
     public static void clear() {
         VALUES_BY_LANGUAGE.clear();
+    }
+
+    /**
+     * Pre-builds the language index for the given language (off the caller thread). Once built,
+     * {@link #getValue} is a plain map hit. No-op if the language is already cached.
+     */
+    public static void warm(@Nullable String language) {
+        String normalized = LangUtil.normalizeLanguage(language != null ? language : LangUtil.getCurrentLanguage());
+        VALUES_BY_LANGUAGE.computeIfAbsent(normalized, GuideResourceLanguageIndex::load);
     }
 
     public static @Nullable String getValue(String language, String key) {
@@ -47,7 +63,7 @@ public class GuideResourceLanguageIndex {
             loadResourcePackLanguage(resourcePack, normalizedLanguage, merged);
             long packNs = System.nanoTime() - packStartedAt;
             if (packNs > 100_000_000) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [GuideResourceLanguageIndex] Slow resource pack [#{}/{}] {} took {} ms",
                     packIndex,
                     activeResourcePacks.size(),
@@ -57,7 +73,7 @@ public class GuideResourceLanguageIndex {
             packIndex++;
         }
         long totalNs = System.nanoTime() - startedAt;
-        GuideDebugLog.warnAlways(
+        GuideDebugLog.warn(
             "[GuideNH] [GuideResourceLanguageIndex] Loaded {} lang entries for language {} from {} resource packs in {} ms",
             merged.size(),
             normalizedLanguage,
@@ -125,14 +141,18 @@ public class GuideResourceLanguageIndex {
             if (!isMatchingLangFile(child.getName(), normalizedLanguage)) {
                 continue;
             }
-            try (InputStream input = new FileInputStream(child)) {
-                target.putAll(StringTranslate.parseLangFile(input));
-            } catch (IOException e) {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH] [GuideResourceLanguageIndex] Failed to read lang file {}",
-                    child.getAbsolutePath(),
-                    e);
-            }
+            Map<String, String> parsed = PARSED_LANG_BY_FILE.computeIfAbsent(child.getAbsolutePath(), p -> {
+                try (InputStream input = new FileInputStream(child)) {
+                    return StringTranslate.parseLangFile(input);
+                } catch (IOException e) {
+                    GuideDebugLog.warn(
+                        "[GuideNH] [GuideResourceLanguageIndex] Failed to read lang file {}",
+                        child.getAbsolutePath(),
+                        e);
+                    return Map.of();
+                }
+            });
+            target.putAll(parsed);
         }
     }
 
@@ -151,7 +171,10 @@ public class GuideResourceLanguageIndex {
             if (!isMatchingLangFile(path.substring(fileNameStart), normalizedLanguage)) {
                 continue;
             }
-            target.putAll(DataDrivenGuideLoader.readLangFile(resourcePack, path));
+            target.putAll(
+                PARSED_LANG_BY_FILE.computeIfAbsent(
+                    resourcePackFile.getAbsolutePath() + "!" + path,
+                    p -> DataDrivenGuideLoader.readLangFile(resourcePack, path)));
         }
     }
 

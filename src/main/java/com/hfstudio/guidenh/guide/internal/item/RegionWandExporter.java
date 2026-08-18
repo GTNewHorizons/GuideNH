@@ -386,6 +386,35 @@ public class RegionWandExporter {
             entities);
     }
 
+    @Nullable
+    public static IncrementalStructureExport createIncrementalSelectionExport(World world, int minX, int minY, int minZ,
+        int sizeX, int sizeY, int sizeZ, boolean includeEntities, boolean serverPreviewFetchEnabled) {
+        if (world == null || sizeX <= 0
+            || sizeY <= 0
+            || sizeZ <= 0
+            || GuideStructureVolume.exceedsLimit(sizeX, sizeY, sizeZ, MAX_EXPORT_BLOCKS)) {
+            return null;
+        }
+        int maxX = minX + sizeX - 1;
+        int maxY = minY + sizeY - 1;
+        int maxZ = minZ + sizeZ - 1;
+        List<Entity> entities = includeEntities ? collectExportEntities(world, minX, minY, minZ, maxX, maxY, maxZ)
+            : List.of();
+        return new IncrementalStructureExport(
+            new WorldStructureExportAccess(world),
+            minX,
+            minY,
+            minZ,
+            maxX,
+            maxY,
+            maxZ,
+            sizeX,
+            sizeY,
+            sizeZ,
+            entities,
+            serverPreviewFetchEnabled);
+    }
+
     private static ExportResult exportSnbt(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
         int maxY, int maxZ, int dx, int dy, int dz, List<Entity> entities) {
         ExportPayload payload = exportStructure(access, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, entities);
@@ -401,6 +430,215 @@ public class RegionWandExporter {
     private static ExportPayload exportStructure(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
         int maxY, int maxZ, int dx, int dy, int dz) {
         return exportStructure(access, minX, minY, minZ, maxX, maxY, maxZ, dx, dy, dz, List.of());
+    }
+
+    private static List<Entity> collectExportEntities(World world, int minX, int minY, int minZ, int maxX, int maxY,
+        int maxZ) {
+        List<Entity> all = world.getEntitiesWithinAABBExcludingEntity(
+            null,
+            AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1));
+        List<Entity> entities = new ArrayList<>();
+        for (Entity entity : all) {
+            if (entity instanceof EntityPlayer || EntityList.getEntityString(entity) != null) {
+                entities.add(entity);
+            }
+        }
+        return entities;
+    }
+
+    public static class IncrementalStructureExport {
+
+        private final StructureExportAccess access;
+        private final int minX;
+        private final int minY;
+        private final int minZ;
+        private final int sizeX;
+        private final int sizeY;
+        private final int sizeZ;
+        private final List<Entity> entities;
+        private final Map<String, Integer> paletteIndex;
+        private final NBTTagList palette;
+        private final NBTTagList blocks;
+        private final ExportSession exportSession;
+        private final long totalPositions;
+        private long nextPosition;
+        private int nonAir;
+        private int tileEntities;
+        private boolean complete;
+        @Nullable
+        private String result;
+
+        private IncrementalStructureExport(StructureExportAccess access, int minX, int minY, int minZ, int maxX,
+            int maxY, int maxZ, int sizeX, int sizeY, int sizeZ, List<Entity> entities,
+            boolean serverPreviewFetchEnabled) {
+            this.access = access;
+            this.minX = minX;
+            this.minY = minY;
+            this.minZ = minZ;
+            this.sizeX = sizeX;
+            this.sizeY = sizeY;
+            this.sizeZ = sizeZ;
+            this.entities = entities;
+            this.paletteIndex = new HashMap<>();
+            this.palette = new NBTTagList();
+            this.blocks = new NBTTagList();
+            this.exportSession = new ExportSession(
+                access,
+                minX,
+                minY,
+                minZ,
+                maxX,
+                maxY,
+                maxZ,
+                sizeX,
+                sizeY,
+                sizeZ,
+                serverPreviewFetchEnabled);
+            this.totalPositions = GuideStructureVolume.blockCount(sizeX, sizeY, sizeZ);
+            this.nextPosition = 0L;
+            this.nonAir = 0;
+            this.tileEntities = 0;
+            this.complete = false;
+            this.result = null;
+            StructureExportPipeline.beginExport(exportSession);
+        }
+
+        public boolean step(long deadlineNanos) {
+            if (complete) {
+                return true;
+            }
+            while (nextPosition < totalPositions && System.nanoTime() < deadlineNanos) {
+                exportNextBlock();
+            }
+            if (nextPosition < totalPositions) {
+                return false;
+            }
+            finish();
+            return true;
+        }
+
+        @Nullable
+        public String getResult() {
+            return result;
+        }
+
+        private void exportNextBlock() {
+            long index = nextPosition++;
+            int sliceSize = sizeX * sizeZ;
+            int y = (int) (index / sliceSize);
+            int inSlice = (int) (index % sliceSize);
+            int z = inSlice / sizeX;
+            int x = inSlice % sizeX;
+            int worldX = minX + x;
+            int worldY = minY + y;
+            int worldZ = minZ + z;
+            Block block = access.getBlock(worldX, worldY, worldZ);
+            if (block == null || block == Blocks.air) {
+                return;
+            }
+            String blockId = access.getBlockId(worldX, worldY, worldZ, block);
+            if (blockId == null || blockId.isEmpty()) {
+                return;
+            }
+            int meta = access.getBlockMetadata(worldX, worldY, worldZ);
+            Integer state = paletteIndex.get(blockId);
+            if (state == null) {
+                state = palette.tagCount();
+                NBTTagCompound paletteEntry = new NBTTagCompound();
+                paletteEntry.setString("Name", blockId);
+                palette.appendTag(paletteEntry);
+                paletteIndex.put(blockId, state);
+            }
+
+            NBTTagCompound blockTag = new NBTTagCompound();
+            blockTag.setIntArray("pos", new int[] { x, y, z });
+            blockTag.setInteger("state", state);
+            if (meta != 0) {
+                blockTag.setInteger("meta", meta);
+            }
+            TileEntity tileEntity = access.getTileEntity(worldX, worldY, worldZ);
+            if (tileEntity != null) {
+                try {
+                    NBTTagCompound tileTag = new NBTTagCompound();
+                    tileEntity.writeToNBT(tileTag);
+                    tileTag.removeTag("x");
+                    tileTag.removeTag("y");
+                    tileTag.removeTag("z");
+                    blockTag.setTag("nbt", tileTag);
+                    tileEntities++;
+                } catch (Throwable ignored) {}
+            }
+            StructureExportPipeline.contributeBlock(
+                new ExportBlockContext(exportSession, worldX, worldY, worldZ, block, meta, tileEntity, blockTag));
+            blocks.appendTag(blockTag);
+            nonAir++;
+        }
+
+        private void finish() {
+            StructureExportPipeline.endExport(exportSession);
+            NBTTagCompound root = new NBTTagCompound();
+            root.setIntArray("size", new int[] { sizeX, sizeY, sizeZ });
+            root.setTag("palette", palette);
+            root.setTag("blocks", blocks);
+            appendEntities(root);
+            result = GuideTextNbtCodec.writeStructureSnbt(root);
+            complete = true;
+        }
+
+        private void appendEntities(NBTTagCompound root) {
+            if (entities.isEmpty()) {
+                return;
+            }
+            NBTTagList entityList = new NBTTagList();
+            for (Entity entity : entities) {
+                String entityId;
+                String playerName = null;
+                if (entity instanceof EntityPlayer player) {
+                    entityId = "Player";
+                    playerName = player.getGameProfile()
+                        .getName();
+                } else {
+                    entityId = EntityList.getEntityString(entity);
+                    if (entityId == null) {
+                        continue;
+                    }
+                }
+                NBTTagCompound entry = new NBTTagCompound();
+                entry.setString("id", entityId);
+                entry.setFloat("px", (float) (entity.posX - minX));
+                entry.setFloat("py", (float) (entity.posY - minY));
+                entry.setFloat("pz", (float) (entity.posZ - minZ));
+                entry.setFloat("yaw", entity.rotationYaw);
+                entry.setFloat("pitch", entity.rotationPitch);
+                if (entity instanceof EntityLivingBase living) {
+                    entry.setFloat("bodyYaw", living.renderYawOffset);
+                    entry.setFloat("headYaw", living.rotationYawHead);
+                }
+                if (playerName != null) {
+                    entry.setString("name", playerName);
+                }
+                NBTTagCompound entityTag = new NBTTagCompound();
+                try {
+                    entity.writeToNBT(entityTag);
+                } catch (Throwable ignored) {
+                    if (playerName == null) {
+                        continue;
+                    }
+                }
+                entityTag.removeTag("Pos");
+                entityTag.removeTag("Motion");
+                entityTag.removeTag("id");
+                entityTag.removeTag("Rotation");
+                GuidebookSceneEntityImportSupport.sanitizeCustomName(entityTag);
+                if (!entityTag.hasNoTags()) {
+                    entry.setTag("nbt", entityTag);
+                }
+                entityList.appendTag(entry);
+            }
+            if (entityList.tagCount() > 0) {
+                root.setTag("entities", entityList);
+            }
+        }
     }
 
     private static ExportPayload exportStructure(StructureExportAccess access, int minX, int minY, int minZ, int maxX,

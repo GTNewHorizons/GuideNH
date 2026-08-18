@@ -102,7 +102,7 @@ public class GuideRegistry {
         dataDrivenGuides.clear();
         dataDrivenGuides.putAll(guides);
         if (ModConfig.debug.enableDebugMode) {
-            GuideDebugLog.infoAlways(
+            GuideDebugLog.info(
                 "[GuideNH] [GuideRegistry] Replaced {} data-driven guides with {} freshly loaded guides",
                 previousCount,
                 dataDrivenGuides.size());
@@ -145,11 +145,9 @@ public class GuideRegistry {
 
         if (!overridden.isEmpty()) {
             overridden.sort(Comparator.comparing(ResourceLocation::toString));
-            if (ModConfig.debug.enableDebugMode) {
-                GuideDebugLog.infoAlways(
-                    "[GuideNH] [GuideRegistry] The following guides are overridden in resource packs: {}",
-                    overridden);
-            }
+            GuideDebugLog.info(
+                "[GuideNH] [GuideRegistry] The following guides are overridden in resource packs: {}",
+                overridden);
         }
 
         GuideRegistry.mergedGuides = Map.copyOf(merged);

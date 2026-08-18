@@ -121,12 +121,12 @@ public class GuidePageTexture {
     private static LytSize readImageSize(ResourceLocation id, byte[] imageData) throws Exception {
         try (ImageInputStream input = ImageIO.createImageInputStream(new ByteArrayInputStream(imageData))) {
             if (input == null) {
-                GuideDebugLog.warnAlways("Failed to inspect image {} (ImageIO returned null stream)", id);
+                GuideDebugLog.warn("Failed to inspect image {} (ImageIO returned null stream)", id);
                 return null;
             }
             Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
             if (!readers.hasNext()) {
-                GuideDebugLog.warnAlways("Failed to inspect image {} (no ImageIO reader found)", id);
+                GuideDebugLog.warn("Failed to inspect image {} (no ImageIO reader found)", id);
                 return null;
             }
             ImageReader reader = readers.next();
@@ -162,7 +162,7 @@ public class GuidePageTexture {
             BufferedImage img = ImageIO.read(new ByteArrayInputStream(data));
             if (img == null) {
                 GuideDebugLog
-                    .warnAlways("Failed to decode image {} while creating dynamic texture (ImageIO returned null)", id);
+                    .warn("Failed to decode image {} while creating dynamic texture (ImageIO returned null)", id);
                 imageData = null;
                 return null;
             }
@@ -206,10 +206,8 @@ public class GuidePageTexture {
                 TEXTURE_OBJECTS_SRG_FIELD);
             return textureObjects.remove(location);
         } catch (Throwable t) {
-            GuideDebugLog.warnAlways(
-                "Failed to remove dynamic guide page texture {} from Minecraft texture manager",
-                location,
-                t);
+            GuideDebugLog
+                .warn("Failed to remove dynamic guide page texture {} from Minecraft texture manager", location, t);
             return null;
         }
     }

@@ -35,7 +35,7 @@ public class DefaultGuideResourcePackManager {
         IResourcePack pack = ensureDefaultGuidePack(minecraft);
         if (inject(pack, minecraft)) {
             File packFile = DataDrivenGuideLoader.getLooseResourcePackRoot(pack);
-            GuideDebugLog.infoAlways("Registered DefaultGuide resource pack at {}", packFile);
+            GuideDebugLog.info("Registered DefaultGuide resource pack at {}", packFile);
         }
     }
 

@@ -26,7 +26,7 @@ public class PreviewPreparePipeline {
             try {
                 c.prepare(level);
             } catch (Throwable t) {
-                GuideDebugLog.warn(
+                GuideDebugLog.warnAlways(
                     "Preview prepare failed: {}",
                     c.getClass()
                         .getName(),

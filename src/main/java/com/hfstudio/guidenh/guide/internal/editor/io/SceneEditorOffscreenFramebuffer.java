@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.io;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.nio.ByteBuffer;
 
 import net.minecraft.client.Minecraft;
@@ -129,15 +130,18 @@ public class SceneEditorOffscreenFramebuffer implements AutoCloseable {
         GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
 
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int[] argbPixels = ((DataBufferInt) image.getRaster()
+            .getDataBuffer()).getData();
         for (int y = 0; y < height; y++) {
-            int flippedY = height - 1 - y;
+            int sourceOffset = y * width * 4;
+            int targetOffset = (height - 1 - y) * width;
             for (int x = 0; x < width; x++) {
-                int index = (x + y * width) * 4;
+                int index = sourceOffset + x * 4;
                 int r = buffer.get(index) & 0xFF;
                 int g = buffer.get(index + 1) & 0xFF;
                 int b = buffer.get(index + 2) & 0xFF;
                 int a = buffer.get(index + 3) & 0xFF;
-                image.setRGB(x, flippedY, (a << 24) | (r << 16) | (g << 8) | b);
+                argbPixels[targetOffset + x] = a << 24 | r << 16 | g << 8 | b;
             }
         }
         return image;

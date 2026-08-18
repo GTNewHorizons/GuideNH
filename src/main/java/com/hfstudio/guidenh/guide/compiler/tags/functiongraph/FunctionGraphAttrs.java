@@ -32,6 +32,8 @@ public class FunctionGraphAttrs {
     public static void applyContainerAttrs(LytFunctionGraph graph, PageCompiler compiler, LytErrorSink sink,
         MdxJsxElementFields el) {
         graph.setTitle(MdxAttrs.getString(compiler, sink, el, "title", null));
+        graph.setXLabel(MdxAttrs.getString(compiler, sink, el, "xLabel", null));
+        graph.setYLabel(MdxAttrs.getString(compiler, sink, el, "yLabel", null));
         graph.setExplicitSize(
             MdxAttrs.getInt(compiler, sink, el, "width", -1),
             MdxAttrs.getInt(compiler, sink, el, "height", -1));
@@ -79,8 +81,14 @@ public class FunctionGraphAttrs {
             double[] r = parseRange(xRange);
             graph.setExplicitXRange(r[0], r[1]);
         } else {
+            String domain = MdxAttrs.getString(compiler, sink, el, "domain", null);
+            double[] domainRange = domain != null ? parseRange(domain) : null;
             double xMin = parseDouble(MdxAttrs.getString(compiler, sink, el, "xMin", null), Double.NaN);
             double xMax = parseDouble(MdxAttrs.getString(compiler, sink, el, "xMax", null), Double.NaN);
+            if (domainRange != null && Double.isNaN(xMin) && Double.isNaN(xMax)) {
+                xMin = domainRange[0];
+                xMax = domainRange[1];
+            }
             if (!Double.isNaN(xMin) || !Double.isNaN(xMax)) {
                 graph.setExplicitXRange(xMin, xMax);
             }
@@ -122,14 +130,27 @@ public class FunctionGraphAttrs {
         String colorStr = MdxAttrs.getString(compiler, sink, el, "color", null);
         int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, FunctionGraphPalette.color(paletteIndex))
             : FunctionGraphPalette.color(paletteIndex);
-        String label = MdxAttrs.getString(compiler, sink, el, "name", null);
+        String label = MdxAttrs.getString(compiler, sink, el, "label", null);
+        String tooltip = MdxAttrs.getString(compiler, sink, el, "tooltip", null);
+        boolean showFunction = MdxAttrs.getBoolean(compiler, sink, el, "showFunction", true);
+        boolean showValues = MdxAttrs.getBoolean(compiler, sink, el, "showValues", true);
         AutoPointSpec autoPointSpec = parseAutoPointSpec(
             MdxAttrs.getString(compiler, sink, el, "pointEveryX", null),
             MdxAttrs.getString(compiler, sink, el, "pointEveryY", null),
             MdxAttrs.getString(compiler, sink, el, "autoPointLabel", null),
             MdxAttrs.getString(compiler, sink, el, "autoPointColor", null),
             color);
-        return new FunctionPlot(expr, ast, inverse, domain, color, label, autoPointSpec);
+        return new FunctionPlot(
+            expr,
+            ast,
+            inverse,
+            domain,
+            color,
+            label,
+            autoPointSpec,
+            tooltip,
+            showFunction,
+            showValues);
     }
 
     /** Parse a single {@code <Point>} child element into a {@link MarkedPoint}. */
@@ -137,7 +158,7 @@ public class FunctionGraphAttrs {
         String colorStr = MdxAttrs.getString(compiler, sink, el, "color", null);
         boolean colorInherit = colorStr == null;
         int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, 0xFFFFFFFF) : 0xFFFFFFFF;
-        String label = MdxAttrs.getString(compiler, sink, el, "name", null);
+        String label = MdxAttrs.getString(compiler, sink, el, "label", null);
 
         double xValue = parseDouble(MdxAttrs.getString(compiler, sink, el, "x", null), Double.NaN);
         double yValue = parseDouble(MdxAttrs.getString(compiler, sink, el, "y", null), Double.NaN);

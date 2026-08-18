@@ -46,7 +46,7 @@ public class GuideLocalizedPageSourceResolver {
         long t2 = System.nanoTime();
         long totalUs = (t2 - t0) / 1000;
         if (totalUs > 5_000) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [PageSourceResolver] parseFrontmatterOnly {} resolve={}us parse={}us total={}us",
                 pageId,
                 (t1 - t0) / 1000,
@@ -82,7 +82,7 @@ public class GuideLocalizedPageSourceResolver {
         long t3 = System.nanoTime();
         long totalUs = (t3 - t0) / 1000;
         if (totalUs > 2_000) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [PageSourceResolver] resolve {} i18nLookup={}us newString={}us merge={}us total={}us langKey={}",
                 pageId,
                 (t1 - t0) / 1000,

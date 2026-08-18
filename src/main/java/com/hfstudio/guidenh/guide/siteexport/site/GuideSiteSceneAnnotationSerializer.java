@@ -49,11 +49,14 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
+import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldLineAnnotation;
+import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
@@ -100,15 +103,20 @@ public class GuideSiteSceneAnnotationSerializer {
         List<Map<String, Object>> overlay = new ArrayList<>();
 
         if (scene != null) {
-            for (SceneAnnotation annotation : scene.getAnnotations()) {
-                if (!scene.isStructureLibConditionSatisfied(annotation.getStructureLibCondition())) {
-                    continue;
-                }
+            GuidebookSceneLayerSelection layerSelection = GuidebookSceneLayerSelection
+                .fromVisibleLayer(scene.getVisibleLayerYForExport());
+            for (InWorldAnnotation annotation : scene.collectInWorldAnnotationsForExport(true, false, layerSelection)) {
                 switch (annotation) {
                     case InWorldBoxAnnotation box -> inWorld.add(serializeBox(box, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldLineAnnotation line -> inWorld.add(serializeLine(line, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldBlockFaceOverlayAnnotation blockOverlay -> inWorld.add(
                             serializeBlockOverlay(blockOverlay, templates, currentPageId, assetExporter, itemIconResolver));
+                    default -> {
+                    }
+                }
+            }
+            for (OverlayAnnotation annotation : scene.collectOverlayAnnotationsForExport(layerSelection)) {
+                switch (annotation) {
                     case DiamondAnnotation diamond -> overlay.add(serializeDiamond(diamond, templates, currentPageId, assetExporter, itemIconResolver));
                     case TextAnnotation textAnnotation -> overlay.add(
                             serializeTextAnnotation(

@@ -319,6 +319,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 | --- | --- |
 | `ore` | 矿辞名；默认取第一个匹配结果 |
 | `id` | 当未提供 `ore` 时使用的物品引用 |
+| `nbt` | 可选的物品 SNBT；会合并到 `id` 的内联 SNBT 之上 |
 | `scale` | float，默认 `1` |
 | `noTooltip` | 传入真值字符串或空属性时禁用 tooltip（旧写法，推荐改用 `showTooltip`） |
 | `showTooltip` | boolean，默认 `true`；`false` 时禁用鼠标悬停 tooltip |
@@ -334,6 +335,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 - 若安装了 GregTech，选中的矿辞结果会先经过 `GTOreDictUnificator.setStack(...)` 统一化
 - `label` 需要至少一个可见元素（图标或文字），若同时设置 `showIcon="false"` 且不写 `label`，则渲染为空
 - `format` 仅在设置了 `label` 时生效；若 `format` 中没有 `%s`，则以格式字面量作为标签文字
+- `id` 中的内联 SNBT 仍然有效；两种写法同时存在时，独立的 `nbt` 属性最后合并，同名键以它为准
 
 示例：
 
@@ -345,6 +347,12 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
 <ItemImage id="minecraft:book" showIcon="false" label="right" format="~~%s~~" />
 <ItemImage id="minecraft:emerald" label="right" showTooltip="false" />
+<ItemImage id="minecraft:diamond" nbt='{display:{Name:"自定义钻石"}}' />
+<ItemImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+/>
 ````
 
 ### `<ItemLink>`
@@ -358,12 +366,14 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 | `linksTo` | *（自动）* | 覆盖跳转目标，接受带可选 `#anchor` 的页面 ID，如 `./crafting.md#usage` 或 `#usage`；省略时由 `item_ids` / `ore_ids` 索引自动解析 |
 | `showTooltip` | `true` | 设为 `false` 时悬停不显示 tooltip；`noTooltip` 是旧版兼容别名 |
 | `showIcon` | *（无）* | `left` 或 `right`（或任意真值 → 右侧）— 在链接文字的左侧或右侧显示物品图标；省略则仅显示文字 |
+| `scale` | `1.0` | 可选物品图标的显示缩放倍率；省略 `showIcon` 时此属性无效 |
 
 示例：
 
 ````md
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" />
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" showIcon="left" />
+<ItemLink id="minecraft:diamond" showIcon="left" scale="2" />
 <ItemLink id="minecraft:diamond" showIcon="right" showTooltip="false" />
 <ItemLink ore="stickWood" />
 <ItemLink id="minecraft:iron_ore" linksTo="./crafting.md#smelting" />
@@ -577,18 +587,18 @@ gold,17
 <Latex formula="\begin{pmatrix} a & b \\ c & d \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax+by \\ cx+dy \end{pmatrix}" />
 ````
 
-#### `$公式$` / `$$公式$$` 简写语法
+#### `$$公式$$` 简写语法
 
-你可以在 Markdown 文本中直接使用 `$公式$` 作为行内公式，或使用 `$$公式$$` 作为独立展示公式，无需使用 `<Latex>` 标签。
+你可以在 Markdown 文本中直接使用 `$$公式$$`，无需使用 `<Latex>` 标签。
 所有渲染参数均使用默认值（白色、比例 1.0、无悬停提示、基线对齐）。
 
-- **行内模式**：嵌入段落内的 `$公式$` 使用行内渲染。
+- **行内模式**：嵌入段落内的 `$$公式$$` 使用行内渲染。
 - **展示模式**：整个段落内容仅为 `$$公式$$`（首尾可有空白）时，渲染为居中的展示式公式块。
 
 ````md
-行内简写：$E=mc^2$ 和 $a^2+b^2=c^2$
+行内简写：$$E=mc^2$$ 和 $$a^2+b^2=c^2$$
 
-行内分数：$\frac{a+b}{c-d}$
+行内分数：$$\frac{a+b}{c-d}$$
 
 $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 
@@ -603,7 +613,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - `sourceScale` 仅影响渲染清晰度，不改变显示大小。低于 `16` 的值会被截断为 `16`。
 - tooltip 优先级为：标签体富文本 Markdown、`tooltip="..."`、最后才是 `showTooltip={true}` 的原始源码回退。
 - 标签体 tooltip 会按普通指南 Markdown 编译，因此可以包含粗体、列表、链接、物品标签和嵌套 `<Latex>` 公式。
-- `$公式$` 和 `$$公式$$` 简写语法始终使用默认参数。如需自定义颜色、比例、对齐或悬停提示，请使用 `<Latex>` 标签。
+- `$$公式$$` 简写语法始终使用默认参数。如需自定义颜色、比例、对齐或悬停提示，请使用 `<Latex>` 标签。
 
 ### 场景运行时标签
 
@@ -707,6 +717,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - `title`、`background`、`border`、`axisColor`、`gridColor`
 - `showGrid` / `showAxes`（默认 `true`）
 - `xRange="a..b"`（或 `xMin` / `xMax` 分写），`xStep` 控制刻度间距；Y 轴同理
+- `xLabel` / `yLabel` 分别在绘图区下方和上方显示类似 Excel 的轴标题，并支持内联 `$$...$$` LaTeX；没有显式 X 范围时，`domain="a..b"` 是兼容旧内容的 `xRange` 别名
 - `quadrants="1,2,3,4"` 或 `quadrants="all"` 强制可见象限；不写则默认仅第一象限，并在采样发现 `y < 0` 时自动追加第三、第四象限
 - `cornerLegend`、`cornerLegendWidth`、`cornerLegendHeight`、`cornerLegendBackground` 可以把带 `label` 的曲线显示为绘图区内部的紧凑图例
 
@@ -715,7 +726,8 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - `expr="..."`：表达式。支持 `+ - * / % ^`、后缀阶乘 `!`（gamma 推广至实数）、`|x|` 绝对值、`√`/`sqrt`、`∛`/`cbrt`、隐式乘法以及常量 `pi`、`tau`、`e`、`phi`。内建调用覆盖常规 trig/log/exp/rounding 函数，并提供双参数 `atan2`、`min`、`max`、`pow`、`hypot`、`mod`。
 - `inverse={true}` 将表达式解释为 `x = f(y)` 并旋转曲线。
 - `domain="a..b"`（x 上下界简写）或逗号分隔的比较子句，如 `x>=0, x<5`。
-- `color`、`label`。设置了非空 `label` 的曲线会自动出现在面板下方的图例里：一个小色块加曲线名，按从左到右排列，宽度不够时自动换到下一行。
+- `color`、`label`。设置非空名称的曲线会自动出现在面板下方的图例里：一个小色块加曲线名，按从左到右排列，宽度不够时自动换到下一行。
+- `tooltip` 会在计算出的提示信息后追加纯文本。`showFunction` 和 `showValues` 默认均为 `true`，设为 `false` 可分别隐藏函数式或实时 `(x, y)` 值。带有 `expr` 的 `<Plot>` / 内嵌 `<Function>` 可以写子 Markdown 和 GuideNH 标签，作为富文本 tooltip 正文。顺序始终为曲线 `label`、函数式、实时值、`tooltip` 文本、子节点富文本；缺省或关闭的计算行会按此顺序跳过。
 - `pointEveryX="step"` 按固定 x 间隔在该曲线上生成点。
 - `pointEveryY="step"` 在曲线与固定 y 间隔的交点处生成点，内部使用有上限的扫描和二分求解。
 - `autoPointLabel="none|x|y|xy"` 控制自动点标签，默认 `none`。
@@ -727,7 +739,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 - 锚定到曲线：`plot="N"` 配合 `atX="v"` 或 `atY="v"`（运行时在该曲线 x 域上二分求解）。
 - 可选 `color`、`label`。
 
-交互：鼠标悬停曲线会高亮该曲线；按住可沿曲线滑动一个标记点。提示框第一行显示表达式，第二行显示 `(x, y)`；默认锚定在该点正上方，顶部空间不足时自动翻到下方。
+交互：鼠标悬停曲线会高亮该曲线；按住可沿曲线滑动一个标记点。若提供 `label`，提示框最上方先显示函数名，之后默认显示函数式和实时 `(x, y)` 值；可用对应开关关闭。提示框默认锚定在该点正上方，顶部空间不足时自动翻到下方。
 
 ## BetterQuesting 兼容标签
 

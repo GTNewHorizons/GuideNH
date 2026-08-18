@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.model;
 
 public enum SceneEditorSceneNodeType {
+    BLOCK,
     IMPORT_STRUCTURE,
     IMPORT_STRUCTURE_LIB,
     REMOVE_BLOCKS,

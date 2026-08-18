@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.libs.mdast.MdastContext;
 import com.hfstudio.guidenh.libs.mdast.MdastContextProperty;
 import com.hfstudio.guidenh.libs.mdast.MdastExtension;
+import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableCell;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxExpressionAttribute;
@@ -258,7 +259,7 @@ public class MdxMdastExtension {
             ListUtils.pop(stack);
         } else {
             MdAstNode node;
-            if (Objects.equals(token.type, "mdxJsxTextTag")) {
+            if (Objects.equals(token.type, "mdxJsxTextTag") || isTableCellContext(context)) {
                 var el = new MdxJsxTextElement(tag.name, tag.attributes);
                 el.recovered = tag.recovered;
                 node = el;
@@ -281,6 +282,11 @@ public class MdxMdastExtension {
         } else {
             stack.add(tag);
         }
+    }
+
+    private static boolean isTableCellContext(MdastContext context) {
+        var stack = context.getStack();
+        return !stack.isEmpty() && stack.getLast() instanceof GfmTableCell;
     }
 
     public static void onErrorRightIsTag(MdastContext context, @Nullable Token closing, Token open) {

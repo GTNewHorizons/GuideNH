@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
 import javax.imageio.ImageIO;
@@ -29,6 +32,7 @@ import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteSceneTessellatorCapture.TextureExportCache;
 
 import guideme.flatbuffers.scene.ExpAnimatedTexturePart;
 import guideme.flatbuffers.scene.ExpAnimatedTexturePartFrame;
@@ -42,7 +46,7 @@ import guideme.flatbuffers.scene.ExpVertexElementUsage;
 import guideme.flatbuffers.scene.ExpVertexFormat;
 import guideme.flatbuffers.scene.ExpVertexFormatElement;
 
-public class GuideSiteSceneRuntimeExporter {
+public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
 
     private static final int PLACEHOLDER_SCALE = 2;
     private static final ResourceLocation RAIN_TEXTURE = new ResourceLocation(
@@ -55,14 +59,34 @@ public class GuideSiteSceneRuntimeExporter {
     private static final String SNOW_ANIMATED_TEXTURE_ID = "guidenh-weather-snow";
 
     private final GuideSiteAssetRegistry assets;
+    private final TextureExportCache textureCache = new TextureExportCache();
+    private final ExecutorService encodingExecutor = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "guidenh-site-scene-encode");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     public GuideSiteSceneRuntimeExporter(GuideSiteAssetRegistry assets) {
         this.assets = assets;
     }
 
-    public GuideSiteExportedScene exportScene(LytGuidebookScene scene) throws Exception {
-        byte[] placeholderBytes = renderPlaceholder(scene);
-        byte[] sceneBytes = exportScenePayload(scene);
+    public GuideSiteExportedScene exportScene(LytGuidebookScene scene, boolean includePlaceholder) throws Exception {
+        if (!includePlaceholder) {
+            String scenePath = assets.writeShared("scenes", ".scene.gz", exportScenePayload(scene));
+            return new GuideSiteExportedScene(null, scenePath, scene.getSceneWidth(), scene.getSceneHeight());
+        }
+
+        BufferedImage placeholderImage = renderPlaceholderImage(scene);
+        Future<byte[]> placeholderEncoding = encodingExecutor.submit(() -> encodePng(placeholderImage));
+        byte[] sceneBytes;
+        byte[] placeholderBytes;
+        try {
+            sceneBytes = exportScenePayload(scene);
+            placeholderBytes = placeholderEncoding.get();
+        } catch (Exception e) {
+            placeholderEncoding.cancel(true);
+            throw e;
+        }
 
         GuideSiteSceneExporter exporter = new GuideSiteSceneExporter(assets, () -> placeholderBytes, () -> sceneBytes);
         GuideSiteSceneExporter.SceneFiles files = exporter.writeSceneAssets();
@@ -73,7 +97,12 @@ public class GuideSiteSceneRuntimeExporter {
             scene.getSceneHeight());
     }
 
-    private byte[] renderPlaceholder(LytGuidebookScene scene) throws Exception {
+    @Override
+    public void close() {
+        encodingExecutor.shutdownNow();
+    }
+
+    private BufferedImage renderPlaceholderImage(LytGuidebookScene scene) throws Exception {
         int originalBackground = scene.getSceneBackgroundColor();
         int originalBorder = scene.getSceneBorderColor();
         int originalWidth = scene.getSceneWidth();
@@ -103,9 +132,7 @@ public class GuideSiteSceneRuntimeExporter {
                 image = framebuffer.render(scene);
             }
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ImageIO.write(image, "png", out);
-            return out.toByteArray();
+            return image;
         } finally {
             scene.setSceneBackgroundColor(originalBackground);
             scene.setSceneBorderColor(originalBorder);
@@ -117,11 +144,20 @@ public class GuideSiteSceneRuntimeExporter {
         }
     }
 
+    private byte[] encodePng(BufferedImage image) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", out);
+        return out.toByteArray();
+    }
+
     private byte[] exportScenePayload(LytGuidebookScene scene) throws Exception {
         Matrix4f inverseViewMatrix = new Matrix4f(
             scene.getCamera()
                 .getViewMatrix()).invert();
-        GuideSiteSceneTessellatorCapture recorder = new GuideSiteSceneTessellatorCapture(assets, inverseViewMatrix);
+        GuideSiteSceneTessellatorCapture recorder = new GuideSiteSceneTessellatorCapture(
+            assets,
+            textureCache,
+            inverseViewMatrix);
         int width = Math.max(16, scene.getSceneWidth());
         int height = Math.max(16, scene.getSceneHeight());
 
@@ -134,7 +170,7 @@ public class GuideSiteSceneRuntimeExporter {
 
         GuideSiteSceneTessellatorCapture.RecordingResult result = recorder.finish();
         if (result.meshes.isEmpty()) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "Scene site export captured no tessellated meshes for a {}x{} scene; exported 3D preview will be blank.",
                 width,
                 height);

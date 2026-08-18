@@ -25,10 +25,18 @@ import lombok.Setter;
 
 public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
 
-    static final GuiSprite COPY_SPRITE = new GuiSprite(
+    public static final GuiSprite COPY_SPRITE = new GuiSprite(
         GuideIconButton.TEX,
         0,
         48,
+        16,
+        16,
+        GuideIconButton.TEXTURE_SIZE,
+        GuideIconButton.TEXTURE_SIZE);
+    public static final GuiSprite RESET_VIEW_SPRITE = new GuiSprite(
+        GuideIconButton.TEX,
+        0,
+        32,
         16,
         16,
         GuideIconButton.TEXTURE_SIZE,
@@ -89,6 +97,7 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
     }
 
     public void addButton(LytButton button) {
+        button.setColor(toolbarText);
         extraButtons.add(button);
         append(button);
         if (getDocument() != null) getDocument().invalidateLayout();

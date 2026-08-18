@@ -101,8 +101,7 @@ public class GuideLightweightReloadService {
             GuideME.getSearch()
                 .indexAll();
         } catch (Throwable t) {
-            GuideDebugLog
-                .warnAlways("[GuideNH] [GuideLightweightReloadService] Failed to reindex search after reload", t);
+            GuideDebugLog.warn("[GuideNH] [GuideLightweightReloadService] Failed to reindex search after reload", t);
         }
     }
 
@@ -222,11 +221,8 @@ public class GuideLightweightReloadService {
             return GuideLocalizedPageSourceResolver
                 .parseFrontmatterOnly(sourcePack, language, contentRootFolder, pageId, bytes);
         } catch (Exception ex) {
-            GuideDebugLog.warnAlways(
-                "[GuideNH] [GuideLightweightReloadService] Error parsing page {} from {}",
-                pageId,
-                sourceId,
-                ex);
+            GuideDebugLog
+                .warn("[GuideNH] [GuideLightweightReloadService] Error parsing page {} from {}", pageId, sourceId, ex);
             return null;
         }
     }

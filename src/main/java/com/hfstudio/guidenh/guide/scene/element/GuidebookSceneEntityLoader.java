@@ -150,8 +150,6 @@ public class GuidebookSceneEntityLoader {
 
     public static Set<String> buildEntityIdCandidates(String entityId) {
         LinkedHashSet<String> candidates = new LinkedHashSet<>();
-        addCandidateForms(candidates, entityId);
-
         String normalized = entityId.toLowerCase(Locale.ROOT);
         int namespaceSeparator = normalized.indexOf(':');
         if (namespaceSeparator >= 0) {
@@ -190,7 +188,7 @@ public class GuidebookSceneEntityLoader {
 
             String normalizedRegisteredId = normalizeEntityId(registeredId);
             if (normalizedInput.equals(normalizedRegisteredId)) {
-                addCandidateForms(candidates, registeredId);
+                candidates.add(registeredId);
                 continue;
             }
 
@@ -200,7 +198,7 @@ public class GuidebookSceneEntityLoader {
         }
 
         if (uniqueSimpleMatches.size() == 1) {
-            addCandidateForms(candidates, uniqueSimpleMatches.getFirst());
+            candidates.add(uniqueSimpleMatches.getFirst());
         }
     }
 

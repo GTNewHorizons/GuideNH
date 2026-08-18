@@ -24,7 +24,7 @@ public class Ae2PreviewPrepareContributor implements PreviewPrepareContributor {
         } catch (Throwable t) {
             if (!invokeFailureLogged) {
                 invokeFailureLogged = true;
-                GuideDebugLog.warn("AE2 preview state preparation failed; 3D cable preview may be incomplete", t);
+                GuideDebugLog.warnAlways("AE2 preview state preparation failed; 3D cable preview may be incomplete", t);
             }
         }
     }

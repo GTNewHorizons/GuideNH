@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstBreak;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
@@ -60,13 +61,15 @@ public class PageIndexer implements IndexingContext {
     public void indexContent(MdAstAnyContent content, IndexingSink sink) {
         if (content instanceof MdAstText astText) {
             sink.appendText(astText, astText.value);
+        } else if (content instanceof MdAstBreak) {
+            sink.appendBreak();
         } else if (content instanceof MdxJsxElementFields el) {
+            if ("br".equals(el.name())) {
+                sink.appendBreak();
+                return;
+            }
             var compiler = tagCompilers.get(el.name());
             if (compiler == null) {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH] [PageIndexer] Unhandled MDX element in guide search indexing: {}",
-                    el.name());
-                // Fallback: index children content
                 indexContent(el.children(), sink);
             } else {
                 compiler.index(this, el, sink);
@@ -75,7 +78,7 @@ public class PageIndexer implements IndexingContext {
             // Handled via conversion
         } else {
             GuideDebugLog
-                .warnAlways("[GuideNH] [PageIndexer] Unhandled node type in guide search indexing: {}", content.type());
+                .warn("[GuideNH] [PageIndexer] Unhandled node type in guide search indexing: {}", content.type());
         }
     }
 

@@ -470,6 +470,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private int cachedBlockStatsHitRegionCount;
 
     private float[] initialCam = new float[] { 1f, 0f, 0f, 0f, 0f, 0f };
+    private final Vector3f initialRotationCenter = new Vector3f();
 
     private int @Nullable [] hoveredBlock;
     @Nullable
@@ -581,6 +582,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         initialCam[3] = camera.getRotationZ();
         initialCam[4] = camera.getOffsetX();
         initialCam[5] = camera.getOffsetY();
+        var center = camera.getRotationCenter();
+        initialRotationCenter.set(center.x(), center.y(), center.z());
     }
 
     public void captureInitialInteractiveState() {
@@ -4031,9 +4034,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     private void resetViewToInitialCamera() {
         if (ponderSceneData != null) {
-            // In ponder mode the camera is driven by ponderCam* fields.
-            // Re-running updatePonderState restores them to the scripted values
-            // for the current tick, discarding any user pan/rotate offsets.
+            // In ponder mode the camera is driven by ponderCam* fields; user pan
+            // lives on camera.rotationCenter. Re-running updatePonderState restores
+            // scripted values and the initial orbit pivot for the current tick.
             updatePonderState();
         } else {
             camera.setZoom(initialCam[0]);
@@ -4042,6 +4045,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             camera.setRotationZ(initialCam[3]);
             camera.setOffsetX(initialCam[4]);
             camera.setOffsetY(initialCam[5]);
+            camera.setRotationCenter(initialRotationCenter.x, initialRotationCenter.y, initialRotationCenter.z);
         }
     }
 
@@ -4312,33 +4316,44 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (dx == 0f && dy == 0f) {
             return;
         }
-        // Route to ponderCam* so changes are visible when ponder is active (paused or playing).
-        if (ponderSceneData != null) {
-            if (isPanButton(dragButton)) {
-                ponderCamOffX += dx;
-                ponderCamOffY -= dy;
-            } else if (isRotateButton(dragButton)) {
+        // User pan always uses the same world-space orbit model as normal GameScene.
+        // Ponder rotation/zoom still route through ponderCam* so scripted keyframes
+        // remain the source of truth and reset user adjustments on seek/play/restart.
+        if (isPanButton(dragButton)) {
+            if (ponderSceneData != null) {
+                applyOrbitPan(dx, dy, ponderCamZoom, ponderCamRotX, ponderCamRotY, ponderCamRotZ);
+            } else {
+                applyOrbitPan(
+                    dx,
+                    dy,
+                    camera.getZoom(),
+                    camera.getRotationX(),
+                    camera.getRotationY(),
+                    camera.getRotationZ());
+            }
+        } else if (isRotateButton(dragButton)) {
+            if (ponderSceneData != null) {
                 ponderCamRotY += dx * DRAG_ROTATE_SENSITIVITY;
                 ponderCamRotX += dy * DRAG_ROTATE_SENSITIVITY;
-            }
-        } else {
-            if (isPanButton(dragButton)) {
-                // Standard orbit camera pan: move target along camera right/up in world space.
-                // Screen (dx, dy) → world delta = R⁻¹ · (dx/s, -dy/s, 0)
-                float s = 10.0f * camera.getZoom();
-                Vector3f delta = new Vector3f(-dx / s, dy / s, 0);
-                new Matrix4f().rotateY((float) Math.toRadians(-camera.getRotationY()))
-                    .rotateX((float) Math.toRadians(-camera.getRotationX()))
-                    .rotateZ((float) Math.toRadians(-camera.getRotationZ()))
-                    .transformPosition(delta);
-                var rc = camera.getRotationCenter();
-                camera.setRotationCenter(rc.x() + delta.x, rc.y() + delta.y, rc.z() + delta.z);
-            } else if (isRotateButton(dragButton)) {
+            } else {
                 camera.setRotationY(camera.getRotationY() + dx * DRAG_ROTATE_SENSITIVITY);
                 camera.setRotationX(camera.getRotationX() + dy * DRAG_ROTATE_SENSITIVITY);
             }
         }
         updateVisualCameraState();
+    }
+
+    private void applyOrbitPan(float dx, float dy, float zoom, float rotX, float rotY, float rotZ) {
+        // Standard orbit camera pan: move target along camera right/up in world space.
+        // Screen (dx, dy) → world delta = R⁻¹ · (dx/s, -dy/s, 0)
+        float s = 10.0f * zoom;
+        Vector3f delta = new Vector3f(-dx / s, dy / s, 0);
+        new Matrix4f().rotateY((float) Math.toRadians(-rotY))
+            .rotateX((float) Math.toRadians(-rotX))
+            .rotateZ((float) Math.toRadians(-rotZ))
+            .transformPosition(delta);
+        var rc = camera.getRotationCenter();
+        camera.setRotationCenter(rc.x() + delta.x, rc.y() + delta.y, rc.z() + delta.z);
     }
 
     public void endDrag() {
@@ -4890,6 +4905,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         ponderCamRotZ = activeCam[3];
         ponderCamOffX = activeCam[4];
         ponderCamOffY = activeCam[5];
+        // User pan lives on camera.rotationCenter; restore the scripted orbit pivot
+        // whenever the ponder timeline state is (re)applied.
+        camera.setRotationCenter(initialRotationCenter.x, initialRotationCenter.y, initialRotationCenter.z);
         applyPonderEntityAnimationsAtTick(ponderCurrentTick);
     }
 

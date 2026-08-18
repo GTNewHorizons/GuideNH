@@ -77,7 +77,7 @@ public class GuideSiteNeiPhase1BackgroundExporter {
         int vw = bodyW + 2 * m;
         int vh = bodyH + 2 * m;
         if (vw > MAX_EXPORT_EDGE || vh > MAX_EXPORT_EDGE) {
-            GuideDebugLog.debugAlways(
+            GuideDebugLog.debug(
                 "[GuideNH] [GuideSiteNeiPhase1BackgroundExporter] Skip NEI Phase1 export: {}x{} exceeds cap",
                 vw,
                 vh);
@@ -98,7 +98,7 @@ public class GuideSiteNeiPhase1BackgroundExporter {
             cache.put(cacheKey, res);
             return res;
         } catch (Throwable t) {
-            GuideDebugLog.debugAlways(
+            GuideDebugLog.debug(
                 "[GuideNH] [GuideSiteNeiPhase1BackgroundExporter] NEI Phase1 snapshot failed for {} recipe {}",
                 handler.getClass(),
                 recipeIndex,

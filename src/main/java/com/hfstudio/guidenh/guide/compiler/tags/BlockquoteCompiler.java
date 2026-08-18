@@ -72,19 +72,21 @@ public class BlockquoteCompiler extends BlockTagCompiler {
     }
 
     private void compileDirectiveBody(PageCompiler compiler, BlockquoteDirective directive, LytBlockContainer parent) {
+        MdxJsxFlowElement firstParagraph = directive.firstParagraph() instanceof MdxJsxFlowElement paragraph ? paragraph
+            : null;
         // When there's a remainingText override and the first paragraph is still present
         // at the head of the children list, replace its leading text.
         // Otherwise — just compile children normally.
         if (!directive.children()
-            .isEmpty() && directive.firstParagraph() != null
+            .isEmpty() && firstParagraph != null
             && directive.children()
-                .getFirst() == directive.firstParagraph()
+                .getFirst() == firstParagraph
             && directive.remainingText() != null
             && !directive.remainingText()
                 .isEmpty()) {
             // Strip directive prefix from the first paragraph's leading text
-            stripLeadingText(directive.firstParagraph(), directive.remainingText());
-            compiler.compileBlockContext(Collections.singletonList(directive.firstParagraph()), parent);
+            stripLeadingText(firstParagraph, directive.remainingText());
+            compiler.compileBlockContext(Collections.singletonList(firstParagraph), parent);
             for (int i = 1; i < directive.children()
                 .size(); i++) {
                 compiler.compileBlockContext(

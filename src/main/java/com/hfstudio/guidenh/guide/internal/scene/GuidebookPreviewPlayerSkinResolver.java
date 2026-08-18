@@ -33,6 +33,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.minecraft.InsecureTextureException;
@@ -104,8 +105,7 @@ public class GuidebookPreviewPlayerSkinResolver {
 
     public static void resolveSkinInBackground(String cacheKey, String playerName, GameProfile lookupProfile) {
         ResolvedPreviewPlayerSkin resolvedSkin = resolvePreviewPlayerSkinSafely(playerName, lookupProfile);
-        Minecraft minecraft = Minecraft.getMinecraft();
-        minecraft.func_152344_a(() -> applyResolvedSkinOnMainThread(cacheKey, playerName, resolvedSkin));
+        GuideNhClientTaskScheduler.execute(() -> applyResolvedSkinOnMainThread(cacheKey, playerName, resolvedSkin));
     }
 
     public static void applyResolvedSkinOnMainThread(String cacheKey, String playerName,

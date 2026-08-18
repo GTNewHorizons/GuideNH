@@ -23,6 +23,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.bridge.protocol.BridgeProtocolLimits;
+import com.hfstudio.guidenh.client.GuideNhClientTaskScheduler;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
@@ -98,7 +99,7 @@ public class ItemPreviewService {
         }
 
         CompletableFuture<ItemPreviewPayload> future = new CompletableFuture<>();
-        minecraft.func_152344_a(() -> {
+        GuideNhClientTaskScheduler.execute(() -> {
             try {
                 future.complete(createPayload(cacheKey, stack, Minecraft.getMinecraft()));
             } catch (Throwable error) {

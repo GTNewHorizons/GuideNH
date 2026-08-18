@@ -48,13 +48,13 @@ categories:
 
 手动偏移：<Latex formula="E=mc^2" offsetX="2" offsetY="-1" /> 向右偏 2px，向上偏 1px。
 
-### `$公式$` / `$$公式$$` 简写语法
+### `$$公式$$` 简写语法
 
-在文本中使用 `$公式$` 作为行内公式，使用 `$$公式$$` 作为独立展示公式，均使用默认参数。
+在 Markdown 中使用 `$$公式$$`，均使用默认参数。嵌入文本时按行内公式渲染，作为段落唯一内容时渲染为居中的展示公式。
 
-行内简写：$E=mc^2$ 和 $a^2+b^2=c^2$
+行内简写：$$E=mc^2$$ 和 $$a^2+b^2=c^2$$
 
-行内分数：$\frac{1}{2}$
+行内分数：$$\frac{1}{2}$$
 
 $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 
@@ -179,6 +179,14 @@ Markdown：
 
 > {: title="Item Quote" color="#61b75d" iconItem="minecraft:emerald" }
 > 头部使用物品图标。
+
+```markdown
+> {: title="PNG Quote" color="#c79d3e" iconPng="./diamond.png" }
+> 从指南资源加载的 PNG 图标。
+```
+
+> {: title="PNG Quote" color="#c79d3e" iconPng="./diamond.png" }
+> 从指南资源加载的 PNG 图标。
 
 ## 列表
 
@@ -492,6 +500,8 @@ mindmap
 
 <Mermaid src="./markdown-mindmap.mmd" />
 
+固定尺寸的运行时 Mermaid 视口：
+
 <Mermaid src="./markdown-mindmap.mmd" width="320" height="220" />
 
 带有富文本标签和显式节点内容的思维导图：
@@ -511,6 +521,16 @@ mindmap
 <NodeContent id="preview">
 <BlockImage id="minecraft:diamond_block" scale={2} />
 </NodeContent>
+</Mermaid>
+
+## Mermaid 流程图
+
+展示所有形状、扩展属性、图标和配方节点的流程图：
+
+<Mermaid src="./markdown-flowchart.mmd" width="600" height="600">
+  <NodeContent id="Craft">
+    <RecipeFor id="minecraft:crafting_table" />
+  </NodeContent>
 </Mermaid>
 
 ## 脚注

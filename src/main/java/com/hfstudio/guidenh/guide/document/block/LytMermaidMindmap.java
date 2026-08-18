@@ -5,8 +5,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
@@ -41,9 +43,18 @@ public class LytMermaidMindmap extends LytVBox implements InteractiveElement {
         toolbar.setToolbarBackground(LytMermaidMindmapCanvas.PANEL_BACKGROUND);
         toolbar.setToolbarBorder(LytMermaidMindmapCanvas.PANEL_BORDER);
         toolbar.setToolbarText(LytMermaidMindmapCanvas.NODE_TEXT_COLOR);
+        toolbar.addButton(createResetViewButton());
 
         append(toolbar);
         append(canvas);
+    }
+
+    private LytButton createResetViewButton() {
+        LytButton button = new LytButton(LytCodeBlockToolbar.RESET_VIEW_SPRITE, new LytSize(16, 16));
+        button.setOnClick(screen -> canvas.resetView());
+        button.setTooltipText(GuidebookText.ResetView.text());
+        button.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
+        return button;
     }
 
     public void setPreferredSize(int width, int height) {

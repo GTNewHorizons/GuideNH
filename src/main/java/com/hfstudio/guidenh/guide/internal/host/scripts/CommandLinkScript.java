@@ -30,7 +30,7 @@ public class CommandLinkScript implements LytScript {
             if (command == null) return;
             link.setClickCallback(screen -> {
                 if (Minecraft.getMinecraft().thePlayer == null) return;
-                GuideDebugLog.infoAlways("[GuideNH] [CommandLink] Sending command: {}", command);
+                GuideDebugLog.info("[GuideNH] [CommandLink] Sending command: {}", command);
                 Minecraft.getMinecraft().thePlayer.sendChatMessage(command);
                 if (Boolean.TRUE.equals(close)) {
                     Minecraft.getMinecraft()

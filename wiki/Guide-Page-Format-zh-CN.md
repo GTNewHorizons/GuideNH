@@ -270,7 +270,8 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | --- | --- | --- |
 | `navigation` | map | 将页面加入导航树 |
 | `categories` | 字符串列表 | 将页面加入 MediaWiki 风格分类；每一项可选使用 `分类名|排序名` |
-| `item_ids` | 物品引用列表 | 让页面可被 `<ItemLink>` 发现 |
+| `item_id` | 单个物品筛选表达式 | 单个 NEI 风格物品表达式，让页面可被 `<ItemLink>` 发现 |
+| `item_ids` | 物品筛选表达式列表 | `item_id` 的列表形式，任一表达式匹配即可让页面被 `<ItemLink>` 发现 |
 | `ore_ids` | 矿辞名列表 | 让页面可被矿辞物品（如 `ingotIron`、`oreCopper`）索引 |
 | `quest_ids` | BetterQuesting 任务 id 列表 | 让页面可被 `<QuestLink>` / `<QuestCard>` 以及 BQ 任务 GUI 中的打开指南快捷键发现。支持标准 UUID 字符串和 BetterQuesting 的紧凑 Base64 形式。仅在 BetterQuesting 加载时生效。参见 [模组兼容](Mod-Compatibility-zh-CN) |
 | `author` | string | 单一作者名称。显示在底部栏中。 |
@@ -289,15 +290,21 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `position` | 否 | integer | 同级排序顺序，默认 `0`，数值越大越靠前 |
 | `priority` | 否 | integer | 同路径页面覆盖时的加载优先级；默认 `0`，数值更高者胜出，相同优先级时后处理的资源包条目覆盖先处理的 |
 | `icon` | 否 | item id | 导航和搜索中显示的物品图标。支持 `modid:name`、`modid:name:meta`、`modid:name:meta:{snbt}`。如需附加自定义名称等 NBT，推荐直接写在 `icon` 后面的内联 `:{snbt}` 尾部。 |
-| `icons` | 否 | item id 列表 | 循环轮播的物品图标列表（每秒切换一次）。每一项语法同 `icon`，同样支持内联 `:{snbt}`。存在时优先于 `icon` 使用。 |
+| `icons` | 否 | item id 列表 | 循环轮播的物品图标列表（每秒切换一次）。每一项语法同 `icon`，支持内联 `:{snbt}`。存在时优先于 `icon` 使用。 |
 | `icon_texture` | 否 | asset path | 纹理图标路径，按普通资源路径解析 |
 | `icon_textures` | 否 | asset path 列表 | 循环轮播的纹理图标列表（每秒切换一次）。存在时优先于 `icon_texture` 使用。 |
+| `required_mod` | 否 | 模组 id | 仅在该模组已加载时显示页面。 |
+| `required_mods` | 否 | 模组 id 列表 | 仅在列出的全部模组均已加载时显示页面。 |
+| `excluded_mod` | 否 | 模组 id | 该模组加载时隐藏页面。 |
+| `excluded_mods` | 否 | 模组 id 列表 | 其中任一模组加载时隐藏页面。 |
 
 ### Frontmatter 示例
 
 ```yaml
+item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - minecraft:book
+  - ae2:white_paint_ball:*
+  - "<minecraft:wool:14>"
 navigation:
   title: Root
   parent: index.md
@@ -306,7 +313,6 @@ navigation:
   icon: minecraft:book:0:{display:{Name:"我的自定义书"}}
   # 使用 meta/损伤值选择特定子类型：
   # icon: minecraft:wool:1       （橙色羊毛，冒号写法）
-
   # 循环图标列表——每秒切换一次：
   # icons:
   #   - minecraft:wool:1
@@ -422,7 +428,7 @@ GuideNH 会报告坏链，而不会回退到其他模组的同名页面。
 
 ## 物品引用语法
 
-若干标签支持扩展物品引用语法：
+导航 `icon`、`icons` 以及接受 item id 的标签使用普通物品引用语法：
 
 ```text
 modid:name
@@ -430,20 +436,47 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
-规则如下：
-
-- 省略 `meta` 时默认使用 `0`
-- `*`、`32767` 或大写标记（例如 `ANY`）会被视为通配 meta
-- SNBT 从第一个 `{` 开始，并会被解析为物品 NBT
+省略 `meta` 时默认使用 `0`。SNBT 从第一个 `{` 开始，并会被解析为物品 NBT。在支持通配 meta 的位置，
+`*` 可以与 SNBT 尾部组合使用。
 
 示例：
 
 ```text
 minecraft:diamond
 minecraft:wool:14
-minecraft:wool:*
 minecraft:written_book:0:{title:TestBook,author:GuideNH}
+minecraft:written_book:*:{title:TestBook,author:GuideNH}
 ```
+
+### 物品索引表达式
+
+`item_id` 接受一个 NEI 风格表达式，`item_ids` 接受同一表达式语法的 YAML 列表。`item_ids` 中每项彼此独立，任一项匹配即可关联该页面。空格用于组合条件，`|` 用于组合备选条件，`,` 用于组合一个条件中的规则。
+
+- `minecraft:lava` 会对注册表 id 做不区分大小写的部分匹配，因此也会匹配 `minecraft:lava_bucket`。
+- `<minecraft:wool:14>` 严格匹配一个物品及其 meta。
+- `ae2:white_paint_ball:*`、`:32767` 与 `:ANY` 等大写 meta 标记是兼容的严格全 meta 写法。
+- `16384-16462,!16386` 匹配 meta 范围，同时排除 `16386`。
+- `!minecraft:portal` 排除匹配该注册表 id 的物品。
+- `r/^m\\w{6}ft$/` 对注册表 id 使用 Java 正则表达式。
+
+```yaml
+item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
+item_ids:
+  - minecraft:crafting_table
+  - appliedenergistics2:item.ItemMultiMaterial:1
+  - "minecraft:written_book:*:{title:TestBook,author:GuideNH},!minecraft:written_book:0"
+  - "<minecraft:wool:14>"
+  - wrench|hammer
+  - "minecraft:potion 0-16,20-36,!28"
+  - minecraft:diamond#Usage
+```
+
+此例中，空格用于组合条件，`,` 用于组合同一项中的规则，`!` 用于排除匹配项，`|` 用于分隔备选表达式。
+因此第一个表达式会匹配 `16384` 至 `16462` 的药水 meta（排除 `16386`），或匹配任意 meta 的
+`ae2:white_paint_ball`。第二个表达式展示了通配物品引用如何与逗号规则和 `!` 反向排除组合使用。
+最后两项展示了多个 meta 范围的并集并排除 `28`，以及打开 `Usage` 标题锚点的物品映射。
+
+可在末尾追加 `#anchor`，使匹配页面打开到特定标题锚点。精确物品和显式 meta 映射优先走直接索引，只有必要时才会计算表达式。
 
 ## 错误处理
 

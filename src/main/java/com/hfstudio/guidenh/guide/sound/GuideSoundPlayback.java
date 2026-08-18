@@ -114,6 +114,6 @@ public class GuideSoundPlayback {
             return;
         }
         LAST_WARNED_AT.put(key, now);
-        GuideDebugLog.warnAlways("[GuideNH] [GuideSoundPlayback] Failed to play sound {}", soundId, e);
+        GuideDebugLog.warn("[GuideNH] [GuideSoundPlayback] Failed to play sound {}", soundId, e);
     }
 }

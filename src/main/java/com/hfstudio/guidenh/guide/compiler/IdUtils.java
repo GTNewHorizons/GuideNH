@@ -106,7 +106,7 @@ public class IdUtils {
                     nbt = tc;
                 }
             } catch (Throwable t) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [IdUtils] Failed to parse SNBT tail '{}' for id '{}'; ignoring NBT",
                     snbt,
                     idText,

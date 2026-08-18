@@ -33,6 +33,8 @@ navigation:
 | `icon_textures` | 可选，循环纹理图标列表 |
 | `required_mod` | 可选，单个模组 id；该模组未加载时页面不可见 |
 | `required_mods` | 可选，模组 id 列表；列出的全部模组都加载时页面才可见 |
+| `excluded_mod` | 可选，单个模组 id；该模组加载时页面不可见 |
+| `excluded_mods` | 可选，模组 id 列表；其中任一模组加载时页面不可见 |
 
 ### `navigation.position`
 
@@ -63,9 +65,9 @@ navigation:
 
 ## 模组需求
 
-使用 `required_mod` 或 `required_mods` 可以让页面依赖一个或多个模组的加载状态。
-当需求未满足时，页面会从导航树和所有页面索引（物品、分类等）中排除，
-因此无法通过导航或搜索找到该页面。
+使用 `required_mod` 或 `required_mods` 可以要求一个或多个模组已加载；使用 `excluded_mod` 或
+`excluded_mods` 可以在一个或多个不兼容模组加载时隐藏页面。当条件未满足时，页面会从导航树和所有
+页面索引（物品、分类等）中排除，因此无法通过导航或搜索找到该页面。
 
 ```yaml
 navigation:
@@ -82,6 +84,18 @@ navigation:
 ```
 
 两个键可以同时使用；只有列出的所有模组都已加载，页面才会显示。
+
+required 和 excluded 条件也可以同时使用：所有 required 模组都必须加载，并且 excluded 模组都不能加载。
+
+```yaml
+navigation:
+  title: 仅客户端集成
+  parent: index.md
+  required_mod: guide_api
+  excluded_mods:
+    - incompatible_addon
+    - legacy_addon
+```
 
 ## 加载优先级
 
@@ -150,16 +164,21 @@ GuideNH 还会自动创建隐藏可搜索的特殊页面 `Special:AllPages` 与 
 
 ## 物品索引页面
 
-页面可使用 `item_ids` 注册“物品到页面”的映射：
+页面可使用 `item_id`（单个值）或 `item_ids`（列表）注册“物品到页面”的映射：
 
 ```yaml
+item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
 item_ids:
   - minecraft:compass
   - minecraft:wool:*
+  - "minecraft:potion 0-16,20-36,!28"
   - minecraft:iron_ore#crafting
 ```
 
-这些映射会被 `<ItemLink>` 使用。
+这些映射会被 `<ItemLink>` 使用。`item_id` 是一个 NEI 风格表达式，`item_ids` 的每一项使用相同
+表达式语法。例如，`minecraft:potion 16384-16462,!16386` 匹配一个 meta 范围但排除 `16386`；
+`minecraft:potion 0-16,20-36,!28` 会组合两个 meta 范围并排除 `28`；`ae2:white_paint_ball:*` 是兼容的
+严格全 meta 映射。
 
 可在条目末尾加 `#anchor` 后缀，点击链接时会自动滚动到指定标题。
 锚点由标题文本转换而来：全部小写、空格替换为连字符
@@ -169,6 +188,7 @@ item_ids:
 
 1. 精确物品 + 精确 meta
 2. 如果存在，则回退到通配 meta
+3. 匹配物品表达式
 
 ## 标题锚点链接
 

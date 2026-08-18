@@ -2,7 +2,7 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 public class GuideSiteExportOptions {
 
-    public static final GuideSiteExportOptions DEFAULT = new GuideSiteExportOptions(false);
+    public static final GuideSiteExportOptions DEFAULT = new GuideSiteExportOptions(true);
 
     private final boolean exportPonderEveryTick;
 

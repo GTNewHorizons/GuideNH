@@ -135,40 +135,10 @@ public class Frontmatter {
                 if (iconTextureEntries.isEmpty()) iconTextureEntries = null;
             }
 
-            // Parse required_mod (single mod id) and required_mods (list of mod ids).
-            // Either or both may be specified; duplicates are preserved as-is.
-            List<String> requiredMods = null;
-            String requiredModSingle = getString(navigationMap, "required_mod");
-            Object requiredModsObj = navigationMap.get("required_mods");
-            if (requiredModSingle != null || requiredModsObj != null) {
-                int expectedSize = requiredModSingle == null ? 0 : 1;
-                if (requiredModsObj instanceof List<?>requiredModsList) {
-                    expectedSize += requiredModsList.size();
-                } else if (requiredModsObj instanceof String) {
-                    expectedSize++;
-                }
-                requiredMods = new ArrayList<>(expectedSize);
-                if (requiredModSingle != null && !requiredModSingle.trim()
-                    .isEmpty()) {
-                    requiredMods.add(requiredModSingle.trim());
-                }
-                if (requiredModsObj instanceof List<?>requiredModsList) {
-                    for (Object entry : requiredModsList) {
-                        if (entry instanceof String) {
-                            String s = ((String) entry).trim();
-                            if (!s.isEmpty()) {
-                                requiredMods.add(s);
-                            }
-                        }
-                    }
-                } else if (requiredModsObj instanceof String) {
-                    String s = ((String) requiredModsObj).trim();
-                    if (!s.isEmpty()) {
-                        requiredMods.add(s);
-                    }
-                }
-                if (requiredMods.isEmpty()) requiredMods = null;
-            }
+            // Parse required and excluded mod ids. Either the singular or plural form may be used;
+            // duplicates are preserved as-is for compatibility with the existing frontmatter behavior.
+            List<String> requiredMods = parseModIds(navigationMap, "required_mod", "required_mods");
+            List<String> excludedMods = parseModIds(navigationMap, "excluded_mod", "excluded_mods");
 
             navigation = new FrontmatterNavigation(
                 title,
@@ -182,6 +152,7 @@ public class Frontmatter {
                 iconEntries,
                 iconTextureEntries,
                 requiredMods,
+                excludedMods,
                 loadPriority);
         }
 
@@ -215,6 +186,40 @@ public class Frontmatter {
             throw new IllegalArgumentException("Key " + key + " has to be a number!");
         }
         return number.intValue();
+    }
+
+    @Nullable
+    private static List<String> parseModIds(Map<?, ?> navigationMap, String singleKey, String listKey) {
+        String single = getString(navigationMap, singleKey);
+        Object listValue = navigationMap.get(listKey);
+        if (single == null && listValue == null) {
+            return null;
+        }
+        int expectedSize = single == null ? 0 : 1;
+        if (listValue instanceof List<?>list) {
+            expectedSize += list.size();
+        } else if (listValue instanceof String) {
+            expectedSize++;
+        }
+        List<String> result = new ArrayList<>(expectedSize);
+        addModId(result, single);
+        if (listValue instanceof List<?>list) {
+            for (Object entry : list) {
+                if (entry instanceof String value) {
+                    addModId(result, value);
+                }
+            }
+        } else if (listValue instanceof String value) {
+            addModId(result, value);
+        }
+        return result.isEmpty() ? null : result;
+    }
+
+    private static void addModId(List<String> target, @Nullable String value) {
+        if (value != null && !value.trim()
+            .isEmpty()) {
+            target.add(value.trim());
+        }
     }
 
     @Nullable

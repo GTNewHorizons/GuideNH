@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler.ItemImagePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
@@ -12,6 +13,8 @@ import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
+import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class ItemImageScript implements LytScript {
 
@@ -44,6 +47,8 @@ public class ItemImageScript implements LytScript {
             }
         }
 
+        applyNbt(stack, ph.nbt);
+
         LytItemImage image = new LytItemImage(stack);
         image.setInline(true);
         image.setScale(ph.scale);
@@ -64,5 +69,24 @@ public class ItemImageScript implements LytScript {
 
     private static ItemStack resolveItemId(String itemId) {
         return GuideDisplayItemStacks.resolveItemStack(itemId, "minecraft");
+    }
+
+    private static void applyNbt(ItemStack stack, String nbt) {
+        if (nbt == null || nbt.trim()
+            .isEmpty()) {
+            return;
+        }
+        try {
+            NBTTagCompound explicitTag = GuideTextNbtCodec.readTextSafeCompound(nbt.trim());
+            if (stack.stackTagCompound == null) {
+                stack.stackTagCompound = explicitTag;
+                return;
+            }
+            for (String key : explicitTag.func_150296_c()) {
+                stack.stackTagCompound.setTag(key, explicitTag.getTag(key));
+            }
+        } catch (Exception e) {
+            GuideDebugLog.error("[GuideNH] [ItemImageScript] Failed to parse NBT for item image", e);
+        }
     }
 }

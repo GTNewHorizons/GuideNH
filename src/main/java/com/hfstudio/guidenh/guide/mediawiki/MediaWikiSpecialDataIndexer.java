@@ -96,14 +96,14 @@ public class MediaWikiSpecialDataIndexer {
             Map.copyOf(overrides),
             Set.copyOf(unusedFiles));
         long totalElapsedNanos = System.nanoTime() - totalStartNanos;
-        GuideDebugLog.infoAlways(
+        GuideDebugLog.info(
             "[GuideNH] [MediaWikiSpecialDataIndexer] Built special data index for {} pages in {} ms (assets: {} ms, usage: {} ms, metadata: {} ms)",
             normalPages.size(),
             nanosToMillis(totalElapsedNanos),
             nanosToMillis(assetElapsedNanos),
             nanosToMillis(usageElapsedNanos),
             nanosToMillis(metadataElapsedNanos));
-        GuideDebugLog.infoAlways(
+        GuideDebugLog.info(
             "[GuideNH] [MediaWikiSpecialDataIndexer] Details assets={}, assetAliases={}, fileUsageKeys={}, translations={}, propertyPages={}, externalLinkPages={}, pageSizes={}, lintPages={}, lintIssues={}, ambiguousBindings={}, overrides={}, unusedFiles={}",
             assetSizesById.size(),
             assetVariantsByReference.size(),

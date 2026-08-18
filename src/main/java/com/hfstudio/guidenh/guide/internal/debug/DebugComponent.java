@@ -99,4 +99,58 @@ public interface DebugComponent {
             return priority;
         }
     }
+
+    record LineComponentEntry(String name, int x1, int y1, int x2, int y2, int tolerance, @Nullable String extraInfo,
+        int priority) implements ComponentEntry {
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public @Nullable String getExtraInfo() {
+            return extraInfo;
+        }
+
+        @Override
+        public int getPriority() {
+            return priority;
+        }
+
+        @Override
+        public LytRect getBounds() {
+            int padding = Math.max(1, tolerance);
+            return new LytRect(
+                Math.min(x1, x2) - padding,
+                Math.min(y1, y2) - padding,
+                Math.abs(x2 - x1) + padding * 2 + 1,
+                Math.abs(y2 - y1) + padding * 2 + 1);
+        }
+
+        @Override
+        public boolean containsPoint(int x, int y) {
+            int padding = Math.max(1, tolerance);
+            int minX = Math.min(x1, x2) - padding;
+            int maxX = Math.max(x1, x2) + padding;
+            int minY = Math.min(y1, y2) - padding;
+            int maxY = Math.max(y1, y2) + padding;
+            if (x < minX || x > maxX || y < minY || y > maxY) {
+                return false;
+            }
+            float dx = x2 - x1;
+            float dy = y2 - y1;
+            float lengthSquared = dx * dx + dy * dy;
+            if (lengthSquared == 0) {
+                return Math.abs(x - x1) <= tolerance && Math.abs(y - y1) <= tolerance;
+            }
+            float progress = ((x - x1) * dx + (y - y1) * dy) / lengthSquared;
+            progress = Math.clamp(progress, 0F, 1F);
+            float nearestX = x1 + progress * dx;
+            float nearestY = y1 + progress * dy;
+            float offsetX = x - nearestX;
+            float offsetY = y - nearestY;
+            return offsetX * offsetX + offsetY * offsetY <= tolerance * tolerance;
+        }
+    }
 }

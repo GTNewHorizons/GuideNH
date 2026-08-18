@@ -35,10 +35,12 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.Frontmatter;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.internal.AsyncWorker;
 import com.hfstudio.guidenh.guide.internal.DirectoryResourcePack;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePacks;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.localization.GuidePageLanguageIndex;
+import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -73,6 +75,7 @@ public class DataDrivenGuideLoader {
     private static volatile List<IResourcePack> lastResourceManagerResourcePacks = List.of();
     private static volatile Map<IResourcePack, Set<String>> lastResourceManagerDomainsByPack = Map.of();
     private static final Map<ResourceLocation, List<PackCandidate>> pagePackIndex = new ConcurrentHashMap<>();
+    private static final Map<ResourceLocation, List<PackCandidate>> assetPackIndex = new ConcurrentHashMap<>();
     private static volatile boolean indexReady = false;
     private static final AtomicInteger pagePackOrder = new AtomicInteger(0);
     static final Map<File, List<String>> PACK_LANG_FILE_PATHS = new IdentityHashMap<>();
@@ -80,8 +83,9 @@ public class DataDrivenGuideLoader {
     private static volatile @Nullable ScanCache lastScanCache = null;
 
     private record ScanCache(List<File> packRoots, String folder, ScanResult result,
-        Map<ResourceLocation, List<PackCandidate>> pagePackIndexSnapshot, Map<File, List<String>> langFilePathsSnapshot,
-        Map<String, Map<String, String>> langKeys) {
+        Map<ResourceLocation, List<PackCandidate>> pagePackIndexSnapshot,
+        Map<ResourceLocation, List<PackCandidate>> assetPackIndexSnapshot,
+        Map<File, List<String>> langFilePathsSnapshot, Map<String, Map<String, String>> langKeys) {
 
         boolean matches(List<File> roots, String f) {
             return folder.equals(f) && packRoots.equals(roots);
@@ -104,12 +108,15 @@ public class DataDrivenGuideLoader {
         if (cache != null && cache.matches(packRoots, folder)) {
             indexReady = true;
             pagePackIndex.putAll(cache.pagePackIndexSnapshot());
+            assetPackIndex.putAll(cache.assetPackIndexSnapshot());
             PACK_LANG_FILE_PATHS.putAll(cache.langFilePathsSnapshot());
             GuidePageLanguageIndex.preload(cache.langKeys());
+            scheduleLanguageIndexWarmup();
             return cache.result();
         }
 
         pagePackIndex.clear();
+        assetPackIndex.clear();
         indexReady = false;
         pagePackOrder.set(0);
 
@@ -148,25 +155,71 @@ public class DataDrivenGuideLoader {
                 folder,
                 new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages)),
                 new HashMap<>(pagePackIndex),
+                new HashMap<>(assetPackIndex),
                 new HashMap<>(PACK_LANG_FILE_PATHS),
                 freezeLangKeys(guidePageLangKeys));
         }
 
         indexReady = true;
 
+        scheduleLanguageIndexWarmup();
+
         return new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages));
+    }
+
+    /**
+     * Submits a background warm-up of the guide resource language index once the active resource
+     * packs are known, so the first (and only) full {@code .lang} scan happens off the client
+     * thread instead of blocking the first Ponder scene's localization on page open.
+     */
+    private static void scheduleLanguageIndexWarmup() {
+        List<IResourcePack> packs = getLastActiveResourcePacks();
+        if (packs.isEmpty()) {
+            return;
+        }
+        LinkedHashSet<String> languages = new LinkedHashSet<>();
+        String current = LangUtil.getCurrentLanguage();
+        if (current != null && !current.isEmpty()) {
+            languages.add(LangUtil.normalizeLanguage(current));
+        }
+        languages.add(DEFAULT_LANGUAGE);
+        if (languages.isEmpty()) {
+            return;
+        }
+        AsyncWorker.submit("guidenh:resourceLangIndexWarmup", () -> {
+            for (String language : languages) {
+                GuideResourceLanguageIndex.warm(language);
+            }
+        });
     }
 
     public static @Nullable List<PackCandidate> getCandidatesFor(ResourceLocation pageLocation) {
         return pagePackIndex.get(pageLocation);
     }
 
+    public static @Nullable List<PackCandidate> getAssetCandidatesFor(ResourceLocation assetId) {
+        return assetPackIndex.get(assetId);
+    }
+
     public static boolean isIndexPopulated() {
         return indexReady;
     }
 
+    public static void ensureIndexReady(IResourceManager resourceManager) {
+        if (isIndexPopulated()) {
+            return;
+        }
+        synchronized (DataDrivenGuideLoader.class) {
+            if (isIndexPopulated()) {
+                return;
+            }
+            scanAndBuildAll(AUTO_GUIDE_FOLDER, getActiveResourcePacks(resourceManager));
+        }
+    }
+
     public static void clearCaches() {
         pagePackIndex.clear();
+        assetPackIndex.clear();
         PACK_LANG_FILE_PATHS.clear();
         nativeNamespaceRootsCache.clear();
         indexReady = false;
@@ -194,8 +247,6 @@ public class DataDrivenGuideLoader {
                         .add(path);
                     continue;
                 }
-                if (!path.endsWith(".md")) continue;
-
                 var afterAssets = path.substring(prefix.length());
                 var firstSlash = afterAssets.indexOf('/');
                 if (firstSlash <= 0) continue;
@@ -207,33 +258,49 @@ public class DataDrivenGuideLoader {
                 if (slashIndex <= 0) continue;
                 var language = afterFolder.substring(0, slashIndex);
                 if (!isLanguageFolder(language)) continue;
-                var pagePath = afterFolder.substring(slashIndex + 1);
-                if (pagePath.isEmpty()) continue;
+                var relativePath = afterFolder.substring(slashIndex + 1);
+                if (relativePath.isEmpty()) continue;
 
-                pagePaths.computeIfAbsent(namespace, k -> new LinkedHashSet<>())
-                    .add(pagePath);
-                discoveredLanguages.computeIfAbsent(new ResourceLocation(namespace, folder), k -> new LinkedHashSet<>())
-                    .add(toLanguageCode(language));
+                if (path.endsWith(".md")) {
+                    pagePaths.computeIfAbsent(namespace, k -> new LinkedHashSet<>())
+                        .add(relativePath);
+                    discoveredLanguages
+                        .computeIfAbsent(new ResourceLocation(namespace, folder), k -> new LinkedHashSet<>())
+                        .add(toLanguageCode(language));
 
-                int loadPriority = parseLoadPriorityFromZipEntry(
-                    zip,
-                    entry,
-                    new ResourceLocation(namespace, folder + "/" + language + "/" + pagePath));
-                synchronized (pagePackIndex) {
-                    pagePackIndex
-                        .computeIfAbsent(
-                            new ResourceLocation(namespace, folder + "/" + language + "/" + pagePath),
-                            k -> new ArrayList<>())
-                        .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
-                    pagePackIndex
-                        .computeIfAbsent(
-                            new ResourceLocation(namespace, folder + "/" + pagePath),
-                            k -> new ArrayList<>())
-                        .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
+                    int loadPriority = parseLoadPriorityFromZipEntry(
+                        zip,
+                        entry,
+                        new ResourceLocation(namespace, folder + "/" + language + "/" + relativePath));
+                    synchronized (pagePackIndex) {
+                        pagePackIndex
+                            .computeIfAbsent(
+                                new ResourceLocation(namespace, folder + "/" + language + "/" + relativePath),
+                                k -> new ArrayList<>())
+                            .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
+                        pagePackIndex
+                            .computeIfAbsent(
+                                new ResourceLocation(namespace, folder + "/" + relativePath),
+                                k -> new ArrayList<>())
+                            .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
+                    }
+                } else {
+                    synchronized (assetPackIndex) {
+                        assetPackIndex
+                            .computeIfAbsent(
+                                new ResourceLocation(namespace, folder + "/" + language + "/" + relativePath),
+                                k -> new ArrayList<>())
+                            .add(new PackCandidate(resourcePack, 0, pagePackOrder.getAndIncrement()));
+                        assetPackIndex
+                            .computeIfAbsent(
+                                new ResourceLocation(namespace, folder + "/" + relativePath),
+                                k -> new ArrayList<>())
+                            .add(new PackCandidate(resourcePack, 0, pagePackOrder.getAndIncrement()));
+                    }
                 }
             }
         } catch (IOException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide pages from resource pack {}",
                 resourcePackFile.getAbsolutePath(),
                 e);
@@ -355,6 +422,23 @@ public class DataDrivenGuideLoader {
                         .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
                 }
             }
+
+            var assetCollector = new LinkedHashSet<String>();
+            collectAssetPaths(languageDir, "", assetCollector);
+            for (String assetPath : assetCollector) {
+                synchronized (assetPackIndex) {
+                    assetPackIndex
+                        .computeIfAbsent(
+                            new ResourceLocation(namespaceRoot.namespace(), folder + "/" + language + "/" + assetPath),
+                            k -> new ArrayList<>())
+                        .add(new PackCandidate(resourcePack, 0, pagePackOrder.getAndIncrement()));
+                    assetPackIndex
+                        .computeIfAbsent(
+                            new ResourceLocation(namespaceRoot.namespace(), folder + "/" + assetPath),
+                            k -> new ArrayList<>())
+                        .add(new PackCandidate(resourcePack, 0, pagePackOrder.getAndIncrement()));
+                }
+            }
         }
     }
 
@@ -433,7 +517,7 @@ public class DataDrivenGuideLoader {
                 if (!pagePath.isEmpty()) pagePaths.add(pagePath);
             }
         } catch (IOException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [DataDrivenGuideLoader] Failed to scan zip for pages: {}",
                 resourcePackFile.getAbsolutePath(),
                 e);
@@ -451,6 +535,22 @@ public class DataDrivenGuideLoader {
                 .endsWith(".md")) {
                     pagePaths.add(childPath);
                 }
+        }
+    }
+
+    private static void collectAssetPaths(File directory, String relativePath, Set<String> assetPaths) {
+        var children = directory.listFiles();
+        if (children == null) return;
+        for (var child : children) {
+            String childPath = relativePath.isEmpty() ? child.getName() : relativePath + "/" + child.getName();
+            if (child.isDirectory()) {
+                collectAssetPaths(child, childPath, assetPaths);
+            } else if (child.isFile() && !child.getName()
+                .endsWith(".md")
+                && !child.getName()
+                    .endsWith(".lang")) {
+                        assetPaths.add(childPath);
+                    }
         }
     }
 
@@ -499,7 +599,7 @@ public class DataDrivenGuideLoader {
         try {
             return ((AccessorAbstractResourcePack) resourcePack).guidenh$getResourcePackFile();
         } catch (RuntimeException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [DataDrivenGuideLoader] Failed to resolve backing file for pack {}",
                 resourcePack.getPackName(),
                 e);
@@ -517,7 +617,7 @@ public class DataDrivenGuideLoader {
             if (value instanceof Path path) return path.toFile();
             if (value instanceof File file) return file;
         } catch (IllegalAccessException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [DataDrivenGuideLoader] Failed to resolve directory root for pack {}",
                 resourcePack.getPackName(),
                 e);
@@ -555,7 +655,7 @@ public class DataDrivenGuideLoader {
             var basePacks = accessor.guidenh$getResourcePackList();
             if (basePacks != null) resourcePacks.addAll(basePacks);
         } catch (RuntimeException e) {
-            GuideDebugLog.warnAlways("[GuideNH] [DataDrivenGuideLoader] Failed to inspect base resource packs", e);
+            GuideDebugLog.warn("[GuideNH] [DataDrivenGuideLoader] Failed to inspect base resource packs", e);
         }
         var repository = Minecraft.getMinecraft()
             .getResourcePackRepository();
@@ -588,7 +688,7 @@ public class DataDrivenGuideLoader {
                 }
             }
         } catch (RuntimeException e) {
-            GuideDebugLog.warnAlways("[GuideNH] [DataDrivenGuideLoader] Failed to inspect resource manager packs", e);
+            GuideDebugLog.warn("[GuideNH] [DataDrivenGuideLoader] Failed to inspect resource manager packs", e);
         }
     }
 
@@ -613,7 +713,7 @@ public class DataDrivenGuideLoader {
         } catch (IOException e) {
             return null;
         } catch (RuntimeException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [DataDrivenGuideLoader] readBytes failed for {} from pack {}: {}",
                 resourceLocation,
                 resourcePack.getPackName(),

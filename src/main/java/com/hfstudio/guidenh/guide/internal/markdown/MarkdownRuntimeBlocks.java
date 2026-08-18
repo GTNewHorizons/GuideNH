@@ -11,6 +11,8 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstBlockquote;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public class MarkdownRuntimeBlocks {
@@ -47,6 +49,16 @@ public class MarkdownRuntimeBlocks {
 
     public static @Nullable BlockquoteDirective parseBlockquoteDirective(MdxJsxElementFields blockquote) {
         FirstParagraphText firstParagraph = findFirstParagraphText(blockquote);
+        return parseBlockquoteDirective(firstParagraph, blockquote.children());
+    }
+
+    public static @Nullable BlockquoteDirective parseBlockquoteDirective(MdAstBlockquote blockquote) {
+        FirstParagraphText firstParagraph = findFirstParagraphText(blockquote);
+        return parseBlockquoteDirective(firstParagraph, blockquote.children());
+    }
+
+    private static @Nullable BlockquoteDirective parseBlockquoteDirective(@Nullable FirstParagraphText firstParagraph,
+        List<? extends MdAstAnyContent> children) {
         if (firstParagraph == null) {
             return null;
         }
@@ -67,7 +79,7 @@ public class MarkdownRuntimeBlocks {
                 new QuoteIconSpec(QuoteIconKind.TEXT, alertType.symbol()),
                 trimLeadingDirectiveText(firstText, directiveEnd >= 0 ? directiveEnd + 1 : 0),
                 firstParagraph.paragraph(),
-                blockquote.children());
+                children);
         }
 
         String trimmed = firstText.trim();
@@ -118,14 +130,14 @@ public class MarkdownRuntimeBlocks {
             icon,
             trimLeadingDirectiveText(trimmed, directiveEnd + 1),
             firstParagraph.paragraph(),
-            blockquote.children());
+            children);
     }
 
     @Nullable
     private static FirstParagraphText findFirstParagraphText(MdxJsxElementFields blockquote) {
         for (Object child : blockquote.children()) {
             if (child instanceof MdxJsxFlowElement p && "p".equals(p.name())) {
-                String text = getLeadingParagraphText(p);
+                String text = getLeadingParagraphText(p.children());
                 if (text != null && !text.trim()
                     .isEmpty()) {
                     return new FirstParagraphText(p, text);
@@ -141,8 +153,27 @@ public class MarkdownRuntimeBlocks {
     }
 
     @Nullable
-    private static String getLeadingParagraphText(MdxJsxFlowElement paragraph) {
-        for (Object child : paragraph.children()) {
+    private static FirstParagraphText findFirstParagraphText(MdAstBlockquote blockquote) {
+        for (MdAstAnyContent child : blockquote.children()) {
+            if (child instanceof MdAstParagraph paragraph) {
+                String text = getLeadingParagraphText(paragraph.children());
+                if (text != null && !text.trim()
+                    .isEmpty()) {
+                    return new FirstParagraphText(paragraph, text);
+                }
+            } else if (child instanceof MdAstText text) {
+                if (!text.value.trim()
+                    .isEmpty()) {
+                    return new FirstParagraphText(text, text.value);
+                }
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static String getLeadingParagraphText(Iterable<? extends MdAstAnyContent> children) {
+        for (MdAstAnyContent child : children) {
             if (child instanceof MdAstText text) {
                 if (!text.value.trim()
                     .isEmpty()) {
@@ -249,7 +280,7 @@ public class MarkdownRuntimeBlocks {
     @Desugar
     public record BlockquoteDirective(@Nullable GithubAlertType alertType, ColorValue accentColor,
         @Nullable String title, @Nullable QuoteIconSpec icon, String remainingText,
-        @Nullable MdxJsxFlowElement firstParagraph, List<? extends MdAstAnyContent> children) {}
+        @Nullable MdAstAnyContent firstParagraph, List<? extends MdAstAnyContent> children) {}
 
     @Desugar
     public record QuoteIconSpec(QuoteIconKind kind, String value) {}
@@ -261,7 +292,7 @@ public class MarkdownRuntimeBlocks {
     }
 
     @Desugar
-    private record FirstParagraphText(@Nullable MdxJsxFlowElement paragraph, String text) {}
+    private record FirstParagraphText(@Nullable MdAstAnyContent paragraph, String text) {}
 
     @Desugar
     public record GithubAlertBlock(GithubAlertType type, List<? extends MdAstAnyContent> children,

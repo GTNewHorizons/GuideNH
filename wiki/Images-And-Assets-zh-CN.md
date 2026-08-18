@@ -234,6 +234,18 @@ tooltip 或边框，也可以直接在 `<ImageAnnotation>` 上写 `sound`。
 <ItemImage id="minecraft:diamond" align="right" />
 ````
 
+物品 NBT 可以单独写在 `nbt` 属性中。`id` 中的内联 SNBT 仍然支持；两种写法同时存在时，
+独立的 `nbt` 属性最后合并。
+
+````md
+<ItemImage id="minecraft:diamond" nbt='{display:{Name:"自定义钻石"}}' />
+<ItemImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+/>
+````
+
 > **注意** — `wrap="inline"` 现在会让 `<FloatingImage>` 真正作为行内内容放置。
 > 在 inline 模式下，`align` 会被忽略，而不是报错。
 

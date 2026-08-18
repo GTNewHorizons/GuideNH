@@ -126,6 +126,18 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         GuidePreviewStateSupport.prepare(this);
     }
 
+    /**
+     * Prepares render state for a static export without advancing the fake world's entities.
+     */
+    public void prepareForStaticExport() {
+        if (!previewStateDirty) {
+            return;
+        }
+        previewStateDirty = false;
+        rebindAllTileEntities();
+        GuidePreviewStateSupport.prepare(this);
+    }
+
     public void setBlock(int x, int y, int z, @Nullable Block block, int meta, @Nullable TileEntity tileEntity) {
         if (y < 0 || y >= 256) return;
 

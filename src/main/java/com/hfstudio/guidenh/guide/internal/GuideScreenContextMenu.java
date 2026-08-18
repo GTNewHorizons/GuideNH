@@ -32,6 +32,8 @@ public class GuideScreenContextMenu {
     }
 
     public enum ContextMenuAction {
+        EXPAND_ALL,
+        COLLAPSE_ALL,
         OPEN_SPECIAL_PAGES,
         CREATE_NEW_PAGE,
         OPEN_CONTAINING_FOLDER

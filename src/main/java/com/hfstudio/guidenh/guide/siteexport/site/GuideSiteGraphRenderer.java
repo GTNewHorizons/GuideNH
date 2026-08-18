@@ -25,6 +25,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIcon;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeIconKind;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.FileTreeModel;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
@@ -58,6 +59,8 @@ public class GuideSiteGraphRenderer {
     private static final int PADDING = 8;
     private static final int TITLE_H = 10;
     private static final int TITLE_GAP = 4;
+    private static final int AXIS_TITLE_H = 10;
+    private static final int AXIS_TITLE_GAP = 4;
     private static final int AXIS_PAD_LEFT = 28;
     private static final int AXIS_PAD_BOTTOM = 14;
     private static final int LEGEND_SWATCH = 8;
@@ -90,6 +93,10 @@ public class GuideSiteGraphRenderer {
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace("\"", "&quot;");
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isEmpty();
     }
 
     // Color conversion.
@@ -2041,6 +2048,10 @@ public class GuideSiteGraphRenderer {
     // Function graph.
 
     public static String renderFunctionGraph(LytFunctionGraph graph) {
+        return renderFunctionGraph(graph, null);
+    }
+
+    public static String renderFunctionGraph(LytFunctionGraph graph, @Nullable GuideSiteLatexExporter latexExporter) {
         int w = graph.getExplicitWidth() > 0 ? graph.getExplicitWidth() : GRAPH_DEFAULT_W;
         int h = graph.getExplicitHeight() > 0 ? graph.getExplicitHeight() : GRAPH_DEFAULT_H;
         String title = graph.getTitle();
@@ -2089,6 +2100,8 @@ public class GuideSiteGraphRenderer {
             w,
             h,
             title,
+            graph.getXLabel(),
+            graph.getYLabel(),
             bgColor,
             borderColor,
             axisColor,
@@ -2102,7 +2115,8 @@ public class GuideSiteGraphRenderer {
             graph.getCornerLegendPosition(),
             graph.getCornerLegendWidth(),
             graph.getCornerLegendHeight(),
-            graph.getCornerLegendBackgroundColor());
+            graph.getCornerLegendBackgroundColor(),
+            latexExporter);
     }
 
     public static String renderFunctionGraphSvg(List<FunctionPlot> plots, List<MarkedPoint> points, int w, int h,
@@ -2114,6 +2128,8 @@ public class GuideSiteGraphRenderer {
             w,
             h,
             title,
+            null,
+            null,
             bgColor,
             borderColor,
             axisColor,
@@ -2127,22 +2143,62 @@ public class GuideSiteGraphRenderer {
             CornerLegendPosition.NONE,
             CornerLegendRenderer.DEFAULT_WIDTH,
             CornerLegendRenderer.DEFAULT_HEIGHT,
-            CornerLegendRenderer.DEFAULT_BACKGROUND);
+            CornerLegendRenderer.DEFAULT_BACKGROUND,
+            null);
     }
 
     public static String renderFunctionGraphSvg(List<FunctionPlot> plots, List<MarkedPoint> points, int w, int h,
         String title, int bgColor, int borderColor, int axisColor, int gridColor, boolean showGrid, boolean showAxes,
         double xMin, double xMax, double yMin, double yMax, CornerLegendPosition cornerLegendPosition,
-        int cornerLegendWidth, int cornerLegendHeight, int cornerLegendBackgroundColor) {
+        int cornerLegendWidth, int cornerLegendHeight, int cornerLegendBackgroundColor,
+        @Nullable GuideSiteLatexExporter latexExporter) {
+
+        return renderFunctionGraphSvg(
+            plots,
+            points,
+            w,
+            h,
+            title,
+            null,
+            null,
+            bgColor,
+            borderColor,
+            axisColor,
+            gridColor,
+            showGrid,
+            showAxes,
+            xMin,
+            xMax,
+            yMin,
+            yMax,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackgroundColor,
+            latexExporter);
+    }
+
+    public static String renderFunctionGraphSvg(List<FunctionPlot> plots, List<MarkedPoint> points, int w, int h,
+        String title, String xLabel, String yLabel, int bgColor, int borderColor, int axisColor, int gridColor,
+        boolean showGrid, boolean showAxes, double xMin, double xMax, double yMin, double yMax,
+        CornerLegendPosition cornerLegendPosition, int cornerLegendWidth, int cornerLegendHeight,
+        int cornerLegendBackgroundColor, @Nullable GuideSiteLatexExporter latexExporter) {
 
         int titleBottom = computeTitleBottom(title);
         int leftPad = showAxes ? AXIS_PAD_LEFT : PADDING;
         int bottomPad = showAxes ? AXIS_PAD_BOTTOM : PADDING;
+        List<SeriesData> legendItems = new ArrayList<>();
+        for (FunctionPlot plot : plots) {
+            if (hasText(plot.getLabel())) {
+                legendItems.add(new SeriesData(plot.getLabel(), plot.getColor(), new double[0], new double[0]));
+            }
+        }
+        int legendH = computeLegendH(legendItems, !legendItems.isEmpty(), w);
 
         int left = PADDING + leftPad;
         int right = w - PADDING;
-        int top = titleBottom;
-        int bottom = h - PADDING - bottomPad;
+        int top = titleBottom + (hasText(yLabel) ? AXIS_TITLE_H + AXIS_TITLE_GAP : 0);
+        int bottom = h - PADDING - bottomPad - legendH - (hasText(xLabel) ? AXIS_TITLE_H + AXIS_TITLE_GAP : 0);
         int plotW = Math.max(1, right - left);
         int plotH = Math.max(1, bottom - top);
 
@@ -2185,6 +2241,7 @@ public class GuideSiteGraphRenderer {
             .append("\"/></clipPath></defs>");
 
         appendTitle(svg, title, w);
+        appendFunctionGraphLabel(svg, yLabel, left, top - AXIS_TITLE_GAP, false, axisColor, latexExporter);
 
         String gridCss = argbToRgba(gridColor);
         String axisCss = argbToRgba(axisColor);
@@ -2298,8 +2355,6 @@ public class GuideSiteGraphRenderer {
             .append(")\">");
         for (FunctionPlot plot : plots) {
             String stroke = argbToRgba(plot.getColor());
-            String tip = plot.getLabel() != null && !plot.getLabel()
-                .isEmpty() ? plot.getLabel() : plot.getExpressionText();
             StringBuilder pts = new StringBuilder();
             boolean inSeg = false;
             for (int i = 0; i <= N_SAMPLES; i++) {
@@ -2307,7 +2362,7 @@ public class GuideSiteGraphRenderer {
                 double y = plot.evaluate(x);
                 if (!Double.isFinite(y)) {
                     if (inSeg && !pts.isEmpty()) {
-                        flushPolyline(svg, pts, stroke, tip);
+                        flushPolyline(svg, pts, stroke, plot);
                         pts.setLength(0);
                         inSeg = false;
                     }
@@ -2324,7 +2379,7 @@ public class GuideSiteGraphRenderer {
                 inSeg = true;
             }
             if (inSeg && !pts.isEmpty()) {
-                flushPolyline(svg, pts, stroke, tip);
+                flushPolyline(svg, pts, stroke, plot);
             }
         }
 
@@ -2377,9 +2432,90 @@ public class GuideSiteGraphRenderer {
             cornerLegendWidth,
             cornerLegendHeight,
             cornerLegendBackgroundColor);
+        if (!legendItems.isEmpty()) {
+            renderLegend(svg, legendItems, left, bottom + bottomPad + LEGEND_GAP, w - 2 * PADDING);
+        }
+        appendFunctionGraphLabel(
+            svg,
+            xLabel,
+            left + plotW / 2,
+            bottom + bottomPad + legendH,
+            true,
+            axisColor,
+            latexExporter);
         return svg.append("</svg></div>")
             .toString();
     }
+
+    private static void appendFunctionGraphLabel(StringBuilder svg, @Nullable String text, int x, int baseline,
+        boolean centered, int color, @Nullable GuideSiteLatexExporter latexExporter) {
+        if (!hasText(text)) {
+            return;
+        }
+        List<FunctionGraphLabelSegment> segments = new ArrayList<>();
+        int totalWidth = 0;
+        for (MarkdownLatexShorthand.Segment segment : MarkdownLatexShorthand.split(text)) {
+            GuideSiteLatexExporter.ExportedLatex exported = segment.isFormula() && latexExporter != null
+                ? latexExporter.export(segment.getValue(), color, 100f)
+                : null;
+            String fallback = segment.isFormula() ? "$$" + segment.getValue() + "$$" : segment.getValue();
+            int width = exported != null
+                ? Math.max(1, Math.round((float) exported.widthPx() * 10f / exported.referenceHeightPx()))
+                : estimateFunctionGraphLabelWidth(fallback);
+            int height = exported != null
+                ? Math.max(1, Math.round((float) exported.heightPx() * 10f / exported.referenceHeightPx()))
+                : 0;
+            segments.add(new FunctionGraphLabelSegment(fallback, exported, width, height));
+            totalWidth += width;
+        }
+        int cursorX = centered ? x - totalWidth / 2 : x;
+        String cssColor = argbToRgba(color);
+        for (FunctionGraphLabelSegment segment : segments) {
+            if (segment.exported() == null) {
+                svg.append("<text x=\"")
+                    .append(cursorX)
+                    .append("\" y=\"")
+                    .append(baseline)
+                    .append("\" font-size=\"8\" fill=\"")
+                    .append(cssColor)
+                    .append("\" font-family=\"inherit\">")
+                    .append(esc(segment.text()))
+                    .append("</text>");
+            } else {
+                svg.append("<image href=\"")
+                    .append(
+                        esc(
+                            segment.exported()
+                                .src()))
+                    .append("\" x=\"")
+                    .append(cursorX)
+                    .append("\" y=\"")
+                    .append(baseline - segment.height() + 2)
+                    .append("\" width=\"")
+                    .append(segment.width())
+                    .append("\" height=\"")
+                    .append(segment.height())
+                    .append("\" preserveAspectRatio=\"none\"/>");
+            }
+            cursorX += segment.width();
+        }
+    }
+
+    private static int estimateFunctionGraphLabelWidth(String text) {
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        int width = 0;
+        for (int offset = 0; offset < text.length();) {
+            int codePoint = text.codePointAt(offset);
+            width += codePoint <= 0x7F ? 5 : 8;
+            offset += Character.charCount(codePoint);
+        }
+        return width;
+    }
+
+    private record FunctionGraphLabelSegment(String text, @Nullable GuideSiteLatexExporter.ExportedLatex exported,
+        int width, int height) {}
 
     private static void renderFunctionGraphAutoPoints(StringBuilder svg, List<FunctionPlot> plots, int left, int right,
         int top, int bottom, int plotW, int plotH, double xMin, double xMax, double yMin, double yMax) {
@@ -2837,7 +2973,7 @@ public class GuideSiteGraphRenderer {
     }
 
     private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke) {
-        flushPolyline(svg, pts, stroke, null);
+        flushPolyline(svg, pts, stroke, (String) null);
     }
 
     private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke, @Nullable String tip) {
@@ -2853,6 +2989,37 @@ public class GuideSiteGraphRenderer {
         } else {
             svg.append("/>");
         }
+    }
+
+    private static void flushPolyline(StringBuilder svg, StringBuilder pts, String stroke, FunctionPlot plot) {
+        String tip = plot.getLabel() != null && !plot.getLabel()
+            .isEmpty() ? plot.getLabel() : plot.getExpressionText();
+        svg.append("<polyline class=\"guide-chart-shape\" points=\"")
+            .append(pts)
+            .append("\" stroke=\"")
+            .append(stroke)
+            .append("\" stroke-width=\"1.5\" fill=\"none\"")
+            .append(" data-plot-label=\"")
+            .append(esc(plot.getLabel() != null ? plot.getLabel() : ""))
+            .append("\" data-plot-expression=\"")
+            .append(esc(plot.getExpressionText()))
+            .append("\" data-plot-inverse=\"")
+            .append(plot.isInverse())
+            .append("\" data-plot-show-function=\"")
+            .append(plot.isShowFunction())
+            .append("\" data-plot-show-values=\"")
+            .append(plot.isShowValues())
+            .append("\" data-plot-tooltip=\"")
+            .append(esc(plot.getTooltipText() != null ? plot.getTooltipText() : ""))
+            .append("\" data-plot-tooltip-html=\"")
+            .append(esc(plot.getSiteTooltipHtml() != null ? plot.getSiteTooltipHtml() : ""))
+            .append("\">");
+        if (!tip.isEmpty()) {
+            svg.append("<title>")
+                .append(esc(tip))
+                .append("</title>");
+        }
+        svg.append("</polyline>");
     }
 
     /**

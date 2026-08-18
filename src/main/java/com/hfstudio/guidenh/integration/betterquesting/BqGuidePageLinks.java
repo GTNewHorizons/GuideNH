@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,7 +42,7 @@ public class BqGuidePageLinks {
 
         clearCachesIfStale();
         if (text.length() > MAX_CACHEABLE_TEXT_LENGTH) {
-            return replaceGuideTagsUncached(text);
+            return replaceGuideTagsUncached(text, BqGuidePageLinks::createUriLink);
         }
 
         String cached = TEXT_CACHE.get(text);
@@ -49,8 +50,19 @@ public class BqGuidePageLinks {
             return cached;
         }
 
-        String converted = replaceGuideTagsUncached(text);
+        String converted = replaceGuideTagsUncached(text, BqGuidePageLinks::createUriLink);
         return putBounded(TEXT_CACHE, text, converted);
+    }
+
+    public static String replaceGuideTags(String text, BiFunction<String, String, String> interactiveTextFactory) {
+        if (text == null || !text.contains("[guide")) {
+            return text;
+        }
+
+        clearCachesIfStale();
+        return replaceGuideTagsUncached(
+            text,
+            (anchor, label) -> interactiveTextFactory.apply(anchor.toString(), label));
     }
 
     public static boolean isGuideUri(@Nullable String url) {
@@ -106,14 +118,19 @@ public class BqGuidePageLinks {
         if (anchor == null) {
             return null;
         }
+        return putBounded(TOOLTIP_CACHE, url, getTooltip(anchor));
+    }
+
+    public static List<String> getTooltip(PageAnchor anchor) {
         GuidePageLinkTarget target = GuidePageLinkTarget.resolve(anchor);
         List<String> tooltip = List.of(
             EnumChatFormatting.AQUA + I18n.format("guidenh.compat.bq.open_guide_page"),
             EnumChatFormatting.GRAY + target.title());
-        return putBounded(TOOLTIP_CACHE, url, tooltip);
+        return tooltip;
     }
 
-    private static String replaceGuideTagsUncached(String text) {
+    private static String replaceGuideTagsUncached(String text,
+        BiFunction<PageAnchor, String, String> interactiveTextFactory) {
         Matcher matcher = GUIDE_TAG.matcher(text);
         StringBuffer result = new StringBuffer(text.length());
         while (matcher.find()) {
@@ -133,15 +150,13 @@ public class BqGuidePageLinks {
             String label = explicitText != null && !explicitText.isEmpty() ? explicitText
                 : GuidePageLinkTarget.resolve(anchor)
                     .title();
-            matcher.appendReplacement(
-                result,
-                Matcher.quoteReplacement("[url link=" + toUri(anchor) + "]" + label + "[/url]"));
+            matcher.appendReplacement(result, Matcher.quoteReplacement(interactiveTextFactory.apply(anchor, label)));
         }
         matcher.appendTail(result);
         return result.toString();
     }
 
-    private static @Nullable PageAnchor parsePageSpec(String pageSpec) {
+    public static @Nullable PageAnchor parsePageSpec(String pageSpec) {
         Optional<PageAnchor> cached = PAGE_SPEC_CACHE.get(pageSpec);
         if (cached != null) {
             return cached.orElse(null);
@@ -193,8 +208,8 @@ public class BqGuidePageLinks {
         }
     }
 
-    private static String toUri(PageAnchor anchor) {
-        return URI_SCHEME + ":" + anchor;
+    private static String createUriLink(PageAnchor anchor, String label) {
+        return "[url link=" + URI_SCHEME + ":" + anchor + "]" + label + "[/url]";
     }
 
     private static @Nullable String firstNonBlank(@Nullable String first, @Nullable String second) {

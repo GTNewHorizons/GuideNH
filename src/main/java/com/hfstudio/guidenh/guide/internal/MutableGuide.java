@@ -23,7 +23,6 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
-import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageChange;
@@ -170,7 +169,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     @Nullable
     public ParsedGuidePage getParsedPage(ResourceLocation id) {
         if (pages == null) {
-            GuideDebugLog.warnAlways("[GuideNH] [MutableGuide] Can't get page {}. Pages not loaded yet.", id);
+            GuideDebugLog.warn("[GuideNH] [MutableGuide] Can't get page {}. Pages not loaded yet.", id);
             return null;
         }
 
@@ -236,18 +235,32 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     @Override
     public byte[] loadAsset(ResourceLocation id) {
         var language = LangUtil.getCurrentLanguage();
-        var result = loadAssetInternal(LangUtil.getTranslatedAsset(id, language));
+
+        // Candidate order: current-language variant, default-language variant, plain path.
+        // The first one that resolves wins. Intermediate probes must NOT log — the language
+        // variants are expected to miss for locale-independent assets (kept under the guide
+        // content root rather than under a `_<lang>/` folder), so we only report a failure
+        // once every candidate has been tried.
+        byte[] result = readAssetPath(LangUtil.getTranslatedAsset(id, language));
         if (result != null) return result;
 
         if (!Objects.equals(language, defaultLanguage)) {
-            result = loadAssetInternal(LangUtil.getTranslatedAsset(id, defaultLanguage));
+            result = readAssetPath(LangUtil.getTranslatedAsset(id, defaultLanguage));
             if (result != null) return result;
         }
 
-        return loadAssetInternal(id);
+        result = readAssetPath(id);
+        if (result != null) return result;
+
+        GuideDebugLog.error("[GuideNH] [MutableGuide] Failed to open guidebook asset {}", id);
+        return null;
     }
 
-    private byte @Nullable [] loadAssetInternal(ResourceLocation id) {
+    /**
+     * Reads the bytes for one concrete asset id. Performs no language fallback and does not log
+     * a "miss" — callers own the policy (which candidates to try and when to report failure).
+     */
+    private byte @Nullable [] readAssetPath(ResourceLocation id) {
         // Also load assets from the development sources folder.
         if (canLoadDevelopmentSource(id)) {
             var path = resolveDevelopmentSourcePath(id);
@@ -262,16 +275,10 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         // Transform id such that the path is prefixed with the source folder for the guidebook assets
         id = new ResourceLocation(id.getResourceDomain(), folder + "/" + id.getResourcePath());
 
-        var bytes = GuideResourceAccess.readBytes(
+        return GuideResourceAccess.readBytes(
             Minecraft.getMinecraft()
                 .getResourceManager(),
             id);
-        if (bytes != null) {
-            return bytes;
-        }
-
-        GuideDebugLog.error("[GuideNH] [MutableGuide] Failed to open guidebook asset {}", id);
-        return null;
     }
 
     @Override
@@ -375,7 +382,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         mediaWikiSpecialDataIndex = null;
         fallbackMediaWikiListContextRevision = Long.MIN_VALUE;
         requestedMediaWikiWarmupRevision = Long.MIN_VALUE;
-        GuideDebugLog.infoAlways(
+        GuideDebugLog.info(
             "[GuideNH] [MutableGuide] Closed guide {} and cleared caches developmentPages={}, syntheticPages={}, failures={}",
             id,
             developmentPageCount,
@@ -460,9 +467,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     public void validateAll() {
         // Iterate and compile all pages to warn about errors on startup
         for (var entry : developmentPages.entrySet()) {
-            if (ModConfig.debug.enableDebugMode) {
-                GuideDebugLog.infoAlways("[GuideNH] [MutableGuide] Compiling {}", entry.getKey());
-            }
+            GuideDebugLog.info("[GuideNH] [MutableGuide] Compiling {}", entry.getKey());
             getPage(entry.getKey());
         }
     }
@@ -632,7 +637,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             syntheticSourceCache,
             this::parseSyntheticPage);
         syntheticPages = Map.copyOf(rebuiltPages);
-        GuideDebugLog.infoAlways(
+        GuideDebugLog.info(
             "[GuideNH] [MutableGuide] Rebuilt {} synthetic pages in {} ms for guide {}",
             syntheticPages.size(),
             nanosToMillis(System.nanoTime() - startNanos),
@@ -684,13 +689,11 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             }
         }
         NavigationTree navigationSnapshot = aggregatedGuide.getNavigationTree();
-        if (ModConfig.debug.enableDebugMode) {
-            GuideDebugLog.infoAlways(
-                "[GuideNH] [MutableGuide] Scheduling MediaWiki cache warmup for guide {} revision {} with {} pages",
-                id,
-                revision,
-                pagesSnapshot.size());
-        }
+        GuideDebugLog.info(
+            "[GuideNH] [MutableGuide] Scheduling MediaWiki cache warmup for guide {} revision {} with {} pages",
+            id,
+            revision,
+            pagesSnapshot.size());
         mediaWikiRefreshController.requestRefresh(revision, () -> {
             try {
                 long startNanos = System.nanoTime();
@@ -713,21 +716,19 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
                     fallbackMediaWikiListContext = listContext;
                     fallbackMediaWikiListContextRevision = revision;
                 }
-                if (ModConfig.debug.enableDebugMode) {
-                    GuideDebugLog.infoAlways(
-                        "[GuideNH] [MutableGuide] Warmed MediaWiki caches asynchronously in {} ms for guide {} revision {} with {} pages",
-                        nanosToMillis(System.nanoTime() - startNanos),
-                        id,
-                        revision,
-                        pagesSnapshot.size());
-                }
+                GuideDebugLog.info(
+                    "[GuideNH] [MutableGuide] Warmed MediaWiki caches asynchronously in {} ms for guide {} revision {} with {} pages",
+                    nanosToMillis(System.nanoTime() - startNanos),
+                    id,
+                    revision,
+                    pagesSnapshot.size());
             } catch (Throwable t) {
                 synchronized (this) {
                     if (requestedMediaWikiWarmupRevision == revision) {
                         requestedMediaWikiWarmupRevision = Long.MIN_VALUE;
                     }
                 }
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [MutableGuide] Failed to warm MediaWiki caches asynchronously for guide {} revision {}",
                     id,
                     revision,

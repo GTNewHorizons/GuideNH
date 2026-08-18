@@ -292,7 +292,7 @@ public class GuideSiteWriter {
             .append(escapeHtml(uiText.searchEmptyTemplate()))
             .append("\" hidden></div>");
         html.append("</div>");
-        html.append("<nav class=\"guide-nav\"><ul>");
+        html.append("<nav class=\"guide-nav\" data-guide-navigation><ul>");
         for (NavigationNode node : tree.getRootNodes()) {
             appendNavigationNode(
                 html,
@@ -510,12 +510,26 @@ public class GuideSiteWriter {
         html.append("<span class=\"guide-search-label\">")
             .append(escapeHtml(uiText.languagesLabel()))
             .append("</span>");
-        html.append("<div class=\"guide-language-links\">");
+        html.append("<div class=\"guide-language-menu\" data-guide-language-menu>");
+        html.append(
+            "<button type=\"button\" class=\"guide-language-menu-trigger\" "
+                + "data-guide-language-menu-trigger aria-haspopup=\"listbox\" aria-expanded=\"false\">");
         String normalizedCurrentLanguage = normalizeLanguage(currentLanguage);
+        String currentLabel = "";
+        for (GuideSiteLanguageLink link : languageLinks) {
+            if (normalizedCurrentLanguage.equals(normalizeLanguage(link.language()))) {
+                currentLabel = uiText.languageLabel(link.language());
+                break;
+            }
+        }
+        html.append(escapeHtml(currentLabel.isEmpty() ? uiText.languageLabel(currentLanguage) : currentLabel))
+            .append("</button>");
+        html.append(
+            "<div class=\"guide-language-menu-options\" data-guide-language-menu-options role=\"listbox\" hidden>");
         for (GuideSiteLanguageLink link : languageLinks) {
             String normalizedLinkLanguage = normalizeLanguage(link.language());
             boolean current = normalizedCurrentLanguage.equals(normalizedLinkLanguage);
-            html.append("<a class=\"guide-language-link");
+            html.append("<a class=\"guide-language-menu-option");
             if (current) {
                 html.append(" is-current");
             }
@@ -547,7 +561,7 @@ public class GuideSiteWriter {
             }
             html.append("</a>");
         }
-        html.append("</div></div>");
+        html.append("</div></div></div>");
     }
 
     private Map<String, Object> navigationNodeData(String language, NavigationNode node) {
@@ -574,7 +588,23 @@ public class GuideSiteWriter {
         ResourceLocation currentPageId, GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver,
         @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
-        html.append("<li>");
+        boolean hasChildren = !node.children()
+            .isEmpty();
+        String nodeId = navigationNodeId(node);
+        html.append("<li data-guide-nav-node=\"")
+            .append(escapeHtml(nodeId))
+            .append("\"");
+        if (hasChildren) {
+            html.append(" data-guide-nav-expanded=\"true\"");
+        }
+        html.append(">");
+        if (hasChildren) {
+            html.append(
+                "<button type=\"button\" class=\"guide-nav-toggle\" data-guide-nav-toggle "
+                    + "aria-expanded=\"true\"><span aria-hidden=\"true\"></span></button>");
+        } else {
+            html.append("<span class=\"guide-nav-toggle-spacer\" aria-hidden=\"true\"></span>");
+        }
         if (node.pageId() != null) {
             String href = pageUrlForNode(language, node);
             html.append("<a href=\"")
@@ -606,8 +636,7 @@ public class GuideSiteWriter {
                         assetExportersByGuideId))
                 .append("</span>");
         }
-        if (!node.children()
-            .isEmpty()) {
+        if (hasChildren) {
             html.append("<ul>");
             for (NavigationNode child : node.children()) {
                 appendNavigationNode(
@@ -622,6 +651,15 @@ public class GuideSiteWriter {
             html.append("</ul>");
         }
         html.append("</li>");
+    }
+
+    private String navigationNodeId(NavigationNode node) {
+        if (node.pageId() != null) {
+            return "page:" + node.pageId();
+        }
+        String guide = node.guideId() != null ? node.guideId()
+            .toString() : "";
+        return "group:" + guide + ":" + node.position() + ":" + node.title();
     }
 
     private String pageUrlForNode(String language, NavigationNode node) {

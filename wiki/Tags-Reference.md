@@ -346,6 +346,7 @@ Shows an inline item icon.
 | --- | --- |
 | `ore` | ore dictionary name; the first match wins |
 | `id` | item reference used when `ore` is absent |
+| `nbt` | optional SNBT item data; merged onto any inline SNBT in `id` |
 | `scale` | float, default `1` |
 | `noTooltip` | truthy string or empty attribute suppresses tooltip (legacy; prefer `showTooltip`) |
 | `showTooltip` | boolean, default `true`; `false` suppresses the hover tooltip |
@@ -361,6 +362,7 @@ Notes:
 - if GregTech is installed, the selected ore match is passed through `GTOreDictUnificator.setStack(...)`
 - `label` requires at least one of `showIcon` or `label` to produce visible output; setting both `showIcon="false"` and omitting `label` renders nothing
 - `format` only applies when `label` is set; if `format` has no `%s`, the literal format text is used as the label
+- inline SNBT in `id` remains supported; when both forms are present, the standalone `nbt` attribute is merged last and overrides conflicting keys
 
 Example:
 
@@ -372,6 +374,12 @@ Example:
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
 <ItemImage id="minecraft:book" showIcon="false" label="right" format="~~%s~~" />
 <ItemImage id="minecraft:emerald" label="right" showTooltip="false" />
+<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+<ItemImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+/>
 ````
 
 ### `<ItemLink>`
@@ -385,12 +393,14 @@ Creates a text link using the item's display name and item tooltip. If `item_ids
 | `linksTo` | *(auto)* | overrides the link target; accepts a page id with optional `#anchor`, e.g. `./crafting.md#usage` or `#usage`; when omitted the target is resolved from `item_ids` / `ore_ids` index |
 | `showTooltip` | `true` | set to `false` to suppress the hover tooltip; `noTooltip` is a legacy alias |
 | `showIcon` | *(none)* | `left` or `right` (or any truthy value → right) — renders the item icon beside the link text; omit to show text only |
+| `scale` | `1.0` | display scale for the optional item icon; has no effect when `showIcon` is omitted |
 
 Examples:
 
 ````md
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" />
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" showIcon="left" />
+<ItemLink id="minecraft:diamond" showIcon="left" scale="2" />
 <ItemLink id="minecraft:diamond" showIcon="right" showTooltip="false" />
 <ItemLink ore="stickWood" />
 <ItemLink id="minecraft:iron_ore" linksTo="./crafting.md#smelting" />
@@ -631,18 +641,18 @@ Top-aligned with an upward nudge: <Latex formula="x^2" valign="top" offsetY="-1"
 <Latex formula="\begin{pmatrix} a & b \\ c & d \end{pmatrix} \begin{pmatrix} x \\ y \end{pmatrix} = \begin{pmatrix} ax+by \\ cx+dy \end{pmatrix}" />
 ````
 
-#### `$formula$` / `$$formula$$` shorthand
+#### `$$formula$$` shorthand
 
-As a convenience you can write `$formula$` directly in Markdown text for inline formulas, or `$$formula$$` as a standalone display formula, without using the `<Latex>` tag.
+As a convenience you can write `$$formula$$` directly in Markdown without using the `<Latex>` tag.
 All rendering parameters use their defaults (white colour, scale 1.0, no tooltip, baseline-aligned).
 
-- **Inline**: `$formula$` embedded inside a paragraph renders as an inline formula.
+- **Inline**: `$$formula$$` embedded inside a paragraph renders as an inline formula.
 - **Display**: a paragraph whose entire content is `$$formula$$` (with optional surrounding whitespace) renders as a centred display-mode block.
 
 ````md
-Inline shorthand: $E=mc^2$ and $a^2+b^2=c^2$
+Inline shorthand: $$E=mc^2$$ and $$a^2+b^2=c^2$$
 
-Inline fraction: $\frac{a+b}{c-d}$
+Inline fraction: $$\frac{a+b}{c-d}$$
 
 $$\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}$$
 
@@ -657,7 +667,7 @@ Notes:
 - `sourceScale` only affects render sharpness, not the displayed size. Values below `16` are clamped to `16`.
 - Tooltip priority is: rich child Markdown content, then `tooltip="..."`, then `showTooltip={true}` raw source fallback.
 - Child tooltip content is compiled as regular guide Markdown, so it can include bold text, lists, links, item tags, and nested `<Latex>` formulas.
-- The `$formula$` and `$$formula$$` shorthands always use default parameters. Use the `<Latex>` tag for custom colour, scale, alignment or tooltip.
+- The `$$formula$$` shorthand always uses default parameters. Use the `<Latex>` tag for custom colour, scale, alignment or tooltip.
 
 ### Scene Runtime Tags
 
@@ -761,6 +771,7 @@ Panel attributes (accepted by the container, the shorthand, and the fence header
 - `title`, `background`, `border`, `axisColor`, `gridColor`
 - `showGrid` / `showAxes` (default `true`)
 - `xRange="a..b"` (or `xMin` / `xMax` separately), `xStep` for tick spacing; same for the Y axis
+- `xLabel` / `yLabel` add Excel-style axis titles below and above the plot respectively. They support inline `$$...$$` LaTeX; `domain="a..b"` is a legacy alias for `xRange` when no explicit X range is present
 - `quadrants="1,2,3,4"` or `quadrants="all"` to force the visible quadrants; omit to start in quadrant 1 with auto-expansion when sampled `y < 0`
 - `cornerLegend`, `cornerLegendWidth`, `cornerLegendHeight`, and `cornerLegendBackground` show a compact legend inside the plot area using non-empty curve labels
 
@@ -769,7 +780,8 @@ Curve children (`<Plot>` / `<Function>`):
 - `expr="..."` &mdash; the expression. Operators `+ - * / % ^`, postfix factorial `!` (gamma-extended), `|x|` absolute value, `√` / `sqrt` / `∛` / `cbrt`, implicit multiplication, and the constants `pi`, `tau`, `e`, `phi` are supported. Built-in calls cover the standard trig/log/exp/rounding family plus two-arg `atan2`, `min`, `max`, `pow`, `hypot`, `mod`.
 - `inverse={true}` evaluates the expression as `x = f(y)` and rotates the curve.
 - `domain="a..b"` (x bounds shorthand) or comma-separated clauses such as `x>=0, x<5`.
-- `color`, `label`. Any curve with a non-empty `label` is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+- `color`, `label`. Any curve with a non-empty label is automatically listed in a legend rendered just below the panel: a small color swatch followed by the label, with entries flowing left-to-right and wrapping onto a new row when the next entry would not fit.
+- `tooltip` adds plain text below the computed tooltip. `showFunction` and `showValues` default to `true`; set either to `false` to hide the rendered equation or live `(x, y)` value respectively. A `<Plot>` / nested `<Function>` with `expr` may contain Markdown and GuideNH tags as a rich tooltip body. The order is always label, rendered equation, live values, `tooltip` text, then rich child content; omitted or disabled computed fields are skipped in that order.
 - `pointEveryX="step"` adds generated point markers at regular x intervals on that curve.
 - `pointEveryY="step"` adds generated point markers where the curve intersects regular y intervals, using a bounded search.
 - `autoPointLabel="none|x|y|xy"` controls generated point labels; default is `none`.
@@ -781,7 +793,7 @@ Marked points (`<Point>`):
 - Plot-anchored: `plot="N"` plus `atX="v"` or `atY="v"` (the runtime bisects on the plot's x-domain to find the matching `x`).
 - Optional `color`, `label`.
 
-Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip shows the expression on the first line and `(x, y)` on the second; it stays anchored above the point and flips below when there is no headroom.
+Interaction: hover a curve to highlight it; press and hold to scrub a point along the curve. The tooltip starts with `label` when supplied, then the equation and live `(x, y)` value unless their switches are disabled; it stays anchored above the point and flips below when there is no headroom.
 
 ## BetterQuesting Compatibility Tags
 

@@ -61,7 +61,7 @@ public class GuideSiteLatexExporter {
                 e.getMessage());
             return null;
         } catch (Exception e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [GuideSiteLatexExporter] Failed to export LaTeX formula '{}': {}",
                 formula,
                 e.getMessage(),

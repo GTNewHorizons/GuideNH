@@ -165,26 +165,55 @@ GuideNH also provides hidden special pages such as `Special:SpecialPages`, `Spec
 Use `<Special name="SpecialPages" rows="3" />`, `<Special name="AllPages" rows="3" />`, or `<Special name="Categories" rows="3" />` to embed them directly.
 All `Special:*` pages stay out of normal guide search, while `Category:*` pages remain searchable.
 
-### `item_ids`
+### `item_id` and `item_ids`
 
-Links items to this page for G-key lookup and right-click navigation. Format: `namespace:name` or `namespace:name:meta`. Append `#anchor` to jump to a specific heading.
+Links items to this page for G-key lookup and right-click navigation. Use `item_id` for one NEI-style
+expression or `item_ids` for a list of expressions. Append `#anchor` to jump to a specific heading.
 
 ```yaml
+item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
 item_ids:
   - minecraft:crafting_table
   - appliedenergistics2:item.ItemMultiMaterial:1
+  - "minecraft:written_book:*:{title:TestBook,author:GuideNH},!minecraft:written_book:0"
+  - "<minecraft:wool:14>"
+  - wrench|hammer
+  - "minecraft:potion 0-16,20-36,!28"
   - minecraft:diamond#Usage
 ```
 
-### `required_mods`
+`minecraft:lava` performs a partial registry-id match. `<minecraft:wool:14>` strictly matches an item
+and metadata value. The compatible `ae2:white_paint_ball:*` form strictly matches every metadata value. Whitespace
+combines conditions, `,` combines rules in one term, `!` excludes a match, and `|` separates alternatives.
+`minecraft:potion 0-16,20-36,!28` combines two metadata ranges and excludes `28`. Lookups try exact and wildcard
+mappings before evaluating expressions.
 
-Hide this page from navigation and indices unless all listed mods are loaded.
+### `navigation.required_mod`, `navigation.required_mods`, `navigation.excluded_mod`, and `navigation.excluded_mods`
+
+Required fields keep a page visible only when their mod ids are loaded. Excluded fields hide a page when
+the single excluded mod, or any mod in the excluded list, is loaded. All required mods must be loaded and
+none of the excluded mods may be loaded.
 
 ```yaml
 navigation:
   title: AE2 Integration
-required_mods:
-  - appliedenergistics2
+  required_mod: appliedenergistics2
+
+navigation:
+  title: Multi-Mod Integration
+  required_mods:
+    - appliedenergistics2
+    - gregtech
+
+navigation:
+  title: Compatibility-specific Integration
+  excluded_mod: legacy_addon
+
+navigation:
+  title: Incompatible Integration
+  excluded_mods:
+    - incompatible_addon
+    - legacy_addon
 ```
 
 ## Optional Meta Fields
@@ -206,13 +235,12 @@ navigation:
   parent: getting-started.md
   position: 10
   icon: advanced_ae:advanced_io_bus_part
+  required_mod: advanced_ae
 categories:
   - advanced items
 item_ids:
   - advanced_ae:advanced_io_bus_part
   - advanced_ae:advanced_io_bus_part:1
-required_mods:
-  - advanced_ae
 author: pedroksl
 date: 2025-01-01
 ---

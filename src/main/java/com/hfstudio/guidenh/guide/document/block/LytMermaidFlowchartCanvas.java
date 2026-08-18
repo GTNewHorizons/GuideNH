@@ -11,6 +11,7 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.shapes.FlowchartShapes;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
+import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
@@ -29,7 +30,7 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 
-public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowchartCanvas> {
+public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowchartCanvas> implements DebugComponent {
 
     private static final int CANVAS_PADDING = 10;
     private static final int MIN_WIDTH = 96;
@@ -955,5 +956,64 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             }
         } catch (NumberFormatException ignored) {}
         return 0;
+    }
+
+    @Override
+    public List<ComponentEntry> getDebugComponents() {
+        List<ComponentEntry> cachedComponents = getCachedDebugComponents(layout);
+        if (cachedComponents != null) {
+            return cachedComponents;
+        }
+        List<ComponentEntry> components = new ArrayList<>();
+        if (layout == null || bounds == null) {
+            return components;
+        }
+        LytRect viewport = getInnerViewport();
+        float zoom = getActiveZoom();
+        int baseX = viewport.x() + getVisualOffsetX() - getScaledOriginX();
+        int baseY = viewport.y() + getVisualOffsetY() - getScaledOriginY();
+
+        for (EdgePath edge : layout.getEdgePaths()) {
+            List<FlowchartLayoutResult.Point> points = edge.getPoints();
+            for (int index = 1; index < points.size(); index++) {
+                var from = points.get(index - 1);
+                var to = points.get(index);
+                components.add(
+                    new LineComponentEntry(
+                        "Edge:" + edge.getFromId() + "->" + edge.getToId(),
+                        scaled(baseX, from.getX(), zoom),
+                        scaled(baseY, from.getY(), zoom),
+                        scaled(baseX, to.getX(), zoom),
+                        scaled(baseY, to.getY(), zoom),
+                        Math.max(3, Math.round(CONNECTOR_THICKNESS * zoom) + 2),
+                        null,
+                        10));
+            }
+        }
+
+        for (var entry : layout.getNodePositions()
+            .entrySet()) {
+            NodePosition position = entry.getValue();
+            int x = scaled(baseX, position.getX(), zoom);
+            int y = scaled(baseY, position.getY(), zoom);
+            int width = Math.max(1, Math.round(position.getWidth() * zoom));
+            int height = Math.max(1, Math.round(position.getHeight() * zoom));
+            LytRect nodeBounds = new LytRect(x, y, width, height);
+            FlowchartNode node = document.getNodes()
+                .get(entry.getKey());
+            String label = node != null && node.getLabel() != null ? node.getLabel() : entry.getKey();
+            components.add(new SimpleComponentEntry("Node:" + label, nodeBounds, null, 20));
+            LytRect contentBounds = nodeBounds.shrink(
+                Math.max(1, Math.round(NODE_PADDING_X * zoom)),
+                Math.max(1, Math.round(NODE_PADDING_Y * zoom)),
+                Math.max(1, Math.round(NODE_PADDING_X * zoom)),
+                Math.max(1, Math.round(NODE_PADDING_Y * zoom)));
+            components.add(new SimpleComponentEntry("Label:" + label, contentBounds, null, 25));
+            NodeContentLayout contentLayout = nodeContentLayouts.get(entry.getKey());
+            if (contentLayout != null) {
+                collectNodeContentDebugComponents(contentLayout, contentBounds, zoom, label, 30, components);
+            }
+        }
+        return cacheDebugComponents(layout, components);
     }
 }

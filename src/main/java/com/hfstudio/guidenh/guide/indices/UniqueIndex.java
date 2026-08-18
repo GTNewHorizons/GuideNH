@@ -99,7 +99,7 @@ public class UniqueIndex<K, V> implements PageIndex {
             var value = entry.getValue();
             var previousPage = index.putIfAbsent(key, new Record<>(page.getId(), value));
             if (previousPage != null) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [UniqueIndex] Key conflict in index {}: {} is used by pages {} and {}; keeping {} and ignoring {}",
                     name,
                     key,

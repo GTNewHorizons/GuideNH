@@ -25,10 +25,21 @@ y = x^2 - 1
 
 MDX 组件写法，支持更细粒度的属性控制：
 
-<FunctionGraph xMin="-5" xMax="5" yMin="-2" yMax="5">
+<FunctionGraph xMin="-5" xMax="5" yMin="-2" yMax="5" xLabel="输入" yLabel="输出">
   <Function expr="y = x^2" color="#4488ff" label="y = x²" />
   <Function expr="y = |x| - 1" color="#ff6644" label="y = |x| − 1" />
   <Function expr="y = sqrt(x)" color="#44bb88" label="y = √x" />
+</FunctionGraph>
+
+`xLabel` 与 `yLabel` 会分别在图的横轴下方和绘图区上方显示轴标题，效果类似 Excel 图表。`domain="a..b"` 可作为未指定 `xRange` 时的兼容 X 范围写法。
+
+`label` 是曲线名称，会显示在图例和默认 tooltip 最上方。`showFunction`、`showValues` 分别控制函数式和实时坐标行，默认都开启；`tooltip` 可追加纯文本。tooltip 固定按曲线名称、函数式、实时坐标、`tooltip` 文本、子 Markdown 富文本排列。带有 `expr` 的 `<Plot>` / `<Function>` 还可以写子 Markdown 和 GuideNH 标签作为最后的富文本正文，站点导出也会保留。
+
+<FunctionGraph xMin="-4" xMax="4" yMin="-2" yMax="6" cornerLegend="topRight">
+  <Plot expr="x^2" label="二次燃料曲线" tooltip="数值会随当前光标位置变化。" showFunction={true} showValues={true}>
+    **燃料效率**会实时计算。示例输入：<ItemLink id="minecraft:coal" />。
+  </Plot>
+  <Plot expr="x - 1" label="线性参照" showFunction={false} />
 </FunctionGraph>
 
 ## 新增：图内图例与自动点

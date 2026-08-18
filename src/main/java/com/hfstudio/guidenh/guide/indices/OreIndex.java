@@ -115,8 +115,7 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
         }
 
         if (!(oreIdsNode instanceof List<?>oreIdList)) {
-            GuideDebugLog
-                .warnAlways("[GuideNH] [OreIndex] Page {} contains malformed ore_ids frontmatter", page.getId());
+            GuideDebugLog.warn("[GuideNH] [OreIndex] Page {} contains malformed ore_ids frontmatter", page.getId());
             return List.of();
         }
 
@@ -126,14 +125,13 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
             if (listEntry instanceof String oreName) {
                 String trimmed = oreName.trim();
                 if (trimmed.isEmpty()) {
-                    GuideDebugLog.warnAlways(
-                        "[GuideNH] [OreIndex] Page {} contains an empty ore_ids frontmatter entry",
-                        page.getId());
+                    GuideDebugLog
+                        .warn("[GuideNH] [OreIndex] Page {} contains an empty ore_ids frontmatter entry", page.getId());
                     continue;
                 }
                 oreAnchors.add(Pair.of(trimmed, new PageAnchor(page.getId(), null)));
             } else {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [OreIndex] Page {} contains a malformed ore_ids frontmatter entry: {}",
                     page.getId(),
                     listEntry);
