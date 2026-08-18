@@ -35,6 +35,7 @@ public enum Mods implements IMod, ITargetMod {
     Translocators("Translocator"),
     TinkersConstruct("TConstruct"),
     BlockRenderer6343("blockrenderer6343"),
+    MaterialLib("materiallib"),
     ;
     // spotless:on
 

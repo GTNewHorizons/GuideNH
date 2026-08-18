@@ -19,8 +19,16 @@ import com.github.bsideup.jabel.Desugar;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.materiallib.MaterialLibItemRefs;
 
 public class IdUtils {
+
+    /**
+     * Prefix of a MaterialLib reference, {@code ml:<MaterialName>:<shapeToken>}. It names a material and a shape
+     * instead of a registry entry, so it survives sessions that renumber MaterialLib's item metadata.
+     */
+    private static final String MATERIAL_LIB_PREFIX = "ml:";
 
     // Bounded LRU cache for parsed item references that carry no SNBT tail. Refs containing NBT
     // are intentionally NOT cached: callers like ItemId.createNoCopy share the NBT reference,
@@ -76,14 +84,21 @@ public class IdUtils {
      * present, is delimited by its leading {@code '{'} so colons inside the compound are preserved.
      * Returns {@code null} only when the input is blank; other malformed forms surface as an
      * {@link IllegalArgumentException} from {@link ResourceLocation}'s constructor.
+     *
+     * <p>
+     * A {@code ml:<MaterialName>:<shapeToken>} reference is instead resolved through MaterialLib and yields the
+     * registry key and damage of the stack registered for that material and shape. When MaterialLib is absent or
+     * has nothing under those names, parsing continues on the ordinary path, which leaves an unregistered key and
+     * so degrades like any other unknown id.
      */
     @Nullable
     public static ParsedItemRef parseItemRef(String idText, String defaultNamespace) {
         if (idText == null || idText.isEmpty()) return null;
         // Cache the common no-NBT case keyed on (namespace + ":" + idText). When the input
         // contains an SNBT tail (detected by '{') we skip the cache to avoid sharing mutable
-        // NBT references across callers.
-        boolean cacheable = idText.indexOf('{') < 0;
+        // NBT references across callers. MaterialLib refs are skipped too, so that a lookup made
+        // before MaterialLib registered its shapes does not pin its failure.
+        boolean cacheable = idText.indexOf('{') < 0 && !idText.startsWith(MATERIAL_LIB_PREFIX);
         String cacheKey = null;
         if (cacheable) {
             cacheKey = defaultNamespace + ":" + idText;
@@ -116,6 +131,11 @@ public class IdUtils {
             head = idText;
         }
 
+        if (head.startsWith(MATERIAL_LIB_PREFIX)) {
+            ParsedItemRef materialRef = parseMaterialLibRef(head, nbt);
+            if (materialRef != null) return materialRef;
+        }
+
         ResourceLocation id;
         String rawKey;
         int meta = 0;
@@ -143,6 +163,31 @@ public class IdUtils {
             PARSE_CACHE.put(cacheKey, result);
         }
         return result;
+    }
+
+    /**
+     * Resolves a {@code ml:<MaterialName>:<shapeToken>} head against MaterialLib's current registrations. Returns
+     * {@code null} when MaterialLib is absent, when the head does not split into exactly those three parts, or
+     * when nothing is registered under them.
+     */
+    @Nullable
+    private static ParsedItemRef parseMaterialLibRef(String head, @Nullable NBTTagCompound nbt) {
+        if (!Mods.MaterialLib.isModLoaded()) return null;
+
+        int nameStart = MATERIAL_LIB_PREFIX.length();
+        int shapeSeparator = head.indexOf(':', nameStart);
+        if (shapeSeparator < 0) return null;
+        String materialName = head.substring(nameStart, shapeSeparator);
+        String shapeToken = head.substring(shapeSeparator + 1);
+        if (materialName.isEmpty() || shapeToken.isEmpty() || shapeToken.indexOf(':') >= 0) return null;
+
+        ItemStack stack = MaterialLibItemRefs.getStack(materialName, shapeToken);
+        if (stack == null || stack.getItem() == null) return null;
+        Object registryName = Item.itemRegistry.getNameForObject(stack.getItem());
+        if (registryName == null) return null;
+
+        String rawKey = registryName.toString();
+        return new ParsedItemRef(new ResourceLocation(rawKey), stack.getItemDamage(), true, nbt, rawKey);
     }
 
     public static int parseMeta(String metaStr) {
