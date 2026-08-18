@@ -293,6 +293,10 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 | `icons` | 否 | item id 列表 | 循环轮播的物品图标列表（每秒切换一次）。每一项语法同 `icon`，支持内联 `:{snbt}`。存在时优先于 `icon` 使用。 |
 | `icon_texture` | 否 | asset path | 纹理图标路径，按普通资源路径解析 |
 | `icon_textures` | 否 | asset path 列表 | 循环轮播的纹理图标列表（每秒切换一次）。存在时优先于 `icon_texture` 使用。 |
+| `required_mod` | 否 | 模组 id | 仅在该模组已加载时显示页面。 |
+| `required_mods` | 否 | 模组 id 列表 | 仅在列出的全部模组均已加载时显示页面。 |
+| `excluded_mod` | 否 | 模组 id | 该模组加载时隐藏页面。 |
+| `excluded_mods` | 否 | 模组 id 列表 | 其中任一模组加载时隐藏页面。 |
 
 ### Frontmatter 示例
 
@@ -458,14 +462,19 @@ minecraft:written_book:*:{title:TestBook,author:GuideNH}
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
 item_ids:
+  - minecraft:crafting_table
+  - appliedenergistics2:item.ItemMultiMaterial:1
   - "minecraft:written_book:*:{title:TestBook,author:GuideNH},!minecraft:written_book:0"
   - "<minecraft:wool:14>"
   - wrench|hammer
+  - "minecraft:potion 0-16,20-36,!28"
+  - minecraft:diamond#Usage
 ```
 
 此例中，空格用于组合条件，`,` 用于组合同一项中的规则，`!` 用于排除匹配项，`|` 用于分隔备选表达式。
 因此第一个表达式会匹配 `16384` 至 `16462` 的药水 meta（排除 `16386`），或匹配任意 meta 的
 `ae2:white_paint_ball`。第二个表达式展示了通配物品引用如何与逗号规则和 `!` 反向排除组合使用。
+最后两项展示了多个 meta 范围的并集并排除 `28`，以及打开 `Usage` 标题锚点的物品映射。
 
 可在末尾追加 `#anchor`，使匹配页面打开到特定标题锚点。精确物品和显式 meta 映射优先走直接索引，只有必要时才会计算表达式。
 

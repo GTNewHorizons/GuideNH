@@ -34,6 +34,8 @@ navigation:
 | `icon_textures` | Optional cycling texture icon list |
 | `required_mod` | Optional single mod id; page is hidden when this mod is not loaded |
 | `required_mods` | Optional list of mod ids; page is hidden unless all listed mods are loaded |
+| `excluded_mod` | Optional single mod id; page is hidden when this mod is loaded |
+| `excluded_mods` | Optional list of mod ids; page is hidden when any listed mod is loaded |
 
 ### `navigation.position`
 
@@ -64,9 +66,10 @@ navigation:
 
 ## Mod Requirements
 
-Use `required_mod` or `required_mods` to make a page conditional on one or more mods being loaded.
-When the requirement is not met the page is excluded from the navigation tree and all page indices
-(item, category, etc.) so it cannot be found through navigation or search.
+Use `required_mod` or `required_mods` to require one or more loaded mods. Use `excluded_mod` or
+`excluded_mods` to hide a page when one or more incompatible mods are loaded. When a condition is not
+met, the page is excluded from the navigation tree and all page indices (item, category, etc.) so it
+cannot be found through navigation or search.
 
 ```yaml
 navigation:
@@ -83,6 +86,19 @@ navigation:
 ```
 
 Both keys may be combined; the page is only shown when every listed mod is present.
+
+Required and excluded conditions can also be combined. All required mods must be loaded and none of the
+excluded mods may be loaded.
+
+```yaml
+navigation:
+  title: Client-only Integration
+  parent: index.md
+  required_mod: guide_api
+  excluded_mods:
+    - incompatible_addon
+    - legacy_addon
+```
 
 ## Load Priority
 
@@ -155,15 +171,18 @@ GuideNH also auto-creates the hidden searchable special pages `Special:AllPages`
 Pages can register item-to-page mappings using `item_id` (one value) or `item_ids` (a list):
 
 ```yaml
+item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
 item_ids:
   - minecraft:compass
   - minecraft:wool:*
+  - "minecraft:potion 0-16,20-36,!28"
   - minecraft:iron_ore#crafting
 ```
 
 These mappings are used by `<ItemLink>`. `item_id` is one NEI-style expression and each `item_ids`
 entry is the same kind of expression. For example, `minecraft:potion 16384-16462,!16386` matches a
-metadata range except for `16386`, while `ae2:white_paint_ball:*` is a compatible strict all-meta mapping.
+metadata range except for `16386`, while `minecraft:potion 0-16,20-36,!28` combines two metadata ranges and
+excludes `28`. `ae2:white_paint_ball:*` is a compatible strict all-meta mapping.
 
 An optional `#anchor` suffix scrolls to a specific heading when the link is clicked.
 The anchor is formed by lowercasing the heading text and replacing spaces with hyphens

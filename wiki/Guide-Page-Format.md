@@ -304,6 +304,10 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | `icons` | no | list of item ids | List of item icons for animated cycling (one per second). Each entry uses the same syntax as `icon`, including inline `:{snbt}` tails. When present takes priority over `icon`. |
 | `icon_texture` | no | asset path | Texture icon path resolved like any other asset link |
 | `icon_textures` | no | list of asset paths | List of texture icons for animated cycling (one per second). When present takes priority over `icon_texture`. |
+| `required_mod` | no | mod id | Hides the page unless this mod is loaded. |
+| `required_mods` | no | list of mod ids | Hides the page unless every listed mod is loaded. |
+| `excluded_mod` | no | mod id | Hides the page when this mod is loaded. |
+| `excluded_mods` | no | list of mod ids | Hides the page when any listed mod is loaded. |
 
 ### Example Frontmatter
 
@@ -475,15 +479,20 @@ combines alternatives, and `,` combines rules within one term.
 ```yaml
 item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
 item_ids:
+  - minecraft:crafting_table
+  - appliedenergistics2:item.ItemMultiMaterial:1
   - "minecraft:written_book:*:{title:TestBook,author:GuideNH},!minecraft:written_book:0"
   - "<minecraft:wool:14>"
   - wrench|hammer
+  - "minecraft:potion 0-16,20-36,!28"
+  - minecraft:diamond#Usage
 ```
 
 In this example, whitespace combines conditions, `,` combines rules within one term, `!` excludes a match, and
 `|` separates alternatives. The first expression therefore accepts potion metadata from `16384` through `16462`
 except `16386`, or any metadata of `ae2:white_paint_ball`. The second expression demonstrates a wildcard item
-reference in a comma-separated expression with a reverse (`!`) rule.
+reference in a comma-separated expression with a reverse (`!`) rule. The last two entries show a metadata union
+with `28` excluded and an item mapping that opens the `Usage` heading anchor.
 
 An optional `#anchor` suffix opens a matching page at a heading anchor. Exact item and explicit-meta mappings use
 the direct index first; expressions are evaluated only when needed.

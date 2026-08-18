@@ -11,7 +11,8 @@ import org.jetbrains.annotations.Nullable;
  * Inserts a page into the navigation tree. Null parent means top-level category.
  * <p>
  * When {@code requiredMods} is non-null and non-empty, the page is only included in the navigation
- * tree and page indices when every listed mod ID is currently loaded.
+ * tree and page indices when every listed mod ID is currently loaded. When {@code excludedMods} is
+ * non-null and non-empty, the page is excluded when any listed mod ID is currently loaded.
  */
 public class FrontmatterNavigation {
 
@@ -33,12 +34,15 @@ public class FrontmatterNavigation {
     private final List<ResourceLocation> iconTextureEntries;
     @Nullable
     private final List<String> requiredMods;
+    @Nullable
+    private final List<String> excludedMods;
     private final int loadPriority;
 
     public FrontmatterNavigation(String title, @Nullable ResourceLocation parent, int position, int recommend,
         @Nullable String iconItemId, int iconItemMeta, @Nullable NBTTagCompound iconNbt,
         @Nullable ResourceLocation iconTextureId, @Nullable List<NavigationIconEntry> iconEntries,
-        @Nullable List<ResourceLocation> iconTextureEntries, @Nullable List<String> requiredMods, int loadPriority) {
+        @Nullable List<ResourceLocation> iconTextureEntries, @Nullable List<String> requiredMods,
+        @Nullable List<String> excludedMods, int loadPriority) {
         this.title = title;
         this.parent = parent;
         this.position = position;
@@ -50,6 +54,7 @@ public class FrontmatterNavigation {
         this.iconEntries = iconEntries;
         this.iconTextureEntries = iconTextureEntries;
         this.requiredMods = requiredMods;
+        this.excludedMods = excludedMods;
         this.loadPriority = loadPriority;
     }
 
@@ -102,6 +107,11 @@ public class FrontmatterNavigation {
     @Nullable
     public List<String> requiredMods() {
         return requiredMods;
+    }
+
+    @Nullable
+    public List<String> excludedMods() {
+        return excludedMods;
     }
 
     public int loadPriority() {

@@ -38,6 +38,7 @@ dependencies {
     compileOnlyApi("com.github.GTNewHorizons:BlockRenderer6343:1.4.17:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.17:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:EnderCore:0.5.14:dev") { transitive = false }
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:ServerUtilities:2.3.0:dev")
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 
     compileOnlyApi("com.github.slprime:ChromaticTooltips:1.0.28-GTNH:dev") { transitive = false }
@@ -67,7 +68,6 @@ dependencies {
 
 configurations.configureEach {
     exclude group: "com.github.GTNewHorizons", module: "NewHorizonsCoreMod"
-    exclude group: "com.github.GTNewHorizons", module: "ServerUtilities"
     exclude group: "com.github.GTNewHorizons", module: "CodeChickenLib"
     exclude group: "com.github.GTNewHorizons", module: "Hodgepodge"
     exclude group: "com.github.GTNewHorizons", module: "Baubles"

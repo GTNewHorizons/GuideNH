@@ -178,23 +178,42 @@ item_ids:
   - "minecraft:written_book:*:{title:TestBook,author:GuideNH},!minecraft:written_book:0"
   - "<minecraft:wool:14>"
   - wrench|hammer
+  - "minecraft:potion 0-16,20-36,!28"
   - minecraft:diamond#Usage
 ```
 
 `minecraft:lava` performs a partial registry-id match. `<minecraft:wool:14>` strictly matches an item
 and metadata value. The compatible `ae2:white_paint_ball:*` form strictly matches every metadata value. Whitespace
 combines conditions, `,` combines rules in one term, `!` excludes a match, and `|` separates alternatives.
-Lookups try exact and wildcard mappings before evaluating expressions.
+`minecraft:potion 0-16,20-36,!28` combines two metadata ranges and excludes `28`. Lookups try exact and wildcard
+mappings before evaluating expressions.
 
-### `required_mods`
+### `navigation.required_mod`, `navigation.required_mods`, `navigation.excluded_mod`, and `navigation.excluded_mods`
 
-Hide this page from navigation and indices unless all listed mods are loaded.
+Required fields keep a page visible only when their mod ids are loaded. Excluded fields hide a page when
+the single excluded mod, or any mod in the excluded list, is loaded. All required mods must be loaded and
+none of the excluded mods may be loaded.
 
 ```yaml
 navigation:
   title: AE2 Integration
-required_mods:
-  - appliedenergistics2
+  required_mod: appliedenergistics2
+
+navigation:
+  title: Multi-Mod Integration
+  required_mods:
+    - appliedenergistics2
+    - gregtech
+
+navigation:
+  title: Compatibility-specific Integration
+  excluded_mod: legacy_addon
+
+navigation:
+  title: Incompatible Integration
+  excluded_mods:
+    - incompatible_addon
+    - legacy_addon
 ```
 
 ## Optional Meta Fields
@@ -216,13 +235,12 @@ navigation:
   parent: getting-started.md
   position: 10
   icon: advanced_ae:advanced_io_bus_part
+  required_mod: advanced_ae
 categories:
   - advanced items
 item_ids:
   - advanced_ae:advanced_io_bus_part
   - advanced_ae:advanced_io_bus_part:1
-required_mods:
-  - advanced_ae
 author: pedroksl
 date: 2025-01-01
 ---

@@ -174,22 +174,40 @@ item_ids:
   - "minecraft:written_book:*:{title:TestBook,author:GuideNH},!minecraft:written_book:0"
   - "<minecraft:wool:14>"
   - wrench|hammer
+  - "minecraft:potion 0-16,20-36,!28"
   - minecraft:diamond#Usage
 ```
 
 `minecraft:lava` 会对注册表 id 做部分匹配。`<minecraft:wool:14>` 严格匹配一个物品和 meta，兼容
 写法 `ae2:white_paint_ball:*` 会严格匹配该物品的所有 meta。空格用于组合条件，`,` 用于组合同一项中的规则，
-`!` 用于排除匹配项，`|` 用于分隔备选表达式。查找会先尝试精确和通配映射，再计算表达式。
+`!` 用于排除匹配项，`|` 用于分隔备选表达式。`minecraft:potion 0-16,20-36,!28` 将两个 meta 范围组合并排除
+`28`。查找会先尝试精确和通配映射，再计算表达式。
 
-### `required_mods`
+### `navigation.required_mod`、`navigation.required_mods`、`navigation.excluded_mod` 与 `navigation.excluded_mods`
 
-仅当所有列出的模组都已加载时，此页面才会出现在导航和索引中。
+required 字段要求指定模组已加载；excluded 字段会在单个排除模组或排除列表中的任一模组加载时隐藏页面。
+所有 required 模组都必须加载，并且 excluded 模组都不能加载。
 
 ```yaml
 navigation:
   title: AE2 集成
-required_mods:
-  - appliedenergistics2
+  required_mod: appliedenergistics2
+
+navigation:
+  title: 多模组集成
+  required_mods:
+    - appliedenergistics2
+    - gregtech
+
+navigation:
+  title: 兼容性专用集成
+  excluded_mod: legacy_addon
+
+navigation:
+  title: 不兼容集成
+  excluded_mods:
+    - incompatible_addon
+    - legacy_addon
 ```
 
 ## 可选元数据字段
@@ -211,13 +229,12 @@ navigation:
   parent: getting-started.md
   position: 10
   icon: advanced_ae:advanced_io_bus_part
+  required_mod: advanced_ae
 categories:
   - advanced items
 item_ids:
   - advanced_ae:advanced_io_bus_part
   - advanced_ae:advanced_io_bus_part:1
-required_mods:
-  - advanced_ae
 author: pedroksl
 date: 2025-01-01
 ---

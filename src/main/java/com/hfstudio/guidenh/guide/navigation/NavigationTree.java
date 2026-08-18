@@ -404,21 +404,28 @@ public class NavigationTree {
     }
 
     /**
-     * Returns true when all mods listed in the navigation entry's {@code requiredMods} are currently
-     * loaded, or when no requirements are declared. Returns false when at least one required mod is
-     * absent, meaning the page should be excluded from the navigation tree and all page indices.
+     * Returns true when all required mods are loaded and no excluded mod is loaded, or when no
+     * requirements are declared. Returns false when either condition fails, meaning the page should
+     * be excluded from the navigation tree and all page indices.
      */
     public static boolean areModRequirementsMet(@Nullable FrontmatterNavigation nav) {
         if (nav == null) {
             return true;
         }
         var required = nav.requiredMods();
-        if (required == null || required.isEmpty()) {
-            return true;
+        if (required != null) {
+            for (var modId : required) {
+                if (!Loader.isModLoaded(modId)) {
+                    return false;
+                }
+            }
         }
-        for (var modId : required) {
-            if (!Loader.isModLoaded(modId)) {
-                return false;
+        var excluded = nav.excludedMods();
+        if (excluded != null) {
+            for (var modId : excluded) {
+                if (Loader.isModLoaded(modId)) {
+                    return false;
+                }
             }
         }
         return true;
