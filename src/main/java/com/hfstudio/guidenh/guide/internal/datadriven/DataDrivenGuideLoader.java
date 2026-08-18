@@ -35,10 +35,12 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.Frontmatter;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.internal.AsyncWorker;
 import com.hfstudio.guidenh.guide.internal.DirectoryResourcePack;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePacks;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.localization.GuidePageLanguageIndex;
+import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -109,6 +111,7 @@ public class DataDrivenGuideLoader {
             assetPackIndex.putAll(cache.assetPackIndexSnapshot());
             PACK_LANG_FILE_PATHS.putAll(cache.langFilePathsSnapshot());
             GuidePageLanguageIndex.preload(cache.langKeys());
+            scheduleLanguageIndexWarmup();
             return cache.result();
         }
 
@@ -159,7 +162,35 @@ public class DataDrivenGuideLoader {
 
         indexReady = true;
 
+        scheduleLanguageIndexWarmup();
+
         return new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages));
+    }
+
+    /**
+     * Submits a background warm-up of the guide resource language index once the active resource
+     * packs are known, so the first (and only) full {@code .lang} scan happens off the client
+     * thread instead of blocking the first Ponder scene's localization on page open.
+     */
+    private static void scheduleLanguageIndexWarmup() {
+        List<IResourcePack> packs = getLastActiveResourcePacks();
+        if (packs.isEmpty()) {
+            return;
+        }
+        LinkedHashSet<String> languages = new LinkedHashSet<>();
+        String current = LangUtil.getCurrentLanguage();
+        if (current != null && !current.isEmpty()) {
+            languages.add(LangUtil.normalizeLanguage(current));
+        }
+        languages.add(DEFAULT_LANGUAGE);
+        if (languages.isEmpty()) {
+            return;
+        }
+        AsyncWorker.submit("guidenh:resourceLangIndexWarmup", () -> {
+            for (String language : languages) {
+                GuideResourceLanguageIndex.warm(language);
+            }
+        });
     }
 
     public static @Nullable List<PackCandidate> getCandidatesFor(ResourceLocation pageLocation) {
