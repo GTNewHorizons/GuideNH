@@ -102,6 +102,7 @@ import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorFileSto
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorLayoutMode;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorMerge;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorNewPagePrompt;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorSourceState;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorState;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorTextActions;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorUndoHistory;
@@ -649,16 +650,12 @@ public class GuideScreen extends GuiContainer
     }
 
     public static boolean toggleEditorModeFromCommand() {
-        boolean enabled = !GuideScreenEditorState.isEnabled();
-        GuideScreenEditorState.setEnabled(enabled);
         GuideScreen screen = current();
         if (screen != null) {
-            screen.syncGuideEditorStateFromConfig();
-            screen.refreshGuideEditorDraft(true);
-            screen.rebuildToolbar();
-            screen.ensureLayout();
-            screen.clampScroll();
+            return screen.toggleGuideEditorEnabled();
         }
+        boolean enabled = !GuideScreenEditorState.isEnabled();
+        GuideScreenEditorState.setEnabled(enabled);
         return enabled;
     }
 
@@ -1099,8 +1096,33 @@ public class GuideScreen extends GuiContainer
         guideEditorPreviewDirty = true;
     }
 
-    private void toggleGuideEditorEnabled() {
-        toggleEditorModeFromCommand();
+    private boolean toggleGuideEditorEnabled() {
+        if (!GuideScreenEditorState.isEnabled()) {
+            GuideScreenEditorState.setEnabled(true);
+            syncGuideEditorStateFromConfig();
+            refreshGuideEditorDraft(true);
+            rebuildToolbar();
+            ensureLayout();
+            clampScroll();
+            return true;
+        }
+        if (!isGuideEditorActive()) {
+            disableGuideEditor();
+            return false;
+        }
+        confirmGuideEditorDirtyBefore(this::disableGuideEditor);
+        return GuideScreenEditorState.isEnabled();
+    }
+
+    private void disableGuideEditor() {
+        GuideScreenEditorState.setEnabled(false);
+        if (guideEditorTextArea != null) {
+            guideEditorTextArea.setFocused(false);
+        }
+        reloadPage();
+        rebuildToolbar();
+        ensureLayout();
+        clampScroll();
     }
 
     private void toggleGuideEditorAdvancedButtons() {
@@ -1369,6 +1391,7 @@ public class GuideScreen extends GuiContainer
                 text = parsedPage.getSource();
             }
         }
+        text = GuideScreenEditorSourceState.normalizeEditorText(text);
 
         boolean preserveHistory = guideEditorTextArea != null && Objects.equals(guideEditorTextArea.getText(), text)
             && Objects.equals(guideEditorDraftSource, text);
@@ -1410,7 +1433,7 @@ public class GuideScreen extends GuiContainer
             return;
         }
         guideEditorDraftSource = text;
-        guideEditorDirty = !Objects.equals(text, guideEditorSavedSource);
+        guideEditorDirty = GuideScreenEditorSourceState.isDirty(text, guideEditorSavedSource);
         guideEditorPreviewDirty = true;
         guideEditorUndoHistory
             .push(text, guideEditorTextArea.getSelectionStart(), guideEditorTextArea.getSelectionEnd());
@@ -1438,7 +1461,7 @@ public class GuideScreen extends GuiContainer
             return;
         }
         guideEditorDraftSource = guideEditorTextArea.getText();
-        guideEditorDirty = !Objects.equals(guideEditorDraftSource, guideEditorSavedSource);
+        guideEditorDirty = GuideScreenEditorSourceState.isDirty(guideEditorDraftSource, guideEditorSavedSource);
         guideEditorPreviewDirty = true;
         long now = System.currentTimeMillis();
         scheduleGuideEditorSaveAfterEdit(now);
@@ -1630,17 +1653,26 @@ public class GuideScreen extends GuiContainer
             return false;
         }
         updateGuideEditorTextFromArea();
+        guideEditorDraftSource = GuideScreenEditorSourceState.normalizeEditorText(guideEditorDraftSource);
         long startedAt = System.nanoTime();
         try {
             String language = guideEditorDraftPage.getLanguage();
             String sourcePack = guideEditorDraftPage.getSourcePack();
+            long parseStartedAt = System.nanoTime();
+            ParsedGuidePage parsedDraft = resolveCurrentGuideEditorParsedDraftForSave(sourcePack, language);
+            long parseNs = System.nanoTime() - parseStartedAt;
+            if (!canApplyGuideEditorParsedPage(parsedDraft)) {
+                updateGuideEditorSyntaxWarning(parsedDraft);
+                return false;
+            }
             long stageStartedAt = System.nanoTime();
             guideEditorFileStore
                 .savePage(guide, currentAnchor.pageId(), language, guideEditorDraftSource, currentAnchor.pageId());
             long saveFileNs = System.nanoTime() - stageStartedAt;
-            stageStartedAt = System.nanoTime();
-            ParsedGuidePage parsedDraft = resolveCurrentGuideEditorParsedDraftForSave(sourcePack, language);
-            long parseNs = System.nanoTime() - stageStartedAt;
+            CompileWorker worker = ClientProxy.getWorker();
+            if (worker != null) {
+                worker.invalidate(currentAnchor.pageId());
+            }
             guideEditorSavedSource = guideEditorDraftSource;
             guideEditorDirty = false;
             guideEditorExternalFileCheckEnabled = guideEditorFileStore
@@ -1711,6 +1743,7 @@ public class GuideScreen extends GuiContainer
             guideEditorExternalFileCheckEnabled = false;
             return;
         }
+        externalSource = GuideScreenEditorSourceState.normalizeEditorText(externalSource);
         if (Objects.equals(externalSource, guideEditorDraftSource)
             || Objects.equals(externalSource, guideEditorSavedSource)) {
             return;
@@ -1739,7 +1772,7 @@ public class GuideScreen extends GuiContainer
         if (guideEditorTextArea == null) {
             return;
         }
-        String safeSource = source != null ? source : "";
+        String safeSource = GuideScreenEditorSourceState.normalizeEditorText(source);
         int selectionStart = Math.min(guideEditorTextArea.getSelectionStart(), safeSource.length());
         int selectionEnd = Math.min(guideEditorTextArea.getSelectionEnd(), safeSource.length());
         guideEditorSuppressUndoRecording = true;
@@ -1966,8 +1999,8 @@ public class GuideScreen extends GuiContainer
         } finally {
             guideEditorSuppressUndoRecording = false;
         }
-        guideEditorDraftSource = entry.getText();
-        guideEditorDirty = !Objects.equals(guideEditorDraftSource, guideEditorSavedSource);
+        guideEditorDraftSource = GuideScreenEditorSourceState.normalizeEditorText(entry.getText());
+        guideEditorDirty = GuideScreenEditorSourceState.isDirty(guideEditorDraftSource, guideEditorSavedSource);
         guideEditorPreviewDirty = true;
         long now = System.currentTimeMillis();
         if (guideEditorDirty) {

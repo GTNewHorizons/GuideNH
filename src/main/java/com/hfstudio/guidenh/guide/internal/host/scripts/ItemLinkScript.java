@@ -54,6 +54,7 @@ public class ItemLinkScript implements LytScript {
             String currentPage = (String) link.getData("pageId");
             String currentGuide = (String) link.getData("guideId");
             Boolean showText = (Boolean) link.getData("showText");
+            Float scale = (Float) link.getData("scale");
 
             // Neither target specified
             if ((itemId == null || itemId.isEmpty()) && (ore == null || ore.isEmpty())) {
@@ -87,7 +88,13 @@ public class ItemLinkScript implements LytScript {
                 LytTooltipSpan span = new LytTooltipSpan();
                 span.setStyleClass("ItemLink");
                 moveChildren(link, span);
-                appendIconAndFallbackText(span, stack, iconPosition, Boolean.TRUE.equals(showTooltip), showText);
+                appendIconAndFallbackText(
+                    span,
+                    stack,
+                    iconPosition,
+                    Boolean.TRUE.equals(showTooltip),
+                    showText,
+                    scale != null ? scale : 1f);
                 if (Boolean.TRUE.equals(showTooltip)) {
                     span.setTooltip(new ItemTooltip(stack));
                 }
@@ -104,7 +111,13 @@ public class ItemLinkScript implements LytScript {
             } else {
                 link.setPageLink(target.page());
             }
-            appendIconAndFallbackText(link, stack, iconPosition, Boolean.TRUE.equals(showTooltip), showText);
+            appendIconAndFallbackText(
+                link,
+                stack,
+                iconPosition,
+                Boolean.TRUE.equals(showTooltip),
+                showText,
+                scale != null ? scale : 1f);
             ctx.replace(link);
         } else if (event.type() == EventType.MOUNT && node instanceof LytFlowContent fc) {
             // Node was already materialized (e.g. LytTooltipSpan from a previous
@@ -181,12 +194,12 @@ public class ItemLinkScript implements LytScript {
     }
 
     private static void appendIconAndFallbackText(LytFlowSpan span, ItemStack stack, @Nullable String iconPosition,
-        boolean showTooltip, @Nullable Boolean showText) {
+        boolean showTooltip, @Nullable Boolean showText, float scale) {
         boolean shouldShowText = showText == null || showText;
         removeExistingIcons(span);
         boolean hasText = hasTextChild(span.getChildren());
         LytFlowInlineBlock icon = iconPosition == null || iconPosition.isEmpty() ? null
-            : createIcon(stack, showTooltip);
+            : createIcon(stack, showTooltip, scale);
         if (icon != null && "left".equals(iconPosition)) {
             span.getChildren()
                 .addFirst(icon);
@@ -206,12 +219,12 @@ public class ItemLinkScript implements LytScript {
     }
 
     @Nullable
-    private static LytFlowInlineBlock createIcon(ItemStack stack, boolean showTooltip) {
+    private static LytFlowInlineBlock createIcon(ItemStack stack, boolean showTooltip, float scale) {
         if (stack == null || stack.getItem() == null) {
             return null;
         }
         var img = new LytItemImage(stack);
-        img.setScale(1f);
+        img.setScale(scale > 0f ? scale : 1f);
         img.setInline(true);
         img.setShowTooltip(showTooltip);
         var wrapper = new LytFlowInlineBlock();

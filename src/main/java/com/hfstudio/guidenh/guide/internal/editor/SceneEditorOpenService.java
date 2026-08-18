@@ -28,6 +28,10 @@ public class SceneEditorOpenService {
         this.structureCache = structureCache;
     }
 
+    public OpenResult createDeferredInitialSession() {
+        return new OpenResult(SceneEditorSession.createBlank(), false, null);
+    }
+
     public OpenResult createInitialSession(@Nullable EntityPlayer player) {
         if (player == null) {
             return new OpenResult(SceneEditorSession.createBlank(), false, null);
@@ -50,7 +54,7 @@ public class SceneEditorOpenService {
     }
 
     @Nullable
-    public ServerSelectionRequest createServerSelectionRequest(@Nullable EntityPlayer player) {
+    public SelectionExportRequest createSelectionExportRequest(@Nullable EntityPlayer player) {
         if (player == null || !RegionWandSelection.hasCompleteSelection()) {
             return null;
         }
@@ -62,7 +66,7 @@ public class SceneEditorOpenService {
         if (bounds == null) {
             return null;
         }
-        return new ServerSelectionRequest(
+        return new SelectionExportRequest(
             bounds.minX(),
             bounds.minY(),
             bounds.minZ(),
@@ -140,7 +144,7 @@ public class SceneEditorOpenService {
     }
 
     @Getter
-    public static class ServerSelectionRequest {
+    public static class SelectionExportRequest {
 
         private final int x;
         private final int y;
@@ -150,7 +154,7 @@ public class SceneEditorOpenService {
         private final int sizeZ;
         private final boolean includeEntities;
 
-        private ServerSelectionRequest(int x, int y, int z, int sizeX, int sizeY, int sizeZ, boolean includeEntities) {
+        private SelectionExportRequest(int x, int y, int z, int sizeX, int sizeY, int sizeZ, boolean includeEntities) {
             this.x = x;
             this.y = y;
             this.z = z;

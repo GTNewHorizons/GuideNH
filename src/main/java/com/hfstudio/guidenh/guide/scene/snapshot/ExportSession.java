@@ -19,10 +19,16 @@ public class ExportSession {
     private final int sizeX;
     private final int sizeY;
     private final int sizeZ;
+    private final boolean serverPreviewFetchEnabled;
     private final ConcurrentHashMap<String, Object> shared = new ConcurrentHashMap<>();
 
     public ExportSession(StructureExportAccess access, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
         int sizeX, int sizeY, int sizeZ) {
+        this(access, minX, minY, minZ, maxX, maxY, maxZ, sizeX, sizeY, sizeZ, true);
+    }
+
+    public ExportSession(StructureExportAccess access, int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
+        int sizeX, int sizeY, int sizeZ, boolean serverPreviewFetchEnabled) {
         this.access = access;
         this.minX = minX;
         this.minY = minY;
@@ -33,6 +39,7 @@ public class ExportSession {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
+        this.serverPreviewFetchEnabled = serverPreviewFetchEnabled;
     }
 
     public StructureExportAccess access() {
@@ -73,6 +80,10 @@ public class ExportSession {
 
     public int sizeZ() {
         return sizeZ;
+    }
+
+    public boolean isServerPreviewFetchEnabled() {
+        return serverPreviewFetchEnabled;
     }
 
     public ConcurrentHashMap<String, Object> shared() {

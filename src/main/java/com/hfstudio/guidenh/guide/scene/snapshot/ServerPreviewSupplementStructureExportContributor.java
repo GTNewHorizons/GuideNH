@@ -10,6 +10,9 @@ public class ServerPreviewSupplementStructureExportContributor implements Struct
 
     @Override
     public void beginExport(ExportSession session) {
+        if (!session.isServerPreviewFetchEnabled()) {
+            return;
+        }
         for (RegisteredServerPreviewSupplement e : ServerPreviewSupplementRegistry.entriesInOrder()) {
             ServerPreviewSupplementFetchContributor fetch = e.fetchContributor();
             if (fetch != null) {

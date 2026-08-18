@@ -366,12 +366,14 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 | `linksTo` | *（自动）* | 覆盖跳转目标，接受带可选 `#anchor` 的页面 ID，如 `./crafting.md#usage` 或 `#usage`；省略时由 `item_ids` / `ore_ids` 索引自动解析 |
 | `showTooltip` | `true` | 设为 `false` 时悬停不显示 tooltip；`noTooltip` 是旧版兼容别名 |
 | `showIcon` | *（无）* | `left` 或 `right`（或任意真值 → 右侧）— 在链接文字的左侧或右侧显示物品图标；省略则仅显示文字 |
+| `scale` | `1.0` | 可选物品图标的显示缩放倍率；省略 `showIcon` 时此属性无效 |
 
 示例：
 
 ````md
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" />
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" showIcon="left" />
+<ItemLink id="minecraft:diamond" showIcon="left" scale="2" />
 <ItemLink id="minecraft:diamond" showIcon="right" showTooltip="false" />
 <ItemLink ore="stickWood" />
 <ItemLink id="minecraft:iron_ore" linksTo="./crafting.md#smelting" />

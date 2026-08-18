@@ -393,12 +393,14 @@ Creates a text link using the item's display name and item tooltip. If `item_ids
 | `linksTo` | *(auto)* | overrides the link target; accepts a page id with optional `#anchor`, e.g. `./crafting.md#usage` or `#usage`; when omitted the target is resolved from `item_ids` / `ore_ids` index |
 | `showTooltip` | `true` | set to `false` to suppress the hover tooltip; `noTooltip` is a legacy alias |
 | `showIcon` | *(none)* | `left` or `right` (or any truthy value → right) — renders the item icon beside the link text; omit to show text only |
+| `scale` | `1.0` | display scale for the optional item icon; has no effect when `showIcon` is omitted |
 
 Examples:
 
 ````md
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" />
 <ItemLink id="appliedenergistics2:tile.BlockSkyChest" showIcon="left" />
+<ItemLink id="minecraft:diamond" showIcon="left" scale="2" />
 <ItemLink id="minecraft:diamond" showIcon="right" showTooltip="false" />
 <ItemLink ore="stickWood" />
 <ItemLink id="minecraft:iron_ore" linksTo="./crafting.md#smelting" />

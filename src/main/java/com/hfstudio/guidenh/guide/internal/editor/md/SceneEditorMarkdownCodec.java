@@ -59,6 +59,8 @@ public class SceneEditorMarkdownCodec {
         "allowLayerSlider");
     public static final Set<String> IMPORT_STRUCTURE_ATTRIBUTES = Set
         .of("src", "x", "y", "z", "offsetX", "offsetY", "offsetZ", "formed");
+    public static final Set<String> SCENE_BLOCK_ATTRIBUTES = Set
+        .of("id", "ore", "x", "y", "z", "meta", "facing", "nbt", "formed");
     public static final Set<String> IMPORT_STRUCTURE_LIB_ATTRIBUTES = Set.of(
         "controller",
         "name",
@@ -267,6 +269,10 @@ public class SceneEditorMarkdownCodec {
     private void appendParsedSceneChild(SceneEditorSceneModel model, UnistNode node, MdxJsxElementFields element,
         String source) {
         String tagName = element.name();
+        if ("Block".equals(tagName)) {
+            model.addSceneNode(parseSceneBlockNode(element));
+            return;
+        }
         if ("ImportStructure".equals(tagName)) {
             model.addSceneNode(parseImportStructureNode(element));
             return;
@@ -538,6 +544,27 @@ public class SceneEditorMarkdownCodec {
         return node;
     }
 
+    private SceneEditorSceneNodeModel parseSceneBlockNode(MdxJsxElementFields element) {
+        ensureAllowedAttributes(element, SCENE_BLOCK_ATTRIBUTES, "Block");
+        String id = parseOptionalStringAttribute(element, "id");
+        String ore = parseOptionalStringAttribute(element, "ore");
+        if (id == null && ore == null) {
+            throw new InvalidSceneSyntaxException("Block requires either 'id' or 'ore'");
+        }
+
+        SceneEditorSceneNodeModel node = new SceneEditorSceneNodeModel(SceneEditorSceneNodeType.BLOCK);
+        copyOptionalAttribute(element, node, "id");
+        copyOptionalAttribute(element, node, "ore");
+        copyOptionalAttribute(element, node, "x");
+        copyOptionalAttribute(element, node, "y");
+        copyOptionalAttribute(element, node, "z");
+        copyOptionalAttribute(element, node, "meta");
+        copyOptionalAttribute(element, node, "facing");
+        copyOptionalAttribute(element, node, "nbt");
+        copyOptionalAttribute(element, node, "formed");
+        return node;
+    }
+
     private SceneEditorSceneNodeModel parseBlockAnnotationTemplateNode(MdxJsxElementFields element, String source) {
         ensureAllowedAttributes(element, BLOCK_ANNOTATION_TEMPLATE_ATTRIBUTES, "BlockAnnotationTemplate");
         String blockId = parseRequiredStringAttribute(element, "id");
@@ -688,6 +715,7 @@ public class SceneEditorMarkdownCodec {
 
     private void appendSceneNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
         switch (sceneNode.getType()) {
+            case BLOCK -> appendSceneBlockNode(builder, sceneNode);
             case IMPORT_STRUCTURE -> appendImportStructureNode(builder, sceneNode);
             case IMPORT_STRUCTURE_LIB -> appendImportStructureLibNode(builder, sceneNode);
             case REMOVE_BLOCKS -> appendRemoveBlocksNode(builder, sceneNode);
@@ -708,6 +736,25 @@ public class SceneEditorMarkdownCodec {
                 }
             }
         }
+    }
+
+    private void appendSceneBlockNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {
+        String id = sceneNode.getAttribute("id");
+        String ore = sceneNode.getAttribute("ore");
+        if ((id == null || id.isEmpty()) && (ore == null || ore.isEmpty())) {
+            return;
+        }
+        builder.append("    <Block");
+        appendSceneNodeAttribute(builder, sceneNode, "id");
+        appendSceneNodeAttribute(builder, sceneNode, "ore");
+        appendSceneNodeAttribute(builder, sceneNode, "x");
+        appendSceneNodeAttribute(builder, sceneNode, "y");
+        appendSceneNodeAttribute(builder, sceneNode, "z");
+        appendSceneNodeAttribute(builder, sceneNode, "meta");
+        appendSceneNodeAttribute(builder, sceneNode, "facing");
+        appendSceneNodeAttribute(builder, sceneNode, "nbt");
+        appendSceneNodeBooleanAttribute(builder, sceneNode, "formed");
+        builder.append(" />\n");
     }
 
     private void appendImportStructureNode(StringBuilder builder, SceneEditorSceneNodeModel sceneNode) {

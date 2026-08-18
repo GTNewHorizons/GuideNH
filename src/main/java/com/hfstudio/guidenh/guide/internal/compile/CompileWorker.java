@@ -86,6 +86,12 @@ public class CompileWorker {
         return compiledPages.get(pageId);
     }
 
+    public void invalidate(ResourceLocation pageId) {
+        if (pageId != null) {
+            compiledPages.remove(pageId);
+        }
+    }
+
     /**
      * Promote a page to the front of the compilation queue. No-op if the page
      * is already compiled or currently being compiled.

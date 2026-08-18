@@ -19,6 +19,8 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
+import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver.ResolvedBlockReference;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
@@ -42,6 +44,7 @@ import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheEntry;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCacheKey;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureFingerprintResolver;
+import com.hfstudio.guidenh.guide.scene.element.BlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityImportSupport;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
@@ -157,6 +160,7 @@ public class SceneEditorSceneNodePreviewApplier {
     private boolean applyNode(SceneEditorSession session, LytGuidebookScene scene, SceneEditorSceneNodeModel node,
         @Nullable StructureLibPreviewSelection structureLibSelectionOverride, boolean structureMutationEnabled) {
         return switch (node.getType()) {
+            case BLOCK -> applySceneBlock(scene.getLevel(), node, structureMutationEnabled);
             case IMPORT_STRUCTURE -> applyImportStructure(session, scene.getLevel(), node, structureMutationEnabled);
             case IMPORT_STRUCTURE_LIB -> applyImportStructureLib(
                 scene,
@@ -174,6 +178,53 @@ public class SceneEditorSceneNodePreviewApplier {
             }
             default -> true;
         };
+    }
+
+    private boolean applySceneBlock(GuidebookLevel level, SceneEditorSceneNodeModel node,
+        boolean structureMutationEnabled) {
+        if (!structureMutationEnabled) {
+            return true;
+        }
+        ResolvedBlockReference reference = GuideItemReferenceResolver
+            .resolveBlockReference("minecraft", node.getAttribute("id"), node.getAttribute("ore"));
+        if (reference == null) {
+            return false;
+        }
+
+        int x = parseIntegerAttributeOrDefault(node.getAttribute("x"), 0);
+        int y = parseIntegerAttributeOrDefault(node.getAttribute("y"), 0);
+        int z = parseIntegerAttributeOrDefault(node.getAttribute("z"), 0);
+        int meta = parseIntegerAttributeOrDefault(
+            node.getAttribute("meta"),
+            BlockElementCompiler.resolvePlacementMeta(reference, node.getAttribute("facing")));
+        NBTTagCompound tileTag = parseTileTag(node.getAttribute("nbt"));
+        GuidebookPreviewBlockPlacer.place(
+            level,
+            x,
+            Math.clamp(y, 0, level.getHeight() - 1),
+            z,
+            reference.block(),
+            meta,
+            tileTag,
+            reference.registryId()
+                .toString());
+        ScenePreviewFormedState
+            .updateAfterPlacement(level, x, y, z, parseBooleanAttribute(node.getAttribute("formed")));
+        return true;
+    }
+
+    @Nullable
+    private NBTTagCompound parseTileTag(@Nullable String nbt) {
+        if (nbt == null || nbt.trim()
+            .isEmpty()) {
+            return null;
+        }
+        try {
+            return GuideTextNbtCodec.readTextSafeCompound(nbt);
+        } catch (Exception e) {
+            GuideDebugLog.warn("Ignoring invalid Block NBT in scene editor preview", e);
+            return null;
+        }
     }
 
     private void applyAnnotationNode(LytGuidebookScene scene, SceneEditorSceneNodeModel node) {

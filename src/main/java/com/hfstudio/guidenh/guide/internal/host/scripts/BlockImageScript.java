@@ -102,6 +102,7 @@ public class BlockImageScript implements LytScript {
         GuidebookLevel level = new GuidebookLevel();
         String registryId = ph.id != null ? (ph.id.contains(":") ? ph.id : "minecraft:" + ph.id) : "";
         GuidebookPreviewBlockPlacer.place(level, 0, 0, 0, block, defaultMeta, tileTag, registryId);
+        level.prepareForPreview();
 
         if (level.isEmpty()) {
             ctx.replace(LytParagraph.error("[BlockImage] Failed to create block preview"));

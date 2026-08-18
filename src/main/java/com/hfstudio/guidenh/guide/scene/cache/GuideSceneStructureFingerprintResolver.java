@@ -71,7 +71,8 @@ public class GuideSceneStructureFingerprintResolver {
     }
 
     public boolean isStructuralPreviewNode(SceneEditorSceneNodeType type) {
-        return type == SceneEditorSceneNodeType.IMPORT_STRUCTURE || type == SceneEditorSceneNodeType.REMOVE_BLOCKS
+        return type == SceneEditorSceneNodeType.BLOCK || type == SceneEditorSceneNodeType.IMPORT_STRUCTURE
+            || type == SceneEditorSceneNodeType.REMOVE_BLOCKS
             || type == SceneEditorSceneNodeType.OPAQUE;
     }
 
