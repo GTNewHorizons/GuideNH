@@ -235,18 +235,32 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     @Override
     public byte[] loadAsset(ResourceLocation id) {
         var language = LangUtil.getCurrentLanguage();
-        var result = loadAssetInternal(LangUtil.getTranslatedAsset(id, language));
+
+        // Candidate order: current-language variant, default-language variant, plain path.
+        // The first one that resolves wins. Intermediate probes must NOT log — the language
+        // variants are expected to miss for locale-independent assets (kept under the guide
+        // content root rather than under a `_<lang>/` folder), so we only report a failure
+        // once every candidate has been tried.
+        byte[] result = readAssetPath(LangUtil.getTranslatedAsset(id, language));
         if (result != null) return result;
 
         if (!Objects.equals(language, defaultLanguage)) {
-            result = loadAssetInternal(LangUtil.getTranslatedAsset(id, defaultLanguage));
+            result = readAssetPath(LangUtil.getTranslatedAsset(id, defaultLanguage));
             if (result != null) return result;
         }
 
-        return loadAssetInternal(id);
+        result = readAssetPath(id);
+        if (result != null) return result;
+
+        GuideDebugLog.error("[GuideNH] [MutableGuide] Failed to open guidebook asset {}", id);
+        return null;
     }
 
-    private byte @Nullable [] loadAssetInternal(ResourceLocation id) {
+    /**
+     * Reads the bytes for one concrete asset id. Performs no language fallback and does not log
+     * a "miss" — callers own the policy (which candidates to try and when to report failure).
+     */
+    private byte @Nullable [] readAssetPath(ResourceLocation id) {
         // Also load assets from the development sources folder.
         if (canLoadDevelopmentSource(id)) {
             var path = resolveDevelopmentSourcePath(id);
@@ -261,16 +275,10 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         // Transform id such that the path is prefixed with the source folder for the guidebook assets
         id = new ResourceLocation(id.getResourceDomain(), folder + "/" + id.getResourcePath());
 
-        var bytes = GuideResourceAccess.readBytes(
+        return GuideResourceAccess.readBytes(
             Minecraft.getMinecraft()
                 .getResourceManager(),
             id);
-        if (bytes != null) {
-            return bytes;
-        }
-
-        GuideDebugLog.error("[GuideNH] [MutableGuide] Failed to open guidebook asset {}", id);
-        return null;
     }
 
     @Override
