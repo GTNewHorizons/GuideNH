@@ -25,6 +25,7 @@ public class ItemImageCompiler extends FlowTagCompiler {
         String ore = MdxAttrs.getString(compiler, parent, el, "ore", null);
         if (itemId == null) return;
         itemId = itemId.trim();
+        String nbt = MdxAttrs.getString(compiler, parent, el, "nbt", null);
 
         float scale = MdxAttrs.getFloat(compiler, parent, el, "scale", 1f);
         boolean showTooltip;
@@ -75,6 +76,7 @@ public class ItemImageCompiler extends FlowTagCompiler {
 
         ItemImagePlaceholder placeholder = new ItemImagePlaceholder(
             itemId,
+            nbt,
             scale,
             yOffset,
             labelYOffset,
@@ -107,6 +109,8 @@ public class ItemImageCompiler extends FlowTagCompiler {
     public static class ItemImagePlaceholder extends LytParagraph {
 
         public final String itemId;
+        @Nullable
+        public final String nbt;
         public final float scale;
         @Nullable
         public final Integer yOffset;
@@ -122,10 +126,11 @@ public class ItemImageCompiler extends FlowTagCompiler {
         @Nullable
         public final String ore;
 
-        public ItemImagePlaceholder(String itemId, float scale, @Nullable Integer yOffset,
+        public ItemImagePlaceholder(String itemId, @Nullable String nbt, float scale, @Nullable Integer yOffset,
             @Nullable Integer labelYOffset, boolean showTooltip, @Nullable Boolean showIcon,
             @Nullable String labelPosition, @Nullable String labelFormat, @Nullable String ore) {
             this.itemId = itemId;
+            this.nbt = nbt;
             this.scale = scale;
             this.yOffset = yOffset;
             this.labelYOffset = labelYOffset;

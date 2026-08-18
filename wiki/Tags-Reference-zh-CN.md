@@ -319,6 +319,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 | --- | --- |
 | `ore` | 矿辞名；默认取第一个匹配结果 |
 | `id` | 当未提供 `ore` 时使用的物品引用 |
+| `nbt` | 可选的物品 SNBT；会合并到 `id` 的内联 SNBT 之上 |
 | `scale` | float，默认 `1` |
 | `noTooltip` | 传入真值字符串或空属性时禁用 tooltip（旧写法，推荐改用 `showTooltip`） |
 | `showTooltip` | boolean，默认 `true`；`false` 时禁用鼠标悬停 tooltip |
@@ -334,6 +335,7 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 - 若安装了 GregTech，选中的矿辞结果会先经过 `GTOreDictUnificator.setStack(...)` 统一化
 - `label` 需要至少一个可见元素（图标或文字），若同时设置 `showIcon="false"` 且不写 `label`，则渲染为空
 - `format` 仅在设置了 `label` 时生效；若 `format` 中没有 `%s`，则以格式字面量作为标签文字
+- `id` 中的内联 SNBT 仍然有效；两种写法同时存在时，独立的 `nbt` 属性最后合并，同名键以它为准
 
 示例：
 
@@ -345,6 +347,12 @@ GuideNH 也会忽略显式 `<Comment>` 标签：
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
 <ItemImage id="minecraft:book" showIcon="false" label="right" format="~~%s~~" />
 <ItemImage id="minecraft:emerald" label="right" showTooltip="false" />
+<ItemImage id="minecraft:diamond" nbt='{display:{Name:"自定义钻石"}}' />
+<ItemImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+/>
 ````
 
 ### `<ItemLink>`

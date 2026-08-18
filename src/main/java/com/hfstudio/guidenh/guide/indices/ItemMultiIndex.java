@@ -8,7 +8,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
+import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 
 /**
  * An index that maps each Minecraft item to ALL guide pages that reference it via
@@ -16,6 +18,8 @@ import com.hfstudio.guidenh.guide.PageAnchor;
  * than silently discarded, so a single item can be bound to multiple pages.
  */
 public class ItemMultiIndex extends MultiValuedIndex<ItemId, PageAnchor> {
+
+    private List<ItemIndex.ItemIdExpressionBinding> itemIdExpressions = List.of();
 
     public ItemMultiIndex() {
         super(
@@ -33,7 +37,7 @@ public class ItemMultiIndex extends MultiValuedIndex<ItemId, PageAnchor> {
         if (stack == null) return List.of();
         Item item = stack.getItem();
         if (item == null) return List.of();
-        return findAllByItem(item, stack.getItemDamage());
+        return appendExpressionMatches(findAllDirect(item, stack.getItemDamage()), stack);
     }
 
     /**
@@ -42,6 +46,22 @@ public class ItemMultiIndex extends MultiValuedIndex<ItemId, PageAnchor> {
      */
     public List<PageAnchor> findAllByItem(Item item, int meta) {
         if (item == null) return List.of();
+        return findAllByStack(new ItemStack(item, 1, meta));
+    }
+
+    @Override
+    public void rebuild(List<ParsedGuidePage> pages) {
+        super.rebuild(pages);
+        itemIdExpressions = ItemIndex.getItemIdExpressionBindings(pages);
+    }
+
+    @Override
+    public void update(List<ParsedGuidePage> allPages, List<GuidePageChange> changes) {
+        super.update(allPages, changes);
+        itemIdExpressions = ItemIndex.getItemIdExpressionBindings(allPages);
+    }
+
+    private List<PageAnchor> findAllDirect(Item item, int meta) {
         if (meta == OreDictionary.WILDCARD_VALUE) {
             return get(ItemId.createNoCopy(item, OreDictionary.WILDCARD_VALUE, null));
         }
@@ -53,5 +73,20 @@ public class ItemMultiIndex extends MultiValuedIndex<ItemId, PageAnchor> {
         combined.addAll(exact);
         combined.addAll(wildcard);
         return combined;
+    }
+
+    private List<PageAnchor> appendExpressionMatches(List<PageAnchor> directMatches, ItemStack stack) {
+        List<PageAnchor> matches = directMatches;
+        for (ItemIndex.ItemIdExpressionBinding binding : itemIdExpressions) {
+            if (!binding.expression()
+                .matches(stack) || matches.contains(binding.anchor())) {
+                continue;
+            }
+            if (matches == directMatches) {
+                matches = new ArrayList<>(directMatches);
+            }
+            matches.add(binding.anchor());
+        }
+        return matches;
     }
 }

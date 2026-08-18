@@ -346,6 +346,7 @@ Shows an inline item icon.
 | --- | --- |
 | `ore` | ore dictionary name; the first match wins |
 | `id` | item reference used when `ore` is absent |
+| `nbt` | optional SNBT item data; merged onto any inline SNBT in `id` |
 | `scale` | float, default `1` |
 | `noTooltip` | truthy string or empty attribute suppresses tooltip (legacy; prefer `showTooltip`) |
 | `showTooltip` | boolean, default `true`; `false` suppresses the hover tooltip |
@@ -361,6 +362,7 @@ Notes:
 - if GregTech is installed, the selected ore match is passed through `GTOreDictUnificator.setStack(...)`
 - `label` requires at least one of `showIcon` or `label` to produce visible output; setting both `showIcon="false"` and omitting `label` renders nothing
 - `format` only applies when `label` is set; if `format` has no `%s`, the literal format text is used as the label
+- inline SNBT in `id` remains supported; when both forms are present, the standalone `nbt` attribute is merged last and overrides conflicting keys
 
 Example:
 
@@ -372,6 +374,12 @@ Example:
 <ItemImage id="minecraft:iron_ingot" label="left" format="**%s**" />
 <ItemImage id="minecraft:book" showIcon="false" label="right" format="~~%s~~" />
 <ItemImage id="minecraft:emerald" label="right" showTooltip="false" />
+<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+<ItemImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+/>
 ````
 
 ### `<ItemLink>`

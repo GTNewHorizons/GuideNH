@@ -152,7 +152,7 @@ GuideNH also auto-creates the hidden searchable special pages `Special:AllPages`
 
 ## Item-Indexed Pages
 
-Pages can register item-to-page mappings using `item_ids`:
+Pages can register item-to-page mappings using `item_id` (one value) or `item_ids` (a list):
 
 ```yaml
 item_ids:
@@ -161,7 +161,9 @@ item_ids:
   - minecraft:iron_ore#crafting
 ```
 
-These mappings are used by `<ItemLink>`.
+These mappings are used by `<ItemLink>`. `item_id` is one NEI-style expression and each `item_ids`
+entry is the same kind of expression. For example, `minecraft:potion 16384-16462,!16386` matches a
+metadata range except for `16386`, while `ae2:white_paint_ball:*` is a compatible strict all-meta mapping.
 
 An optional `#anchor` suffix scrolls to a specific heading when the link is clicked.
 The anchor is formed by lowercasing the heading text and replacing spaces with hyphens
@@ -171,6 +173,7 @@ Lookup behavior:
 
 1. exact item + exact meta
 2. wildcard-meta fallback if present
+3. matching item expression
 
 ## Heading Anchor Links
 

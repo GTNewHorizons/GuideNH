@@ -161,16 +161,25 @@ GuideNH 还提供隐藏的特殊页面，例如 `Special:SpecialPages`、`Specia
 可分别通过 `<Special name="SpecialPages" rows="3" />`、`<Special name="AllPages" rows="3" />` 和 `<Special name="Categories" rows="3" />` 直接嵌入。
 所有 `Special:*` 页面都不会进入普通指南搜索，而 `Category:*` 页面仍然可被搜索到。
 
-### `item_ids`
+### `item_id` 与 `item_ids`
 
-将物品关联到此页面，用于 G 键查找和右键导航。格式：`namespace:name` 或 `namespace:name:meta`。可追加 `#anchor` 跳转到页面内的特定标题。
+将物品关联到此页面，用于 G 键查找和右键导航。单个 NEI 风格表达式使用 `item_id`，表达式列表使用
+`item_ids`。可追加 `#anchor` 跳转到页面内的特定标题。
 
 ```yaml
+item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
 item_ids:
   - minecraft:crafting_table
   - appliedenergistics2:item.ItemMultiMaterial:1
+  - "minecraft:written_book:*:{title:TestBook,author:GuideNH},!minecraft:written_book:0"
+  - "<minecraft:wool:14>"
+  - wrench|hammer
   - minecraft:diamond#Usage
 ```
+
+`minecraft:lava` 会对注册表 id 做部分匹配。`<minecraft:wool:14>` 严格匹配一个物品和 meta，兼容
+写法 `ae2:white_paint_ball:*` 会严格匹配该物品的所有 meta。空格用于组合条件，`,` 用于组合同一项中的规则，
+`!` 用于排除匹配项，`|` 用于分隔备选表达式。查找会先尝试精确和通配映射，再计算表达式。
 
 ### `required_mods`
 

@@ -281,7 +281,8 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | --- | --- | --- |
 | `navigation` | map | Adds the page to the navigation tree |
 | `categories` | list of strings | Adds the page to MediaWiki-style categories; each entry can optionally use `category|sort key` |
-| `item_ids` | list of item references | Makes the page discoverable by `<ItemLink>` |
+| `item_id` | item filter expression | A single NEI-style item expression that makes the page discoverable by `<ItemLink>` |
+| `item_ids` | list of item filter expressions | List form of `item_id`; any matching expression makes the page discoverable by `<ItemLink>` |
 | `ore_ids` | list of ore dictionary names | Makes the page discoverable by ore-dictionary items (e.g. `ingotIron`, `oreCopper`) |
 | `quest_ids` | list of BetterQuesting quest ids | Makes the page discoverable by `<QuestLink>` / `<QuestCard>` and by the open-guide hotkey when a quest is hovered in the BQ GUI. Accepts canonical UUID strings and BetterQuesting's compact Base64 form. Only consumed when BetterQuesting is loaded. See [Mod Compatibility](Mod-Compatibility) |
 | `author` | string | Single author name. Displayed in the bottom bar. |
@@ -307,8 +308,10 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 ### Example Frontmatter
 
 ```yaml
+item_id: minecraft:potion 16384-16462,!16386
 item_ids:
-  - minecraft:book
+  - ae2:white_paint_ball:*
+  - "<minecraft:wool:14>"
 navigation:
   title: Root
   parent: index.md
@@ -317,7 +320,6 @@ navigation:
   icon: minecraft:book:0:{display:{Name:"My Custom Book"}}
   # Use meta/damage to select a specific subtype:
   # icon: minecraft:wool:1       (orange wool, colon form)
-
   # Cycling icons list — cycles one per second:
   # icons:
   #   - minecraft:wool:1
@@ -437,7 +439,7 @@ Assets use the same resolution rules as links. For example:
 
 ## Item Reference Syntax
 
-Several tags accept item references with extended syntax:
+Navigation `icon` and `icons`, along with tags that accept an item id, use ordinary item references:
 
 ```text
 modid:name
@@ -445,20 +447,46 @@ modid:name:meta
 modid:name:meta:{snbt}
 ```
 
-Rules:
-
-- omitted `meta` defaults to `0`
-- `*`, `32767`, or uppercase tokens like `ANY` become wildcard meta
-- an SNBT tail starts at the first `{` and is parsed as item NBT
+An omitted `meta` defaults to `0`. An SNBT tail starts at the first `{` and is parsed as item NBT. Where wildcard
+metadata is supported, `*` can be combined with the SNBT tail.
 
 Examples:
 
 ```text
 minecraft:diamond
 minecraft:wool:14
-minecraft:wool:*
 minecraft:written_book:0:{title:TestBook,author:GuideNH}
+minecraft:written_book:*:{title:TestBook,author:GuideNH}
 ```
+
+### Item Index Expressions
+
+`item_id` accepts one NEI-style expression and `item_ids` accepts a YAML list of the same expressions. Each
+`item_ids` entry is independent; the page is linked when any entry matches. Whitespace combines terms, `|`
+combines alternatives, and `,` combines rules within one term.
+
+- `minecraft:lava` performs a case-insensitive partial registry-id match, so it also matches `minecraft:lava_bucket`.
+- `<minecraft:wool:14>` strictly matches one item and meta value.
+- `ae2:white_paint_ball:*`, `:32767`, and uppercase meta tokens such as `:ANY` are compatible strict all-meta forms.
+- `16384-16462,!16386` matches a metadata range while excluding `16386`.
+- `!minecraft:portal` excludes a matching registry id.
+- `r/^m\\w{6}ft$/` uses a Java regular expression against the registry id.
+
+```yaml
+item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
+item_ids:
+  - "minecraft:written_book:*:{title:TestBook,author:GuideNH},!minecraft:written_book:0"
+  - "<minecraft:wool:14>"
+  - wrench|hammer
+```
+
+In this example, whitespace combines conditions, `,` combines rules within one term, `!` excludes a match, and
+`|` separates alternatives. The first expression therefore accepts potion metadata from `16384` through `16462`
+except `16386`, or any metadata of `ae2:white_paint_ball`. The second expression demonstrates a wildcard item
+reference in a comma-separated expression with a reverse (`!`) rule.
+
+An optional `#anchor` suffix opens a matching page at a heading anchor. Exact item and explicit-meta mappings use
+the direct index first; expressions are evaluated only when needed.
 
 ## Error Handling
 

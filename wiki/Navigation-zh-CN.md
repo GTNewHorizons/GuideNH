@@ -150,7 +150,7 @@ GuideNH 还会自动创建隐藏可搜索的特殊页面 `Special:AllPages` 与 
 
 ## 物品索引页面
 
-页面可使用 `item_ids` 注册“物品到页面”的映射：
+页面可使用 `item_id`（单个值）或 `item_ids`（列表）注册“物品到页面”的映射：
 
 ```yaml
 item_ids:
@@ -159,7 +159,9 @@ item_ids:
   - minecraft:iron_ore#crafting
 ```
 
-这些映射会被 `<ItemLink>` 使用。
+这些映射会被 `<ItemLink>` 使用。`item_id` 是一个 NEI 风格表达式，`item_ids` 的每一项使用相同
+表达式语法。例如，`minecraft:potion 16384-16462,!16386` 匹配一个 meta 范围但排除 `16386`；
+`ae2:white_paint_ball:*` 是兼容的严格全 meta 映射。
 
 可在条目末尾加 `#anchor` 后缀，点击链接时会自动滚动到指定标题。
 锚点由标题文本转换而来：全部小写、空格替换为连字符
@@ -169,6 +171,7 @@ item_ids:
 
 1. 精确物品 + 精确 meta
 2. 如果存在，则回退到通配 meta
+3. 匹配物品表达式
 
 ## 标题锚点链接
 

@@ -238,6 +238,18 @@ Right-aligned item image:
 <ItemImage id="minecraft:diamond" align="right" />
 ````
 
+Item NBT can be supplied separately from the item id. Inline SNBT in `id` is still supported;
+when both forms are present, the standalone `nbt` attribute is merged last.
+
+````md
+<ItemImage id="minecraft:diamond" nbt='{display:{Name:"Custom Diamond"}}' />
+<ItemImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+/>
+````
+
 > **Note** — `wrap="inline"` now gives `<FloatingImage>` true inline placement inside flow text.
 > In inline mode, `align` is ignored instead of producing an error.
 

@@ -165,16 +165,26 @@ GuideNH also provides hidden special pages such as `Special:SpecialPages`, `Spec
 Use `<Special name="SpecialPages" rows="3" />`, `<Special name="AllPages" rows="3" />`, or `<Special name="Categories" rows="3" />` to embed them directly.
 All `Special:*` pages stay out of normal guide search, while `Category:*` pages remain searchable.
 
-### `item_ids`
+### `item_id` and `item_ids`
 
-Links items to this page for G-key lookup and right-click navigation. Format: `namespace:name` or `namespace:name:meta`. Append `#anchor` to jump to a specific heading.
+Links items to this page for G-key lookup and right-click navigation. Use `item_id` for one NEI-style
+expression or `item_ids` for a list of expressions. Append `#anchor` to jump to a specific heading.
 
 ```yaml
+item_id: "minecraft:potion 16384-16462,!16386 | ae2:white_paint_ball:*"
 item_ids:
   - minecraft:crafting_table
   - appliedenergistics2:item.ItemMultiMaterial:1
+  - "minecraft:written_book:*:{title:TestBook,author:GuideNH},!minecraft:written_book:0"
+  - "<minecraft:wool:14>"
+  - wrench|hammer
   - minecraft:diamond#Usage
 ```
+
+`minecraft:lava` performs a partial registry-id match. `<minecraft:wool:14>` strictly matches an item
+and metadata value. The compatible `ae2:white_paint_ball:*` form strictly matches every metadata value. Whitespace
+combines conditions, `,` combines rules in one term, `!` excludes a match, and `|` separates alternatives.
+Lookups try exact and wildcard mappings before evaluating expressions.
 
 ### `required_mods`
 

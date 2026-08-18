@@ -13,8 +13,8 @@ public class FrontmatterKeyProvider implements AutocompleteProvider {
 
     private static final Set<AutocompleteKey> KEYS = Collections.singleton(AutocompleteKey.forValue("*", "fm_key"));
 
-    private static final String[] KEYS_LIST = { "navigation", "item_ids", "ore_ids", "quest_ids", "categories",
-        "authors", "author", "date", "updated", "zoom" };
+    private static final String[] KEYS_LIST = { "navigation", "item_id", "item_ids", "ore_ids", "quest_ids",
+        "categories", "authors", "author", "date", "updated", "zoom" };
 
     @Override
     public Set<AutocompleteKey> getSupportedKeys() {

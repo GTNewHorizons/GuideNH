@@ -111,6 +111,19 @@ categories:
   <ItemImage id="minecraft:diamond" scale="6" />
 </Row>
 
+## ItemImage NBT
+
+`ItemImage` 支持可选的 `nbt` 属性来提供物品堆叠数据。`id` 中的内联 SNBT 仍然支持；
+两种写法同时存在时，独立的 `nbt` 属性最后合并。
+
+<ItemImage id="minecraft:diamond" nbt='{display:{Name:"自定义钻石"}}' />
+
+<ItemImage
+  id="minecraft:chest"
+  scale="2"
+  nbt='{id:"Chest",Items:[{Slot:0b,id:"minecraft:diamond",Count:1b,Damage:0s}]}'
+/>
+
 ### 内联图标与文字的纵向对齐
 
 内联的 `<ItemImage>` 默认会向上偏移约 4 像素（随 `scale` 等比例缩放），让图标视觉中心与文字基线对齐。标签文字有独立的较小默认偏移（-2 px），两者可分别覆盖。
