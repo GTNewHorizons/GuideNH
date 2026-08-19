@@ -67,6 +67,47 @@ public class DetailsContentExtractor {
         return result.toString();
     }
 
+    /**
+     * Finds body lines that remain a Markdown indented-code line after the
+     * block's common indentation is removed. GuideNH block tags commonly use
+     * indentation only for readability; residual four-space indentation is
+     * therefore almost always an accidental mixed-indent layout.
+     */
+    public static IndentationWarning findResidualIndentation(String body) {
+        String normalized = GuideStringLines.normalizeLineEndings(body != null ? body : "");
+        if (normalized.isEmpty()) {
+            return null;
+        }
+
+        var lines = GuideStringLines.splitLines(normalized);
+        int firstContentLine = 0;
+        while (firstContentLine < lines.size() && lines.get(firstContentLine).trim().isEmpty()) {
+            firstContentLine++;
+        }
+        int minIndent = Integer.MAX_VALUE;
+        for (int i = firstContentLine; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (!line.trim().isEmpty()) {
+                minIndent = Math.min(minIndent, leadingWhitespaceWidth(line));
+            }
+        }
+        if (minIndent == Integer.MAX_VALUE) {
+            return null;
+        }
+
+        for (int i = firstContentLine; i < lines.size(); i++) {
+            String line = lines.get(i);
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            int residual = leadingWhitespaceWidth(removeLeadingWhitespace(line, minIndent));
+            if (residual >= 4 && !line.trim().startsWith("<")) {
+                return new IndentationWarning(i + 1, residual);
+            }
+        }
+        return null;
+    }
+
     private static int leadingWhitespaceWidth(String line) {
         int width = 0;
         for (int i = 0; i < line.length(); i++) {
@@ -101,4 +142,6 @@ public class DetailsContentExtractor {
     }
 
     public record DetailsContent(@Nullable String summaryMarkdown, String bodyMarkdown) {}
+
+    public record IndentationWarning(int relativeLine, int residualSpaces) {}
 }
