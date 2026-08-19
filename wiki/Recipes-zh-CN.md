@@ -68,6 +68,18 @@ minecraft:stick&minecraft:redstone
 minecraft:planks:*,minecraft:log:*
 ```
 
+NBT 可以和这三个物品引用属性组合使用。SNBT 复合标签或列表内部的逗号、`&` 会保留在
+引用中，只有最外层的分隔符才会拆分过滤表达式：
+
+```md
+<RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
+<RecipesFor
+  id='minecraft:stone:3:{display:{Name:"特殊石头"}}'
+  input='minecraft:chest:0:{Items:[{id:"minecraft:diamond",Count:1b}]}'
+  output='minecraft:diamond:0:{display:{Name:"奖励"}}'
+/>
+```
+
 ## 渲染顺序
 
 GuideNH 会按以下顺序尝试配方：

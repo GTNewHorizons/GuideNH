@@ -72,6 +72,18 @@ minecraft:stick&minecraft:redstone
 minecraft:planks:*,minecraft:log:*
 ```
 
+NBT can be combined with all three item-reference attributes. Commas and ampersands inside an
+SNBT compound/list are kept inside the reference; only top-level separators split the filter:
+
+```md
+<RecipeFor id='minecraft:written_book:0:{title:TestBook,author:GuideNH}' />
+<RecipesFor
+  id='minecraft:stone:3:{display:{Name:"Special Stone"}}'
+  input='minecraft:chest:0:{Items:[{id:"minecraft:diamond",Count:1b}]}'
+  output='minecraft:diamond:0:{display:{Name:"Reward"}}'
+/>
+```
+
 ## Rendering Order
 
 GuideNH tries recipes in this order:
