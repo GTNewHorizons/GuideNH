@@ -938,9 +938,10 @@ public class PageCompiler {
 
         var indentationWarning = DetailsContentExtractor.findResidualIndentation(body);
         if (indentationWarning != null) {
-            int sourceLine = element.position() != null && element.position().start() != null
-                ? element.position().start().line() + indentationWarning.relativeLine()
-                : indentationWarning.relativeLine();
+            int sourceLine = element.position() != null && element.position()
+                .start() != null ? element.position()
+                    .start()
+                    .line() + indentationWarning.relativeLine() : indentationWarning.relativeLine();
             GuideDebugLog.warnAlways(
                 "[GuideNH] [PageCompiler] Mixed indentation in <{}> body at {}:{} ({} residual spaces after dedent); "
                     + "Markdown may parse this line as an indented code block",

@@ -81,13 +81,16 @@ public class DetailsContentExtractor {
 
         var lines = GuideStringLines.splitLines(normalized);
         int firstContentLine = 0;
-        while (firstContentLine < lines.size() && lines.get(firstContentLine).trim().isEmpty()) {
+        while (firstContentLine < lines.size() && lines.get(firstContentLine)
+            .trim()
+            .isEmpty()) {
             firstContentLine++;
         }
         int minIndent = Integer.MAX_VALUE;
         for (int i = firstContentLine; i < lines.size(); i++) {
             String line = lines.get(i);
-            if (!line.trim().isEmpty()) {
+            if (!line.trim()
+                .isEmpty()) {
                 minIndent = Math.min(minIndent, leadingWhitespaceWidth(line));
             }
         }
@@ -97,11 +100,13 @@ public class DetailsContentExtractor {
 
         for (int i = firstContentLine; i < lines.size(); i++) {
             String line = lines.get(i);
-            if (line.trim().isEmpty()) {
+            if (line.trim()
+                .isEmpty()) {
                 continue;
             }
             int residual = leadingWhitespaceWidth(removeLeadingWhitespace(line, minIndent));
-            if (residual >= 4 && !line.trim().startsWith("<")) {
+            if (residual >= 4 && !line.trim()
+                .startsWith("<")) {
                 return new IndentationWarning(i + 1, residual);
             }
         }

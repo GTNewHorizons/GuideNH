@@ -134,7 +134,9 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 preParsedAst = MdAst.fromMarkdown(childrenSource, GuideMarkdownOptions.runtime());
                 MdAstToMdxConverter.convert(preParsedAst, Collections.emptyMap());
             } catch (RuntimeException e) {
-                parseError = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                parseError = e.getMessage() != null ? e.getMessage()
+                    : e.getClass()
+                        .getSimpleName();
                 GuideDebugLog
                     .error("[GuideNH] [SceneTagCompiler] Failed to parse scene children during pre-processing", e);
             }
@@ -259,8 +261,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             float centerY, float centerZ, boolean explicitCenter, boolean interactive, boolean showBackground,
             boolean allowLayerSlider, boolean gridButtonEnabled, boolean showGrid, @Nullable String childrenSource,
             String pageDomain, String pagePath, String sourcePack, String language, @Nullable MdAstRoot childrenAst,
-            @Nullable String childrenParseError,
-            @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
+            @Nullable String childrenParseError, @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
             this.width = width;
             this.height = height;
             this.explicitWidth = explicitWidth;
