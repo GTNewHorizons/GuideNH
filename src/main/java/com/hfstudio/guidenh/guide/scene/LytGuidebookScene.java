@@ -471,6 +471,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     private float[] initialCam = new float[] { 1f, 0f, 0f, 0f, 0f, 0f };
     private final Vector3f initialRotationCenter = new Vector3f();
+    /** Orbit pivot used by Ponder reset/auto-camera; derived from the initial structure AABB. */
+    private final Vector3f initialPonderRotationCenter = new Vector3f();
+    private boolean initialPonderRotationCenterCaptured;
 
     private int @Nullable [] hoveredBlock;
     @Nullable
@@ -626,6 +629,26 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     public void setInitialLevelSnapshot(@Nullable GuideSceneStructureSnapshot snapshot) {
         this.initialLevelSnapshot = snapshot;
+        captureInitialPonderRotationCenter();
+    }
+
+    private void captureInitialPonderRotationCenter() {
+        if (level == null || level.isEmpty()) {
+            initialPonderRotationCenter.set(initialRotationCenter);
+        } else {
+            initialPonderRotationCenter.set(initialPonderAabbCenter(level.getBounds()));
+        }
+        initialPonderRotationCenterCaptured = true;
+    }
+
+    static Vector3f initialPonderAabbCenter(int[] bounds) {
+        if (bounds == null || bounds.length < 6) {
+            return new Vector3f();
+        }
+        return new Vector3f(
+            (bounds[0] + bounds[3] + 1) * 0.5f,
+            (bounds[1] + bounds[4] + 1) * 0.5f,
+            (bounds[2] + bounds[5] + 1) * 0.5f);
     }
 
     public void resetInteractiveState() {
@@ -4243,12 +4266,21 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private float[] applyVisualCameraState() {
         updateVisualCameraState();
         float[] saved = captureCameraState();
-        camera.setZoom(visualCamZoom.value());
+        float visualZoom = visualCamZoom.value();
+        camera.setZoom(visualZoom);
         camera.setRotationX(visualCamRotX.value());
         camera.setRotationY(visualCamRotY.value());
         camera.setRotationZ(visualCamRotZ.value());
-        camera.setOffsetX(visualCamOffX.value());
-        camera.setOffsetY(visualCamOffY.value());
+        // Ponder JSON defines offX/offY in screen pixels. CameraSettings stores its internal
+        // translation in world units, so convert only while a Ponder timeline is active. Regular
+        // GameScene offsetX/offsetY values retain their existing world-space semantics.
+        if (ponderSceneData != null) {
+            camera.setOffsetX(camera.screenPixelsToWorldOffset(visualCamOffX.value()));
+            camera.setOffsetY(camera.screenPixelsToWorldOffset(visualCamOffY.value()));
+        } else {
+            camera.setOffsetX(visualCamOffX.value());
+            camera.setOffsetY(visualCamOffY.value());
+        }
         return saved;
     }
 
@@ -4558,6 +4590,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     public void attachPonderData(PonderSceneData data, List<List<SceneAnnotation>> annotationsByKeyframe,
         List<List<GuideSoundSpec>> soundsByKeyframe) {
+        if (!initialPonderRotationCenterCaptured) {
+            captureInitialPonderRotationCenter();
+        }
         clearPonderBlockChanges();
         this.ponderSceneData = data;
         rebuildPonderTimedEntityAnimations();
@@ -4907,7 +4942,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         ponderCamOffY = activeCam[5];
         // User pan lives on camera.rotationCenter; restore the scripted orbit pivot
         // whenever the ponder timeline state is (re)applied.
-        camera.setRotationCenter(initialRotationCenter.x, initialRotationCenter.y, initialRotationCenter.z);
+        camera.setRotationCenter(
+            initialPonderRotationCenter.x,
+            initialPonderRotationCenter.y,
+            initialPonderRotationCenter.z);
         applyPonderEntityAnimationsAtTick(ponderCurrentTick);
     }
 
@@ -5022,8 +5060,12 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private float[] resolveFullCameraAt(int kfIndex) {
+        // Ponder offsets are screen pixels. The regular scene camera stores its fallback
+        // translation in world units, so normalize the fallback before resolving keyframes.
+        float baseOffsetX = camera.worldOffsetToScreenPixels(camera.getOffsetX());
+        float baseOffsetY = camera.worldOffsetToScreenPixels(camera.getOffsetY());
         float[] result = new float[] { camera.getZoom(), camera.getRotationX(), camera.getRotationY(),
-            camera.getRotationZ(), camera.getOffsetX(), camera.getOffsetY() };
+            camera.getRotationZ(), baseOffsetX, baseOffsetY };
         boolean[] resolved = new boolean[6];
         int upper = Math.min(kfIndex, ponderSceneData.getKeyframeCount() - 1);
         for (int i = upper; i >= 0; i--) {

@@ -11,6 +11,8 @@ import lombok.Getter;
 
 public class CameraSettings {
 
+    public static final float PROJECTION_SCALE_AT_ZOOM_ONE = 0.625f * 16f;
+
     @Getter
     private float zoom = 1f;
 
@@ -134,6 +136,17 @@ public class CameraSettings {
         }
     }
 
+    /** Converts a screen-space offset to the world-space translation used by this camera. */
+    public float screenPixelsToWorldOffset(float pixels) {
+        float scale = PROJECTION_SCALE_AT_ZOOM_ONE * zoom;
+        return Math.abs(scale) > 1.0e-6f ? pixels / scale : 0f;
+    }
+
+    /** Converts this camera's world-space translation to the screen-space value used by Ponder. */
+    public float worldOffsetToScreenPixels(float worldOffset) {
+        return worldOffset * PROJECTION_SCALE_AT_ZOOM_ONE * zoom;
+    }
+
     public static final float DEG_TO_RAD = (float) (Math.PI / 180.0);
 
     // Cached matrices: callers (renderer, worldToScreen, screenToWorldRay) consume the
@@ -169,7 +182,7 @@ public class CameraSettings {
     public Matrix4f getProjectionMatrix() {
         if (projectionDirty) {
             projectionDirty = false;
-            float s = 0.625f * 16f * zoom;
+            float s = PROJECTION_SCALE_AT_ZOOM_ONE * zoom;
             reusableProjection.identity()
                 .setOrtho(viewport.x(), viewport.z(), viewport.y(), viewport.w(), -1000f, 3000f)
                 .scale(s, s, 1f);
