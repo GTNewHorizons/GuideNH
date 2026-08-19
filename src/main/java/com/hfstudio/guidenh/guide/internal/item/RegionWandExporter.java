@@ -267,6 +267,7 @@ public class RegionWandExporter {
                         try {
                             NBTTagCompound teTag = new NBTTagCompound();
                             te.writeToNBT(teTag);
+                            removeEmptySignTextLines(regName, teTag);
                             teTag.removeTag("x");
                             teTag.removeTag("y");
                             teTag.removeTag("z");
@@ -561,6 +562,7 @@ public class RegionWandExporter {
                 try {
                     NBTTagCompound tileTag = new NBTTagCompound();
                     tileEntity.writeToNBT(tileTag);
+                    removeEmptySignTextLines(blockId, tileTag);
                     tileTag.removeTag("x");
                     tileTag.removeTag("y");
                     tileTag.removeTag("z");
@@ -678,6 +680,7 @@ public class RegionWandExporter {
                         try {
                             NBTTagCompound teTag = new NBTTagCompound();
                             te.writeToNBT(teTag);
+                            removeEmptySignTextLines(regName, teTag);
                             teTag.removeTag("x");
                             teTag.removeTag("y");
                             teTag.removeTag("z");
@@ -767,6 +770,33 @@ public class RegionWandExporter {
         return throwable.getMessage() != null ? throwable.getMessage()
             : throwable.getClass()
                 .getSimpleName();
+    }
+
+    /**
+     * Empty sign lines must be omitted from exported NBT. Minecraft 1.7.10's sign renderer
+     * treats an explicitly serialized empty line as a JSON string and can display the quote
+     * characters. Omitting the field lets TileEntitySign use its normal empty default.
+     */
+    private static void removeEmptySignTextLines(String blockId, NBTTagCompound tileTag) {
+        if (blockId == null || tileTag == null) {
+            return;
+        }
+        String path = blockId;
+        int separator = path.indexOf(':');
+        if (separator >= 0) {
+            path = path.substring(separator + 1);
+        }
+        if (!("sign".equals(path) || "wall_sign".equals(path))) {
+            return;
+        }
+        for (int line = 1; line <= 4; line++) {
+            String key = "Text" + line;
+            if (tileTag.hasKey(key, 8) && tileTag.getString(key)
+                .trim()
+                .isEmpty()) {
+                tileTag.removeTag(key);
+            }
+        }
     }
 
     public static int[] floorBlockPosition(double x, double y, double z) {

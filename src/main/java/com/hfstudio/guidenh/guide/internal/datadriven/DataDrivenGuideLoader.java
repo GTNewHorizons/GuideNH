@@ -82,13 +82,14 @@ public class DataDrivenGuideLoader {
 
     private static volatile @Nullable ScanCache lastScanCache = null;
 
-    private record ScanCache(List<File> packRoots, String folder, ScanResult result,
+    private record ScanCache(List<File> packRoots, String folder,
+        List<ResourcePackContentManifest.Pack> contentManifest, ScanResult result,
         Map<ResourceLocation, List<PackCandidate>> pagePackIndexSnapshot,
         Map<ResourceLocation, List<PackCandidate>> assetPackIndexSnapshot,
         Map<File, List<String>> langFilePathsSnapshot, Map<String, Map<String, String>> langKeys) {
 
-        boolean matches(List<File> roots, String f) {
-            return folder.equals(f) && packRoots.equals(roots);
+        boolean matches(List<File> roots, String f, List<ResourcePackContentManifest.Pack> manifest) {
+            return folder.equals(f) && packRoots.equals(roots) && contentManifest.equals(manifest);
         }
     }
 
@@ -101,11 +102,12 @@ public class DataDrivenGuideLoader {
     }
 
     public static ScanResult scanAndBuildAll(String folder, Iterable<? extends IResourcePack> activeResourcePacks) {
-        // Cache hit: same pack roots, same folder → restore index and return cached result
+        // Cache hit requires the same roots and the same resource-pack content inventory.
         var resolvedPacks = toList(activeResourcePacks);
         var packRoots = resolvePackRoots(resolvedPacks);
+        var contentManifest = ResourcePackContentManifest.capture(packRoots, folder);
         ScanCache cache = lastScanCache;
-        if (cache != null && cache.matches(packRoots, folder)) {
+        if (cache != null && cache.matches(packRoots, folder, contentManifest)) {
             indexReady = true;
             pagePackIndex.putAll(cache.pagePackIndexSnapshot());
             assetPackIndex.putAll(cache.assetPackIndexSnapshot());
@@ -117,6 +119,8 @@ public class DataDrivenGuideLoader {
 
         pagePackIndex.clear();
         assetPackIndex.clear();
+        PACK_LANG_FILE_PATHS.clear();
+        nativeNamespaceRootsCache.clear();
         indexReady = false;
         pagePackOrder.set(0);
 
@@ -153,6 +157,7 @@ public class DataDrivenGuideLoader {
             lastScanCache = new ScanCache(
                 List.copyOf(packRoots),
                 folder,
+                contentManifest,
                 new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages)),
                 new HashMap<>(pagePackIndex),
                 new HashMap<>(assetPackIndex),
@@ -224,8 +229,7 @@ public class DataDrivenGuideLoader {
         nativeNamespaceRootsCache.clear();
         indexReady = false;
         pagePackOrder.set(0);
-        // NOTE: lastScanCache is NOT cleared here — it persists across reloads
-        // so that GuideReloadListener's second call (same packs) hits cache.
+        // Keep the previous result for a subsequent scan, but validate it with the content manifest.
     }
 
     private static void scanZipBuildIndex(File resourcePackFile, String folder,
