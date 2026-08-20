@@ -17,7 +17,7 @@ import com.ruling_0.materiallib.api.StackResolver;
 /// across sessions that renumber MaterialLib's item metadata.
 ///
 /// Sole holder of MaterialLib types in GuideNH: every call site gates on [com.hfstudio.guidenh.integration.Mods]
-/// `.MaterialLib.isModLoaded()` before reaching this class, so it never classloads without MaterialLib present.
+/// `.MaterialLib.isModLoaded()`, so this class never classloads without MaterialLib present.
 public final class MaterialLibItemRefs {
 
     private static final int CACHE_MAX = 512;
@@ -35,7 +35,7 @@ public final class MaterialLibItemRefs {
     private MaterialLibItemRefs() {}
 
     /// A fresh single-item stack of the named material in the named shape, or null when either name matches
-    /// nothing. [StackResolver] logs the miss itself, so callers must not log it again.
+    /// nothing. [StackResolver] logs the miss.
     @Nullable
     public static ItemStack getStack(String materialName, String shapeToken) {
         String key = materialName + ":" + shapeToken;
@@ -51,8 +51,8 @@ public final class MaterialLibItemRefs {
         try {
             stack = StackResolver.getStack(materialName, shapeToken, 1);
         } catch (Throwable t) {
-            // Shapes only become resolvable during MaterialLib's preInit; the outcome stays uncached so a
-            // lookup that ran ahead of it succeeds on the next attempt.
+            // Shapes only become resolvable during MaterialLib's preInit. The outcome stays uncached so a
+            // lookup that ran ahead of that succeeds on a later attempt.
             if (!warnedTooEarly) {
                 warnedTooEarly = true;
                 GuideDebugLog.warnAlways("[GuideNH] [MaterialLib] Cannot resolve '{}' yet", key, t);

@@ -25,8 +25,8 @@ import com.hfstudio.guidenh.integration.materiallib.MaterialLibItemRefs;
 public class IdUtils {
 
     /**
-     * Prefix of a MaterialLib reference, {@code ml:<MaterialName>:<shapeToken>}. It names a material and a shape
-     * instead of a registry entry, so it survives sessions that renumber MaterialLib's item metadata.
+     * Prefix of a MaterialLib reference, {@code ml:<MaterialName>:<shapeToken>}; see
+     * {@link MaterialLibItemRefs}.
      */
     private static final String MATERIAL_LIB_PREFIX = "ml:";
 
@@ -86,18 +86,17 @@ public class IdUtils {
      * {@link IllegalArgumentException} from {@link ResourceLocation}'s constructor.
      *
      * <p>
-     * A {@code ml:<MaterialName>:<shapeToken>} reference is instead resolved through MaterialLib and yields the
-     * registry key and damage of the stack registered for that material and shape. When MaterialLib is absent or
-     * has nothing under those names, parsing continues on the ordinary path, which leaves an unregistered key and
-     * so degrades like any other unknown id.
+     * A {@code ml:<MaterialName>:<shapeToken>} reference is resolved through MaterialLib instead, and yields
+     * the registry key and damage of the stack registered for that material and shape. When MaterialLib is
+     * absent or has nothing under those names, parsing continues on the ordinary path.
      */
     @Nullable
     public static ParsedItemRef parseItemRef(String idText, String defaultNamespace) {
         if (idText == null || idText.isEmpty()) return null;
         // Cache the common no-NBT case keyed on (namespace + ":" + idText). When the input
         // contains an SNBT tail (detected by '{') we skip the cache to avoid sharing mutable
-        // NBT references across callers. MaterialLib refs are skipped too, so that a lookup made
-        // before MaterialLib registered its shapes does not pin its failure.
+        // NBT references across callers. MaterialLib refs are skipped too: a lookup made before
+        // MaterialLib registers its shapes must not pin the failure.
         boolean cacheable = idText.indexOf('{') < 0 && !idText.startsWith(MATERIAL_LIB_PREFIX);
         String cacheKey = null;
         if (cacheable) {
@@ -182,7 +181,7 @@ public class IdUtils {
         if (materialName.isEmpty() || shapeToken.isEmpty() || shapeToken.indexOf(':') >= 0) return null;
 
         ItemStack stack = MaterialLibItemRefs.getStack(materialName, shapeToken);
-        if (stack == null || stack.getItem() == null) return null;
+        if (stack == null) return null;
         Object registryName = Item.itemRegistry.getNameForObject(stack.getItem());
         if (registryName == null) return null;
 
