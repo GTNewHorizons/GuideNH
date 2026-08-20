@@ -32,6 +32,7 @@ import net.minecraftforge.client.ForgeHooksClient;
 
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -59,6 +60,7 @@ public class GuidebookLevelRenderer {
     public static final int WEATHER_COVERAGE_RESOLUTION = 1024;
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
+    private final Vector3f cullScreenScratch = new Vector3f();
     private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnsScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnPool = new ArrayList<>();
@@ -281,20 +283,32 @@ public class GuidebookLevelRenderer {
                     try {
                         setRenderPass(0);
                         GL11.glDisable(GL_BLEND);
-                        renderBlocksPass(level, filledBlocks, 0, layerSelection);
+                        renderBlocksPass(level, filledBlocks, 0, layerSelection, camera, panelWidth, panelHeight);
 
                         setRenderPass(1);
                         GL11.glEnable(GL_BLEND);
                         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                         GL11.glDepthMask(false);
-                        renderBlocksPass(level, filledBlocks, 1, layerSelection);
+                        renderBlocksPass(level, filledBlocks, 1, layerSelection, camera, panelWidth, panelHeight);
                         GL11.glDepthMask(true);
                         GL11.glDisable(GL_BLEND);
 
                         setRenderPass(-1);
 
-                        renderBlockEntities(tileEntities, partialTicks, layerSelection);
-                        renderEntities(level.getEntities(), partialTicks, layerSelection);
+                        renderBlockEntities(
+                            tileEntities,
+                            partialTicks,
+                            layerSelection,
+                            camera,
+                            panelWidth,
+                            panelHeight);
+                        renderEntities(
+                            level.getEntities(),
+                            partialTicks,
+                            layerSelection,
+                            camera,
+                            panelWidth,
+                            panelHeight);
 
                         if (!annotations.isEmpty()) {
                             InWorldAnnotationRenderer.render(annotations, lightDarkMode);
@@ -350,7 +364,7 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
-        GuidebookSceneLayerSelection layerSelection) {
+        GuidebookSceneLayerSelection layerSelection, CameraSettings camera, int panelWidth, int panelHeight) {
         RenderBlocks rb = cachedRenderBlocks;
         if (rb == null || cachedRenderBlocksLevel != level) {
             rb = new RenderBlocks(level.getOrCreateFakeWorld());
@@ -370,6 +384,18 @@ public class GuidebookLevelRenderer {
             boolean filteredLayerMode = effectiveSelection.shouldRenderAllFaces();
             for (int[] p : filledBlocks) {
                 if (!effectiveSelection.isLayerVisible(p[1])) {
+                    continue;
+                }
+                if (!isAabbPotentiallyVisible(
+                    camera,
+                    panelWidth,
+                    panelHeight,
+                    p[0],
+                    p[1],
+                    p[2],
+                    p[0] + 1.0f,
+                    p[1] + 1.0f,
+                    p[2] + 1.0f)) {
                     continue;
                 }
                 Block block = level.getBlock(p[0], p[1], p[2]);
@@ -432,7 +458,7 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderBlockEntities(Iterable<TileEntity> tileEntities, float partialTicks,
-        GuidebookSceneLayerSelection layerSelection) {
+        GuidebookSceneLayerSelection layerSelection, CameraSettings camera, int panelWidth, int panelHeight) {
         GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
             : GuidebookSceneLayerSelection.all();
         TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
@@ -456,6 +482,18 @@ public class GuidebookLevelRenderer {
                 if (!effectiveSelection.isLayerVisible(te.yCoord)) {
                     continue;
                 }
+                if (!isAabbPotentiallyVisible(
+                    camera,
+                    panelWidth,
+                    panelHeight,
+                    te.xCoord,
+                    te.yCoord,
+                    te.zCoord,
+                    te.xCoord + 1.0f,
+                    te.yCoord + 1.0f,
+                    te.zCoord + 1.0f)) {
+                    continue;
+                }
                 if (!dispatcher.hasSpecialRenderer(te) || !te.shouldRenderInPass(pass)) {
                     continue;
                 }
@@ -476,7 +514,7 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderEntities(Iterable<Entity> entities, float partialTicks,
-        GuidebookSceneLayerSelection layerSelection) {
+        GuidebookSceneLayerSelection layerSelection, CameraSettings camera, int panelWidth, int panelHeight) {
         GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
             : GuidebookSceneLayerSelection.all();
         RenderManager renderManager = RenderManager.instance;
@@ -486,6 +524,18 @@ public class GuidebookLevelRenderer {
                 continue;
             }
             if (entity.boundingBox != null && !intersectsVisibleLayerSelection(entity, effectiveSelection)) {
+                continue;
+            }
+            if (entity.boundingBox != null && !isAabbPotentiallyVisible(
+                camera,
+                panelWidth,
+                panelHeight,
+                (float) entity.boundingBox.minX,
+                (float) entity.boundingBox.minY,
+                (float) entity.boundingBox.minZ,
+                (float) entity.boundingBox.maxX,
+                (float) entity.boundingBox.maxY,
+                (float) entity.boundingBox.maxZ)) {
                 continue;
             }
             try {
@@ -527,6 +577,37 @@ public class GuidebookLevelRenderer {
             }
         }
         return false;
+    }
+
+    /**
+     * Conservative viewport culling: projects the AABB's 8 corners through the camera and keeps the
+     * block/TESR/entity when the projected AABB rectangle intersects the scene viewport. This only
+     * removes geometry completely outside the visible panel; edge cases are kept to avoid visual regressions.
+     */
+    private boolean isAabbPotentiallyVisible(CameraSettings camera, int panelWidth, int panelHeight, float minX,
+        float minY, float minZ, float maxX, float maxY, float maxZ) {
+        if (panelWidth <= 0 || panelHeight <= 0) {
+            return true;
+        }
+        float halfW = panelWidth * 0.5f;
+        float halfH = panelHeight * 0.5f;
+        float minSX = Float.MAX_VALUE;
+        float maxSX = -Float.MAX_VALUE;
+        float minSY = Float.MAX_VALUE;
+        float maxSY = -Float.MAX_VALUE;
+        for (int corner = 0; corner < 8; corner++) {
+            float wx = (corner & 1) == 0 ? minX : maxX;
+            float wy = (corner & 2) == 0 ? minY : maxY;
+            float wz = (corner & 4) == 0 ? minZ : maxZ;
+            camera.worldToScreen(wx, wy, wz, cullScreenScratch);
+            float sx = cullScreenScratch.x;
+            float sy = cullScreenScratch.y;
+            if (sx < minSX) minSX = sx;
+            if (sx > maxSX) maxSX = sx;
+            if (sy < minSY) minSY = sy;
+            if (sy > maxSY) maxSY = sy;
+        }
+        return maxSX >= -halfW && minSX <= halfW && maxSY >= -halfH && minSY <= halfH;
     }
 
     public static int resolveEntityBrightnessForPreview(Entity entity, float partialTicks) {
