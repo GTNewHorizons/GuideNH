@@ -207,6 +207,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private float ponderCamRotZ = 0f;
     private float ponderCamOffX = 0f;
     private float ponderCamOffY = 0f;
+    // GameScene offsets are world-space in normal scenes. For a Ponder timeline they are
+    // the authored screen-pixel fallback until a JSON camera keyframe overrides them.
+    private float ponderBaseCamOffX;
+    private float ponderBaseCamOffY;
     private final SmoothFloatState visualCamZoom = new SmoothFloatState();
     private final SmoothFloatState visualCamRotX = new SmoothFloatState();
     private final SmoothFloatState visualCamRotY = new SmoothFloatState();
@@ -1979,51 +1983,68 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             clearAnnotationHover();
             return null;
         }
-        SceneAnnotation hit = null;
         LytRect viewport = cachedScreenRect = updateCachedRect(cachedScreenRect, lastAbsX, lastAbsY, lastW, lastH);
-        // Iterate top-down: overlays sit on top of in-world geometry.
-        for (int i = annotations.size() - 1; i >= 0; i--) {
-            var a = annotations.get(i);
-            boolean hovered = false;
-            if (hit == null && isAnnotationVisibleForCurrentLayer(a)) {
-                if (a instanceof OverlayAnnotation ov) {
-                    hovered = ov.getBoundingRect(camera, viewport)
-                        .contains(mouseX, mouseY);
-                } else if (a instanceof InWorldBoxAnnotation box) {
-                    hovered = boxScreenRectContains(box, viewport, mouseX, mouseY);
-                } else if (a instanceof InWorldLineAnnotation line) {
-                    hovered = lineScreenContains(line, viewport, mouseX, mouseY);
-                }
-            }
-            a.setHovered(hovered);
-            if (hovered) hit = a;
+        if (viewport.isEmpty()) {
+            clearAnnotationHover();
+            return null;
         }
-        return hit;
+
+        // Rendering uses the smoothed visual camera while the stored camera remains the logical
+        // scene state. Use that exact visual state for hover tests so a rotated scene cannot retain
+        // the previous frame's projected annotation bounds.
+        LytSize savedViewport = camera.getViewportSize();
+        float[] savedCameraState = applyVisualCameraState();
+        camera.setViewportSize(viewport.width(), viewport.height());
+        float[] ray = camera.screenToWorldRay(
+            mouseX - (viewport.x() + viewport.width() * 0.5f),
+            mouseY - (viewport.y() + viewport.height() * 0.5f),
+            pickRayScratch);
+        SceneAnnotation hit = null;
+        try {
+            // Iterate top-down: overlays sit on top of in-world geometry.
+            for (int i = annotations.size() - 1; i >= 0; i--) {
+                var a = annotations.get(i);
+                boolean hovered = false;
+                if (hit == null && isAnnotationVisibleForCurrentLayer(a)) {
+                    if (a instanceof OverlayAnnotation ov) {
+                        hovered = ov.getBoundingRect(camera, viewport)
+                            .contains(mouseX, mouseY);
+                    } else if (a instanceof InWorldBoxAnnotation box) {
+                        hovered = boxRayContains(box, ray);
+                    } else if (a instanceof InWorldLineAnnotation line) {
+                        hovered = lineScreenContains(line, viewport, mouseX, mouseY);
+                    }
+                }
+                a.setHovered(hovered);
+                if (hovered) hit = a;
+            }
+            return hit;
+        } finally {
+            camera.setViewportSize(savedViewport);
+            applyCapturedCameraState(savedCameraState);
+        }
     }
 
     public static final int LINE_HOVER_TOLERANCE_PX = 4;
     public static final int LINE_HOVER_TOLERANCE_PX_SQUARED = LINE_HOVER_TOLERANCE_PX * LINE_HOVER_TOLERANCE_PX;
 
-    private boolean boxScreenRectContains(InWorldBoxAnnotation box, LytRect viewport, int mouseX, int mouseY) {
+    private static boolean boxRayContains(InWorldBoxAnnotation box, float[] ray) {
         var min = box.min();
         var max = box.max();
-        int cx = viewport.x() + viewport.width() / 2;
-        int cy = viewport.y() + viewport.height() / 2;
-        int minSx = Integer.MAX_VALUE, minSy = Integer.MAX_VALUE;
-        int maxSx = Integer.MIN_VALUE, maxSy = Integer.MIN_VALUE;
-        for (int corner = 0; corner < 8; corner++) {
-            float x = ((corner & 1) == 0) ? min.x : max.x;
-            float y = ((corner & 2) == 0) ? min.y : max.y;
-            float z = ((corner & 4) == 0) ? min.z : max.z;
-            var projected = camera.worldToScreen(x, y, z, projectedCornerScratch);
-            int sx = cx + Math.round(projected.x);
-            int sy = cy + Math.round(projected.y);
-            if (sx < minSx) minSx = sx;
-            if (sy < minSy) minSy = sy;
-            if (sx > maxSx) maxSx = sx;
-            if (sy > maxSy) maxSy = sy;
-        }
-        return mouseX >= minSx && mouseX <= maxSx && mouseY >= minSy && mouseY <= maxSy;
+        float intersection = rayAabb(
+            ray[0],
+            ray[1],
+            ray[2],
+            ray[3],
+            ray[4],
+            ray[5],
+            Math.min(min.x, max.x),
+            Math.min(min.y, max.y),
+            Math.min(min.z, max.z),
+            Math.max(min.x, max.x),
+            Math.max(min.y, max.y),
+            Math.max(min.z, max.z));
+        return !Float.isNaN(intersection) && intersection >= 0f;
     }
 
     private boolean lineScreenContains(InWorldLineAnnotation line, LytRect viewport, int mouseX, int mouseY) {
@@ -4070,6 +4091,17 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             camera.setOffsetY(initialCam[5]);
             camera.setRotationCenter(initialRotationCenter.x, initialRotationCenter.y, initialRotationCenter.z);
         }
+        syncVisualCameraToLogicalState();
+    }
+
+    /** Synchronizes the rendered camera immediately after an externally applied scene state. */
+    public void syncVisualCameraToLogicalState() {
+        visualCamZoom.snapTo(getLogicalCameraZoom());
+        visualCamRotX.snapTo(getLogicalCameraRotationX());
+        visualCamRotY.snapTo(getLogicalCameraRotationY());
+        visualCamRotZ.snapTo(getLogicalCameraRotationZ());
+        visualCamOffX.snapTo(getLogicalCameraOffsetX());
+        visualCamOffY.snapTo(getLogicalCameraOffsetY());
     }
 
     public void startDrag(int mouseX, int mouseY, int button) {
@@ -4389,14 +4421,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     public void endDrag() {
-        // Standard orbit camera: pan and rotate are orthogonal. No consolidation needed.
-        // Zero any residual offset from initialization.
-        if (camera.getOffsetX() != 0f || camera.getOffsetY() != 0f) {
-            camera.setOffsetX(0);
-            camera.setOffsetY(0);
-            visualCamOffX.snapTo(0);
-            visualCamOffY.snapTo(0);
-        }
+        // Pan is persisted in the orbit center. Keep authored offsets intact so releasing a
+        // drag cannot discard the GameScene's initial placement.
         this.dragButton = -1;
         this.draggingVisibleLayerSlider = false;
         this.draggingStructureLibTierSlider = false;
@@ -4594,6 +4620,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             captureInitialPonderRotationCenter();
         }
         clearPonderBlockChanges();
+        ponderBaseCamOffX = camera.getOffsetX();
+        ponderBaseCamOffY = camera.getOffsetY();
         this.ponderSceneData = data;
         rebuildPonderTimedEntityAnimations();
         clearPonderEntityAnimationBaselines();
@@ -5060,12 +5088,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private float[] resolveFullCameraAt(int kfIndex) {
-        // Ponder offsets are screen pixels. The regular scene camera stores its fallback
-        // translation in world units, so normalize the fallback before resolving keyframes.
-        float baseOffsetX = camera.worldOffsetToScreenPixels(camera.getOffsetX());
-        float baseOffsetY = camera.worldOffsetToScreenPixels(camera.getOffsetY());
         float[] result = new float[] { camera.getZoom(), camera.getRotationX(), camera.getRotationY(),
-            camera.getRotationZ(), baseOffsetX, baseOffsetY };
+            camera.getRotationZ(), ponderBaseCamOffX, ponderBaseCamOffY };
         boolean[] resolved = new boolean[6];
         int upper = Math.min(kfIndex, ponderSceneData.getKeyframeCount() - 1);
         for (int i = upper; i >= 0; i--) {

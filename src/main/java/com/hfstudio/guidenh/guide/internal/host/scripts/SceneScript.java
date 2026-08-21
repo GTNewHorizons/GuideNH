@@ -326,6 +326,7 @@ public class SceneScript implements LytScript {
         // the pivot is the real structure center, not a stale origin.
         scene.snapshotInitialCamera();
         scene.initializePonderTimelineBaseline();
+        scene.syncVisualCameraToLogicalState();
         scene.captureInitialInteractiveState();
 
         ctx.replace(scene);
