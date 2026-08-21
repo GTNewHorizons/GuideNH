@@ -283,32 +283,20 @@ public class GuidebookLevelRenderer {
                     try {
                         setRenderPass(0);
                         GL11.glDisable(GL_BLEND);
-                        renderBlocksPass(level, filledBlocks, 0, layerSelection, camera, panelWidth, panelHeight);
+                        renderBlocksPass(level, filledBlocks, 0, layerSelection, camera);
 
                         setRenderPass(1);
                         GL11.glEnable(GL_BLEND);
                         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                         GL11.glDepthMask(false);
-                        renderBlocksPass(level, filledBlocks, 1, layerSelection, camera, panelWidth, panelHeight);
+                        renderBlocksPass(level, filledBlocks, 1, layerSelection, camera);
                         GL11.glDepthMask(true);
                         GL11.glDisable(GL_BLEND);
 
                         setRenderPass(-1);
 
-                        renderBlockEntities(
-                            tileEntities,
-                            partialTicks,
-                            layerSelection,
-                            camera,
-                            panelWidth,
-                            panelHeight);
-                        renderEntities(
-                            level.getEntities(),
-                            partialTicks,
-                            layerSelection,
-                            camera,
-                            panelWidth,
-                            panelHeight);
+                        renderBlockEntities(tileEntities, partialTicks, layerSelection, camera);
+                        renderEntities(level.getEntities(), partialTicks, layerSelection, camera);
 
                         if (!annotations.isEmpty()) {
                             InWorldAnnotationRenderer.render(annotations, lightDarkMode);
@@ -364,7 +352,7 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
-        GuidebookSceneLayerSelection layerSelection, CameraSettings camera, int panelWidth, int panelHeight) {
+        GuidebookSceneLayerSelection layerSelection, CameraSettings camera) {
         RenderBlocks rb = cachedRenderBlocks;
         if (rb == null || cachedRenderBlocksLevel != level) {
             rb = new RenderBlocks(level.getOrCreateFakeWorld());
@@ -386,16 +374,7 @@ public class GuidebookLevelRenderer {
                 if (!effectiveSelection.isLayerVisible(p[1])) {
                     continue;
                 }
-                if (!isAabbPotentiallyVisible(
-                    camera,
-                    panelWidth,
-                    panelHeight,
-                    p[0],
-                    p[1],
-                    p[2],
-                    p[0] + 1.0f,
-                    p[1] + 1.0f,
-                    p[2] + 1.0f)) {
+                if (!isAabbPotentiallyVisible(camera, p[0], p[1], p[2], p[0] + 1.0f, p[1] + 1.0f, p[2] + 1.0f)) {
                     continue;
                 }
                 Block block = level.getBlock(p[0], p[1], p[2]);
@@ -458,7 +437,7 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderBlockEntities(Iterable<TileEntity> tileEntities, float partialTicks,
-        GuidebookSceneLayerSelection layerSelection, CameraSettings camera, int panelWidth, int panelHeight) {
+        GuidebookSceneLayerSelection layerSelection, CameraSettings camera) {
         GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
             : GuidebookSceneLayerSelection.all();
         TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
@@ -484,8 +463,6 @@ public class GuidebookLevelRenderer {
                 }
                 if (!isAabbPotentiallyVisible(
                     camera,
-                    panelWidth,
-                    panelHeight,
                     te.xCoord,
                     te.yCoord,
                     te.zCoord,
@@ -514,7 +491,7 @@ public class GuidebookLevelRenderer {
     }
 
     private void renderEntities(Iterable<Entity> entities, float partialTicks,
-        GuidebookSceneLayerSelection layerSelection, CameraSettings camera, int panelWidth, int panelHeight) {
+        GuidebookSceneLayerSelection layerSelection, CameraSettings camera) {
         GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
             : GuidebookSceneLayerSelection.all();
         RenderManager renderManager = RenderManager.instance;
@@ -528,8 +505,6 @@ public class GuidebookLevelRenderer {
             }
             if (entity.boundingBox != null && !isAabbPotentiallyVisible(
                 camera,
-                panelWidth,
-                panelHeight,
                 (float) entity.boundingBox.minX,
                 (float) entity.boundingBox.minY,
                 (float) entity.boundingBox.minZ,
@@ -584,13 +559,17 @@ public class GuidebookLevelRenderer {
      * block/TESR/entity when the projected AABB rectangle intersects the scene viewport. This only
      * removes geometry completely outside the visible panel; edge cases are kept to avoid visual regressions.
      */
-    private boolean isAabbPotentiallyVisible(CameraSettings camera, int panelWidth, int panelHeight, float minX,
-        float minY, float minZ, float maxX, float maxY, float maxZ) {
-        if (panelWidth <= 0 || panelHeight <= 0) {
+    private boolean isAabbPotentiallyVisible(CameraSettings camera, float minX, float minY, float minZ, float maxX,
+        float maxY, float maxZ) {
+        int viewportWidth = camera.getViewportSize()
+            .width();
+        int viewportHeight = camera.getViewportSize()
+            .height();
+        if (viewportWidth <= 0 || viewportHeight <= 0) {
             return true;
         }
-        float halfW = panelWidth * 0.5f;
-        float halfH = panelHeight * 0.5f;
+        float halfW = viewportWidth * 0.5f;
+        float halfH = viewportHeight * 0.5f;
         float minSX = Float.MAX_VALUE;
         float maxSX = -Float.MAX_VALUE;
         float minSY = Float.MAX_VALUE;
