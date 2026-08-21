@@ -105,7 +105,12 @@ public class SceneScript implements LytScript {
 
         MdAstRoot ast = readOrCreateAst(ph, ctx);
         if (ast == null) {
-            ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
+            LytGuidebookScene scene = createSceneShell(ph);
+            scene.setLoadFailure(
+                "[Scene] Failed to parse scene elements"
+                    + (ph.childrenParseError != null ? ": " + ph.childrenParseError : ""));
+            ctx.replace(scene);
+            ctx.markComplete();
             return;
         }
 
@@ -200,7 +205,11 @@ public class SceneScript implements LytScript {
         if (ast == null) {
             ast = readOrCreateAst(ph, ctx);
             if (ast == null) {
-                ctx.replace(LytParagraph.error("[Scene] Failed to parse scene elements"));
+                scene.setLoadFailure(
+                    "[Scene] Failed to parse scene elements"
+                        + (ph.childrenParseError != null ? ": " + ph.childrenParseError : ""));
+                ctx.replace(scene);
+                ctx.markComplete();
                 return;
             }
         }
@@ -274,6 +283,10 @@ public class SceneScript implements LytScript {
             }
         }
 
+        boolean hasUnsupportedElements = skippedElements.stream()
+            .anyMatch(element -> !element.contains("(configuration only)"));
+        boolean hasSceneErrors = !errorSink.errors()
+            .isEmpty() || hasUnsupportedElements || ph.childrenParseError != null;
         if (level.isEmpty()) {
             List<String> registeredTagNames = new ArrayList<>(elementCompilers.keySet());
             String diagnostic = describeEmptyScene(
@@ -288,10 +301,7 @@ public class SceneScript implements LytScript {
                 diagnostic += ", nonSceneChildren=" + nonSceneChildren[0];
             }
             GuideDebugLog.warn("[GuideNH] [SceneScript] {}", diagnostic);
-            ctx.replace(
-                LytParagraph.error(
-                    "[Scene] Scene has no supported elements. Enable GuideNH debug mode for parsed element details."));
-            return;
+            hasSceneErrors = true;
         }
 
         if (!blockStatsExplicitlySet[0]) {
@@ -303,12 +313,20 @@ public class SceneScript implements LytScript {
         finalizeSceneGeometry(ph, scene, level, camera);
         scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
         scene.clearLoadState();
+        if (hasSceneErrors) {
+            String diagnostic = !errorSink.errors()
+                .isEmpty() ? String.join("; ", errorSink.errors())
+                    : hasUnsupportedElements ? String.join("; ", skippedElements)
+                        : ph.childrenParseError != null ? ph.childrenParseError : "Scene has no supported elements";
+            scene.setLoadFailure("[Scene] " + diagnostic);
+        }
         attachSelectionListeners(scene);
         // Capture the auto-fit camera + orbit pivot AFTER geometry finalization but BEFORE the
         // ponder baseline (whose updatePonderState restores this pivot). Snapshotting first means
         // the pivot is the real structure center, not a stale origin.
         scene.snapshotInitialCamera();
         scene.initializePonderTimelineBaseline();
+        scene.syncVisualCameraToLogicalState();
         scene.captureInitialInteractiveState();
 
         ctx.replace(scene);
