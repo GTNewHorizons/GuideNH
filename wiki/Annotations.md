@@ -63,7 +63,7 @@ Highlights a single 1x1x1 block volume.
 | Attribute | Required | Meaning |
 | --- | --- | --- |
 | `pos` | yes | `x y z` vector |
-| `color` | no | `#RRGGBB`, `#AARRGGBB`, or `transparent` |
+| `color` | no | `#RRGGBB`, `#RRGGBBAA`, or `transparent` |
 | `thickness` | no | line thickness float |
 | `alwaysOnTop` | no | boolean expression |
 
@@ -195,7 +195,7 @@ Example:
 <TextAnnotation
   pos="1.5 2 1.5"
   textKey="guidenh.sample.scene.insert_items"
-  color="#FF44AAFF"
+  color="#44AAFFFF"
   maxWidth={120}
   backgroundAlpha={180}
   connectorSide="right"
@@ -209,7 +209,7 @@ Example:
 Fixed screen-space example:
 
 ````md
-<TextAnnotation independent={true} yOffset={40} color="#FFFFCC00" backgroundAlpha={140}>
+<TextAnnotation independent={true} yOffset={40} color="#FFCC00FF" backgroundAlpha={140}>
   Independent status text
 </TextAnnotation>
 ````

@@ -212,7 +212,7 @@ public class MdxAttrs {
             }
             var m = COLOR_PATTERN.matcher(colorStr);
             if (!m.matches()) {
-                errorSink.appendError(compiler, "Color must have format #AARRGGBB", el);
+                errorSink.appendError(compiler, "Color must have format #RRGGBB or #RRGGBBAA", el);
                 return defaultColor;
             }
             int r, g, b;
@@ -222,10 +222,10 @@ public class MdxAttrs {
                 g = Integer.valueOf(colorStr.substring(3, 5), 16);
                 b = Integer.valueOf(colorStr.substring(5, 7), 16);
             } else {
-                a = Integer.valueOf(colorStr.substring(1, 3), 16);
-                r = Integer.valueOf(colorStr.substring(3, 5), 16);
-                g = Integer.valueOf(colorStr.substring(5, 7), 16);
-                b = Integer.valueOf(colorStr.substring(7, 9), 16);
+                r = Integer.valueOf(colorStr.substring(1, 3), 16);
+                g = Integer.valueOf(colorStr.substring(3, 5), 16);
+                b = Integer.valueOf(colorStr.substring(5, 7), 16);
+                a = Integer.valueOf(colorStr.substring(7, 9), 16);
             }
             return new ConstantColor(ARGB.color(a, r, g, b));
         }

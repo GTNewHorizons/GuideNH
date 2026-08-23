@@ -1618,7 +1618,9 @@ public class GuideSiteHtmlCompiler {
                 return 0xFF000000 | Integer.parseUnsignedInt(trimmed, 16);
             }
             if (trimmed.length() == 8) {
-                return (int) Long.parseLong(trimmed, 16);
+                int rgb = Integer.parseUnsignedInt(trimmed.substring(0, 6), 16);
+                int alpha = Integer.parseUnsignedInt(trimmed.substring(6, 8), 16);
+                return alpha << 24 | rgb;
             }
         } catch (NumberFormatException ignored) {}
         return 0xFFFFFFFF;
@@ -1633,10 +1635,10 @@ public class GuideSiteHtmlCompiler {
             return trimmed;
         }
         if (trimmed.matches("#[0-9a-fA-F]{8}")) {
-            int alpha = Integer.parseInt(trimmed.substring(1, 3), 16);
-            int red = Integer.parseInt(trimmed.substring(3, 5), 16);
-            int green = Integer.parseInt(trimmed.substring(5, 7), 16);
-            int blue = Integer.parseInt(trimmed.substring(7, 9), 16);
+            int red = Integer.parseInt(trimmed.substring(1, 3), 16);
+            int green = Integer.parseInt(trimmed.substring(3, 5), 16);
+            int blue = Integer.parseInt(trimmed.substring(5, 7), 16);
+            int alpha = Integer.parseInt(trimmed.substring(7, 9), 16);
             return "rgba(" + red + "," + green + "," + blue + "," + (alpha / 255.0f) + ")";
         }
         if ("transparent".equalsIgnoreCase(trimmed)) {

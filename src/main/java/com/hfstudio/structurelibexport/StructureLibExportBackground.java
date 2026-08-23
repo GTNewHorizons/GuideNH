@@ -41,13 +41,15 @@ public class StructureLibExportBackground {
                     return new StructureLibExportBackground((int) (0xFF000000L | Long.parseLong(hex, 16)));
                 }
                 if (hex.length() == 8) {
-                    return new StructureLibExportBackground((int) Long.parseLong(hex, 16));
+                    int rgb = Integer.parseUnsignedInt(hex.substring(0, 6), 16);
+                    int alpha = Integer.parseUnsignedInt(hex.substring(6, 8), 16);
+                    return new StructureLibExportBackground(alpha << 24 | rgb);
                 }
             } catch (NumberFormatException e) {
                 throw new CommandException("Invalid background color: " + raw);
             }
         }
-        throw new CommandException("Invalid background. Use transparent, dark, #RRGGBB, or #AARRGGBB.");
+        throw new CommandException("Invalid background. Use transparent, dark, #RRGGBB, or #RRGGBBAA.");
     }
 
     public boolean isTransparent() {

@@ -387,6 +387,18 @@ public class PonderKeyframeAnnotation {
             normalized = "0x" + normalized.substring(2);
         }
         try {
+            if (normalized.startsWith("#")) {
+                String hex = normalized.substring(1);
+                if (hex.length() == 6) {
+                    return 0xFF000000 | Integer.parseUnsignedInt(hex, 16);
+                }
+                if (hex.length() == 8) {
+                    int rgb = Integer.parseUnsignedInt(hex.substring(0, 6), 16);
+                    int alpha = Integer.parseUnsignedInt(hex.substring(6, 8), 16);
+                    return alpha << 24 | rgb;
+                }
+                return defaultArgb;
+            }
             return (int) Long.parseLong(
                 normalized.replace("0x", "")
                     .replace("0X", ""),

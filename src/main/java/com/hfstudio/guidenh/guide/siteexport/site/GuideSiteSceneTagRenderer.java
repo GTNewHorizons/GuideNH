@@ -862,10 +862,10 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         }
         String trimmed = raw.trim();
         if (trimmed.startsWith("#") && trimmed.length() == 9) {
-            int alpha = Integer.parseInt(trimmed.substring(1, 3), 16);
-            int red = Integer.parseInt(trimmed.substring(3, 5), 16);
-            int green = Integer.parseInt(trimmed.substring(5, 7), 16);
-            int blue = Integer.parseInt(trimmed.substring(7, 9), 16);
+            int red = Integer.parseInt(trimmed.substring(1, 3), 16);
+            int green = Integer.parseInt(trimmed.substring(3, 5), 16);
+            int blue = Integer.parseInt(trimmed.substring(5, 7), 16);
+            int alpha = Integer.parseInt(trimmed.substring(7, 9), 16);
             return "rgba(" + red + "," + green + "," + blue + "," + alpha / 255.0f + ")";
         }
         return trimmed;

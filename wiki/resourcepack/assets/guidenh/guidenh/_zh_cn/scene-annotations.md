@@ -52,7 +52,7 @@ categories:
 - `LineAnnotation` 用 `from="x y z"` / `to="x y z"` 画一条线段（支持小数），也可以用
   `points="x y z; x y z; ..."` 画多段折线。
 
-所有三种都支持 `color="#AARRGGBB" 或 "#RRGGBB"`、`thickness`（线宽，单位：像素，默认 `1`）以及 `alwaysOnTop`（始终绘制在最前）。子节点是富文本，会作为悬停 tooltip 显示。
+所有三种都支持 `color="#RRGGBBAA" 或 "#RRGGBB"`、`thickness`（线宽，单位：像素，默认 `1`）以及 `alwaysOnTop`（始终绘制在最前）。子节点是富文本，会作为悬停 tooltip 显示。
 `LineAnnotation` 还可以用 `arrow="start"` 或 `arrow="end"` 在端点绘制 3D 箭头。点标记默认隐藏；可以用 `showPoints={true}` 显示所有点，或用 `<LinePoint index="..." show color="#RRGGBB" size="..."/>` 单独配置某个点。
 
 <GameScene width="384" height="224" zoom={4} interactive={true}>
@@ -110,7 +110,7 @@ categories:
   <TextAnnotation
     pos="1.5 2.0 1.5"
     textKey="guidenh.sample.scene.insert_items"
-    color="#FF44AAFF"
+    color="#44AAFFFF"
     maxWidth={120}
     backgroundAlpha={180}
     connectorSide="right"
@@ -126,7 +126,7 @@ categories:
 <GameScene width="256" height="192" zoom={4} interactive={true}>
   <TextAnnotation
     text="独立标签"
-    color="#FFFFCC00"
+    color="#FFCC00FF"
     backgroundAlpha={140}
     independent={true}
     yOffset={40}
@@ -153,7 +153,7 @@ categories:
 
 这里没有单独的 size 参数。气泡大小由文本内容和 `maxWidth` 自动决定。
 只要存在任意 `hlMin/Max` 值，就会额外创建一个对应的 `InWorldBoxAnnotation`。
-气泡背景默认是深色海军蓝（`#CC0E0E20`），可用 `backgroundAlpha` 调整透明度；世界锚定模式下还会额外画一条连接线。
+气泡背景默认是深色海军蓝（`#0E0E20CC`），可用 `backgroundAlpha` 调整透明度；世界锚定模式下还会额外画一条连接线。
 可以用 `connectorSide`、`connectorOffset` 和 `connectorLength` 控制连接线接在哪条边、沿边偏移多少以及连接线长度。
 
 > **富文本说明：** `text` 支持 GuideNH 页面里同样的行内语法：
@@ -195,17 +195,17 @@ categories:
 | `modifier` | string | `null` | 可选修饰键：`"sneak"` 或 `"ctrl"`。会在图标上方显示前缀文字。 |
 | `item` | string | `null` | 可选物品 ID，例如 `"minecraft:iron_ingot"`。会在鼠标图标左侧显示物品图标，也支持 `"modid:item:meta"` 格式。 |
 
-图标来自 `ponder_widgets.png` 的 16x16 精灵。背景是深色半透明块（`#CC0E0E20`），边框是浅蓝色（`#80AAAADD`）。指定 `item` 时，气泡会横向扩展以容纳物品图标和鼠标图标。
+图标来自 `ponder_widgets.png` 的 16x16 精灵。背景是深色半透明块（`#0E0E20CC`），边框是浅蓝色（`#AAAADD80`）。指定 `item` 时，气泡会横向扩展以容纳物品图标和鼠标图标。
 
 ## 颜色格式
 
-颜色使用 ARGB 十六进制字符串。`"0xFFFFFF00"`（带 `0x` 前缀）和 `"FFFF00"`（不带前缀）都可以。
+带 `#` 的颜色采用 CSS 顺序：`#RRGGBB` 或 `#RRGGBBAA`。显式 `0xAARRGGBB` 与不带前缀的 `AARRGGBB` 保持 ARGB 整数顺序。
 
 - `FF` alpha = 完全不透明
 - `80` alpha = 50% 透明
 - `00` alpha = 完全透明
-- `"0xFF00E000"` - 完全不透明绿色（菱形默认颜色）
-- `"0x8022CCFF"` - 半透明蓝色
+- `"#00E000FF"` - 完全不透明绿色（菱形默认颜色）
+- `"#22CCFF80"` - 半透明蓝色
 - `"0xFFAAAAAA"` - 浅灰色（文本气泡默认边框色）
 
 ## 播放行为

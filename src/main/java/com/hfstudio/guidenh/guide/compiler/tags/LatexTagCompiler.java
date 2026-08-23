@@ -29,7 +29,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
  * <ul>
  * <li>{@code formula} (String, required) — the LaTeX source string</li>
  * <li>{@code color} (String, optional, default {@code "#FFFFFF"}) — formula glyph colour as {@code #RRGGBB}
- * or {@code #AARRGGBB}</li>
+ * or {@code #RRGGBBAA}</li>
  * <li>{@code scale} (float, optional, default {@code 1.0}) — multiplier applied to the automatic display size</li>
  * <li>{@code sourceScale} (float, optional, default {@code 100.0}) — jlatexmath internal render quality;
  * higher values produce crisper output at the cost of more memory</li>
@@ -183,13 +183,15 @@ public class LatexTagCompiler implements TagCompiler {
                 return 0xFF000000 | Integer.parseUnsignedInt(colorStr, 16);
             }
             if (colorStr.length() == 8) {
-                return (int) Long.parseLong(colorStr, 16);
+                int rgb = Integer.parseUnsignedInt(colorStr.substring(0, 6), 16);
+                int alpha = Integer.parseUnsignedInt(colorStr.substring(6, 8), 16);
+                return alpha << 24 | rgb;
             }
         } catch (NumberFormatException ignored) {}
 
         errorSink.appendError(
             compiler,
-            "Invalid color format '" + colorStr + "' for Latex tag; expected #RRGGBB or #AARRGGBB.",
+            "Invalid color format '" + colorStr + "' for Latex tag; expected #RRGGBB or #RRGGBBAA.",
             el);
         return LatexRenderOptions.DEFAULT_FILL_COLOR_ARGB;
     }

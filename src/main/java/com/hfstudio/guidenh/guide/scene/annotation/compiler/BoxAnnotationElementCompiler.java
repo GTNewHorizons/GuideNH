@@ -15,7 +15,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * {@code <BoxAnnotation min="x y z" max="x y z" color="#AARRGGBB" thickness="0.03125" alwaysOnTop />}。
+ * {@code <BoxAnnotation min="x y z" max="x y z" color="#RRGGBBAA" thickness="0.03125" alwaysOnTop />}。
  */
 public class BoxAnnotationElementCompiler extends AnnotationTagCompiler {
 

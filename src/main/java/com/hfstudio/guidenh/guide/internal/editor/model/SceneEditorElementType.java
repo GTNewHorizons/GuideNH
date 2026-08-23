@@ -73,7 +73,7 @@ public class SceneEditorElementType {
             .includeAlwaysOnTop(true)
             .includeTooltip(true)
             .primaryVectorLabel(GuidebookText.SceneEditorElementPosition)
-            .defaultColorLiteral("#FF00E000")
+            .defaultColorLiteral("#00E000FF")
             .build());
     public static final SceneEditorElementType TEXT = register(
         builder("guidenh:text", "TextAnnotation", GuidebookText.SceneEditorElementText).fallbackGlyph('T')

@@ -33,7 +33,7 @@ For `gameScene`, no positional selector is used. It exports every GameScene comp
 | `--view <preset>` | Camera preset. StructureLib default: `isometric-south-east`. GameScene default: the scene's own camera. |
 | `--yaw <deg>` / `--pitch <deg>` / `--roll <deg>` | Fine camera override. In GameScene mode, any explicit view/rotation option switches from the scene camera to fitted export camera. |
 | `--rotateX <deg>` / `--rotateY <deg>` / `--rotateZ <deg>` | Compatibility aliases for camera override. |
-| `--background transparent\|dark\|#RRGGBB\|#AARRGGBB` | PNG background. Default: `transparent`. |
+| `--background transparent\|dark\|#RRGGBB\|#RRGGBBAA` | PNG background. Default: `transparent`. |
 | `--maxPixels <long>` | Maximum pixel count for one image. Default: `655360000`. Use `-1` for no limit. |
 | `--batchSize <int>` | Flushes `manifest.json` after this many completed results. Default: `16`. |
 | `--force` | Allows more than 256 generated screenshots. |

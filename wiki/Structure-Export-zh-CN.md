@@ -33,7 +33,7 @@
 | `--view <preset>` | 相机预设。StructureLib 默认是 `isometric-south-east`。GameScene 默认尊重场景自己的相机。 |
 | `--yaw <deg>` / `--pitch <deg>` / `--roll <deg>` | 精细相机覆盖。GameScene 模式中，只要显式传入视角或旋转参数，就会从场景相机切换为自动适配的导出相机。 |
 | `--rotateX <deg>` / `--rotateY <deg>` / `--rotateZ <deg>` | 相机覆盖的兼容别名。 |
-| `--background transparent\|dark\|#RRGGBB\|#AARRGGBB` | PNG 背景。默认是 `transparent`。 |
+| `--background transparent\|dark\|#RRGGBB\|#RRGGBBAA` | PNG 背景。默认是 `transparent`。 |
 | `--maxPixels <long>` | 单张图片允许的最大像素数。默认是 `655360000`。使用 `-1` 表示无限制。 |
 | `--batchSize <int>` | 每完成多少个结果就刷新一次 `manifest.json`。默认是 `16`。 |
 | `--force` | 允许生成超过 256 张截图。 |

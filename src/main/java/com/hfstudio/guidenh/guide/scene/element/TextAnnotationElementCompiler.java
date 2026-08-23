@@ -118,10 +118,22 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
             .isEmpty()) {
             return defaultValue;
         }
+        String normalized = raw.trim();
         try {
+            if (normalized.startsWith("#")) {
+                String hex = normalized.substring(1);
+                if (hex.length() == 6) {
+                    return 0xFF000000 | Integer.parseUnsignedInt(hex, 16);
+                }
+                if (hex.length() == 8) {
+                    int rgb = Integer.parseUnsignedInt(hex.substring(0, 6), 16);
+                    int alpha = Integer.parseUnsignedInt(hex.substring(6, 8), 16);
+                    return alpha << 24 | rgb;
+                }
+                throw new NumberFormatException("Expected six or eight hexadecimal digits");
+            }
             return (int) Long.parseLong(
-                raw.trim()
-                    .replace("0x", "")
+                normalized.replace("0x", "")
                     .replace("0X", ""),
                 16);
         } catch (NumberFormatException e) {

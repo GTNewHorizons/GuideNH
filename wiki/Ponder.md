@@ -672,7 +672,7 @@ When `hlMinX` (or any `hlMin/Max` coordinate) is present, an `InWorldBoxAnnotati
 created at the specified bounds with `highlightColor`. This is useful for pointing at specific
 block regions while explaining them.
 
-The background is a dark navy bubble by default (`#CC0E0E20`), and `backgroundAlpha` controls its
+The background is a dark navy bubble by default (`#0E0E20CC`), and `backgroundAlpha` controls its
 opacity. In world-anchored mode a connector line links the box to the anchor. Text supports the
 full GuideNH inline rich-text syntax: markdown formatting and MDX inline tags. It is rendered with
 drop-shadow.
@@ -723,21 +723,21 @@ With an optional modifier key prefix and an item icon:
 | `item` | string | `null` | Optional item registry ID (e.g. `"minecraft:iron_ingot"`). Renders the item icon to the left of the mouse icon. Supports `"modid:item:meta"` format for meta values. |
 
 The icon is a 16x16 sprite drawn from `ponder_widgets.png`. The box background is semi-transparent
-dark (`#CC0E0E20`) with a light-blue border (`#80AAAADD`). When an `item` is specified the box
+dark (`#0E0E20CC`) with a light-blue border (`#AAAADD80`). When an `item` is specified the box
 expands to accommodate both the item icon and the mouse icon side by side.
 
 ---
 
 ## Color Format
 
-Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
-`"FFFF00"` (without prefix) are accepted.
+Hash-prefixed colors use CSS order: `#RRGGBB` or `#RRGGBBAA`. Explicit `0xAARRGGBB`
+and unprefixed `AARRGGBB` retain ARGB integer order.
 
 - `FF` alpha = fully opaque
 - `80` alpha = 50% transparent
 - `00` alpha = invisible
-- `"0xFF00E000"` - fully opaque green (default diamond color)
-- `"0x8022CCFF"` - semi-transparent blue
+- `"#00E000FF"` - fully opaque green (default diamond color)
+- `"#22CCFF80"` - semi-transparent blue
 - `"0xFFAAAAAA"` - light grey (default text bubble border)
 
 ## Playback Behavior

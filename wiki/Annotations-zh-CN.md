@@ -64,7 +64,7 @@ GuideNH 还支持 `<BlockAnnotationTemplate>`，它会把自己的子注解应�
 | 属性 | 必需 | 含义 |
 | --- | --- | --- |
 | `pos` | 是 | `x y z` 向量 |
-| `color` | 否 | `#RRGGBB`、`#AARRGGBB` 或 `transparent` |
+| `color` | 否 | `#RRGGBB`、`#RRGGBBAA` 或 `transparent` |
 | `thickness` | 否 | 线宽，float |
 | `alwaysOnTop` | 否 | boolean expression |
 
@@ -189,7 +189,7 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 <TextAnnotation
   pos="1.5 2 1.5"
   textKey="guidenh.sample.scene.insert_items"
-  color="#FF44AAFF"
+  color="#44AAFFFF"
   maxWidth={120}
   backgroundAlpha={180}
   connectorSide="right"
@@ -203,7 +203,7 @@ GuideNH 会在每个轴上自动交换反向提供的 min/max 坐标。
 固定屏幕坐标示例：
 
 ````md
-<TextAnnotation independent={true} yOffset={40} color="#FFFFCC00" backgroundAlpha={140}>
+<TextAnnotation independent={true} yOffset={40} color="#FFCC00FF" backgroundAlpha={140}>
   独立状态文本
 </TextAnnotation>
 ````

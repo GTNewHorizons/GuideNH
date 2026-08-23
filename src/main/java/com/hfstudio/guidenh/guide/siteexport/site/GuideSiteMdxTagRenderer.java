@@ -2275,7 +2275,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return result;
     }
 
-    /** Parse an ARGB color attribute (hex #rrggbb or #aarrggbb). */
+    /** Parse a CSS hash color (#rrggbb or #rrggbbaa) into an ARGB integer. */
     private int parseArgbAttr(MdxJsxElementFields element, String attr, int def) {
         String val = readOptional(element, attr);
         if (val == null) {
@@ -2917,10 +2917,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 return toCssColor(new ConstantColor((255 << 24) | (red << 16) | (green << 8) | blue));
             }
             if (value.length() == 9) {
-                int alpha = Integer.parseInt(value.substring(1, 3), 16);
-                int red = Integer.parseInt(value.substring(3, 5), 16);
-                int green = Integer.parseInt(value.substring(5, 7), 16);
-                int blue = Integer.parseInt(value.substring(7, 9), 16);
+                int red = Integer.parseInt(value.substring(1, 3), 16);
+                int green = Integer.parseInt(value.substring(3, 5), 16);
+                int blue = Integer.parseInt(value.substring(5, 7), 16);
+                int alpha = Integer.parseInt(value.substring(7, 9), 16);
                 return toCssColor(new ConstantColor((alpha << 24) | (red << 16) | (green << 8) | blue));
             }
         } catch (NumberFormatException ignored) {}

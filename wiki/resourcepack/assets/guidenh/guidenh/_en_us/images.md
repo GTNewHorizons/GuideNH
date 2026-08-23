@@ -66,7 +66,7 @@ Whole-image annotation (hover anywhere over the image to see the tooltip):
 Region annotation with a visible red border (x=10, y=10, w=60, h=40):
 
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FF4444FF" borderThickness="2">
     Hovering the **red-bordered region** shows this tooltip.
   </ImageAnnotation>
 </FloatingImage>
@@ -74,10 +74,10 @@ Region annotation with a visible red border (x=10, y=10, w=60, h=40):
 Multiple annotations on one image — each region shows a different tooltip:
 
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#44FF44FF">
     Left half
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#4444FFFF">
     Right half
   </ImageAnnotation>
 </FloatingImage>
@@ -85,7 +85,7 @@ Multiple annotations on one image — each region shows a different tooltip:
 Scaled crop with an annotation that follows the stretch:
 
 <FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" scaleX="3.125" scaleY="1.25">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FFFFFF44" borderThickness="2">
+  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FFFF44FF" borderThickness="2">
     Entire cropped region after stretching.
   </ImageAnnotation>
 </FloatingImage>
@@ -105,7 +105,7 @@ actual `.ogg` files should be placed below `assets/guidenh/sounds/`.
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128" sound="guidenh:guide.sample_click">
   <SoundArea x="0" y="0" w="64" h="128" sound="guidenh:guide.sample_left" />
   <SoundArea x="64" y="0" w="64" h="128" sound="guidenh:guide.sample_hover" trigger="hover" />
-  <ImageAnnotation x="16" y="16" w="32" h="32" border borderColor="#FFFFCC44"
+  <ImageAnnotation x="16" y="16" w="32" h="32" border borderColor="#FFCC44FF"
     sound="guidenh:guide.sample_click">
     This annotation has both a tooltip and a click sound.
   </ImageAnnotation>

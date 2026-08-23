@@ -91,7 +91,7 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 | `w` | 否 | — | 区域宽度（图片像素） |
 | `h` | 否 | — | 区域高度（图片像素） |
 | `border` | 否 | `false` | 是否显示彩色边框 |
-| `borderColor` | 否 | 随机 | 边框颜色（`#RRGGBB` 或 `#AARRGGBB`） |
+| `borderColor` | 否 | 随机 | 边框颜色（`#RRGGBB` 或 `#RRGGBBAA`） |
 | `borderThickness` | 否 | `1` | 边框粗细（显示像素） |
 | `sound` | 否 | 无 | 此区域播放的可选音效事件 |
 | `src` | 否 | 无 | 可选音效文件路径，会转换为音效事件 id |
@@ -122,7 +122,7 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 
 ````md
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FF4444FF" borderThickness="2">
     悬停在**红框区域**内显示此 tooltip。
   </ImageAnnotation>
 </FloatingImage>
@@ -132,10 +132,10 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 
 ````md
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#44FF44FF">
     左半部分
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#4444FFFF">
     右半部分
   </ImageAnnotation>
 </FloatingImage>

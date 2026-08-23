@@ -934,7 +934,7 @@ public class SceneEditorMarkdownCodec {
         tagBuilder.append("<DiamondAnnotation pos=\"")
             .append(formatVector(element.getPrimaryX(), element.getPrimaryY(), element.getPrimaryZ()))
             .append('"');
-        appendElementStyleAttributes(tagBuilder, element, "#FF00E000", false);
+        appendElementStyleAttributes(tagBuilder, element, "#00E000FF", false);
         appendElementTooltip(builder, indent, "DiamondAnnotation", tagBuilder, element.getTooltipMarkdown());
     }
 
@@ -1309,7 +1309,7 @@ public class SceneEditorMarkdownCodec {
         if (normalized.matches("#(?i:[0-9a-f]{6}|[0-9a-f]{8})")) {
             return normalized.toUpperCase(Locale.ROOT);
         }
-        throw new InvalidSceneSyntaxException("Attribute 'color' must be #RRGGBB, #AARRGGBB, or transparent");
+        throw new InvalidSceneSyntaxException("Attribute 'color' must be #RRGGBB, #RRGGBBAA, or transparent");
     }
 
     private float[] parseVectorAttribute(MdxJsxElementFields element, String name, float[] defaultValue) {

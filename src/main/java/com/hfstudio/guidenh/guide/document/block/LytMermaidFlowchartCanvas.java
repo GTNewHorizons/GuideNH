@@ -952,7 +952,9 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             if (h.length() == 6) {
                 return 0xFF000000 | Integer.parseInt(h, 16);
             } else if (h.length() == 8) {
-                return (int) Long.parseLong(h, 16);
+                int rgb = Integer.parseUnsignedInt(h.substring(0, 6), 16);
+                int alpha = Integer.parseUnsignedInt(h.substring(6, 8), 16);
+                return alpha << 24 | rgb;
             }
         } catch (NumberFormatException ignored) {}
         return 0;

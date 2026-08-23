@@ -258,8 +258,9 @@ public class MarkdownRuntimeBlocks {
                 return new ConstantColor(0xFF000000 | rgb);
             }
             if (normalized.length() == 9) {
-                long argb = Long.parseLong(normalized.substring(1), 16);
-                return new ConstantColor((int) argb);
+                int rgb = Integer.parseUnsignedInt(normalized.substring(1, 7), 16);
+                int alpha = Integer.parseUnsignedInt(normalized.substring(7, 9), 16);
+                return new ConstantColor((alpha << 24) | rgb);
             }
         } catch (NumberFormatException ignored) {}
         return null;

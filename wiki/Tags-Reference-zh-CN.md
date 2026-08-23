@@ -166,7 +166,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 
 - `default` 会匹配第一个 `title` 完全相同的标签页
 - `defaultIndex` 使用从 `0` 开始的下标，并且在同时出现时优先级高于 `default`
-- `color` 可选，用 `#RRGGBB` 或 `#AARRGGBB` 覆盖左侧强调线与选中标签的高亮颜色
+- `color` 可选，用 `#RRGGBB` 或 `#RRGGBBAA` 覆盖左侧强调线与选中标签的高亮颜色
 - `title` 会在标签栏上方增加一个可选的纯文本标题
 - `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 与 Markdown 标记/引用块标题的图标语义完全一致
 - 非法子节点或非法默认值会渲染为面向作者的可见错误
@@ -212,7 +212,7 @@ world
 
 ````md
 <Color id="RED">Symbolic red</Color>
-<Color color="#FF00D2FC">ARGB or RGB color</Color>
+<Color color="#00D2FCFF">RGB 或 RGBA 颜色</Color>
 
 ### `<Spoiler>`
 
@@ -229,7 +229,7 @@ world
 规则：
 
 - `id` 和 `color` 在实际使用中应二选一
-- `color` 支持 `#RRGGBB`、`#AARRGGBB` 或 `transparent`
+- `color` 支持 `#RRGGBB`、`#RRGGBBAA` 或 `transparent`
 
 ### `<Tooltip>`
 
@@ -544,7 +544,7 @@ gold,17
 | 属性 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `formula` | 字符串 | *（必填）* | LaTeX 源字符串 |
-| `color` | `#RRGGBB` 或 `#AARRGGBB` | `#FFFFFF` | 字形填充颜色 |
+| `color` | `#RRGGBB` 或 `#RRGGBBAA` | `#FFFFFF` | 字形填充颜色 |
 | `scale` | float | `1.0` | 在自动行高缩放的基础上额外叠加的显示大小倍率 |
 | `sourceScale` | float | `100.0` | jlatexmath 内部渲染分辨率；数值越高，在较大尺寸下渲染越清晰 |
 | `tooltip` | 字符串 | *无* | 鼠标悬停时显示的普通文本 tooltip |
@@ -609,7 +609,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 
 - 公式高度以当前行文字高度为基准自动校准。简单公式与文字等高；含分数、求和、积分等高度较大的公式会自动扩展所在行的行高。
 - `valign` 仅对行内公式生效。块级（展示式）公式始终水平居中；如需垂直方向调整，请使用 `offsetY`。
-- `color` 默认为白色（`#FFFFFF`）。如需半透明填充，使用 `#AARRGGBB` 格式。
+- `color` 默认为白色（`#FFFFFF`）。如需半透明填充，使用 `#RRGGBBAA` 格式。
 - `sourceScale` 仅影响渲染清晰度，不改变显示大小。低于 `16` 的值会被截断为 `16`。
 - tooltip 优先级为：标签体富文本 Markdown、`tooltip="..."`、最后才是 `showTooltip={true}` 的原始源码回退。
 - 标签体 tooltip 会按普通指南 Markdown 编译，因此可以包含粗体、列表、链接、物品标签和嵌套 `<Latex>` 公式。
@@ -637,13 +637,13 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | --- | --- | --- |
 | `title` | 标题 | 无 |
 | `width` / `height` | 显式尺寸 | 320 / 200 |
-| `background` / `border` | 背景与边框颜色（支持 `#RGB`、`#RRGGBB`、`#AARRGGBB`、`0x...`） | 深灰 |
+| `background` / `border` | 背景与边框颜色（支持 `#RGB`、`#RRGGBB`、`#RRGGBBAA`、`0xAARRGGBB`） | 深灰 |
 | `titleColor` / `labelColor` | 标题与数据标签颜色 | 浅灰 |
 | `legend` | 图例位置：`none`/`top`/`bottom`/`left`/`right` | `top` |
 | `labelPosition` | 数据标签位置：`none`/`inside`/`outside`/`above`/`below`/`center` | `none` |
 | `cornerLegend` | 图内角落图例位置：`none`/`topRight`/`topLeft`/`bottomRight`/`bottomLeft` | `none` |
 | `cornerLegendWidth` / `cornerLegendHeight` | 图内图例框最大尺寸 | `120` / `64` |
-| `cornerLegendBackground` | 图内图例背景色 | `#AA111922` |
+| `cornerLegendBackground` | 图内图例背景色 | `#111922AA` |
 
 笛卡尔系图表（柱形/条形/折线/散点）支持坐标轴属性 `xAxisLabel`、`xAxisMin`、`xAxisMax`、`xAxisStep`、`xAxisUnit`、`xAxisTickFormat`，以及对应的 `yAxis*`，外加 `showXGrid={true}` 与 `showYGrid={true}` 控制网格线。
 

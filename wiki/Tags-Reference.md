@@ -167,7 +167,7 @@ Groups alternative rich content under independent tabs. Only direct `<Tab>` chil
 
 - `default` matches the first tab whose `title` matches exactly
 - `defaultIndex` is zero-based and wins over `default` when both are present
-- `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#AARRGGBB`
+- `color` optionally overrides the left accent line and selected-tab highlight with `#RRGGBB` or `#RRGGBBAA`
 - `title` adds an optional plain-text heading above the tab strip
 - `icon`, `iconPng` / `icon_png`, and `iconItem` / `icon_item` use the same heading icon semantics as markdown quote-style callouts
 - invalid children or invalid defaults render visible author-facing errors
@@ -239,7 +239,7 @@ Use either a symbolic color id or an explicit hex value:
 
 ````md
 <Color id="RED">Symbolic red</Color>
-<Color color="#FF00D2FC">ARGB or RGB color</Color>
+<Color color="#00D2FCFF">RGB or RGBA color</Color>
 
 ### `<Spoiler>`
 
@@ -256,7 +256,7 @@ such as `<Color>` still render correctly after reveal.
 Rules:
 
 - `id` and `color` are mutually exclusive in practice; provide one
-- `color` accepts `#RRGGBB`, `#AARRGGBB`, or `transparent`
+- `color` accepts `#RRGGBB`, `#RRGGBBAA`, or `transparent`
 
 ### `<Tooltip>`
 
@@ -598,7 +598,7 @@ Renders a LaTeX math formula using jlatexmath. When used inline (inside a paragr
 | Attribute | Type | Default | Description |
 | --- | --- | --- | --- |
 | `formula` | string | *(required)* | LaTeX source string |
-| `color` | `#RRGGBB` or `#AARRGGBB` | `#FFFFFF` | Glyph fill colour |
+| `color` | `#RRGGBB` or `#RRGGBBAA` | `#FFFFFF` | Glyph fill colour |
 | `scale` | float | `1.0` | Display size multiplier applied on top of the automatic line-height scaling |
 | `sourceScale` | float | `100.0` | jlatexmath internal render resolution; higher values improve quality at large sizes |
 | `tooltip` | string | *(none)* | Plain tooltip text shown on hover |
@@ -663,7 +663,7 @@ Notes:
 
 - The formula height is calibrated to the current line text height. Simple formulas render at text height; taller formulas (fractions, summations, integrals, etc.) expand the enclosing line height automatically.
 - `valign` only applies to inline formulas. Display-mode (block-level) formulas are always centered horizontally; use `offsetY` to shift them vertically within the block.
-- `color` defaults to white (`#FFFFFF`). Use `#AARRGGBB` format for a semi-transparent fill.
+- `color` defaults to white (`#FFFFFF`). Use `#RRGGBBAA` format for a semi-transparent fill.
 - `sourceScale` only affects render sharpness, not the displayed size. Values below `16` are clamped to `16`.
 - Tooltip priority is: rich child Markdown content, then `tooltip="..."`, then `showTooltip={true}` raw source fallback.
 - Child tooltip content is compiled as regular guide Markdown, so it can include bold text, lists, links, item tags, and nested `<Latex>` formulas.
@@ -691,13 +691,13 @@ See [GameScene](GameScene) for scene import/removal behavior and [Annotations](A
 | --- | --- | --- |
 | `title` | Chart title | none |
 | `width` / `height` | Explicit size | 320 / 200 |
-| `background` / `border` | Background and border colors (`#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`) | dark grey |
+| `background` / `border` | Background and border colors (`#RGB`, `#RRGGBB`, `#RRGGBBAA`, `0xAARRGGBB`) | dark grey |
 | `titleColor` / `labelColor` | Title and value-label colors | light grey |
 | `legend` | Legend position: `none` / `top` / `bottom` / `left` / `right` | `top` |
 | `labelPosition` | Value-label position: `none` / `inside` / `outside` / `above` / `below` / `center` | `none` |
 | `cornerLegend` | Internal plot legend position: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft` | `none` |
 | `cornerLegendWidth` / `cornerLegendHeight` | Maximum internal legend box size | `120` / `64` |
-| `cornerLegendBackground` | Internal legend background color | `#AA111922` |
+| `cornerLegendBackground` | Internal legend background color | `#111922AA` |
 
 Cartesian charts (Column / Bar / Line / Scatter) additionally accept axis attributes `xAxisLabel`, `xAxisMin`, `xAxisMax`, `xAxisStep`, `xAxisUnit`, `xAxisTickFormat` and the matching `yAxis*` set, plus `showXGrid={true}` / `showYGrid={true}` to toggle gridlines.
 

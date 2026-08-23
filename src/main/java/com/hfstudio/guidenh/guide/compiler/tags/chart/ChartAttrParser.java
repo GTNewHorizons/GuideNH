@@ -147,7 +147,8 @@ public class ChartAttrParser {
     }
 
     /**
-     * Parse a color string. Supports {@code #RGB} / {@code #RRGGBB} / {@code #AARRGGBB}.
+     * Parse a color string. Hash-prefixed values follow CSS order: {@code #RGB}, {@code #RRGGBB}, or
+     * {@code #RRGGBBAA}. The explicit integer form {@code 0xAARRGGBB} retains JVM ARGB order.
      * Returns {@code def} on failure.
      */
     public static int parseColor(String s, int def) {
@@ -158,7 +159,8 @@ public class ChartAttrParser {
         if (t.isEmpty()) {
             return def;
         }
-        if (t.charAt(0) == '#') {
+        boolean cssNotation = t.charAt(0) == '#';
+        if (cssNotation) {
             t = t.substring(1);
         } else if (t.startsWith("0x") || t.startsWith("0X")) {
             t = t.substring(2);
@@ -173,8 +175,11 @@ public class ChartAttrParser {
                 }
                 case 6:
                     return 0xFF000000 | Integer.parseInt(t, 16);
-                case 8:
-                    return (int) Long.parseLong(t, 16);
+                case 8: {
+                    int rgb = Integer.parseUnsignedInt(t.substring(0, 6), 16);
+                    int alpha = Integer.parseUnsignedInt(t.substring(6, 8), 16);
+                    return cssNotation ? alpha << 24 | rgb : (int) Long.parseLong(t, 16);
+                }
                 default:
                     return def;
             }

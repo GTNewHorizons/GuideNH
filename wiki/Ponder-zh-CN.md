@@ -595,7 +595,7 @@ assets/<modid>/guidebooks/
 
 当任意 `hlMin/Max` 坐标存在时，会为该关键帧额外创建一个 `InWorldBoxAnnotation`，颜色由 `highlightColor` 指定。适合在讲解区域时高亮指定的方块范围。
 
-气泡框背景默认是深色半透明（`#CC0E0E20`），可用 `backgroundAlpha` 调整透明度。世界锚定模式下有连接线；独立模式下没有。文本支持完整的 GuideNH 行内富文本语法（Markdown 格式化与 MDX 行内标签），并带阴影渲染。
+气泡框背景默认是深色半透明（`#0E0E20CC`），可用 `backgroundAlpha` 调整透明度。世界锚定模式下有连接线；独立模式下没有。文本支持完整的 GuideNH 行内富文本语法（Markdown 格式化与 MDX 行内标签），并带阴影渲染。
 
 > **富文本支持：** `text` 字段支持 GuideNH 页面中所有行内富文本语法：
 > `**粗体**`、`*斜体*`、`~~删除线~~`、`<Color id="RED">颜色文本</Color>`、
@@ -641,19 +641,19 @@ assets/<modid>/guidebooks/
 | `modifier` | 字符串 | `null` | 可选修饰键：`"sneak"` 或 `"ctrl"`。在图标上方显示前缀文字。 |
 | `item` | 字符串 | `null` | 可选物品注册 ID（如 `"minecraft:iron_ingot"`）。在鼠标图标左侧显示物品图标。支持 `"modid:item:meta"` 格式指定元数据。 |
 
-图标为从 `ponder_widgets.png` 绘制的 16×16 精灵图。背景为深色半透明（`#CC0E0E20`），边框为浅蓝色（`#80AAAADD`）。指定 `item` 时气泡框会横向扩展以容纳两个图标。
+图标为从 `ponder_widgets.png` 绘制的 16×16 精灵图。背景为深色半透明（`#0E0E20CC`），边框为浅蓝色（`#AAAADD80`）。指定 `item` 时气泡框会横向扩展以容纳两个图标。
 
 ---
 
 ## 颜色格式
 
-颜色为 ARGB 十六进制字符串。支持 `"0xFFFFFF00"`（带 `0x` 前缀）和 `"FFFF00"`（不带前缀）两种写法。
+带 `#` 的颜色采用 CSS 顺序：`#RRGGBB` 或 `#RRGGBBAA`。显式 `0xAARRGGBB` 与不带前缀的 `AARRGGBB` 保持 ARGB 整数顺序。
 
 - `FF` alpha = 完全不透明
 - `80` alpha = 50% 半透明
 - `00` alpha = 完全透明
-- `"0xFF00E000"` — 不透明绿色（菱形默认颜色）
-- `"0x8022CCFF"` — 半透明蓝色
+- `"#00E000FF"` — 不透明绿色（菱形默认颜色）
+- `"#22CCFF80"` — 半透明蓝色
 - `"0xFFAAAAAA"` — 浅灰色（文字气泡边框默认颜色）
 
 ## 播放行为

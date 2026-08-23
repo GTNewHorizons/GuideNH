@@ -73,7 +73,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | 属性 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `formula` | 字符串（必填） | — | LaTeX 源码 |
-| `color` | `#RRGGBB` 或 `#AARRGGBB` | `#FFFFFF` | 字形颜色 |
+| `color` | `#RRGGBB` 或 `#RRGGBBAA` | `#FFFFFF` | 字形颜色 |
 | `scale` | float | `1.0` | 显示大小倍率 |
 | `sourceScale` | float | `100.0` | jlatexmath 渲染分辨率 |
 | `tooltip` | 字符串 | — | 自定义普通 tooltip 文本 |
@@ -616,7 +616,7 @@ x/2           | color=#88cc77 domain=-pi..pi
 | `yStep` | 数字 | 自动 | Y 轴刻度步长 |
 | `quadrants` | `all` 或 `1,2,3,4` | `1`（仅第一象限） | 初始显示的象限集合；`all` 等同 `1,2,3,4` |
 | `title` | 字符串 | — | 显示在面板顶部的标题文字 |
-| `background` | 颜色 | 主题默认 | 面板背景色（`#RGB` / `#RRGGBB` / `#AARRGGBB`） |
+| `background` | 颜色 | 主题默认 | 面板背景色（`#RGB` / `#RRGGBB` / `#RRGGBBAA`） |
 | `border` | 颜色 | 主题默认 | 面板边框颜色 |
 | `axisColor` | 颜色 | 主题默认 | X/Y 坐标轴颜色 |
 | `gridColor` | 颜色 | 主题默认 | 网格线颜色 |
@@ -631,7 +631,7 @@ x/2           | color=#88cc77 domain=-pi..pi
 | 属性 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
 | `expr` | 字符串 | **必填** | 数学表达式，如 `sin(x)`、`x^2 - 1`、`\|x\|` |
-| `color` | 颜色 | 自动循环 | 曲线颜色（`#RRGGBB` / `#AARRGGBB`） |
+| `color` | 颜色 | 自动循环 | 曲线颜色（`#RRGGBB` / `#RRGGBBAA`） |
 | `label` | 字符串 | — | 图例标签；填写后曲线出现在面板下方图例中 |
 | `domain` | 字符串 | 全轴 | 定义域限制，格式为 `min..max` 或逗号分隔的比较子句，如 `x>=0, x<=pi`；两侧支持常量 |
 | `inverse` | 布尔 | `false` | `true` 时将表达式解释为 `x = f(y)`，对 y 求值并旋转曲线 |

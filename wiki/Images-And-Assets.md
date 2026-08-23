@@ -94,7 +94,7 @@ or stretched.
 | `w` | no | — | width of the region in image pixels |
 | `h` | no | — | height of the region in image pixels |
 | `border` | no | `false` | show a colored border around the region |
-| `borderColor` | no | random | border color (`#RRGGBB` or `#AARRGGBB`) |
+| `borderColor` | no | random | border color (`#RRGGBB` or `#RRGGBBAA`) |
 | `borderThickness` | no | `1` | border thickness in display pixels |
 | `sound` | no | none | optional sound event played for this region |
 | `src` | no | none | optional sound file path; converted to a sound event id |
@@ -125,7 +125,7 @@ Region annotation with a visible border:
 
 ````md
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FF4444FF" borderThickness="2">
     This is the **highlighted region** tooltip.
   </ImageAnnotation>
 </FloatingImage>
@@ -135,10 +135,10 @@ Multiple regions on one image:
 
 ````md
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#44FF44FF">
     Left half
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#4444FFFF">
     Right half
   </ImageAnnotation>
 </FloatingImage>

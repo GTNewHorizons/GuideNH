@@ -74,7 +74,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `formula` | String (required) | — | LaTeX source |
-| `color` | `#RRGGBB` or `#AARRGGBB` | `#FFFFFF` | Glyph colour |
+| `color` | `#RRGGBB` or `#RRGGBBAA` | `#FFFFFF` | Glyph colour |
 | `scale` | float | `1.0` | Display size multiplier |
 | `sourceScale` | float | `100.0` | jlatexmath render quality |
 | `tooltip` | String | — | Plain custom tooltip text |

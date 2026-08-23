@@ -171,7 +171,7 @@ public class FloatingImageCompiler extends FlowTagCompiler {
      * <li>{@code x}, {@code y}, {@code w}, {@code h}: region in image pixels; omitting all four
      * means the annotation covers the whole image.</li>
      * <li>{@code border}: boolean flag; presence (or {@code {true}}) enables the border.</li>
-     * <li>{@code borderColor}: {@code #RRGGBB} or {@code #AARRGGBB}; omit for a random color.</li>
+     * <li>{@code borderColor}: {@code #RRGGBB} or {@code #RRGGBBAA}; omit for a random color.</li>
      * <li>{@code borderThickness}: integer pixel thickness, default 1.</li>
      * </ul>
      * Child MDX content is compiled as the rich-text tooltip body.

@@ -55,7 +55,7 @@ Activated beacon - 3x3 diamond block base, beacon on top; marker tooltip contain
 - `LineAnnotation` accepts `from="x y z"` / `to="x y z"` (floats) for a line segment, or
   `points="x y z; x y z; ..."` for a polyline.
 
-All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (default `1`), and `alwaysOnTop` to draw above other geometry. Children are used as a rich-text hover tooltip.
+All three support `color="#RRGGBBAA" or "#RRGGBB"`, `thickness` in pixel units (default `1`), and `alwaysOnTop` to draw above other geometry. Children are used as a rich-text hover tooltip.
 `LineAnnotation` can also render a 3D arrow at `arrow="start"` or `arrow="end"`. Point cubes are hidden by default; enable all of them with `showPoints={true}`, or configure individual points with `<LinePoint index="..." show color="#RRGGBB" size="..."/>`.
 
 <GameScene width="384" height="224" zoom={4} interactive={true}>
@@ -113,7 +113,7 @@ All three support `color="#AARRGGBB" or "#RRGGBB"`, `thickness` in pixel units (
   <TextAnnotation
     pos="1.5 2.0 1.5"
     textKey="guidenh.sample.scene.insert_items"
-    color="#FF44AAFF"
+    color="#44AAFFFF"
     maxWidth={120}
     backgroundAlpha={180}
     connectorSide="right"
@@ -129,7 +129,7 @@ Use `independent={true}` to place the bubble in fixed screen space instead of fo
 <GameScene width="256" height="192" zoom={4} interactive={true}>
   <TextAnnotation
     text="Independent label"
-    color="#FFFFCC00"
+    color="#FFCC00FF"
     backgroundAlpha={140}
     independent={true}
     yOffset={40}
@@ -156,7 +156,7 @@ Use `independent={true}` to place the bubble in fixed screen space instead of fo
 
 There is no separate size parameter. The bubble grows from the text content and `maxWidth`.
 When any `hlMin/Max` value is present, a matching `InWorldBoxAnnotation` is also created.
-The bubble background is dark navy by default (`#CC0E0E20`), `backgroundAlpha` controls its
+The bubble background is dark navy by default (`#0E0E20CC`), `backgroundAlpha` controls its
 opacity, and world-anchored mode adds a connector line to the anchor point. Use
 `connectorSide`, `connectorOffset`, and `connectorLength` to move that connector around the bubble.
 
@@ -200,19 +200,19 @@ With an optional modifier key prefix and an item icon:
 | `item` | string | `null` | Optional item registry ID (e.g. `"minecraft:iron_ingot"`). Renders the item icon to the left of the mouse icon. Supports `"modid:item:meta"` format for meta values. |
 
 The icon is a 16x16 sprite drawn from `ponder_widgets.png`. The box background is semi-transparent
-dark (`#CC0E0E20`) with a light-blue border (`#80AAAADD`). When an `item` is specified the box
+dark (`#0E0E20CC`) with a light-blue border (`#AAAADD80`). When an `item` is specified the box
 expands to accommodate both the item icon and the mouse icon side by side.
 
 ## Color Format
 
-Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and
-`"FFFF00"` (without prefix) are accepted.
+Hash-prefixed colors use CSS order: `#RRGGBB` or `#RRGGBBAA`. Explicit `0xAARRGGBB`
+and unprefixed `AARRGGBB` retain ARGB integer order.
 
 - `FF` alpha = fully opaque
 - `80` alpha = 50% transparent
 - `00` alpha = invisible
-- `"0xFF00E000"` - fully opaque green (default diamond color)
-- `"0x8022CCFF"` - semi-transparent blue
+- `"#00E000FF"` - fully opaque green (default diamond color)
+- `"#22CCFF80"` - semi-transparent blue
 - `"0xFFAAAAAA"` - light grey (default text bubble border)
 
 ## Playback Behavior

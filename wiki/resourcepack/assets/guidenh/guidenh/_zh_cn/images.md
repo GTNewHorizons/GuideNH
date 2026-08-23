@@ -60,7 +60,7 @@ categories:
 区域注解，显示红色边框（x=10, y=10, w=60, h=40）：
 
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FFFF4444" borderThickness="2">
+  <ImageAnnotation x="10" y="10" w="60" h="40" border borderColor="#FF4444FF" borderThickness="2">
     悬停在**红色边框区域**内显示此 tooltip。
   </ImageAnnotation>
 </FloatingImage>
@@ -68,10 +68,10 @@ categories:
 同一张图上的多个注解——每个区域显示不同 tooltip：
 
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FF44FF44">
+  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#44FF44FF">
     左半部分
   </ImageAnnotation>
-  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#FF4444FF">
+  <ImageAnnotation x="64" y="0" w="64" h="64" border borderColor="#4444FFFF">
     右半部分
   </ImageAnnotation>
 </FloatingImage>
@@ -79,7 +79,7 @@ categories:
 缩放后的裁剪图，注解会随拉伸自动适配：
 
 <FloatingImage src="test1.png" align="right" x="0" y="0" width="64" height="64" scaleX="3.125" scaleY="1.25">
-  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FFFFFF44" borderThickness="2">
+  <ImageAnnotation x="0" y="0" w="64" h="64" border borderColor="#FFFF44FF" borderThickness="2">
     整个裁剪区域在拉伸后的范围。
   </ImageAnnotation>
 </FloatingImage>
@@ -95,7 +95,7 @@ categories:
 <FloatingImage src="test1.png" align="left" x="0" y="0" width="128" height="128" sound="guidenh:guide.sample_click">
   <SoundArea x="0" y="0" w="64" h="128" sound="guidenh:guide.sample_left" />
   <SoundArea x="64" y="0" w="64" h="128" sound="guidenh:guide.sample_hover" trigger="hover" />
-  <ImageAnnotation x="16" y="16" w="32" h="32" border borderColor="#FFFFCC44"
+  <ImageAnnotation x="16" y="16" w="32" h="32" border borderColor="#FFCC44FF"
     sound="guidenh:guide.sample_click">
     这个注解同时拥有 tooltip 和点击音效。
   </ImageAnnotation>

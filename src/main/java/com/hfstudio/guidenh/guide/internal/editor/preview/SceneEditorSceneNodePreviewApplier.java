@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import net.minecraft.block.Block;
@@ -722,10 +721,14 @@ public class SceneEditorSceneNodePreviewApplier {
             return ConstantColor.TRANSPARENT;
         }
         String normalized = colorLiteral.startsWith("#") ? colorLiteral.substring(1) : colorLiteral;
+        int color;
         if (normalized.length() == 6) {
-            normalized = "FF" + normalized;
+            color = 0xFF000000 | Integer.parseUnsignedInt(normalized, 16);
+        } else {
+            int rgb = Integer.parseUnsignedInt(normalized.substring(0, 6), 16);
+            int alpha = Integer.parseUnsignedInt(normalized.substring(6, 8), 16);
+            color = alpha << 24 | rgb;
         }
-        int color = (int) Long.parseLong(normalized.toUpperCase(Locale.ROOT), 16);
         return new ConstantColor(color);
     }
 

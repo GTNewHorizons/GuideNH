@@ -22,7 +22,7 @@ GuideNH ships with five interactive chart tags: `<ColumnChart>` clustered column
 * `labelPosition`: `none` / `inside` / `outside` / `above` / `below` / `center`
 * `cornerLegend`: `none` / `topRight` / `topLeft` / `bottomRight` / `bottomLeft`; compact in-plot legend for line and scatter charts
 
-Color formats: `#RGB`, `#RRGGBB`, `#AARRGGBB`, `0x...`.
+Color formats: `#RGB`, `#RRGGBB`, `#RRGGBBAA`, `0xAARRGGBB`.
 
 ## ColumnChart
 
