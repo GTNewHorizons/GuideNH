@@ -17,8 +17,8 @@ import lombok.Getter;
  * Subsequent paragraphs and flow-containers that are laid out with the same
  * {@link LayoutContext} will automatically wrap their text around the floated content, because
  * the float bounds are visible to every call to
- * {@link LayoutContext#getLeftFloatRightEdge()} /
- * {@link LayoutContext#getRightFloatLeftEdge()}.
+ * {@link LayoutContext#getLeftFloatRightEdgeOr(int)} /
+ * {@link LayoutContext#getRightFloatLeftEdgeOr(int)}.
  *
  * <p>
  * This block always reports <em>zero height</em> so that the next block in the document
@@ -93,8 +93,7 @@ public class LytDocumentFloat extends LytBlock {
                 new LytRect(rx - FLOAT_GAP, y, innerWidth + FLOAT_GAP, naturalBounds.height() + FLOAT_GAP));
         } else {
             inner.layout(context, x, y, innerWidth);
-            context.addLeftFloat(
-                new LytRect(x, y, innerWidth + FLOAT_GAP, naturalBounds.height() + FLOAT_GAP));
+            context.addLeftFloat(new LytRect(x, y, innerWidth + FLOAT_GAP, naturalBounds.height() + FLOAT_GAP));
         }
         return new LytRect(x, y, 0, 0);
     }

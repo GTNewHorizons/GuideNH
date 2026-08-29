@@ -47,7 +47,7 @@ public class TrapezoidShape implements ShapeRenderer {
         // The inscribed rectangle has full height h, width constrained by the narrower top.
         int hh = Math.min(ch / 2 + padY, h / 2);
         // Width at this half-height from center:
-        float t = (float) hh / (h / 2);
+        float t = (float) hh / ((float) h / 2);
         int availW = Math.max(w - 2 * (int) (inset * t) - 2 * padX, 1);
         int availH = Math.max(h - 2 * padY, 1);
         int contentW = Math.min(availW, cw);

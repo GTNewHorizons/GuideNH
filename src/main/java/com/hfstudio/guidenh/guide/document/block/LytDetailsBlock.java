@@ -5,6 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
@@ -288,7 +289,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
                 bounds.y(),
                 bounds.width(),
                 bounds.height(),
-                SymbolicColor.BLOCKQUOTE_BACKGROUND.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
+                SymbolicColor.BLOCKQUOTE_BACKGROUND.resolve(LightDarkMode.current())));
 
         // Advance the smooth scroll and bake the visual delta into the content
         // bounds (collector traverses the content right after this).
@@ -336,7 +337,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
                 BORDER_WIDTH,
                 BORDER_WIDTH,
                 DETAILS_BORDER.color() != null ? DETAILS_BORDER.color()
-                    .resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current()) : 0xFF000000));
+                    .resolve(LightDarkMode.current()) : 0xFF000000));
     }
 
     @Override

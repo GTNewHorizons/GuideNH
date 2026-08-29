@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.minecraft.util.ResourceLocation;
@@ -39,7 +38,6 @@ import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
 import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
-import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
@@ -62,14 +60,11 @@ import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
-import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
-import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTable;
-import com.hfstudio.guidenh.libs.mdast.gfm.model.GfmTableRow;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
@@ -89,6 +84,7 @@ import com.hfstudio.guidenh.libs.unist.UnistPoint;
 import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 import lombok.Getter;
+import org.scilab.forge.jlatexmath.TeXConstants;
 
 public class PageCompiler {
 
@@ -823,7 +819,7 @@ public class PageCompiler {
                 var block = new LytLatexBlock(
                     segment.getValue(),
                     LatexRenderOptions.builder()
-                        .style(org.scilab.forge.jlatexmath.TeXConstants.STYLE_TEXT)
+                        .style(TeXConstants.STYLE_TEXT)
                         .valign(LatexVerticalAlign.BASELINE)
                         .build());
                 layoutParent.append(LytFlowInlineBlock.of(block));

@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.layout;
 
 import com.google.flatbuffers.FlatBufferBuilder;
-import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytAxisBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBox;
@@ -17,6 +16,8 @@ import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytSlotGrid;
 import com.hfstudio.guidenh.guide.document.block.LytViewportBox;
 import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
+import com.hfstudio.guidenh.guide.document.block.table.LytTableRow;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.Style;
 
 /**
@@ -31,6 +32,7 @@ public final class LayoutStyleExtractor {
     public static final class Flags {
 
         public static final int NONE = 0;
+
         /**
          * Historical: SIZE_FROM_JAVA_BOUNDS = 1 &lt;&lt; 0 was used by the Java layout
          * pre-pass to reserve Java-computed bounds for opaque containers. The
@@ -103,8 +105,7 @@ public final class LayoutStyleExtractor {
         // for 3 cols) left only 44px content and wrapped to two 18px slots/line.
         // (LytSlotGrid has zero padding, so its width×OUTER_SIZE needs no pad.)
         if (block instanceof LytItemGrid ig && explicitW <= 0) {
-            explicitW = Math.min(3, ig.getSlotCount()) * LytSlot.OUTER_SIZE
-                + readLytBoxPadding(ig, "paddingLeft")
+            explicitW = Math.min(3, ig.getSlotCount()) * LytSlot.OUTER_SIZE + readLytBoxPadding(ig, "paddingLeft")
                 + readLytBoxPadding(ig, "paddingRight");
         }
         // Size boxes with a preferred width reserve exactly that width.
@@ -165,10 +166,8 @@ public final class LayoutStyleExtractor {
         // align_self=Center has no cross-axis margin left (x=5 instead of the
         // centered x≈400). Only the display-LaTeX wrapper is forced 100%;
         // natural-width tables stay natural width (R4-18 preserved).
-        boolean needFullWidth = block.isFullWidth()
-            || adj.alignItems() != 0
-            || (block instanceof LytFloatAwareBlock fb
-                && fb.getInner() instanceof LytLatexDisplayBlock);
+        boolean needFullWidth = block.isFullWidth() || adj.alignItems() != 0
+            || (block instanceof LytFloatAwareBlock fb && fb.getInner() instanceof LytLatexDisplayBlock);
         if (needFullWidth && explicitW <= 0) {
             sizeWOff = dimPercent(fbb, 100);
         }
@@ -304,12 +303,12 @@ public final class LayoutStyleExtractor {
 
     /** Fixed pixel value. */
     public static int dimPx(FlatBufferBuilder fbb, float px) {
-        return com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension.createDimension(fbb, px, (byte) 1);
+        return Dimension.createDimension(fbb, px, (byte) 1);
     }
 
     /** Percentage value (resolves against available space in taffy). */
     public static int dimPercent(FlatBufferBuilder fbb, float pct) {
-        return com.hfstudio.guidenh.guide.layout.flatbuffers.Dimension.createDimension(fbb, pct, (byte) 2);
+        return Dimension.createDimension(fbb, pct, (byte) 2);
     }
 
     /**
@@ -339,7 +338,7 @@ public final class LayoutStyleExtractor {
         if (block instanceof LytStandardRecipeBox) return 0;
         if (block instanceof LytCodeBlockToolbar) return 0;
         // Table rows are real Row containers (cells keep pinned column widths).
-        if (block instanceof com.hfstudio.guidenh.guide.document.block.table.LytTableRow) return 0;
+        if (block instanceof LytTableRow) return 0;
         return 1; // Column (VBox, default)
     }
 
@@ -355,7 +354,7 @@ public final class LayoutStyleExtractor {
         if (block instanceof LytAxisBox ax) {
             return switch (ax.getAlignItems()) {
                 case CENTER -> 1;
-                case END    -> 2;
+                case END -> 2;
                 case BASELINE -> 4;
                 // START -> Stretch: preserve existing behavior for the many blocks
                 // that never call setAlignItems() and keep the LytAxisBox default.

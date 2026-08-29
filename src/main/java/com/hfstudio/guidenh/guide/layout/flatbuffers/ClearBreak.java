@@ -2,25 +2,17 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
+
 /**
- * One in-paragraph clear break (`<br clear="..."/>`). `raw_offset` is the
+ * One in-paragraph clear break (`<br clear="..."/>
+ * `). `raw_offset` is the
  * UTF-8 byte offset into TextData.text (the original text, U+FFFC included)
  * at which the break occurs; the Rust pusher maps it to its cleaned text and,
  * after the line covering that offset is laid out, drops subsequent lines to
@@ -28,37 +20,76 @@ import java.nio.ByteOrder;
  */
 @SuppressWarnings("unused")
 public final class ClearBreak extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static ClearBreak getRootAsClearBreak(ByteBuffer _bb) { return getRootAsClearBreak(_bb, new ClearBreak()); }
-  public static ClearBreak getRootAsClearBreak(ByteBuffer _bb, ClearBreak obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public ClearBreak __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public long rawOffset() { int o = __offset(4); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
-  public byte side() { int o = __offset(6); return o != 0 ? bb.get(o + bb_pos) : 0; }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createClearBreak(FlatBufferBuilder builder,
-      long rawOffset,
-      byte side) {
-    builder.startTable(2);
-    ClearBreak.addRawOffset(builder, rawOffset);
-    ClearBreak.addSide(builder, side);
-    return ClearBreak.endClearBreak(builder);
-  }
+    public static ClearBreak getRootAsClearBreak(ByteBuffer _bb) {
+        return getRootAsClearBreak(_bb, new ClearBreak());
+    }
 
-  public static void startClearBreak(FlatBufferBuilder builder) { builder.startTable(2); }
-  public static void addRawOffset(FlatBufferBuilder builder, long rawOffset) { builder.addInt(0, (int) rawOffset, (int) 0L); }
-  public static void addSide(FlatBufferBuilder builder, byte side) { builder.addByte(1, side, 0); }
-  public static int endClearBreak(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static ClearBreak getRootAsClearBreak(ByteBuffer _bb, ClearBreak obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public ClearBreak get(int j) { return get(new ClearBreak(), j); }
-    public ClearBreak get(ClearBreak obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public ClearBreak __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public long rawOffset() {
+        int o = __offset(4);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+    }
+
+    public byte side() {
+        int o = __offset(6);
+        return o != 0 ? bb.get(o + bb_pos) : 0;
+    }
+
+    public static int createClearBreak(FlatBufferBuilder builder, long rawOffset, byte side) {
+        builder.startTable(2);
+        ClearBreak.addRawOffset(builder, rawOffset);
+        ClearBreak.addSide(builder, side);
+        return ClearBreak.endClearBreak(builder);
+    }
+
+    public static void startClearBreak(FlatBufferBuilder builder) {
+        builder.startTable(2);
+    }
+
+    public static void addRawOffset(FlatBufferBuilder builder, long rawOffset) {
+        builder.addInt(0, (int) rawOffset, (int) 0L);
+    }
+
+    public static void addSide(FlatBufferBuilder builder, byte side) {
+        builder.addByte(1, side, 0);
+    }
+
+    public static int endClearBreak(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public ClearBreak get(int j) {
+            return get(new ClearBreak(), j);
+        }
+
+        public ClearBreak get(ClearBreak obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

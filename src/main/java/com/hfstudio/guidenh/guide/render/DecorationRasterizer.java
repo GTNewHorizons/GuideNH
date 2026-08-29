@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.render;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -86,7 +87,7 @@ public final class DecorationRasterizer {
      * @param bandX band left edge (doc px)
      * @param bandY band top edge (doc px)
      * @param bandW band width (doc px)
-     * @param kind decoration kind (4 = wavy, 5 = dotted)
+     * @param kind  decoration kind (4 = wavy, 5 = dotted)
      * @return fragments ordered by (y, x); adjacent equal-alpha fragments are
      *         merged along x so a long saturated run collapses to one quad
      *         instead of one quad per doc px
@@ -95,14 +96,11 @@ public final class DecorationRasterizer {
         if (bandW <= 0f) {
             return List.of();
         }
-        switch (kind) {
-            case 4:
-                return rasterizeWave(bandX, bandY, bandW);
-            case 5:
-                return rasterizeDots(bandX, bandY, bandW);
-            default:
-                return List.of();
-        }
+        return switch (kind) {
+            case 4 -> rasterizeWave(bandX, bandY, bandW);
+            case 5 -> rasterizeDots(bandX, bandY, bandW);
+            default -> List.of();
+        };
     }
 
     // ---- wavy ---------------------------------------------------------------
@@ -133,7 +131,7 @@ public final class DecorationRasterizer {
             return List.of();
         }
 
-        int samples = Math.max(2, (int) Math.round(1f / WAVE_SAMPLE_STEP));
+        int samples = Math.max(2, Math.round(1f / WAVE_SAMPLE_STEP));
         float[] colCoverage = new float[rows];
         List<Fragment> frags = new ArrayList<>(cols * 3);
         for (int c = 0; c < cols; c++) {
@@ -223,10 +221,9 @@ public final class DecorationRasterizer {
         if (frags.size() < 2) {
             return frags;
         }
-        frags.sort((a, b) -> {
-            int c = Integer.compare(a.y, b.y);
-            return c != 0 ? c : Integer.compare(a.x, b.x);
-        });
+        frags.sort(
+            Comparator.comparingInt((Fragment a) -> a.y)
+                .thenComparingInt(a -> a.x));
         List<Fragment> out = new ArrayList<>(frags.size());
         Fragment cur = null;
         for (Fragment f : frags) {

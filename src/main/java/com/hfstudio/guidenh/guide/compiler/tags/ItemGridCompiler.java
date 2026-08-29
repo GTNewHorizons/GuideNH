@@ -36,10 +36,7 @@ public class ItemGridCompiler extends BlockTagCompiler {
                     parent.appendError(compiler, "Missing id or ore attribute.", jsxChild);
                     continue;
                 }
-                entries.add(
-                    new ItemGridEntry(
-                        itemId != null ? itemId.trim() : null,
-                        ore != null ? ore.trim() : null));
+                entries.add(new ItemGridEntry(itemId != null ? itemId.trim() : null, ore != null ? ore.trim() : null));
                 continue;
             }
             parent.appendError(compiler, "Unsupported child-element in ItemGrid", childNode);

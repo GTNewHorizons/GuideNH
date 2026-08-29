@@ -31,7 +31,10 @@ public class KeyBindScript implements LytScript {
             String display = mapping != null ? KeyBindTagCompiler.describeMapping(mapping) : "[" + bindId + "]";
             placeholder.setText(display);
             placeholder.setStyle(
-                TextStyle.builder().bold(true).color(new ConstantColor(0xFFE8EDF5)).build());
+                TextStyle.builder()
+                    .bold(true)
+                    .color(new ConstantColor(0xFFE8EDF5))
+                    .build());
             ctx.replace(placeholder);
         }
     }

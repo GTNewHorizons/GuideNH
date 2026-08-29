@@ -2,107 +2,195 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.Table;
+
 @SuppressWarnings("unused")
 public final class PieChartData extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static PieChartData getRootAsPieChartData(ByteBuffer _bb) { return getRootAsPieChartData(_bb, new PieChartData()); }
-  public static PieChartData getRootAsPieChartData(ByteBuffer _bb, PieChartData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public PieChartData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  /**
-   * preferred_width = (explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH) + extraPlotWidth.
-   * Java-precomputed input to the sizing formula.
-   */
-  public float preferredWidth() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * total_height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT.
-   * Java-precomputed height baseline (before body scaling).
-   */
-  public float totalHeight() { int o = __offset(6); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * DEPRECATED: Rust now computes chrome internally from the final width w.
-   * Kept for backward compatibility with old serialized data.
-   */
-  public float chromeHeight() { int o = __offset(8); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Title lineHeight(TITLE_STYLE) + TITLE_GAP; 0 if no title (width-independent).
-   */
-  public float titleChrome() { int o = __offset(10); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Legend position: 0=NONE 1=TOP 2=BOTTOM 3=LEFT 4=RIGHT.
-   */
-  public byte legendPosition() { int o = __offset(12); return o != 0 ? bb.get(o + bb_pos) : 0; }
-  /**
-   * Row height for legend wrapping: max(LEGEND_SWATCH_SIZE, lineHeight(LEGEND_LABEL_STYLE)).
-   */
-  public float legendRowHeight() { int o = __offset(14); return o != 0 ? bb.getFloat(o + bb_pos) : 10.0f; }
-  /**
-   * Per-entry legend label widths: LEGEND_SWATCH_SIZE + SWATCH_TEXT_GAP + measureWidth(label, style).
-   */
-  public float legendLabelWidths(int j) { int o = __offset(16); return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0; }
-  public int legendLabelWidthsLength() { int o = __offset(16); return o != 0 ? __vector_len(o) : 0; }
-  public FloatVector legendLabelWidthsVector() { return legendLabelWidthsVector(new FloatVector()); }
-  public FloatVector legendLabelWidthsVector(FloatVector obj) { int o = __offset(16); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer legendLabelWidthsAsByteBuffer() { return __vector_as_bytebuffer(16, 4); }
-  public ByteBuffer legendLabelWidthsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 16, 4); }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createPieChartData(FlatBufferBuilder builder,
-      float preferredWidth,
-      float totalHeight,
-      float chromeHeight,
-      float titleChrome,
-      byte legendPosition,
-      float legendRowHeight,
-      int legendLabelWidthsOffset) {
-    builder.startTable(7);
-    PieChartData.addLegendLabelWidths(builder, legendLabelWidthsOffset);
-    PieChartData.addLegendRowHeight(builder, legendRowHeight);
-    PieChartData.addTitleChrome(builder, titleChrome);
-    PieChartData.addChromeHeight(builder, chromeHeight);
-    PieChartData.addTotalHeight(builder, totalHeight);
-    PieChartData.addPreferredWidth(builder, preferredWidth);
-    PieChartData.addLegendPosition(builder, legendPosition);
-    return PieChartData.endPieChartData(builder);
-  }
+    public static PieChartData getRootAsPieChartData(ByteBuffer _bb) {
+        return getRootAsPieChartData(_bb, new PieChartData());
+    }
 
-  public static void startPieChartData(FlatBufferBuilder builder) { builder.startTable(7); }
-  public static void addPreferredWidth(FlatBufferBuilder builder, float preferredWidth) { builder.addFloat(0, preferredWidth, 0.0f); }
-  public static void addTotalHeight(FlatBufferBuilder builder, float totalHeight) { builder.addFloat(1, totalHeight, 0.0f); }
-  public static void addChromeHeight(FlatBufferBuilder builder, float chromeHeight) { builder.addFloat(2, chromeHeight, 0.0f); }
-  public static void addTitleChrome(FlatBufferBuilder builder, float titleChrome) { builder.addFloat(3, titleChrome, 0.0f); }
-  public static void addLegendPosition(FlatBufferBuilder builder, byte legendPosition) { builder.addByte(4, legendPosition, 0); }
-  public static void addLegendRowHeight(FlatBufferBuilder builder, float legendRowHeight) { builder.addFloat(5, legendRowHeight, 10.0f); }
-  public static void addLegendLabelWidths(FlatBufferBuilder builder, int legendLabelWidthsOffset) { builder.addOffset(6, legendLabelWidthsOffset, 0); }
-  public static int createLegendLabelWidthsVector(FlatBufferBuilder builder, float[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]); return builder.endVector(); }
-  public static void startLegendLabelWidthsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static int endPieChartData(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static PieChartData getRootAsPieChartData(ByteBuffer _bb, PieChartData obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public PieChartData get(int j) { return get(new PieChartData(), j); }
-    public PieChartData get(PieChartData obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public PieChartData __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    /**
+     * preferred_width = (explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH) + extraPlotWidth.
+     * Java-precomputed input to the sizing formula.
+     */
+    public float preferredWidth() {
+        int o = __offset(4);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * total_height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT.
+     * Java-precomputed height baseline (before body scaling).
+     */
+    public float totalHeight() {
+        int o = __offset(6);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * DEPRECATED: Rust now computes chrome internally from the final width w.
+     * Kept for backward compatibility with old serialized data.
+     */
+    public float chromeHeight() {
+        int o = __offset(8);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Title lineHeight(TITLE_STYLE) + TITLE_GAP; 0 if no title (width-independent).
+     */
+    public float titleChrome() {
+        int o = __offset(10);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Legend position: 0=NONE 1=TOP 2=BOTTOM 3=LEFT 4=RIGHT.
+     */
+    public byte legendPosition() {
+        int o = __offset(12);
+        return o != 0 ? bb.get(o + bb_pos) : 0;
+    }
+
+    /**
+     * Row height for legend wrapping: max(LEGEND_SWATCH_SIZE, lineHeight(LEGEND_LABEL_STYLE)).
+     */
+    public float legendRowHeight() {
+        int o = __offset(14);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 10.0f;
+    }
+
+    /**
+     * Per-entry legend label widths: LEGEND_SWATCH_SIZE + SWATCH_TEXT_GAP + measureWidth(label, style).
+     */
+    public float legendLabelWidths(int j) {
+        int o = __offset(16);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int legendLabelWidthsLength() {
+        int o = __offset(16);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatVector legendLabelWidthsVector() {
+        return legendLabelWidthsVector(new FloatVector());
+    }
+
+    public FloatVector legendLabelWidthsVector(FloatVector obj) {
+        int o = __offset(16);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer legendLabelWidthsAsByteBuffer() {
+        return __vector_as_bytebuffer(16, 4);
+    }
+
+    public ByteBuffer legendLabelWidthsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 16, 4);
+    }
+
+    public static int createPieChartData(FlatBufferBuilder builder, float preferredWidth, float totalHeight,
+        float chromeHeight, float titleChrome, byte legendPosition, float legendRowHeight,
+        int legendLabelWidthsOffset) {
+        builder.startTable(7);
+        PieChartData.addLegendLabelWidths(builder, legendLabelWidthsOffset);
+        PieChartData.addLegendRowHeight(builder, legendRowHeight);
+        PieChartData.addTitleChrome(builder, titleChrome);
+        PieChartData.addChromeHeight(builder, chromeHeight);
+        PieChartData.addTotalHeight(builder, totalHeight);
+        PieChartData.addPreferredWidth(builder, preferredWidth);
+        PieChartData.addLegendPosition(builder, legendPosition);
+        return PieChartData.endPieChartData(builder);
+    }
+
+    public static void startPieChartData(FlatBufferBuilder builder) {
+        builder.startTable(7);
+    }
+
+    public static void addPreferredWidth(FlatBufferBuilder builder, float preferredWidth) {
+        builder.addFloat(0, preferredWidth, 0.0f);
+    }
+
+    public static void addTotalHeight(FlatBufferBuilder builder, float totalHeight) {
+        builder.addFloat(1, totalHeight, 0.0f);
+    }
+
+    public static void addChromeHeight(FlatBufferBuilder builder, float chromeHeight) {
+        builder.addFloat(2, chromeHeight, 0.0f);
+    }
+
+    public static void addTitleChrome(FlatBufferBuilder builder, float titleChrome) {
+        builder.addFloat(3, titleChrome, 0.0f);
+    }
+
+    public static void addLegendPosition(FlatBufferBuilder builder, byte legendPosition) {
+        builder.addByte(4, legendPosition, 0);
+    }
+
+    public static void addLegendRowHeight(FlatBufferBuilder builder, float legendRowHeight) {
+        builder.addFloat(5, legendRowHeight, 10.0f);
+    }
+
+    public static void addLegendLabelWidths(FlatBufferBuilder builder, int legendLabelWidthsOffset) {
+        builder.addOffset(6, legendLabelWidthsOffset, 0);
+    }
+
+    public static int createLegendLabelWidthsVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startLegendLabelWidthsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static int endPieChartData(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public PieChartData get(int j) {
+            return get(new PieChartData(), j);
+        }
+
+        public PieChartData get(PieChartData obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

@@ -415,8 +415,7 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         // offset anyway, so this call is a no-op for headless rendering.
         updateVisualState();
         boolean ready = diagramReady();
-        GuideDebugLog.debugAlways("[GuideNH-Mermaid] computePrimitives diagramReady={} bounds={}",
-            ready, bounds);
+        GuideDebugLog.debugAlways("[GuideNH-Mermaid] computePrimitives diagramReady={} bounds={}", ready, bounds);
         if (!ready) return;
         LytRect b = getBounds();
         if (b == null) return;
@@ -454,9 +453,8 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
             int contentW = contentWidth();
             int contentH = contentHeight();
             if (contentW > 0 && contentH > 0) {
-                float fitZoom = Math.min(1f, Math.min(
-                    (float) inner.width() / contentW,
-                    (float) inner.height() / contentH));
+                float fitZoom = Math
+                    .min(1f, Math.min((float) inner.width() / contentW, (float) inner.height() / contentH));
                 zoom = headlessZoomInjection > 0f ? headlessZoomInjection : fitZoom;
                 // Route the injected zoom through getActiveZoom so it shares the
                 // [MIN_ZOOM, MAX_ZOOM] clamp (an over-ceiling -D injection is
@@ -467,7 +465,8 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                 if (headlessZoomInjection > 0f) {
                     GuideDebugLog.infoAlways(
                         "[GuideNH-Mermaid] headless zoom injection: requested={} quantized={}",
-                        zoom, activeZoom);
+                        zoom,
+                        activeZoom);
                 }
             }
             int scaledContentW = Math.round(contentWidth() * activeZoom);
@@ -577,10 +576,18 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
             nodeRect.x() + paddingX,
             contentY,
             Math.min(
-                Math.max(1, Math.round(contentLayout.visualBounds().width() * activeZoom)),
+                Math.max(
+                    1,
+                    Math.round(
+                        contentLayout.visualBounds()
+                            .width() * activeZoom)),
                 availW),
             Math.min(
-                Math.max(1, Math.round(contentLayout.visualBounds().height() * activeZoom)),
+                Math.max(
+                    1,
+                    Math.round(
+                        contentLayout.visualBounds()
+                            .height() * activeZoom)),
                 availH));
     }
 
@@ -654,7 +661,9 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                         if (w > 200 || h > 200) {
                             GuideDebugLog.warnAlways(
                                 "[GuideNH] OVERSIZE glyph upload source=LytMermaidCanvas key={} w={} h={}",
-                                bmp.key(), w, h);
+                                bmp.key(),
+                                w,
+                                h);
                         }
                         atlas.upload(bmp.key(), rgba, w, h);
                     }
@@ -668,11 +677,12 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                         if (fl == null) continue;
                         LytNode node = serializer.getNodeByFlatIndex(i);
                         if (!(node instanceof LytBlock lb)) continue;
-                        lb.applyExternalLayout(new LytRect(
-                            Math.round(fl.x()),
-                            Math.round(fl.y()),
-                            Math.max(0, Math.round(fl.w())),
-                            Math.max(0, Math.round(fl.h()))));
+                        lb.applyExternalLayout(
+                            new LytRect(
+                                Math.round(fl.x()),
+                                Math.round(fl.y()),
+                                Math.max(0, Math.round(fl.w())),
+                                Math.max(0, Math.round(fl.h()))));
                     }
                     // Inject glyph runs (final subtree-space quads) and span
                     // decoration rects into the paragraphs so they render rich
@@ -687,13 +697,14 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                         for (int gi = 0; gi < numGlyphs; gi++) {
                             var fbg = fbRun.glyphs(gi);
                             if (fbg != null) {
-                                placed.add(new GuideRenderPrimitive.PlacedGlyph(
-                                    fbg.bitmapKey(),
-                                    fbg.x(),
-                                    fbg.y(),
-                                    fbg.w(),
-                                    fbg.h(),
-                                    (int) fbg.lineIndex()));
+                                placed.add(
+                                    new GuideRenderPrimitive.PlacedGlyph(
+                                        fbg.bitmapKey(),
+                                        fbg.x(),
+                                        fbg.y(),
+                                        fbg.w(),
+                                        fbg.h(),
+                                        (int) fbg.lineIndex()));
                             }
                         }
                         runsByNode.computeIfAbsent((int) fbRun.nodeIndex(), k -> new ArrayList<>())
@@ -726,11 +737,12 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                     for (var entry : runsByNode.entrySet()) {
                         LytNode node = serializer.getNodeByFlatIndex(entry.getKey());
                         if (node instanceof GlyphRunHolder holder) {
-                            holder.setGlyphData(new GlyphRunData(
-                                entry.getValue(),
-                                backgroundsByNode.getOrDefault(entry.getKey(), List.of()),
-                                linesByNode.getOrDefault(entry.getKey(), List.of()),
-                                separatorsByNode.getOrDefault(entry.getKey(), List.of())));
+                            holder.setGlyphData(
+                                new GlyphRunData(
+                                    entry.getValue(),
+                                    backgroundsByNode.getOrDefault(entry.getKey(), List.of()),
+                                    linesByNode.getOrDefault(entry.getKey(), List.of()),
+                                    separatorsByNode.getOrDefault(entry.getKey(), List.of())));
                         }
                     }
                     // Post pass: blocks that derive state from children's final
@@ -744,8 +756,8 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                     return;
                 }
             } catch (Exception e) {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH-Mermaid] NodeContent Rust layout failed; falling back to Java layout", e);
+                GuideDebugLog
+                    .warnAlways("[GuideNH-Mermaid] NodeContent Rust layout failed; falling back to Java layout", e);
             }
         }
         // Fallback: Java manual layout (the LytVBox stub is not a real pass).
@@ -781,10 +793,18 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         }
         // Content VBox created by compileNodeContentBlock has default
         // padding (0), gap (0), and alignItems (START).
-        Layouts.verticalLayout(context, blockChildren,
-            0, 0, contentWidth,
-            0, 0, 0, 0,
-            vbox.getGap(), vbox.getAlignItems());
+        Layouts.verticalLayout(
+            context,
+            blockChildren,
+            0,
+            0,
+            contentWidth,
+            0,
+            0,
+            0,
+            0,
+            vbox.getGap(),
+            vbox.getAlignItems());
     }
 
     /**
@@ -830,8 +850,8 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
      * NOT the centered contentViewport) to prevent text overflow beyond the
      * node bounds.
      */
-    protected void emitNodeContentPrimitives(PrimitiveCollector c, NodeContentLayout contentLayout,
-        LytRect contentArea, float activeZoom) {
+    protected void emitNodeContentPrimitives(PrimitiveCollector c, NodeContentLayout contentLayout, LytRect contentArea,
+        float activeZoom) {
         LytRect rawViewport = new LytRect(
             contentArea.x(),
             contentArea.y(),
@@ -859,8 +879,12 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         LytRect innerViewport = getInnerViewport();
         LytRect clip = intersect(innerViewport, contentArea);
         if (clip == null) return;
-        int originX = contentViewport.x() - Math.round(contentLayout.visualBounds().x() * activeZoom);
-        int originY = contentViewport.y() - Math.round(contentLayout.visualBounds().y() * activeZoom);
+        int originX = contentViewport.x() - Math.round(
+            contentLayout.visualBounds()
+                .x() * activeZoom);
+        int originY = contentViewport.y() - Math.round(
+            contentLayout.visualBounds()
+                .y() * activeZoom);
         c.pushScissor(clip.x(), clip.y(), clip.width(), clip.height());
         c.pushTransform(originX, originY, activeZoom);
         c.collectFrom(contentLayout.block());

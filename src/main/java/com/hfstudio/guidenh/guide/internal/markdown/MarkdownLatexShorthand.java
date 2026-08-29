@@ -32,7 +32,8 @@ import lombok.Getter;
  * each {@code $$formula$$} or {@code $formula$} fragment is rendered as an inline block inside
  * the surrounding text.
  *
- * <p>Single-dollar inline formulas follow Pandoc-style rules:
+ * <p>
+ * Single-dollar inline formulas follow Pandoc-style rules:
  * the opening {@code $} must be followed by a non-whitespace character,
  * the closing {@code $} must be preceded by a non-whitespace character,
  * and the closing {@code $} must not be followed by a digit (to avoid currency false positives).
@@ -64,10 +65,10 @@ public class MarkdownLatexShorthand {
     /**
      * Single-dollar inline formula pattern (Pandoc rules):
      * <ul>
-     *   <li>Opening {@code $} must be followed by a non-whitespace, non-{@code $} character.
-     *   <li>Closing {@code $} must be preceded by a non-whitespace, non-{@code $} character.
-     *   <li>Closing {@code $} must not be followed by a digit (avoid currency false positives).
-     *   <li>Content must not contain {@code $} or newlines.
+     * <li>Opening {@code $} must be followed by a non-whitespace, non-{@code $} character.
+     * <li>Closing {@code $} must be preceded by a non-whitespace, non-{@code $} character.
+     * <li>Closing {@code $} must not be followed by a digit (avoid currency false positives).
+     * <li>Content must not contain {@code $} or newlines.
      * </ul>
      */
     private static final String SINGLE_DOLLAR_REGEX = "\\$([^\\s$](?:[^$\\n]*[^\\s$])?)\\$(?!\\d)";
@@ -76,12 +77,11 @@ public class MarkdownLatexShorthand {
     /**
      * Combined pattern for {@link #split}: {@code $$...$$} branch (priority), then single {@code $...$} branch.
      * <ul>
-     *   <li>Match present → use {@link #formulaFromMatch(Matcher)} to extract the formula content</li>
+     * <li>Match present → use {@link #formulaFromMatch(Matcher)} to extract the formula content</li>
      * </ul>
      */
-    private static final Pattern COMBINED_PATTERN = Pattern.compile(
-        "(\\$\\$([^$]+?)\\$\\$)|(\\$([^\\s$](?:[^$\\n]*[^\\s$])?)\\$(?!\\d))", Pattern.DOTALL
-    );
+    private static final Pattern COMBINED_PATTERN = Pattern
+        .compile("(\\$\\$([^$]+?)\\$\\$)|(\\$([^\\s$](?:[^$\\n]*[^\\s$])?)\\$(?!\\d))", Pattern.DOTALL);
 
     private MarkdownLatexShorthand() {}
 
@@ -130,7 +130,7 @@ public class MarkdownLatexShorthand {
             source = sb.toString();
         }
 
-        // Step (c): mask single $...$  ($$ are protected so they won't match)
+        // Step (c): mask single $...$ ($$ are protected so they won't match)
         {
             Matcher matcher = SINGLE_DOLLAR_PATTERN.matcher(source);
             StringBuilder sb = new StringBuilder(source.length());
@@ -191,8 +191,8 @@ public class MarkdownLatexShorthand {
     /**
      * Extracts the formula content from a {@link #COMBINED_PATTERN} match.
      * <ul>
-     *   <li>Group 2: formula from {@code $$...$$} branch</li>
-     *   <li>Group 4: formula from single {@code $...$} branch</li>
+     * <li>Group 2: formula from {@code $$...$$} branch</li>
+     * <li>Group 4: formula from single {@code $...$} branch</li>
      * </ul>
      */
     private static String formulaFromMatch(Matcher m) {

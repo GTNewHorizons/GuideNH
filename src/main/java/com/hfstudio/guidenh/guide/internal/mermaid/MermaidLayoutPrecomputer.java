@@ -36,6 +36,7 @@ public final class MermaidLayoutPrecomputer {
     public static void precomputeFlowchartLayout(LytMermaidFlowchart block, int pageWidth) {
         int safePageWidth = pageWidth > 0 ? pageWidth : 480;
         LayoutContext layoutCtx = new LayoutContext(new FontMetrics() {
+
             @Override
             public float getAdvance(int codePoint, ResolvedTextStyle s) {
                 return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
@@ -46,7 +47,8 @@ public final class MermaidLayoutPrecomputer {
                 return GuideText.lineHeight(s);
             }
         });
-        block.getCanvas().precomputeLayout(layoutCtx, safePageWidth);
+        block.getCanvas()
+            .precomputeLayout(layoutCtx, safePageWidth);
     }
 
     /**
@@ -61,6 +63,7 @@ public final class MermaidLayoutPrecomputer {
     public static void precomputeMindmapLayout(LytMermaidMindmap block, int pageWidth) {
         int safePageWidth = pageWidth > 0 ? pageWidth : 480;
         LayoutContext layoutCtx = new LayoutContext(new FontMetrics() {
+
             @Override
             public float getAdvance(int codePoint, ResolvedTextStyle s) {
                 return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
@@ -71,6 +74,7 @@ public final class MermaidLayoutPrecomputer {
                 return GuideText.lineHeight(s);
             }
         });
-        block.getCanvas().precomputeLayout(layoutCtx, safePageWidth);
+        block.getCanvas()
+            .precomputeLayout(layoutCtx, safePageWidth);
     }
 }

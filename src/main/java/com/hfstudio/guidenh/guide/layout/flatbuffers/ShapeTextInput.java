@@ -2,22 +2,13 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
 
 /**
  * One-off text shaping for the GuideText unified entry: same shaping and
@@ -27,48 +18,109 @@ import java.nio.ByteOrder;
  */
 @SuppressWarnings("unused")
 public final class ShapeTextInput extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static ShapeTextInput getRootAsShapeTextInput(ByteBuffer _bb) { return getRootAsShapeTextInput(_bb, new ShapeTextInput()); }
-  public static ShapeTextInput getRootAsShapeTextInput(ByteBuffer _bb, ShapeTextInput obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public ShapeTextInput __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public String text() { int o = __offset(4); return o != 0 ? __string(o + bb_pos) : null; }
-  public ByteBuffer textAsByteBuffer() { return __vector_as_bytebuffer(4, 1); }
-  public ByteBuffer textInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 4, 1); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle style() { return style(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle style(com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle obj) { int o = __offset(6); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
-  public float maxWidth() { int o = __offset(8); return o != 0 ? bb.getFloat(o + bb_pos) : -1.0f; }
-  public float renderScale() { int o = __offset(10); return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f; }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createShapeTextInput(FlatBufferBuilder builder,
-      int textOffset,
-      int styleOffset,
-      float maxWidth,
-      float renderScale) {
-    builder.startTable(4);
-    ShapeTextInput.addRenderScale(builder, renderScale);
-    ShapeTextInput.addMaxWidth(builder, maxWidth);
-    ShapeTextInput.addStyle(builder, styleOffset);
-    ShapeTextInput.addText(builder, textOffset);
-    return ShapeTextInput.endShapeTextInput(builder);
-  }
+    public static ShapeTextInput getRootAsShapeTextInput(ByteBuffer _bb) {
+        return getRootAsShapeTextInput(_bb, new ShapeTextInput());
+    }
 
-  public static void startShapeTextInput(FlatBufferBuilder builder) { builder.startTable(4); }
-  public static void addText(FlatBufferBuilder builder, int textOffset) { builder.addOffset(0, textOffset, 0); }
-  public static void addStyle(FlatBufferBuilder builder, int styleOffset) { builder.addOffset(1, styleOffset, 0); }
-  public static void addMaxWidth(FlatBufferBuilder builder, float maxWidth) { builder.addFloat(2, maxWidth, -1.0f); }
-  public static void addRenderScale(FlatBufferBuilder builder, float renderScale) { builder.addFloat(3, renderScale, 1.0f); }
-  public static int endShapeTextInput(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static ShapeTextInput getRootAsShapeTextInput(ByteBuffer _bb, ShapeTextInput obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public ShapeTextInput get(int j) { return get(new ShapeTextInput(), j); }
-    public ShapeTextInput get(ShapeTextInput obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public ShapeTextInput __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public String text() {
+        int o = __offset(4);
+        return o != 0 ? __string(o + bb_pos) : null;
+    }
+
+    public ByteBuffer textAsByteBuffer() {
+        return __vector_as_bytebuffer(4, 1);
+    }
+
+    public ByteBuffer textInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 4, 1);
+    }
+
+    public TextStyle style() {
+        return style(new TextStyle());
+    }
+
+    public TextStyle style(TextStyle obj) {
+        int o = __offset(6);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
+    public float maxWidth() {
+        int o = __offset(8);
+        return o != 0 ? bb.getFloat(o + bb_pos) : -1.0f;
+    }
+
+    public float renderScale() {
+        int o = __offset(10);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f;
+    }
+
+    public static int createShapeTextInput(FlatBufferBuilder builder, int textOffset, int styleOffset, float maxWidth,
+        float renderScale) {
+        builder.startTable(4);
+        ShapeTextInput.addRenderScale(builder, renderScale);
+        ShapeTextInput.addMaxWidth(builder, maxWidth);
+        ShapeTextInput.addStyle(builder, styleOffset);
+        ShapeTextInput.addText(builder, textOffset);
+        return ShapeTextInput.endShapeTextInput(builder);
+    }
+
+    public static void startShapeTextInput(FlatBufferBuilder builder) {
+        builder.startTable(4);
+    }
+
+    public static void addText(FlatBufferBuilder builder, int textOffset) {
+        builder.addOffset(0, textOffset, 0);
+    }
+
+    public static void addStyle(FlatBufferBuilder builder, int styleOffset) {
+        builder.addOffset(1, styleOffset, 0);
+    }
+
+    public static void addMaxWidth(FlatBufferBuilder builder, float maxWidth) {
+        builder.addFloat(2, maxWidth, -1.0f);
+    }
+
+    public static void addRenderScale(FlatBufferBuilder builder, float renderScale) {
+        builder.addFloat(3, renderScale, 1.0f);
+    }
+
+    public static int endShapeTextInput(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public ShapeTextInput get(int j) {
+            return get(new ShapeTextInput(), j);
+        }
+
+        public ShapeTextInput get(ShapeTextInput obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

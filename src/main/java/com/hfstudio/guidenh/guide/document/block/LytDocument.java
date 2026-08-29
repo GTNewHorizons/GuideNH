@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
+
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
@@ -204,8 +207,8 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         // Cache key must include the font handle (a 0→non-zero transition must
         // not leave the document stuck on the Java fallback) and the display
         // pixel ratio (glyph bitmaps are rasterized per render scale) — B-3.
-        long fontHandle = com.hfstudio.guidenh.guide.layout.LayoutBridge.getFontHandle();
-        int renderScale = com.hfstudio.guidenh.guide.internal.util.DisplayScale.scaleFactor();
+        long fontHandle = LayoutBridge.getFontHandle();
+        int renderScale = DisplayScale.scaleFactor();
         if (layout != null && layout.availableWidth == availableWidth
             && layoutFontHandle == fontHandle
             && layoutRenderScale == renderScale) {
@@ -370,19 +373,16 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                         Math.round(d.h()),
                         (int) d.argb());
                     if (d.kind() == 3) {
-                        separatorsByNode
-                            .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                        separatorsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
                             .add(rect);
                     } else if (d.kind() == 0) {
-                        backgroundsByNode
-                            .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                        backgroundsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
                             .add(rect);
                     } else if (d.kind() == 4 || d.kind() == 5) {
                         // Wavy (4) / dotted (5) decorations keep their kind so
                         // the render engine can pick the sine / dot brush — they
                         // must NOT fall into the plain-line (lines) bucket.
-                        decorationsByNode
-                            .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                        decorationsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
                             .add(
                                 new GuideRenderPrimitive.DrawDecorationLine(
                                     d.x(),
@@ -392,8 +392,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
                                     (int) d.argb(),
                                     d.kind()));
                     } else {
-                        linesByNode
-                            .computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                        linesByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
                             .add(rect);
                     }
                 }
@@ -527,7 +526,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         List<LytRect> culledRects) {
         // Clip all overlay drawing to the viewport: without this, rects of
         // offscreen/culled blocks bleed into the screen and look like empty panels.
-        var mc = net.minecraft.client.Minecraft.getMinecraft();
+        var mc = Minecraft.getMinecraft();
         int s = DisplayScale.scaleFactor();
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         GL11.glScissor(
@@ -596,10 +595,10 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     }
 
     private static void drawScreenOutline(int x, int y, int w, int h, int argb) {
-        net.minecraft.client.gui.Gui.drawRect(x, y, x + w, y + 1, argb);
-        net.minecraft.client.gui.Gui.drawRect(x, y + h - 1, x + w, y + h, argb);
-        net.minecraft.client.gui.Gui.drawRect(x, y + 1, x + 1, y + h - 1, argb);
-        net.minecraft.client.gui.Gui.drawRect(x + w - 1, y + 1, x + w, y + h - 1, argb);
+        Gui.drawRect(x, y, x + w, y + 1, argb);
+        Gui.drawRect(x, y + h - 1, x + w, y + h, argb);
+        Gui.drawRect(x, y + 1, x + 1, y + h - 1, argb);
+        Gui.drawRect(x + w - 1, y + 1, x + w, y + h - 1, argb);
     }
 
     public @Nullable DocumentInteractionSnapshot getHoveredElement() {

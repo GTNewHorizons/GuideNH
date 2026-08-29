@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytPoint;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -182,7 +183,7 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
                 bounds.y(),
                 bounds.width(),
                 bounds.height(),
-                toolbarBackground.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
+                toolbarBackground.resolve(LightDarkMode.current())));
     }
 
     @Override

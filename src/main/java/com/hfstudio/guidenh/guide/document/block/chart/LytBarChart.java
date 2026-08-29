@@ -403,7 +403,10 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         boolean singleValueMode = seriesCount == categoryCount && seriesCount > 0;
         if (singleValueMode) {
             for (ChartSeries s : series) {
-                if (s.getYs().length != 1) { singleValueMode = false; break; }
+                if (s.getYs().length != 1) {
+                    singleValueMode = false;
+                    break;
+                }
             }
         }
         float clusterHeight = categoryHeight * barWidthRatio;
@@ -524,7 +527,10 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         boolean singleValueMode = seriesCount == categoryCount && seriesCount > 0;
         if (singleValueMode) {
             for (ChartSeries s : series) {
-                if (s.getYs().length != 1) { singleValueMode = false; break; }
+                if (s.getYs().length != 1) {
+                    singleValueMode = false;
+                    break;
+                }
             }
         }
         float categoryHeight = (float) plotCache.height() / categoryCount;

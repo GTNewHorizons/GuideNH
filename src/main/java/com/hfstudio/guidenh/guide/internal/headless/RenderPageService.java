@@ -24,10 +24,11 @@ import net.minecraft.util.ResourceLocation;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.GuidePage;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
@@ -36,8 +37,6 @@ import com.hfstudio.guidenh.guide.document.block.LytMermaidCanvas;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
-import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.internal.GuideBookmarkState;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
@@ -46,10 +45,10 @@ import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
 import com.hfstudio.guidenh.guide.layout.FontProvider;
+import com.hfstudio.guidenh.guide.layout.JavaFontMetrics;
 import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.LayoutTreeSerializer;
-import com.hfstudio.guidenh.guide.layout.RustFontMetrics;
 import com.hfstudio.guidenh.guide.layout.SystemFontProvider;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
@@ -57,29 +56,31 @@ import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
+import lombok.Getter;
+
 /**
  * Core orchestration service for "page → long screenshot PNG + optional bounds
  * JSON / debug overlay".
  *
- * <p>Called inside the real Minecraft client (command or startup hook) after
+ * <p>
+ * Called inside the real Minecraft client (command or startup hook) after
  * fonts, resources, and the Guide registry are ready (post-completeInit).
  * Does <em>not</em> depend on {@code Minecraft.theWorld / thePlayer / currentScreen}.
  *
- * <p>Layout is performed at {@code guiScale = 1}; the visual scale is fixed at
+ * <p>
+ * Layout is performed at {@code guiScale = 1}; the visual scale is fixed at
  * {@code 1.0} (no zoom).
  */
 public final class RenderPageService {
 
-    private static final DateTimeFormatter FILE_NAME_FORMAT =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss", Locale.ROOT);
+    private static final DateTimeFormatter FILE_NAME_FORMAT = DateTimeFormatter
+        .ofPattern("yyyy-MM-dd_HHmmss", Locale.ROOT);
 
     /** Six cycling colours for overlay borders/labels, keyed by depth % 6. */
-    private static final int[] OVERLAY_FILL_COLORS = {
-        0x44FF0000, 0x4400FF00, 0x440000FF, 0x44FFFF00, 0x44FF00FF, 0x4400FFFF
-    };
-    private static final int[] OVERLAY_BORDER_COLORS = {
-        0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFFFF00, 0xFFFF00FF, 0xFF00FFFF
-    };
+    private static final int[] OVERLAY_FILL_COLORS = { 0x44FF0000, 0x4400FF00, 0x440000FF, 0x44FFFF00, 0x44FF00FF,
+        0x4400FFFF };
+    private static final int[] OVERLAY_BORDER_COLORS = { 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFFFF00, 0xFFFF00FF,
+        0xFF00FFFF };
 
     private RenderPageService() {}
 
@@ -101,31 +102,12 @@ public final class RenderPageService {
      *                         logical px and the document is shifted right; the
      *                         bounds JSON stays in document coordinates.
      */
-    public record RenderPageRequest(
-        String guideId,
-        String pageId,
-        Path mdFile,
-        String language,
-        int width,
-        Path outDir,
-        boolean emitBoundsJson,
-        boolean emitDebugOverlay,
-        int scale,
-        boolean chrome
-    ) {
+    public record RenderPageRequest(String guideId, String pageId, Path mdFile, String language, int width, Path outDir,
+        boolean emitBoundsJson, boolean emitDebugOverlay, int scale, boolean chrome) {
 
         /** Legacy 9-arg construction (in-game command path) — chrome defaults off. */
-        public RenderPageRequest(
-            String guideId,
-            String pageId,
-            Path mdFile,
-            String language,
-            int width,
-            Path outDir,
-            boolean emitBoundsJson,
-            boolean emitDebugOverlay,
-            int scale
-        ) {
+        public RenderPageRequest(String guideId, String pageId, Path mdFile, String language, int width, Path outDir,
+            boolean emitBoundsJson, boolean emitDebugOverlay, int scale) {
             this(guideId, pageId, mdFile, language, width, outDir, emitBoundsJson, emitDebugOverlay, scale, false);
         }
     }
@@ -137,20 +119,21 @@ public final class RenderPageService {
      * @param heightPx       actual image height in pixels
      * @param blockCount     total number of LytBlock instances in the document
      */
-    public record RenderPageResult(
-        Path pngPath,
-        Path boundsJsonPath,
-        int widthPx,
-        int heightPx,
-        int blockCount
-    ) {}
+    public record RenderPageResult(Path pngPath, Path boundsJsonPath, int widthPx, int heightPx, int blockCount) {}
 
     /**
      * Checked exception that wraps all failures inside {@link #render}.
      * The {@link Stage} indicates which phase the error occurred in.
      */
+    @Getter
     public static final class RenderPageException extends Exception {
-        public enum Stage { COMPILE, LAYOUT, RENDER, IO }
+
+        public enum Stage {
+            COMPILE,
+            LAYOUT,
+            RENDER,
+            IO
+        }
 
         private final Stage stage;
 
@@ -164,7 +147,6 @@ public final class RenderPageService {
             this.stage = stage;
         }
 
-        public Stage getStage() { return stage; }
     }
 
     // ---- public API ---------------------------------------------------------
@@ -172,13 +154,15 @@ public final class RenderPageService {
     /**
      * Force-initialise the Rust font engine if not already done.
      *
-     * <p>Equivalent to the font-initialisation portion of
+     * <p>
+     * Equivalent to the font-initialisation portion of
      * {@code GuideScreen.ensureLayout()}: checks {@link LayoutBridge#getFontHandle()},
      * loads system CJK font data via {@link SystemFontProvider}, and calls
      * {@link LayoutBridge#init(byte[], String)} followed by
      * {@link LayoutBridge#setFontHandle(long)}.
      *
-     * <p>Idempotent — subsequent calls are no-ops once the font handle is non-zero.
+     * <p>
+     * Idempotent — subsequent calls are no-ops once the font handle is non-zero.
      */
     public static void ensureFontEngineReady() {
         if (LayoutBridge.getFontHandle() == 0) {
@@ -206,8 +190,8 @@ public final class RenderPageService {
         try {
             LayoutBridge.loadFallbackFont(handle, fallbackData);
         } catch (UnsatisfiedLinkError e) {
-            GuideDebugLog.warnAlways(
-                "RenderPageService: loadFallbackFont unavailable (stale native lib?): {}", e.getMessage());
+            GuideDebugLog
+                .warnAlways("RenderPageService: loadFallbackFont unavailable (stale native lib?): {}", e.getMessage());
         }
     }
 
@@ -215,22 +199,23 @@ public final class RenderPageService {
      * Orchestrate the full render pipeline.
      *
      * <ol>
-     *   <li>Ensure font engine ready</li>
-     *   <li>Compile the page (registered-page or raw-md path)</li>
-     *   <li>Layout the document at the requested width</li>
-     *   <li>Collect render primitives</li>
-     *   <li>Render to offscreen FBO (tiled if necessary)</li>
-     *   <li>Write PNG (with collision-safe naming)</li>
-     *   <li>Optionally write bounds JSON</li>
-     *   <li>Optionally write debug-overlay PNG</li>
+     * <li>Ensure font engine ready</li>
+     * <li>Compile the page (registered-page or raw-md path)</li>
+     * <li>Layout the document at the requested width</li>
+     * <li>Collect render primitives</li>
+     * <li>Render to offscreen FBO (tiled if necessary)</li>
+     * <li>Write PNG (with collision-safe naming)</li>
+     * <li>Optionally write bounds JSON</li>
+     * <li>Optionally write debug-overlay PNG</li>
      * </ol>
      *
-     * <p><b>Intentional deviation from {@code GuideScreen.renderDocument}:</b>
+     * <p>
+     * <b>Intentional deviation from {@code GuideScreen.renderDocument}:</b>
      * This method fixes {@code visualScale = 1.0f} (in the layout context) and
      * {@code zoom = 1.0f} (in the render context) to produce a full-resolution
-     * screenshot.  The screenshot is defined as the geometric layout at 1.0×
+     * screenshot. The screenshot is defined as the geometric layout at 1.0×
      * scale; it does <em>not</em> simulate the user's current zoom or visual
-     * scale.  {@code GuideScreen.renderDocument} applies the user's dynamic
+     * scale. {@code GuideScreen.renderDocument} applies the user's dynamic
      * {@code currentZoom} and {@code visualScrollY} instead.
      */
     public static RenderPageResult render(RenderPageRequest req) throws RenderPageException {
@@ -241,15 +226,14 @@ public final class RenderPageService {
         ResourceLocation guideId = new ResourceLocation(req.guideId());
         MutableGuide guide = GuideRegistry.getById(guideId);
         if (guide == null) {
-            throw new RenderPageException(
-                RenderPageException.Stage.COMPILE,
-                "Guide not found: " + req.guideId());
+            throw new RenderPageException(RenderPageException.Stage.COMPILE, "Guide not found: " + req.guideId());
         }
 
         // ---- 3. Compile -----------------------------------------------------
         GuidePage compiledPage;
         try {
-            if (req.pageId() != null && !req.pageId().isEmpty()) {
+            if (req.pageId() != null && !req.pageId()
+                .isEmpty()) {
                 compiledPage = compileRegisteredPage(guide, req);
             } else if (req.mdFile() != null) {
                 compiledPage = compileMdFile(guide, req);
@@ -261,14 +245,14 @@ public final class RenderPageService {
         } catch (RenderPageException e) {
             throw e;
         } catch (Exception e) {
-            throw new RenderPageException(
-                RenderPageException.Stage.COMPILE, "Compilation failed", e);
+            throw new RenderPageException(RenderPageException.Stage.COMPILE, "Compilation failed", e);
         }
 
         LytDocument document = compiledPage.document();
 
         // ---- 3a. Mount document (dispatch MOUNT events for SceneScript etc.) ---
-        String mountPageId = compiledPage.id().toString();
+        String mountPageId = compiledPage.id()
+            .toString();
         LytHost lytHost = ClientProxy.getLytHost();
         try {
             lytHost.setCurrentPageId(mountPageId);
@@ -284,12 +268,11 @@ public final class RenderPageService {
             if (lytHost.hasWork()) {
                 GuideDebugLog.warnAlways(
                     "RenderPageService: page {} mount timed out after 10s, {} tasks still pending",
-                    mountPageId, lytHost.pendingTaskCount());
+                    mountPageId,
+                    lytHost.pendingTaskCount());
             }
         } catch (Exception e) {
-            throw new RenderPageException(
-                RenderPageException.Stage.LAYOUT,
-                "Mount failed for page " + mountPageId, e);
+            throw new RenderPageException(RenderPageException.Stage.LAYOUT, "Mount failed for page " + mountPageId, e);
         }
 
         // ---- 4+5. Layout + primitive collection ------------------------------
@@ -318,7 +301,7 @@ public final class RenderPageService {
         }
         try {
             try {
-                var layoutCtx = new LayoutContext(new RustFontMetrics()).withVisualScale(1.0f);
+                var layoutCtx = new LayoutContext(new JavaFontMetrics()).withVisualScale(1.0f);
                 document.updateLayout(layoutCtx, req.width());
                 contentHeight = document.getContentHeight();
                 if (contentHeight <= 0) {
@@ -327,44 +310,39 @@ public final class RenderPageService {
                         "Document content height must be positive, got: " + contentHeight);
                 }
             } catch (Exception e) {
-                throw new RenderPageException(
-                    RenderPageException.Stage.LAYOUT, "Layout failed", e);
+                throw new RenderPageException(RenderPageException.Stage.LAYOUT, "Layout failed", e);
             }
 
             try {
                 var fullViewport = new LytRect(0, 0, req.width(), contentHeight);
-                renderCtx = new VanillaRenderContext(
-                    LightDarkMode.LIGHT_MODE, fullViewport, contentHeight);
+                renderCtx = new VanillaRenderContext(LightDarkMode.LIGHT_MODE, fullViewport, contentHeight);
                 renderCtx.setDocumentOrigin(0, 0);
                 renderCtx.setScrollOffsetY(0);
                 renderCtx.setPreciseScrollOffsetY(0);
                 renderCtx.setZoom(1.0f);
                 renderCtx.setScreenViewport(fullViewport);
 
-            var pc = new PrimitiveCollector(fullViewport, renderCtx);
-            applyMermaidInjection(document);
-            pc.collectFrom(document);
-            primitives = pc.result();
-            // Headless toolbar-title injection (-Dguidenh.renderpage.title=true):
-            // overlay the page-title glyph run collected through the drawPageTitle
-            // equivalent path on top of the document primitives. Absent or any
-            // non-"true" value is a strict no-op — the primitive list stays
-            // byte-identical, so the default render output is unchanged.
-            if (isPageTitleInjectionEnabled()) {
-                List<GuideRenderPrimitive> titlePrims = collectToolbarTitlePrimitives(
-                    req, guide, compiledPage);
-                if (!titlePrims.isEmpty()) {
-                    List<GuideRenderPrimitive> merged = new ArrayList<>(
-                        primitives.size() + titlePrims.size());
-                    merged.addAll(primitives);
-                    merged.addAll(titlePrims);
-                    primitives = merged;
+                var pc = new PrimitiveCollector(fullViewport, renderCtx);
+                applyMermaidInjection(document);
+                pc.collectFrom(document);
+                primitives = pc.result();
+                // Headless toolbar-title injection (-Dguidenh.renderpage.title=true):
+                // overlay the page-title glyph run collected through the drawPageTitle
+                // equivalent path on top of the document primitives. Absent or any
+                // non-"true" value is a strict no-op — the primitive list stays
+                // byte-identical, so the default render output is unchanged.
+                if (isPageTitleInjectionEnabled()) {
+                    List<GuideRenderPrimitive> titlePrims = collectToolbarTitlePrimitives(req, guide, compiledPage);
+                    if (!titlePrims.isEmpty()) {
+                        List<GuideRenderPrimitive> merged = new ArrayList<>(primitives.size() + titlePrims.size());
+                        merged.addAll(primitives);
+                        merged.addAll(titlePrims);
+                        primitives = merged;
+                    }
                 }
+            } catch (Exception e) {
+                throw new RenderPageException(RenderPageException.Stage.RENDER, "Primitive collection failed", e);
             }
-        } catch (Exception e) {
-            throw new RenderPageException(
-                RenderPageException.Stage.RENDER, "Primitive collection failed", e);
-        }
         } finally {
             if (guiscaleInjection > 0 && mc != null) {
                 mc.gameSettings.guiScale = previousGuiScale;
@@ -382,27 +360,34 @@ public final class RenderPageService {
                 // renders in a second offscreen pass at the left. The two are
                 // composited side by side (nav left, document right), mirroring
                 // the real GuideScreen layout (nav sidebar + content area).
-                BufferedImage docImage = DocumentOffscreenFramebuffer.renderAll(
-                    primitives, renderCtx, req.width(), contentHeight, 0x121216, scale);
+                BufferedImage docImage = DocumentOffscreenFramebuffer
+                    .renderAll(primitives, renderCtx, req.width(), contentHeight, 0x121216, scale);
                 List<GuideRenderPrimitive> navPrims = new ArrayList<>();
                 VanillaRenderContext navCtx = collectNavBarPrimitives(
-                    req, guide, compiledPage, contentHeight, navPrims);
+                    req,
+                    guide,
+                    compiledPage,
+                    contentHeight,
+                    navPrims);
                 int navW = navBarWidth(req.width());
-                BufferedImage navImage = DocumentOffscreenFramebuffer.renderAll(
-                    navPrims, navCtx, navW, contentHeight, 0x121216, scale);
+                BufferedImage navImage = DocumentOffscreenFramebuffer
+                    .renderAll(navPrims, navCtx, navW, contentHeight, 0x121216, scale);
                 image = composeChrome(docImage, navImage, navW * scale, 0x121216);
                 renderedWidth = req.width() + navW;
                 GuideDebugLog.infoAlways(
                     "RenderPageService: chrome pass composed {} nav primitives into {}x{} output "
                         + "(nav width {} logical px, scale {})",
-                    navPrims.size(), image.getWidth(), image.getHeight(), navW, scale);
+                    navPrims.size(),
+                    image.getWidth(),
+                    image.getHeight(),
+                    navW,
+                    scale);
             } else {
-                image = DocumentOffscreenFramebuffer.renderAll(
-                    primitives, renderCtx, req.width(), contentHeight, 0x121216, scale);
+                image = DocumentOffscreenFramebuffer
+                    .renderAll(primitives, renderCtx, req.width(), contentHeight, 0x121216, scale);
             }
         } catch (Exception e) {
-            throw new RenderPageException(
-                RenderPageException.Stage.RENDER, "Offscreen rendering failed", e);
+            throw new RenderPageException(RenderPageException.Stage.RENDER, "Offscreen rendering failed", e);
         } finally {
             // Reset the document origin as required by DocumentOffscreenFramebuffer's contract
             renderCtx.setDocumentOrigin(0, 0);
@@ -415,12 +400,10 @@ public final class RenderPageService {
             String baseName = buildBaseName(req);
             pngPath = resolveTargetPath(req.outDir(), baseName, "png");
             ImageIO.write(image, "png", pngPath.toFile());
-            GuideDebugLog.infoAlways(
-                "RenderPageService: wrote PNG {} ({}x{})",
-                pngPath, image.getWidth(), image.getHeight());
+            GuideDebugLog
+                .infoAlways("RenderPageService: wrote PNG {} ({}x{})", pngPath, image.getWidth(), image.getHeight());
         } catch (IOException e) {
-            throw new RenderPageException(
-                RenderPageException.Stage.IO, "Failed to write PNG", e);
+            throw new RenderPageException(RenderPageException.Stage.IO, "Failed to write PNG", e);
         }
 
         // ---- 8. Bounds JSON (optional) --------------------------------------
@@ -429,11 +412,9 @@ public final class RenderPageService {
             try {
                 boundsJsonPath = resolveTargetPath(req.outDir(), buildBaseName(req), "json");
                 writeBoundsJson(document, boundsJsonPath);
-                GuideDebugLog.infoAlways(
-                    "RenderPageService: wrote bounds JSON {}", boundsJsonPath);
+                GuideDebugLog.infoAlways("RenderPageService: wrote bounds JSON {}", boundsJsonPath);
             } catch (IOException e) {
-                throw new RenderPageException(
-                    RenderPageException.Stage.IO, "Failed to write bounds JSON", e);
+                throw new RenderPageException(RenderPageException.Stage.IO, "Failed to write bounds JSON", e);
             }
         }
 
@@ -443,11 +424,9 @@ public final class RenderPageService {
                 Path overlayPath = req.outDir()
                     .resolve(buildBaseName(req) + "_overlay.png");
                 drawDebugOverlay(image, document, overlayPath, scale);
-                GuideDebugLog.infoAlways(
-                    "RenderPageService: wrote overlay PNG {}", overlayPath);
+                GuideDebugLog.infoAlways("RenderPageService: wrote overlay PNG {}", overlayPath);
             } catch (IOException e) {
-                throw new RenderPageException(
-                    RenderPageException.Stage.IO, "Failed to write overlay PNG", e);
+                throw new RenderPageException(RenderPageException.Stage.IO, "Failed to write overlay PNG", e);
             }
         }
 
@@ -457,13 +436,11 @@ public final class RenderPageService {
             // the task queue. LytHost has no explicit unmount/release method beyond this.
             lytHost.mountDocument(null);
         } catch (Exception e) {
-            GuideDebugLog.warnAlways(
-                "RenderPageService: cleanup unmount failed for page {}", mountPageId, e);
+            GuideDebugLog.warnAlways("RenderPageService: cleanup unmount failed for page {}", mountPageId, e);
         }
 
         int blockCount = countBlocks(document);
-        return new RenderPageResult(
-            pngPath, boundsJsonPath, renderedWidth * scale, contentHeight * scale, blockCount);
+        return new RenderPageResult(pngPath, boundsJsonPath, renderedWidth * scale, contentHeight * scale, blockCount);
     }
 
     // ---- compilation helpers ------------------------------------------------
@@ -482,12 +459,12 @@ public final class RenderPageService {
         } catch (Exception e) {
             throw new RenderPageException(
                 RenderPageException.Stage.COMPILE,
-                "Failed to compile registered page " + req.pageId(), e);
+                "Failed to compile registered page " + req.pageId(),
+                e);
         }
     }
 
-    private static GuidePage compileMdFile(MutableGuide guide, RenderPageRequest req)
-        throws RenderPageException {
+    private static GuidePage compileMdFile(MutableGuide guide, RenderPageRequest req) throws RenderPageException {
         Path mdFile = req.mdFile();
         if (!Files.isRegularFile(mdFile)) {
             throw new RenderPageException(
@@ -498,29 +475,24 @@ public final class RenderPageService {
         try {
             content = Files.readString(mdFile, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new RenderPageException(
-                RenderPageException.Stage.COMPILE,
-                "Failed to read mdFile: " + mdFile, e);
+            throw new RenderPageException(RenderPageException.Stage.COMPILE, "Failed to read mdFile: " + mdFile, e);
         }
 
-        String fileName = mdFile.getFileName().toString();
+        String fileName = mdFile.getFileName()
+            .toString();
         if (fileName.endsWith(".md")) {
             fileName = fileName.substring(0, fileName.length() - 3);
         }
         // Replace characters invalid in ResourceLocation path
         String safeName = fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
-        ResourceLocation syntheticId = new ResourceLocation(
-            guide.getDefaultNamespace(), safeName);
+        ResourceLocation syntheticId = new ResourceLocation(guide.getDefaultNamespace(), safeName);
 
         String sourcePack = guide.getDefaultNamespace();
         try {
-            ParsedGuidePage parsed = PageCompiler.parse(
-                sourcePack, req.language(), syntheticId, content);
+            ParsedGuidePage parsed = PageCompiler.parse(sourcePack, req.language(), syntheticId, content);
             return PageCompiler.compile(guide, guide.getExtensions(), parsed);
         } catch (Exception e) {
-            throw new RenderPageException(
-                RenderPageException.Stage.COMPILE,
-                "Failed to compile mdFile " + mdFile, e);
+            throw new RenderPageException(RenderPageException.Stage.COMPILE, "Failed to compile mdFile " + mdFile, e);
         }
     }
 
@@ -532,10 +504,11 @@ public final class RenderPageService {
             var pages = guide.getPages();
             String keyList = pages.stream()
                 .limit(30)
-                .map(p -> p.getId().toString())
+                .map(
+                    p -> p.getId()
+                        .toString())
                 .collect(Collectors.joining(", ", "[", "]"));
-            return "Page not found: " + pageId
-                + ". Available pages (" + pages.size() + " total): " + keyList;
+            return "Page not found: " + pageId + ". Available pages (" + pages.size() + " total): " + keyList;
         } catch (IllegalStateException e) {
             // pages collection is not loaded yet
             return "Page not found: " + pageId + " (pages not loaded yet)";
@@ -553,9 +526,8 @@ public final class RenderPageService {
      * {@code max(110, 162) = 162} logical px.
      */
     private static int navBarWidth(int pageWidth) {
-        int requested = Math.max(
-            GuideNavBar.MIN_DYNAMIC_OPEN_WIDTH,
-            pageWidth * GuideNavBar.OPEN_WIDTH_SCREEN_PERCENT / 100);
+        int requested = Math
+            .max(GuideNavBar.MIN_DYNAMIC_OPEN_WIDTH, pageWidth * GuideNavBar.OPEN_WIDTH_SCREEN_PERCENT / 100);
         int maxWidth = Math.max(GuideNavBar.WIDTH_CLOSED, pageWidth - 16 - 40);
         return Math.min(requested, maxWidth);
     }
@@ -598,13 +570,14 @@ public final class RenderPageService {
                     "RenderPageService: nav bar scroll injected: {} px (guidenh.renderpage.navscroll)",
                     navScroll);
             } catch (NumberFormatException e) {
-                GuideDebugLog.warnAlways(
-                    "RenderPageService: ignoring invalid -Dguidenh.renderpage.navscroll={}",
-                    navScrollProp);
+                GuideDebugLog
+                    .warnAlways("RenderPageService: ignoring invalid -Dguidenh.renderpage.navscroll={}", navScrollProp);
             }
         }
         VanillaRenderContext navCtx = new VanillaRenderContext(
-            LightDarkMode.DARK_MODE, new LytRect(0, 0, navW, contentHeight), contentHeight);
+            LightDarkMode.DARK_MODE,
+            new LytRect(0, 0, navW, contentHeight),
+            contentHeight);
         var navCollector = new PrimitiveCollector(new LytRect(0, 0, navW, contentHeight), navCtx);
         navBar.collectPrimitives(guide.getId(), compiledPage.id(), guide, bookmarkState, false, navCollector);
         target.addAll(navCollector.result());
@@ -635,9 +608,8 @@ public final class RenderPageService {
             try {
                 zoom = (float) Double.parseDouble(zoomProp);
             } catch (NumberFormatException e) {
-                GuideDebugLog.warnAlways(
-                    "RenderPageService: ignoring invalid -Dguidenh.renderpage.mermaidzoom={}",
-                    zoomProp);
+                GuideDebugLog
+                    .warnAlways("RenderPageService: ignoring invalid -Dguidenh.renderpage.mermaidzoom={}", zoomProp);
                 return;
             }
         }
@@ -664,14 +636,13 @@ public final class RenderPageService {
         if (zoom <= 0f && offsetX == 0 && offsetY == 0) {
             return;
         }
-        GuideDebugLog.infoAlways(
-            "RenderPageService: mermaid canvas injection zoom={} offset=({},{})",
-            zoom, offsetX, offsetY);
+        GuideDebugLog
+            .infoAlways("RenderPageService: mermaid canvas injection zoom={} offset=({},{})", zoom, offsetX, offsetY);
         applyMermaidInjectionRecursive(document, zoom, offsetX, offsetY);
     }
 
     private static void applyMermaidInjectionRecursive(LytNode node, float zoom, int offsetX, int offsetY) {
-        if (node instanceof LytMermaidCanvas<?> canvas) {
+        if (node instanceof LytMermaidCanvas<?>canvas) {
             canvas.setHeadlessInjection(zoom, offsetX, offsetY);
         }
         for (var child : node.getChildren()) {
@@ -715,13 +686,15 @@ public final class RenderPageService {
         } else {
             String resolvedTitle = null;
             try {
-                var node = guide.getNavigationTree().getNodeById(page.id());
+                var node = guide.getNavigationTree()
+                    .getNodeById(page.id());
                 if (node != null) {
                     resolvedTitle = node.title();
                 }
             } catch (Throwable ignored) {}
             if (resolvedTitle == null || resolvedTitle.isEmpty()) {
-                resolvedTitle = page.id().toString();
+                resolvedTitle = page.id()
+                    .toString();
             }
             title.appendText(resolvedTitle);
         }
@@ -739,8 +712,8 @@ public final class RenderPageService {
      *
      * @return collected primitives; empty when the page carries no title text
      */
-    private static List<GuideRenderPrimitive> collectToolbarTitlePrimitives(
-        RenderPageRequest req, MutableGuide guide, GuidePage page) {
+    private static List<GuideRenderPrimitive> collectToolbarTitlePrimitives(RenderPageRequest req, MutableGuide guide,
+        GuidePage page) {
         LytParagraph titlePara = buildToolbarPageTitle(guide, page);
         if (titlePara.isEmpty()) {
             return List.of();
@@ -754,22 +727,22 @@ public final class RenderPageService {
         // edge, no navbar/content-column avoidance; the reserved right-side
         // icon area is kept.
         int reservedRight = (16 + GuideScreen.TOOLBAR_GAP) * 5 + GuideScreen.PANEL_PADDING + 4;
-        int availableW = Math.max(
-            20, panelW - GuideScreen.PANEL_PADDING - reservedRight);
+        int availableW = Math.max(20, panelW - GuideScreen.PANEL_PADDING - reservedRight);
         int titleX = panelX + GuideScreen.PANEL_PADDING;
 
         // Single-pass layout at (0, 0): position is applied via the GL
         // translate (pushTransform), matching GuideScreen.drawPageTitle.
-        var layoutCtx = new LayoutContext(new RustFontMetrics());
+        var layoutCtx = new LayoutContext(new JavaFontMetrics());
         titlePara.layout(layoutCtx, 0, 0, availableW);
         int titleH = titlePara.getBounds()
             .height();
         int titleY = Math.max(0, (GuideScreen.TOOLBAR_H - titleH) / 2) + panelY + 2;
 
-        LytRect titleScreenVp = new LytRect(
-            titleX, titleY, availableW, Math.max(titleH, GuideScreen.TOOLBAR_H));
+        LytRect titleScreenVp = new LytRect(titleX, titleY, availableW, Math.max(titleH, GuideScreen.TOOLBAR_H));
         var titleCtx = new VanillaRenderContext(
-            LightDarkMode.LIGHT_MODE, titleScreenVp, titleY + titleScreenVp.height());
+            LightDarkMode.LIGHT_MODE,
+            titleScreenVp,
+            titleY + titleScreenVp.height());
         var pc = new PrimitiveCollector(titleScreenVp, titleCtx);
         pc.pushTransform(titleX, titleY, 1.0f);
         pc.collectFrom(titlePara);
@@ -777,7 +750,11 @@ public final class RenderPageService {
         GuideDebugLog.infoAlways(
             "RenderPageService: toolbar page-title injected: '{}' at ({},{}) h={} availableW={} "
                 + "(guidenh.renderpage.title)",
-            titlePara.getTextContent(), titleX, titleY, titleH, availableW);
+            titlePara.getTextContent(),
+            titleX,
+            titleY,
+            titleH,
+            availableW);
         return pc.result();
     }
 
@@ -801,9 +778,7 @@ public final class RenderPageService {
                 "RenderPageService: ignoring invalid -Dguidenh.renderpage.guiscale={} (expected 1-4)",
                 prop);
         } catch (NumberFormatException e) {
-            GuideDebugLog.warnAlways(
-                "RenderPageService: ignoring invalid -Dguidenh.renderpage.guiscale={}",
-                prop);
+            GuideDebugLog.warnAlways("RenderPageService: ignoring invalid -Dguidenh.renderpage.guiscale={}", prop);
         }
         return 0;
     }
@@ -835,7 +810,8 @@ public final class RenderPageService {
 
     private static String buildBaseName(RenderPageRequest req) {
         String name;
-        if (req.pageId() != null && !req.pageId().isEmpty()) {
+        if (req.pageId() != null && !req.pageId()
+            .isEmpty()) {
             // Use the path segment after the colon (namespace:path)
             String pageId = req.pageId();
             int colon = pageId.indexOf(':');
@@ -845,14 +821,19 @@ public final class RenderPageService {
                 name = pageId;
             }
             // Replace path separators with underscores
-            name = name.replace('/', '_').replace(':', '_');
+            name = name.replace('/', '_')
+                .replace(':', '_');
         } else {
-            name = req.mdFile().getFileName().toString();
+            name = req.mdFile()
+                .getFileName()
+                .toString();
             if (name.endsWith(".md")) {
                 name = name.substring(0, name.length() - 3);
             }
         }
-        return name + "_" + LocalDateTime.now().format(FILE_NAME_FORMAT);
+        return name + "_"
+            + LocalDateTime.now()
+                .format(FILE_NAME_FORMAT);
     }
 
     /**
@@ -860,8 +841,7 @@ public final class RenderPageService {
      * the candidate already exists, matching the pattern used by
      * {@code SceneEditorScreenshotExportService.resolveTargetPath}.
      */
-    private static Path resolveTargetPath(Path dir, String baseName, String extension)
-        throws IOException {
+    private static Path resolveTargetPath(Path dir, String baseName, String extension) throws IOException {
         Path candidate = dir.resolve(baseName + "." + extension);
         int collisionIndex = 2;
         while (Files.exists(candidate)) {
@@ -876,7 +856,9 @@ public final class RenderPageService {
     private static void writeBoundsJson(LytDocument document, Path target) throws IOException {
         var arr = new JsonArray();
         walkBlocksForJson(document, 0, arr);
-        String json = new GsonBuilder().setPrettyPrinting().create().toJson(arr);
+        String json = new GsonBuilder().setPrettyPrinting()
+            .create()
+            .toJson(arr);
         Files.writeString(target, json, StandardCharsets.UTF_8);
     }
 
@@ -886,7 +868,10 @@ public final class RenderPageService {
             if (bounds != null) {
                 var obj = new JsonObject();
                 obj.addProperty("i", target.size());
-                obj.addProperty("cls", block.getClass().getSimpleName());
+                obj.addProperty(
+                    "cls",
+                    block.getClass()
+                        .getSimpleName());
                 obj.addProperty("x", bounds.x());
                 obj.addProperty("y", bounds.y());
                 obj.addProperty("w", bounds.width());
@@ -902,16 +887,14 @@ public final class RenderPageService {
 
     // ---- debug overlay ------------------------------------------------------
 
-    private static void drawDebugOverlay(
-            BufferedImage source, LytDocument document, Path target, int scale) throws IOException {
+    private static void drawDebugOverlay(BufferedImage source, LytDocument document, Path target, int scale)
+        throws IOException {
         int w = source.getWidth();
         int h = source.getHeight();
         BufferedImage overlay = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = overlay.createGraphics();
         try {
-            g.setRenderingHint(
-                RenderingHints.KEY_TEXT_ANTIALIASING,
-                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             int[] counter = { 0 };
             drawOverlayBlocks(g, document, 0, counter, scale);
         } finally {
@@ -935,10 +918,9 @@ public final class RenderPageService {
      * and block-index labels. The colour cycles through six colours based on
      * nesting depth.
      *
-     * @param counter  single-element array carrying the global block index
+     * @param counter single-element array carrying the global block index
      */
-    private static void drawOverlayBlocks(
-            Graphics2D g, LytNode node, int depth, int[] counter, int scale) {
+    private static void drawOverlayBlocks(Graphics2D g, LytNode node, int depth, int[] counter, int scale) {
         if (node instanceof LytBlock block) {
             LytRect bounds = block.getBounds();
             if (bounds != null && bounds.width() > 0 && bounds.height() > 0) {

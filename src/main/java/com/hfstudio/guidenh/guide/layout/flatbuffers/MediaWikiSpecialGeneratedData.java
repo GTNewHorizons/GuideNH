@@ -2,22 +2,16 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
 import com.google.flatbuffers.ByteVector;
 import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.FloatVector;
 import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
 import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 /**
  * MediaWiki special generated block sizing data (node_type 30).
@@ -29,230 +23,590 @@ import java.nio.ByteOrder;
  */
 @SuppressWarnings("unused")
 public final class MediaWikiSpecialGeneratedData extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static MediaWikiSpecialGeneratedData getRootAsMediaWikiSpecialGeneratedData(ByteBuffer _bb) { return getRootAsMediaWikiSpecialGeneratedData(_bb, new MediaWikiSpecialGeneratedData()); }
-  public static MediaWikiSpecialGeneratedData getRootAsMediaWikiSpecialGeneratedData(ByteBuffer _bb, MediaWikiSpecialGeneratedData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public MediaWikiSpecialGeneratedData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  /**
-   * DEPRECATED (T6b-2): Rust now computes maxColumnHeight internally.
-   * Kept for backward compatibility with old serialized data.
-   */
-  public float maxContentHeight() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * resolveColumnCount result (depends only on definition.name()/kind).
-   */
-  public int columnCount() { int o = __offset(6); return o != 0 ? bb.getInt(o + bb_pos) : 1; }
-  /**
-   * hasMore flag from the visible result: adds LOAD_MORE_HEIGHT after the
-   * column content when true.
-   */
-  public boolean hasMore() { int o = __offset(8); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
-  /**
-   * Number of groups (for grouped/group-index kinds; flat builds one group
-   * per column, see group_flat_entry_count).
-   */
-  public int groupCount() { int o = __offset(10); return o != 0 ? bb.getInt(o + bb_pos) : 0; }
-  /**
-   * Per-group title measureWidth: 0 means no title (no header row).
-   * Length = group_count.
-   */
-  public float groupTitleWidths(int j) { int o = __offset(12); return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0; }
-  public int groupTitleWidthsLength() { int o = __offset(12); return o != 0 ? __vector_len(o) : 0; }
-  public FloatVector groupTitleWidthsVector() { return groupTitleWidthsVector(new FloatVector()); }
-  public FloatVector groupTitleWidthsVector(FloatVector obj) { int o = __offset(12); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer groupTitleWidthsAsByteBuffer() { return __vector_as_bytebuffer(12, 4); }
-  public ByteBuffer groupTitleWidthsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 12, 4); }
-  /**
-   * Per-group entry count in the visible result's entry order.
-   * Length = group_count.
-   */
-  public int groupEntryCounts(int j) { int o = __offset(14); return o != 0 ? bb.getInt(__vector(o) + j * 4) : 0; }
-  public int groupEntryCountsLength() { int o = __offset(14); return o != 0 ? __vector_len(o) : 0; }
-  public IntVector groupEntryCountsVector() { return groupEntryCountsVector(new IntVector()); }
-  public IntVector groupEntryCountsVector(IntVector obj) { int o = __offset(14); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer groupEntryCountsAsByteBuffer() { return __vector_as_bytebuffer(14, 4); }
-  public ByteBuffer groupEntryCountsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 14, 4); }
-  /**
-   * Per-group estimated total height (estimateHeight), width-independent,
-   * used by Rust's shortest-column-first packing. Length = group_count.
-   */
-  public float groupEstimatedHeights(int j) { int o = __offset(16); return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0; }
-  public int groupEstimatedHeightsLength() { int o = __offset(16); return o != 0 ? __vector_len(o) : 0; }
-  public FloatVector groupEstimatedHeightsVector() { return groupEstimatedHeightsVector(new FloatVector()); }
-  public FloatVector groupEstimatedHeightsVector(FloatVector obj) { int o = __offset(16); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer groupEstimatedHeightsAsByteBuffer() { return __vector_as_bytebuffer(16, 4); }
-  public ByteBuffer groupEstimatedHeightsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 16, 4); }
-  /**
-   * Total number of entries across all groups. Entries are indexed 0..N-1
-   * in the order they appear in the visible result (group-major).
-   */
-  public int totalEntryCount() { int o = __offset(18); return o != 0 ? bb.getInt(o + bb_pos) : 0; }
-  /**
-   * Per-entry title pixel width: measureWidth(title, LINK_STYLE).
-   * Width-independent font fact. Length = total_entry_count.
-   */
-  public float entryTitleWidths(int j) { int o = __offset(20); return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0; }
-  public int entryTitleWidthsLength() { int o = __offset(20); return o != 0 ? __vector_len(o) : 0; }
-  public FloatVector entryTitleWidthsVector() { return entryTitleWidthsVector(new FloatVector()); }
-  public FloatVector entryTitleWidthsVector(FloatVector obj) { int o = __offset(20); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer entryTitleWidthsAsByteBuffer() { return __vector_as_bytebuffer(20, 4); }
-  public ByteBuffer entryTitleWidthsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 20, 4); }
-  /**
-   * Per-entry icon presence (1 = has icon). Length = total_entry_count.
-   */
-  public byte entryHasIcon(int j) { int o = __offset(22); return o != 0 ? bb.get(__vector(o) + j * 1) : 0; }
-  public int entryHasIconLength() { int o = __offset(22); return o != 0 ? __vector_len(o) : 0; }
-  public ByteVector entryHasIconVector() { return entryHasIconVector(new ByteVector()); }
-  public ByteVector entryHasIconVector(ByteVector obj) { int o = __offset(22); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer entryHasIconAsByteBuffer() { return __vector_as_bytebuffer(22, 1); }
-  public ByteBuffer entryHasIconInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 22, 1); }
-  /**
-   * Per-entry estimated height (estimateEntryHeight), width-independent.
-   * Length = total_entry_count.
-   */
-  public float entryEstimatedHeights(int j) { int o = __offset(24); return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0; }
-  public int entryEstimatedHeightsLength() { int o = __offset(24); return o != 0 ? __vector_len(o) : 0; }
-  public FloatVector entryEstimatedHeightsVector() { return entryEstimatedHeightsVector(new FloatVector()); }
-  public FloatVector entryEstimatedHeightsVector(FloatVector obj) { int o = __offset(24); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer entryEstimatedHeightsAsByteBuffer() { return __vector_as_bytebuffer(24, 4); }
-  public ByteBuffer entryEstimatedHeightsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 24, 4); }
-  /**
-   * Per-entry raw subtitle line count (GuideStringLines.splitLines result,
-   * 0 = no subtitle). Length = total_entry_count.
-   */
-  public int entrySubtitleLineCounts(int j) { int o = __offset(26); return o != 0 ? bb.getInt(__vector(o) + j * 4) : 0; }
-  public int entrySubtitleLineCountsLength() { int o = __offset(26); return o != 0 ? __vector_len(o) : 0; }
-  public IntVector entrySubtitleLineCountsVector() { return entrySubtitleLineCountsVector(new IntVector()); }
-  public IntVector entrySubtitleLineCountsVector(IntVector obj) { int o = __offset(26); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer entrySubtitleLineCountsAsByteBuffer() { return __vector_as_bytebuffer(26, 4); }
-  public ByteBuffer entrySubtitleLineCountsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 26, 4); }
-  /**
-   * Per-raw-subtitle-line word count (GuideStringLines.splitLines then
-   * split by \\s+) — concatenated across all entries' raw lines.
-   */
-  public int subtitleLineWordCounts(int j) { int o = __offset(28); return o != 0 ? bb.getInt(__vector(o) + j * 4) : 0; }
-  public int subtitleLineWordCountsLength() { int o = __offset(28); return o != 0 ? __vector_len(o) : 0; }
-  public IntVector subtitleLineWordCountsVector() { return subtitleLineWordCountsVector(new IntVector()); }
-  public IntVector subtitleLineWordCountsVector(IntVector obj) { int o = __offset(28); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer subtitleLineWordCountsAsByteBuffer() { return __vector_as_bytebuffer(28, 4); }
-  public ByteBuffer subtitleLineWordCountsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 28, 4); }
-  /**
-   * Per-word pixel width (measureWidth(word, SUBTITLE_STYLE)) — concatenated
-   * across all words of all raw lines of all entries.
-   */
-  public float subtitleWordWidths(int j) { int o = __offset(30); return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0; }
-  public int subtitleWordWidthsLength() { int o = __offset(30); return o != 0 ? __vector_len(o) : 0; }
-  public FloatVector subtitleWordWidthsVector() { return subtitleWordWidthsVector(new FloatVector()); }
-  public FloatVector subtitleWordWidthsVector(FloatVector obj) { int o = __offset(30); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer subtitleWordWidthsAsByteBuffer() { return __vector_as_bytebuffer(30, 4); }
-  public ByteBuffer subtitleWordWidthsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 30, 4); }
-  /**
-   * Width of a space character in SUBTITLE_STYLE (for word-gap calculations).
-   */
-  public float subtitleSpaceWidth() { int o = __offset(32); return o != 0 ? bb.getFloat(o + bb_pos) : 4.0f; }
-  /**
-   * Line height of LINK_STYLE — GuideText.lineHeight(LINK_STYLE) (= 17 at
-   * scale 1). Mirrors Java computeEntryHeight's getLineHeight(LINK_STYLE) /
-   * rowContentHeight's GuideText.lineHeight(rowStyle). Default 10.0 keeps
-   * old serialized data (which lacked this field) rendering as before.
-   */
-  public float linkLineHeight() { int o = __offset(34); return o != 0 ? bb.getFloat(o + bb_pos) : 10.0f; }
-  /**
-   * Line height of SUBTITLE_STYLE — GuideText.lineHeight(SUBTITLE_STYLE)
-   * (= 17 at scale 1). Mirrors Java computeEntryHeight/rowContentHeight's
-   * GuideText.lineHeight(SUBTITLE_STYLE). Default 10.0 keeps old serialized
-   * data (which lacked this field) rendering as before.
-   */
-  public float subtitleLineHeight() { int o = __offset(36); return o != 0 ? bb.getFloat(o + bb_pos) : 10.0f; }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createMediaWikiSpecialGeneratedData(FlatBufferBuilder builder,
-      float maxContentHeight,
-      int columnCount,
-      boolean hasMore,
-      int groupCount,
-      int groupTitleWidthsOffset,
-      int groupEntryCountsOffset,
-      int groupEstimatedHeightsOffset,
-      int totalEntryCount,
-      int entryTitleWidthsOffset,
-      int entryHasIconOffset,
-      int entryEstimatedHeightsOffset,
-      int entrySubtitleLineCountsOffset,
-      int subtitleLineWordCountsOffset,
-      int subtitleWordWidthsOffset,
-      float subtitleSpaceWidth,
-      float linkLineHeight,
-      float subtitleLineHeight) {
-    builder.startTable(17);
-    MediaWikiSpecialGeneratedData.addSubtitleLineHeight(builder, subtitleLineHeight);
-    MediaWikiSpecialGeneratedData.addLinkLineHeight(builder, linkLineHeight);
-    MediaWikiSpecialGeneratedData.addSubtitleSpaceWidth(builder, subtitleSpaceWidth);
-    MediaWikiSpecialGeneratedData.addSubtitleWordWidths(builder, subtitleWordWidthsOffset);
-    MediaWikiSpecialGeneratedData.addSubtitleLineWordCounts(builder, subtitleLineWordCountsOffset);
-    MediaWikiSpecialGeneratedData.addEntrySubtitleLineCounts(builder, entrySubtitleLineCountsOffset);
-    MediaWikiSpecialGeneratedData.addEntryEstimatedHeights(builder, entryEstimatedHeightsOffset);
-    MediaWikiSpecialGeneratedData.addEntryHasIcon(builder, entryHasIconOffset);
-    MediaWikiSpecialGeneratedData.addEntryTitleWidths(builder, entryTitleWidthsOffset);
-    MediaWikiSpecialGeneratedData.addTotalEntryCount(builder, totalEntryCount);
-    MediaWikiSpecialGeneratedData.addGroupEstimatedHeights(builder, groupEstimatedHeightsOffset);
-    MediaWikiSpecialGeneratedData.addGroupEntryCounts(builder, groupEntryCountsOffset);
-    MediaWikiSpecialGeneratedData.addGroupTitleWidths(builder, groupTitleWidthsOffset);
-    MediaWikiSpecialGeneratedData.addGroupCount(builder, groupCount);
-    MediaWikiSpecialGeneratedData.addColumnCount(builder, columnCount);
-    MediaWikiSpecialGeneratedData.addMaxContentHeight(builder, maxContentHeight);
-    MediaWikiSpecialGeneratedData.addHasMore(builder, hasMore);
-    return MediaWikiSpecialGeneratedData.endMediaWikiSpecialGeneratedData(builder);
-  }
+    public static MediaWikiSpecialGeneratedData getRootAsMediaWikiSpecialGeneratedData(ByteBuffer _bb) {
+        return getRootAsMediaWikiSpecialGeneratedData(_bb, new MediaWikiSpecialGeneratedData());
+    }
 
-  public static void startMediaWikiSpecialGeneratedData(FlatBufferBuilder builder) { builder.startTable(17); }
-  public static void addMaxContentHeight(FlatBufferBuilder builder, float maxContentHeight) { builder.addFloat(0, maxContentHeight, 0.0f); }
-  public static void addColumnCount(FlatBufferBuilder builder, int columnCount) { builder.addInt(1, columnCount, 1); }
-  public static void addHasMore(FlatBufferBuilder builder, boolean hasMore) { builder.addBoolean(2, hasMore, false); }
-  public static void addGroupCount(FlatBufferBuilder builder, int groupCount) { builder.addInt(3, groupCount, 0); }
-  public static void addGroupTitleWidths(FlatBufferBuilder builder, int groupTitleWidthsOffset) { builder.addOffset(4, groupTitleWidthsOffset, 0); }
-  public static int createGroupTitleWidthsVector(FlatBufferBuilder builder, float[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]); return builder.endVector(); }
-  public static void startGroupTitleWidthsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addGroupEntryCounts(FlatBufferBuilder builder, int groupEntryCountsOffset) { builder.addOffset(5, groupEntryCountsOffset, 0); }
-  public static int createGroupEntryCountsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addInt(data[i]); return builder.endVector(); }
-  public static void startGroupEntryCountsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addGroupEstimatedHeights(FlatBufferBuilder builder, int groupEstimatedHeightsOffset) { builder.addOffset(6, groupEstimatedHeightsOffset, 0); }
-  public static int createGroupEstimatedHeightsVector(FlatBufferBuilder builder, float[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]); return builder.endVector(); }
-  public static void startGroupEstimatedHeightsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addTotalEntryCount(FlatBufferBuilder builder, int totalEntryCount) { builder.addInt(7, totalEntryCount, 0); }
-  public static void addEntryTitleWidths(FlatBufferBuilder builder, int entryTitleWidthsOffset) { builder.addOffset(8, entryTitleWidthsOffset, 0); }
-  public static int createEntryTitleWidthsVector(FlatBufferBuilder builder, float[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]); return builder.endVector(); }
-  public static void startEntryTitleWidthsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addEntryHasIcon(FlatBufferBuilder builder, int entryHasIconOffset) { builder.addOffset(9, entryHasIconOffset, 0); }
-  public static int createEntryHasIconVector(FlatBufferBuilder builder, byte[] data) { return builder.createByteVector(data); }
-  public static int createEntryHasIconVector(FlatBufferBuilder builder, ByteBuffer data) { return builder.createByteVector(data); }
-  public static void startEntryHasIconVector(FlatBufferBuilder builder, int numElems) { builder.startVector(1, numElems, 1); }
-  public static void addEntryEstimatedHeights(FlatBufferBuilder builder, int entryEstimatedHeightsOffset) { builder.addOffset(10, entryEstimatedHeightsOffset, 0); }
-  public static int createEntryEstimatedHeightsVector(FlatBufferBuilder builder, float[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]); return builder.endVector(); }
-  public static void startEntryEstimatedHeightsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addEntrySubtitleLineCounts(FlatBufferBuilder builder, int entrySubtitleLineCountsOffset) { builder.addOffset(11, entrySubtitleLineCountsOffset, 0); }
-  public static int createEntrySubtitleLineCountsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addInt(data[i]); return builder.endVector(); }
-  public static void startEntrySubtitleLineCountsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addSubtitleLineWordCounts(FlatBufferBuilder builder, int subtitleLineWordCountsOffset) { builder.addOffset(12, subtitleLineWordCountsOffset, 0); }
-  public static int createSubtitleLineWordCountsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addInt(data[i]); return builder.endVector(); }
-  public static void startSubtitleLineWordCountsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addSubtitleWordWidths(FlatBufferBuilder builder, int subtitleWordWidthsOffset) { builder.addOffset(13, subtitleWordWidthsOffset, 0); }
-  public static int createSubtitleWordWidthsVector(FlatBufferBuilder builder, float[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]); return builder.endVector(); }
-  public static void startSubtitleWordWidthsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addSubtitleSpaceWidth(FlatBufferBuilder builder, float subtitleSpaceWidth) { builder.addFloat(14, subtitleSpaceWidth, 4.0f); }
-  public static void addLinkLineHeight(FlatBufferBuilder builder, float linkLineHeight) { builder.addFloat(15, linkLineHeight, 10.0f); }
-  public static void addSubtitleLineHeight(FlatBufferBuilder builder, float subtitleLineHeight) { builder.addFloat(16, subtitleLineHeight, 10.0f); }
-  public static int endMediaWikiSpecialGeneratedData(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static MediaWikiSpecialGeneratedData getRootAsMediaWikiSpecialGeneratedData(ByteBuffer _bb,
+        MediaWikiSpecialGeneratedData obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public MediaWikiSpecialGeneratedData get(int j) { return get(new MediaWikiSpecialGeneratedData(), j); }
-    public MediaWikiSpecialGeneratedData get(MediaWikiSpecialGeneratedData obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public MediaWikiSpecialGeneratedData __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    /**
+     * DEPRECATED (T6b-2): Rust now computes maxColumnHeight internally.
+     * Kept for backward compatibility with old serialized data.
+     */
+    public float maxContentHeight() {
+        int o = __offset(4);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * resolveColumnCount result (depends only on definition.name()/kind).
+     */
+    public int columnCount() {
+        int o = __offset(6);
+        return o != 0 ? bb.getInt(o + bb_pos) : 1;
+    }
+
+    /**
+     * hasMore flag from the visible result: adds LOAD_MORE_HEIGHT after the
+     * column content when true.
+     */
+    public boolean hasMore() {
+        int o = __offset(8);
+        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+    }
+
+    /**
+     * Number of groups (for grouped/group-index kinds; flat builds one group
+     * per column, see group_flat_entry_count).
+     */
+    public int groupCount() {
+        int o = __offset(10);
+        return o != 0 ? bb.getInt(o + bb_pos) : 0;
+    }
+
+    /**
+     * Per-group title measureWidth: 0 means no title (no header row).
+     * Length = group_count.
+     */
+    public float groupTitleWidths(int j) {
+        int o = __offset(12);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int groupTitleWidthsLength() {
+        int o = __offset(12);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatVector groupTitleWidthsVector() {
+        return groupTitleWidthsVector(new FloatVector());
+    }
+
+    public FloatVector groupTitleWidthsVector(FloatVector obj) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer groupTitleWidthsAsByteBuffer() {
+        return __vector_as_bytebuffer(12, 4);
+    }
+
+    public ByteBuffer groupTitleWidthsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 12, 4);
+    }
+
+    /**
+     * Per-group entry count in the visible result's entry order.
+     * Length = group_count.
+     */
+    public int groupEntryCounts(int j) {
+        int o = __offset(14);
+        return o != 0 ? bb.getInt(__vector(o) + j * 4) : 0;
+    }
+
+    public int groupEntryCountsLength() {
+        int o = __offset(14);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public IntVector groupEntryCountsVector() {
+        return groupEntryCountsVector(new IntVector());
+    }
+
+    public IntVector groupEntryCountsVector(IntVector obj) {
+        int o = __offset(14);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer groupEntryCountsAsByteBuffer() {
+        return __vector_as_bytebuffer(14, 4);
+    }
+
+    public ByteBuffer groupEntryCountsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 14, 4);
+    }
+
+    /**
+     * Per-group estimated total height (estimateHeight), width-independent,
+     * used by Rust's shortest-column-first packing. Length = group_count.
+     */
+    public float groupEstimatedHeights(int j) {
+        int o = __offset(16);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int groupEstimatedHeightsLength() {
+        int o = __offset(16);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatVector groupEstimatedHeightsVector() {
+        return groupEstimatedHeightsVector(new FloatVector());
+    }
+
+    public FloatVector groupEstimatedHeightsVector(FloatVector obj) {
+        int o = __offset(16);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer groupEstimatedHeightsAsByteBuffer() {
+        return __vector_as_bytebuffer(16, 4);
+    }
+
+    public ByteBuffer groupEstimatedHeightsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 16, 4);
+    }
+
+    /**
+     * Total number of entries across all groups. Entries are indexed 0..N-1
+     * in the order they appear in the visible result (group-major).
+     */
+    public int totalEntryCount() {
+        int o = __offset(18);
+        return o != 0 ? bb.getInt(o + bb_pos) : 0;
+    }
+
+    /**
+     * Per-entry title pixel width: measureWidth(title, LINK_STYLE).
+     * Width-independent font fact. Length = total_entry_count.
+     */
+    public float entryTitleWidths(int j) {
+        int o = __offset(20);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int entryTitleWidthsLength() {
+        int o = __offset(20);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatVector entryTitleWidthsVector() {
+        return entryTitleWidthsVector(new FloatVector());
+    }
+
+    public FloatVector entryTitleWidthsVector(FloatVector obj) {
+        int o = __offset(20);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer entryTitleWidthsAsByteBuffer() {
+        return __vector_as_bytebuffer(20, 4);
+    }
+
+    public ByteBuffer entryTitleWidthsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 20, 4);
+    }
+
+    /**
+     * Per-entry icon presence (1 = has icon). Length = total_entry_count.
+     */
+    public byte entryHasIcon(int j) {
+        int o = __offset(22);
+        return o != 0 ? bb.get(__vector(o) + j) : 0;
+    }
+
+    public int entryHasIconLength() {
+        int o = __offset(22);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public ByteVector entryHasIconVector() {
+        return entryHasIconVector(new ByteVector());
+    }
+
+    public ByteVector entryHasIconVector(ByteVector obj) {
+        int o = __offset(22);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer entryHasIconAsByteBuffer() {
+        return __vector_as_bytebuffer(22, 1);
+    }
+
+    public ByteBuffer entryHasIconInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 22, 1);
+    }
+
+    /**
+     * Per-entry estimated height (estimateEntryHeight), width-independent.
+     * Length = total_entry_count.
+     */
+    public float entryEstimatedHeights(int j) {
+        int o = __offset(24);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int entryEstimatedHeightsLength() {
+        int o = __offset(24);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatVector entryEstimatedHeightsVector() {
+        return entryEstimatedHeightsVector(new FloatVector());
+    }
+
+    public FloatVector entryEstimatedHeightsVector(FloatVector obj) {
+        int o = __offset(24);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer entryEstimatedHeightsAsByteBuffer() {
+        return __vector_as_bytebuffer(24, 4);
+    }
+
+    public ByteBuffer entryEstimatedHeightsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 24, 4);
+    }
+
+    /**
+     * Per-entry raw subtitle line count (GuideStringLines.splitLines result,
+     * 0 = no subtitle). Length = total_entry_count.
+     */
+    public int entrySubtitleLineCounts(int j) {
+        int o = __offset(26);
+        return o != 0 ? bb.getInt(__vector(o) + j * 4) : 0;
+    }
+
+    public int entrySubtitleLineCountsLength() {
+        int o = __offset(26);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public IntVector entrySubtitleLineCountsVector() {
+        return entrySubtitleLineCountsVector(new IntVector());
+    }
+
+    public IntVector entrySubtitleLineCountsVector(IntVector obj) {
+        int o = __offset(26);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer entrySubtitleLineCountsAsByteBuffer() {
+        return __vector_as_bytebuffer(26, 4);
+    }
+
+    public ByteBuffer entrySubtitleLineCountsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 26, 4);
+    }
+
+    /**
+     * Per-raw-subtitle-line word count (GuideStringLines.splitLines then
+     * split by \\s+) — concatenated across all entries' raw lines.
+     */
+    public int subtitleLineWordCounts(int j) {
+        int o = __offset(28);
+        return o != 0 ? bb.getInt(__vector(o) + j * 4) : 0;
+    }
+
+    public int subtitleLineWordCountsLength() {
+        int o = __offset(28);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public IntVector subtitleLineWordCountsVector() {
+        return subtitleLineWordCountsVector(new IntVector());
+    }
+
+    public IntVector subtitleLineWordCountsVector(IntVector obj) {
+        int o = __offset(28);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer subtitleLineWordCountsAsByteBuffer() {
+        return __vector_as_bytebuffer(28, 4);
+    }
+
+    public ByteBuffer subtitleLineWordCountsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 28, 4);
+    }
+
+    /**
+     * Per-word pixel width (measureWidth(word, SUBTITLE_STYLE)) — concatenated
+     * across all words of all raw lines of all entries.
+     */
+    public float subtitleWordWidths(int j) {
+        int o = __offset(30);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int subtitleWordWidthsLength() {
+        int o = __offset(30);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatVector subtitleWordWidthsVector() {
+        return subtitleWordWidthsVector(new FloatVector());
+    }
+
+    public FloatVector subtitleWordWidthsVector(FloatVector obj) {
+        int o = __offset(30);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer subtitleWordWidthsAsByteBuffer() {
+        return __vector_as_bytebuffer(30, 4);
+    }
+
+    public ByteBuffer subtitleWordWidthsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 30, 4);
+    }
+
+    /**
+     * Width of a space character in SUBTITLE_STYLE (for word-gap calculations).
+     */
+    public float subtitleSpaceWidth() {
+        int o = __offset(32);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 4.0f;
+    }
+
+    /**
+     * Line height of LINK_STYLE — GuideText.lineHeight(LINK_STYLE) (= 17 at
+     * scale 1). Mirrors Java computeEntryHeight's getLineHeight(LINK_STYLE) /
+     * rowContentHeight's GuideText.lineHeight(rowStyle). Default 10.0 keeps
+     * old serialized data (which lacked this field) rendering as before.
+     */
+    public float linkLineHeight() {
+        int o = __offset(34);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 10.0f;
+    }
+
+    /**
+     * Line height of SUBTITLE_STYLE — GuideText.lineHeight(SUBTITLE_STYLE)
+     * (= 17 at scale 1). Mirrors Java computeEntryHeight/rowContentHeight's
+     * GuideText.lineHeight(SUBTITLE_STYLE). Default 10.0 keeps old serialized
+     * data (which lacked this field) rendering as before.
+     */
+    public float subtitleLineHeight() {
+        int o = __offset(36);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 10.0f;
+    }
+
+    public static int createMediaWikiSpecialGeneratedData(FlatBufferBuilder builder, float maxContentHeight,
+        int columnCount, boolean hasMore, int groupCount, int groupTitleWidthsOffset, int groupEntryCountsOffset,
+        int groupEstimatedHeightsOffset, int totalEntryCount, int entryTitleWidthsOffset, int entryHasIconOffset,
+        int entryEstimatedHeightsOffset, int entrySubtitleLineCountsOffset, int subtitleLineWordCountsOffset,
+        int subtitleWordWidthsOffset, float subtitleSpaceWidth, float linkLineHeight, float subtitleLineHeight) {
+        builder.startTable(17);
+        MediaWikiSpecialGeneratedData.addSubtitleLineHeight(builder, subtitleLineHeight);
+        MediaWikiSpecialGeneratedData.addLinkLineHeight(builder, linkLineHeight);
+        MediaWikiSpecialGeneratedData.addSubtitleSpaceWidth(builder, subtitleSpaceWidth);
+        MediaWikiSpecialGeneratedData.addSubtitleWordWidths(builder, subtitleWordWidthsOffset);
+        MediaWikiSpecialGeneratedData.addSubtitleLineWordCounts(builder, subtitleLineWordCountsOffset);
+        MediaWikiSpecialGeneratedData.addEntrySubtitleLineCounts(builder, entrySubtitleLineCountsOffset);
+        MediaWikiSpecialGeneratedData.addEntryEstimatedHeights(builder, entryEstimatedHeightsOffset);
+        MediaWikiSpecialGeneratedData.addEntryHasIcon(builder, entryHasIconOffset);
+        MediaWikiSpecialGeneratedData.addEntryTitleWidths(builder, entryTitleWidthsOffset);
+        MediaWikiSpecialGeneratedData.addTotalEntryCount(builder, totalEntryCount);
+        MediaWikiSpecialGeneratedData.addGroupEstimatedHeights(builder, groupEstimatedHeightsOffset);
+        MediaWikiSpecialGeneratedData.addGroupEntryCounts(builder, groupEntryCountsOffset);
+        MediaWikiSpecialGeneratedData.addGroupTitleWidths(builder, groupTitleWidthsOffset);
+        MediaWikiSpecialGeneratedData.addGroupCount(builder, groupCount);
+        MediaWikiSpecialGeneratedData.addColumnCount(builder, columnCount);
+        MediaWikiSpecialGeneratedData.addMaxContentHeight(builder, maxContentHeight);
+        MediaWikiSpecialGeneratedData.addHasMore(builder, hasMore);
+        return MediaWikiSpecialGeneratedData.endMediaWikiSpecialGeneratedData(builder);
+    }
+
+    public static void startMediaWikiSpecialGeneratedData(FlatBufferBuilder builder) {
+        builder.startTable(17);
+    }
+
+    public static void addMaxContentHeight(FlatBufferBuilder builder, float maxContentHeight) {
+        builder.addFloat(0, maxContentHeight, 0.0f);
+    }
+
+    public static void addColumnCount(FlatBufferBuilder builder, int columnCount) {
+        builder.addInt(1, columnCount, 1);
+    }
+
+    public static void addHasMore(FlatBufferBuilder builder, boolean hasMore) {
+        builder.addBoolean(2, hasMore, false);
+    }
+
+    public static void addGroupCount(FlatBufferBuilder builder, int groupCount) {
+        builder.addInt(3, groupCount, 0);
+    }
+
+    public static void addGroupTitleWidths(FlatBufferBuilder builder, int groupTitleWidthsOffset) {
+        builder.addOffset(4, groupTitleWidthsOffset, 0);
+    }
+
+    public static int createGroupTitleWidthsVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startGroupTitleWidthsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addGroupEntryCounts(FlatBufferBuilder builder, int groupEntryCountsOffset) {
+        builder.addOffset(5, groupEntryCountsOffset, 0);
+    }
+
+    public static int createGroupEntryCountsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addInt(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startGroupEntryCountsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addGroupEstimatedHeights(FlatBufferBuilder builder, int groupEstimatedHeightsOffset) {
+        builder.addOffset(6, groupEstimatedHeightsOffset, 0);
+    }
+
+    public static int createGroupEstimatedHeightsVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startGroupEstimatedHeightsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addTotalEntryCount(FlatBufferBuilder builder, int totalEntryCount) {
+        builder.addInt(7, totalEntryCount, 0);
+    }
+
+    public static void addEntryTitleWidths(FlatBufferBuilder builder, int entryTitleWidthsOffset) {
+        builder.addOffset(8, entryTitleWidthsOffset, 0);
+    }
+
+    public static int createEntryTitleWidthsVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startEntryTitleWidthsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addEntryHasIcon(FlatBufferBuilder builder, int entryHasIconOffset) {
+        builder.addOffset(9, entryHasIconOffset, 0);
+    }
+
+    public static int createEntryHasIconVector(FlatBufferBuilder builder, byte[] data) {
+        return builder.createByteVector(data);
+    }
+
+    public static int createEntryHasIconVector(FlatBufferBuilder builder, ByteBuffer data) {
+        return builder.createByteVector(data);
+    }
+
+    public static void startEntryHasIconVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(1, numElems, 1);
+    }
+
+    public static void addEntryEstimatedHeights(FlatBufferBuilder builder, int entryEstimatedHeightsOffset) {
+        builder.addOffset(10, entryEstimatedHeightsOffset, 0);
+    }
+
+    public static int createEntryEstimatedHeightsVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startEntryEstimatedHeightsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addEntrySubtitleLineCounts(FlatBufferBuilder builder, int entrySubtitleLineCountsOffset) {
+        builder.addOffset(11, entrySubtitleLineCountsOffset, 0);
+    }
+
+    public static int createEntrySubtitleLineCountsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addInt(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startEntrySubtitleLineCountsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addSubtitleLineWordCounts(FlatBufferBuilder builder, int subtitleLineWordCountsOffset) {
+        builder.addOffset(12, subtitleLineWordCountsOffset, 0);
+    }
+
+    public static int createSubtitleLineWordCountsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addInt(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startSubtitleLineWordCountsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addSubtitleWordWidths(FlatBufferBuilder builder, int subtitleWordWidthsOffset) {
+        builder.addOffset(13, subtitleWordWidthsOffset, 0);
+    }
+
+    public static int createSubtitleWordWidthsVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startSubtitleWordWidthsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addSubtitleSpaceWidth(FlatBufferBuilder builder, float subtitleSpaceWidth) {
+        builder.addFloat(14, subtitleSpaceWidth, 4.0f);
+    }
+
+    public static void addLinkLineHeight(FlatBufferBuilder builder, float linkLineHeight) {
+        builder.addFloat(15, linkLineHeight, 10.0f);
+    }
+
+    public static void addSubtitleLineHeight(FlatBufferBuilder builder, float subtitleLineHeight) {
+        builder.addFloat(16, subtitleLineHeight, 10.0f);
+    }
+
+    public static int endMediaWikiSpecialGeneratedData(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public MediaWikiSpecialGeneratedData get(int j) {
+            return get(new MediaWikiSpecialGeneratedData(), j);
+        }
+
+        public MediaWikiSpecialGeneratedData get(MediaWikiSpecialGeneratedData obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

@@ -47,7 +47,6 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -121,7 +120,6 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
-import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 import it.unimi.dsi.fastutil.longs.LongSet;
 import lombok.Getter;
@@ -171,7 +169,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         .fontScale(0.8f)
         .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
-    public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_LABEL_TEXT_STYLE = DefaultStyles.BODY_TEXT.toBuilder()
+    public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_LABEL_TEXT_STYLE = DefaultStyles.BODY_TEXT
+        .toBuilder()
         .fontScale(0.8f)
         .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
@@ -1315,15 +1314,11 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (sceneLevel == null) return;
 
         clearBuildError();
-        LytErrorSink buildErrorSink = new LytErrorSink() {
-
-            @Override
-            public void appendError(PageCompiler compiler, String text, UnistNode node) {
-                if (sceneBuildError == null) {
-                    setBuildError(text);
-                }
-                GuideDebugLog.warnAlways("[GuideNH] [Scene] Structure build: {}", text);
+        LytErrorSink buildErrorSink = (compiler, text, node) -> {
+            if (sceneBuildError == null) {
+                setBuildError(text);
             }
+            GuideDebugLog.warnAlways("[GuideNH] [Scene] Structure build: {}", text);
         };
 
         // Phase 1: SNBT static placements (ImportStructure)
@@ -1664,8 +1659,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
      * ({@code GameSceneExportRunner}) treatment of "empty" scenes.
      */
     public boolean hasMountableSceneContent() {
-        return !level.isEmpty()
-            || !soundCues.isEmpty()
+        return !level.isEmpty() || !soundCues.isEmpty()
             || !staticSceneParticles.isEmpty()
             || !staticWeatherEffects.isEmpty()
             || !annotations.isEmpty();
@@ -1715,7 +1709,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
      * blocks, etc.). The scene renders it as visible red text instead of a silent background.
      */
     public void setBuildError(@Nullable String message) {
-        this.sceneBuildError = message != null && !message.trim().isEmpty() ? message.trim() : null;
+        this.sceneBuildError = message != null && !message.trim()
+            .isEmpty() ? message.trim() : null;
     }
 
     @Nullable
@@ -2160,30 +2155,22 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     /** Pre-clamping left dock size including BLOCK_STATS_DOCK_GAP, or 0. */
     public int getLeftDockForExport() {
-        return blockStatsDock == BlockStatsDock.LEFT
-            ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP
-            : 0;
+        return blockStatsDock == BlockStatsDock.LEFT ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP : 0;
     }
 
     /** Pre-clamping right dock size including BLOCK_STATS_DOCK_GAP, or 0. */
     public int getRightDockForExport() {
-        return blockStatsDock == BlockStatsDock.RIGHT
-            ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP
-            : 0;
+        return blockStatsDock == BlockStatsDock.RIGHT ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP : 0;
     }
 
     /** Pre-clamping top dock size including BLOCK_STATS_DOCK_GAP, or 0. */
     public int getTopDockForExport() {
-        return blockStatsDock == BlockStatsDock.TOP
-            ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP
-            : 0;
+        return blockStatsDock == BlockStatsDock.TOP ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP : 0;
     }
 
     /** Pre-clamping bottom dock size including BLOCK_STATS_DOCK_GAP, or 0. */
     public int getBottomDockForExport() {
-        return blockStatsDock == BlockStatsDock.BOTTOM
-            ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP
-            : 0;
+        return blockStatsDock == BlockStatsDock.BOTTOM ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP : 0;
     }
 
     private int blockStatsDockLengthForLayout(boolean horizontal) {
@@ -2562,7 +2549,12 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     int docAbsY = Math.round(absY / zoom);
                     int docW = Math.max(1, Math.round(w / zoom));
                     int docH = Math.max(1, Math.round(h / zoom));
-                    viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, docAbsX, docAbsY, docW, docH);
+                    viewport = cachedOverlayViewport = updateCachedRect(
+                        cachedOverlayViewport,
+                        docAbsX,
+                        docAbsY,
+                        docW,
+                        docH);
                 } else {
                     viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
                 }
@@ -2709,8 +2701,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         LytRect viewport = layout.viewport();
         c.pushScissor(viewport.x(), viewport.y(), viewport.width(), viewport.height());
         try {
-            forEachBlockStatsRow(layout, (entry, itemX, rowY, textX, rowHeight, textOffsetY, itemOffsetY) ->
-                forEachBlockStatsEntryText(
+            forEachBlockStatsRow(
+                layout,
+                (entry, itemX, rowY, textX, rowHeight, textOffsetY, itemOffsetY) -> forEachBlockStatsEntryText(
                     entry,
                     itemX,
                     rowY,
@@ -3153,16 +3146,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
      * (context-free, GuideText metrics) and consumed by both the HostDraw
      * render and the collect-phase GuideText emission.
      */
-    private record BlockStatsOverlayLayout(
-        List<SceneBlockStatsEntry> entries,
-        LytRect box,
-        LytRect viewport,
-        int rowHeight,
-        int rowStride,
-        int lineHeight,
-        boolean wrapped,
-        int entryWidth,
-        int alongSlots,
+    private record BlockStatsOverlayLayout(List<SceneBlockStatsEntry> entries, LytRect box, LytRect viewport,
+        int rowHeight, int rowStride, int lineHeight, boolean wrapped, int entryWidth, int alongSlots,
         boolean verticalDock) {}
 
     private void drawBlockStatsOverlay(RenderContext context, LytRect sceneRect, LytRect outerRect,
@@ -3175,9 +3160,19 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         context.drawBorder(layout.box(), BLOCK_STATS_BORDER_COLOR, 1);
         context.pushLocalScissor(layout.viewport());
         try {
-            forEachBlockStatsRow(layout, (entry, itemX, rowY, textX, rowHeight, textOffsetY, itemOffsetY) ->
-                drawBlockStatsEntry(context, entry, layout.viewport(), itemX, rowY, textX, rowHeight, textOffsetY,
-                    itemOffsetY, suppressText));
+            forEachBlockStatsRow(
+                layout,
+                (entry, itemX, rowY, textX, rowHeight, textOffsetY, itemOffsetY) -> drawBlockStatsEntry(
+                    context,
+                    entry,
+                    layout.viewport(),
+                    itemX,
+                    rowY,
+                    textX,
+                    rowHeight,
+                    textOffsetY,
+                    itemOffsetY,
+                    suppressText));
         } finally {
             context.popScissor();
         }
@@ -3212,8 +3207,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     @Nullable
-    private BlockStatsOverlayLayout computeInsideBlockStatsLayout(List<SceneBlockStatsEntry> entries,
-        LytRect sceneRect, LytRect outerRect) {
+    private BlockStatsOverlayLayout computeInsideBlockStatsLayout(List<SceneBlockStatsEntry> entries, LytRect sceneRect,
+        LytRect outerRect) {
         int lineHeight = GuideText.lineHeight(BLOCK_STATS_TEXT_STYLE);
         int rowHeight = Math.max(BLOCK_STATS_ITEM_SIZE, lineHeight);
         int rowStride = rowHeight + BLOCK_STATS_ROW_GAP;
@@ -3276,13 +3271,22 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             innerWidth,
             innerHeight);
         layoutBlockStatsScrollbars(box, viewport, horizontalNeeded, verticalNeeded);
-        return new BlockStatsOverlayLayout(entries, box, viewport, rowHeight, rowStride, lineHeight,
-            false, 0, 0, false);
+        return new BlockStatsOverlayLayout(
+            entries,
+            box,
+            viewport,
+            rowHeight,
+            rowStride,
+            lineHeight,
+            false,
+            0,
+            0,
+            false);
     }
 
     @Nullable
-    private BlockStatsOverlayLayout computeDockedBlockStatsLayout(List<SceneBlockStatsEntry> entries,
-        LytRect sceneRect, LytRect outerRect) {
+    private BlockStatsOverlayLayout computeDockedBlockStatsLayout(List<SceneBlockStatsEntry> entries, LytRect sceneRect,
+        LytRect outerRect) {
         int lineHeight = GuideText.lineHeight(BLOCK_STATS_TEXT_STYLE);
         int rowHeight = Math.max(BLOCK_STATS_ITEM_SIZE, lineHeight);
         int rowStride = rowHeight + BLOCK_STATS_ROW_GAP;
@@ -3367,8 +3371,17 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             innerWidth,
             innerHeight);
         layoutBlockStatsScrollbars(box, viewport, horizontalNeeded, verticalNeeded);
-        return new BlockStatsOverlayLayout(entries, box, viewport, rowHeight, rowStride, lineHeight,
-            true, entryWidth, alongSlots, verticalDock);
+        return new BlockStatsOverlayLayout(
+            entries,
+            box,
+            viewport,
+            rowHeight,
+            rowStride,
+            lineHeight,
+            true,
+            entryWidth,
+            alongSlots,
+            verticalDock);
     }
 
     private int resolveInsideBlockStatsMaxWidth(LytRect sceneRect, int entryCount, int rowContentWidth) {
@@ -3408,14 +3421,21 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private void forEachBlockStatsRow(BlockStatsOverlayLayout layout, BlockStatsRowConsumer consumer) {
         if (!layout.wrapped()) {
             int firstRow = Math.max(0, blockStatsScrollY / Math.max(1, layout.rowStride()));
-            int rowY = layout.viewport().y() - blockStatsScrollY + firstRow * layout.rowStride();
-            int itemX = layout.viewport().x() - blockStatsScrollX;
+            int rowY = layout.viewport()
+                .y() - blockStatsScrollY
+                + firstRow * layout.rowStride();
+            int itemX = layout.viewport()
+                .x() - blockStatsScrollX;
             int textX = itemX + blockStatsItemWidth() + BLOCK_STATS_GAP;
             int textOffsetY = Math.max(0, (layout.rowHeight() - layout.lineHeight()) / 2);
             int itemOffsetY = Math.max(0, (layout.rowHeight() - BLOCK_STATS_ITEM_SIZE) / 2);
-            for (int i = firstRow; i < layout.entries().size() && rowY < layout.viewport().bottom(); i++) {
+            for (int i = firstRow; i < layout.entries()
+                .size() && rowY
+                    < layout.viewport()
+                        .bottom(); i++) {
                 consumer.accept(
-                    layout.entries().get(i),
+                    layout.entries()
+                        .get(i),
                     itemX,
                     rowY,
                     textX,
@@ -3428,20 +3448,30 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         int textOffsetY = Math.max(0, (layout.rowHeight() - layout.lineHeight()) / 2);
         int itemOffsetY = Math.max(0, (layout.rowHeight() - BLOCK_STATS_ITEM_SIZE) / 2);
-        int baseX = layout.viewport().x() - blockStatsScrollX;
-        int baseY = layout.viewport().y() - blockStatsScrollY;
-        for (int i = 0; i < layout.entries().size(); i++) {
+        int baseX = layout.viewport()
+            .x() - blockStatsScrollX;
+        int baseY = layout.viewport()
+            .y() - blockStatsScrollY;
+        for (int i = 0; i < layout.entries()
+            .size(); i++) {
             int along = i % layout.alongSlots();
             int cross = i / layout.alongSlots();
-            int itemX = layout.verticalDock() ? baseX + cross * layout.entryWidth() : baseX + along * layout.entryWidth();
+            int itemX = layout.verticalDock() ? baseX + cross * layout.entryWidth()
+                : baseX + along * layout.entryWidth();
             int rowY = layout.verticalDock() ? baseY + along * layout.rowStride() : baseY + cross * layout.rowStride();
-            if (rowY + layout.rowHeight() < layout.viewport().y() || rowY >= layout.viewport().bottom()
-                || itemX + layout.entryWidth() < layout.viewport().x()
-                || itemX >= layout.viewport().right()) {
+            if (rowY + layout.rowHeight() < layout.viewport()
+                .y() || rowY
+                    >= layout.viewport()
+                        .bottom()
+                || itemX + layout.entryWidth() < layout.viewport()
+                    .x()
+                || itemX >= layout.viewport()
+                    .right()) {
                 continue;
             }
             consumer.accept(
-                layout.entries().get(i),
+                layout.entries()
+                    .get(i),
                 itemX,
                 rowY,
                 itemX + blockStatsItemWidth() + BLOCK_STATS_GAP,
@@ -3465,8 +3495,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
      * render path (context.drawText, when not suppressed) — identical positions
      * by construction.
      */
-    private void forEachBlockStatsEntryText(SceneBlockStatsEntry entry, int itemX, int rowY, int textX,
-        int rowHeight, int textOffsetY, int itemOffsetY, BlockStatsTextEmitter emitter) {
+    private void forEachBlockStatsEntryText(SceneBlockStatsEntry entry, int itemX, int rowY, int textX, int rowHeight,
+        int textOffsetY, int itemOffsetY, BlockStatsTextEmitter emitter) {
         if (blockStatsShowNames) {
             String text = blockStatsEntryText(entry);
             emitter.text(text, textX, rowY + textOffsetY, BLOCK_STATS_TEXT_STYLE);
@@ -3502,7 +3532,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         // emitBlockStatsText), so the legacy drawText here only runs on the
         // direct render path (scene editor / legacy subtree fallback), where
         // computePrimitives never claimed the text.
-        forEachBlockStatsEntryText(entry, itemX, rowY, textX, rowHeight, textOffsetY, itemOffsetY,
+        forEachBlockStatsEntryText(
+            entry,
+            itemX,
+            rowY,
+            textX,
+            rowHeight,
+            textOffsetY,
+            itemOffsetY,
             (text, x, y, style) -> {
                 if (!suppressText) {
                     context.drawText(text, x, y, style);

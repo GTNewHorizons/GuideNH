@@ -7,6 +7,7 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.shapes.FlowchartShapes;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
@@ -23,7 +24,6 @@ import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartSubgraph;
 import com.hfstudio.guidenh.guide.layout.FontMetrics;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
@@ -318,8 +318,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
      *                       placeholder width)
      */
     public void precomputeLayout(LayoutContext ctx, int availableWidth) {
-        int safeWidth = preferredWidth > 0
-            ? Math.clamp(preferredWidth, 1, availableWidth)
+        int safeWidth = preferredWidth > 0 ? Math.clamp(preferredWidth, 1, availableWidth)
             : Math.max(1, availableWidth);
         LytRect savedBounds = bounds;
         bounds = new LytRect(0, 0, safeWidth, 0);
@@ -345,14 +344,16 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 this.precomputedLayoutWidth = preferredWidth;
                 GuideDebugLog.debugAlways(
                     "[GuideNH-Mermaid] precomputeLayout OK layoutHeight={} preferredHeight={} diagramWidth={}",
-                    result.getHeight(), preferredHeight, diagramWidth);
+                    result.getHeight(),
+                    preferredHeight,
+                    diagramWidth);
                 GuideDebugLog.debugAlways(
                     "[GuideNH-Mermaid] precomputeLayout explicitWidth={} safeWidth={}",
-                    preferredWidth, safeWidth);
-            } else {
-                GuideDebugLog.debugAlways(
-                    "[GuideNH-Mermaid] precomputeLayout FAILED result=null safeWidth={}",
+                    preferredWidth,
                     safeWidth);
+            } else {
+                GuideDebugLog
+                    .debugAlways("[GuideNH-Mermaid] precomputeLayout FAILED result=null safeWidth={}", safeWidth);
             }
         } finally {
             bounds = savedBounds;
@@ -361,13 +362,15 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
     @Override
     protected void afterExternalLayout() {
-        int safeWidth = preferredWidth > 0
-            ? Math.clamp(preferredWidth, 1, Math.max(1, bounds.width()))
+        int safeWidth = preferredWidth > 0 ? Math.clamp(preferredWidth, 1, Math.max(1, bounds.width()))
             : Math.max(1, bounds.width());
 
         GuideDebugLog.debugAlways(
             "[GuideNH-Mermaid] afterExternalLayout entered layout={} safeWidth={} precomputedLayoutWidth={} bounds.height={}",
-            layout != null, safeWidth, precomputedLayoutWidth, bounds.height());
+            layout != null,
+            safeWidth,
+            precomputedLayoutWidth,
+            bounds.height());
 
         // Phase 1: ensure layout result matches the actual canvas width.
         // If actual bounds.width() differs from the width used during
@@ -376,41 +379,45 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         int actualWidth = Math.max(1, bounds.width() - CANVAS_PADDING * 2);
         if (layout == null || precomputedLayoutWidth <= 0 || precomputedLayoutWidth != bounds.width()) {
             LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
+
                 @Override
-                public float getAdvance(int codePoint, com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
+                public float getAdvance(int codePoint, ResolvedTextStyle s) {
                     return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
                 }
+
                 @Override
-                public int getLineHeight(com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
+                public int getLineHeight(ResolvedTextStyle s) {
                     return GuideText.lineHeight(s);
                 }
             });
             FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(document.getLayoutMode());
             var minSizes = computeNodeMinSizes(fallbackCtx);
             layout = strategy.layout(document, minSizes);
-            precomputedLayoutWidth = (int) bounds.width();
+            precomputedLayoutWidth = bounds.width();
             GuideDebugLog.debugAlways(
                 "[GuideNH-Mermaid] afterExternalLayout recomputed ELK at boundsWidth={} layout={}",
-                bounds.width(), layout != null);
+                bounds.width(),
+                layout != null);
         }
 
         // Phase 2: if layout is valid, correct bounds height if needed (兜底).
         if (layout != null) {
             int desiredHeight = layout.getHeight() + CANVAS_PADDING * 2;
-            int expectedHeight = preferredHeight > 0
-                ? Math.max(48, preferredHeight)
+            int expectedHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
                 : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
             if (bounds.height() != expectedHeight) {
                 GuideDebugLog.debugAlways(
                     "[GuideNH-Mermaid] afterExternalLayout correcting bounds height {} -> {}",
-                    bounds.height(), expectedHeight);
+                    bounds.height(),
+                    expectedHeight);
                 bounds = new LytRect(bounds.x(), bounds.y(), bounds.width(), expectedHeight);
             }
         }
 
         GuideDebugLog.debugAlways(
             "[GuideNH-Mermaid] afterExternalLayout exit layout={} bounds.height={}",
-            layout != null, bounds.height());
+            layout != null,
+            bounds.height());
     }
 
     @Override
@@ -508,9 +515,17 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         int border = SUBGRAPH_BORDER[depth % SUBGRAPH_BORDER.length].resolve(LightDarkMode.current());
         c.emit(new GuideRenderPrimitive.FillRect(sgRect.x(), sgRect.y(), sgRect.width(), sgRect.height(), bg));
         int borderThickness = Math.max(1, Math.round(1.5f * activeZoom));
-        c.emit(new GuideRenderPrimitive.DrawBorder(
-            sgRect.x(), sgRect.y(), sgRect.width(), sgRect.height(),
-            borderThickness, borderThickness, borderThickness, borderThickness, border));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                sgRect.x(),
+                sgRect.y(),
+                sgRect.width(),
+                sgRect.height(),
+                borderThickness,
+                borderThickness,
+                borderThickness,
+                borderThickness,
+                border));
 
         String label = subgraph.getLabel();
         if (label != null && !label.isEmpty()) {
@@ -703,14 +718,22 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         float cx = tipX - dirX * size * 0.5f;
         float cy = tipY - dirY * size * 0.5f;
         float thickness = Math.max(1f, 1.5f * activeZoom);
-        c.emit(new GuideRenderPrimitive.DrawLine(
-            cx + perpX * size * 0.7f, cy + dirX * size * 0.7f,
-            cx - perpX * size * 0.7f, cy - dirX * size * 0.7f,
-            thickness, color));
-        c.emit(new GuideRenderPrimitive.DrawLine(
-            cx + perpX * size * 0.7f, cy - dirX * size * 0.7f,
-            cx - perpX * size * 0.7f, cy + dirX * size * 0.7f,
-            thickness, color));
+        c.emit(
+            new GuideRenderPrimitive.DrawLine(
+                cx + perpX * size * 0.7f,
+                cy + dirX * size * 0.7f,
+                cx - perpX * size * 0.7f,
+                cy - dirX * size * 0.7f,
+                thickness,
+                color));
+        c.emit(
+            new GuideRenderPrimitive.DrawLine(
+                cx + perpX * size * 0.7f,
+                cy - dirX * size * 0.7f,
+                cx - perpX * size * 0.7f,
+                cy + dirX * size * 0.7f,
+                thickness,
+                color));
     }
 
     /**
@@ -732,23 +755,41 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         float totalLen = 0f;
         float[] segLens = new float[points.size() - 1];
         for (int i = 1; i < points.size(); i++) {
-            float dx = points.get(i).getX() - points.get(i - 1).getX();
-            float dy = points.get(i).getY() - points.get(i - 1).getY();
+            float dx = points.get(i)
+                .getX()
+                - points.get(i - 1)
+                    .getX();
+            float dy = points.get(i)
+                .getY()
+                - points.get(i - 1)
+                    .getY();
             segLens[i - 1] = (float) Math.sqrt(dx * dx + dy * dy);
             totalLen += segLens[i - 1];
         }
         if (totalLen < 1f) return;
         float halfLen = totalLen * 0.5f;
         float accumulated = 0f;
-        float midDocX = points.getFirst().getX();
-        float midDocY = points.getFirst().getY();
+        float midDocX = points.getFirst()
+            .getX();
+        float midDocY = points.getFirst()
+            .getY();
         for (int i = 0; i < segLens.length; i++) {
             if (accumulated + segLens[i] >= halfLen) {
                 float frac = (halfLen - accumulated) / Math.max(segLens[i], 0.0001f);
-                midDocX = points.get(i).getX()
-                    + (points.get(i + 1).getX() - points.get(i).getX()) * frac;
-                midDocY = points.get(i).getY()
-                    + (points.get(i + 1).getY() - points.get(i).getY()) * frac;
+                midDocX = points.get(i)
+                    .getX()
+                    + (points.get(i + 1)
+                        .getX()
+                        - points.get(i)
+                            .getX())
+                        * frac;
+                midDocY = points.get(i)
+                    .getY()
+                    + (points.get(i + 1)
+                        .getY()
+                        - points.get(i)
+                            .getY())
+                        * frac;
                 break;
             }
             accumulated += segLens[i];
@@ -790,11 +831,9 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                     farBorder = fromPos.getY();
                 }
             }
-            int nearScreen = horizontal
-                ? baseX + Math.round(nearBorder * activeZoom)
+            int nearScreen = horizontal ? baseX + Math.round(nearBorder * activeZoom)
                 : baseY + Math.round(nearBorder * activeZoom);
-            int farScreen = horizontal
-                ? baseX + Math.round(farBorder * activeZoom)
+            int farScreen = horizontal ? baseX + Math.round(farBorder * activeZoom)
                 : baseY + Math.round(farBorder * activeZoom);
             constrained = farScreen > nearScreen;
             if (constrained) {
@@ -830,8 +869,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         // instead of being truncated or overflowing onto the nodes.
         List<String> lines = List.of(label);
         if (constrained) {
-            int pathBudgetPx = Math.max(0, (int) Math.floor(totalLen * activeZoom))
-                - 2 * EDGE_LABEL_GAP - 2 * pad;
+            int pathBudgetPx = Math.max(0, (int) Math.floor(totalLen * activeZoom)) - 2 * EDGE_LABEL_GAP - 2 * pad;
             int gapBudgetPx = span - 2 * EDGE_LABEL_GAP - 2 * pad;
             if (pathBudgetPx >= 1) {
                 List<String> wrapped = GuideText.wrap(label, pathBudgetPx, labelStyle);
@@ -854,8 +892,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                         String line = lines.get(i);
                         int lineW = GuideText.measureWidth(line, labelStyle);
                         if (lineW > hardBudget) {
-                            String clipped = GuideText.clipToWidth(line, hardBudget, labelStyle,
-                                GuideText.ClipSuffix.NONE);
+                            String clipped = GuideText
+                                .clipToWidth(line, hardBudget, labelStyle, GuideText.ClipSuffix.NONE);
                             if (!clipped.isEmpty()) {
                                 lines.set(i, clipped);
                             }
@@ -966,8 +1004,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
             int contentW = rect.width() - 2 * pdX;
             int contentH = rect.height() - 2 * pdY;
-            LytRect contentArea = FlowchartShapes.contentBounds(rect, node.getShape(), contentW, contentH, pdX, pdY,
-                activeZoom);
+            LytRect contentArea = FlowchartShapes
+                .contentBounds(rect, node.getShape(), contentW, contentH, pdX, pdY, activeZoom);
             int textY = contentArea.y();
 
             String icon = node.getIcon();
@@ -980,16 +1018,27 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                             + Math.max(2, Math.round(BADGE_PADDING_X * activeZoom)) * 2);
                     int badgeHeight = Math.max(
                         1,
-                        GuideText.lineHeight(badgeStyle)
-                            + Math.max(1, Math.round(BADGE_PADDING_Y * activeZoom)) * 2);
+                        GuideText.lineHeight(badgeStyle) + Math.max(1, Math.round(BADGE_PADDING_Y * activeZoom)) * 2);
                     int badgeX = contentArea.x();
                     LytRect badge = new LytRect(badgeX, textY, badgeWidth, badgeHeight);
-                    c.emit(new GuideRenderPrimitive.FillRect(
-                        badge.x(), badge.y(), badge.width(), badge.height(),
-                        MermaidNodeRenderer.BADGE_BACKGROUND));
-                    c.emit(new GuideRenderPrimitive.DrawBorder(
-                        badge.x(), badge.y(), badge.width(), badge.height(),
-                        1, 1, 1, 1, MermaidNodeRenderer.BADGE_BORDER));
+                    c.emit(
+                        new GuideRenderPrimitive.FillRect(
+                            badge.x(),
+                            badge.y(),
+                            badge.width(),
+                            badge.height(),
+                            MermaidNodeRenderer.BADGE_BACKGROUND));
+                    c.emit(
+                        new GuideRenderPrimitive.DrawBorder(
+                            badge.x(),
+                            badge.y(),
+                            badge.width(),
+                            badge.height(),
+                            1,
+                            1,
+                            1,
+                            1,
+                            MermaidNodeRenderer.BADGE_BORDER));
                     GuideText.emitText(
                         c,
                         badgeText,
@@ -1012,16 +1061,16 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
                 List<String> lines = MermaidNodeRenderer.wrapText(new LayoutContext(new FontMetrics() {
 
-                        @Override
-                        public float getAdvance(int codePoint, ResolvedTextStyle s) {
-                            return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
-                        }
+                    @Override
+                    public float getAdvance(int codePoint, ResolvedTextStyle s) {
+                        return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
+                    }
 
-                        @Override
-                        public int getLineHeight(ResolvedTextStyle s) {
-                            return GuideText.lineHeight(s);
-                        }
-                    }), style, label, visibleWidth);
+                    @Override
+                    public int getLineHeight(ResolvedTextStyle s) {
+                        return GuideText.lineHeight(s);
+                    }
+                }), style, label, visibleWidth);
                 int lineHeight = GuideText.lineHeight(style);
                 int totalTextHeight = lines.size() * lineHeight;
                 int textAreaHeight = contentArea.y() + visibleHeight - textY;

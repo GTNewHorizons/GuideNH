@@ -25,7 +25,6 @@ import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
-import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 
 import lombok.Getter;
@@ -91,8 +90,7 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
     }
 
     @Override
-    protected void onExternalLayoutApplied(LytRect oldBounds, LytRect newBounds) {
-    }
+    protected void onExternalLayoutApplied(LytRect oldBounds, LytRect newBounds) {}
 
     @Override
     public void computePrimitives(PrimitiveCollector c) {

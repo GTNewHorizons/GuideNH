@@ -49,7 +49,8 @@ public class GuideLatexRenderer {
      * {@code sourceScale}. Subsequent calls with the same scale are instant (cached).
      * Safe to call from any thread; does not touch OpenGL.
      *
-     * <p>The returned height is the full TeXIcon height — the "x" glyph content plus the
+     * <p>
+     * The returned height is the full TeXIcon height — the "x" glyph content plus the
      * true 2px/side icon insets. It does NOT include the phantom {@code (int)(0.18f*size)}
      * per-side padding the single-param {@link TeXIcon#setInsets(Insets)} adds, because this
      * method (and every other icon construction below) calls the two-arg
@@ -212,10 +213,12 @@ public class GuideLatexRenderer {
             trimBaselineRatioCacheIfNeeded();
             return ratio;
         } catch (ParseException e) {
-            GuideDebugLog.warnAlways("[GuideNH/LaTeX] Parse error measuring baseline '{}': {}", formula, e.getMessage());
+            GuideDebugLog
+                .warnAlways("[GuideNH/LaTeX] Parse error measuring baseline '{}': {}", formula, e.getMessage());
             return 0f;
         } catch (Exception e) {
-            GuideDebugLog.warnAlways("[GuideNH/LaTeX] Unexpected error measuring baseline '{}': {}", formula, e.getMessage(), e);
+            GuideDebugLog
+                .warnAlways("[GuideNH/LaTeX] Unexpected error measuring baseline '{}': {}", formula, e.getMessage(), e);
             return 0f;
         }
     }

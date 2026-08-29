@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -187,7 +188,7 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
 
     private int resolveBackgroundArgb() {
         if (backgroundColor == null) return 0;
-        return backgroundColor.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
+        return backgroundColor.resolve(LightDarkMode.current());
     }
 
     private int resolveBorderArgb() {
@@ -197,7 +198,7 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
         for (BorderStyle side : sides) {
             var color = side.color();
             if (color != null) {
-                return color.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
+                return color.resolve(LightDarkMode.current());
             }
         }
         return 0xFF000000;

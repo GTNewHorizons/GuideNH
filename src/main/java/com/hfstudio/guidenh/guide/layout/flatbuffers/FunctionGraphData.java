@@ -2,22 +2,14 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.FloatVector;
+import com.google.flatbuffers.Table;
 
 /**
  * Function graph sizing data (node_type 28).
@@ -28,72 +20,155 @@ import java.nio.ByteOrder;
  */
 @SuppressWarnings("unused")
 public final class FunctionGraphData extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static FunctionGraphData getRootAsFunctionGraphData(ByteBuffer _bb) { return getRootAsFunctionGraphData(_bb, new FunctionGraphData()); }
-  public static FunctionGraphData getRootAsFunctionGraphData(ByteBuffer _bb, FunctionGraphData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public FunctionGraphData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  /**
-   * Intrinsic base width: explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH.
-   */
-  public float baseWidth() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Intrinsic base height: explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT.
-   */
-  public float baseHeight() { int o = __offset(6); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * lineHeight(TITLE_STYLE) + TITLE_GAP if title present and non-empty, else 0.
-   */
-  public float titleChrome() { int o = __offset(8); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Row height for legend wrapping: max(LEGEND_SWATCH_SIZE, lineHeight(LEGEND_LABEL_STYLE)).
-   */
-  public float legendRowHeight() { int o = __offset(10); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Per-plot legend item widths (0 for plots without labels):
-   * LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP + measureWidth(label, style).
-   */
-  public float labelItemWidths(int j) { int o = __offset(12); return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0; }
-  public int labelItemWidthsLength() { int o = __offset(12); return o != 0 ? __vector_len(o) : 0; }
-  public FloatVector labelItemWidthsVector() { return labelItemWidthsVector(new FloatVector()); }
-  public FloatVector labelItemWidthsVector(FloatVector obj) { int o = __offset(12); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer labelItemWidthsAsByteBuffer() { return __vector_as_bytebuffer(12, 4); }
-  public ByteBuffer labelItemWidthsInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 12, 4); }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createFunctionGraphData(FlatBufferBuilder builder,
-      float baseWidth,
-      float baseHeight,
-      float titleChrome,
-      float legendRowHeight,
-      int labelItemWidthsOffset) {
-    builder.startTable(5);
-    FunctionGraphData.addLabelItemWidths(builder, labelItemWidthsOffset);
-    FunctionGraphData.addLegendRowHeight(builder, legendRowHeight);
-    FunctionGraphData.addTitleChrome(builder, titleChrome);
-    FunctionGraphData.addBaseHeight(builder, baseHeight);
-    FunctionGraphData.addBaseWidth(builder, baseWidth);
-    return FunctionGraphData.endFunctionGraphData(builder);
-  }
+    public static FunctionGraphData getRootAsFunctionGraphData(ByteBuffer _bb) {
+        return getRootAsFunctionGraphData(_bb, new FunctionGraphData());
+    }
 
-  public static void startFunctionGraphData(FlatBufferBuilder builder) { builder.startTable(5); }
-  public static void addBaseWidth(FlatBufferBuilder builder, float baseWidth) { builder.addFloat(0, baseWidth, 0.0f); }
-  public static void addBaseHeight(FlatBufferBuilder builder, float baseHeight) { builder.addFloat(1, baseHeight, 0.0f); }
-  public static void addTitleChrome(FlatBufferBuilder builder, float titleChrome) { builder.addFloat(2, titleChrome, 0.0f); }
-  public static void addLegendRowHeight(FlatBufferBuilder builder, float legendRowHeight) { builder.addFloat(3, legendRowHeight, 0.0f); }
-  public static void addLabelItemWidths(FlatBufferBuilder builder, int labelItemWidthsOffset) { builder.addOffset(4, labelItemWidthsOffset, 0); }
-  public static int createLabelItemWidthsVector(FlatBufferBuilder builder, float[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]); return builder.endVector(); }
-  public static void startLabelItemWidthsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static int endFunctionGraphData(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static FunctionGraphData getRootAsFunctionGraphData(ByteBuffer _bb, FunctionGraphData obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public FunctionGraphData get(int j) { return get(new FunctionGraphData(), j); }
-    public FunctionGraphData get(FunctionGraphData obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public FunctionGraphData __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    /**
+     * Intrinsic base width: explicitWidth > 0 ? explicitWidth : DEFAULT_WIDTH.
+     */
+    public float baseWidth() {
+        int o = __offset(4);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Intrinsic base height: explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT.
+     */
+    public float baseHeight() {
+        int o = __offset(6);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * lineHeight(TITLE_STYLE) + TITLE_GAP if title present and non-empty, else 0.
+     */
+    public float titleChrome() {
+        int o = __offset(8);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Row height for legend wrapping: max(LEGEND_SWATCH_SIZE, lineHeight(LEGEND_LABEL_STYLE)).
+     */
+    public float legendRowHeight() {
+        int o = __offset(10);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Per-plot legend item widths (0 for plots without labels):
+     * LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP + measureWidth(label, style).
+     */
+    public float labelItemWidths(int j) {
+        int o = __offset(12);
+        return o != 0 ? bb.getFloat(__vector(o) + j * 4) : 0;
+    }
+
+    public int labelItemWidthsLength() {
+        int o = __offset(12);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatVector labelItemWidthsVector() {
+        return labelItemWidthsVector(new FloatVector());
+    }
+
+    public FloatVector labelItemWidthsVector(FloatVector obj) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer labelItemWidthsAsByteBuffer() {
+        return __vector_as_bytebuffer(12, 4);
+    }
+
+    public ByteBuffer labelItemWidthsInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 12, 4);
+    }
+
+    public static int createFunctionGraphData(FlatBufferBuilder builder, float baseWidth, float baseHeight,
+        float titleChrome, float legendRowHeight, int labelItemWidthsOffset) {
+        builder.startTable(5);
+        FunctionGraphData.addLabelItemWidths(builder, labelItemWidthsOffset);
+        FunctionGraphData.addLegendRowHeight(builder, legendRowHeight);
+        FunctionGraphData.addTitleChrome(builder, titleChrome);
+        FunctionGraphData.addBaseHeight(builder, baseHeight);
+        FunctionGraphData.addBaseWidth(builder, baseWidth);
+        return FunctionGraphData.endFunctionGraphData(builder);
+    }
+
+    public static void startFunctionGraphData(FlatBufferBuilder builder) {
+        builder.startTable(5);
+    }
+
+    public static void addBaseWidth(FlatBufferBuilder builder, float baseWidth) {
+        builder.addFloat(0, baseWidth, 0.0f);
+    }
+
+    public static void addBaseHeight(FlatBufferBuilder builder, float baseHeight) {
+        builder.addFloat(1, baseHeight, 0.0f);
+    }
+
+    public static void addTitleChrome(FlatBufferBuilder builder, float titleChrome) {
+        builder.addFloat(2, titleChrome, 0.0f);
+    }
+
+    public static void addLegendRowHeight(FlatBufferBuilder builder, float legendRowHeight) {
+        builder.addFloat(3, legendRowHeight, 0.0f);
+    }
+
+    public static void addLabelItemWidths(FlatBufferBuilder builder, int labelItemWidthsOffset) {
+        builder.addOffset(4, labelItemWidthsOffset, 0);
+    }
+
+    public static int createLabelItemWidthsVector(FlatBufferBuilder builder, float[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addFloat(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startLabelItemWidthsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static int endFunctionGraphData(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public FunctionGraphData get(int j) {
+            return get(new FunctionGraphData(), j);
+        }
+
+        public FunctionGraphData get(FunctionGraphData obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,10 +19,13 @@ public class MarkdownListSemantics {
     private MarkdownListSemantics() {}
 
     /**
-     * Detects whether the given {@code <li>} children contain a GFM task-list
+     * Detects whether the given {@code 
+     * 
+    <li>} children contain a GFM task-list
      * marker ({@code [x]} / {@code [ ]}) in the first paragraph.
      *
-     * <p>This method is PURE DETECTION — it does NOT mutate the AST tree.
+     * <p>
+     * This method is PURE DETECTION — it does NOT mutate the AST tree.
      * The returned {@link TaskMarker} carries the prefix length so callers
      * can strip the prefix for display without permanently altering the AST.
      * This is critical because the same {@code ParsedGuidePage} (and its AST)
@@ -82,16 +86,19 @@ public class MarkdownListSemantics {
     }
 
     /**
-     * Strips the task-marker prefix from the first {@code <p>} child's text
+     * Strips the task-marker prefix from the first {@code 
+     * 
+    <p>
+     * } child's text
      * nodes in-place. Callers MUST save original values beforehand and restore
      * them after compilation to keep the AST immutable.
      *
-     * @param p          the {@code <p>} element whose text children to modify
-     * @param prefixLen  number of characters to strip from the start
+     * @param p         the {@code <p>} element whose text children to modify
+     * @param prefixLen number of characters to strip from the start
      * @return a list of original text values in order (for later restoration)
      */
     public static List<String> stripPrefixInPlace(MdxJsxFlowElement p, int prefixLen) {
-        var saved = new java.util.ArrayList<String>();
+        var saved = new ArrayList<String>();
         int remainingToStrip = prefixLen;
         for (Object child : p.children()) {
             if (child instanceof MdAstText text) {
@@ -119,7 +126,14 @@ public class MarkdownListSemantics {
         }
     }
 
-    /** Finds the first {@code <p>} child in an {@code <li>}'s children. */
+    /**
+     * Finds the first {@code 
+     * 
+    <p>
+     * } child in an {@code 
+     * 
+    <li>}'s children.
+     */
     @Nullable
     public static MdxJsxFlowElement findFirstP(List<? extends MdAstAnyContent> children) {
         for (var child : children) {

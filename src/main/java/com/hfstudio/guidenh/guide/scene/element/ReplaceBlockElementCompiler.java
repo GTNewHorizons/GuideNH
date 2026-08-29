@@ -112,22 +112,23 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
         if (scene != null) {
             NBTTagCompound deferredFromNbt = fromNbt;
             NBTTagCompound deferredToNbt = toNbt;
-            scene.addDeferredBlockMutation(() -> ReplaceBlockExecutor.execute(
-                level,
-                fromMatcher,
-                deferredFromNbt,
-                toBlock,
-                toMeta,
-                deferredToNbt,
-                toMatcher.getBlockId(),
-                hasBounds,
-                bx,
-                by,
-                bz,
-                bdx,
-                bdy,
-                bdz,
-                formed));
+            scene.addDeferredBlockMutation(
+                () -> ReplaceBlockExecutor.execute(
+                    level,
+                    fromMatcher,
+                    deferredFromNbt,
+                    toBlock,
+                    toMeta,
+                    deferredToNbt,
+                    toMatcher.getBlockId(),
+                    hasBounds,
+                    bx,
+                    by,
+                    bz,
+                    bdx,
+                    bdy,
+                    bdz,
+                    formed));
         } else {
             ReplaceBlockExecutor.execute(
                 level,

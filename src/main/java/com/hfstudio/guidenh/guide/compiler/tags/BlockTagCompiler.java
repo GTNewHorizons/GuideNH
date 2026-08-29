@@ -108,7 +108,7 @@ public abstract class BlockTagCompiler implements TagCompiler {
         return PageCompiler.wrapFloatAwareIfNeeded(node);
     }
 
-    private static LytBlock applyBlockEmbed(LytBlock node, ContentWrapMode wrapMode, ContentAlign align) {
+    public static LytBlock applyBlockEmbed(LytBlock node, ContentWrapMode wrapMode, ContentAlign align) {
         return embedBlock(node, wrapMode, align);
     }
 }

@@ -35,7 +35,6 @@ public class StructureLibDefinitionCache {
         return INSTANCE;
     }
 
-    @SuppressWarnings("unchecked")
     public void refresh() {
         try {
             Object2ObjectMap<IConstructable, ConstructableData> dataMap = AccessorConstructableData
@@ -62,7 +61,7 @@ public class StructureLibDefinitionCache {
                     return c;
                 }
             }
-        } catch (Throwable t) {}
+        } catch (Throwable _) {}
         return null;
     }
 

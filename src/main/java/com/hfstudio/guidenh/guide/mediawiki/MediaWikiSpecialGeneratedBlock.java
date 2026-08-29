@@ -23,12 +23,12 @@ import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
-import com.hfstudio.guidenh.guide.layout.FontMetrics;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.guide.layout.FontMetrics;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
@@ -81,22 +81,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
      * Exposed as a single object so the serializer calls one method.
      */
     public record FontFacts(FontFactsImpl impl) {
-        public record FontFactsImpl(
-            int columnCount,
-            boolean hasMore,
-            int groupCount,
-            float[] groupTitleWidths,
-            int[] groupEntryCounts,
-            float[] groupEstimatedHeights,
-            int totalEntryCount,
-            float[] entryTitleWidths,
-            byte[] entryHasIcon,
-            float[] entryEstimatedHeights,
-            int[] entrySubtitleLineCounts,
-            int[] subtitleLineWordCounts,
-            float[] subtitleWordWidths,
-            float subtitleSpaceWidth,
-            float linkLineHeight,
+
+        public record FontFactsImpl(int columnCount, boolean hasMore, int groupCount, float[] groupTitleWidths,
+            int[] groupEntryCounts, float[] groupEstimatedHeights, int totalEntryCount, float[] entryTitleWidths,
+            byte[] entryHasIcon, float[] entryEstimatedHeights, int[] entrySubtitleLineCounts,
+            int[] subtitleLineWordCounts, float[] subtitleWordWidths, float subtitleSpaceWidth, float linkLineHeight,
             float subtitleLineHeight) {}
     }
 
@@ -104,22 +93,33 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         MediaWikiSpecialPageResult visibleResult = applyVisibility(result, searchQuery);
         int columnCount = resolveColumnCount(visibleResult);
         boolean hasMoreFlag = visibleResult != null && visibleResult.hasMore();
-        boolean isGrouped = visibleResult != null
-            && (visibleResult.kind() == MediaWikiSpecialPageKind.GROUPED
-                || visibleResult.kind() == MediaWikiSpecialPageKind.GROUP_INDEX);
+        boolean isGrouped = visibleResult != null && (visibleResult.kind() == MediaWikiSpecialPageKind.GROUPED
+            || visibleResult.kind() == MediaWikiSpecialPageKind.GROUP_INDEX);
 
         if (isEmpty(visibleResult)) {
             return new FontFacts.FontFactsImpl(
-                columnCount, false, 0, new float[0], new int[0], new float[0],
-                0, new float[0], new byte[0], new float[0], new int[0],
-                new int[0], new float[0], 0f,
-                GuideText.lineHeight(LINK_STYLE), GuideText.lineHeight(SUBTITLE_STYLE));
+                columnCount,
+                false,
+                0,
+                new float[0],
+                new int[0],
+                new float[0],
+                0,
+                new float[0],
+                new byte[0],
+                new float[0],
+                new int[0],
+                new int[0],
+                new float[0],
+                0f,
+                GuideText.lineHeight(LINK_STYLE),
+                GuideText.lineHeight(SUBTITLE_STYLE));
         }
 
         if (!isGrouped) {
             // ── Flat entries: distribute evenly ──
-            List<MediaWikiSpecialListEntry> entries = visibleResult.flatEntries() != null
-                ? visibleResult.flatEntries() : List.of();
+            List<MediaWikiSpecialListEntry> entries = visibleResult.flatEntries() != null ? visibleResult.flatEntries()
+                : List.of();
             int totalEntryCount = entries.size();
             int perColumn = Math.max(1, (totalEntryCount + columnCount - 1) / columnCount);
             // Build per-column groups (one group per column, no title).
@@ -152,8 +152,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             byte[] entryHasIcon = new byte[totalEntryCount];
             float[] entryEstimatedHeights = new float[totalEntryCount];
             int[] entrySubtitleLineCounts = new int[totalEntryCount];
-            java.util.ArrayList<Integer> lineWordCounts = new java.util.ArrayList<>();
-            java.util.ArrayList<Float> wordWidths = new java.util.ArrayList<>();
+            ArrayList<Integer> lineWordCounts = new ArrayList<>();
+            ArrayList<Float> wordWidths = new ArrayList<>();
             float spaceWidth = 0f;
 
             for (int ei = 0; ei < totalEntryCount; ei++) {
@@ -166,7 +166,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 if (sub == null || sub.isEmpty()) {
                     entrySubtitleLineCounts[ei] = 0;
                 } else {
-                    java.util.List<String> rawLines = GuideStringLines.splitLines(sub);
+                    List<String> rawLines = GuideStringLines.splitLines(sub);
                     entrySubtitleLineCounts[ei] = rawLines.size();
                     for (String rawLine : rawLines) {
                         String trimmed = rawLine.trim();
@@ -193,15 +193,25 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             for (int i = 0; i < ww.length; i++) ww[i] = wordWidths.get(i);
 
             return new FontFacts.FontFactsImpl(
-                columnCount, hasMoreFlag, actualGroupCount,
-                groupTitleWidths, groupEntryCounts, groupEstimatedHeights,
+                columnCount,
+                hasMoreFlag,
+                actualGroupCount,
+                groupTitleWidths,
+                groupEntryCounts,
+                groupEstimatedHeights,
                 totalEntryCount,
-                entryTitleWidths, entryHasIcon, entryEstimatedHeights, entrySubtitleLineCounts,
-                lwc, ww, spaceWidth,
-                GuideText.lineHeight(LINK_STYLE), GuideText.lineHeight(SUBTITLE_STYLE));
+                entryTitleWidths,
+                entryHasIcon,
+                entryEstimatedHeights,
+                entrySubtitleLineCounts,
+                lwc,
+                ww,
+                spaceWidth,
+                GuideText.lineHeight(LINK_STYLE),
+                GuideText.lineHeight(SUBTITLE_STYLE));
         } else {
             // ── Grouped entries: one group per result group ──
-            java.util.List<GroupLayout> groups = buildGroups(visibleResult);
+            List<GroupLayout> groups = buildGroups(visibleResult);
             int groupCount = groups.size();
 
             float[] groupTitleWidths = new float[groupCount];
@@ -213,12 +223,15 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             for (int gi = 0; gi < groupCount; gi++) {
                 GroupLayout g = groups.get(gi);
                 float tw = 0f;
-                if (g.title() != null && !g.title().isEmpty()) {
+                if (g.title() != null && !g.title()
+                    .isEmpty()) {
                     tw = GuideText.measureWidth(g.title(), HEADER_STYLE);
                 }
                 groupTitleWidths[gi] = tw;
-                groupEntryCounts[gi] = g.entries().size();
-                totalEntryCount += g.entries().size();
+                groupEntryCounts[gi] = g.entries()
+                    .size();
+                totalEntryCount += g.entries()
+                    .size();
                 groupEstimatedHeights[gi] = estimateHeight(g);
             }
 
@@ -226,8 +239,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             byte[] entryHasIcon = new byte[totalEntryCount];
             float[] entryEstimatedHeights = new float[totalEntryCount];
             int[] entrySubtitleLineCounts = new int[totalEntryCount];
-            java.util.ArrayList<Integer> lineWordCounts = new java.util.ArrayList<>();
-            java.util.ArrayList<Float> wordWidths = new java.util.ArrayList<>();
+            ArrayList<Integer> lineWordCounts = new ArrayList<>();
+            ArrayList<Float> wordWidths = new ArrayList<>();
             float spaceWidth = 0f;
             int entryIdx = 0;
 
@@ -242,7 +255,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     if (sub == null || sub.isEmpty()) {
                         entrySubtitleLineCounts[entryIdx] = 0;
                     } else {
-                        java.util.List<String> rawLines = GuideStringLines.splitLines(sub);
+                        List<String> rawLines = GuideStringLines.splitLines(sub);
                         entrySubtitleLineCounts[entryIdx] = rawLines.size();
                         for (String rawLine : rawLines) {
                             String trimmed = rawLine.trim();
@@ -269,14 +282,25 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             for (int i = 0; i < ww.length; i++) ww[i] = wordWidths.get(i);
 
             return new FontFacts.FontFactsImpl(
-                columnCount, hasMoreFlag, groupCount,
-                groupTitleWidths, groupEntryCounts, groupEstimatedHeights,
+                columnCount,
+                hasMoreFlag,
+                groupCount,
+                groupTitleWidths,
+                groupEntryCounts,
+                groupEstimatedHeights,
                 totalEntryCount,
-                entryTitleWidths, entryHasIcon, entryEstimatedHeights, entrySubtitleLineCounts,
-                lwc, ww, spaceWidth,
-                GuideText.lineHeight(LINK_STYLE), GuideText.lineHeight(SUBTITLE_STYLE));
+                entryTitleWidths,
+                entryHasIcon,
+                entryEstimatedHeights,
+                entrySubtitleLineCounts,
+                lwc,
+                ww,
+                spaceWidth,
+                GuideText.lineHeight(LINK_STYLE),
+                GuideText.lineHeight(SUBTITLE_STYLE));
         }
     }
+
     private static final int SIDE_PADDING = 2;
     private static final int COLUMN_GAP = 10;
     private static final int GROUP_MARGIN = 6;
@@ -409,9 +433,9 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
 
         List<List<GroupLayout>> columns = layoutColumns(visibleResult);
         int maxColumnHeight = 0;
-        for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
+        for (List<GroupLayout> column : columns) {
             int columnY = 0;
-            for (GroupLayout group : columns.get(columnIndex)) {
+            for (GroupLayout group : column) {
                 if (group.title() != null) {
                     columnY += HEADER_MARGIN_TOP + HEADER_HEIGHT + HEADER_MARGIN_BOTTOM;
                 }
@@ -494,8 +518,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         int innerWidth = Math.max(0, availableWidth - SIDE_PADDING * 2);
         int columnWidth = Math.max(1, (innerWidth - COLUMN_GAP * (columnCount - 1)) / columnCount);
         if (isEmpty(visibleResult)) {
-            rowLayouts.add(
-                new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ENTRY_HEIGHT), null));
+            rowLayouts
+                .add(new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ENTRY_HEIGHT), null));
             return;
         }
         List<List<GroupLayout>> columns = layoutColumns(visibleResult);
@@ -511,17 +535,18 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     columnY += HEADER_MARGIN_TOP + HEADER_HEIGHT + HEADER_MARGIN_BOTTOM;
                 }
                 for (MediaWikiSpecialListEntry entry : group.entries()) {
-                    int entryHeight = computeEntryHeight(
-                        new LayoutContext(new FontMetrics() {
-                            @Override
-                            public float getAdvance(int cp, ResolvedTextStyle s) {
-                                return GuideText.measureWidth(new String(Character.toChars(cp)), s);
-                            }
-                            @Override
-                            public int getLineHeight(ResolvedTextStyle s) {
-                                return GuideText.lineHeight(s);
-                            }
-                        }), entry, columnWidth);
+                    int entryHeight = computeEntryHeight(new LayoutContext(new FontMetrics() {
+
+                        @Override
+                        public float getAdvance(int cp, ResolvedTextStyle s) {
+                            return GuideText.measureWidth(new String(Character.toChars(cp)), s);
+                        }
+
+                        @Override
+                        public int getLineHeight(ResolvedTextStyle s) {
+                            return GuideText.lineHeight(s);
+                        }
+                    }), entry, columnWidth);
                     rowLayouts.add(
                         new RowLayout(
                             new LytRect(columnX, columnY, columnWidth, entryHeight),
@@ -541,8 +566,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         }
         if (visibleResult.hasMore()) {
             int maxColumnHeight = rowLayouts.stream()
-                .mapToInt(rl -> rl.bounds().bottom() - y)
-                .max().orElse(0);
+                .mapToInt(
+                    rl -> rl.bounds()
+                        .bottom() - y)
+                .max()
+                .orElse(0);
             rowLayouts.add(
                 new RowLayout(
                     new LytRect(
@@ -559,8 +587,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         recomputeRowLayouts(x, y, availableWidth);
         // maxPrecomputedContentHeight has a lazy getter — it will be
         // computed on demand if not set here.
-        return new LytRect(x, y, availableWidth,
-            TOP_PADDING + getMaxPrecomputedContentHeight() + BOTTOM_PADDING);
+        return new LytRect(x, y, availableWidth, TOP_PADDING + getMaxPrecomputedContentHeight() + BOTTOM_PADDING);
     }
 
     @Override

@@ -24,6 +24,8 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
+import lombok.Getter;
+
 /**
  * The clickable tab strip of a {@link LytContentTabsBlock}: wraps tab titles
  * into rows and draws them (selected/idle style + active underline). A real
@@ -81,6 +83,11 @@ public class LytContentTabsHeader extends LytBlock implements InteractiveElement
     private final ColorValue accentColor;
     private final IntSupplier selectedIndex;
     private final IntConsumer onSelect;
+    /**
+     * -- GETTER --
+     * Tab hit rects in document coordinates (debug overlay / hit testing).
+     */
+    @Getter
     private final List<LytRect> tabBounds = new ArrayList<>();
 
     public LytContentTabsHeader(List<String> titles, ColorValue accentColor, IntSupplier selectedIndex,
@@ -89,11 +96,6 @@ public class LytContentTabsHeader extends LytBlock implements InteractiveElement
         this.accentColor = accentColor;
         this.selectedIndex = selectedIndex;
         this.onSelect = onSelect;
-    }
-
-    /** Tab hit rects in document coordinates (debug overlay / hit testing). */
-    public List<LytRect> getTabBounds() {
-        return tabBounds;
     }
 
     @Override
@@ -153,12 +155,7 @@ public class LytContentTabsHeader extends LytBlock implements InteractiveElement
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
-        for (int i = 0; i < tabBounds.size(); i++) {
-            tabBounds.set(
-                i,
-                tabBounds.get(i)
-                    .move(deltaX, deltaY));
-        }
+        tabBounds.replaceAll(lytRect -> lytRect.move(deltaX, deltaY));
     }
 
     @Override

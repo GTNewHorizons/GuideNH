@@ -2,71 +2,107 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
 
 /**
  * Inline block reference: pairs a U+FFFC placeholder (in document order) with
  * the inner block's flat index and its vertical alignment request.
  * align: 0 = block bottom sits 2px below the text baseline (default)
- *        1 = baseline ascent — block top sits `param` px above the text baseline
- *            (LaTeX math-baseline alignment: param = formula ascent above its
- *            math baseline, so the formula's baseline lands on the text's)
- *        2 = center on the text line, then shift down by `param` px (item icons)
- *        3 = float left — block floats to paragraph left edge, text wraps right
- *        4 = float right — block floats to paragraph right edge, text wraps left
+ * 1 = baseline ascent — block top sits `param` px above the text baseline
+ * (LaTeX math-baseline alignment: param = formula ascent above its
+ * math baseline, so the formula's baseline lands on the text's)
+ * 2 = center on the text line, then shift down by `param` px (item icons)
+ * 3 = float left — block floats to paragraph left edge, text wraps right
+ * 4 = float right — block floats to paragraph right edge, text wraps left
  */
 @SuppressWarnings("unused")
 public final class InlineBlockRef extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static InlineBlockRef getRootAsInlineBlockRef(ByteBuffer _bb) { return getRootAsInlineBlockRef(_bb, new InlineBlockRef()); }
-  public static InlineBlockRef getRootAsInlineBlockRef(ByteBuffer _bb, InlineBlockRef obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public InlineBlockRef __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public long node() { int o = __offset(4); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
-  public byte align() { int o = __offset(6); return o != 0 ? bb.get(o + bb_pos) : 0; }
-  public float param() { int o = __offset(8); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createInlineBlockRef(FlatBufferBuilder builder,
-      long node,
-      byte align,
-      float param) {
-    builder.startTable(3);
-    InlineBlockRef.addParam(builder, param);
-    InlineBlockRef.addNode(builder, node);
-    InlineBlockRef.addAlign(builder, align);
-    return InlineBlockRef.endInlineBlockRef(builder);
-  }
+    public static InlineBlockRef getRootAsInlineBlockRef(ByteBuffer _bb) {
+        return getRootAsInlineBlockRef(_bb, new InlineBlockRef());
+    }
 
-  public static void startInlineBlockRef(FlatBufferBuilder builder) { builder.startTable(3); }
-  public static void addNode(FlatBufferBuilder builder, long node) { builder.addInt(0, (int) node, (int) 0L); }
-  public static void addAlign(FlatBufferBuilder builder, byte align) { builder.addByte(1, align, 0); }
-  public static void addParam(FlatBufferBuilder builder, float param) { builder.addFloat(2, param, 0.0f); }
-  public static int endInlineBlockRef(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static InlineBlockRef getRootAsInlineBlockRef(ByteBuffer _bb, InlineBlockRef obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public InlineBlockRef get(int j) { return get(new InlineBlockRef(), j); }
-    public InlineBlockRef get(InlineBlockRef obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public InlineBlockRef __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public long node() {
+        int o = __offset(4);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+    }
+
+    public byte align() {
+        int o = __offset(6);
+        return o != 0 ? bb.get(o + bb_pos) : 0;
+    }
+
+    public float param() {
+        int o = __offset(8);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    public static int createInlineBlockRef(FlatBufferBuilder builder, long node, byte align, float param) {
+        builder.startTable(3);
+        InlineBlockRef.addParam(builder, param);
+        InlineBlockRef.addNode(builder, node);
+        InlineBlockRef.addAlign(builder, align);
+        return InlineBlockRef.endInlineBlockRef(builder);
+    }
+
+    public static void startInlineBlockRef(FlatBufferBuilder builder) {
+        builder.startTable(3);
+    }
+
+    public static void addNode(FlatBufferBuilder builder, long node) {
+        builder.addInt(0, (int) node, (int) 0L);
+    }
+
+    public static void addAlign(FlatBufferBuilder builder, byte align) {
+        builder.addByte(1, align, 0);
+    }
+
+    public static void addParam(FlatBufferBuilder builder, float param) {
+        builder.addFloat(2, param, 0.0f);
+    }
+
+    public static int endInlineBlockRef(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public InlineBlockRef get(int j) {
+            return get(new InlineBlockRef(), j);
+        }
+
+        public InlineBlockRef get(InlineBlockRef obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

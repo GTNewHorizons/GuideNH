@@ -77,7 +77,8 @@ public class TableCompiler extends BlockTagCompiler {
                 rowIndex++;
             }
         }
-        if (table.getChildren().isEmpty()) {
+        if (table.getChildren()
+            .isEmpty()) {
             parent.appendError(compiler, "Empty table: no rows found", el);
             return;
         }

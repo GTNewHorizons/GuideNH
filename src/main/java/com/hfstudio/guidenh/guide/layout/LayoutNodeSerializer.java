@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
 import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
+import com.hfstudio.guidenh.guide.document.block.LytStructureView;
 import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
 import com.hfstudio.guidenh.guide.document.block.chart.LytBarChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytChartBase;
@@ -23,21 +24,25 @@ import com.hfstudio.guidenh.guide.document.block.chart.LytColumnChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytLineChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytPieChart;
 import com.hfstudio.guidenh.guide.document.block.chart.LytScatterChart;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionPlot;
+import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
-import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
-import com.hfstudio.guidenh.guide.document.block.LytStructureView;
-import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowBreak;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
+import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ChartData;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.FunctionGraphData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.GuidebookSceneData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ImageData;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.LatexDisplayData;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiGeneratedListData;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiSpecialGeneratedData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.PieChartData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.RecipeBoxData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.SlotData;
@@ -46,15 +51,13 @@ import com.hfstudio.guidenh.guide.layout.flatbuffers.TextData;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle;
 import com.hfstudio.guidenh.guide.layout.flatbuffers.ThematicBreakData;
-import com.hfstudio.guidenh.guide.document.block.functiongraph.FunctionPlot;
-import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiGeneratedListData;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.MediaWikiSpecialGeneratedData;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiGeneratedListBlock;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialGeneratedBlock;
 import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 
 /**
  * Determines node_type and builds FlatNode with the appropriate sub-data table.
@@ -91,7 +94,8 @@ public final class LayoutNodeSerializer {
         int recipeBoxOff = nodeType == 20 ? buildRecipeBoxData(fbb, block) : 0;
         int pieChartOff = nodeType == 21 ? buildPieChartData(fbb, block) : 0;
         int chartDataOff = (nodeType == 22 || nodeType == 23 || nodeType == 24 || nodeType == 25)
-            ? buildChartData(fbb, block) : 0;
+            ? buildChartData(fbb, block)
+            : 0;
         int structureViewDataOff = nodeType == 26 ? buildStructureViewData(fbb, block) : 0;
         int guidebookSceneDataOff = nodeType == 27 ? buildGuidebookSceneData(fbb, block) : 0;
         int functionGraphDataOff = nodeType == 28 ? buildFunctionGraphData(fbb, block) : 0;
@@ -212,9 +216,8 @@ public final class LayoutNodeSerializer {
                 // Base run tint (single-style runs fall back to this color).
                 baseColor = GuideText.resolveColor(resolved) & 0xFFFFFFFFL;
                 var resolvedWs = resolved.whiteSpace();
-                wsByte = resolvedWs == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1
-                    : resolvedWs == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE ? (byte) 2
-                    : (byte) 0;
+                wsByte = resolvedWs == WhiteSpaceMode.PRE_WRAP ? (byte) 1
+                    : resolvedWs == WhiteSpaceMode.PRE ? (byte) 2 : (byte) 0;
             }
 
             // Rich spans: per-leaf resolved styles in document order (concatenated
@@ -236,9 +239,8 @@ public final class LayoutNodeSerializer {
                 }
                 baseColor = GuideText.resolveColor(partStyle) & 0xFFFFFFFFL;
                 var partWs = partStyle.whiteSpace();
-                wsByte = partWs == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE_WRAP ? (byte) 1
-                    : partWs == com.hfstudio.guidenh.guide.style.WhiteSpaceMode.PRE ? (byte) 2
-                    : (byte) 0;
+                wsByte = partWs == WhiteSpaceMode.PRE_WRAP ? (byte) 1
+                    : partWs == WhiteSpaceMode.PRE ? (byte) 2 : (byte) 0;
             }
             // Clear breaks: record each <br clear> at its raw byte offset so the
             // Rust pusher can drop the following lines below the cleared floats.
@@ -255,15 +257,27 @@ public final class LayoutNodeSerializer {
         }
 
         int strOff = fbb.createString(text);
-        int styleOff = TextStyle
-            .createTextStyle(fbb, fontSize, bold, italic, fontScale, baseColor, 0L, false, false, 0L, false, 0.0f, false, false);
+        int styleOff = TextStyle.createTextStyle(
+            fbb,
+            fontSize,
+            bold,
+            italic,
+            fontScale,
+            baseColor,
+            0L,
+            false,
+            false,
+            0L,
+            false,
+            0.0f,
+            false,
+            false);
         int inlineBlocksVec = 0;
         if (!inlineRefs.isEmpty()) {
             int[] refs = new int[inlineRefs.size()];
             for (int i = 0; i < refs.length; i++) {
                 var r = inlineRefs.get(i);
-                refs[i] = com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef
-                    .createInlineBlockRef(fbb, r.flatIndex(), (byte) r.align(), r.param());
+                refs[i] = InlineBlockRef.createInlineBlockRef(fbb, r.flatIndex(), (byte) r.align(), r.param());
             }
             inlineBlocksVec = TextData.createInlineBlocksVector(fbb, refs);
         }
@@ -283,8 +297,7 @@ public final class LayoutNodeSerializer {
             int[] cs = new int[clears.size()];
             for (int i = 0; i < cs.length; i++) {
                 int[] c = clears.get(i);
-                cs[i] = com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak
-                    .createClearBreak(fbb, c[0], (byte) c[1]);
+                cs[i] = ClearBreak.createClearBreak(fbb, c[0], (byte) c[1]);
             }
             clearsVec = TextData.createClearsVector(fbb, cs);
         }
@@ -310,8 +323,19 @@ public final class LayoutNodeSerializer {
                 };
             }
         }
-        return TextData
-            .createTextData(fbb, strOff, styleOff, wsByte, inlineBlocksVec, 0, spansVec, 0, clearsVec, breaksVec, separator, alignmentByte);
+        return TextData.createTextData(
+            fbb,
+            strOff,
+            styleOff,
+            wsByte,
+            inlineBlocksVec,
+            0,
+            spansVec,
+            0,
+            clearsVec,
+            breaksVec,
+            separator,
+            alignmentByte);
     }
 
     /** One text run with its resolved style, in document order. */
@@ -383,9 +407,7 @@ public final class LayoutNodeSerializer {
         boolean inlineCode = style.inlineCode();
         long highlight = 0L;
         if (inlineCode) {
-            highlight = LightDarkMode.current() == LightDarkMode.DARK_MODE
-                ? 0x1A6FB6FFL
-                : 0x1AF0F6FFL;
+            highlight = LightDarkMode.current() == LightDarkMode.DARK_MODE ? 0x1A6FB6FFL : 0x1AF0F6FFL;
         } else if (style.backgroundColor() != null) {
             highlight = style.backgroundColor()
                 .resolve(LightDarkMode.current()) & 0xFFFFFFFFL;
@@ -411,8 +433,7 @@ public final class LayoutNodeSerializer {
      * Recursively extract all text from a flow content tree.
      * Handles {@link LytFlowText} (direct text) and {@link LytFlowSpan}
      * (wrapper with nested children).
-     */
-    /**
+     * <p>
      * Walk flow content in document order, tracking the running raw (original
      * text, U+FFFC included) UTF-8 byte offset and recording every clear break
      * at its offset. Mirrors {@link #extractFlowText}'s traversal so the offset
@@ -762,8 +783,7 @@ public final class LayoutNodeSerializer {
             List<FunctionPlot> plots = graph.getPlots();
             int swatchSize = LytFunctionGraph.getLegendSwatchSize();
             int swatchTextGap = LytFunctionGraph.getLegendSwatchTextGap();
-            legendRowHeight = Math.max(swatchSize,
-                GuideText.lineHeight(LytFunctionGraph.getLegendLabelStyle()));
+            legendRowHeight = Math.max(swatchSize, GuideText.lineHeight(LytFunctionGraph.getLegendLabelStyle()));
             labelItemWidths = new float[plots.size()];
             boolean hasLabel = false;
             for (int i = 0; i < plots.size(); i++) {
@@ -781,13 +801,8 @@ public final class LayoutNodeSerializer {
         }
 
         int labelWidthsVec = FunctionGraphData.createLabelItemWidthsVector(fbb, labelItemWidths);
-        return FunctionGraphData.createFunctionGraphData(
-            fbb,
-            baseWidth,
-            baseHeight,
-            titleChrome,
-            legendRowHeight,
-            labelWidthsVec);
+        return FunctionGraphData
+            .createFunctionGraphData(fbb, baseWidth, baseHeight, titleChrome, legendRowHeight, labelWidthsVec);
     }
 
     private static int buildMediaWikiGeneratedListData(FlatBufferBuilder fbb, LytBlock block) {
@@ -833,11 +848,11 @@ public final class LayoutNodeSerializer {
                     ? MediaWikiSpecialGeneratedData.createEntryEstimatedHeightsVector(fbb, impl.entryEstimatedHeights())
                     : 0;
                 int entrySubtitleLineCountsOff = impl.entrySubtitleLineCounts().length > 0
-                    ? MediaWikiSpecialGeneratedData.createEntrySubtitleLineCountsVector(fbb, impl.entrySubtitleLineCounts())
+                    ? MediaWikiSpecialGeneratedData
+                        .createEntrySubtitleLineCountsVector(fbb, impl.entrySubtitleLineCounts())
                     : 0;
-                int subtitleLineWordCountsOff = impl.subtitleLineWordCounts().length > 0
-                    ? MediaWikiSpecialGeneratedData.createSubtitleLineWordCountsVector(fbb, impl.subtitleLineWordCounts())
-                    : 0;
+                int subtitleLineWordCountsOff = impl.subtitleLineWordCounts().length > 0 ? MediaWikiSpecialGeneratedData
+                    .createSubtitleLineWordCountsVector(fbb, impl.subtitleLineWordCounts()) : 0;
                 int subtitleWordWidthsOff = impl.subtitleWordWidths().length > 0
                     ? MediaWikiSpecialGeneratedData.createSubtitleWordWidthsVector(fbb, impl.subtitleWordWidths())
                     : 0;
@@ -866,9 +881,24 @@ public final class LayoutNodeSerializer {
 
         // Fallback: no block data or no font facts (should not happen in normal flow).
         return MediaWikiSpecialGeneratedData.createMediaWikiSpecialGeneratedData(
-            fbb, maxContentHeight, 1, false, 0,
-            0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 4.0f, 10.0f, 10.0f);
+            fbb,
+            maxContentHeight,
+            1,
+            false,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            4.0f,
+            10.0f,
+            10.0f);
     }
 
     private static int buildChildrenVector(FlatBufferBuilder fbb, List<Integer> indices) {

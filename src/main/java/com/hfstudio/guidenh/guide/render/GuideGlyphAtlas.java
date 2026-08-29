@@ -17,6 +17,8 @@ import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
+import lombok.Setter;
+
 /**
  * Glyph atlas: manages a bounded set of GL textures ({@link #MAX_PAGES} pages,
  * each a 2048² RGBA texture) containing rasterized glyphs from Rust
@@ -44,14 +46,11 @@ public class GuideGlyphAtlas {
      * Default atlas instance for measureLayout processing.
      * The render engine can override with setGlobalInstance().
      */
+    @Setter
     private static GuideGlyphAtlas globalInstance = new GuideGlyphAtlas();
 
     public static GuideGlyphAtlas instance() {
         return globalInstance;
-    }
-
-    public static void setGlobalInstance(GuideGlyphAtlas atlas) {
-        globalInstance = atlas;
     }
 
     public GuideGlyphAtlas() {}
@@ -98,11 +97,17 @@ public class GuideGlyphAtlas {
     /** Pages evicted since the last emitted WARN. */
     private int evictionWarnPageCount;
 
-    /** Test hook: when true, all GL calls are skipped (packing/UV bookkeeping still runs). */
+    /**
+     * Test hook: when true, all GL calls are skipped (packing/UV bookkeeping still runs).
+     * -- SETTER --
+     * Test hook for headless environments (unit tests without a GL context).
+     */
+    @Setter
     private boolean headless;
 
     /** One atlas texture plus its independent pack cursor and glyph cache. */
     private static final class Page {
+
         ByteBuffer atlasBuffer;
         int textureId = -1;
         int cursorX = PADDING;
@@ -110,11 +115,6 @@ public class GuideGlyphAtlas {
         int currentRowHeight = 0;
         long accessStamp;
         final Map<Long, GlyphUV> glyphCache = new HashMap<>();
-    }
-
-    /** Test hook for headless environments (unit tests without a GL context). */
-    public void setHeadless(boolean headless) {
-        this.headless = headless;
     }
 
     /**
@@ -326,7 +326,11 @@ public class GuideGlyphAtlas {
         GuideDebugLog.warnAlways(
             "[GuideNH] glyph atlas: page evicted (LRU), last victim page={}, {} glyph(s) dropped "
                 + "across {} eviction(s), pages after eviction={} (MAX_PAGES={})",
-            pageIndex, evictionWarnGlyphCount, evictionWarnPageCount, pages.size(), MAX_PAGES);
+            pageIndex,
+            evictionWarnGlyphCount,
+            evictionWarnPageCount,
+            pages.size(),
+            MAX_PAGES);
         evictionWarnGlyphCount = 0;
         evictionWarnPageCount = 0;
         lastEvictionWarnNanos = now;
@@ -367,7 +371,16 @@ public class GuideGlyphAtlas {
             // not the sub-image width. Position the buffer to the start of the glyph's row.
             GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, ATLAS_SIZE);
             page.atlasBuffer.position((v * ATLAS_SIZE + u) * 4);
-            GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, u, v, w, h, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, page.atlasBuffer);
+            GL11.glTexSubImage2D(
+                GL11.GL_TEXTURE_2D,
+                0,
+                u,
+                v,
+                w,
+                h,
+                GL11.GL_RGBA,
+                GL11.GL_UNSIGNED_BYTE,
+                page.atlasBuffer);
             GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, 0);
             page.atlasBuffer.position(0);
         }
@@ -387,7 +400,11 @@ public class GuideGlyphAtlas {
             // capacity condition — flood-logging it per frame is noise.
             GuideDebugLog.warnAlways(
                 "[GuideNH] glyph atlas: oversized glyph dropped, key={} ({}x{}) exceeds page {}x{}",
-                key, w, h, ATLAS_SIZE, ATLAS_SIZE);
+                key,
+                w,
+                h,
+                ATLAS_SIZE,
+                ATLAS_SIZE);
         }
     }
 
@@ -408,7 +425,7 @@ public class GuideGlyphAtlas {
             0,
             GL11.GL_RGBA,
             GL11.GL_UNSIGNED_BYTE,
-            (java.nio.ByteBuffer) null);
+            (ByteBuffer) null);
         GL11.glTexSubImage2D(
             GL11.GL_TEXTURE_2D,
             0,

@@ -2,132 +2,363 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.IntVector;
+import com.google.flatbuffers.Table;
+
 @SuppressWarnings("unused")
 public final class TextData extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static TextData getRootAsTextData(ByteBuffer _bb) { return getRootAsTextData(_bb, new TextData()); }
-  public static TextData getRootAsTextData(ByteBuffer _bb, TextData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public TextData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public String text() { int o = __offset(4); return o != 0 ? __string(o + bb_pos) : null; }
-  public ByteBuffer textAsByteBuffer() { return __vector_as_bytebuffer(4, 1); }
-  public ByteBuffer textInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 4, 1); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle style() { return style(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle style(com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle obj) { int o = __offset(6); return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null; }
-  public byte whiteSpace() { int o = __offset(8); return o != 0 ? bb.get(o + bb_pos) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef inlineBlocks(int j) { return inlineBlocks(new com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef(), j); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef inlineBlocks(com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef obj, int j) { int o = __offset(10); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
-  public int inlineBlocksLength() { int o = __offset(10); return o != 0 ? __vector_len(o) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef.Vector inlineBlocksVector() { return inlineBlocksVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef.Vector()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef.Vector inlineBlocksVector(com.hfstudio.guidenh.guide.layout.flatbuffers.InlineBlockRef.Vector obj) { int o = __offset(10); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand bands(int j) { return bands(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand(), j); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand bands(com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand obj, int j) { int o = __offset(12); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
-  public int bandsLength() { int o = __offset(12); return o != 0 ? __vector_len(o) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand.Vector bandsVector() { return bandsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand.Vector()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand.Vector bandsVector(com.hfstudio.guidenh.guide.layout.flatbuffers.TextBand.Vector obj) { int o = __offset(12); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan spans(int j) { return spans(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan(), j); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan spans(com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan obj, int j) { int o = __offset(14); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
-  public int spansLength() { int o = __offset(14); return o != 0 ? __vector_len(o) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan.Vector spansVector() { return spansVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan.Vector()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan.Vector spansVector(com.hfstudio.guidenh.guide.layout.flatbuffers.TextSpan.Vector obj) { int o = __offset(14); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.FloatClip floatClips(int j) { return floatClips(new com.hfstudio.guidenh.guide.layout.flatbuffers.FloatClip(), j); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.FloatClip floatClips(com.hfstudio.guidenh.guide.layout.flatbuffers.FloatClip obj, int j) { int o = __offset(16); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
-  public int floatClipsLength() { int o = __offset(16); return o != 0 ? __vector_len(o) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.FloatClip.Vector floatClipsVector() { return floatClipsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.FloatClip.Vector()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.FloatClip.Vector floatClipsVector(com.hfstudio.guidenh.guide.layout.flatbuffers.FloatClip.Vector obj) { int o = __offset(16); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak clears(int j) { return clears(new com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak(), j); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak clears(com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak obj, int j) { int o = __offset(18); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
-  public int clearsLength() { int o = __offset(18); return o != 0 ? __vector_len(o) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak.Vector clearsVector() { return clearsVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak.Vector()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak.Vector clearsVector(com.hfstudio.guidenh.guide.layout.flatbuffers.ClearBreak.Vector obj) { int o = __offset(18); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
-  public long breaks(int j) { int o = __offset(20); return o != 0 ? (long)bb.getInt(__vector(o) + j * 4) & 0xFFFFFFFFL : 0; }
-  public int breaksLength() { int o = __offset(20); return o != 0 ? __vector_len(o) : 0; }
-  public IntVector breaksVector() { return breaksVector(new IntVector()); }
-  public IntVector breaksVector(IntVector obj) { int o = __offset(20); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer breaksAsByteBuffer() { return __vector_as_bytebuffer(20, 4); }
-  public ByteBuffer breaksInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 20, 4); }
-  public boolean separator() { int o = __offset(22); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
-  public byte alignment() { int o = __offset(24); return o != 0 ? bb.get(o + bb_pos) : 0; }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createTextData(FlatBufferBuilder builder,
-      int textOffset,
-      int styleOffset,
-      byte whiteSpace,
-      int inlineBlocksOffset,
-      int bandsOffset,
-      int spansOffset,
-      int floatClipsOffset,
-      int clearsOffset,
-      int breaksOffset,
-      boolean separator,
-      byte alignment) {
-    builder.startTable(11);
-    TextData.addBreaks(builder, breaksOffset);
-    TextData.addClears(builder, clearsOffset);
-    TextData.addFloatClips(builder, floatClipsOffset);
-    TextData.addSpans(builder, spansOffset);
-    TextData.addBands(builder, bandsOffset);
-    TextData.addInlineBlocks(builder, inlineBlocksOffset);
-    TextData.addStyle(builder, styleOffset);
-    TextData.addText(builder, textOffset);
-    TextData.addAlignment(builder, alignment);
-    TextData.addSeparator(builder, separator);
-    TextData.addWhiteSpace(builder, whiteSpace);
-    return TextData.endTextData(builder);
-  }
+    public static TextData getRootAsTextData(ByteBuffer _bb) {
+        return getRootAsTextData(_bb, new TextData());
+    }
 
-  public static void startTextData(FlatBufferBuilder builder) { builder.startTable(11); }
-  public static void addText(FlatBufferBuilder builder, int textOffset) { builder.addOffset(0, textOffset, 0); }
-  public static void addStyle(FlatBufferBuilder builder, int styleOffset) { builder.addOffset(1, styleOffset, 0); }
-  public static void addWhiteSpace(FlatBufferBuilder builder, byte whiteSpace) { builder.addByte(2, whiteSpace, 0); }
-  public static void addInlineBlocks(FlatBufferBuilder builder, int inlineBlocksOffset) { builder.addOffset(3, inlineBlocksOffset, 0); }
-  public static int createInlineBlocksVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
-  public static void startInlineBlocksVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addBands(FlatBufferBuilder builder, int bandsOffset) { builder.addOffset(4, bandsOffset, 0); }
-  public static int createBandsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
-  public static void startBandsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addSpans(FlatBufferBuilder builder, int spansOffset) { builder.addOffset(5, spansOffset, 0); }
-  public static int createSpansVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
-  public static void startSpansVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addFloatClips(FlatBufferBuilder builder, int floatClipsOffset) { builder.addOffset(6, floatClipsOffset, 0); }
-  public static int createFloatClipsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
-  public static void startFloatClipsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addClears(FlatBufferBuilder builder, int clearsOffset) { builder.addOffset(7, clearsOffset, 0); }
-  public static int createClearsVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
-  public static void startClearsVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addBreaks(FlatBufferBuilder builder, int breaksOffset) { builder.addOffset(8, breaksOffset, 0); }
-  public static int createBreaksVector(FlatBufferBuilder builder, long[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addInt((int) data[i]); return builder.endVector(); }
-  public static void startBreaksVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static void addSeparator(FlatBufferBuilder builder, boolean separator) { builder.addBoolean(9, separator, false); }
-  public static void addAlignment(FlatBufferBuilder builder, byte alignment) { builder.addByte(10, alignment, 0); }
-  public static int endTextData(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static TextData getRootAsTextData(ByteBuffer _bb, TextData obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public TextData get(int j) { return get(new TextData(), j); }
-    public TextData get(TextData obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public TextData __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public String text() {
+        int o = __offset(4);
+        return o != 0 ? __string(o + bb_pos) : null;
+    }
+
+    public ByteBuffer textAsByteBuffer() {
+        return __vector_as_bytebuffer(4, 1);
+    }
+
+    public ByteBuffer textInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 4, 1);
+    }
+
+    public TextStyle style() {
+        return style(new TextStyle());
+    }
+
+    public TextStyle style(TextStyle obj) {
+        int o = __offset(6);
+        return o != 0 ? obj.__assign(__indirect(o + bb_pos), bb) : null;
+    }
+
+    public byte whiteSpace() {
+        int o = __offset(8);
+        return o != 0 ? bb.get(o + bb_pos) : 0;
+    }
+
+    public InlineBlockRef inlineBlocks(int j) {
+        return inlineBlocks(new InlineBlockRef(), j);
+    }
+
+    public InlineBlockRef inlineBlocks(InlineBlockRef obj, int j) {
+        int o = __offset(10);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int inlineBlocksLength() {
+        int o = __offset(10);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public InlineBlockRef.Vector inlineBlocksVector() {
+        return inlineBlocksVector(new InlineBlockRef.Vector());
+    }
+
+    public InlineBlockRef.Vector inlineBlocksVector(InlineBlockRef.Vector obj) {
+        int o = __offset(10);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public TextBand bands(int j) {
+        return bands(new TextBand(), j);
+    }
+
+    public TextBand bands(TextBand obj, int j) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int bandsLength() {
+        int o = __offset(12);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public TextBand.Vector bandsVector() {
+        return bandsVector(new TextBand.Vector());
+    }
+
+    public TextBand.Vector bandsVector(TextBand.Vector obj) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public TextSpan spans(int j) {
+        return spans(new TextSpan(), j);
+    }
+
+    public TextSpan spans(TextSpan obj, int j) {
+        int o = __offset(14);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int spansLength() {
+        int o = __offset(14);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public TextSpan.Vector spansVector() {
+        return spansVector(new TextSpan.Vector());
+    }
+
+    public TextSpan.Vector spansVector(TextSpan.Vector obj) {
+        int o = __offset(14);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public FloatClip floatClips(int j) {
+        return floatClips(new FloatClip(), j);
+    }
+
+    public FloatClip floatClips(FloatClip obj, int j) {
+        int o = __offset(16);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int floatClipsLength() {
+        int o = __offset(16);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FloatClip.Vector floatClipsVector() {
+        return floatClipsVector(new FloatClip.Vector());
+    }
+
+    public FloatClip.Vector floatClipsVector(FloatClip.Vector obj) {
+        int o = __offset(16);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public ClearBreak clears(int j) {
+        return clears(new ClearBreak(), j);
+    }
+
+    public ClearBreak clears(ClearBreak obj, int j) {
+        int o = __offset(18);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int clearsLength() {
+        int o = __offset(18);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public ClearBreak.Vector clearsVector() {
+        return clearsVector(new ClearBreak.Vector());
+    }
+
+    public ClearBreak.Vector clearsVector(ClearBreak.Vector obj) {
+        int o = __offset(18);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public long breaks(int j) {
+        int o = __offset(20);
+        return o != 0 ? (long) bb.getInt(__vector(o) + j * 4) & 0xFFFFFFFFL : 0;
+    }
+
+    public int breaksLength() {
+        int o = __offset(20);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public IntVector breaksVector() {
+        return breaksVector(new IntVector());
+    }
+
+    public IntVector breaksVector(IntVector obj) {
+        int o = __offset(20);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer breaksAsByteBuffer() {
+        return __vector_as_bytebuffer(20, 4);
+    }
+
+    public ByteBuffer breaksInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 20, 4);
+    }
+
+    public boolean separator() {
+        int o = __offset(22);
+        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+    }
+
+    public byte alignment() {
+        int o = __offset(24);
+        return o != 0 ? bb.get(o + bb_pos) : 0;
+    }
+
+    public static int createTextData(FlatBufferBuilder builder, int textOffset, int styleOffset, byte whiteSpace,
+        int inlineBlocksOffset, int bandsOffset, int spansOffset, int floatClipsOffset, int clearsOffset,
+        int breaksOffset, boolean separator, byte alignment) {
+        builder.startTable(11);
+        TextData.addBreaks(builder, breaksOffset);
+        TextData.addClears(builder, clearsOffset);
+        TextData.addFloatClips(builder, floatClipsOffset);
+        TextData.addSpans(builder, spansOffset);
+        TextData.addBands(builder, bandsOffset);
+        TextData.addInlineBlocks(builder, inlineBlocksOffset);
+        TextData.addStyle(builder, styleOffset);
+        TextData.addText(builder, textOffset);
+        TextData.addAlignment(builder, alignment);
+        TextData.addSeparator(builder, separator);
+        TextData.addWhiteSpace(builder, whiteSpace);
+        return TextData.endTextData(builder);
+    }
+
+    public static void startTextData(FlatBufferBuilder builder) {
+        builder.startTable(11);
+    }
+
+    public static void addText(FlatBufferBuilder builder, int textOffset) {
+        builder.addOffset(0, textOffset, 0);
+    }
+
+    public static void addStyle(FlatBufferBuilder builder, int styleOffset) {
+        builder.addOffset(1, styleOffset, 0);
+    }
+
+    public static void addWhiteSpace(FlatBufferBuilder builder, byte whiteSpace) {
+        builder.addByte(2, whiteSpace, 0);
+    }
+
+    public static void addInlineBlocks(FlatBufferBuilder builder, int inlineBlocksOffset) {
+        builder.addOffset(3, inlineBlocksOffset, 0);
+    }
+
+    public static int createInlineBlocksVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startInlineBlocksVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addBands(FlatBufferBuilder builder, int bandsOffset) {
+        builder.addOffset(4, bandsOffset, 0);
+    }
+
+    public static int createBandsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startBandsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addSpans(FlatBufferBuilder builder, int spansOffset) {
+        builder.addOffset(5, spansOffset, 0);
+    }
+
+    public static int createSpansVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startSpansVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addFloatClips(FlatBufferBuilder builder, int floatClipsOffset) {
+        builder.addOffset(6, floatClipsOffset, 0);
+    }
+
+    public static int createFloatClipsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startFloatClipsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addClears(FlatBufferBuilder builder, int clearsOffset) {
+        builder.addOffset(7, clearsOffset, 0);
+    }
+
+    public static int createClearsVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startClearsVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addBreaks(FlatBufferBuilder builder, int breaksOffset) {
+        builder.addOffset(8, breaksOffset, 0);
+    }
+
+    public static int createBreaksVector(FlatBufferBuilder builder, long[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addInt((int) data[i]);
+        return builder.endVector();
+    }
+
+    public static void startBreaksVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static void addSeparator(FlatBufferBuilder builder, boolean separator) {
+        builder.addBoolean(9, separator, false);
+    }
+
+    public static void addAlignment(FlatBufferBuilder builder, byte alignment) {
+        builder.addByte(10, alignment, 0);
+    }
+
+    public static int endTextData(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public TextData get(int j) {
+            return get(new TextData(), j);
+        }
+
+        public TextData get(TextData obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

@@ -15,12 +15,12 @@ import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
-import com.hfstudio.guidenh.guide.document.block.ImageRegionAnnotation;
-import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.ContentAlign;
 import com.hfstudio.guidenh.guide.document.block.ContentWrapMode;
+import com.hfstudio.guidenh.guide.document.block.ImageRegionAnnotation;
 import com.hfstudio.guidenh.guide.document.block.LytAlignedBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytDocumentFloat;
 import com.hfstudio.guidenh.guide.document.block.LytImageBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -113,9 +113,9 @@ public class FloatingImageCompiler implements TagCompiler {
      * <p>
      * Used by:
      * <ul>
-     *   <li>{@link #compileFlowContext} – the parent is the actual flow container</li>
-     *   <li>{@link #compileBlockContext} inline fallback – the parent is a freshly
-     *       created {@link LytParagraph} that will be appended to the block container</li>
+     * <li>{@link #compileFlowContext} – the parent is the actual flow container</li>
+     * <li>{@link #compileBlockContext} inline fallback – the parent is a freshly
+     * created {@link LytParagraph} that will be appended to the block container</li>
      * </ul>
      */
     private void compileInline(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
@@ -160,7 +160,8 @@ public class FloatingImageCompiler implements TagCompiler {
      * @return the fully‑configured {@link LytImageBlock}, or {@code null} on parse failure
      */
     @Nullable
-    private static LytImageBlock buildImageBlock(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
+    private static LytImageBlock buildImageBlock(PageCompiler compiler, LytErrorSink errorSink,
+        MdxJsxElementFields el) {
         var src = el.getAttributeString("src", null);
         if (src == null || src.trim()
             .isEmpty()) {
@@ -335,7 +336,8 @@ public class FloatingImageCompiler implements TagCompiler {
         return new ImageRegionAnnotation(ax, ay, aw, ah, showBorder, borderColor, borderThickness);
     }
 
-    private static GuideSoundTrigger parseTrigger(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
+    private static GuideSoundTrigger parseTrigger(PageCompiler compiler, LytErrorSink errorSink,
+        MdxJsxElementFields el) {
         return GuideSoundTrigger
             .parse(MdxAttrs.getString(compiler, errorSink, el, "trigger", null), GuideSoundTrigger.CLICK);
     }
@@ -373,11 +375,13 @@ public class FloatingImageCompiler implements TagCompiler {
             return null;
         }
         boolean hasWidth = (widthValue != null && !widthValue.trim()
-            .isEmpty()) || (widthAlias != null && !widthAlias.trim()
-                .isEmpty());
+            .isEmpty()) || (widthAlias != null
+                && !widthAlias.trim()
+                    .isEmpty());
         boolean hasHeight = (heightValue != null && !heightValue.trim()
-            .isEmpty()) || (heightAlias != null && !heightAlias.trim()
-                .isEmpty());
+            .isEmpty()) || (heightAlias != null
+                && !heightAlias.trim()
+                    .isEmpty());
         // F-N1: a single explicit dimension (width-only or height-only) is a
         // valid whole-image display size; only the "both missing" case is an
         // error.
@@ -427,8 +431,8 @@ public class FloatingImageCompiler implements TagCompiler {
      * but malformed value appends an error and returns {@code null}.
      */
     @Nullable
-    private static Integer parseAliasedIntAttr(PageCompiler compiler, LytErrorSink errorSink,
-        MdxJsxElementFields el, String primaryName, String aliasName) {
+    private static Integer parseAliasedIntAttr(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el,
+        String primaryName, String aliasName) {
         String primaryValue = el.getAttributeString(primaryName, null);
         String aliasValue = el.getAttributeString(aliasName, null);
         if (primaryValue != null && aliasValue != null) {

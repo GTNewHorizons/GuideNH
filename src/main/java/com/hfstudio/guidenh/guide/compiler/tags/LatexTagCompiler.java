@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
+import org.scilab.forge.jlatexmath.TeXConstants;
+
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
@@ -93,7 +95,7 @@ public class LatexTagCompiler implements TagCompiler {
         return new LytLatexBlock(
             formula,
             LatexRenderOptions.builder()
-                .style(org.scilab.forge.jlatexmath.TeXConstants.STYLE_TEXT)
+                .style(TeXConstants.STYLE_TEXT)
                 .fillColorArgb(fillColor)
                 .sourceScale(sourceScale)
                 .userScale(userScale)

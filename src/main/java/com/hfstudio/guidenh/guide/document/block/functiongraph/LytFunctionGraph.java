@@ -77,19 +77,29 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     // ---- Exposure for serializer precomputation (no flatc available) ----
 
     /** @see #TITLE_GAP */
-    public static int getTitleGapConstant() { return TITLE_GAP; }
+    public static int getTitleGapConstant() {
+        return TITLE_GAP;
+    }
 
     /** @see #TITLE_STYLE */
-    public static ResolvedTextStyle getTitleStyle() { return TITLE_STYLE; }
+    public static ResolvedTextStyle getTitleStyle() {
+        return TITLE_STYLE;
+    }
 
     /** @see #LEGEND_LABEL_STYLE */
-    public static ResolvedTextStyle getLegendLabelStyle() { return LEGEND_LABEL_STYLE; }
+    public static ResolvedTextStyle getLegendLabelStyle() {
+        return LEGEND_LABEL_STYLE;
+    }
 
     /** @see #LEGEND_SWATCH_SIZE */
-    public static int getLegendSwatchSize() { return LEGEND_SWATCH_SIZE; }
+    public static int getLegendSwatchSize() {
+        return LEGEND_SWATCH_SIZE;
+    }
 
     /** @see #LEGEND_SWATCH_TEXT_GAP */
-    public static int getLegendSwatchTextGap() { return LEGEND_SWATCH_TEXT_GAP; }
+    public static int getLegendSwatchTextGap() {
+        return LEGEND_SWATCH_TEXT_GAP;
+    }
 
     @Getter
     private final List<FunctionPlot> plots = new ArrayList<>();

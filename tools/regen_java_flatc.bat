@@ -17,9 +17,15 @@ rem    --help / -h            usage
 rem ============================================================
 
 for %%I in ("%~dp0..") do set "REPO_ROOT=%%~fI"
-set "SCHEMA=%REPO_ROOT%\layout-engine\schema\guidenh_layout.fbs"
+if defined GUIDENH_FLATBUFFERS_SCHEMA set "SCHEMA=!GUIDENH_FLATBUFFERS_SCHEMA!"
 set "JAVA_DST=%REPO_ROOT%\src\main\java\com\hfstudio\guidenh\guide\layout\flatbuffers"
 set "SCRIPT_NAME=%~nx0"
+
+if not defined SCHEMA (
+  echo [ERROR] GUIDENH_FLATBUFFERS_SCHEMA is not set.
+  echo   Provide the schema file explicitly when regenerating FlatBuffers classes.
+  exit /b 1
+)
 
 rem ---- argument parsing ----
 set "MODE=apply"
@@ -56,23 +62,12 @@ rem ---- 1) locate flatc ----
 set "FLATC_BIN="
 if defined FLATC (
   set "FLATC_BIN=!FLATC!"
-) else (
-  for %%R in (E:\build_out\guide_nh_rust\debug\build E:\build_out\guide_nh_rust\release\build) do (
-    if not defined FLATC_BIN (
-      for /f "delims=" %%D in ('dir /b /ad /o-d "%%~R\flatc-*" 2^>nul') do (
-        if not defined FLATC_BIN (
-          if exist "%%~R\%%~D\out\bin\flatc.exe" set "FLATC_BIN=%%~R\%%~D\out\bin\flatc.exe"
-        )
-      )
-    )
-  )
+) else if exist "%ProgramFiles%\flatbuffers\flatc.exe" (
+  set "FLATC_BIN=%ProgramFiles%\flatbuffers\flatc.exe"
 )
 if not defined FLATC_BIN (
   echo [ERROR] flatc.exe not found.
-  echo   Option 1: build Rust side first to produce flatc:
-  echo            cd layout-engine ^&^& cargo build --release
-  echo            ^(expect it under E:\build_out\guide_nh_rust\{debug,release}\build\flatc-*\out\bin\flatc.exe^)
-  echo   Option 2: set env var FLATC to point at flatc.exe
+  echo   Set env var FLATC to point at flatc.exe.
   exit /b 1
 )
 echo [ok] flatc located : !FLATC_BIN!
@@ -85,7 +80,7 @@ if errorlevel 1 (
   echo [ERROR] flatc version must be 23.5.26 ^(got: !FLATC_VERSION!^)
   echo         Java generated classes carry a Constants.FLATBUFFERS_23_5_26 version
   echo         guard and must match the flatbuffers-java runtime version.
-  echo         See layout-engine/schema/README.md section 4 for upgrade policy.
+  echo         Check the schema and runtime versions before regenerating.
   exit /b 1
 )
 echo [ok] flatc version : !FLATC_VERSION!
@@ -187,11 +182,10 @@ echo   --help / -h   show this help.
 echo.
 echo Prerequisites:
 echo   - flatc: env var FLATC wins; otherwise searched newest-first under
-echo     E:\build_out\guide_nh_rust\{debug,release}\build\flatc-*\out\bin\flatc.exe
-echo     ^(produced by cargo build --release in layout-engine via the flatc crate^)
+echo     Set FLATC to the flatc executable.
 echo   - flatc version must be 23.5.26 ^(= flatbuffers-java runtime; generated classes
 echo     carry the FLATBUFFERS_23_5_26 version guard^)
-echo   - schema: layout-engine\schema\guidenh_layout.fbs
+echo   - schema: GUIDENH_FLATBUFFERS_SCHEMA
 echo.
-echo See layout-engine\schema\README.md for change flow / version / wire-compat policy.
+echo Keep schema changes append-only to preserve wire compatibility.
 exit /b 0

@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.document.LytPoint;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
@@ -248,7 +249,7 @@ public abstract class LytBlock extends LytNode {
      *
      * @return a clip rect in document coordinates, or null for no clipping
      */
-    public @org.jetbrains.annotations.Nullable LytRect getChildrenClipRect() {
+    public @Nullable LytRect getChildrenClipRect() {
         return null;
     }
 

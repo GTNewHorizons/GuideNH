@@ -216,10 +216,8 @@ The Gradle build defines several tasks under the `verification` group:
 
 | Task | Description |
 |---|---|
-| `runGlyphTest` | Runs `GlyphRenderTest` — visual glyph verification window. Requires built Rust DLL. |
-| `runGlyphDiag` | Runs `GlyphDiag` — headless glyph data diagnostic. |
-| `runLayoutDump` | Runs `LayoutPipelineHarness` — headless layout pipeline verification. |
-| `runParleySmoke` | Headless A/B comparison of `cosmic renderText` vs `parley renderTextParley`. |
+| `test` | Runs the Java compiler, layout adapter, parser, and diagnostics regression tests. |
+| `shadowJar` | Builds the distributable jar with the taffy-java backend included. |
 
 **TOTAL ISSUES determination**: The gating criterion for the visual inspection pipeline is the combined finding count after triage. A batch is considered passing when:
 - The render command exits 0,
@@ -229,7 +227,7 @@ The Gradle build defines several tasks under the `verification` group:
 
 The geometric and VLM screening outputs feed into the K3 adjudication process; merged reports are compared against the issue registry (see `ISSUES.md`) to determine whether any new real engine defects have appeared.
 
-**Rust native dependency**: Tasks that exercise the layout engine require the built DLL at `E:/build_out/guide_nh_rust/release/guide_layout_engine.dll` (or the in-tree fallback `layout-engine/target/release/guide_layout_engine.dll`). Build with `./gradlew buildRustNative`.
+**Layout backend**: Layout verification uses the embedded taffy-java implementation. No Rust compiler, JNI library, or native DLL is required.
 
 ---
 

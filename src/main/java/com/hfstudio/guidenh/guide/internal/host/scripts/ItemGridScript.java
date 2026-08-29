@@ -50,13 +50,15 @@ public class ItemGridScript implements LytScript {
     @Nullable
     private static ItemStack resolveEntry(ItemGridEntry entry) {
         // Prefer the direct item id; fall back to the ore dictionary name.
-        if (entry.id() != null && !entry.id().isEmpty()) {
+        if (entry.id() != null && !entry.id()
+            .isEmpty()) {
             ItemStack stack = GuideDisplayItemStacks.resolveItemStack(entry.id(), "minecraft");
             if (stack != null) {
                 return stack;
             }
         }
-        if (entry.ore() != null && !entry.ore().isEmpty()) {
+        if (entry.ore() != null && !entry.ore()
+            .isEmpty()) {
             return GuideDisplayItemStacks.resolveOreStack(entry.ore());
         }
         return null;

@@ -123,17 +123,18 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
             return ROW_HEIGHT;
         }
         int columnCount = Math.max(1, rows);
-        List<MediaWikiListPlanner.MediaWikiListColumn> columns =
-            MediaWikiListPlanner.planColumns(entries, columnCount);
+        List<MediaWikiListPlanner.MediaWikiListColumn> columns = MediaWikiListPlanner.planColumns(entries, columnCount);
         int maxColumnHeight = 0;
         for (MediaWikiListPlanner.MediaWikiListColumn column : columns) {
             int columnHeight = 0;
             for (MediaWikiListPlanner.MediaWikiListSection section : column.sections()) {
-                if (!section.entries().isEmpty()) {
+                if (!section.entries()
+                    .isEmpty()) {
                     columnHeight += SECTION_GAP_TOP;
                 }
                 columnHeight += HEADER_HEIGHT + SECTION_GAP_BOTTOM;
-                columnHeight += section.entries().size() * ROW_HEIGHT;
+                columnHeight += section.entries()
+                    .size() * ROW_HEIGHT;
             }
             maxColumnHeight = Math.max(maxColumnHeight, columnHeight);
         }
@@ -157,23 +158,23 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
         int innerWidth = Math.max(0, availableWidth - SIDE_PADDING * 2);
         int columnWidth = Math.max(1, (innerWidth - COLUMN_GAP * (columnCount - 1)) / columnCount);
         if (entries.isEmpty()) {
-            rowLayouts.add(
-                new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ROW_HEIGHT), null, null));
+            rowLayouts
+                .add(new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ROW_HEIGHT), null, null));
             return;
         }
-        List<MediaWikiListPlanner.MediaWikiListColumn> columns =
-            MediaWikiListPlanner.planColumns(entries, columnCount);
+        List<MediaWikiListPlanner.MediaWikiListColumn> columns = MediaWikiListPlanner.planColumns(entries, columnCount);
         for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
             int columnX = x + SIDE_PADDING + columnIndex * (columnWidth + COLUMN_GAP);
             int columnY = y + TOP_PADDING;
-            for (var section : columns.get(columnIndex).sections()) {
-                if (!section.entries().isEmpty()) columnY += SECTION_GAP_TOP;
-                rowLayouts.add(
-                    new RowLayout(new LytRect(columnX, columnY, columnWidth, HEADER_HEIGHT), null, section.key()));
+            for (var section : columns.get(columnIndex)
+                .sections()) {
+                if (!section.entries()
+                    .isEmpty()) columnY += SECTION_GAP_TOP;
+                rowLayouts
+                    .add(new RowLayout(new LytRect(columnX, columnY, columnWidth, HEADER_HEIGHT), null, section.key()));
                 columnY += HEADER_HEIGHT + SECTION_GAP_BOTTOM;
                 for (MediaWikiListEntry entry : section.entries()) {
-                    rowLayouts.add(
-                        new RowLayout(new LytRect(columnX, columnY, columnWidth, ROW_HEIGHT), entry, null));
+                    rowLayouts.add(new RowLayout(new LytRect(columnX, columnY, columnWidth, ROW_HEIGHT), entry, null));
                     columnY += ROW_HEIGHT;
                 }
             }
@@ -185,8 +186,7 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
         recomputeRowLayouts(x, y, availableWidth);
         // maxPrecomputedContentHeight has a lazy getter — it will be
         // computed on demand if not set here.
-        return new LytRect(x, y, availableWidth,
-            TOP_PADDING + getMaxPrecomputedContentHeight() + BOTTOM_PADDING);
+        return new LytRect(x, y, availableWidth, TOP_PADDING + getMaxPrecomputedContentHeight() + BOTTOM_PADDING);
     }
 
     @Override

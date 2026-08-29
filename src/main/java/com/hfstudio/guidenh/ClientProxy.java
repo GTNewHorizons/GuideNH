@@ -18,8 +18,6 @@ import com.hfstudio.guidenh.client.hotkey.OpenSceneEditorHotkey;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.DefaultGuideResourcePackManager;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePackWatcher;
-import com.hfstudio.guidenh.guide.internal.headless.GuideNhHeadlessWindow;
-import com.hfstudio.guidenh.guide.internal.headless.GuideNhHeadlessRenderDriver;
 import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
@@ -48,6 +46,8 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.NumericV
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.OreDictProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.PageReferenceProvider;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.TagNameProvider;
+import com.hfstudio.guidenh.guide.internal.headless.GuideNhHeadlessRenderDriver;
+import com.hfstudio.guidenh.guide.internal.headless.GuideNhHeadlessWindow;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
 import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
@@ -89,10 +89,10 @@ import com.hfstudio.guidenh.network.GuideNhRegionExportClientHandler;
 import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
 import com.hfstudio.structurelibexport.StructureExportBootstrap;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
-import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
@@ -250,16 +250,14 @@ public class ClientProxy extends CommonProxy {
         GuideOnStartup.init();
 
         if (Boolean.getBoolean("guidenh.headlessRender")) {
-            GuideNhHeadlessRenderDriver.HeadlessRenderConfig config =
-                GuideNhHeadlessRenderDriver.parseConfig();
+            GuideNhHeadlessRenderDriver.HeadlessRenderConfig config = GuideNhHeadlessRenderDriver.parseConfig();
             if (config == null) {
-                GuideDebugLog.error(
-                    "[GuideNH] [HeadlessRender] Invalid headless render configuration, exiting");
-                FMLCommonHandler.instance().exitJava(1, false);
+                GuideDebugLog.error("[GuideNH] [HeadlessRender] Invalid headless render configuration, exiting");
+                FMLCommonHandler.instance()
+                    .exitJava(1, false);
                 return;
             }
-            GuideDebugLog.infoAlways(
-                "[GuideNH] [HeadlessRender] Registering headless render driver");
+            GuideDebugLog.infoAlways("[GuideNH] [HeadlessRender] Registering headless render driver");
             FMLCommonHandler.instance()
                 .bus()
                 .register(new GuideNhHeadlessRenderDriver(config));

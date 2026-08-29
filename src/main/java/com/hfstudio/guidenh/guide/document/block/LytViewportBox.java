@@ -4,6 +4,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 
+import lombok.Setter;
+
 /**
  * A scroll viewport: a plain vertical container that clips its children to its
  * own bounds. Used by scroll containers (code blocks, size boxes, details
@@ -15,13 +17,10 @@ import com.hfstudio.guidenh.guide.document.LytRect;
  * {@link #setExplicitHeight(int)} so the layout engine reserves exactly that
  * height; otherwise the viewport grows with its content (no scrolling).
  */
+@Setter
 public class LytViewportBox extends LytVBox {
 
     private int explicitHeight = -1;
-
-    public void setExplicitHeight(int explicitHeight) {
-        this.explicitHeight = explicitHeight;
-    }
 
     @Override
     public int getExplicitHeight() {

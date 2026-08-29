@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -130,7 +131,7 @@ public class LytGuiSprite extends LytBlock implements InteractiveElement {
                 float u2 = (float) (sprite.getU() + sprite.getWidth()) / sprite.getTexWidth();
                 float v2 = (float) (sprite.getV() + sprite.getHeight()) / sprite.getTexHeight();
                 ColorValue tint = hovered && hoverColor != null ? hoverColor : color;
-                int argb = tint.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
+                int argb = tint.resolve(LightDarkMode.current());
                 c.emit(
                     new GuideRenderPrimitive.BlitTexture(
                         texId,

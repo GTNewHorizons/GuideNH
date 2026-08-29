@@ -77,7 +77,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
     /**
      * Exact jlatexmath math-baseline ratio from
      * {@code GuideLatexRenderer.measureBaselineRatio} (see
-     * {@link TeXIcon#getBaseLine()}: baseline distance from the icon top as a
+     * {@link org.scilab.forge.jlatexmath.TeXIcon#getBaseLine()}: baseline distance from the icon top as a
      * fraction of the icon's total height, insets included, in [0,1]). Used
      * instead of a source-pixel depth so the display depth is rounded exactly
      * once, at display resolution.
@@ -116,9 +116,17 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
 
     public LytLatexBlock(String formula, int fillColorArgb, float sourceScale, float userScale,
         @Nullable GuideTooltip tooltip, LatexVerticalAlign valign, int offsetX, int offsetY) {
-        this(formula,
-            new LatexRenderOptions(TeXConstants.STYLE_DISPLAY, fillColorArgb, sourceScale, userScale, tooltip, valign,
-                offsetX, offsetY));
+        this(
+            formula,
+            new LatexRenderOptions(
+                TeXConstants.STYLE_DISPLAY,
+                fillColorArgb,
+                sourceScale,
+                userScale,
+                tooltip,
+                valign,
+                offsetX,
+                offsetY));
     }
 
     public LytLatexBlock(String formula, LatexRenderOptions options) {
@@ -250,7 +258,8 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
         sourceWidthPx = size[0];
         sourceHeightPx = size[1];
         sourceRefHeightPx = GuideLatexRenderer.INSTANCE.calibrateRefHeight(sourceScale);
-        sourceBaseLineRatio = GuideLatexRenderer.INSTANCE.measureBaselineRatio(formula, fillColorArgb, sourceScale, style);
+        sourceBaseLineRatio = GuideLatexRenderer.INSTANCE
+            .measureBaselineRatio(formula, fillColorArgb, sourceScale, style);
         return sourceWidthPx > 0 && sourceHeightPx > 0;
     }
 
@@ -262,11 +271,13 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
      * ({@link GuideText#ascent()} is the ascent ≈0.75-0.85em, which still
      * leaves formula letters ≈1.4-1.6× larger than the ≈0.5em x-height).
      *
-     * <p>The inline flow carries no style context (the line height is queried
+     * <p>
+     * The inline flow carries no style context (the line height is queried
      * with a {@code null} style, i.e. font scale 1), so the target is
      * {@link GuideText#xHeight()} at the base font scale.
      *
-     * <p>The exact x-height target is then multiplied by
+     * <p>
+     * The exact x-height target is then multiplied by
      * {@link #INLINE_PERCEPTUAL_FACTOR} (×1.2): matching the raw x-height was
      * still perceptually too small next to CJK body text, because TeX math
      * glyphs follow their own design conventions (a lower x-height relative to
@@ -292,7 +303,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
      * side, which made this subtraction undershoot the real content by 36px
      * and shrank inline formulas to ≈0.67× the body x-height.
      */
-    private float inlineScaleFactor() {
+    public float inlineScaleFactor() {
         float contentRefHeight = Math.max(1f, sourceRefHeightPx - LATEX_INSET_PX);
         return inlineCalibrationTarget() * userScale / contentRefHeight;
     }
@@ -307,14 +318,14 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
      * replaces the old double rounding (content ceil + separately rounded
      * scaled inset) and can never clip the glyph.
      */
-    private int scaleSourceMetricCeil(int sourceMetric, float scaleFactor) {
+    public int scaleSourceMetricCeil(int sourceMetric, float scaleFactor) {
         return Math.max(1, (int) Math.ceil(sourceMetric * scaleFactor));
     }
 
     /**
      * Display distance from the formula's math baseline to the icon bottom,
      * derived directly from the exact jlatexmath baseline ratio instead of a
-     * source-pixel depth. {@link TeXIcon#getBaseLine()} returns the distance
+     * source-pixel depth. {@link org.scilab.forge.jlatexmath.TeXIcon#getBaseLine()} returns the distance
      * from the icon's top edge to its math baseline as a fraction of the
      * icon's total height (the true 2px/side insets of the two-arg
      * {@code setInsets(insets, true)} included), so the math baseline sits
@@ -328,7 +339,7 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
      * of the icon height the ratio is measured against.
      */
     private int scaleSourceDepthFromBaseline(float baseLineRatio, int formulaDisplayH) {
-        return Math.max(0, (int) Math.round(formulaDisplayH * (1f - baseLineRatio)));
+        return Math.max(0, Math.round(formulaDisplayH * (1f - baseLineRatio)));
     }
 
     @Override

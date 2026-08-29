@@ -6,6 +6,7 @@ import java.util.Optional;
 import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class LytCyclingItemImage extends LytItemImage {
@@ -30,7 +31,7 @@ public class LytCyclingItemImage extends LytItemImage {
     }
 
     @Override
-    public void computePrimitives(com.hfstudio.guidenh.guide.render.PrimitiveCollector c) {
+    public void computePrimitives(PrimitiveCollector c) {
         // Swap in the currently displayed stack before collecting (per-second
         // cycling, evaluated fresh each frame).
         this.stack = currentStack();

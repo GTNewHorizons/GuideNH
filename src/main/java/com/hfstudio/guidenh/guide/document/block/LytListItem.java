@@ -43,10 +43,10 @@ public class LytListItem extends LytVBox {
     @Override
     protected LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth) {
         // Manual layout path — only reached from layoutContentSubtree for Mermaid
-        // NodeContent (no Rust pass).  paddingLeft (LEVEL_MARGIN) is already
+        // NodeContent (no Rust pass). paddingLeft (LEVEL_MARGIN) is already
         // applied by LytBox.computeLayout before this method; the extra margin
         // below creates content indentation leaving the bullet/number zone
-        // visible.  Normal document pipeline bypasses this (Rust is authoritative).
+        // visible. Normal document pipeline bypasses this (Rust is authoritative).
         var margin = LEVEL_MARGIN;
         int cursorY = y;
         int contentAvailWidth = Math.max(1, availableWidth - margin);

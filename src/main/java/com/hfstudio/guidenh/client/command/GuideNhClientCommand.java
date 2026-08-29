@@ -26,6 +26,7 @@ import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.editor.SceneEditorScreen;
+import com.hfstudio.guidenh.guide.internal.headless.RenderPageService;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExportMode;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandItem;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
@@ -34,12 +35,11 @@ import com.hfstudio.guidenh.guide.internal.localization.GuidePageLangDumpTask;
 import com.hfstudio.guidenh.guide.internal.structure.GuideNhStructureExportAccess;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureCoordinateParser;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureVolume;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.siteexport.ExportTask;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportOptions;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteExportTask;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteOutputPaths;
-import com.hfstudio.guidenh.guide.internal.headless.RenderPageService;
-import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideNhClientCommand extends CommandBase {
 
@@ -48,8 +48,8 @@ public class GuideNhClientCommand extends CommandBase {
         "renderpage" };
     public static final String[] EXPORT_STRUCTURE_FLAGS = { "--mode", "snbt", "snbt_e", "blocks", "blocks_e" };
     public static final String[] EXPORT_SITE_FLAGS = { "--ponder-frames", "--ponder-every-tick" };
-    public static final String[] RENDERPAGE_FLAGS = { "--guide", "--page", "--md", "--width", "--out", "--lang", "--bounds",
-        "--overlay", "--scale" };
+    public static final String[] RENDERPAGE_FLAGS = { "--guide", "--page", "--md", "--width", "--out", "--lang",
+        "--bounds", "--overlay", "--scale" };
 
     @Override
     public String getCommandName() {
@@ -448,8 +448,9 @@ public class GuideNhClientCommand extends CommandBase {
         RenderPageOptions opts = parseRenderPageOptions(args);
 
         if (opts.guideId() == null) {
-            sender.addChatMessage(new ChatComponentText(
-                "§cUsage: /guidenhc renderpage --guide <guideId> [--page <pageId> | --md <path>] [--width <px>] [--out <dir>] [--lang <lang>] [--bounds] [--overlay] [--scale <1-4>]"));
+            sender.addChatMessage(
+                new ChatComponentText(
+                    "§cUsage: /guidenhc renderpage --guide <guideId> [--page <pageId> | --md <path>] [--width <px>] [--out <dir>] [--lang <lang>] [--bounds] [--overlay] [--scale <1-4>]"));
             return;
         }
 
@@ -465,8 +466,9 @@ public class GuideNhClientCommand extends CommandBase {
         }
 
         if (opts.widthError() != null) {
-            sender.addChatMessage(new ChatComponentText(
-                "§cInvalid --width value: '" + opts.widthError() + "', should be integer between 100-4096"));
+            sender.addChatMessage(
+                new ChatComponentText(
+                    "§cInvalid --width value: '" + opts.widthError() + "', should be integer between 100-4096"));
             return;
         }
 
@@ -476,8 +478,9 @@ public class GuideNhClientCommand extends CommandBase {
         }
 
         if (opts.scaleError() != null) {
-            sender.addChatMessage(new ChatComponentText(
-                "§cInvalid --scale value: '" + opts.scaleError() + "', must be integer between 1-4"));
+            sender.addChatMessage(
+                new ChatComponentText(
+                    "§cInvalid --scale value: '" + opts.scaleError() + "', must be integer between 1-4"));
             return;
         }
         if (opts.scale() < 1 || opts.scale() > 4) {
@@ -496,15 +499,18 @@ public class GuideNhClientCommand extends CommandBase {
                     opts.outDir(),
                     opts.emitBoundsJson(),
                     opts.emitDebugOverlay(),
-                    opts.scale()
-                )
-            );
-            sender.addChatMessage(new ChatComponentText(
-                String.format("§aRenderPage success: PNG=%s, %dx%dpx, %d blocks",
-                    result.pngPath(), result.widthPx(), result.heightPx(), result.blockCount())));
+                    opts.scale()));
+            sender.addChatMessage(
+                new ChatComponentText(
+                    String.format(
+                        "§aRenderPage success: PNG=%s, %dx%dpx, %d blocks",
+                        result.pngPath(),
+                        result.widthPx(),
+                        result.heightPx(),
+                        result.blockCount())));
         } catch (RenderPageService.RenderPageException e) {
-            sender.addChatMessage(new ChatComponentText(
-                String.format("§cRenderPage failed at %s: %s", e.getStage(), e.getMessage())));
+            sender.addChatMessage(
+                new ChatComponentText(String.format("§cRenderPage failed at %s: %s", e.getStage(), e.getMessage())));
         } catch (Throwable t) {
             sender.addChatMessage(new ChatComponentText("§cRenderPage internal error: " + getErrorMessage(t)));
             GuideDebugLog.error("RenderPage internal error", t);
@@ -517,7 +523,8 @@ public class GuideNhClientCommand extends CommandBase {
         Path mdFile = null;
         int width = 900;
         String widthError = null;
-        Path outDir = Minecraft.getMinecraft().mcDataDir.toPath().resolve("screenshots");
+        Path outDir = Minecraft.getMinecraft().mcDataDir.toPath()
+            .resolve("screenshots");
         String language = "en_us";
         boolean emitBoundsJson = false;
         boolean emitDebugOverlay = false;
@@ -547,7 +554,8 @@ public class GuideNhClientCommand extends CommandBase {
                     }
                 }
                 case "--out" -> {
-                    if (i + 1 < args.length) outDir = Paths.get(args[++i]).toAbsolutePath();
+                    if (i + 1 < args.length) outDir = Paths.get(args[++i])
+                        .toAbsolutePath();
                 }
                 case "--lang" -> {
                     if (i + 1 < args.length) language = args[++i];
@@ -567,7 +575,18 @@ public class GuideNhClientCommand extends CommandBase {
             }
         }
 
-        return new RenderPageOptions(guideId, pageId, mdFile, width, outDir, language, emitBoundsJson, emitDebugOverlay, widthError, scale, scaleError);
+        return new RenderPageOptions(
+            guideId,
+            pageId,
+            mdFile,
+            width,
+            outDir,
+            language,
+            emitBoundsJson,
+            emitDebugOverlay,
+            widthError,
+            scale,
+            scaleError);
     }
 
     private boolean requireSceneExportEnabled(ICommandSender sender) {
@@ -603,17 +622,7 @@ public class GuideNhClientCommand extends CommandBase {
     private record ExportStructureOptions(RegionWandExportMode mode, int coordinateStartIndex) {}
 
     @Desugar
-    private record RenderPageOptions(
-        String guideId,
-        String pageId,
-        Path mdFile,
-        int width,
-        Path outDir,
-        String language,
-        boolean emitBoundsJson,
-        boolean emitDebugOverlay,
-        String widthError,
-        int scale,
-        String scaleError
-    ) {}
+    private record RenderPageOptions(String guideId, String pageId, Path mdFile, int width, Path outDir,
+        String language, boolean emitBoundsJson, boolean emitDebugOverlay, String widthError, int scale,
+        String scaleError) {}
 }

@@ -1,67 +1,10 @@
 package com.hfstudio.guidenh.guide.layout;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+/** Java layout facade backed exclusively by taffy-java. */
+public class LayoutBridge {
 
-/**
- * JNI bridge to the Rust guide_layout_engine native library.
- * <p>
- * All methods are static. FontSystem handle is the only persistent state.
- * The native library is extracted from the classpath on first load.
- */
-public final class LayoutBridge {
-
-    private static boolean loaded;
-
-    static {
-        loadNative();
-    }
-
-    private static void loadNative() {
-        if (loaded) return;
-
-        // Allow override via system property for development/testing
-        String overridePath = System.getProperty("guide.native.lib.path");
-        if (overridePath != null && !overridePath.isEmpty()) {
-            System.load(overridePath);
-            loaded = true;
-            return;
-        }
-
-        // Extract native lib from classpath resources
-        String os = System.getProperty("os.name")
-            .toLowerCase();
-        String libName;
-        if (os.contains("win")) {
-            libName = "guide_layout_engine.dll";
-        } else if (os.contains("mac")) {
-            libName = "guide_layout_engine.dylib";
-        } else {
-            libName = "libguide_layout_engine.so";
-        }
-
-        String resourcePath = "/natives/" + libName;
-        try (InputStream is = LayoutBridge.class.getResourceAsStream(resourcePath)) {
-            if (is == null) {
-                throw new UnsatisfiedLinkError("Native library not found in classpath: " + resourcePath);
-            }
-            Path tmpFile = Files.createTempFile("guide_layout_engine_", libName);
-            tmpFile.toFile()
-                .deleteOnExit();
-            Files.copy(is, tmpFile, StandardCopyOption.REPLACE_EXISTING);
-            System.load(
-                tmpFile.toAbsolutePath()
-                    .toString());
-            loaded = true;
-        } catch (IOException e) {
-            throw new UnsatisfiedLinkError("Failed to extract native library: " + e.getMessage());
-        }
-    }
-
-    private static long globalFontHandle;
+    private static final TaffyJavaLayoutEngine ENGINE = new TaffyJavaLayoutEngine();
+    private static volatile long globalFontHandle;
 
     /** Set the global font handle (called once after init()). */
     public static void setFontHandle(long handle) {
@@ -73,8 +16,12 @@ public final class LayoutBridge {
         return globalFontHandle;
     }
 
-    /** Load TTF font data and create a FontSystem. Returns opaque handle (long). */
-    public static native long init(byte[] fontTtfData, String locale);
+    /** Initializes the Java layout session. Font bytes are accepted for API compatibility. */
+    public static long init(byte[] fontTtfData, String locale) {
+        long handle = 1L;
+        setFontHandle(handle);
+        return handle;
+    }
 
     /**
      * Register fallback symbol-font data (e.g. seguisym.ttf) into the existing
@@ -84,7 +31,7 @@ public final class LayoutBridge {
      * @param handle       FontSystem handle from init()
      * @param fallbackData font file bytes, or empty array to skip
      */
-    public static native void loadFallbackFont(long handle, byte[] fallbackData);
+    public static void loadFallbackFont(long handle, byte[] fallbackData) {}
 
     /**
      * Measure the entire layout tree.
@@ -93,7 +40,14 @@ public final class LayoutBridge {
      * @param input  FlatBuffer-encoded LayoutInput bytes
      * @return FlatBuffer-encoded LayoutResult bytes, or empty byte[] on failure
      */
-    public static native byte[] measureLayout(long handle, byte[] input);
+    public static byte[] measureLayout(long handle, byte[] input) {
+        if (handle == 0L || handle != globalFontHandle) return new byte[0];
+        try {
+            return ENGINE.compute(input);
+        } catch (RuntimeException ignored) {
+            return new byte[0];
+        }
+    }
 
     /**
      * Shape + rasterize one styled text (unified text pipeline entry).
@@ -103,10 +57,14 @@ public final class LayoutBridge {
      * @return FlatBuffer-encoded ShapeTextResult bytes (atlas-keyed quads +
      *         metrics), or empty byte[] on failure
      */
-    public static native byte[] shapeText(long handle, byte[] input);
+    public static byte[] shapeText(long handle, byte[] input) {
+        return new byte[0];
+    }
 
     /** Destroy the FontSystem and free native memory. */
-    public static native void destroy(long handle);
+    public static void destroy(long handle) {
+        if (handle == globalFontHandle) globalFontHandle = 0L;
+    }
 
     private LayoutBridge() {}
 }

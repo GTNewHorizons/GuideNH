@@ -32,7 +32,8 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
  * the ink left edge sits exactly {@code PAD} px from the cell's left edge
  * (fixes "ItemLink icon sits too close to the item name / inconsistent gap").
  *
- * <p>Pixel reads are inherently best-effort. The primary source is the atlas
+ * <p>
+ * Pixel reads are inherently best-effort. The primary source is the atlas
  * sprite's CPU frame data ({@link TextureAtlasSprite#getFrameTextureData(int)}),
  * which is present for animated sprites (compass/clock) but cleared for static
  * sprites after the atlas upload — in that case the source PNG is loaded from
@@ -41,7 +42,8 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
  * path return {@code null} so the caller keeps its legacy 16px-cell behavior
  * with zero regression.
  *
- * <p>Results are cached statically keyed by {@code item:meta} (mirrors
+ * <p>
+ * Results are cached statically keyed by {@code item:meta} (mirrors
  * {@link com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks}), so
  * per-frame stack swapping (e.g. {@link LytCyclingItemImage}) never pays the
  * pixel scan more than once per item meta.
@@ -114,9 +116,7 @@ public final class IconMetrics {
     private static IconMetrics compute(ItemStack stack, Item item, String key) {
         int passes;
         try {
-            passes = item.requiresMultipleRenderPasses()
-                ? Math.max(1, item.getRenderPasses(stack.getItemDamage()))
-                : 1;
+            passes = item.requiresMultipleRenderPasses() ? Math.max(1, item.getRenderPasses(stack.getItemDamage())) : 1;
         } catch (Throwable t) {
             warnOnce("passes:" + key, t);
             passes = 1;
@@ -205,13 +205,17 @@ public final class IconMetrics {
         // the same image the atlas stitched, always present on disk.
         BufferedImage img = loadIconImage(sprite.getIconName());
         if (img == null) {
-            warnOnce("png:" + key + ":" + pass, "[GuideNH] IconMetrics: no readable pixel source for {}; falling back to legacy 16px cell");
+            warnOnce(
+                "png:" + key + ":" + pass,
+                "[GuideNH] IconMetrics: no readable pixel source for {}; falling back to legacy 16px cell");
             return null;
         }
         int iw = img.getWidth();
         int ih = img.getHeight();
         if (iw <= 0 || ih <= 0) {
-            warnOnce("png:" + key + ":" + pass, "[GuideNH] IconMetrics: no readable pixel source for {}; falling back to legacy 16px cell");
+            warnOnce(
+                "png:" + key + ":" + pass,
+                "[GuideNH] IconMetrics: no readable pixel source for {}; falling back to legacy 16px cell");
             return null;
         }
         int[] pixels = img.getRGB(0, 0, iw, ih, null, 0, iw);
@@ -251,11 +255,8 @@ public final class IconMetrics {
         if (maxRight < 0) {
             return null;
         }
-        return new int[] {
-            Math.round(minLeft * ICON_UNIT_SIZE / w),
-            Math.round(minTop * ICON_UNIT_SIZE / h),
-            Math.round(maxRight * ICON_UNIT_SIZE / w),
-            Math.round(maxBottom * ICON_UNIT_SIZE / h) };
+        return new int[] { Math.round(minLeft * ICON_UNIT_SIZE / w), Math.round(minTop * ICON_UNIT_SIZE / h),
+            Math.round(maxRight * ICON_UNIT_SIZE / w), Math.round(maxBottom * ICON_UNIT_SIZE / h) };
     }
 
     /**
@@ -310,7 +311,11 @@ public final class IconMetrics {
     /** Reuses the {@code item:meta} key convention from GuideDisplayItemStacks. */
     private static String metaCacheKey(Item item, int meta) {
         Object name = Item.itemRegistry.getNameForObject(item);
-        return (name != null ? name.toString() : item.getClass().getName()) + ":" + meta;
+        return (name != null ? name.toString()
+            : item.getClass()
+                .getName())
+            + ":"
+            + meta;
     }
 
     private static void warnOnce(String key, String message) {

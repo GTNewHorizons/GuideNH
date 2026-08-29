@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
@@ -64,8 +65,8 @@ public final class MdAstToMdxConverter {
      * Matches a single attribute key=value pair inside {@code {...}}.
      * Supports unquoted values, double-quoted, and single-quoted values.
      */
-    private static final Pattern INLINE_ATTR_PAIR = Pattern.compile(
-        "(\\w+)=\"([^\"]*)\"|(\\w+)='([^']*)'|(\\w+)=(\\w+)");
+    private static final Pattern INLINE_ATTR_PAIR = Pattern
+        .compile("(\\w+)=\"([^\"]*)\"|(\\w+)='([^']*)'|(\\w+)=(\\w+)");
 
     private MdAstToMdxConverter() {}
 
@@ -249,10 +250,12 @@ public final class MdAstToMdxConverter {
                     // promote to block-level <img> so it goes through
                     // ImageCompiler.compileBlockContext and produces a proper
                     // LytAlignedBlock (instead of inline LytFlowInlineBlock).
-                    MdxJsxTextElement imgEl = (MdxJsxTextElement) p.children().get(0);
+                    MdxJsxTextElement imgEl = (MdxJsxTextElement) p.children()
+                        .get(0);
                     MdxJsxFlowElement flowImg = new MdxJsxFlowElement();
                     flowImg.setName("img");
-                    flowImg.attributes().addAll(imgEl.attributes());
+                    flowImg.attributes()
+                        .addAll(imgEl.attributes());
                     replacement = flowImg;
                 } else {
                     replacement = createFlow("p", p.children());
@@ -294,7 +297,8 @@ public final class MdAstToMdxConverter {
             } else if (child instanceof GfmTableRow row) {
                 // Detect kramdown attribute line ({: ...}) swallowed by GFM table parser
                 String rowText = getRowText(row);
-                if (rowText != null && TABLE_ATTRIBUTE_LINE.matcher(rowText).matches()) {
+                if (rowText != null && TABLE_ATTRIBUTE_LINE.matcher(rowText)
+                    .matches()) {
                     replacement = new MdxJsxFlowElement();
                     replacement.setName("table-meta");
                     replacement.addAttribute("content", rowText);
@@ -434,28 +438,26 @@ public final class MdAstToMdxConverter {
      * This bridges the gap between Markdown image syntax {@code ![alt](src){align=center}}
      * and the JSX attribute representation expected by tag compilers (R4-31).
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     private static void consumeTrailingAttributes(List<?> children, int index, MdxJsxTextElement el) {
         int nextIdx = index + 1;
         if (nextIdx >= children.size()) return;
         Object next = children.get(nextIdx);
         if (!(next instanceof MdAstText text)) return;
         String trimmed = text.value.trim();
-        java.util.regex.Matcher blockMatcher = INLINE_ATTR_BLOCK.matcher(trimmed);
+        Matcher blockMatcher = INLINE_ATTR_BLOCK.matcher(trimmed);
         if (!blockMatcher.matches()) return;
 
-        String inner = blockMatcher.group(1).trim();
-        java.util.regex.Matcher pairMatcher = INLINE_ATTR_PAIR.matcher(inner);
+        String inner = blockMatcher.group(1)
+            .trim();
+        Matcher pairMatcher = INLINE_ATTR_PAIR.matcher(inner);
         boolean found = false;
         while (pairMatcher.find()) {
             found = true;
             // Group 1/2: double-quoted value; 3/4: single-quoted; 5/6: unquoted
             String name = pairMatcher.group(1) != null ? pairMatcher.group(1)
-                : pairMatcher.group(3) != null ? pairMatcher.group(3)
-                : pairMatcher.group(5);
+                : pairMatcher.group(3) != null ? pairMatcher.group(3) : pairMatcher.group(5);
             String value = pairMatcher.group(2) != null ? pairMatcher.group(2)
-                : pairMatcher.group(4) != null ? pairMatcher.group(4)
-                : pairMatcher.group(6);
+                : pairMatcher.group(4) != null ? pairMatcher.group(4) : pairMatcher.group(6);
             if (name != null && value != null) {
                 el.addAttribute(name, value);
             }
@@ -478,8 +480,10 @@ public final class MdAstToMdxConverter {
      * block-level alignment nodes (R4-31).
      */
     private static boolean isSoloAlignedImageParagraph(MdAstParagraph p) {
-        if (p.children().size() != 1) return false;
-        Object sole = p.children().get(0);
+        if (p.children()
+            .size() != 1) return false;
+        Object sole = p.children()
+            .get(0);
         if (!(sole instanceof MdxJsxTextElement imgEl)) return false;
         if (!"img".equals(imgEl.name())) return false;
         return imgEl.getAttribute("align") != null;
@@ -506,7 +510,9 @@ public final class MdAstToMdxConverter {
      * <p>
      * Iterates as {@link Object} and uses instanceof to handle both
      * {@link GfmTableCell} (original) and {@link MdxJsxFlowElement} (post-conversion
-     * {@code <td>}) child types, avoiding ClassCastException when the row's
+     * {@code 
+     * 
+    <td>}) child types, avoiding ClassCastException when the row's
      * children list contains mixed types.
      */
     @Nullable
@@ -528,7 +534,8 @@ public final class MdAstToMdxConverter {
                 sb.append(cellText);
             }
         }
-        String text = sb.toString().trim();
+        String text = sb.toString()
+            .trim();
         return text.isEmpty() ? null : text;
     }
 }

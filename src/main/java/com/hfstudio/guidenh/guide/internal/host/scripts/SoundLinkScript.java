@@ -27,7 +27,9 @@ public class SoundLinkScript implements LytScript {
             GuideSoundSpec spec = (GuideSoundSpec) link.getData("soundSpec");
             if (spec != null) {
                 link.setClickSoundSpec(spec);
-                link.modifyStyle(style -> style.color(new ConstantColor(0xFFFFAA00)).underlined(false));
+                link.modifyStyle(
+                    style -> style.color(new ConstantColor(0xFFFFAA00))
+                        .underlined(false));
                 ctx.replace(link);
             }
         }

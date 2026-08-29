@@ -79,15 +79,18 @@ public final class SystemFontProvider implements FontProvider {
     public byte[] getFallbackFontData(String locale) {
         Path fontPath = resolveFallbackSymbolFontPath();
         if (fontPath == null) {
-            GuideDebugLog.warnAlways("SystemFontProvider: no fallback symbol font found for locale={}, skipping", locale);
+            GuideDebugLog
+                .warnAlways("SystemFontProvider: no fallback symbol font found for locale={}, skipping", locale);
             return new byte[0];
         }
         try {
             byte[] data = Files.readAllBytes(fontPath);
-            GuideDebugLog.warnAlways("SystemFontProvider: loaded fallback symbol font {} bytes from {}", data.length, fontPath);
+            GuideDebugLog
+                .warnAlways("SystemFontProvider: loaded fallback symbol font {} bytes from {}", data.length, fontPath);
             return data;
         } catch (IOException e) {
-            GuideDebugLog.warnAlways("SystemFontProvider: failed to read fallback symbol font {}: {}", fontPath, e.getMessage());
+            GuideDebugLog
+                .warnAlways("SystemFontProvider: failed to read fallback symbol font {}: {}", fontPath, e.getMessage());
             return new byte[0];
         }
     }

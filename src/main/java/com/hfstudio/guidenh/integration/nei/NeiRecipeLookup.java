@@ -70,7 +70,7 @@ public class NeiRecipeLookup {
         }
     }
 
-    /** NEI crafting recipe tied to {@code handler} index for Phase1/OpenGL snapshots; mirrors {@link #Entry}. */
+    /** NEI crafting recipe tied to {@code handler} index for Phase1/OpenGL snapshots; mirrors {@link #entry}. */
     public static class CraftingRecipeRef {
 
         public final Object handler;

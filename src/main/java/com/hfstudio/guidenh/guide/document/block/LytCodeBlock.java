@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
@@ -26,6 +27,7 @@ import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
 import lombok.Getter;
+import lombok.Setter;
 
 public class LytCodeBlock extends LytVBox implements InteractiveElement, DocumentDragTarget {
 
@@ -46,6 +48,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
     @Getter
     private String codeText = "";
 
+    @Setter
     @Getter
     private boolean toolbarVisible = true;
     private String normalizedCodeText = "";
@@ -108,10 +111,6 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
             return List.of(bodyViewport);
         }
         return super.getChildren();
-    }
-
-    public void setToolbarVisible(boolean toolbarVisible) {
-        this.toolbarVisible = toolbarVisible;
     }
 
     public void setCodeText(String codeText) {
@@ -252,7 +251,7 @@ public class LytCodeBlock extends LytVBox implements InteractiveElement, Documen
                 bounds.y(),
                 bounds.width(),
                 bounds.height(),
-                CODE_BACKGROUND.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
+                CODE_BACKGROUND.resolve(LightDarkMode.current())));
 
         // Advance the smooth scroll and bake the visual delta into the body's
         // bounds. The collector traverses the body right after this, so the

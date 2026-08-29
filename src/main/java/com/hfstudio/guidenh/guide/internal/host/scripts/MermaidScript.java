@@ -126,7 +126,7 @@ public class MermaidScript implements LytScript {
             LytMermaidFlowchart block = new LytMermaidFlowchart(
                 document,
                 sourceText,
-                ph.nodeContentBlocks != null ? ph.nodeContentBlocks : java.util.Collections.emptyMap());
+                ph.nodeContentBlocks != null ? ph.nodeContentBlocks : Collections.emptyMap());
             if (ph.width > 0 || ph.height > 0) {
                 block.setPreferredSize(ph.width, ph.height);
             }
@@ -168,7 +168,8 @@ public class MermaidScript implements LytScript {
      * Rust's first layout pass allocates the correct canvas height.
      */
     private static void precomputeFlowchartLayout(LytMermaidFlowchart block, ScriptContext ctx) {
-        int pageWidth = ctx.document().getAvailableWidth();
+        int pageWidth = ctx.document()
+            .getAvailableWidth();
         if (pageWidth <= 0) {
             pageWidth = 480; // fallback: typical page content width
         }
@@ -176,7 +177,8 @@ public class MermaidScript implements LytScript {
         MermaidLayoutPrecomputer.precomputeFlowchartLayout(block, pageWidth);
         GuideDebugLog.debugAlways(
             "[GuideNH-Mermaid] precomputeFlowchartLayout exit explicitHeight={}",
-            block.getCanvas().getExplicitHeight());
+            block.getCanvas()
+                .getExplicitHeight());
     }
 
     /**
@@ -185,7 +187,8 @@ public class MermaidScript implements LytScript {
      * layout pass allocates the correct canvas height.
      */
     private static void precomputeMindmapLayout(LytMermaidMindmap block, ScriptContext ctx) {
-        int pageWidth = ctx.document().getAvailableWidth();
+        int pageWidth = ctx.document()
+            .getAvailableWidth();
         if (pageWidth <= 0) {
             pageWidth = 480; // fallback: typical page content width
         }
@@ -193,7 +196,8 @@ public class MermaidScript implements LytScript {
         MermaidLayoutPrecomputer.precomputeMindmapLayout(block, pageWidth);
         GuideDebugLog.debugAlways(
             "[GuideNH-Mermaid] precomputeMindmapLayout exit explicitHeight={}",
-            block.getCanvas().getExplicitHeight());
+            block.getCanvas()
+                .getExplicitHeight());
     }
 
     private void replaceWithError(ScriptContext ctx, String message) {

@@ -25,6 +25,8 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 
+import lombok.Getter;
+
 public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapCanvas> implements DebugComponent {
 
     private static final int CANVAS_PADDING = 10;
@@ -93,6 +95,7 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         false,
         0.0f);
 
+    @Getter
     private final MindmapDocument mindmap;
 
     private DiagramLayout layout;
@@ -135,10 +138,6 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         return layout != null;
     }
 
-    public MindmapDocument getMindmap() {
-        return mindmap;
-    }
-
     public void setPreferredSize(int width, int height) {
         preferredWidth = Math.max(0, width);
         preferredHeight = Math.max(0, height);
@@ -154,8 +153,7 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
             : Math.max(1, availableWidth);
         layout = buildLayout(context, safeWidth);
         int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
-        int viewportHeight = preferredHeight > 0
-            ? Math.max(48, preferredHeight)
+        int viewportHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
             : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
         int viewportWidth = Math.max(1, safeWidth - CANVAS_PADDING * 2);
         int innerViewportHeight = Math.max(1, viewportHeight - CANVAS_PADDING * 2);
@@ -181,79 +179,81 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
      *                       placeholder width)
      */
     public void precomputeLayout(LayoutContext ctx, int availableWidth) {
-        int safeWidth = preferredWidth > 0
-            ? Math.max(1, Math.min(preferredWidth, availableWidth))
+        int safeWidth = preferredWidth > 0 ? Math.max(1, Math.min(preferredWidth, availableWidth))
             : Math.max(1, availableWidth);
         this.layout = buildLayout(ctx, safeWidth);
         this.precomputedLayoutWidth = safeWidth;
         if (layout != null) {
             int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
-            int newPreferredHeight = preferredHeight > 0
-                ? Math.max(48, preferredHeight)
+            int newPreferredHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
                 : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
             preferredHeight = newPreferredHeight;
             int diagramWidth = layout.diagramWidth() + CANVAS_PADDING * 2;
             preferredWidth = diagramWidth;
             GuideDebugLog.debugAlways(
                 "[GuideNH-Mermaid] precomputeLayout OK diagramHeight={} preferredHeight={}",
-                layout.diagramHeight(), preferredHeight);
+                layout.diagramHeight(),
+                preferredHeight);
             GuideDebugLog.debugAlways(
                 "[GuideNH-Mermaid] precomputeLayout set explicitWidth={} diagramWidth={} safeWidth={}",
-                preferredWidth, layout.diagramWidth(), safeWidth);
-        } else {
-            GuideDebugLog.debugAlways(
-                "[GuideNH-Mermaid] precomputeLayout FAILED layout=null safeWidth={}",
+                preferredWidth,
+                layout.diagramWidth(),
                 safeWidth);
+        } else {
+            GuideDebugLog.debugAlways("[GuideNH-Mermaid] precomputeLayout FAILED layout=null safeWidth={}", safeWidth);
         }
     }
 
     @Override
     protected void afterExternalLayout() {
-        int safeWidth = preferredWidth > 0
-            ? Math.max(1, Math.min(preferredWidth, Math.max(1, bounds.width())))
+        int safeWidth = preferredWidth > 0 ? Math.max(1, Math.min(preferredWidth, Math.max(1, bounds.width())))
             : Math.max(1, bounds.width());
 
         GuideDebugLog.debugAlways(
             "[GuideNH-Mermaid] afterExternalLayout entered layout={} safeWidth={} precomputedLayoutWidth={} bounds.height={}",
-            layout != null, safeWidth, precomputedLayoutWidth, bounds.height());
+            layout != null,
+            safeWidth,
+            precomputedLayoutWidth,
+            bounds.height());
 
         // Phase 1: ensure layout result matches the actual canvas width.
         // Width matches precompute → reuse cached layout (no recompute).
         // Width mismatch or no precompute → recompute at the correct width.
         if (layout == null || precomputedLayoutWidth <= 0 || precomputedLayoutWidth != safeWidth) {
             LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
+
                 @Override
                 public float getAdvance(int codePoint, ResolvedTextStyle s) {
                     return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
                 }
+
                 @Override
                 public int getLineHeight(ResolvedTextStyle s) {
                     return GuideText.lineHeight(s);
                 }
             });
             layout = buildLayout(fallbackCtx, safeWidth);
-            GuideDebugLog.debugAlways(
-                "[GuideNH-Mermaid] afterExternalLayout recomputed layout={}",
-                layout != null);
+            GuideDebugLog.debugAlways("[GuideNH-Mermaid] afterExternalLayout recomputed layout={}", layout != null);
         }
 
         // Phase 2: if layout is valid, correct bounds height if needed (兜底).
         if (layout != null) {
             int desiredHeight = layout.diagramHeight() + CANVAS_PADDING * 2;
-            int expectedHeight = preferredHeight > 0
-                ? Math.max(48, preferredHeight)
+            int expectedHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
                 : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
             if (bounds.height() != expectedHeight) {
                 GuideDebugLog.debugAlways(
                     "[GuideNH-Mermaid] afterExternalLayout correcting bounds height {} -> {}",
-                    bounds.height(), expectedHeight);
+                    bounds.height(),
+                    expectedHeight);
                 bounds = new LytRect(bounds.x(), bounds.y(), bounds.width(), expectedHeight);
             }
         }
 
         GuideDebugLog.debugAlways(
             "[GuideNH-Mermaid] afterExternalLayout exit layout={} bounds.height={}",
-            layout != null, bounds.height());
+            layout != null,
+            bounds.height());
     }
 
     @Override
@@ -350,25 +350,37 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         if (node.showBadge && node.badgeText != null) {
             int badgeWidth = Math.max(1, GuideText.measureWidth(node.badgeText, badgeStyle) + badgePaddingX * 2);
             int badgeHeight = Math.max(1, GuideText.lineHeight(badgeStyle) + badgePaddingY * 2);
-            LytRect badge = new LytRect(
-                rect.x() + paddingX,
-                textY,
-                badgeWidth,
-                badgeHeight);
-            c.emit(new GuideRenderPrimitive.FillRect(
-                badge.x(), badge.y(), badge.width(), badge.height(),
-                MermaidNodeRenderer.BADGE_BACKGROUND));
-            c.emit(new GuideRenderPrimitive.DrawBorder(
-                badge.x(), badge.y(), badge.width(), badge.height(),
-                1, 1, 1, 1, MermaidNodeRenderer.BADGE_BORDER));
+            LytRect badge = new LytRect(rect.x() + paddingX, textY, badgeWidth, badgeHeight);
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    badge.x(),
+                    badge.y(),
+                    badge.width(),
+                    badge.height(),
+                    MermaidNodeRenderer.BADGE_BACKGROUND));
+            c.emit(
+                new GuideRenderPrimitive.DrawBorder(
+                    badge.x(),
+                    badge.y(),
+                    badge.width(),
+                    badge.height(),
+                    1,
+                    1,
+                    1,
+                    1,
+                    MermaidNodeRenderer.BADGE_BORDER));
             GuideText.emitText(c, node.badgeText, badge.x() + badgePaddingX, badge.y() + badgePaddingY, badgeStyle);
             textY = badge.bottom() + iconGapY;
         }
 
         if (node.contentLayout != null) {
             LytRect contentViewport = resolveNodeContentRect(node.contentLayout, rect, paddingX, textY, activeZoom);
-            emitNodeContentPrimitives(c, node.contentLayout.block(), contentViewport,
-                node.contentLayout.visualBounds(), activeZoom);
+            emitNodeContentPrimitives(
+                c,
+                node.contentLayout.block(),
+                contentViewport,
+                node.contentLayout.visualBounds(),
+                activeZoom);
         } else {
             int lineHeight = GuideText.lineHeight(style);
             for (String line : node.lines) {

@@ -66,6 +66,23 @@ public class SceneScript implements LytScript {
 
     public SceneScript() {}
 
+    public static String describeEmptyScene(String pageId, int astChildCount, List<String> compiledElements,
+        List<String> skippedElements, List<String> compilerErrors, List<String> registeredTagNames) {
+        List<String> sorted = new ArrayList<>(registeredTagNames);
+        Collections.sort(sorted);
+        return "Scene produced no blocks or entities: page=" + pageId
+            + ", astChildren="
+            + astChildCount
+            + ", compiled="
+            + compiledElements
+            + ", skipped="
+            + skippedElements
+            + ", compilerErrors="
+            + compilerErrors
+            + ", registeredTags="
+            + sorted;
+    }
+
     @Override
     public ScriptType type() {
         return ScriptType.JAVA;
@@ -286,8 +303,7 @@ public class SceneScript implements LytScript {
         // that still ends up empty after a build attempt gets the same feedback through the scene's
         // build-error channel (LytGuidebookScene#setBuildError).
         if (level.isEmpty()) {
-            String message = scene.getBuildError() != null
-                ? scene.getBuildError()
+            String message = scene.getBuildError() != null ? scene.getBuildError()
                 : "Scene has no structure content (empty level)";
             scene.setBuildError(message);
         }

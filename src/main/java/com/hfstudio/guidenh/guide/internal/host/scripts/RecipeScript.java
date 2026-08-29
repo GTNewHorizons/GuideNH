@@ -157,45 +157,45 @@ public class RecipeScript implements LytScript {
         // Integration recipe entries — skip when handler filter eliminated all candidates
         // (user explicitly filtered to a non-existent handler, so no recipe content should render)
         if (!handlerFilterEliminatedAll) {
-        List<RecipeEntry> recipeEntries = usageQuery ? Collections.emptyList()
-            : GuideNhIntegrationRegistry.global()
-                .findCraftingRecipeEntries(targetStack);
-        if (!recipeEntries.isEmpty()) {
-            List<LytStandardRecipeBox> boxes = new ArrayList<>();
-            int entryStart = Math.max(ph.recipeIndex, 0);
-            int entryEnd = ph.recipeIndex >= 0 ? Math.min(recipeEntries.size(), ph.recipeIndex + 1)
-                : recipeEntries.size();
-            for (int i = entryStart; i < entryEnd && boxes.size() < limit; i++) {
-                var e = recipeEntries.get(i);
-                if (e.result() == null || e.ingredients()
-                    .isEmpty()) continue;
-                if (hasRecipeFilter && !RecipeCompiler.entryMatches(e, ph.inputExpr, ph.outputExpr)) continue;
-                List<ItemStack> flat = new ArrayList<>(9);
-                for (int s = 0; s < 9; s++) flat.add(null);
-                int idx = 0;
-                for (RecipeSlot slot : e.ingredients()) {
-                    if (idx >= 9) break;
-                    if (slot.stacks() != null && !slot.stacks()
-                        .isEmpty()) flat.set(
-                            idx,
-                            slot.stacks()
-                                .getFirst());
-                    idx++;
-                }
-                ItemStack resultStack = e.result()
-                    .stacks() != null
-                    && !e.result()
-                        .stacks()
-                        .isEmpty() ? e.result()
+            List<RecipeEntry> recipeEntries = usageQuery ? Collections.emptyList()
+                : GuideNhIntegrationRegistry.global()
+                    .findCraftingRecipeEntries(targetStack);
+            if (!recipeEntries.isEmpty()) {
+                List<LytStandardRecipeBox> boxes = new ArrayList<>();
+                int entryStart = Math.max(ph.recipeIndex, 0);
+                int entryEnd = ph.recipeIndex >= 0 ? Math.min(recipeEntries.size(), ph.recipeIndex + 1)
+                    : recipeEntries.size();
+                for (int i = entryStart; i < entryEnd && boxes.size() < limit; i++) {
+                    var e = recipeEntries.get(i);
+                    if (e.result() == null || e.ingredients()
+                        .isEmpty()) continue;
+                    if (hasRecipeFilter && !RecipeCompiler.entryMatches(e, ph.inputExpr, ph.outputExpr)) continue;
+                    List<ItemStack> flat = new ArrayList<>(9);
+                    for (int s = 0; s < 9; s++) flat.add(null);
+                    int idx = 0;
+                    for (RecipeSlot slot : e.ingredients()) {
+                        if (idx >= 9) break;
+                        if (slot.stacks() != null && !slot.stacks()
+                            .isEmpty()) flat.set(
+                                idx,
+                                slot.stacks()
+                                    .getFirst());
+                        idx++;
+                    }
+                    ItemStack resultStack = e.result()
+                        .stacks() != null
+                        && !e.result()
                             .stacks()
-                            .getFirst() : null;
-                if (resultStack != null) boxes.add(LytStandardRecipeBox.shapeless(flat, resultStack));
+                            .isEmpty() ? e.result()
+                                .stacks()
+                                .getFirst() : null;
+                    if (resultStack != null) boxes.add(LytStandardRecipeBox.shapeless(flat, resultStack));
+                }
+                if (!boxes.isEmpty()) {
+                    ctx.replace(buildResult(boxes));
+                    return;
+                }
             }
-            if (!boxes.isEmpty()) {
-                ctx.replace(buildResult(boxes));
-                return;
-            }
-        }
         }
 
         // Vanilla recipe fallback

@@ -23,7 +23,9 @@ public class ChartLegendRenderer {
     private static final int HORIZONTAL_ROW_GAP = 2;
 
     /** Exposed for Rust-side chrome computation. */
-    public static int getSwatchTextGap() { return SWATCH_TEXT_GAP; }
+    public static int getSwatchTextGap() {
+        return SWATCH_TEXT_GAP;
+    }
 
     protected ChartLegendRenderer() {}
 
@@ -97,7 +99,7 @@ public class ChartLegendRenderer {
                     entries,
                     position,
                     Math.max(1, contentRight - contentLeft),
-                    (text, style) -> GuideText.measureWidth(text, style),
+                    GuideText::measureWidth,
                     lineHeight,
                     swatch,
                     textStyle);
@@ -232,8 +234,7 @@ public class ChartLegendRenderer {
      * be called from a lazy getter when the Java layout pre-pass has not run.
      * The result is equivalent to {@link #measureHeight} for serialization purposes.
      */
-    public static int measureHeightStatic(List<LegendEntry> entries, ChartLegendPosition position,
-        int availableWidth) {
+    public static int measureHeightStatic(List<LegendEntry> entries, ChartLegendPosition position, int availableWidth) {
         if (entries == null || entries.isEmpty() || position == null || position == ChartLegendPosition.NONE) {
             return 0;
         }
@@ -245,7 +246,7 @@ public class ChartLegendRenderer {
             entries,
             position,
             Math.max(1, availableWidth),
-            (text, style) -> GuideText.measureWidth(text, style),
+            GuideText::measureWidth,
             GuideText.lineHeight(textStyle),
             LytChartBase.LEGEND_SWATCH_SIZE,
             textStyle);

@@ -34,7 +34,8 @@ public class SoundLinkCompiler extends FlowTagCompiler {
                 link.appendText(title);
             } else {
                 // Use sound id short name (last segment after final '.')
-                String soundPath = sound.soundId().getResourcePath();
+                String soundPath = sound.soundId()
+                    .getResourcePath();
                 int lastDot = soundPath.lastIndexOf('.');
                 String shortName = lastDot >= 0 ? soundPath.substring(lastDot + 1) : soundPath;
                 link.appendText(shortName);

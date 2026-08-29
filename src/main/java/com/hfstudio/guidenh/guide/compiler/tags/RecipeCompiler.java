@@ -532,7 +532,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         int rawLength = raw.length();
         int orStart = 0;
         while (orStart <= rawLength) {
-            int orEnd = raw.indexOf(',', orStart);
+            int orEnd = findTopLevelDelimiter(raw, orStart, ',');
             if (orEnd < 0) {
                 orEnd = rawLength;
             }
@@ -556,7 +556,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         int andLength = orTrim.length();
         int andStart = 0;
         while (andStart <= andLength) {
-            int andEnd = orTrim.indexOf('&', andStart);
+            int andEnd = findTopLevelDelimiter(orTrim, andStart, '&');
             if (andEnd < 0) {
                 andEnd = andLength;
             }
@@ -572,6 +572,68 @@ public class RecipeCompiler extends BlockTagCompiler {
             }
             andStart = andEnd + 1;
         }
+    }
+
+    /** Splits only at top level so delimiters inside SNBT remain part of the reference. */
+    public static List<String> splitFilterParts(String raw, char delimiter) {
+        List<String> parts = new ArrayList<>();
+        int start = 0;
+        int braces = 0;
+        int brackets = 0;
+        int parentheses = 0;
+        boolean quoted = false;
+        boolean escaped = false;
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (quoted) {
+                if (escaped) escaped = false;
+                else if (c == '\\') escaped = true;
+                else if (c == '"') quoted = false;
+                continue;
+            }
+            if (c == '"') {
+                quoted = true;
+                continue;
+            }
+            if (c == '{') braces++;
+            else if (c == '}') braces = Math.max(0, braces - 1);
+            else if (c == '[') brackets++;
+            else if (c == ']') brackets = Math.max(0, brackets - 1);
+            else if (c == '(') parentheses++;
+            else if (c == ')') parentheses = Math.max(0, parentheses - 1);
+            else if (c == delimiter && braces == 0 && brackets == 0 && parentheses == 0) {
+                parts.add(raw.substring(start, i));
+                start = i + 1;
+            }
+        }
+        parts.add(raw.substring(start));
+        return parts;
+    }
+
+    private static int findTopLevelDelimiter(String raw, int start, char delimiter) {
+        int braces = 0;
+        int brackets = 0;
+        int parentheses = 0;
+        boolean quoted = false;
+        boolean escaped = false;
+        for (int i = start; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (quoted) {
+                if (escaped) escaped = false;
+                else if (c == '\\') escaped = true;
+                else if (c == '"') quoted = false;
+                continue;
+            }
+            if (c == '"') quoted = true;
+            else if (c == '{') braces++;
+            else if (c == '}') braces = Math.max(0, braces - 1);
+            else if (c == '[') brackets++;
+            else if (c == ']') brackets = Math.max(0, brackets - 1);
+            else if (c == '(') parentheses++;
+            else if (c == ')') parentheses = Math.max(0, parentheses - 1);
+            else if (c == delimiter && braces == 0 && brackets == 0 && parentheses == 0) return i;
+        }
+        return -1;
     }
 
     private static void parseFilterTerm(String token, @Nullable String attr, String defaultNs,

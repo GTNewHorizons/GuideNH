@@ -2,22 +2,13 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
 
 /**
  * Guidebook scene sizing data (node_type 27).
@@ -29,101 +20,190 @@ import java.nio.ByteOrder;
  */
 @SuppressWarnings("unused")
 public final class GuidebookSceneData extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static GuidebookSceneData getRootAsGuidebookSceneData(ByteBuffer _bb) { return getRootAsGuidebookSceneData(_bb, new GuidebookSceneData()); }
-  public static GuidebookSceneData getRootAsGuidebookSceneData(ByteBuffer _bb, GuidebookSceneData obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public GuidebookSceneData __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  /**
-   * Intrinsic scene pixel width (setSceneSize or DEFAULT_WIDTH = 256).
-   */
-  public float sceneWidth() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Intrinsic scene pixel height (setSceneSize or DEFAULT_HEIGHT = 192).
-   */
-  public float sceneHeight() { int o = __offset(6); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Horizontal space reserved for the floating button column:
-   * interactive && sceneButtonsVisible ? (BTN_OUTSIDE_GAP + BTN_SIZE) : 0.
-   */
-  public float buttonColumnReserve() { int o = __offset(8); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Total pixel height of scene buttons when stacked vertically:
-   * interactive && sceneButtonsVisible ? (BTN_SIZE * count + BTN_GAP * max(0, count-1)) : 0.
-   */
-  public float buttonsTotalHeight() { int o = __offset(10); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Block-stats left dock size + BLOCK_STATS_DOCK_GAP, or 0.
-   */
-  public float leftDock() { int o = __offset(12); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Block-stats right dock size + BLOCK_STATS_DOCK_GAP, or 0.
-   */
-  public float rightDock() { int o = __offset(14); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Block-stats top dock size + BLOCK_STATS_DOCK_GAP, or 0.
-   */
-  public float topDock() { int o = __offset(16); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Block-stats bottom dock size + BLOCK_STATS_DOCK_GAP, or 0.
-   */
-  public float bottomDock() { int o = __offset(18); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Bottom control area height from getBottomControlAreaHeight().
-   */
-  public float bottomControlAreaHeight() { int o = __offset(20); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  /**
-   * Whether the layout should reserve room for bottom controls.
-   */
-  public boolean reserveBottomControl() { int o = __offset(22); return o != 0 ? 0!=bb.get(o + bb_pos) : false; }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createGuidebookSceneData(FlatBufferBuilder builder,
-      float sceneWidth,
-      float sceneHeight,
-      float buttonColumnReserve,
-      float buttonsTotalHeight,
-      float leftDock,
-      float rightDock,
-      float topDock,
-      float bottomDock,
-      float bottomControlAreaHeight,
-      boolean reserveBottomControl) {
-    builder.startTable(10);
-    GuidebookSceneData.addBottomControlAreaHeight(builder, bottomControlAreaHeight);
-    GuidebookSceneData.addBottomDock(builder, bottomDock);
-    GuidebookSceneData.addTopDock(builder, topDock);
-    GuidebookSceneData.addRightDock(builder, rightDock);
-    GuidebookSceneData.addLeftDock(builder, leftDock);
-    GuidebookSceneData.addButtonsTotalHeight(builder, buttonsTotalHeight);
-    GuidebookSceneData.addButtonColumnReserve(builder, buttonColumnReserve);
-    GuidebookSceneData.addSceneHeight(builder, sceneHeight);
-    GuidebookSceneData.addSceneWidth(builder, sceneWidth);
-    GuidebookSceneData.addReserveBottomControl(builder, reserveBottomControl);
-    return GuidebookSceneData.endGuidebookSceneData(builder);
-  }
+    public static GuidebookSceneData getRootAsGuidebookSceneData(ByteBuffer _bb) {
+        return getRootAsGuidebookSceneData(_bb, new GuidebookSceneData());
+    }
 
-  public static void startGuidebookSceneData(FlatBufferBuilder builder) { builder.startTable(10); }
-  public static void addSceneWidth(FlatBufferBuilder builder, float sceneWidth) { builder.addFloat(0, sceneWidth, 0.0f); }
-  public static void addSceneHeight(FlatBufferBuilder builder, float sceneHeight) { builder.addFloat(1, sceneHeight, 0.0f); }
-  public static void addButtonColumnReserve(FlatBufferBuilder builder, float buttonColumnReserve) { builder.addFloat(2, buttonColumnReserve, 0.0f); }
-  public static void addButtonsTotalHeight(FlatBufferBuilder builder, float buttonsTotalHeight) { builder.addFloat(3, buttonsTotalHeight, 0.0f); }
-  public static void addLeftDock(FlatBufferBuilder builder, float leftDock) { builder.addFloat(4, leftDock, 0.0f); }
-  public static void addRightDock(FlatBufferBuilder builder, float rightDock) { builder.addFloat(5, rightDock, 0.0f); }
-  public static void addTopDock(FlatBufferBuilder builder, float topDock) { builder.addFloat(6, topDock, 0.0f); }
-  public static void addBottomDock(FlatBufferBuilder builder, float bottomDock) { builder.addFloat(7, bottomDock, 0.0f); }
-  public static void addBottomControlAreaHeight(FlatBufferBuilder builder, float bottomControlAreaHeight) { builder.addFloat(8, bottomControlAreaHeight, 0.0f); }
-  public static void addReserveBottomControl(FlatBufferBuilder builder, boolean reserveBottomControl) { builder.addBoolean(9, reserveBottomControl, false); }
-  public static int endGuidebookSceneData(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static GuidebookSceneData getRootAsGuidebookSceneData(ByteBuffer _bb, GuidebookSceneData obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public GuidebookSceneData get(int j) { return get(new GuidebookSceneData(), j); }
-    public GuidebookSceneData get(GuidebookSceneData obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public GuidebookSceneData __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    /**
+     * Intrinsic scene pixel width (setSceneSize or DEFAULT_WIDTH = 256).
+     */
+    public float sceneWidth() {
+        int o = __offset(4);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Intrinsic scene pixel height (setSceneSize or DEFAULT_HEIGHT = 192).
+     */
+    public float sceneHeight() {
+        int o = __offset(6);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Horizontal space reserved for the floating button column:
+     * interactive && sceneButtonsVisible ? (BTN_OUTSIDE_GAP + BTN_SIZE) : 0.
+     */
+    public float buttonColumnReserve() {
+        int o = __offset(8);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Total pixel height of scene buttons when stacked vertically:
+     * interactive && sceneButtonsVisible ? (BTN_SIZE * count + BTN_GAP * max(0, count-1)) : 0.
+     */
+    public float buttonsTotalHeight() {
+        int o = __offset(10);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Block-stats left dock size + BLOCK_STATS_DOCK_GAP, or 0.
+     */
+    public float leftDock() {
+        int o = __offset(12);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Block-stats right dock size + BLOCK_STATS_DOCK_GAP, or 0.
+     */
+    public float rightDock() {
+        int o = __offset(14);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Block-stats top dock size + BLOCK_STATS_DOCK_GAP, or 0.
+     */
+    public float topDock() {
+        int o = __offset(16);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Block-stats bottom dock size + BLOCK_STATS_DOCK_GAP, or 0.
+     */
+    public float bottomDock() {
+        int o = __offset(18);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Bottom control area height from getBottomControlAreaHeight().
+     */
+    public float bottomControlAreaHeight() {
+        int o = __offset(20);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    /**
+     * Whether the layout should reserve room for bottom controls.
+     */
+    public boolean reserveBottomControl() {
+        int o = __offset(22);
+        return o != 0 ? 0 != bb.get(o + bb_pos) : false;
+    }
+
+    public static int createGuidebookSceneData(FlatBufferBuilder builder, float sceneWidth, float sceneHeight,
+        float buttonColumnReserve, float buttonsTotalHeight, float leftDock, float rightDock, float topDock,
+        float bottomDock, float bottomControlAreaHeight, boolean reserveBottomControl) {
+        builder.startTable(10);
+        GuidebookSceneData.addBottomControlAreaHeight(builder, bottomControlAreaHeight);
+        GuidebookSceneData.addBottomDock(builder, bottomDock);
+        GuidebookSceneData.addTopDock(builder, topDock);
+        GuidebookSceneData.addRightDock(builder, rightDock);
+        GuidebookSceneData.addLeftDock(builder, leftDock);
+        GuidebookSceneData.addButtonsTotalHeight(builder, buttonsTotalHeight);
+        GuidebookSceneData.addButtonColumnReserve(builder, buttonColumnReserve);
+        GuidebookSceneData.addSceneHeight(builder, sceneHeight);
+        GuidebookSceneData.addSceneWidth(builder, sceneWidth);
+        GuidebookSceneData.addReserveBottomControl(builder, reserveBottomControl);
+        return GuidebookSceneData.endGuidebookSceneData(builder);
+    }
+
+    public static void startGuidebookSceneData(FlatBufferBuilder builder) {
+        builder.startTable(10);
+    }
+
+    public static void addSceneWidth(FlatBufferBuilder builder, float sceneWidth) {
+        builder.addFloat(0, sceneWidth, 0.0f);
+    }
+
+    public static void addSceneHeight(FlatBufferBuilder builder, float sceneHeight) {
+        builder.addFloat(1, sceneHeight, 0.0f);
+    }
+
+    public static void addButtonColumnReserve(FlatBufferBuilder builder, float buttonColumnReserve) {
+        builder.addFloat(2, buttonColumnReserve, 0.0f);
+    }
+
+    public static void addButtonsTotalHeight(FlatBufferBuilder builder, float buttonsTotalHeight) {
+        builder.addFloat(3, buttonsTotalHeight, 0.0f);
+    }
+
+    public static void addLeftDock(FlatBufferBuilder builder, float leftDock) {
+        builder.addFloat(4, leftDock, 0.0f);
+    }
+
+    public static void addRightDock(FlatBufferBuilder builder, float rightDock) {
+        builder.addFloat(5, rightDock, 0.0f);
+    }
+
+    public static void addTopDock(FlatBufferBuilder builder, float topDock) {
+        builder.addFloat(6, topDock, 0.0f);
+    }
+
+    public static void addBottomDock(FlatBufferBuilder builder, float bottomDock) {
+        builder.addFloat(7, bottomDock, 0.0f);
+    }
+
+    public static void addBottomControlAreaHeight(FlatBufferBuilder builder, float bottomControlAreaHeight) {
+        builder.addFloat(8, bottomControlAreaHeight, 0.0f);
+    }
+
+    public static void addReserveBottomControl(FlatBufferBuilder builder, boolean reserveBottomControl) {
+        builder.addBoolean(9, reserveBottomControl, false);
+    }
+
+    public static int endGuidebookSceneData(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public GuidebookSceneData get(int j) {
+            return get(new GuidebookSceneData(), j);
+        }
+
+        public GuidebookSceneData get(GuidebookSceneData obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

@@ -22,11 +22,12 @@ import com.hfstudio.guidenh.guide.document.block.LytLatexBlock;
 import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytListItem;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytThematicBreak;
-import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.table.LytTable;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableCell;
+import com.hfstudio.guidenh.guide.document.block.table.LytTableColumn;
 import com.hfstudio.guidenh.guide.document.block.table.LytTableRow;
 import com.hfstudio.guidenh.guide.document.flow.InlineBlockAlignment;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -37,6 +38,10 @@ import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutInput;
 import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+import com.hfstudio.guidenh.guide.style.token.GuideThemeManager;
+import com.hfstudio.guidenh.guide.style.token.IntValue;
+import com.hfstudio.guidenh.guide.style.token.TokenKey;
+import com.hfstudio.guidenh.guide.style.token.TokenType;
 
 /**
  * Serializes a Lyt document tree into a FlatBuffer LayoutInput byte array.
@@ -53,11 +58,8 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 public class LayoutTreeSerializer {
 
     /** Theme token: text justification (0=off, 1=auto — stretch spaces on Latin lines). */
-    private static final com.hfstudio.guidenh.guide.style.token.TokenKey<com.hfstudio.guidenh.guide.style.token.IntValue> TEXT_JUSTIFY = com.hfstudio.guidenh.guide.style.token.TokenKey
-        .define(
-            "--lyt-text-justify",
-            com.hfstudio.guidenh.guide.style.token.TokenType.INT,
-                new com.hfstudio.guidenh.guide.style.token.IntValue(1));
+    private static final TokenKey<IntValue> TEXT_JUSTIFY = TokenKey
+        .define("--lyt-text-justify", TokenType.INT, new IntValue(1));
 
     /** Padding subtracted from available width for table column layout (matches Rust layout.rs:17). */
     private static final int CONTENT_PAD = 14;
@@ -179,7 +181,7 @@ public class LayoutTreeSerializer {
         // Rust's resolve_alignment already ranks it above justify.
         byte justify = 0;
         if (availWidth >= JUSTIFY_MIN_WIDTH) {
-            justify = (byte) com.hfstudio.guidenh.guide.style.token.GuideThemeManager.instance()
+            justify = (byte) GuideThemeManager.instance()
                 .active()
                 .int_(TEXT_JUSTIFY)
                 .value();
@@ -240,8 +242,7 @@ public class LayoutTreeSerializer {
         if (ib instanceof LytLatexBlock latex) {
             return new LayoutNodeSerializer.InlineRef(flatIndex, 1, latex.getBaselineAscent());
         }
-        if (ib instanceof com.hfstudio.guidenh.guide.document.block.LytItemImage img && img.isInline()
-            && img.isShowingIcon()) {
+        if (ib instanceof LytItemImage img && img.isInline() && img.isShowingIcon()) {
             return new LayoutNodeSerializer.InlineRef(flatIndex, 2, img.getInlineVerticalOffset());
         }
         return new LayoutNodeSerializer.InlineRef(flatIndex, 0, 0f);
@@ -262,9 +263,8 @@ public class LayoutTreeSerializer {
     private static int[] inlineParagraphSize(LytParagraph err) {
         String text = collectParagraphText(err);
         if (text.isEmpty()) {
-            GuideDebugLog
-                .debug("Layout: inline paragraph has no text content — zero-width inline block fallback");
-            return new int[] {0, 0};
+            GuideDebugLog.debug("Layout: inline paragraph has no text content — zero-width inline block fallback");
+            return new int[] { 0, 0 };
         }
         ResolvedTextStyle style = err.resolveStyle();
         int width = 0;
@@ -276,9 +276,9 @@ public class LayoutTreeSerializer {
         if (width <= 0) {
             GuideDebugLog
                 .debug("Layout: inline paragraph text measurement failed (w=0) — zero-width inline block fallback");
-            return new int[] {0, 0};
+            return new int[] { 0, 0 };
         }
-        return new int[] {width, Math.max(1, GuideText.lineHeight(style) * lines)};
+        return new int[] { width, Math.max(1, GuideText.lineHeight(style) * lines) };
     }
 
     /**
@@ -327,28 +327,28 @@ public class LayoutTreeSerializer {
     }
 
     /**
-     * @param inherited       margins accumulated from eliminated ancestors
-     * @param pendingFloat    a float wrapper's anchor node was just emitted
-     *                        up-stack; the first non-eliminated block descendant
-     *                        becomes its absolutely-positioned child
-     * @param nearestAncestor the most recent non-eliminated {@link LytBlock}
-     *                        ancestor in the current tree path, or {@code null}
-     *                        at the root. When an {@link LytAlignedBlock} with
-     *                        non-{@link ContentAlign#LEFT} is eliminated, its
-     *                        alignment intent is recorded on this ancestor so
-     *                        its style can be adjusted (align_items → Center/End)
-     *                        during serialization.
-     * @param listPadAccum    horizontal padding (px) accumulated from every
-     *                        ancestor {@link LytListItem}'s paddingLeft. Blocks
-     *                        nested inside list items lay out in the item's
-     *                        content box AFTER this padding; table column widths
-     *                        are constrained by it so a table does not "escape"
-     *                        the item indentation by laying out at the full
-     *                        document width (which would force the shrink-wrapped
-     *                        list wider than the page content box).
+     * @param inherited        margins accumulated from eliminated ancestors
+     * @param pendingFloatSide a float wrapper's anchor node was just emitted
+     *                         up-stack; the first non-eliminated block descendant
+     *                         becomes its absolutely-positioned child
+     * @param nearestAncestor  the most recent non-eliminated {@link LytBlock}
+     *                         ancestor in the current tree path, or {@code null}
+     *                         at the root. When an {@link LytAlignedBlock} with
+     *                         non-{@link ContentAlign#LEFT} is eliminated, its
+     *                         alignment intent is recorded on this ancestor so
+     *                         its style can be adjusted (align_items → Center/End)
+     *                         during serialization.
+     * @param listPadAccum     horizontal padding (px) accumulated from every
+     *                         ancestor {@link LytListItem}'s paddingLeft. Blocks
+     *                         nested inside list items lay out in the item's
+     *                         content box AFTER this padding; table column widths
+     *                         are constrained by it so a table does not "escape"
+     *                         the item indentation by laying out at the full
+     *                         document width (which would force the shrink-wrapped
+     *                         list wider than the page content box).
      */
     private void flattenTree(LytNode node, MarginAccum inherited, int pendingFloatSide,
-        @javax.annotation.Nullable LytBlock nearestAncestor, float listPadAccum) {
+        @Nullable LytBlock nearestAncestor, float listPadAccum) {
         if (shouldEliminate(node)) {
             // Add this node's margins to the inherited accumulator
             MarginAccum total = inherited;
@@ -402,7 +402,8 @@ public class LayoutTreeSerializer {
                 floatIntents.put(block, pendingFloatSide);
                 pendingFloatSide = 0;
             }
-            if (block instanceof LytTable table && !table.getColumns().isEmpty()) {
+            if (block instanceof LytTable table && !table.getColumns()
+                .isEmpty()) {
                 // Column widths must be resolved before serialization so cells
                 // carry their column width constraint. The Java pre-pass is
                 // removed, so layoutColumns is called here with the available
@@ -423,10 +424,16 @@ public class LayoutTreeSerializer {
                 // instead of the full available width. This allows tables to
                 // shrink to content width when not explicitly set to fullWidth.
                 int availW = Math.max(1, Math.round(serializeAvailWidth - 2.0f * CONTENT_PAD - listPadAccum));
-                boolean allDeclared = table.getColumns().stream().allMatch(c -> c.getPreferredWidth() > 0);
+                boolean allDeclared = table.getColumns()
+                    .stream()
+                    .allMatch(c -> c.getPreferredWidth() > 0);
                 if (allDeclared && !table.isFullWidth()) {
-                    int sumPreferred = table.getColumns().stream().mapToInt(c -> c.getPreferredWidth()).sum();
-                    int borders = (table.getColumns().size() + 1) * LytTable.CELL_BORDER;
+                    int sumPreferred = table.getColumns()
+                        .stream()
+                        .mapToInt(LytTableColumn::getPreferredWidth)
+                        .sum();
+                    int borders = (table.getColumns()
+                        .size() + 1) * LytTable.CELL_BORDER;
                     int naturalW = sumPreferred + borders;
                     table.layoutColumns(0, Math.min(naturalW, availW));
                 } else {
@@ -475,7 +482,7 @@ public class LayoutTreeSerializer {
                     } else if (ib instanceof LytImage image) {
                         // LytImage after script materialization: compute displayed
                         // dimensions from texture, crop, scale, and DEFAULT_LAYOUT_SCALE
-                        // (mirrors LytImage.computeLayout).  The Java layout pre-pass is
+                        // (mirrors LytImage.computeLayout). The Java layout pre-pass is
                         // removed so ib.getBounds() is LytRect.empty(); relying on the
                         // explicit-dimensions guard alone would leave size_h=0, making
                         // Rust inline_block_height() return 0 and inline_line_growth()
@@ -489,11 +496,13 @@ public class LayoutTreeSerializer {
                         // fallback applies.
                         var tex = image.getTexture();
                         boolean hasNatural = tex != null && !tex.isMissing();
-                        int natW = hasNatural
-                            ? (image.getCropWidth() > 0 ? image.getCropWidth() : tex.getSize().width())
+                        int natW = hasNatural ? (image.getCropWidth() > 0 ? image.getCropWidth()
+                            : tex.getSize()
+                                .width())
                             : 0;
-                        int natH = hasNatural
-                            ? (image.getCropHeight() > 0 ? image.getCropHeight() : tex.getSize().height())
+                        int natH = hasNatural ? (image.getCropHeight() > 0 ? image.getCropHeight()
+                            : tex.getSize()
+                                .height())
                             : 0;
                         int ew = image.getExplicitWidth();
                         int eh = image.getExplicitHeight();
@@ -510,8 +519,8 @@ public class LayoutTreeSerializer {
                             if (ew > 0) {
                                 vw = ew;
                             } else if (hasNatural) {
-                                vw = Math.max(1, (int) Math.round(
-                                    natW * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleX()));
+                                vw = Math
+                                    .max(1, (int) Math.round(natW * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleX()));
                             } else {
                                 LytRect b = ib.getBounds();
                                 vw = b != null ? b.width() : 0;
@@ -519,8 +528,8 @@ public class LayoutTreeSerializer {
                             if (eh > 0) {
                                 vh = eh;
                             } else if (hasNatural) {
-                                vh = Math.max(1, (int) Math.round(
-                                    natH * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleY()));
+                                vh = Math
+                                    .max(1, (int) Math.round(natH * LytImage.DEFAULT_LAYOUT_SCALE * image.getScaleY()));
                             } else {
                                 LytRect b = ib.getBounds();
                                 vh = b != null ? b.height() : 0;
@@ -534,31 +543,31 @@ public class LayoutTreeSerializer {
                         }
                     } else if (ib instanceof LytImageBlock imb && imb.getExplicitWidth() > 0
                         && imb.getExplicitHeight() > 0) {
-                        vw = imb.getExplicitWidth();
-                        vh = imb.getExplicitHeight();
-                    } else if (ib instanceof LytItemImage itemImg) {
-                        int[] size = itemImg.measureSerializedInlineSize();
-                        vw = size[0];
-                        vh = size[1];
-                    } else if (ib instanceof LytParagraph errPar) {
-                        // F-N2: script error-fallback paragraphs (ItemImage /
-                        // ItemLink / FloatingImage / Image failures) previously
-                        // fell through to the else branch, which reads
-                        // getBounds() = LytRect.empty() → FloatAbs(0,0) → Rust
-                        // inline_block_width=0 → Parley InlineBox zero-width →
-                        // the paragraph pen never advances and the following
-                        // body text overlaps the red error text. Declare the px
-                        // box from the measured error text instead (Rust text
-                        // shaping shares the same font pipeline, so the declared
-                        // width matches the shaped advance the pen must skip).
-                        int[] errSize = inlineParagraphSize(errPar);
-                        vw = errSize[0];
-                        vh = errSize[1];
-                    } else {
-                        LytRect b = ib.getBounds();
-                        vw = b != null ? b.width() : 0;
-                        vh = b != null ? b.height() : 0;
-                    }
+                            vw = imb.getExplicitWidth();
+                            vh = imb.getExplicitHeight();
+                        } else if (ib instanceof LytItemImage itemImg) {
+                            int[] size = itemImg.measureSerializedInlineSize();
+                            vw = size[0];
+                            vh = size[1];
+                        } else if (ib instanceof LytParagraph errPar) {
+                            // F-N2: script error-fallback paragraphs (ItemImage /
+                            // ItemLink / FloatingImage / Image failures) previously
+                            // fell through to the else branch, which reads
+                            // getBounds() = LytRect.empty() → FloatAbs(0,0) → Rust
+                            // inline_block_width=0 → Parley InlineBox zero-width →
+                            // the paragraph pen never advances and the following
+                            // body text overlaps the red error text. Declare the px
+                            // box from the measured error text instead (Rust text
+                            // shaping shares the same font pipeline, so the declared
+                            // width matches the shaped advance the pen must skip).
+                            int[] errSize = inlineParagraphSize(errPar);
+                            vw = errSize[0];
+                            vh = errSize[1];
+                        } else {
+                            LytRect b = ib.getBounds();
+                            vw = b != null ? b.width() : 0;
+                            vh = b != null ? b.height() : 0;
+                        }
                     absoluteFloats.put(ib, new LayoutStyleExtractor.FloatAbs(vw, vh));
                 }
             }
@@ -667,6 +676,9 @@ public class LayoutTreeSerializer {
      */
     public static boolean shouldSkipInBoundsDump(LytNode node) {
         return shouldEliminate(node) && node.getBounds() != null
-            && (node.getBounds().width() <= 0 || node.getBounds().height() <= 0);
+            && (node.getBounds()
+                .width() <= 0
+                || node.getBounds()
+                    .height() <= 0);
     }
 }

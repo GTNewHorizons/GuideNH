@@ -17,6 +17,9 @@ public class FunctionPlot {
     private final int color;
     private final String label;
     private final AutoPointSpec autoPointSpec;
+    private final String tooltipText;
+    private final boolean showFunction;
+    private final boolean showValues;
 
     public FunctionPlot(String expressionText, FunctionExpr expression, boolean inverse, DomainPredicate domain,
         int color, String label) {
@@ -25,6 +28,12 @@ public class FunctionPlot {
 
     public FunctionPlot(String expressionText, FunctionExpr expression, boolean inverse, DomainPredicate domain,
         int color, String label, AutoPointSpec autoPointSpec) {
+        this(expressionText, expression, inverse, domain, color, label, autoPointSpec, null, true, true);
+    }
+
+    public FunctionPlot(String expressionText, FunctionExpr expression, boolean inverse, DomainPredicate domain,
+        int color, String label, AutoPointSpec autoPointSpec, String tooltipText, boolean showFunction,
+        boolean showValues) {
         this.expressionText = expressionText != null ? expressionText : "";
         this.expression = expression != null ? expression : new FunctionExpr.Constant(Double.NaN);
         this.inverse = inverse;
@@ -32,6 +41,9 @@ public class FunctionPlot {
         this.color = color;
         this.label = label;
         this.autoPointSpec = autoPointSpec != null ? autoPointSpec : AutoPointSpec.NONE;
+        this.tooltipText = tooltipText;
+        this.showFunction = showFunction;
+        this.showValues = showValues;
     }
 
     /**

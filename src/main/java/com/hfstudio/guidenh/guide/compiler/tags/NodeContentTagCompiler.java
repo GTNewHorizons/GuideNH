@@ -15,7 +15,8 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
  * Tag compiler for {@code <NodeContent>} — rich content blocks inside
  * {@code <Mermaid>} diagrams.
  *
- * <p>NodeContent is only meaningful as a child of {@code <Mermaid>}, where
+ * <p>
+ * NodeContent is only meaningful as a child of {@code <Mermaid>}, where
  * the {@link MermaidCompiler} extracts and compiles it directly from the
  * element tree (see {@code compileNodeContentBlocks}). At the page level
  * this compiler acts as a no-op (with a debug log) to prevent the
@@ -30,13 +31,12 @@ public class NodeContentTagCompiler implements TagCompiler {
 
     @Override
     public void compileBlockContext(PageCompiler compiler, LytBlockContainer parent, MdxJsxFlowElement el) {
-        // NodeContent is only valid as a child of <Mermaid>.  The MermaidCompiler
+        // NodeContent is only valid as a child of <Mermaid>. The MermaidCompiler
         // handles extraction and compilation directly from el.children().
         // At page level: no-op to suppress "Unhandled MDX" error.
         String id = el.getAttributeString("id", null);
-        GuideDebugLog.debug(
-            "[GuideNH] [NodeContentTagCompiler] Ignored at page level (id={})",
-            id != null ? id : "<null>");
+        GuideDebugLog
+            .debug("[GuideNH] [NodeContentTagCompiler] Ignored at page level (id={})", id != null ? id : "<null>");
     }
 
     @Override

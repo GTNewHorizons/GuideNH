@@ -12,7 +12,6 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
-
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
 import com.hfstudio.guidenh.guide.render.GuideText;
@@ -184,7 +183,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         boolean hasLabel = labelPosition != null && stack != null;
 
         if (!showIcon && !hasLabel) {
-            return new int[]{0, 0};
+            return new int[] { 0, 0 };
         }
         if (!hasLabel) {
             // Optical tight advance for inline icons: shrink the cell to the
@@ -196,10 +195,10 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
                 IconMetrics m = stack != null ? IconMetrics.forStack(stack) : null;
                 if (m != null) {
                     int tightW = Math.round(m.width * scale) + 2 * INLINE_OPTICAL_PAD;
-                    return new int[]{tightW, iconSize};
+                    return new int[] { tightW, iconSize };
                 }
             }
-            return new int[]{iconSize, iconSize};
+            return new int[] { iconSize, iconSize };
         }
 
         ResolvedTextStyle textStyle = resolveLabelStyle();
@@ -208,20 +207,19 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
         int textH = GuideText.lineHeight(textStyle);
 
         if (!showIcon) {
-            return new int[]{textW, textH};
+            return new int[] { textW, textH };
         }
 
         // showIcon + hasLabel — total width is same for label="left" and label="right"
         int labelYOffset = inline && showIcon
-            ? Math.round(
-                (labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET) * scale)
+            ? Math.round((labelYOffsetOverride != null ? labelYOffsetOverride : DEFAULT_TEXT_INLINE_Y_OFFSET) * scale)
             : 0;
         int textTop = (iconSize - textH) / 2 + labelYOffset;
         int top = Math.min(0, textTop);
         int bottom = Math.max(iconSize, textTop + textH);
         int totalW = iconSize + labelGap() + textW;
         int totalH = Math.max(0, bottom - top);
-        return new int[]{totalW, totalH};
+        return new int[] { totalW, totalH };
     }
 
     /**
@@ -352,8 +350,7 @@ public class LytItemImage extends LytBlock implements InteractiveElement {
     }
 
     @Override
-    public void render(RenderContext context) {
-    }
+    public void render(RenderContext context) {}
 
     @Override
     public Optional<GuideTooltip> getTooltip(float x, float y) {

@@ -19,10 +19,6 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
-    val nativeLib = System.getProperty("guide.native.lib.path")
-    if (nativeLib != null) {
-        jvmArgs("-Dguide.native.lib.path=$nativeLib")
-    }
 }
 
 tasks.named<ShadowJar>("shadowJar") {
@@ -84,26 +80,13 @@ runConfigs.forEach { (taskName, path) ->
     }
 }
 
-
-/** Standalone task: build Rust native library.
- *  Run manually: ./gradlew buildRustNative
- *  Does NOT wire into the main build pipeline.
- *  Requires Rust toolchain: https://rustup.rs
- */
-/** Resolve the Rust DLL path eagerly (configuration-cache friendly): prefer the
- *  redirected target dir on E:, fall back to the in-tree target dir. */
-val rustDllPath: String = run {
-    val eDrive = File("E:/build_out/guide_nh_rust/release/guide_layout_engine.dll")
-    if (eDrive.exists()) eDrive.absolutePath else "${rootDir}/layout-engine/target/release/guide_layout_engine.dll"
-}
-
-/** Run GlyphRenderTest main class. Requires Rust DLL built first. */
+/** Run GlyphRenderTest main class. */
 val runGlyphTest by tasks.registering(JavaExec::class) {
     description = "Run GlyphRenderTest visual glyph verification window"
     group = "verification"
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("com.hfstudio.guidenh.guide.layout.GlyphRenderTest")
-    jvmArgs("-Dguide.native.lib.path=$rustDllPath", "-Dsun.java2d.uiScale=1.0")
+    jvmArgs("-Dsun.java2d.uiScale=1.0")
 }
 
 /** Headless diagnostic: print glyph pipeline to console. */
@@ -112,33 +95,27 @@ val runGlyphDiag by tasks.registering(JavaExec::class) {
     group = "verification"
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("com.hfstudio.guidenh.guide.layout.GlyphDiag")
-    jvmArgs("-Dguide.native.lib.path=$rustDllPath", "-Dsun.java2d.uiScale=1.0")
+    jvmArgs("-Dsun.java2d.uiScale=1.0")
 }
 
-/** Headless layout pipeline test bench: synthetic pages → invariants + tree dump. */
+/** Headless layout pipeline test bench: synthetic pages and tree dump. */
 val runLayoutDump by tasks.registering(JavaExec::class) {
     description = "Run LayoutPipelineHarness: headless layout pipeline verification"
     group = "verification"
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("com.hfstudio.guidenh.guide.layout.LayoutPipelineHarness")
-    jvmArgs("-Dguide.native.lib.path=$rustDllPath", "-Dsun.java2d.uiScale=1.0")
+    jvmArgs("-Dsun.java2d.uiScale=1.0")
     setIgnoreExitValue(true)
 }
 
-/** Headless A/B: cosmic renderText vs parley renderTextParley. */
+/** Headless text rendering smoke task. */
 val runParleySmoke by tasks.registering(JavaExec::class) {
-    description = "Headless A/B: cosmic renderText vs parley renderTextParley"
+    description = "Headless text rendering smoke test"
     group = "verification"
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("com.hfstudio.guidenh.guide.layout.GlyphRenderTest")
-    jvmArgs("-Dguide.native.lib.path=$rustDllPath", "-Dsun.java2d.uiScale=1.0")
+    jvmArgs("-Dsun.java2d.uiScale=1.0")
     args("--headless")
 }
 
-val buildRustNative by tasks.registering(Exec::class) {
-    description = "Build Rust native library (layout-engine/guide_layout_engine.dll)"
-    group = "build"
-    workingDir = file("layout-engine")
-    commandLine("cargo", "build", "--release")
-    outputs.file("layout-engine/target/release/guide_layout_engine.dll")
-}
+

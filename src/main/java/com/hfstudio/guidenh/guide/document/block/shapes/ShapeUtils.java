@@ -70,8 +70,8 @@ final class ShapeUtils {
         double cr = x1pSq / rxSq + y1pSq / rySq;
         if (cr > 1) {
             double s = Math.sqrt(cr);
-            rx *= s;
-            ry *= s;
+            rx *= (float) s;
+            ry *= (float) s;
             rxSq = rx * rx;
             rySq = ry * ry;
         }

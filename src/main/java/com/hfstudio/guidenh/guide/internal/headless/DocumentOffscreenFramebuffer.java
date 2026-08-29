@@ -27,7 +27,8 @@ import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
  * reads back a {@link BufferedImage}. When the total height exceeds
  * {@code GL_MAX_TEXTURE_SIZE}, the document is split into tiles and composited.
  *
- * <p>This class does <em>not</em> perform layout — the caller is responsible for
+ * <p>
+ * This class does <em>not</em> perform layout — the caller is responsible for
  * laying out the document at the full render resolution and collecting primitives
  * via {@link com.hfstudio.guidenh.guide.render.PrimitiveCollector#result()}.
  * Each tile translates the viewport origin (camera pan equivalent) so that
@@ -40,34 +41,28 @@ public final class DocumentOffscreenFramebuffer {
     /** 16384 * 4 */
     private static final int MAX_TOTAL_DIMENSION = 65536;
 
-    private DocumentOffscreenFramebuffer() {
-    }
+    private DocumentOffscreenFramebuffer() {}
 
     /**
      * Renders the given primitives at the specified total dimensions, tiling
      * transparently when the document exceeds {@code GL_MAX_TEXTURE_SIZE}.
      *
-     * @param primitives  the already-collected primitives in document coordinates.
-     * @param context     the render context whose document origin is adjusted per
-     *                    tile (affects HostDraw callbacks).
-     * @param totalWidth  full document width in document units (must be positive).
-     * @param totalHeight full document height in document units (must be positive).
+     * @param primitives    the already-collected primitives in document coordinates.
+     * @param context       the render context whose document origin is adjusted per
+     *                      tile (affects HostDraw callbacks).
+     * @param totalWidth    full document width in document units (must be positive).
+     * @param totalHeight   full document height in document units (must be positive).
      * @param backgroundRgb opaque background colour packed as 0xRRGGBB.
-     * @param scale       pixel-density multiplier (1-4). Output dimensions are
-     *                    totalWidth × scale by totalHeight × scale.
+     * @param scale         pixel-density multiplier (1-4). Output dimensions are
+     *                      totalWidth × scale by totalHeight × scale.
      * @return a fully composited opaque {@code BufferedImage} of the document.
      * @throws IllegalArgumentException if dimensions are out of range.
      * @throws IllegalStateException    if the Minecraft client is not ready.
      * @throws RuntimeException         if any tile fails to render (FBO is cleaned
      *                                  up before rethrowing).
      */
-    public static BufferedImage renderAll(
-            List<GuideRenderPrimitive> primitives,
-            VanillaRenderContext context,
-            int totalWidth,
-            int totalHeight,
-            int backgroundRgb,
-            int scale) {
+    public static BufferedImage renderAll(List<GuideRenderPrimitive> primitives, VanillaRenderContext context,
+        int totalWidth, int totalHeight, int backgroundRgb, int scale) {
 
         // ---- dimension validation -------------------------------------------
         if (totalWidth <= 0 || totalHeight <= 0) {
@@ -81,8 +76,7 @@ public final class DocumentOffscreenFramebuffer {
 
         if (pxWidth > MAX_TOTAL_DIMENSION || pxHeight > MAX_TOTAL_DIMENSION) {
             throw new IllegalArgumentException(
-                "Pixel dimensions exceed maximum " + MAX_TOTAL_DIMENSION + ": "
-                    + pxWidth + " x " + pxHeight);
+                "Pixel dimensions exceed maximum " + MAX_TOTAL_DIMENSION + ": " + pxWidth + " x " + pxHeight);
         }
 
         Minecraft minecraft = Minecraft.getMinecraft();
@@ -98,16 +92,12 @@ public final class DocumentOffscreenFramebuffer {
         int tileSize = Math.min(maxFboSize, MAX_TILE_SIZE_CAP);
 
         // ---- render engine (shared across tiles) ----------------------------
-        GuideRenderEngine engine = new GuideRenderEngine(
-            GuideGlyphAtlas.instance(),
-            new GuidebookSceneRenderer());
+        GuideRenderEngine engine = new GuideRenderEngine(GuideGlyphAtlas.instance(), new GuidebookSceneRenderer());
 
         // ---- output image (scaled pixel dimensions) -------------------------
         BufferedImage output = new BufferedImage(pxWidth, pxHeight, BufferedImage.TYPE_INT_ARGB);
         Graphics2D outputG = output.createGraphics();
-        outputG.setRenderingHint(
-            RenderingHints.KEY_INTERPOLATION,
-            RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        outputG.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
         boolean prevSkipLightmap = GuidebookLevelRenderer.skipLightmapForOffscreen;
         GuidebookLevelRenderer.skipLightmapForOffscreen = true;
@@ -164,9 +154,9 @@ public final class DocumentOffscreenFramebuffer {
                         context.setDocumentOrigin(-tileX, -tileY);
 
                         // Wrap primitives with scale + tile-offset transforms:
-                        //   outer: PushTransform(0, 0, scale) — scales doc coords by N×
-                        //   inner: PushTransform(-tileX/scale, -tileY/scale, 1.0f) — tile offset
-                        //     in doc space, which after parent-scaling becomes -tileX, -tileY
+                        // outer: PushTransform(0, 0, scale) — scales doc coords by N×
+                        // inner: PushTransform(-tileX/scale, -tileY/scale, 1.0f) — tile offset
+                        // in doc space, which after parent-scaling becomes -tileX, -tileY
                         // Combined: screen = doc * scale + (-tileX, -tileY)
                         List<GuideRenderPrimitive> wrapped = wrapForTile(primitives, tileX, tileY, scale);
 
@@ -220,31 +210,29 @@ public final class DocumentOffscreenFramebuffer {
     /**
      * Wraps the original primitive list with:
      * <ol>
-     *   <li>Outer {@link PushTransform}(0, 0, scale) — scales document coordinates
-     *       by N× for pixel-density amplification.</li>
-     *   <li>Inner {@link PushTransform}(-tileX/scale, -tileY/scale, 1.0f) — tile
-     *       offset in document space.  The engine's composition applies parent
-     *       scale to child translation, yielding effective offset
-     *       {@code (-tileX, -tileY)} in the scaled pixel space.</li>
+     * <li>Outer {@link GuideRenderPrimitive.PushTransform}(0, 0, scale) — scales document coordinates
+     * by N× for pixel-density amplification.</li>
+     * <li>Inner {@link GuideRenderPrimitive.PushTransform}(-tileX/scale, -tileY/scale, 1.0f) — tile
+     * offset in document space. The engine's composition applies parent
+     * scale to child translation, yielding effective offset
+     * {@code (-tileX, -tileY)} in the scaled pixel space.</li>
      * </ol>
      *
-     * <p>Combined effective transform:
+     * <p>
+     * Combined effective transform:
      * {@code screen = doc * scale + (-tileX, -tileY)}.
      *
-     * <p>Tile coordinates are in pixel (scaled) space; the inner translation
+     * <p>
+     * Tile coordinates are in pixel (scaled) space; the inner translation
      * divides by scale so the tile-border crossing matches document units.
      */
-    private static List<GuideRenderPrimitive> wrapForTile(
-            List<GuideRenderPrimitive> primitives,
-            int tileX,
-            int tileY,
-            int scale) {
+    private static List<GuideRenderPrimitive> wrapForTile(List<GuideRenderPrimitive> primitives, int tileX, int tileY,
+        int scale) {
         List<GuideRenderPrimitive> wrapped = new ArrayList<>(primitives.size() + 4);
         // Outer: scale document coordinates
         wrapped.add(new GuideRenderPrimitive.PushTransform(0f, 0f, (float) scale));
         // Inner: tile offset in document space
-        wrapped.add(new GuideRenderPrimitive.PushTransform(
-            (float) -tileX / scale, (float) -tileY / scale, 1.0f));
+        wrapped.add(new GuideRenderPrimitive.PushTransform((float) -tileX / scale, (float) -tileY / scale, 1.0f));
         wrapped.addAll(primitives);
         wrapped.add(new GuideRenderPrimitive.PopTransform());
         wrapped.add(new GuideRenderPrimitive.PopTransform());

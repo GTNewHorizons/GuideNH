@@ -208,13 +208,26 @@ public class FunctionGraphFenceParser {
         int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, FunctionGraphPalette.color(paletteIndex))
             : FunctionGraphPalette.color(paletteIndex);
         String label = attrs.stringValue("label");
+        String tooltip = attrs.stringValue("tooltip");
+        Boolean showFunction = attrs.boolValue("showFunction");
+        Boolean showValues = attrs.boolValue("showValues");
         AutoPointSpec autoPointSpec = FunctionGraphAttrs.parseAutoPointSpec(
             attrs.stringValue("pointEveryX"),
             attrs.stringValue("pointEveryY"),
             attrs.stringValue("autoPointLabel"),
             attrs.stringValue("autoPointColor"),
             color);
-        return new FunctionPlot(exprText, ast, inv, domain, color, label, autoPointSpec);
+        return new FunctionPlot(
+            exprText,
+            ast,
+            inv,
+            domain,
+            color,
+            label,
+            autoPointSpec,
+            tooltip,
+            showFunction == null || showFunction,
+            showValues == null || showValues);
     }
 
     private static int findAttributePipe(String line) {
@@ -279,7 +292,7 @@ public class FunctionGraphFenceParser {
 
     private static boolean isPlotAttributeKey(String key) {
         return switch (key) {
-            case "color", "label", "domain", "inverse", "pointEveryX", "pointEveryY", "autoPointLabel", "autoPointColor" -> true;
+            case "color", "label", "tooltip", "showFunction", "showValues", "domain", "inverse", "pointEveryX", "pointEveryY", "autoPointLabel", "autoPointColor" -> true;
             default -> false;
         };
     }

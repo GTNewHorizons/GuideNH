@@ -10,6 +10,8 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
+import lombok.Getter;
+
 /**
  * Collects {@link GuideRenderPrimitive} from a {@link LytNode} tree.
  *
@@ -48,13 +50,18 @@ public class PrimitiveCollector {
 
     private final List<GuideRenderPrimitive> primitives = new ArrayList<>();
     /** Viewport in screen GUI coordinates, used for culling. */
+    @Getter
     private final LytRect viewport;
     private final RenderContext legacyContext;
     private final Deque<CullFrame> cullStack = new ArrayDeque<>();
     /**
      * Document-space bounds of blocks culled during the last traversal,
      * recorded only when the layout overlay is enabled (diagnostics).
+     * -- GETTER --
+     * Document-space bounds of blocks culled during traversal (diagnostics).
+     * 
      */
+    @Getter
     private final List<LytRect> culledDocRects = new ArrayList<>();
 
     public PrimitiveCollector(LytRect viewport, RenderContext legacyContext) {
@@ -186,10 +193,6 @@ public class PrimitiveCollector {
         return r < viewport.x() || b < viewport.y() || x > viewport.right() || y > viewport.bottom();
     }
 
-    public LytRect getViewport() {
-        return viewport;
-    }
-
     // ---- tree traversal --------------------------------------------------
 
     /**
@@ -263,11 +266,6 @@ public class PrimitiveCollector {
 
     public List<GuideRenderPrimitive> result() {
         return List.copyOf(primitives);
-    }
-
-    /** Document-space bounds of blocks culled during traversal (diagnostics). */
-    public List<LytRect> getCulledDocRects() {
-        return culledDocRects;
     }
 
     /** Clear all collected primitives and reset the cull stack. */

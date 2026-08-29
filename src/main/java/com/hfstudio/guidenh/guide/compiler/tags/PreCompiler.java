@@ -36,11 +36,11 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public class PreCompiler extends BlockTagCompiler {
 
-    private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
-    private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
+    public static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
+    public static final Pattern CODEBLOCK_META_HEIGHT = Pattern
         .compile("(^|\\s)height=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
-    private static final Pattern CODEBLOCK_META_WRAP = Pattern.compile("(^|\\s)wrap=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
-    private static final Pattern CODEBLOCK_META_ALIGN = Pattern.compile("(^|\\s)align=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
+    public static final Pattern CODEBLOCK_META_WRAP = Pattern.compile("(^|\\s)wrap=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
+    public static final Pattern CODEBLOCK_META_ALIGN = Pattern.compile("(^|\\s)align=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
 
     @Override
     public Set<String> getTagNames() {
@@ -117,7 +117,7 @@ public class PreCompiler extends BlockTagCompiler {
         parent.append(applyBlockEmbed(codeBlock, wrapMode, align));
     }
 
-    private LytBlock compileCsvCodeBlock(PageCompiler compiler, String source, @Nullable String meta) {
+    public LytBlock compileCsvCodeBlock(PageCompiler compiler, String source, @Nullable String meta) {
         List<List<String>> rows = CsvTableParser.parse(source);
         if (rows.isEmpty()) {
             LytCodeBlock codeBlock = new LytCodeBlock();
@@ -130,7 +130,7 @@ public class PreCompiler extends BlockTagCompiler {
         return CsvTableCompiler.buildTable(compiler, rows, csvMeta.header(), csvMeta.widthHints());
     }
 
-    private CsvFenceMeta parseCsvFenceMeta(@Nullable String meta) {
+    public CsvFenceMeta parseCsvFenceMeta(@Nullable String meta) {
         if (meta == null || meta.trim()
             .isEmpty()) {
             return new CsvFenceMeta(true, Collections.emptyList());
@@ -156,7 +156,7 @@ public class PreCompiler extends BlockTagCompiler {
         return new CsvFenceMeta(header, widthHints);
     }
 
-    private List<String> splitMetaTokens(String meta) {
+    public List<String> splitMetaTokens(String meta) {
         List<String> tokens = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
@@ -189,7 +189,7 @@ public class PreCompiler extends BlockTagCompiler {
         return tokens;
     }
 
-    private String stripOptionalQuotes(String value) {
+    public String stripOptionalQuotes(String value) {
         if (value.length() >= 2) {
             char first = value.charAt(0);
             char last = value.charAt(value.length() - 1);
@@ -201,9 +201,9 @@ public class PreCompiler extends BlockTagCompiler {
     }
 
     @Desugar
-    private record CsvFenceMeta(boolean header, List<Integer> widthHints) {}
+    public record CsvFenceMeta(boolean header, List<Integer> widthHints) {}
 
-    private @Nullable LytBlock compileMermaid(String source) {
+    public @Nullable LytBlock compileMermaid(String source) {
         String normalized = MermaidSourceExtractor.normalize(source);
         if (normalized.isEmpty()) {
             return null;
@@ -218,19 +218,20 @@ public class PreCompiler extends BlockTagCompiler {
         };
     }
 
-    private @Nullable LytMermaidMindmap compileMermaidMindmap(String normalized) {
+    public @Nullable LytMermaidMindmap compileMermaidMindmap(String normalized) {
         try {
             LytMermaidMindmap block = new LytMermaidMindmap(MindmapParser.parse(normalized), normalized);
             // Pre-compute diagram layout before first Rust layout so the canvas
             // gets a correct preferredHeight and the VBox receives its real height
             // in the initial layout pass (no second pass needed).
             int pageWidth = 480; // no page-width info available at compile time
-            GuideDebugLog.debugAlways(
-                "[GuideNH-Mermaid] [PreCompiler] precomputeMindmapLayout entered pageWidth={}", pageWidth);
+            GuideDebugLog
+                .debugAlways("[GuideNH-Mermaid] [PreCompiler] precomputeMindmapLayout entered pageWidth={}", pageWidth);
             MermaidLayoutPrecomputer.precomputeMindmapLayout(block, pageWidth);
             GuideDebugLog.debugAlways(
                 "[GuideNH-Mermaid] [PreCompiler] precomputeMindmapLayout exit explicitHeight={}",
-                block.getCanvas().getExplicitHeight());
+                block.getCanvas()
+                    .getExplicitHeight());
             GuideDebugLog
                 .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid mindmap block ({} chars)", normalized.length());
             return block;
@@ -241,25 +242,26 @@ public class PreCompiler extends BlockTagCompiler {
         }
     }
 
-    private LytMermaidFlowchart compileMermaidFlowchart(String normalized) {
+    public LytMermaidFlowchart compileMermaidFlowchart(String normalized) {
         var document = FlowchartParser.parse(normalized);
         LytMermaidFlowchart block = new LytMermaidFlowchart(document, normalized);
         // Pre-compute diagram layout before first Rust layout so the canvas
         // gets a correct preferredHeight and the VBox receives its real height
         // in the initial layout pass (no second pass needed).
         int pageWidth = 480; // no page-width info available at compile time
-        GuideDebugLog.debugAlways(
-            "[GuideNH-Mermaid] [PreCompiler] precomputeFlowchartLayout entered pageWidth={}", pageWidth);
+        GuideDebugLog
+            .debugAlways("[GuideNH-Mermaid] [PreCompiler] precomputeFlowchartLayout entered pageWidth={}", pageWidth);
         MermaidLayoutPrecomputer.precomputeFlowchartLayout(block, pageWidth);
         GuideDebugLog.debugAlways(
             "[GuideNH-Mermaid] [PreCompiler] precomputeFlowchartLayout exit explicitHeight={}",
-            block.getCanvas().getExplicitHeight());
+            block.getCanvas()
+                .getExplicitHeight());
         GuideDebugLog
             .debug("[GuideNH] [PreCompiler] Compiled fenced Mermaid flowchart stub ({} chars)", normalized.length());
         return block;
     }
 
-    private LytCodeBlock compileMermaidUnknown(String normalized) {
+    public LytCodeBlock compileMermaidUnknown(String normalized) {
         LytCodeBlock codeBlock = new LytCodeBlock();
         codeBlock.setCodeContent("mermaid", normalized);
         codeBlock.setLanguageDisplayName("Mermaid (stub)");
@@ -268,7 +270,7 @@ public class PreCompiler extends BlockTagCompiler {
         return codeBlock;
     }
 
-    private static boolean isFileTreeFence(@Nullable String fenceLanguage) {
+    public static boolean isFileTreeFence(@Nullable String fenceLanguage) {
         if (fenceLanguage == null) {
             return false;
         }
@@ -276,7 +278,7 @@ public class PreCompiler extends BlockTagCompiler {
         return "tree".equalsIgnoreCase(trimmed) || "filetree".equalsIgnoreCase(trimmed);
     }
 
-    private static boolean isFunctionGraphFence(@Nullable String fenceLanguage) {
+    public static boolean isFunctionGraphFence(@Nullable String fenceLanguage) {
         if (fenceLanguage == null) {
             return false;
         }
@@ -285,7 +287,7 @@ public class PreCompiler extends BlockTagCompiler {
             || "functiongraph".equalsIgnoreCase(trimmed);
     }
 
-    private static @Nullable Integer parseCodeBlockWidth(@Nullable String meta) {
+    public static @Nullable Integer parseCodeBlockWidth(@Nullable String meta) {
         if (meta == null || meta.trim()
             .isEmpty()) {
             return null;
@@ -307,7 +309,7 @@ public class PreCompiler extends BlockTagCompiler {
         }
     }
 
-    private static @Nullable Integer parseCodeBlockHeight(@Nullable String meta) {
+    public static @Nullable Integer parseCodeBlockHeight(@Nullable String meta) {
         if (meta == null || meta.trim()
             .isEmpty()) {
             return null;
@@ -329,7 +331,7 @@ public class PreCompiler extends BlockTagCompiler {
         }
     }
 
-    private static @Nullable String parseCodeBlockWrapMeta(@Nullable String meta) {
+    public static @Nullable String parseCodeBlockWrapMeta(@Nullable String meta) {
         if (meta == null || meta.trim()
             .isEmpty()) {
             return null;
@@ -344,7 +346,7 @@ public class PreCompiler extends BlockTagCompiler {
             .isEmpty()) ? null : value.trim();
     }
 
-    private static @Nullable String parseCodeBlockAlignMeta(@Nullable String meta) {
+    public static @Nullable String parseCodeBlockAlignMeta(@Nullable String meta) {
         if (meta == null || meta.trim()
             .isEmpty()) {
             return null;
@@ -362,9 +364,9 @@ public class PreCompiler extends BlockTagCompiler {
     /**
      * Applies floating/alignment embed to a block, consistent with
      * {@link BlockTagCompiler#applyBlockEmbed} semantics for JSX wrap/align.
-     * Duplicated here because {@code applyBlockEmbed} is private in the parent.
+     * Duplicated here because {@code applyBlockEmbed} is public in the parent.
      */
-    private static LytBlock applyBlockEmbed(LytBlock node, ContentWrapMode wrapMode, ContentAlign align) {
+    public static LytBlock applyBlockEmbed(LytBlock node, ContentWrapMode wrapMode, ContentAlign align) {
         if (wrapMode.isDocumentFloat()) {
             return new LytDocumentFloat(node, align == ContentAlign.RIGHT);
         }

@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
@@ -20,7 +21,8 @@ import lombok.Getter;
  * of connector lines drawn directly via {@link #computePrimitives}, an optional icon block and a
  * {@link LytParagraph} payload re-parsed from inline markdown.
  *
- * <p>Each row is wrapped in a {@link LytHBox} row container whose {@code marginLeft} encodes the
+ * <p>
+ * Each row is wrapped in a {@link LytHBox} row container whose {@code marginLeft} encodes the
  * indentation level ({@code slots.size() * indentPx}) and whose children are the optional icon
  * block followed by the payload paragraph. The row containers are full tree children
  * ({@link #getChildren()}), so they participate in Rust layout — the paragraphs receive proper
@@ -71,7 +73,8 @@ public class LytFileTree extends LytBlock {
      */
     public void finalizeRowGaps() {
         if (!rowContainers.isEmpty()) {
-            rowContainers.get(rowContainers.size() - 1).setMarginBottom(0);
+            rowContainers.get(rowContainers.size() - 1)
+                .setMarginBottom(0);
         }
     }
 
@@ -115,8 +118,7 @@ public class LytFileTree extends LytBlock {
         // If called directly, lay out children minimally.
         int currentY = y;
         int totalHeight = 0;
-        for (int i = 0; i < rows.size(); i++) {
-            Row row = rows.get(i);
+        for (Row row : rows) {
             LytHBox container = row.container;
             int marginLeft = container.getMarginLeft();
             container.layout(context, x + marginLeft, currentY, availableWidth - marginLeft);
@@ -143,11 +145,9 @@ public class LytFileTree extends LytBlock {
     @Override
     public void computePrimitives(PrimitiveCollector c) {
         int baseX = bounds.x();
-        int connectorColor = SymbolicColor.TABLE_BORDER
-            .resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current());
+        int connectorColor = SymbolicColor.TABLE_BORDER.resolve(LightDarkMode.current());
         int halfIndent = indentPx / 2;
-        for (int i = 0; i < rows.size(); i++) {
-            Row row = rows.get(i);
+        for (Row row : rows) {
             LytRect rowBounds = row.container.getBounds();
             int rowY = rowBounds.y();
             int rowHeight = rowBounds.height();
@@ -217,8 +217,7 @@ public class LytFileTree extends LytBlock {
         // Resolve symbolic color once per frame instead of on every fillRect.
         int connectorColor = context.resolveColor(SymbolicColor.TABLE_BORDER);
         int halfIndent = indentPx / 2;
-        for (int i = 0; i < rows.size(); i++) {
-            Row row = rows.get(i);
+        for (Row row : rows) {
             LytRect rowBounds = row.container.getBounds();
             int rowY = rowBounds.y();
             int rowHeight = rowBounds.height();

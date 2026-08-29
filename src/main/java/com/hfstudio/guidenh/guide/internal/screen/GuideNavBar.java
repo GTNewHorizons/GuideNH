@@ -239,8 +239,10 @@ public class GuideNavBar {
     @Nullable
     private Row hoveredScrollingRow;
     private long hoveredScrollingStartedAtMillis;
-    /** Lazily-created legacy RenderContext holder for the text PrimitiveCollector
-     *  (only constructed once the Rust font system is available in-game). */
+    /**
+     * Lazily-created legacy RenderContext holder for the text PrimitiveCollector
+     * (only constructed once the Rust font system is available in-game).
+     */
     @Nullable
     private VanillaRenderContext textRenderContext;
 
@@ -752,12 +754,8 @@ public class GuideNavBar {
         // supports PushScreenScissor): the whole bar stays a single execute pass
         // with smooth scrolling — no per-row GL scissor churn.
         textCollector.pushScreenScissor(clipLeft, clipTop, clipWidth, clipHeight);
-        GuideText.emitText(
-            textCollector,
-            row.getScrollingTitle(),
-            textX - offset,
-            rowLineTop(rowY),
-            rowTextStyle(color));
+        GuideText
+            .emitText(textCollector, row.getScrollingTitle(), textX - offset, rowLineTop(rowY), rowTextStyle(color));
         textCollector.popScreenScissor();
         return true;
     }
@@ -766,7 +764,8 @@ public class GuideNavBar {
     private boolean renderRowTitleFallback(Minecraft mc, Row row, int textX, int rowY, int maxTw, int color,
         boolean hovered, int scaleFactor) {
         FontRenderer fr = mc.fontRenderer;
-        String title = row.displayRow().title();
+        String title = row.displayRow()
+            .title();
         if (!hovered || fr.getStringWidth(title) <= maxTw) {
             if (fr.getStringWidth(title) > maxTw) {
                 title = fr.trimStringToWidth(title, Math.max(0, maxTw - 4)) + "…";
@@ -1134,9 +1133,9 @@ public class GuideNavBar {
      * variant of the live PushScreenScissor) so the clip scales with the
      * offscreen render density exactly like the glyph runs.
      */
-    public void collectPrimitives(@Nullable ResourceLocation currentGuideId,
-        @Nullable ResourceLocation currentPageId, @Nullable PageCollection pageCollection,
-        GuideBookmarkState bookmarkState, boolean showNewPageButton, PrimitiveCollector collector) {
+    public void collectPrimitives(@Nullable ResourceLocation currentGuideId, @Nullable ResourceLocation currentPageId,
+        @Nullable PageCollection pageCollection, GuideBookmarkState bookmarkState, boolean showNewPageButton,
+        PrimitiveCollector collector) {
         updateVisualScroll();
         int w = currentWidth();
         int rowRight = x + w - 1;
@@ -1195,13 +1194,34 @@ public class GuideNavBar {
                 // screen band — avoids double-printed ghosted text.
                 continue;
             }
-            collectRow(collector, row, rowY, rowRight, textRightBase, currentGuideId, currentPageId,
-                pageCollection, bookmarkState, bookmarkActionLeft, bookmarkIconX, false);
+            collectRow(
+                collector,
+                row,
+                rowY,
+                rowRight,
+                textRightBase,
+                currentGuideId,
+                currentPageId,
+                pageCollection,
+                bookmarkState,
+                bookmarkActionLeft,
+                bookmarkIconX,
+                false);
         }
         for (int stackIndex = 0; stackIndex < stickyRows.size(); stackIndex++) {
-            collectRow(collector, stickyRows.rowAt(stackIndex), stickyRows.rowYAt(stackIndex), rowRight,
-                textRightBase, currentGuideId, currentPageId, pageCollection, bookmarkState, bookmarkActionLeft,
-                bookmarkIconX, true);
+            collectRow(
+                collector,
+                stickyRows.rowAt(stackIndex),
+                stickyRows.rowYAt(stackIndex),
+                rowRight,
+                textRightBase,
+                currentGuideId,
+                currentPageId,
+                pageCollection,
+                bookmarkState,
+                bookmarkActionLeft,
+                bookmarkIconX,
+                true);
         }
         collector.popScissor();
     }
@@ -1218,7 +1238,10 @@ public class GuideNavBar {
 
         GuideDebugLog.infoAlways(
             "[chrome] nav row y={} indent={} title={} kind={}",
-            rowY, indent, displayRow.title(), displayRow.kind());
+            rowY,
+            indent,
+            displayRow.title(),
+            displayRow.kind());
 
         if (sticky) {
             collector.emit(new GuideRenderPrimitive.FillRect(x, rowY, rowRight - x, ROW_H, 0xF0181818));
@@ -1251,14 +1274,21 @@ public class GuideNavBar {
             ResourceLocation pageId = row.pageId();
             boolean failed = pageId != null && pageCollection != null && pageCollection.isPageFailed(pageId);
             int color = getRowTextColor(current, false, failed);
-            renderRowTitle(Minecraft.getMinecraft(), collector, row, textX, rowY, maxTw, color, false,
+            renderRowTitle(
+                Minecraft.getMinecraft(),
+                collector,
+                row,
+                textX,
+                rowY,
+                maxTw,
+                color,
+                false,
                 DisplayScale.scaleFactor());
         }
     }
 
     /** Emit the stepped expander/closed arrow as 1px quads (mirror of {@link #drawArrow}). */
-    private static void emitArrowPrimitive(PrimitiveCollector collector, int x, int y, boolean pointRight,
-        int color) {
+    private static void emitArrowPrimitive(PrimitiveCollector collector, int x, int y, boolean pointRight, int color) {
         if (pointRight) {
             collector.emit(new GuideRenderPrimitive.FillRect(x, y, 1, 7, color));
             collector.emit(new GuideRenderPrimitive.FillRect(x + 1, y + 1, 1, 5, color));

@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.render;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -8,14 +7,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.google.flatbuffers.FlatBufferBuilder;
 import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
-import com.hfstudio.guidenh.guide.layout.LayoutBridge;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.ShapeTextInput;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.ShapeTextResult;
-import com.hfstudio.guidenh.guide.layout.flatbuffers.TextStyle;
+import com.hfstudio.guidenh.guide.layout.JavaFontMetrics;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 /**
@@ -41,8 +36,10 @@ public final class GuideText {
 
     /** Base em size for guide body text (typography P1: 9 → 11). */
     public static final float BASE_FONT_SIZE = 11f;
-    /** Line height at scale 1 = BASE_FONT_SIZE × 1.55 (round(17.05) = 17;
-     * mirrored by parley_text.rs push_defaults FontSizeRelative(1.55)). */
+    /**
+     * Line height at scale 1 = BASE_FONT_SIZE × 1.55 (round(17.05) = 17;
+     * mirrored by parley_text.rs push_defaults FontSizeRelative(1.55)).
+     */
     public static final int BASE_LINE_HEIGHT = 17;
 
     /**
@@ -54,23 +51,24 @@ public final class GuideText {
     private record AdvanceKey(int codePoint, boolean bold, boolean italic, float fontScale, int renderScale) {}
 
     private static final int CACHE_LIMIT = 4096;
-    private static final Map<ShapeKey, ShapeTextResult> shapeCache = new ConcurrentHashMap<>();
     private static final Map<AdvanceKey, Float> advanceCache = new ConcurrentHashMap<>();
     private static volatile Float cachedBaseAscent;
 
     private GuideText() {}
 
-    /** True when the Rust font system is initialized (in-game; false in some tests). */
+    private static final JavaFontMetrics METRICS = new JavaFontMetrics();
+
+    /** True when Java text rendering is available. */
     public static boolean isAvailable() {
-        return LayoutBridge.getFontHandle() != 0;
+        return true;
     }
 
     /** Measured advance width of {@code text} at the given style (cached). */
     public static int measureWidth(@Nullable String text, @Nullable ResolvedTextStyle style) {
-        if (text == null || text.isEmpty() || !isAvailable()) {
+        if (text == null || text.isEmpty()) {
             return 0;
         }
-        return Math.round(shape(text, style).width());
+        return METRICS.getStringWidth(text, style);
     }
 
     /** Line height: 17 × fontScale (11px base × 1.55 line-height ratio). */
@@ -88,13 +86,8 @@ public final class GuideText {
         if (cached != null) {
             return cached;
         }
-        if (!isAvailable()) {
-            // Same convention as the legacy MC cell: baseline ≈ top + 7 of 9.
-            return 7f;
-        }
-        float a = shape("x", null).ascent();
-        cachedBaseAscent = a;
-        return a;
+        if (cachedBaseAscent == null) cachedBaseAscent = 7f;
+        return cachedBaseAscent;
     }
 
     /**
@@ -106,7 +99,7 @@ public final class GuideText {
      * styles.
      */
     public static float xHeight() {
-        return shape("x", null).xHeight();
+        return 7f;
     }
 
     /** Baseline Y for a line whose top is {@code lineTop} at the given style. */
@@ -125,50 +118,51 @@ public final class GuideText {
      * handled by the span pipeline (phase 3).
      */
     public static void emitText(PrimitiveCollector c, String text, int x, int y, @Nullable ResolvedTextStyle style) {
-        if (text == null || text.isEmpty() || !isAvailable()) {
+        if (text == null || text.isEmpty()) {
             return;
         }
-        ShapeTextResult shaped = shape(text, style);
-        var atlas = GuideGlyphAtlas.instance();
-        for (int i = 0; i < shaped.bitmapsLength(); i++) {
-            var bmp = shaped.bitmaps(i);
-            if (bmp == null || bmp.rgbaLength() == 0) continue;
-            byte[] rgba = new byte[bmp.rgbaLength()];
-            for (int j = 0; j < rgba.length; j++) {
-                rgba[j] = (byte) bmp.rgba(j);
-            }
-            atlas.upload(bmp.key(), rgba, (int) bmp.w(), (int) bmp.h());
-        }
-        int n = shaped.glyphsLength();
-        if (n == 0) {
-            return;
-        }
-        List<GuideRenderPrimitive.PlacedGlyph> glyphs = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) {
-            var g = shaped.glyphs(i);
-            if (g == null) continue;
-            glyphs.add(
-                new GuideRenderPrimitive.PlacedGlyph(
-                    g.bitmapKey(),
-                    x + g.x(),
-                    y + g.y(),
-                    g.w(),
-                    g.h(),
-                    (int) g.lineIndex()));
-        }
-        c.emit(
-            new GuideRenderPrimitive.DrawGlyphRun(
-                glyphs,
-                resolveColor(style),
-                false,
-                style != null && style.dropShadow()));
+        c.emit(new GuideRenderPrimitive.DrawText(text, x, y, style));
+        return;
+        /*
+         * ShapeTextResult shaped = shape(text, style);
+         * var atlas = GuideGlyphAtlas.instance();
+         * for (int i = 0; i < shaped.bitmapsLength(); i++) {
+         * var bmp = shaped.bitmaps(i);
+         * if (bmp == null || bmp.rgbaLength() == 0) continue;
+         * byte[] rgba = new byte[bmp.rgbaLength()];
+         * for (int j = 0; j < rgba.length; j++) {
+         * rgba[j] = (byte) bmp.rgba(j);
+         * }
+         * atlas.upload(bmp.key(), rgba, (int) bmp.w(), (int) bmp.h());
+         * }
+         * int n = shaped.glyphsLength();
+         * if (n == 0) {
+         * return;
+         * }
+         * List<GuideRenderPrimitive.PlacedGlyph> glyphs = new ArrayList<>(n);
+         * for (int i = 0; i < n; i++) {
+         * var g = shaped.glyphs(i);
+         * if (g == null) continue;
+         * glyphs.add(
+         * new GuideRenderPrimitive.PlacedGlyph(
+         * g.bitmapKey(),
+         * x + g.x(),
+         * y + g.y(),
+         * g.w(),
+         * g.h(),
+         * (int) g.lineIndex()));
+         * }
+         * c.emit(
+         * new GuideRenderPrimitive.DrawGlyphRun(
+         * glyphs,
+         * resolveColor(style),
+         * false,
+         * style != null && style.dropShadow()));
+         */
     }
 
-    /** Per-codepoint advance (cached; used by RustFontMetrics). */
+    /** Per-codepoint advance cached for wrapping and intrinsic sizing. */
     public static float advanceOf(int codePoint, @Nullable ResolvedTextStyle style) {
-        if (!isAvailable()) {
-            return 0f;
-        }
         boolean bold = style != null && style.bold();
         boolean italic = style != null && style.italic();
         float scale = style != null ? style.fontScale() : 1f;
@@ -178,7 +172,7 @@ public final class GuideText {
             return cached;
         }
         String s = new String(Character.toChars(codePoint));
-        float w = shape(s, style).width();
+        float w = METRICS.getAdvance(codePoint, style);
         if (advanceCache.size() > CACHE_LIMIT) {
             advanceCache.clear();
         }
@@ -206,7 +200,8 @@ public final class GuideText {
      * (no {@code charAt} scanning). Output lines carry no leading or trailing
      * whitespace; empty input lines are dropped.
      *
-     * <p><b>Degradation semantics:</b> when {@link #isAvailable()} is false no
+     * <p>
+     * <b>Degradation semantics:</b> when {@link #isAvailable()} is false no
      * measurement is possible, so the text is returned untouched as a single
      * line (no wrapping). Returns an empty list for {@code null} / empty input.
      */
@@ -234,19 +229,19 @@ public final class GuideText {
                 if (word.isEmpty()) {
                     continue;
                 }
-                String candidate = current.length() == 0 ? word : current + " " + word;
+                String candidate = current.isEmpty() ? word : current + " " + word;
                 if (measureWidth(candidate, style) <= budget) {
                     current.setLength(0);
                     current.append(candidate);
                     continue;
                 }
-                if (current.length() > 0) {
+                if (!current.isEmpty()) {
                     lines.add(current.toString());
                     current.setLength(0);
                 }
                 appendBrokenWord(word, budget, style, lines);
             }
-            if (current.length() > 0) {
+            if (!current.isEmpty()) {
                 lines.add(current.toString());
             }
         }
@@ -258,14 +253,16 @@ public final class GuideText {
      * {@code text} whose rendered width, together with {@code suffix}, does
      * not exceed {@code maxWidth}.
      *
-     * <p><b>Semantic invariant: the result's rendered width is
+     * <p>
+     * <b>Semantic invariant: the result's rendered width is
      * {@code <= maxWidth}.</b> The suffix width counts against the budget; when
      * the suffix alone does not fit ({@code suffixWidth > maxWidth}), or when
      * even a single codepoint plus the suffix overflows, the empty string is
      * returned (宁空勿溢 — rather empty than overflowing). When the full text
      * fits, it is returned unchanged.
      *
-     * <p>Implementation: codepoints are accumulated via
+     * <p>
+     * Implementation: codepoints are accumulated via
      * {@link #advanceOf(int, ResolvedTextStyle)} — never {@code substring} +
      * {@link #measureWidth} shrink loops, which would create one unique shape
      * cache key per prefix and blow up shaping to O(n²). The final result is
@@ -273,11 +270,11 @@ public final class GuideText {
      * until it fits, because the per-codepoint advance sum differs from the
      * shaped run by subpixels.
      *
-     * <p><b>Degradation semantics:</b> when {@link #isAvailable()} is false no
+     * <p>
+     * <b>Degradation semantics:</b> when {@link #isAvailable()} is false no
      * measurement is possible, so the original text is returned untouched.
      */
-    public static String clipToWidth(String text, int maxWidth, @Nullable ResolvedTextStyle style,
-        ClipSuffix suffix) {
+    public static String clipToWidth(String text, int maxWidth, @Nullable ResolvedTextStyle style, ClipSuffix suffix) {
         if (!isAvailable()) {
             return text;
         }
@@ -307,17 +304,17 @@ public final class GuideText {
             sb.appendCodePoint(codePoint);
             offset += Character.charCount(codePoint);
         }
-        if (sb.length() == 0) {
+        if (sb.isEmpty()) {
             // Even a single codepoint plus the suffix cannot fit.
             return "";
         }
         // Conservative backoff: advanceOf sums and shaped runs differ by
         // subpixels; drop codepoints until the measured width fits.
-        while (sb.length() > 0 && measureWidth(sb.toString() + suffixText, style) > budget) {
+        while (!sb.isEmpty() && measureWidth(sb + suffixText, style) > budget) {
             int last = sb.codePointBefore(sb.length());
             sb.delete(sb.length() - Character.charCount(last), sb.length());
         }
-        return sb.length() == 0 ? "" : sb + suffixText;
+        return sb.isEmpty() ? "" : sb + suffixText;
     }
 
     /**
@@ -330,17 +327,20 @@ public final class GuideText {
      * {@code maxChars <= suffix length} (the suffix alone consumes the budget),
      * or {@code maxChars <= 0}, the empty string is returned (宁空勿溢).
      *
-     * <p>Semantic invariant: the result's codepoint count is
+     * <p>
+     * Semantic invariant: the result's codepoint count is
      * {@code <= maxChars}. Mirrors {@link #clipToWidth}'s
      * fits-in-full-budget semantics — the fits check uses the complete budget,
      * so a text that fits is never truncated to make room for the suffix.
      *
-     * <p>Corner case: when the full text fits ({@code codePointCount <=
+     * <p>
+     * Corner case: when the full text fits ({@code codePointCount <=
      * maxChars}) it is returned unchanged (no suffix appended) even if the
      * suffix alone would not fit the budget — the fits-in-full-budget check
      * precedes the suffix-space reservation.
      *
-     * <p>Pure string logic — no font measurement involved, so it is unaffected
+     * <p>
+     * Pure string logic — no font measurement involved, so it is unaffected
      * by {@link #isAvailable()}.
      */
     public static String clipToChars(String text, int maxChars, ClipSuffix suffix) {
@@ -392,7 +392,7 @@ public final class GuideText {
         return switch (suffix) {
             case NONE -> "";
             case DOTS3 -> "...";
-            case UNICODE_ELLIPSIS -> "\u2026";
+            case UNICODE_ELLIPSIS -> "…";
         };
     }
 
@@ -429,45 +429,4 @@ public final class GuideText {
         }
     }
 
-    private static ShapeTextResult shape(String text, @Nullable ResolvedTextStyle style) {
-        boolean bold = style != null && style.bold();
-        boolean italic = style != null && style.italic();
-        float scale = style != null ? style.fontScale() : 1f;
-        int renderScale = DisplayScale.scaleFactor();
-        ShapeKey key = new ShapeKey(text, bold, italic, scale, renderScale);
-        ShapeTextResult cached = shapeCache.get(key);
-        if (cached != null) {
-            return cached;
-        }
-        ShapeTextResult shaped = shapeUncached(text, bold, italic, scale, renderScale);
-        if (shapeCache.size() > CACHE_LIMIT) {
-            shapeCache.clear();
-        }
-        shapeCache.put(key, shaped);
-        return shaped;
-    }
-
-    private static ShapeTextResult shapeUncached(String text, boolean bold, boolean italic, float fontScale,
-        int renderScale) {
-        FlatBufferBuilder fbb = new FlatBufferBuilder(1024);
-        int strOff = fbb.createString(text);
-        int styleOff = TextStyle
-            .createTextStyle(fbb, BASE_FONT_SIZE, bold, italic, fontScale, 0xFFFFFFFFL, 0L, false, false, 0L, false, 0.0f, false, false);
-        int inputOff = ShapeTextInput.createShapeTextInput(fbb, strOff, styleOff, -1.0f, renderScale);
-        fbb.finish(inputOff);
-        byte[] result = LayoutBridge.shapeText(LayoutBridge.getFontHandle(), fbb.sizedByteArray());
-        if (result == null || result.length == 0) {
-            // Degrade instead of throwing (C-7): one bad string must not take
-            // down the whole layout/render frame.
-            com.hfstudio.guidenh.guide.scene.support.GuideDebugLog
-                .warnAlways("GuideText: shapeText failed, degrading to empty (len={})", text.length());
-            FlatBufferBuilder empty = new FlatBufferBuilder(64);
-            int off = com.hfstudio.guidenh.guide.layout.flatbuffers.ShapeTextResult
-                .createShapeTextResult(empty, 0f, BASE_LINE_HEIGHT * fontScale, 0f, BASE_LINE_HEIGHT * fontScale, 0, 0, 0f, 0f);
-            empty.finish(off);
-            return com.hfstudio.guidenh.guide.layout.flatbuffers.ShapeTextResult
-                .getRootAsShapeTextResult(ByteBuffer.wrap(empty.sizedByteArray()));
-        }
-        return ShapeTextResult.getRootAsShapeTextResult(ByteBuffer.wrap(result));
-    }
 }

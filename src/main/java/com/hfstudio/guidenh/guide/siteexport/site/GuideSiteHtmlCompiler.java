@@ -950,16 +950,16 @@ public class GuideSiteHtmlCompiler {
      * axis and the {@code <img>} keeps the other axis at {@code auto}, letting
      * the browser derive it from the intrinsic ratio at render time.
      *
-     * <p>The {@code guide-floating-image-wrap}/{@code guide-floating-image}
+     * <p>
+     * The {@code guide-floating-image-wrap}/{@code guide-floating-image}
      * classes are deliberately omitted: the site's {@code layoutCroppedFloatingImage()}
      * recomputes wrapper/img sizes from crop {@code data-*} attributes with a
      * {@code naturalWidth} fallback and would otherwise override the given
      * dimension with the image's natural size. The inline style replicates the
      * class-based wrapper behaviour instead.
      */
-    private String buildSingleParamFloatingImageHtml(String src, String alt, @Nullable String title,
-        boolean inlineWrap, String align, boolean hasWidth, double displayDimension,
-        List<ImageAnnotationExport> annotations) {
+    private String buildSingleParamFloatingImageHtml(String src, String alt, @Nullable String title, boolean inlineWrap,
+        String align, boolean hasWidth, double displayDimension, List<ImageAnnotationExport> annotations) {
         StringBuilder wrapperStyle = new StringBuilder();
         if (inlineWrap) {
             wrapperStyle.append("display:inline-block;vertical-align:middle;");

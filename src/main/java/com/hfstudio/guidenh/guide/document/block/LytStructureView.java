@@ -38,16 +38,15 @@ public class LytStructureView extends LytBlock {
     public static final int TILE_H = 7;
     public static final int LAYER_H = 12;
 
+    @Getter
     private int viewWidth = DEFAULT_WIDTH;
+    @Getter
     private int viewHeight = DEFAULT_HEIGHT;
     @Getter
     private final List<BlockEntry> blocks = new ArrayList<>();
     // Cache the painter-order sorted list so we do not allocate + sort every render frame.
     // Invalidated whenever addBlock mutates the underlying list.
     private List<BlockEntry> sortedCache;
-
-    public int getViewWidth() { return viewWidth; }
-    public int getViewHeight() { return viewHeight; }
 
     public void setViewSize(int width, int height) {
         this.viewWidth = Math.max(32, width);

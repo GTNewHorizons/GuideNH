@@ -3,8 +3,8 @@ package com.hfstudio.guidenh.guide.internal.headless;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,37 +34,42 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 /**
  * Headless screenshot render driver activated by {@code -Dguidenh.headlessRender=true}.
  *
- * <p>State machine (driven by {@link TickEvent.ClientTickEvent}):
+ * <p>
+ * State machine (driven by {@link TickEvent.ClientTickEvent}):
  * <ol>
- *   <li>{@code IDLE} — wait for main menu, then close screen, launch integrated server</li>
- *   <li>{@code LOADING_WORLD} — poll until {@code theWorld / thePlayer / netHandler} are non-null</li>
- *   <li>{@code WORLD_STABLE} — wait 20 ticks, then start rendering</li>
- *   <li>{@code RENDERING} — render page(s): single page or batch loop
- *     <ul>
- *       <li>Single-page mode ({@code --page} / {@code --md}): render + {@code exitJava(0|1)}</li>
- *       <li>Batch mode ({@code --allPages} / {@code --list}): loop all pages, then summary + {@code exitJava(0|1)}</li>
- *     </ul>
- *   </li>
- *   <li>{@code DONE} — guard against re-entry</li>
+ * <li>{@code IDLE} — wait for main menu, then close screen, launch integrated server</li>
+ * <li>{@code LOADING_WORLD} — poll until {@code theWorld / thePlayer / netHandler} are non-null</li>
+ * <li>{@code WORLD_STABLE} — wait 20 ticks, then start rendering</li>
+ * <li>{@code RENDERING} — render page(s): single page or batch loop
+ * <ul>
+ * <li>Single-page mode ({@code --page} / {@code --md}): render + {@code exitJava(0|1)}</li>
+ * <li>Batch mode ({@code --allPages} / {@code --list}): loop all pages, then summary + {@code exitJava(0|1)}</li>
+ * </ul>
+ * </li>
+ * <li>{@code DONE} — guard against re-entry</li>
  * </ol>
  *
- * <p><b>Batch mode properties</b> (mutually exclusive with {@code --page} / {@code --md}):
+ * <p>
+ * <b>Batch mode properties</b> (mutually exclusive with {@code --page} / {@code --md}):
  * <ul>
- *   <li>{@code -Dguidenh.renderpage.allPages=true} — render every page of the guide in sorted order</li>
- *   <li>{@code -Dguidenh.renderpage.list=&lt;txt-path&gt;} — one pageId per line; empty lines and
- *       {@code #}-prefixed lines are skipped</li>
+ * <li>{@code -Dguidenh.renderpage.allPages=true} — render every page of the guide in sorted order</li>
+ * <li>{@code -Dguidenh.renderpage.list=&lt;txt-path&gt;} — one pageId per line; empty lines and
+ * {@code #}-prefixed lines are skipped</li>
  * </ul>
  *
- * <p>Batch summary is printed to stdout and log: {@code total / ok / failed} plus failed-page list.
+ * <p>
+ * Batch summary is printed to stdout and log: {@code total / ok / failed} plus failed-page list.
  * Exit code: {@code 0} when all succeeded, {@code 1} on any failure.
  *
- * <p><b>Watchdog:</b> default 360 s timeout for single-page mode; for batch mode the timeout is
+ * <p>
+ * <b>Watchdog:</b> default 360 s timeout for single-page mode; for batch mode the timeout is
  * {@code 360 + 120 × pageCount} seconds, computed once when the page list is known.
- * <b>Limitation:</b> rendering executes synchronously on the client tick thread.  If a single page
+ * <b>Limitation:</b> rendering executes synchronously on the client tick thread. If a single page
  * render hangs, the watchdog cannot interrupt it — it can only fire before or after that page
  * completes.
  *
- * <p>All errors → {@code exitJava(1)}.  Never swallow exceptions.
+ * <p>
+ * All errors → {@code exitJava(1)}. Never swallow exceptions.
  *
  * @see RenderPageService
  */
@@ -84,25 +89,19 @@ public class GuideNhHeadlessRenderDriver {
     private static final long MEDIA_WIKI_WARMUP_POLL_MILLIS = 25L;
 
     /** Immutable snapshot of JVM property configuration. */
-    public record HeadlessRenderConfig(
-        String guideId,
-        @Nullable String pageId,
-        @Nullable Path mdFile,
-        boolean allPages,
-        @Nullable Path listPath,
-        int width,
-        Path outDir,
-        String language,
-        boolean emitBoundsJson,
-        boolean emitDebugOverlay,
-        String worldName,
-        int scale,
-        boolean chrome
-    ) {}
+    public record HeadlessRenderConfig(String guideId, @Nullable String pageId, @Nullable Path mdFile, boolean allPages,
+        @Nullable Path listPath, int width, Path outDir, String language, boolean emitBoundsJson,
+        boolean emitDebugOverlay, String worldName, int scale, boolean chrome) {}
 
     // ---- state machine -------------------------------------------------------
 
-    private enum State { IDLE, LOADING_WORLD, WORLD_STABLE, RENDERING, DONE }
+    private enum State {
+        IDLE,
+        LOADING_WORLD,
+        WORLD_STABLE,
+        RENDERING,
+        DONE
+    }
 
     private State state = State.IDLE;
     private final HeadlessRenderConfig config;
@@ -125,8 +124,8 @@ public class GuideNhHeadlessRenderDriver {
         this.config = config;
         this.watchdogDeadlineNanos = System.nanoTime() + 360_000_000_000L;
         if (config.chrome()) {
-            GuideDebugLog.infoAlways(
-                "[GuideNH] [HeadlessRender] chrome pass enabled: nav bar will be appended to page renders");
+            GuideDebugLog
+                .infoAlways("[GuideNH] [HeadlessRender] chrome pass enabled: nav bar will be appended to page renders");
         }
     }
 
@@ -160,19 +159,22 @@ public class GuideNhHeadlessRenderDriver {
         int batchModes = (allPages ? 1 : 0) + (hasList ? 1 : 0);
 
         if (singleModes > 0 && batchModes > 0) {
-            logError("Batch mode (-Dguidenh.renderpage.allPages / --list) and single-page mode "
-                + "(-Dguidenh.renderpage.page / --md) are mutually exclusive");
+            logError(
+                "Batch mode (-Dguidenh.renderpage.allPages / --list) and single-page mode "
+                    + "(-Dguidenh.renderpage.page / --md) are mutually exclusive");
             return null;
         }
         if (batchModes > 1) {
-            logError("Only one batch mode allowed: -Dguidenh.renderpage.allPages OR "
-                + "-Dguidenh.renderpage.list, not both");
+            logError(
+                "Only one batch mode allowed: -Dguidenh.renderpage.allPages OR "
+                    + "-Dguidenh.renderpage.list, not both");
             return null;
         }
         if (batchModes == 0 && singleModes == 0) {
-            logError("Specify single-page mode (-Dguidenh.renderpage.page=<id> or "
-                + "-Dguidenh.renderpage.md=<path>) or batch mode "
-                + "(-Dguidenh.renderpage.allPages=true or -Dguidenh.renderpage.list=<path>)");
+            logError(
+                "Specify single-page mode (-Dguidenh.renderpage.page=<id> or "
+                    + "-Dguidenh.renderpage.md=<path>) or batch mode "
+                    + "(-Dguidenh.renderpage.allPages=true or -Dguidenh.renderpage.list=<path>)");
             return null;
         }
 
@@ -198,7 +200,8 @@ public class GuideNhHeadlessRenderDriver {
                 logError("Cannot determine default output directory: Minecraft instance not available");
                 return null;
             }
-            outDir = mc.mcDataDir.toPath().resolve("screenshots");
+            outDir = mc.mcDataDir.toPath()
+                .resolve("screenshots");
         }
 
         String lang = System.getProperty("guidenh.renderpage.lang", "en_us");
@@ -230,8 +233,9 @@ public class GuideNhHeadlessRenderDriver {
             // not page ids. Page ids contain ':' which is an illegal Windows path char and
             // previously blew up here as an unlogged InvalidPathException that FML's state
             // event dispatch swallowed silently, hanging the client at the main menu.
-            logError("Invalid file path for -Dguidenh.renderpage.md / --list: " + e.getMessage()
-                + " (note: --list expects a path to a file containing one pageId per line)");
+            logError(
+                "Invalid file path for -Dguidenh.renderpage.md / --list: " + e.getMessage()
+                    + " (note: --list expects a path to a file containing one pageId per line)");
             return null;
         }
 
@@ -248,8 +252,7 @@ public class GuideNhHeadlessRenderDriver {
             overlay,
             worldName,
             scale,
-            chrome
-        );
+            chrome);
     }
 
     private static void logError(String message) {
@@ -268,7 +271,8 @@ public class GuideNhHeadlessRenderDriver {
         // Watchdog: default 360s; batch mode recalculates when page list is known
         if (System.nanoTime() > watchdogDeadlineNanos) {
             GuideDebugLog.error("[GuideNH] [HeadlessRender] headless render timeout exceeded");
-            FMLCommonHandler.instance().exitJava(2, false);
+            FMLCommonHandler.instance()
+                .exitJava(2, false);
             return;
         }
 
@@ -281,7 +285,8 @@ public class GuideNhHeadlessRenderDriver {
         } catch (Throwable t) {
             GuideDebugLog.error("[GuideNH] [HeadlessRender] Unhandled exception in state machine", t);
             System.err.println("[GuideNH] [HeadlessRender] Unhandled exception: " + t.getMessage());
-            FMLCommonHandler.instance().exitJava(1, false);
+            FMLCommonHandler.instance()
+                .exitJava(1, false);
         }
     }
 
@@ -310,13 +315,11 @@ public class GuideNhHeadlessRenderDriver {
         }
 
         state = State.LOADING_WORLD;
-        GuideDebugLog.infoAlways(
-            "[GuideNH] [HeadlessRender] Starting integrated server (world: {})",
-            config.worldName());
+        GuideDebugLog
+            .infoAlways("[GuideNH] [HeadlessRender] Starting integrated server (world: {})", config.worldName());
 
         mc.displayGuiScreen(null);
-        WorldSettings settings = new WorldSettings(
-            0L, WorldSettings.GameType.CREATIVE, false, false, WorldType.FLAT);
+        WorldSettings settings = new WorldSettings(0L, WorldSettings.GameType.CREATIVE, false, false, WorldType.FLAT);
         mc.launchIntegratedServer(config.worldName(), config.worldName(), settings);
     }
 
@@ -324,8 +327,7 @@ public class GuideNhHeadlessRenderDriver {
         if (mc.theWorld != null && mc.thePlayer != null && mc.getNetHandler() != null) {
             state = State.WORLD_STABLE;
             stableTickCount = 0;
-            GuideDebugLog.infoAlways(
-                "[GuideNH] [HeadlessRender] World loaded, waiting 20 ticks for stability");
+            GuideDebugLog.infoAlways("[GuideNH] [HeadlessRender] World loaded, waiting 20 ticks for stability");
         }
     }
 
@@ -348,19 +350,20 @@ public class GuideNhHeadlessRenderDriver {
                 ids = collectBatchPageIds();
             } catch (Exception e) {
                 logError("Failed to collect batch page IDs: " + e.getMessage());
-                FMLCommonHandler.instance().exitJava(1, false);
+                FMLCommonHandler.instance()
+                    .exitJava(1, false);
                 return;
             }
 
             if (ids.isEmpty()) {
                 logError("No pages to render in batch mode");
-                FMLCommonHandler.instance().exitJava(1, false);
+                FMLCommonHandler.instance()
+                    .exitJava(1, false);
                 return;
             }
 
             // One-time watchdog recalculation based on page count
-            watchdogDeadlineNanos = System.nanoTime()
-                + 360_000_000_000L + (long) ids.size() * 120_000_000_000L;
+            watchdogDeadlineNanos = System.nanoTime() + 360_000_000_000L + (long) ids.size() * 120_000_000_000L;
 
             batchPageIds = ids;
             pageIndex = 0;
@@ -372,16 +375,16 @@ public class GuideNhHeadlessRenderDriver {
             renderPending = true;
             GuideDebugLog.infoAlways(
                 "[GuideNH] [HeadlessRender] Batch render start: {} pages (watchdog {}s), deferred to RenderTickEvent",
-                ids.size(), 360L + ids.size() * 120L);
-            System.out.println("[GuideNH] [HeadlessRender] Batch render start: "
-                + ids.size() + " pages, deferred to RenderTickEvent");
+                ids.size(),
+                360L + ids.size() * 120L);
+            System.out.println(
+                "[GuideNH] [HeadlessRender] Batch render start: " + ids.size() + " pages, deferred to RenderTickEvent");
 
         } else {
             // ---- single-page mode: defer render to RenderTickEvent ------------
             state = State.RENDERING;
             renderPending = true;
-            GuideDebugLog.infoAlways(
-                "[GuideNH] [HeadlessRender] Single-page render deferred to RenderTickEvent");
+            GuideDebugLog.infoAlways("[GuideNH] [HeadlessRender] Single-page render deferred to RenderTickEvent");
         }
     }
 
@@ -392,12 +395,13 @@ public class GuideNhHeadlessRenderDriver {
      * or until {@link #MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS} elapses (timeout → warning log
      * and continue; the affected Special pages may render as empty fallbacks).
      *
-     * <p>In {@link MutableGuide}, the async warmup is <em>triggered</em> by the first
+     * <p>
+     * In {@link MutableGuide}, the async warmup is <em>triggered</em> by the first
      * {@link MutableGuide#getMediaWikiListContext()} call; until it finishes the guide
      * serves a fallback context whose {@link MediaWikiSpecialDataIndex} is the empty
-     * singleton.  Therefore the first call here both schedules the warmup and inspects
+     * singleton. Therefore the first call here both schedules the warmup and inspects
      * it, and subsequent polls detect completion once the real index replaces the empty
-     * fallback.  When the guide type has no async warmup (or it is already complete)
+     * fallback. When the guide type has no async warmup (or it is already complete)
      * this returns immediately.
      */
     private void awaitMediaWikiWarmup() {
@@ -412,7 +416,8 @@ public class GuideNhHeadlessRenderDriver {
         }
         GuideDebugLog.infoAlways(
             "[GuideNH] [HeadlessRender] Waiting for MediaWiki special-data warmup of guide {} (up to {} ms)",
-            guideId, MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS);
+            guideId,
+            MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS);
 
         long deadlineNanos = System.nanoTime() + MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS * 1_000_000L;
         boolean interrupted = false;
@@ -433,19 +438,23 @@ public class GuideNhHeadlessRenderDriver {
                 GuideDebugLog.infoAlways(
                     "[GuideNH] [HeadlessRender] MediaWiki special-data warmup complete for guide {} "
                         + "(waited {} ms of {} ms budget)",
-                    guideId, waitedMillis, MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS);
+                    guideId,
+                    waitedMillis,
+                    MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS);
                 break;
             }
         }
         if (interrupted) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread()
+                .interrupt();
             return;
         }
         if (context == null || context.specialDataIndex() == MediaWikiSpecialDataIndex.empty()) {
             GuideDebugLog.warnAlways(
                 "[GuideNH] [HeadlessRender] MediaWiki special-data warmup for guide {} not complete within {} ms; "
                     + "proceeding — Special pages may render empty fallbacks",
-                guideId, MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS);
+                guideId,
+                MEDIA_WIKI_WARMUP_TIMEOUT_MILLIS);
         }
     }
 
@@ -464,7 +473,9 @@ public class GuideNhHeadlessRenderDriver {
             }
             Collection<ParsedGuidePage> pages = guide.getPages();
             return pages.stream()
-                .map(p -> p.getId().toString())
+                .map(
+                    p -> p.getId()
+                        .toString())
                 .sorted()
                 .collect(Collectors.toList());
         } else {
@@ -474,7 +485,7 @@ public class GuideNhHeadlessRenderDriver {
 
     /**
      * Read a page-ID list file: one pageId per line; empty lines and lines starting with
-     * {@code #} are skipped.  Non-empty lines that do not start with {@code #} are treated as
+     * {@code #} are skipped. Non-empty lines that do not start with {@code #} are treated as
      * page IDs without further validation — invalid IDs will fail during render and be
      * reported there.
      */
@@ -492,14 +503,13 @@ public class GuideNhHeadlessRenderDriver {
         } catch (IOException e) {
             logError("Failed to read page list file: " + listPath + " (" + e.getMessage() + ")");
         }
-        GuideDebugLog.infoAlways(
-            "[GuideNH] [HeadlessRender] Read {} page IDs from list file: {}",
-            result.size(), listPath);
+        GuideDebugLog
+            .infoAlways("[GuideNH] [HeadlessRender] Read {} page IDs from list file: {}", result.size(), listPath);
         return result;
     }
 
     /**
-     * Render one page per invocation.  Called from {@link #onRenderTick(TickEvent.RenderTickEvent)}
+     * Render one page per invocation. Called from {@link #onRenderTick(TickEvent.RenderTickEvent)}
      * when {@code state == RENDERING} in batch mode.
      */
     private void handleRendering(Minecraft mc) {
@@ -511,44 +521,68 @@ public class GuideNhHeadlessRenderDriver {
         String pageIdStr = batchPageIds.get(pageIndex);
         GuideDebugLog.infoAlways(
             "[GuideNH] [HeadlessRender] Rendering page [{}/{}]: {}",
-            pageIndex + 1, batchPageIds.size(), pageIdStr);
-        System.out.println("[GuideNH] [HeadlessRender] Rendering page ["
-            + (pageIndex + 1) + "/" + batchPageIds.size() + "]: " + pageIdStr);
+            pageIndex + 1,
+            batchPageIds.size(),
+            pageIdStr);
+        System.out.println(
+            "[GuideNH] [HeadlessRender] Rendering page [" + (pageIndex + 1)
+                + "/"
+                + batchPageIds.size()
+                + "]: "
+                + pageIdStr);
 
         try {
             RenderPageService.ensureFontEngineReady();
             var req = new RenderPageService.RenderPageRequest(
                 config.guideId(),
                 pageIdStr,
-                null,   // no mdFile in batch mode
+                null, // no mdFile in batch mode
                 config.language(),
                 config.width(),
                 config.outDir(),
                 config.emitBoundsJson(),
                 config.emitDebugOverlay(),
                 config.scale(),
-                config.chrome()
-            );
+                config.chrome());
             RenderPageService.RenderPageResult result = RenderPageService.render(req);
 
-            String okMsg = "[GuideNH] [HeadlessRender] Page OK [" + (pageIndex + 1) + "/"
-                + batchPageIds.size() + "]: " + pageIdStr
-                + " -> " + result.pngPath() + " (" + result.widthPx() + "x" + result.heightPx() + ")";
+            String okMsg = "[GuideNH] [HeadlessRender] Page OK [" + (pageIndex + 1)
+                + "/"
+                + batchPageIds.size()
+                + "]: "
+                + pageIdStr
+                + " -> "
+                + result.pngPath()
+                + " ("
+                + result.widthPx()
+                + "x"
+                + result.heightPx()
+                + ")";
             GuideDebugLog.infoAlways(okMsg);
             System.out.println(okMsg);
             okCount++;
         } catch (RenderPageService.RenderPageException e) {
-            String failMsg = "[GuideNH] [HeadlessRender] Page FAILED [" + (pageIndex + 1) + "/"
-                + batchPageIds.size() + "]: " + pageIdStr
-                + " at stage " + e.getStage() + ": " + e.getMessage();
+            String failMsg = "[GuideNH] [HeadlessRender] Page FAILED [" + (pageIndex + 1)
+                + "/"
+                + batchPageIds.size()
+                + "]: "
+                + pageIdStr
+                + " at stage "
+                + e.getStage()
+                + ": "
+                + e.getMessage();
             GuideDebugLog.error(failMsg);
             System.err.println(failMsg);
             failCount++;
             failedPageIds.add(pageIdStr);
         } catch (Throwable t) {
-            String failMsg = "[GuideNH] [HeadlessRender] Page FAILED [" + (pageIndex + 1) + "/"
-                + batchPageIds.size() + "]: " + pageIdStr
-                + " with exception: " + t.getMessage();
+            String failMsg = "[GuideNH] [HeadlessRender] Page FAILED [" + (pageIndex + 1)
+                + "/"
+                + batchPageIds.size()
+                + "]: "
+                + pageIdStr
+                + " with exception: "
+                + t.getMessage();
             GuideDebugLog.error(failMsg, t);
             System.err.println(failMsg);
             failCount++;
@@ -570,18 +604,23 @@ public class GuideNhHeadlessRenderDriver {
 
         int total = okCount + failCount;
         String summary = "[GuideNH] [HeadlessRender] Batch complete: total=" + total
-            + " ok=" + okCount + " failed=" + failCount;
+            + " ok="
+            + okCount
+            + " failed="
+            + failCount;
         GuideDebugLog.infoAlways(summary);
         System.out.println(summary);
 
         if (!failedPageIds.isEmpty()) {
-            String failedSummary = "[GuideNH] [HeadlessRender] Failed pages (" + failCount + "): "
+            String failedSummary = "[GuideNH] [HeadlessRender] Failed pages (" + failCount
+                + "): "
                 + String.join(", ", failedPageIds);
             GuideDebugLog.error(failedSummary);
             System.err.println(failedSummary);
         }
 
-        FMLCommonHandler.instance().exitJava(failCount > 0 ? 1 : 0, false);
+        FMLCommonHandler.instance()
+            .exitJava(failCount > 0 ? 1 : 0, false);
     }
 
     // ---- render-tick handler (frame rendering cycle) -------------------------
@@ -589,12 +628,14 @@ public class GuideNhHeadlessRenderDriver {
     /**
      * Execute deferred rendering inside the frame rendering cycle (RenderTickEvent.END).
      *
-     * <p>Angelica's Tessellator mixins route draws through VBO/VAO paths whose internal state
-     * is tied to the frame rendering pass.  Running {@link RenderPageService#render} inside
+     * <p>
+     * Angelica's Tessellator mixins route draws through VBO/VAO paths whose internal state
+     * is tied to the frame rendering pass. Running {@link RenderPageService#render} inside
      * {@link TickEvent.ClientTickEvent} (outside frame) caused silent zero-fragment output.
      * This handler shifts execution into the frame cycle to validate that hypothesis.
      *
-     * <p>Both single-page and batch modes are handled here.  Batch mode renders all remaining
+     * <p>
+     * Both single-page and batch modes are handled here. Batch mode renders all remaining
      * pages in one go (equivalent to the original per-tick loop, just inside the frame render
      * cycle instead of client tick).
      */
@@ -632,7 +673,8 @@ public class GuideNhHeadlessRenderDriver {
     /**
      * Execute a single-page render and exit the JVM with the appropriate code.
      *
-     * <p>Extracted from the old {@code handleWorldStable} single-page path.
+     * <p>
+     * Extracted from the old {@code handleWorldStable} single-page path.
      */
     private void renderSinglePage() {
         GuideDebugLog.infoAlways("[GuideNH] [HeadlessRender] Rendering page...");
@@ -648,30 +690,28 @@ public class GuideNhHeadlessRenderDriver {
                 config.emitBoundsJson(),
                 config.emitDebugOverlay(),
                 config.scale(),
-                config.chrome()
-            );
+                config.chrome());
             RenderPageService.RenderPageResult result = RenderPageService.render(req);
 
-            String message = "[GuideNH] [HeadlessRender] Screenshot written: " + result.pngPath()
-                + " (" + result.widthPx() + "x" + result.heightPx() + ")";
+            String message = "[GuideNH] [HeadlessRender] Screenshot written: " + result
+                .pngPath() + " (" + result.widthPx() + "x" + result.heightPx() + ")";
             GuideDebugLog.infoAlways(message);
             System.out.println(message);
 
-            FMLCommonHandler.instance().exitJava(0, false);
+            FMLCommonHandler.instance()
+                .exitJava(0, false);
         } catch (RenderPageService.RenderPageException e) {
-            GuideDebugLog.error(
-                "[GuideNH] [HeadlessRender] Render failed at stage {}: {}",
-                e.getStage(), e.getMessage());
-            System.err.println(
-                "[GuideNH] [HeadlessRender] Render failed at stage " + e.getStage()
-                    + ": " + e.getMessage());
-            FMLCommonHandler.instance().exitJava(1, false);
+            GuideDebugLog
+                .error("[GuideNH] [HeadlessRender] Render failed at stage {}: {}", e.getStage(), e.getMessage());
+            System.err
+                .println("[GuideNH] [HeadlessRender] Render failed at stage " + e.getStage() + ": " + e.getMessage());
+            FMLCommonHandler.instance()
+                .exitJava(1, false);
         } catch (Throwable t) {
-            GuideDebugLog.error(
-                "[GuideNH] [HeadlessRender] Unhandled exception during render", t);
-            System.err.println(
-                "[GuideNH] [HeadlessRender] Unhandled exception: " + t.getMessage());
-            FMLCommonHandler.instance().exitJava(1, false);
+            GuideDebugLog.error("[GuideNH] [HeadlessRender] Unhandled exception during render", t);
+            System.err.println("[GuideNH] [HeadlessRender] Unhandled exception: " + t.getMessage());
+            FMLCommonHandler.instance()
+                .exitJava(1, false);
         }
     }
 }

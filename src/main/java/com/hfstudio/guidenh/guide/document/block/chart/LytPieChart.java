@@ -98,7 +98,8 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
                 int relaxedLeft = plotRect.x() - (pos == ChartLabelPosition.OUTSIDE ? tw / 2 : 0);
                 int relaxedRight = plotRect.right() - tw + (pos == ChartLabelPosition.OUTSIDE ? tw / 2 : 0);
                 int clampedTx = Math.max(relaxedLeft, Math.min(relaxedRight, (int) tx));
-                int clampedTy = Math.max(plotRect.y() - (pos == ChartLabelPosition.OUTSIDE ? lh / 2 : 0),
+                int clampedTy = Math.max(
+                    plotRect.y() - (pos == ChartLabelPosition.OUTSIDE ? lh / 2 : 0),
                     Math.min(plotRect.bottom() - lh + (pos == ChartLabelPosition.OUTSIDE ? lh / 2 : 0), (int) ty));
                 GuideText.emitText(c, text, clampedTx, clampedTy, labelStyle);
             }

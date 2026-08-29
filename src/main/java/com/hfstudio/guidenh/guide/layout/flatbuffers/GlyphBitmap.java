@@ -2,22 +2,14 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.ByteVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
 
 /**
  * A unique rasterized glyph bitmap, at render_scale resolution.
@@ -25,53 +17,130 @@ import java.nio.ByteOrder;
  */
 @SuppressWarnings("unused")
 public final class GlyphBitmap extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static GlyphBitmap getRootAsGlyphBitmap(ByteBuffer _bb) { return getRootAsGlyphBitmap(_bb, new GlyphBitmap()); }
-  public static GlyphBitmap getRootAsGlyphBitmap(ByteBuffer _bb, GlyphBitmap obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public GlyphBitmap __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public long key() { int o = __offset(4); return o != 0 ? bb.getLong(o + bb_pos) : 0L; }
-  public long w() { int o = __offset(6); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
-  public long h() { int o = __offset(8); return o != 0 ? (long)bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L; }
-  public int rgba(int j) { int o = __offset(10); return o != 0 ? bb.get(__vector(o) + j * 1) & 0xFF : 0; }
-  public int rgbaLength() { int o = __offset(10); return o != 0 ? __vector_len(o) : 0; }
-  public ByteVector rgbaVector() { return rgbaVector(new ByteVector()); }
-  public ByteVector rgbaVector(ByteVector obj) { int o = __offset(10); return o != 0 ? obj.__assign(__vector(o), bb) : null; }
-  public ByteBuffer rgbaAsByteBuffer() { return __vector_as_bytebuffer(10, 1); }
-  public ByteBuffer rgbaInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 10, 1); }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createGlyphBitmap(FlatBufferBuilder builder,
-      long key,
-      long w,
-      long h,
-      int rgbaOffset) {
-    builder.startTable(4);
-    GlyphBitmap.addKey(builder, key);
-    GlyphBitmap.addRgba(builder, rgbaOffset);
-    GlyphBitmap.addH(builder, h);
-    GlyphBitmap.addW(builder, w);
-    return GlyphBitmap.endGlyphBitmap(builder);
-  }
+    public static GlyphBitmap getRootAsGlyphBitmap(ByteBuffer _bb) {
+        return getRootAsGlyphBitmap(_bb, new GlyphBitmap());
+    }
 
-  public static void startGlyphBitmap(FlatBufferBuilder builder) { builder.startTable(4); }
-  public static void addKey(FlatBufferBuilder builder, long key) { builder.addLong(0, key, 0L); }
-  public static void addW(FlatBufferBuilder builder, long w) { builder.addInt(1, (int) w, (int) 0L); }
-  public static void addH(FlatBufferBuilder builder, long h) { builder.addInt(2, (int) h, (int) 0L); }
-  public static void addRgba(FlatBufferBuilder builder, int rgbaOffset) { builder.addOffset(3, rgbaOffset, 0); }
-  public static int createRgbaVector(FlatBufferBuilder builder, byte[] data) { return builder.createByteVector(data); }
-  public static int createRgbaVector(FlatBufferBuilder builder, ByteBuffer data) { return builder.createByteVector(data); }
-  public static void startRgbaVector(FlatBufferBuilder builder, int numElems) { builder.startVector(1, numElems, 1); }
-  public static int endGlyphBitmap(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
+    public static GlyphBitmap getRootAsGlyphBitmap(ByteBuffer _bb, GlyphBitmap obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public GlyphBitmap get(int j) { return get(new GlyphBitmap(), j); }
-    public GlyphBitmap get(GlyphBitmap obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public GlyphBitmap __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public long key() {
+        int o = __offset(4);
+        return o != 0 ? bb.getLong(o + bb_pos) : 0L;
+    }
+
+    public long w() {
+        int o = __offset(6);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+    }
+
+    public long h() {
+        int o = __offset(8);
+        return o != 0 ? (long) bb.getInt(o + bb_pos) & 0xFFFFFFFFL : 0L;
+    }
+
+    public int rgba(int j) {
+        int o = __offset(10);
+        return o != 0 ? bb.get(__vector(o) + j) & 0xFF : 0;
+    }
+
+    public int rgbaLength() {
+        int o = __offset(10);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public ByteVector rgbaVector() {
+        return rgbaVector(new ByteVector());
+    }
+
+    public ByteVector rgbaVector(ByteVector obj) {
+        int o = __offset(10);
+        return o != 0 ? obj.__assign(__vector(o), bb) : null;
+    }
+
+    public ByteBuffer rgbaAsByteBuffer() {
+        return __vector_as_bytebuffer(10, 1);
+    }
+
+    public ByteBuffer rgbaInByteBuffer(ByteBuffer _bb) {
+        return __vector_in_bytebuffer(_bb, 10, 1);
+    }
+
+    public static int createGlyphBitmap(FlatBufferBuilder builder, long key, long w, long h, int rgbaOffset) {
+        builder.startTable(4);
+        GlyphBitmap.addKey(builder, key);
+        GlyphBitmap.addRgba(builder, rgbaOffset);
+        GlyphBitmap.addH(builder, h);
+        GlyphBitmap.addW(builder, w);
+        return GlyphBitmap.endGlyphBitmap(builder);
+    }
+
+    public static void startGlyphBitmap(FlatBufferBuilder builder) {
+        builder.startTable(4);
+    }
+
+    public static void addKey(FlatBufferBuilder builder, long key) {
+        builder.addLong(0, key, 0L);
+    }
+
+    public static void addW(FlatBufferBuilder builder, long w) {
+        builder.addInt(1, (int) w, (int) 0L);
+    }
+
+    public static void addH(FlatBufferBuilder builder, long h) {
+        builder.addInt(2, (int) h, (int) 0L);
+    }
+
+    public static void addRgba(FlatBufferBuilder builder, int rgbaOffset) {
+        builder.addOffset(3, rgbaOffset, 0);
+    }
+
+    public static int createRgbaVector(FlatBufferBuilder builder, byte[] data) {
+        return builder.createByteVector(data);
+    }
+
+    public static int createRgbaVector(FlatBufferBuilder builder, ByteBuffer data) {
+        return builder.createByteVector(data);
+    }
+
+    public static void startRgbaVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(1, numElems, 1);
+    }
+
+    public static int endGlyphBitmap(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public GlyphBitmap get(int j) {
+            return get(new GlyphBitmap(), j);
+        }
+
+        public GlyphBitmap get(GlyphBitmap obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

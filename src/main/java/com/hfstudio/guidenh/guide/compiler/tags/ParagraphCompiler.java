@@ -9,8 +9,8 @@ import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytLatexDisplayBlock;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
-import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public class ParagraphCompiler extends BlockTagCompiler {
 
@@ -24,8 +24,10 @@ public class ParagraphCompiler extends BlockTagCompiler {
         // Sole $$...$$ block-level display formula detection.
         // A paragraph whose single text child is exactly $$formula$$ produces a
         // centered LytLatexDisplayBlock instead of an inline LytLatexBlock.
-        if (el.children().size() == 1) {
-            Object sole = el.children().getFirst();
+        if (el.children()
+            .size() == 1) {
+            Object sole = el.children()
+                .getFirst();
             if (sole instanceof MdAstText soleText) {
                 String formula = MarkdownLatexShorthand.extractSoleDisplayFormula(soleText.value);
                 if (formula != null) {

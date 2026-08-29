@@ -432,9 +432,8 @@ public class GuideRenderEngine {
      * Colors are run through {@link #brightenDecorationColor} exactly like the
      * legacy decorations path so they read against the dark page background.
      */
-    private void drawDecorationLine(GuideRenderPrimitive.DrawDecorationLine d) {
-        List<DecorationRasterizer.Fragment> fragments =
-            DecorationRasterizer.rasterize(d.x(), d.y(), d.w(), d.kind());
+    public void drawDecorationLine(GuideRenderPrimitive.DrawDecorationLine d) {
+        List<DecorationRasterizer.Fragment> fragments = DecorationRasterizer.rasterize(d.x(), d.y(), d.w(), d.kind());
         if (fragments.isEmpty()) {
             return;
         }
@@ -832,7 +831,7 @@ public class GuideRenderEngine {
         return color;
     }
 
-    private void drawTextDecorations(String text, int x, int y, int color, ResolvedTextStyle style, float scale) {
+    public void drawTextDecorations(String text, int x, int y, int color, ResolvedTextStyle style, float scale) {
         boolean hasUnderline = style.underlined();
         boolean hasWavyUnderline = style.wavyUnderline();
         boolean hasDottedUnderline = style.dottedUnderline();
@@ -861,7 +860,8 @@ public class GuideRenderEngine {
                     // lighter than the body gray, rasterized by the shared
                     // DecorationRasterizer with coverage alpha (sub-pixel sampling).
                     int waveColor = brightenDecorationColor(color);
-                    for (DecorationRasterizer.Fragment f : DecorationRasterizer.rasterize(x, decorationY, decoratedWidth, 4)) {
+                    for (DecorationRasterizer.Fragment f : DecorationRasterizer
+                        .rasterize(x, decorationY, decoratedWidth, 4)) {
                         Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), waveColor));
                     }
                 }
@@ -870,7 +870,8 @@ public class GuideRenderEngine {
                     // circular dots on a fixed 4px cadence via the shared
                     // DecorationRasterizer, tinted lighter than the body gray.
                     int dotColor = brightenDecorationColor(color);
-                    for (DecorationRasterizer.Fragment f : DecorationRasterizer.rasterize(x, decorationY, decoratedWidth, 5)) {
+                    for (DecorationRasterizer.Fragment f : DecorationRasterizer
+                        .rasterize(x, decorationY, decoratedWidth, 5)) {
                         Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), dotColor));
                     }
                 }
@@ -915,7 +916,6 @@ public class GuideRenderEngine {
         return (alpha << 24) | (tintArgb & 0xFFFFFF);
     }
 
-    @SuppressWarnings("unchecked")
     private void drawScene3D(GuideRenderPrimitive.RenderScene3D s3) {
         flush();
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);

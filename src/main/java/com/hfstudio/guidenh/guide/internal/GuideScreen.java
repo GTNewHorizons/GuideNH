@@ -65,7 +65,6 @@ import com.hfstudio.guidenh.guide.compiler.Frontmatter;
 import com.hfstudio.guidenh.guide.compiler.FrontmatterPageMeta;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
@@ -130,9 +129,9 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeContent;
 import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeScreen;
 import com.hfstudio.guidenh.guide.layout.FontProvider;
+import com.hfstudio.guidenh.guide.layout.JavaFontMetrics;
 import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
-import com.hfstudio.guidenh.guide.layout.RustFontMetrics;
 import com.hfstudio.guidenh.guide.layout.SystemFontProvider;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
@@ -141,7 +140,6 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialGeneratedBlock;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageIds;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
-import com.hfstudio.guidenh.guide.render.GuideRenderEngine;
 import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
@@ -286,7 +284,7 @@ public class GuideScreen extends GuiContainer
     private final GuideScreenHomeHistory homeHistory = GuideScreenHomeHistory.shared();
     private final HomePageDataBuilder homePageDataBuilder = new HomePageDataBuilder();
     private final HomePageController homePageController = new HomePageController();
-    private final RustFontMetrics layoutFontMetrics = new RustFontMetrics();
+    private final JavaFontMetrics layoutFontMetrics = new JavaFontMetrics();
     private final CodeBlockClipboardService codeBlockClipboardService = new CodeBlockClipboardService();
     private final GuideDebugOverlay debugOverlay = new GuideDebugOverlay();
     private final GuideScreenScrollbarOutline scrollbarOutline = new GuideScreenScrollbarOutline();
@@ -2648,8 +2646,8 @@ public class GuideScreen extends GuiContainer
         try {
             LayoutBridge.loadFallbackFont(handle, fallbackData);
         } catch (UnsatisfiedLinkError e) {
-            GuideDebugLog.warnAlways(
-                "GuideScreen: loadFallbackFont unavailable (stale native lib?): {}", e.getMessage());
+            GuideDebugLog
+                .warnAlways("GuideScreen: loadFallbackFont unavailable (stale native lib?): {}", e.getMessage());
         }
     }
 

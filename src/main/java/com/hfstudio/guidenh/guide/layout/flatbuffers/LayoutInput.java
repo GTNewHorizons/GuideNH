@@ -2,76 +2,153 @@
 
 package com.hfstudio.guidenh.guide.layout.flatbuffers;
 
-import com.google.flatbuffers.BaseVector;
-import com.google.flatbuffers.BooleanVector;
-import com.google.flatbuffers.ByteVector;
-import com.google.flatbuffers.Constants;
-import com.google.flatbuffers.DoubleVector;
-import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.flatbuffers.FloatVector;
-import com.google.flatbuffers.IntVector;
-import com.google.flatbuffers.LongVector;
-import com.google.flatbuffers.ShortVector;
-import com.google.flatbuffers.StringVector;
-import com.google.flatbuffers.Struct;
-import com.google.flatbuffers.Table;
-import com.google.flatbuffers.UnionVector;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.google.flatbuffers.BaseVector;
+import com.google.flatbuffers.Constants;
+import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
+
 @SuppressWarnings("unused")
 public final class LayoutInput extends Table {
-  public static void ValidateVersion() { Constants.FLATBUFFERS_23_5_26(); }
-  public static LayoutInput getRootAsLayoutInput(ByteBuffer _bb) { return getRootAsLayoutInput(_bb, new LayoutInput()); }
-  public static LayoutInput getRootAsLayoutInput(ByteBuffer _bb, LayoutInput obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
-  public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public LayoutInput __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public float availableWidth() { int o = __offset(4); return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f; }
-  public float visualScale() { int o = __offset(6); return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f; }
-  public float renderScale() { int o = __offset(8); return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f; }
-  public byte justify() { int o = __offset(10); return o != 0 ? bb.get(o + bb_pos) : 1; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode nodes(int j) { return nodes(new com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode(), j); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode nodes(com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode obj, int j) { int o = __offset(12); return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null; }
-  public int nodesLength() { int o = __offset(12); return o != 0 ? __vector_len(o) : 0; }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode.Vector nodesVector() { return nodesVector(new com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode.Vector()); }
-  public com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode.Vector nodesVector(com.hfstudio.guidenh.guide.layout.flatbuffers.FlatNode.Vector obj) { int o = __offset(12); return o != 0 ? obj.__assign(__vector(o), 4, bb) : null; }
+    public static void ValidateVersion() {
+        Constants.FLATBUFFERS_23_5_26();
+    }
 
-  public static int createLayoutInput(FlatBufferBuilder builder,
-      float availableWidth,
-      float visualScale,
-      float renderScale,
-      byte justify,
-      int nodesOffset) {
-    builder.startTable(5);
-    LayoutInput.addNodes(builder, nodesOffset);
-    LayoutInput.addRenderScale(builder, renderScale);
-    LayoutInput.addVisualScale(builder, visualScale);
-    LayoutInput.addAvailableWidth(builder, availableWidth);
-    LayoutInput.addJustify(builder, justify);
-    return LayoutInput.endLayoutInput(builder);
-  }
+    public static LayoutInput getRootAsLayoutInput(ByteBuffer _bb) {
+        return getRootAsLayoutInput(_bb, new LayoutInput());
+    }
 
-  public static void startLayoutInput(FlatBufferBuilder builder) { builder.startTable(5); }
-  public static void addAvailableWidth(FlatBufferBuilder builder, float availableWidth) { builder.addFloat(0, availableWidth, 0.0f); }
-  public static void addVisualScale(FlatBufferBuilder builder, float visualScale) { builder.addFloat(1, visualScale, 1.0f); }
-  public static void addRenderScale(FlatBufferBuilder builder, float renderScale) { builder.addFloat(2, renderScale, 1.0f); }
-  public static void addJustify(FlatBufferBuilder builder, byte justify) { builder.addByte(3, justify, 1); }
-  public static void addNodes(FlatBufferBuilder builder, int nodesOffset) { builder.addOffset(4, nodesOffset, 0); }
-  public static int createNodesVector(FlatBufferBuilder builder, int[] data) { builder.startVector(4, data.length, 4); for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]); return builder.endVector(); }
-  public static void startNodesVector(FlatBufferBuilder builder, int numElems) { builder.startVector(4, numElems, 4); }
-  public static int endLayoutInput(FlatBufferBuilder builder) {
-    int o = builder.endTable();
-    return o;
-  }
-  public static void finishLayoutInputBuffer(FlatBufferBuilder builder, int offset) { builder.finish(offset); }
-  public static void finishSizePrefixedLayoutInputBuffer(FlatBufferBuilder builder, int offset) { builder.finishSizePrefixed(offset); }
+    public static LayoutInput getRootAsLayoutInput(ByteBuffer _bb, LayoutInput obj) {
+        _bb.order(ByteOrder.LITTLE_ENDIAN);
+        return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb));
+    }
 
-  public static final class Vector extends BaseVector {
-    public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
+    public void __init(int _i, ByteBuffer _bb) {
+        __reset(_i, _bb);
+    }
 
-    public LayoutInput get(int j) { return get(new LayoutInput(), j); }
-    public LayoutInput get(LayoutInput obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
-  }
+    public LayoutInput __assign(int _i, ByteBuffer _bb) {
+        __init(_i, _bb);
+        return this;
+    }
+
+    public float availableWidth() {
+        int o = __offset(4);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 0.0f;
+    }
+
+    public float visualScale() {
+        int o = __offset(6);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f;
+    }
+
+    public float renderScale() {
+        int o = __offset(8);
+        return o != 0 ? bb.getFloat(o + bb_pos) : 1.0f;
+    }
+
+    public byte justify() {
+        int o = __offset(10);
+        return o != 0 ? bb.get(o + bb_pos) : 1;
+    }
+
+    public FlatNode nodes(int j) {
+        return nodes(new FlatNode(), j);
+    }
+
+    public FlatNode nodes(FlatNode obj, int j) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__indirect(__vector(o) + j * 4), bb) : null;
+    }
+
+    public int nodesLength() {
+        int o = __offset(12);
+        return o != 0 ? __vector_len(o) : 0;
+    }
+
+    public FlatNode.Vector nodesVector() {
+        return nodesVector(new FlatNode.Vector());
+    }
+
+    public FlatNode.Vector nodesVector(FlatNode.Vector obj) {
+        int o = __offset(12);
+        return o != 0 ? obj.__assign(__vector(o), 4, bb) : null;
+    }
+
+    public static int createLayoutInput(FlatBufferBuilder builder, float availableWidth, float visualScale,
+        float renderScale, byte justify, int nodesOffset) {
+        builder.startTable(5);
+        LayoutInput.addNodes(builder, nodesOffset);
+        LayoutInput.addRenderScale(builder, renderScale);
+        LayoutInput.addVisualScale(builder, visualScale);
+        LayoutInput.addAvailableWidth(builder, availableWidth);
+        LayoutInput.addJustify(builder, justify);
+        return LayoutInput.endLayoutInput(builder);
+    }
+
+    public static void startLayoutInput(FlatBufferBuilder builder) {
+        builder.startTable(5);
+    }
+
+    public static void addAvailableWidth(FlatBufferBuilder builder, float availableWidth) {
+        builder.addFloat(0, availableWidth, 0.0f);
+    }
+
+    public static void addVisualScale(FlatBufferBuilder builder, float visualScale) {
+        builder.addFloat(1, visualScale, 1.0f);
+    }
+
+    public static void addRenderScale(FlatBufferBuilder builder, float renderScale) {
+        builder.addFloat(2, renderScale, 1.0f);
+    }
+
+    public static void addJustify(FlatBufferBuilder builder, byte justify) {
+        builder.addByte(3, justify, 1);
+    }
+
+    public static void addNodes(FlatBufferBuilder builder, int nodesOffset) {
+        builder.addOffset(4, nodesOffset, 0);
+    }
+
+    public static int createNodesVector(FlatBufferBuilder builder, int[] data) {
+        builder.startVector(4, data.length, 4);
+        for (int i = data.length - 1; i >= 0; i--) builder.addOffset(data[i]);
+        return builder.endVector();
+    }
+
+    public static void startNodesVector(FlatBufferBuilder builder, int numElems) {
+        builder.startVector(4, numElems, 4);
+    }
+
+    public static int endLayoutInput(FlatBufferBuilder builder) {
+        int o = builder.endTable();
+        return o;
+    }
+
+    public static void finishLayoutInputBuffer(FlatBufferBuilder builder, int offset) {
+        builder.finish(offset);
+    }
+
+    public static void finishSizePrefixedLayoutInputBuffer(FlatBufferBuilder builder, int offset) {
+        builder.finishSizePrefixed(offset);
+    }
+
+    public static final class Vector extends BaseVector {
+
+        public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) {
+            __reset(_vector, _element_size, _bb);
+            return this;
+        }
+
+        public LayoutInput get(int j) {
+            return get(new LayoutInput(), j);
+        }
+
+        public LayoutInput get(LayoutInput obj, int j) {
+            return obj.__assign(__indirect(__element(j), bb), bb);
+        }
+    }
 }
-

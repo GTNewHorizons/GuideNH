@@ -110,8 +110,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
             chrome += GuideText.lineHeight(textStyle(titleColor)) + TITLE_GAP;
         }
         int contentWidth = Math.max(1, width - PADDING * 2);
-        chrome += ChartLegendRenderer
-            .measureHeightStatic(collectLegendEntries(), legendPosition, contentWidth);
+        chrome += ChartLegendRenderer.measureHeightStatic(collectLegendEntries(), legendPosition, contentWidth);
         if (legendPosition == ChartLegendPosition.TOP || legendPosition == ChartLegendPosition.BOTTOM) {
             chrome += legendPosition == ChartLegendPosition.NONE ? 0 : LEGEND_GAP;
         }
@@ -209,12 +208,8 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         width = Math.max(1, Math.min(width, availableWidth));
         int estimatedChrome = estimateFixedChromeHeight(context, width);
         this.chromeHeight = estimatedChrome;
-        height = ResponsiveVisualSizing.scaleBodyHeightForWidth(
-            preferredWidth(),
-            height,
-            width,
-            estimatedChrome,
-            MIN_PLOT_HEIGHT);
+        height = ResponsiveVisualSizing
+            .scaleBodyHeightForWidth(preferredWidth(), height, width, estimatedChrome, MIN_PLOT_HEIGHT);
         return new LytRect(x, y, width, height);
     }
 
@@ -322,8 +317,9 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     /**
      * Subclasses implement the chart-specific drawing; {@code plotRect} has already excluded the space
      * occupied by the title and legend.
+     *
+     * @return the inner rectangle actually used for data plotting (may be {@code plotRect} itself)
      */
-    /** @return the inner rectangle actually used for data plotting (may be {@code plotRect} itself) */
     protected abstract LytRect renderChart(PrimitiveCollector c, LytRect plotRect);
 
     /**

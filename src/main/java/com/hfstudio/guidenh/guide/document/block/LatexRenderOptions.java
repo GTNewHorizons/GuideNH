@@ -80,7 +80,15 @@ public record LatexRenderOptions(int style, int fillColorArgb, float sourceScale
         }
 
         public LatexRenderOptions build() {
-            return new LatexRenderOptions(style, fillColorArgb, sourceScale, userScale, tooltip, valign, offsetX, offsetY);
+            return new LatexRenderOptions(
+                style,
+                fillColorArgb,
+                sourceScale,
+                userScale,
+                tooltip,
+                valign,
+                offsetX,
+                offsetY);
         }
     }
 }

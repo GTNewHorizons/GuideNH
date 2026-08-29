@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.document.block.table;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -79,7 +80,7 @@ public class LytTable extends LytBlock {
                     bounds.y(),
                     1,
                     bounds.height(),
-                    SymbolicColor.TABLE_BORDER.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
+                    SymbolicColor.TABLE_BORDER.resolve(LightDarkMode.current())));
         }
         // Row border lines (horizontal lines between rows)
         for (int i = 0; i < rows.size() - 1; i++) {
@@ -91,7 +92,7 @@ public class LytTable extends LytBlock {
                         .bottom(),
                     bounds.width(),
                     row.isHeader() ? HEADER_SEPARATOR_THICKNESS : 1,
-                    SymbolicColor.TABLE_BORDER.resolve(com.hfstudio.guidenh.guide.color.LightDarkMode.current())));
+                    SymbolicColor.TABLE_BORDER.resolve(LightDarkMode.current())));
         }
         // Cells are children — collectFrom traversal handles them
     }
@@ -102,7 +103,8 @@ public class LytTable extends LytBlock {
         var bounds = getBounds();
         var sourceRow = widestRow();
         for (int i = 0; i < columns.size() - 1; i++) {
-            context.fillRect(columnSeparatorX(sourceRow, i), bounds.y(), 1, bounds.height(), SymbolicColor.TABLE_BORDER);
+            context
+                .fillRect(columnSeparatorX(sourceRow, i), bounds.y(), 1, bounds.height(), SymbolicColor.TABLE_BORDER);
         }
 
         for (int i = 0; i < rows.size() - 1; i++) {
@@ -131,7 +133,10 @@ public class LytTable extends LytBlock {
     private LytTableRow widestRow() {
         LytTableRow widest = null;
         for (var row : rows) {
-            if (widest == null || row.getChildren().size() > widest.getChildren().size()) {
+            if (widest == null || row.getChildren()
+                .size()
+                > widest.getChildren()
+                    .size()) {
                 widest = row;
             }
         }
@@ -162,10 +167,13 @@ public class LytTable extends LytBlock {
      * flat node (cells included) receives a written-back rect.
      */
     private int columnSeparatorX(LytTableRow sourceRow, int i) {
-        if (sourceRow != null && i + 1 < sourceRow.getChildren().size()) {
+        if (sourceRow != null && i + 1 < sourceRow.getChildren()
+            .size()) {
             var cells = sourceRow.getChildren();
-            LytRect left = cells.get(i).getBounds();
-            LytRect right = cells.get(i + 1).getBounds();
+            LytRect left = cells.get(i)
+                .getBounds();
+            LytRect right = cells.get(i + 1)
+                .getBounds();
             if (!left.isEmpty()) {
                 return left.right();
             }
