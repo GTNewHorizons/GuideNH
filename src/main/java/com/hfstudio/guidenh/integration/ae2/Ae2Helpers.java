@@ -30,6 +30,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 
 import appeng.api.AEApi;
 import appeng.api.implementations.tiles.IChestOrDrive;
+import appeng.api.networking.energy.IAEPowerStorage;
 import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.parts.IFacadePart;
 import appeng.api.parts.IPart;
@@ -61,11 +62,11 @@ import io.netty.buffer.Unpooled;
 public class Ae2Helpers {
 
     /** Low six bits of PartCable stream {@code cs}: {@link ForgeDirection#VALID_DIRECTIONS} only. */
-    private static final int CS_DIRECTION_MASK = 0x3F;
-    private static final String CABLE_BUS_TILE_ID = "BlockCableBus";
-    private static final String CABLE_BUS_BLOCK_ID = "appliedenergistics2:tile.BlockCableBus";
+    public static final int CS_DIRECTION_MASK = 0x3F;
+    public static final String CABLE_BUS_TILE_ID = "BlockCableBus";
+    public static final String CABLE_BUS_BLOCK_ID = "appliedenergistics2:tile.BlockCableBus";
 
-    private Ae2Helpers() {}
+    public Ae2Helpers() {}
 
     /**
      * Whether {@link World#markBlockForUpdate} must not reapply
@@ -110,7 +111,7 @@ public class Ae2Helpers {
         return readPreviewSupplements(structureBlockTag);
     }
 
-    private static Map<String, byte[]> readPreviewSupplements(@Nullable NBTTagCompound tag) {
+    public static Map<String, byte[]> readPreviewSupplements(@Nullable NBTTagCompound tag) {
         if (tag == null || !tag.hasKey(ServerPreviewSupplementNbt.TAG_ROOT, 10)) {
             return Map.of();
         }
@@ -131,6 +132,12 @@ public class Ae2Helpers {
             return false;
         }
         if (te instanceof TileCableBus) {
+            return true;
+        }
+        // Chest/drive inventory NBT loading marks the fake world for update. Replaying
+        // the unpatched description packet at that point clears the locally derived
+        // cell type, status, and powered bit before the preview is rendered.
+        if (te instanceof IChestOrDrive) {
             return true;
         }
         if (te instanceof AEBaseTile) {
@@ -179,7 +186,7 @@ public class Ae2Helpers {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static void initQuantumBridgeValidSides(TileQuantumBridge qnb) {
+    public static void initQuantumBridgeValidSides(TileQuantumBridge qnb) {
         if (!qnb.isFormed()) {
             return;
         }
@@ -202,13 +209,13 @@ public class Ae2Helpers {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static boolean isQuantumLinkCenter(TileQuantumBridge qnb) {
+    public static boolean isQuantumLinkCenter(TileQuantumBridge qnb) {
         Block link = (Block) Block.blockRegistry.getObject("appliedenergistics2:tile.BlockQuantumLinkChamber");
         return link != null && qnb.getBlockType() == link;
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static void initCraftingTileValidSides(TileCraftingTile craftingTile) {
+    public static void initCraftingTileValidSides(TileCraftingTile craftingTile) {
         try {
             craftingTile.updateMeta(true);
         } catch (Throwable ignored) {}
@@ -356,7 +363,7 @@ public class Ae2Helpers {
         }
     }
 
-    private static void appendPartStatStack(@Nullable IPart part, List<ItemStack> output) {
+    public static void appendPartStatStack(@Nullable IPart part, List<ItemStack> output) {
         if (part == null) {
             return;
         }
@@ -373,7 +380,7 @@ public class Ae2Helpers {
         appendCopy(output, stack);
     }
 
-    private static void appendPartStatEntry(@Nullable IPart part,
+    public static void appendPartStatEntry(@Nullable IPart part,
         List<GuideBlockStatsStackResolver.ResolvedStack> output, int x, int y, int z, ForgeDirection direction) {
         if (part == null) {
             return;
@@ -392,7 +399,7 @@ public class Ae2Helpers {
     }
 
     @Nullable
-    private static ItemStack safePartStack(IPart part, PartItemStack type) {
+    public static ItemStack safePartStack(IPart part, PartItemStack type) {
         try {
             ItemStack stack = part.getItemStack(type);
             return stack != null ? stack.copy() : null;
@@ -401,7 +408,7 @@ public class Ae2Helpers {
         }
     }
 
-    private static void appendFacadeStatStack(TileCableBus cableBusTile, ForgeDirection direction,
+    public static void appendFacadeStatStack(TileCableBus cableBusTile, ForgeDirection direction,
         List<ItemStack> output) {
         try {
             IFacadePart facade = cableBusTile.getFacadeContainer()
@@ -412,7 +419,7 @@ public class Ae2Helpers {
         } catch (Throwable ignored) {}
     }
 
-    private static void appendFacadeStatEntry(TileCableBus cableBusTile, ForgeDirection direction,
+    public static void appendFacadeStatEntry(TileCableBus cableBusTile, ForgeDirection direction,
         List<GuideBlockStatsStackResolver.ResolvedStack> output, int x, int y, int z) {
         try {
             IFacadePart facade = cableBusTile.getFacadeContainer()
@@ -423,14 +430,14 @@ public class Ae2Helpers {
         } catch (Throwable ignored) {}
     }
 
-    private static void appendCopy(List<ItemStack> output, @Nullable ItemStack stack) {
+    public static void appendCopy(List<ItemStack> output, @Nullable ItemStack stack) {
         if (stack == null || stack.getItem() == null) {
             return;
         }
         output.add(stack.copy());
     }
 
-    private static void appendEntryCopy(List<GuideBlockStatsStackResolver.ResolvedStack> output,
+    public static void appendEntryCopy(List<GuideBlockStatsStackResolver.ResolvedStack> output,
         @Nullable ItemStack stack, AxisAlignedBB bounds) {
         if (stack == null || stack.getItem() == null) {
             return;
@@ -438,7 +445,7 @@ public class Ae2Helpers {
         output.add(new GuideBlockStatsStackResolver.ResolvedStack(stack.copy(), bounds));
     }
 
-    private static AxisAlignedBB approximateCableBusBounds(int x, int y, int z, ForgeDirection direction,
+    public static AxisAlignedBB approximateCableBusBounds(int x, int y, int z, ForgeDirection direction,
         boolean facade) {
         double min = facade ? 0.0D : 0.25D;
         double max = facade ? 1.0D : 0.75D;
@@ -496,13 +503,13 @@ public class Ae2Helpers {
 
     @Optional.Method(modid = "appliedenergistics2")
     @Nullable
-    private static CableBusContainer resolveCableContainer(@Nullable TileEntity tileEntity) {
+    public static CableBusContainer resolveCableContainer(@Nullable TileEntity tileEntity) {
         return Ae2CableStructureSupport.resolveCableContainer(tileEntity);
     }
 
     @Optional.Method(modid = "appliedenergistics2")
     @Nullable
-    private static AENetworkProxy resolveExternalConnectionProxy(@Nullable TileEntity tileEntity,
+    public static AENetworkProxy resolveExternalConnectionProxy(@Nullable TileEntity tileEntity,
         ForgeDirection direction) {
         CableBusContainer container = resolveCableContainer(tileEntity);
         if (container != null) {
@@ -520,7 +527,7 @@ public class Ae2Helpers {
 
     @Optional.Method(modid = "appliedenergistics2")
     @Nullable
-    private static AENetworkProxy getProxy(@Nullable IPart part) {
+    public static AENetworkProxy getProxy(@Nullable IPart part) {
         return part instanceof IGridProxyable proxyable ? proxyable.getProxy() : null;
     }
 
@@ -550,7 +557,7 @@ public class Ae2Helpers {
 
     /** Rebuilds transient storage/display state through AE2's public ticking contract. */
     @Optional.Method(modid = "appliedenergistics2")
-    private static void refreshLocalDerivedDisplayState(AEBaseTile tile) {
+    public static void refreshLocalDerivedDisplayState(AEBaseTile tile) {
         try {
             tile.onReady();
         } catch (Throwable ignored) {
@@ -589,17 +596,22 @@ public class Ae2Helpers {
      * so derive those two fields from the NBT-loaded cell and patch only the corresponding public packet payload.
      */
     @Optional.Method(modid = "appliedenergistics2")
-    private static byte[] patchLocalStorageDisplayState(AEBaseTile tile, byte[] payload) {
+    public static byte[] patchLocalStorageDisplayState(AEBaseTile tile, byte[] payload) {
         if (!(tile instanceof IChestOrDrive storage) || !(tile instanceof AEBaseInvTile inventory) || payload == null) {
             return payload;
         }
 
-        if (tile instanceof TileChest) {
+        if (tile instanceof TileChest chest) {
             if (payload.length < 3) return payload;
-            CellDisplay display = deriveCellDisplay(
-                inventory.getInternalInventory()
-                    .getStackInSlot(1));
-            payload[1] = (byte) (display.status() & 0b111);
+            ItemStack cell = inventory.getInternalInventory()
+                .getStackInSlot(1);
+            CellDisplay display = deriveCellDisplay(cell);
+            int state = display.status() & 0b111;
+            // The client renderer only sees this bit from the description stream.
+            if (isActuallyPowered(chest)) {
+                state |= 0b1000;
+            }
+            payload[1] = (byte) state;
             payload[2] = (byte) (display.type() & 0b11);
             return payload;
         }
@@ -626,7 +638,27 @@ public class Ae2Helpers {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static CellDisplay deriveCellDisplay(ItemStack cell) {
+    public static boolean isActuallyPowered(AEBaseTile tile) {
+        if (tile instanceof IAEPowerStorage powerStorage) {
+            if (powerStorage.getAECurrentPower() > 1.0D) {
+                return true;
+            }
+        }
+        if (!(tile instanceof IGridProxyable proxyable)) {
+            return false;
+        }
+        try {
+            AENetworkProxy proxy = proxyable.getProxy();
+            return proxy != null && proxy.isActive()
+                && proxy.getEnergy()
+                    .isNetworkPowered();
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    public static CellDisplay deriveCellDisplay(ItemStack cell) {
         if (cell == null) return CellDisplay.EMPTY;
         ICellHandler handler = AEApi.instance()
             .registries()
@@ -637,7 +669,7 @@ public class Ae2Helpers {
             try {
                 IMEInventoryHandler inventory = handler.getCellInventory(cell, null, channel);
                 if (inventory != null) {
-                    int status = Math.max(0, Math.min(4, handler.getStatusForCell(cell, inventory)));
+                    int status = Math.clamp(handler.getStatusForCell(cell, inventory), 0, 4);
                     return new CellDisplay(status, channel == StorageChannel.FLUIDS ? 1 : 0);
                 }
             } catch (Throwable ignored) {
@@ -647,27 +679,27 @@ public class Ae2Helpers {
         return CellDisplay.EMPTY;
     }
 
-    private static void writeInt(byte[] payload, int offset, int value) {
+    public static void writeInt(byte[] payload, int offset, int value) {
         payload[offset] = (byte) (value >>> 24);
         payload[offset + 1] = (byte) (value >>> 16);
         payload[offset + 2] = (byte) (value >>> 8);
         payload[offset + 3] = (byte) value;
     }
 
-    private record CellDisplay(int status, int type) {
+    public record CellDisplay(int status, int type) {
 
-        private static final CellDisplay EMPTY = new CellDisplay(0, 0);
+        public static final CellDisplay EMPTY = new CellDisplay(0, 0);
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static void syncSpecialPreviewConnectableSides(AEBaseTile aeTile) {
+    public static void syncSpecialPreviewConnectableSides(AEBaseTile aeTile) {
         if (aeTile instanceof TileSpatialPylon spatialPylon) {
             syncSpatialPylonValidSides(spatialPylon);
         }
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static void syncSpatialPylonValidSides(TileSpatialPylon spatialPylon) {
+    public static void syncSpatialPylonValidSides(TileSpatialPylon spatialPylon) {
         EnumSet<ForgeDirection> validSides = hasSpatialPylonClusterState(spatialPylon)
             ? EnumSet.allOf(ForgeDirection.class)
             : EnumSet.noneOf(ForgeDirection.class);
@@ -678,7 +710,7 @@ public class Ae2Helpers {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static boolean hasSpatialPylonClusterState(TileSpatialPylon spatialPylon) {
+    public static boolean hasSpatialPylonClusterState(TileSpatialPylon spatialPylon) {
         return (spatialPylon.getDisplayBits() & TileSpatialPylon.MB_STATUS) != 0;
     }
 }
