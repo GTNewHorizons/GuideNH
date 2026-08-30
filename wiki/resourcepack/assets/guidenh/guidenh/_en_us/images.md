@@ -186,8 +186,10 @@ Icon shown, no tooltip:
 ## BlockImage Scale
 
 `BlockImage` now renders a transparent 3D placed-block preview rather than an item-form icon.
+When `scale` is omitted, it defaults to `4`.
 
 <Row>
+  <BlockImage id="minecraft:stone" />
   <BlockImage id="minecraft:stone" scale="1" />
   <BlockImage id="minecraft:stone" scale="2" />
   <BlockImage id="minecraft:stone" scale="3" />
