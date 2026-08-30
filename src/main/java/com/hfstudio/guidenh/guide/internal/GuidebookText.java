@@ -190,6 +190,7 @@ public enum GuidebookText implements LocalizationEnum {
     GuideEditorPaste,
     GuideEditorSelectAll,
     GuideEditorFormatDocument,
+    GuideEditorWrap,
     GuideEditorContextMenuEdit,
     GuideEditorContextMenuInsert,
     GuideEditorContextMenuBlocks,

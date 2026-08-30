@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import lombok.Getter;
 
 public class SceneEditorTextSelectionModel {
@@ -92,6 +95,141 @@ public class SceneEditorTextSelectionModel {
         selectionAnchor = 0;
         cursorIndex = text.length();
         selectionActive = !text.isEmpty();
+    }
+
+    /** Selects the token around the cursor, including resource ids and paths. */
+    public void selectWordAt(int index) {
+        int position = clampIndex(index);
+        if (position > 0 && (position == text.length() || !isWordCharacter(text.charAt(position)))
+            && isWordCharacter(text.charAt(position - 1))) {
+            position--;
+        }
+        if (position >= text.length() || !isWordCharacter(text.charAt(position))) {
+            setCursorIndex(position);
+            return;
+        }
+        int start = position;
+        int end = position + 1;
+        while (start > 0 && isWordCharacter(text.charAt(start - 1))) {
+            start--;
+        }
+        while (end < text.length() && isWordCharacter(text.charAt(end))) {
+            end++;
+        }
+        setSelection(start, end);
+    }
+
+    /** Indents or outdents every logical line touched by the current selection. */
+    public boolean indentLines(boolean outdent, int indentSize) {
+        int start = getSelectionStart();
+        int end = getSelectionEnd();
+        if (!hasSelection()) {
+            start = lineStart(start);
+            end = start;
+            while (end < text.length() && text.charAt(end) != '\n') {
+                end++;
+            }
+        } else {
+            start = lineStart(start);
+            if (end > 0 && end == lineStart(end) && end > start) {
+                end--;
+            }
+            end = lineEnd(end);
+        }
+
+        List<LineEdit> edits = new ArrayList<>();
+        int line = start;
+        while (line <= end) {
+            int removed = 0;
+            if (outdent) {
+                while (removed < indentSize && line + removed < text.length()) {
+                    char c = text.charAt(line + removed);
+                    if (c == ' ') {
+                        removed++;
+                    } else if (c == '\t' && removed == 0) {
+                        removed = 1;
+                        break;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            int added = outdent ? -removed : indentSize;
+            if (added != 0) {
+                edits.add(new LineEdit(line, removed, added));
+            }
+            int next = text.indexOf('\n', line);
+            if (next < 0 || next >= end) {
+                break;
+            }
+            line = next + 1;
+        }
+        if (edits.isEmpty()) {
+            return false;
+        }
+
+        StringBuilder updated = new StringBuilder(text.length());
+        int source = 0;
+        for (LineEdit edit : edits) {
+            updated.append(text, source, edit.offset);
+            if (edit.added > 0) {
+                for (int i = 0; i < edit.added; i++) {
+                    updated.append(' ');
+                }
+            }
+            source = edit.offset + edit.removed;
+        }
+        updated.append(text, source, text.length());
+        int newAnchor = adjustIndex(selectionAnchor, edits);
+        int newCursor = adjustIndex(cursorIndex, edits);
+        text = updated.toString();
+        selectionAnchor = newAnchor;
+        cursorIndex = newCursor;
+        selectionActive = selectionAnchor != cursorIndex;
+        return true;
+    }
+
+    private int lineStart(int index) {
+        int cursor = clampIndex(index);
+        int newline = text.lastIndexOf('\n', Math.max(0, cursor - 1));
+        return newline < 0 ? 0 : newline + 1;
+    }
+
+    private int lineEnd(int index) {
+        int newline = text.indexOf('\n', clampIndex(index));
+        return newline < 0 ? text.length() : newline;
+    }
+
+    private int adjustIndex(int index, List<LineEdit> edits) {
+        int adjusted = index;
+        for (LineEdit edit : edits) {
+            if (index >= edit.offset + edit.removed) {
+                adjusted += edit.added;
+            } else if (index >= edit.offset) {
+                adjusted = edit.offset + Math.max(0, edit.added);
+                break;
+            } else {
+                break;
+            }
+        }
+        return clampIndex(adjusted);
+    }
+
+    private boolean isWordCharacter(char c) {
+        return !Character.isWhitespace(c) && "\"'`()[]{}<>".indexOf(c) < 0;
+    }
+
+    private static class LineEdit {
+
+        private final int offset;
+        private final int removed;
+        private final int added;
+
+        private LineEdit(int offset, int removed, int added) {
+            this.offset = offset;
+            this.removed = removed;
+            this.added = added;
+        }
     }
 
     public void insertText(String insertion) {

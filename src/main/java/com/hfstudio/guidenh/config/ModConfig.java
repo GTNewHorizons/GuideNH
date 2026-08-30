@@ -231,7 +231,7 @@ public class ModConfig {
         @Comment("Expanded width of the markdown panel in the scene editor.")
         public int sceneEditorMarkdownPanelWidth = 208;
 
-        @Comment("Whether the markdown panel wraps lines in the scene editor.")
+        @Comment("Whether the guide editor and scene editor markdown panels wrap long lines.")
         @DefaultBoolean(true)
         public boolean sceneEditorMarkdownWrapEnabled = true;
 

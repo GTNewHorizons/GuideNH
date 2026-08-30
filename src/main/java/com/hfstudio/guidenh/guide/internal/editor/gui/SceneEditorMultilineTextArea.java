@@ -83,6 +83,9 @@ public class SceneEditorMultilineTextArea {
     private int pendingImePhysicalDuplicateChar;
     private int recentPhysicalAsciiChar;
     private long recentPhysicalAsciiAtMillis;
+    /** Preferred pixel column used by repeated vertical cursor movement. */
+    @Nullable
+    private Integer preferredVerticalPixel;
 
     // Double-click word selection
     private long lastClickTimeMillis;
@@ -139,6 +142,7 @@ public class SceneEditorMultilineTextArea {
         this.pendingImePhysicalDuplicateChar = -1;
         this.recentPhysicalAsciiChar = -1;
         this.recentPhysicalAsciiAtMillis = 0L;
+        this.preferredVerticalPixel = null;
     }
 
     public void setBounds(int x, int y, int width, int height) {
@@ -168,6 +172,7 @@ public class SceneEditorMultilineTextArea {
                 selectionModel.getText()
                     .length()));
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -198,6 +203,7 @@ public class SceneEditorMultilineTextArea {
 
     public void selectAll() {
         selectionModel.selectAll();
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -215,6 +221,7 @@ public class SceneEditorMultilineTextArea {
         }
         clipboardAccess.copy(selectionModel.cutSelection());
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
         syncImeFocusProxy();
         return true;
@@ -223,6 +230,7 @@ public class SceneEditorMultilineTextArea {
     public boolean pasteClipboard() {
         selectionModel.insertText(normalizeLineEndings(clipboardAccess.paste()));
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
         syncImeFocusProxy();
         return true;
@@ -232,13 +240,26 @@ public class SceneEditorMultilineTextArea {
         selectionModel.setText(normalizeLineEndings(text));
         selectionModel.setSelection(selectionStart, selectionEnd);
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
+        syncImeFocusProxy();
+    }
+
+    /** Applies a programmatic replacement while keeping the current viewport when possible. */
+    public void applyEditPreservingViewport(String text, int selectionStart, int selectionEnd) {
+        int verticalOffset = scrollState.getOffsetPixels();
+        int horizontalOffset = horizontalOffsetPixels;
+        applyEdit(text, selectionStart, selectionEnd);
+        scrollState.setOffsetPixels(verticalOffset);
+        horizontalOffsetPixels = clampHorizontalOffset(horizontalOffset);
+        snapVisualOffsetsToTarget();
         syncImeFocusProxy();
     }
 
     public void insertAtSelection(String text) {
         selectionModel.insertText(normalizeLineEndings(text));
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -248,6 +269,7 @@ public class SceneEditorMultilineTextArea {
         selectionModel.setSelection(cursorIndex, cursorIndex);
         selectionModel.insertText(text);
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -353,6 +375,7 @@ public class SceneEditorMultilineTextArea {
             this.horizontalOffsetPixels = 0;
         }
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -473,8 +496,15 @@ public class SceneEditorMultilineTextArea {
             long now = System.currentTimeMillis();
             long elapsed = now - lastClickTimeMillis;
             lastClickTimeMillis = now;
-            if (elapsed < DOUBLE_CLICK_WINDOW_MS && doubleClickHandler != null) {
-                doubleClickHandler.onDoubleClick(selectionModel.getCursorIndex());
+            if (elapsed < DOUBLE_CLICK_WINDOW_MS) {
+                selectionModel.selectWordAt(cursorIndex);
+                if (doubleClickHandler != null) {
+                    doubleClickHandler.onDoubleClick(selectionModel.getCursorIndex());
+                }
+                selectingWithMouse = false;
+                clearPreferredVerticalPixel();
+                rebuildLayoutCache();
+                syncImeFocusProxy();
                 return true;
             }
             selectingWithMouse = true;
@@ -482,6 +512,7 @@ public class SceneEditorMultilineTextArea {
             selectionModel.setCursorIndex(cursorIndex);
             selectingWithMouse = false;
         }
+        clearPreferredVerticalPixel();
         rebuildLayoutCache();
         syncImeFocusProxy();
         ensureCursorVisible();
@@ -528,6 +559,7 @@ public class SceneEditorMultilineTextArea {
             return false;
         }
         selectionModel.updateSelection(getCursorIndexAt(mouseX, mouseY));
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
         syncImeFocusProxy();
         return true;
@@ -562,6 +594,7 @@ public class SceneEditorMultilineTextArea {
         }
         if (isCtrlKeyCombo(keyCode, Keyboard.KEY_A)) {
             selectionModel.selectAll();
+            clearPreferredVerticalPixel();
             ensureCursorVisible();
             return true;
         }
@@ -575,6 +608,7 @@ public class SceneEditorMultilineTextArea {
             if (selectionModel.hasSelection()) {
                 clipboardAccess.copy(selectionModel.cutSelection());
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
             }
             return true;
@@ -582,6 +616,7 @@ public class SceneEditorMultilineTextArea {
         if (isCtrlKeyCombo(keyCode, Keyboard.KEY_V)) {
             selectionModel.insertText(normalizeLineEndings(clipboardAccess.paste()));
             rebuildLayoutCache();
+            clearPreferredVerticalPixel();
             ensureCursorVisible();
             return true;
         }
@@ -591,29 +626,39 @@ public class SceneEditorMultilineTextArea {
             case Keyboard.KEY_NUMPADENTER:
                 applySmartNewline();
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_TAB:
-                selectionModel.insertText("    ");
+                if (GuiScreen.isShiftKeyDown()) {
+                    selectionModel.indentLines(true, 4);
+                } else if (selectionModel.hasSelection()) {
+                    selectionModel.indentLines(false, 4);
+                } else {
+                    selectionModel.insertText("    ");
+                }
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_BACK:
                 selectionModel.deleteBackward();
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_DELETE:
                 selectionModel.deleteForward();
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_LEFT:
-                selectionModel.moveCursor(selectionModel.getCursorIndex() - 1, GuiScreen.isShiftKeyDown());
+                moveCursorHorizontal(-1, GuiScreen.isShiftKeyDown());
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_RIGHT:
-                selectionModel.moveCursor(selectionModel.getCursorIndex() + 1, GuiScreen.isShiftKeyDown());
+                moveCursorHorizontal(1, GuiScreen.isShiftKeyDown());
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_UP:
@@ -645,6 +690,7 @@ public class SceneEditorMultilineTextArea {
             selectionModel.insertText(Character.toString(typedChar));
             rememberInsertedAsciiCharacter(typedChar, keyCode);
             rebuildLayoutCache();
+            clearPreferredVerticalPixel();
             ensureCursorVisible();
             return true;
         }
@@ -1241,13 +1287,53 @@ public class SceneEditorMultilineTextArea {
         }
         int currentLine = getVisualLineIndex(selectionModel.getCursorIndex());
         int nextLine = currentLine + direction;
-        if (nextLine < 0 || nextLine >= lines.size()) {
-            return;
+        if (preferredVerticalPixel == null) {
+            preferredVerticalPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), lines.get(currentLine));
         }
-        int currentPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), lines.get(currentLine));
-        int nextIndex = getCursorIndexAtPixel(lines.get(nextLine), currentPixel);
+        if (nextLine < 0) {
+            nextLine = 0;
+            preferredVerticalPixel = 0;
+        } else if (nextLine >= lines.size()) {
+            nextLine = lines.size() - 1;
+            preferredVerticalPixel = fontRenderer.getStringWidth(
+                lines.get(nextLine)
+                    .text());
+        }
+        int nextIndex = getCursorIndexAtPixel(lines.get(nextLine), preferredVerticalPixel);
         selectionModel.moveCursor(nextIndex, keepSelection);
         ensureCursorVisible();
+    }
+
+    private void moveCursorHorizontal(int direction, boolean keepSelection) {
+        boolean ctrl = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+        int target;
+        if (ctrl) {
+            if (!keepSelection && selectionModel.hasSelection()) {
+                target = direction < 0 ? selectionModel.getSelectionStart() : selectionModel.getSelectionEnd();
+            } else {
+                target = findWordBoundary(selectionModel.getCursorIndex(), direction);
+            }
+        } else {
+            target = selectionModel.getCursorIndex() + direction;
+            if (!keepSelection && selectionModel.hasSelection()) {
+                target = direction < 0 ? selectionModel.getSelectionStart() : selectionModel.getSelectionEnd();
+            }
+        }
+        selectionModel.moveCursor(target, keepSelection);
+        clearPreferredVerticalPixel();
+    }
+
+    private int findWordBoundary(int index, int direction) {
+        String text = selectionModel.getText();
+        int cursor = clamp(index, 0, text.length());
+        if (direction < 0) {
+            while (cursor > 0 && Character.isWhitespace(text.charAt(cursor - 1))) cursor--;
+            while (cursor > 0 && !Character.isWhitespace(text.charAt(cursor - 1))) cursor--;
+        } else {
+            while (cursor < text.length() && Character.isWhitespace(text.charAt(cursor))) cursor++;
+            while (cursor < text.length() && !Character.isWhitespace(text.charAt(cursor))) cursor++;
+        }
+        return cursor;
     }
 
     private void moveCursorToLineBoundary(boolean start, boolean keepSelection) {
@@ -1258,6 +1344,7 @@ public class SceneEditorMultilineTextArea {
         SceneEditorMultilineTextLayoutCache.VisualLine line = lines
             .get(getVisualLineIndex(selectionModel.getCursorIndex()));
         selectionModel.moveCursor(start ? line.startIndex() : line.endIndex(), keepSelection);
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
     }
 
@@ -1412,6 +1499,10 @@ public class SceneEditorMultilineTextArea {
             return min;
         }
         return Math.min(value, max);
+    }
+
+    private void clearPreferredVerticalPixel() {
+        preferredVerticalPixel = null;
     }
 
     private int getContentClipWidth() {
