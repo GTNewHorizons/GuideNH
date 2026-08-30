@@ -788,7 +788,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 currentPageId,
                 templates,
                 false,
-                readFloat(element, "scale"));
+                readBlockImageScale(element));
         }
 
         GuideSiteExportedScene exportedScene = sceneResolver.nextScene();
@@ -806,7 +806,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             currentPageId,
             templates,
             false,
-            readFloat(element, "scale"),
+            readBlockImageScale(element),
             true);
     }
 
@@ -819,6 +819,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         String style = "right".equals(floatDirection) ? "float:right;margin:0 0 5px 5px;"
             : "float:left;margin:0 5px 5px 0;";
         return "<span class=\"guide-floating-image-wrap\" style=\"" + escapeAttribute(style) + "\">" + html + "</span>";
+    }
+
+    private Float readBlockImageScale(MdxJsxElementFields element) {
+        Float scale = readFloat(element, "scale");
+        return scale == null ? 4f : scale;
     }
 
     @Nullable
