@@ -26,16 +26,16 @@ public final class LazyParsedGuidePage extends ParsedGuidePage {
         0.75f,
         true) {
 
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<LazyParsedGuidePage, Boolean> eldest) {
-                if (size() <= MAX_RESIDENT_PAGES) {
-                    return false;
-                }
-                eldest.getKey()
-                    .discardLoadedContent();
-                return true;
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<LazyParsedGuidePage, Boolean> eldest) {
+            if (size() <= MAX_RESIDENT_PAGES) {
+                return false;
             }
-        };
+            eldest.getKey()
+                .discardLoadedContent();
+            return true;
+        }
+    };
 
     private final Supplier<String> sourceLoader;
     private volatile String loadedSource;

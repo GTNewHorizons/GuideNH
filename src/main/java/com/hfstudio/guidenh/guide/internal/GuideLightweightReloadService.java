@@ -228,8 +228,7 @@ public class GuideLightweightReloadService {
                 if (currentBytes == null) {
                     return "";
                 }
-                return GuideLocalizedPageSourceResolver
-                    .resolve(language, contentRootFolder, pageId, currentBytes)
+                return GuideLocalizedPageSourceResolver.resolve(language, contentRootFolder, pageId, currentBytes)
                     .source();
             };
             return new LazyParsedGuidePage(

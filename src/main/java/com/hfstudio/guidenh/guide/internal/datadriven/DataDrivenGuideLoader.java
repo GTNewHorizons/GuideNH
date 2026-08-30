@@ -291,12 +291,7 @@ public class DataDrivenGuideLoader {
         LinkedHashMap<String, LinkedHashSet<String>> pagePaths,
         Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
         for (NamespaceRoot namespaceRoot : discoverNamespaceRoots(resourcePackRoot)) {
-            scanDirectoryBuildIndexForNamespace(
-                resourcePack,
-                namespaceRoot,
-                folder,
-                pagePaths,
-                discoveredLanguages);
+            scanDirectoryBuildIndexForNamespace(resourcePack, namespaceRoot, folder, pagePaths, discoveredLanguages);
         }
         collectDirectoryLangPaths(resourcePackRoot);
     }
@@ -311,10 +306,14 @@ public class DataDrivenGuideLoader {
                     .map(Path::toString)
                     .map(path -> "assets/" + path.replace(File.separatorChar, '/'))
                     .filter(path -> path.endsWith(".lang"))
-                    .forEach(path -> PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackRoot, key -> new ArrayList<>())
-                        .add(path));
+                    .forEach(
+                        path -> PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackRoot, key -> new ArrayList<>())
+                            .add(path));
             } catch (IOException e) {
-                GuideDebugLog.warn("[GuideNH] [DataDrivenGuideLoader] Failed to index language files in {}", resourcePackRoot, e);
+                GuideDebugLog.warn(
+                    "[GuideNH] [DataDrivenGuideLoader] Failed to index language files in {}",
+                    resourcePackRoot,
+                    e);
             }
         }
         File[] looseRoots = resourcePackRoot.listFiles(File::isDirectory);
@@ -327,14 +326,18 @@ public class DataDrivenGuideLoader {
             }
             try (var paths = Files.walk(looseRoot.toPath())) {
                 paths.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".lang"))
+                    .filter(
+                        path -> path.toString()
+                            .endsWith(".lang"))
                     .map(resourcePackRoot.toPath()::relativize)
                     .map(Path::toString)
                     .map(path -> path.replace(File.separatorChar, '/'))
-                    .forEach(path -> PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackRoot, key -> new ArrayList<>())
-                        .add(path));
+                    .forEach(
+                        path -> PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackRoot, key -> new ArrayList<>())
+                            .add(path));
             } catch (IOException e) {
-                GuideDebugLog.warn("[GuideNH] [DataDrivenGuideLoader] Failed to index language files in {}", looseRoot, e);
+                GuideDebugLog
+                    .warn("[GuideNH] [DataDrivenGuideLoader] Failed to index language files in {}", looseRoot, e);
             }
         }
     }
@@ -432,8 +435,9 @@ public class DataDrivenGuideLoader {
         var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
         var firstSlash = afterAssets.indexOf('/');
         if (firstSlash <= 0) return null;
-        try (var input = resourcePack.getInputStream(
-            new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1)));
+        try (
+            var input = resourcePack.getInputStream(
+                new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1)));
             var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -444,8 +448,7 @@ public class DataDrivenGuideLoader {
                 int separator = line.indexOf('=');
                 if (separator > 0 && key.equals(line.substring(0, separator))) {
                     String value = line.substring(separator + 1);
-                    try (var parsed = new ByteArrayInputStream(
-                        (key + "=" + value).getBytes(StandardCharsets.UTF_8))) {
+                    try (var parsed = new ByteArrayInputStream((key + "=" + value).getBytes(StandardCharsets.UTF_8))) {
                         String translated = StringTranslate.parseLangFile(parsed)
                             .get(key);
                         return translated != null ? translated : value;

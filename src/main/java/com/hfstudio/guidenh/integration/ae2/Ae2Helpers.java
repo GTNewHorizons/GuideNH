@@ -28,21 +28,21 @@ import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportAccess;
 import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 
-import appeng.api.networking.ticking.IGridTickable;
-import appeng.api.implementations.tiles.IChestOrDrive;
-import appeng.api.storage.ICellHandler;
-import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.StorageChannel;
 import appeng.api.AEApi;
+import appeng.api.implementations.tiles.IChestOrDrive;
+import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.parts.IFacadePart;
 import appeng.api.parts.IPart;
 import appeng.api.parts.PartItemStack;
+import appeng.api.storage.ICellHandler;
+import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.storage.StorageChannel;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
 import appeng.parts.CableBusContainer;
 import appeng.parts.networking.PartCable;
-import appeng.tile.AEBaseTile;
 import appeng.tile.AEBaseInvTile;
+import appeng.tile.AEBaseTile;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.tile.networking.TileCableBus;
 import appeng.tile.qnb.TileQuantumBridge;
@@ -596,7 +596,9 @@ public class Ae2Helpers {
 
         if (tile instanceof TileChest) {
             if (payload.length < 3) return payload;
-            CellDisplay display = deriveCellDisplay(inventory.getInternalInventory().getStackInSlot(1));
+            CellDisplay display = deriveCellDisplay(
+                inventory.getInternalInventory()
+                    .getStackInSlot(1));
             payload[1] = (byte) (display.status() & 0b111);
             payload[2] = (byte) (display.type() & 0b11);
             return payload;
@@ -606,9 +608,14 @@ public class Ae2Helpers {
             if (payload.length < 9) return payload;
             int state = 0;
             int type = 0;
-            int count = Math.min(storage.getCellCount(), inventory.getInternalInventory().getSizeInventory());
+            int count = Math.min(
+                storage.getCellCount(),
+                inventory.getInternalInventory()
+                    .getSizeInventory());
             for (int slot = 0; slot < count; slot++) {
-                CellDisplay display = deriveCellDisplay(inventory.getInternalInventory().getStackInSlot(slot));
+                CellDisplay display = deriveCellDisplay(
+                    inventory.getInternalInventory()
+                        .getStackInSlot(slot));
                 state |= (display.status() & 0b111) << (slot * 3);
                 type |= (display.type() & 0b11) << (slot * 2);
             }
@@ -621,7 +628,10 @@ public class Ae2Helpers {
     @Optional.Method(modid = "appliedenergistics2")
     private static CellDisplay deriveCellDisplay(ItemStack cell) {
         if (cell == null) return CellDisplay.EMPTY;
-        ICellHandler handler = AEApi.instance().registries().cell().getHandler(cell);
+        ICellHandler handler = AEApi.instance()
+            .registries()
+            .cell()
+            .getHandler(cell);
         if (handler == null) return CellDisplay.EMPTY;
         for (StorageChannel channel : StorageChannel.values()) {
             try {
@@ -645,6 +655,7 @@ public class Ae2Helpers {
     }
 
     private record CellDisplay(int status, int type) {
+
         private static final CellDisplay EMPTY = new CellDisplay(0, 0);
     }
 

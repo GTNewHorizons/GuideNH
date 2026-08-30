@@ -67,8 +67,9 @@ public class GuideResourceLanguageIndex {
                     continue;
                 }
                 String fileName = path.substring(fileNameStart);
-                if (!fileName.endsWith(".lang") || !LangUtil.normalizeLanguage(fileName.substring(0, fileName.length() - 5))
-                    .equals(language)) {
+                if (!fileName.endsWith(".lang")
+                    || !LangUtil.normalizeLanguage(fileName.substring(0, fileName.length() - 5))
+                        .equals(language)) {
                     continue;
                 }
                 String candidate = DataDrivenGuideLoader.readLangValue(pack, path, key);
