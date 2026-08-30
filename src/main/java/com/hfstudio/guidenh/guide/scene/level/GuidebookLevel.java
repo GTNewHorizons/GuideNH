@@ -36,12 +36,13 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 
 public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
-    private final LinkedHashMap<ChunkCoordIntPair, GuidebookChunk> chunks = new LinkedHashMap<>();
+    private final Long2ObjectLinkedOpenHashMap<GuidebookChunk> chunks = new Long2ObjectLinkedOpenHashMap<>();
 
-    private final HashMap<Long, TileEntity> tileEntities = new HashMap<>();
+    private final Long2ObjectLinkedOpenHashMap<TileEntity> tileEntities = new Long2ObjectLinkedOpenHashMap<>();
     private final LinkedHashMap<Integer, Entity> entities = new LinkedHashMap<>();
     private final LinkedHashMap<String, LinkedHashSet<Integer>> sceneEntityIds = new LinkedHashMap<>();
     private final HashMap<Integer, String> entitySceneIds = new HashMap<>();
@@ -142,12 +143,12 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (y < 0 || y >= 256) return;
 
         boolean isAir = block == null || block == Blocks.air;
-        var pair = new ChunkCoordIntPair(x >> 4, z >> 4);
-        GuidebookChunk chunk = chunks.get(pair);
+        long chunkKey = ChunkCoordIntPair.chunkXZ2Int(x >> 4, z >> 4);
+        GuidebookChunk chunk = chunks.get(chunkKey);
         if (chunk == null) {
             if (isAir) return;
             chunk = new GuidebookChunk(x >> 4, z >> 4);
-            chunks.put(pair, chunk);
+            chunks.put(chunkKey, chunk);
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
@@ -199,14 +200,14 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
 
         boolean isAir = block == null || block == Blocks.air;
-        ChunkCoordIntPair pair = new ChunkCoordIntPair(x >> 4, z >> 4);
-        GuidebookChunk chunk = chunks.get(pair);
+        long chunkKey = ChunkCoordIntPair.chunkXZ2Int(x >> 4, z >> 4);
+        GuidebookChunk chunk = chunks.get(chunkKey);
         if (chunk == null) {
             if (isAir) {
                 return;
             }
             chunk = new GuidebookChunk(x >> 4, z >> 4);
-            chunks.put(pair, chunk);
+            chunks.put(chunkKey, chunk);
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
@@ -703,11 +704,11 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Override
     @Nullable
     public GuidebookChunk getChunk(int chunkX, int chunkZ, boolean create) {
-        var pair = new ChunkCoordIntPair(chunkX, chunkZ);
-        var chunk = chunks.get(pair);
+        long chunkKey = ChunkCoordIntPair.chunkXZ2Int(chunkX, chunkZ);
+        var chunk = chunks.get(chunkKey);
         if (chunk == null && create) {
             chunk = new GuidebookChunk(chunkX, chunkZ);
-            chunks.put(pair, chunk);
+            chunks.put(chunkKey, chunk);
         }
         return chunk;
     }
