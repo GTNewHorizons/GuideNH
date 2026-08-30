@@ -42,7 +42,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private final Long2ObjectLinkedOpenHashMap<GuidebookChunk> chunks = new Long2ObjectLinkedOpenHashMap<>();
 
-    private final HashMap<Long, TileEntity> tileEntities = new HashMap<>();
+    private final Long2ObjectLinkedOpenHashMap<TileEntity> tileEntities = new Long2ObjectLinkedOpenHashMap<>();
     private final LinkedHashMap<Integer, Entity> entities = new LinkedHashMap<>();
     private final LinkedHashMap<String, LinkedHashSet<Integer>> sceneEntityIds = new LinkedHashMap<>();
     private final HashMap<Integer, String> entitySceneIds = new HashMap<>();
