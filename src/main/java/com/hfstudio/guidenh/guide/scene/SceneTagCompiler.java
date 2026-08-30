@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockTagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -122,16 +123,20 @@ public class SceneTagCompiler extends BlockTagCompiler {
         boolean showGrid = MdxAttrs.getBoolean(compiler, parent, el, "showGrid", false);
 
         // Raw source text of children (preserves BlockStats and all scene element markup)
-        String childrenSource = compiler.getBlockTagChildrenSource(el);
+        String childrenSource = normalizeSceneSource(compiler.getBlockTagChildrenSource(el));
 
         // Pre-parse children source at compile time (pure function -- no I/O, no registry).
         // SceneScript uses the pre-parsed AST instead of re-running MdAst.fromMarkdown().
         MdAstRoot preParsedAst = null;
+        String parseError = null;
         if (childrenSource != null && !childrenSource.isEmpty()) {
             try {
                 preParsedAst = MdAst.fromMarkdown(childrenSource, GuideMarkdownOptions.runtime());
                 MdAstToMdxConverter.convert(preParsedAst, Collections.emptyMap());
             } catch (RuntimeException e) {
+                parseError = e.getMessage() != null ? e.getMessage()
+                    : e.getClass()
+                        .getSimpleName();
                 GuideDebugLog
                     .error("[GuideNH] [SceneTagCompiler] Failed to parse scene children during pre-processing", e);
             }
@@ -175,6 +180,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             compiler.getSourcePack(),
             compiler.getLanguage(),
             preParsedAst,
+            parseError,
             sceneElementCompilers);
         placeholder.setStyleClass(styleClass);
         placeholder.setStyle(LytParagraph.PLACEHOLDER_STYLE);
@@ -184,6 +190,25 @@ public class SceneTagCompiler extends BlockTagCompiler {
 
     private boolean resolveShowBackground(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         return MdxAttrs.getBoolean(compiler, parent, el, "showBackground", true);
+    }
+
+    /**
+     * Scene children are tag markup, not an indented Markdown code block. Remove
+     * presentation whitespace before opening and closing tags so a page can use
+     * normal readable indentation without changing which scene elements parse.
+     */
+    private static @Nullable String normalizeSceneSource(@Nullable String source) {
+        if (source == null || source.isEmpty()) {
+            return source;
+        }
+        String dedented = DetailsContentExtractor.dedent(source);
+        StringBuilder normalized = new StringBuilder(dedented.length());
+        String[] lines = dedented.split("\\n", -1);
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) normalized.append('\n');
+            normalized.append(lines[i].replaceFirst("^[ \\t]+(?=<\\/?[A-Za-z])", ""));
+        }
+        return normalized.toString();
     }
 
     /**
@@ -225,6 +250,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
         @Nullable
         public final MdAstRoot childrenAst;
         @Nullable
+        public final String childrenParseError;
+        @Nullable
         public final List<SceneElementTagCompiler> sceneElementCompilers;
         public final String language;
 
@@ -234,7 +261,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             float centerY, float centerZ, boolean explicitCenter, boolean interactive, boolean showBackground,
             boolean allowLayerSlider, boolean gridButtonEnabled, boolean showGrid, @Nullable String childrenSource,
             String pageDomain, String pagePath, String sourcePack, String language, @Nullable MdAstRoot childrenAst,
-            @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
+            @Nullable String childrenParseError, @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
             this.width = width;
             this.height = height;
             this.explicitWidth = explicitWidth;
@@ -264,6 +291,7 @@ public class SceneTagCompiler extends BlockTagCompiler {
             this.sourcePack = sourcePack;
             this.language = language;
             this.childrenAst = childrenAst;
+            this.childrenParseError = childrenParseError;
             this.sceneElementCompilers = sceneElementCompilers;
         }
     }

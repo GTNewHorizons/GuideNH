@@ -523,56 +523,73 @@ public class RecipeCompiler extends BlockTagCompiler {
         return parseFilterExpr(raw, null, defaultNs, null);
     }
 
-    private static FilterExpr parseFilterExpr(@Nullable String raw, @Nullable String attr, String defaultNs,
+    public static FilterExpr parseFilterExpr(@Nullable String raw, @Nullable String attr, String defaultNs,
         @Nullable Consumer<String> errorSink) {
         if (raw == null) return FilterExpr.EMPTY;
         List<List<FilterTerm>> groups = new ArrayList<>();
-        int rawLength = raw.length();
-        int orStart = 0;
-        while (orStart <= rawLength) {
-            int orEnd = raw.indexOf(',', orStart);
-            if (orEnd < 0) {
-                orEnd = rawLength;
-            }
-            String orTrim = raw.substring(orStart, orEnd)
-                .trim();
+        for (String orPart : splitFilterParts(raw, ',')) {
+            String orTrim = orPart.trim();
             if (!orTrim.isEmpty()) {
                 List<FilterTerm> andTerms = new ArrayList<>();
                 parseFilterTerms(orTrim, attr, defaultNs, errorSink, andTerms);
                 if (!andTerms.isEmpty()) groups.add(andTerms);
             }
-            if (orEnd == rawLength) {
-                break;
-            }
-            orStart = orEnd + 1;
         }
         return groups.isEmpty() ? FilterExpr.EMPTY : new FilterExpr(groups);
     }
 
-    private static void parseFilterTerms(String orTrim, @Nullable String attr, String defaultNs,
+    public static void parseFilterTerms(String orTrim, @Nullable String attr, String defaultNs,
         @Nullable Consumer<String> errorSink, List<FilterTerm> andTerms) {
-        int andLength = orTrim.length();
-        int andStart = 0;
-        while (andStart <= andLength) {
-            int andEnd = orTrim.indexOf('&', andStart);
-            if (andEnd < 0) {
-                andEnd = andLength;
-            }
-            parseFilterTerm(
-                orTrim.substring(andStart, andEnd)
-                    .trim(),
-                attr,
-                defaultNs,
-                errorSink,
-                andTerms);
-            if (andEnd == andLength) {
-                break;
-            }
-            andStart = andEnd + 1;
+        for (String andPart : splitFilterParts(orTrim, '&')) {
+            parseFilterTerm(andPart.trim(), attr, defaultNs, errorSink, andTerms);
         }
     }
 
-    private static void parseFilterTerm(String token, @Nullable String attr, String defaultNs,
+    /** Split a filter only at top level; commas and ampersands inside SNBT remain part of the item reference. */
+    public static List<String> splitFilterParts(String raw, char delimiter) {
+        List<String> parts = new ArrayList<>();
+        int start = 0;
+        int braces = 0;
+        int brackets = 0;
+        int parentheses = 0;
+        boolean quoted = false;
+        boolean escaped = false;
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (quoted) {
+                if (escaped) {
+                    escaped = false;
+                } else if (c == '\\') {
+                    escaped = true;
+                } else if (c == '"') {
+                    quoted = false;
+                }
+                continue;
+            }
+            if (c == '"') {
+                quoted = true;
+                continue;
+            }
+            switch (c) {
+                case '{' -> braces++;
+                case '}' -> braces = Math.max(0, braces - 1);
+                case '[' -> brackets++;
+                case ']' -> brackets = Math.max(0, brackets - 1);
+                case '(' -> parentheses++;
+                case ')' -> parentheses = Math.max(0, parentheses - 1);
+                default -> {
+                    if (c == delimiter && braces == 0 && brackets == 0 && parentheses == 0) {
+                        parts.add(raw.substring(start, i));
+                        start = i + 1;
+                    }
+                }
+            }
+        }
+        parts.add(raw.substring(start));
+        return parts;
+    }
+
+    public static void parseFilterTerm(String token, @Nullable String attr, String defaultNs,
         @Nullable Consumer<String> errorSink, List<FilterTerm> andTerms) {
         if (token.isEmpty()) return;
         boolean negated = false;
@@ -597,7 +614,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         }
     }
 
-    private static String filterAttrName(@Nullable String attr) {
+    public static String filterAttrName(@Nullable String attr) {
         return attr == null || attr.isEmpty() ? "filter" : attr;
     }
 }

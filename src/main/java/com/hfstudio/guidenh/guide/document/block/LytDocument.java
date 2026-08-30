@@ -16,6 +16,7 @@ import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.Layouts;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import lombok.Getter;
 
@@ -91,13 +92,18 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         if (oldChild instanceof LytBlock oldBlock) {
             int idx = blocks.indexOf(oldBlock);
             if (idx < 0) return;
+            if (!(newNode instanceof LytBlock newBlock)) return;
+            if (newBlock.parent != null) {
+                newBlock.parent.removeChild(newBlock);
+            }
+            if (live) {
+                notifyDetach(oldBlock);
+            }
             oldBlock.parent = null;
-            if (newNode instanceof LytBlock newBlock) {
-                if (newBlock.parent != null) {
-                    newBlock.parent.removeChild(newBlock);
-                }
-                newBlock.parent = this;
-                blocks.set(idx, newBlock);
+            newBlock.parent = this;
+            blocks.set(idx, newBlock);
+            if (live) {
+                notifyAttach(newBlock);
             }
             invalidateLayout();
         }
@@ -193,7 +199,20 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         // Render from the cached visible list. Each block's render is a stable function of its
         // own state; viewport-dependent culling has already been factored out above.
         for (LytBlock lytBlock : visibleCache) {
-            lytBlock.render(context);
+            try {
+                lytBlock.render(context);
+            } catch (Throwable throwable) {
+                // A malformed or not-yet-ready interactive scene must not abort the
+                // whole document render. Continue with later paragraphs and retain
+                // enough context to diagnose the offending block from debug.log.
+                context.restoreExternalRenderState();
+                GuideDebugLog.error(
+                    "[LytDocument] Failed to render block type={} bounds={}",
+                    lytBlock.getClass()
+                        .getName(),
+                    lytBlock.getBounds(),
+                    throwable);
+            }
         }
     }
 

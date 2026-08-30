@@ -70,6 +70,11 @@ class ScriptContextImpl implements ScriptContext {
             LytNode parent = ln.getParent();
             if (parent != null) {
                 parent.replaceChild(ln, newLn);
+                // Async block materialization can replace a root-document child
+                // (for example, a ScenePlaceholder). Not every block container
+                // owns the document-level invalidation contract, so make the
+                // replacement invalidate the active document here as well.
+                document.invalidateLayout();
             }
             recordResult(newLn);
             return;
