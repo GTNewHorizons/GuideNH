@@ -2594,6 +2594,13 @@ public class GuideScreen extends GuiContainer
             pageLoadInProgress = false;
             refreshCurrentPageTitle();
             updateToolbarButtonState();
+            // Editor previews use the same host materialization queue as the active page. Build
+            // the first preview only after the page mount has completed; mounting the page above
+            // clears tasks belonging to the previous document and would otherwise discard the
+            // preview's asynchronous GameScene materialization, leaving its yellow placeholder.
+            if (isGuideEditorActive() && guideEditorPreviewDirty) {
+                rebuildGuideEditorPreview();
+            }
             return;
         }
 
