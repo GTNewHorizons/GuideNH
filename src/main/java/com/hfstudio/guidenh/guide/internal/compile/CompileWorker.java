@@ -3,8 +3,9 @@ package com.hfstudio.guidenh.guide.internal.compile;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -31,13 +32,24 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
  */
 public class CompileWorker {
 
+    private static final int MAX_COMPILED_PAGES = 64;
+
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "guidenh-compile");
         t.setDaemon(true);
         return t;
     });
 
-    private final ConcurrentHashMap<ResourceLocation, GuidePage> compiledPages = new ConcurrentHashMap<>();
+    private final Map<ResourceLocation, GuidePage> compiledPages = new LinkedHashMap<>(
+        MAX_COMPILED_PAGES,
+        0.75f,
+        true) {
+
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
+                return size() > MAX_COMPILED_PAGES;
+            }
+        };
 
     /**
      * Main thread sets this to force a page to compile next (插队).
@@ -83,12 +95,16 @@ public class CompileWorker {
      */
     @Nullable
     public GuidePage getCompiledPage(ResourceLocation pageId) {
-        return compiledPages.get(pageId);
+        synchronized (compiledPages) {
+            return compiledPages.get(pageId);
+        }
     }
 
     public void invalidate(ResourceLocation pageId) {
         if (pageId != null) {
-            compiledPages.remove(pageId);
+            synchronized (compiledPages) {
+                compiledPages.remove(pageId);
+            }
         }
     }
 
@@ -97,8 +113,10 @@ public class CompileWorker {
      * is already compiled or currently being compiled.
      */
     public void prioritize(ResourceLocation pageId) {
-        if (compiledPages.containsKey(pageId)) {
-            return;
+        synchronized (compiledPages) {
+            if (compiledPages.containsKey(pageId)) {
+                return;
+            }
         }
         if (Objects.equals(currentPageId, pageId)) {
             return;
@@ -120,7 +138,9 @@ public class CompileWorker {
      * compilation for the given set of pages. Called during F3+T reload.
      */
     public void reset(Collection<ResourceLocation> newPageIds) {
-        compiledPages.clear();
+        synchronized (compiledPages) {
+            compiledPages.clear();
+        }
         startBulk(newPageIds);
     }
 
@@ -133,7 +153,9 @@ public class CompileWorker {
         synchronized (bulkQueue) {
             bulkQueue.clear();
         }
-        compiledPages.clear();
+        synchronized (compiledPages) {
+            compiledPages.clear();
+        }
         executor.shutdownNow();
     }
 
@@ -145,8 +167,10 @@ public class CompileWorker {
             ResourceLocation prio = priorityId;
             if (prio != null) {
                 priorityId = null; // grab it, clear it
-                if (!compiledPages.containsKey(prio)) {
-                    target = prio;
+                synchronized (compiledPages) {
+                    if (!compiledPages.containsKey(prio)) {
+                        target = prio;
+                    }
                 }
             }
 
@@ -208,7 +232,9 @@ public class CompileWorker {
         // Compile
         GuidePage compiled = PageCompiler.compile(guide, guide.getExtensions(), parsed);
         long tCompiled = System.nanoTime();
-        compiledPages.put(pageId, compiled);
+        synchronized (compiledPages) {
+            compiledPages.put(pageId, compiled);
+        }
 
         GuideDebugLog.info(
             "[CompileWorker] Compiled page={} parseMs={} compileMs={}",

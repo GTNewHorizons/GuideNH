@@ -28,6 +28,12 @@ import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportAccess;
 import com.hfstudio.guidenh.guide.scene.snapshot.StructureExportPipeline;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 
+import appeng.api.networking.ticking.IGridTickable;
+import appeng.api.implementations.tiles.IChestOrDrive;
+import appeng.api.storage.ICellHandler;
+import appeng.api.storage.IMEInventoryHandler;
+import appeng.api.storage.StorageChannel;
+import appeng.api.AEApi;
 import appeng.api.parts.IFacadePart;
 import appeng.api.parts.IPart;
 import appeng.api.parts.PartItemStack;
@@ -36,10 +42,13 @@ import appeng.me.helpers.IGridProxyable;
 import appeng.parts.CableBusContainer;
 import appeng.parts.networking.PartCable;
 import appeng.tile.AEBaseTile;
+import appeng.tile.AEBaseInvTile;
 import appeng.tile.crafting.TileCraftingTile;
 import appeng.tile.networking.TileCableBus;
 import appeng.tile.qnb.TileQuantumBridge;
 import appeng.tile.spatial.TileSpatialPylon;
+import appeng.tile.storage.TileChest;
+import appeng.tile.storage.TileDrive;
 import cpw.mods.fml.common.Optional;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -529,8 +538,32 @@ public class Ae2Helpers {
             syncSpecialPreviewConnectableSides(aeTile);
             return;
         }
+        // A hand-authored BlockImage has no server-side X supplement. Several AE2 tiles
+        // keep their render state in transient fields (for example TileChest/TileDrive),
+        // so a description packet produced before those fields are rebuilt would reset a
+        // valid inventory from NBT to an empty-looking client state. Rebuild the tile's
+        // derived state first, then mirror that state through the normal AE2 packet path.
+        refreshLocalDerivedDisplayState(aeTile);
         syncDescriptionPacket(aeTile);
         syncSpecialPreviewConnectableSides(aeTile);
+    }
+
+    /** Rebuilds transient storage/display state through AE2's public ticking contract. */
+    @Optional.Method(modid = "appliedenergistics2")
+    private static void refreshLocalDerivedDisplayState(AEBaseTile tile) {
+        try {
+            tile.onReady();
+        } catch (Throwable ignored) {
+            // Continue with the ticking hook when available.
+        }
+        if (tile instanceof IGridTickable tickable) {
+            try {
+                // Storage tiles use this callback to rebuild cell caches and render flags.
+                tickable.tickingRequest(null, 0);
+            } catch (Throwable ignored) {
+                // Some tiles require a live grid; leave their normal packet state untouched.
+            }
+        }
     }
 
     @Optional.Method(modid = "appliedenergistics2")
@@ -538,9 +571,81 @@ public class Ae2Helpers {
         try {
             Packet packet = tile.getDescriptionPacket();
             if (packet instanceof S35PacketUpdateTileEntity updatePacket) {
+                NBTTagCompound data = updatePacket.func_148857_g();
+                if (data != null && data.hasKey("X", 7)) {
+                    byte[] payload = data.getByteArray("X");
+                    byte[] patched = patchLocalStorageDisplayState(tile, payload);
+                    if (patched != null) {
+                        data.setByteArray("X", patched);
+                    }
+                }
                 tile.onDataPacket(null, updatePacket);
             }
         } catch (Throwable ignored) {}
+    }
+
+    /**
+     * AE2 storage renderers read state/type from client-only fields. A hand-authored BlockImage has no server stream,
+     * so derive those two fields from the NBT-loaded cell and patch only the corresponding public packet payload.
+     */
+    @Optional.Method(modid = "appliedenergistics2")
+    private static byte[] patchLocalStorageDisplayState(AEBaseTile tile, byte[] payload) {
+        if (!(tile instanceof IChestOrDrive storage) || !(tile instanceof AEBaseInvTile inventory) || payload == null) {
+            return payload;
+        }
+
+        if (tile instanceof TileChest) {
+            if (payload.length < 3) return payload;
+            CellDisplay display = deriveCellDisplay(inventory.getInternalInventory().getStackInSlot(1));
+            payload[1] = (byte) (display.status() & 0b111);
+            payload[2] = (byte) (display.type() & 0b11);
+            return payload;
+        }
+
+        if (tile instanceof TileDrive) {
+            if (payload.length < 9) return payload;
+            int state = 0;
+            int type = 0;
+            int count = Math.min(storage.getCellCount(), inventory.getInternalInventory().getSizeInventory());
+            for (int slot = 0; slot < count; slot++) {
+                CellDisplay display = deriveCellDisplay(inventory.getInternalInventory().getStackInSlot(slot));
+                state |= (display.status() & 0b111) << (slot * 3);
+                type |= (display.type() & 0b11) << (slot * 2);
+            }
+            writeInt(payload, 1, state);
+            writeInt(payload, 5, type);
+        }
+        return payload;
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static CellDisplay deriveCellDisplay(ItemStack cell) {
+        if (cell == null) return CellDisplay.EMPTY;
+        ICellHandler handler = AEApi.instance().registries().cell().getHandler(cell);
+        if (handler == null) return CellDisplay.EMPTY;
+        for (StorageChannel channel : StorageChannel.values()) {
+            try {
+                IMEInventoryHandler inventory = handler.getCellInventory(cell, null, channel);
+                if (inventory != null) {
+                    int status = Math.max(0, Math.min(4, handler.getStatusForCell(cell, inventory)));
+                    return new CellDisplay(status, channel == StorageChannel.FLUIDS ? 1 : 0);
+                }
+            } catch (Throwable ignored) {
+                // A third-party cell may reject a channel while still supporting another one.
+            }
+        }
+        return CellDisplay.EMPTY;
+    }
+
+    private static void writeInt(byte[] payload, int offset, int value) {
+        payload[offset] = (byte) (value >>> 24);
+        payload[offset + 1] = (byte) (value >>> 16);
+        payload[offset + 2] = (byte) (value >>> 8);
+        payload[offset + 3] = (byte) value;
+    }
+
+    private record CellDisplay(int status, int type) {
+        private static final CellDisplay EMPTY = new CellDisplay(0, 0);
     }
 
     @Optional.Method(modid = "appliedenergistics2")
