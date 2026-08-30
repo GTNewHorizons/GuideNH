@@ -50,7 +50,7 @@ dependencies {
     compileOnlyApi("com.github.GTNewHorizons:Translocators:1.4.4:dev") { transitive = false }
     compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.2.21-GTNH-daily") { transitive = false }
     compileOnlyApi("com.github.DarkShadow44:DistantHorizonsStandalone:9.9.9:dev") { transitive = false }
-    compileOnly("com.ruling_0:MaterialLib:0.9.0-mu:dev") { transitive = false }
+    compileOnly("com.ruling_0:MaterialLib:0.10.0-mu:dev") { transitive = false }
 
     // jvmDowngrader
     compileOnly("javax.xml.bind:jaxb-api:2.3.1")
