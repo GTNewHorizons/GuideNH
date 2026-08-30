@@ -582,7 +582,7 @@ public class GuideSearch implements AutoCloseable {
                     page.getId()
                         .toString());
                 updateFingerprint(digest, page.getLanguage());
-                updateFingerprint(digest, page.getSource());
+                updateFingerprint(digest, page.getSourceFingerprint());
             }
         }
         return HexFormat.of()

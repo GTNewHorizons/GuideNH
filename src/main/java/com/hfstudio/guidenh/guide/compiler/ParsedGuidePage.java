@@ -74,6 +74,11 @@ public class ParsedGuidePage {
         }
     }
 
+    /** Cheap content fingerprint used by the persistent search index. */
+    public String getSourceFingerprint() {
+        return Integer.toHexString(source.hashCode()) + ':' + source.length();
+    }
+
     public @Nullable String getParseFailureMessage() {
         return parseFailureMessage;
     }

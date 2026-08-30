@@ -71,6 +71,9 @@ public class CompileWorker {
      */
     private volatile ResourceLocation currentPageId;
 
+    /** Invalidates work that was started against a previous resource-pack generation. */
+    private volatile long generation;
+
     /**
      * Greedy compilation queue. Worker polls from the head; new items are
      * added at the tail. Synchronized access via the queue monitor.
@@ -88,6 +91,7 @@ public class CompileWorker {
      * F3+T resource reload. Any previously queued items are discarded.
      */
     public void startBulk(Collection<ResourceLocation> pageIds) {
+        generation++;
         this.priorityId = null;
         this.currentPageId = null;
         synchronized (bulkQueue) {
@@ -146,11 +150,25 @@ public class CompileWorker {
      * compilation for the given set of pages. Called during F3+T reload.
      */
     public void reset(Collection<ResourceLocation> newPageIds) {
+        clearCompiledPages();
+        startBulk(newPageIds);
+    }
+
+    /**
+     * Clears compiled pages and queued work without scheduling a bulk compile. Pages are compiled
+     * on demand when opened, which keeps resource reloads cheap even for large guide packs.
+     */
+    public void clearCompiledPages() {
+        generation++;
+        priorityId = null;
+        currentPageId = null;
+        synchronized (bulkQueue) {
+            bulkQueue.clear();
+        }
         synchronized (compiledPages) {
             requestRuntimeReleases(compiledPages.values());
             compiledPages.clear();
         }
-        startBulk(newPageIds);
     }
 
     /**
@@ -158,6 +176,7 @@ public class CompileWorker {
      */
     public void shutdown() {
         shutdown = true;
+        generation++;
         priorityId = null;
         synchronized (bulkQueue) {
             bulkQueue.clear();
@@ -261,6 +280,7 @@ public class CompileWorker {
     }
 
     private void compileOne(ResourceLocation pageId) {
+        long compileGeneration = generation;
         MutableGuide guide = findGuideForPage(pageId);
         if (guide == null) {
             return;
@@ -280,6 +300,12 @@ public class CompileWorker {
         GuidePage compiled = PageCompiler.compile(guide, guide.getExtensions(), parsed);
         long tCompiled = System.nanoTime();
         synchronized (compiledPages) {
+            if (compileGeneration != generation || shutdown) {
+                // A reload won while this page was compiling. Do not publish a stale page that
+                // retains runtime scene state from the previous resource-pack generation.
+                requestRuntimeRelease(compiled);
+                return;
+            }
             compiledPages.put(pageId, compiled);
         }
 

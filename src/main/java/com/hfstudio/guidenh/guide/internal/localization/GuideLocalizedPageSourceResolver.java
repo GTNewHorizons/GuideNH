@@ -40,7 +40,8 @@ public class GuideLocalizedPageSourceResolver {
     public static ParsedGuidePage parseFrontmatterOnly(String sourcePack, String language, String contentRootFolder,
         ResourceLocation pageId, byte[] fileBytes) {
         long t0 = System.nanoTime();
-        String resolvedSource = resolve(language, contentRootFolder, pageId, fileBytes, null).source();
+        ResolvedGuidePageSource resolved = resolveFrontmatterOnly(language, contentRootFolder, pageId, fileBytes);
+        String resolvedSource = resolved.source();
         long t1 = System.nanoTime();
         ParsedGuidePage result = PageCompiler.parseFrontmatterOnly(sourcePack, language, pageId, resolvedSource);
         long t2 = System.nanoTime();
@@ -54,6 +55,42 @@ public class GuideLocalizedPageSourceResolver {
                 totalUs);
         }
         return result;
+    }
+
+    /** Resolves only the frontmatter during reload, avoiding a full localized body merge. */
+    public static ResolvedGuidePageSource resolveFrontmatterOnly(String language, String contentRootFolder,
+        ResourceLocation pageId, byte[] fileBytes) {
+        String fallbackSource = new String(fileBytes, StandardCharsets.UTF_8);
+        String langKey = buildLangKey(contentRootFolder, pageId);
+        String localizedSource = findLocalizedPageSource(langKey, language);
+        if (!hasText(localizedSource)) {
+            String normalizedFallback = PageCompiler.normalizeLineEndings(fallbackSource);
+            return new ResolvedGuidePageSource(
+                frontmatterOnly(normalizedFallback),
+                false,
+                null,
+                contentFingerprint(normalizedFallback, null));
+        }
+
+        String normalizedFallback = PageCompiler.normalizeLineEndings(fallbackSource);
+        String normalizedLocalized = PageCompiler.normalizeLineEndings(localizedSource);
+        String fallbackFrontmatter = PageCompiler.extractFrontmatterText(normalizedFallback);
+        String localizedFrontmatter = PageCompiler.extractFrontmatterText(normalizedLocalized);
+        String frontmatterSource;
+        if (localizedFrontmatter == null) {
+            frontmatterSource = frontmatterOnly(normalizedFallback);
+        } else if (fallbackFrontmatter == null) {
+            frontmatterSource = frontmatterOnly(normalizedLocalized);
+        } else {
+            frontmatterSource = GuideLocalizedFrontmatterMerger.merge(
+                GuideLocalizedFrontmatterMerger.SourceParts.withFrontmatterAndBody(fallbackFrontmatter, ""),
+                GuideLocalizedFrontmatterMerger.SourceParts.withFrontmatterAndBody(localizedFrontmatter, ""));
+        }
+        return new ResolvedGuidePageSource(
+            frontmatterSource,
+            true,
+            langKey,
+            contentFingerprint(normalizedFallback, normalizedLocalized));
     }
 
     public static ParsedGuidePage parse(String sourcePack, String language, ResourceLocation pageId,
@@ -119,6 +156,22 @@ public class GuideLocalizedPageSourceResolver {
 
     private static boolean hasText(@Nullable String text) {
         return text != null && !text.isEmpty();
+    }
+
+    private static String frontmatterOnly(String source) {
+        String frontmatter = PageCompiler.extractFrontmatterText(source);
+        return frontmatter != null ? "---\n" + frontmatter + "\n---\n" : "";
+    }
+
+    private static String contentFingerprint(String fallback, @Nullable String localized) {
+        int fallbackHash = fallback.hashCode();
+        int localizedHash = localized != null ? localized.hashCode() : 0;
+        return Integer.toHexString(fallbackHash) + ':'
+            + fallback.length()
+            + ':'
+            + Integer.toHexString(localizedHash)
+            + ':'
+            + (localized != null ? localized.length() : 0);
     }
 
     private static String stripMarkdownExtension(String pagePath) {
@@ -208,5 +261,11 @@ public class GuideLocalizedPageSourceResolver {
     }
 
     @Desugar
-    public record ResolvedGuidePageSource(String source, boolean localized, @Nullable String langKey) {}
+    public record ResolvedGuidePageSource(String source, boolean localized, @Nullable String langKey,
+        String contentFingerprint) {
+
+        public ResolvedGuidePageSource(String source, boolean localized, @Nullable String langKey) {
+            this(source, localized, langKey, GuideLocalizedPageSourceResolver.contentFingerprint(source, null));
+        }
+    }
 }

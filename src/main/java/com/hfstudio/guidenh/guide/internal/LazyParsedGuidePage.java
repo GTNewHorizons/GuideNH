@@ -38,14 +38,31 @@ public final class LazyParsedGuidePage extends ParsedGuidePage {
     };
 
     private final Supplier<String> sourceLoader;
+    private final @Nullable String sourceFingerprint;
     private volatile String loadedSource;
     private volatile MdAstRoot loadedAst;
 
     public LazyParsedGuidePage(String sourcePack, ResourceLocation id, Frontmatter frontmatter, String language,
         @Nullable String parseFailureMessage, @Nullable UnistPoint parseFailureFrom,
         @Nullable UnistPoint parseFailureTo, Supplier<String> sourceLoader) {
+        this(
+            sourcePack,
+            id,
+            frontmatter,
+            language,
+            parseFailureMessage,
+            parseFailureFrom,
+            parseFailureTo,
+            sourceLoader,
+            null);
+    }
+
+    public LazyParsedGuidePage(String sourcePack, ResourceLocation id, Frontmatter frontmatter, String language,
+        @Nullable String parseFailureMessage, @Nullable UnistPoint parseFailureFrom,
+        @Nullable UnistPoint parseFailureTo, Supplier<String> sourceLoader, @Nullable String sourceFingerprint) {
         super(sourcePack, id, "", null, frontmatter, language, parseFailureMessage, parseFailureFrom, parseFailureTo);
         this.sourceLoader = Objects.requireNonNull(sourceLoader, "sourceLoader");
+        this.sourceFingerprint = sourceFingerprint;
     }
 
     @Override
@@ -87,6 +104,11 @@ public final class LazyParsedGuidePage extends ParsedGuidePage {
         }
         markResident();
         return ast;
+    }
+
+    @Override
+    public String getSourceFingerprint() {
+        return sourceFingerprint != null ? sourceFingerprint : super.getSourceFingerprint();
     }
 
     public static void clearResidentPages() {

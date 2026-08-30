@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -17,8 +16,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.ClientProxy;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
@@ -90,14 +89,11 @@ public class GuideLightweightReloadService {
             GuideRegistry.updatePages(entry.getKey(), entry.getValue(), false);
         }
         GuideRegistry.invalidateMergedNavigationTree();
-        CompileWorker worker = ClientProxy.getWorker();
-        var allPageIds = new ArrayList<ResourceLocation>();
-        for (var pages : guidePages.values()) {
-            allPageIds.addAll(pages.keySet());
-        }
-        if (!allPageIds.isEmpty()) {
-            worker.reset(allPageIds);
-        }
+        // Page ASTs are lazy. Clearing the old compiled results is enough here; queuing every
+        // page would immediately defeat lazy parsing and make every resource reload pay the full
+        // Micromark/compile cost. GuideScreen prioritizes the page the player actually opens.
+        ClientProxy.getWorker()
+            .clearCompiledPages();
 
         try {
             GuideME.getSearch()
@@ -221,8 +217,10 @@ public class GuideLightweightReloadService {
         ResourceLocation pageId, ResourceLocation sourceId, byte[] bytes,
         GuidePageResourceSelector.SelectedPack selected) {
         try {
-            ParsedGuidePage frontmatter = GuideLocalizedPageSourceResolver
-                .parseFrontmatterOnly(sourcePack, language, contentRootFolder, pageId, bytes);
+            GuideLocalizedPageSourceResolver.ResolvedGuidePageSource resolved = GuideLocalizedPageSourceResolver
+                .resolveFrontmatterOnly(language, contentRootFolder, pageId, bytes);
+            ParsedGuidePage frontmatter = PageCompiler
+                .parseFrontmatterOnly(sourcePack, language, pageId, resolved.source());
             Supplier<String> sourceLoader = () -> {
                 byte[] currentBytes = DataDrivenGuideLoader.readBytes(selected.pack(), sourceId);
                 if (currentBytes == null) {
@@ -239,7 +237,8 @@ public class GuideLightweightReloadService {
                 frontmatter.getParseFailureMessage(),
                 frontmatter.getParseFailureFrom(),
                 frontmatter.getParseFailureTo(),
-                sourceLoader);
+                sourceLoader,
+                resolved.contentFingerprint());
         } catch (Exception ex) {
             GuideDebugLog
                 .warn("[GuideNH] [GuideLightweightReloadService] Error parsing page {} from {}", pageId, sourceId, ex);
