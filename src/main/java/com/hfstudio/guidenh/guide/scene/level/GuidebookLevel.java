@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -69,6 +70,13 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Nullable
     private static GuidebookPreviewWorldFactory previewWorldFactory;
 
+    /**
+     * Tracks live scene levels without owning them. Runtime worlds can also be created by the
+     * scene editor and semantic preview paths, so page-cache eviction alone is not a complete
+     * lifecycle boundary. The client unload hook snapshots this set and releases each world.
+     */
+    private static final Set<GuidebookLevel> LIVE_LEVELS = Collections.newSetFromMap(new WeakHashMap<>());
+
     @Nullable
     private World fakeWorld;
 
@@ -78,6 +86,12 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
     private boolean boundsDirty = true;
     private boolean centerDirty = true;
+
+    public GuidebookLevel() {
+        synchronized (LIVE_LEVELS) {
+            LIVE_LEVELS.add(this);
+        }
+    }
 
     public static void setPreviewWorldFactory(@Nullable GuidebookPreviewWorldFactory factory) {
         previewWorldFactory = factory;
@@ -358,6 +372,66 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (fakeWorld instanceof GuidebookPreviewWorld previewWorld) {
             previewWorld.syncLoadedTileEntities(tileEntities.values());
             previewWorld.syncLoadedEntities(entities.values());
+        }
+    }
+
+    /**
+     * Releases the client-only WorldClient and renderer/player back-references when this level
+     * is replaced by another scene. {@link #clear()} intentionally keeps the world for rebuilds.
+     */
+    public void close() {
+        clear();
+        releaseRuntimeWorld();
+    }
+
+    /**
+     * Drops only the client-side world wrapper while keeping scene blocks, entities, and
+     * annotations intact. The wrapper is recreated lazily on the next render.
+     */
+    public void releaseRuntimeWorld() {
+        World oldWorld = fakeWorld;
+        if (oldWorld == null) {
+            return;
+        }
+        // Tile entities and entities are the canonical scene data and remain cached after a
+        // runtime world is released. Detach their back-references first, otherwise they would
+        // keep the old WorldClient alive through the level even after fakeWorld is cleared.
+        for (TileEntity tileEntity : tileEntities.values()) {
+            if (tileEntity != null && tileEntity.getWorldObj() == oldWorld) {
+                try {
+                    tileEntity.setWorldObj(null);
+                } catch (Throwable ignored) {}
+            }
+        }
+        for (Entity entity : entities.values()) {
+            if (entity != null && entity.worldObj == oldWorld) {
+                entity.worldObj = null;
+            }
+        }
+        if (oldWorld instanceof GuidebookPreviewWorld previewWorld) {
+            previewWorld.closePreviewWorld();
+        }
+        fakeWorld = null;
+        // A replacement world needs the canonical tile/entity state rebound before rendering.
+        previewStateDirty = true;
+    }
+
+    /**
+     * Releases every still-live preview world. The weak registry is deliberately independent of
+     * guide/page caches so temporary editor and semantic-preview levels are covered as well.
+     * Must run on the Minecraft client thread because WorldClient and renderer state are client
+     * owned.
+     */
+    @SideOnly(Side.CLIENT)
+    public static void releaseAllRuntimeWorlds() {
+        GuidebookLevel[] levels;
+        synchronized (LIVE_LEVELS) {
+            levels = LIVE_LEVELS.toArray(new GuidebookLevel[0]);
+        }
+        for (GuidebookLevel level : levels) {
+            if (level != null) {
+                level.releaseRuntimeWorld();
+            }
         }
     }
 

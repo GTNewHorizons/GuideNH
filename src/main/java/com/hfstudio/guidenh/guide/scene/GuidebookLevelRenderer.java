@@ -11,6 +11,7 @@ import static org.lwjgl.opengl.GL11.GL_PROJECTION;
 import static org.lwjgl.opengl.GL11.GL_SCISSOR_TEST;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 
+import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +68,8 @@ public class GuidebookLevelRenderer {
 
     // Rebind RenderBlocks only when the level instance changes.
     private RenderBlocks cachedRenderBlocks;
-    private GuidebookLevel cachedRenderBlocksLevel;
+    /** Weak because RenderBlocks is a process-wide singleton and scenes are short-lived. */
+    private WeakReference<GuidebookLevel> cachedRenderBlocksLevel = new WeakReference<>(null);
 
     public static GuidebookLevelRenderer getInstance() {
         return INSTANCE;
@@ -348,16 +350,40 @@ public class GuidebookLevelRenderer {
             GL11.glColor4f(1f, 1f, 1f, 1f);
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
             RenderHelper.disableStandardItemLighting();
+        } finally {
+            // RenderBlocks.blockAccess is a strong reference to the fake WorldClient. It is only
+            // needed during this draw call, so clear it even when rendering aborts with an error.
+            clearCachedRenderBlocksReference();
         }
+    }
+
+    public void releaseLevel(GuidebookLevel level) {
+        if (cachedRenderBlocksLevel.get() == level) {
+            clearCachedRenderBlocksReference();
+        }
+    }
+
+    /** Clears the renderer's process-wide fake-world binding during client world unload. */
+    public void clearClientRuntimeCaches() {
+        clearCachedRenderBlocksReference();
+        weatherColumnsScratch.clear();
+        weatherColumnPool.clear();
+    }
+
+    private void clearCachedRenderBlocksReference() {
+        if (cachedRenderBlocks != null) {
+            cachedRenderBlocks.blockAccess = null;
+        }
+        cachedRenderBlocksLevel.clear();
     }
 
     private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
         GuidebookSceneLayerSelection layerSelection, CameraSettings camera) {
         RenderBlocks rb = cachedRenderBlocks;
-        if (rb == null || cachedRenderBlocksLevel != level) {
+        if (rb == null || cachedRenderBlocksLevel.get() != level) {
             rb = new RenderBlocks(level.getOrCreateFakeWorld());
             cachedRenderBlocks = rb;
-            cachedRenderBlocksLevel = level;
+            cachedRenderBlocksLevel = new WeakReference<>(level);
         }
         Minecraft mc = Minecraft.getMinecraft();
         int savedAmbientOcclusion = mc.gameSettings.ambientOcclusion;

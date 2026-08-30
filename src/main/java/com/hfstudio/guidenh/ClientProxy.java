@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.world.WorldEvent;
 
 import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridge;
 import com.hfstudio.guidenh.bridge.GuideNhRuntimeBridgeSettings;
@@ -72,9 +73,11 @@ import com.hfstudio.guidenh.guide.internal.host.scripts.SubPagesScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.TooltipScript;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandSelection;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.ElkWarmupWorkItem;
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
 import com.hfstudio.guidenh.guide.internal.scheduler.DevWatchWorkItem;
 import com.hfstudio.guidenh.guide.internal.scheduler.MasterScheduler;
 import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
+import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -252,9 +255,36 @@ public class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+        clearClientRuntimeState("server disconnect");
         runtimeBridge.stop();
         GuideME.closeSearch();
         lytHost.getNavigation()
             .clear();
+    }
+
+    @SubscribeEvent
+    public void onClientWorldUnload(WorldEvent.Unload event) {
+        if (!event.world.isRemote) {
+            return;
+        }
+        clearClientRuntimeState("world unload");
+    }
+
+    /**
+     * WorldClient is reachable from tile entities, entities, RenderBlocks, and the preview
+     * player. Clear all GuideNH-owned links at both lifecycle boundaries; the operation is
+     * intentionally idempotent because Forge can emit unload and disconnect in either order.
+     */
+    private static void clearClientRuntimeState(String reason) {
+        if (!GuideNhClientTaskScheduler.isOnClientThread()) {
+            GuideNhClientTaskScheduler.execute(() -> clearClientRuntimeState(reason));
+            return;
+        }
+        GuidebookLevel.releaseAllRuntimeWorlds();
+        GuidebookLevelRenderer.getInstance()
+            .clearClientRuntimeCaches();
+        GuidebookFakeRenderEnvironment.clearClientRuntimeCaches();
+        getWorker().clearPendingRuntimeReleases();
+        GuideDebugLog.debug("[GuideNH] Cleared client preview runtime state ({})", reason);
     }
 }

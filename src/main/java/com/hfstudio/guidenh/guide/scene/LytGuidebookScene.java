@@ -561,6 +561,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     public void setLevel(GuidebookLevel level) {
+        GuidebookLevel previousLevel = this.level;
+        if (previousLevel != null && previousLevel != level) {
+            previousLevel.close();
+        }
         this.level = level != null ? level : new GuidebookLevel();
         if (!this.level.isEmpty()) {
             var c = this.level.getCenter();

@@ -392,6 +392,17 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         }
     }
 
+    @Override
+    public void onGuiClosed() {
+        if (page != null) {
+            page.releaseRuntimeScenes();
+        }
+        page = null;
+        document = null;
+        pageCollection = null;
+        super.onGuiClosed();
+    }
+
     @Nullable
     private GuidePage compilePage(GuideWelcomeContent.LoadedContent loadedContent) {
         if (pageCollection == null) {

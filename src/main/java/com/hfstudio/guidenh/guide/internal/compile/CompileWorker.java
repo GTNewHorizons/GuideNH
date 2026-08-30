@@ -6,6 +6,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -40,16 +41,23 @@ public class CompileWorker {
         return t;
     });
 
+    /** Runtime worlds are released on the client thread; compilation itself runs in the worker thread. */
+    private final ConcurrentLinkedQueue<GuidePage> pendingRuntimeReleases = new ConcurrentLinkedQueue<>();
+
     private final Map<ResourceLocation, GuidePage> compiledPages = new LinkedHashMap<>(
         MAX_COMPILED_PAGES,
         0.75f,
         true) {
 
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
-                return size() > MAX_COMPILED_PAGES;
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
+            if (size() > MAX_COMPILED_PAGES) {
+                requestRuntimeRelease(eldest.getValue());
+                return true;
             }
-        };
+            return false;
+        }
+    };
 
     /**
      * Main thread sets this to force a page to compile next (插队).
@@ -103,7 +111,7 @@ public class CompileWorker {
     public void invalidate(ResourceLocation pageId) {
         if (pageId != null) {
             synchronized (compiledPages) {
-                compiledPages.remove(pageId);
+                requestRuntimeRelease(compiledPages.remove(pageId));
             }
         }
     }
@@ -139,6 +147,7 @@ public class CompileWorker {
      */
     public void reset(Collection<ResourceLocation> newPageIds) {
         synchronized (compiledPages) {
+            requestRuntimeReleases(compiledPages.values());
             compiledPages.clear();
         }
         startBulk(newPageIds);
@@ -154,9 +163,47 @@ public class CompileWorker {
             bulkQueue.clear();
         }
         synchronized (compiledPages) {
+            requestRuntimeReleases(compiledPages.values());
             compiledPages.clear();
         }
         executor.shutdownNow();
+    }
+
+    private void requestRuntimeReleases(Collection<GuidePage> pages) {
+        for (GuidePage page : pages) {
+            requestRuntimeRelease(page);
+        }
+    }
+
+    private void requestRuntimeRelease(@Nullable GuidePage page) {
+        if (page == null) {
+            return;
+        }
+        pendingRuntimeReleases.add(page);
+    }
+
+    /** Drains runtime release requests and must be called from the Minecraft client thread. */
+    public void drainRuntimeReleases() {
+        GuidePage page;
+        while ((page = pendingRuntimeReleases.poll()) != null) {
+            releaseRuntimePage(page);
+        }
+    }
+
+    /**
+     * Drops queued page references after the client world has been unloaded. Their runtime
+     * worlds have already been released through GuidebookLevel's weak live-level registry.
+     */
+    public void clearPendingRuntimeReleases() {
+        pendingRuntimeReleases.clear();
+    }
+
+    private static void releaseRuntimePage(GuidePage page) {
+        try {
+            page.releaseRuntimeScenes();
+        } catch (Throwable t) {
+            GuideDebugLog.warn("[CompileWorker] Failed to release runtime scenes for cached page", t);
+        }
     }
 
     private void runLoop() {

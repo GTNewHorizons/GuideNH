@@ -683,7 +683,6 @@ public class GuideScreen extends GuiContainer
         }
         syncGuideEditorStateFromConfig();
         clearInteractionState();
-        currentPage = null;
         document = null;
         lastLayoutWidth = -1;
         invalidateScrollbarOutline();
@@ -751,7 +750,6 @@ public class GuideScreen extends GuiContainer
         pendingRestoreViewState = nextState;
         GuideSoundPlayback.stopAll();
         clearInteractionState();
-        currentPage = null;
         document = null;
         layoutDocument = null;
         lastLayoutWidth = -1;
@@ -1379,6 +1377,7 @@ public class GuideScreen extends GuiContainer
         if (parsedPage == null) {
             guideEditorDraftSource = null;
             guideEditorDraftPage = null;
+            releaseGuideEditorPreviewRuntime();
             guideEditorPreviewPage = null;
             guideEditorExternalFileCheckEnabled = false;
             return;
@@ -1527,8 +1526,12 @@ public class GuideScreen extends GuiContainer
                 currentAnchor.pageId(),
                 guideEditorDraftSource);
             updateGuideEditorSyntaxWarning(parsedDraft);
-            guideEditorPreviewPage = PageCompiler
+            GuidePage compiledPreview = PageCompiler
                 .compile(buildGuideEditorPreviewGuide(parsedDraft), guide.getExtensions(), parsedDraft);
+            if (guideEditorPreviewPage != null && guideEditorPreviewPage != compiledPreview) {
+                guideEditorPreviewPage.releaseRuntimeScenes();
+            }
+            guideEditorPreviewPage = compiledPreview;
             int previewWidth = getGuideEditorPreviewLayoutWidth();
             if (guideEditorPreviewPage != null && guideEditorPreviewPage.document() != null) {
                 ClientProxy.getLytHost()
@@ -2380,8 +2383,22 @@ public class GuideScreen extends GuiContainer
         });
     }
 
+    /** Releases preview worlds before replacing the page reference or document tree. */
+    private void releaseCurrentPageRuntime() {
+        if (currentPage != null) {
+            currentPage.releaseRuntimeScenes();
+        }
+    }
+
+    private void releaseGuideEditorPreviewRuntime() {
+        if (guideEditorPreviewPage != null && guideEditorPreviewPage != currentPage) {
+            guideEditorPreviewPage.releaseRuntimeScenes();
+        }
+    }
+
     private void loadCurrentPage() {
         clearInteractionState();
+        releaseCurrentPageRuntime();
         closeTransientContextMenus();
         resetPendingSceneRegistrations();
         layoutDocument = null;
@@ -6311,6 +6328,8 @@ public class GuideScreen extends GuiContainer
             return;
         }
         rememberNavigationState();
+        releaseCurrentPageRuntime();
+        releaseGuideEditorPreviewRuntime();
         document = null;
         layoutDocument = null;
         currentPage = null;
@@ -6978,6 +6997,7 @@ public class GuideScreen extends GuiContainer
         }
 
         clearInteractionState();
+        releaseCurrentPageRuntime();
         applyRoute(
             hasContentRoute() ? GuideScreenRoute.content(guide.getId(), nextAnchor)
                 : GuideScreenRoute.homeSearch(query));

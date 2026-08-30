@@ -25,6 +25,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
+import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 import cpw.mods.fml.relauncher.Side;
@@ -88,6 +90,21 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
 
     public GuidebookLevel getGuidebookLevel() {
         return level;
+    }
+
+    @Override
+    public void closePreviewWorld() {
+        // WorldClient owns mutable entity/tile lists in addition to the level's canonical maps.
+        // Clear those lists before dropping renderer references so a stale world cannot retain
+        // scene objects after the page that created it is evicted.
+        loadedTileEntityList.clear();
+        loadedEntityList.clear();
+        playerEntities.clear();
+        weatherEffects.clear();
+        markBlockForUpdateGuard = null;
+        GuidebookFakeRenderEnvironment.releaseCachedPreviewPlayer(this);
+        GuidebookLevelRenderer.getInstance()
+            .releaseLevel(level);
     }
 
     @Override

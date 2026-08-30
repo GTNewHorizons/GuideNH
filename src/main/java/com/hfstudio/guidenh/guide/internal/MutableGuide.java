@@ -377,6 +377,18 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         pageFailures.clear();
         syntheticPages = Map.of();
         syntheticSourceCache.clear();
+        // Compiled pages contain scene trees that may have created client preview worlds.
+        // Drop both cache layers when the guide is replaced so an old resource-pack generation
+        // cannot retain WorldClient instances through a stale compiled page.
+        synchronized (compiledPagesStrong) {
+            for (GuidePage page : compiledPagesStrong.values()) {
+                if (page != null) {
+                    page.releaseRuntimeScenes();
+                }
+            }
+            compiledPagesStrong.clear();
+        }
+        compiledPagesWeak.clear();
         mediaWikiListContext = null;
         fallbackMediaWikiListContext = null;
         mediaWikiSpecialDataIndex = null;
