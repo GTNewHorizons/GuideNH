@@ -60,7 +60,7 @@ public class CompileWorker {
     };
 
     /**
-     * Main thread sets this to force a page to compile next (插队).
+     * Main thread sets this to force a page to compile next (priority).
      * Worker clears it after processing.
      */
     private volatile ResourceLocation priorityId;

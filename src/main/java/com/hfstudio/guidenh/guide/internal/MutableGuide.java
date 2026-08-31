@@ -15,7 +15,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.WeakHashMap;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
@@ -80,7 +79,6 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     private volatile long requestedMediaWikiWarmupRevision = Long.MIN_VALUE;
     private final MediaWikiSpecialPageRefreshController mediaWikiRefreshController = new MediaWikiSpecialPageRefreshController();
     private static final int MAX_STRONG_RUNTIME_PAGES = 64;
-    private final Map<ParsedGuidePage, GuidePage> compiledPagesWeak = Collections.synchronizedMap(new WeakHashMap<>());
     private final Map<ResourceLocation, GuidePage> compiledPagesStrong = Collections
         .synchronizedMap(new LinkedHashMap<>(64, 0.75f, true) {
 
@@ -91,8 +89,6 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         });
     private final ExtensionCollection extensions;
     /**
-     * -- GETTER --
-     *
      * @return True if this guide should be considered for use in the global open guide hotkey.
      */
     @Getter
@@ -393,7 +389,6 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             }
             compiledPagesStrong.clear();
         }
-        compiledPagesWeak.clear();
         mediaWikiListContext = null;
         fallbackMediaWikiListContext = null;
         mediaWikiSpecialDataIndex = null;
