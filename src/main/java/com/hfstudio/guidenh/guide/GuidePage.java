@@ -82,12 +82,34 @@ public class GuidePage {
      * compiled nodes, so runtime scene resources need their own lifecycle.
      */
     public void releaseRuntimeScenes() {
+        // MaterializeTask may append GameScene nodes after compilation. Discover those nodes before
+        // releasing so asynchronously created preview worlds cannot outlive this page.
+        registerMaterializedScenes();
         for (LytGuidebookScene scene : scenes) {
             if (scene != null) {
                 GuidebookLevel level = scene.getLevel();
                 if (level != null) {
                     level.releaseRuntimeWorld();
                 }
+            }
+        }
+    }
+
+    /** Adds scenes materialized into the document after the initial page compilation. */
+    public void registerMaterializedScenes() {
+        if (document == null) {
+            return;
+        }
+        ArrayDeque<LytNode> pending = new ArrayDeque<>();
+        pending.add(document);
+        while (!pending.isEmpty()) {
+            LytNode node = pending.removeLast();
+            if (node instanceof LytGuidebookScene scene && !scenes.contains(scene)) {
+                scenes.add(scene);
+            }
+            List<? extends LytNode> children = node.getChildren();
+            for (int i = children.size() - 1; i >= 0; i--) {
+                pending.addLast(children.get(i));
             }
         }
     }

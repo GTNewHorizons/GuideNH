@@ -96,8 +96,10 @@ public class GuideLightweightReloadService {
             .clearCompiledPages();
 
         try {
+            // Search indexing is lazy: resource reloads only invalidate the old reader. Pages are
+            // parsed and indexed when the user first performs a search after the reload.
             GuideME.getSearch()
-                .indexAll();
+                .deferIndexing();
         } catch (Throwable t) {
             GuideDebugLog.warn("[GuideNH] [GuideLightweightReloadService] Failed to reindex search after reload", t);
         }

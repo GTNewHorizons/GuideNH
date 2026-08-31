@@ -99,6 +99,9 @@ public final class LazyParsedGuidePage extends ParsedGuidePage {
             if (ast == null) {
                 ParsedGuidePage parsed = PageCompiler.parse(getSourcePack(), getLanguage(), getId(), source);
                 ast = parsed.getAstRoot();
+                // Preserve body parse diagnostics after the AST is evicted; lint and failure views
+                // must not mistake a deferred parse failure for a successful page.
+                adoptParseFailure(parsed);
                 loadedAst = ast;
             }
         }

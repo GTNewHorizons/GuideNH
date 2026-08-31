@@ -77,7 +77,8 @@ public class DataDrivenGuideLoader {
     private static final Map<ResourceLocation, List<PackCandidate>> assetPackIndex = new ConcurrentHashMap<>();
     private static volatile boolean indexReady = false;
     private static final AtomicInteger pagePackOrder = new AtomicInteger(0);
-    static final Map<File, List<String>> PACK_LANG_FILE_PATHS = new IdentityHashMap<>();
+    /** Language paths keyed by normalized pack roots; callers may pass equivalent File instances. */
+    private static final Map<File, List<String>> PACK_LANG_FILE_PATHS = new HashMap<>();
 
     private static volatile @Nullable ScanCache lastScanCache = null;
 
@@ -209,7 +210,7 @@ public class DataDrivenGuideLoader {
                 if (!path.startsWith(prefix)) continue;
 
                 if (path.endsWith(".lang")) {
-                    PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackFile, k -> new ArrayList<>())
+                    PACK_LANG_FILE_PATHS.computeIfAbsent(normalizePackRoot(resourcePackFile), k -> new ArrayList<>())
                         .add(path);
                     continue;
                 }
@@ -307,7 +308,8 @@ public class DataDrivenGuideLoader {
                     .map(path -> "assets/" + path.replace(File.separatorChar, '/'))
                     .filter(path -> path.endsWith(".lang"))
                     .forEach(
-                        path -> PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackRoot, key -> new ArrayList<>())
+                        path -> PACK_LANG_FILE_PATHS
+                            .computeIfAbsent(normalizePackRoot(resourcePackRoot), key -> new ArrayList<>())
                             .add(path));
             } catch (IOException e) {
                 GuideDebugLog.warn(
@@ -333,7 +335,8 @@ public class DataDrivenGuideLoader {
                     .map(Path::toString)
                     .map(path -> path.replace(File.separatorChar, '/'))
                     .forEach(
-                        path -> PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackRoot, key -> new ArrayList<>())
+                        path -> PACK_LANG_FILE_PATHS
+                            .computeIfAbsent(normalizePackRoot(resourcePackRoot), key -> new ArrayList<>())
                             .add(path));
             } catch (IOException e) {
                 GuideDebugLog
@@ -413,13 +416,20 @@ public class DataDrivenGuideLoader {
     }
 
     public static List<String> getLangFilePaths(File resourcePackFile) {
-        List<String> paths = PACK_LANG_FILE_PATHS.get(resourcePackFile);
+        List<String> paths = PACK_LANG_FILE_PATHS.get(normalizePackRoot(resourcePackFile));
         return paths != null ? paths : List.of();
     }
 
+    private static File normalizePackRoot(File resourcePackFile) {
+        return resourcePackFile.toPath()
+            .toAbsolutePath()
+            .normalize()
+            .toFile();
+    }
+
     public static Map<String, String> readLangFile(IResourcePack resourcePack, String entryPath) {
-        if (!entryPath.startsWith("assets/") || !entryPath.endsWith(".lang")) return Map.of();
-        var afterAssets = entryPath.substring("assets/".length());
+        if (entryPath == null || !entryPath.endsWith(".lang")) return Map.of();
+        var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
         var firstSlash = afterAssets.indexOf('/');
         if (firstSlash <= 0) return Map.of();
         try (var input = resourcePack.getInputStream(
@@ -431,7 +441,7 @@ public class DataDrivenGuideLoader {
     }
 
     public static @Nullable String readLangValue(IResourcePack resourcePack, String entryPath, String key) {
-        if (!entryPath.endsWith(".lang")) return null;
+        if (entryPath == null || !entryPath.endsWith(".lang")) return null;
         var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
         var firstSlash = afterAssets.indexOf('/');
         if (firstSlash <= 0) return null;
@@ -457,6 +467,28 @@ public class DataDrivenGuideLoader {
             }
         } catch (IOException ignored) {}
         return null;
+    }
+
+    /** Reads only keys from a language file, avoiding retention of large translated page bodies. */
+    public static Set<String> readLangKeys(IResourcePack resourcePack, String entryPath) {
+        if (entryPath == null || !entryPath.endsWith(".lang")) return Set.of();
+        var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
+        var firstSlash = afterAssets.indexOf('/');
+        if (firstSlash <= 0) return Set.of();
+        var keys = new LinkedHashSet<String>();
+        try (
+            var input = resourcePack.getInputStream(
+                new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1)));
+            var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("\uFEFF")) line = line.substring(1);
+                if (line.startsWith("#")) continue;
+                int separator = line.indexOf('=');
+                if (separator > 0) keys.add(line.substring(0, separator));
+            }
+        } catch (IOException ignored) {}
+        return keys.isEmpty() ? Set.of() : Set.copyOf(keys);
     }
 
     public static Set<String> discoverPagePaths(ResourceLocation guideId, String folder) {

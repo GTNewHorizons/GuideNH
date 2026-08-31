@@ -1778,15 +1778,22 @@ public class GuideScreen extends GuiContainer
             return;
         }
         if (merge.getKind() == GuideScreenEditorMerge.Result.Kind.MERGED) {
-            applyGuideEditorExternalSource(merge.getText());
+            // The external file becomes the new merge base; the merged text remains a local,
+            // unsaved draft so the next external poll cannot discard it.
+            applyGuideEditorExternalSource(merge.getText(), externalSource, true);
         }
     }
 
     private void applyGuideEditorExternalSource(String source) {
+        applyGuideEditorExternalSource(source, source, false);
+    }
+
+    private void applyGuideEditorExternalSource(String source, String savedSource, boolean dirty) {
         if (guideEditorTextArea == null) {
             return;
         }
         String safeSource = GuideScreenEditorSourceState.normalizeEditorText(source);
+        String safeSavedSource = GuideScreenEditorSourceState.normalizeEditorText(savedSource);
         int selectionStart = Math.min(guideEditorTextArea.getSelectionStart(), safeSource.length());
         int selectionEnd = Math.min(guideEditorTextArea.getSelectionEnd(), safeSource.length());
         guideEditorSuppressUndoRecording = true;
@@ -1796,15 +1803,20 @@ public class GuideScreen extends GuiContainer
             guideEditorSuppressUndoRecording = false;
         }
         guideEditorDraftSource = safeSource;
-        guideEditorSavedSource = safeSource;
+        guideEditorSavedSource = safeSavedSource;
         guideEditorExternalFileCheckEnabled = guideEditorFileStore
             .hasWritablePage(guide, currentAnchor.pageId(), guideEditorDraftPage.getLanguage());
-        guideEditorDirty = false;
+        guideEditorDirty = dirty || GuideScreenEditorSourceState.isDirty(safeSource, safeSavedSource);
         guideEditorPreviewDirty = true;
-        guideEditorNextSaveAtMillis = 0L;
-        guideEditorNextSafetySaveAtMillis = 0L;
+        long now = System.currentTimeMillis();
+        if (guideEditorDirty) {
+            scheduleGuideEditorSaveAfterEdit(now);
+        } else {
+            guideEditorNextSaveAtMillis = 0L;
+            guideEditorNextSafetySaveAtMillis = 0L;
+        }
         guideEditorNextPreviewCompileAtMillis = 0L;
-        guideEditorNextExternalCheckAtMillis = System.currentTimeMillis() + 250L;
+        guideEditorNextExternalCheckAtMillis = now + 250L;
         guideEditorUndoHistory.reset(safeSource, selectionStart, selectionEnd);
         refreshGuideEditorPreviewState();
         syncGuideEditorPreviewScrollFromEditor();
@@ -2645,6 +2657,7 @@ public class GuideScreen extends GuiContainer
         if (!isGuideEditorActive() || guideEditorPreviewPage == null) {
             return;
         }
+        registerRuntimeScenes(guideEditorPreviewPage);
         for (LytGuidebookScene scene : guideEditorPreviewPage.scenes()) {
             scene.ponderTick();
         }

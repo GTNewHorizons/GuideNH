@@ -197,6 +197,11 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         GuidePage compiledPage;
         try {
             compiledPage = PageCompiler.compile(this, extensions, parsedPage);
+            if (parsedPage.hasParseFailure()) {
+                recordParseFailure(parsedPage);
+            } else {
+                clearParseFailure(id);
+            }
             clearCompileFailure(id);
         } catch (Throwable t) {
             recordCompileFailure(id, buildCompileFailureText(id, t));

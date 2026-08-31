@@ -24,9 +24,6 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 public class GuidePageLanguageIndex {
 
     private static final String PAGE_LANG_KEY_PREFIX = "guidenh.page.";
-    private static final int MAX_CACHED_VALUES = 4096;
-    private static final int MAX_CACHED_LANG_FILES = 8;
-    private static final String MISSING = "\u0000";
     /**
      * Language files are indexed by key, but their translated page bodies are not retained here.
      * This prevents a cache miss from reopening every .lang file while keeping the resident
@@ -34,37 +31,15 @@ public class GuidePageLanguageIndex {
      */
     private static final Map<String, Map<String, List<LangSource>>> KEY_SOURCES = new LinkedHashMap<>();
     private static final Set<String> INDEXED_LANGUAGES = new LinkedHashSet<>();
-    /** Small LRU for parsed lang files; avoids reopening the same file for every page key. */
-    private static final Map<LangSource, Map<String, String>> PARSED_LANG_FILES = new LinkedHashMap<>(
-        MAX_CACHED_LANG_FILES,
-        0.75f,
-        true) {
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<LangSource, Map<String, String>> eldest) {
-            return size() > MAX_CACHED_LANG_FILES;
-        }
-    };
-    private static final Map<String, String> CACHED_VALUES = new LinkedHashMap<>(MAX_CACHED_VALUES, 0.75f, true) {
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
-            return size() > MAX_CACHED_VALUES;
-        }
-    };
 
     private GuidePageLanguageIndex() {}
 
     private record LangSource(IResourcePack pack, String path) {}
 
     public static void clear() {
-        synchronized (CACHED_VALUES) {
-            CACHED_VALUES.clear();
-        }
         synchronized (KEY_SOURCES) {
             KEY_SOURCES.clear();
             INDEXED_LANGUAGES.clear();
-            PARSED_LANG_FILES.clear();
         }
     }
 
@@ -72,14 +47,7 @@ public class GuidePageLanguageIndex {
      * Retained for development-source updates. Normal resource reloads no longer call this method.
      */
     public static void preload(Map<String, Map<String, String>> keysByLanguage) {
-        synchronized (CACHED_VALUES) {
-            for (var languageEntry : keysByLanguage.entrySet()) {
-                for (var entry : languageEntry.getValue()
-                    .entrySet()) {
-                    CACHED_VALUES.put(cacheKey(languageEntry.getKey(), entry.getKey()), entry.getValue());
-                }
-            }
-        }
+        // Page bodies are intentionally never preloaded: they can be large and are owned by resident pages.
     }
 
     public static @Nullable String getValue(String language, String key) {
@@ -87,20 +55,8 @@ public class GuidePageLanguageIndex {
             return null;
         }
         String normalizedLanguage = LangUtil.normalizeLanguage(language);
-        String cacheKey = cacheKey(normalizedLanguage, key);
-        synchronized (CACHED_VALUES) {
-            String cached = CACHED_VALUES.get(cacheKey);
-            if (cached != null) {
-                return MISSING.equals(cached) ? null : cached;
-            }
-        }
-
         ensureIndexed(normalizedLanguage);
-        String loaded = loadValue(normalizedLanguage, key);
-        synchronized (CACHED_VALUES) {
-            CACHED_VALUES.put(cacheKey, loaded != null ? loaded : MISSING);
-        }
-        return loaded;
+        return loadValue(normalizedLanguage, key);
     }
 
     public static boolean isPageLangKey(@Nullable String key) {
@@ -135,18 +91,7 @@ public class GuidePageLanguageIndex {
             return null;
         }
         for (LangSource source : matchingSources) {
-            String value;
-            synchronized (KEY_SOURCES) {
-                Map<String, String> parsed = PARSED_LANG_FILES.get(source);
-                value = parsed != null ? parsed.get(key) : null;
-            }
-            if (value == null) {
-                Map<String, String> parsed = DataDrivenGuideLoader.readLangFile(source.pack(), source.path());
-                synchronized (KEY_SOURCES) {
-                    PARSED_LANG_FILES.put(source, parsed);
-                }
-                value = parsed.get(key);
-            }
+            String value = DataDrivenGuideLoader.readLangValue(source.pack(), source.path(), key);
             if (value != null) {
                 // Sources are collected in effective pack order; later values override earlier ones.
                 result = value;
@@ -155,7 +100,7 @@ public class GuidePageLanguageIndex {
         return result;
     }
 
-    /** Builds the key-to-file index once per language; only one language file is parsed at a time. */
+    /** Builds the key-to-file index once per language without retaining translated page bodies. */
     private static void ensureIndexed(String language) {
         synchronized (KEY_SOURCES) {
             if (INDEXED_LANGUAGES.contains(language)) {
@@ -172,10 +117,8 @@ public class GuidePageLanguageIndex {
                     if (fileNameStart <= 0 || !isMatchingLangFile(path.substring(fileNameStart), language)) {
                         continue;
                     }
-                    Map<String, String> values = DataDrivenGuideLoader.readLangFile(resourcePack, path);
                     LangSource source = new LangSource(resourcePack, path);
-                    PARSED_LANG_FILES.put(source, values);
-                    for (String key : values.keySet()) {
+                    for (String key : DataDrivenGuideLoader.readLangKeys(resourcePack, path)) {
                         if (isPageLangKey(key)) {
                             sources.computeIfAbsent(key, ignored -> new ArrayList<>())
                                 .add(source);
@@ -196,7 +139,4 @@ public class GuidePageLanguageIndex {
             .equals(language);
     }
 
-    private static String cacheKey(String language, String key) {
-        return language + '\u0001' + key;
-    }
 }
