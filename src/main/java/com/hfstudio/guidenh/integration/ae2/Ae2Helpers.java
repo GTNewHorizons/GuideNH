@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.integration.ae2;
 
+import static appeng.util.item.AEFluidStackType.FLUID_STACK_TYPE;
+
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,9 +37,11 @@ import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.parts.IFacadePart;
 import appeng.api.parts.IPart;
 import appeng.api.parts.PartItemStack;
+import appeng.api.storage.ICellCacheRegistry;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.IMEInventoryHandler;
-import appeng.api.storage.StorageChannel;
+import appeng.api.storage.data.AEStackTypeRegistry;
+import appeng.api.storage.data.IAEStackType;
 import appeng.me.helpers.AENetworkProxy;
 import appeng.me.helpers.IGridProxyable;
 import appeng.parts.CableBusContainer;
@@ -555,9 +559,12 @@ public class Ae2Helpers {
         syncSpecialPreviewConnectableSides(aeTile);
     }
 
-    /** Rebuilds transient storage/display state through AE2's public ticking contract. */
+    /** Rebuilds transient state only for storage tiles whose render data depends on cell handlers. */
     @Optional.Method(modid = "appliedenergistics2")
     public static void refreshLocalDerivedDisplayState(AEBaseTile tile) {
+        if (!(tile instanceof TileChest || tile instanceof TileDrive)) {
+            return;
+        }
         try {
             tile.onReady();
         } catch (Throwable ignored) {
@@ -618,7 +625,10 @@ public class Ae2Helpers {
 
         if (tile instanceof TileDrive) {
             if (payload.length < 9) return payload;
-            int state = 0;
+            int state = readInt(payload, 1) & 0x40000000;
+            if (isActuallyPowered(tile)) {
+                state |= 0x40000000;
+            }
             int type = 0;
             int count = Math.min(
                 storage.getCellCount(),
@@ -665,12 +675,20 @@ public class Ae2Helpers {
             .cell()
             .getHandler(cell);
         if (handler == null) return CellDisplay.EMPTY;
-        for (StorageChannel channel : StorageChannel.values()) {
+        for (IAEStackType<?> type : AEStackTypeRegistry.getAllTypes()) {
             try {
-                IMEInventoryHandler inventory = handler.getCellInventory(cell, null, channel);
+                IMEInventoryHandler inventory = handler.getCellInventory(cell, null, type);
                 if (inventory != null) {
                     int status = Math.clamp(handler.getStatusForCell(cell, inventory), 0, 4);
-                    return new CellDisplay(status, channel == StorageChannel.FLUIDS ? 1 : 0);
+                    int displayType = type == FLUID_STACK_TYPE ? 1 : 0;
+                    if (inventory instanceof ICellCacheRegistry cacheRegistry) {
+                        displayType = switch (cacheRegistry.getCellType()) {
+                            case ITEM -> 0;
+                            case FLUID -> 1;
+                            case ESSENTIA -> 2;
+                        };
+                    }
+                    return new CellDisplay(status, displayType);
                 }
             } catch (Throwable ignored) {
                 // A third-party cell may reject a channel while still supporting another one.
@@ -684,6 +702,12 @@ public class Ae2Helpers {
         payload[offset + 1] = (byte) (value >>> 16);
         payload[offset + 2] = (byte) (value >>> 8);
         payload[offset + 3] = (byte) value;
+    }
+
+    private static int readInt(byte[] payload, int offset) {
+        return ((payload[offset] & 0xFF) << 24) | ((payload[offset + 1] & 0xFF) << 16)
+            | ((payload[offset + 2] & 0xFF) << 8)
+            | (payload[offset + 3] & 0xFF);
     }
 
     public record CellDisplay(int status, int type) {
