@@ -14,6 +14,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -33,7 +34,9 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
  */
 public class CompileWorker {
 
-    private static final int MAX_COMPILED_PAGES = 64;
+    private static int configuredCacheLimit() {
+        return Math.max(1, ModConfig.runtime.compiledPageCacheLimit);
+    }
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "guidenh-compile");
@@ -45,13 +48,13 @@ public class CompileWorker {
     private final ConcurrentLinkedQueue<GuidePage> pendingRuntimeReleases = new ConcurrentLinkedQueue<>();
 
     private final Map<ResourceLocation, GuidePage> compiledPages = new LinkedHashMap<>(
-        MAX_COMPILED_PAGES,
+        configuredCacheLimit(),
         0.75f,
         true) {
 
         @Override
         protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
-            if (size() > MAX_COMPILED_PAGES) {
+            if (size() > configuredCacheLimit()) {
                 requestRuntimeRelease(eldest.getValue());
                 return true;
             }

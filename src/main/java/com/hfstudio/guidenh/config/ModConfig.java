@@ -23,6 +23,7 @@ public class ModConfig {
 
     public static final Debug debug = new Debug();
     public static final Ui ui = new Ui();
+    public static final Runtime runtime = new Runtime();
     public static final RuntimeBridge runtimeBridge = new RuntimeBridge();
 
     @Comment("Debug section")
@@ -314,6 +315,13 @@ public class ModConfig {
 
     public static int clampPositiveHomeLimit(int value, int fallback) {
         return value >= 1 ? value : fallback;
+    }
+
+    @Comment("Runtime section")
+    public static class Runtime {
+
+        @Comment("Maximum number of compiled guide pages retained in the LRU cache. Lower values reduce memory usage; higher values reduce recompilation.")
+        public int compiledPageCacheLimit = 64;
     }
 
     @Comment("Runtime bridge section. The bridge is disabled by default and requires a client restart.")

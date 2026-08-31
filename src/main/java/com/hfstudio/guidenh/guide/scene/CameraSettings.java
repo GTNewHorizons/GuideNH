@@ -6,6 +6,7 @@ import org.joml.Vector3fc;
 import org.joml.Vector4f;
 
 import com.hfstudio.guidenh.guide.document.LytSize;
+import com.hfstudio.guidenh.guide.scene.support.GuideProjectionMath;
 
 import lombok.Getter;
 
@@ -159,6 +160,7 @@ public class CameraSettings {
     private final Vector4f reusableWorldToScreen = new Vector4f();
     private final Vector4f reusableNear = new Vector4f();
     private final Vector4f reusableFar = new Vector4f();
+    private final float[] reusableProjectedAabb = new float[4];
     private boolean viewDirty = true;
     private boolean projectionDirty = true;
     private boolean combinedDirty = true;
@@ -228,34 +230,18 @@ public class CameraSettings {
             return true;
         }
 
-        float centerX = (minX + maxX) * 0.5f;
-        float centerY = (minY + maxY) * 0.5f;
-        float centerZ = (minZ + maxZ) * 0.5f;
-        float extentX = (maxX - minX) * 0.5f;
-        float extentY = (maxY - minY) * 0.5f;
-        float extentZ = (maxZ - minZ) * 0.5f;
-
-        Matrix4f matrix = getCombinedMatrix();
-        float projectedCenterX = matrix.m00() * centerX + matrix.m10() * centerY
-            + matrix.m20() * centerZ
-            + matrix.m30();
-        float projectedCenterY = matrix.m01() * centerX + matrix.m11() * centerY
-            + matrix.m21() * centerZ
-            + matrix.m31();
-        float projectedRadiusX = Math.abs(matrix.m00()) * extentX + Math.abs(matrix.m10()) * extentY
-            + Math.abs(matrix.m20()) * extentZ;
-        float projectedRadiusY = Math.abs(matrix.m01()) * extentX + Math.abs(matrix.m11()) * extentY
-            + Math.abs(matrix.m21()) * extentZ;
-
-        float halfWidth = width * 0.5f;
-        float halfHeight = height * 0.5f;
-        float screenCenterX = projectedCenterX * halfWidth;
-        float screenCenterY = -projectedCenterY * halfHeight;
-        float screenRadiusX = projectedRadiusX * halfWidth;
-        float screenRadiusY = projectedRadiusY * halfHeight;
-        return screenCenterX + screenRadiusX >= -halfWidth && screenCenterX - screenRadiusX <= halfWidth
-            && screenCenterY + screenRadiusY >= -halfHeight
-            && screenCenterY - screenRadiusY <= halfHeight;
+        GuideProjectionMath.projectAabbToScreen(
+            getCombinedMatrix(),
+            width,
+            height,
+            minX,
+            minY,
+            minZ,
+            maxX,
+            maxY,
+            maxZ,
+            reusableProjectedAabb);
+        return GuideProjectionMath.intersectsCenteredViewport(reusableProjectedAabb, width, height);
     }
 
     public float[] screenToWorldRay(float screenX, float screenY) {
