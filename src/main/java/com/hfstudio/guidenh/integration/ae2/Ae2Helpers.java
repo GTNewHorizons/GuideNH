@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.integration.ae2;
 
-import static appeng.util.item.AEFluidStackType.FLUID_STACK_TYPE;
-
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,7 +35,6 @@ import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.parts.IFacadePart;
 import appeng.api.parts.IPart;
 import appeng.api.parts.PartItemStack;
-import appeng.api.storage.ICellCacheRegistry;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.AEStackTypeRegistry;
@@ -680,21 +677,25 @@ public class Ae2Helpers {
                 IMEInventoryHandler inventory = handler.getCellInventory(cell, null, type);
                 if (inventory != null) {
                     int status = Math.clamp(handler.getStatusForCell(cell, inventory), 0, 4);
-                    int displayType = type == FLUID_STACK_TYPE ? 1 : 0;
-                    if (inventory instanceof ICellCacheRegistry cacheRegistry) {
-                        displayType = switch (cacheRegistry.getCellType()) {
-                            case ITEM -> 0;
-                            case FLUID -> 1;
-                            case ESSENTIA -> 2;
-                        };
-                    }
-                    return new CellDisplay(status, displayType);
+                    return new CellDisplay(status, displayTypeFor(type));
                 }
             } catch (Throwable ignored) {
                 // A third-party cell may reject a channel while still supporting another one.
             }
         }
         return CellDisplay.EMPTY;
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static int displayTypeFor(IAEStackType<?> target) {
+        int index = 0;
+        for (IAEStackType<?> type : AEStackTypeRegistry.getSortedTypes()) {
+            if (type == target) {
+                return Math.min(index, 2);
+            }
+            index++;
+        }
+        return 0;
     }
 
     public static void writeInt(byte[] payload, int offset, int value) {
