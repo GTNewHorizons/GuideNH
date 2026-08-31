@@ -180,11 +180,9 @@ public class SceneEditorTextSelectionModel {
             source = edit.offset + edit.removed;
         }
         updated.append(text, source, text.length());
-        int newAnchor = adjustIndex(selectionAnchor, edits);
-        int newCursor = adjustIndex(cursorIndex, edits);
         text = updated.toString();
-        selectionAnchor = newAnchor;
-        cursorIndex = newCursor;
+        selectionAnchor = adjustIndex(selectionAnchor, edits, text.length());
+        cursorIndex = adjustIndex(cursorIndex, edits, text.length());
         selectionActive = selectionAnchor != cursorIndex;
         return true;
     }
@@ -200,7 +198,7 @@ public class SceneEditorTextSelectionModel {
         return newline < 0 ? text.length() : newline;
     }
 
-    private int adjustIndex(int index, List<LineEdit> edits) {
+    private int adjustIndex(int index, List<LineEdit> edits, int newTextLength) {
         int adjusted = index;
         for (LineEdit edit : edits) {
             if (index >= edit.offset + edit.removed) {
@@ -212,7 +210,7 @@ public class SceneEditorTextSelectionModel {
                 break;
             }
         }
-        return clampIndex(adjusted);
+        return Math.max(0, Math.min(adjusted, newTextLength));
     }
 
     private boolean isWordCharacter(char c) {
