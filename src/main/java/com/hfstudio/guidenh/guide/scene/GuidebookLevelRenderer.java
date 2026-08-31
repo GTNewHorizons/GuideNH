@@ -63,6 +63,8 @@ public class GuidebookLevelRenderer {
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
     private final Vector3f cullScreenScratch = new Vector3f();
     private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
+    /** Reused per-frame list; block visibility is identical for opaque and translucent passes. */
+    private final ArrayList<int[]> visibleBlocksScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnsScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnPool = new ArrayList<>();
 
@@ -280,18 +282,23 @@ public class GuidebookLevelRenderer {
                         .bindTexture(TextureMap.locationBlocksTexture);
                     var filledBlocks = level.getFilledBlocks();
                     var tileEntities = level.getTileEntities();
+                    visibleBlocksScratch.clear();
+                    collectVisibleBlocks(filledBlocks, layerSelection, camera, visibleBlocksScratch);
+                    GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
+                        : GuidebookSceneLayerSelection.all();
+                    boolean renderAllFaces = effectiveSelection.shouldRenderAllFaces();
 
                     mc.entityRenderer.enableLightmap(partialTicks);
                     try {
                         setRenderPass(0);
                         GL11.glDisable(GL_BLEND);
-                        renderBlocksPass(level, filledBlocks, 0, layerSelection, camera);
+                        renderBlocksPass(level, visibleBlocksScratch, 0, renderAllFaces);
 
                         setRenderPass(1);
                         GL11.glEnable(GL_BLEND);
                         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                         GL11.glDepthMask(false);
-                        renderBlocksPass(level, filledBlocks, 1, layerSelection, camera);
+                        renderBlocksPass(level, visibleBlocksScratch, 1, renderAllFaces);
                         GL11.glDepthMask(true);
                         GL11.glDisable(GL_BLEND);
 
@@ -354,6 +361,7 @@ public class GuidebookLevelRenderer {
             // RenderBlocks.blockAccess is a strong reference to the fake WorldClient. It is only
             // needed during this draw call, so clear it even when rendering aborts with an error.
             clearCachedRenderBlocksReference();
+            visibleBlocksScratch.clear();
         }
     }
 
@@ -368,6 +376,7 @@ public class GuidebookLevelRenderer {
         clearCachedRenderBlocksReference();
         weatherColumnsScratch.clear();
         weatherColumnPool.clear();
+        visibleBlocksScratch.clear();
     }
 
     private void clearCachedRenderBlocksReference() {
@@ -377,8 +386,22 @@ public class GuidebookLevelRenderer {
         cachedRenderBlocksLevel.clear();
     }
 
+    private void collectVisibleBlocks(Iterable<int[]> filledBlocks, GuidebookSceneLayerSelection layerSelection,
+        CameraSettings camera, List<int[]> destination) {
+        GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
+            : GuidebookSceneLayerSelection.all();
+        for (int[] p : filledBlocks) {
+            if (!effectiveSelection.isLayerVisible(p[1])) {
+                continue;
+            }
+            if (isAabbPotentiallyVisible(camera, p[0], p[1], p[2], p[0] + 1.0f, p[1] + 1.0f, p[2] + 1.0f)) {
+                destination.add(p);
+            }
+        }
+    }
+
     private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
-        GuidebookSceneLayerSelection layerSelection, CameraSettings camera) {
+        boolean renderAllFaces) {
         RenderBlocks rb = cachedRenderBlocks;
         if (rb == null || cachedRenderBlocksLevel.get() != level) {
             rb = new RenderBlocks(level.getOrCreateFakeWorld());
@@ -393,16 +416,8 @@ public class GuidebookLevelRenderer {
         tes.startDrawingQuads();
         try {
             tes.setBrightness((15 << 20) | (15 << 4));
-            GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
-                : GuidebookSceneLayerSelection.all();
-            boolean filteredLayerMode = effectiveSelection.shouldRenderAllFaces();
+            boolean filteredLayerMode = renderAllFaces;
             for (int[] p : filledBlocks) {
-                if (!effectiveSelection.isLayerVisible(p[1])) {
-                    continue;
-                }
-                if (!isAabbPotentiallyVisible(camera, p[0], p[1], p[2], p[0] + 1.0f, p[1] + 1.0f, p[2] + 1.0f)) {
-                    continue;
-                }
                 Block block = level.getBlock(p[0], p[1], p[2]);
                 if (block == null) continue;
                 if (!block.canRenderInPass(pass)) continue;

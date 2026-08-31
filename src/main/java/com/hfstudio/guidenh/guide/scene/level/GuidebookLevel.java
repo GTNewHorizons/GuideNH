@@ -41,6 +41,12 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private final LinkedHashMap<ChunkCoordIntPair, GuidebookChunk> chunks = new LinkedHashMap<>();
+    // Block and metadata reads are clustered by chunk during rendering. Keep the last lookup
+    // out of the map path to avoid allocating a ChunkCoordIntPair for every block access.
+    @Nullable
+    private GuidebookChunk cachedChunk;
+    private int cachedChunkX;
+    private int cachedChunkZ;
 
     private final HashMap<Long, TileEntity> tileEntities = new HashMap<>();
     private final LinkedHashMap<Integer, Entity> entities = new LinkedHashMap<>();
@@ -351,6 +357,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             }
         }
         chunks.clear();
+        cachedChunk = null;
         tileEntities.clear();
         entities.clear();
         sceneEntityIds.clear();
@@ -777,12 +784,18 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Override
     @Nullable
     public GuidebookChunk getChunk(int chunkX, int chunkZ, boolean create) {
+        if (cachedChunk != null && cachedChunkX == chunkX && cachedChunkZ == chunkZ) {
+            return cachedChunk;
+        }
         var pair = new ChunkCoordIntPair(chunkX, chunkZ);
         var chunk = chunks.get(pair);
         if (chunk == null && create) {
             chunk = new GuidebookChunk(chunkX, chunkZ);
             chunks.put(pair, chunk);
         }
+        cachedChunkX = chunkX;
+        cachedChunkZ = chunkZ;
+        cachedChunk = chunk;
         return chunk;
     }
 
