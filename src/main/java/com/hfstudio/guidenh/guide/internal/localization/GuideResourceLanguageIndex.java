@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.localization;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -11,73 +12,61 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
-/** Bounded lookup cache for runtime language values. */
+/** Snapshot index for runtime language values, rebuilt when resources are reloaded. */
 public class GuideResourceLanguageIndex {
 
-    private static final int MAX_CACHED_VALUES = 4096;
-    private static final String MISSING = "\u0000";
-    private static final Map<String, String> VALUES = new LinkedHashMap<>(MAX_CACHED_VALUES, 0.75f, true) {
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
-            return size() > MAX_CACHED_VALUES;
-        }
-    };
+    private static final Object LOCK = new Object();
+    /** Immutable language snapshots; each .lang file is read at most once per reload. */
+    private static volatile Map<String, Map<String, String>> VALUES = Map.of();
 
     private GuideResourceLanguageIndex() {}
 
     public static void clear() {
-        synchronized (VALUES) {
-            VALUES.clear();
+        synchronized (LOCK) {
+            VALUES = Map.of();
         }
     }
 
-    /** Retained as an API compatibility hook; values are intentionally loaded by key. */
-    public static void warm(@Nullable String language) {}
+    /** Builds the runtime key index for a language. Safe to call during reload or on demand. */
+    public static void warm(@Nullable String language) {
+        if (language == null) return;
+        ensureIndexed(LangUtil.normalizeLanguage(language));
+    }
 
     public static @Nullable String getValue(String language, String key) {
         if (key == null || key.isEmpty()) {
             return null;
         }
         String normalized = LangUtil.normalizeLanguage(language);
-        String cacheKey = normalized + '\u0001' + key;
-        synchronized (VALUES) {
-            String cached = VALUES.get(cacheKey);
-            if (cached != null) {
-                return MISSING.equals(cached) ? null : cached;
-            }
-        }
-        String value = loadValue(normalized, key);
-        synchronized (VALUES) {
-            VALUES.put(cacheKey, value != null ? value : MISSING);
-        }
-        return value;
+        ensureIndexed(normalized);
+        return VALUES.getOrDefault(normalized, Map.of())
+            .get(key);
     }
 
-    private static @Nullable String loadValue(String language, String key) {
-        String result = null;
-        for (IResourcePack pack : DataDrivenGuideLoader.getLastActiveResourcePacks()) {
-            File root = DataDrivenGuideLoader.getLooseResourcePackRoot(pack);
-            if (root == null || !root.exists()) {
-                continue;
-            }
-            for (String path : DataDrivenGuideLoader.getLangFilePaths(root)) {
-                int fileNameStart = path.lastIndexOf('/') + 1;
-                if (fileNameStart <= 0) {
-                    continue;
-                }
-                String fileName = path.substring(fileNameStart);
-                if (!fileName.endsWith(".lang")
-                    || !LangUtil.normalizeLanguage(fileName.substring(0, fileName.length() - 5))
-                        .equals(language)) {
-                    continue;
-                }
-                String candidate = DataDrivenGuideLoader.readLangValue(pack, path, key);
-                if (candidate != null) {
-                    result = candidate;
+    private static void ensureIndexed(String language) {
+        if (VALUES.containsKey(language)) return;
+        synchronized (LOCK) {
+            if (VALUES.containsKey(language)) return;
+            Map<String, String> values = new LinkedHashMap<>();
+            for (IResourcePack pack : DataDrivenGuideLoader.getLastActiveResourcePacks()) {
+                File root = DataDrivenGuideLoader.getLooseResourcePackRoot(pack);
+                if (root == null || !root.exists()) continue;
+                for (String path : DataDrivenGuideLoader.getLangFilePaths(root)) {
+                    int fileNameStart = path.lastIndexOf('/') + 1;
+                    if (fileNameStart <= 0) continue;
+                    String fileName = path.substring(fileNameStart);
+                    if (!fileName.endsWith(".lang")
+                        || !LangUtil.normalizeLanguage(fileName.substring(0, fileName.length() - 5))
+                            .equals(language)) {
+                        continue;
+                    }
+                    // Iterate in effective pack order; later packs override earlier values.
+                    values.putAll(DataDrivenGuideLoader.readRuntimeLangValues(pack, path));
                 }
             }
+            Map<String, Map<String, String>> updated = new HashMap<>(VALUES);
+            updated.put(language, values.isEmpty() ? Map.of() : Map.copyOf(values));
+            VALUES = Map.copyOf(updated);
         }
-        return result;
     }
 }

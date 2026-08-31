@@ -72,6 +72,10 @@ public class GuideLightweightReloadService {
         var guidePages = new HashMap<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>>();
 
         String language = LangUtil.getCurrentLanguage();
+        // Build the small runtime localization snapshot while the reload is already in progress.
+        // This prevents the first Ponder/GameScene opened after reload from synchronously scanning
+        // every language file on the client thread.
+        GuideResourceLanguageIndex.warm(language);
 
         for (var guide : GuideRegistry.getAll()) {
             var pages = loadPages(

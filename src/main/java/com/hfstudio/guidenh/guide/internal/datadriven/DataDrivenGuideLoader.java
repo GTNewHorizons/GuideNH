@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.datadriven;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -20,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -51,6 +51,9 @@ import com.hfstudio.guidenh.mixins.early.minecraft.AccessorSimpleReloadableResou
 import cpw.mods.fml.client.FMLClientHandler;
 
 public class DataDrivenGuideLoader {
+
+    // Matches the numeric format placeholders normalized by StringTranslate.parseLangFile.
+    private static final Pattern NUMERIC_LANG_VARIABLE = Pattern.compile("%(\\d+\\$)?[\\d\\.]*[df]");
 
     public static final String AUTO_GUIDE_FOLDER = "guidenh";
     public static final String LANGUAGE_FOLDER_PREFIX = "_";
@@ -88,6 +91,25 @@ public class DataDrivenGuideLoader {
         Map<ResourceLocation, List<PackCandidate>> assetPackIndexSnapshot,
         Map<File, List<String>> langFilePathsSnapshot) {
 
+        boolean matchesPackMetadata(List<File> roots, String f) {
+            if (!folder.equals(f) || !packRoots.equals(roots) || roots.size() != contentManifest.size()) {
+                return false;
+            }
+            for (int i = 0; i < roots.size(); i++) {
+                File current = roots.get(i);
+                File previous = packRoots.get(i);
+                // ZIP contents can only change when the archive's size or timestamp changes.
+                // Directory packs are deliberately rescanned so file-level hot reloads remain
+                // visible even when the directory timestamp is unchanged on some file systems.
+                if (current.isDirectory() || previous.isDirectory()
+                    || current.length() != previous.length()
+                    || current.lastModified() != previous.lastModified()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         boolean matches(List<File> roots, String f, List<ResourcePackContentManifest.Pack> manifest) {
             return folder.equals(f) && packRoots.equals(roots) && contentManifest.equals(manifest);
         }
@@ -105,8 +127,9 @@ public class DataDrivenGuideLoader {
         // Cache hit requires the same roots and the same resource-pack content inventory.
         var resolvedPacks = toList(activeResourcePacks);
         var packRoots = resolvePackRoots(resolvedPacks);
-        var contentManifest = ResourcePackContentManifest.capture(packRoots, folder);
         ScanCache cache = lastScanCache;
+        var contentManifest = cache != null && cache.matchesPackMetadata(packRoots, folder) ? cache.contentManifest()
+            : ResourcePackContentManifest.capture(packRoots, folder);
         if (cache != null && cache.matches(packRoots, folder, contentManifest)) {
             indexReady = true;
             pagePackIndex.putAll(cache.pagePackIndexSnapshot());
@@ -440,6 +463,40 @@ public class DataDrivenGuideLoader {
         }
     }
 
+    /**
+     * Reads runtime language entries once for the localization index. Large page-body entries are
+     * intentionally skipped; they are resolved by {@code GuidePageLanguageIndex} on demand.
+     */
+    public static Map<String, String> readRuntimeLangValues(IResourcePack resourcePack, String entryPath) {
+        if (entryPath == null || !entryPath.endsWith(".lang")) return Map.of();
+        var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
+        var firstSlash = afterAssets.indexOf('/');
+        if (firstSlash <= 0) return Map.of();
+        var values = new LinkedHashMap<String, String>();
+        try (
+            var input = resourcePack.getInputStream(
+                new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1)));
+            var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // StringTranslate.parseLangFile accepts the first '=' separator. Keep the same
+                // format while avoiding a parser/stream allocation for every entry in large files.
+                if (line.startsWith("\uFEFF")) line = line.substring(1);
+                if (line.isEmpty() || line.startsWith("#")) continue;
+                int separator = line.indexOf('=');
+                if (separator <= 0) continue;
+                String key = line.substring(0, separator);
+                if (key.startsWith("guidenh.page.")) continue;
+                String value = line.substring(separator + 1);
+                values.put(
+                    key,
+                    value.indexOf('%') >= 0 ? NUMERIC_LANG_VARIABLE.matcher(value)
+                        .replaceAll("%$1s") : value);
+            }
+        } catch (IOException ignored) {}
+        return values.isEmpty() ? Map.of() : Map.copyOf(values);
+    }
+
     public static @Nullable String readLangValue(IResourcePack resourcePack, String entryPath, String key) {
         if (entryPath == null || !entryPath.endsWith(".lang")) return null;
         var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
@@ -457,12 +514,11 @@ public class DataDrivenGuideLoader {
                 if (line.startsWith("#")) continue;
                 int separator = line.indexOf('=');
                 if (separator > 0 && key.equals(line.substring(0, separator))) {
+                    // The line has already been split using the same first '=' rule as
+                    // StringTranslate.parseLangFile; avoid reparsing a one-line stream.
                     String value = line.substring(separator + 1);
-                    try (var parsed = new ByteArrayInputStream((key + "=" + value).getBytes(StandardCharsets.UTF_8))) {
-                        String translated = StringTranslate.parseLangFile(parsed)
-                            .get(key);
-                        return translated != null ? translated : value;
-                    }
+                    return value.indexOf('%') >= 0 ? NUMERIC_LANG_VARIABLE.matcher(value)
+                        .replaceAll("%$1s") : value;
                 }
             }
         } catch (IOException ignored) {}
