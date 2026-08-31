@@ -35,6 +35,7 @@ import appeng.api.networking.ticking.IGridTickable;
 import appeng.api.parts.IFacadePart;
 import appeng.api.parts.IPart;
 import appeng.api.parts.PartItemStack;
+import appeng.api.storage.ICellCacheRegistry;
 import appeng.api.storage.ICellHandler;
 import appeng.api.storage.IMEInventoryHandler;
 import appeng.api.storage.data.AEStackTypeRegistry;
@@ -677,7 +678,7 @@ public class Ae2Helpers {
                 IMEInventoryHandler inventory = handler.getCellInventory(cell, null, type);
                 if (inventory != null) {
                     int status = Math.clamp(handler.getStatusForCell(cell, inventory), 0, 4);
-                    return new CellDisplay(status, displayTypeFor(type));
+                    return new CellDisplay(status, displayTypeFor(type, inventory));
                 }
             } catch (Throwable ignored) {
                 // A third-party cell may reject a channel while still supporting another one.
@@ -687,7 +688,13 @@ public class Ae2Helpers {
     }
 
     @Optional.Method(modid = "appliedenergistics2")
-    private static int displayTypeFor(IAEStackType<?> target) {
+    private static int displayTypeFor(IAEStackType<?> target, IMEInventoryHandler inventory) {
+        if (inventory instanceof ICellCacheRegistry cacheRegistry) {
+            return Math.min(
+                cacheRegistry.getCellType()
+                    .ordinal(),
+                2);
+        }
         int index = 0;
         for (IAEStackType<?> type : AEStackTypeRegistry.getSortedTypes()) {
             if (type == target) {
