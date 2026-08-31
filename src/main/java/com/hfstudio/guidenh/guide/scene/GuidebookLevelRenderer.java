@@ -292,15 +292,17 @@ public class GuidebookLevelRenderer {
                     try {
                         setRenderPass(0);
                         GL11.glDisable(GL_BLEND);
-                        renderBlocksPass(level, visibleBlocksScratch, 0, renderAllFaces);
+                        boolean hasTranslucentBlocks = renderBlocksPass(level, visibleBlocksScratch, 0, renderAllFaces);
 
-                        setRenderPass(1);
-                        GL11.glEnable(GL_BLEND);
-                        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                        GL11.glDepthMask(false);
-                        renderBlocksPass(level, visibleBlocksScratch, 1, renderAllFaces);
-                        GL11.glDepthMask(true);
-                        GL11.glDisable(GL_BLEND);
+                        if (hasTranslucentBlocks) {
+                            setRenderPass(1);
+                            GL11.glEnable(GL_BLEND);
+                            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                            GL11.glDepthMask(false);
+                            renderBlocksPass(level, visibleBlocksScratch, 1, renderAllFaces);
+                            GL11.glDepthMask(true);
+                            GL11.glDisable(GL_BLEND);
+                        }
 
                         setRenderPass(-1);
 
@@ -411,7 +413,7 @@ public class GuidebookLevelRenderer {
         }
     }
 
-    private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
+    private boolean renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
         boolean renderAllFaces) {
         RenderBlocks rb = cachedRenderBlocks;
         if (rb == null || cachedRenderBlocksLevel.get() != level) {
@@ -424,6 +426,7 @@ public class GuidebookLevelRenderer {
         mc.gameSettings.ambientOcclusion = 0;
         IBlockAccess fakeWorld = level.getOrCreateFakeWorld();
         var tes = Tessellator.instance;
+        boolean hasTranslucentBlocks = false;
         tes.startDrawingQuads();
         try {
             tes.setBrightness((15 << 20) | (15 << 4));
@@ -431,25 +434,32 @@ public class GuidebookLevelRenderer {
             for (int[] p : filledBlocks) {
                 Block block = level.getBlock(p[0], p[1], p[2]);
                 if (block == null) continue;
+                if (pass == 0 && block.canRenderInPass(1)) {
+                    hasTranslucentBlocks = true;
+                }
                 if (!block.canRenderInPass(pass)) continue;
                 try {
                     TileEntity tileEntity = level.getTileEntity(p[0], p[1], p[2]);
-                    if (GuideGregTechTileSupport.isGregTechTileEntity(tileEntity)
-                        && !GuideGregTechTileSupport.hasValidMetaTileBinding(tileEntity)) {
-                        GuideGregTechTileSupport.logInfoOnce(
-                            "render-invalid-block-pass:" + pass
-                                + ":"
-                                + GuideGregTechTileSupport.describeTile(tileEntity),
-                            "Render pass {} found invalid GregTech block tile before block render: {}",
-                            pass,
-                            GuideGregTechTileSupport.describeTile(tileEntity));
-                        GuideGregTechTileSupport.repairMetaTileBinding(tileEntity);
-                    }
-                    TileEntity promoted = GuideNhClientIntegrationRegistry.global()
-                        .promotePreviewBlockTileEntity(block, tileEntity);
-                    if (promoted != null && promoted != tileEntity) {
-                        level.setTileEntity(p[0], p[1], p[2], promoted);
-                        tileEntity = promoted;
+                    // Promotion and GregTech repair mutate the level and only need to happen
+                    // once. Repeating them for the translucent pass adds avoidable per-frame
+                    // integration work; pass-one-only blocks still use the null-tile fallback.
+                    if (pass == 0 || tileEntity == null) {
+                        if (GuideGregTechTileSupport.isGregTechTileEntity(tileEntity)
+                            && !GuideGregTechTileSupport.hasValidMetaTileBinding(tileEntity)) {
+                            GuideGregTechTileSupport.logInfoOnce(
+                                "render-invalid-block-pass:" + pass
+                                    + ":"
+                                    + GuideGregTechTileSupport.describeTile(tileEntity),
+                                "Render pass {} found invalid GregTech block tile before block render: {}",
+                                pass,
+                                GuideGregTechTileSupport.describeTile(tileEntity));
+                            GuideGregTechTileSupport.repairMetaTileBinding(tileEntity);
+                        }
+                        TileEntity promoted = GuideNhClientIntegrationRegistry.global()
+                            .promotePreviewBlockTileEntity(block, tileEntity);
+                        if (promoted != null && promoted != tileEntity) {
+                            level.setTileEntity(p[0], p[1], p[2], promoted);
+                        }
                     }
                     resetRenderBlocksState(rb, fakeWorld, filteredLayerMode);
                     boolean rendered = rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
@@ -466,6 +476,7 @@ public class GuidebookLevelRenderer {
             tes.setTranslation(0.0D, 0.0D, 0.0D);
             mc.gameSettings.ambientOcclusion = savedAmbientOcclusion;
         }
+        return hasTranslucentBlocks;
     }
 
     public static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess,

@@ -38,6 +38,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
@@ -58,8 +59,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private final LinkedHashMap<String, SceneEntityMountState> sceneEntityMountStates = new LinkedHashMap<>();
     private final HashMap<String, LinkedHashSet<String>> sceneEntityMountChildren = new HashMap<>();
 
-    private final HashMap<Long, int[]> filledBlocks = new HashMap<>();
-    private final HashMap<Long, String> explicitBlockIds = new HashMap<>();
+    // Coordinate indexes use primitive long keys to avoid boxing on scene import and updates.
+    private final Long2ObjectOpenHashMap<int[]> filledBlocks = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectOpenHashMap<String> explicitBlockIds = new Long2ObjectOpenHashMap<>();
 
     /** Opaque server-authoritative preview blobs per coordinate ({@link #packPos}); cleared when block becomes air. */
     private final GuidebookPreviewAuthorityStore previewAuthorityStore = new GuidebookPreviewAuthorityStore();
