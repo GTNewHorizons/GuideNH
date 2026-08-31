@@ -45,6 +45,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     // out of the map path to avoid allocating a ChunkCoordIntPair for every block access.
     @Nullable
     private GuidebookChunk cachedChunk;
+    private boolean cachedChunkValid;
     private int cachedChunkX;
     private int cachedChunkZ;
 
@@ -168,6 +169,10 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             if (isAir) return;
             chunk = new GuidebookChunk(x >> 4, z >> 4);
             chunks.put(pair, chunk);
+            cachedChunkX = x >> 4;
+            cachedChunkZ = z >> 4;
+            cachedChunk = chunk;
+            cachedChunkValid = true;
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
@@ -227,6 +232,10 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             }
             chunk = new GuidebookChunk(x >> 4, z >> 4);
             chunks.put(pair, chunk);
+            cachedChunkX = x >> 4;
+            cachedChunkZ = z >> 4;
+            cachedChunk = chunk;
+            cachedChunkValid = true;
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
@@ -358,6 +367,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         chunks.clear();
         cachedChunk = null;
+        cachedChunkValid = false;
         tileEntities.clear();
         entities.clear();
         sceneEntityIds.clear();
@@ -784,7 +794,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Override
     @Nullable
     public GuidebookChunk getChunk(int chunkX, int chunkZ, boolean create) {
-        if (cachedChunk != null && cachedChunkX == chunkX && cachedChunkZ == chunkZ) {
+        // A missing neighbour is common during modded block-light queries. Cache that negative
+        // lookup too, while still allowing callers that request creation to populate the chunk.
+        if (cachedChunkValid && cachedChunkX == chunkX && cachedChunkZ == chunkZ && (cachedChunk != null || !create)) {
             return cachedChunk;
         }
         var pair = new ChunkCoordIntPair(chunkX, chunkZ);
@@ -796,6 +808,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         cachedChunkX = chunkX;
         cachedChunkZ = chunkZ;
         cachedChunk = chunk;
+        cachedChunkValid = true;
         return chunk;
     }
 

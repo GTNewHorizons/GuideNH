@@ -14,6 +14,7 @@ import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -33,7 +34,6 @@ import net.minecraftforge.client.ForgeHooksClient;
 
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -59,9 +59,9 @@ public class GuidebookLevelRenderer {
     public static final ResourceLocation SNOW_TEXTURE = new ResourceLocation("textures/environment/snow.png");
     public static final int WEATHER_RENDER_RADIUS = 10;
     public static final int WEATHER_COVERAGE_RESOLUTION = 1024;
+    private static final int AABB_CULLING_BLOCK_THRESHOLD = 128;
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
-    private final Vector3f cullScreenScratch = new Vector3f();
     private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
     /** Reused per-frame list; block visibility is identical for opaque and translucent passes. */
     private final ArrayList<int[]> visibleBlocksScratch = new ArrayList<>();
@@ -390,6 +390,17 @@ public class GuidebookLevelRenderer {
         CameraSettings camera, List<int[]> destination) {
         GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
             : GuidebookSceneLayerSelection.all();
+        // For small previews the entire structure normally fits in the viewport. Avoid paying a
+        // matrix projection per block in that common case; filtered layer modes still need the
+        // inexpensive Y check below.
+        if (effectiveSelection.getMode() == GuidebookSceneLayerSelection.Mode.ALL
+            && filledBlocks instanceof Collection<?>collection
+            && collection.size() <= AABB_CULLING_BLOCK_THRESHOLD) {
+            for (int[] p : filledBlocks) {
+                destination.add(p);
+            }
+            return;
+        }
         for (int[] p : filledBlocks) {
             if (!effectiveSelection.isLayerVisible(p[1])) {
                 continue;
@@ -602,32 +613,7 @@ public class GuidebookLevelRenderer {
      */
     private boolean isAabbPotentiallyVisible(CameraSettings camera, float minX, float minY, float minZ, float maxX,
         float maxY, float maxZ) {
-        int viewportWidth = camera.getViewportSize()
-            .width();
-        int viewportHeight = camera.getViewportSize()
-            .height();
-        if (viewportWidth <= 0 || viewportHeight <= 0) {
-            return true;
-        }
-        float halfW = viewportWidth * 0.5f;
-        float halfH = viewportHeight * 0.5f;
-        float minSX = Float.MAX_VALUE;
-        float maxSX = -Float.MAX_VALUE;
-        float minSY = Float.MAX_VALUE;
-        float maxSY = -Float.MAX_VALUE;
-        for (int corner = 0; corner < 8; corner++) {
-            float wx = (corner & 1) == 0 ? minX : maxX;
-            float wy = (corner & 2) == 0 ? minY : maxY;
-            float wz = (corner & 4) == 0 ? minZ : maxZ;
-            camera.worldToScreen(wx, wy, wz, cullScreenScratch);
-            float sx = cullScreenScratch.x;
-            float sy = cullScreenScratch.y;
-            if (sx < minSX) minSX = sx;
-            if (sx > maxSX) maxSX = sx;
-            if (sy < minSY) minSY = sy;
-            if (sy > maxSY) maxSY = sy;
-        }
-        return maxSX >= -halfW && minSX <= halfW && maxSY >= -halfH && minSY <= halfH;
+        return camera.isAabbPotentiallyVisible(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
     public static int resolveEntityBrightnessForPreview(Entity entity, float partialTicks) {

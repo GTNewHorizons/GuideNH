@@ -216,6 +216,48 @@ public class CameraSettings {
         return dest.set(v.x * halfW, -v.y * halfH, v.z);
     }
 
+    /**
+     * Conservative AABB test for this camera's orthographic projection. Transforming the center
+     * once and expanding by the absolute matrix contribution is equivalent to projecting all eight
+     * corners, but avoids seven matrix-vector multiplications for every preview block.
+     */
+    public boolean isAabbPotentiallyVisible(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+        int width = viewportSize.width();
+        int height = viewportSize.height();
+        if (width <= 0 || height <= 0) {
+            return true;
+        }
+
+        float centerX = (minX + maxX) * 0.5f;
+        float centerY = (minY + maxY) * 0.5f;
+        float centerZ = (minZ + maxZ) * 0.5f;
+        float extentX = (maxX - minX) * 0.5f;
+        float extentY = (maxY - minY) * 0.5f;
+        float extentZ = (maxZ - minZ) * 0.5f;
+
+        Matrix4f matrix = getCombinedMatrix();
+        float projectedCenterX = matrix.m00() * centerX + matrix.m10() * centerY
+            + matrix.m20() * centerZ
+            + matrix.m30();
+        float projectedCenterY = matrix.m01() * centerX + matrix.m11() * centerY
+            + matrix.m21() * centerZ
+            + matrix.m31();
+        float projectedRadiusX = Math.abs(matrix.m00()) * extentX + Math.abs(matrix.m10()) * extentY
+            + Math.abs(matrix.m20()) * extentZ;
+        float projectedRadiusY = Math.abs(matrix.m01()) * extentX + Math.abs(matrix.m11()) * extentY
+            + Math.abs(matrix.m21()) * extentZ;
+
+        float halfWidth = width * 0.5f;
+        float halfHeight = height * 0.5f;
+        float screenCenterX = projectedCenterX * halfWidth;
+        float screenCenterY = -projectedCenterY * halfHeight;
+        float screenRadiusX = projectedRadiusX * halfWidth;
+        float screenRadiusY = projectedRadiusY * halfHeight;
+        return screenCenterX + screenRadiusX >= -halfWidth && screenCenterX - screenRadiusX <= halfWidth
+            && screenCenterY + screenRadiusY >= -halfHeight
+            && screenCenterY - screenRadiusY <= halfHeight;
+    }
+
     public float[] screenToWorldRay(float screenX, float screenY) {
         return screenToWorldRay(screenX, screenY, new float[6]);
     }
