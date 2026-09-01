@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
+import java.lang.ref.WeakReference;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -15,7 +17,8 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class GuidebookFakeRenderEnvironment implements AutoCloseable {
 
-    public static GuidebookPreviewPlayer cachedPreviewPlayer;
+    /** Weak cache: the player points back to its preview WorldClient and must not keep old scenes alive. */
+    public static WeakReference<GuidebookPreviewPlayer> cachedPreviewPlayer = new WeakReference<>(null);
     public static NetHandlerPlayClient cachedNetHandler;
 
     private final Minecraft minecraft;
@@ -106,11 +109,33 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
         if (netHandler == null) {
             throw new IllegalStateException("Guidebook preview requires an active client world");
         }
-        if (cachedPreviewPlayer == null || cachedNetHandler != netHandler) {
-            cachedPreviewPlayer = new GuidebookPreviewPlayer(minecraft, world, netHandler);
+        GuidebookPreviewPlayer previewPlayer = cachedPreviewPlayer.get();
+        if (previewPlayer == null || cachedNetHandler != netHandler) {
+            previewPlayer = new GuidebookPreviewPlayer(minecraft, world, netHandler);
+            cachedPreviewPlayer = new WeakReference<>(previewPlayer);
             cachedNetHandler = netHandler;
         }
-        return cachedPreviewPlayer;
+        return previewPlayer;
+    }
+
+    public static void releaseCachedPreviewPlayer(WorldClient world) {
+        GuidebookPreviewPlayer previewPlayer = cachedPreviewPlayer.get();
+        if (previewPlayer == null || previewPlayer.worldObj == world) {
+            cachedPreviewPlayer.clear();
+            cachedNetHandler = null;
+        }
+    }
+
+    /** Clears process-wide preview-player state during a client world transition. */
+    public static void clearClientRuntimeCaches() {
+        GuidebookPreviewPlayer previewPlayer = cachedPreviewPlayer.get();
+        if (previewPlayer != null) {
+            // A caller may still hold the player while the event is dispatched. Detach its
+            // back-reference explicitly instead of relying solely on clearing the weak cache.
+            previewPlayer.worldObj = null;
+        }
+        cachedPreviewPlayer.clear();
+        cachedNetHandler = null;
     }
 
     public static class RenderManagerState {

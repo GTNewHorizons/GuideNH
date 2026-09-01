@@ -105,6 +105,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private String parentPageId;
     @Nullable
     private URI pendingExternalUri;
+    private boolean temporaryScreenChangeExpected;
 
     public GuideWelcomeScreen(GuiScreen parent, GuideWelcomeContent.LoadedContent content) {
         this.parent = parent;
@@ -274,6 +275,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     public void openExternalUrl(URI uri) {
         if (ModConfig.ui.confirmExternalLinks) {
             pendingExternalUri = uri;
+            temporaryScreenChangeExpected = true;
             mc.displayGuiScreen(createExternalLinkConfirmScreen(uri));
             return;
         }
@@ -292,6 +294,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         if (result && uri != null) {
             browseExternalUrl(uri);
         }
+        temporaryScreenChangeExpected = false;
         mc.displayGuiScreen(this);
     }
 
@@ -390,6 +393,21 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
                 pending.addLast(children.get(i));
             }
         }
+    }
+
+    @Override
+    public void onGuiClosed() {
+        if (temporaryScreenChangeExpected) {
+            temporaryScreenChangeExpected = false;
+            return;
+        }
+        if (page != null) {
+            page.releaseRuntimeScenes();
+        }
+        page = null;
+        document = null;
+        pageCollection = null;
+        super.onGuiClosed();
     }
 
     @Nullable

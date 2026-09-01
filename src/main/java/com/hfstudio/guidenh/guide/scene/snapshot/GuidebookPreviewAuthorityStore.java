@@ -5,12 +5,15 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+
 /**
  * Per-coordinate opaque supplement bytes keyed by {@link #supplementId()}, for server-authoritative preview data.
  */
 public class GuidebookPreviewAuthorityStore {
 
-    private final HashMap<Long, HashMap<String, byte[]>> byPos = new HashMap<>();
+    // Packed coordinates are primitive long keys; avoid boxing on preview updates and lookups.
+    private final Long2ObjectOpenHashMap<HashMap<String, byte[]>> byPos = new Long2ObjectOpenHashMap<>();
 
     public void put(long packedPos, String supplementId, byte @Nullable [] payload) {
         if (payload == null || payload.length == 0) {

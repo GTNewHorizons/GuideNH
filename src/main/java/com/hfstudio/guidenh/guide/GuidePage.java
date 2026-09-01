@@ -13,6 +13,7 @@ import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class GuidePage {
 
@@ -72,6 +73,44 @@ public class GuidePage {
         document.setHoveredElement(null);
         for (var scene : scenes) {
             scene.resetInteractiveState();
+        }
+    }
+
+    /**
+     * Releases client-only preview worlds owned by this page while retaining the compiled
+     * document tree. The page cache may evict or invalidate a page without discarding the
+     * compiled nodes, so runtime scene resources need their own lifecycle.
+     */
+    public void releaseRuntimeScenes() {
+        // MaterializeTask may append GameScene nodes after compilation. Discover those nodes before
+        // releasing so asynchronously created preview worlds cannot outlive this page.
+        registerMaterializedScenes();
+        for (LytGuidebookScene scene : scenes) {
+            if (scene != null) {
+                GuidebookLevel level = scene.getLevel();
+                if (level != null) {
+                    level.releaseRuntimeWorld();
+                }
+            }
+        }
+    }
+
+    /** Adds scenes materialized into the document after the initial page compilation. */
+    public void registerMaterializedScenes() {
+        if (document == null) {
+            return;
+        }
+        ArrayDeque<LytNode> pending = new ArrayDeque<>();
+        pending.add(document);
+        while (!pending.isEmpty()) {
+            LytNode node = pending.removeLast();
+            if (node instanceof LytGuidebookScene scene && !scenes.contains(scene)) {
+                scenes.add(scene);
+            }
+            List<? extends LytNode> children = node.getChildren();
+            for (int i = children.size() - 1; i >= 0; i--) {
+                pending.addLast(children.get(i));
+            }
         }
     }
 

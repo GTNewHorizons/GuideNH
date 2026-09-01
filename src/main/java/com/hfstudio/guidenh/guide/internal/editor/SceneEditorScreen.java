@@ -168,6 +168,8 @@ public class SceneEditorScreen extends GuiScreen {
     public static final int ELEMENT_VIEWPORT_BOTTOM_PADDING = 6;
     public static final int ELEMENT_SCROLLBAR_WIDTH = 5;
     public static final int ELEMENT_CONTEXT_MENU_WIDTH = 132;
+    public static final int MARKDOWN_CONTEXT_MENU_WIDTH = 148;
+    public static final int MARKDOWN_CONTEXT_MENU_ROW_HEIGHT = 18;
     public static final int SNAP_MENU_WIDTH = 118;
     public static final int EXPORT_MENU_WIDTH = 152;
     public static final long CLIENT_SELECTION_EXPORT_BUDGET_NANOS = 3_000_000L;
@@ -297,6 +299,9 @@ public class SceneEditorScreen extends GuiScreen {
     private int contextMenuX;
     private int contextMenuY;
     private List<ElementContextMenuAction> contextMenuActions;
+    private boolean markdownContextMenuOpen;
+    private int markdownContextMenuX;
+    private int markdownContextMenuY;
     private boolean addElementMenuOpen;
     private boolean snapModeMenuOpen;
     private boolean exportMenuOpen;
@@ -883,12 +888,6 @@ public class SceneEditorScreen extends GuiScreen {
                 mouseX,
                 mouseY,
                 this.fontRendererObj);
-        } else if (isInsideMarkdownFooter(mouseX, mouseY)) {
-            this.drawHoveringText(
-                List.of(GuidebookText.SceneEditorMarkdownWrap.text()),
-                mouseX,
-                mouseY,
-                this.fontRendererObj);
         } else {
             drawPreviewSceneHoverTooltip(mouseX, mouseY);
         }
@@ -960,6 +959,9 @@ public class SceneEditorScreen extends GuiScreen {
             && !isInsideElementContextMenu(mouseX, mouseY)) {
             elementListFocused = false;
         }
+        if (handleMarkdownContextMenuClick(mouseX, mouseY, button)) {
+            return;
+        }
         if (markdownTextArea != null) {
             boolean insideEditor = markdownTextArea.contains(mouseX, mouseY);
             if (markdownTextArea.isFocused() && !insideEditor) {
@@ -967,6 +969,11 @@ public class SceneEditorScreen extends GuiScreen {
                     return;
                 }
                 markdownTextArea.setFocused(false);
+            }
+            if (button == 1 && insideEditor) {
+                openMarkdownContextMenu(mouseX, mouseY);
+                markdownTextArea.setFocused(true);
+                return;
             }
             String previousMarkdownText = markdownTextArea.getText();
             if (markdownTextArea.mouseClicked(mouseX, mouseY, button)) {
@@ -1026,10 +1033,6 @@ public class SceneEditorScreen extends GuiScreen {
         }
         if (button == 0 && isInsideRightPanelToggle(mouseX, mouseY)) {
             rightPanelCollapsed = !rightPanelCollapsed;
-            return;
-        }
-        if (button == 0 && isInsideMarkdownFooter(mouseX, mouseY)) {
-            toggleMarkdownWrap();
             return;
         }
         if (button == 0 && isInsideMarkdownResizeHandle(mouseX, mouseY)) {
@@ -1337,49 +1340,29 @@ public class SceneEditorScreen extends GuiScreen {
         if (markdownTextArea != null) {
             markdownTextArea.draw(textSyncController.hasValidationError());
         }
-        LytRect footerBounds = screenLayout.markdownFooter();
+        int statusY = screenLayout.markdownContent()
+            .bottom() + 2;
         if (textSyncController.hasValidationError()) {
             String title = textSyncController.getValidationKind()
                 == SceneEditorTextSyncController.ValidationKind.UNSUPPORTED
                     ? GuidebookText.SceneEditorUnsupportedSyntax.text()
                     : GuidebookText.SceneEditorSyntaxError.text();
-            this.drawString(this.fontRendererObj, title, headerX, footerBounds.y() - 26, 0xFFFF8484);
+            this.drawString(this.fontRendererObj, title, headerX, statusY, 0xFFFF8484);
             this.drawString(
                 this.fontRendererObj,
                 GuidebookText.SceneEditorTextSyncHint.text(),
                 headerX,
-                footerBounds.y() - 14,
+                statusY + 12,
                 PANEL_SUBTLE_TEXT);
         } else {
             this.drawString(
                 this.fontRendererObj,
                 GuidebookText.SceneEditorTextSyncHint.text(),
                 headerX,
-                footerBounds.y() - 14,
+                statusY,
                 PANEL_SUBTLE_TEXT);
         }
-        drawMarkdownFooter(mouseX, mouseY);
         drawMarkdownResizeHandle(mouseX, mouseY);
-    }
-
-    private void drawMarkdownFooter(int mouseX, int mouseY) {
-        if (!markdownPanelState.isExpanded()) {
-            return;
-        }
-        LytRect footerBounds = screenLayout.markdownFooter();
-        boolean hovered = footerBounds.contains(mouseX, mouseY);
-        boolean wrapEnabled = markdownPanelState.isWrapEnabled();
-        int backgroundColor = wrapEnabled ? hovered ? 0xD01CB4E9 : 0xA81CB4E9 : hovered ? 0xA61C252E : 0x6612181C;
-        drawRect(footerBounds.x(), footerBounds.y(), footerBounds.right(), footerBounds.bottom(), backgroundColor);
-        drawBorder(
-            footerBounds.x(),
-            footerBounds.y(),
-            footerBounds.width(),
-            footerBounds.height(),
-            hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
-        String label = wrapEnabled ? GuidebookText.SceneEditorMarkdownWrapOn.text()
-            : GuidebookText.SceneEditorMarkdownWrapOff.text();
-        this.drawString(this.fontRendererObj, label, footerBounds.x() + 6, footerBounds.y() + 5, PANEL_HEADER_COLOR);
     }
 
     private void drawMarkdownResizeHandle(int mouseX, int mouseY) {
@@ -2880,11 +2863,6 @@ public class SceneEditorScreen extends GuiScreen {
             .contains(mouseX, mouseY);
     }
 
-    private boolean isInsideMarkdownFooter(int mouseX, int mouseY) {
-        return markdownPanelState.isExpanded() && screenLayout.markdownFooter()
-            .contains(mouseX, mouseY);
-    }
-
     private boolean isInsideMarkdownResizeHandle(int mouseX, int mouseY) {
         return markdownPanelState.isExpanded() && screenLayout.markdownResizeHandle()
             .contains(mouseX, mouseY);
@@ -2893,6 +2871,7 @@ public class SceneEditorScreen extends GuiScreen {
     private void toggleMarkdownPanel() {
         markdownPanelState.setExpanded(!markdownPanelState.isExpanded());
         draggingMarkdownResize = false;
+        closeMarkdownContextMenu();
         if (!markdownPanelState.isExpanded() && markdownTextArea != null) {
             markdownTextArea.setFocused(false);
         }
@@ -3009,6 +2988,79 @@ public class SceneEditorScreen extends GuiScreen {
         if (isContextMenuOpen()) {
             drawElementContextMenu(mouseX, mouseY);
         }
+        if (markdownContextMenuOpen) {
+            drawMarkdownContextMenu(mouseX, mouseY);
+        }
+    }
+
+    private void openMarkdownContextMenu(int mouseX, int mouseY) {
+        closeElementContextMenu();
+        LytRect bounds = SceneEditorPopupLayout.clampToViewport(
+            mouseX,
+            mouseY,
+            MARKDOWN_CONTEXT_MENU_WIDTH,
+            MARKDOWN_CONTEXT_MENU_ROW_HEIGHT,
+            this.width,
+            this.height,
+            4);
+        markdownContextMenuX = bounds.x();
+        markdownContextMenuY = bounds.y();
+        markdownContextMenuOpen = true;
+    }
+
+    private void closeMarkdownContextMenu() {
+        markdownContextMenuOpen = false;
+    }
+
+    private boolean isInsideMarkdownContextMenu(int mouseX, int mouseY) {
+        return markdownContextMenuOpen && mouseX >= markdownContextMenuX
+            && mouseX < markdownContextMenuX + MARKDOWN_CONTEXT_MENU_WIDTH
+            && mouseY >= markdownContextMenuY
+            && mouseY < markdownContextMenuY + MARKDOWN_CONTEXT_MENU_ROW_HEIGHT;
+    }
+
+    private boolean handleMarkdownContextMenuClick(int mouseX, int mouseY, int button) {
+        if (!markdownContextMenuOpen) {
+            return false;
+        }
+        if (button == 0 && isInsideMarkdownContextMenu(mouseX, mouseY)) {
+            toggleMarkdownWrap();
+            closeMarkdownContextMenu();
+            return true;
+        }
+        if (!isInsideMarkdownContextMenu(mouseX, mouseY)) {
+            closeMarkdownContextMenu();
+        }
+        return false;
+    }
+
+    private void drawMarkdownContextMenu(int mouseX, int mouseY) {
+        drawRect(
+            markdownContextMenuX,
+            markdownContextMenuY,
+            markdownContextMenuX + MARKDOWN_CONTEXT_MENU_WIDTH,
+            markdownContextMenuY + MARKDOWN_CONTEXT_MENU_ROW_HEIGHT,
+            ELEMENT_MENU_BACKGROUND);
+        drawBorder(
+            markdownContextMenuX,
+            markdownContextMenuY,
+            MARKDOWN_CONTEXT_MENU_WIDTH,
+            MARKDOWN_CONTEXT_MENU_ROW_HEIGHT,
+            0xFF3E434A);
+        LytRect menuBounds = new LytRect(
+            markdownContextMenuX,
+            markdownContextMenuY,
+            MARKDOWN_CONTEXT_MENU_WIDTH,
+            MARKDOWN_CONTEXT_MENU_ROW_HEIGHT);
+        drawMenuHover(menuBounds, mouseX, mouseY, markdownContextMenuY, MARKDOWN_CONTEXT_MENU_ROW_HEIGHT);
+        String label = markdownPanelState.isWrapEnabled() ? GuidebookText.SceneEditorMarkdownWrapOff.text()
+            : GuidebookText.SceneEditorMarkdownWrapOn.text();
+        this.drawString(
+            this.fontRendererObj,
+            label,
+            markdownContextMenuX + 6,
+            markdownContextMenuY + 5,
+            PANEL_HEADER_COLOR);
     }
 
     private void drawElementRow(SceneEditorElementModel element, int x, int y, int width, int totalHeight, int mouseX,

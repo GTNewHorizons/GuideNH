@@ -1,10 +1,9 @@
 package com.hfstudio.structurelibexport;
 
-import org.joml.Vector3f;
-
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideProjectionMath;
 
 public class StructureLibSceneCameraFitter {
 
@@ -38,27 +37,27 @@ public class StructureLibSceneCameraFitter {
     }
 
     private ProjectionBounds projectBounds(CameraSettings camera, int[] bounds) {
-        float minX = Float.MAX_VALUE;
-        float maxX = -Float.MAX_VALUE;
-        float minY = Float.MAX_VALUE;
-        float maxY = -Float.MAX_VALUE;
         float lx = bounds[0];
         float ly = bounds[1];
         float lz = bounds[2];
         float hx = bounds[3] + 1f;
         float hy = bounds[4] + 1f;
         float hz = bounds[5] + 1f;
-        for (int index = 0; index < 8; index++) {
-            float x = (index & 1) == 0 ? lx : hx;
-            float y = (index & 2) == 0 ? ly : hy;
-            float z = (index & 4) == 0 ? lz : hz;
-            Vector3f projected = camera.worldToScreen(x, y, z);
-            minX = Math.min(minX, projected.x);
-            maxX = Math.max(maxX, projected.x);
-            minY = Math.min(minY, projected.y);
-            maxY = Math.max(maxY, projected.y);
-        }
-        return new ProjectionBounds(minX, maxX, minY, maxY);
+        float[] projected = new float[4];
+        GuideProjectionMath.projectAabbToScreen(
+            camera.getCombinedMatrix(),
+            camera.getViewportSize()
+                .width(),
+            camera.getViewportSize()
+                .height(),
+            lx,
+            ly,
+            lz,
+            hx,
+            hy,
+            hz,
+            projected);
+        return new ProjectionBounds(projected[0], projected[1], projected[2], projected[3]);
     }
 
     @Desugar

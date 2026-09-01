@@ -1,11 +1,11 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IResourceManager;
@@ -16,8 +16,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.ClientProxy;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
@@ -48,6 +48,7 @@ public class GuideLightweightReloadService {
 
     public static void reloadGuides(IResourceManager resourceManager) {
         var activeResourcePacks = DataDrivenGuideLoader.getActiveResourcePacks(resourceManager);
+        LazyParsedGuidePage.clearResidentPages();
         DataDrivenGuideLoader.clearCaches();
         RecipeCache.clear();
         NeiAnimationTicker.clear();
@@ -71,6 +72,10 @@ public class GuideLightweightReloadService {
         var guidePages = new HashMap<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>>();
 
         String language = LangUtil.getCurrentLanguage();
+        // Build the small runtime localization snapshot while the reload is already in progress.
+        // This prevents the first Ponder/GameScene opened after reload from synchronously scanning
+        // every language file on the client thread.
+        GuideResourceLanguageIndex.warm(language);
 
         for (var guide : GuideRegistry.getAll()) {
             var pages = loadPages(
@@ -88,18 +93,17 @@ public class GuideLightweightReloadService {
             GuideRegistry.updatePages(entry.getKey(), entry.getValue(), false);
         }
         GuideRegistry.invalidateMergedNavigationTree();
-        CompileWorker worker = ClientProxy.getWorker();
-        var allPageIds = new ArrayList<ResourceLocation>();
-        for (var pages : guidePages.values()) {
-            allPageIds.addAll(pages.keySet());
-        }
-        if (!allPageIds.isEmpty()) {
-            worker.reset(allPageIds);
-        }
+        // Page ASTs are lazy. Clearing the old compiled results is enough here; queuing every
+        // page would immediately defeat lazy parsing and make every resource reload pay the full
+        // Micromark/compile cost. GuideScreen prioritizes the page the player actually opens.
+        ClientProxy.getWorker()
+            .clearCompiledPages();
 
         try {
+            // Search indexing is lazy: resource reloads only invalidate the old reader. Pages are
+            // parsed and indexed when the user first performs a search after the reload.
             GuideME.getSearch()
-                .indexAll();
+                .deferIndexing();
         } catch (Throwable t) {
             GuideDebugLog.warn("[GuideNH] [GuideLightweightReloadService] Failed to reindex search after reload", t);
         }
@@ -211,15 +215,36 @@ public class GuideLightweightReloadService {
         if (selected == null) return null;
         byte[] bytes = DataDrivenGuideLoader.readBytes(selected.pack(), sourceId);
         if (bytes == null) return null;
-        return parsePageBytes(sourcePack, language, contentRootFolder, pageId, sourceId, bytes);
+        return parsePageBytes(sourcePack, language, contentRootFolder, pageId, sourceId, bytes, selected);
     }
 
     @Nullable
     private static ParsedGuidePage parsePageBytes(String sourcePack, String language, String contentRootFolder,
-        ResourceLocation pageId, ResourceLocation sourceId, byte[] bytes) {
+        ResourceLocation pageId, ResourceLocation sourceId, byte[] bytes,
+        GuidePageResourceSelector.SelectedPack selected) {
         try {
-            return GuideLocalizedPageSourceResolver
-                .parseFrontmatterOnly(sourcePack, language, contentRootFolder, pageId, bytes);
+            GuideLocalizedPageSourceResolver.ResolvedGuidePageSource resolved = GuideLocalizedPageSourceResolver
+                .resolveFrontmatterOnly(language, contentRootFolder, pageId, bytes);
+            ParsedGuidePage frontmatter = PageCompiler
+                .parseFrontmatterOnly(sourcePack, language, pageId, resolved.source());
+            Supplier<String> sourceLoader = () -> {
+                byte[] currentBytes = DataDrivenGuideLoader.readBytes(selected.pack(), sourceId);
+                if (currentBytes == null) {
+                    return "";
+                }
+                return GuideLocalizedPageSourceResolver.resolve(language, contentRootFolder, pageId, currentBytes)
+                    .source();
+            };
+            return new LazyParsedGuidePage(
+                sourcePack,
+                pageId,
+                frontmatter.getFrontmatter(),
+                frontmatter.getLanguage(),
+                frontmatter.getParseFailureMessage(),
+                frontmatter.getParseFailureFrom(),
+                frontmatter.getParseFailureTo(),
+                sourceLoader,
+                resolved.contentFingerprint());
         } catch (Exception ex) {
             GuideDebugLog
                 .warn("[GuideNH] [GuideLightweightReloadService] Error parsing page {} from {}", pageId, sourceId, ex);
@@ -276,7 +301,7 @@ public class GuideLightweightReloadService {
         if (selected == null) return null;
         byte[] bytes = DataDrivenGuideLoader.readBytes(selected.pack(), sourceId);
         if (bytes == null) return null;
-        return parsePageBytes(sourcePack, language, contentRootFolder, pageId, sourceId, bytes);
+        return parsePageBytes(sourcePack, language, contentRootFolder, pageId, sourceId, bytes, selected);
     }
 
     static byte @Nullable [] selectPageCandidate(ResourceLocation sourceId) {

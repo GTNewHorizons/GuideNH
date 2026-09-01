@@ -66,6 +66,7 @@ public class GuideScreenEditorActionRegistry {
         entries.add(
             GuideScreenEditorContextMenu.Entry
                 .submenu(GuidebookText.GuideEditorContextMenuInsert.text(), insertEntries));
+        entries.add(GuideScreenEditorContextMenu.Entry.action(GuideScreenEditorAction.TOGGLE_WRAP));
         return entries;
     }
 

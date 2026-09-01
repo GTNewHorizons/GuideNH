@@ -229,11 +229,21 @@ public class GuideNavBar {
     }
 
     public void update(int mouseX, int mouseY, @Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
+        update(mouseX, mouseY, tree, bookmarkState, false);
+    }
+
+    /** Updates navigation state, optionally suppressing hover expansion during another drag gesture. */
+    public void update(int mouseX, int mouseY, @Nullable NavigationTree tree, GuideBookmarkState bookmarkState,
+        boolean suppressHoverExpansion) {
         if (shouldRebuildRows(tree, bookmarkState)) {
             rebuildRows(tree, bookmarkState);
         }
         if (pinned || contextMenuOpen) {
             open = true;
+            return;
+        }
+        if (suppressHoverExpansion) {
+            open = false;
             return;
         }
         int w = currentWidth();

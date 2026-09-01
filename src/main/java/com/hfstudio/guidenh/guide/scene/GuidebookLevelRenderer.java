@@ -11,8 +11,10 @@ import static org.lwjgl.opengl.GL11.GL_PROJECTION;
 import static org.lwjgl.opengl.GL11.GL_SCISSOR_TEST;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 
+import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import net.minecraft.block.Block;
@@ -32,7 +34,6 @@ import net.minecraftforge.client.ForgeHooksClient;
 
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -45,9 +46,9 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteSceneTessellatorCapture;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 
 public class GuidebookLevelRenderer {
@@ -58,16 +59,19 @@ public class GuidebookLevelRenderer {
     public static final ResourceLocation SNOW_TEXTURE = new ResourceLocation("textures/environment/snow.png");
     public static final int WEATHER_RENDER_RADIUS = 10;
     public static final int WEATHER_COVERAGE_RESOLUTION = 1024;
+    private static final int AABB_CULLING_BLOCK_THRESHOLD = 128;
 
     private final FloatBuffer matrixBuffer = BufferUtils.createFloatBuffer(16);
-    private final Vector3f cullScreenScratch = new Vector3f();
     private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
+    /** Reused per-frame list; block visibility is identical for opaque and translucent passes. */
+    private final ArrayList<int[]> visibleBlocksScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnsScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnPool = new ArrayList<>();
 
     // Rebind RenderBlocks only when the level instance changes.
     private RenderBlocks cachedRenderBlocks;
-    private GuidebookLevel cachedRenderBlocksLevel;
+    /** Weak because RenderBlocks is a process-wide singleton and scenes are short-lived. */
+    private WeakReference<GuidebookLevel> cachedRenderBlocksLevel = new WeakReference<>(null);
 
     public static GuidebookLevelRenderer getInstance() {
         return INSTANCE;
@@ -278,20 +282,27 @@ public class GuidebookLevelRenderer {
                         .bindTexture(TextureMap.locationBlocksTexture);
                     var filledBlocks = level.getFilledBlocks();
                     var tileEntities = level.getTileEntities();
+                    visibleBlocksScratch.clear();
+                    collectVisibleBlocks(filledBlocks, layerSelection, camera, visibleBlocksScratch);
+                    GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
+                        : GuidebookSceneLayerSelection.all();
+                    boolean renderAllFaces = effectiveSelection.shouldRenderAllFaces();
 
                     mc.entityRenderer.enableLightmap(partialTicks);
                     try {
                         setRenderPass(0);
                         GL11.glDisable(GL_BLEND);
-                        renderBlocksPass(level, filledBlocks, 0, layerSelection, camera);
+                        boolean hasTranslucentBlocks = renderBlocksPass(level, visibleBlocksScratch, 0, renderAllFaces);
 
-                        setRenderPass(1);
-                        GL11.glEnable(GL_BLEND);
-                        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                        GL11.glDepthMask(false);
-                        renderBlocksPass(level, filledBlocks, 1, layerSelection, camera);
-                        GL11.glDepthMask(true);
-                        GL11.glDisable(GL_BLEND);
+                        if (hasTranslucentBlocks) {
+                            setRenderPass(1);
+                            GL11.glEnable(GL_BLEND);
+                            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                            GL11.glDepthMask(false);
+                            renderBlocksPass(level, visibleBlocksScratch, 1, renderAllFaces);
+                            GL11.glDepthMask(true);
+                            GL11.glDisable(GL_BLEND);
+                        }
 
                         setRenderPass(-1);
 
@@ -348,56 +359,105 @@ public class GuidebookLevelRenderer {
             GL11.glColor4f(1f, 1f, 1f, 1f);
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
             RenderHelper.disableStandardItemLighting();
+        } finally {
+            // RenderBlocks.blockAccess is a strong reference to the fake WorldClient. It is only
+            // needed during this draw call, so clear it even when rendering aborts with an error.
+            clearCachedRenderBlocksReference();
+            visibleBlocksScratch.clear();
         }
     }
 
-    private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
-        GuidebookSceneLayerSelection layerSelection, CameraSettings camera) {
+    public void releaseLevel(GuidebookLevel level) {
+        if (cachedRenderBlocksLevel.get() == level) {
+            clearCachedRenderBlocksReference();
+        }
+    }
+
+    /** Clears the renderer's process-wide fake-world binding during client world unload. */
+    public void clearClientRuntimeCaches() {
+        clearCachedRenderBlocksReference();
+        weatherColumnsScratch.clear();
+        weatherColumnPool.clear();
+        visibleBlocksScratch.clear();
+    }
+
+    private void clearCachedRenderBlocksReference() {
+        if (cachedRenderBlocks != null) {
+            cachedRenderBlocks.blockAccess = null;
+        }
+        cachedRenderBlocksLevel.clear();
+    }
+
+    private void collectVisibleBlocks(Iterable<int[]> filledBlocks, GuidebookSceneLayerSelection layerSelection,
+        CameraSettings camera, List<int[]> destination) {
+        GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
+            : GuidebookSceneLayerSelection.all();
+        // For small previews the entire structure normally fits in the viewport. Avoid paying a
+        // matrix projection per block in that common case; filtered layer modes still need the
+        // inexpensive Y check below.
+        if (effectiveSelection.getMode() == GuidebookSceneLayerSelection.Mode.ALL
+            && filledBlocks instanceof Collection<?>collection
+            && collection.size() <= AABB_CULLING_BLOCK_THRESHOLD) {
+            for (int[] p : filledBlocks) {
+                destination.add(p);
+            }
+            return;
+        }
+        for (int[] p : filledBlocks) {
+            if (!effectiveSelection.isLayerVisible(p[1])) {
+                continue;
+            }
+            if (isAabbPotentiallyVisible(camera, p[0], p[1], p[2], p[0] + 1.0f, p[1] + 1.0f, p[2] + 1.0f)) {
+                destination.add(p);
+            }
+        }
+    }
+
+    private boolean renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
+        boolean renderAllFaces) {
         RenderBlocks rb = cachedRenderBlocks;
-        if (rb == null || cachedRenderBlocksLevel != level) {
+        if (rb == null || cachedRenderBlocksLevel.get() != level) {
             rb = new RenderBlocks(level.getOrCreateFakeWorld());
             cachedRenderBlocks = rb;
-            cachedRenderBlocksLevel = level;
+            cachedRenderBlocksLevel = new WeakReference<>(level);
         }
         Minecraft mc = Minecraft.getMinecraft();
         int savedAmbientOcclusion = mc.gameSettings.ambientOcclusion;
         mc.gameSettings.ambientOcclusion = 0;
         IBlockAccess fakeWorld = level.getOrCreateFakeWorld();
         var tes = Tessellator.instance;
+        boolean hasTranslucentBlocks = false;
         tes.startDrawingQuads();
         try {
             tes.setBrightness((15 << 20) | (15 << 4));
-            GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
-                : GuidebookSceneLayerSelection.all();
-            boolean filteredLayerMode = effectiveSelection.shouldRenderAllFaces();
+            boolean filteredLayerMode = renderAllFaces;
             for (int[] p : filledBlocks) {
-                if (!effectiveSelection.isLayerVisible(p[1])) {
-                    continue;
-                }
-                if (!isAabbPotentiallyVisible(camera, p[0], p[1], p[2], p[0] + 1.0f, p[1] + 1.0f, p[2] + 1.0f)) {
-                    continue;
-                }
                 Block block = level.getBlock(p[0], p[1], p[2]);
                 if (block == null) continue;
+                if (pass == 0 && block.canRenderInPass(1)) {
+                    hasTranslucentBlocks = true;
+                }
                 if (!block.canRenderInPass(pass)) continue;
                 try {
                     TileEntity tileEntity = level.getTileEntity(p[0], p[1], p[2]);
-                    if (GuideGregTechTileSupport.isGregTechTileEntity(tileEntity)
-                        && !GuideGregTechTileSupport.hasValidMetaTileBinding(tileEntity)) {
-                        GuideGregTechTileSupport.logInfoOnce(
-                            "render-invalid-block-pass:" + pass
-                                + ":"
-                                + GuideGregTechTileSupport.describeTile(tileEntity),
-                            "Render pass {} found invalid GregTech block tile before block render: {}",
-                            pass,
-                            GuideGregTechTileSupport.describeTile(tileEntity));
-                        GuideGregTechTileSupport.repairMetaTileBinding(tileEntity);
-                    }
-                    TileEntity promoted = GuideNhClientIntegrationRegistry.global()
-                        .promotePreviewBlockTileEntity(block, tileEntity);
-                    if (promoted != null && promoted != tileEntity) {
-                        level.setTileEntity(p[0], p[1], p[2], promoted);
-                        tileEntity = promoted;
+                    // Promotion and GregTech repair mutate the level and only need to happen
+                    // once. Repeating them for the translucent pass adds avoidable per-frame
+                    // integration work; pass-one-only blocks still use the null-tile fallback.
+                    if (pass == 0 || tileEntity == null) {
+                        if (GregTechHelpers.isGregTechTileEntity(tileEntity)
+                            && !GregTechHelpers.hasValidMetaTileBinding(tileEntity)) {
+                            GregTechHelpers.logInfoOnce(
+                                "render-invalid-block-pass:" + pass + ":" + GregTechHelpers.describeTile(tileEntity),
+                                "Render pass {} found invalid GregTech block tile before block render: {}",
+                                pass,
+                                GregTechHelpers.describeTile(tileEntity));
+                            GregTechHelpers.repairMetaTileBinding(tileEntity);
+                        }
+                        TileEntity promoted = GuideNhClientIntegrationRegistry.global()
+                            .promotePreviewBlockTileEntity(block, tileEntity);
+                        if (promoted != null && promoted != tileEntity) {
+                            level.setTileEntity(p[0], p[1], p[2], promoted);
+                        }
                     }
                     resetRenderBlocksState(rb, fakeWorld, filteredLayerMode);
                     boolean rendered = rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
@@ -414,6 +474,7 @@ public class GuidebookLevelRenderer {
             tes.setTranslation(0.0D, 0.0D, 0.0D);
             mc.gameSettings.ambientOcclusion = savedAmbientOcclusion;
         }
+        return hasTranslucentBlocks;
     }
 
     public static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess,
@@ -449,14 +510,13 @@ public class GuidebookLevelRenderer {
                 if (te == null) {
                     continue;
                 }
-                if (GuideGregTechTileSupport.isGregTechTileEntity(te)
-                    && !GuideGregTechTileSupport.hasValidMetaTileBinding(te)) {
-                    GuideGregTechTileSupport.logInfoOnce(
-                        "render-invalid-tesr-pass:" + pass + ":" + GuideGregTechTileSupport.describeTile(te),
+                if (GregTechHelpers.isGregTechTileEntity(te) && !GregTechHelpers.hasValidMetaTileBinding(te)) {
+                    GregTechHelpers.logInfoOnce(
+                        "render-invalid-tesr-pass:" + pass + ":" + GregTechHelpers.describeTile(te),
                         "Render pass {} found invalid GregTech tile before TESR render: {}",
                         pass,
-                        GuideGregTechTileSupport.describeTile(te));
-                    GuideGregTechTileSupport.repairMetaTileBinding(te);
+                        GregTechHelpers.describeTile(te));
+                    GregTechHelpers.repairMetaTileBinding(te);
                 }
                 if (!effectiveSelection.isLayerVisible(te.yCoord)) {
                     continue;
@@ -561,32 +621,7 @@ public class GuidebookLevelRenderer {
      */
     private boolean isAabbPotentiallyVisible(CameraSettings camera, float minX, float minY, float minZ, float maxX,
         float maxY, float maxZ) {
-        int viewportWidth = camera.getViewportSize()
-            .width();
-        int viewportHeight = camera.getViewportSize()
-            .height();
-        if (viewportWidth <= 0 || viewportHeight <= 0) {
-            return true;
-        }
-        float halfW = viewportWidth * 0.5f;
-        float halfH = viewportHeight * 0.5f;
-        float minSX = Float.MAX_VALUE;
-        float maxSX = -Float.MAX_VALUE;
-        float minSY = Float.MAX_VALUE;
-        float maxSY = -Float.MAX_VALUE;
-        for (int corner = 0; corner < 8; corner++) {
-            float wx = (corner & 1) == 0 ? minX : maxX;
-            float wy = (corner & 2) == 0 ? minY : maxY;
-            float wz = (corner & 4) == 0 ? minZ : maxZ;
-            camera.worldToScreen(wx, wy, wz, cullScreenScratch);
-            float sx = cullScreenScratch.x;
-            float sy = cullScreenScratch.y;
-            if (sx < minSX) minSX = sx;
-            if (sx > maxSX) maxSX = sx;
-            if (sy < minSY) minSY = sy;
-            if (sy > maxSY) maxSY = sy;
-        }
-        return maxSX >= -halfW && minSX <= halfW && maxSY >= -halfH && minSY <= halfH;
+        return camera.isAabbPotentiallyVisible(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
     public static int resolveEntityBrightnessForPreview(Entity entity, float partialTicks) {

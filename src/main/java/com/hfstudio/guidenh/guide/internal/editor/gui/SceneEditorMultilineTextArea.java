@@ -83,6 +83,15 @@ public class SceneEditorMultilineTextArea {
     private int pendingImePhysicalDuplicateChar;
     private int recentPhysicalAsciiChar;
     private long recentPhysicalAsciiAtMillis;
+    /** Preferred pixel column used by repeated vertical cursor movement. */
+    @Nullable
+    private Integer preferredVerticalPixel;
+    /**
+     * A soft-wrapped line boundary has one document index but two visual positions. Keep the position chosen by the
+     * user so cursor rendering and the next vertical movement do not arbitrarily select the preceding visual line.
+     */
+    private int cursorVisualLineIndex;
+    private int cursorVisualLineDocumentIndex;
 
     // Double-click word selection
     private long lastClickTimeMillis;
@@ -139,6 +148,9 @@ public class SceneEditorMultilineTextArea {
         this.pendingImePhysicalDuplicateChar = -1;
         this.recentPhysicalAsciiChar = -1;
         this.recentPhysicalAsciiAtMillis = 0L;
+        this.preferredVerticalPixel = null;
+        this.cursorVisualLineIndex = -1;
+        this.cursorVisualLineDocumentIndex = -1;
     }
 
     public void setBounds(int x, int y, int width, int height) {
@@ -152,6 +164,7 @@ public class SceneEditorMultilineTextArea {
         this.width = safeWidth;
         this.height = safeHeight;
         rebuildLayoutCache();
+        clearCursorVisualLine();
         syncImeFocusProxy();
     }
 
@@ -168,6 +181,8 @@ public class SceneEditorMultilineTextArea {
                 selectionModel.getText()
                     .length()));
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
+        clearCursorVisualLine();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -198,6 +213,8 @@ public class SceneEditorMultilineTextArea {
 
     public void selectAll() {
         selectionModel.selectAll();
+        clearPreferredVerticalPixel();
+        clearCursorVisualLine();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -215,6 +232,8 @@ public class SceneEditorMultilineTextArea {
         }
         clipboardAccess.copy(selectionModel.cutSelection());
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
+        clearCursorVisualLine();
         ensureCursorVisible();
         syncImeFocusProxy();
         return true;
@@ -223,6 +242,8 @@ public class SceneEditorMultilineTextArea {
     public boolean pasteClipboard() {
         selectionModel.insertText(normalizeLineEndings(clipboardAccess.paste()));
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
+        clearCursorVisualLine();
         ensureCursorVisible();
         syncImeFocusProxy();
         return true;
@@ -232,13 +253,28 @@ public class SceneEditorMultilineTextArea {
         selectionModel.setText(normalizeLineEndings(text));
         selectionModel.setSelection(selectionStart, selectionEnd);
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
+        clearCursorVisualLine();
         ensureCursorVisible();
+        syncImeFocusProxy();
+    }
+
+    /** Applies a programmatic replacement while keeping the current viewport when possible. */
+    public void applyEditPreservingViewport(String text, int selectionStart, int selectionEnd) {
+        int verticalOffset = scrollState.getOffsetPixels();
+        int horizontalOffset = horizontalOffsetPixels;
+        applyEdit(text, selectionStart, selectionEnd);
+        scrollState.setOffsetPixels(verticalOffset);
+        horizontalOffsetPixels = clampHorizontalOffset(horizontalOffset);
+        snapVisualOffsetsToTarget();
         syncImeFocusProxy();
     }
 
     public void insertAtSelection(String text) {
         selectionModel.insertText(normalizeLineEndings(text));
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
+        clearCursorVisualLine();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -248,6 +284,8 @@ public class SceneEditorMultilineTextArea {
         selectionModel.setSelection(cursorIndex, cursorIndex);
         selectionModel.insertText(text);
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
+        clearCursorVisualLine();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -353,6 +391,8 @@ public class SceneEditorMultilineTextArea {
             this.horizontalOffsetPixels = 0;
         }
         rebuildLayoutCache();
+        clearPreferredVerticalPixel();
+        clearCursorVisualLine();
         ensureCursorVisible();
         syncImeFocusProxy();
     }
@@ -468,13 +508,22 @@ public class SceneEditorMultilineTextArea {
 
         setFocused(true);
         int cursorIndex = getCursorIndexAt(mouseX, mouseY);
+        int visualLineIndex = getVisualLineIndexAt(mouseY);
         if (button == 0) {
             selectionModel.beginSelection(cursorIndex);
             long now = System.currentTimeMillis();
             long elapsed = now - lastClickTimeMillis;
             lastClickTimeMillis = now;
-            if (elapsed < DOUBLE_CLICK_WINDOW_MS && doubleClickHandler != null) {
-                doubleClickHandler.onDoubleClick(selectionModel.getCursorIndex());
+            if (elapsed < DOUBLE_CLICK_WINDOW_MS) {
+                selectionModel.selectWordAt(cursorIndex);
+                if (doubleClickHandler != null) {
+                    doubleClickHandler.onDoubleClick(selectionModel.getCursorIndex());
+                }
+                selectingWithMouse = false;
+                clearPreferredVerticalPixel();
+                clearCursorVisualLine();
+                rebuildLayoutCache();
+                syncImeFocusProxy();
                 return true;
             }
             selectingWithMouse = true;
@@ -482,7 +531,9 @@ public class SceneEditorMultilineTextArea {
             selectionModel.setCursorIndex(cursorIndex);
             selectingWithMouse = false;
         }
+        clearPreferredVerticalPixel();
         rebuildLayoutCache();
+        setCursorVisualLine(cursorIndex, visualLineIndex);
         syncImeFocusProxy();
         ensureCursorVisible();
         syncImeFocusProxy();
@@ -527,7 +578,10 @@ public class SceneEditorMultilineTextArea {
         if (!focused || button != 0 || !selectingWithMouse) {
             return false;
         }
-        selectionModel.updateSelection(getCursorIndexAt(mouseX, mouseY));
+        int cursorIndex = getCursorIndexAt(mouseX, mouseY);
+        selectionModel.updateSelection(cursorIndex);
+        setCursorVisualLine(cursorIndex, getVisualLineIndexAt(mouseY));
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
         syncImeFocusProxy();
         return true;
@@ -562,6 +616,8 @@ public class SceneEditorMultilineTextArea {
         }
         if (isCtrlKeyCombo(keyCode, Keyboard.KEY_A)) {
             selectionModel.selectAll();
+            clearPreferredVerticalPixel();
+            clearCursorVisualLine();
             ensureCursorVisible();
             return true;
         }
@@ -575,6 +631,7 @@ public class SceneEditorMultilineTextArea {
             if (selectionModel.hasSelection()) {
                 clipboardAccess.copy(selectionModel.cutSelection());
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
             }
             return true;
@@ -582,6 +639,7 @@ public class SceneEditorMultilineTextArea {
         if (isCtrlKeyCombo(keyCode, Keyboard.KEY_V)) {
             selectionModel.insertText(normalizeLineEndings(clipboardAccess.paste()));
             rebuildLayoutCache();
+            clearPreferredVerticalPixel();
             ensureCursorVisible();
             return true;
         }
@@ -591,29 +649,39 @@ public class SceneEditorMultilineTextArea {
             case Keyboard.KEY_NUMPADENTER:
                 applySmartNewline();
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_TAB:
-                selectionModel.insertText("    ");
+                if (GuiScreen.isShiftKeyDown()) {
+                    selectionModel.indentLines(true, 4);
+                } else if (selectionModel.hasSelection()) {
+                    selectionModel.indentLines(false, 4);
+                } else {
+                    selectionModel.insertText("    ");
+                }
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_BACK:
                 selectionModel.deleteBackward();
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_DELETE:
                 selectionModel.deleteForward();
                 rebuildLayoutCache();
+                clearPreferredVerticalPixel();
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_LEFT:
-                selectionModel.moveCursor(selectionModel.getCursorIndex() - 1, GuiScreen.isShiftKeyDown());
+                moveCursorHorizontal(-1, GuiScreen.isShiftKeyDown());
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_RIGHT:
-                selectionModel.moveCursor(selectionModel.getCursorIndex() + 1, GuiScreen.isShiftKeyDown());
+                moveCursorHorizontal(1, GuiScreen.isShiftKeyDown());
                 ensureCursorVisible();
                 return true;
             case Keyboard.KEY_UP:
@@ -645,6 +713,7 @@ public class SceneEditorMultilineTextArea {
             selectionModel.insertText(Character.toString(typedChar));
             rememberInsertedAsciiCharacter(typedChar, keyCode);
             rebuildLayoutCache();
+            clearPreferredVerticalPixel();
             ensureCursorVisible();
             return true;
         }
@@ -733,14 +802,8 @@ public class SceneEditorMultilineTextArea {
             selectionModel.insertText("\n" + indent + manualMarker);
             return;
         }
-        if (trimmed.isEmpty()) {
-            // Blank line: move cursor to next line instead of inserting another blank line.
-            int nextLineStart = findLineEnd(text, cursor) + 1;
-            if (nextLineStart <= text.length()) {
-                selectionModel.setSelection(nextLineStart, nextLineStart);
-            }
-            return;
-        }
+        // A blank line is ordinary Markdown content. Enter must still insert a newline so users
+        // can create paragraph separation instead of silently moving the caret.
         selectionModel.insertText("\n" + indent);
     }
 
@@ -852,9 +915,9 @@ public class SceneEditorMultilineTextArea {
             }
             int nextNumber = list.start + index + 1;
             char delimiter = marker.charAt(marker.length() - 1); // . or )
-            return indentFor(item) + nextNumber + delimiter + " ";
+            return indentFor(text, item) + nextNumber + delimiter + " ";
         }
-        return indentFor(item) + marker;
+        return indentFor(text, item) + marker;
     }
 
     @Nullable
@@ -874,9 +937,25 @@ public class SceneEditorMultilineTextArea {
         return null;
     }
 
-    private static String indentFor(MdAstListItem item) {
-        // Simple: use empty indent (list items are typically left-aligned)
-        return "";
+    private static String indentFor(String text, MdAstListItem item) {
+        UnistPosition position = item.position();
+        if (position == null || position.start() == null) {
+            return "";
+        }
+
+        int lineStart = findLineStart(
+            text,
+            position.start()
+                .offset());
+        int indentationEnd = lineStart;
+        while (indentationEnd < text.length()) {
+            char character = text.charAt(indentationEnd);
+            if (character != ' ' && character != '\t') {
+                break;
+            }
+            indentationEnd++;
+        }
+        return text.substring(lineStart, indentationEnd);
     }
 
     @Nullable
@@ -1043,6 +1122,7 @@ public class SceneEditorMultilineTextArea {
         scrollState.setViewportPixels(textViewportHeight);
         scrollState.setContentPixels(layoutCache.getContentHeightPixels());
         snapVisualOffsetsToTarget();
+        clearCursorVisualLine();
     }
 
     private void syncImeFocusProxy() {
@@ -1241,13 +1321,55 @@ public class SceneEditorMultilineTextArea {
         }
         int currentLine = getVisualLineIndex(selectionModel.getCursorIndex());
         int nextLine = currentLine + direction;
-        if (nextLine < 0 || nextLine >= lines.size()) {
-            return;
+        if (preferredVerticalPixel == null) {
+            preferredVerticalPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), lines.get(currentLine));
         }
-        int currentPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), lines.get(currentLine));
-        int nextIndex = getCursorIndexAtPixel(lines.get(nextLine), currentPixel);
+        if (nextLine < 0) {
+            nextLine = 0;
+            preferredVerticalPixel = 0;
+        } else if (nextLine >= lines.size()) {
+            nextLine = lines.size() - 1;
+            preferredVerticalPixel = fontRenderer.getStringWidth(
+                lines.get(nextLine)
+                    .text());
+        }
+        int nextIndex = getCursorIndexAtPixel(lines.get(nextLine), preferredVerticalPixel);
         selectionModel.moveCursor(nextIndex, keepSelection);
+        setCursorVisualLine(nextIndex, nextLine);
         ensureCursorVisible();
+    }
+
+    private void moveCursorHorizontal(int direction, boolean keepSelection) {
+        boolean ctrl = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+        int target;
+        if (ctrl) {
+            if (!keepSelection && selectionModel.hasSelection()) {
+                target = direction < 0 ? selectionModel.getSelectionStart() : selectionModel.getSelectionEnd();
+            } else {
+                target = findWordBoundary(selectionModel.getCursorIndex(), direction);
+            }
+        } else {
+            target = selectionModel.getCursorIndex() + direction;
+            if (!keepSelection && selectionModel.hasSelection()) {
+                target = direction < 0 ? selectionModel.getSelectionStart() : selectionModel.getSelectionEnd();
+            }
+        }
+        selectionModel.moveCursor(target, keepSelection);
+        setCursorVisualLine(target, findHorizontalTargetVisualLine(target, direction));
+        clearPreferredVerticalPixel();
+    }
+
+    private int findWordBoundary(int index, int direction) {
+        String text = selectionModel.getText();
+        int cursor = clamp(index, 0, text.length());
+        if (direction < 0) {
+            while (cursor > 0 && Character.isWhitespace(text.charAt(cursor - 1))) cursor--;
+            while (cursor > 0 && !Character.isWhitespace(text.charAt(cursor - 1))) cursor--;
+        } else {
+            while (cursor < text.length() && Character.isWhitespace(text.charAt(cursor))) cursor++;
+            while (cursor < text.length() && !Character.isWhitespace(text.charAt(cursor))) cursor++;
+        }
+        return cursor;
     }
 
     private void moveCursorToLineBoundary(boolean start, boolean keepSelection) {
@@ -1255,9 +1377,12 @@ public class SceneEditorMultilineTextArea {
         if (lines.isEmpty()) {
             return;
         }
-        SceneEditorMultilineTextLayoutCache.VisualLine line = lines
-            .get(getVisualLineIndex(selectionModel.getCursorIndex()));
-        selectionModel.moveCursor(start ? line.startIndex() : line.endIndex(), keepSelection);
+        int currentLine = getVisualLineIndex(selectionModel.getCursorIndex());
+        SceneEditorMultilineTextLayoutCache.VisualLine line = lines.get(currentLine);
+        int target = start ? line.startIndex() : line.endIndex();
+        selectionModel.moveCursor(target, keepSelection);
+        setCursorVisualLine(target, lineIndexForBoundary(target, start, currentLine));
+        clearPreferredVerticalPixel();
         ensureCursorVisible();
     }
 
@@ -1295,16 +1420,18 @@ public class SceneEditorMultilineTextArea {
         if (lines.isEmpty()) {
             return 0;
         }
-        int localY = mouseY - y - PADDING + visualVerticalOffsetPixels.rounded();
-        int lineIndex = localY <= 0 ? 0 : localY / getLineHeight();
-        if (lineIndex < 0) {
-            lineIndex = 0;
-        }
-        if (lineIndex >= lines.size()) {
-            lineIndex = lines.size() - 1;
-        }
+        int lineIndex = getVisualLineIndexAt(mouseY);
         int localX = Math.max(0, mouseX - x - PADDING + visualHorizontalOffsetPixels.rounded());
         return getCursorIndexAtPixel(lines.get(lineIndex), localX);
+    }
+
+    private int getVisualLineIndexAt(int mouseY) {
+        List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
+        if (lines.isEmpty()) {
+            return 0;
+        }
+        int localY = mouseY - y - PADDING + visualVerticalOffsetPixels.rounded();
+        return clamp(localY <= 0 ? 0 : localY / getLineHeight(), 0, lines.size() - 1);
     }
 
     private void ensureCursorVisible() {
@@ -1341,6 +1468,13 @@ public class SceneEditorMultilineTextArea {
 
     private int getVisualLineIndex(int cursorIndex) {
         List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
+        if (cursorVisualLineDocumentIndex == cursorIndex && cursorVisualLineIndex >= 0
+            && cursorVisualLineIndex < lines.size()) {
+            SceneEditorMultilineTextLayoutCache.VisualLine line = lines.get(cursorVisualLineIndex);
+            if (cursorIndex >= line.startIndex() && cursorIndex <= line.endIndex()) {
+                return cursorVisualLineIndex;
+            }
+        }
         for (int i = 0; i < lines.size(); i++) {
             SceneEditorMultilineTextLayoutCache.VisualLine line = lines.get(i);
             if (cursorIndex < line.startIndex()) {
@@ -1351,6 +1485,27 @@ public class SceneEditorMultilineTextArea {
             }
         }
         return Math.max(0, lines.size() - 1);
+    }
+
+    private int findHorizontalTargetVisualLine(int cursorIndex, int direction) {
+        return lineIndexForBoundary(cursorIndex, direction > 0, getVisualLineIndex(cursorIndex));
+    }
+
+    private int lineIndexForBoundary(int cursorIndex, boolean preferLineStart, int fallback) {
+        List<SceneEditorMultilineTextLayoutCache.VisualLine> lines = layoutCache.getVisualLines();
+        for (int i = 0; i < lines.size(); i++) {
+            SceneEditorMultilineTextLayoutCache.VisualLine line = lines.get(i);
+            if ((preferLineStart && line.startIndex() == cursorIndex)
+                || (!preferLineStart && line.endIndex() == cursorIndex)) {
+                return i;
+            }
+        }
+        return fallback;
+    }
+
+    private void setCursorVisualLine(int cursorIndex, int visualLineIndex) {
+        cursorVisualLineDocumentIndex = cursorIndex;
+        cursorVisualLineIndex = visualLineIndex;
     }
 
     private int getCursorPixelOnLine(int cursorIndex, SceneEditorMultilineTextLayoutCache.VisualLine line) {
@@ -1412,6 +1567,15 @@ public class SceneEditorMultilineTextArea {
             return min;
         }
         return Math.min(value, max);
+    }
+
+    private void clearPreferredVerticalPixel() {
+        preferredVerticalPixel = null;
+    }
+
+    private void clearCursorVisualLine() {
+        cursorVisualLineIndex = -1;
+        cursorVisualLineDocumentIndex = -1;
     }
 
     private int getContentClipWidth() {

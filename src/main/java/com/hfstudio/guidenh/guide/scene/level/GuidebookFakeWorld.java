@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
-import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -16,6 +15,7 @@ import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.profiler.Profiler;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.EnumDifficulty;
 import net.minecraft.world.WorldSettings;
 import net.minecraft.world.WorldType;
@@ -25,10 +25,14 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
+import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 /**
  * Lightweight client-only world wrapper backed by a {@link GuidebookLevel}.
@@ -38,11 +42,10 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
 
     public static final long FROZEN_WORLD_TIME = 0L;
     public static volatile boolean gregTechDummyWorldRegistrationAttempted;
-    public static final String BARTWORKS_META_GENERATED_TILE_CLASS = "bartworks.system.material.TileEntityMetaGeneratedBlock";
-    public static volatile Field bartWorksMetaField;
-    public static volatile boolean bartWorksMetaFieldResolved;
 
     private final GuidebookLevel level;
+    /** Stable read-only chunk views; renderer/CTM asks for the same coordinates repeatedly. */
+    private final Long2ObjectOpenHashMap<GuidebookFakeChunk> chunkViews = new Long2ObjectOpenHashMap<>();
     @Nullable
     private Set<Long> markBlockForUpdateGuard;
 
@@ -91,6 +94,22 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     }
 
     @Override
+    public void closePreviewWorld() {
+        // WorldClient owns mutable entity/tile lists in addition to the level's canonical maps.
+        // Clear those lists before dropping renderer references so a stale world cannot retain
+        // scene objects after the page that created it is evicted.
+        loadedTileEntityList.clear();
+        loadedEntityList.clear();
+        playerEntities.clear();
+        weatherEffects.clear();
+        chunkViews.clear();
+        markBlockForUpdateGuard = null;
+        GuidebookFakeRenderEnvironment.releaseCachedPreviewPlayer(this);
+        GuidebookLevelRenderer.getInstance()
+            .releaseLevel(level);
+    }
+
+    @Override
     public Entity getEntityByID(int id) {
         if (level == null) {
             return null;
@@ -113,7 +132,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     public int getBlockMetadata(int x, int y, int z) {
         if (level == null) return 0;
         TileEntity tileEntity = level.getTileEntity(x, y, z);
-        Integer bartWorksMeta = resolveBartWorksMetadata(tileEntity);
+        Integer bartWorksMeta = GregTechHelpers.resolveBartWorksMetadata(tileEntity);
         if (bartWorksMeta != null) {
             return bartWorksMeta;
         }
@@ -133,7 +152,15 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
 
     @Override
     public Chunk getChunkFromBlockCoords(int x, int z) {
-        return new GuidebookFakeChunk(this, x >> 4, z >> 4);
+        int chunkX = x >> 4;
+        int chunkZ = z >> 4;
+        long key = ChunkCoordIntPair.chunkXZ2Int(chunkX, chunkZ);
+        GuidebookFakeChunk chunk = chunkViews.get(key);
+        if (chunk == null) {
+            chunk = new GuidebookFakeChunk(this, chunkX, chunkZ);
+            chunkViews.put(key, chunk);
+        }
+        return chunk;
     }
 
     @Override
@@ -351,52 +378,6 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
                 iterator.remove();
             }
         }
-    }
-
-    @Nullable
-    public static Integer resolveBartWorksMetadata(@Nullable TileEntity tileEntity) {
-        if (!isInstanceOf(tileEntity, BARTWORKS_META_GENERATED_TILE_CLASS)) {
-            return null;
-        }
-        Field metaField = resolveBartWorksMetaField(tileEntity);
-        if (metaField == null) {
-            return null;
-        }
-        try {
-            return Math.max(0, metaField.getShort(tileEntity));
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Nullable
-    public static Field resolveBartWorksMetaField(@Nullable TileEntity tileEntity) {
-        if (bartWorksMetaFieldResolved) {
-            return bartWorksMetaField;
-        }
-        bartWorksMetaFieldResolved = true;
-        if (tileEntity == null) {
-            return null;
-        }
-        try {
-            bartWorksMetaField = tileEntity.getClass()
-                .getField("mMetaData");
-        } catch (Throwable ignored) {
-            bartWorksMetaField = null;
-        }
-        return bartWorksMetaField;
-    }
-
-    public static boolean isInstanceOf(@Nullable Object instance, String className) {
-        if (instance == null || className == null || className.isEmpty()) {
-            return false;
-        }
-        for (Class<?> type = instance.getClass(); type != null; type = type.getSuperclass()) {
-            if (className.equals(type.getName())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void applyDescriptionPacketToTileEntity(TileEntity tileEntity) {

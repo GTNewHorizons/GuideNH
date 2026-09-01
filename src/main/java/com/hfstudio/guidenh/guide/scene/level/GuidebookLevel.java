@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -37,10 +38,18 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private final Long2ObjectLinkedOpenHashMap<GuidebookChunk> chunks = new Long2ObjectLinkedOpenHashMap<>();
+    // Block and metadata reads are clustered by chunk during rendering. Keep the last lookup
+    // out of the map path to avoid allocating a ChunkCoordIntPair for every block access.
+    @Nullable
+    private GuidebookChunk cachedChunk;
+    private boolean cachedChunkValid;
+    private int cachedChunkX;
+    private int cachedChunkZ;
 
     private final Long2ObjectLinkedOpenHashMap<TileEntity> tileEntities = new Long2ObjectLinkedOpenHashMap<>();
     private final LinkedHashMap<Integer, Entity> entities = new LinkedHashMap<>();
@@ -50,8 +59,9 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private final LinkedHashMap<String, SceneEntityMountState> sceneEntityMountStates = new LinkedHashMap<>();
     private final HashMap<String, LinkedHashSet<String>> sceneEntityMountChildren = new HashMap<>();
 
-    private final HashMap<Long, int[]> filledBlocks = new HashMap<>();
-    private final HashMap<Long, String> explicitBlockIds = new HashMap<>();
+    // Coordinate indexes use primitive long keys to avoid boxing on scene import and updates.
+    private final Long2ObjectOpenHashMap<int[]> filledBlocks = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectOpenHashMap<String> explicitBlockIds = new Long2ObjectOpenHashMap<>();
 
     /** Opaque server-authoritative preview blobs per coordinate ({@link #packPos}); cleared when block becomes air. */
     private final GuidebookPreviewAuthorityStore previewAuthorityStore = new GuidebookPreviewAuthorityStore();
@@ -70,6 +80,13 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Nullable
     private static GuidebookPreviewWorldFactory previewWorldFactory;
 
+    /**
+     * Tracks live scene levels without owning them. Runtime worlds can also be created by the
+     * scene editor and semantic preview paths, so page-cache eviction alone is not a complete
+     * lifecycle boundary. The client unload hook snapshots this set and releases each world.
+     */
+    private static final Set<GuidebookLevel> LIVE_LEVELS = Collections.newSetFromMap(new WeakHashMap<>());
+
     @Nullable
     private World fakeWorld;
 
@@ -79,6 +96,12 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
     private boolean boundsDirty = true;
     private boolean centerDirty = true;
+
+    public GuidebookLevel() {
+        synchronized (LIVE_LEVELS) {
+            LIVE_LEVELS.add(this);
+        }
+    }
 
     public static void setPreviewWorldFactory(@Nullable GuidebookPreviewWorldFactory factory) {
         previewWorldFactory = factory;
@@ -149,6 +172,10 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             if (isAir) return;
             chunk = new GuidebookChunk(x >> 4, z >> 4);
             chunks.put(chunkKey, chunk);
+            cachedChunkX = x >> 4;
+            cachedChunkZ = z >> 4;
+            cachedChunk = chunk;
+            cachedChunkValid = true;
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
@@ -208,6 +235,10 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             }
             chunk = new GuidebookChunk(x >> 4, z >> 4);
             chunks.put(chunkKey, chunk);
+            cachedChunkX = x >> 4;
+            cachedChunkZ = z >> 4;
+            cachedChunk = chunk;
+            cachedChunkValid = true;
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
@@ -338,6 +369,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             }
         }
         chunks.clear();
+        cachedChunk = null;
+        cachedChunkValid = false;
         tileEntities.clear();
         entities.clear();
         sceneEntityIds.clear();
@@ -359,6 +392,66 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (fakeWorld instanceof GuidebookPreviewWorld previewWorld) {
             previewWorld.syncLoadedTileEntities(tileEntities.values());
             previewWorld.syncLoadedEntities(entities.values());
+        }
+    }
+
+    /**
+     * Releases the client-only WorldClient and renderer/player back-references when this level
+     * is replaced by another scene. {@link #clear()} intentionally keeps the world for rebuilds.
+     */
+    public void close() {
+        clear();
+        releaseRuntimeWorld();
+    }
+
+    /**
+     * Drops only the client-side world wrapper while keeping scene blocks, entities, and
+     * annotations intact. The wrapper is recreated lazily on the next render.
+     */
+    public void releaseRuntimeWorld() {
+        World oldWorld = fakeWorld;
+        if (oldWorld == null) {
+            return;
+        }
+        // Tile entities and entities are the canonical scene data and remain cached after a
+        // runtime world is released. Detach their back-references first, otherwise they would
+        // keep the old WorldClient alive through the level even after fakeWorld is cleared.
+        for (TileEntity tileEntity : tileEntities.values()) {
+            if (tileEntity != null && tileEntity.getWorldObj() == oldWorld) {
+                try {
+                    tileEntity.setWorldObj(null);
+                } catch (Throwable ignored) {}
+            }
+        }
+        for (Entity entity : entities.values()) {
+            if (entity != null && entity.worldObj == oldWorld) {
+                entity.worldObj = null;
+            }
+        }
+        if (oldWorld instanceof GuidebookPreviewWorld previewWorld) {
+            previewWorld.closePreviewWorld();
+        }
+        fakeWorld = null;
+        // A replacement world needs the canonical tile/entity state rebound before rendering.
+        previewStateDirty = true;
+    }
+
+    /**
+     * Releases every still-live preview world. The weak registry is deliberately independent of
+     * guide/page caches so temporary editor and semantic-preview levels are covered as well.
+     * Must run on the Minecraft client thread because WorldClient and renderer state are client
+     * owned.
+     */
+    @SideOnly(Side.CLIENT)
+    public static void releaseAllRuntimeWorlds() {
+        GuidebookLevel[] levels;
+        synchronized (LIVE_LEVELS) {
+            levels = LIVE_LEVELS.toArray(new GuidebookLevel[0]);
+        }
+        for (GuidebookLevel level : levels) {
+            if (level != null) {
+                level.releaseRuntimeWorld();
+            }
         }
     }
 
@@ -704,12 +797,21 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Override
     @Nullable
     public GuidebookChunk getChunk(int chunkX, int chunkZ, boolean create) {
+        // A missing neighbour is common during modded block-light queries. Cache that negative
+        // lookup too, while still allowing callers that request creation to populate the chunk.
+        if (cachedChunkValid && cachedChunkX == chunkX && cachedChunkZ == chunkZ && (cachedChunk != null || !create)) {
+            return cachedChunk;
+        }
         long chunkKey = ChunkCoordIntPair.chunkXZ2Int(chunkX, chunkZ);
         var chunk = chunks.get(chunkKey);
         if (chunk == null && create) {
             chunk = new GuidebookChunk(chunkX, chunkZ);
             chunks.put(chunkKey, chunk);
         }
+        cachedChunkX = chunkX;
+        cachedChunkZ = chunkZ;
+        cachedChunk = chunk;
+        cachedChunkValid = true;
         return chunk;
     }
 

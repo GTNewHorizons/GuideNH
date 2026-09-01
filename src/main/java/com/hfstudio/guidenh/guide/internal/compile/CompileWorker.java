@@ -3,8 +3,10 @@ package com.hfstudio.guidenh.guide.internal.compile;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -12,6 +14,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -31,16 +34,36 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
  */
 public class CompileWorker {
 
+    private static int configuredCacheLimit() {
+        return Math.max(1, ModConfig.runtime.compiledPageCacheLimit);
+    }
+
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "guidenh-compile");
         t.setDaemon(true);
         return t;
     });
 
-    private final ConcurrentHashMap<ResourceLocation, GuidePage> compiledPages = new ConcurrentHashMap<>();
+    /** Runtime worlds are released on the client thread; compilation itself runs in the worker thread. */
+    private final ConcurrentLinkedQueue<GuidePage> pendingRuntimeReleases = new ConcurrentLinkedQueue<>();
+
+    private final Map<ResourceLocation, GuidePage> compiledPages = new LinkedHashMap<>(
+        configuredCacheLimit(),
+        0.75f,
+        true) {
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<ResourceLocation, GuidePage> eldest) {
+            if (size() > configuredCacheLimit()) {
+                requestRuntimeRelease(eldest.getValue());
+                return true;
+            }
+            return false;
+        }
+    };
 
     /**
-     * Main thread sets this to force a page to compile next (插队).
+     * Main thread sets this to force a page to compile next (priority).
      * Worker clears it after processing.
      */
     private volatile ResourceLocation priorityId;
@@ -50,6 +73,9 @@ public class CompileWorker {
      * feedback (e.g. "Compiling..." spinner or tooltip).
      */
     private volatile ResourceLocation currentPageId;
+
+    /** Invalidates work that was started against a previous resource-pack generation. */
+    private volatile long generation;
 
     /**
      * Greedy compilation queue. Worker polls from the head; new items are
@@ -68,6 +94,7 @@ public class CompileWorker {
      * F3+T resource reload. Any previously queued items are discarded.
      */
     public void startBulk(Collection<ResourceLocation> pageIds) {
+        generation++;
         this.priorityId = null;
         this.currentPageId = null;
         synchronized (bulkQueue) {
@@ -83,12 +110,16 @@ public class CompileWorker {
      */
     @Nullable
     public GuidePage getCompiledPage(ResourceLocation pageId) {
-        return compiledPages.get(pageId);
+        synchronized (compiledPages) {
+            return compiledPages.get(pageId);
+        }
     }
 
     public void invalidate(ResourceLocation pageId) {
         if (pageId != null) {
-            compiledPages.remove(pageId);
+            synchronized (compiledPages) {
+                requestRuntimeRelease(compiledPages.remove(pageId));
+            }
         }
     }
 
@@ -97,8 +128,10 @@ public class CompileWorker {
      * is already compiled or currently being compiled.
      */
     public void prioritize(ResourceLocation pageId) {
-        if (compiledPages.containsKey(pageId)) {
-            return;
+        synchronized (compiledPages) {
+            if (compiledPages.containsKey(pageId)) {
+                return;
+            }
         }
         if (Objects.equals(currentPageId, pageId)) {
             return;
@@ -120,8 +153,25 @@ public class CompileWorker {
      * compilation for the given set of pages. Called during F3+T reload.
      */
     public void reset(Collection<ResourceLocation> newPageIds) {
-        compiledPages.clear();
+        clearCompiledPages();
         startBulk(newPageIds);
+    }
+
+    /**
+     * Clears compiled pages and queued work without scheduling a bulk compile. Pages are compiled
+     * on demand when opened, which keeps resource reloads cheap even for large guide packs.
+     */
+    public void clearCompiledPages() {
+        generation++;
+        priorityId = null;
+        currentPageId = null;
+        synchronized (bulkQueue) {
+            bulkQueue.clear();
+        }
+        synchronized (compiledPages) {
+            requestRuntimeReleases(compiledPages.values());
+            compiledPages.clear();
+        }
     }
 
     /**
@@ -129,12 +179,53 @@ public class CompileWorker {
      */
     public void shutdown() {
         shutdown = true;
+        generation++;
         priorityId = null;
         synchronized (bulkQueue) {
             bulkQueue.clear();
         }
-        compiledPages.clear();
+        synchronized (compiledPages) {
+            requestRuntimeReleases(compiledPages.values());
+            compiledPages.clear();
+        }
         executor.shutdownNow();
+    }
+
+    private void requestRuntimeReleases(Collection<GuidePage> pages) {
+        for (GuidePage page : pages) {
+            requestRuntimeRelease(page);
+        }
+    }
+
+    private void requestRuntimeRelease(@Nullable GuidePage page) {
+        if (page == null) {
+            return;
+        }
+        pendingRuntimeReleases.add(page);
+    }
+
+    /** Drains runtime release requests and must be called from the Minecraft client thread. */
+    public void drainRuntimeReleases() {
+        GuidePage page;
+        while ((page = pendingRuntimeReleases.poll()) != null) {
+            releaseRuntimePage(page);
+        }
+    }
+
+    /**
+     * Drops queued page references after the client world has been unloaded. Their runtime
+     * worlds have already been released through GuidebookLevel's weak live-level registry.
+     */
+    public void clearPendingRuntimeReleases() {
+        pendingRuntimeReleases.clear();
+    }
+
+    private static void releaseRuntimePage(GuidePage page) {
+        try {
+            page.releaseRuntimeScenes();
+        } catch (Throwable t) {
+            GuideDebugLog.warn("[CompileWorker] Failed to release runtime scenes for cached page", t);
+        }
     }
 
     private void runLoop() {
@@ -145,8 +236,10 @@ public class CompileWorker {
             ResourceLocation prio = priorityId;
             if (prio != null) {
                 priorityId = null; // grab it, clear it
-                if (!compiledPages.containsKey(prio)) {
-                    target = prio;
+                synchronized (compiledPages) {
+                    if (!compiledPages.containsKey(prio)) {
+                        target = prio;
+                    }
                 }
             }
 
@@ -190,6 +283,7 @@ public class CompileWorker {
     }
 
     private void compileOne(ResourceLocation pageId) {
+        long compileGeneration = generation;
         MutableGuide guide = findGuideForPage(pageId);
         if (guide == null) {
             return;
@@ -208,7 +302,15 @@ public class CompileWorker {
         // Compile
         GuidePage compiled = PageCompiler.compile(guide, guide.getExtensions(), parsed);
         long tCompiled = System.nanoTime();
-        compiledPages.put(pageId, compiled);
+        synchronized (compiledPages) {
+            if (compileGeneration != generation || shutdown) {
+                // A reload won while this page was compiling. Do not publish a stale page that
+                // retains runtime scene state from the previous resource-pack generation.
+                requestRuntimeRelease(compiled);
+                return;
+            }
+            compiledPages.put(pageId, compiled);
+        }
 
         GuideDebugLog.info(
             "[CompileWorker] Compiled page={} parseMs={} compileMs={}",
