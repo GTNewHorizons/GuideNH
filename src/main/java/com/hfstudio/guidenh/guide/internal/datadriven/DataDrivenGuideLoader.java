@@ -80,8 +80,12 @@ public class DataDrivenGuideLoader {
     private static final Map<ResourceLocation, List<PackCandidate>> assetPackIndex = new ConcurrentHashMap<>();
     private static volatile boolean indexReady = false;
     private static final AtomicInteger pagePackOrder = new AtomicInteger(0);
-    /** Language paths keyed by normalized pack roots; callers may pass equivalent File instances. */
-    private static final Map<File, List<String>> PACK_LANG_FILE_PATHS = new HashMap<>();
+    /**
+     * Language paths belong to a resource-pack view, rather than its backing file alone. A single
+     * mod jar may expose both its root assets and a built-in pack rooted below
+     * {@code resourcepacks/}; their available paths are not interchangeable.
+     */
+    private static final Map<ResourcePackViewKey, List<String>> PACK_LANG_FILE_PATHS = new HashMap<>();
 
     private static volatile @Nullable ScanCache lastScanCache = null;
 
@@ -89,7 +93,7 @@ public class DataDrivenGuideLoader {
         List<ResourcePackContentManifest.Pack> contentManifest, ScanResult result,
         Map<ResourceLocation, List<PackCandidate>> pagePackIndexSnapshot,
         Map<ResourceLocation, List<PackCandidate>> assetPackIndexSnapshot,
-        Map<File, List<String>> langFilePathsSnapshot) {
+        Map<ResourcePackViewKey, List<String>> langFilePathsSnapshot) {
 
         boolean matchesPackMetadata(List<File> roots, String f) {
             if (!folder.equals(f) || !packRoots.equals(roots) || roots.size() != contentManifest.size()) {
@@ -232,17 +236,23 @@ public class DataDrivenGuideLoader {
                 var path = entry.getName();
                 if (!path.startsWith(prefix)) continue;
 
-                if (path.endsWith(".lang")) {
-                    PACK_LANG_FILE_PATHS.computeIfAbsent(normalizePackRoot(resourcePackFile), k -> new ArrayList<>())
-                        .add(path);
-                    continue;
-                }
                 var afterAssets = path.substring(prefix.length());
                 var firstSlash = afterAssets.indexOf('/');
                 if (firstSlash <= 0) continue;
+                if (path.endsWith(".lang")) {
+                    var resourceLocation = new ResourceLocation(
+                        afterAssets.substring(0, firstSlash),
+                        afterAssets.substring(firstSlash + 1));
+                    if (!resourceExists(resourcePack, resourceLocation)) continue;
+                    PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackViewKey(resourcePack), k -> new ArrayList<>())
+                        .add(path);
+                    continue;
+                }
                 var namespace = afterAssets.substring(0, firstSlash);
                 var afterNamespace = afterAssets.substring(firstSlash + 1);
                 if (!afterNamespace.startsWith(folder + "/")) continue;
+                var resourceLocation = new ResourceLocation(namespace, afterNamespace);
+                if (!resourceExists(resourcePack, resourceLocation)) continue;
                 var afterFolder = afterNamespace.substring(folder.length() + 1);
                 var slashIndex = afterFolder.indexOf('/');
                 if (slashIndex <= 0) continue;
@@ -317,10 +327,10 @@ public class DataDrivenGuideLoader {
         for (NamespaceRoot namespaceRoot : discoverNamespaceRoots(resourcePackRoot)) {
             scanDirectoryBuildIndexForNamespace(resourcePack, namespaceRoot, folder, pagePaths, discoveredLanguages);
         }
-        collectDirectoryLangPaths(resourcePackRoot);
+        collectDirectoryLangPaths(resourcePack, resourcePackRoot);
     }
 
-    private static void collectDirectoryLangPaths(File resourcePackRoot) {
+    private static void collectDirectoryLangPaths(IResourcePack resourcePack, File resourcePackRoot) {
         Path assets = resourcePackRoot.toPath()
             .resolve("assets");
         if (Files.isDirectory(assets)) {
@@ -332,7 +342,7 @@ public class DataDrivenGuideLoader {
                     .filter(path -> path.endsWith(".lang"))
                     .forEach(
                         path -> PACK_LANG_FILE_PATHS
-                            .computeIfAbsent(normalizePackRoot(resourcePackRoot), key -> new ArrayList<>())
+                            .computeIfAbsent(resourcePackViewKey(resourcePack), key -> new ArrayList<>())
                             .add(path));
             } catch (IOException e) {
                 GuideDebugLog.warn(
@@ -359,7 +369,7 @@ public class DataDrivenGuideLoader {
                     .map(path -> path.replace(File.separatorChar, '/'))
                     .forEach(
                         path -> PACK_LANG_FILE_PATHS
-                            .computeIfAbsent(normalizePackRoot(resourcePackRoot), key -> new ArrayList<>())
+                            .computeIfAbsent(resourcePackViewKey(resourcePack), key -> new ArrayList<>())
                             .add(path));
             } catch (IOException e) {
                 GuideDebugLog
@@ -438,9 +448,19 @@ public class DataDrivenGuideLoader {
         return 0;
     }
 
-    public static List<String> getLangFilePaths(File resourcePackFile) {
-        List<String> paths = PACK_LANG_FILE_PATHS.get(normalizePackRoot(resourcePackFile));
+    public static List<String> getLangFilePaths(IResourcePack resourcePack) {
+        List<String> paths = PACK_LANG_FILE_PATHS.get(resourcePackViewKey(resourcePack));
         return paths != null ? paths : List.of();
+    }
+
+    private record ResourcePackViewKey(@Nullable File root, Class<?> packType, String packName) {}
+
+    private static ResourcePackViewKey resourcePackViewKey(IResourcePack resourcePack) {
+        File root = getLooseResourcePackRoot(resourcePack);
+        return new ResourcePackViewKey(
+            root != null ? normalizePackRoot(root) : null,
+            resourcePack.getClass(),
+            resourcePack.getPackName());
     }
 
     private static File normalizePackRoot(File resourcePackFile) {
@@ -451,14 +471,11 @@ public class DataDrivenGuideLoader {
     }
 
     public static Map<String, String> readLangFile(IResourcePack resourcePack, String entryPath) {
-        if (entryPath == null || !entryPath.endsWith(".lang")) return Map.of();
-        var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
-        var firstSlash = afterAssets.indexOf('/');
-        if (firstSlash <= 0) return Map.of();
-        try (var input = resourcePack.getInputStream(
-            new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1)))) {
+        ResourceLocation location = getLangResourceLocation(entryPath);
+        if (location == null || !resourceExists(resourcePack, location)) return Map.of();
+        try (var input = resourcePack.getInputStream(location)) {
             return StringTranslate.parseLangFile(input);
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             return Map.of();
         }
     }
@@ -468,14 +485,10 @@ public class DataDrivenGuideLoader {
      * intentionally skipped; they are resolved by {@code GuidePageLanguageIndex} on demand.
      */
     public static Map<String, String> readRuntimeLangValues(IResourcePack resourcePack, String entryPath) {
-        if (entryPath == null || !entryPath.endsWith(".lang")) return Map.of();
-        var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
-        var firstSlash = afterAssets.indexOf('/');
-        if (firstSlash <= 0) return Map.of();
+        ResourceLocation location = getLangResourceLocation(entryPath);
+        if (location == null || !resourceExists(resourcePack, location)) return Map.of();
         var values = new LinkedHashMap<String, String>();
-        try (
-            var input = resourcePack.getInputStream(
-                new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1)));
+        try (var input = resourcePack.getInputStream(location);
             var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -493,18 +506,14 @@ public class DataDrivenGuideLoader {
                     value.indexOf('%') >= 0 ? NUMERIC_LANG_VARIABLE.matcher(value)
                         .replaceAll("%$1s") : value);
             }
-        } catch (IOException ignored) {}
+        } catch (IOException | RuntimeException ignored) {}
         return values.isEmpty() ? Map.of() : Map.copyOf(values);
     }
 
     public static @Nullable String readLangValue(IResourcePack resourcePack, String entryPath, String key) {
-        if (entryPath == null || !entryPath.endsWith(".lang")) return null;
-        var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
-        var firstSlash = afterAssets.indexOf('/');
-        if (firstSlash <= 0) return null;
-        try (
-            var input = resourcePack.getInputStream(
-                new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1)));
+        ResourceLocation location = getLangResourceLocation(entryPath);
+        if (location == null || !resourceExists(resourcePack, location)) return null;
+        try (var input = resourcePack.getInputStream(location);
             var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -521,20 +530,16 @@ public class DataDrivenGuideLoader {
                         .replaceAll("%$1s") : value;
                 }
             }
-        } catch (IOException ignored) {}
+        } catch (IOException | RuntimeException ignored) {}
         return null;
     }
 
     /** Reads only keys from a language file, avoiding retention of large translated page bodies. */
     public static Set<String> readLangKeys(IResourcePack resourcePack, String entryPath) {
-        if (entryPath == null || !entryPath.endsWith(".lang")) return Set.of();
-        var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
-        var firstSlash = afterAssets.indexOf('/');
-        if (firstSlash <= 0) return Set.of();
+        ResourceLocation location = getLangResourceLocation(entryPath);
+        if (location == null || !resourceExists(resourcePack, location)) return Set.of();
         var keys = new LinkedHashSet<String>();
-        try (
-            var input = resourcePack.getInputStream(
-                new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1)));
+        try (var input = resourcePack.getInputStream(location);
             var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -543,8 +548,26 @@ public class DataDrivenGuideLoader {
                 int separator = line.indexOf('=');
                 if (separator > 0) keys.add(line.substring(0, separator));
             }
-        } catch (IOException ignored) {}
+        } catch (IOException | RuntimeException ignored) {}
         return keys.isEmpty() ? Set.of() : Set.copyOf(keys);
+    }
+
+    private static @Nullable ResourceLocation getLangResourceLocation(@Nullable String entryPath) {
+        if (entryPath == null || !entryPath.endsWith(".lang")) return null;
+        var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
+        var firstSlash = afterAssets.indexOf('/');
+        return firstSlash > 0
+            ? new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1))
+            : null;
+    }
+
+    private static boolean resourceExists(IResourcePack resourcePack, ResourceLocation location) {
+        try {
+            return resourcePack.resourceExists(location);
+        } catch (RuntimeException ignored) {
+            // Third-party resource packs occasionally implement a missing resource as a runtime failure.
+            return false;
+        }
     }
 
     public static Set<String> discoverPagePaths(ResourceLocation guideId, String folder) {

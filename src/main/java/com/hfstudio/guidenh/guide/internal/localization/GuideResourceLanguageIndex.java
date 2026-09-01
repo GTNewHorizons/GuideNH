@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.localization;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,9 +48,7 @@ public class GuideResourceLanguageIndex {
             if (VALUES.containsKey(language)) return;
             Map<String, String> values = new LinkedHashMap<>();
             for (IResourcePack pack : DataDrivenGuideLoader.getLastActiveResourcePacks()) {
-                File root = DataDrivenGuideLoader.getLooseResourcePackRoot(pack);
-                if (root == null || !root.exists()) continue;
-                for (String path : DataDrivenGuideLoader.getLangFilePaths(root)) {
+                for (String path : DataDrivenGuideLoader.getLangFilePaths(pack)) {
                     int fileNameStart = path.lastIndexOf('/') + 1;
                     if (fileNameStart <= 0) continue;
                     String fileName = path.substring(fileNameStart);

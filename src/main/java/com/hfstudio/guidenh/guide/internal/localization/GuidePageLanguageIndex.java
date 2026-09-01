@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.localization;
 
-import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -108,11 +107,7 @@ public class GuidePageLanguageIndex {
             }
             Map<String, List<LangSource>> sources = new LinkedHashMap<>();
             for (IResourcePack resourcePack : DataDrivenGuideLoader.getLastActiveResourcePacks()) {
-                File resourcePackFile = DataDrivenGuideLoader.getLooseResourcePackRoot(resourcePack);
-                if (resourcePackFile == null || !resourcePackFile.exists()) {
-                    continue;
-                }
-                for (String path : DataDrivenGuideLoader.getLangFilePaths(resourcePackFile)) {
+                for (String path : DataDrivenGuideLoader.getLangFilePaths(resourcePack)) {
                     int fileNameStart = path.lastIndexOf('/') + 1;
                     if (fileNameStart <= 0 || !isMatchingLangFile(path.substring(fileNameStart), language)) {
                         continue;
