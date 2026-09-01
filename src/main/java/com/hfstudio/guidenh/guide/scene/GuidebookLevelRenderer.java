@@ -46,9 +46,9 @@ import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotationRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteSceneTessellatorCapture;
 import com.hfstudio.guidenh.integration.api.client.GuideNhClientIntegrationRegistry;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorForgeHooksClient;
 
 public class GuidebookLevelRenderer {
@@ -444,16 +444,14 @@ public class GuidebookLevelRenderer {
                     // once. Repeating them for the translucent pass adds avoidable per-frame
                     // integration work; pass-one-only blocks still use the null-tile fallback.
                     if (pass == 0 || tileEntity == null) {
-                        if (GuideGregTechTileSupport.isGregTechTileEntity(tileEntity)
-                            && !GuideGregTechTileSupport.hasValidMetaTileBinding(tileEntity)) {
-                            GuideGregTechTileSupport.logInfoOnce(
-                                "render-invalid-block-pass:" + pass
-                                    + ":"
-                                    + GuideGregTechTileSupport.describeTile(tileEntity),
+                        if (GregTechHelpers.isGregTechTileEntity(tileEntity)
+                            && !GregTechHelpers.hasValidMetaTileBinding(tileEntity)) {
+                            GregTechHelpers.logInfoOnce(
+                                "render-invalid-block-pass:" + pass + ":" + GregTechHelpers.describeTile(tileEntity),
                                 "Render pass {} found invalid GregTech block tile before block render: {}",
                                 pass,
-                                GuideGregTechTileSupport.describeTile(tileEntity));
-                            GuideGregTechTileSupport.repairMetaTileBinding(tileEntity);
+                                GregTechHelpers.describeTile(tileEntity));
+                            GregTechHelpers.repairMetaTileBinding(tileEntity);
                         }
                         TileEntity promoted = GuideNhClientIntegrationRegistry.global()
                             .promotePreviewBlockTileEntity(block, tileEntity);
@@ -512,14 +510,13 @@ public class GuidebookLevelRenderer {
                 if (te == null) {
                     continue;
                 }
-                if (GuideGregTechTileSupport.isGregTechTileEntity(te)
-                    && !GuideGregTechTileSupport.hasValidMetaTileBinding(te)) {
-                    GuideGregTechTileSupport.logInfoOnce(
-                        "render-invalid-tesr-pass:" + pass + ":" + GuideGregTechTileSupport.describeTile(te),
+                if (GregTechHelpers.isGregTechTileEntity(te) && !GregTechHelpers.hasValidMetaTileBinding(te)) {
+                    GregTechHelpers.logInfoOnce(
+                        "render-invalid-tesr-pass:" + pass + ":" + GregTechHelpers.describeTile(te),
                         "Render pass {} found invalid GregTech tile before TESR render: {}",
                         pass,
-                        GuideGregTechTileSupport.describeTile(te));
-                    GuideGregTechTileSupport.repairMetaTileBinding(te);
+                        GregTechHelpers.describeTile(te));
+                    GregTechHelpers.repairMetaTileBinding(te);
                 }
                 if (!effectiveSelection.isLayerVisible(te.yCoord)) {
                     continue;

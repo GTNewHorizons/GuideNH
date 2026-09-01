@@ -29,6 +29,7 @@ import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 public class GuideSceneStructureSnapshot implements Serializable {
 
@@ -205,10 +206,10 @@ public class GuideSceneStructureSnapshot implements Serializable {
                 ? GuidebookTileEntityLoader.load(world, block, entry.meta, entry.x, entry.y, entry.z, tag)
                 : GuidebookTileEntityLoader.tryCreateAndLoad(tag, entry.x, entry.y, entry.z);
             if (tileEntity != null) {
-                Integer metaTileId = GuidebookPreviewBlockPlacer.resolveGregTechMetaTileId(block, entry.meta, tag);
+                Integer metaTileId = GregTechHelpers.resolveMetaTileIdFromBlock(block, entry.meta, tag);
                 GuidebookPreviewBlockPlacer.initializeGregTechMetaTile(tileEntity, metaTileId, tag);
                 GuidebookPreviewBlockPlacer.applyGregTechDefaultFacing(tileEntity, tag);
-                GuidebookPreviewBlockPlacer.applyBartWorksGeneratedBlockMeta(tileEntity, block, entry.meta);
+                GregTechHelpers.applyBartWorksGeneratedBlockMeta(tileEntity, block, entry.meta);
                 level.restoreTileEntityFast(entry.x, entry.y, entry.z, tileEntity);
                 GuidebookPreviewBlockPlacer.finalizeSpecialPreviewTile(level, entry.x, entry.y, entry.z, tileEntity);
             }

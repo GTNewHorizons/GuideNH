@@ -100,7 +100,6 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityRayPicker;
-import com.hfstudio.guidenh.guide.scene.support.GuideGregTechTileSupport;
 import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
@@ -109,6 +108,7 @@ import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.ae2.Ae2Helpers;
 import com.hfstudio.guidenh.integration.ae2.Ae2PonderSupport;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildService;
@@ -7027,7 +7027,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         int rowCount = (ponderSceneData != null ? 1 : 0) + (hasStructureLibTierData() ? 1 : 0)
             + (hasVisibleLayerSlider() ? 1 : 0)
             + selectableChannels;
-        GuideGregTechTileSupport.logInfoOnce(
+        GregTechHelpers.logInfoOnce(
             "scene-bottom-controls:" + Integer.toHexString(System.identityHashCode(this))
                 + ":"
                 + phase
@@ -7054,7 +7054,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (!GuideDebugLog.isEnabled()) {
             return;
         }
-        GuideGregTechTileSupport.logInfoOnce(
+        GregTechHelpers.logInfoOnce(
             "scene-slider-skip:" + Integer.toHexString(
                 System.identityHashCode(this)) + ":" + sliderId + ":" + rowIndex + ":" + getBottomControlAreaHeight(),
             "Scene slider skipped {}: rowIndex={} outerRect={} bottomAreaHeight={} rowCount={} lastOuter={}x{}",
@@ -7072,7 +7072,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (!GuideDebugLog.isEnabled()) {
             return;
         }
-        GuideGregTechTileSupport.logInfoOnce(
+        GregTechHelpers.logInfoOnce(
             "scene-slider-geometry:" + Integer.toHexString(System.identityHashCode(this))
                 + ":"
                 + sliderId

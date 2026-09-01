@@ -13,10 +13,9 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 public class GuideBlockDisplayResolver {
-
-    public static final String BARTWORKS_META_GENERATED_BLOCKS_CLASS = "bartworks.system.material.BWMetaGeneratedBlocks";
 
     private GuideBlockDisplayResolver() {}
 
@@ -133,7 +132,7 @@ public class GuideBlockDisplayResolver {
         int worldMeta = Math.max(0, level.getBlockMetadata(x, y, z));
         int damageMeta = safeResolveDamageValue(level, block, x, y, z, fakeWorld);
 
-        if (isBlockInstanceOf(block, BARTWORKS_META_GENERATED_BLOCKS_CLASS) && damageMeta <= 0 && worldMeta > 0) {
+        if (GregTechHelpers.isBartWorksGeneratedBlock(block) && damageMeta <= 0 && worldMeta > 0) {
             return worldMeta;
         }
 
