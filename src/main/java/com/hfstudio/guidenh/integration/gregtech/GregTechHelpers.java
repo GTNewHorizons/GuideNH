@@ -68,7 +68,7 @@ public class GregTechHelpers {
     }
 
     public static boolean isBartWorksGeneratedBlock(@Nullable Block block) {
-        return block != null && Mods.BartWorks.isModLoaded() && isBartWorksGeneratedBlockImpl(block);
+        return Mods.BartWorks.isModLoaded() && isBartWorksGeneratedBlockImpl(block);
     }
 
     @Optional.Method(modid = "bartworks")
@@ -77,7 +77,7 @@ public class GregTechHelpers {
     }
 
     public static boolean isBartWorksGeneratedTile(@Nullable TileEntity tileEntity) {
-        return tileEntity != null && Mods.BartWorks.isModLoaded() && isBartWorksGeneratedTileImpl(tileEntity);
+        return Mods.BartWorks.isModLoaded() && isBartWorksGeneratedTileImpl(tileEntity);
     }
 
     @Optional.Method(modid = "bartworks")
