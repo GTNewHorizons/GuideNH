@@ -89,33 +89,13 @@ public class DataDrivenGuideLoader {
 
     private static volatile @Nullable ScanCache lastScanCache = null;
 
-    private record ScanCache(List<File> packRoots, String folder,
-        List<ResourcePackContentManifest.Pack> contentManifest, ScanResult result,
+    private record ScanCache(String folder, List<ResourcePackContentManifest.Pack> contentManifest, ScanResult result,
         Map<ResourceLocation, List<PackCandidate>> pagePackIndexSnapshot,
         Map<ResourceLocation, List<PackCandidate>> assetPackIndexSnapshot,
         Map<ResourcePackViewKey, List<String>> langFilePathsSnapshot) {
 
-        boolean matchesPackMetadata(List<File> roots, String f) {
-            if (!folder.equals(f) || !packRoots.equals(roots) || roots.size() != contentManifest.size()) {
-                return false;
-            }
-            for (int i = 0; i < roots.size(); i++) {
-                File current = roots.get(i);
-                File previous = packRoots.get(i);
-                // ZIP contents can only change when the archive's size or timestamp changes.
-                // Directory packs are deliberately rescanned so file-level hot reloads remain
-                // visible even when the directory timestamp is unchanged on some file systems.
-                if (current.isDirectory() || previous.isDirectory()
-                    || current.length() != previous.length()
-                    || current.lastModified() != previous.lastModified()) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        boolean matches(List<File> roots, String f, List<ResourcePackContentManifest.Pack> manifest) {
-            return folder.equals(f) && packRoots.equals(roots) && contentManifest.equals(manifest);
+        boolean matches(String f, List<ResourcePackContentManifest.Pack> manifest) {
+            return folder.equals(f) && contentManifest.equals(manifest);
         }
     }
 
@@ -132,9 +112,12 @@ public class DataDrivenGuideLoader {
         var resolvedPacks = toList(activeResourcePacks);
         var packRoots = resolvePackRoots(resolvedPacks);
         ScanCache cache = lastScanCache;
-        var contentManifest = cache != null && cache.matchesPackMetadata(packRoots, folder) ? cache.contentManifest()
-            : ResourcePackContentManifest.capture(packRoots, folder);
-        if (cache != null && cache.matches(packRoots, folder, contentManifest)) {
+        var contentManifest = ResourcePackContentManifest.capture(
+            packRoots,
+            folder,
+            cache != null && cache.folder()
+                .equals(folder) ? cache.contentManifest() : List.of());
+        if (cache != null && cache.matches(folder, contentManifest)) {
             indexReady = true;
             pagePackIndex.putAll(cache.pagePackIndexSnapshot());
             assetPackIndex.putAll(cache.assetPackIndexSnapshot());
@@ -176,7 +159,6 @@ public class DataDrivenGuideLoader {
         // during the snapshot (Map.copyOf on ConcurrentHashMap can throw on concurrent read).
         if (!resolvedPacks.isEmpty() && !guides.isEmpty()) {
             lastScanCache = new ScanCache(
-                List.copyOf(packRoots),
                 folder,
                 contentManifest,
                 new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages)),
