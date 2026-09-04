@@ -33,6 +33,7 @@ public class GuideQueryParser {
             var textField = IndexSchema.getTextField(searchLanguage);
             var titleField = IndexSchema.getTitleField(searchLanguage);
             var filenameField = IndexSchema.getFilenameField(searchLanguage);
+            var keywordField = IndexSchema.getKeywordField(searchLanguage);
 
             // Exact occurrences in the title are scored with 20% boost
             builder.add(
@@ -45,6 +46,11 @@ public class GuideQueryParser {
                 new BoostQuery(
                     buildFieldQuery(queryBuilder, filenameField, tokens, false, BooleanClause.Occur.SHOULD),
                     1.0f),
+                BooleanClause.Occur.SHOULD);
+            builder.add(
+                new BoostQuery(
+                    buildFieldQuery(queryBuilder, keywordField, tokens, false, BooleanClause.Occur.SHOULD),
+                    1.1f),
                 BooleanClause.Occur.SHOULD);
             // Exact occurrences in the body are scored normally
             builder.add(
@@ -60,6 +66,11 @@ public class GuideQueryParser {
                 new BoostQuery(
                     buildFieldQuery(queryBuilder, filenameField, tokens, true, BooleanClause.Occur.SHOULD),
                     0.3f),
+                BooleanClause.Occur.SHOULD);
+            builder.add(
+                new BoostQuery(
+                    buildFieldQuery(queryBuilder, keywordField, tokens, true, BooleanClause.Occur.SHOULD),
+                    0.35f),
                 BooleanClause.Occur.SHOULD);
             // Occurrences in the body, where the last token is expanded to a wildcard are scored at 20%
             builder.add(

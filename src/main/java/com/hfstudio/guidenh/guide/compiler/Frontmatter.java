@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -139,6 +140,7 @@ public class Frontmatter {
             // duplicates are preserved as-is for compatibility with the existing frontmatter behavior.
             List<String> requiredMods = parseModIds(navigationMap, "required_mod", "required_mods");
             List<String> excludedMods = parseModIds(navigationMap, "excluded_mod", "excluded_mods");
+            List<String> keywords = parseKeywords(navigationMap);
 
             navigation = new FrontmatterNavigation(
                 title,
@@ -153,6 +155,7 @@ public class Frontmatter {
                 iconTextureEntries,
                 requiredMods,
                 excludedMods,
+                keywords,
                 loadPriority);
         }
 
@@ -223,15 +226,38 @@ public class Frontmatter {
     }
 
     @Nullable
-    public static Map<?, ?> getCompound(Map<?, ?> map, String key) {
-        var value = map.get(key);
-        if (value == null) {
+    private static List<String> parseKeywords(Map<?, ?> navigationMap) {
+        String single = getString(navigationMap, "keyword");
+        Object listValue = navigationMap.get("keywords");
+        if (single == null && listValue == null) {
             return null;
         }
-        if (!(value instanceof Map<?, ?>mapValue)) {
-            throw new IllegalArgumentException("Key " + key + " has to be a map!");
+        int expectedSize = single == null ? 0 : 1;
+        if (listValue instanceof List<?>list) {
+            expectedSize += list.size();
+        } else if (listValue instanceof String) {
+            expectedSize++;
         }
-        return mapValue;
+        var result = new LinkedHashSet<String>(expectedSize);
+        addKeyword(result, single);
+        if (listValue instanceof List<?>list) {
+            for (Object entry : list) {
+                if (entry instanceof String value) {
+                    addKeyword(result, value);
+                }
+            }
+        } else if (listValue instanceof String value) {
+            addKeyword(result, value);
+        }
+        if (result.isEmpty()) return null;
+        return List.copyOf(result);
+    }
+
+    private static void addKeyword(LinkedHashSet<String> target, @Nullable String value) {
+        if (value != null && !value.trim()
+            .isEmpty()) {
+            target.add(value.trim());
+        }
     }
 
     @Nullable

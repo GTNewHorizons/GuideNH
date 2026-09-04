@@ -1,6 +1,10 @@
 ---
 navigation:
   title: 导航与索引
+  keyword: 导航
+  keywords:
+    - 指南导航
+    - 内容索引
   parent: index.md
   position: 195
   recommend: 5
@@ -58,6 +62,20 @@ navigation:
 Markdown 页面链接也使用同一套规则。`guide.md`、`./guide.md` 和 `/guide.md` 都留在当前页面命名空间内；
 `gregtech:guide.md` 和 `gregtech:/guide.md` 会显式打开 `gregtech` 命名空间，也就是在当前指南文件夹为
 `guidenh` 时加载 `gregtech:guidenh` 数据驱动指南里的页面。
+
+### `navigation.keyword` 与 `navigation.keywords`
+
+使用 `keyword` 添加一个搜索别名，使用 `keywords` 添加多个搜索别名。两个字段可以组合使用，重复值会被忽略。
+搜索时使用与其他可搜索字段相同的语言分析器和前缀模糊匹配。
+
+```yaml
+navigation:
+  title: 高级 IO 总线
+  keyword: IO 总线
+  keywords:
+    - 输入输出总线
+    - 物品传输
+```
 
 ### `navigation.position`
 
