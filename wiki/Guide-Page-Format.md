@@ -297,6 +297,8 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 | Field | Required | Type | Notes |
 | --- | --- | --- | --- |
 | `title` | yes | string | Display name in navigation and search title fallback |
+| `keyword` | no | string | One additional search keyword or alias; supports prefix matching |
+| `keywords` | no | list of strings | Additional search keywords or aliases; values are combined and deduplicated |
 | `parent` | no | page id | Parent page id; omitted means top-level node |
 | `position` | no | integer | Sibling sort order; default `0`, larger values appear earlier |
 | `priority` | no | integer | Load priority for same-path page overrides; default `0`, higher wins, equal priority lets the later resource pack entry win |

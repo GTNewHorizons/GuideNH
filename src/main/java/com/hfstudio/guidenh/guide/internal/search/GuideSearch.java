@@ -77,7 +77,7 @@ public class GuideSearch implements AutoCloseable {
 
     public static final long BACKGROUND_TIME_PER_TICK = TimeUnit.MILLISECONDS.toNanos(1);
     public static final long SEARCH_TIME_PER_TICK = TimeUnit.MILLISECONDS.toNanos(8);
-    private static final int INDEX_SCHEMA_VERSION = 2;
+    private static final int INDEX_SCHEMA_VERSION = 3;
     private static final String COMMIT_SCHEMA_VERSION = "guidenh.search.schema";
     private static final String COMMIT_FINGERPRINT = "guidenh.search.fingerprint";
     private static final long PUBLISH_INTERVAL_NANOS = TimeUnit.MILLISECONDS.toNanos(250);
@@ -499,6 +499,7 @@ public class GuideSearch implements AutoCloseable {
         var pageText = getSearchableText(guide, page);
         var pageTitle = getPageTitle(guide, page);
         var pageFilename = getPageFilename(page);
+        var pageKeywords = getPageKeywords(page);
 
         var searchLang = getLuceneLanguageFromMinecraft(page.getLanguage());
 
@@ -524,7 +525,18 @@ public class GuideSearch implements AutoCloseable {
         doc.add(new TextField(IndexSchema.getTitleField(searchLang), pageTitle, Field.Store.NO));
         doc.add(new TextField(IndexSchema.getFilenameField(searchLang), pageFilename, Field.Store.NO));
         doc.add(new TextField(IndexSchema.getTextField(searchLang), pageText, Field.Store.NO));
+        if (!pageKeywords.isEmpty()) {
+            doc.add(new TextField(IndexSchema.getKeywordField(searchLang), pageKeywords, Field.Store.NO));
+        }
         return doc;
+    }
+
+    private static String getPageKeywords(ParsedGuidePage page) {
+        var navigation = page.getFrontmatter()
+            .navigationEntry();
+        if (navigation == null || navigation.keywords()
+            .isEmpty()) return "";
+        return String.join("\n", navigation.keywords());
     }
 
     private static String getPageFilename(ParsedGuidePage page) {

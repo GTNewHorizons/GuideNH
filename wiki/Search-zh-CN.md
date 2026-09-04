@@ -14,6 +14,9 @@ GuideNH 会为指南搜索维护一个内存中的 Lucene 索引。
 - page id
 - 语言元数据
 
+导航 frontmatter 可以使用 `navigation.keyword`（单个值）或 `navigation.keywords`（列表）添加搜索别名。
+别名会使用与其他可搜索文本相同的分析器并支持前缀模糊匹配，但不会替换页面显示标题或正文摘要。
+
 ### 标题来源
 
 GuideNH 会按以下顺序选择标题：

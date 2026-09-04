@@ -1,6 +1,10 @@
 ---
 navigation:
   title: Navigation & Index
+  keyword: navigation
+  keywords:
+    - guide navigation
+    - content index
   parent: index.md
   position: 195
   recommend: 5
@@ -60,6 +64,20 @@ navigation:
 The same rules are used by Markdown page links. `guide.md`, `./guide.md`, and `/guide.md` stay inside the current
 page namespace. `gregtech:guide.md` and `gregtech:/guide.md` explicitly open the `gregtech` namespace, which means
 the page is loaded from the `gregtech:guidenh` data-driven guide when this guide folder is `guidenh`.
+
+### `navigation.keyword` and `navigation.keywords`
+
+Use `keyword` for one search alias or `keywords` for several aliases. They can be combined; duplicate
+values are removed. Search uses the same language analyzer and prefix matching as other searchable fields.
+
+```yaml
+navigation:
+  title: Advanced IO Bus
+  keyword: IO bus
+  keywords:
+    - import export bus
+    - item transfer
+```
 
 ### `navigation.position`
 
