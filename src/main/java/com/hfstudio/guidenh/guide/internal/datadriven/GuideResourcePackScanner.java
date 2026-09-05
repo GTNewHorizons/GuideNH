@@ -1,11 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.datadriven;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -21,7 +17,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.compiler.Frontmatter;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
@@ -31,7 +26,7 @@ final class GuideResourcePackScanner {
 
     record GuideLanguage(String namespace, String language) {}
 
-    record PackEntry(String namespace, String language, String relativePath, int loadPriority) {}
+    record PackEntry(String namespace, String language, String relativePath) {}
 
     record PackScan(List<PackEntry> entries, List<String> langPaths, List<GuideLanguage> languages) {}
 
@@ -89,18 +84,9 @@ final class GuideResourcePackScanner {
                 var relativePath = afterFolder.substring(slashIndex + 1);
                 if (relativePath.isEmpty()) continue;
 
+                entries.add(new PackEntry(namespace, language, relativePath));
                 if (path.endsWith(".md")) {
-                    int loadPriority;
-                    try {
-                        loadPriority = parseLoadPriority(zip.getInputStream(entry), resourceLocation);
-                    } catch (IOException e) {
-                        loadPriority = 0;
-                    }
-
-                    entries.add(new PackEntry(namespace, language, relativePath, loadPriority));
                     languages.add(new GuideLanguage(namespace, toLanguageCode(language)));
-                } else {
-                    entries.add(new PackEntry(namespace, language, relativePath, 0));
                 }
             }
         } catch (IOException e) {
@@ -150,16 +136,10 @@ final class GuideResourcePackScanner {
                     if (relativePath.isEmpty() || relativePath.endsWith(".lang")) return;
                     if (File.separatorChar != '/') relativePath = relativePath.replace(File.separatorChar, '/');
 
-                    int loadPriority = 0;
+                    entries.add(new PackEntry(namespaceRoot.namespace(), language, relativePath));
                     if (relativePath.endsWith(".md")) {
-                        var location = new ResourceLocation(
-                            namespaceRoot.namespace(),
-                            folder + "/" + language + "/" + relativePath);
-                        loadPriority = parseLoadPriority(path, location);
-
                         languages.add(new GuideLanguage(namespaceRoot.namespace(), toLanguageCode(language)));
                     }
-                    entries.add(new PackEntry(namespaceRoot.namespace(), language, relativePath, loadPriority));
                 });
             } catch (IOException e) {
                 GuideDebugLog
@@ -187,46 +167,6 @@ final class GuideResourcePackScanner {
             GuideDebugLog
                 .warn("[GuideNH] [GuideResourcePackScanner] Failed to index language files in {}", langRoot, e);
         }
-    }
-
-    private static int parseLoadPriority(Path path, ResourceLocation location) {
-        try {
-            return parseLoadPriority(Files.newInputStream(path), location);
-        } catch (IOException ignored) {
-            return 0;
-        }
-    }
-
-    /**
-     * Reads only the leading YAML frontmatter needed to resolve navigation load priority.
-     */
-    private static int parseLoadPriority(InputStream input, ResourceLocation location) {
-        try (input; var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-            String firstLine = reader.readLine();
-            if (firstLine != null && firstLine.startsWith("\uFEFF")) {
-                firstLine = firstLine.substring(1);
-            }
-            if (!"---".equals(firstLine)) {
-                return 0;
-            }
-
-            var frontmatter = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if ("---".equals(line)) {
-                    var navigation = Frontmatter.parse(location, frontmatter.toString())
-                        .navigationEntry();
-                    return navigation != null ? navigation.loadPriority() : 0;
-                }
-
-                if (!frontmatter.isEmpty()) {
-                    frontmatter.append('\n');
-                }
-                frontmatter.append(line);
-            }
-        } catch (Exception ignored) {}
-
-        return 0;
     }
 
     static List<File> guideRootCandidates(File resourcePackRoot, String namespace, String folder) {

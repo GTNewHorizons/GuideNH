@@ -47,13 +47,7 @@ public class DataDrivenGuideLoader {
     public static final String AUTO_GUIDE_FOLDER = "guidenh";
     private static final String DEFAULT_LANGUAGE = "en_us";
 
-    public record PackCandidate(IResourcePack pack, int loadPriority, int order) {
-
-        boolean shouldReplace(PackCandidate previous) {
-            return loadPriority > previous.loadPriority()
-                || loadPriority == previous.loadPriority() && order > previous.order();
-        }
-    }
+    public record PackCandidate(IResourcePack pack, ResourceLocation resourceLocation, int order) {}
 
     public record ScanResult(Map<ResourceLocation, MutableGuide> guides, Map<String, LinkedHashSet<String>> pagePaths,
         Map<ResourceLocation, Set<String>> discoveredLanguages) {}
@@ -209,17 +203,18 @@ public class DataDrivenGuideLoader {
     private static void addPackCandidates(Map<ResourceLocation, List<PackCandidate>> index, IResourcePack resourcePack,
         String folder, PackEntry entry) {
 
-        index
-            .computeIfAbsent(
-                new ResourceLocation(entry.namespace(), folder + "/" + entry.language() + "/" + entry.relativePath()),
-                k -> new ArrayList<>())
-            .add(new PackCandidate(resourcePack, entry.loadPriority(), pagePackOrder.getAndIncrement()));
+        var resourceLocation = new ResourceLocation(
+            entry.namespace(),
+            folder + "/" + entry.language() + "/" + entry.relativePath());
+
+        index.computeIfAbsent(resourceLocation, k -> new ArrayList<>())
+            .add(new PackCandidate(resourcePack, resourceLocation, pagePackOrder.getAndIncrement()));
 
         index
             .computeIfAbsent(
                 new ResourceLocation(entry.namespace(), folder + "/" + entry.relativePath()),
                 k -> new ArrayList<>())
-            .add(new PackCandidate(resourcePack, entry.loadPriority(), pagePackOrder.getAndIncrement()));
+            .add(new PackCandidate(resourcePack, resourceLocation, pagePackOrder.getAndIncrement()));
     }
 
     public static List<String> getLangFilePaths(IResourcePack resourcePack) {
