@@ -7,10 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import net.minecraft.client.resources.IResourcePack;
@@ -40,8 +38,6 @@ public class GuideLanguageIndex {
     private GuideLanguageIndex() {}
 
     private record PageSource(IResourcePack pack, String path) {}
-
-    private record LangFileIndex(Map<String, String> plainTranslations, Set<String> pageKeys) {}
 
     private record IndexedLanguage(Map<String, String> plainTranslations, Map<String, List<PageSource>> pageSources) {}
 
@@ -106,18 +102,7 @@ public class GuideLanguageIndex {
                     continue;
                 }
 
-                LangFileIndex fileIndex = readLangIndex(pack, path);
-                // Iterate in effective pack order; later packs/files override earlier translations.
-                plainTranslations.putAll(fileIndex.plainTranslations());
-
-                if (!fileIndex.pageKeys()
-                    .isEmpty()) {
-                    PageSource source = new PageSource(pack, path);
-                    for (String key : fileIndex.pageKeys()) {
-                        pageSources.computeIfAbsent(key, ignored -> new ArrayList<>())
-                            .add(source);
-                    }
-                }
+                indexLangFile(pack, path, plainTranslations, pageSources);
             }
         }
 
@@ -142,20 +127,18 @@ public class GuideLanguageIndex {
         return result;
     }
 
-    /**
-     * Reads translations and page keys together without retaining large localized page bodies.
-     */
-    private static LangFileIndex readLangIndex(IResourcePack resourcePack, String entryPath) {
+    private static void indexLangFile(IResourcePack resourcePack, String entryPath,
+        Map<String, String> plainTranslations, Map<String, List<PageSource>> pageSources) {
+
         ResourceLocation location = getLangResourceLocation(entryPath);
         if (location == null || !resourceExists(resourcePack, location)) {
-            return new LangFileIndex(Map.of(), Set.of());
+            return;
         }
 
-        Map<String, String> runtimeValues = new LinkedHashMap<>();
-        Set<String> pageKeys = new LinkedHashSet<>();
-
+        PageSource pageSource = null;
         try (var input = resourcePack.getInputStream(location);
             var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("\uFEFF")) line = line.substring(1);
@@ -163,23 +146,30 @@ public class GuideLanguageIndex {
 
                 int separator = line.indexOf('=');
                 if (separator <= 0) continue;
+
                 String key = line.substring(0, separator);
                 if (isPageLangKey(key)) {
-                    pageKeys.add(key);
+                    if (pageSource == null) {
+                        pageSource = new PageSource(resourcePack, entryPath);
+                    }
+
+                    List<PageSource> sources = pageSources.computeIfAbsent(key, k -> new ArrayList<>());
+                    // A key can theoretically occur more than once in one file
+                    if (sources.isEmpty() || sources.getLast() != pageSource) {
+                        sources.add(pageSource);
+                    }
                     continue;
                 }
 
                 String value = line.substring(separator + 1);
-                runtimeValues.put(
-                    key,
-                    value.indexOf('%') >= 0 ? NUMERIC_LANG_VARIABLE.matcher(value)
-                        .replaceAll("%$1s") : value);
+                if (value.indexOf('%') >= 0) {
+                    value = NUMERIC_LANG_VARIABLE.matcher(value)
+                        .replaceAll("%$1s");
+                }
+
+                plainTranslations.put(key, value);
             }
         } catch (IOException | RuntimeException ignored) {}
-
-        return new LangFileIndex(
-            runtimeValues.isEmpty() ? Map.of() : Map.copyOf(runtimeValues),
-            pageKeys.isEmpty() ? Set.of() : Set.copyOf(pageKeys));
     }
 
     private static @Nullable ResourceLocation getLangResourceLocation(@Nullable String entryPath) {
