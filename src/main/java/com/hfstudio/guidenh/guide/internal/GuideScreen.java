@@ -3621,7 +3621,7 @@ public class GuideScreen extends GuiContainer
         return false;
     }
 
-    private boolean handleGuideEditorWheel(int mouseX, int mouseY, int dwheel) {
+    public boolean handleGuideEditorWheel(int mouseX, int mouseY, int dwheel) {
         if (!isGuideEditorActive()) {
             return false;
         }
@@ -3637,6 +3637,9 @@ public class GuideScreen extends GuiContainer
             return true;
         }
         if (isInsideGuideEditorPreview(mouseX, mouseY)) {
+            if (handleGuideEditorPreviewSceneWheel(mouseX, mouseY, dwheel)) {
+                return true;
+            }
             scrollGuideEditorPreview(dwheel);
             syncGuideEditorEditorScrollFromPreview();
             return true;
@@ -3644,7 +3647,18 @@ public class GuideScreen extends GuiContainer
         return false;
     }
 
-    private void updateGuideEditorDividerFromMouse(int mouseX) {
+    public boolean handleGuideEditorPreviewSceneWheel(int mouseX, int mouseY, int dwheel) {
+        DocumentInteractionState interaction = getGuideEditorPreviewInteractionState(mouseX, mouseY);
+        LytGuidebookScene scene = interaction != null ? interaction.scene : null;
+        if (scene == null || !scene.isInteractive()
+            || !(scene.containsBottomControlSlider(mouseX, mouseY) || ModConfig.ui.sceneWheelZoom)) {
+            return false;
+        }
+        scene.scroll(mouseX, mouseY, dwheel);
+        return true;
+    }
+
+    public void updateGuideEditorDividerFromMouse(int mouseX) {
         if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.SPLIT) {
             return;
         }
