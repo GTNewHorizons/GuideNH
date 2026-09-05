@@ -17,13 +17,14 @@ import org.scilab.forge.jlatexmath.TeXConstants;
 import org.scilab.forge.jlatexmath.TeXFormula;
 import org.scilab.forge.jlatexmath.TeXIcon;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideLatexRenderer {
 
     public static final GuideLatexRenderer INSTANCE = new GuideLatexRenderer();
 
-    private static final int DEFAULT_FILL_COLOR_ARGB = 0xFFFFFFFF;
+    private static final int DEFAULT_FILL_COLOR_ARGB = ColorUtils.WHITE.getColor();
 
     /** Calibration formula used to determine a reference character height at a given sourceScale. */
     private static final String CALIBRATION_FORMULA = "x";
@@ -204,7 +205,7 @@ public class GuideLatexRenderer {
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
             Tessellator tess = Tessellator.instance;
             tess.startDrawingQuads();
@@ -238,7 +239,7 @@ public class GuideLatexRenderer {
             g.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
             g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 
-            g.setColor(new Color(0, 0, 0, 0));
+            g.setColor(new Color(ColorUtils.TRANSPARENT.getColor(), true));
             g.fillRect(0, 0, w, h);
 
             icon.paintIcon(null, g, 0, 0);

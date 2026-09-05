@@ -39,7 +39,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
@@ -94,12 +94,11 @@ public class GuidebookLevelRenderer {
             panelHeight,
             partialTicks,
             List.of(),
-            LightDarkMode.LIGHT_MODE,
             null);
     }
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
-        int panelHeight, float partialTicks, List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode) {
+        int panelHeight, float partialTicks, List<InWorldAnnotation> annotations) {
         render(
             level,
             camera,
@@ -113,13 +112,12 @@ public class GuidebookLevelRenderer {
             panelHeight,
             partialTicks,
             annotations,
-            lightDarkMode,
             null);
     }
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
-        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode) {
+        List<InWorldAnnotation> annotations) {
         render(
             level,
             camera,
@@ -133,13 +131,12 @@ public class GuidebookLevelRenderer {
             scissorH,
             partialTicks,
             annotations,
-            lightDarkMode,
             null);
     }
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
-        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, @Nullable Integer visibleLayerY) {
+        List<InWorldAnnotation> annotations, @Nullable Integer visibleLayerY) {
         render(
             level,
             camera,
@@ -153,15 +150,13 @@ public class GuidebookLevelRenderer {
             scissorH,
             partialTicks,
             annotations,
-            lightDarkMode,
             visibleLayerY,
             List.of());
     }
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
-        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, @Nullable Integer visibleLayerY,
-        List<GuidebookSceneParticle> particles) {
+        List<InWorldAnnotation> annotations, @Nullable Integer visibleLayerY, List<GuidebookSceneParticle> particles) {
         render(
             level,
             camera,
@@ -175,7 +170,6 @@ public class GuidebookLevelRenderer {
             scissorH,
             partialTicks,
             annotations,
-            lightDarkMode,
             GuidebookSceneLayerSelection.fromVisibleLayer(visibleLayerY),
             particles,
             List.of(),
@@ -184,7 +178,7 @@ public class GuidebookLevelRenderer {
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
-        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, GuidebookSceneLayerSelection layerSelection,
+        List<InWorldAnnotation> annotations, GuidebookSceneLayerSelection layerSelection,
         List<GuidebookSceneParticle> particles) {
         render(
             level,
@@ -199,7 +193,6 @@ public class GuidebookLevelRenderer {
             scissorH,
             partialTicks,
             annotations,
-            lightDarkMode,
             layerSelection,
             particles,
             List.of(),
@@ -208,7 +201,7 @@ public class GuidebookLevelRenderer {
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
-        List<InWorldAnnotation> annotations, LightDarkMode lightDarkMode, GuidebookSceneLayerSelection layerSelection,
+        List<InWorldAnnotation> annotations, GuidebookSceneLayerSelection layerSelection,
         List<GuidebookSceneParticle> particles, List<GuidebookSceneWeatherEffect> weatherEffects,
         float weatherAnimationTick) {
 
@@ -264,7 +257,7 @@ public class GuidebookLevelRenderer {
                 GL11.glEnable(GL_TEXTURE_2D);
                 GL11.glDisable(GL12.GL_RESCALE_NORMAL);
                 GL11.glEnable(GL11.GL_NORMALIZE);
-                GL11.glColor4f(1f, 1f, 1f, 1f);
+                ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
                 GL11.glNormal3f(0f, 1f, 0f);
 
                 OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
@@ -310,7 +303,7 @@ public class GuidebookLevelRenderer {
                         renderEntities(level.getEntities(), partialTicks, layerSelection, camera);
 
                         if (!annotations.isEmpty()) {
-                            InWorldAnnotationRenderer.render(annotations, lightDarkMode);
+                            InWorldAnnotationRenderer.render(annotations);
                         }
                         if (weatherEffects != null && !weatherEffects.isEmpty()) {
                             renderWeatherInContext(level, camera, layerSelection, weatherEffects, weatherAnimationTick);
@@ -356,7 +349,7 @@ public class GuidebookLevelRenderer {
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GL11.glEnable(GL_ALPHA_TEST);
             GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
             RenderHelper.disableStandardItemLighting();
         } finally {
@@ -582,7 +575,7 @@ public class GuidebookLevelRenderer {
                 int upperBits = brightness / 65536;
                 OpenGlHelper
                     .setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, (float) lowerBits, (float) upperBits);
-                GL11.glColor4f(1f, 1f, 1f, 1f);
+                ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
                 // The scene view matrix already transforms world coordinates relative to the camera.
                 renderManager.renderEntityWithPosYaw(
                     entity,
@@ -634,7 +627,7 @@ public class GuidebookLevelRenderer {
         GL11.glDisable(GL12.GL_RESCALE_NORMAL);
         GL11.glEnable(GL11.GL_NORMALIZE);
         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
     }
 
     private void loadMatrix(Matrix4f m) {
@@ -654,7 +647,7 @@ public class GuidebookLevelRenderer {
     }
 
     public static void setTileEntityRenderPassState(int pass) {
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         if (pass == 0) {
             GL11.glEnable(GL_DEPTH_TEST);
             GL11.glDisable(GL_BLEND);

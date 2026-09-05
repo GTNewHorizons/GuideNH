@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.markdown.FileTreeParser.SlotKind;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -164,7 +164,7 @@ public class LytFileTree extends LytBlock {
     private void renderConnectors(RenderContext context) {
         int baseX = bounds.x();
         // Resolve symbolic color once per frame instead of on every fillRect.
-        int connectorColor = context.resolveColor(SymbolicColor.TABLE_BORDER);
+        int connectorColor = context.resolveColor(ColorUtils.TABLE_BORDER);
         int halfIndent = indentPx / 2;
         for (Row row : rows) {
             int rowY = row.rowY;

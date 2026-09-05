@@ -57,9 +57,7 @@ import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
-import com.hfstudio.guidenh.guide.color.Colors;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.AnchorIndexer;
 import com.hfstudio.guidenh.guide.compiler.Frontmatter;
 import com.hfstudio.guidenh.guide.compiler.FrontmatterPageMeta;
@@ -161,8 +159,8 @@ public class GuideScreen extends GuiContainer
     public static final int PANEL_MARGIN = 20;
     public static final int PANEL_PADDING = 8;
 
-    public static final int BG_COLOR = 0xE0101010;
-    public static final int BG_BORDER = 0xFF5A5A5A;
+    public static final int BG_COLOR = ColorUtils.ARGB_E0101010.getColor();
+    public static final int BG_BORDER = ColorUtils.PANEL_BORDER.getColor();
 
     public static final ResourceLocation BG_TEXTURE = new ResourceLocation(
         "guidenh",
@@ -171,7 +169,7 @@ public class GuideScreen extends GuiContainer
     public static final String HOME_LOGO_RESOURCE_PATH = "/assets/logo.png";
 
     public static float BACKGROUND_ALPHA = 0.7f;
-    public static int BACKGROUND_DIM_COLOR = 0x34101018;
+    public static int BACKGROUND_DIM_COLOR = ColorUtils.ARGB_34101018.getColor();
 
     @Nullable
     private static ResourceLocation homeLogoTexture;
@@ -257,7 +255,7 @@ public class GuideScreen extends GuiContainer
         LytParagraph para = new LytParagraph();
         para.setStyle(
             TextStyle.builder()
-                .color(SymbolicColor.GRAY)
+                .color(ColorUtils.MC_GRAY)
                 .build());
         para.appendText("Loading...");
         doc.append(para);
@@ -278,14 +276,8 @@ public class GuideScreen extends GuiContainer
     private final GuideScreenEditorFileStore guideEditorFileStore = GuideScreenEditorFileStore.createDefault();
     private final Map<Integer, GuideIconButton> guideEditorActionButtons = new LinkedHashMap<>();
 
-    private final VanillaRenderContext reusableRenderCtx = new VanillaRenderContext(
-        LightDarkMode.LIGHT_MODE,
-        LytRect.empty(),
-        0);
-    private final VanillaRenderContext reusableContentTooltipCtx = new VanillaRenderContext(
-        LightDarkMode.LIGHT_MODE,
-        LytRect.empty(),
-        0);
+    private final VanillaRenderContext reusableRenderCtx = new VanillaRenderContext(LytRect.empty(), 0);
+    private final VanillaRenderContext reusableContentTooltipCtx = new VanillaRenderContext(LytRect.empty(), 0);
     // Reuse rect records on hot render paths when geometry has not changed.
     @Nullable
     private LytRect cachedViewportRect;
@@ -2893,7 +2885,12 @@ public class GuideScreen extends GuiContainer
         drawRect(panelX, panelY, panelX + panelW, panelY + panelH, BG_COLOR);
         drawBorder(panelX, panelY, panelW, panelH, BG_BORDER);
 
-        drawRect(panelX, panelY + TOOLBAR_H, panelX + panelW, panelY + TOOLBAR_H + 1, 0xFF2A2A2A);
+        drawRect(
+            panelX,
+            panelY + TOOLBAR_H,
+            panelX + panelW,
+            panelY + TOOLBAR_H + 1,
+            ColorUtils.ARGB_FF2A2A2A.getColor());
 
         if (!isHomeRoute() && !isGuideEditorActive()) {
             updateSceneHover(contentMouseX, contentMouseY);
@@ -2929,7 +2926,12 @@ public class GuideScreen extends GuiContainer
             drawSpecialSearchField();
         }
         drawRect(panelX, panelY, panelX + panelW, panelY + TOOLBAR_H, BG_COLOR);
-        drawRect(panelX, panelY + TOOLBAR_H, panelX + panelW, panelY + TOOLBAR_H + 1, 0xFF2A2A2A);
+        drawRect(
+            panelX,
+            panelY + TOOLBAR_H,
+            panelX + panelW,
+            panelY + TOOLBAR_H + 1,
+            ColorUtils.ARGB_FF2A2A2A.getColor());
         drawPageTitle();
         if (searchField != null) {
             drawSearchField();
@@ -3070,7 +3072,7 @@ public class GuideScreen extends GuiContainer
 
         int barY = panelY + panelH - TOOLBAR_H;
         drawRect(panelX, barY, panelX + panelW, panelY + panelH, BG_COLOR);
-        drawRect(panelX, barY, panelX + panelW, barY + 1, 0xFF2A2A2A);
+        drawRect(panelX, barY, panelX + panelW, barY + 1, ColorUtils.ARGB_FF2A2A2A.getColor());
 
         FontRenderer fr = mc.fontRenderer;
         if (cachedBottomBarText == null || cachedBottomBarPage != currentPage || cachedBottomBarWidth != this.width) {
@@ -3085,7 +3087,7 @@ public class GuideScreen extends GuiContainer
         int textW = fr.getStringWidth(text);
         int textX = textRightX - textW;
         int textY = barY + (TOOLBAR_H - fr.FONT_HEIGHT) / 2 + 1;
-        fr.drawString(text, textX, textY, 0xFFAAAAAA, false);
+        fr.drawString(text, textX, textY, ColorUtils.ARGB_FFAAAAAA.getColor(), false);
     }
 
     private void drawHomeContent(int mouseX, int mouseY) {
@@ -3180,13 +3182,14 @@ public class GuideScreen extends GuiContainer
 
     private int resolveGuideEditorDividerColor() {
         if (guideEditorDraggingDivider) {
-            return 0xFF5EA8FF;
+            return ColorUtils.ARGB_FF5EA8FF.getColor();
         }
         if (guideEditorDividerHoverStartedAtMillis <= 0L) {
-            return 0xFF4A4A4A;
+            return ColorUtils.ARGB_FF4A4A4A.getColor();
         }
         long elapsed = System.currentTimeMillis() - guideEditorDividerHoverStartedAtMillis;
-        return elapsed >= GUIDE_EDITOR_DIVIDER_HOVER_DELAY_MILLIS ? 0xFF5EA8FF : 0xFF4A4A4A;
+        return elapsed >= GUIDE_EDITOR_DIVIDER_HOVER_DELAY_MILLIS ? ColorUtils.ARGB_FF5EA8FF.getColor()
+            : ColorUtils.ARGB_FF4A4A4A.getColor();
     }
 
     private void updateGuideEditorPreviewHover(int mouseX, int mouseY) {
@@ -3331,7 +3334,6 @@ public class GuideScreen extends GuiContainer
             layoutWidth,
             renderHeight);
         cachedPreviewScissor = cachedRect(cachedPreviewScissor, x, y, renderWidth, renderHeight);
-        reusableRenderCtx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
         reusableRenderCtx.setViewport(cachedPreviewViewport);
         reusableRenderCtx.setScreenHeight(this.height);
         reusableRenderCtx.setDocumentOrigin(x, y);
@@ -3352,7 +3354,7 @@ public class GuideScreen extends GuiContainer
             reusableRenderCtx.restoreExternalRenderState();
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
         drawGuideEditorPreviewScrollbar(
             x + renderWidth - SCROLLBAR_W,
@@ -3366,12 +3368,12 @@ public class GuideScreen extends GuiContainer
             return;
         }
         int barW = SCROLLBAR_W;
-        drawRect(barX, barY, barX + barW, barY + barH, 0x35101010);
+        drawRect(barX, barY, barX + barW, barY + barH, ColorUtils.SCROLLBAR_TRACK.getColor());
         int thumbH = Math.max(16, (int) ((long) barH * barH / contentH));
         int maxScroll = Math.max(0, contentH - barH);
         int thumbY = maxScroll > 0 ? barY + (int) ((long) (barH - thumbH) * guideEditorPreviewScrollY / maxScroll)
             : barY;
-        drawRect(barX, thumbY, barX + barW, thumbY + thumbH, 0xA0D8D8D8);
+        drawRect(barX, thumbY, barX + barW, thumbY + thumbH, ColorUtils.SCROLLBAR_THUMB.getColor());
     }
 
     private boolean handleGuideEditorKey(char typedChar, int keyCode) {
@@ -3619,7 +3621,7 @@ public class GuideScreen extends GuiContainer
         return false;
     }
 
-    private boolean handleGuideEditorWheel(int mouseX, int mouseY, int dwheel) {
+    public boolean handleGuideEditorWheel(int mouseX, int mouseY, int dwheel) {
         if (!isGuideEditorActive()) {
             return false;
         }
@@ -3635,6 +3637,9 @@ public class GuideScreen extends GuiContainer
             return true;
         }
         if (isInsideGuideEditorPreview(mouseX, mouseY)) {
+            if (handleGuideEditorPreviewSceneWheel(mouseX, mouseY, dwheel)) {
+                return true;
+            }
             scrollGuideEditorPreview(dwheel);
             syncGuideEditorEditorScrollFromPreview();
             return true;
@@ -3642,7 +3647,18 @@ public class GuideScreen extends GuiContainer
         return false;
     }
 
-    private void updateGuideEditorDividerFromMouse(int mouseX) {
+    public boolean handleGuideEditorPreviewSceneWheel(int mouseX, int mouseY, int dwheel) {
+        DocumentInteractionState interaction = getGuideEditorPreviewInteractionState(mouseX, mouseY);
+        LytGuidebookScene scene = interaction != null ? interaction.scene : null;
+        if (scene == null || !scene.isInteractive()
+            || !(scene.containsBottomControlSlider(mouseX, mouseY) || ModConfig.ui.sceneWheelZoom)) {
+            return false;
+        }
+        scene.scroll(mouseX, mouseY, dwheel);
+        return true;
+    }
+
+    public void updateGuideEditorDividerFromMouse(int mouseX) {
         if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.SPLIT) {
             return;
         }
@@ -4158,7 +4174,6 @@ public class GuideScreen extends GuiContainer
 
         var ctx = reusableContentTooltipCtx;
         cachedTitleViewport = cachedRect(cachedTitleViewport, 0, 0, availableW, Math.max(titleH, TOOLBAR_H));
-        ctx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
         ctx.setViewport(cachedTitleViewport);
         ctx.setScreenHeight(this.height);
         ctx.setDocumentOrigin(titleX, titleY);
@@ -4172,7 +4187,7 @@ public class GuideScreen extends GuiContainer
             ctx.restoreExternalRenderState();
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 
@@ -4424,9 +4439,9 @@ public class GuideScreen extends GuiContainer
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         this.zLevel = 300.0F;
         itemRender.zLevel = 300.0F;
-        int ctBgColor = 0xF0100010;
-        int ctBorderTop = 0x505000FF;
-        int ctBorderBottom = 0x5028007F;
+        int ctBgColor = ColorUtils.ARGB_F0100010.getColor();
+        int ctBorderTop = ColorUtils.ARGB_505000FF.getColor();
+        int ctBorderBottom = ColorUtils.ARGB_5028007F.getColor();
         drawGradientRect(x - pad, y - pad, x + w + pad, y + h + pad, ctBgColor, ctBgColor);
         drawGradientRect(x - pad, y - pad - 1, x + w + pad, y - pad, ctBgColor, ctBgColor);
         drawGradientRect(x - pad, y + h + pad, x + w + pad, y + h + pad + 1, ctBgColor, ctBgColor);
@@ -4439,7 +4454,6 @@ public class GuideScreen extends GuiContainer
 
         var ctx = reusableContentTooltipCtx;
         cachedContentTooltipViewport = cachedRect(cachedContentTooltipViewport, 0, 0, w, h);
-        ctx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
         ctx.setViewport(cachedContentTooltipViewport);
         ctx.setScreenHeight(this.height);
         ctx.setDocumentOrigin(x, y);
@@ -4643,7 +4657,6 @@ public class GuideScreen extends GuiContainer
         var interaction = getDocumentInteractionState(mouseX, mouseY);
         activeDocument.setHoveredElement(interaction != null ? interaction.hit : null);
         var ctx = reusableRenderCtx;
-        ctx.setLightDarkMode(LightDarkMode.LIGHT_MODE);
         int documentRenderOffsetY = getDocumentRenderOffsetY(activeDocument);
         int renderedScrollY = Math.round(visualScrollY);
         int viewportTopInDocument = Math.max(0, renderedScrollY - documentRenderOffsetY);
@@ -4695,7 +4708,7 @@ public class GuideScreen extends GuiContainer
                 GuidebookText.SearchPlaceholder.text(),
                 searchField.xPosition,
                 searchField.yPosition,
-                0xFF666666);
+                ColorUtils.ARGB_FF666666.getColor());
         }
     }
 
@@ -4709,11 +4722,26 @@ public class GuideScreen extends GuiContainer
         int backgroundRight = specialSearchFieldBounds.right();
         int backgroundBottom = specialSearchFieldBounds.bottom() - SPECIAL_SEARCH_DIVIDER_GAP
             - SPECIAL_SEARCH_DIVIDER_HEIGHT;
-        drawRect(backgroundLeft, backgroundTop, backgroundRight, backgroundBottom, 0xCC0F0F12);
-        drawRect(backgroundLeft, backgroundTop, backgroundRight, backgroundTop + 1, 0xFF5A5A5A);
-        drawRect(backgroundLeft, backgroundBottom - 1, backgroundRight, backgroundBottom, 0xFF5A5A5A);
-        drawRect(backgroundLeft, backgroundTop, backgroundLeft + 1, backgroundBottom, 0xFF5A5A5A);
-        drawRect(backgroundRight - 1, backgroundTop, backgroundRight, backgroundBottom, 0xFF5A5A5A);
+        drawRect(backgroundLeft, backgroundTop, backgroundRight, backgroundBottom, ColorUtils.ARGB_CC0F0F12.getColor());
+        drawRect(backgroundLeft, backgroundTop, backgroundRight, backgroundTop + 1, ColorUtils.PANEL_BORDER.getColor());
+        drawRect(
+            backgroundLeft,
+            backgroundBottom - 1,
+            backgroundRight,
+            backgroundBottom,
+            ColorUtils.PANEL_BORDER.getColor());
+        drawRect(
+            backgroundLeft,
+            backgroundTop,
+            backgroundLeft + 1,
+            backgroundBottom,
+            ColorUtils.PANEL_BORDER.getColor());
+        drawRect(
+            backgroundRight - 1,
+            backgroundTop,
+            backgroundRight,
+            backgroundBottom,
+            ColorUtils.PANEL_BORDER.getColor());
         pushGuiScissor(
             backgroundLeft + 1,
             backgroundTop + 1,
@@ -4730,10 +4758,15 @@ public class GuideScreen extends GuiContainer
                 GuidebookText.SearchPlaceholder.text(),
                 specialSearchField.xPosition + 2,
                 specialSearchField.yPosition + 2,
-                0xFF666666);
+                ColorUtils.ARGB_FF666666.getColor());
         }
         int dividerY = specialSearchFieldBounds.bottom() - SPECIAL_SEARCH_DIVIDER_HEIGHT;
-        drawRect(contentX, dividerY, contentX + contentW, dividerY + SPECIAL_SEARCH_DIVIDER_HEIGHT, 0x665A5A5A);
+        drawRect(
+            contentX,
+            dividerY,
+            contentX + contentW,
+            dividerY + SPECIAL_SEARCH_DIVIDER_HEIGHT,
+            ColorUtils.ARGB_665A5A5A.getColor());
     }
 
     private boolean shouldDrawSearchPlaceholder() {
@@ -4765,8 +4798,7 @@ public class GuideScreen extends GuiContainer
         int textW = fontRendererObj.getStringWidth(message);
         int textX = areaX + Math.max(0, (areaW - textW) / 2);
         int textY = areaY + Math.max(0, (areaH - fontRendererObj.FONT_HEIGHT) / 2);
-        fontRendererObj
-            .drawString(message, textX, textY, SymbolicColor.BODY_TEXT.resolve(LightDarkMode.LIGHT_MODE), false);
+        fontRendererObj.drawString(message, textX, textY, ColorUtils.BODY_TEXT.resolve(), false);
     }
 
     public static LytRect cachedRect(@Nullable LytRect current, int x, int y, int w, int h) {
@@ -4783,7 +4815,11 @@ public class GuideScreen extends GuiContainer
         FontRenderer fr = mc.fontRenderer;
         String msg = GuidebookText.PageNotFound.text(currentAnchor.pageId());
         int tw = fr.getStringWidth(msg);
-        fr.drawStringWithShadow(msg, panelX + (panelW - tw) / 2, panelY + panelH / 2 - fr.FONT_HEIGHT / 2, 0xFFFF5555);
+        fr.drawStringWithShadow(
+            msg,
+            panelX + (panelW - tw) / 2,
+            panelY + panelH / 2 - fr.FONT_HEIGHT / 2,
+            ColorUtils.ARGB_FFFF5555.getColor());
     }
 
     private void drawLoadingMessage() {
@@ -4797,7 +4833,7 @@ public class GuideScreen extends GuiContainer
             message,
             contentX + (contentW - tw) / 2,
             documentY + documentH / 2 - fr.FONT_HEIGHT / 2,
-            0xFFCCCCCC);
+            ColorUtils.ARGB_FFCCCCCC.getColor());
     }
 
     private String buildAnimatedLoadingLabel(String baseText) {
@@ -4847,7 +4883,7 @@ public class GuideScreen extends GuiContainer
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glColor4f(1f, 1f, 1f, Math.clamp(BACKGROUND_ALPHA, 0f, 1f));
+        ColorUtils.applyWhite(Math.clamp(BACKGROUND_ALPHA, 0f, 1f));
         final float tile = 16f;
         float uMax = this.width / tile;
         float vMax = this.height / tile;
@@ -4858,7 +4894,7 @@ public class GuideScreen extends GuiContainer
         tess.addVertexWithUV(this.width, 0, 0, uMax, 0);
         tess.addVertexWithUV(0, 0, 0, 0, 0);
         tess.draw();
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
     }
 
     private void drawBorder(int x, int y, int w, int h, int color) {
@@ -4870,7 +4906,12 @@ public class GuideScreen extends GuiContainer
 
     private void drawScrollbar() {
         var bounds = scrollbarBounds();
-        drawRect(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), 0x40FFFFFF);
+        drawRect(
+            bounds.x(),
+            bounds.y(),
+            bounds.x() + bounds.width(),
+            bounds.y() + bounds.height(),
+            ColorUtils.ARGB_40FFFFFF.getColor());
         var renderState = scrollbarOutline.update(
             currentPage,
             getActiveDocument(),
@@ -4892,7 +4933,7 @@ public class GuideScreen extends GuiContainer
         int thumbY = bounds.maxScroll() > 0
             ? bounds.y() + (int) ((long) (bounds.height() - thumbH) * Math.round(visualScrollY) / bounds.maxScroll())
             : bounds.y();
-        int thumbColor = draggingScrollbar ? 0xFFFFFFFF : 0xFFCCCCCC;
+        int thumbColor = draggingScrollbar ? ColorUtils.WHITE.getColor() : ColorUtils.ARGB_FFCCCCCC.getColor();
         drawRect(bounds.x(), thumbY, bounds.x() + bounds.width(), thumbY + thumbH, thumbColor);
         drawScrollbarOutlineLabel(renderState, mc.fontRenderer);
     }
@@ -7155,13 +7196,17 @@ public class GuideScreen extends GuiContainer
         }
         int bubbleWidth = label.width() + SCROLLBAR_OUTLINE_LABEL_PADDING_X * 2;
         int bubbleHeight = label.height() + SCROLLBAR_OUTLINE_LABEL_PADDING_Y * 2;
-        int background = Colors.argb(label.alpha(), 16, 16, 16);
-        int border = Colors.argb(label.alpha(), 216, 216, 216);
+        int background = ColorUtils.argb(label.alpha(), 16, 16, 16);
+        int border = ColorUtils.argb(label.alpha(), 216, 216, 216);
         drawRect(label.x(), label.y(), label.x() + bubbleWidth, label.y() + bubbleHeight, background);
         drawBorder(label.x(), label.y(), bubbleWidth, bubbleHeight, border);
         int textY = label.y() + SCROLLBAR_OUTLINE_LABEL_PADDING_Y;
         for (String line : label.lines()) {
-            fontRenderer.drawStringWithShadow(line, label.x() + SCROLLBAR_OUTLINE_LABEL_PADDING_X, textY, 0xFFFFFF);
+            fontRenderer.drawStringWithShadow(
+                line,
+                label.x() + SCROLLBAR_OUTLINE_LABEL_PADDING_X,
+                textY,
+                ColorUtils.RGB_WHITE.getColor());
             textY += fontRenderer.FONT_HEIGHT;
         }
     }

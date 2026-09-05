@@ -10,6 +10,7 @@ import net.minecraft.client.gui.Gui;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
@@ -28,13 +29,13 @@ public class GuideScreenEditorContextMenu {
     private static final int TEXT_Y_OFFSET = 2;
     private static final int TEXT_VISUAL_HEIGHT = 9;
     private static final int SCROLLBAR_W = SceneEditorMultilineTextArea.SCROLLBAR_SIZE;
-    private static final int BACKGROUND_COLOR = 0xF0181C22;
-    private static final int BORDER_COLOR = 0xFF4D5661;
-    private static final int HOVER_COLOR = 0xCC2A3A46;
-    private static final int TEXT_COLOR = 0xFFF0F0F0;
-    private static final int SEPARATOR_COLOR = 0xFF33404C;
-    private static final int SCROLLBAR_TRACK_COLOR = 0x35101010;
-    private static final int SCROLLBAR_THUMB_COLOR = 0xA0D8D8D8;
+    private static final int BACKGROUND_COLOR = ColorUtils.DIALOG.getColor();
+    private static final int BORDER_COLOR = ColorUtils.ARGB_FF4D5661.getColor();
+    private static final int HOVER_COLOR = ColorUtils.ARGB_CC2A3A46.getColor();
+    private static final int TEXT_COLOR = ColorUtils.TEXT.getColor();
+    private static final int SEPARATOR_COLOR = ColorUtils.ARGB_FF33404C.getColor();
+    private static final int SCROLLBAR_TRACK_COLOR = ColorUtils.SCROLLBAR_TRACK.getColor();
+    private static final int SCROLLBAR_THUMB_COLOR = ColorUtils.SCROLLBAR_THUMB.getColor();
 
     public interface Listener {
 
@@ -400,7 +401,8 @@ public class GuideScreenEditorContextMenu {
         if (action == null) {
             return;
         }
-        GuideIconButton.drawIcon(minecraft, action.toRole(), x, y, ICON_SIZE, ICON_SIZE, 0xD8FFFFFF);
+        GuideIconButton
+            .drawIcon(minecraft, action.toRole(), x, y, ICON_SIZE, ICON_SIZE, ColorUtils.ARGB_D8FFFFFF.getColor());
     }
 
     static int computeIconYForRow(int rowY) {
@@ -542,7 +544,7 @@ public class GuideScreenEditorContextMenu {
     private void popScissor() {
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
     }
 
     private static final class MenuPane {

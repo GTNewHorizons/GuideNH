@@ -14,8 +14,8 @@ public class LightnessFunction implements ColorValue {
     }
 
     @Override
-    public int resolve(LightDarkMode lightDarkMode) {
-        var mutableColor = MutableColor.of(color, lightDarkMode);
+    public int resolve() {
+        var mutableColor = MutableColor.of(color);
         if (percentage < 0) {
             mutableColor.darker(-percentage);
         } else if (percentage > 0) {

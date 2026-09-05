@@ -2,9 +2,7 @@ package com.hfstudio.structurelibexport;
 
 import java.util.List;
 
-import org.lwjgl.opengl.GL11;
-
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
@@ -18,10 +16,7 @@ public class StructureLibExportOverlayRenderer {
         if (effectiveOverlays.isEmpty()) {
             return;
         }
-        VanillaRenderContext context = new VanillaRenderContext(
-            LightDarkMode.LIGHT_MODE,
-            new LytRect(0, 0, tileWidth, tileHeight),
-            tileHeight);
+        VanillaRenderContext context = new VanillaRenderContext(new LytRect(0, 0, tileWidth, tileHeight), tileHeight);
         context.setDocumentOrigin(0, 0);
         context.setScrollOffsetY(0);
         context.restoreExternalRenderState();
@@ -34,7 +29,7 @@ public class StructureLibExportOverlayRenderer {
             }
         } finally {
             context.popScissor();
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 }

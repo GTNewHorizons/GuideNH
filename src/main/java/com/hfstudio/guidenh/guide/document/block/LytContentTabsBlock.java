@@ -6,9 +6,9 @@ import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ContentTabsSpec;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -38,8 +38,8 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
     private static final int ACTIVE_RULE_THICKNESS = 2;
     private static final int TITLE_GAP = 4;
     private static final int BODY_GAP = 6;
-    private static final ConstantColor DEFAULT_ACCENT = new ConstantColor(0xFF7C8795);
-    private static final int HEADER_RULE_COLOR = 0x66586275;
+    private static final ConstantColor DEFAULT_ACCENT = new ConstantColor(ColorUtils.ARGB_FF7C8795.getColor());
+    private static final int HEADER_RULE_COLOR = ColorUtils.ARGB_66586275.getColor();
     private final List<TabState> tabs = new ArrayList<>();
     private final List<LytNode> children = new ArrayList<>();
     private final ColorValue accentColor;
@@ -59,7 +59,7 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
         false,
         false,
         "",
-        new ConstantColor(0xFFF4F7FB),
+        new ConstantColor(ColorUtils.ARGB_FFF4F7FB.getColor()),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
@@ -75,7 +75,7 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
         false,
         false,
         "",
-        new ConstantColor(0xFFD5DCE7),
+        new ConstantColor(ColorUtils.ARGB_FFD5DCE7.getColor()),
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
@@ -190,7 +190,7 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
         }
         int safeSelectedIndex = getSafeSelectedIndex();
         int accentArgb = context.resolveColor(accentColor);
-        context.fillRect(bounds, context.resolveColor(SymbolicColor.BLOCKQUOTE_BACKGROUND));
+        context.fillRect(bounds, context.resolveColor(ColorUtils.BLOCKQUOTE_BACKGROUND));
         context.fillRect(bounds.x(), bounds.y(), ACCENT_WIDTH, bounds.height(), accentArgb);
         if (titleParagraph != null) {
             titleParagraph.render(context);

@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 /**
  * Renders debug information panel at the left-bottom corner of the screen.
@@ -132,7 +133,7 @@ public class DebugInfoPanel {
 
     private void renderLines(List<String> lines, int screenHeight, FontRenderer fontRenderer) {
         float scale = ModConfig.debug.debugTextScale;
-        int textColor = ModConfig.debug.debugTextColor;
+        int textColor = ColorUtils.DEBUG_TEXT.getColor();
 
         GL11.glPushMatrix();
         GL11.glTranslatef(0.0F, 0.0F, GuideDebugOverlay.INFO_PANEL_Z);
@@ -156,9 +157,9 @@ public class DebugInfoPanel {
     }
 
     private void renderHoveredOutline(HoveredElementInfo info, int screenWidth) {
-        int color = ModConfig.debug.debugOutlineColor;
+        int color = ColorUtils.DEBUG_OUTLINE.getColor();
         if (color == 0) {
-            color = ModConfig.debug.debugTextColor;
+            color = ColorUtils.DEBUG_TEXT.getColor();
         }
         borderRenderer.renderDashedBorder(
             info.getScreenX(),
@@ -170,9 +171,9 @@ public class DebugInfoPanel {
     }
 
     private void renderParentOutline(HoveredElementInfo parent) {
-        int color = ModConfig.debug.debugOutlineColor;
+        int color = ColorUtils.DEBUG_OUTLINE.getColor();
         if (color == 0) {
-            color = ModConfig.debug.debugTextColor;
+            color = ColorUtils.DEBUG_TEXT.getColor();
         }
         int alphaColor = (color & 0x00FFFFFF) | 0x4D000000;
         borderRenderer.renderDashedBorder(
@@ -202,10 +203,10 @@ public class DebugInfoPanel {
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-        drawRect(labelX - 2, labelY - 1, textWidth + 4, textHeight + 2, 0xD0000000);
+        drawRect(labelX - 2, labelY - 1, textWidth + 4, textHeight + 2, ColorUtils.ARGB_D0000000.getColor());
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        fontRenderer.drawStringWithShadow(displayName, labelX, labelY, 0xFFFFFFFF);
+        fontRenderer.drawStringWithShadow(displayName, labelX, labelY, ColorUtils.WHITE.getColor());
         GL11.glPopMatrix();
     }
 
@@ -215,7 +216,7 @@ public class DebugInfoPanel {
         float green = ((color >> 8) & 0xFF) / 255.0f;
         float blue = (color & 0xFF) / 255.0f;
 
-        GL11.glColor4f(red, green, blue, alpha);
+        ColorUtils.applyGlColor(red, green, blue, alpha);
         GL11.glBegin(GL11.GL_QUADS);
         GL11.glVertex2f(x, y + height);
         GL11.glVertex2f(x + width, y + height);

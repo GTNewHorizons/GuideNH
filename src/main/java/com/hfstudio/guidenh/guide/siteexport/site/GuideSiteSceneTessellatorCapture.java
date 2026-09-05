@@ -24,6 +24,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import guideme.flatbuffers.scene.ExpDepthTest;
@@ -548,7 +549,7 @@ public class GuideSiteSceneTessellatorCapture {
                 cursor += Float.BYTES;
             }
 
-            int rgba = hasColor ? rawBuffer[base + 5] : 0xFFFFFFFF;
+            int rgba = hasColor ? rawBuffer[base + 5] : ColorUtils.WHITE.getColor();
             target[cursor++] = (byte) (rgba & 255);
             target[cursor++] = (byte) (rgba >> 8 & 255);
             target[cursor++] = (byte) (rgba >> 16 & 255);

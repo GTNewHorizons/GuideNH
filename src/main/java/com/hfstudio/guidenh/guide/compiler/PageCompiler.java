@@ -23,8 +23,8 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageCollection;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor;
 import com.hfstudio.guidenh.guide.document.block.LatexRenderOptions;
@@ -95,7 +95,7 @@ public class PageCompiler {
      */
     public static final int DEFAULT_ELEMENT_SPACING = 5;
     public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
-    public static final int DEFAULT_MARK_BACKGROUND_COLOR = 0xFF8A6A00;
+    public static final int DEFAULT_MARK_BACKGROUND_COLOR = ColorUtils.ARGB_FF8A6A00.getColor();
     private static final Pattern TABLE_ATTRIBUTE_LINE = Pattern.compile("^\\{:\\s*(.+?)\\s*}$");
     private static PageLinkResolver pageLinkResolver = PageCompiler::defaultPageExistsForLink;
     private static final State<List<SourceSlice>> SOURCE_SLICE_STACK = new State<>(
@@ -751,7 +751,7 @@ public class PageCompiler {
         } else if (content instanceof MdxJsxTextElement el) {
             if ("Spoiler".equals(el.name())) {
                 var span = new LytSpoilerSpan();
-                span.modifyStyle(style -> style.backgroundColor(new ConstantColor(0xFF000000)));
+                span.modifyStyle(style -> style.backgroundColor(new ConstantColor(ColorUtils.BLACK.getColor())));
                 compileFlowContext(el, span);
                 layoutChild = span;
             } else if ("span".equals(el.name())) {
@@ -981,7 +981,7 @@ public class PageCompiler {
     public LytFlowContent createErrorFlowContent(String text, UnistNode child) {
         LytFlowSpan span = new LytFlowSpan();
         span.modifyStyle(
-            style -> style.color(SymbolicColor.ERROR_TEXT)
+            style -> style.color(ColorUtils.ERROR_TEXT)
                 .whiteSpace(WhiteSpaceMode.PRE));
 
         // Find the position in the source

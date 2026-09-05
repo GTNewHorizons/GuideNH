@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.compiler.tags.functiongraph;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
@@ -40,19 +41,19 @@ public class FunctionGraphAttrs {
 
         String bg = MdxAttrs.getString(compiler, sink, el, "background", null);
         if (bg != null) {
-            graph.setBackgroundColor(ChartAttrParser.parseColor(bg, 0xFF1B1F23));
+            graph.setBackgroundColor(ChartAttrParser.parseColor(bg, ColorUtils.CHART_BACKGROUND.getColor()));
         }
         String border = MdxAttrs.getString(compiler, sink, el, "border", null);
         if (border != null) {
-            graph.setBorderColor(ChartAttrParser.parseColor(border, 0xFF3A4047));
+            graph.setBorderColor(ChartAttrParser.parseColor(border, ColorUtils.CHART_BORDER.getColor()));
         }
         String axis = MdxAttrs.getString(compiler, sink, el, "axisColor", null);
         if (axis != null) {
-            graph.setAxisColor(ChartAttrParser.parseColor(axis, 0xFFB8C2CF));
+            graph.setAxisColor(ChartAttrParser.parseColor(axis, ColorUtils.CHART_LABEL.getColor()));
         }
         String grid = MdxAttrs.getString(compiler, sink, el, "gridColor", null);
         if (grid != null) {
-            graph.setGridColor(ChartAttrParser.parseColor(grid, 0x33B8C2CF));
+            graph.setGridColor(ChartAttrParser.parseColor(grid, ColorUtils.CHART_GRID.getColor()));
         }
         graph.setShowGrid(MdxAttrs.getBoolean(compiler, sink, el, "showGrid", true));
         graph.setShowAxes(MdxAttrs.getBoolean(compiler, sink, el, "showAxes", true));
@@ -157,7 +158,8 @@ public class FunctionGraphAttrs {
     public static MarkedPoint parsePoint(PageCompiler compiler, LytErrorSink sink, MdxJsxElementFields el) {
         String colorStr = MdxAttrs.getString(compiler, sink, el, "color", null);
         boolean colorInherit = colorStr == null;
-        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, 0xFFFFFFFF) : 0xFFFFFFFF;
+        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ColorUtils.WHITE.getColor())
+            : ColorUtils.WHITE.getColor();
         String label = MdxAttrs.getString(compiler, sink, el, "label", null);
 
         double xValue = parseDouble(MdxAttrs.getString(compiler, sink, el, "x", null), Double.NaN);

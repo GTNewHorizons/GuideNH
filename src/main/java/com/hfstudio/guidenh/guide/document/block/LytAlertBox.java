@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;
@@ -16,15 +16,15 @@ public class LytAlertBox extends LytVBox {
         setPadding(6);
         setGap(4);
         setFullWidth(true);
-        setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
-        setBorderLeft(new BorderStyle(new ConstantColor(0xFF4FA3FF), 3));
+        setBackgroundColor(ColorUtils.BLOCKQUOTE_BACKGROUND);
+        setBorderLeft(new BorderStyle(new ConstantColor(ColorUtils.ARGB_FF4FA3FF.getColor()), 3));
 
         titleParagraph.setMarginTop(0);
         titleParagraph.setMarginBottom(0);
         titleParagraph.modifyStyle(
             style -> style.bold(true)
                 .fontScale(DefaultStyles.HEADING5.fontScale())
-                .color(new ConstantColor(0xFFD8E9FF)));
+                .color(new ConstantColor(ColorUtils.ARGB_FFD8E9FF.getColor())));
         append(titleParagraph);
     }
 

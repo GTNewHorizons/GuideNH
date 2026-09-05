@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -20,6 +20,6 @@ public class LytThematicBreak extends LytBlock {
         var line = bounds.withHeight(2)
             .centerVerticallyIn(bounds);
 
-        context.fillRect(line, SymbolicColor.THEMATIC_BREAK);
+        context.fillRect(line, ColorUtils.THEMATIC_BREAK);
     }
 }

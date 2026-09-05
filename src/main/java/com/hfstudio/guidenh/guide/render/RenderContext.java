@@ -4,17 +4,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public interface RenderContext {
-
-    LightDarkMode lightDarkMode();
-
-    default boolean isDarkMode() {
-        return lightDarkMode() == LightDarkMode.DARK_MODE;
-    }
 
     LytRect viewport();
 

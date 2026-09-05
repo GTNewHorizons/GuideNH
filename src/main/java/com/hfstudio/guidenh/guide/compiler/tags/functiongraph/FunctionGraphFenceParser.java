@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.compiler.tags.functiongraph;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
@@ -122,19 +123,19 @@ public class FunctionGraphFenceParser {
         }
         String bg = attrs.stringValue("background");
         if (bg != null) {
-            graph.setBackgroundColor(ChartAttrParser.parseColor(bg, 0xFF1B1F23));
+            graph.setBackgroundColor(ChartAttrParser.parseColor(bg, ColorUtils.CHART_BACKGROUND.getColor()));
         }
         String border = attrs.stringValue("border");
         if (border != null) {
-            graph.setBorderColor(ChartAttrParser.parseColor(border, 0xFF3A4047));
+            graph.setBorderColor(ChartAttrParser.parseColor(border, ColorUtils.CHART_BORDER.getColor()));
         }
         String axisColor = attrs.stringValue("axisColor");
         if (axisColor != null) {
-            graph.setAxisColor(ChartAttrParser.parseColor(axisColor, 0xFFB8C2CF));
+            graph.setAxisColor(ChartAttrParser.parseColor(axisColor, ColorUtils.CHART_LABEL.getColor()));
         }
         String gridColor = attrs.stringValue("gridColor");
         if (gridColor != null) {
-            graph.setGridColor(ChartAttrParser.parseColor(gridColor, 0x33B8C2CF));
+            graph.setGridColor(ChartAttrParser.parseColor(gridColor, ColorUtils.CHART_GRID.getColor()));
         }
         Boolean showGrid = attrs.boolValue("showGrid");
         if (showGrid != null) {
@@ -337,7 +338,8 @@ public class FunctionGraphFenceParser {
             return null;
         }
         String colorStr = attrs.stringValue("color");
-        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, 0xFFFFFFFF) : 0xFFFFFFFF;
+        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ColorUtils.WHITE.getColor())
+            : ColorUtils.WHITE.getColor();
         return new MarkedPoint(MarkedPoint.MODE_EXPLICIT, -1, x, y, color, false, attrs.stringValue("label"));
     }
 
@@ -350,7 +352,8 @@ public class FunctionGraphFenceParser {
         }
         String colorStr = attrs.stringValue("color");
         boolean inherit = colorStr == null;
-        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, 0xFFFFFFFF) : 0xFFFFFFFF;
+        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ColorUtils.WHITE.getColor())
+            : ColorUtils.WHITE.getColor();
         String label = attrs.stringValue("label");
         double atX = FunctionGraphAttrs.parseDouble(attrs.stringValue("atX"), Double.NaN);
         if (!Double.isNaN(atX)) {

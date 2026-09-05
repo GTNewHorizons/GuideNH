@@ -2,6 +2,8 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 
 import java.util.IllegalFormatException;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,9 +21,9 @@ public class ChartAxisOptions {
     private String tickFormat;
     private String unit;
     private boolean gridVisible;
-    private int gridColor = 0x33FFFFFF;
-    private int axisColor = 0xFF7A7A7A;
-    private int labelColor = 0xFFCCCCCC;
+    private int gridColor = ColorUtils.ARGB_33FFFFFF.getColor();
+    private int axisColor = ColorUtils.ARGB_FF7A7A7A.getColor();
+    private int labelColor = ColorUtils.ARGB_FFCCCCCC.getColor();
 
     /**
      * Format a numeric value using the configured tickFormat and unit; when tickFormat is unspecified,

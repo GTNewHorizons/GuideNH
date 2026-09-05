@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowParent;
@@ -11,7 +12,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class KbdTagCompiler extends FlowTagCompiler {
 
-    private static final ConstantColor KEY_COLOR = new ConstantColor(0xFFE8EDF5);
+    private static final ConstantColor KEY_COLOR = new ConstantColor(ColorUtils.ARGB_FFE8EDF5.getColor());
 
     @Override
     public Set<String> getTagNames() {

@@ -17,6 +17,7 @@ import javax.imageio.ImageWriter;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
@@ -26,7 +27,7 @@ import lombok.Getter;
 
 public class SceneEditorScreenshotExportService {
 
-    public static final int OPAQUE_BACKGROUND_RGB = 0x121216;
+    public static final int OPAQUE_BACKGROUND_RGB = ColorUtils.ARGB_121216.getColor();
     public static final DateTimeFormatter FILE_NAME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss");
 
     private final Path rootDirectory;
@@ -85,8 +86,8 @@ public class SceneEditorScreenshotExportService {
                     new IllegalStateException("No ImageIO writer available for ." + normalizedFormat.fileExtension()));
             }
 
-            scene.setSceneBackgroundColor(0x00000000);
-            scene.setSceneBorderColor(0x00000000);
+            scene.setSceneBackgroundColor(ColorUtils.TRANSPARENT.getColor());
+            scene.setSceneBorderColor(ColorUtils.TRANSPARENT.getColor());
             scene.setSceneButtonsVisible(false);
             scene.setBottomControlsVisible(false);
             scene.setReserveBottomControlArea(false);

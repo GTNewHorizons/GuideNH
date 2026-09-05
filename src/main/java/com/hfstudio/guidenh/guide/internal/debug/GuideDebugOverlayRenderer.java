@@ -9,6 +9,7 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorGuiIngameForge;
 
 public class GuideDebugOverlayRenderer {
@@ -50,7 +51,7 @@ public class GuideDebugOverlayRenderer {
             minecraft.entityRenderer.setupOverlayRendering();
             GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glDisable(GL11.GL_DEPTH_TEST);
-            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
             accessor.setScaledResolution(scaledResolution);
             accessor.setFontRenderer(minecraft.fontRenderer);

@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytPoint;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
@@ -65,7 +65,7 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
     public LytCodeBlockToolbar() {
         copySourceButton = new LytButton(COPY_SPRITE, new LytSize(16, 16));
         copySourceButton.setColor(toolbarText);
-        copySourceButton.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
+        copySourceButton.setHoverColor(ColorUtils.ICON_BUTTON_HOVER);
         copySourceButton.setOnClick(screen -> screen.copyCodeBlock(copyText));
         copySourceButton.setTooltipFunction((pressed) -> {
             if (pressed) return GuidebookText.CodeBlockCopySuccess.text();

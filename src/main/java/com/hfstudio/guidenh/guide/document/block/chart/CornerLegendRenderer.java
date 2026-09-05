@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.document.block.chart;
 
 import java.util.List;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -10,7 +11,7 @@ public class CornerLegendRenderer {
 
     public static final int DEFAULT_WIDTH = 120;
     public static final int DEFAULT_HEIGHT = 64;
-    public static final int DEFAULT_BACKGROUND = 0xAA111922;
+    public static final int DEFAULT_BACKGROUND = ColorUtils.ARGB_AA111922.getColor();
 
     private static final int PADDING_X = 5;
     private static final int PADDING_Y = 4;
@@ -20,7 +21,7 @@ public class CornerLegendRenderer {
     private static final int MARKER_HEIGHT = 6;
     private static final int MIN_WIDTH = 24;
     private static final int MIN_HEIGHT = 12;
-    private static final ResolvedTextStyle TEXT_STYLE = LytChartBase.textStyle(0xFFFFFFFF);
+    private static final ResolvedTextStyle TEXT_STYLE = LytChartBase.textStyle(ColorUtils.WHITE.getColor());
 
     protected CornerLegendRenderer() {}
 
@@ -70,7 +71,7 @@ public class CornerLegendRenderer {
         y = clamp(y, plotRect.y(), plotRect.bottom() - height);
         LytRect box = new LytRect(x, y, width, height);
         context.fillRect(box, backgroundColor);
-        context.drawBorder(box, 0x66FFFFFF, 1);
+        context.drawBorder(box, ColorUtils.ARGB_66FFFFFF.getColor(), 1);
 
         int textX = x + PADDING_X + MARKER_WIDTH + GAP;
         int maxTextWidth = Math.max(0, x + width - PADDING_X - textX);

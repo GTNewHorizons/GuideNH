@@ -6,7 +6,7 @@ import java.util.Random;
 
 import net.minecraft.util.ResourceLocation;
 
-import com.hfstudio.guidenh.guide.color.ARGB;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 /**
  * Factory helpers for guidebook scene particles and reusable particle presets.
@@ -268,9 +268,9 @@ public class GuidebookSceneParticleFactory {
         }
         int maxAmountPerBlockFromBudget = Math.max(1, (int) (MAX_INDICATOR_TOTAL_PARTICLES / targetBlockCount));
         resolvedAmountPerBlock = Math.min(resolvedAmountPerBlock, maxAmountPerBlockFromBudget);
-        float red = ARGB.red(color) / 255f;
-        float green = ARGB.green(color) / 255f;
-        float blue = ARGB.blue(color) / 255f;
+        float red = ColorUtils.red(color) / 255f;
+        float green = ColorUtils.green(color) / 255f;
+        float blue = ColorUtils.blue(color) / 255f;
         for (int blockX : xValues) {
             for (int blockY : yValues) {
                 for (int blockZ : zValues) {

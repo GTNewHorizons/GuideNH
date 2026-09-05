@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -56,12 +56,12 @@ public class LytHeading extends LytParagraph {
             var bounds = getBounds();
             int sepX = bounds.x() + separatorXOffset;
             int sepW = Math.max(0, separatorWidth);
-            context.fillRect(sepX, bounds.bottom() - 1, sepW, 1, SymbolicColor.HEADER1_SEPARATOR);
+            context.fillRect(sepX, bounds.bottom() - 1, sepW, 1, ColorUtils.HEADER1_SEPARATOR);
         } else if (depth == 2) {
             var bounds = getBounds();
             int sepX = bounds.x() + separatorXOffset;
             int sepW = Math.max(0, separatorWidth);
-            context.fillRect(sepX, bounds.bottom() - 1, sepW, 1, SymbolicColor.HEADER2_SEPARATOR);
+            context.fillRect(sepX, bounds.bottom() - 1, sepW, 1, ColorUtils.HEADER2_SEPARATOR);
         }
     }
 }

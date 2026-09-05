@@ -7,6 +7,8 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.editor.SceneEditorIcon;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
 import lombok.Getter;
@@ -28,15 +30,27 @@ public class GuideIconButton extends GuiButton {
 
     private Role role;
     private boolean active;
+    private SceneEditorIcon customIcon;
+    private String customTooltip;
 
     public GuideIconButton(int id, int x, int y, Role role) {
         super(id, x, y, WIDTH, HEIGHT, "");
         this.role = role;
         this.active = false;
+        this.customIcon = null;
+        this.customTooltip = null;
+    }
+
+    public GuideIconButton(int id, int x, int y, SceneEditorIcon icon, String tooltip) {
+        super(id, x, y, WIDTH, HEIGHT, "");
+        this.role = null;
+        this.active = false;
+        this.customIcon = icon;
+        this.customTooltip = tooltip;
     }
 
     public String getTooltip() {
-        return role.tooltip();
+        return role != null ? role.tooltip() : customTooltip;
     }
 
     @Override
@@ -48,17 +62,21 @@ public class GuideIconButton extends GuiButton {
 
         int color = resolveIconColor(enabled, field_146123_n, active);
 
-        drawIcon(mc, role, xPosition, yPosition, width, height, color);
+        if (customIcon != null) {
+            drawIcon(mc, customIcon, xPosition, yPosition, width, height, color);
+        } else {
+            drawIcon(mc, role, xPosition, yPosition, width, height, color);
+        }
     }
 
     public static int resolveIconColor(boolean enabled, boolean hovered, boolean active) {
         if (!enabled) {
-            return 0x60FFFFFF;
+            return ColorUtils.ARGB_60FFFFFF.getColor();
         }
         if (active || hovered) {
-            return 0xFF00CAF2;
+            return ColorUtils.ACCENT.getColor();
         }
-        return 0xC0FFFFFF;
+        return ColorUtils.ARGB_C0FFFFFF.getColor();
     }
 
     public static void drawIcon(Minecraft mc, Role role, int x, int y, int width, int height, int color) {
@@ -77,7 +95,7 @@ public class GuideIconButton extends GuiButton {
             int r = (color >>> 16) & 0xFF;
             int g = (color >>> 8) & 0xFF;
             int b = color & 0xFF;
-            GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
+            ColorUtils.applyGlColor(r / 255f, g / 255f, b / 255f, a / 255f);
 
             float texSize = GuideIconButton.TEXTURE_SIZE;
             float u0 = role.iconSrcX() / texSize;
@@ -93,7 +111,59 @@ public class GuideIconButton extends GuiButton {
             tess.addVertexWithUV(x, y, 0, u0, v0);
             tess.draw();
         } finally {
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
+            GL11.glPopAttrib();
+        }
+    }
+
+    public static void drawIcon(Minecraft mc, SceneEditorIcon icon, int x, int y, int width, int height, int color) {
+        if (icon == null) return;
+        drawIcon(
+            mc,
+            icon.texture(),
+            icon.textureWidth(),
+            icon.textureHeight(),
+            icon.sourceX(),
+            icon.sourceY(),
+            icon.sourceWidth(),
+            icon.sourceHeight(),
+            x,
+            y,
+            width,
+            height,
+            color);
+    }
+
+    private static void drawIcon(Minecraft mc, ResourceLocation texture, int textureWidth, int textureHeight,
+        int sourceX, int sourceY, int sourceWidth, int sourceHeight, int x, int y, int width, int height, int color) {
+        if (mc == null || texture == null) return;
+
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
+        try {
+            mc.getTextureManager()
+                .bindTexture(texture);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            int a = (color >>> 24) & 0xFF;
+            int r = (color >>> 16) & 0xFF;
+            int g = (color >>> 8) & 0xFF;
+            int b = color & 0xFF;
+            ColorUtils.applyGlColor(r / 255f, g / 255f, b / 255f, a / 255f);
+
+            float u0 = sourceX / (float) textureWidth;
+            float v0 = sourceY / (float) textureHeight;
+            float u1 = (sourceX + sourceWidth) / (float) textureWidth;
+            float v1 = (sourceY + sourceHeight) / (float) textureHeight;
+            var tess = Tessellator.instance;
+            tess.startDrawingQuads();
+            tess.addVertexWithUV(x, y + height, 0, u0, v1);
+            tess.addVertexWithUV(x + width, y + height, 0, u1, v1);
+            tess.addVertexWithUV(x + width, y, 0, u1, v0);
+            tess.addVertexWithUV(x, y, 0, u0, v0);
+            tess.draw();
+        } finally {
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             GL11.glPopAttrib();
         }
     }

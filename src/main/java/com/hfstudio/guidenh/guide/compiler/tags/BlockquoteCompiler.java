@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytAlertBox;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
@@ -59,10 +59,10 @@ public class BlockquoteCompiler extends BlockTagCompiler {
 
         // Plain blockquote
         LytVBox blockquote = new LytVBox();
-        blockquote.setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
+        blockquote.setBackgroundColor(ColorUtils.BLOCKQUOTE_BACKGROUND);
         blockquote.setPadding(5);
         blockquote.setPaddingLeft(10);
-        blockquote.setBorderLeft(new BorderStyle(SymbolicColor.TABLE_BORDER, 2));
+        blockquote.setBorderLeft(new BorderStyle(ColorUtils.TABLE_BORDER, 2));
         blockquote.setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
         blockquote.setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
         compiler.compileBlockContext(el.children(), blockquote);

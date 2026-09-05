@@ -1,13 +1,14 @@
 package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 
 public class GuidebookSceneWeatherSupport {
 
@@ -148,7 +149,7 @@ public class GuidebookSceneWeatherSupport {
                 return List.of(singleEffect);
             }
         }
-        Set<Long> occupiedColumns = new HashSet<>();
+        LongSet occupiedColumns = new LongOpenHashSet();
         List<GuidebookSceneWeatherEffect> resolved = new ArrayList<>(effects.size());
         for (GuidebookSceneWeatherEffect effect : effects) {
             if (effect == null || activeTick != null && !effect.isActiveAt(activeTick)) {
@@ -231,7 +232,7 @@ public class GuidebookSceneWeatherSupport {
     }
 
     private static List<GuidebookSceneWeatherArea> trimWeatherAreas(List<GuidebookSceneWeatherArea> areas,
-        Set<Long> occupiedColumns) {
+        LongSet occupiedColumns) {
         if (areas == null || areas.isEmpty()) {
             return List.of();
         }

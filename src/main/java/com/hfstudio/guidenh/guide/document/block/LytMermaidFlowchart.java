@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
@@ -38,8 +38,8 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
 
         setPadding(6);
         setGap(4);
-        setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
-        setBorder(new BorderStyle(SymbolicColor.TABLE_BORDER, 1));
+        setBackgroundColor(ColorUtils.BLOCKQUOTE_BACKGROUND);
+        setBorder(new BorderStyle(ColorUtils.TABLE_BORDER, 1));
 
         toolbar.setLanguageDisplayName("Flowchart");
         toolbar.setCopyText(this.sourceText);
@@ -52,7 +52,7 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
                 if (pressed) return GuidebookText.FlowchartCopyPlanSuccess.text();
                 return GuidebookText.FlowchartCopyPlan.text();
             });
-            btn.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
+            btn.setHoverColor(ColorUtils.ICON_BUTTON_HOVER);
             toolbar.addButton(btn);
         }
         toolbar.addButton(createResetViewButton());
@@ -65,7 +65,7 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
         LytButton button = new LytButton(LytCodeBlockToolbar.RESET_VIEW_SPRITE, new LytSize(16, 16));
         button.setOnClick(screen -> canvas.resetView());
         button.setTooltipText(GuidebookText.ResetView.text());
-        button.setHoverColor(SymbolicColor.ICON_BUTTON_HOVER);
+        button.setHoverColor(ColorUtils.ICON_BUTTON_HOVER);
         return button;
     }
 

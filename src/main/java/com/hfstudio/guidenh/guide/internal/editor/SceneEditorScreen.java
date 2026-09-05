@@ -1,16 +1,21 @@
 package com.hfstudio.guidenh.guide.internal.editor;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
@@ -34,7 +39,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.config.ModConfig;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver.ResolvedBlockReference;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -42,6 +47,13 @@ import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.editor.SceneEditorActionContext;
+import com.hfstudio.guidenh.guide.editor.SceneEditorMenuItem;
+import com.hfstudio.guidenh.guide.editor.SceneEditorMenuRegistry;
+import com.hfstudio.guidenh.guide.editor.SceneEditorMenuWidget;
+import com.hfstudio.guidenh.guide.editor.SceneEditorMenuWidgetContext;
+import com.hfstudio.guidenh.guide.editor.SceneEditorToolbarButton;
+import com.hfstudio.guidenh.guide.editor.SceneEditorToolbarRegistry;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorDraftTextController;
@@ -67,6 +79,7 @@ import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorUndoSnapshot;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorUndoUiState;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorVerticalScrollbar;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorClipboardExporter;
+import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorFolderOpener;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorSaveService;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorScreenshotExportService;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorScreenshotFormat;
@@ -118,32 +131,30 @@ public class SceneEditorScreen extends GuiScreen {
 
     public static final int TOOLBAR_MARGIN_X = 10;
     public static final int TOOLBAR_Y = SceneEditorScreenLayout.TOOLBAR_Y;
-    public static final int PANEL_COLOR = 0xB418181C;
-    public static final int PANEL_INNER_COLOR = 0x70121216;
-    public static final int PANEL_BORDER_COLOR = 0xFF5A5A5A;
-    public static final int PANEL_HEADER_COLOR = 0xFFDEE6F0;
-    public static final int PANEL_MUTED_TEXT = 0xFFB9C2CE;
-    public static final int PANEL_SUBTLE_TEXT = 0xFF8F98A3;
-    public static final int INPUT_BORDER_COLOR = 0xFF3E434A;
-    public static final int INPUT_FOCUSED_BORDER_COLOR = 0xFF7FC8FF;
-    public static final int INPUT_ERROR_BORDER_COLOR = 0xFFFF6767;
-    public static final int INPUT_BACKGROUND_COLOR = 0x80101012;
-    public static final int CHECKBOX_BACKGROUND_COLOR = 0xA0141418;
-    public static final int CHECKBOX_CHECK_COLOR = 0xFF00CAF2;
+    public static final int PANEL_COLOR = ColorUtils.PANEL.getColor();
+    public static final int PANEL_INNER_COLOR = ColorUtils.PANEL_INNER.getColor();
+    public static final int PANEL_BORDER_COLOR = ColorUtils.PANEL_BORDER.getColor();
+    public static final int PANEL_HEADER_COLOR = ColorUtils.PANEL_HEADER.getColor();
+    public static final int PANEL_MUTED_TEXT = ColorUtils.PANEL_MUTED_TEXT.getColor();
+    public static final int PANEL_SUBTLE_TEXT = ColorUtils.TEXT_DISABLED.getColor();
+    public static final int INPUT_BORDER_COLOR = ColorUtils.INPUT_BORDER.getColor();
+    public static final int INPUT_FOCUSED_BORDER_COLOR = ColorUtils.INPUT_FOCUSED_BORDER.getColor();
+    public static final int INPUT_ERROR_BORDER_COLOR = ColorUtils.ERROR.getColor();
+    public static final int INPUT_BACKGROUND_COLOR = ColorUtils.INPUT_BACKGROUND.getColor();
+    public static final int CHECKBOX_BACKGROUND_COLOR = ColorUtils.CHECKBOX_BACKGROUND.getColor();
+    public static final int CHECKBOX_CHECK_COLOR = ColorUtils.ACCENT.getColor();
     public static final int SETTINGS_BOX_PADDING = 8;
     public static final int PARAMETER_ROW_HEIGHT = 18;
     public static final int PARAMETER_LABEL_WIDTH = 52;
     public static final int PARAMETER_INPUT_WIDTH = 46;
     public static final int PARAMETER_INPUT_HEIGHT = 14;
     public static final int PARAMETER_GAP = 4;
-    public static final int PARAMETER_SLIDER_HEIGHT = GuideSliderRenderer.TRACK_HEIGHT;
-    public static final int PARAMETER_SLIDER_THUMB_WIDTH = GuideSliderRenderer.THUMB_WIDTH;
     public static final int PARAMETER_SLIDER_Y_OFFSET = 5;
     public static final int SETTINGS_TAB_HEIGHT = 18;
     public static final int SETTINGS_TAB_GAP = 4;
-    public static final int SETTINGS_TAB_ACTIVE_COLOR = 0xD6202C36;
-    public static final int SETTINGS_TAB_INACTIVE_COLOR = 0x6612181C;
-    public static final int SETTINGS_TAB_HOVER_COLOR = 0xA61C252E;
+    public static final int SETTINGS_TAB_ACTIVE_COLOR = ColorUtils.TAB_ACTIVE.getColor();
+    public static final int SETTINGS_TAB_INACTIVE_COLOR = ColorUtils.TAB_INACTIVE.getColor();
+    public static final int SETTINGS_TAB_HOVER_COLOR = ColorUtils.TAB_HOVER.getColor();
     public static final int INTERACTIVE_ROW_HEIGHT = 18;
     public static final int INTERACTIVE_CHECKBOX_SIZE = 12;
     public static final int PREVIEW_FRAME_BUTTON_WIDTH = 74;
@@ -152,15 +163,9 @@ public class SceneEditorScreen extends GuiScreen {
     public static final int ACTION_ROW_BUTTON_GAP = 8;
     public static final int ELEMENT_ROW_HEIGHT = 20;
     public static final int ELEMENT_ROW_GAP = 4;
-    public static final int ELEMENT_EXPANDED_HEIGHT = 154;
     public static final int ELEMENT_ICON_SIZE = 14;
     public static final int ELEMENT_MENU_WIDTH = 102;
     public static final int ELEMENT_MENU_ROW_HEIGHT = 18;
-    public static final int ELEMENT_ROW_BACKGROUND = 0x6A121418;
-    public static final int ELEMENT_ROW_SELECTED = 0x9A1C222A;
-    public static final int ELEMENT_ROW_EXPANDED = 0x7A101216;
-    public static final int ELEMENT_MENU_BACKGROUND = 0xEE121418;
-    public static final int ELEMENT_MENU_HOVER = 0xCC1A222A;
     public static final int ELEMENT_FIELD_ROW_HEIGHT = 18;
     public static final int ELEMENT_FIELD_LABEL_WIDTH = 62;
     public static final int ELEMENT_TOOLTIP_HEIGHT = 44;
@@ -170,17 +175,16 @@ public class SceneEditorScreen extends GuiScreen {
     public static final int ELEMENT_CONTEXT_MENU_WIDTH = 132;
     public static final int MARKDOWN_CONTEXT_MENU_WIDTH = 148;
     public static final int MARKDOWN_CONTEXT_MENU_ROW_HEIGHT = 18;
-    public static final int SNAP_MENU_WIDTH = 118;
-    public static final int EXPORT_MENU_WIDTH = 152;
+    public static final int MENU_HORIZONTAL_PADDING = 16;
     public static final long CLIENT_SELECTION_EXPORT_BUDGET_NANOS = 3_000_000L;
     public static final int CLOSE_DIALOG_WIDTH = 248;
     public static final int CLOSE_DIALOG_HEIGHT = 104;
     public static final int CLOSE_DIALOG_BUTTON_WIDTH = 68;
     public static final int CLOSE_DIALOG_BUTTON_HEIGHT = 20;
     public static final int CLOSE_DIALOG_BUTTON_GAP = 10;
-    public static final int CLOSE_DIALOG_OVERLAY_COLOR = 0x8A050608;
-    public static final int CLOSE_DIALOG_COLOR = 0xF0181C22;
-    public static final int CLOSE_DIALOG_HOVER = 0xCC24303A;
+    public static final int CLOSE_DIALOG_OVERLAY_COLOR = ColorUtils.DIALOG_OVERLAY.getColor();
+    public static final int CLOSE_DIALOG_COLOR = ColorUtils.DIALOG.getColor();
+    public static final int CLOSE_DIALOG_HOVER = ColorUtils.DIALOG_HOVER.getColor();
 
     public static final int CLOSE_BUTTON_ID = 0;
     public static final int RESET_PREVIEW_BUTTON_ID = 1;
@@ -201,6 +205,7 @@ public class SceneEditorScreen extends GuiScreen {
     private final SceneEditorElementReorderController elementReorderController;
     private final SceneEditorLinkedSelectionController linkedSelectionController;
     private final SceneEditorPreviewBridge previewBridge;
+    private final SceneEditorDefaultControlRegistry defaultControlRegistry = new SceneEditorDefaultControlRegistry();
     private final SceneEditorPreviewCameraController previewCameraController;
     private final SceneEditorPickingService pickingService;
     private final SceneEditorHandleOverlay handleOverlay;
@@ -230,6 +235,17 @@ public class SceneEditorScreen extends GuiScreen {
     private GuideIconButton importStructureButton;
     private GuideIconButton screenshotButton;
     private GuideIconButton addElementButton;
+    private final Map<Integer, SceneEditorToolbarButton> registeredToolbarButtons = new HashMap<>();
+    private final Map<Integer, GuideIconButton> registeredToolbarButtonWidgets = new HashMap<>();
+    @Nullable
+    private String registeredMenuOpen;
+    private int registeredMenuAnchorId;
+    @Nullable
+    private MenuEntry activeRegisteredWidget;
+    @Nullable
+    private MenuEntry activeBuiltInWidget;
+    @Nullable
+    private String activeBuiltInWidgetMenu;
     private SceneEditorMultilineTextArea markdownTextArea;
     @Nullable
     private GuiTextField screenshotScaleField;
@@ -381,8 +397,8 @@ public class SceneEditorScreen extends GuiScreen {
             });
         this.structureImportService = new SceneEditorStructureImportService(structureCache);
         this.previewLayoutContext = new LayoutContext(new MinecraftFontMetrics());
-        this.previewRenderContext = new VanillaRenderContext(LightDarkMode.LIGHT_MODE, LytRect.empty(), 0);
-        this.previewTooltipRenderContext = new VanillaRenderContext(LightDarkMode.LIGHT_MODE, LytRect.empty(), 0);
+        this.previewRenderContext = new VanillaRenderContext(LytRect.empty(), 0);
+        this.previewTooltipRenderContext = new VanillaRenderContext(LytRect.empty(), 0);
         this.numericParameterRows = new ArrayList<>();
         this.elementPanelScrollState = new SceneEditorScrollState();
         this.addElementMenuState = new SceneEditorHoverMenuState();
@@ -490,41 +506,14 @@ public class SceneEditorScreen extends GuiScreen {
 
         this.buttonList.clear();
         int toolbarX = TOOLBAR_MARGIN_X;
-        closeButton = new GuideIconButton(
-            CLOSE_BUTTON_ID,
-            toolbarX,
-            TOOLBAR_Y,
-            GuideIconButton.Role.SCENE_EDITOR_CLOSE);
-        resetPreviewButton = new GuideIconButton(
-            RESET_PREVIEW_BUTTON_ID,
-            toolbarX + 20,
-            TOOLBAR_Y,
-            GuideIconButton.Role.SCENE_EDITOR_RESET_PREVIEW);
-        snapButton = new GuideIconButton(
-            SNAP_BUTTON_ID,
-            toolbarX + 40,
-            TOOLBAR_Y,
-            GuideIconButton.Role.SCENE_EDITOR_SNAP);
-        autoPickButton = new GuideIconButton(
-            AUTO_PICK_BUTTON_ID,
-            toolbarX + 60,
-            TOOLBAR_Y,
-            GuideIconButton.Role.SCENE_EDITOR_AUTO_PICK);
-        importStructureButton = new GuideIconButton(
-            IMPORT_STRUCTURE_BUTTON_ID,
-            toolbarX + 80,
-            TOOLBAR_Y,
-            GuideIconButton.Role.SCENE_EDITOR_IMPORT_STRUCTURE);
-        exportButton = new GuideIconButton(
-            EXPORT_BUTTON_ID,
-            toolbarX + 100,
-            TOOLBAR_Y,
-            GuideIconButton.Role.SCENE_EDITOR_EXPORT);
-        screenshotButton = new GuideIconButton(
-            SCREENSHOT_BUTTON_ID,
-            toolbarX + 120,
-            TOOLBAR_Y,
-            GuideIconButton.Role.SCENE_EDITOR_SCREENSHOT);
+        List<GuideIconButton> defaultButtons = defaultControlRegistry.createToolbarButtons(toolbarX, TOOLBAR_Y);
+        closeButton = defaultButtons.get(0);
+        resetPreviewButton = defaultButtons.get(1);
+        snapButton = defaultButtons.get(2);
+        autoPickButton = defaultButtons.get(3);
+        importStructureButton = defaultButtons.get(4);
+        exportButton = defaultButtons.get(5);
+        screenshotButton = defaultButtons.get(6);
 
         if (screenshotScaleField == null) {
             screenshotScaleField = new GuiTextField(this.fontRendererObj, 0, 0, 0, PARAMETER_INPUT_HEIGHT);
@@ -540,6 +529,23 @@ public class SceneEditorScreen extends GuiScreen {
         this.buttonList.add(importStructureButton);
         this.buttonList.add(exportButton);
         this.buttonList.add(screenshotButton);
+        registeredToolbarButtons.clear();
+        registeredToolbarButtonWidgets.clear();
+        int extensionToolbarX = toolbarX + 140;
+        for (SceneEditorToolbarButton descriptor : SceneEditorToolbarRegistry.snapshot()) {
+            int buttonId = SceneEditorToolbarRegistry.nextButtonId();
+            GuideIconButton extensionButton = new GuideIconButton(
+                buttonId,
+                extensionToolbarX,
+                TOOLBAR_Y,
+                descriptor.icon(),
+                descriptor.label());
+            extensionButton.enabled = descriptor.enabled();
+            registeredToolbarButtons.put(buttonId, descriptor);
+            registeredToolbarButtonWidgets.put(buttonId, extensionButton);
+            this.buttonList.add(extensionButton);
+            extensionToolbarX += GuideIconButton.WIDTH + 4;
+        }
         addElementButton = new GuideIconButton(
             ADD_ELEMENT_BUTTON_ID,
             elementsBoxX + elementsBoxWidth - GuideIconButton.WIDTH - 6,
@@ -722,6 +728,22 @@ public class SceneEditorScreen extends GuiScreen {
 
     @Override
     protected void actionPerformed(GuiButton button) {
+        SceneEditorToolbarButton registeredButton = registeredToolbarButtons.get(button.id);
+        if (registeredButton != null) {
+            if (registeredButton.enabled()) {
+                if (registeredButton.menuId() != null && !registeredButton.menuId()
+                    .trim()
+                    .isEmpty()) {
+                    registeredMenuOpen = registeredButton.menuId();
+                    registeredMenuAnchorId = button.id;
+                    activeRegisteredWidget = null;
+                    closeBuiltInMenus();
+                } else {
+                    registeredButton.triggerClick(createActionContext());
+                }
+            }
+            return;
+        }
         if (button.id == CLOSE_BUTTON_ID) {
             requestCloseEditor();
             return;
@@ -752,7 +774,7 @@ public class SceneEditorScreen extends GuiScreen {
             if (GuiScreen.isShiftKeyDown()) {
                 copyGameScene();
             } else {
-                attemptSaveWithoutClose();
+                attemptExportSnbt();
             }
             return;
         }
@@ -761,6 +783,83 @@ public class SceneEditorScreen extends GuiScreen {
             return;
         }
         if (button.id == ADD_ELEMENT_BUTTON_ID) {}
+    }
+
+    private SceneEditorActionContext createActionContext() {
+        return new SceneEditorActionContext() {
+
+            @Override
+            public SceneEditorSession session() {
+                return session;
+            }
+
+            @Override
+            public int width() {
+                return SceneEditorScreen.this.width;
+            }
+
+            @Override
+            public int height() {
+                return SceneEditorScreen.this.height;
+            }
+
+            @Override
+            public void rebuildPreview() {
+                rebuildPreviewScene(true);
+            }
+
+            @Override
+            public void save() {
+                attemptSaveWithoutClose();
+            }
+
+            @Override
+            public void exportSnbt() {
+                attemptExportSnbt();
+            }
+
+            @Override
+            public void copyGameScene() {
+                SceneEditorScreen.this.copyGameScene();
+            }
+
+            @Override
+            public void copyBlockImage() {
+                SceneEditorScreen.this.copyBlockImage();
+            }
+
+            @Override
+            public void openExportFolder() {
+                SceneEditorScreen.this.saveAndOpenStructureFolder();
+            }
+
+            @Override
+            public void closeMenus() {
+                closeSceneEditorMenus();
+            }
+        };
+    }
+
+    private void closeSceneEditorMenus() {
+        exportMenuOpen = false;
+        snapModeMenuOpen = false;
+        screenshotMenuController.close();
+        activeBuiltInWidget = null;
+        activeBuiltInWidgetMenu = null;
+        closeRegisteredMenu();
+    }
+
+    private void closeBuiltInMenus() {
+        exportMenuOpen = false;
+        snapModeMenuOpen = false;
+        screenshotMenuController.close();
+        activeBuiltInWidget = null;
+        activeBuiltInWidgetMenu = null;
+    }
+
+    private void closeRegisteredMenu() {
+        registeredMenuOpen = null;
+        activeRegisteredWidget = null;
     }
 
     @Override
@@ -841,6 +940,7 @@ public class SceneEditorScreen extends GuiScreen {
             addElementButton.visible = !rightPanelCollapsed;
         }
         syncToolbarToggleState();
+        syncRegisteredToolbarButtons();
         pollContinuousMouseDrag(mouseX, mouseY);
         pollActivePreviewSceneDrag();
 
@@ -864,6 +964,9 @@ public class SceneEditorScreen extends GuiScreen {
         }
         if (exportMenuOpen) {
             drawExportMenu(mouseX, mouseY);
+        }
+        if (registeredMenuOpen != null) {
+            drawRegisteredMenu(mouseX, mouseY);
         }
 
         if (closeConfirmDialogOpen) {
@@ -997,6 +1100,9 @@ public class SceneEditorScreen extends GuiScreen {
         if (handleScreenshotMenuClick(mouseX, mouseY, button)) {
             return;
         }
+        if (handleRegisteredMenuClick(mouseX, mouseY, button)) {
+            return;
+        }
         if (handleExportMenuClick(mouseX, mouseY, button)) {
             return;
         }
@@ -1004,6 +1110,8 @@ public class SceneEditorScreen extends GuiScreen {
             exportMenuOpen = !exportMenuOpen;
             snapModeMenuOpen = false;
             screenshotMenuController.close();
+            activeBuiltInWidget = null;
+            activeBuiltInWidgetMenu = null;
             return;
         }
         if (exportMenuOpen && !isInsideExportButton(mouseX, mouseY) && !isInsideExportMenu(mouseX, mouseY)) {
@@ -1022,6 +1130,8 @@ public class SceneEditorScreen extends GuiScreen {
             snapModeMenuOpen = !snapModeMenuOpen;
             screenshotMenuController.close();
             exportMenuOpen = false;
+            activeBuiltInWidget = null;
+            activeBuiltInWidgetMenu = null;
             return;
         }
         if (snapModeMenuOpen && !isInsideSnapButton(mouseX, mouseY) && !isInsideSnapModeMenu(mouseX, mouseY)) {
@@ -1175,6 +1285,42 @@ public class SceneEditorScreen extends GuiScreen {
             }
             return;
         }
+        if (activeRegisteredWidget != null && registeredMenuOpen != null && clickedMouseButton == 0) {
+            LytRect bounds = getRegisteredMenuBounds();
+            MenuEntry entry = activeRegisteredWidget;
+            int entryY = registeredMenuEntryY(entry, bounds);
+            if (entryY >= 0 && entry.widget() != null
+                && entry.widget()
+                    .triggerDrag(
+                        createActionContext(),
+                        bounds.x(),
+                        entryY,
+                        bounds.width(),
+                        entry.height(),
+                        mouseX,
+                        mouseY,
+                        clickedMouseButton)) {
+                return;
+            }
+        }
+        if (activeBuiltInWidget != null && activeBuiltInWidgetMenu != null && clickedMouseButton == 0) {
+            List<MenuEntry> entries = builtInMenuEntries(activeBuiltInWidgetMenu);
+            LytRect bounds = builtInMenuBounds(activeBuiltInWidgetMenu);
+            int entryY = menuEntryY(entries, activeBuiltInWidget, bounds.y());
+            if (entryY >= 0 && activeBuiltInWidget.widget() != null
+                && activeBuiltInWidget.widget()
+                    .triggerDrag(
+                        createActionContext(),
+                        bounds.x(),
+                        entryY,
+                        bounds.width(),
+                        activeBuiltInWidget.height(),
+                        mouseX,
+                        mouseY,
+                        clickedMouseButton)) {
+                return;
+            }
+        }
         if (clickedMouseButton == 0 && activePointDrag != null && previewScene != null) {
             if (pointDragService.updateHandleDrag(
                 elementPropertyController,
@@ -1219,6 +1365,15 @@ public class SceneEditorScreen extends GuiScreen {
         if (draggingScreenshotScaleSlider && state != -1) {
             recordScreenshotScaleSnapshot(false);
             draggingScreenshotScaleSlider = false;
+            return;
+        }
+        if (activeRegisteredWidget != null && state != -1) {
+            activeRegisteredWidget = null;
+            return;
+        }
+        if (activeBuiltInWidget != null && state != -1) {
+            activeBuiltInWidget = null;
+            activeBuiltInWidgetMenu = null;
             return;
         }
         if (draggingMarkdownResize && state != -1) {
@@ -1304,12 +1459,17 @@ public class SceneEditorScreen extends GuiScreen {
         String structureSource = session.getSceneModel()
             .getStructureSource();
         boolean hasImportedStructure = structureSource != null && !structureSource.isEmpty();
-        int titleX = TOOLBAR_MARGIN_X + 152;
+        int titleX = TOOLBAR_MARGIN_X + 152 + registeredToolbarButtons.size() * (GuideIconButton.WIDTH + 4);
         int sessionLabelY = TOOLBAR_Y + 16;
-        this.drawString(this.fontRendererObj, GuidebookText.SceneEditorTitle.text(), titleX, TOOLBAR_Y + 4, 0xFFFFFF);
+        this.drawString(
+            this.fontRendererObj,
+            GuidebookText.SceneEditorTitle.text(),
+            titleX,
+            TOOLBAR_Y + 4,
+            ColorUtils.RGB_WHITE.getColor());
         String sessionLabel = hasImportedStructure ? GuidebookText.SceneEditorImportedSession.text()
             : GuidebookText.SceneEditorBlankSession.text();
-        this.drawString(this.fontRendererObj, sessionLabel, titleX, sessionLabelY, 0xFF8FC7FF);
+        this.drawString(this.fontRendererObj, sessionLabel, titleX, sessionLabelY, ColorUtils.ARGB_FF8FC7FF.getColor());
     }
 
     private void syncToolbarToggleState() {
@@ -1347,7 +1507,7 @@ public class SceneEditorScreen extends GuiScreen {
                 == SceneEditorTextSyncController.ValidationKind.UNSUPPORTED
                     ? GuidebookText.SceneEditorUnsupportedSyntax.text()
                     : GuidebookText.SceneEditorSyntaxError.text();
-            this.drawString(this.fontRendererObj, title, headerX, statusY, 0xFFFF8484);
+            this.drawString(this.fontRendererObj, title, headerX, statusY, ColorUtils.ARGB_FFFF8484.getColor());
             this.drawString(
                 this.fontRendererObj,
                 GuidebookText.SceneEditorTextSyncHint.text(),
@@ -1380,7 +1540,7 @@ public class SceneEditorScreen extends GuiScreen {
             handleBounds.y() + 8,
             lineLeft + 2,
             handleBounds.bottom() - 8,
-            highlighted ? 0xFF00CAF2 : 0x66464A50);
+            highlighted ? ColorUtils.ACCENT.getColor() : ColorUtils.ARGB_66464A50.getColor());
     }
 
     private void drawCenterPanel(int mouseX, int mouseY) {
@@ -1595,9 +1755,9 @@ public class SceneEditorScreen extends GuiScreen {
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         this.zLevel = 300.0F;
         itemRender.zLevel = 300.0F;
-        int bgColor = 0xF0100010;
-        int borderTop = 0x505000FF;
-        int borderBottom = 0x5028007F;
+        int bgColor = ColorUtils.ARGB_F0100010.getColor();
+        int borderTop = ColorUtils.ARGB_505000FF.getColor();
+        int borderBottom = ColorUtils.ARGB_5028007F.getColor();
         drawGradientRect(
             tooltipX - pad,
             tooltipY - pad,
@@ -1661,8 +1821,6 @@ public class SceneEditorScreen extends GuiScreen {
             tooltipY + tooltipHeight + pad - 1,
             borderTop,
             borderBottom);
-
-        previewTooltipRenderContext.setLightDarkMode(LightDarkMode.LIGHT_MODE);
         previewTooltipRenderContext.setViewport(new LytRect(0, 0, tooltipWidth, tooltipHeight));
         previewTooltipRenderContext.setScreenHeight(this.height);
         previewTooltipRenderContext.setDocumentOrigin(tooltipX, tooltipY);
@@ -1718,10 +1876,20 @@ public class SceneEditorScreen extends GuiScreen {
         if (frameRect.isEmpty()) {
             return;
         }
-        drawRect(frameRect.x(), frameRect.y(), frameRect.right(), frameRect.y() + 1, 0xFF00CAF2);
-        drawRect(frameRect.x(), frameRect.bottom() - 1, frameRect.right(), frameRect.bottom(), 0xFF00CAF2);
-        drawRect(frameRect.x(), frameRect.y(), frameRect.x() + 1, frameRect.bottom(), 0xFF00CAF2);
-        drawRect(frameRect.right() - 1, frameRect.y(), frameRect.right(), frameRect.bottom(), 0xFF00CAF2);
+        drawRect(frameRect.x(), frameRect.y(), frameRect.right(), frameRect.y() + 1, ColorUtils.ACCENT.getColor());
+        drawRect(
+            frameRect.x(),
+            frameRect.bottom() - 1,
+            frameRect.right(),
+            frameRect.bottom(),
+            ColorUtils.ACCENT.getColor());
+        drawRect(frameRect.x(), frameRect.y(), frameRect.x() + 1, frameRect.bottom(), ColorUtils.ACCENT.getColor());
+        drawRect(
+            frameRect.right() - 1,
+            frameRect.y(),
+            frameRect.right(),
+            frameRect.bottom(),
+            ColorUtils.ACCENT.getColor());
         this.drawString(
             this.fontRendererObj,
             session.getSceneModel()
@@ -1749,7 +1917,12 @@ public class SceneEditorScreen extends GuiScreen {
             settingsBoxX + settingsBoxWidth,
             settingsBoxY + settingsBoxHeight,
             PANEL_INNER_COLOR);
-        drawBorder(settingsBoxX, settingsBoxY, settingsBoxWidth, settingsBoxHeight, 0xFF464A50);
+        drawBorder(
+            settingsBoxX,
+            settingsBoxY,
+            settingsBoxWidth,
+            settingsBoxHeight,
+            ColorUtils.ARGB_FF464A50.getColor());
 
         drawSettingsTabs(mouseX, mouseY);
         for (NumericParameterRow row : getVisibleParameterRows()) {
@@ -1776,14 +1949,14 @@ public class SceneEditorScreen extends GuiScreen {
     private void drawRightPanelToggle(int mouseX, int mouseY) {
         LytRect toggleBounds = screenLayout.rightToggle();
         boolean hovered = toggleBounds.contains(mouseX, mouseY);
-        int backgroundColor = hovered ? 0xC824303A : 0xA014161A;
+        int backgroundColor = hovered ? ColorUtils.ARGB_C824303A.getColor() : ColorUtils.ARGB_A014161A.getColor();
         drawRect(toggleBounds.x(), toggleBounds.y(), toggleBounds.right(), toggleBounds.bottom(), backgroundColor);
         drawBorder(
             toggleBounds.x(),
             toggleBounds.y(),
             toggleBounds.width(),
             toggleBounds.height(),
-            hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
+            hovered ? ColorUtils.ACCENT.getColor() : INPUT_BORDER_COLOR);
         String arrow = rightPanelCollapsed ? "<" : ">";
         int arrowX = toggleBounds.x() + (toggleBounds.width() - this.fontRendererObj.getStringWidth(arrow)) / 2;
         int arrowY = toggleBounds.y() + toggleBounds.height() / 2 - 4;
@@ -1793,14 +1966,14 @@ public class SceneEditorScreen extends GuiScreen {
     private void drawMarkdownToggle(int mouseX, int mouseY) {
         LytRect toggleBounds = screenLayout.markdownToggle();
         boolean hovered = toggleBounds.contains(mouseX, mouseY);
-        int backgroundColor = hovered ? 0xC824303A : 0xA014161A;
+        int backgroundColor = hovered ? ColorUtils.ARGB_C824303A.getColor() : ColorUtils.ARGB_A014161A.getColor();
         drawRect(toggleBounds.x(), toggleBounds.y(), toggleBounds.right(), toggleBounds.bottom(), backgroundColor);
         drawBorder(
             toggleBounds.x(),
             toggleBounds.y(),
             toggleBounds.width(),
             toggleBounds.height(),
-            hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
+            hovered ? ColorUtils.ACCENT.getColor() : INPUT_BORDER_COLOR);
         String arrow = markdownPanelState.isExpanded() ? "<" : ">";
         int arrowX = toggleBounds.x() + (toggleBounds.width() - this.fontRendererObj.getStringWidth(arrow)) / 2;
         int arrowY = toggleBounds.y() + toggleBounds.height() / 2 - 4;
@@ -1819,7 +1992,12 @@ public class SceneEditorScreen extends GuiScreen {
             int backgroundColor = active ? SETTINGS_TAB_ACTIVE_COLOR
                 : hovered ? SETTINGS_TAB_HOVER_COLOR : SETTINGS_TAB_INACTIVE_COLOR;
             drawRect(tabX, tabY, tabX + tabWidth, tabY + SETTINGS_TAB_HEIGHT, backgroundColor);
-            drawBorder(tabX, tabY, tabWidth, SETTINGS_TAB_HEIGHT, active ? 0xFF00CAF2 : 0xFF3E434A);
+            drawBorder(
+                tabX,
+                tabY,
+                tabWidth,
+                SETTINGS_TAB_HEIGHT,
+                active ? ColorUtils.ACCENT.getColor() : ColorUtils.INPUT_BORDER.getColor());
             String label = this.fontRendererObj.trimStringToWidth(
                 tab.getTextKey()
                     .text(),
@@ -1835,14 +2013,14 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void drawTiledBackground() {
-        drawRect(0, 0, this.width, this.height, 0x34101018);
+        drawRect(0, 0, this.width, this.height, ColorUtils.ARGB_34101018.getColor());
         mc.getTextureManager()
             .bindTexture(BG_TEXTURE);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glColor4f(1f, 1f, 1f, 0.7f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE_70.getColor());
         float tile = 16f;
         float uMax = this.width / tile;
         float vMax = this.height / tile;
@@ -1853,7 +2031,7 @@ public class SceneEditorScreen extends GuiScreen {
         tess.addVertexWithUV(this.width, 0, 0, uMax, 0);
         tess.addVertexWithUV(0, 0, 0, 0, 0);
         tess.draw();
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
     }
 
     private void drawBorder(int x, int y, int width, int height, int color) {
@@ -1872,7 +2050,8 @@ public class SceneEditorScreen extends GuiScreen {
             return;
         }
         String visibleText = this.fontRendererObj.trimStringToWidth(text, Math.max(0, inputField.width));
-        this.fontRendererObj.drawString(visibleText, inputField.xPosition, inputField.yPosition, 0xF0F0F0);
+        this.fontRendererObj
+            .drawString(visibleText, inputField.xPosition, inputField.yPosition, ColorUtils.ARGB_F0F0F0.getColor());
     }
 
     private void requestCloseEditor() {
@@ -1922,7 +2101,14 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void attemptSaveWithoutClose() {
-        performSave();
+        performSaveResult();
+    }
+
+    private void attemptExportSnbt() {
+        SceneEditorSaveService.SaveResult result = performSaveResult();
+        if (result != null && ModConfig.ui.sceneEditorExportOpenFolderAfterExport) {
+            openStructureFolder(result);
+        }
     }
 
     private void copyGameScene() {
@@ -2031,8 +2217,28 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private boolean performSave() {
+        return performSaveResult() != null;
+    }
+
+    private void syncRegisteredToolbarButtons() {
+        for (Object buttonObject : this.buttonList) {
+            if (!(buttonObject instanceof GuideIconButton button)) {
+                continue;
+            }
+            SceneEditorToolbarButton descriptor = registeredToolbarButtons.get(button.id);
+            if (descriptor != null) {
+                button.visible = descriptor.visible();
+                button.enabled = descriptor.enabled();
+                button.setCustomTooltip(descriptor.label());
+                button.setCustomIcon(descriptor.icon());
+            }
+        }
+    }
+
+    @Nullable
+    private SceneEditorSaveService.SaveResult performSaveResult() {
         if (!commitPendingEditorsForClose()) {
-            return false;
+            return null;
         }
         SceneEditorSaveService.SaveResult result = saveService.save(session, this.mc.thePlayer);
         if (result.isSuccess()) {
@@ -2041,10 +2247,26 @@ public class SceneEditorScreen extends GuiScreen {
                     new ChatComponentTranslation(GuidebookText.SceneEditorMarkdownInvalidSaveHint.getTranslationKey()));
             }
             closeConfirmErrorText = null;
-            return true;
+            return result;
         }
         closeConfirmErrorText = GuidebookText.SceneEditorSaveFailure.text(extractErrorMessage(result.getError()));
-        return false;
+        return null;
+    }
+
+    private void saveAndOpenStructureFolder() {
+        SceneEditorSaveService.SaveResult result = performSaveResult();
+        if (result == null) {
+            return;
+        }
+        openStructureFolder(result);
+    }
+
+    private void openStructureFolder(SceneEditorSaveService.SaveResult result) {
+        result.getStructurePath()
+            .map(Path::getParent)
+            .filter(Objects::nonNull)
+            .filter(Files::isDirectory)
+            .ifPresent(SceneEditorFolderOpener::open);
     }
 
     private String extractErrorMessage(@Nullable Throwable throwable) {
@@ -2208,8 +2430,13 @@ public class SceneEditorScreen extends GuiScreen {
             bounds.y(),
             bounds.right(),
             bounds.bottom(),
-            hovered ? CLOSE_DIALOG_HOVER : ELEMENT_ROW_BACKGROUND);
-        drawBorder(bounds.x(), bounds.y(), bounds.width(), bounds.height(), hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
+            hovered ? CLOSE_DIALOG_HOVER : ColorUtils.ELEMENT_ROW.getColor());
+        drawBorder(
+            bounds.x(),
+            bounds.y(),
+            bounds.width(),
+            bounds.height(),
+            hovered ? ColorUtils.ACCENT.getColor() : INPUT_BORDER_COLOR);
         this.drawCenteredString(
             this.fontRendererObj,
             action.text()
@@ -2794,7 +3021,8 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawPreviewFrameButton() {
         boolean hovered = isInsidePreviewFrameButton(currentMouseX(), currentMouseY());
-        int backgroundColor = previewFrameOverlayVisible ? 0xA61C252E : hovered ? 0x7A1C252E : 0x5512181C;
+        int backgroundColor = previewFrameOverlayVisible ? ColorUtils.TAB_HOVER.getColor()
+            : hovered ? ColorUtils.ARGB_7A1C252E.getColor() : ColorUtils.ARGB_5512181C.getColor();
         drawRect(
             previewFrameButtonX,
             previewFrameButtonY,
@@ -2806,7 +3034,7 @@ public class SceneEditorScreen extends GuiScreen {
             previewFrameButtonY,
             PREVIEW_FRAME_BUTTON_WIDTH,
             PREVIEW_FRAME_BUTTON_HEIGHT,
-            previewFrameOverlayVisible ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
+            previewFrameOverlayVisible ? ColorUtils.ACCENT.getColor() : INPUT_BORDER_COLOR);
         this.drawCenteredString(
             this.fontRendererObj,
             GuidebookText.SceneEditorPreviewFrame.text(),
@@ -2816,9 +3044,9 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void drawTextActionButton(int x, int y, int width, int height, String text, boolean hovered) {
-        int backgroundColor = hovered ? 0x7A1C252E : 0x5512181C;
+        int backgroundColor = hovered ? ColorUtils.ARGB_7A1C252E.getColor() : ColorUtils.ARGB_5512181C.getColor();
         drawRect(x, y, x + width, y + height, backgroundColor);
-        drawBorder(x, y, width, height, hovered ? 0xFF00CAF2 : INPUT_BORDER_COLOR);
+        drawBorder(x, y, width, height, hovered ? ColorUtils.ACCENT.getColor() : INPUT_BORDER_COLOR);
         this.drawCenteredString(this.fontRendererObj, text, x + width / 2, y + 3, PANEL_HEADER_COLOR);
     }
 
@@ -2931,7 +3159,12 @@ public class SceneEditorScreen extends GuiScreen {
             elementsBoxX + elementsBoxWidth,
             elementsBoxY + elementsBoxHeight,
             PANEL_INNER_COLOR);
-        drawBorder(elementsBoxX, elementsBoxY, elementsBoxWidth, elementsBoxHeight, 0xFF464A50);
+        drawBorder(
+            elementsBoxX,
+            elementsBoxY,
+            elementsBoxWidth,
+            elementsBoxHeight,
+            ColorUtils.ARGB_FF464A50.getColor());
 
         this.drawString(
             this.fontRendererObj,
@@ -3040,13 +3273,13 @@ public class SceneEditorScreen extends GuiScreen {
             markdownContextMenuY,
             markdownContextMenuX + MARKDOWN_CONTEXT_MENU_WIDTH,
             markdownContextMenuY + MARKDOWN_CONTEXT_MENU_ROW_HEIGHT,
-            ELEMENT_MENU_BACKGROUND);
+            ColorUtils.ELEMENT_MENU.getColor());
         drawBorder(
             markdownContextMenuX,
             markdownContextMenuY,
             MARKDOWN_CONTEXT_MENU_WIDTH,
             MARKDOWN_CONTEXT_MENU_ROW_HEIGHT,
-            0xFF3E434A);
+            ColorUtils.INPUT_BORDER.getColor());
         LytRect menuBounds = new LytRect(
             markdownContextMenuX,
             markdownContextMenuY,
@@ -3071,9 +3304,14 @@ public class SceneEditorScreen extends GuiScreen {
                     .getSelectedElementId());
         boolean expanded = element.getId()
             .equals(expandedElementId);
-        int rowColor = selected ? ELEMENT_ROW_SELECTED : ELEMENT_ROW_BACKGROUND;
+        int rowColor = selected ? ColorUtils.ELEMENT_ROW_SELECTED.getColor() : ColorUtils.ELEMENT_ROW.getColor();
         drawRect(x, y, x + width, y + ELEMENT_ROW_HEIGHT, rowColor);
-        drawBorder(x, y, width, ELEMENT_ROW_HEIGHT, selected ? 0xFF00CAF2 : 0xFF3E434A);
+        drawBorder(
+            x,
+            y,
+            width,
+            ELEMENT_ROW_HEIGHT,
+            selected ? ColorUtils.ACCENT.getColor() : ColorUtils.INPUT_BORDER.getColor());
 
         int arrowX = x + 4;
         int arrowY = y + 6;
@@ -3093,8 +3331,14 @@ public class SceneEditorScreen extends GuiScreen {
 
         int deleteX = x + width - 30;
         int eyeX = x + width - 14;
-        GuideIconButton
-            .drawIcon(this.mc, GuideIconButton.Role.SCENE_EDITOR_DELETE_ELEMENT, deleteX, y + 2, 12, 12, 0xC0FFFFFF);
+        GuideIconButton.drawIcon(
+            this.mc,
+            GuideIconButton.Role.SCENE_EDITOR_DELETE_ELEMENT,
+            deleteX,
+            y + 2,
+            12,
+            12,
+            ColorUtils.ARGB_C0FFFFFF.getColor());
         GuideIconButton.drawIcon(
             this.mc,
             element.isVisible() ? GuideIconButton.Role.SCENE_EDITOR_HIDE_ELEMENT
@@ -3103,7 +3347,7 @@ public class SceneEditorScreen extends GuiScreen {
             y + 2,
             12,
             12,
-            0xC0FFFFFF);
+            ColorUtils.ARGB_C0FFFFFF.getColor());
 
         if (!expanded) {
             return;
@@ -3111,8 +3355,8 @@ public class SceneEditorScreen extends GuiScreen {
 
         int expandedY = y + ELEMENT_ROW_HEIGHT;
         int expandedHeight = Math.max(0, totalHeight - ELEMENT_ROW_HEIGHT);
-        drawRect(x, expandedY, x + width, expandedY + expandedHeight, ELEMENT_ROW_EXPANDED);
-        drawBorder(x, expandedY, width, expandedHeight, 0xFF2D3137);
+        drawRect(x, expandedY, x + width, expandedY + expandedHeight, ColorUtils.ELEMENT_ROW_EXPANDED.getColor());
+        drawBorder(x, expandedY, width, expandedHeight, ColorUtils.ARGB_FF2D3137.getColor());
         if (expandedElementEditor != null && element.getId()
             .equals(expandedElementEditor.elementId)) {
             expandedElementEditor.setBounds(x, expandedY, width, expandedHeight);
@@ -3725,8 +3969,18 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawAddElementMenu(int mouseX, int mouseY) {
         LytRect menuBounds = getAddElementMenuBounds();
-        drawRect(menuBounds.x(), menuBounds.y(), menuBounds.right(), menuBounds.bottom(), ELEMENT_MENU_BACKGROUND);
-        drawBorder(menuBounds.x(), menuBounds.y(), menuBounds.width(), menuBounds.height(), 0xFF3E434A);
+        drawRect(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.right(),
+            menuBounds.bottom(),
+            ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.width(),
+            menuBounds.height(),
+            ColorUtils.INPUT_BORDER.getColor());
         List<SceneEditorElementType> elementTypes = SceneEditorElementType.values();
         for (int i = 0; i < elementTypes.size(); i++) {
             SceneEditorElementType type = elementTypes.get(i);
@@ -3757,14 +4011,14 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private LytRect getExportMenuBounds() {
+        List<MenuEntry> entries = exportMenuEntries();
         if (exportButton == null) {
-            return new LytRect(TOOLBAR_MARGIN_X, TOOLBAR_Y + GuideIconButton.HEIGHT, EXPORT_MENU_WIDTH, 0);
+            return new LytRect(TOOLBAR_MARGIN_X, TOOLBAR_Y + GuideIconButton.HEIGHT, menuWidth(entries), 0);
         }
-        int rows = hasBlockImageExport() ? 3 : 2;
         return SceneEditorPopupLayout.placeBelowAnchor(
             new LytRect(exportButton.xPosition, exportButton.yPosition, exportButton.width, exportButton.height),
-            EXPORT_MENU_WIDTH,
-            rows * ELEMENT_MENU_ROW_HEIGHT,
+            menuWidth(entries),
+            menuHeight(entries),
             this.width,
             this.height,
             4);
@@ -3775,20 +4029,27 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     @Nullable
-    private ExportMenuOption exportMenuOptionAt(int mouseX, int mouseY) {
+    private MenuEntry exportMenuOptionAt(int mouseX, int mouseY) {
         if (!isInsideExportMenu(mouseX, mouseY)) {
             return null;
         }
-        int index = (mouseY - getExportMenuBounds().y()) / ELEMENT_MENU_ROW_HEIGHT;
-        ExportMenuOption[] options = exportMenuOptions();
-        return index >= 0 && index < options.length ? options[index] : null;
+        List<MenuEntry> options = exportMenuEntries();
+        return menuEntryAtY(options, getExportMenuBounds().y(), mouseY);
     }
 
-    private ExportMenuOption[] exportMenuOptions() {
-        return hasBlockImageExport()
-            ? new ExportMenuOption[] { ExportMenuOption.SNBT, ExportMenuOption.GAME_SCENE,
-                ExportMenuOption.BLOCK_IMAGE }
-            : new ExportMenuOption[] { ExportMenuOption.SNBT, ExportMenuOption.GAME_SCENE };
+    private List<MenuEntry> exportMenuEntries() {
+        List<MenuEntry> entries = new ArrayList<>();
+        SceneEditorActionContext context = createActionContext();
+        for (SceneEditorMenuItem item : defaultControlRegistry.createExportItems(context, this::hasBlockImageExport)) {
+            entries.add(MenuEntry.external(item, context));
+        }
+        for (SceneEditorMenuItem item : SceneEditorMenuRegistry.snapshot(SceneEditorMenuRegistry.MENU_EXPORT)) {
+            entries.add(MenuEntry.external(item, context));
+        }
+        entries.sort(
+            Comparator.comparingInt(MenuEntry::order)
+                .thenComparing(entry -> entry.id));
+        return entries;
     }
 
     private boolean hasBlockImageExport() {
@@ -3851,7 +4112,252 @@ public class SceneEditorScreen extends GuiScreen {
         int top = Math.max(menuBounds.y() + 1, rowY);
         int bottom = Math.min(menuBounds.bottom() - 1, rowY + rowHeight);
         if (bottom > top) {
-            drawRect(menuBounds.x() + 1, top, menuBounds.right() - 1, bottom, ELEMENT_MENU_HOVER);
+            drawRect(menuBounds.x() + 1, top, menuBounds.right() - 1, bottom, ColorUtils.ELEMENT_MENU_HOVER.getColor());
+        }
+    }
+
+    private int menuWidth(List<MenuEntry> entries) {
+        int width = GuideIconButton.WIDTH + MENU_HORIZONTAL_PADDING;
+        for (MenuEntry entry : entries) {
+            int leftPadding = entry.hasCheckBox() ? 30 : 8;
+            int widgetWidth = entry.widget() == null ? 0
+                : entry.widget()
+                    .preferredWidth();
+            width = Math.max(
+                width,
+                Math.max(widgetWidth, this.fontRendererObj.getStringWidth(entry.label()) + leftPadding + 8));
+        }
+        return Math.min(Math.max(width, GuideIconButton.WIDTH), Math.max(GuideIconButton.WIDTH, this.width - 8));
+    }
+
+    private int menuHeight(List<MenuEntry> entries) {
+        int height = 0;
+        for (MenuEntry entry : entries) {
+            height += entry.height();
+        }
+        return height;
+    }
+
+    @Nullable
+    private MenuEntry menuEntryAtY(List<MenuEntry> entries, int top, int mouseY) {
+        int rowY = top;
+        for (MenuEntry entry : entries) {
+            int height = entry.height();
+            if (mouseY >= rowY && mouseY < rowY + height) {
+                return entry;
+            }
+            rowY += height;
+        }
+        return null;
+    }
+
+    private int menuEntryY(List<MenuEntry> entries, MenuEntry target, int top) {
+        int rowY = top;
+        for (MenuEntry entry : entries) {
+            if (entry == target || entry.id.equals(target.id)) {
+                return rowY;
+            }
+            rowY += entry.height();
+        }
+        return -1;
+    }
+
+    private List<MenuEntry> builtInMenuEntries(String menuId) {
+        if (SceneEditorMenuRegistry.MENU_EXPORT.equals(menuId)) {
+            return exportMenuEntries();
+        }
+        if (SceneEditorMenuRegistry.MENU_SNAP.equals(menuId)) {
+            return snapModeMenuEntries();
+        }
+        return List.of();
+    }
+
+    private LytRect builtInMenuBounds(String menuId) {
+        return SceneEditorMenuRegistry.MENU_EXPORT.equals(menuId) ? getExportMenuBounds() : getSnapModeMenuBounds();
+    }
+
+    private List<MenuEntry> registeredMenuEntries() {
+        if (registeredMenuOpen == null) return List.of();
+        List<MenuEntry> entries = new ArrayList<>();
+        for (SceneEditorMenuItem item : SceneEditorMenuRegistry.snapshot(registeredMenuOpen)) {
+            entries.add(MenuEntry.external(item, createActionContext()));
+        }
+        return entries;
+    }
+
+    private LytRect getRegisteredMenuBounds() {
+        List<MenuEntry> entries = registeredMenuEntries();
+        GuideIconButton anchor = registeredToolbarButtonWidgets.get(registeredMenuAnchorId);
+        if (anchor == null)
+            return new LytRect(TOOLBAR_MARGIN_X, TOOLBAR_Y + GuideIconButton.HEIGHT, menuWidth(entries), 0);
+        return SceneEditorPopupLayout.placeBelowAnchor(
+            new LytRect(anchor.xPosition, anchor.yPosition, anchor.width, anchor.height),
+            menuWidth(entries),
+            menuHeight(entries),
+            this.width,
+            this.height,
+            4);
+    }
+
+    private int registeredMenuEntryY(MenuEntry target, LytRect bounds) {
+        return menuEntryY(registeredMenuEntries(), target, bounds.y());
+    }
+
+    private boolean handleRegisteredMenuClick(int mouseX, int mouseY, int button) {
+        if (registeredMenuOpen == null) return false;
+        LytRect bounds = getRegisteredMenuBounds();
+        GuideIconButton anchor = registeredToolbarButtonWidgets.get(registeredMenuAnchorId);
+        boolean inside = bounds.contains(mouseX, mouseY);
+        if (button == 0 && inside) {
+            int y = bounds.y();
+            for (MenuEntry entry : registeredMenuEntries()) {
+                int height = entry.height();
+                if (mouseY >= y && mouseY < y + height) {
+                    if (entry.widget() != null) {
+                        if (entry.enabled() && entry.widget()
+                            .triggerClick(
+                                createActionContext(),
+                                bounds.x(),
+                                y,
+                                bounds.width(),
+                                height,
+                                mouseX,
+                                mouseY,
+                                button)) {
+                            activeRegisteredWidget = entry;
+                            return true;
+                        }
+                    } else if (entry.enabled()) {
+                        entry.activate();
+                        closeRegisteredMenu();
+                        return true;
+                    }
+                    return true;
+                }
+                y += height;
+            }
+        }
+        if (button == 1 && anchor != null
+            && anchor.visible
+            && anchor.xPosition <= mouseX
+            && mouseX < anchor.xPosition + anchor.width
+            && anchor.yPosition <= mouseY
+            && mouseY < anchor.yPosition + anchor.height) {
+            closeRegisteredMenu();
+            return true;
+        }
+        if (!inside && (anchor == null || mouseX < anchor.xPosition
+            || mouseX >= anchor.xPosition + anchor.width
+            || mouseY < anchor.yPosition
+            || mouseY >= anchor.yPosition + anchor.height)) {
+            closeRegisteredMenu();
+        }
+        return false;
+    }
+
+    private void drawRegisteredMenu(int mouseX, int mouseY) {
+        List<MenuEntry> entries = registeredMenuEntries();
+        LytRect bounds = getRegisteredMenuBounds();
+        drawRect(bounds.x(), bounds.y(), bounds.right(), bounds.bottom(), ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(bounds.x(), bounds.y(), bounds.width(), bounds.height(), ColorUtils.INPUT_BORDER.getColor());
+        int y = bounds.y();
+        for (MenuEntry entry : entries) {
+            drawMenuHover(bounds, mouseX, mouseY, y, entry.height());
+            drawMenuEntry(bounds, entry, y, mouseX, mouseY);
+            y += entry.height();
+        }
+    }
+
+    private SceneEditorMenuWidgetContext menuWidgetContext() {
+        return new SceneEditorMenuWidgetContext() {
+
+            public Minecraft minecraft() {
+                return mc;
+            }
+
+            public FontRenderer fontRenderer() {
+                return fontRendererObj;
+            }
+
+            public void drawRect(int left, int top, int right, int bottom, int color) {
+                SceneEditorScreen.this.drawRect(left, top, right, bottom, color);
+            }
+
+            public void drawBorder(int left, int top, int width, int height, int color) {
+                SceneEditorScreen.this.drawBorder(left, top, width, height, color);
+            }
+
+            public void drawString(String text, int x, int y, int color) {
+                SceneEditorScreen.this.drawString(fontRendererObj, text, x, y, color);
+            }
+        };
+    }
+
+    private static class MenuEntry {
+
+        private final String id;
+        private final int order;
+        private final Supplier<String> labelSupplier;
+        private final BooleanSupplier enabledSupplier;
+        private final BooleanSupplier checkedSupplier;
+        private final boolean checkBox;
+        private final SceneEditorMenuWidget widget;
+        private final Runnable action;
+
+        private MenuEntry(String id, int order, Supplier<String> labelSupplier, BooleanSupplier enabledSupplier,
+            BooleanSupplier checkedSupplier, SceneEditorMenuWidget widget, Runnable action) {
+            this.id = id;
+            this.order = order;
+            this.labelSupplier = labelSupplier;
+            this.enabledSupplier = enabledSupplier;
+            this.checkedSupplier = checkedSupplier;
+            this.checkBox = checkedSupplier != null;
+            this.widget = widget;
+            this.action = action;
+        }
+
+        private static MenuEntry external(SceneEditorMenuItem item, SceneEditorActionContext context) {
+            return new MenuEntry(
+                item.id(),
+                item.order(),
+                item::label,
+                item::enabled,
+                item.hasCheckBox() ? item::checked : null,
+                item.widget(),
+                () -> item.triggerClick(context));
+        }
+
+        private String label() {
+            String value = labelSupplier.get();
+            return value == null ? id : value;
+        }
+
+        private boolean enabled() {
+            return enabledSupplier.getAsBoolean();
+        }
+
+        private boolean checked() {
+            return checkedSupplier != null && checkedSupplier.getAsBoolean();
+        }
+
+        private boolean hasCheckBox() {
+            return checkBox;
+        }
+
+        private SceneEditorMenuWidget widget() {
+            return widget;
+        }
+
+        private int height() {
+            return widget == null ? ELEMENT_MENU_ROW_HEIGHT : Math.max(ELEMENT_MENU_ROW_HEIGHT, widget.height());
+        }
+
+        private int order() {
+            return order;
+        }
+
+        private void activate() {
+            action.run();
         }
     }
 
@@ -3859,13 +4365,25 @@ public class SceneEditorScreen extends GuiScreen {
         if (!exportMenuOpen) {
             return false;
         }
-        ExportMenuOption option = exportMenuOptionAt(mouseX, mouseY);
-        if (button == 0 && option != null) {
-            exportMenuOpen = false;
-            switch (option) {
-                case SNBT -> attemptSaveWithoutClose();
-                case GAME_SCENE -> copyGameScene();
-                case BLOCK_IMAGE -> copyBlockImage();
+        MenuEntry option = exportMenuOptionAt(mouseX, mouseY);
+        if (button == 0 && option != null && option.enabled()) {
+            if (option.widget() != null) {
+                if (option.widget()
+                    .triggerClick(
+                        createActionContext(),
+                        getExportMenuBounds().x(),
+                        menuEntryY(exportMenuEntries(), option, getExportMenuBounds().y()),
+                        getExportMenuBounds().width(),
+                        option.height(),
+                        mouseX,
+                        mouseY,
+                        button)) {
+                    activeBuiltInWidget = option;
+                    activeBuiltInWidgetMenu = SceneEditorMenuRegistry.MENU_EXPORT;
+                }
+            } else {
+                exportMenuOpen = false;
+                option.activate();
             }
             return true;
         }
@@ -3877,20 +4395,60 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawExportMenu(int mouseX, int mouseY) {
         LytRect menuBounds = getExportMenuBounds();
-        drawRect(menuBounds.x(), menuBounds.y(), menuBounds.right(), menuBounds.bottom(), ELEMENT_MENU_BACKGROUND);
-        drawBorder(menuBounds.x(), menuBounds.y(), menuBounds.width(), menuBounds.height(), 0xFF3E434A);
-        ExportMenuOption[] options = exportMenuOptions();
-        for (int i = 0; i < options.length; i++) {
-            int rowY = menuBounds.y() + i * ELEMENT_MENU_ROW_HEIGHT;
-            drawMenuHover(menuBounds, mouseX, mouseY, rowY, ELEMENT_MENU_ROW_HEIGHT);
-            this.drawString(
-                this.fontRendererObj,
-                options[i].text()
-                    .text(),
-                menuBounds.x() + 8,
-                rowY + 5,
-                PANEL_HEADER_COLOR);
+        drawRect(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.right(),
+            menuBounds.bottom(),
+            ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.width(),
+            menuBounds.height(),
+            ColorUtils.INPUT_BORDER.getColor());
+        List<MenuEntry> options = exportMenuEntries();
+        int rowY = menuBounds.y();
+        for (MenuEntry option : options) {
+            int rowHeight = option.height();
+            drawMenuHover(menuBounds, mouseX, mouseY, rowY, rowHeight);
+            drawMenuEntry(menuBounds, option, rowY, mouseX, mouseY);
+            rowY += rowHeight;
         }
+    }
+
+    private void drawMenuEntry(LytRect menuBounds, MenuEntry option, int rowY, int mouseX, int mouseY) {
+        boolean hovered = mouseX >= menuBounds.x() && mouseX < menuBounds.right()
+            && mouseY >= rowY
+            && mouseY < rowY + option.height();
+        if (option.widget() != null) {
+            option.widget()
+                .render(
+                    menuWidgetContext(),
+                    menuBounds.x(),
+                    rowY,
+                    menuBounds.width(),
+                    option.height(),
+                    hovered,
+                    option.enabled());
+            return;
+        }
+        int textX = menuBounds.x() + (option.hasCheckBox() ? 22 : 8);
+        if (option.hasCheckBox()) {
+            int boxX = menuBounds.x() + 6;
+            int boxY = rowY + 3;
+            drawRect(boxX, boxY, boxX + 10, boxY + 10, CHECKBOX_BACKGROUND_COLOR);
+            drawBorder(boxX, boxY, 10, 10, option.checked() ? CHECKBOX_CHECK_COLOR : INPUT_BORDER_COLOR);
+            if (option.checked()) {
+                drawRect(boxX + 2, boxY + 2, boxX + 8, boxY + 8, CHECKBOX_CHECK_COLOR);
+            }
+        }
+        drawString(
+            fontRendererObj,
+            option.label(),
+            textX,
+            rowY + 5,
+            option.enabled() ? PANEL_HEADER_COLOR : PANEL_SUBTLE_TEXT);
     }
 
     private LytRect getScreenshotMenuBounds() {
@@ -3998,8 +4556,18 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawScreenshotMenu(int mouseX, int mouseY) {
         LytRect menuBounds = getScreenshotMenuBounds();
-        drawRect(menuBounds.x(), menuBounds.y(), menuBounds.right(), menuBounds.bottom(), ELEMENT_MENU_BACKGROUND);
-        drawBorder(menuBounds.x(), menuBounds.y(), menuBounds.width(), menuBounds.height(), 0xFF3E434A);
+        drawRect(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.right(),
+            menuBounds.bottom(),
+            ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.width(),
+            menuBounds.height(),
+            ColorUtils.INPUT_BORDER.getColor());
 
         int rowTop = menuBounds.y() + SceneEditorScreenshotMenuController.MENU_PADDING;
         for (int i = 0; i < SceneEditorScreenshotFormat.values().length; i++) {
@@ -4087,14 +4655,14 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private LytRect getSnapModeMenuBounds() {
+        List<MenuEntry> entries = snapModeMenuEntries();
         if (snapButton == null) {
-            return new LytRect(TOOLBAR_MARGIN_X, TOOLBAR_Y + GuideIconButton.HEIGHT, SNAP_MENU_WIDTH, 0);
+            return new LytRect(TOOLBAR_MARGIN_X, TOOLBAR_Y + GuideIconButton.HEIGHT, menuWidth(entries), 0);
         }
-        int menuHeight = SnapModeOption.values().length * ELEMENT_MENU_ROW_HEIGHT;
         return SceneEditorPopupLayout.placeBelowAnchor(
             new LytRect(snapButton.xPosition, snapButton.yPosition, snapButton.width, snapButton.height),
-            SNAP_MENU_WIDTH,
-            menuHeight,
+            menuWidth(entries),
+            menuHeight(entries),
             this.width,
             this.height,
             4);
@@ -4105,17 +4673,28 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     @Nullable
-    private SnapModeOption snapModeOptionAt(int mouseX, int mouseY) {
+    private MenuEntry snapModeOptionAt(int mouseX, int mouseY) {
         if (!isInsideSnapModeMenu(mouseX, mouseY)) {
             return null;
         }
         LytRect menuBounds = getSnapModeMenuBounds();
-        int index = (mouseY - menuBounds.y()) / ELEMENT_MENU_ROW_HEIGHT;
-        SnapModeOption[] values = SnapModeOption.values();
-        if (index < 0 || index >= values.length) {
-            return null;
+        List<MenuEntry> values = snapModeMenuEntries();
+        return menuEntryAtY(values, menuBounds.y(), mouseY);
+    }
+
+    private List<MenuEntry> snapModeMenuEntries() {
+        List<MenuEntry> entries = new ArrayList<>();
+        SceneEditorActionContext context = createActionContext();
+        for (SceneEditorMenuItem item : defaultControlRegistry.createSnapItems(context)) {
+            entries.add(MenuEntry.external(item, context));
         }
-        return values[index];
+        for (SceneEditorMenuItem item : SceneEditorMenuRegistry.snapshot(SceneEditorMenuRegistry.MENU_SNAP)) {
+            entries.add(MenuEntry.external(item, context));
+        }
+        entries.sort(
+            Comparator.comparingInt(MenuEntry::order)
+                .thenComparing(entry -> entry.id));
+        return entries;
     }
 
     private boolean handleSnapModeMenuClick(int mouseX, int mouseY, int button) {
@@ -4123,10 +4702,26 @@ public class SceneEditorScreen extends GuiScreen {
             return false;
         }
         if (button == 0) {
-            SnapModeOption option = snapModeOptionAt(mouseX, mouseY);
-            if (option != null) {
-                option.toggle();
-                ModConfig.save();
+            MenuEntry option = snapModeOptionAt(mouseX, mouseY);
+            if (option != null && option.enabled()) {
+                if (option.widget() != null) {
+                    int entryY = menuEntryY(snapModeMenuEntries(), option, getSnapModeMenuBounds().y());
+                    if (option.widget()
+                        .triggerClick(
+                            createActionContext(),
+                            getSnapModeMenuBounds().x(),
+                            entryY,
+                            getSnapModeMenuBounds().width(),
+                            option.height(),
+                            mouseX,
+                            mouseY,
+                            button)) {
+                        activeBuiltInWidget = option;
+                        activeBuiltInWidgetMenu = SceneEditorMenuRegistry.MENU_SNAP;
+                    }
+                } else {
+                    option.activate();
+                }
                 return true;
             }
         }
@@ -4138,26 +4733,25 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawSnapModeMenu(int mouseX, int mouseY) {
         LytRect menuBounds = getSnapModeMenuBounds();
-        drawRect(menuBounds.x(), menuBounds.y(), menuBounds.right(), menuBounds.bottom(), ELEMENT_MENU_BACKGROUND);
-        drawBorder(menuBounds.x(), menuBounds.y(), menuBounds.width(), menuBounds.height(), 0xFF3E434A);
-        for (int i = 0; i < SnapModeOption.values().length; i++) {
-            SnapModeOption option = SnapModeOption.values()[i];
-            int rowY = menuBounds.y() + i * ELEMENT_MENU_ROW_HEIGHT;
-            drawMenuHover(menuBounds, mouseX, mouseY, rowY, ELEMENT_MENU_ROW_HEIGHT);
-            int boxX = menuBounds.x() + 6;
-            int boxY = rowY + 3;
-            drawRect(boxX, boxY, boxX + 10, boxY + 10, CHECKBOX_BACKGROUND_COLOR);
-            drawBorder(boxX, boxY, 10, 10, option.isEnabled() ? CHECKBOX_CHECK_COLOR : INPUT_BORDER_COLOR);
-            if (option.isEnabled()) {
-                drawRect(boxX + 2, boxY + 2, boxX + 8, boxY + 8, CHECKBOX_CHECK_COLOR);
-            }
-            this.drawString(
-                this.fontRendererObj,
-                option.text()
-                    .text(),
-                menuBounds.x() + 22,
-                rowY + 5,
-                PANEL_HEADER_COLOR);
+        drawRect(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.right(),
+            menuBounds.bottom(),
+            ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.width(),
+            menuBounds.height(),
+            ColorUtils.INPUT_BORDER.getColor());
+        List<MenuEntry> options = snapModeMenuEntries();
+        int rowY = menuBounds.y();
+        for (MenuEntry option : options) {
+            int rowHeight = option.height();
+            drawMenuHover(menuBounds, mouseX, mouseY, rowY, rowHeight);
+            drawMenuEntry(menuBounds, option, rowY, mouseX, mouseY);
+            rowY += rowHeight;
         }
     }
 
@@ -4247,8 +4841,13 @@ public class SceneEditorScreen extends GuiScreen {
             contextMenuY,
             contextMenuX + ELEMENT_CONTEXT_MENU_WIDTH,
             contextMenuY + menuHeight,
-            ELEMENT_MENU_BACKGROUND);
-        drawBorder(contextMenuX, contextMenuY, ELEMENT_CONTEXT_MENU_WIDTH, menuHeight, 0xFF3E434A);
+            ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(
+            contextMenuX,
+            contextMenuY,
+            ELEMENT_CONTEXT_MENU_WIDTH,
+            menuHeight,
+            ColorUtils.INPUT_BORDER.getColor());
         for (int i = 0; i < contextMenuActions.size(); i++) {
             int rowY = contextMenuY + i * ELEMENT_MENU_ROW_HEIGHT;
             drawMenuHover(
@@ -4387,7 +4986,7 @@ public class SceneEditorScreen extends GuiScreen {
         }
         int lineX = layouts.getFirst().rowX;
         int lineWidth = layouts.getFirst().rowWidth;
-        drawRect(lineX, lineY - 1, lineX + lineWidth, lineY + 1, 0xFF00CAF2);
+        drawRect(lineX, lineY - 1, lineX + lineWidth, lineY + 1, ColorUtils.ACCENT.getColor());
     }
 
     private boolean isInsideElementViewport(int mouseX, int mouseY) {
@@ -4494,10 +5093,15 @@ public class SceneEditorScreen extends GuiScreen {
             scrollbarBounds.y(),
             scrollbarBounds.right(),
             scrollbarBounds.bottom(),
-            0x35101010);
+            ColorUtils.SCROLLBAR_TRACK.getColor());
         SceneEditorVerticalScrollbar.Thumb thumb = getElementScrollbarThumb();
         if (thumb != null) {
-            drawRect(scrollbarBounds.x(), thumb.start(), scrollbarBounds.right(), thumb.end(), 0xA0D8D8D8);
+            drawRect(
+                scrollbarBounds.x(),
+                thumb.start(),
+                scrollbarBounds.right(),
+                thumb.end(),
+                ColorUtils.SCROLLBAR_THUMB.getColor());
         }
     }
 
@@ -4516,8 +5120,8 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void drawElementTypeIcon(SceneEditorElementType type, int x, int y, boolean selected) {
-        int borderColor = selected ? 0xFF00CAF2 : 0xFF46505A;
-        drawRect(x, y, x + ELEMENT_ICON_SIZE, y + ELEMENT_ICON_SIZE, 0x33101012);
+        int borderColor = selected ? ColorUtils.ACCENT.getColor() : ColorUtils.ARGB_FF46505A.getColor();
+        drawRect(x, y, x + ELEMENT_ICON_SIZE, y + ELEMENT_ICON_SIZE, ColorUtils.ARGB_33101012.getColor());
         drawBorder(x, y, ELEMENT_ICON_SIZE, ELEMENT_ICON_SIZE, borderColor);
         if (type == SceneEditorElementType.BLOCK) {
             drawRect(x + 3, y + 3, x + 11, y + 11, type.getAccentColor());
@@ -4525,7 +5129,7 @@ public class SceneEditorScreen extends GuiScreen {
         }
         if (type == SceneEditorElementType.BOX) {
             drawBorder(x + 2, y + 2, 10, 10, type.getAccentColor());
-            drawBorder(x + 4, y + 4, 6, 6, 0x88FFFFFF);
+            drawBorder(x + 4, y + 4, 6, 6, ColorUtils.ARGB_88FFFFFF.getColor());
             return;
         }
         if (type == SceneEditorElementType.LINE) {
@@ -4537,7 +5141,7 @@ public class SceneEditorScreen extends GuiScreen {
         if (type == SceneEditorElementType.DIAMOND && type.getIconPngPath() != null) {
             mc.getTextureManager()
                 .bindTexture(new ResourceLocation(type.getIconPngPath()));
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             Tessellator tess = Tessellator.instance;
             float uMax = 16f / 32f;
             tess.startDrawingQuads();
@@ -4568,7 +5172,8 @@ public class SceneEditorScreen extends GuiScreen {
 
     private GuideIconButton hoveredButton(int mouseX, int mouseY) {
         for (Object buttonObject : this.buttonList) {
-            if (buttonObject instanceof GuideIconButton button && mouseX >= button.xPosition
+            if (buttonObject instanceof GuideIconButton button && button.visible
+                && mouseX >= button.xPosition
                 && mouseX < button.xPosition + button.width
                 && mouseY >= button.yPosition
                 && mouseY < button.yPosition + button.height) {
@@ -5620,90 +6225,7 @@ public class SceneEditorScreen extends GuiScreen {
         }
     }
 
-    private enum ExportMenuOption {
-
-        SNBT(GuidebookText.SceneEditorExportSnbt),
-        GAME_SCENE(GuidebookText.SceneEditorCopyGameScene),
-        BLOCK_IMAGE(GuidebookText.SceneEditorCopyBlockImage);
-
-        private final GuidebookText text;
-
-        ExportMenuOption(GuidebookText text) {
-            this.text = text;
-        }
-
-        private GuidebookText text() {
-            return text;
-        }
-    }
-
     private record BlockImageExportData(String id, int meta, @Nullable String nbt) {}
-
-    private enum SnapModeOption {
-
-        LINE(GuidebookText.SceneEditorSnapLine) {
-
-            @Override
-            boolean isEnabled() {
-                return ModConfig.ui.sceneEditorSnapLineEnabled;
-            }
-
-            @Override
-            void toggle() {
-                ModConfig.ui.sceneEditorSnapLineEnabled = !ModConfig.ui.sceneEditorSnapLineEnabled;
-            }
-        },
-        POINT(GuidebookText.SceneEditorSnapPoint) {
-
-            @Override
-            boolean isEnabled() {
-                return ModConfig.ui.sceneEditorSnapPointEnabled;
-            }
-
-            @Override
-            void toggle() {
-                ModConfig.ui.sceneEditorSnapPointEnabled = !ModConfig.ui.sceneEditorSnapPointEnabled;
-            }
-        },
-        FACE(GuidebookText.SceneEditorSnapFace) {
-
-            @Override
-            boolean isEnabled() {
-                return ModConfig.ui.sceneEditorSnapFaceEnabled;
-            }
-
-            @Override
-            void toggle() {
-                ModConfig.ui.sceneEditorSnapFaceEnabled = !ModConfig.ui.sceneEditorSnapFaceEnabled;
-            }
-        },
-        CENTER(GuidebookText.SceneEditorSnapCenter) {
-
-            @Override
-            boolean isEnabled() {
-                return ModConfig.ui.sceneEditorSnapCenterEnabled;
-            }
-
-            @Override
-            void toggle() {
-                ModConfig.ui.sceneEditorSnapCenterEnabled = !ModConfig.ui.sceneEditorSnapCenterEnabled;
-            }
-        };
-
-        private final GuidebookText text;
-
-        SnapModeOption(GuidebookText text) {
-            this.text = text;
-        }
-
-        private GuidebookText text() {
-            return text;
-        }
-
-        abstract boolean isEnabled();
-
-        abstract void toggle();
-    }
 
     private enum CloseConfirmAction {
 

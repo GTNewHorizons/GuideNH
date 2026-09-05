@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.functiongraph;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 @Desugar
 public record AutoPointSpec(double everyX, double everyY, AutoPointLabelMode labelMode, int color,
@@ -10,7 +11,7 @@ public record AutoPointSpec(double everyX, double everyY, AutoPointLabelMode lab
         Double.NaN,
         Double.NaN,
         AutoPointLabelMode.NONE,
-        0xFFFFFFFF,
+        ColorUtils.WHITE.getColor(),
         true);
 
     public AutoPointSpec {

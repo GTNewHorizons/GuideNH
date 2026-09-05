@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -35,7 +37,7 @@ public class PieInsetSpec {
     private boolean clockwise = true;
     private String title = "";
     @Setter
-    private int titleColor = 0xFFE0E0E0;
+    private int titleColor = ColorUtils.CHART_TITLE.getColor();
 
     public void setSlices(List<PieSlice> newSlices) {
         slices.clear();

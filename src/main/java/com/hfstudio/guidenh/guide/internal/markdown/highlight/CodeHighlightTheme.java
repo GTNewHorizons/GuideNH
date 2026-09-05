@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.internal.markdown.highlight;
 import java.util.EnumMap;
 import java.util.Map;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 public class CodeHighlightTheme {
 
     public static final CodeHighlightTheme GITHUB_DARK_DEFAULT = githubDarkDefault();
@@ -63,25 +65,25 @@ public class CodeHighlightTheme {
 
     private static CodeHighlightTheme githubDarkDefault() {
         Map<CodeTokenType, Integer> colors = new EnumMap<>(CodeTokenType.class);
-        colors.put(CodeTokenType.PLAIN, 0xFFE6EDF3);
-        colors.put(CodeTokenType.KEYWORD, 0xFFFF7B72);
-        colors.put(CodeTokenType.STRING, 0xFFA5D6FF);
-        colors.put(CodeTokenType.NUMBER, 0xFF79C0FF);
-        colors.put(CodeTokenType.COMMENT, 0xFF8B949E);
-        colors.put(CodeTokenType.OPERATOR, 0xFFFF7B72);
-        colors.put(CodeTokenType.PUNCTUATION, 0xFFE6EDF3);
-        colors.put(CodeTokenType.TYPE, 0xFF7EE787);
-        colors.put(CodeTokenType.FUNCTION, 0xFFD2A8FF);
-        colors.put(CodeTokenType.ANNOTATION, 0xFFFFA657);
-        colors.put(CodeTokenType.PROPERTY, 0xFF79C0FF);
+        colors.put(CodeTokenType.PLAIN, ColorUtils.ARGB_FFE6EDF3.getColor());
+        colors.put(CodeTokenType.KEYWORD, ColorUtils.ARGB_FFFF7B72.getColor());
+        colors.put(CodeTokenType.STRING, ColorUtils.ARGB_FFA5D6FF.getColor());
+        colors.put(CodeTokenType.NUMBER, ColorUtils.ARGB_FF79C0FF.getColor());
+        colors.put(CodeTokenType.COMMENT, ColorUtils.ARGB_FF8B949E.getColor());
+        colors.put(CodeTokenType.OPERATOR, ColorUtils.ARGB_FFFF7B72.getColor());
+        colors.put(CodeTokenType.PUNCTUATION, ColorUtils.ARGB_FFE6EDF3.getColor());
+        colors.put(CodeTokenType.TYPE, ColorUtils.ARGB_FF7EE787.getColor());
+        colors.put(CodeTokenType.FUNCTION, ColorUtils.ARGB_FFD2A8FF.getColor());
+        colors.put(CodeTokenType.ANNOTATION, ColorUtils.ARGB_FFFFA657.getColor());
+        colors.put(CodeTokenType.PROPERTY, ColorUtils.ARGB_FF79C0FF.getColor());
         return new CodeHighlightTheme(
-            0xFF0D1117,
-            0xFF161B22,
-            0xFF30363D,
-            0x4D6E7681,
-            0x80768496,
-            0xCC768496,
-            0xFF8B949E,
+            ColorUtils.ARGB_FF0D1117.getColor(),
+            ColorUtils.ARGB_FF161B22.getColor(),
+            ColorUtils.ARGB_FF30363D.getColor(),
+            ColorUtils.ARGB_4D6E7681.getColor(),
+            ColorUtils.ARGB_80768496.getColor(),
+            ColorUtils.ARGB_CC768496.getColor(),
+            ColorUtils.ARGB_FF8B949E.getColor(),
             colors);
     }
 }

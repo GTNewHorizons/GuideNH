@@ -9,7 +9,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
-import com.hfstudio.guidenh.guide.color.ARGB;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
@@ -227,7 +227,7 @@ public class MdxAttrs {
                 g = Integer.valueOf(colorStr.substring(5, 7), 16);
                 b = Integer.valueOf(colorStr.substring(7, 9), 16);
             }
-            return new ConstantColor(ARGB.color(a, r, g, b));
+            return new ConstantColor(ColorUtils.argb(a, r, g, b));
         }
         return defaultColor;
     }

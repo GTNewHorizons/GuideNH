@@ -2,10 +2,12 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import net.minecraft.client.gui.FontRenderer;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 public class TextCandidate implements AutocompleteCandidate {
 
     private final String text;
-    private static final int TEXT_COLOR = 0xFFF0F0F0;
+    private static final int TEXT_COLOR = ColorUtils.TEXT.getColor();
 
     public TextCandidate(String text) {
         this.text = text;

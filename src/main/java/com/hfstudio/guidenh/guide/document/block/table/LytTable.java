@@ -3,7 +3,7 @@ package com.hfstudio.guidenh.guide.document.block.table;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -67,12 +67,12 @@ public class LytTable extends LytBlock {
         for (int i = 0; i < columns.size() - 1; i++) {
             var column = columns.get(i);
             var colRight = column.x + column.width;
-            context.fillRect(colRight, bounds.y(), 1, bounds.height(), SymbolicColor.TABLE_BORDER);
+            context.fillRect(colRight, bounds.y(), 1, bounds.height(), ColorUtils.TABLE_BORDER);
         }
 
         for (int i = 0; i < rows.size() - 1; i++) {
             var row = rows.get(i);
-            context.fillRect(bounds.x(), row.bounds.bottom(), bounds.width(), 1, SymbolicColor.TABLE_BORDER);
+            context.fillRect(bounds.x(), row.bounds.bottom(), bounds.width(), 1, ColorUtils.TABLE_BORDER);
         }
 
         for (var row : rows) {

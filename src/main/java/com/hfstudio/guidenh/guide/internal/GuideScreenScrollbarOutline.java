@@ -10,8 +10,8 @@ import net.minecraft.client.gui.FontRenderer;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.GuidePage;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
@@ -110,7 +110,19 @@ public class GuideScreenScrollbarOutline {
     }
 
     public HeadingEntry testEntry(String text, int depth, int documentY) {
-        return testEntry(text, depth, documentY, 0xFFFFFFFF, 100, 50, markerWidth(depth), MARKER_HEIGHT, 98, 48, 16, 6);
+        return testEntry(
+            text,
+            depth,
+            documentY,
+            ColorUtils.WHITE.getColor(),
+            100,
+            50,
+            markerWidth(depth),
+            MARKER_HEIGHT,
+            98,
+            48,
+            16,
+            6);
     }
 
     public HeadingEntry testEntry(String text, int depth, int documentY, int colorArgb, int markerX, int markerY,
@@ -330,7 +342,7 @@ public class GuideScreenScrollbarOutline {
             default -> baseStyle;
         };
         ColorValue colorValue = headingStyle.color() != null ? headingStyle.color() : baseStyle.color();
-        return colorValue.resolve(LightDarkMode.LIGHT_MODE);
+        return colorValue.resolve();
     }
 
     private static int markerWidth(int depth) {

@@ -10,6 +10,7 @@ import net.minecraft.util.StatCollector;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 import lombok.Setter;
 
@@ -113,7 +114,13 @@ public class DebugControlPanel {
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-        drawRoundedRect(panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT, 0x80000000, 0xFFAAAAAA);
+        drawRoundedRect(
+            panelX,
+            panelY,
+            PANEL_WIDTH,
+            PANEL_HEIGHT,
+            ColorUtils.ARGB_80000000.getColor(),
+            ColorUtils.ARGB_FFAAAAAA.getColor());
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         String label = fontRenderer.trimStringToWidth(translateKey("guidenh.debug.menu.options"), PANEL_WIDTH - 4);
@@ -121,7 +128,7 @@ public class DebugControlPanel {
             label,
             panelX + (PANEL_WIDTH - fontRenderer.getStringWidth(label)) / 2,
             panelY + (PANEL_HEIGHT - 8) / 2,
-            0xFFFFFF);
+            ColorUtils.RGB_WHITE.getColor());
 
         if (expanded || expandedMenu != null) {
             renderExpandedMenu(mouseX, mouseY, fontRenderer);
@@ -135,7 +142,13 @@ public class DebugControlPanel {
         int menuHeight = menuItems.size() * DROPDOWN_ITEM_HEIGHT + 4;
 
         GL11.glDisable(GL11.GL_TEXTURE_2D);
-        drawRoundedRect(panelX, menuY, PANEL_WIDTH, menuHeight, 0xD0000000, 0xFFCCCCCC);
+        drawRoundedRect(
+            panelX,
+            menuY,
+            PANEL_WIDTH,
+            menuHeight,
+            ColorUtils.ARGB_D0000000.getColor(),
+            ColorUtils.ARGB_FFCCCCCC.getColor());
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         hoveredItem = null;
@@ -150,7 +163,7 @@ public class DebugControlPanel {
             if (isHovered) {
                 hoveredItem = item;
                 GL11.glDisable(GL11.GL_TEXTURE_2D);
-                drawRect(panelX + 2, itemY, PANEL_WIDTH - 4, DROPDOWN_ITEM_HEIGHT, 0x80FFFFFF);
+                drawRect(panelX + 2, itemY, PANEL_WIDTH - 4, DROPDOWN_ITEM_HEIGHT, ColorUtils.ARGB_80FFFFFF.getColor());
                 GL11.glEnable(GL11.GL_TEXTURE_2D);
             }
 
@@ -164,7 +177,7 @@ public class DebugControlPanel {
                 displayText = "✓ " + displayText;
             }
 
-            fontRenderer.drawStringWithShadow(displayText, panelX + 6, itemY + 3, 0xFFFFFF);
+            fontRenderer.drawStringWithShadow(displayText, panelX + 6, itemY + 3, ColorUtils.RGB_WHITE.getColor());
         }
 
         if (expandedMenu != null && expandedMenu.hasSubmenu()) {
@@ -183,7 +196,13 @@ public class DebugControlPanel {
         int submenuHeight = submenuItems.size() * DROPDOWN_ITEM_HEIGHT + 4;
 
         GL11.glDisable(GL11.GL_TEXTURE_2D);
-        drawRoundedRect(submenuX, submenuY, PANEL_WIDTH, submenuHeight, 0xD0000000, 0xFFCCCCCC);
+        drawRoundedRect(
+            submenuX,
+            submenuY,
+            PANEL_WIDTH,
+            submenuHeight,
+            ColorUtils.ARGB_D0000000.getColor(),
+            ColorUtils.ARGB_FFCCCCCC.getColor());
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
@@ -197,13 +216,18 @@ public class DebugControlPanel {
             if (isHovered) {
                 hoveredItem = item;
                 GL11.glDisable(GL11.GL_TEXTURE_2D);
-                drawRect(submenuX + 2, itemY, PANEL_WIDTH - 4, DROPDOWN_ITEM_HEIGHT, 0x80FFFFFF);
+                drawRect(
+                    submenuX + 2,
+                    itemY,
+                    PANEL_WIDTH - 4,
+                    DROPDOWN_ITEM_HEIGHT,
+                    ColorUtils.ARGB_80FFFFFF.getColor());
                 GL11.glEnable(GL11.GL_TEXTURE_2D);
             }
 
             boolean checkState = getCheckState(item.getAction());
             String displayText = (checkState ? "✓ " : "  ") + translateKey(item.getTranslationKey());
-            fontRenderer.drawStringWithShadow(displayText, submenuX + 6, itemY + 3, 0xFFFFFF);
+            fontRenderer.drawStringWithShadow(displayText, submenuX + 6, itemY + 3, ColorUtils.RGB_WHITE.getColor());
         }
     }
 

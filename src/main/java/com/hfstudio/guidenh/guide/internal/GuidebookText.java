@@ -28,6 +28,7 @@ public enum GuidebookText implements LocalizationEnum {
     SceneEditorShowElement,
     SceneEditorExport,
     SceneEditorExportSnbt,
+    SceneEditorExportSnbtOpenFolder,
     SceneEditorCopyGameScene,
     SceneEditorCopyBlockImage,
     SceneEditorImportStructure,

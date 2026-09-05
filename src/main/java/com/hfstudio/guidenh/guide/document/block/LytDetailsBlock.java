@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
@@ -20,7 +20,7 @@ import lombok.Getter;
 
 public class LytDetailsBlock extends LytBlock implements InteractiveElement, LytBlockContainer, DocumentDragTarget {
 
-    private static final ConstantColor SUMMARY_COLOR = new ConstantColor(0xFFE2E6ED);
+    private static final ConstantColor SUMMARY_COLOR = new ConstantColor(ColorUtils.ARGB_FFE2E6ED.getColor());
     private static final String SUMMARY_OPEN_MARKER = "v";
     private static final String SUMMARY_CLOSED_MARKER = ">";
     private static final String DEFAULT_SUMMARY_TEXT = "Details";
@@ -31,7 +31,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     private static final int SCROLLBAR_GAP = 4;
     private static final int MIN_SCROLLBAR_THUMB = 14;
     private static final int MIN_WHEEL_STEP = 16;
-    private static final BorderStyle DETAILS_BORDER = new BorderStyle(SymbolicColor.TABLE_BORDER, BORDER_WIDTH);
+    private static final BorderStyle DETAILS_BORDER = new BorderStyle(ColorUtils.TABLE_BORDER, BORDER_WIDTH);
 
     private final LytHBox summaryRow = new LytHBox();
     private final LytParagraph summaryMarker = new LytParagraph();
@@ -215,7 +215,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
     @Override
     public void render(RenderContext context) {
         updateVisualScroll();
-        context.fillRect(bounds, SymbolicColor.BLOCKQUOTE_BACKGROUND);
+        context.fillRect(bounds, ColorUtils.BLOCKQUOTE_BACKGROUND);
         summaryRow.render(context);
         if (open) {
             LytRect viewport = getContentViewportBounds();
@@ -326,10 +326,12 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         if (trackBounds.isEmpty()) {
             return;
         }
-        context.fillRect(trackBounds, 0x30242B33);
+        context.fillRect(trackBounds, ColorUtils.ARGB_30242B33.getColor());
         LytRect thumbBounds = getScrollbarThumbBounds();
         if (!thumbBounds.isEmpty()) {
-            context.fillRect(thumbBounds, draggingScrollbar ? 0xFFCDD6E1 : 0xA0AAB5C2);
+            context.fillRect(
+                thumbBounds,
+                draggingScrollbar ? ColorUtils.ARGB_FFCDD6E1.getColor() : ColorUtils.ARGB_A0AAB5C2.getColor());
         }
     }
 

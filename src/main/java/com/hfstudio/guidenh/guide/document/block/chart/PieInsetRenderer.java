@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -102,7 +103,7 @@ public class PieInsetRenderer {
             angle += sweep;
         }
         // Thin outline around the pie to separate it from the host plot.
-        context.drawCircleOutline(cx, cy, radius, 1f, 0xFF202020);
+        context.drawCircleOutline(cx, cy, radius, 1f, ColorUtils.ARGB_FF202020.getColor());
     }
 
     private static void drawSlice(RenderContext context, float cx, float cy, float radius, double startAngle,

@@ -13,8 +13,8 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
@@ -1570,7 +1570,7 @@ public class GuideSiteHtmlCompiler {
     }
 
     private static String toCssColor(ColorValue color) {
-        int argb = color.resolve(LightDarkMode.LIGHT_MODE);
+        int argb = color.resolve();
         int a = (argb >>> 24) & 0xFF;
         int r = (argb >>> 16) & 0xFF;
         int g = (argb >>> 8) & 0xFF;
@@ -1607,7 +1607,7 @@ public class GuideSiteHtmlCompiler {
     private int parseLatexColorArgb(@Nullable String raw) {
         if (raw == null || raw.trim()
             .isEmpty()) {
-            return 0xFFFFFFFF;
+            return ColorUtils.WHITE.getColor();
         }
         String trimmed = raw.trim();
         if (trimmed.startsWith("#")) {
@@ -1615,13 +1615,13 @@ public class GuideSiteHtmlCompiler {
         }
         try {
             if (trimmed.length() == 6) {
-                return 0xFF000000 | Integer.parseUnsignedInt(trimmed, 16);
+                return ColorUtils.BLACK.getColor() | Integer.parseUnsignedInt(trimmed, 16);
             }
             if (trimmed.length() == 8) {
                 return (int) Long.parseLong(trimmed, 16);
             }
         } catch (NumberFormatException ignored) {}
-        return 0xFFFFFFFF;
+        return ColorUtils.WHITE.getColor();
     }
 
     private String escapeCssColor(String raw) {
