@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.datadriven;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -20,7 +21,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import net.minecraft.client.Minecraft;
@@ -36,7 +36,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.Frontmatter;
-import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.internal.DirectoryResourcePack;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePacks;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
@@ -53,7 +52,7 @@ import cpw.mods.fml.client.FMLClientHandler;
 public class DataDrivenGuideLoader {
 
     // Matches the numeric format placeholders normalized by StringTranslate.parseLangFile.
-    private static final Pattern NUMERIC_LANG_VARIABLE = Pattern.compile("%(\\d+\\$)?[\\d\\.]*[df]");
+    private static final Pattern NUMERIC_LANG_VARIABLE = Pattern.compile("%(\\d+\\$)?[\\d.]*[df]");
 
     public static final String AUTO_GUIDE_FOLDER = "guidenh";
     public static final String LANGUAGE_FOLDER_PREFIX = "_";
@@ -72,6 +71,21 @@ public class DataDrivenGuideLoader {
 
     private record NamespaceRoot(String namespace, File directory, boolean allowDirectoryAsGuideRoot) {}
 
+    private record GuideLanguage(String namespace, String language) {}
+
+    private record PackEntry(String namespace, String language, String relativePath, int loadPriority) {}
+
+    private record PackScan(List<PackEntry> entries, List<String> langPaths, List<GuideLanguage> languages) {}
+
+    private record ZipCacheKey(String folder, ResourcePackViewKey view) {}
+
+    private record CachedZipScan(long size, long lastModified, PackScan scan) {
+
+        boolean matches(File root) {
+            return !root.isDirectory() && size == root.length() && lastModified == root.lastModified();
+        }
+    }
+
     private static final Map<Class<?>, Field> LOOSE_ROOT_FIELDS = new IdentityHashMap<>();
     private static volatile List<IResourcePack> lastActiveResourcePacks = List.of();
     private static volatile List<IResourcePack> lastResourceManagerResourcePacks = List.of();
@@ -87,17 +101,7 @@ public class DataDrivenGuideLoader {
      */
     private static final Map<ResourcePackViewKey, List<String>> PACK_LANG_FILE_PATHS = new HashMap<>();
 
-    private static volatile @Nullable ScanCache lastScanCache = null;
-
-    private record ScanCache(String folder, List<ResourcePackContentManifest.Pack> contentManifest, ScanResult result,
-        Map<ResourceLocation, List<PackCandidate>> pagePackIndexSnapshot,
-        Map<ResourceLocation, List<PackCandidate>> assetPackIndexSnapshot,
-        Map<ResourcePackViewKey, List<String>> langFilePathsSnapshot) {
-
-        boolean matches(String f, List<ResourcePackContentManifest.Pack> manifest) {
-            return folder.equals(f) && contentManifest.equals(manifest);
-        }
-    }
+    private static volatile Map<ZipCacheKey, CachedZipScan> lastZipScanCache = Map.of();
 
     private static final ConcurrentHashMap<Path, List<NamespaceRoot>> nativeNamespaceRootsCache = new ConcurrentHashMap<>();
 
@@ -108,22 +112,7 @@ public class DataDrivenGuideLoader {
     }
 
     public static ScanResult scanAndBuildAll(String folder, Iterable<? extends IResourcePack> activeResourcePacks) {
-        // Cache hit requires the same roots and the same resource-pack content inventory.
         var resolvedPacks = toList(activeResourcePacks);
-        var packRoots = resolvePackRoots(resolvedPacks);
-        ScanCache cache = lastScanCache;
-        var contentManifest = ResourcePackContentManifest.capture(
-            packRoots,
-            folder,
-            cache != null && cache.folder()
-                .equals(folder) ? cache.contentManifest() : List.of());
-        if (cache != null && cache.matches(folder, contentManifest)) {
-            indexReady = true;
-            pagePackIndex.putAll(cache.pagePackIndexSnapshot());
-            assetPackIndex.putAll(cache.assetPackIndexSnapshot());
-            PACK_LANG_FILE_PATHS.putAll(cache.langFilePathsSnapshot());
-            return cache.result();
-        }
 
         pagePackIndex.clear();
         assetPackIndex.clear();
@@ -134,14 +123,33 @@ public class DataDrivenGuideLoader {
 
         var pagePaths = new LinkedHashMap<String, LinkedHashSet<String>>();
         var discoveredLanguages = new LinkedHashMap<ResourceLocation, LinkedHashSet<String>>();
+        var previousZipCache = lastZipScanCache;
+        var nextZipCache = new HashMap<ZipCacheKey, CachedZipScan>();
+
         for (var pack : resolvedPacks) {
             var root = getLooseResourcePackRoot(pack);
             if (root == null || !root.exists()) continue;
-            if (!root.isDirectory()) {
-                scanZipBuildIndex(root, folder, pagePaths, pack, discoveredLanguages);
+
+            final PackScan scan;
+            if (root.isDirectory()) {
+                // Validating a directory cache requires touching the same files anyway, so scan
+                // once and rebuild the small indexes directly instead of hashing and rescanning.
+                scan = scanDirectoryPack(root, folder);
             } else {
-                scanDirectoryBuildIndex(pack, root, folder, pagePaths, discoveredLanguages);
+                var cacheKey = new ZipCacheKey(folder, resourcePackViewKey(pack));
+                var cached = previousZipCache.get(cacheKey);
+
+                if (cached != null && cached.matches(root)) {
+                    scan = cached.scan();
+                } else {
+                    scan = scanZipPack(root, folder, pack);
+                    if (scan == null) continue;
+                }
+
+                nextZipCache.put(cacheKey, new CachedZipScan(root.length(), root.lastModified(), scan));
             }
+
+            applyPackScan(pack, folder, scan, pagePaths, discoveredLanguages);
         }
 
         var guides = new LinkedHashMap<ResourceLocation, MutableGuide>();
@@ -155,18 +163,7 @@ public class DataDrivenGuideLoader {
                     .build());
         }
 
-        // Save cache BEFORE indexReady — pagePackIndex must not be touched by readers
-        // during the snapshot (Map.copyOf on ConcurrentHashMap can throw on concurrent read).
-        if (!resolvedPacks.isEmpty() && !guides.isEmpty()) {
-            lastScanCache = new ScanCache(
-                folder,
-                contentManifest,
-                new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages)),
-                new HashMap<>(pagePackIndex),
-                new HashMap<>(assetPackIndex),
-                new HashMap<>(PACK_LANG_FILE_PATHS));
-        }
-
+        lastZipScanCache = nextZipCache;
         indexReady = true;
 
         return new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages));
@@ -203,82 +200,65 @@ public class DataDrivenGuideLoader {
         nativeNamespaceRootsCache.clear();
         indexReady = false;
         pagePackOrder.set(0);
-        // Keep the previous result for a subsequent scan, but validate it with the content manifest.
+        // Keep immutable ZIP scans; archive size + timestamp cheaply validates them next time.
     }
 
-    private static void scanZipBuildIndex(File resourcePackFile, String folder,
-        LinkedHashMap<String, LinkedHashSet<String>> pagePaths, IResourcePack resourcePack,
-        Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
+    private static PackScan scanZipPack(File resourcePackFile, String folder, IResourcePack resourcePack) {
+        var entries = new ArrayList<PackEntry>();
+        var langPaths = new ArrayList<String>();
+        var languages = new LinkedHashSet<GuideLanguage>();
         var prefix = "assets/";
+
         try (var zip = new ZipFile(resourcePackFile)) {
-            var entries = zip.entries();
-            while (entries.hasMoreElements()) {
-                var entry = entries.nextElement();
+            var zipEntries = zip.entries();
+            while (zipEntries.hasMoreElements()) {
+                var entry = zipEntries.nextElement();
                 if (entry.isDirectory()) continue;
+
                 var path = entry.getName();
                 if (!path.startsWith(prefix)) continue;
 
                 var afterAssets = path.substring(prefix.length());
                 var firstSlash = afterAssets.indexOf('/');
                 if (firstSlash <= 0) continue;
-                if (path.endsWith(".lang")) {
-                    var resourceLocation = new ResourceLocation(
-                        afterAssets.substring(0, firstSlash),
-                        afterAssets.substring(firstSlash + 1));
-                    if (!resourceExists(resourcePack, resourceLocation)) continue;
-                    PACK_LANG_FILE_PATHS.computeIfAbsent(resourcePackViewKey(resourcePack), k -> new ArrayList<>())
-                        .add(path);
-                    continue;
-                }
+
                 var namespace = afterAssets.substring(0, firstSlash);
                 var afterNamespace = afterAssets.substring(firstSlash + 1);
+
+                if (path.endsWith(".lang")) {
+                    var resourceLocation = new ResourceLocation(namespace, afterNamespace);
+                    if (resourceExists(resourcePack, resourceLocation)) {
+                        langPaths.add(path);
+                    }
+                    continue;
+                }
                 if (!afterNamespace.startsWith(folder + "/")) continue;
+
                 var resourceLocation = new ResourceLocation(namespace, afterNamespace);
                 if (!resourceExists(resourcePack, resourceLocation)) continue;
+
                 var afterFolder = afterNamespace.substring(folder.length() + 1);
                 var slashIndex = afterFolder.indexOf('/');
                 if (slashIndex <= 0) continue;
+
                 var language = afterFolder.substring(0, slashIndex);
                 if (!isLanguageFolder(language)) continue;
+
                 var relativePath = afterFolder.substring(slashIndex + 1);
                 if (relativePath.isEmpty()) continue;
 
                 if (path.endsWith(".md")) {
-                    pagePaths.computeIfAbsent(namespace, k -> new LinkedHashSet<>())
-                        .add(relativePath);
-                    discoveredLanguages
-                        .computeIfAbsent(new ResourceLocation(namespace, folder), k -> new LinkedHashSet<>())
-                        .add(toLanguageCode(language));
+                    int loadPriority;
+                    try {
+                        loadPriority = parseLoadPriority(zip.getInputStream(entry), resourceLocation);
+                    } catch (IOException e) {
+                        loadPriority = 0;
+                    }
 
-                    int loadPriority = parseLoadPriorityFromZipEntry(
-                        zip,
-                        entry,
-                        new ResourceLocation(namespace, folder + "/" + language + "/" + relativePath));
-                    synchronized (pagePackIndex) {
-                        pagePackIndex
-                            .computeIfAbsent(
-                                new ResourceLocation(namespace, folder + "/" + language + "/" + relativePath),
-                                k -> new ArrayList<>())
-                            .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
-                        pagePackIndex
-                            .computeIfAbsent(
-                                new ResourceLocation(namespace, folder + "/" + relativePath),
-                                k -> new ArrayList<>())
-                            .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
-                    }
+                    entries.add(new PackEntry(namespace, language, relativePath, loadPriority));
+                    languages.add(new GuideLanguage(namespace, toLanguageCode(language)));
                 } else {
-                    synchronized (assetPackIndex) {
-                        assetPackIndex
-                            .computeIfAbsent(
-                                new ResourceLocation(namespace, folder + "/" + language + "/" + relativePath),
-                                k -> new ArrayList<>())
-                            .add(new PackCandidate(resourcePack, 0, pagePackOrder.getAndIncrement()));
-                        assetPackIndex
-                            .computeIfAbsent(
-                                new ResourceLocation(namespace, folder + "/" + relativePath),
-                                k -> new ArrayList<>())
-                            .add(new PackCandidate(resourcePack, 0, pagePackOrder.getAndIncrement()));
-                    }
+                    entries.add(new PackEntry(namespace, language, relativePath, 0));
                 }
             }
         } catch (IOException e) {
@@ -286,147 +266,165 @@ public class DataDrivenGuideLoader {
                 "[GuideNH] [DataDrivenGuideLoader] Failed to scan guide pages from resource pack {}",
                 resourcePackFile.getAbsolutePath(),
                 e);
+            return null;
         }
+
+        return new PackScan(entries, langPaths, List.copyOf(languages));
     }
 
-    private static int parseLoadPriorityFromZipEntry(ZipFile zip, ZipEntry entry, ResourceLocation loc) {
-        try (var stream = zip.getInputStream(entry)) {
-            String content = new String(GuideResourceAccess.readFully(stream), StandardCharsets.UTF_8);
-            if (content.startsWith("﻿")) content = content.substring(1);
-            String yamlText = PageCompiler.extractFrontmatterText(PageCompiler.normalizeLineEndings(content));
-            if (yamlText != null) {
-                var nav = Frontmatter.parse(loc, yamlText)
-                    .navigationEntry();
-                return nav != null ? nav.loadPriority() : 0;
-            }
-        } catch (Exception ignored) {}
-        return 0;
-    }
+    private static PackScan scanDirectoryPack(File resourcePackRoot, String folder) {
+        var entries = new ArrayList<PackEntry>();
+        var langPaths = new ArrayList<String>();
+        var languages = new LinkedHashSet<GuideLanguage>();
 
-    private static void scanDirectoryBuildIndex(IResourcePack resourcePack, File resourcePackRoot, String folder,
-        LinkedHashMap<String, LinkedHashSet<String>> pagePaths,
-        Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
         for (NamespaceRoot namespaceRoot : discoverNamespaceRoots(resourcePackRoot)) {
-            scanDirectoryBuildIndexForNamespace(resourcePack, namespaceRoot, folder, pagePaths, discoveredLanguages);
+            scanGuideDirectory(namespaceRoot, folder, entries, languages);
+            collectNamespaceLangPaths(resourcePackRoot, namespaceRoot.directory(), langPaths);
         }
-        collectDirectoryLangPaths(resourcePack, resourcePackRoot);
+
+        return new PackScan(entries, langPaths, List.copyOf(languages));
     }
 
-    private static void collectDirectoryLangPaths(IResourcePack resourcePack, File resourcePackRoot) {
-        Path assets = resourcePackRoot.toPath()
-            .resolve("assets");
-        if (Files.isDirectory(assets)) {
-            try (var paths = Files.walk(assets)) {
-                paths.filter(Files::isRegularFile)
-                    .map(assets::relativize)
-                    .map(Path::toString)
-                    .map(path -> "assets/" + path.replace(File.separatorChar, '/'))
-                    .filter(path -> path.endsWith(".lang"))
-                    .forEach(
-                        path -> PACK_LANG_FILE_PATHS
-                            .computeIfAbsent(resourcePackViewKey(resourcePack), key -> new ArrayList<>())
-                            .add(path));
-            } catch (IOException e) {
-                GuideDebugLog.warn(
-                    "[GuideNH] [DataDrivenGuideLoader] Failed to index language files in {}",
-                    resourcePackRoot,
-                    e);
-            }
-        }
-        File[] looseRoots = resourcePackRoot.listFiles(File::isDirectory);
-        if (looseRoots == null) {
-            return;
-        }
-        for (File looseRoot : looseRoots) {
-            if ("assets".equals(looseRoot.getName())) {
-                continue;
-            }
-            try (var paths = Files.walk(looseRoot.toPath())) {
-                paths.filter(Files::isRegularFile)
-                    .filter(
-                        path -> path.toString()
-                            .endsWith(".lang"))
-                    .map(resourcePackRoot.toPath()::relativize)
-                    .map(Path::toString)
-                    .map(path -> path.replace(File.separatorChar, '/'))
-                    .forEach(
-                        path -> PACK_LANG_FILE_PATHS
-                            .computeIfAbsent(resourcePackViewKey(resourcePack), key -> new ArrayList<>())
-                            .add(path));
-            } catch (IOException e) {
-                GuideDebugLog
-                    .warn("[GuideNH] [DataDrivenGuideLoader] Failed to index language files in {}", looseRoot, e);
-            }
-        }
-    }
+    private static void scanGuideDirectory(NamespaceRoot namespaceRoot, String folder, List<PackEntry> entries,
+        Set<GuideLanguage> languages) {
 
-    private static void scanDirectoryBuildIndexForNamespace(IResourcePack resourcePack, NamespaceRoot namespaceRoot,
-        String folder, LinkedHashMap<String, LinkedHashSet<String>> pagePaths,
-        Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
         File guideRoot = new File(namespaceRoot.directory(), folder);
         if (!guideRoot.isDirectory()) return;
+
         File[] languageDirs = guideRoot.listFiles(File::isDirectory);
         if (languageDirs == null) return;
 
         for (File languageDir : languageDirs) {
             String language = languageDir.getName();
             if (!isLanguageFolder(language)) continue;
-            discoveredLanguages
-                .computeIfAbsent(new ResourceLocation(namespaceRoot.namespace(), folder), k -> new LinkedHashSet<>())
-                .add(toLanguageCode(language));
 
-            var collectors = new LinkedHashSet<String>();
-            collectMarkdownPaths(languageDir, "", collectors);
+            languages.add(new GuideLanguage(namespaceRoot.namespace(), toLanguageCode(language)));
 
-            for (String pagePath : collectors) {
-                pagePaths.computeIfAbsent(namespaceRoot.namespace(), k -> new LinkedHashSet<>())
-                    .add(pagePath);
-                var loc = new ResourceLocation(namespaceRoot.namespace(), folder + "/" + language + "/" + pagePath);
-                int loadPriority = parseLoadPriorityFromFile(
-                    languageDir.toPath()
-                        .resolve(pagePath),
-                    loc);
-                synchronized (pagePackIndex) {
-                    pagePackIndex.computeIfAbsent(loc, k -> new ArrayList<>())
-                        .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
-                    pagePackIndex
-                        .computeIfAbsent(
-                            new ResourceLocation(namespaceRoot.namespace(), folder + "/" + pagePath),
-                            k -> new ArrayList<>())
-                        .add(new PackCandidate(resourcePack, loadPriority, pagePackOrder.getAndIncrement()));
-                }
-            }
+            Path languageRoot = languageDir.toPath();
+            try (var paths = Files.walk(languageRoot)) {
+                paths.forEach(path -> {
+                    if (!Files.isRegularFile(path)) return;
 
-            var assetCollector = new LinkedHashSet<String>();
-            collectAssetPaths(languageDir, "", assetCollector);
-            for (String assetPath : assetCollector) {
-                synchronized (assetPackIndex) {
-                    assetPackIndex
-                        .computeIfAbsent(
-                            new ResourceLocation(namespaceRoot.namespace(), folder + "/" + language + "/" + assetPath),
-                            k -> new ArrayList<>())
-                        .add(new PackCandidate(resourcePack, 0, pagePackOrder.getAndIncrement()));
-                    assetPackIndex
-                        .computeIfAbsent(
-                            new ResourceLocation(namespaceRoot.namespace(), folder + "/" + assetPath),
-                            k -> new ArrayList<>())
-                        .add(new PackCandidate(resourcePack, 0, pagePackOrder.getAndIncrement()));
-                }
+                    String relativePath = languageRoot.relativize(path)
+                        .toString();
+                    if (relativePath.isEmpty() || relativePath.endsWith(".lang")) return;
+                    if (File.separatorChar != '/') relativePath = relativePath.replace(File.separatorChar, '/');
+
+                    int loadPriority = 0;
+                    if (relativePath.endsWith(".md")) {
+                        var location = new ResourceLocation(
+                            namespaceRoot.namespace(),
+                            folder + "/" + language + "/" + relativePath);
+                        loadPriority = parseLoadPriority(path, location);
+                    }
+                    entries.add(new PackEntry(namespaceRoot.namespace(), language, relativePath, loadPriority));
+                });
+            } catch (IOException e) {
+                GuideDebugLog
+                    .warn("[GuideNH] [DataDrivenGuideLoader] Failed to scan guide files in {}", languageDir, e);
             }
         }
     }
 
-    private static int parseLoadPriorityFromFile(Path filePath, ResourceLocation loc) {
+    private static void collectNamespaceLangPaths(File resourcePackRoot, File namespaceRoot, List<String> langPaths) {
+        Path langRoot = namespaceRoot.toPath()
+            .resolve("lang");
+        if (!Files.isDirectory(langRoot)) return;
+
+        try (var paths = Files.walk(langRoot)) {
+            paths.filter(Files::isRegularFile)
+                .filter(
+                    path -> path.getFileName()
+                        .toString()
+                        .endsWith(".lang"))
+                .map(resourcePackRoot.toPath()::relativize)
+                .map(Path::toString)
+                .map(path -> path.replace(File.separatorChar, '/'))
+                .forEach(langPaths::add);
+        } catch (IOException e) {
+            GuideDebugLog.warn("[GuideNH] [DataDrivenGuideLoader] Failed to index language files in {}", langRoot, e);
+        }
+    }
+
+    private static void applyPackScan(IResourcePack resourcePack, String folder, PackScan scan,
+        LinkedHashMap<String, LinkedHashSet<String>> pagePaths,
+        Map<ResourceLocation, LinkedHashSet<String>> discoveredLanguages) {
+
+        if (!scan.langPaths()
+            .isEmpty()) {
+            PACK_LANG_FILE_PATHS.put(resourcePackViewKey(resourcePack), scan.langPaths());
+        }
+
+        for (GuideLanguage language : scan.languages()) {
+            discoveredLanguages
+                .computeIfAbsent(new ResourceLocation(language.namespace(), folder), k -> new LinkedHashSet<>())
+                .add(language.language());
+        }
+
+        for (PackEntry entry : scan.entries()) {
+            if (entry.relativePath().endsWith(".md")) {
+                pagePaths.computeIfAbsent(entry.namespace(), k -> new LinkedHashSet<>())
+                    .add(entry.relativePath());
+                addPackCandidates(pagePackIndex, resourcePack, folder, entry);
+            } else {
+                addPackCandidates(assetPackIndex, resourcePack, folder, entry);
+            }
+        }
+    }
+
+    private static void addPackCandidates(Map<ResourceLocation, List<PackCandidate>> index, IResourcePack resourcePack,
+        String folder, PackEntry entry) {
+
+        index
+            .computeIfAbsent(
+                new ResourceLocation(entry.namespace(), folder + "/" + entry.language() + "/" + entry.relativePath()),
+                k -> new ArrayList<>())
+            .add(new PackCandidate(resourcePack, entry.loadPriority(), pagePackOrder.getAndIncrement()));
+
+        index
+            .computeIfAbsent(
+                new ResourceLocation(entry.namespace(), folder + "/" + entry.relativePath()),
+                k -> new ArrayList<>())
+            .add(new PackCandidate(resourcePack, entry.loadPriority(), pagePackOrder.getAndIncrement()));
+    }
+
+    private static int parseLoadPriority(Path path, ResourceLocation location) {
         try {
-            String content = Files.readString(filePath);
-            if (content.startsWith("﻿")) content = content.substring(1);
-            String yamlText = PageCompiler.extractFrontmatterText(PageCompiler.normalizeLineEndings(content));
-            if (yamlText != null) {
-                var nav = Frontmatter.parse(loc, yamlText)
-                    .navigationEntry();
-                return nav != null ? nav.loadPriority() : 0;
+            return parseLoadPriority(Files.newInputStream(path), location);
+        } catch (IOException ignored) {
+            return 0;
+        }
+    }
+
+    /**
+     * Reads only the leading YAML frontmatter needed to resolve navigation load priority
+     */
+    private static int parseLoadPriority(InputStream input, ResourceLocation location) {
+        try (input; var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+            String firstLine = reader.readLine();
+            if (firstLine != null && firstLine.startsWith("\uFEFF")) {
+                firstLine = firstLine.substring(1);
+            }
+            if (!"---".equals(firstLine)) {
+                return 0;
+            }
+
+            var frontmatter = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if ("---".equals(line)) {
+                    var navigation = Frontmatter.parse(location, frontmatter.toString())
+                        .navigationEntry();
+                    return navigation != null ? navigation.loadPriority() : 0;
+                }
+
+                if (!frontmatter.isEmpty()) {
+                    frontmatter.append('\n');
+                }
+                frontmatter.append(line);
             }
         } catch (Exception ignored) {}
+
         return 0;
     }
 
@@ -613,22 +611,6 @@ public class DataDrivenGuideLoader {
                 .endsWith(".md")) {
                     pagePaths.add(childPath);
                 }
-        }
-    }
-
-    private static void collectAssetPaths(File directory, String relativePath, Set<String> assetPaths) {
-        var children = directory.listFiles();
-        if (children == null) return;
-        for (var child : children) {
-            String childPath = relativePath.isEmpty() ? child.getName() : relativePath + "/" + child.getName();
-            if (child.isDirectory()) {
-                collectAssetPaths(child, childPath, assetPaths);
-            } else if (child.isFile() && !child.getName()
-                .endsWith(".md")
-                && !child.getName()
-                    .endsWith(".lang")) {
-                        assetPaths.add(childPath);
-                    }
         }
     }
 
@@ -928,15 +910,6 @@ public class DataDrivenGuideLoader {
         var result = new ArrayList<IResourcePack>();
         for (IResourcePack pack : resourcePacks) result.add(pack);
         return result;
-    }
-
-    private static List<File> resolvePackRoots(List<IResourcePack> packs) {
-        var roots = new ArrayList<File>(packs.size());
-        for (var pack : packs) {
-            File root = getLooseResourcePackRoot(pack);
-            if (root != null) roots.add(root);
-        }
-        return roots;
     }
 
     private static Map<ResourceLocation, Set<String>> freezeDiscoveredLanguages(
