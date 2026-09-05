@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -16,7 +18,6 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
@@ -41,8 +42,8 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     private static final float ZOOM_STEP = 1.1f;
     private static final float MIN_ZOOM = 0.5f;
     private static final float MAX_ZOOM = 2.5f;
-    static final ConstantColor PANEL_BACKGROUND = new ConstantColor(0x1A0C1117);
-    static final ConstantColor PANEL_BORDER = new ConstantColor(0x66434C57);
+    static final ConstantColor PANEL_BACKGROUND = new ConstantColor(ColorUtils.ARGB_1A0C1117.getColor());
+    static final ConstantColor PANEL_BORDER = new ConstantColor(ColorUtils.ARGB_66434C57.getColor());
 
     private int contentOffsetX;
     private int contentOffsetY;
@@ -675,11 +676,6 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
             this.originX = originX;
             this.originY = originY;
             this.scale = Math.max(0.0001f, scale);
-        }
-
-        @Override
-        public LightDarkMode lightDarkMode() {
-            return delegate.lightDarkMode();
         }
 
         @Override

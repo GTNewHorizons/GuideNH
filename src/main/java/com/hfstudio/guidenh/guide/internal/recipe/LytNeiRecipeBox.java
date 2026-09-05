@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -181,7 +183,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         int bodyY = innerTop + titleHeight + BODY_MARGIN + bodyTopInset;
 
         context.restoreExternalRenderState();
-        WindowNinePatch.drawWindow(context.lightDarkMode(), x, y, w, h);
+        WindowNinePatch.drawWindow(x, y, w, h);
 
         try {
             renderRecipeBody(bodyX, bodyY, context);
@@ -251,7 +253,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         if (!handlerName.isEmpty()) {
             int textX = innerLeft + iconSize() + (iconSize() > 0 ? TITLE_GAP_AFTER_ICON : 0);
             int textY = titleRowTop + (Math.max(ICON_SIZE, fontHeight) - fontHeight) / 2;
-            Minecraft.getMinecraft().fontRenderer.drawString(handlerName, textX, textY, 0xFF000000);
+            Minecraft.getMinecraft().fontRenderer.drawString(handlerName, textX, textY, ColorUtils.BLACK.getColor());
         }
         LytRect actionButtonBounds = getActionButtonBounds();
         if (recipeJumpEnabled && actionButtonBounds != null) {
@@ -316,7 +318,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         }
         context.pushLocalScissor(strip);
         try {
-            WindowNinePatch.drawWindow(context.lightDarkMode(), windowX, windowY, windowW, windowH);
+            WindowNinePatch.drawWindow(windowX, windowY, windowW, windowH);
         } finally {
             context.popScissor();
         }
@@ -354,14 +356,14 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         try {
             GL11.glTranslatef(x + offX, y + offY, 0f);
             GL11.glScalef(scale, scale, 1f);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             GuideNhIntegrationRegistry.global()
                 .drawRecipeDrawable(image, 0, 0);
         } finally {
             GL11.glPopMatrix();
             // DrawableResource.draw leaves the color/texture state reasonable, but make sure no
             // leftover tint poisons later blits in the same frame.
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 

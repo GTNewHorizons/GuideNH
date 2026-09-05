@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.internal.recipe.NeiHandlerRenderer;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -26,7 +29,7 @@ import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
  * Renders NEI handler Phase1 ({@code drawBackground} / optionally {@code drawForeground} /
  * {@code drawExtras}) off-screen and writes a PNG shared asset for static site overlays.
  *
- * @see com.hfstudio.guidenh.guide.internal.recipe.NeiHandlerRenderer
+ * @see NeiHandlerRenderer
  */
 public class GuideSiteNeiPhase1BackgroundExporter {
 
@@ -163,7 +166,7 @@ public class GuideSiteNeiPhase1BackgroundExporter {
             GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
             GL11.glPushMatrix();
             try {
@@ -202,7 +205,7 @@ public class GuideSiteNeiPhase1BackgroundExporter {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 

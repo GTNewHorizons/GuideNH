@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -28,7 +28,7 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
     private final BorderRenderer borderRenderer = new BorderRenderer();
 
     @Nullable
-    private SymbolicColor backgroundColor;
+    private ColorValue backgroundColor;
 
     @Override
     public void removeChild(LytNode node) {
@@ -113,11 +113,11 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
         paddingBottom = padding;
     }
 
-    public @Nullable SymbolicColor getBackgroundColor() {
+    public @Nullable ColorValue getBackgroundColor() {
         return backgroundColor;
     }
 
-    public void setBackgroundColor(@Nullable SymbolicColor backgroundColor) {
+    public void setBackgroundColor(@Nullable ColorValue backgroundColor) {
         this.backgroundColor = backgroundColor;
     }
 

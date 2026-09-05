@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
@@ -37,7 +39,7 @@ public class GuidebookPreviewPlayerSkinImageBuffer implements IImageBuffer {
         graphics.drawImage(sourceImage, 0, 0, null);
 
         if (legacySkinLayout) {
-            graphics.setColor(new Color(0, 0, 0, 0));
+            graphics.setColor(new Color(ColorUtils.TRANSPARENT.getColor(), true));
             graphics.fillRect(0, LEGACY_IMAGE_HEIGHT, IMAGE_WIDTH, LEGACY_IMAGE_HEIGHT);
             copyLegacySkinLayout(graphics, outputImage);
         }
@@ -83,7 +85,7 @@ public class GuidebookPreviewPlayerSkinImageBuffer implements IImageBuffer {
     private static void setAreaOpaque(int[] imageData, int minX, int minY, int maxX, int maxY) {
         for (int x = minX; x < maxX; ++x) {
             for (int y = minY; y < maxY; ++y) {
-                imageData[x + y * IMAGE_WIDTH] |= 0xFF000000;
+                imageData[x + y * IMAGE_WIDTH] |= ColorUtils.BLACK.getColor();
             }
         }
     }

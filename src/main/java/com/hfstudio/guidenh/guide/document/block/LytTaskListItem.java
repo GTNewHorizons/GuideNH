@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -27,9 +29,9 @@ public class LytTaskListItem extends LytListItem {
         int boxSize = 7;
         int boxX = bounds.x() + 1;
         int boxY = bounds.y() + 1;
-        context.drawBorder(new LytRect(boxX, boxY, boxSize, boxSize), context.resolveColor(SymbolicColor.BODY_TEXT), 1);
+        context.drawBorder(new LytRect(boxX, boxY, boxSize, boxSize), context.resolveColor(ColorUtils.BODY_TEXT), 1);
         if (checked) {
-            context.fillRect(boxX + 2, boxY + 2, 3, 3, SymbolicColor.LINK);
+            context.fillRect(boxX + 2, boxY + 2, 3, 3, ColorUtils.LINK);
         }
         super.render(context);
     }

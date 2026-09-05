@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -75,12 +77,12 @@ public class NeiHandlerRenderer {
         GL11.glPushMatrix();
         try {
             GL11.glTranslatef(screenX, screenY, 0f);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             registry.renderRecipeHandler(handler, recipeIndex, skipForeground);
         } catch (Throwable ignored) {} finally {
             GL11.glPopMatrix();
             GL11.glPopAttrib();
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glEnable(GL11.GL_BLEND);
@@ -176,7 +178,7 @@ public class NeiHandlerRenderer {
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_LIGHTING_BIT);
         try {
             GL11.glDisable(GL11.GL_BLEND);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             RenderHelper.enableGUIStandardItemLighting();
             OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
             OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
@@ -202,7 +204,7 @@ public class NeiHandlerRenderer {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 }

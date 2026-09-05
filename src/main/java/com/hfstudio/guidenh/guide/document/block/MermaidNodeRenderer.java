@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,19 +18,19 @@ public final class MermaidNodeRenderer {
 
     private MermaidNodeRenderer() {}
 
-    public static final int DEFAULT_ACCENT = 0xFF7AA2F7;
-    public static final int ACCENT_DANGER = 0xFFF7768E;
-    public static final int ACCENT_SUCCESS = 0xFF9ECE6A;
-    public static final int ACCENT_WARN = 0xFFE0AF68;
-    public static final int ACCENT_MUTED = 0xFF8B949E;
-    public static final int ACCENT_CIRCLE = 0xFF7DCFFF;
-    public static final int ACCENT_CLOUD = 0xFF73DACA;
+    public static final int DEFAULT_ACCENT = ColorUtils.ARGB_FF7AA2F7.getColor();
+    public static final int ACCENT_DANGER = ColorUtils.ARGB_FFF7768E.getColor();
+    public static final int ACCENT_SUCCESS = ColorUtils.ARGB_FF9ECE6A.getColor();
+    public static final int ACCENT_WARN = ColorUtils.ARGB_FFE0AF68.getColor();
+    public static final int ACCENT_MUTED = ColorUtils.ARGB_FF8B949E.getColor();
+    public static final int ACCENT_CIRCLE = ColorUtils.ARGB_FF7DCFFF.getColor();
+    public static final int ACCENT_CLOUD = ColorUtils.ARGB_FF73DACA.getColor();
 
-    public static final int DEFAULT_BACKGROUND = 0xFF1F2A38;
-    public static final int ALT_BACKGROUND = 0xFF111922;
+    public static final int DEFAULT_BACKGROUND = ColorUtils.ARGB_FF1F2A38.getColor();
+    public static final int ALT_BACKGROUND = ColorUtils.ARGB_FF111922.getColor();
 
-    public static final int BADGE_BACKGROUND = 0x262A3340;
-    public static final int BADGE_BORDER = 0x66434C57;
+    public static final int BADGE_BACKGROUND = ColorUtils.ARGB_262A3340.getColor();
+    public static final int BADGE_BORDER = ColorUtils.ARGB_66434C57.getColor();
 
     public record NodeColors(int background, int border, int accent) {}
 

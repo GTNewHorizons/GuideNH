@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.screen;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -389,14 +391,14 @@ public class GuideNavBar {
             int textRightBase = x + w - 2;
             int bookmarkActionLeft = getBookmarkActionLeft(w);
             int bookmarkIconX = bookmarkActionLeft + ACTION_PADDING_RIGHT;
-            int bgTop = 0xE0151515;
-            int bgBot = 0xE0101010;
+            int bgTop = ColorUtils.ARGB_E0151515.getColor();
+            int bgBot = ColorUtils.ARGB_E0101010.getColor();
             drawVGradient(x, y, w, height, bgTop, bgBot);
-            Gui.drawRect(rowRight, y, x + w, y + height, 0xFF2A2A2A);
+            Gui.drawRect(rowRight, y, x + w, y + height, ColorUtils.ARGB_FF2A2A2A.getColor());
 
             if (!isOpen()) {
                 resetTitleScroll();
-                drawArrow(x + w / 2 - 2, y + height / 2 - 3, true, 0xFF888888);
+                drawArrow(x + w / 2 - 2, y + height / 2 - 3, true, ColorUtils.ARGB_FF888888.getColor());
                 return;
             }
 
@@ -475,7 +477,7 @@ public class GuideNavBar {
             GL11.glPopAttrib();
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 
@@ -491,18 +493,18 @@ public class GuideNavBar {
         boolean bookmarkable = row.bookmarkable();
 
         if (sticky) {
-            Gui.drawRect(x, rowY, rowRight, rowY + ROW_H, 0xF0181818);
-            Gui.drawRect(x, rowY + ROW_H - 1, rowRight, rowY + ROW_H, 0x802A2A2A);
+            Gui.drawRect(x, rowY, rowRight, rowY + ROW_H, ColorUtils.ARGB_F0181818.getColor());
+            Gui.drawRect(x, rowY + ROW_H - 1, rowRight, rowY + ROW_H, ColorUtils.ARGB_802A2A2A.getColor());
         }
         if (current) {
-            Gui.drawRect(x, rowY, rowRight, rowY + ROW_H, 0x40FFFFFF);
+            Gui.drawRect(x, rowY, rowRight, rowY + ROW_H, ColorUtils.ARGB_40FFFFFF.getColor());
         } else if (hovered) {
-            Gui.drawRect(x, rowY, rowRight, rowY + ROW_H, 0x20FFFFFF);
+            Gui.drawRect(x, rowY, rowRight, rowY + ROW_H, ColorUtils.ARGB_20FFFFFF.getColor());
         }
 
         if (row.hasChildren()) {
             boolean collapsed = isCollapsed(row);
-            drawArrow(rowX, rowY + 2, collapsed, 0xFFCCCCCC);
+            drawArrow(rowX, rowY + 2, collapsed, ColorUtils.ARGB_FFCCCCCC.getColor());
         }
 
         int textX = rowX + EXPAND_INDENT;
@@ -586,8 +588,8 @@ public class GuideNavBar {
 
     private void renderTitle(Minecraft mc, int width, int mouseX, int mouseY, boolean showNewPageButton) {
         FontRenderer fr = mc.fontRenderer;
-        Gui.drawRect(x, y, x + width - 1, y + TITLE_H, 0xD0202020);
-        Gui.drawRect(x, y + TITLE_H - 1, x + width - 1, y + TITLE_H, 0xFF2A2A2A);
+        Gui.drawRect(x, y, x + width - 1, y + TITLE_H, ColorUtils.ARGB_D0202020.getColor());
+        Gui.drawRect(x, y + TITLE_H - 1, x + width - 1, y + TITLE_H, ColorUtils.ARGB_FF2A2A2A.getColor());
         int pinX = getPinButtonX();
         int buttonY = getTitleButtonY();
         if (showNewPageButton) {
@@ -623,7 +625,7 @@ public class GuideNavBar {
             String renderedTitle = fr.getStringWidth(title) > titleW
                 ? fr.trimStringToWidth(title, Math.max(0, titleW - 4)) + "…"
                 : title;
-            fr.drawString(renderedTitle, titleX, y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1, 0xFFE8E8E8, false);
+            fr.drawString(renderedTitle, titleX, y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1, ColorUtils.ARGB_FFE8E8E8.getColor(), false);
         }
     }
 
@@ -1015,9 +1017,9 @@ public class GuideNavBar {
 
     public static int getRowTextColor(boolean current, boolean hovered, boolean failed) {
         if (failed) {
-            return current ? 0xFFFF9999 : hovered ? 0xFFFF7777 : 0xFFFF5555;
+            return current ? ColorUtils.ARGB_FFFF9999.getColor() : hovered ? ColorUtils.ARGB_FFFF7777.getColor() : ColorUtils.ARGB_FFFF5555.getColor();
         }
-        return current ? 0xFFFFFFFF : hovered ? 0xFF88BBFF : 0xFFBBBBBB;
+        return current ? ColorUtils.WHITE.getColor() : hovered ? ColorUtils.ARGB_FF88BBFF.getColor() : ColorUtils.ARGB_FFBBBBBB.getColor();
     }
 
     public static void drawVGradient(int x, int y, int w, int h, int topColor, int botColor) {
@@ -1097,7 +1099,7 @@ public class GuideNavBar {
         } finally {
             GL11.glPopAttrib();
             GL11.glEnable(GL11.GL_TEXTURE_2D);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 
@@ -1117,7 +1119,7 @@ public class GuideNavBar {
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
         var tess = Tessellator.instance;
         tess.startDrawingQuads();

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 
@@ -14,8 +16,8 @@ public class SceneEditorCameraMarkerOverlay {
 
     public static final int MARKER_SIZE = 16;
     public static final int MARKER_HALF_SIZE = MARKER_SIZE / 2;
-    public static final int MARKER_SHADOW_COLOR = 0x70000000;
-    public static final int MARKER_TINT = 0xF8FFFFFF;
+    public static final int MARKER_SHADOW_COLOR = ColorUtils.ARGB_70000000.getColor();
+    public static final int MARKER_TINT = ColorUtils.ARGB_F8FFFFFF.getColor();
     private final Vector3f projectedScratch = new Vector3f();
 
     public LytRect getMarkerBounds(CameraSettings camera, LytRect viewport) {

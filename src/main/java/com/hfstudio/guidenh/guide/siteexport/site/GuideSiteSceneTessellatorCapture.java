@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.ByteArrayOutputStream;
@@ -548,7 +550,7 @@ public class GuideSiteSceneTessellatorCapture {
                 cursor += Float.BYTES;
             }
 
-            int rgba = hasColor ? rawBuffer[base + 5] : 0xFFFFFFFF;
+            int rgba = hasColor ? rawBuffer[base + 5] : ColorUtils.WHITE.getColor();
             target[cursor++] = (byte) (rgba & 255);
             target[cursor++] = (byte) (rgba >> 8 & 255);
             target[cursor++] = (byte) (rgba >> 16 & 255);

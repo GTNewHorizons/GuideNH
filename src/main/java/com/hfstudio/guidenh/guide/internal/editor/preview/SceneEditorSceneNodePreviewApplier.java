@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -676,7 +678,7 @@ public class SceneEditorSceneNodePreviewApplier {
             parseFloatAttributeOrDefault(hlMaxY, 1f),
             parseFloatAttributeOrDefault(hlMaxZ, 1f));
         normalizeBounds(min, max);
-        ConstantColor highlightColor = parseColorOrDefault(element.getExtraAttribute("highlightColor"), 0x8000FFAA);
+        ConstantColor highlightColor = parseColorOrDefault(element.getExtraAttribute("highlightColor"), ColorUtils.HIGHLIGHT.getColor());
         InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(
             min,
             max,

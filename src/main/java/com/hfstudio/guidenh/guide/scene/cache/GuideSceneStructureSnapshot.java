@@ -31,6 +31,9 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+
 public class GuideSceneStructureSnapshot implements Serializable {
 
     @Serial
@@ -170,7 +173,7 @@ public class GuideSceneStructureSnapshot implements Serializable {
         if (explicitBlockIds.isEmpty()) {
             return Map.of();
         }
-        HashMap<Long, String> indexed = new HashMap<>(explicitBlockIds.size());
+        Long2ObjectOpenHashMap<String> indexed = new Long2ObjectOpenHashMap<>(explicitBlockIds.size());
         for (ExplicitBlockIdEntry entry : explicitBlockIds) {
             indexed.put(GuidebookLevel.packPos(entry.x, entry.y, entry.z), entry.explicitBlockId);
         }
@@ -252,7 +255,7 @@ public class GuideSceneStructureSnapshot implements Serializable {
         if (previewAuthorityEntries.isEmpty()) {
             return;
         }
-        LinkedHashMap<Long, Map<String, byte[]>> restored = new LinkedHashMap<>();
+        Long2ObjectLinkedOpenHashMap<Map<String, byte[]>> restored = new Long2ObjectLinkedOpenHashMap<>();
         for (PreviewAuthorityEntry entry : previewAuthorityEntries) {
             restored.put(entry.packedPos, entry.payloads());
         }

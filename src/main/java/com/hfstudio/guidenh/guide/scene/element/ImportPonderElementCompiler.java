@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -142,7 +144,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
         if ("text".equals(raw.getType()) && raw.hasHighlight()) {
             var min = new Vector3f(raw.getHlMinX(0f), raw.getHlMinY(0f), raw.getHlMinZ(0f));
             var max = new Vector3f(raw.getHlMaxX(1f), raw.getHlMaxY(1f), raw.getHlMaxZ(1f));
-            int hlArgb = raw.parseHighlightColor(0x8000FFAA);
+            int hlArgb = raw.parseHighlightColor(ColorUtils.HIGHLIGHT.getColor());
             var box = new InWorldBoxAnnotation(
                 min,
                 max,
@@ -158,7 +160,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
         switch (raw.getType()) {
             case "diamond": {
                 var pos = new Vector3f(raw.getX(0f), raw.getY(0f), raw.getZ(0f));
-                int argb = raw.parseColor(0xFF00E000);
+                int argb = raw.parseColor(ColorUtils.ARGB_FF00E000.getColor());
                 var ann = new DiamondAnnotation(pos, new ConstantColor(argb));
                 ann.setAlwaysOnTop(raw.isAlwaysOnTop());
                 return ann;
@@ -170,7 +172,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
                 int bx = raw.getBlockX(0);
                 int by = raw.getBlockY(0);
                 int bz = raw.getBlockZ(0);
-                int argb = raw.parseColor(0xFFFFFFFF);
+                int argb = raw.parseColor(ColorUtils.WHITE.getColor());
                 float lw = raw.getLineWidth(InWorldBoxAnnotation.DEFAULT_THICKNESS);
                 var ann = new InWorldBoxAnnotation(
                     new Vector3f(bx, by, bz),
@@ -183,7 +185,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
             case "box": {
                 var min = new Vector3f(raw.getMinX(0f), raw.getMinY(0f), raw.getMinZ(0f));
                 var max = new Vector3f(raw.getMaxX(1f), raw.getMaxY(1f), raw.getMaxZ(1f));
-                int argb = raw.parseColor(0xFFFFFFFF);
+                int argb = raw.parseColor(ColorUtils.WHITE.getColor());
                 float lw = raw.getLineWidth(InWorldBoxAnnotation.DEFAULT_THICKNESS);
                 var ann = new InWorldBoxAnnotation(min, max, new ConstantColor(argb), lw);
                 ann.setAlwaysOnTop(raw.isAlwaysOnTop());
@@ -191,7 +193,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
             }
             case "line": {
                 List<Vector3f> points = resolveLinePoints(raw);
-                int argb = raw.parseColor(0xFFFFFFFF);
+                int argb = raw.parseColor(ColorUtils.WHITE.getColor());
                 float lw = raw.getLineWidth(InWorldLineAnnotation.DEFAULT_THICKNESS);
                 var ann = new InWorldLineAnnotation(points, new ConstantColor(argb), lw);
                 ann.setAlwaysOnTop(raw.isAlwaysOnTop());
@@ -204,7 +206,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
                 int bx = raw.getBlockX(0);
                 int by = raw.getBlockY(0);
                 int bz = raw.getBlockZ(0);
-                int argb = raw.parseColor(0x80FFFFFF);
+                int argb = raw.parseColor(ColorUtils.ARGB_80FFFFFF.getColor());
                 var ann = new InWorldBlockFaceOverlayAnnotation(bx, by, bz, new ConstantColor(argb), Set.of());
                 ann.setAlwaysOnTop(raw.isAlwaysOnTop());
                 return ann;
@@ -213,7 +215,7 @@ public class ImportPonderElementCompiler implements SceneElementTagCompiler {
                 var pos = new Vector3f(raw.getX(0f), raw.getY(0f), raw.getZ(0f));
                 String msg = raw.getText();
                 if (msg == null || msg.isEmpty()) return null;
-                int borderArgb = raw.parseColor(0xFFAAAAAA);
+                int borderArgb = raw.parseColor(ColorUtils.ARGB_FFAAAAAA.getColor());
                 int maxW = raw.getMaxWidth(0);
                 TextAnnotation ann;
                 if (raw.isIndependent()) {

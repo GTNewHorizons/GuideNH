@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.annotation.compiler;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.Collections;
 import java.util.Set;
 
@@ -21,7 +23,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 public class DiamondAnnotationElementCompiler extends AnnotationTagCompiler {
 
     /** Default green used when the MDX tag omits the {@code color} attribute. */
-    public static final ConstantColor DEFAULT_DIAMOND_COLOR = new ConstantColor(0xFF00E000);
+    public static final ConstantColor DEFAULT_DIAMOND_COLOR = new ConstantColor(ColorUtils.ARGB_FF00E000.getColor());
 
     @Override
     public Set<String> getTagNames() {

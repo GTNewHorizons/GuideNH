@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -86,7 +88,7 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
         float hlMaxX = parseFloat(compiler, errorSink, el, "hlMaxX", 1f);
         float hlMaxY = parseFloat(compiler, errorSink, el, "hlMaxY", 1f);
         float hlMaxZ = parseFloat(compiler, errorSink, el, "hlMaxZ", 1f);
-        int hlArgb = parseColor(compiler, errorSink, el, "highlightColor", 0x8000FFAA);
+        int hlArgb = parseColor(compiler, errorSink, el, "highlightColor", ColorUtils.HIGHLIGHT.getColor());
         var box = new InWorldBoxAnnotation(
             new Vector3f(hlMinX, hlMinY, hlMinZ),
             new Vector3f(hlMaxX, hlMaxY, hlMaxZ),

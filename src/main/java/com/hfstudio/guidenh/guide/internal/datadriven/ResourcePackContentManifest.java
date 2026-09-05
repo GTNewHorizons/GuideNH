@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.datadriven;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

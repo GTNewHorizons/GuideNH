@@ -1,7 +1,8 @@
 package com.hfstudio.guidenh.guide.layout.flow;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import com.hfstudio.guidenh.guide.color.ColorValue;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -10,8 +11,8 @@ public class LineTextRun extends LineElement {
 
     public static final int INLINE_CODE_PAD_X = 3;
     public static final int INLINE_CODE_EXTRA_WIDTH = INLINE_CODE_PAD_X * 2;
-    public static final int INLINE_CODE_BACKGROUND_LIGHT = 0x1AF0F6FF;
-    public static final int INLINE_CODE_BACKGROUND_DARK = 0x1A6FB6FF;
+    public static final int INLINE_CODE_BACKGROUND_LIGHT = ColorUtils.ARGB_1AF0F6FF.getColor();
+    public static final int INLINE_CODE_BACKGROUND_DARK = ColorUtils.ARGB_1A6FB6FF.getColor();
 
     public final String text;
     public final ResolvedTextStyle style;
@@ -41,9 +42,7 @@ public class LineTextRun extends LineElement {
         if (width > 0 && height > 0) {
             int backgroundY = rect.y() - 1;
             if (inlineCode) {
-                int backgroundColorArgb = context.lightDarkMode() == LightDarkMode.DARK_MODE
-                    ? INLINE_CODE_BACKGROUND_DARK
-                    : INLINE_CODE_BACKGROUND_LIGHT;
+                int backgroundColorArgb = INLINE_CODE_BACKGROUND_DARK;
                 context.fillRect(rect.x(), backgroundY, width, height, backgroundColorArgb);
             } else {
                 context.fillRect(rect.x() - 1, backgroundY, width + 2, height, backgroundColor);

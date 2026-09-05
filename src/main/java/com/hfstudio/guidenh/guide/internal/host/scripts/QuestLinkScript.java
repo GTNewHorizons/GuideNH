@@ -1,11 +1,13 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.UUID;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.StatCollector;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
@@ -53,7 +55,7 @@ public class QuestLinkScript implements LytScript {
         }
         if (display == null) {
             LytFlowSpan errorSpan = new LytFlowSpan();
-            errorSpan.modifyStyle(style -> style.color(SymbolicColor.ERROR_TEXT));
+            errorSpan.modifyStyle(style -> style.color(ColorUtils.ERROR_TEXT));
             errorSpan.appendText("[QuestLink] Quest not found: " + questId);
             ctx.replace(errorSpan);
             return;
@@ -65,8 +67,8 @@ public class QuestLinkScript implements LytScript {
         if (QuestTagSupport.isNavigable(state)) {
             replacement = QuestTagSupport.createQuestGuiLink(questId, display, text, Boolean.TRUE.equals(showTooltip));
         } else {
-            SymbolicColor color = state == QuestState.HIDDEN ? SymbolicColor.DARK_GRAY
-                : state == QuestState.MISSING ? SymbolicColor.RED : SymbolicColor.GRAY;
+            ColorValue color = state == QuestState.HIDDEN ? ColorUtils.MC_DARK_GRAY
+                : state == QuestState.MISSING ? ColorUtils.MC_RED : ColorUtils.MC_GRAY;
             LytFlowSpan span = new LytFlowSpan();
             span.modifyStyle(
                 style -> style.color(color)

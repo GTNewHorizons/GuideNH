@@ -2,10 +2,8 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
@@ -30,6 +28,9 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 
 public class GuideSiteSceneHoverTargetSerializer {
 
@@ -65,11 +66,11 @@ public class GuideSiteSceneHoverTargetSerializer {
         Map<String, String> templateIdsByHtml = new LinkedHashMap<>();
         Integer visibleLayerY = resolveVisibleLayerY(scene);
         List<StructureLibSceneMetadata> structureLibMetadataList = collectStructureLibMetadata(scene);
-        Set<Long> hatchPositions = new LinkedHashSet<>();
+        LongSet hatchPositions = new LongOpenHashSet();
         for (StructureLibSceneMetadata metadata : structureLibMetadataList) {
             hatchPositions.addAll(metadata.getHatchTooltipPositions());
         }
-        Set<Long> exportedHatchPositions = new LinkedHashSet<>();
+        LongSet exportedHatchPositions = new LongOpenHashSet();
 
         for (int[] pos : level.getFilledBlocks()) {
             if (pos == null || pos.length < 3 || !isVisibleBlock(pos[1], visibleLayerY)) {

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Insets;
@@ -76,7 +78,7 @@ public class GuideSiteLatexExporter {
         if (cached != null) {
             return cached;
         }
-        TeXIcon icon = createIcon(CALIBRATION_FORMULA, 0xFFFFFFFF, sourceScale);
+        TeXIcon icon = createIcon(CALIBRATION_FORMULA, ColorUtils.WHITE.getColor(), sourceScale);
         int height = Math.max(1, icon.getIconHeight());
         referenceHeights.put(key, height);
         return height;
@@ -105,7 +107,7 @@ public class GuideSiteLatexExporter {
                 RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
             graphics.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
             graphics.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-            graphics.setColor(new Color(0, 0, 0, 0));
+            graphics.setColor(new Color(ColorUtils.TRANSPARENT.getColor(), true));
             graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
             icon.paintIcon(null, graphics, 0, 0);
         } finally {

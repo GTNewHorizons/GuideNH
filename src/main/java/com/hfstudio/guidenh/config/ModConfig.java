@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.config;
 
+
 import com.gtnewhorizon.gtnhlib.config.Config;
 import com.gtnewhorizon.gtnhlib.config.Config.Comment;
 import com.gtnewhorizon.gtnhlib.config.Config.DefaultBoolean;
@@ -94,15 +95,6 @@ public class ModConfig {
         @DefaultBoolean(true)
         public boolean showMousePosition = true;
 
-        @Comment("Debug text color (ARGB format)")
-        public int debugTextColor = 0xFFC47BA1;
-
-        @Comment("Debug outline border color (ARGB format, 0 to mirror text color)")
-        public int debugOutlineColor = 0;
-
-        @Comment("Debug cursor dot color (ARGB format)")
-        public int debugCursorColor = 0xCC00FF00;
-
         @Comment("Debug text scale factor")
         @DefaultFloat(0.8f)
         @RangeFloat(min = 0.5f, max = 2.0f)
@@ -187,6 +179,10 @@ public class ModConfig {
             + "This preference is persisted immediately after toggling in the editor.")
         @DefaultBoolean(false)
         public boolean sceneEditorAutoPickEnabled = false;
+
+        @Comment("Whether exporting SNBT from the scene editor also opens the exported structure folder.")
+        @DefaultBoolean(false)
+        public boolean sceneEditorExportOpenFolderAfterExport = false;
 
         @Comment("Whether point snapping is enabled in the scene editor by default.")
         @DefaultBoolean(true)

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.RenderHelper;
@@ -15,7 +17,7 @@ public class ItemCandidate implements AutocompleteCandidate {
     private final ItemStack stack;
     private static final int ICON_SIZE = 16;
     private static final int TEXT_X = ICON_SIZE + 2;
-    private static final int TEXT_COLOR = 0xFFF0F0F0;
+    private static final int TEXT_COLOR = ColorUtils.TEXT.getColor();
     private static final RenderItem renderItem = new RenderItem();
 
     public ItemCandidate(String id, ItemStack stack) {

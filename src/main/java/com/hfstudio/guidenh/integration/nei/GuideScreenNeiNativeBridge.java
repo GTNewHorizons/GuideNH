@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.integration.nei;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -286,7 +288,7 @@ public class GuideScreenNeiNativeBridge {
                 GL11.glEnable(GL11.GL_LIGHTING);
                 GL11.glEnable(GL11.GL_DEPTH_TEST);
                 OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
-                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+                ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
                 GL11.glTranslatef(editorAccess.containerLeft(), editorAccess.containerTop(), 0.0F);
                 manager.renderObjects(mouseX, mouseY);
             } finally {
@@ -295,7 +297,7 @@ public class GuideScreenNeiNativeBridge {
                 GL11.glDisable(GL12.GL_RESCALE_NORMAL);
                 GL11.glDisable(GL11.GL_LIGHTING);
                 GL11.glDisable(GL11.GL_DEPTH_TEST);
-                GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+                ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             }
             return null;
         });

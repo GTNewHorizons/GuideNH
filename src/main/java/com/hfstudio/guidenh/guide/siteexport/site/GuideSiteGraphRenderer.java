@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -175,16 +177,16 @@ public class GuideSiteGraphRenderer {
     private static final int MM_ACCENT_STRIPE = 3;
     private static final int MM_MIN_NODE_WIDTH = 64;
 
-    private static final int MM_BG_COLOR = 0xF00C1117;
-    private static final int MM_BORDER_COLOR = 0x66434C57;
-    private static final int MM_CONNECTOR_COLOR = 0xFF5D6C7C;
-    private static final int MM_ROOT_BG = 0xFF1F2A38;
-    private static final int MM_NODE_BG = 0xFF111922;
-    private static final int MM_ROOT_TEXT = 0xFFF1F6FB;
-    private static final int MM_NODE_TEXT = 0xFFD7DEE7;
-    private static final int MM_BADGE_TEXT = 0xFFB8C2CF;
-    private static final int MM_BADGE_BG = 0xFF262A33;
-    private static final int MM_DEFAULT_ACCENT = 0xFF7AA2F7;
+    private static final int MM_BG_COLOR = ColorUtils.ARGB_F00C1117.getColor();
+    private static final int MM_BORDER_COLOR = ColorUtils.ARGB_66434C57.getColor();
+    private static final int MM_CONNECTOR_COLOR = ColorUtils.ARGB_FF5D6C7C.getColor();
+    private static final int MM_ROOT_BG = ColorUtils.ARGB_FF1F2A38.getColor();
+    private static final int MM_NODE_BG = ColorUtils.ARGB_FF111922.getColor();
+    private static final int MM_ROOT_TEXT = ColorUtils.ARGB_FFF1F6FB.getColor();
+    private static final int MM_NODE_TEXT = ColorUtils.ARGB_FFD7DEE7.getColor();
+    private static final int MM_BADGE_TEXT = ColorUtils.CHART_LABEL.getColor();
+    private static final int MM_BADGE_BG = ColorUtils.ARGB_FF262A33.getColor();
+    private static final int MM_DEFAULT_ACCENT = ColorUtils.ARGB_FF7AA2F7.getColor();
 
     private static class MmLayoutNode {
 
@@ -626,7 +628,7 @@ public class GuideSiteGraphRenderer {
                     .append(labelH)
                     .append("\" rx=\"3\"")
                     .append(" fill=\"")
-                    .append(argbToRgba(0xCC0C1117))
+                    .append(argbToRgba(ColorUtils.ARGB_CC0C1117.getColor()))
                     .append("\" stroke=\"rgba(180,180,200,0.3)\"")
                     .append(" stroke-width=\"1\"/>\n");
                 sb.append("<text x=\"")
@@ -645,10 +647,10 @@ public class GuideSiteGraphRenderer {
     private static final String DEFAULT_EDGE_COLOR = "#5D6C7C";
     private static final int SUBGRAPH_PADDING = 8;
     private static final int SUBGRAPH_LABEL_HEIGHT = 14;
-    private static final String[] SUBGRAPH_BG = { argbToRgba(0x301E2A45), argbToRgba(0x302A1E45),
-        argbToRgba(0x301E2A2A), argbToRgba(0x302A2A1E), };
-    private static final String[] SUBGRAPH_BORDER = { argbToRgba(0x99434C57), argbToRgba(0x994C5743),
-        argbToRgba(0x99575743), argbToRgba(0x9943574C), };
+    private static final String[] SUBGRAPH_BG = { argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_PURPLE.getColor()), argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_VIOLET.getColor()),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_DARK.getColor()), argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_GOLD.getColor()), };
+    private static final String[] SUBGRAPH_BORDER = { argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_BLUE.getColor()), argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_GREEN.getColor()),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_OLIVE.getColor()), argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_TEAL.getColor()), };
 
     @Nullable
     private static FlowchartLayoutResult.Point intersectEdgeEndpoint(FlowchartDocument doc,
@@ -822,7 +824,7 @@ public class GuideSiteGraphRenderer {
                         .append("\" y=\"")
                         .append(textY + 13)
                         .append("\" font-size=\"10\" fill=\"")
-                        .append(argbToRgba(0xFFB8C2CF))
+                        .append(argbToRgba(ColorUtils.CHART_LABEL.getColor()))
                         .append("\" font-family=\"inherit\">")
                         .append(esc(badgeText))
                         .append("</text>\n");
@@ -986,26 +988,26 @@ public class GuideSiteGraphRenderer {
             if (lower.contains("danger") || lower.contains("error")
                 || lower.contains("urgent")
                 || lower.contains("red")) {
-                accent = 0xFFF7768E;
+                accent = ColorUtils.ARGB_FFF7768E.getColor();
                 break;
             }
             if (lower.contains("success") || lower.contains("green") || lower.contains("done")) {
-                accent = 0xFF9ECE6A;
+                accent = ColorUtils.ARGB_FF9ECE6A.getColor();
                 break;
             }
             if (lower.contains("warn") || lower.contains("yellow") || lower.contains("amber")) {
-                accent = 0xFFE0AF68;
+                accent = ColorUtils.ARGB_FFE0AF68.getColor();
                 break;
             }
             if (lower.contains("muted") || lower.contains("gray") || lower.contains("grey")) {
-                accent = 0xFF8B949E;
+                accent = ColorUtils.ARGB_FF8B949E.getColor();
             }
         }
         return switch (node.source.getShape()) {
-            case CIRCLE -> 0xFF7DCFFF;
-            case HEXAGON -> 0xFFE0AF68;
-            case CLOUD -> 0xFF73DACA;
-            case BANG -> 0xFFF7768E;
+            case CIRCLE -> ColorUtils.ARGB_FF7DCFFF.getColor();
+            case HEXAGON -> ColorUtils.ARGB_FFE0AF68.getColor();
+            case CLOUD -> ColorUtils.ARGB_FF73DACA.getColor();
+            case BANG -> ColorUtils.ARGB_FFF7768E.getColor();
             default -> accent;
         };
     }

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.PageCollection;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.document.block.LytItemImage;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -99,7 +101,7 @@ public class ItemLinkScript implements LytScript {
                     span.setTooltip(new ItemTooltip(stack));
                 }
                 span.modifyStyle(
-                    style -> style.color(SymbolicColor.GRAY)
+                    style -> style.color(ColorUtils.MC_GRAY)
                         .italic(true));
                 ctx.replace(span);
                 return;

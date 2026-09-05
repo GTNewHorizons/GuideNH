@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 
@@ -7,13 +9,12 @@ import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.color.ColorValue;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 
 public class InWorldAnnotationRenderer {
 
     private InWorldAnnotationRenderer() {}
 
-    public static void render(Iterable<InWorldAnnotation> annotations, LightDarkMode lightDarkMode) {
+    public static void render(Iterable<InWorldAnnotation> annotations) {
         // Single up-front scan: bail out early when there is nothing to draw (the common case for
         // scenes without highlights), and at the same time figure out whether any non-occluded
         // pass / always-on-top pass actually has work to do. Avoids paying for a full GL state
@@ -47,17 +48,17 @@ public class InWorldAnnotationRenderer {
                 GL11.glEnable(GL11.GL_DEPTH_TEST);
                 GL11.glDepthFunc(GL11.GL_GREATER);
                 GL11.glDepthMask(false);
-                drawAll(annotations, lightDarkMode, /* occluded */ true, /* pass2 */ false);
+                drawAll(annotations, /* occluded */ true, /* pass2 */ false);
 
                 GL11.glDepthFunc(GL11.GL_LEQUAL);
                 GL11.glDepthMask(true);
-                drawAll(annotations, lightDarkMode, /* occluded */ false, /* pass2 */ false);
+                drawAll(annotations, /* occluded */ false, /* pass2 */ false);
             }
 
             // Pass 2b: alwaysOnTop.
             if (hasAlwaysOnTop) {
                 GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
-                drawAll(annotations, lightDarkMode, /* occluded */ false, /* pass2 */ true);
+                drawAll(annotations, /* occluded */ false, /* pass2 */ true);
             }
         } finally {
             GL11.glDepthFunc(GL11.GL_LEQUAL);
@@ -67,22 +68,22 @@ public class InWorldAnnotationRenderer {
         }
     }
 
-    public static void drawAll(Iterable<InWorldAnnotation> annotations, LightDarkMode mode, boolean occluded,
+    public static void drawAll(Iterable<InWorldAnnotation> annotations, boolean occluded,
         boolean pass2) {
         for (var a : annotations) {
             if (a.isAlwaysOnTop() != pass2) continue;
             if (occluded && a.isAlwaysOnTop()) continue;
             if (a instanceof InWorldBoxAnnotation box) {
-                int color = resolve(box.color(), mode, a.isHovered(), occluded);
+                int color = resolve(box.color(), a.isHovered(), occluded);
                 drawBoxEdges(box.min(), box.max(), color, box.thickness());
             } else if (a instanceof InWorldBoxFaceOverlayAnnotation overlay) {
                 if (!occluded) {
-                    int color = resolve(overlay.color(), mode, a.isHovered(), false);
+                    int color = resolve(overlay.color(), a.isHovered(), false);
                     drawBoxFaceOverlay(overlay, color);
                 }
             } else if (a instanceof InWorldLineAnnotation line) {
-                int color = resolve(line.color(), mode, a.isHovered(), occluded);
-                drawLineAnnotation(line, mode, color, occluded);
+                int color = resolve(line.color(), a.isHovered(), occluded);
+                drawLineAnnotation(line, color, occluded);
             } else if (a instanceof SceneFloorGridAnnotation grid) {
                 if (!occluded) {
                     drawFloorGrid(grid);
@@ -91,7 +92,7 @@ public class InWorldAnnotationRenderer {
         }
     }
 
-    private static void drawLineAnnotation(InWorldLineAnnotation line, LightDarkMode mode, int color,
+    private static void drawLineAnnotation(InWorldLineAnnotation line, int color,
         boolean occluded) {
         var points = line.points();
         for (int i = 0; i + 1 < points.size(); i++) {
@@ -110,10 +111,10 @@ public class InWorldAnnotationRenderer {
         } else if (line.arrow() == InWorldLineAnnotation.Arrow.END) {
             drawArrowHead(points.getLast(), points.get(points.size() - 2), color, line.thickness());
         }
-        drawLinePoints(line, mode, occluded);
+        drawLinePoints(line, occluded);
     }
 
-    private static void drawLinePoints(InWorldLineAnnotation line, LightDarkMode mode, boolean occluded) {
+    private static void drawLinePoints(InWorldLineAnnotation line, boolean occluded) {
         var points = line.points();
         for (int i = 0; i < points.size(); i++) {
             InWorldLineAnnotation.PointStyle style = line.pointStyleFor(i);
@@ -123,13 +124,13 @@ public class InWorldAnnotationRenderer {
             }
             ColorValue colorValue = style != null && style.color() != null ? style.color() : line.pointColor();
             float size = style != null && style.size() != null ? style.size() : line.pointSize();
-            int color = resolve(colorValue, mode, line.isHovered(), occluded);
+            int color = resolve(colorValue, line.isHovered(), occluded);
             drawPointCube(points.get(i), color, size);
         }
     }
 
-    public static int resolve(ColorValue cv, LightDarkMode mode, boolean hovered, boolean occluded) {
-        int argb = cv.resolve(mode);
+    public static int resolve(ColorValue cv, boolean hovered, boolean occluded) {
+        int argb = cv.resolve();
         if (hovered) argb = lighter(argb, 50);
         if (occluded) {
             argb = darker(argb, 50);
@@ -574,7 +575,7 @@ public class InWorldAnnotationRenderer {
         int z0 = grid.getMinZ();
         int x1 = grid.getMaxX();
         int z1 = grid.getMaxZ();
-        int color = 0x55FFFFFF;
+        int color = ColorUtils.ARGB_55FFFFFF.getColor();
         applyColor(color);
         GL11.glBegin(GL11.GL_QUADS);
         for (int ix = x0; ix <= x1; ix++) {
@@ -636,7 +637,7 @@ public class InWorldAnnotationRenderer {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
         // X-axis numbers: vertical signs standing at the north (-Z) edge, one per column.
         // Sign faces outward toward -Z, so rotateY = 0.
@@ -685,7 +686,7 @@ public class InWorldAnnotationRenderer {
         GL11.glScalef(-scale, -scale, scale);
         // Center the label horizontally within the cell.
         GL11.glTranslatef(-textWidthPx / 2f, 0f, 0f);
-        fr.drawStringWithShadow(text, 0, 0, 0xFFFFFF);
+        fr.drawStringWithShadow(text, 0, 0, ColorUtils.RGB_WHITE.getColor());
         GL11.glPopMatrix();
     }
 
@@ -706,12 +707,12 @@ public class InWorldAnnotationRenderer {
         GL11.glRotatef(90f, 1f, 0f, 0f);
         GL11.glScalef(-scale, -scale, scale);
         GL11.glTranslatef(-labelW / 2f, 0f, 0f);
-        fr.drawStringWithShadow(text, 0, 0, 0x66FFFFFF);
+        fr.drawStringWithShadow(text, 0, 0, ColorUtils.ARGB_66FFFFFF.getColor());
         // Ponder-style fade: bar then dot below the initial.
         int barX = labelW / 2 - fr.getStringWidth("|") / 2;
         int dotX = labelW / 2 - fr.getStringWidth(".") / 2;
-        fr.drawStringWithShadow("|", barX, fr.FONT_HEIGHT - 1, 0x44FFFFFF);
-        fr.drawStringWithShadow(".", dotX, fr.FONT_HEIGHT * 2 - 2, 0x22FFFFFF);
+        fr.drawStringWithShadow("|", barX, fr.FONT_HEIGHT - 1, ColorUtils.ARGB_44FFFFFF.getColor());
+        fr.drawStringWithShadow(".", dotX, fr.FONT_HEIGHT * 2 - 2, ColorUtils.ARGB_22FFFFFF.getColor());
         GL11.glPopMatrix();
     }
 }

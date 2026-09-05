@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.client;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -176,11 +178,11 @@ public class RegionWandRenderer {
 
         GL11.glLineWidth(3f);
         GL11.glBegin(GL11.GL_LINES);
-        GL11.glColor4f(1f, 0.2f, 0.2f, 0.95f);
+        ColorUtils.applyGlColor(ColorUtils.REGION_X_AXIS.getColor());
         line(cx - radius, cy, cz, cx + radius, cy, cz);
-        GL11.glColor4f(0.25f, 1f, 0.25f, 0.95f);
+        ColorUtils.applyGlColor(ColorUtils.REGION_Y_AXIS.getColor());
         line(cx, cy - radius, cz, cx, cy + radius, cz);
-        GL11.glColor4f(0.25f, 0.45f, 1f, 0.95f);
+        ColorUtils.applyGlColor(ColorUtils.REGION_Z_AXIS.getColor());
         line(cx, cy, cz - radius, cx, cy, cz + radius);
         GL11.glEnd();
         GL11.glLineWidth(2f);

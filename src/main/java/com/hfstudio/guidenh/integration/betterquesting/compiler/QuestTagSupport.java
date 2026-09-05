@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.integration.betterquesting.compiler;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.UUID;
 
 import net.minecraft.client.Minecraft;
@@ -8,7 +10,7 @@ import net.minecraft.client.gui.GuiScreen;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
@@ -84,7 +86,7 @@ public class QuestTagSupport {
 
     private static void applyQuestLinkStyle(LytFlowLink link, QuestDisplay display, String text, boolean showTooltip) {
         if (display.getState() == QuestState.COMPLETED) {
-            link.modifyStyle(style -> style.color(SymbolicColor.GREEN));
+            link.modifyStyle(style -> style.color(ColorUtils.MC_GREEN));
         }
         link.appendText(text);
         if (showTooltip) {

@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -52,7 +54,7 @@ public class LytListItem extends LytVBox {
             var bounds = getBounds();
             var markerLine = getMarkerLineBounds(context);
             int bulletY = markerLine.y() + (markerLine.height() - BULLET_SIZE) / 2;
-            context.fillRect(bounds.x() + BULLET_X_OFFSET, bulletY, BULLET_SIZE, BULLET_SIZE, SymbolicColor.BODY_TEXT);
+            context.fillRect(bounds.x() + BULLET_X_OFFSET, bulletY, BULLET_SIZE, BULLET_SIZE, ColorUtils.BODY_TEXT);
         }
         super.render(context);
     }

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,7 +80,7 @@ public class ChartLegendRenderer {
                 contentBottom);
         }
 
-        ResolvedTextStyle textStyle = LytChartBase.textStyle(0xFFCCCCCC);
+        ResolvedTextStyle textStyle = LytChartBase.textStyle(ColorUtils.ARGB_FFCCCCCC.getColor());
         int lineHeight = context.getLineHeight(textStyle);
         int swatch = LytChartBase.LEGEND_SWATCH_SIZE;
         int gap = LytChartBase.LEGEND_GAP;
@@ -144,7 +146,7 @@ public class ChartLegendRenderer {
         if (layout.position == ChartLegendPosition.NONE || layout.entries.isEmpty()) {
             return;
         }
-        ResolvedTextStyle textStyle = LytChartBase.textStyle(0xFFCCCCCC);
+        ResolvedTextStyle textStyle = LytChartBase.textStyle(ColorUtils.ARGB_FFCCCCCC.getColor());
         int lineHeight = context.getLineHeight(textStyle);
         int swatch = LytChartBase.LEGEND_SWATCH_SIZE;
         LytRect rect = layout.legendRect;
@@ -208,7 +210,7 @@ public class ChartLegendRenderer {
         if (position != ChartLegendPosition.TOP && position != ChartLegendPosition.BOTTOM) {
             return 0;
         }
-        ResolvedTextStyle textStyle = LytChartBase.textStyle(0xFFCCCCCC);
+        ResolvedTextStyle textStyle = LytChartBase.textStyle(ColorUtils.ARGB_FFCCCCCC.getColor());
         return measureHorizontalLegendHeight(
             entries,
             position,

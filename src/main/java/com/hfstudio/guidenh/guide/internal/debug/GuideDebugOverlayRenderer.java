@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.debug;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
@@ -50,7 +52,7 @@ public class GuideDebugOverlayRenderer {
             minecraft.entityRenderer.setupOverlayRendering();
             GL11.glDisable(GL11.GL_LIGHTING);
             GL11.glDisable(GL11.GL_DEPTH_TEST);
-            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
             accessor.setScaledResolution(scaledResolution);
             accessor.setFontRenderer(minecraft.fontRenderer);

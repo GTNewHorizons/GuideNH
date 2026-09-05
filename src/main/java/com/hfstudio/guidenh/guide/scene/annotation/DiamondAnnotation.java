@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
@@ -36,7 +38,7 @@ public class DiamondAnnotation extends OverlayAnnotation {
     public DiamondAnnotation(Vector3f pos, ColorValue color) {
         this.pos = pos;
         this.color = color;
-        this.outerColor = new ConstantColor(0xFFCCCCCC);
+        this.outerColor = new ConstantColor(ColorUtils.ARGB_FFCCCCCC.getColor());
         this.alwaysOnTop = false;
     }
 
@@ -59,8 +61,8 @@ public class DiamondAnnotation extends OverlayAnnotation {
         }
         LytRect drawRect = new LytRect(rect.x() - docOx, rect.y() - docOy + scroll, rect.width(), rect.height());
 
-        int outerArgb = outerColor.resolve(context.lightDarkMode());
-        int innerArgb = color.resolve(context.lightDarkMode());
+        int outerArgb = outerColor.resolve();
+        int innerArgb = color.resolve();
         if (isHovered()) {
             outerArgb = lighten(outerArgb, 20);
             innerArgb = lighten(innerArgb, 20);
@@ -81,10 +83,10 @@ public class DiamondAnnotation extends OverlayAnnotation {
         drawTintedQuad(drawRect, innerArgb, 0.5f, 0f, 1f, 1f);
 
         if (isHovered()) {
-            drawTintedQuad(drawRect, 0x4CFFFFFF, 0f, 0f, 0.5f, 1f);
+            drawTintedQuad(drawRect, ColorUtils.ARGB_4CFFFFFF.getColor(), 0f, 0f, 0.5f, 1f);
         }
 
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
     }
 
     public static void drawTintedQuad(LytRect rect, int argb, float u0, float v0, float u1, float v1) {

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.layout.flow;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.text.BreakIterator;
 import java.text.CharacterIterator;
 import java.util.Arrays;
@@ -34,7 +36,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     private static final ThreadLocal<BreakIterator> LINE_BREAK_ITERATOR = ThreadLocal
         .withInitial(BreakIterator::getLineInstance);
-    private static final ConstantColor SPOILER_MASK_COLOR = new ConstantColor(0xFF000000);
+    private static final ConstantColor SPOILER_MASK_COLOR = new ConstantColor(ColorUtils.BLACK.getColor());
 
     private final LayoutContext context;
     private final List<Line> lines;

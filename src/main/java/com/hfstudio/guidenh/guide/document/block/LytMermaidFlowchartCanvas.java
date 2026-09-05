@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,14 +45,14 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     private static final int ICON_GAP_Y = 4;
     private static final int BADGE_PADDING_X = 4;
     private static final int BADGE_PADDING_Y = 2;
-    private static final ConstantColor NODE_TEXT = new ConstantColor(0xFFD7DEE7);
-    private static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(0xFFF1F6FB);
-    private static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(0xFFB8C2CF);
-    private static final ConstantColor EDGE_COLOR = new ConstantColor(0xFF5D6C7C);
-    private static final ConstantColor[] SUBGRAPH_BG = { new ConstantColor(0x301E2A45), new ConstantColor(0x302A1E45),
-        new ConstantColor(0x301E2A2A), new ConstantColor(0x302A2A1E), };
-    private static final ConstantColor[] SUBGRAPH_BORDER = { new ConstantColor(0x99434C57),
-        new ConstantColor(0x994C5743), new ConstantColor(0x99575743), new ConstantColor(0x9943574C), };
+    private static final ConstantColor NODE_TEXT = new ConstantColor(ColorUtils.ARGB_FFD7DEE7.getColor());
+    private static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(ColorUtils.ARGB_FFF1F6FB.getColor());
+    private static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(ColorUtils.CHART_LABEL.getColor());
+    private static final ConstantColor EDGE_COLOR = new ConstantColor(ColorUtils.ARGB_FF5D6C7C.getColor());
+    private static final ConstantColor[] SUBGRAPH_BG = { new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_PURPLE.getColor()), new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_VIOLET.getColor()),
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_DARK.getColor()), new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_GOLD.getColor()), };
+    private static final ConstantColor[] SUBGRAPH_BORDER = { new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_BLUE.getColor()),
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_GREEN.getColor()), new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_OLIVE.getColor()), new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_TEAL.getColor()), };
     private static final int SUBGRAPH_PADDING = 8;
     private static final int SUBGRAPH_LABEL_HEIGHT = 14;
 
@@ -656,7 +658,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         int textWidth = context.getStringWidth(label, labelStyle);
         int textHeight = context.getLineHeight(labelStyle);
         int pad = Math.max(1, Math.round(2 * activeZoom));
-        int bgColor = context.resolveColor(new ConstantColor(0xCC0C1117));
+        int bgColor = context.resolveColor(new ConstantColor(ColorUtils.ARGB_CC0C1117.getColor()));
         LytRect bg = new LytRect(
             screenX - textWidth / 2 - pad,
             screenY - textHeight / 2 - pad,
@@ -950,7 +952,7 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 h = "" + h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
             }
             if (h.length() == 6) {
-                return 0xFF000000 | Integer.parseInt(h, 16);
+                return ColorUtils.BLACK.getColor() | Integer.parseInt(h, 16);
             } else if (h.length() == 8) {
                 return (int) Long.parseLong(h, 16);
             }

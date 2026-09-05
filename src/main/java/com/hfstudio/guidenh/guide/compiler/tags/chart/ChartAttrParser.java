@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartAxisOptions;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
@@ -18,16 +19,12 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 public class ChartAttrParser {
 
     /** Default 16-color cyclic palette (opaque). */
-    public static final int[] DEFAULT_PALETTE = new int[] { 0xFF4E79A7, 0xFFF28E2B, 0xFFE15759, 0xFF76B7B2, 0xFF59A14F,
-        0xFFEDC948, 0xFFB07AA1, 0xFFFF9DA7, 0xFF9C755F, 0xFFBAB0AC, 0xFF1F77B4, 0xFFFF7F0E, 0xFF2CA02C, 0xFFD62728,
-        0xFF9467BD, 0xFF8C564B };
-
     protected ChartAttrParser() {}
 
     public static int paletteColor(int index) {
-        int n = DEFAULT_PALETTE.length;
+        int n = ColorUtils.CHART_PALETTE.length;
         int i = ((index % n) + n) % n;
-        return DEFAULT_PALETTE[i];
+        return ColorUtils.getColor(ColorUtils.CHART_PALETTE[i]);
     }
 
     /**
@@ -169,10 +166,10 @@ public class ChartAttrParser {
                     int r = Integer.parseInt(t.substring(0, 1), 16) * 17;
                     int g = Integer.parseInt(t.substring(1, 2), 16) * 17;
                     int b = Integer.parseInt(t.substring(2, 3), 16) * 17;
-                    return 0xFF000000 | (r << 16) | (g << 8) | b;
+                    return ColorUtils.BLACK.getColor() | (r << 16) | (g << 8) | b;
                 }
                 case 6:
-                    return 0xFF000000 | Integer.parseInt(t, 16);
+                    return ColorUtils.BLACK.getColor() | Integer.parseInt(t, 16);
                 case 8:
                     return (int) Long.parseLong(t, 16);
                 default:

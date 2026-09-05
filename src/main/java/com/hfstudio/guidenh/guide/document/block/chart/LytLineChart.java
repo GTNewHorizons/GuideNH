@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -167,7 +169,7 @@ public class LytLineChart extends LytChartBase {
                     float r = hovered ? POINT_RADIUS + 2f : POINT_RADIUS;
                     context.fillCircle(x, y, r, s.getColor());
                     if (hovered) {
-                        context.drawCircleOutline(x, y, r, 1f, 0xFF000000);
+                        context.drawCircleOutline(x, y, r, 1f, ColorUtils.BLACK.getColor());
                     }
                 }
             }

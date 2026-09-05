@@ -1,12 +1,14 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.UUID;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.StatCollector;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowLink;
@@ -55,7 +57,7 @@ public class QuestCardScript implements LytScript {
         QuestState state = display.getState();
 
         var box = new LytQuoteBox();
-        SymbolicColor accent = pickAccentColor(state);
+        ColorValue accent = pickAccentColor(state);
         box.setQuoteStyle(accent, null, null);
 
         var title = new LytParagraph();
@@ -110,17 +112,17 @@ public class QuestCardScript implements LytScript {
         return "[" + StatCollector.translateToLocal("guidenh.compat.bq.hidden") + "]";
     }
 
-    private static SymbolicColor pickAccentColor(QuestState state) {
-        if (state == QuestState.COMPLETED) return SymbolicColor.GREEN;
-        if (state == QuestState.LOCKED || state == QuestState.HIDDEN) return SymbolicColor.GRAY;
-        if (state == QuestState.MISSING) return SymbolicColor.RED;
-        return SymbolicColor.LINK;
+    private static ColorValue pickAccentColor(QuestState state) {
+        if (state == QuestState.COMPLETED) return ColorUtils.MC_GREEN;
+        if (state == QuestState.LOCKED || state == QuestState.HIDDEN) return ColorUtils.MC_GRAY;
+        if (state == QuestState.MISSING) return ColorUtils.MC_RED;
+        return ColorUtils.LINK;
     }
 
-    private static SymbolicColor pickPlaceholderColor(QuestState state) {
-        if (state == QuestState.HIDDEN) return SymbolicColor.DARK_GRAY;
-        if (state == QuestState.MISSING) return SymbolicColor.RED;
-        return SymbolicColor.GRAY;
+    private static ColorValue pickPlaceholderColor(QuestState state) {
+        if (state == QuestState.HIDDEN) return ColorUtils.MC_DARK_GRAY;
+        if (state == QuestState.MISSING) return ColorUtils.MC_RED;
+        return ColorUtils.MC_GRAY;
     }
 
     private static boolean isVisibleToPlayer(QuestState state) {

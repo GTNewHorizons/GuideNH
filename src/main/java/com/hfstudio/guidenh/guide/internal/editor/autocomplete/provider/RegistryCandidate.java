@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.RenderHelper;
@@ -20,8 +22,8 @@ public class RegistryCandidate implements AutocompleteCandidate {
     private final ItemStack icon;
     private static final int ICON_SIZE = 16;
     private static final int TEXT_X = ICON_SIZE + 2;
-    private static final int TEXT_COLOR = 0xFFF0F0F0;
-    private static final int SUBTITLE_COLOR = 0xFFA0A0A0;
+    private static final int TEXT_COLOR = ColorUtils.TEXT.getColor();
+    private static final int SUBTITLE_COLOR = ColorUtils.ARGB_FFA0A0A0.getColor();
     private static final RenderItem renderItem = new RenderItem();
 
     public RegistryCandidate(String key) {

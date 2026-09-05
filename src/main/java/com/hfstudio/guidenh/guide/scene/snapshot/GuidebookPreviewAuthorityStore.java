@@ -6,6 +6,7 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongIterator;
 
 /**
  * Per-coordinate opaque supplement bytes keyed by {@link #supplementId()}, for server-authoritative preview data.
@@ -95,7 +96,9 @@ public class GuidebookPreviewAuthorityStore {
             return Map.of();
         }
         HashMap<Long, Map<String, byte[]>> snapshot = new HashMap<>();
-        for (Long packedPos : byPos.keySet()) {
+        for (LongIterator iterator = byPos.keySet()
+            .iterator(); iterator.hasNext();) {
+            long packedPos = iterator.nextLong();
             snapshot.put(packedPos, snapshotAt(packedPos));
         }
         return snapshot.isEmpty() ? Map.of() : snapshot;

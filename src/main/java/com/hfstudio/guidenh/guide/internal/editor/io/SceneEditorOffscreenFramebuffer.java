@@ -10,7 +10,6 @@ import net.minecraft.client.shader.Framebuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
@@ -56,7 +55,6 @@ public class SceneEditorOffscreenFramebuffer implements AutoCloseable {
             scene.layout(new LayoutContext(new MinecraftFontMetrics()), 0, 0, width);
 
             VanillaRenderContext renderContext = new VanillaRenderContext(
-                LightDarkMode.LIGHT_MODE,
                 new LytRect(0, 0, width, height),
                 height);
             renderContext.setDocumentOrigin(0, 0);
@@ -108,7 +106,6 @@ public class SceneEditorOffscreenFramebuffer implements AutoCloseable {
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
             VanillaRenderContext renderContext = new VanillaRenderContext(
-                LightDarkMode.LIGHT_MODE,
                 new LytRect(0, 0, width, height),
                 height);
             renderContext.setDocumentOrigin(-offsetX, -offsetY);

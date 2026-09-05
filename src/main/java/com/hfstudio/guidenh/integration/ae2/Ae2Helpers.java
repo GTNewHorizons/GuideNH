@@ -59,7 +59,7 @@ import io.netty.buffer.Unpooled;
 /**
  * AE2 guide preview: applies server-authoritative AE2 preview bytes from {@link GuidebookLevel#previewAuthorityStore()}
  * ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID} cable bus; {@link Ae2BaseTileNetworkStreamPreview#SUPPLEMENT_ID}
- * other {@link AEBaseTile}), merged with locally inferred cable facings for the current preview layout.
+ * other {@link AEBaseTile}). Cable connection state comes from the exported stream whenever one is available.
  */
 public class Ae2Helpers {
 
@@ -172,7 +172,7 @@ public class Ae2Helpers {
         }
         for (TileEntity te : level.getTileEntities()) {
             CableBusContainer container = resolveCableContainer(te);
-            if (container != null) {
+            if (container != null && !hasCableAuthoritySnapshot(container, level)) {
                 container.updateConnections();
             }
         }
@@ -264,14 +264,16 @@ public class Ae2Helpers {
         Ae2CablePreviewSnapshot snap = raw != null ? Ae2CablePreviewWireCodec.decode(raw)
             : Ae2CablePreviewSnapshot.EMPTY;
 
-        int csDirections = computeCableConnectionMask(container, level);
         int csOut;
         int sideOut;
         if (snap.hasCableCore()) {
-            csOut = (snap.gridCsUnsigned() & ~CS_DIRECTION_MASK) | (csDirections & CS_DIRECTION_MASK);
+            // The exported cable stream is authoritative. A selected single cable may no longer
+            // have its original neighbours in the preview level, so recomputing these bits would
+            // erase valid connections that were present when the structure was captured.
+            csOut = snap.gridCsUnsigned();
             sideOut = snap.sideOut();
         } else {
-            csOut = csDirections;
+            csOut = computeCableConnectionMask(container, level);
             sideOut = 0;
         }
 
@@ -336,6 +338,16 @@ public class Ae2Helpers {
                 tile.validate();
             }
         }
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static boolean hasCableAuthoritySnapshot(CableBusContainer container, GuidebookLevel level) {
+        TileEntity tile = container.getTile();
+        long posKey = GuidebookLevel.packPos(tile.xCoord, tile.yCoord, tile.zCoord);
+        byte[] raw = level.previewAuthorityStore()
+            .get(posKey, Ae2ServerPreviewRegistration.SUPPLEMENT_ID);
+        return raw != null && Ae2CablePreviewWireCodec.decode(raw)
+            .hasCableCore();
     }
 
     @Optional.Method(modid = "appliedenergistics2")

@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.latex.GuideLatexRenderer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -15,7 +16,7 @@ import lombok.Getter;
 
 /**
  * Inline-flow LaTeX block. When placed inside a
- * {@link com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock}, it renders a LaTeX formula at a
+ * {@link LytFlowInlineBlock}, it renders a LaTeX formula at a
  * size proportional to the surrounding text, automatically expanding the line height when the formula is
  * taller than a single character (e.g. fractions).
  *

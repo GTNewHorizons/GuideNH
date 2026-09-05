@@ -1,6 +1,6 @@
 package com.hfstudio.guidenh.guide.color;
 
-import java.util.Locale;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -27,16 +27,17 @@ public interface SymbolicColorResolver extends Extension {
     ColorValue resolve(ResourceLocation id);
 
     /**
-     * Helper to resolve a symbolic color from both the pre-defined colors in {@link SymbolicColor}, as well as
+     * Helper to resolve a symbolic color from the pre-defined colors in {@link ColorUtils}, as well as
      * user-supplied symbolic color resolvers.
      *
      * @return null when the color cannot be resolved.
      */
     @Nullable
     static ColorValue resolve(PageCompiler compiler, String id) {
-        try {
-            return SymbolicColor.valueOf(id.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {}
+        ColorValue builtIn = ColorUtils.symbolic(id);
+        if (builtIn != null) {
+            return builtIn;
+        }
 
         // See if it's an identifier
         ResourceLocation identifier;

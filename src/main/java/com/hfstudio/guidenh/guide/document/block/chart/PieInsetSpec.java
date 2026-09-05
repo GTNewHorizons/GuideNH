@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -35,7 +37,7 @@ public class PieInsetSpec {
     private boolean clockwise = true;
     private String title = "";
     @Setter
-    private int titleColor = 0xFFE0E0E0;
+    private int titleColor = ColorUtils.CHART_TITLE.getColor();
 
     public void setSlices(List<PieSlice> newSlices) {
         slices.clear();

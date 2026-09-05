@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -24,7 +26,6 @@ import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 
 import com.google.flatbuffers.FlatBufferBuilder;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorOffscreenFramebuffer;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
@@ -117,8 +118,8 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
         int renderHeight = logicalHeight * PLACEHOLDER_SCALE;
 
         try {
-            scene.setSceneBackgroundColor(0x00000000);
-            scene.setSceneBorderColor(0x00000000);
+            scene.setSceneBackgroundColor(ColorUtils.TRANSPARENT.getColor());
+            scene.setSceneBorderColor(ColorUtils.TRANSPARENT.getColor());
             scene.setSceneButtonsVisible(false);
             scene.setBottomControlsVisible(false);
             scene.setReserveBottomControlArea(false);
@@ -216,7 +217,6 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
                     height,
                     0.0f,
                     List.of(),
-                    LightDarkMode.LIGHT_MODE,
                     layerSelection,
                     scene.getRenderableParticlesForExport(),
                     scene.getRenderableWeatherEffectsForExport(),

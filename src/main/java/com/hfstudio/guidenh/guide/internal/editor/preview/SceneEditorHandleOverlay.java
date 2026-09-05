@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import net.minecraft.client.gui.Gui;
 
 import org.jetbrains.annotations.Nullable;
@@ -45,14 +47,14 @@ public class SceneEditorHandleOverlay {
     public static final float PLANE_LINE_WIDTH = 2.25f;
     public static final float ARROW_LENGTH = 8f;
     public static final float ARROW_HALF_WIDTH = 4f;
-    public static final int CENTER_HANDLE_FILL = 0x8A00CAF2;
-    public static final int CENTER_HANDLE_OUTLINE = 0xFFF4FBFF;
-    public static final int X_AXIS_COLOR = 0xFFFF5A5A;
-    public static final int Y_AXIS_COLOR = 0xFF67E26C;
-    public static final int Z_AXIS_COLOR = 0xFF64A8FF;
-    public static final int XY_PLANE_COLOR = 0xD8FFD45A;
-    public static final int YZ_PLANE_COLOR = 0xD85AE9FF;
-    public static final int ZX_PLANE_COLOR = 0xD8F16BFF;
+    public static final int CENTER_HANDLE_FILL = ColorUtils.ARGB_8A00CAF2.getColor();
+    public static final int CENTER_HANDLE_OUTLINE = ColorUtils.ARGB_FFF4FBFF.getColor();
+    public static final int X_AXIS_COLOR = ColorUtils.X_AXIS.getColor();
+    public static final int Y_AXIS_COLOR = ColorUtils.Y_AXIS.getColor();
+    public static final int Z_AXIS_COLOR = ColorUtils.Z_AXIS.getColor();
+    public static final int XY_PLANE_COLOR = ColorUtils.XY_PLANE.getColor();
+    public static final int YZ_PLANE_COLOR = ColorUtils.YZ_PLANE.getColor();
+    public static final int ZX_PLANE_COLOR = ColorUtils.ZX_PLANE.getColor();
     public static final String[] POINT_HANDLE_IDS = new String[] { CENTER_HANDLE_ID, XY_PLANE_HANDLE_ID,
         YZ_PLANE_HANDLE_ID, ZX_PLANE_HANDLE_ID, X_AXIS_HANDLE_ID, Y_AXIS_HANDLE_ID, Z_AXIS_HANDLE_ID };
     public static final String[] LINE_HANDLE_IDS = new String[] { LINE_FROM_HANDLE_ID, LINE_TO_HANDLE_ID };
@@ -467,7 +469,7 @@ public class SceneEditorHandleOverlay {
             GL11.glEnd();
         } finally {
             GL11.glPopAttrib();
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 
@@ -496,7 +498,7 @@ public class SceneEditorHandleOverlay {
             GL11.glEnd();
         } finally {
             GL11.glPopAttrib();
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 

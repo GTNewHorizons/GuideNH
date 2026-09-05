@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,9 +37,9 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
     private static final int NODE_GAP_Y = 14;
     private static final int ICON_GAP_Y = 4;
     private static final int CONNECTOR_THICKNESS = 1;
-    static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(0xFFF1F6FB);
-    static final ConstantColor NODE_TEXT_COLOR = new ConstantColor(0xFFD7DEE7);
-    static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(0xFFB8C2CF);
+    static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(ColorUtils.ARGB_FFF1F6FB.getColor());
+    static final ConstantColor NODE_TEXT_COLOR = new ConstantColor(ColorUtils.ARGB_FFD7DEE7.getColor());
+    static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(ColorUtils.CHART_LABEL.getColor());
 
     private static final ResolvedTextStyle ROOT_TEXT_STYLE = new ResolvedTextStyle(
         1f,
@@ -453,7 +455,7 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
                     scaled(baseY, node.bottom(), activeZoom),
                     scaled(baseX, child.centerX(), activeZoom),
                     scaled(baseY, child.y, activeZoom),
-                    0xFF5D6C7C);
+                    ColorUtils.ARGB_FF5D6C7C.getColor());
             } else {
                 boolean rightSide = child.centerX() >= node.centerX();
                 int parentEdgeX = scaled(baseX, rightSide ? node.right() : node.x, activeZoom);
@@ -464,7 +466,7 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
                     scaled(baseY, node.centerY(), activeZoom),
                     childEdgeX,
                     scaled(baseY, child.centerY(), activeZoom),
-                    0xFF5D6C7C);
+                    ColorUtils.ARGB_FF5D6C7C.getColor());
             }
             renderConnectors(context, child, baseX, baseY);
         }
@@ -498,8 +500,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
                 textY,
                 badgeWidth,
                 Math.max(1, context.getLineHeight(badgeStyle) + badgePaddingY * 2));
-            context.fillRect(badge, 0x262A3340);
-            context.drawBorder(badge, 0x66434C57, 1);
+            context.fillRect(badge, ColorUtils.ARGB_262A3340.getColor());
+            context.drawBorder(badge, ColorUtils.ARGB_66434C57.getColor(), 1);
             context.drawText(node.badgeText, badge.x() + badgePaddingX, badge.y() + badgePaddingY, badgeStyle);
             textY = badge.bottom() + iconGapY;
         }
@@ -642,38 +644,38 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
     }
 
     private NodeColors resolveColors(MindmapNode node) {
-        int accent = 0xFF7AA2F7;
+        int accent = ColorUtils.ARGB_FF7AA2F7.getColor();
         for (String className : node.getClasses()) {
             String lower = className.toLowerCase();
             if (lower.contains("danger") || lower.contains("error")
                 || lower.contains("urgent")
                 || lower.contains("red")) {
-                accent = 0xFFF7768E;
+                accent = ColorUtils.ARGB_FFF7768E.getColor();
                 break;
             }
             if (lower.contains("success") || lower.contains("green") || lower.contains("done")) {
-                accent = 0xFF9ECE6A;
+                accent = ColorUtils.ARGB_FF9ECE6A.getColor();
                 break;
             }
             if (lower.contains("warn") || lower.contains("yellow") || lower.contains("amber")) {
-                accent = 0xFFE0AF68;
+                accent = ColorUtils.ARGB_FFE0AF68.getColor();
                 break;
             }
             if (lower.contains("muted") || lower.contains("gray") || lower.contains("grey")) {
-                accent = 0xFF8B949E;
+                accent = ColorUtils.ARGB_FF8B949E.getColor();
             }
         }
 
         accent = switch (node.getShape()) {
-            case CIRCLE -> 0xFF7DCFFF;
-            case HEXAGON -> 0xFFE0AF68;
-            case CLOUD -> 0xFF73DACA;
-            case BANG -> 0xFFF7768E;
+            case CIRCLE -> ColorUtils.ARGB_FF7DCFFF.getColor();
+            case HEXAGON -> ColorUtils.ARGB_FFE0AF68.getColor();
+            case CLOUD -> ColorUtils.ARGB_FF73DACA.getColor();
+            case BANG -> ColorUtils.ARGB_FFF7768E.getColor();
             default -> accent;
         };
 
         int border = accent;
-        int background = node == mindmap.getRoot() ? 0xFF1F2A38 : 0xFF111922;
+        int background = node == mindmap.getRoot() ? ColorUtils.ARGB_FF1F2A38.getColor() : ColorUtils.ARGB_FF111922.getColor();
         return new NodeColors(background, border, accent);
     }
 

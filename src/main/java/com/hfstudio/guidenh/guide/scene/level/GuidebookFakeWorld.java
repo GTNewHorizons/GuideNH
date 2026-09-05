@@ -1,9 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -33,6 +31,8 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 
 /**
  * Lightweight client-only world wrapper backed by a {@link GuidebookLevel}.
@@ -47,7 +47,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     /** Stable read-only chunk views; renderer/CTM asks for the same coordinates repeatedly. */
     private final Long2ObjectOpenHashMap<GuidebookFakeChunk> chunkViews = new Long2ObjectOpenHashMap<>();
     @Nullable
-    private Set<Long> markBlockForUpdateGuard;
+    private LongSet markBlockForUpdateGuard;
 
     public GuidebookFakeWorld(GuidebookLevel level) {
         super(
@@ -251,7 +251,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
             return;
         }
         long guardKey = packBlockPos(x, y, z);
-        Set<Long> inProgress = getOrCreateMarkBlockForUpdateGuard();
+        LongSet inProgress = getOrCreateMarkBlockForUpdateGuard();
         if (!inProgress.add(guardKey)) {
             return;
         }
@@ -403,9 +403,9 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
             .suppressMarkBlockForUpdateDescriptionResync(te, level);
     }
 
-    private Set<Long> getOrCreateMarkBlockForUpdateGuard() {
+    private LongSet getOrCreateMarkBlockForUpdateGuard() {
         if (markBlockForUpdateGuard == null) {
-            markBlockForUpdateGuard = new HashSet<>();
+            markBlockForUpdateGuard = new LongOpenHashSet();
         }
         return markBlockForUpdateGuard;
     }

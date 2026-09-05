@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
@@ -7,11 +9,11 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
 public enum GithubAlertType {
 
-    NOTE(GuidebookText.MarkdownAlertNote, "ⓘ", new ConstantColor(0xFF638EF1)),
-    TIP(GuidebookText.MarkdownAlertTip, "✦", new ConstantColor(0xFF61B75D)),
-    IMPORTANT(GuidebookText.MarkdownAlertImportant, "➤", new ConstantColor(0xFF8755DD)),
-    WARNING(GuidebookText.MarkdownAlertWarning, "⚠", new ConstantColor(0xFFC79D3E)),
-    CAUTION(GuidebookText.MarkdownAlertCaution, "☢", new ConstantColor(0xFFE46150));
+    NOTE(GuidebookText.MarkdownAlertNote, "ⓘ", new ConstantColor(ColorUtils.ARGB_FF638EF1.getColor())),
+    TIP(GuidebookText.MarkdownAlertTip, "✦", new ConstantColor(ColorUtils.ARGB_FF61B75D.getColor())),
+    IMPORTANT(GuidebookText.MarkdownAlertImportant, "➤", new ConstantColor(ColorUtils.ARGB_FF8755DD.getColor())),
+    WARNING(GuidebookText.MarkdownAlertWarning, "⚠", new ConstantColor(ColorUtils.ARGB_FFC79D3E.getColor())),
+    CAUTION(GuidebookText.MarkdownAlertCaution, "☢", new ConstantColor(ColorUtils.ARGB_FFE46150.getColor()));
 
     private final GuidebookText label;
     private final String symbol;

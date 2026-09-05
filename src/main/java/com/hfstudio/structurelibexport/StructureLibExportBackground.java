@@ -1,5 +1,7 @@
 package com.hfstudio.structurelibexport;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.Locale;
 
 import net.minecraft.command.CommandException;
@@ -9,7 +11,7 @@ import lombok.Getter;
 @Getter
 public class StructureLibExportBackground {
 
-    public static final int DARK_ARGB = 0xFF121216;
+    public static final int DARK_ARGB = ColorUtils.ARGB_FF121216.getColor();
 
     private final int argb;
 
@@ -18,7 +20,7 @@ public class StructureLibExportBackground {
     }
 
     public static StructureLibExportBackground transparent() {
-        return new StructureLibExportBackground(0x00000000);
+        return new StructureLibExportBackground(ColorUtils.TRANSPARENT.getColor());
     }
 
     public static StructureLibExportBackground parse(String raw) throws CommandException {

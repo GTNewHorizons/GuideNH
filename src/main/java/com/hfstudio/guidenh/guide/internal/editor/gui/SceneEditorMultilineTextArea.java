@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
@@ -35,15 +37,15 @@ public class SceneEditorMultilineTextArea {
 
     public static final int PADDING = 4;
     public static final int SCROLLBAR_SIZE = 5;
-    public static final int BORDER_COLOR = 0xFF53565C;
-    public static final int FOCUSED_BORDER_COLOR = 0xFF7FC8FF;
-    public static final int ERROR_BORDER_COLOR = 0xFFFF6767;
-    public static final int BACKGROUND_COLOR = 0xA0121216;
-    public static final int SCROLLBAR_TRACK_COLOR = 0x35101010;
-    public static final int SCROLLBAR_THUMB_COLOR = 0xA0D8D8D8;
-    public static final int SELECTION_COLOR = 0x663D89C9;
-    public static final int EXTERNAL_HIGHLIGHT_COLOR = 0x4438BDF8;
-    public static final int SYNTAX_WARNING_COLOR = 0xFFFF6767;
+    public static final int BORDER_COLOR = ColorUtils.ARGB_FF53565C.getColor();
+    public static final int FOCUSED_BORDER_COLOR = ColorUtils.INPUT_FOCUSED_BORDER.getColor();
+    public static final int ERROR_BORDER_COLOR = ColorUtils.ERROR.getColor();
+    public static final int BACKGROUND_COLOR = ColorUtils.ARGB_A0121216.getColor();
+    public static final int SCROLLBAR_TRACK_COLOR = ColorUtils.SCROLLBAR_TRACK.getColor();
+    public static final int SCROLLBAR_THUMB_COLOR = ColorUtils.SCROLLBAR_THUMB.getColor();
+    public static final int SELECTION_COLOR = ColorUtils.ARGB_663D89C9.getColor();
+    public static final int EXTERNAL_HIGHLIGHT_COLOR = ColorUtils.ARGB_4438BDF8.getColor();
+    public static final int SYNTAX_WARNING_COLOR = ColorUtils.ERROR.getColor();
     public static final long IME_DUPLICATE_WINDOW_MILLIS = 250L;
 
     private final FontRenderer fontRenderer;
@@ -1064,7 +1066,7 @@ public class SceneEditorMultilineTextArea {
             if (drawY + lineHeight >= y && drawY < y + clipHeight) {
                 drawExternalHighlightForLine(line, drawY, renderedHorizontalOffset);
                 drawSelectionForLine(line, drawY, renderedHorizontalOffset);
-                fontRenderer.drawString(line.text(), x + PADDING - renderedHorizontalOffset, drawY, 0xF0F0F0);
+                fontRenderer.drawString(line.text(), x + PADDING - renderedHorizontalOffset, drawY, ColorUtils.ARGB_F0F0F0.getColor());
                 drawSyntaxWarningForLine(line, drawY, renderedHorizontalOffset);
             }
             drawY += lineHeight;
@@ -1076,7 +1078,7 @@ public class SceneEditorMultilineTextArea {
             int cursorPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), visualLine);
             int cursorX = x + PADDING + cursorPixel - renderedHorizontalOffset;
             int cursorY = y + PADDING + cursorLine * lineHeight - renderedVerticalOffset;
-            Gui.drawRect(cursorX, cursorY, cursorX + 1, cursorY + fontRenderer.FONT_HEIGHT + 1, 0xFFFFFFFF);
+            Gui.drawRect(cursorX, cursorY, cursorX + 1, cursorY + fontRenderer.FONT_HEIGHT + 1, ColorUtils.WHITE.getColor());
         }
 
         if (focused) {
@@ -1085,7 +1087,7 @@ public class SceneEditorMultilineTextArea {
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         drawVerticalScrollbar();
         drawHorizontalScrollbar();
     }

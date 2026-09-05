@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -45,20 +47,20 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     private int explicitHeight = -1;
     @Getter
     @Setter
-    private int backgroundColor = 0xFF1B1F23;
+    private int backgroundColor = ColorUtils.CHART_BACKGROUND.getColor();
     @Getter
     @Setter
-    private int borderColor = 0xFF3A4047;
+    private int borderColor = ColorUtils.CHART_BORDER.getColor();
     @Getter
     @Setter
-    private int titleColor = 0xFFE6E6E6;
+    private int titleColor = ColorUtils.ARGB_FFE6E6E6.getColor();
     @Getter
     private ChartLegendPosition legendPosition = ChartLegendPosition.TOP;
     @Getter
     private ChartLabelPosition labelPosition = ChartLabelPosition.NONE;
     @Getter
     @Setter
-    private int labelColor = 0xFFEEEEEE;
+    private int labelColor = ColorUtils.ARGB_FFEEEEEE.getColor();
     @Getter
     private CornerLegendPosition cornerLegendPosition = CornerLegendPosition.NONE;
     @Getter
@@ -143,7 +145,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         context.fillRect(bounds, backgroundColor);
         context.drawBorder(bounds, borderColor, 1);
 
-        ResolvedTextStyle textStyle = textStyle(0xFFFFFFFF);
+        ResolvedTextStyle textStyle = textStyle(ColorUtils.WHITE.getColor());
         int contentTop = bounds.y() + PADDING;
         int contentBottom = bounds.bottom() - PADDING;
         int contentLeft = bounds.x() + PADDING;

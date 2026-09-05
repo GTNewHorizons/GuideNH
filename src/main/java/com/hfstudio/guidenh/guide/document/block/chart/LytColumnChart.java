@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -178,7 +180,7 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
                         Math.max(1, (int) (yBot - yTop)));
                     context.fillRect(bar, s.getColor());
                     if (hovered) {
-                        context.drawBorder(bar, 0xFF000000, 1);
+                        context.drawBorder(bar, ColorUtils.BLACK.getColor(), 1);
                     }
                     drawValueLabel(context, valueStyle, v, bar, baselineY, topY);
                 }
@@ -212,7 +214,7 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
                     float r = ph ? LINE_POINT_RADIUS + 2f : LINE_POINT_RADIUS;
                     context.fillCircle(px[i], py[i], r, s.getColor());
                     if (ph) {
-                        context.drawCircleOutline(px[i], py[i], r, 1f, 0xFF000000);
+                        context.drawCircleOutline(px[i], py[i], r, 1f, ColorUtils.BLACK.getColor());
                     }
                 }
             }

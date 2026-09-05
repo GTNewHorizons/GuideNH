@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.search;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.List;
 
 import net.minecraft.util.ResourceLocation;
@@ -29,9 +31,9 @@ import com.hfstudio.guidenh.guide.style.TextAlignment;
 
 public class GuideSearchResultDocumentBuilder {
 
-    public static final ConstantColor SEARCH_TITLE_COLOR = new ConstantColor(0xFF00D2FC);
-    public static final ConstantColor SPECIAL_SEARCH_TITLE_COLOR = new ConstantColor(0xFFFFD254);
-    public static final ConstantColor RESULT_DIVIDER_COLOR = new ConstantColor(0xFF3A3A3A);
+    public static final ConstantColor SEARCH_TITLE_COLOR = new ConstantColor(ColorUtils.ARGB_FF00D2FC.getColor());
+    public static final ConstantColor SPECIAL_SEARCH_TITLE_COLOR = new ConstantColor(ColorUtils.ARGB_FFFFD254.getColor());
+    public static final ConstantColor RESULT_DIVIDER_COLOR = new ConstantColor(ColorUtils.ARGB_FF3A3A3A.getColor());
     public static final int RESULT_ICON_SIZE = 16;
     public static final int RESULT_ICON_MARGIN_TOP = 2;
     public static final int RESULT_ICON_GAP = 6;

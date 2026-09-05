@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -70,8 +72,8 @@ public class LytStructureView extends LytBlock {
     @Override
     public void render(RenderContext context) {
         var bounds = getBounds();
-        context.fillRect(bounds, 0xFF1E1E1E);
-        context.drawBorder(bounds, 0xFF555555, 1);
+        context.fillRect(bounds, ColorUtils.ARGB_FF1E1E1E.getColor());
+        context.drawBorder(bounds, ColorUtils.ARGB_FF555555.getColor(), 1);
 
         if (blocks.isEmpty()) {
             return;

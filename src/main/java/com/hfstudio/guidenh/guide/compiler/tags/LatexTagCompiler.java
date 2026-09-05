@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.compiler.tags;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.Collections;
 import java.util.Set;
 
@@ -180,7 +182,7 @@ public class LatexTagCompiler implements TagCompiler {
         }
         try {
             if (colorStr.length() == 6) {
-                return 0xFF000000 | Integer.parseUnsignedInt(colorStr, 16);
+                return ColorUtils.BLACK.getColor() | Integer.parseUnsignedInt(colorStr, 16);
             }
             if (colorStr.length() == 8) {
                 return (int) Long.parseLong(colorStr, 16);

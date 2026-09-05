@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -7,7 +9,7 @@ import java.util.stream.Stream;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -180,7 +182,7 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
     public static final TextStyle LOADING_STYLE = TextStyle.builder()
         .italic(true)
         .obfuscated(true)
-        .color(new ConstantColor(0xFF808080))
+        .color(new ConstantColor(ColorUtils.ARGB_FF808080.getColor()))
         .build();
 
     /**
@@ -197,12 +199,12 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
     /** Warm amber-yellow italic text for placeholder blocks awaiting async materialization. */
     public static final TextStyle PLACEHOLDER_STYLE = TextStyle.builder()
         .italic(true)
-        .color(new ConstantColor(0xFFE8A317))
+        .color(new ConstantColor(ColorUtils.ARGB_FFE8A317.getColor()))
         .build();
 
     /** Red text style for inline error messages. */
     public static final TextStyle ERROR_STYLE = TextStyle.builder()
-        .color(SymbolicColor.ERROR_TEXT)
+        .color(ColorUtils.ERROR_TEXT)
         .build();
 
     /** Creates a placeholder paragraph (amber, italic) for deferred content. */

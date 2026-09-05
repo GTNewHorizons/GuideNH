@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -125,7 +127,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
         xRangeCache = xRange;
 
         // Estimate left-side (category) and bottom (value tick) insets.
-        ResolvedTextStyle style = textStyle(0xFFCCCCCC);
+        ResolvedTextStyle style = textStyle(ColorUtils.ARGB_FFCCCCCC.getColor());
         int lh = context.getLineHeight(style);
         int leftInset = 4;
         for (int i = 0; i < categoryCount; i++) {
@@ -203,7 +205,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
                         Math.max(1, (int) (y1 - y0)));
                     context.fillRect(bar, s.getColor());
                     if (hovered) {
-                        context.drawBorder(bar, 0xFF000000, 1);
+                        context.drawBorder(bar, ColorUtils.BLACK.getColor(), 1);
                     }
                     drawValueLabel(context, valueStyle, v, bar, endX);
                 }
@@ -237,7 +239,7 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
                     float r = ph ? LINE_POINT_RADIUS + 2f : LINE_POINT_RADIUS;
                     context.fillCircle(px[i], py[i], r, s.getColor());
                     if (ph) {
-                        context.drawCircleOutline(px[i], py[i], r, 1f, 0xFF000000);
+                        context.drawCircleOutline(px[i], py[i], r, 1f, ColorUtils.BLACK.getColor());
                     }
                 }
             }

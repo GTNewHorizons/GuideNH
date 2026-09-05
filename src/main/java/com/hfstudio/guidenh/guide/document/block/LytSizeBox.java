@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -183,10 +185,10 @@ public class LytSizeBox extends LytVBox implements DocumentDragTarget {
             return;
         }
 
-        context.fillRect(trackBounds, 0x30242B33);
+        context.fillRect(trackBounds, ColorUtils.ARGB_30242B33.getColor());
         LytRect thumbBounds = getScrollbarThumbBounds();
         if (!thumbBounds.isEmpty()) {
-            context.fillRect(thumbBounds, draggingScrollbar ? 0xFFCDD6E1 : 0xA0AAB5C2);
+            context.fillRect(thumbBounds, draggingScrollbar ? ColorUtils.ARGB_FFCDD6E1.getColor() : ColorUtils.ARGB_A0AAB5C2.getColor());
         }
     }
 

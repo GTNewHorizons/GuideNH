@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -14,7 +16,7 @@ public class CartesianChartRenderer {
     /** Compute insets reserved for axis labels; returns [left, top, right, bottom] (pixels). */
     public static int[] computeAxisInsets(RenderContext context, ChartAxisOptions xAxis, ChartAxisOptions yAxis,
         AxisRange xRange, AxisRange yRange, String[] xCategories, boolean showXTicks, boolean showYTicks) {
-        ResolvedTextStyle style = LytChartBase.textStyle(0xFFCCCCCC);
+        ResolvedTextStyle style = LytChartBase.textStyle(ColorUtils.ARGB_FFCCCCCC.getColor());
         int lineH = context.getLineHeight(style);
         int left = 4;
         int top = 4;

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.ui;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,11 +27,11 @@ public class AutocompletePopup {
     public static final int PADDING_X = 6;
     public static final int PADDING_Y = 4;
     public static final int SCROLLBAR_W = 5;
-    public static final int BACKGROUND_COLOR = 0xF0181C22;
-    public static final int BORDER_COLOR = 0xFF4D5661;
-    public static final int HOVER_COLOR = 0xCC2A3A46;
-    public static final int SCROLLBAR_TRACK_COLOR = 0x35101010;
-    public static final int SCROLLBAR_THUMB_COLOR = 0xA0D8D8D8;
+    public static final int BACKGROUND_COLOR = ColorUtils.DIALOG.getColor();
+    public static final int BORDER_COLOR = ColorUtils.ARGB_FF4D5661.getColor();
+    public static final int HOVER_COLOR = ColorUtils.ARGB_CC2A3A46.getColor();
+    public static final int SCROLLBAR_TRACK_COLOR = ColorUtils.SCROLLBAR_TRACK.getColor();
+    public static final int SCROLLBAR_THUMB_COLOR = ColorUtils.SCROLLBAR_THUMB.getColor();
     /** Gap between popup and cursor when flipped above (roughly FONT_HEIGHT + cursor gap). */
     private static final int FLIP_GAP = 22;
 
@@ -300,6 +302,6 @@ public class AutocompletePopup {
     private static void popScissor() {
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
     }
 }

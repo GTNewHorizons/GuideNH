@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.compiler.tags.mediawiki;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,7 +9,7 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.Guide;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -69,8 +71,8 @@ public class MediaWikiTagCompilerSupport {
         String emptyText) {
         var block = new MediaWikiGeneratedListBlock();
         block.setFullWidth(true);
-        block.setBorderTop(new BorderStyle(SymbolicColor.TABLE_BORDER, 1));
-        block.setBorderBottom(new BorderStyle(SymbolicColor.TABLE_BORDER, 1));
+        block.setBorderTop(new BorderStyle(ColorUtils.TABLE_BORDER, 1));
+        block.setBorderBottom(new BorderStyle(ColorUtils.TABLE_BORDER, 1));
         block.setEntries(entries);
         block.setRows(MediaWikiListPlanner.sanitizeRows(rows));
         block.setEmptyText(emptyText);
@@ -137,8 +139,8 @@ public class MediaWikiTagCompilerSupport {
     public static LytBlock createSpecialBlock(MediaWikiSpecialPageResult result, int rows) {
         var block = new MediaWikiSpecialGeneratedBlock();
         block.setFullWidth(true);
-        block.setBorderTop(new BorderStyle(SymbolicColor.TABLE_BORDER, 1));
-        block.setBorderBottom(new BorderStyle(SymbolicColor.TABLE_BORDER, 1));
+        block.setBorderTop(new BorderStyle(ColorUtils.TABLE_BORDER, 1));
+        block.setBorderBottom(new BorderStyle(ColorUtils.TABLE_BORDER, 1));
         block.setResult(result);
         block.setRows(MediaWikiListPlanner.sanitizeRows(rows));
         block.setEmptyText(GuidebookText.MediaWikiNoPages.text());

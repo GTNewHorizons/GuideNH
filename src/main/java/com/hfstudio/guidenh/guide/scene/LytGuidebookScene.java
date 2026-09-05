@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,6 +119,9 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelectio
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import lombok.Getter;
 import lombok.Setter;
@@ -144,13 +149,13 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public static final float MAX_ZOOM = 10f;
     private static final int MIN_RESPONSIVE_SCENE_SIZE = 16;
     public static final int SCENE_SLIDER_AREA_HEIGHT = 14;
-    private static final int LOADING_FILL_COLOR = 0xAAFFC107;
+    private static final int LOADING_FILL_COLOR = ColorUtils.ARGB_AAFFC107.getColor();
     public static final int SCENE_SLIDER_SIDE_PADDING = 8;
     public static final float ORIGIN_AXIS_LENGTH = 1.5f;
     public static final float ORIGIN_AXIS_THICKNESS = 2.0f;
-    public static final int ORIGIN_X_AXIS_COLOR = 0xFFFF5A5A;
-    public static final int ORIGIN_Y_AXIS_COLOR = 0xFF67E26C;
-    public static final int ORIGIN_Z_AXIS_COLOR = 0xFF64A8FF;
+    public static final int ORIGIN_X_AXIS_COLOR = ColorUtils.X_AXIS.getColor();
+    public static final int ORIGIN_Y_AXIS_COLOR = ColorUtils.Y_AXIS.getColor();
+    public static final int ORIGIN_Z_AXIS_COLOR = ColorUtils.Z_AXIS.getColor();
     public static final ResolvedTextStyle VISIBLE_LAYER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
     public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
@@ -164,8 +169,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         .dropShadow(true)
         .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
-    public static final int BLOCK_STATS_BACKGROUND_COLOR = 0xAA111922;
-    public static final int BLOCK_STATS_BORDER_COLOR = 0x66FFFFFF;
+    public static final int BLOCK_STATS_BACKGROUND_COLOR = ColorUtils.ARGB_AA111922.getColor();
+    public static final int BLOCK_STATS_BORDER_COLOR = ColorUtils.ARGB_66FFFFFF.getColor();
     public static final int BLOCK_STATS_PADDING_X = 5;
     public static final int BLOCK_STATS_PADDING_Y = 4;
     public static final int BLOCK_STATS_GAP = 4;
@@ -179,8 +184,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public static final int BLOCK_STATS_SCROLLBAR_MIN_THUMB = 12;
     public static final int BLOCK_STATS_WHEEL_STEP = 18;
     public static final int BLOCK_STATS_DOCK_GAP = 4;
-    public static final int BLOCK_STATS_SELECTED_ROW_COLOR = 0x6656C8FF;
-    public static final int BLOCK_STATS_HIGHLIGHT_COLOR = 0x6600F5FF;
+    public static final int BLOCK_STATS_SELECTED_ROW_COLOR = ColorUtils.ARGB_6656C8FF.getColor();
+    public static final int BLOCK_STATS_HIGHLIGHT_COLOR = ColorUtils.ARGB_6600F5FF.getColor();
     private static final int MAX_PONDER_PARTICLE_POOL_SIZE = 1024;
 
     private int dragButton = -1;
@@ -232,14 +237,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private int sceneAnimationTick = 0;
     private int ponderLastKeyframeIdx = -2;
     private int ponderAnnotationFadeTick = 5;
-    private final Set<Integer> triggeredPonderSoundKeyframes = new HashSet<>();
-    private final Map<Long, PonderBlockInfo> ponderBlockSnapshot = new LinkedHashMap<>();
+    private final IntSet triggeredPonderSoundKeyframes = new IntOpenHashSet();
+    private final Long2ObjectLinkedOpenHashMap<PonderBlockInfo> ponderBlockSnapshot = new Long2ObjectLinkedOpenHashMap<>();
     private final Map<String, PonderEntityRuntime> ponderEntityRefs = new LinkedHashMap<>();
     private final Map<String, PonderEntityRuntime> ponderEntityRuntimesBySceneEntityId = new HashMap<>();
     private final Map<String, LinkedHashSet<String>> ponderSceneEntityRefs = new HashMap<>();
     private final List<PonderEntityAnimationRuntimeSupport.TimedAnimation> ponderTimedEntityAnimations = new ArrayList<>();
     private final Map<String, PonderEntityAnimationRuntimeSupport.Baseline> ponderEntityAnimationBaselines = new LinkedHashMap<>();
-    private final Map<Long, PonderWeatherColumnReservation> ponderWeatherColumnReservations = new LinkedHashMap<>();
+    private final Long2ObjectLinkedOpenHashMap<PonderWeatherColumnReservation> ponderWeatherColumnReservations = new Long2ObjectLinkedOpenHashMap<>();
     private boolean ponderTimelineBaselineReady;
     @Nullable
     private LytRect cachedPonderBarTrackRect;
@@ -265,7 +270,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     @Getter
     private float loadProgress;
     private String loadStatusText = "";
-    private int loadStatusColor = 0xFFFFFFFF;
+    private int loadStatusColor = ColorUtils.WHITE.getColor();
     @Getter
     @Setter
     private boolean reserveBottomControlArea = true;
@@ -278,8 +283,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     @Setter
     private boolean forceHideOriginAxes;
 
-    public static int SCENE_BG_COLOR = 0xFF0A0A10;
-    public static int SCENE_BORDER_COLOR = 0xFF303040;
+    public static int SCENE_BG_COLOR = ColorUtils.SCENE_BACKGROUND.getColor();
+    public static int SCENE_BORDER_COLOR = ColorUtils.SCENE_BORDER.getColor();
 
     public static final ResourceLocation BUTTONS_TEXTURE = new ResourceLocation(
         "guidenh",
@@ -296,8 +301,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         GuideIconButton.Role.PONDER_PLAY_PAUSE, GuideIconButton.Role.PONDER_RESTART };
 
     public static final int PONDER_BTN_TOTAL_WIDTH = SCENE_SLIDER_AREA_HEIGHT * 3;
-    public static final int PONDER_KEYFRAME_NODE_COLOR = 0xC0AAAADD;
-    public static final int PONDER_KEYFRAME_NODE_HOVER_COLOR = 0xFFC0C0FF;
+    public static final int PONDER_KEYFRAME_NODE_COLOR = ColorUtils.ARGB_C0AAAADD.getColor();
+    public static final int PONDER_KEYFRAME_NODE_HOVER_COLOR = ColorUtils.ARGB_FFC0C0FF.getColor();
 
     public static final int DEFAULT_WIDTH = 256;
     public static final int DEFAULT_HEIGHT = 192;
@@ -341,9 +346,41 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private final Vector3f projectedLineFromScratch = new Vector3f();
     private final Vector3f projectedLineToScratch = new Vector3f();
     private final float[] pickRayScratch = new float[6];
+    private boolean hoveredSceneTargetCacheValid;
+    private int cachedPickMouseX;
+    private int cachedPickMouseY;
+    private int cachedPickViewportX;
+    private int cachedPickViewportY;
+    private int cachedPickViewportW;
+    private int cachedPickViewportH;
+    private long cachedPickSpatialRevision;
+    private int cachedPickPonderTick;
+    @Nullable
+    private Integer cachedPickVisibleLayerY;
+    private float cachedPickZoom;
+    private float cachedPickRotationX;
+    private float cachedPickRotationY;
+    private float cachedPickRotationZ;
+    private float cachedPickOffsetX;
+    private float cachedPickOffsetY;
+    private float cachedPickRotationCenterX;
+    private float cachedPickRotationCenterY;
+    private float cachedPickRotationCenterZ;
+    @Nullable
+    private int[] cachedHoveredBlock;
+    @Nullable
+    private AxisAlignedBB cachedHoveredBlockBounds;
+    @Nullable
+    private MovingObjectPosition cachedHoveredBlockHitResult;
+    @Nullable
+    private Entity cachedHoveredEntity;
+    @Nullable
+    private AxisAlignedBB cachedHoveredEntityBounds;
+    @Nullable
+    private MovingObjectPosition cachedHoveredEntityHitResult;
     private final float[] diggingParticleColorScratch = new float[3];
     private final float[] diggingParticleVelocityScratch = new float[3];
-    private final ConstantColor hoverBoxColor = new ConstantColor(0xFFFFFFFF);
+    private final ConstantColor hoverBoxColor = new ConstantColor(ColorUtils.WHITE.getColor());
     private final ConstantColor blockStatsHighlightColor = new ConstantColor(BLOCK_STATS_HIGHLIGHT_COLOR);
 
     private final ConstantColor originXAxisColor = new ConstantColor(ORIGIN_X_AXIS_COLOR);
@@ -572,6 +609,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         snapshotInitialCamera();
         clearLayerDrivenHoverState();
+        hoveredSceneTargetCacheValid = false;
         markBlockStatsDirty();
     }
 
@@ -584,6 +622,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public void setCamera(CameraSettings camera) {
         this.camera = camera != null ? camera : new CameraSettings();
         snapshotInitialCamera();
+        hoveredSceneTargetCacheValid = false;
     }
 
     public void snapshotInitialCamera() {
@@ -1110,6 +1149,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         hoveredEntityHitResult = null;
         hoveredStructureLibHatch = null;
         clearAnnotationHover();
+        hoveredSceneTargetCacheValid = false;
     }
 
     public StructureLibSceneBinding registerStructureLibBinding(@Nullable String name) {
@@ -1282,8 +1322,6 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return binding != null ? binding.getLastSuccessfulImportResult() : null;
     }
 
-    // ========== SNBT placements (ImportStructure) ==========
-
     public void addSnbtPlacement(SnbtPlacement placement) {
         snbtPlacements.add(placement);
     }
@@ -1300,8 +1338,6 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public void clearSnbtPlacements() {
         snbtPlacements.clear();
     }
-
-    // ========== Unified build / clear / rebuild ==========
 
     /**
      * Build all blocks in the scene from registered SNBT placements and StructureLib bindings.
@@ -1648,14 +1684,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         this.isLoading = loading;
         if (loading) {
             this.loadFailed = false;
-            this.loadStatusColor = 0xFFFFFFFF;
+            this.loadStatusColor = ColorUtils.WHITE.getColor();
         }
     }
 
     public void setLoadProgress(int done, int total) {
         this.loadProgress = total > 0 ? (float) done / (float) total : 0f;
         this.loadStatusText = "Loading import (" + done + "/" + total + ")...";
-        this.loadStatusColor = 0xFFFFFFFF;
+        this.loadStatusColor = ColorUtils.WHITE.getColor();
         this.loadFailed = false;
     }
 
@@ -1665,7 +1701,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         this.loadProgress = 0f;
         this.loadStatusText = message != null && !message.trim()
             .isEmpty() ? message.trim() : "StructureLib preview failed";
-        this.loadStatusColor = 0xFFFF5555;
+        this.loadStatusColor = ColorUtils.ARGB_FFFF5555.getColor();
     }
 
     public void clearLoadState() {
@@ -1673,7 +1709,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         this.loadFailed = false;
         this.loadProgress = 0f;
         this.loadStatusText = "";
-        this.loadStatusColor = 0xFFFFFFFF;
+        this.loadStatusColor = ColorUtils.WHITE.getColor();
     }
 
     public void setBottomControlsVisible(boolean bottomControlsVisible) {
@@ -2465,7 +2501,6 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     clipH,
                     0f,
                     inWorld,
-                    context.lightDarkMode(),
                     weatherLayerSelection,
                     resolveRenderableSceneParticles(),
                     weatherEffects,
@@ -3242,8 +3277,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (track == null || thumb == null || track.isEmpty() || thumb.isEmpty()) {
             return;
         }
-        context.fillRect(track, 0x5522262C);
-        context.fillRect(thumb, 0xCCEAF6FF);
+        context.fillRect(track, ColorUtils.ARGB_5522262C.getColor());
+        context.fillRect(thumb, ColorUtils.ARGB_CCEAF6FF.getColor());
     }
 
     public static class BlockStatsHitRegion {
@@ -3461,7 +3496,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
 
         int mx, my;
@@ -3550,7 +3585,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         int r = (color >>> 16) & 0xFF;
         int g = (color >>> 8) & 0xFF;
         int b = color & 0xFF;
-        GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
+        ColorUtils.applyGlColor(r / 255f, g / 255f, b / 255f, a / 255f);
         float texSize = GuideIconButton.TEXTURE_SIZE;
         float u0 = role.iconSrcX() / texSize;
         float v0 = role.iconSrcY() / texSize;
@@ -3563,7 +3598,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         tess.addVertexWithUV(x + btnSize, y, 0, u1, v0);
         tess.addVertexWithUV(x, y, 0, u0, v0);
         tess.draw();
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
     }
 
     private boolean isSceneButtonActive(GuideIconButton.Role role) {
@@ -3623,6 +3658,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             this.hoveredBlockBounds = null;
             this.hoveredBlockHitResult = null;
         }
+        hoveredSceneTargetCacheValid = false;
     }
 
     public void setHoveredEntity(@Nullable Entity entity) {
@@ -3631,6 +3667,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             this.hoveredEntityBounds = null;
             this.hoveredEntityHitResult = null;
         }
+        hoveredSceneTargetCacheValid = false;
     }
 
     public int @Nullable [] getHoveredBlock() {
@@ -3657,10 +3694,18 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     public void updateHoveredSceneTarget(int mouseAbsX, int mouseAbsY) {
+        updateVisualCameraState();
+        Integer visibleLayerY = resolveVisibleLayerY();
+        if (isHoveredSceneTargetCacheHit(mouseAbsX, mouseAbsY, visibleLayerY)) {
+            restoreCachedHoveredSceneTarget();
+            return;
+        }
+        cacheHoveredSceneTargetInput(mouseAbsX, mouseAbsY, visibleLayerY);
         PickRay pickRay = resolvePickRay(mouseAbsX, mouseAbsY);
         if (pickRay == null) {
             setHoveredEntity(null);
             setHoveredBlock(null);
+            cacheHoveredSceneTargetResult();
             return;
         }
 
@@ -3671,18 +3716,93 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             hoveredEntityBounds = entityHit.getBounds();
             hoveredEntityHitResult = entityHit.getHitResult();
             setHoveredBlock(null);
+            cacheHoveredSceneTargetResult();
             return;
         }
 
         setHoveredEntity(null);
         if (blockHit == null) {
             setHoveredBlock(null);
+            cacheHoveredSceneTargetResult();
             return;
         }
 
         hoveredBlock = blockHit.pos;
         hoveredBlockBounds = blockHit.bounds;
         hoveredBlockHitResult = blockHit.hitResult;
+        cacheHoveredSceneTargetResult();
+    }
+
+    private boolean isHoveredSceneTargetCacheHit(int mouseAbsX, int mouseAbsY, @Nullable Integer visibleLayerY) {
+        if (!hoveredSceneTargetCacheValid || cachedPickMouseX != mouseAbsX
+            || cachedPickMouseY != mouseAbsY
+            || cachedPickViewportX != lastAbsX
+            || cachedPickViewportY != lastAbsY
+            || cachedPickViewportW != lastW
+            || cachedPickViewportH != lastH
+            || cachedPickSpatialRevision != level.getSpatialRevision()
+            || cachedPickPonderTick != ponderCurrentTick
+            || !Objects.equals(cachedPickVisibleLayerY, visibleLayerY)) {
+            return false;
+        }
+        return Float.floatToIntBits(cachedPickZoom) == Float.floatToIntBits(visualCamZoom.value())
+            && Float.floatToIntBits(cachedPickRotationX) == Float.floatToIntBits(visualCamRotX.value())
+            && Float.floatToIntBits(cachedPickRotationY) == Float.floatToIntBits(visualCamRotY.value())
+            && Float.floatToIntBits(cachedPickRotationZ) == Float.floatToIntBits(visualCamRotZ.value())
+            && Float.floatToIntBits(cachedPickOffsetX) == Float.floatToIntBits(visualCamOffX.value())
+            && Float.floatToIntBits(cachedPickOffsetY) == Float.floatToIntBits(visualCamOffY.value())
+            && Float.floatToIntBits(cachedPickRotationCenterX) == Float.floatToIntBits(
+                camera.getRotationCenter()
+                    .x())
+            && Float.floatToIntBits(cachedPickRotationCenterY) == Float.floatToIntBits(
+                camera.getRotationCenter()
+                    .y())
+            && Float.floatToIntBits(cachedPickRotationCenterZ) == Float.floatToIntBits(
+                camera.getRotationCenter()
+                    .z());
+    }
+
+    private void cacheHoveredSceneTargetInput(int mouseAbsX, int mouseAbsY, @Nullable Integer visibleLayerY) {
+        cachedPickMouseX = mouseAbsX;
+        cachedPickMouseY = mouseAbsY;
+        cachedPickViewportX = lastAbsX;
+        cachedPickViewportY = lastAbsY;
+        cachedPickViewportW = lastW;
+        cachedPickViewportH = lastH;
+        cachedPickSpatialRevision = level.getSpatialRevision();
+        cachedPickPonderTick = ponderCurrentTick;
+        cachedPickVisibleLayerY = visibleLayerY;
+        cachedPickZoom = visualCamZoom.value();
+        cachedPickRotationX = visualCamRotX.value();
+        cachedPickRotationY = visualCamRotY.value();
+        cachedPickRotationZ = visualCamRotZ.value();
+        cachedPickOffsetX = visualCamOffX.value();
+        cachedPickOffsetY = visualCamOffY.value();
+        cachedPickRotationCenterX = camera.getRotationCenter()
+            .x();
+        cachedPickRotationCenterY = camera.getRotationCenter()
+            .y();
+        cachedPickRotationCenterZ = camera.getRotationCenter()
+            .z();
+    }
+
+    private void cacheHoveredSceneTargetResult() {
+        cachedHoveredBlock = hoveredBlock;
+        cachedHoveredBlockBounds = hoveredBlockBounds;
+        cachedHoveredBlockHitResult = hoveredBlockHitResult;
+        cachedHoveredEntity = hoveredEntity;
+        cachedHoveredEntityBounds = hoveredEntityBounds;
+        cachedHoveredEntityHitResult = hoveredEntityHitResult;
+        hoveredSceneTargetCacheValid = true;
+    }
+
+    private void restoreCachedHoveredSceneTarget() {
+        hoveredBlock = cachedHoveredBlock;
+        hoveredBlockBounds = cachedHoveredBlockBounds;
+        hoveredBlockHitResult = cachedHoveredBlockHitResult;
+        hoveredEntity = cachedHoveredEntity;
+        hoveredEntityBounds = cachedHoveredEntityBounds;
+        hoveredEntityHitResult = cachedHoveredEntityHitResult;
     }
 
     public int @Nullable [] pickStructureLibHatch(int mouseAbsX, int mouseAbsY) {
@@ -6704,11 +6824,11 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         int trackH = 4;
 
         // Track
-        context.fillRect(new LytRect(barX, barY, barWidth, trackH), loadFailed ? 0x66AA2222 : 0x6622262C);
+        context.fillRect(new LytRect(barX, barY, barWidth, trackH), loadFailed ? ColorUtils.ARGB_66AA2222.getColor() : ColorUtils.ARGB_6622262C.getColor());
         // Fill (amber yellow)
         int fillW = Math.round(barWidth * loadProgress);
         if (fillW > 0) {
-            context.fillRect(new LytRect(barX, barY, fillW, trackH), loadFailed ? 0xFFFF5555 : LOADING_FILL_COLOR);
+            context.fillRect(new LytRect(barX, barY, fillW, trackH), loadFailed ? ColorUtils.ARGB_FFFF5555.getColor() : LOADING_FILL_COLOR);
         }
         // Status text
         if (loadStatusText != null && !loadStatusText.isEmpty()) {

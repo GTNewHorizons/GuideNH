@@ -1,13 +1,15 @@
 package com.hfstudio.guidenh.guide.internal.ui;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 import com.hfstudio.guidenh.guide.document.LytRect;
 
 public class GuideSliderRenderer {
 
-    public static final int TRACK_COLOR = 0x6622262C;
-    public static final int FILL_COLOR = 0xAA1CB4E9;
-    public static final int THUMB_COLOR = 0xFFEAF6FF;
-    public static final int ACTIVE_THUMB_COLOR = 0xFFFFFFFF;
+    public static final int TRACK_COLOR = ColorUtils.ARGB_6622262C.getColor();
+    public static final int FILL_COLOR = ColorUtils.ARGB_AA1CB4E9.getColor();
+    public static final int THUMB_COLOR = ColorUtils.ARGB_FFEAF6FF.getColor();
+    public static final int ACTIVE_THUMB_COLOR = ColorUtils.WHITE.getColor();
     public static final int TRACK_HEIGHT = 4;
     public static final int THUMB_WIDTH = 6;
     public static final int THUMB_OVERHANG = 2;
