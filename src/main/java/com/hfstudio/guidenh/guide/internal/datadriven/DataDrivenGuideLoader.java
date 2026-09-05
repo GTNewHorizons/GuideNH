@@ -1,11 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.datadriven;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.AbstractResourcePack;
@@ -27,7 +23,6 @@ import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.client.resources.SimpleReloadableResourceManager;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.StringTranslate;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -49,11 +44,7 @@ import cpw.mods.fml.client.FMLClientHandler;
 
 public class DataDrivenGuideLoader {
 
-    // Matches the numeric format placeholders normalized by StringTranslate.parseLangFile.
-    private static final Pattern NUMERIC_LANG_VARIABLE = Pattern.compile("%(\\d+\\$)?[\\d.]*[df]");
-
     public static final String AUTO_GUIDE_FOLDER = "guidenh";
-    public static final String LANGUAGE_FOLDER_PREFIX = "_";
     private static final String DEFAULT_LANGUAGE = "en_us";
 
     public record PackCandidate(IResourcePack pack, int loadPriority, int order) {
@@ -79,7 +70,6 @@ public class DataDrivenGuideLoader {
     private static final Map<Class<?>, Field> LOOSE_ROOT_FIELDS = new IdentityHashMap<>();
     private static volatile List<IResourcePack> lastActiveResourcePacks = List.of();
     private static volatile List<IResourcePack> lastResourceManagerResourcePacks = List.of();
-    private static volatile Map<IResourcePack, Set<String>> lastResourceManagerDomainsByPack = Map.of();
     private static final Map<ResourceLocation, List<PackCandidate>> pagePackIndex = new ConcurrentHashMap<>();
     private static final Map<ResourceLocation, List<PackCandidate>> assetPackIndex = new ConcurrentHashMap<>();
     private static volatile boolean indexReady = false;
@@ -254,106 +244,6 @@ public class DataDrivenGuideLoader {
             .toFile();
     }
 
-    public static Map<String, String> readLangFile(IResourcePack resourcePack, String entryPath) {
-        ResourceLocation location = getLangResourceLocation(entryPath);
-        if (location == null || !resourceExists(resourcePack, location)) return Map.of();
-        try (var input = resourcePack.getInputStream(location)) {
-            return StringTranslate.parseLangFile(input);
-        } catch (IOException | RuntimeException e) {
-            return Map.of();
-        }
-    }
-
-    /**
-     * Reads runtime language entries once for the localization index. Large page-body entries are
-     * intentionally skipped; they are resolved by {@code GuidePageLanguageIndex} on demand.
-     */
-    public static Map<String, String> readRuntimeLangValues(IResourcePack resourcePack, String entryPath) {
-        ResourceLocation location = getLangResourceLocation(entryPath);
-        if (location == null || !resourceExists(resourcePack, location)) return Map.of();
-        var values = new LinkedHashMap<String, String>();
-        try (var input = resourcePack.getInputStream(location);
-            var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                // StringTranslate.parseLangFile accepts the first '=' separator. Keep the same
-                // format while avoiding a parser/stream allocation for every entry in large files.
-                if (line.startsWith("\uFEFF")) line = line.substring(1);
-                if (line.isEmpty() || line.startsWith("#")) continue;
-                int separator = line.indexOf('=');
-                if (separator <= 0) continue;
-                String key = line.substring(0, separator);
-                if (key.startsWith("guidenh.page.")) continue;
-                String value = line.substring(separator + 1);
-                values.put(
-                    key,
-                    value.indexOf('%') >= 0 ? NUMERIC_LANG_VARIABLE.matcher(value)
-                        .replaceAll("%$1s") : value);
-            }
-        } catch (IOException | RuntimeException ignored) {}
-        return values.isEmpty() ? Map.of() : Map.copyOf(values);
-    }
-
-    public static @Nullable String readLangValue(IResourcePack resourcePack, String entryPath, String key) {
-        ResourceLocation location = getLangResourceLocation(entryPath);
-        if (location == null || !resourceExists(resourcePack, location)) return null;
-        try (var input = resourcePack.getInputStream(location);
-            var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("\uFEFF")) {
-                    line = line.substring(1);
-                }
-                if (line.startsWith("#")) continue;
-                int separator = line.indexOf('=');
-                if (separator > 0 && key.equals(line.substring(0, separator))) {
-                    // The line has already been split using the same first '=' rule as
-                    // StringTranslate.parseLangFile; avoid reparsing a one-line stream.
-                    String value = line.substring(separator + 1);
-                    return value.indexOf('%') >= 0 ? NUMERIC_LANG_VARIABLE.matcher(value)
-                        .replaceAll("%$1s") : value;
-                }
-            }
-        } catch (IOException | RuntimeException ignored) {}
-        return null;
-    }
-
-    /** Reads only keys from a language file, avoiding retention of large translated page bodies. */
-    public static Set<String> readLangKeys(IResourcePack resourcePack, String entryPath) {
-        ResourceLocation location = getLangResourceLocation(entryPath);
-        if (location == null || !resourceExists(resourcePack, location)) return Set.of();
-        var keys = new LinkedHashSet<String>();
-        try (var input = resourcePack.getInputStream(location);
-            var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("\uFEFF")) line = line.substring(1);
-                if (line.startsWith("#")) continue;
-                int separator = line.indexOf('=');
-                if (separator > 0) keys.add(line.substring(0, separator));
-            }
-        } catch (IOException | RuntimeException ignored) {}
-        return keys.isEmpty() ? Set.of() : Set.copyOf(keys);
-    }
-
-    private static @Nullable ResourceLocation getLangResourceLocation(@Nullable String entryPath) {
-        if (entryPath == null || !entryPath.endsWith(".lang")) return null;
-        var afterAssets = entryPath.startsWith("assets/") ? entryPath.substring("assets/".length()) : entryPath;
-        var firstSlash = afterAssets.indexOf('/');
-        return firstSlash > 0
-            ? new ResourceLocation(afterAssets.substring(0, firstSlash), afterAssets.substring(firstSlash + 1))
-            : null;
-    }
-
-    private static boolean resourceExists(IResourcePack resourcePack, ResourceLocation location) {
-        try {
-            return resourcePack.resourceExists(location);
-        } catch (RuntimeException ignored) {
-            // Third-party resource packs occasionally implement a missing resource as a runtime failure.
-            return false;
-        }
-    }
-
     public static Set<String> discoverPagePaths(ResourceLocation guideId, String folder) {
         return discoverPagePaths(guideId, folder, getActiveResourcePacks());
     }
@@ -414,7 +304,6 @@ public class DataDrivenGuideLoader {
         var domainsByPack = new IdentityHashMap<IResourcePack, LinkedHashSet<String>>();
         addResourceManagerResourcePacks(resourceManager, resourceManagerResourcePacks, domainsByPack);
         lastResourceManagerResourcePacks = List.copyOf(resourceManagerResourcePacks);
-        lastResourceManagerDomainsByPack = freezeDomainsByPack(domainsByPack);
         resourcePacks.addAll(resourceManagerResourcePacks);
         addConfiguredResourcePacks(resourcePacks);
         var resolved = new ArrayList<>(resourcePacks);
@@ -527,11 +416,6 @@ public class DataDrivenGuideLoader {
         } catch (RuntimeException e) {
             GuideDebugLog.warn("[GuideNH] [DataDrivenGuideLoader] Failed to inspect resource manager packs", e);
         }
-    }
-
-    private static Set<String> getResourceDomains(IResourcePack resourcePack) {
-        Set<String> cached = lastResourceManagerDomainsByPack.get(resourcePack);
-        return cached != null ? cached : resourcePack.getResourceDomains();
     }
 
     private static Map<IResourcePack, Set<String>> freezeDomainsByPack(

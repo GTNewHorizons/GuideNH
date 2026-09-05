@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.localization;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -118,7 +117,7 @@ public class GuideLanguageIndex {
 
         String result = null;
         for (PageSource source : matchingSources) {
-            String value = DataDrivenGuideLoader.readLangValue(source.pack(), source.path(), key);
+            String value = readLangValue(source.pack(), source.path(), key);
             if (value != null) {
                 // Sources are collected in effective pack order; later values override earlier ones.
                 result = value;
@@ -135,19 +134,15 @@ public class GuideLanguageIndex {
             return;
         }
 
-        PageSource pageSource = null;
         try (var input = resourcePack.getInputStream(location);
-            var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+            var reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
 
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("\uFEFF")) line = line.substring(1);
-                if (line.isEmpty() || line.startsWith("#")) continue;
+            var entries = new LangEntryReader(reader);
+            PageSource pageSource = null;
 
-                int separator = line.indexOf('=');
-                if (separator <= 0) continue;
+            while (entries.next()) {
+                String key = entries.key();
 
-                String key = line.substring(0, separator);
                 if (isPageLangKey(key)) {
                     if (pageSource == null) {
                         pageSource = new PageSource(resourcePack, entryPath);
@@ -161,15 +156,37 @@ public class GuideLanguageIndex {
                     continue;
                 }
 
-                String value = line.substring(separator + 1);
-                if (value.indexOf('%') >= 0) {
-                    value = NUMERIC_LANG_VARIABLE.matcher(value)
-                        .replaceAll("%$1s");
-                }
-
-                plainTranslations.put(key, value);
+                plainTranslations.put(key, normalizeTranslation(entries.readValue()));
             }
         } catch (IOException | RuntimeException ignored) {}
+    }
+
+    private static @Nullable String readLangValue(IResourcePack resourcePack, String entryPath, String key) {
+        ResourceLocation location = getLangResourceLocation(entryPath);
+        if (location == null || !resourceExists(resourcePack, location)) {
+            return null;
+        }
+
+        try (var input = resourcePack.getInputStream(location);
+            var reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+            var entries = new LangEntryReader(reader);
+
+            while (entries.next()) {
+                if (key.equals(entries.key())) {
+                    return normalizeTranslation(entries.readValue());
+                }
+            }
+        } catch (IOException | RuntimeException ignored) {}
+
+        return null;
+    }
+
+    private static String normalizeTranslation(String value) {
+        if (value.indexOf('%') >= 0) {
+            return NUMERIC_LANG_VARIABLE.matcher(value)
+                .replaceAll("%$1s");
+        }
+        return value;
     }
 
     private static @Nullable ResourceLocation getLangResourceLocation(@Nullable String entryPath) {
