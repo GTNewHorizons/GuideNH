@@ -140,8 +140,6 @@ final class GuideResourcePackScanner {
             String language = languageDir.getName();
             if (!isLanguageFolder(language)) continue;
 
-            languages.add(new GuideLanguage(namespaceRoot.namespace(), toLanguageCode(language)));
-
             Path languageRoot = languageDir.toPath();
             try (var paths = Files.walk(languageRoot)) {
                 paths.forEach(path -> {
@@ -158,6 +156,8 @@ final class GuideResourcePackScanner {
                             namespaceRoot.namespace(),
                             folder + "/" + language + "/" + relativePath);
                         loadPriority = parseLoadPriority(path, location);
+
+                        languages.add(new GuideLanguage(namespaceRoot.namespace(), toLanguageCode(language)));
                     }
                     entries.add(new PackEntry(namespaceRoot.namespace(), language, relativePath, loadPriority));
                 });
