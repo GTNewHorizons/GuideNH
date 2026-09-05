@@ -1,16 +1,18 @@
 package com.hfstudio.guidenh.guide.editor;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 /**
  * Reusable horizontal slider implementation for a registered Scene Editor dropdown item.
  *
- * <p>The value supplier is read during rendering and the consumer is called with a clamped value
+ * <p>
+ * The value supplier is read during rendering and the consumer is called with a clamped value
  * whenever the track is clicked or dragged. Slider coordinates are expressed in the row supplied by
- * the menu; subclasses may override the sizing and hit-test methods to provide a different layout.</p>
+ * the menu; subclasses may override the sizing and hit-test methods to provide a different layout.
+ * </p>
  */
 public class SceneEditorSliderWidget implements SceneEditorMenuWidget {
 
@@ -56,7 +58,12 @@ public class SceneEditorSliderWidget implements SceneEditorMenuWidget {
         double fraction = maximum <= minimum ? 0d : (current - minimum) / (maximum - minimum);
         fraction = Math.max(0d, Math.min(1d, fraction));
         int thumbX = trackLeft + (int) Math.round((trackRight - trackLeft) * fraction);
-        context.drawRect(thumbX - 2, trackY - 2, thumbX + 3, trackY + 5, enabled ? ColorUtils.ACCENT.getColor() : ColorUtils.ARGB_FF737A82.getColor());
+        context.drawRect(
+            thumbX - 2,
+            trackY - 2,
+            thumbX + 3,
+            trackY + 5,
+            enabled ? ColorUtils.ACCENT.getColor() : ColorUtils.ARGB_FF737A82.getColor());
     }
 
     @Override

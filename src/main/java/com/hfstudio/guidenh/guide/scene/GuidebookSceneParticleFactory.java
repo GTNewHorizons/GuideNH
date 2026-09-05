@@ -4,8 +4,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
 import net.minecraft.util.ResourceLocation;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 /**
  * Factory helpers for guidebook scene particles and reusable particle presets.

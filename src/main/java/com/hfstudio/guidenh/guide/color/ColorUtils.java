@@ -1,17 +1,19 @@
 package com.hfstudio.guidenh.guide.color;
 
-import com.gtnewhorizon.gtnhlib.color.ColorResource;
-import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
-
 import java.util.Locale;
 
 import org.lwjgl.opengl.GL11;
 
+import com.gtnewhorizon.gtnhlib.color.ColorResource;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+
 /**
  * Central registry for colors used by GuideNH.
  *
- * <p>Color resources can be overridden by resource packs and are refreshed by GTNHLib when resources reload. Callers
- * should resolve a resource with {@link ColorResource#getColor()} at the point where the color is consumed.</p>
+ * <p>
+ * Color resources can be overridden by resource packs and are refreshed by GTNHLib when resources reload. Callers
+ * should resolve a resource with {@link ColorResource#getColor()} at the point where the color is consumed.
+ * </p>
  */
 public class ColorUtils {
 
@@ -163,41 +165,24 @@ public class ColorUtils {
     public static final ColorResource SCROLLBAR_THUMB = COLORS.argb("scrollbarThumb", "0xA0D8D8D8");
     public static final ColorResource SCROLLBAR_HOVER = COLORS.argb("scrollbarHover", "0x889AA3B2");
 
-    public static final ColorResource[] CHART_PALETTE = {
-        COLORS.argb("chartPalette01", "0xFFE15759"),
-        COLORS.argb("chartPalette02", "0xFF4E79A7"),
-        COLORS.argb("chartPalette03", "0xFF59A14F"),
-        COLORS.argb("chartPalette04", "0xFFF28E2B"),
-        COLORS.argb("chartPalette05", "0xFF76B7B2"),
-        COLORS.argb("chartPalette06", "0xFFEDC948"),
-        COLORS.argb("chartPalette07", "0xFFB07AA1"),
-        COLORS.argb("chartPalette08", "0xFFFF9DA7"),
-        COLORS.argb("chartPalette09", "0xFF9C755F"),
-        COLORS.argb("chartPalette10", "0xFFBAB0AC"),
-        COLORS.argb("chartPalette11", "0xFF1F77B4"),
-        COLORS.argb("chartPalette12", "0xFFFF7F0E"),
-        COLORS.argb("chartPalette13", "0xFF2CA02C"),
-        COLORS.argb("chartPalette14", "0xFFD62728"),
-        COLORS.argb("chartPalette15", "0xFF9467BD"),
-        COLORS.argb("chartPalette16", "0xFF8C564B")
-    };
+    public static final ColorResource[] CHART_PALETTE = { COLORS.argb("chartPalette01", "0xFFE15759"),
+        COLORS.argb("chartPalette02", "0xFF4E79A7"), COLORS.argb("chartPalette03", "0xFF59A14F"),
+        COLORS.argb("chartPalette04", "0xFFF28E2B"), COLORS.argb("chartPalette05", "0xFF76B7B2"),
+        COLORS.argb("chartPalette06", "0xFFEDC948"), COLORS.argb("chartPalette07", "0xFFB07AA1"),
+        COLORS.argb("chartPalette08", "0xFFFF9DA7"), COLORS.argb("chartPalette09", "0xFF9C755F"),
+        COLORS.argb("chartPalette10", "0xFFBAB0AC"), COLORS.argb("chartPalette11", "0xFF1F77B4"),
+        COLORS.argb("chartPalette12", "0xFFFF7F0E"), COLORS.argb("chartPalette13", "0xFF2CA02C"),
+        COLORS.argb("chartPalette14", "0xFFD62728"), COLORS.argb("chartPalette15", "0xFF9467BD"),
+        COLORS.argb("chartPalette16", "0xFF8C564B") };
 
-    public static final ColorResource[] FUNCTION_GRAPH_PALETTE = {
-        COLORS.argb("functionGraphPalette01", "0xFFE15759"),
-        COLORS.argb("functionGraphPalette02", "0xFF4E79A7"),
-        COLORS.argb("functionGraphPalette03", "0xFF59A14F"),
-        COLORS.argb("functionGraphPalette04", "0xFFF28E2B"),
-        COLORS.argb("functionGraphPalette05", "0xFF76B7B2"),
-        COLORS.argb("functionGraphPalette06", "0xFFB07AA1"),
-        COLORS.argb("functionGraphPalette07", "0xFFEDC948"),
-        COLORS.argb("functionGraphPalette08", "0xFF9C755F"),
-        COLORS.argb("functionGraphPalette09", "0xFFFF9DA7"),
-        COLORS.argb("functionGraphPalette10", "0xFF1F77B4"),
-        COLORS.argb("functionGraphPalette11", "0xFFFF7F0E"),
-        COLORS.argb("functionGraphPalette12", "0xFF2CA02C"),
-        COLORS.argb("functionGraphPalette13", "0xFFD62728"),
-        COLORS.argb("functionGraphPalette14", "0xFF9467BD")
-    };
+    public static final ColorResource[] FUNCTION_GRAPH_PALETTE = { COLORS.argb("functionGraphPalette01", "0xFFE15759"),
+        COLORS.argb("functionGraphPalette02", "0xFF4E79A7"), COLORS.argb("functionGraphPalette03", "0xFF59A14F"),
+        COLORS.argb("functionGraphPalette04", "0xFFF28E2B"), COLORS.argb("functionGraphPalette05", "0xFF76B7B2"),
+        COLORS.argb("functionGraphPalette06", "0xFFB07AA1"), COLORS.argb("functionGraphPalette07", "0xFFEDC948"),
+        COLORS.argb("functionGraphPalette08", "0xFF9C755F"), COLORS.argb("functionGraphPalette09", "0xFFFF9DA7"),
+        COLORS.argb("functionGraphPalette10", "0xFF1F77B4"), COLORS.argb("functionGraphPalette11", "0xFFFF7F0E"),
+        COLORS.argb("functionGraphPalette12", "0xFF2CA02C"), COLORS.argb("functionGraphPalette13", "0xFFD62728"),
+        COLORS.argb("functionGraphPalette14", "0xFF9467BD") };
 
     public static final ColorResource ARGB_0E0E20 = COLORS.rgb("color0E0E20", "0x0E0E20");
     public static final ColorResource ARGB_10000000 = COLORS.argb("color10000000", "0x10000000");
@@ -209,11 +194,15 @@ public class ColorUtils {
     public static final ColorResource ARGB_22262D38 = COLORS.argb("color22262D38", "0x22262D38");
     public static final ColorResource ARGB_22FFFFFF = COLORS.argb("color22FFFFFF", "0x22FFFFFF");
     public static final ColorResource ARGB_262A3340 = COLORS.argb("color262A3340", "0x262A3340");
-    public static final ColorResource MERMAID_SUBGRAPH_BACKGROUND_DARK = COLORS.argb("mermaidSubgraphBackgroundDark", "0x301E2A2A");
-    public static final ColorResource MERMAID_SUBGRAPH_BACKGROUND_PURPLE = COLORS.argb("mermaidSubgraphBackgroundPurple", "0x301E2A45");
+    public static final ColorResource MERMAID_SUBGRAPH_BACKGROUND_DARK = COLORS
+        .argb("mermaidSubgraphBackgroundDark", "0x301E2A2A");
+    public static final ColorResource MERMAID_SUBGRAPH_BACKGROUND_PURPLE = COLORS
+        .argb("mermaidSubgraphBackgroundPurple", "0x301E2A45");
     public static final ColorResource ARGB_30242B33 = COLORS.argb("color30242B33", "0x30242B33");
-    public static final ColorResource MERMAID_SUBGRAPH_BACKGROUND_VIOLET = COLORS.argb("mermaidSubgraphBackgroundViolet", "0x302A1E45");
-    public static final ColorResource MERMAID_SUBGRAPH_BACKGROUND_GOLD = COLORS.argb("mermaidSubgraphBackgroundGold", "0x302A2A1E");
+    public static final ColorResource MERMAID_SUBGRAPH_BACKGROUND_VIOLET = COLORS
+        .argb("mermaidSubgraphBackgroundViolet", "0x302A1E45");
+    public static final ColorResource MERMAID_SUBGRAPH_BACKGROUND_GOLD = COLORS
+        .argb("mermaidSubgraphBackgroundGold", "0x302A2A1E");
     public static final ColorResource ARGB_33101012 = COLORS.argb("color33101012", "0x33101012");
     public static final ColorResource ARGB_33262D38 = COLORS.argb("color33262D38", "0x33262D38");
     public static final ColorResource ARGB_33FFFFFF = COLORS.argb("color33FFFFFF", "0x33FFFFFF");
@@ -255,10 +244,14 @@ public class ColorUtils {
     public static final ColorResource ARGB_8A00CAF2 = COLORS.argb("color8A00CAF2", "0x8A00CAF2");
     public static final ColorResource ARGB_94D049BB = COLORS.argb("color94D049BB", "0x94D049BB");
     public static final ColorResource ARGB_96D9B44A = COLORS.argb("color96D9B44A", "0x96D9B44A");
-    public static final ColorResource MERMAID_SUBGRAPH_BORDER_BLUE = COLORS.argb("mermaidSubgraphBorderBlue", "0x99434C57");
-    public static final ColorResource MERMAID_SUBGRAPH_BORDER_TEAL = COLORS.argb("mermaidSubgraphBorderTeal", "0x9943574C");
-    public static final ColorResource MERMAID_SUBGRAPH_BORDER_GREEN = COLORS.argb("mermaidSubgraphBorderGreen", "0x994C5743");
-    public static final ColorResource MERMAID_SUBGRAPH_BORDER_OLIVE = COLORS.argb("mermaidSubgraphBorderOlive", "0x99575743");
+    public static final ColorResource MERMAID_SUBGRAPH_BORDER_BLUE = COLORS
+        .argb("mermaidSubgraphBorderBlue", "0x99434C57");
+    public static final ColorResource MERMAID_SUBGRAPH_BORDER_TEAL = COLORS
+        .argb("mermaidSubgraphBorderTeal", "0x9943574C");
+    public static final ColorResource MERMAID_SUBGRAPH_BORDER_GREEN = COLORS
+        .argb("mermaidSubgraphBorderGreen", "0x994C5743");
+    public static final ColorResource MERMAID_SUBGRAPH_BORDER_OLIVE = COLORS
+        .argb("mermaidSubgraphBorderOlive", "0x99575743");
     public static final ColorResource ARGB_99B8C0CC = COLORS.argb("color99B8C0CC", "0x99B8C0CC");
     public static final ColorResource ARGB_9E3779B9 = COLORS.argb("color9E3779B9", "0x9E3779B9");
     public static final ColorResource ARGB_A0121216 = COLORS.argb("colorA0121216", "0xA0121216");
@@ -494,12 +487,12 @@ public class ColorUtils {
                     aLo = fromHexChar(hexColor.charAt(start + 7));
                 }
                 if (rHi != -1 && rLo != -1
-                        && gHi != -1
-                        && gLo != -1
-                        && bHi != -1
-                        && bLo != -1
-                        && aHi != -1
-                        && aLo != -1) {
+                    && gHi != -1
+                    && gLo != -1
+                    && bHi != -1
+                    && bLo != -1
+                    && aHi != -1
+                    && aLo != -1) {
                     return argb(aHi << 4 | aLo, rHi << 4 | rLo, gHi << 4 | gLo, bHi << 4 | bLo);
                 }
             }

@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.client;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -15,6 +13,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.gtnewhorizon.gtnhlib.blockpos.IBlockPos;
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter.SelectionAction;

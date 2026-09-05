@@ -1,12 +1,10 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import com.hfstudio.guidenh.guide.color.ColorValue;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;

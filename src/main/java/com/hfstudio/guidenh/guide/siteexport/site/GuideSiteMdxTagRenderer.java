@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -26,6 +24,7 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.color.SymbolicColorResolver;
@@ -1785,7 +1784,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
         int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
         int cornerLegendHeight = readInt(element, "cornerLegendHeight", 64);
-        int cornerLegendBackground = parseArgbAttr(element, "cornerLegendBackground", ColorUtils.ARGB_AA111922.getColor());
+        int cornerLegendBackground = parseArgbAttr(
+            element,
+            "cornerLegendBackground",
+            ColorUtils.ARGB_AA111922.getColor());
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
         return GuideSiteGraphRenderer.renderLineChart(
             w,
@@ -1826,7 +1828,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
         int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
         int cornerLegendHeight = readInt(element, "cornerLegendHeight", 64);
-        int cornerLegendBackground = parseArgbAttr(element, "cornerLegendBackground", ColorUtils.ARGB_AA111922.getColor());
+        int cornerLegendBackground = parseArgbAttr(
+            element,
+            "cornerLegendBackground",
+            ColorUtils.ARGB_AA111922.getColor());
         List<GuideSiteGraphRenderer.SeriesData> series = parseScatterSeriesChildren(element);
         return GuideSiteGraphRenderer.renderScatterChart(
             w,
@@ -1860,7 +1865,10 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
         int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
         int cornerLegendHeight = readInt(element, "cornerLegendHeight", 64);
-        int cornerLegendBackground = parseArgbAttr(element, "cornerLegendBackground", ColorUtils.ARGB_AA111922.getColor());
+        int cornerLegendBackground = parseArgbAttr(
+            element,
+            "cornerLegendBackground",
+            ColorUtils.ARGB_AA111922.getColor());
         double xMin = parseDoubleAttr(element, "xMin", -10);
         double xMax = parseDoubleAttr(element, "xMax", 10);
         double yMin = parseDoubleAttr(element, "yMin", Double.NaN);

@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.scene;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import static org.lwjgl.opengl.GL11.GL_ALPHA_TEST;
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_CULL_FACE;
@@ -41,6 +39,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
@@ -157,8 +156,7 @@ public class GuidebookLevelRenderer {
 
     public void render(GuidebookLevel level, CameraSettings camera, int panelX, int panelY, int panelWidth,
         int panelHeight, int scissorX, int scissorY, int scissorW, int scissorH, float partialTicks,
-        List<InWorldAnnotation> annotations, @Nullable Integer visibleLayerY,
-        List<GuidebookSceneParticle> particles) {
+        List<InWorldAnnotation> annotations, @Nullable Integer visibleLayerY, List<GuidebookSceneParticle> particles) {
         render(
             level,
             camera,

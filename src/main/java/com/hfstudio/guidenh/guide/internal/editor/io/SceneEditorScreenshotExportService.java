@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.io;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -19,6 +17,7 @@ import javax.imageio.ImageWriter;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;

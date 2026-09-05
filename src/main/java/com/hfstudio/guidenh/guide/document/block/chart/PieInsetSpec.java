@@ -1,10 +1,10 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 import lombok.Getter;
 import lombok.Setter;

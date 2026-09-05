@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.editor.guide;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 
 import org.lwjgl.input.Keyboard;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
 public class GuideScreenEditorNewPagePrompt extends GuiScreen {
@@ -121,14 +120,23 @@ public class GuideScreenEditorNewPagePrompt extends GuiScreen {
         int baseY = (this.height - PROMPT_HEIGHT) / 2;
         drawRect(baseX, baseY, baseX + PROMPT_WIDTH, baseY + PROMPT_HEIGHT, ColorUtils.DIALOG.getColor());
         drawRect(baseX, baseY, baseX + PROMPT_WIDTH, baseY + 1, ColorUtils.ARGB_FF4D5661.getColor());
-        drawRect(baseX, baseY + PROMPT_HEIGHT - 1, baseX + PROMPT_WIDTH, baseY + PROMPT_HEIGHT, ColorUtils.ARGB_FF4D5661.getColor());
+        drawRect(
+            baseX,
+            baseY + PROMPT_HEIGHT - 1,
+            baseX + PROMPT_WIDTH,
+            baseY + PROMPT_HEIGHT,
+            ColorUtils.ARGB_FF4D5661.getColor());
         drawCenteredString(
             fontRendererObj,
             GuidebookText.GuideEditorNewPagePromptTitle.text(),
             this.width / 2,
             baseY + 12,
             ColorUtils.TEXT.getColor());
-        fontRendererObj.drawString(GuidebookText.GuideEditorNewPagePath.text(), baseX + 14, baseY + 42, ColorUtils.TEXT_MUTED.getColor());
+        fontRendererObj.drawString(
+            GuidebookText.GuideEditorNewPagePath.text(),
+            baseX + 14,
+            baseY + 42,
+            ColorUtils.TEXT_MUTED.getColor());
         pathField.drawTextBox();
         super.drawScreen(mouseX, mouseY, partialTicks);
     }

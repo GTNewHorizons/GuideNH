@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.ui;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +11,7 @@ import net.minecraft.client.gui.Gui;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;

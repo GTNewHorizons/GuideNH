@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.debug;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
@@ -11,6 +9,7 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.mixins.early.forge.AccessorGuiIngameForge;
 
 public class GuideDebugOverlayRenderer {

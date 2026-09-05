@@ -3,13 +3,13 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;

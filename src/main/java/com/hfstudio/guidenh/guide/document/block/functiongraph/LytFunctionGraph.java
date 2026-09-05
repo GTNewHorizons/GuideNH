@@ -1,11 +1,10 @@
 package com.hfstudio.guidenh.guide.document.block.functiongraph;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -1152,7 +1151,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     }
 
     private static LatexMetrics measureLatex(String formula, int lineHeight) {
-        int[] source = GuideLatexRenderer.INSTANCE.measureSize(formula, ColorUtils.WHITE.getColor(), LABEL_LATEX_SOURCE_SCALE);
+        int[] source = GuideLatexRenderer.INSTANCE
+            .measureSize(formula, ColorUtils.WHITE.getColor(), LABEL_LATEX_SOURCE_SCALE);
         if (source == null) {
             return null;
         }

@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import org.joml.Vector3f;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;

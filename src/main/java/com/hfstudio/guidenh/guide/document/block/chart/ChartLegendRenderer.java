@@ -1,12 +1,11 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.RenderContext;

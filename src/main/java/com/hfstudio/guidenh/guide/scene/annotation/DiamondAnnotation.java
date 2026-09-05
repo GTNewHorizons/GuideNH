@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
@@ -10,6 +8,7 @@ import net.minecraft.util.ResourceLocation;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;

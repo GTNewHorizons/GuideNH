@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.debug;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 /**
  * Renders debug information panel at the left-bottom corner of the screen.

@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -20,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {

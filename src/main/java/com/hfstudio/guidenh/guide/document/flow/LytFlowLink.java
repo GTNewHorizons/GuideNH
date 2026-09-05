@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.document.flow;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.net.URI;
 import java.util.function.Consumer;
 
@@ -11,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
-import com.hfstudio.guidenh.guide.color.ColorValue;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;

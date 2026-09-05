@@ -1,8 +1,5 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-import com.hfstudio.guidenh.guide.internal.recipe.NeiHandlerRenderer;
-
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -19,7 +16,9 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
+import com.hfstudio.guidenh.guide.internal.recipe.NeiHandlerRenderer;
 import com.hfstudio.guidenh.guide.internal.recipe.NeiRecipeLayoutMetrics;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;

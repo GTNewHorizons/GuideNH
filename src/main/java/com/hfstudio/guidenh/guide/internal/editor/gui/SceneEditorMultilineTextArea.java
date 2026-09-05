@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
@@ -17,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
@@ -1066,7 +1065,11 @@ public class SceneEditorMultilineTextArea {
             if (drawY + lineHeight >= y && drawY < y + clipHeight) {
                 drawExternalHighlightForLine(line, drawY, renderedHorizontalOffset);
                 drawSelectionForLine(line, drawY, renderedHorizontalOffset);
-                fontRenderer.drawString(line.text(), x + PADDING - renderedHorizontalOffset, drawY, ColorUtils.ARGB_F0F0F0.getColor());
+                fontRenderer.drawString(
+                    line.text(),
+                    x + PADDING - renderedHorizontalOffset,
+                    drawY,
+                    ColorUtils.ARGB_F0F0F0.getColor());
                 drawSyntaxWarningForLine(line, drawY, renderedHorizontalOffset);
             }
             drawY += lineHeight;
@@ -1078,7 +1081,12 @@ public class SceneEditorMultilineTextArea {
             int cursorPixel = getCursorPixelOnLine(selectionModel.getCursorIndex(), visualLine);
             int cursorX = x + PADDING + cursorPixel - renderedHorizontalOffset;
             int cursorY = y + PADDING + cursorLine * lineHeight - renderedVerticalOffset;
-            Gui.drawRect(cursorX, cursorY, cursorX + 1, cursorY + fontRenderer.FONT_HEIGHT + 1, ColorUtils.WHITE.getColor());
+            Gui.drawRect(
+                cursorX,
+                cursorY,
+                cursorX + 1,
+                cursorY + fontRenderer.FONT_HEIGHT + 1,
+                ColorUtils.WHITE.getColor());
         }
 
         if (focused) {

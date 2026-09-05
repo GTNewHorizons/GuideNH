@@ -3,9 +3,9 @@ package com.hfstudio.guidenh.guide.compiler.tags.chart;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
-import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartAxisOptions;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;

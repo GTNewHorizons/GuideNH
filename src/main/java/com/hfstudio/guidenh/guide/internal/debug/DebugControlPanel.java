@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.debug;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +10,7 @@ import net.minecraft.util.StatCollector;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 import lombok.Setter;
 
@@ -115,7 +114,13 @@ public class DebugControlPanel {
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-        drawRoundedRect(panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT, ColorUtils.ARGB_80000000.getColor(), ColorUtils.ARGB_FFAAAAAA.getColor());
+        drawRoundedRect(
+            panelX,
+            panelY,
+            PANEL_WIDTH,
+            PANEL_HEIGHT,
+            ColorUtils.ARGB_80000000.getColor(),
+            ColorUtils.ARGB_FFAAAAAA.getColor());
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         String label = fontRenderer.trimStringToWidth(translateKey("guidenh.debug.menu.options"), PANEL_WIDTH - 4);
@@ -137,7 +142,13 @@ public class DebugControlPanel {
         int menuHeight = menuItems.size() * DROPDOWN_ITEM_HEIGHT + 4;
 
         GL11.glDisable(GL11.GL_TEXTURE_2D);
-        drawRoundedRect(panelX, menuY, PANEL_WIDTH, menuHeight, ColorUtils.ARGB_D0000000.getColor(), ColorUtils.ARGB_FFCCCCCC.getColor());
+        drawRoundedRect(
+            panelX,
+            menuY,
+            PANEL_WIDTH,
+            menuHeight,
+            ColorUtils.ARGB_D0000000.getColor(),
+            ColorUtils.ARGB_FFCCCCCC.getColor());
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         hoveredItem = null;
@@ -185,7 +196,13 @@ public class DebugControlPanel {
         int submenuHeight = submenuItems.size() * DROPDOWN_ITEM_HEIGHT + 4;
 
         GL11.glDisable(GL11.GL_TEXTURE_2D);
-        drawRoundedRect(submenuX, submenuY, PANEL_WIDTH, submenuHeight, ColorUtils.ARGB_D0000000.getColor(), ColorUtils.ARGB_FFCCCCCC.getColor());
+        drawRoundedRect(
+            submenuX,
+            submenuY,
+            PANEL_WIDTH,
+            submenuHeight,
+            ColorUtils.ARGB_D0000000.getColor(),
+            ColorUtils.ARGB_FFCCCCCC.getColor());
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
@@ -199,7 +216,12 @@ public class DebugControlPanel {
             if (isHovered) {
                 hoveredItem = item;
                 GL11.glDisable(GL11.GL_TEXTURE_2D);
-                drawRect(submenuX + 2, itemY, PANEL_WIDTH - 4, DROPDOWN_ITEM_HEIGHT, ColorUtils.ARGB_80FFFFFF.getColor());
+                drawRect(
+                    submenuX + 2,
+                    itemY,
+                    PANEL_WIDTH - 4,
+                    DROPDOWN_ITEM_HEIGHT,
+                    ColorUtils.ARGB_80FFFFFF.getColor());
                 GL11.glEnable(GL11.GL_TEXTURE_2D);
             }
 

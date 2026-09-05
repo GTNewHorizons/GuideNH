@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.screen;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.renderer.Tessellator;
@@ -9,6 +7,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.editor.SceneEditorIcon;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 

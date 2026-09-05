@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.integration.betterquesting.compiler;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.UUID;
 
 import net.minecraft.client.Minecraft;
@@ -10,7 +8,7 @@ import net.minecraft.client.gui.GuiScreen;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
-import com.hfstudio.guidenh.guide.color.ColorValue;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;

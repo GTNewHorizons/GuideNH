@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.RenderHelper;
@@ -10,6 +8,8 @@ import net.minecraft.item.ItemStack;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 public class ItemCandidate implements AutocompleteCandidate {
 

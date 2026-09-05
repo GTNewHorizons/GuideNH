@@ -7,9 +7,11 @@ import net.minecraft.util.ResourceLocation;
 /**
  * Identifies a rectangular sprite in a texture atlas used by a Scene Editor toolbar button.
  *
- * <p>All source coordinates and dimensions are measured in atlas pixels. The atlas dimensions are
+ * <p>
+ * All source coordinates and dimensions are measured in atlas pixels. The atlas dimensions are
  * supplied separately because the renderer uses them to convert the source rectangle to texture
- * coordinates; they do not imply that the resource must be a particular image size.</p>
+ * coordinates; they do not imply that the resource must be a particular image size.
+ * </p>
  */
 public class SceneEditorIcon {
 

@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.welcome;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.awt.Desktop;
 import java.net.URI;
 import java.util.ArrayDeque;
@@ -30,6 +28,7 @@ import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.PageCollection;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -73,12 +72,8 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private static final int EXTERNAL_LINK_CONFIRM_ID = 0;
 
     private final GuiScreen parent;
-    private final VanillaRenderContext renderContext = new VanillaRenderContext(
-        LytRect.empty(),
-        0);
-    private final VanillaRenderContext contentTooltipRenderContext = new VanillaRenderContext(
-        LytRect.empty(),
-        0);
+    private final VanillaRenderContext renderContext = new VanillaRenderContext(LytRect.empty(), 0);
+    private final VanillaRenderContext contentTooltipRenderContext = new VanillaRenderContext(LytRect.empty(), 0);
     private final MinecraftFontMetrics fontMetrics = new MinecraftFontMetrics();
 
     @Nullable
@@ -452,7 +447,12 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
     private void renderDocument(int mouseX, int mouseY) {
         if (document == null) {
-            drawCenteredString(fontRendererObj, I18n.format("gui.done"), width / 2, documentTop(), ColorUtils.TEXT_MUTED.getColor());
+            drawCenteredString(
+                fontRendererObj,
+                I18n.format("gui.done"),
+                width / 2,
+                documentTop(),
+                ColorUtils.TEXT_MUTED.getColor());
             return;
         }
 

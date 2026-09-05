@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.compiler.tags.functiongraph;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
@@ -159,7 +158,8 @@ public class FunctionGraphAttrs {
     public static MarkedPoint parsePoint(PageCompiler compiler, LytErrorSink sink, MdxJsxElementFields el) {
         String colorStr = MdxAttrs.getString(compiler, sink, el, "color", null);
         boolean colorInherit = colorStr == null;
-        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ColorUtils.WHITE.getColor()) : ColorUtils.WHITE.getColor();
+        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ColorUtils.WHITE.getColor())
+            : ColorUtils.WHITE.getColor();
         String label = MdxAttrs.getString(compiler, sink, el, "label", null);
 
         double xValue = parseDouble(MdxAttrs.getString(compiler, sink, el, "x", null), Double.NaN);

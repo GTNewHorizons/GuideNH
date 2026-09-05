@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.layout.flow;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.text.BreakIterator;
 import java.text.CharacterIterator;
 import java.util.Arrays;
@@ -10,6 +8,7 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;

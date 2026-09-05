@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 /**
  * Draws the {@code window.png} and {@code window_inner.png} 9-slice frames (16x16 source, 4px

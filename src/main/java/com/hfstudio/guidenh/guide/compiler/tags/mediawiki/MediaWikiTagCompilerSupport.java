@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.compiler.tags.mediawiki;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +7,7 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.Guide;
-import com.hfstudio.guidenh.guide.color.ColorValue;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;

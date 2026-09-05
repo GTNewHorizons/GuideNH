@@ -6,9 +6,11 @@ import net.minecraft.client.gui.FontRenderer;
 /**
  * Rendering services supplied by the Scene Editor to a {@link SceneEditorMenuWidget}.
  *
- * <p>The context is created for a menu draw pass and provides the client font renderer, Minecraft
+ * <p>
+ * The context is created for a menu draw pass and provides the client font renderer, Minecraft
  * instance, and the primitive operations permitted to a registered widget. Coordinates passed to
- * drawing methods are screen pixels in the widget's menu coordinate space.</p>
+ * drawing methods are screen pixels in the widget's menu coordinate space.
+ * </p>
  */
 public interface SceneEditorMenuWidgetContext {
 

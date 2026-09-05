@@ -3,11 +3,11 @@ package com.hfstudio.guidenh.guide.scene.ponder;
 import java.util.Locale;
 import java.util.Objects;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
 import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 /**
  * A particle effect entry triggered when a Ponder keyframe becomes active during forward playback.

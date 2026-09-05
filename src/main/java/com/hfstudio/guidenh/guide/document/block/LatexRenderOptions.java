@@ -1,10 +1,9 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 
 @Desugar

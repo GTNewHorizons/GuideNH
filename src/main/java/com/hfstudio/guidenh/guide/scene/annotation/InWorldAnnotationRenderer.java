@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 
 public class InWorldAnnotationRenderer {
@@ -68,8 +67,7 @@ public class InWorldAnnotationRenderer {
         }
     }
 
-    public static void drawAll(Iterable<InWorldAnnotation> annotations, boolean occluded,
-        boolean pass2) {
+    public static void drawAll(Iterable<InWorldAnnotation> annotations, boolean occluded, boolean pass2) {
         for (var a : annotations) {
             if (a.isAlwaysOnTop() != pass2) continue;
             if (occluded && a.isAlwaysOnTop()) continue;
@@ -92,8 +90,7 @@ public class InWorldAnnotationRenderer {
         }
     }
 
-    private static void drawLineAnnotation(InWorldLineAnnotation line, int color,
-        boolean occluded) {
+    private static void drawLineAnnotation(InWorldLineAnnotation line, int color, boolean occluded) {
         var points = line.points();
         for (int i = 0; i + 1 < points.size(); i++) {
             Vector3f from = points.get(i);

@@ -1,9 +1,9 @@
 package com.hfstudio.guidenh.guide.internal.markdown.highlight;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.EnumMap;
 import java.util.Map;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 public class CodeHighlightTheme {
 

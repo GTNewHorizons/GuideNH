@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.gui.FontRenderer;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 public class TextCandidate implements AutocompleteCandidate {
 

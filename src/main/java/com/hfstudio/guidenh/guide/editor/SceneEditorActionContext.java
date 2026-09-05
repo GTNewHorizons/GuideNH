@@ -5,10 +5,12 @@ import com.hfstudio.guidenh.guide.internal.editor.SceneEditorSession;
 /**
  * The client-side operations and state that GuideNH exposes to a registered Scene Editor action.
  *
- * <p>The context is valid only while the action is being invoked. Actions should use the supplied
+ * <p>
+ * The context is valid only while the action is being invoked. Actions should use the supplied
  * session and operations instead of retaining the context or reaching into the editor screen. Calls
  * are expected to run on the Minecraft client thread, which is also the thread that owns the editor
- * UI and preview world.</p>
+ * UI and preview world.
+ * </p>
  */
 public interface SceneEditorActionContext {
 

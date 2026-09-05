@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.render;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -17,6 +15,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;

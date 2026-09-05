@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.mediawiki;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -16,8 +14,8 @@ import org.jetbrains.annotations.Nullable;
 import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.BorderRenderer;

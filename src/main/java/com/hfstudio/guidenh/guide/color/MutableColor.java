@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.color;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 /**
  * A helper for mutating color values. The color values are stored as {@code float} components between 0 and 1.
  */

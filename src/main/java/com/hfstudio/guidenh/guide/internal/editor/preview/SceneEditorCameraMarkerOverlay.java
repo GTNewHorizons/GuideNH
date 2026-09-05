@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;

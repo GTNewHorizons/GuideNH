@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import net.minecraft.item.ItemStack;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;

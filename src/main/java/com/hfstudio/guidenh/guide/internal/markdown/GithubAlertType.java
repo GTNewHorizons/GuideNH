@@ -1,9 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 

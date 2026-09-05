@@ -1,12 +1,11 @@
 package com.hfstudio.guidenh.guide.internal.editor.guide;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 
 import org.lwjgl.input.Keyboard;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 
 public class GuideScreenEditorConflictPrompt extends GuiScreen {
@@ -89,9 +88,15 @@ public class GuideScreenEditorConflictPrompt extends GuiScreen {
         int baseY = (this.height - PROMPT_HEIGHT) / 2;
         drawRect(baseX, baseY, baseX + PROMPT_WIDTH, baseY + PROMPT_HEIGHT, ColorUtils.DIALOG.getColor());
         drawRect(baseX, baseY, baseX + PROMPT_WIDTH, baseY + 1, ColorUtils.ARGB_FF4D5661.getColor());
-        drawRect(baseX, baseY + PROMPT_HEIGHT - 1, baseX + PROMPT_WIDTH, baseY + PROMPT_HEIGHT, ColorUtils.ARGB_FF4D5661.getColor());
+        drawRect(
+            baseX,
+            baseY + PROMPT_HEIGHT - 1,
+            baseX + PROMPT_WIDTH,
+            baseY + PROMPT_HEIGHT,
+            ColorUtils.ARGB_FF4D5661.getColor());
         drawCenteredString(fontRendererObj, title, this.width / 2, baseY + 12, ColorUtils.TEXT.getColor());
-        fontRendererObj.drawSplitString(message, baseX + 12, baseY + 34, PROMPT_WIDTH - 24, ColorUtils.TEXT_MUTED.getColor());
+        fontRendererObj
+            .drawSplitString(message, baseX + 12, baseY + 34, PROMPT_WIDTH - 24, ColorUtils.TEXT_MUTED.getColor());
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
 

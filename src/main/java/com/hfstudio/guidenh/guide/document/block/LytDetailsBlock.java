@@ -1,13 +1,11 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
@@ -331,7 +329,9 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
         context.fillRect(trackBounds, ColorUtils.ARGB_30242B33.getColor());
         LytRect thumbBounds = getScrollbarThumbBounds();
         if (!thumbBounds.isEmpty()) {
-            context.fillRect(thumbBounds, draggingScrollbar ? ColorUtils.ARGB_FFCDD6E1.getColor() : ColorUtils.ARGB_A0AAB5C2.getColor());
+            context.fillRect(
+                thumbBounds,
+                draggingScrollbar ? ColorUtils.ARGB_FFCDD6E1.getColor() : ColorUtils.ARGB_A0AAB5C2.getColor());
         }
     }
 

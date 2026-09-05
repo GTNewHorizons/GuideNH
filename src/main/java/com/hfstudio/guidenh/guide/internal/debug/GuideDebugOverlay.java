@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.debug;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -13,6 +11,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 
 import lombok.Getter;

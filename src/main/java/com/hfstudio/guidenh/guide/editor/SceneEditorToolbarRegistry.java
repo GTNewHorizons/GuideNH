@@ -10,9 +10,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Global registry for toolbar buttons contributed to the Scene Editor.
  *
- * <p>Contributions are keyed by button id and are independent of the lifetime of an individual
+ * <p>
+ * Contributions are keyed by button id and are independent of the lifetime of an individual
  * editor screen. The screen obtains a fresh immutable snapshot for each layout pass; registrations
- * can therefore be added or removed while no screen is open without retaining screen instances.</p>
+ * can therefore be added or removed while no screen is open without retaining screen instances.
+ * </p>
  */
 public class SceneEditorToolbarRegistry {
 

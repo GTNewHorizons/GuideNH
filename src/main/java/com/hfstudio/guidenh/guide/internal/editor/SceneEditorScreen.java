@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,6 +39,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver.ResolvedBlockReference;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -1462,7 +1461,11 @@ public class SceneEditorScreen extends GuiScreen {
         boolean hasImportedStructure = structureSource != null && !structureSource.isEmpty();
         int titleX = TOOLBAR_MARGIN_X + 152 + registeredToolbarButtons.size() * (GuideIconButton.WIDTH + 4);
         int sessionLabelY = TOOLBAR_Y + 16;
-        this.drawString(this.fontRendererObj, GuidebookText.SceneEditorTitle.text(), titleX, TOOLBAR_Y + 4,
+        this.drawString(
+            this.fontRendererObj,
+            GuidebookText.SceneEditorTitle.text(),
+            titleX,
+            TOOLBAR_Y + 4,
             ColorUtils.RGB_WHITE.getColor());
         String sessionLabel = hasImportedStructure ? GuidebookText.SceneEditorImportedSession.text()
             : GuidebookText.SceneEditorBlankSession.text();
@@ -1874,9 +1877,19 @@ public class SceneEditorScreen extends GuiScreen {
             return;
         }
         drawRect(frameRect.x(), frameRect.y(), frameRect.right(), frameRect.y() + 1, ColorUtils.ACCENT.getColor());
-        drawRect(frameRect.x(), frameRect.bottom() - 1, frameRect.right(), frameRect.bottom(), ColorUtils.ACCENT.getColor());
+        drawRect(
+            frameRect.x(),
+            frameRect.bottom() - 1,
+            frameRect.right(),
+            frameRect.bottom(),
+            ColorUtils.ACCENT.getColor());
         drawRect(frameRect.x(), frameRect.y(), frameRect.x() + 1, frameRect.bottom(), ColorUtils.ACCENT.getColor());
-        drawRect(frameRect.right() - 1, frameRect.y(), frameRect.right(), frameRect.bottom(), ColorUtils.ACCENT.getColor());
+        drawRect(
+            frameRect.right() - 1,
+            frameRect.y(),
+            frameRect.right(),
+            frameRect.bottom(),
+            ColorUtils.ACCENT.getColor());
         this.drawString(
             this.fontRendererObj,
             session.getSceneModel()
@@ -1904,7 +1917,12 @@ public class SceneEditorScreen extends GuiScreen {
             settingsBoxX + settingsBoxWidth,
             settingsBoxY + settingsBoxHeight,
             PANEL_INNER_COLOR);
-        drawBorder(settingsBoxX, settingsBoxY, settingsBoxWidth, settingsBoxHeight, ColorUtils.ARGB_FF464A50.getColor());
+        drawBorder(
+            settingsBoxX,
+            settingsBoxY,
+            settingsBoxWidth,
+            settingsBoxHeight,
+            ColorUtils.ARGB_FF464A50.getColor());
 
         drawSettingsTabs(mouseX, mouseY);
         for (NumericParameterRow row : getVisibleParameterRows()) {
@@ -1974,7 +1992,12 @@ public class SceneEditorScreen extends GuiScreen {
             int backgroundColor = active ? SETTINGS_TAB_ACTIVE_COLOR
                 : hovered ? SETTINGS_TAB_HOVER_COLOR : SETTINGS_TAB_INACTIVE_COLOR;
             drawRect(tabX, tabY, tabX + tabWidth, tabY + SETTINGS_TAB_HEIGHT, backgroundColor);
-            drawBorder(tabX, tabY, tabWidth, SETTINGS_TAB_HEIGHT, active ? ColorUtils.ACCENT.getColor() : ColorUtils.INPUT_BORDER.getColor());
+            drawBorder(
+                tabX,
+                tabY,
+                tabWidth,
+                SETTINGS_TAB_HEIGHT,
+                active ? ColorUtils.ACCENT.getColor() : ColorUtils.INPUT_BORDER.getColor());
             String label = this.fontRendererObj.trimStringToWidth(
                 tab.getTextKey()
                     .text(),
@@ -2027,7 +2050,8 @@ public class SceneEditorScreen extends GuiScreen {
             return;
         }
         String visibleText = this.fontRendererObj.trimStringToWidth(text, Math.max(0, inputField.width));
-        this.fontRendererObj.drawString(visibleText, inputField.xPosition, inputField.yPosition, ColorUtils.ARGB_F0F0F0.getColor());
+        this.fontRendererObj
+            .drawString(visibleText, inputField.xPosition, inputField.yPosition, ColorUtils.ARGB_F0F0F0.getColor());
     }
 
     private void requestCloseEditor() {
@@ -2407,7 +2431,12 @@ public class SceneEditorScreen extends GuiScreen {
             bounds.right(),
             bounds.bottom(),
             hovered ? CLOSE_DIALOG_HOVER : ColorUtils.ELEMENT_ROW.getColor());
-        drawBorder(bounds.x(), bounds.y(), bounds.width(), bounds.height(), hovered ? ColorUtils.ACCENT.getColor() : INPUT_BORDER_COLOR);
+        drawBorder(
+            bounds.x(),
+            bounds.y(),
+            bounds.width(),
+            bounds.height(),
+            hovered ? ColorUtils.ACCENT.getColor() : INPUT_BORDER_COLOR);
         this.drawCenteredString(
             this.fontRendererObj,
             action.text()
@@ -2992,7 +3021,8 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawPreviewFrameButton() {
         boolean hovered = isInsidePreviewFrameButton(currentMouseX(), currentMouseY());
-        int backgroundColor = previewFrameOverlayVisible ? ColorUtils.TAB_HOVER.getColor() : hovered ? ColorUtils.ARGB_7A1C252E.getColor() : ColorUtils.ARGB_5512181C.getColor();
+        int backgroundColor = previewFrameOverlayVisible ? ColorUtils.TAB_HOVER.getColor()
+            : hovered ? ColorUtils.ARGB_7A1C252E.getColor() : ColorUtils.ARGB_5512181C.getColor();
         drawRect(
             previewFrameButtonX,
             previewFrameButtonY,
@@ -3129,7 +3159,12 @@ public class SceneEditorScreen extends GuiScreen {
             elementsBoxX + elementsBoxWidth,
             elementsBoxY + elementsBoxHeight,
             PANEL_INNER_COLOR);
-        drawBorder(elementsBoxX, elementsBoxY, elementsBoxWidth, elementsBoxHeight, ColorUtils.ARGB_FF464A50.getColor());
+        drawBorder(
+            elementsBoxX,
+            elementsBoxY,
+            elementsBoxWidth,
+            elementsBoxHeight,
+            ColorUtils.ARGB_FF464A50.getColor());
 
         this.drawString(
             this.fontRendererObj,
@@ -3271,7 +3306,12 @@ public class SceneEditorScreen extends GuiScreen {
             .equals(expandedElementId);
         int rowColor = selected ? ColorUtils.ELEMENT_ROW_SELECTED.getColor() : ColorUtils.ELEMENT_ROW.getColor();
         drawRect(x, y, x + width, y + ELEMENT_ROW_HEIGHT, rowColor);
-        drawBorder(x, y, width, ELEMENT_ROW_HEIGHT, selected ? ColorUtils.ACCENT.getColor() : ColorUtils.INPUT_BORDER.getColor());
+        drawBorder(
+            x,
+            y,
+            width,
+            ELEMENT_ROW_HEIGHT,
+            selected ? ColorUtils.ACCENT.getColor() : ColorUtils.INPUT_BORDER.getColor());
 
         int arrowX = x + 4;
         int arrowY = y + 6;
@@ -3291,8 +3331,14 @@ public class SceneEditorScreen extends GuiScreen {
 
         int deleteX = x + width - 30;
         int eyeX = x + width - 14;
-        GuideIconButton
-            .drawIcon(this.mc, GuideIconButton.Role.SCENE_EDITOR_DELETE_ELEMENT, deleteX, y + 2, 12, 12, ColorUtils.ARGB_C0FFFFFF.getColor());
+        GuideIconButton.drawIcon(
+            this.mc,
+            GuideIconButton.Role.SCENE_EDITOR_DELETE_ELEMENT,
+            deleteX,
+            y + 2,
+            12,
+            12,
+            ColorUtils.ARGB_C0FFFFFF.getColor());
         GuideIconButton.drawIcon(
             this.mc,
             element.isVisible() ? GuideIconButton.Role.SCENE_EDITOR_HIDE_ELEMENT
@@ -3923,8 +3969,18 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawAddElementMenu(int mouseX, int mouseY) {
         LytRect menuBounds = getAddElementMenuBounds();
-        drawRect(menuBounds.x(), menuBounds.y(), menuBounds.right(), menuBounds.bottom(), ColorUtils.ELEMENT_MENU.getColor());
-        drawBorder(menuBounds.x(), menuBounds.y(), menuBounds.width(), menuBounds.height(), ColorUtils.INPUT_BORDER.getColor());
+        drawRect(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.right(),
+            menuBounds.bottom(),
+            ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.width(),
+            menuBounds.height(),
+            ColorUtils.INPUT_BORDER.getColor());
         List<SceneEditorElementType> elementTypes = SceneEditorElementType.values();
         for (int i = 0; i < elementTypes.size(); i++) {
             SceneEditorElementType type = elementTypes.get(i);
@@ -4339,8 +4395,18 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawExportMenu(int mouseX, int mouseY) {
         LytRect menuBounds = getExportMenuBounds();
-        drawRect(menuBounds.x(), menuBounds.y(), menuBounds.right(), menuBounds.bottom(), ColorUtils.ELEMENT_MENU.getColor());
-        drawBorder(menuBounds.x(), menuBounds.y(), menuBounds.width(), menuBounds.height(), ColorUtils.INPUT_BORDER.getColor());
+        drawRect(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.right(),
+            menuBounds.bottom(),
+            ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.width(),
+            menuBounds.height(),
+            ColorUtils.INPUT_BORDER.getColor());
         List<MenuEntry> options = exportMenuEntries();
         int rowY = menuBounds.y();
         for (MenuEntry option : options) {
@@ -4490,8 +4556,18 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawScreenshotMenu(int mouseX, int mouseY) {
         LytRect menuBounds = getScreenshotMenuBounds();
-        drawRect(menuBounds.x(), menuBounds.y(), menuBounds.right(), menuBounds.bottom(), ColorUtils.ELEMENT_MENU.getColor());
-        drawBorder(menuBounds.x(), menuBounds.y(), menuBounds.width(), menuBounds.height(), ColorUtils.INPUT_BORDER.getColor());
+        drawRect(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.right(),
+            menuBounds.bottom(),
+            ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.width(),
+            menuBounds.height(),
+            ColorUtils.INPUT_BORDER.getColor());
 
         int rowTop = menuBounds.y() + SceneEditorScreenshotMenuController.MENU_PADDING;
         for (int i = 0; i < SceneEditorScreenshotFormat.values().length; i++) {
@@ -4657,8 +4733,18 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void drawSnapModeMenu(int mouseX, int mouseY) {
         LytRect menuBounds = getSnapModeMenuBounds();
-        drawRect(menuBounds.x(), menuBounds.y(), menuBounds.right(), menuBounds.bottom(), ColorUtils.ELEMENT_MENU.getColor());
-        drawBorder(menuBounds.x(), menuBounds.y(), menuBounds.width(), menuBounds.height(), ColorUtils.INPUT_BORDER.getColor());
+        drawRect(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.right(),
+            menuBounds.bottom(),
+            ColorUtils.ELEMENT_MENU.getColor());
+        drawBorder(
+            menuBounds.x(),
+            menuBounds.y(),
+            menuBounds.width(),
+            menuBounds.height(),
+            ColorUtils.INPUT_BORDER.getColor());
         List<MenuEntry> options = snapModeMenuEntries();
         int rowY = menuBounds.y();
         for (MenuEntry option : options) {
@@ -4756,7 +4842,12 @@ public class SceneEditorScreen extends GuiScreen {
             contextMenuX + ELEMENT_CONTEXT_MENU_WIDTH,
             contextMenuY + menuHeight,
             ColorUtils.ELEMENT_MENU.getColor());
-        drawBorder(contextMenuX, contextMenuY, ELEMENT_CONTEXT_MENU_WIDTH, menuHeight, ColorUtils.INPUT_BORDER.getColor());
+        drawBorder(
+            contextMenuX,
+            contextMenuY,
+            ELEMENT_CONTEXT_MENU_WIDTH,
+            menuHeight,
+            ColorUtils.INPUT_BORDER.getColor());
         for (int i = 0; i < contextMenuActions.size(); i++) {
             int rowY = contextMenuY + i * ELEMENT_MENU_ROW_HEIGHT;
             drawMenuHover(
@@ -5005,7 +5096,12 @@ public class SceneEditorScreen extends GuiScreen {
             ColorUtils.SCROLLBAR_TRACK.getColor());
         SceneEditorVerticalScrollbar.Thumb thumb = getElementScrollbarThumb();
         if (thumb != null) {
-            drawRect(scrollbarBounds.x(), thumb.start(), scrollbarBounds.right(), thumb.end(), ColorUtils.SCROLLBAR_THUMB.getColor());
+            drawRect(
+                scrollbarBounds.x(),
+                thumb.start(),
+                scrollbarBounds.right(),
+                thumb.end(),
+                ColorUtils.SCROLLBAR_THUMB.getColor());
         }
     }
 

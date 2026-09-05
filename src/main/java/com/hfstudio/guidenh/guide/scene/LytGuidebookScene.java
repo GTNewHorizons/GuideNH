@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.scene;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,6 +46,7 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -6824,11 +6823,15 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         int trackH = 4;
 
         // Track
-        context.fillRect(new LytRect(barX, barY, barWidth, trackH), loadFailed ? ColorUtils.ARGB_66AA2222.getColor() : ColorUtils.ARGB_6622262C.getColor());
+        context.fillRect(
+            new LytRect(barX, barY, barWidth, trackH),
+            loadFailed ? ColorUtils.ARGB_66AA2222.getColor() : ColorUtils.ARGB_6622262C.getColor());
         // Fill (amber yellow)
         int fillW = Math.round(barWidth * loadProgress);
         if (fillW > 0) {
-            context.fillRect(new LytRect(barX, barY, fillW, trackH), loadFailed ? ColorUtils.ARGB_FFFF5555.getColor() : LOADING_FILL_COLOR);
+            context.fillRect(
+                new LytRect(barX, barY, fillW, trackH),
+                loadFailed ? ColorUtils.ARGB_FFFF5555.getColor() : LOADING_FILL_COLOR);
         }
         // Status text
         if (loadStatusText != null && !loadStatusText.isEmpty()) {

@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.ui;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import com.hfstudio.guidenh.guide.document.LytRect;
 
 public class GuideSliderRenderer {

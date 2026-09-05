@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.recipe;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.List;
 
 import net.minecraft.client.Minecraft;
@@ -13,6 +11,7 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;

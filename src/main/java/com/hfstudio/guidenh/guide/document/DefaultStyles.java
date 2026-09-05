@@ -1,9 +1,7 @@
 package com.hfstudio.guidenh.guide.document;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.TextStyle;

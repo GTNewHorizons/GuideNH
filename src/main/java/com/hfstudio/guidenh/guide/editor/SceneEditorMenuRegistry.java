@@ -9,10 +9,12 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Global registry for contributions to the Scene Editor's named dropdown menus.
  *
- * <p>Menu ids identify existing editor menus; registering an item does not create a new visual menu.
+ * <p>
+ * Menu ids identify existing editor menus; registering an item does not create a new visual menu.
  * An item id must be unique within its menu. {@link #snapshot(String)} returns a new immutable,
  * order-sorted list containing only items visible at the time of the call, so callers may safely
- * render it without holding the registry lock.</p>
+ * render it without holding the registry lock.
+ * </p>
  */
 public class SceneEditorMenuRegistry {
 

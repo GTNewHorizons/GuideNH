@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlotGrid;
@@ -25,8 +24,11 @@ public class StructureLibTooltipContentBuilder {
     public static final TextStyle HATCH_LABEL_STYLE = TextStyle.builder()
         .color(new ConstantColor(ColorUtils.ARGB_FFFFCC55.getColor()))
         .build();
-    public static final int[] HINT_DOT_COLORS = new int[] { ColorUtils.ARGB_FFFF0000.getColor(), ColorUtils.ARGB_FF00FF00.getColor(), ColorUtils.ARGB_FF0000FF.getColor(), ColorUtils.ARGB_FFFFFF00.getColor(), ColorUtils.ARGB_FFFF00FF.getColor(),
-        ColorUtils.ARGB_FF00FFFF.getColor(), ColorUtils.ARGB_FFFFA500.getColor(), ColorUtils.ARGB_FF800080.getColor(), ColorUtils.ARGB_FF006400.getColor(), ColorUtils.ARGB_FF8B0000.getColor(), ColorUtils.ARGB_FF00008B.getColor(), ColorUtils.ARGB_FF008B8B.getColor() };
+    public static final int[] HINT_DOT_COLORS = new int[] { ColorUtils.ARGB_FFFF0000.getColor(),
+        ColorUtils.ARGB_FF00FF00.getColor(), ColorUtils.ARGB_FF0000FF.getColor(), ColorUtils.ARGB_FFFFFF00.getColor(),
+        ColorUtils.ARGB_FFFF00FF.getColor(), ColorUtils.ARGB_FF00FFFF.getColor(), ColorUtils.ARGB_FFFFA500.getColor(),
+        ColorUtils.ARGB_FF800080.getColor(), ColorUtils.ARGB_FF006400.getColor(), ColorUtils.ARGB_FF8B0000.getColor(),
+        ColorUtils.ARGB_FF00008B.getColor(), ColorUtils.ARGB_FF008B8B.getColor() };
 
     private StructureLibTooltipContentBuilder() {}
 

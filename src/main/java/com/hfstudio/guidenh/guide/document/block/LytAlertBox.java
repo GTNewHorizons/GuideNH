@@ -1,9 +1,7 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowText;

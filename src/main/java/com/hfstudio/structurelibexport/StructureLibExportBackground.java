@@ -1,10 +1,10 @@
 package com.hfstudio.structurelibexport;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.Locale;
 
 import net.minecraft.command.CommandException;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 import lombok.Getter;
 

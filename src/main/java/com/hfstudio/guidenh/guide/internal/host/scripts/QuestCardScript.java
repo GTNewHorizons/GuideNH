@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.host.scripts;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.UUID;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.StatCollector;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytQuoteBox;

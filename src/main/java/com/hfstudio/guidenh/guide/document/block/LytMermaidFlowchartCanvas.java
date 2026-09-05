@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -9,6 +7,7 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.shapes.FlowchartShapes;
@@ -49,10 +48,16 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     private static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(ColorUtils.ARGB_FFF1F6FB.getColor());
     private static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(ColorUtils.CHART_LABEL.getColor());
     private static final ConstantColor EDGE_COLOR = new ConstantColor(ColorUtils.ARGB_FF5D6C7C.getColor());
-    private static final ConstantColor[] SUBGRAPH_BG = { new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_PURPLE.getColor()), new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_VIOLET.getColor()),
-        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_DARK.getColor()), new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_GOLD.getColor()), };
-    private static final ConstantColor[] SUBGRAPH_BORDER = { new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_BLUE.getColor()),
-        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_GREEN.getColor()), new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_OLIVE.getColor()), new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_TEAL.getColor()), };
+    private static final ConstantColor[] SUBGRAPH_BG = {
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_PURPLE.getColor()),
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_VIOLET.getColor()),
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_DARK.getColor()),
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_GOLD.getColor()), };
+    private static final ConstantColor[] SUBGRAPH_BORDER = {
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_BLUE.getColor()),
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_GREEN.getColor()),
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_OLIVE.getColor()),
+        new ConstantColor(ColorUtils.MERMAID_SUBGRAPH_BORDER_TEAL.getColor()), };
     private static final int SUBGRAPH_PADDING = 8;
     private static final int SUBGRAPH_LABEL_HEIGHT = 14;
 

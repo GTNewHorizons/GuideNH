@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,6 +8,7 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.MermaidNodeRenderer;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
@@ -647,10 +646,14 @@ public class GuideSiteGraphRenderer {
     private static final String DEFAULT_EDGE_COLOR = "#5D6C7C";
     private static final int SUBGRAPH_PADDING = 8;
     private static final int SUBGRAPH_LABEL_HEIGHT = 14;
-    private static final String[] SUBGRAPH_BG = { argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_PURPLE.getColor()), argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_VIOLET.getColor()),
-        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_DARK.getColor()), argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_GOLD.getColor()), };
-    private static final String[] SUBGRAPH_BORDER = { argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_BLUE.getColor()), argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_GREEN.getColor()),
-        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_OLIVE.getColor()), argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_TEAL.getColor()), };
+    private static final String[] SUBGRAPH_BG = { argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_PURPLE.getColor()),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_VIOLET.getColor()),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_DARK.getColor()),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BACKGROUND_GOLD.getColor()), };
+    private static final String[] SUBGRAPH_BORDER = { argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_BLUE.getColor()),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_GREEN.getColor()),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_OLIVE.getColor()),
+        argbToRgba(ColorUtils.MERMAID_SUBGRAPH_BORDER_TEAL.getColor()), };
 
     @Nullable
     private static FlowchartLayoutResult.Point intersectEdgeEndpoint(FlowchartDocument doc,

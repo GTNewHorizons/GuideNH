@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.integration.nei;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +19,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.GuideScreen;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;

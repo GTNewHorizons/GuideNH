@@ -54,9 +54,7 @@ public class SceneEditorOffscreenFramebuffer implements AutoCloseable {
             scene.setSceneSize(width, height);
             scene.layout(new LayoutContext(new MinecraftFontMetrics()), 0, 0, width);
 
-            VanillaRenderContext renderContext = new VanillaRenderContext(
-                new LytRect(0, 0, width, height),
-                height);
+            VanillaRenderContext renderContext = new VanillaRenderContext(new LytRect(0, 0, width, height), height);
             renderContext.setDocumentOrigin(0, 0);
             renderContext.setScrollOffsetY(0);
             scene.render(renderContext);
@@ -105,9 +103,7 @@ public class SceneEditorOffscreenFramebuffer implements AutoCloseable {
             GL11.glClearColor(0f, 0f, 0f, 0f);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
-            VanillaRenderContext renderContext = new VanillaRenderContext(
-                new LytRect(0, 0, width, height),
-                height);
+            VanillaRenderContext renderContext = new VanillaRenderContext(new LytRect(0, 0, width, height), height);
             renderContext.setDocumentOrigin(-offsetX, -offsetY);
             renderContext.setScrollOffsetY(0);
             scene.render(renderContext);

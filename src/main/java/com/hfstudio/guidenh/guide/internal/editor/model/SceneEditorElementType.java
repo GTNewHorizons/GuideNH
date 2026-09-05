@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.model;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +7,7 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 

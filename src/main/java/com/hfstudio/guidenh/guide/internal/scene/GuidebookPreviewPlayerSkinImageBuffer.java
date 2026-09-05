@@ -1,13 +1,13 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
 import net.minecraft.client.renderer.IImageBuffer;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;

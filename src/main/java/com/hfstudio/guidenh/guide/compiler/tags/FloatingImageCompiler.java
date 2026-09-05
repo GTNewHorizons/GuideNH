@@ -7,9 +7,9 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.IndexingContext;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
@@ -223,8 +223,7 @@ public class FloatingImageCompiler extends FlowTagCompiler {
         if (allowBorder && el.getAttribute("borderColor") != null) {
             borderColor = MdxAttrs.getColor(compiler, parent, el, "borderColor", ConstantColor.WHITE);
         } else {
-            borderColor = allowBorder
-                ? new ConstantColor(ColorUtils.BLACK.getColor() | RANDOM.nextInt(0x1000000))
+            borderColor = allowBorder ? new ConstantColor(ColorUtils.BLACK.getColor() | RANDOM.nextInt(0x1000000))
                 : ConstantColor.WHITE;
         }
 

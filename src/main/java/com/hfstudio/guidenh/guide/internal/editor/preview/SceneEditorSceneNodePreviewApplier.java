@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.preview;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,6 +18,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver;
 import com.hfstudio.guidenh.guide.compiler.GuideItemReferenceResolver.ResolvedBlockReference;
@@ -678,7 +677,9 @@ public class SceneEditorSceneNodePreviewApplier {
             parseFloatAttributeOrDefault(hlMaxY, 1f),
             parseFloatAttributeOrDefault(hlMaxZ, 1f));
         normalizeBounds(min, max);
-        ConstantColor highlightColor = parseColorOrDefault(element.getExtraAttribute("highlightColor"), ColorUtils.HIGHLIGHT.getColor());
+        ConstantColor highlightColor = parseColorOrDefault(
+            element.getExtraAttribute("highlightColor"),
+            ColorUtils.HIGHLIGHT.getColor());
         InWorldBoxAnnotation annotation = new InWorldBoxAnnotation(
             min,
             max,

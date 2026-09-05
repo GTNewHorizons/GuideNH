@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.color;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import com.github.bsideup.jabel.Desugar;
 
 @Desugar

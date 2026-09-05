@@ -1,13 +1,12 @@
 package com.hfstudio.guidenh.guide.document.block;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
@@ -675,7 +674,8 @@ public class LytMermaidMindmapCanvas extends LytMermaidCanvas<LytMermaidMindmapC
         };
 
         int border = accent;
-        int background = node == mindmap.getRoot() ? ColorUtils.ARGB_FF1F2A38.getColor() : ColorUtils.ARGB_FF111922.getColor();
+        int background = node == mindmap.getRoot() ? ColorUtils.ARGB_FF1F2A38.getColor()
+            : ColorUtils.ARGB_FF111922.getColor();
         return new NodeColors(background, border, accent);
     }
 

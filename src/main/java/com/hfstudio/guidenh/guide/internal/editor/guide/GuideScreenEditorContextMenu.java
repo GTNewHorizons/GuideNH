@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.guide;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +10,7 @@ import net.minecraft.client.gui.Gui;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorPopupLayout;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
@@ -402,7 +401,8 @@ public class GuideScreenEditorContextMenu {
         if (action == null) {
             return;
         }
-        GuideIconButton.drawIcon(minecraft, action.toRole(), x, y, ICON_SIZE, ICON_SIZE, ColorUtils.ARGB_D8FFFFFF.getColor());
+        GuideIconButton
+            .drawIcon(minecraft, action.toRole(), x, y, ICON_SIZE, ICON_SIZE, ColorUtils.ARGB_D8FFFFFF.getColor());
     }
 
     static int computeIconYForRow(int rowY) {

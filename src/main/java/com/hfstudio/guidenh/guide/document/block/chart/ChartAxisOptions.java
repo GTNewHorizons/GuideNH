@@ -1,8 +1,8 @@
 package com.hfstudio.guidenh.guide.document.block.chart;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.IllegalFormatException;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 import lombok.Getter;
 import lombok.Setter;

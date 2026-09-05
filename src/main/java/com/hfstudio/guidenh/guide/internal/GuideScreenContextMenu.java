@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +10,7 @@ import net.minecraft.client.gui.Gui;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 
 import lombok.Getter;

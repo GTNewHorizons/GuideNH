@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
@@ -14,6 +12,7 @@ import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.render.RenderContext;
@@ -142,12 +141,19 @@ public class PonderInputAnnotation extends OverlayAnnotation {
             int textX = cx - textW / 2;
             int textY = by - mc.fontRenderer.FONT_HEIGHT - 2;
             GL11.glEnable(GL11.GL_TEXTURE_2D);
-            mc.fontRenderer.drawStringWithShadow(modText, textX, textY, applyFade(ColorUtils.ARGB_FFCCCCCC.getColor(), fade));
+            mc.fontRenderer
+                .drawStringWithShadow(modText, textX, textY, applyFade(ColorUtils.ARGB_FFCCCCCC.getColor(), fade));
             GL11.glDisable(GL11.GL_TEXTURE_2D);
         }
 
-        TextAnnotation.drawFilledRect(bx - 1, by - 1, bx + boxW + 1, by + boxH + 1, applyFade(ColorUtils.ARGB_80AAAADD.getColor(), fade));
-        TextAnnotation.drawFilledRect(bx, by, bx + boxW, by + boxH, applyFade(ColorUtils.ARGB_CC0E0E20.getColor(), fade));
+        TextAnnotation.drawFilledRect(
+            bx - 1,
+            by - 1,
+            bx + boxW + 1,
+            by + boxH + 1,
+            applyFade(ColorUtils.ARGB_80AAAADD.getColor(), fade));
+        TextAnnotation
+            .drawFilledRect(bx, by, bx + boxW, by + boxH, applyFade(ColorUtils.ARGB_CC0E0E20.getColor(), fade));
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
@@ -181,7 +187,7 @@ public class PonderInputAnnotation extends OverlayAnnotation {
         mc.getTextureManager()
             .bindTexture(GuideIconButton.PONDER_WIDGETS_TEX);
 
-            ColorUtils.applyWhite(fade);
+        ColorUtils.applyWhite(fade);
         float texSize = 256f;
         float u0 = inputType.srcX / texSize;
         float v0 = inputType.srcY / texSize;
@@ -196,7 +202,7 @@ public class PonderInputAnnotation extends OverlayAnnotation {
         tess.addVertexWithUV(iconX, iconY, 0, u0, v0);
         tess.draw();
 
-            ColorUtils.applyWhite(fade);
+        ColorUtils.applyWhite(fade);
         GL11.glDisable(GL11.GL_BLEND);
     }
 }

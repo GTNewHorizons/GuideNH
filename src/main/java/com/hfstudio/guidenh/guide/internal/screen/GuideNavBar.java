@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.screen;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,6 +23,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageCollection;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.GuideBookmarkState;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
@@ -625,7 +624,12 @@ public class GuideNavBar {
             String renderedTitle = fr.getStringWidth(title) > titleW
                 ? fr.trimStringToWidth(title, Math.max(0, titleW - 4)) + "…"
                 : title;
-            fr.drawString(renderedTitle, titleX, y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1, ColorUtils.ARGB_FFE8E8E8.getColor(), false);
+            fr.drawString(
+                renderedTitle,
+                titleX,
+                y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1,
+                ColorUtils.ARGB_FFE8E8E8.getColor(),
+                false);
         }
     }
 
@@ -1017,9 +1021,11 @@ public class GuideNavBar {
 
     public static int getRowTextColor(boolean current, boolean hovered, boolean failed) {
         if (failed) {
-            return current ? ColorUtils.ARGB_FFFF9999.getColor() : hovered ? ColorUtils.ARGB_FFFF7777.getColor() : ColorUtils.ARGB_FFFF5555.getColor();
+            return current ? ColorUtils.ARGB_FFFF9999.getColor()
+                : hovered ? ColorUtils.ARGB_FFFF7777.getColor() : ColorUtils.ARGB_FFFF5555.getColor();
         }
-        return current ? ColorUtils.WHITE.getColor() : hovered ? ColorUtils.ARGB_FF88BBFF.getColor() : ColorUtils.ARGB_FFBBBBBB.getColor();
+        return current ? ColorUtils.WHITE.getColor()
+            : hovered ? ColorUtils.ARGB_FF88BBFF.getColor() : ColorUtils.ARGB_FFBBBBBB.getColor();
     }
 
     public static void drawVGradient(int x, int y, int w, int h, int topColor, int botColor) {

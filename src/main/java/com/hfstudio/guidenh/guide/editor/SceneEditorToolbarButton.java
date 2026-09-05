@@ -8,13 +8,17 @@ import java.util.function.Supplier;
 /**
  * Describes a toolbar button contributed to the Scene Editor.
  *
- * <p>The button is identified by a unique id, displayed with an atlas {@link SceneEditorIcon}, and
+ * <p>
+ * The button is identified by a unique id, displayed with an atlas {@link SceneEditorIcon}, and
  * sorted with its order value after built-in controls. Visibility and enabled state are evaluated when
  * the toolbar is laid out or interacted with. When {@code menuId} is non-null, clicking the button
- * opens that dropdown menu instead of requiring the action to perform the menu behavior itself.</p>
+ * opens that dropdown menu instead of requiring the action to perform the menu behavior itself.
+ * </p>
  *
- * <p>Registered actions run on the client thread and receive the current {@link SceneEditorActionContext}.
- * Suppliers may be evaluated repeatedly and should not mutate editor state.</p>
+ * <p>
+ * Registered actions run on the client thread and receive the current {@link SceneEditorActionContext}.
+ * Suppliers may be evaluated repeatedly and should not mutate editor state.
+ * </p>
  */
 public class SceneEditorToolbarButton {
 

@@ -1,10 +1,9 @@
 package com.hfstudio.guidenh.guide.compiler.tags.functiongraph;
 
-import com.hfstudio.guidenh.guide.color.ColorUtils;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
@@ -339,7 +338,8 @@ public class FunctionGraphFenceParser {
             return null;
         }
         String colorStr = attrs.stringValue("color");
-        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ColorUtils.WHITE.getColor()) : ColorUtils.WHITE.getColor();
+        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ColorUtils.WHITE.getColor())
+            : ColorUtils.WHITE.getColor();
         return new MarkedPoint(MarkedPoint.MODE_EXPLICIT, -1, x, y, color, false, attrs.stringValue("label"));
     }
 
@@ -352,7 +352,8 @@ public class FunctionGraphFenceParser {
         }
         String colorStr = attrs.stringValue("color");
         boolean inherit = colorStr == null;
-        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ColorUtils.WHITE.getColor()) : ColorUtils.WHITE.getColor();
+        int color = colorStr != null ? ChartAttrParser.parseColor(colorStr, ColorUtils.WHITE.getColor())
+            : ColorUtils.WHITE.getColor();
         String label = attrs.stringValue("label");
         double atX = FunctionGraphAttrs.parseDouble(attrs.stringValue("atX"), Double.NaN);
         if (!Double.isNaN(atX)) {
