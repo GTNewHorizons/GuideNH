@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
+import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 
 public class PonderLocalizationResolver {
@@ -44,7 +44,7 @@ public class PonderLocalizationResolver {
         if (normalizedKey.isEmpty()) {
             return null;
         }
-        String localized = GuideResourceLanguageIndex.getValue(language, normalizedKey);
+        String localized = GuideLanguageIndex.getValue(language, normalizedKey);
         return localized != null && !localized.isEmpty() ? localized : null;
     }
 }

@@ -30,7 +30,7 @@ import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneNodeModel;
-import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
+import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
@@ -738,7 +738,7 @@ public class SceneEditorSceneNodePreviewApplier {
         }
         String textKey = normalizeAttribute(element.getTextKey());
         if (textKey != null) {
-            String localized = GuideResourceLanguageIndex.getValue(LangUtil.getCurrentLanguage(), textKey);
+            String localized = GuideLanguageIndex.getValue(LangUtil.getCurrentLanguage(), textKey);
             if (localized != null && !localized.isEmpty()) {
                 return localized;
             }

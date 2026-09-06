@@ -20,9 +20,8 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
+import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
-import com.hfstudio.guidenh.guide.internal.localization.GuidePageLanguageIndex;
-import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.recipe.NeiAnimationTicker;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
@@ -54,8 +53,7 @@ public class GuideLightweightReloadService {
         NeiAnimationTicker.clear();
         GuidePageTexture.clear();
         GuideResourceAccess.clearCache();
-        GuidePageLanguageIndex.clear();
-        GuideResourceLanguageIndex.clear();
+        GuideLanguageIndex.clear();
         GuideLatexTextureCache.INSTANCE.clearAll();
         GuideSceneStructureCache.global()
             .clear();
@@ -75,7 +73,7 @@ public class GuideLightweightReloadService {
         // Build the small runtime localization snapshot while the reload is already in progress.
         // This prevents the first Ponder/GameScene opened after reload from synchronously scanning
         // every language file on the client thread.
-        GuideResourceLanguageIndex.warm(language);
+        GuideLanguageIndex.indexLanguage(language);
 
         for (var guide : GuideRegistry.getAll()) {
             var pages = loadPages(

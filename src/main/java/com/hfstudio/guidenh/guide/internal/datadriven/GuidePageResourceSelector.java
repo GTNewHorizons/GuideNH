@@ -110,9 +110,8 @@ public class GuidePageResourceSelector {
      * Used by the editor and runtime navigation where the caller has a
      * localized → default → raw fallback chain.
      * <p>
-     * This does NOT use the index — it does a targeted scan of only the given
-     * candidate IDs. For bulk page loading during reload, use {@link #select}
-     * instead.
+     * Uses the resource-pack index when available and falls back to a targeted
+     * scan before the index has been built.
      */
     public static @Nullable SelectedPack selectFirstPresent(Iterable<? extends IResourcePack> resourcePacks,
         ResourceLocation... sourceIds) {
@@ -203,30 +202,7 @@ public class GuidePageResourceSelector {
 
     /**
      * A resource location found in a specific resource pack.
-     * <p>
-     * Unlike the old {@code SelectedPageResource}, this does NOT carry the page bytes —
-     * the caller is expected to call {@link DataDrivenGuideLoader#readBytes} separately.
      */
     @Desugar
     public record SelectedPack(ResourceLocation sourceId, IResourcePack pack) {}
-
-    /**
-     * @deprecated Use {@link SelectedPack} instead. Bytes are no longer included;
-     *             read them separately via {@link DataDrivenGuideLoader#readBytes}.
-     */
-    @Deprecated
-    @Desugar
-    public record SelectedPageResource(ResourceLocation sourceId, IResourcePack resourcePack, byte[] bytes,
-        int loadPriority, int order) {
-
-        public boolean shouldReplace(SelectedPageResource previous) {
-            return loadPriority > previous.loadPriority()
-                || loadPriority == previous.loadPriority() && order > previous.order();
-        }
-
-        public SelectedPageResource withLoadPriority(int resolvedLoadPriority) {
-            return loadPriority == resolvedLoadPriority ? this
-                : new SelectedPageResource(sourceId, resourcePack, bytes, resolvedLoadPriority, order);
-        }
-    }
 }

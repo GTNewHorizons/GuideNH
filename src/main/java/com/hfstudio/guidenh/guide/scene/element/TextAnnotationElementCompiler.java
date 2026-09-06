@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
-import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
+import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
@@ -166,7 +166,7 @@ public class TextAnnotationElementCompiler implements SceneElementTagCompiler {
         if (normalizedKey.isEmpty()) {
             return fallbackText;
         }
-        String localized = GuideResourceLanguageIndex.getValue(compiler.getLanguage(), normalizedKey);
+        String localized = GuideLanguageIndex.getValue(compiler.getLanguage(), normalizedKey);
         return localized != null && !localized.isEmpty() ? localized : fallbackText;
     }
 

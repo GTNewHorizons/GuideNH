@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
-import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
+import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneCondition;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBoxAnnotation;
@@ -610,7 +610,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         String textKey = readOptional(flowElement, "textKey");
         if (textKey != null && !textKey.trim()
             .isEmpty()) {
-            String localized = GuideResourceLanguageIndex.getValue(LangUtil.getCurrentLanguage(), textKey.trim());
+            String localized = GuideLanguageIndex.getValue(LangUtil.getCurrentLanguage(), textKey.trim());
             if (localized != null && !localized.isEmpty()) {
                 return localized;
             }

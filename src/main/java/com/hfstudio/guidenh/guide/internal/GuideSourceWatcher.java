@@ -10,6 +10,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.StringTranslate;
 
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
@@ -28,9 +30,8 @@ import com.github.bsideup.jabel.Desugar;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
-import com.hfstudio.guidenh.guide.internal.localization.GuidePageLanguageIndex;
-import com.hfstudio.guidenh.guide.internal.localization.GuideResourceLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
@@ -356,8 +357,7 @@ public class GuideSourceWatcher implements AutoCloseable {
                 }
             }
             if (shouldClearLanguageCache) {
-                GuidePageLanguageIndex.clear();
-                GuideResourceLanguageIndex.clear();
+                GuideLanguageIndex.clear();
             }
             for (PageReloadRequest request : requests) {
                 queueReloadedPages(loadAll(request.namespace()));
@@ -751,7 +751,7 @@ public class GuideSourceWatcher implements AutoCloseable {
         }
 
         try (InputStream input = Files.newInputStream(langFilePath)) {
-            Map<String, String> entries = GuidePageLanguageIndex.readPageKeys(input);
+            Map<String, String> entries = readPageKeys(input);
             return entries.get(GuideLocalizedPageSourceResolver.buildLangKey(contentRootFolder, pageId));
         } catch (IOException e) {
             GuideDebugLog
@@ -821,7 +821,7 @@ public class GuideSourceWatcher implements AutoCloseable {
         }
 
         try (InputStream input = Files.newInputStream(langFilePath)) {
-            return GuidePageLanguageIndex.readPageKeys(input);
+            return readPageKeys(input);
         } catch (IOException e) {
             GuideDebugLog
                 .warn("[GuideNH] [GuideSourceWatcher] Failed to read localized page lang file {}", langFilePath, e);
@@ -924,5 +924,19 @@ public class GuideSourceWatcher implements AutoCloseable {
 
     private static GuideDevelopmentSourceLayout detectSourceLayout(Path folder, String contentRootFolder) {
         return GuideDevelopmentSourceLayout.detect(folder, contentRootFolder);
+    }
+
+    private static Map<String, String> readPageKeys(InputStream input) {
+        Map<String, String> source = StringTranslate.parseLangFile(input);
+        Map<String, String> filtered = new LinkedHashMap<>();
+        if (source.isEmpty()) return filtered;
+
+        for (var entry : source.entrySet()) {
+            if (GuideLanguageIndex.isPageLangKey(entry.getKey())) {
+                filtered.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return filtered;
     }
 }
