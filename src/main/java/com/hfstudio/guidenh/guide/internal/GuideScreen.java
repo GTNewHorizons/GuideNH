@@ -2534,8 +2534,8 @@ public class GuideScreen extends GuiContainer
         if (!pendingSceneRegistrations.isEmpty()) {
             return;
         }
-        // Phase 3: Scenes created asynchronously (MaterializeTask) appear in the document
-        // tree after mountDocument returns. Scan for new scenes each tick.
+        // Scenes created by MaterializeTask appear after page compilation. GuidePage only scans
+        // when the document content revision has changed.
         registerRuntimeScenes(currentPage);
         for (LytGuidebookScene scene : currentPage.scenes()) {
             scene.ponderTick();
@@ -2622,26 +2622,13 @@ public class GuideScreen extends GuiContainer
 
     /** Register scenes created at MOUNT time into GuidePage.scenes() for tick dispatch. */
     private static void registerRuntimeScenes(GuidePage page) {
-        LytDocument doc = page.document();
-        if (doc == null) return;
-        List<LytGuidebookScene> list = page.scenes();
-        ArrayDeque<LytNode> pending = new ArrayDeque<>();
-        pending.add(doc);
-        int found = 0;
-        while (!pending.isEmpty()) {
-            LytNode node = pending.removeLast();
-            if (node instanceof LytGuidebookScene scene && !list.contains(scene)) {
-                list.add(scene);
-                found++;
-            }
-            var children = node.getChildren();
-            for (int i = children.size() - 1; i >= 0; i--) {
-                pending.addLast(children.get(i));
-            }
-        }
+        int found = page.refreshMaterializedScenes();
         if (found > 0) {
-            GuideDebugLog
-                .info("[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}", found, list.size());
+            GuideDebugLog.info(
+                "[PonderDebug] registerRuntimeScenes: registered {} new scenes, total={}",
+                found,
+                page.scenes()
+                    .size());
         }
     }
 

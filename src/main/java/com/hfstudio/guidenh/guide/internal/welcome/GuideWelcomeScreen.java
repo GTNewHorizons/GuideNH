@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.internal.welcome;
 
 import java.awt.Desktop;
 import java.net.URI;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -370,23 +369,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     }
 
     private static void registerRuntimeScenes(GuidePage page) {
-        LytDocument doc = page.document();
-        if (doc == null) {
-            return;
-        }
-        List<LytGuidebookScene> scenes = page.scenes();
-        ArrayDeque<LytNode> pending = new ArrayDeque<>();
-        pending.add(doc);
-        while (!pending.isEmpty()) {
-            LytNode node = pending.removeLast();
-            if (node instanceof LytGuidebookScene scene && !scenes.contains(scene)) {
-                scenes.add(scene);
-            }
-            List<? extends LytNode> children = node.getChildren();
-            for (int i = children.size() - 1; i >= 0; i--) {
-                pending.addLast(children.get(i));
-            }
-        }
+        page.refreshMaterializedScenes();
     }
 
     @Override
