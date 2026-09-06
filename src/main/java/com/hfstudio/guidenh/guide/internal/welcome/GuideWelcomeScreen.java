@@ -704,6 +704,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         int right = width - padding;
         int bottom = height - padding;
         LytRect box = tooltip.layout(Math.max(80, (right - left) * 4 / 5));
+        LytRect contentBounds = tooltip.getContentBounds();
         int tooltipWidth = box.width();
         int tooltipHeight = box.height();
         int x = mouseX + 12;
@@ -772,13 +773,16 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
             borderTop,
             borderBottom);
 
-        contentTooltipRenderContext.setViewport(new LytRect(0, 0, tooltipWidth, tooltipHeight));
+        contentTooltipRenderContext
+            .setViewport(new LytRect(contentBounds.x(), contentBounds.y(), tooltipWidth, tooltipHeight));
         contentTooltipRenderContext.setScreenHeight(height);
-        contentTooltipRenderContext.setDocumentOrigin(x, y);
+        int contentX = x - contentBounds.x();
+        int contentY = y - contentBounds.y();
+        contentTooltipRenderContext.setDocumentOrigin(contentX, contentY);
         contentTooltipRenderContext.setScrollOffsetY(0);
         contentTooltipRenderContext.setZoom(1F);
         GL11.glPushMatrix();
-        GL11.glTranslatef(x, y, 300F);
+        GL11.glTranslatef(contentX, contentY, 300F);
         try {
             tooltip.getContent()
                 .render(contentTooltipRenderContext);

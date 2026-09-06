@@ -954,10 +954,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private void invalidateDocumentLayout() {
-        var document = getDocument();
-        if (document != null) {
-            document.invalidateLayout();
-        }
+        invalidateLayout();
     }
 
     public boolean hasVisibleLayerData() {

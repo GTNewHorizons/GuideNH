@@ -4427,6 +4427,7 @@ public class GuideScreen extends GuiContainer
         LytRect bounds = resolveTooltipBounds(interaction);
         int maxW = Math.max(80, (bounds.width() * 4) / 5);
         var box = ct.layout(maxW);
+        LytRect contentBounds = ct.getContentBounds();
         int w = box.width();
         int h = box.height();
         int x = mouseX + 12;
@@ -4453,13 +4454,20 @@ public class GuideScreen extends GuiContainer
         drawGradientRect(x + w + pad - 1, y - pad + 1, x + w + pad, y + h + pad - 1, ctBorderTop, ctBorderBottom);
 
         var ctx = reusableContentTooltipCtx;
-        cachedContentTooltipViewport = cachedRect(cachedContentTooltipViewport, 0, 0, w, h);
+        cachedContentTooltipViewport = cachedRect(
+            cachedContentTooltipViewport,
+            contentBounds.x(),
+            contentBounds.y(),
+            w,
+            h);
         ctx.setViewport(cachedContentTooltipViewport);
         ctx.setScreenHeight(this.height);
-        ctx.setDocumentOrigin(x, y);
+        int contentX = x - contentBounds.x();
+        int contentY = y - contentBounds.y();
+        ctx.setDocumentOrigin(contentX, contentY);
         ctx.setScrollOffsetY(0);
         GL11.glPushMatrix();
-        GL11.glTranslatef(x, y, 300f);
+        GL11.glTranslatef(contentX, contentY, 300f);
         try {
             ct.getContent()
                 .render(ctx);

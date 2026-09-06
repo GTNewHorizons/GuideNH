@@ -100,7 +100,6 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
         button.setColor(toolbarText);
         extraButtons.add(button);
         append(button);
-        if (getDocument() != null) getDocument().invalidateLayout();
     }
 
     public void setPreferredWidth(int preferredWidth) {

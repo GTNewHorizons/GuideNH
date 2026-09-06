@@ -146,6 +146,7 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         cascadeLive(node, false);
     }
 
+    @Override
     public void invalidateLayout() {
         layout = null;
         invalidateVisibleCache();
