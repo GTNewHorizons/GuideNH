@@ -147,7 +147,7 @@ public class GuideLocalizedPageSourceResolver {
 
     private static @Nullable String findLocalizedPageSource(String langKey, String language) {
         String normalizedLanguage = LangUtil.normalizeLanguage(language);
-        String localized = GuidePageLanguageIndex.getValue(normalizedLanguage, langKey);
+        String localized = GuideLanguageIndex.getPageValue(normalizedLanguage, langKey);
         if (hasText(localized)) {
             return decodeNewlines(localized);
         }
