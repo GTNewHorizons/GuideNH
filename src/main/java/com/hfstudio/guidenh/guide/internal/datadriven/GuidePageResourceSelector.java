@@ -176,11 +176,7 @@ public class GuidePageResourceSelector {
     private static int readLoadPriority(ResourceLocation sourceId, InputStream input) {
         try (input; var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
             String firstLine = reader.readLine();
-            if (firstLine != null && firstLine.startsWith("\uFEFF")) {
-                firstLine = firstLine.substring(1);
-            }
-
-            if (!"---".equals(firstLine)) {
+            if (!"---".equals(firstLine) && !"\uFEFF---".equals(firstLine)) {
                 return 0;
             }
 

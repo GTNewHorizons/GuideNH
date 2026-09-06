@@ -86,12 +86,7 @@ public class DataDrivenGuideLoader {
     public static ScanResult scanAndBuildAll(String folder, Iterable<? extends IResourcePack> activeResourcePacks) {
         var resolvedPacks = toList(activeResourcePacks);
 
-        pagePackIndex.clear();
-        assetPackIndex.clear();
-        PACK_LANG_FILE_PATHS.clear();
-        GuideResourcePackScanner.clearCaches();
-        indexReady = false;
-        pagePackOrder.set(0);
+        clearCaches();
 
         var pagePaths = new LinkedHashMap<String, LinkedHashSet<String>>();
         var discoveredLanguages = new LinkedHashMap<ResourceLocation, LinkedHashSet<String>>();

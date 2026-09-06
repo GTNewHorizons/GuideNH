@@ -44,7 +44,9 @@ final class GuideResourcePackScanner {
         var entries = new ArrayList<PackEntry>();
         var langPaths = new ArrayList<String>();
         var languages = new LinkedHashSet<GuideLanguage>();
-        var prefix = "assets/";
+
+        final String assetsPrefix = "assets/";
+        final String guidePrefix = folder + "/";
 
         try (var zip = new ZipFile(resourcePackFile)) {
             var zipEntries = zip.entries();
@@ -52,37 +54,41 @@ final class GuideResourcePackScanner {
                 var entry = zipEntries.nextElement();
                 if (entry.isDirectory()) continue;
 
-                var path = entry.getName();
-                if (!path.startsWith(prefix)) continue;
+                String path = entry.getName();
+                if (!path.startsWith(assetsPrefix)) continue;
 
-                var afterAssets = path.substring(prefix.length());
-                var firstSlash = afterAssets.indexOf('/');
-                if (firstSlash <= 0) continue;
+                int namespaceStart = assetsPrefix.length();
+                int namespaceEnd = path.indexOf('/', namespaceStart);
+                if (namespaceEnd <= namespaceStart) continue;
 
-                var namespace = afterAssets.substring(0, firstSlash);
-                var afterNamespace = afterAssets.substring(firstSlash + 1);
+                int resourcePathStart = namespaceEnd + 1;
 
                 if (path.endsWith(".lang")) {
-                    var resourceLocation = new ResourceLocation(namespace, afterNamespace);
-                    if (resourceExists(resourcePack, resourceLocation)) {
+                    String namespace = path.substring(namespaceStart, namespaceEnd);
+                    String resourcePath = path.substring(resourcePathStart);
+
+                    if (resourceExists(resourcePack, new ResourceLocation(namespace, resourcePath))) {
                         langPaths.add(path);
                     }
                     continue;
                 }
-                if (!afterNamespace.startsWith(folder + "/")) continue;
+                if (!path.startsWith(guidePrefix, resourcePathStart)) continue;
 
-                var resourceLocation = new ResourceLocation(namespace, afterNamespace);
-                if (!resourceExists(resourcePack, resourceLocation)) continue;
+                int languageStart = resourcePathStart + guidePrefix.length();
+                int languageEnd = path.indexOf('/', languageStart);
+                if (languageEnd <= languageStart) continue;
 
-                var afterFolder = afterNamespace.substring(folder.length() + 1);
-                var slashIndex = afterFolder.indexOf('/');
-                if (slashIndex <= 0) continue;
-
-                var language = afterFolder.substring(0, slashIndex);
+                String language = path.substring(languageStart, languageEnd);
                 if (!isLanguageFolder(language)) continue;
 
-                var relativePath = afterFolder.substring(slashIndex + 1);
-                if (relativePath.isEmpty()) continue;
+                String namespace = path.substring(namespaceStart, namespaceEnd);
+                String resourcePath = path.substring(resourcePathStart);
+
+                if (!resourceExists(resourcePack, new ResourceLocation(namespace, resourcePath))) {
+                    continue;
+                }
+
+                String relativePath = path.substring(languageEnd + 1);
 
                 entries.add(new PackEntry(namespace, language, relativePath));
                 if (path.endsWith(".md")) {
@@ -177,17 +183,17 @@ final class GuideResourcePackScanner {
                 addGuideRootCandidates(candidates, namespaceRoot, folder);
             }
         }
-        addGuideRootCandidate(candidates, resourcePackRoot, "assets/" + namespace + "/" + folder + "/");
-        addGuideRootCandidate(candidates, resourcePackRoot, namespace + "/" + folder + "/");
+        addGuideRootCandidate(candidates, resourcePackRoot, "assets/" + namespace + "/" + folder);
+        addGuideRootCandidate(candidates, resourcePackRoot, namespace + "/" + folder);
         if (folder.equals(namespace)) {
-            addGuideRootCandidate(candidates, resourcePackRoot, folder + "/");
+            addGuideRootCandidate(candidates, resourcePackRoot, folder);
         }
         return List.copyOf(candidates.values());
     }
 
     private static void addGuideRootCandidates(LinkedHashMap<Path, File> candidates, NamespaceRoot namespaceRoot,
         String folder) {
-        addGuideRootCandidate(candidates, namespaceRoot.directory(), folder + "/");
+        addGuideRootCandidate(candidates, namespaceRoot.directory(), folder);
         if (folder.equals(namespaceRoot.namespace()) && namespaceRoot.allowDirectoryAsGuideRoot()) {
             addGuideRootCandidate(candidates, namespaceRoot.directory(), "");
         }
@@ -273,14 +279,18 @@ final class GuideResourcePackScanner {
             while (entries.hasMoreElements()) {
                 var entry = entries.nextElement();
                 if (entry.isDirectory()) continue;
+
                 var path = entry.getName();
                 if (!path.startsWith(prefix) || !path.endsWith(".md")) continue;
-                var relative = path.substring(prefix.length());
-                var slashIndex = relative.indexOf('/');
-                if (slashIndex <= 0) continue;
-                if (!isLanguageFolder(relative.substring(0, slashIndex))) continue;
-                var pagePath = relative.substring(slashIndex + 1);
-                if (!pagePath.isEmpty()) pagePaths.add(pagePath);
+
+                int languageStart = prefix.length();
+                int languageEnd = path.indexOf('/', languageStart);
+                if (languageEnd <= languageStart) continue;
+
+                var language = path.substring(languageStart, languageEnd);
+                if (!isLanguageFolder(language)) continue;
+
+                pagePaths.add(path.substring(languageEnd + 1));
             }
         } catch (IOException e) {
             GuideDebugLog.warn(
