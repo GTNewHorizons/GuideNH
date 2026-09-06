@@ -260,9 +260,7 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
                 if (tabs.get(index).bounds.contains(x, y)) {
                     if (selectedIndex != index) {
                         selectedIndex = index;
-                        if (getDocument() != null) {
-                            getDocument().invalidateLayout();
-                        }
+                        invalidateLayout();
                     }
                     return true;
                 }

@@ -33,6 +33,31 @@ public abstract class LytNode implements Styleable {
     @Nullable
     private String styleClass;
 
+    /**
+     * Receives layout changes for a detached layout tree, such as rich tooltip content.
+     */
+    @Nullable
+    private Runnable detachedLayoutInvalidator;
+
+    /**
+     * Invalidates the nearest layout owner. Attached nodes reach their document while detached
+     * trees can provide an explicit owner through {@link #setDetachedLayoutInvalidator(Runnable)}.
+     */
+    public void invalidateLayout() {
+        if (parent != null) {
+            parent.invalidateLayout();
+        } else if (detachedLayoutInvalidator != null) {
+            detachedLayoutInvalidator.run();
+        }
+    }
+
+    /**
+     * Sets the layout owner used when this node is the root of a detached layout tree.
+     */
+    public void setDetachedLayoutInvalidator(@Nullable Runnable detachedLayoutInvalidator) {
+        this.detachedLayoutInvalidator = detachedLayoutInvalidator;
+    }
+
     public void removeChild(LytNode node) {}
 
     public void replaceChild(LytNode oldChild, LytNode newChild) {

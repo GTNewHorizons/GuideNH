@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.document.interaction;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
@@ -19,16 +20,25 @@ public class ContentTooltip implements GuideTooltip {
     private int lastMaxWidth = -1;
     @Getter
     private LytRect layoutBox = LytRect.empty();
+    /**
+     * The unnormalized bounds of all rendered tooltip content. This includes floating and inline
+     * blocks that can extend beyond their paragraph's text bounds.
+     */
+    @Getter
+    private LytRect contentBounds = LytRect.empty();
 
     public ContentTooltip(LytBlock content) {
         this.content = content;
+        content.setDetachedLayoutInvalidator(this::invalidateLayout);
         prepareEmbeddedScenes(content);
     }
 
     public LytRect layout(int maxWidth) {
         if (maxWidth != lastMaxWidth) {
             var ctx = new LayoutContext(new MinecraftFontMetrics());
-            layoutBox = content.layout(ctx, 0, 0, Math.max(20, maxWidth));
+            LytRect rootBounds = content.layout(ctx, 0, 0, Math.max(20, maxWidth));
+            contentBounds = collectContentBounds(rootBounds);
+            layoutBox = new LytRect(0, 0, contentBounds.width(), contentBounds.height());
             lastMaxWidth = maxWidth;
         }
         return layoutBox;
@@ -40,6 +50,22 @@ public class ContentTooltip implements GuideTooltip {
     public void invalidateLayout() {
         lastMaxWidth = -1;
         layoutBox = LytRect.empty();
+        contentBounds = LytRect.empty();
+    }
+
+    private LytRect collectContentBounds(LytRect rootBounds) {
+        LytRect[] visualBounds = { rootBounds };
+        content.visit(new LytVisitor() {
+
+            @Override
+            public Result beforeNode(LytNode node) {
+                if (node instanceof LytBlock block && block.getBounds() != null) {
+                    visualBounds[0] = LytRect.union(visualBounds[0], block.getBounds());
+                }
+                return Result.CONTINUE;
+            }
+        });
+        return visualBounds[0];
     }
 
     @Override

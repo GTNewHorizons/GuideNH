@@ -111,10 +111,7 @@ public class LytDetailsBlock extends LytBlock implements InteractiveElement, Lyt
             this.open = open;
             syncSummaryMarker();
             syncContentVisibility();
-            var document = getDocument();
-            if (document != null) {
-                document.invalidateLayout();
-            }
+            invalidateLayout();
         }
     }
 

@@ -149,10 +149,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             currentVisibleCount = resolveDefaultVisibleCount(result);
         }
         visibilityCache = null;
-        var document = getDocument();
-        if (document != null) {
-            document.invalidateLayout();
-        }
+        invalidateLayout();
     }
 
     private boolean supportsResolverBackedSearch() {
@@ -674,10 +671,7 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             Integer.MAX_VALUE - MediaWikiSpecialPageQuery.PAGE_SIZE,
             currentVisibleCount + MediaWikiSpecialPageQuery.PAGE_SIZE);
         visibilityCache = null;
-        var document = getDocument();
-        if (document != null) {
-            document.invalidateLayout();
-        }
+        invalidateLayout();
     }
 
     private int estimateHeight(GroupLayout group) {
