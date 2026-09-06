@@ -2,7 +2,10 @@ package com.hfstudio.guidenh.guide;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -21,6 +24,8 @@ public class GuidePage {
     private final ResourceLocation id;
     private final LytDocument document;
     private final List<LytGuidebookScene> scenes;
+    private final Set<LytGuidebookScene> registeredScenes;
+    private long registeredScenesContentRevision;
     @Nullable
     private final LytHeading titleHeading;
     @Nullable
@@ -42,6 +47,9 @@ public class GuidePage {
         this.titleHeading = titleHeading;
         this.pageMeta = pageMeta;
         this.scenes = collectScenes(document);
+        this.registeredScenes = Collections.newSetFromMap(new IdentityHashMap<LytGuidebookScene, Boolean>());
+        this.registeredScenes.addAll(scenes);
+        this.registeredScenesContentRevision = document.getContentRevision();
     }
 
     public String sourcePack() {
@@ -84,7 +92,7 @@ public class GuidePage {
     public void releaseRuntimeScenes() {
         // MaterializeTask may append GameScene nodes after compilation. Discover those nodes before
         // releasing so asynchronously created preview worlds cannot outlive this page.
-        registerMaterializedScenes();
+        registerMaterializedScenes(true);
         for (LytGuidebookScene scene : scenes) {
             if (scene != null) {
                 GuidebookLevel level = scene.getLevel();
@@ -95,23 +103,40 @@ public class GuidePage {
         }
     }
 
-    /** Adds scenes materialized into the document after the initial page compilation. */
-    public void registerMaterializedScenes() {
+    /**
+     * Adds scenes materialized into the document after the initial page compilation when its
+     * content changed since the previous scan.
+     *
+     * @return the number of newly registered scenes
+     */
+    public int refreshMaterializedScenes() {
+        return registerMaterializedScenes(false);
+    }
+
+    private int registerMaterializedScenes(boolean force) {
         if (document == null) {
-            return;
+            return 0;
+        }
+        long contentRevision = document.getContentRevision();
+        if (!force && contentRevision == registeredScenesContentRevision) {
+            return 0;
         }
         ArrayDeque<LytNode> pending = new ArrayDeque<>();
         pending.add(document);
+        int added = 0;
         while (!pending.isEmpty()) {
             LytNode node = pending.removeLast();
-            if (node instanceof LytGuidebookScene scene && !scenes.contains(scene)) {
+            if (node instanceof LytGuidebookScene scene && registeredScenes.add(scene)) {
                 scenes.add(scene);
+                added++;
             }
             List<? extends LytNode> children = node.getChildren();
             for (int i = children.size() - 1; i >= 0; i--) {
                 pending.addLast(children.get(i));
             }
         }
+        registeredScenesContentRevision = contentRevision;
+        return added;
     }
 
     private static List<LytGuidebookScene> collectScenes(LytDocument document) {

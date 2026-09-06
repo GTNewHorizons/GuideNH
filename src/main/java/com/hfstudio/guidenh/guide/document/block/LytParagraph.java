@@ -48,6 +48,7 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
     public void append(LytFlowContent child) {
         content.append(child);
         child.setParent(this);
+        invalidateLayout();
     }
 
     @Override
@@ -163,6 +164,7 @@ public class LytParagraph extends LytBlock implements LytFlowContainer, DebugFlo
 
     public void clearContent() {
         content.clear();
+        invalidateLayout();
     }
 
     /**

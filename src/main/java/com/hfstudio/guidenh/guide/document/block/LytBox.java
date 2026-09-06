@@ -36,6 +36,7 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
             if (isAttached()) LytDocument.notifyDetach(block);
             children.remove(block);
             block.parent = null;
+            invalidateLayout();
         }
     }
 
@@ -47,6 +48,7 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
         block.parent = this;
         children.add(block);
         if (isAttached()) LytDocument.notifyAttach(block);
+        invalidateLayout();
     }
 
     @Override
@@ -63,10 +65,7 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
         newBlock.parent = this;
         children.set(idx, newBlock);
         if (isAttached()) LytDocument.notifyAttach(newBlock);
-        LytDocument doc = getDocument();
-        if (doc != null) {
-            doc.invalidateLayout();
-        }
+        invalidateLayout();
     }
 
     public void clearContent() {
@@ -74,6 +73,7 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
             child.parent = null;
         }
         children.clear();
+        invalidateLayout();
     }
 
     protected abstract LytRect computeBoxLayout(LayoutContext context, int x, int y, int availableWidth);

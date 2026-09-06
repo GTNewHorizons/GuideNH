@@ -1735,6 +1735,7 @@ public class SceneEditorScreen extends GuiScreen {
         int pad = 4;
         int maxWidth = Math.max(80, (this.width * 4) / 5);
         var box = tooltip.layout(maxWidth);
+        LytRect contentBounds = tooltip.getContentBounds();
         int tooltipWidth = box.width();
         int tooltipHeight = box.height();
         int tooltipX = mouseX + 12;
@@ -1821,13 +1822,16 @@ public class SceneEditorScreen extends GuiScreen {
             tooltipY + tooltipHeight + pad - 1,
             borderTop,
             borderBottom);
-        previewTooltipRenderContext.setViewport(new LytRect(0, 0, tooltipWidth, tooltipHeight));
+        previewTooltipRenderContext
+            .setViewport(new LytRect(contentBounds.x(), contentBounds.y(), tooltipWidth, tooltipHeight));
         previewTooltipRenderContext.setScreenHeight(this.height);
-        previewTooltipRenderContext.setDocumentOrigin(tooltipX, tooltipY);
+        int contentX = tooltipX - contentBounds.x();
+        int contentY = tooltipY - contentBounds.y();
+        previewTooltipRenderContext.setDocumentOrigin(contentX, contentY);
         previewTooltipRenderContext.setScrollOffsetY(0);
 
         GL11.glPushMatrix();
-        GL11.glTranslatef(tooltipX, tooltipY, 300f);
+        GL11.glTranslatef(contentX, contentY, 300f);
         try {
             tooltip.getContent()
                 .render(previewTooltipRenderContext);

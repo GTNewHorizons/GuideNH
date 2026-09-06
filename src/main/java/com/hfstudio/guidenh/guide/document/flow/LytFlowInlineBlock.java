@@ -18,7 +18,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter
-@Setter
 public class LytFlowInlineBlock extends LytFlowContent implements InteractiveElement {
 
     private static final ThreadLocal<LayoutContext> MEASURE_LAYOUT_CONTEXT = ThreadLocal
@@ -26,7 +25,19 @@ public class LytFlowInlineBlock extends LytFlowContent implements InteractiveEle
 
     private LytBlock block;
 
+    @Setter
     private InlineBlockAlignment alignment = InlineBlockAlignment.INLINE;
+
+    /**
+     * Replaces the rendered inline block and invalidates the owning paragraph layout.
+     */
+    public void setBlock(@Nullable LytBlock block) {
+        if (this.block == block) {
+            return;
+        }
+        this.block = block;
+        invalidateLayout();
+    }
 
     public LytSize getPreferredSize(int lineWidth) {
         return measurePreferredBounds(lineWidth).size();
