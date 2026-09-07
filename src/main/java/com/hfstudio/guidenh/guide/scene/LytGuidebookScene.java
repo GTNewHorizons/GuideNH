@@ -422,6 +422,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private LytRect cachedOverlayViewport;
     private LytRect cachedScreenRect;
     private LytRect cachedSceneRect;
+    private LytRect cachedOuterRect;
     private LytRect cachedVisibleLayerSliderRect;
     private LytRect cachedVisibleLayerSliderHitRect;
     private LytRect cachedTierSliderRect;
@@ -2375,7 +2376,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         int sceneH = layoutSceneHeight > 0 ? layoutSceneHeight : Math.max(16, getBounds().height() - sliderAreaHeight);
         int totalH = reserveBottomControlArea ? Math.max(sceneH + sliderAreaHeight, getBounds().height())
             : Math.max(sceneH, getBounds().height());
-        LytRect outerRect = new LytRect(
+        LytRect outerRect = cachedOuterRect = updateCachedRect(
+            cachedOuterRect,
             getBounds().x() + layoutSceneOffsetX,
             getBounds().y() + layoutSceneOffsetY,
             sceneW,
