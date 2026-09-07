@@ -213,6 +213,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private float ponderCamRotZ = 0f;
     private float ponderCamOffX = 0f;
     private float ponderCamOffY = 0f;
+    /** Temporary camera save state reused by render and hover paths. */
+    private final float[] cameraStateScratch = new float[6];
     // GameScene offsets are world-space in normal scenes. For a Ponder timeline they are
     // the authored screen-pixel fallback until a JSON camera keyframe overrides them.
     private float ponderBaseCamOffX;
@@ -4475,8 +4477,13 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private float[] captureCameraState() {
-        return new float[] { camera.getZoom(), camera.getRotationX(), camera.getRotationY(), camera.getRotationZ(),
-            camera.getOffsetX(), camera.getOffsetY() };
+        cameraStateScratch[0] = camera.getZoom();
+        cameraStateScratch[1] = camera.getRotationX();
+        cameraStateScratch[2] = camera.getRotationY();
+        cameraStateScratch[3] = camera.getRotationZ();
+        cameraStateScratch[4] = camera.getOffsetX();
+        cameraStateScratch[5] = camera.getOffsetY();
+        return cameraStateScratch;
     }
 
     private void applyCapturedCameraState(float[] state) {
