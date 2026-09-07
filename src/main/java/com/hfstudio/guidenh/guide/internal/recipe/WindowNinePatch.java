@@ -18,27 +18,21 @@ public class WindowNinePatch {
     public static final int TEX_SIZE = 16;
     public static final int BORDER = 4;
 
-    public static final ResourceLocation WINDOW_LIGHT = new ResourceLocation(
+    public static final ResourceLocation WINDOW = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/window.png");
-    public static final ResourceLocation WINDOW_DARK = new ResourceLocation(
-        "guidenh",
-        "textures/gui/sprites/window_darkmode.png");
-    public static final ResourceLocation WINDOW_INNER_LIGHT = new ResourceLocation(
+    public static final ResourceLocation WINDOW_INNER = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/window_inner.png");
-    public static final ResourceLocation WINDOW_INNER_DARK = new ResourceLocation(
-        "guidenh",
-        "textures/gui/sprites/window_inner_darkmode.png");
 
     private WindowNinePatch() {}
 
     public static void drawWindow(int x, int y, int w, int h) {
-        draw(WINDOW_DARK, x, y, w, h);
+        draw(WINDOW, x, y, w, h);
     }
 
     public static void drawWindowInner(int x, int y, int w, int h) {
-        draw(WINDOW_INNER_DARK, x, y, w, h);
+        draw(WINDOW_INNER, x, y, w, h);
     }
 
     public static void draw(ResourceLocation texture, int x, int y, int w, int h) {
