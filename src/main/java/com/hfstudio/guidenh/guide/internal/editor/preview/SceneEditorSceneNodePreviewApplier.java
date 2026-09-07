@@ -202,7 +202,7 @@ public class SceneEditorSceneNodePreviewApplier {
         GuidebookPreviewBlockPlacer.place(
             level,
             x,
-            Math.clamp(y, 0, level.getHeight() - 1),
+            level.clampBuildHeight(y),
             z,
             reference.block(),
             meta,
@@ -308,7 +308,7 @@ public class SceneEditorSceneNodePreviewApplier {
             if (block == null || block == Blocks.air) {
                 continue;
             }
-            int clampedY = Math.clamp(placedBlock.getY() + offsetY, 0, level.getHeight() - 1);
+            int clampedY = level.clampBuildHeight(placedBlock.getY() + offsetY);
 
             GuidebookPreviewBlockPlacer.place(
                 level,
@@ -518,7 +518,7 @@ public class SceneEditorSceneNodePreviewApplier {
                 continue;
             }
             int px = pos[0] + offsetX;
-            int py = Math.clamp(pos[1] + offsetY, 0, level.getHeight() - 1);
+            int py = level.clampBuildHeight(pos[1] + offsetY);
             int pz = pos[2] + offsetZ;
             int meta = blockTag.hasKey("meta") ? blockTag.getInteger("meta") : 0;
             NBTTagCompound tileTag = blockTag.hasKey("nbt", 10) ? blockTag.getCompoundTag("nbt") : null;
@@ -537,7 +537,14 @@ public class SceneEditorSceneNodePreviewApplier {
             for (int i = 0; i < entitiesTag.tagCount(); i++) {
                 NBTTagCompound et = entitiesTag.getCompoundTagAt(i);
                 GuidebookSceneEntityImportSupport.ImportedSceneEntity importedEntity = GuidebookSceneEntityImportSupport
-                    .loadImportedEntityRecord(fakeWorld, et, offsetX, offsetY, offsetZ, 0f, level.getHeight() - 1f);
+                    .loadImportedEntityRecord(
+                        fakeWorld,
+                        et,
+                        offsetX,
+                        offsetY,
+                        offsetZ,
+                        level.getMinBuildHeight(),
+                        level.getMaxBuildHeightExclusive() - 1f);
                 if (importedEntity != null) {
                     level.addEntity(importedEntity.entity(), importedEntity.sceneEntityId());
                     if (Boolean.TRUE.equals(importedEntity.unmount())) {

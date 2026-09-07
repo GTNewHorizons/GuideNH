@@ -87,6 +87,7 @@ import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureCache;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorStructureImportService;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownCodec;
 import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownElementRange;
+import com.hfstudio.guidenh.guide.internal.editor.md.SceneEditorMarkdownElementRangeIndex;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementModel;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorElementType;
 import com.hfstudio.guidenh.guide.internal.editor.model.SceneEditorSceneModel;
@@ -345,12 +346,32 @@ public class SceneEditorScreen extends GuiScreen {
     private SceneEditorSettingsTab activeSettingsTab;
     private SceneEditorScreenLayout.Layout screenLayout;
     private boolean rightPanelCollapsed;
+    private int lastLayoutWidth = -1;
+    private int lastLayoutHeight = -1;
+    private boolean lastLayoutMarkdownExpanded;
+    private int lastLayoutMarkdownOpenWidth = -1;
+    private boolean lastLayoutRightPanelExpanded;
+    private int lastParameterLayoutTab = -1;
+    private int lastParameterLayoutWidth = -1;
+    private int lastParameterLayoutHeight = -1;
+    private int lastParameterLayoutSettingsX = -1;
+    private int lastParameterLayoutSettingsY = -1;
+    private int lastParameterLayoutSettingsWidth = -1;
     private boolean markdownLiveSyncPending;
     private long markdownLiveSyncAtMillis;
     @Nullable
     private String appliedUndoMergeKeyOverride;
     private boolean appliedUndoKeepOpenOverride;
     private boolean appliedUndoOverrideActive;
+    @Nullable
+    private SceneEditorMarkdownElementRangeIndex lastLinkedSelectionRangeIndex;
+    private int lastLinkedSelectionCursorIndex = -1;
+    @Nullable
+    private UUID lastLinkedSelectionElementId;
+    @Nullable
+    private SceneEditorMarkdownElementRangeIndex lastHighlightRangeIndex;
+    @Nullable
+    private UUID lastHighlightedElementId;
 
     public SceneEditorScreen() {
         this(SceneEditorSession.createBlank());
@@ -1411,12 +1432,25 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void recalculateLayout() {
-        screenLayout = SceneEditorScreenLayout.calculate(
-            this.width,
-            this.height,
-            markdownPanelState.isExpanded(),
-            markdownPanelState.getOpenWidth(),
-            !rightPanelCollapsed);
+        boolean markdownExpanded = markdownPanelState.isExpanded();
+        int markdownOpenWidth = markdownPanelState.getOpenWidth();
+        boolean rightPanelExpanded = !rightPanelCollapsed;
+        if (screenLayout != null && width == lastLayoutWidth
+            && height == lastLayoutHeight
+            && markdownExpanded == lastLayoutMarkdownExpanded
+            && markdownOpenWidth == lastLayoutMarkdownOpenWidth
+            && rightPanelExpanded == lastLayoutRightPanelExpanded) {
+            return;
+        }
+        screenLayout = SceneEditorScreenLayout
+            .calculate(this.width, this.height, markdownExpanded, markdownOpenWidth, rightPanelExpanded);
+
+        lastLayoutWidth = width;
+        lastLayoutHeight = height;
+        lastLayoutMarkdownExpanded = markdownExpanded;
+        lastLayoutMarkdownOpenWidth = markdownOpenWidth;
+        lastLayoutRightPanelExpanded = rightPanelExpanded;
+        invalidateParameterLayoutCache();
 
         leftPanelX = screenLayout.leftPanel()
             .x();
@@ -2767,6 +2801,14 @@ public class SceneEditorScreen extends GuiScreen {
     }
 
     private void layoutParameterRows() {
+        int tabOrdinal = activeSettingsTab.ordinal();
+        if (tabOrdinal == lastParameterLayoutTab && settingsBoxX == lastParameterLayoutSettingsX
+            && settingsBoxY == lastParameterLayoutSettingsY
+            && settingsBoxWidth == lastParameterLayoutSettingsWidth
+            && width == lastParameterLayoutWidth
+            && height == lastParameterLayoutHeight) {
+            return;
+        }
         settingsBoxX = screenLayout.rightContent()
             .x();
         settingsBoxY = screenLayout.rightContent()
@@ -2805,6 +2847,22 @@ public class SceneEditorScreen extends GuiScreen {
             screenLayout.rightPanel()
                 .bottom() - elementsBoxY
                 - 10);
+
+        lastParameterLayoutTab = tabOrdinal;
+        lastParameterLayoutWidth = width;
+        lastParameterLayoutHeight = height;
+        lastParameterLayoutSettingsX = settingsBoxX;
+        lastParameterLayoutSettingsY = settingsBoxY;
+        lastParameterLayoutSettingsWidth = settingsBoxWidth;
+    }
+
+    private void invalidateParameterLayoutCache() {
+        lastParameterLayoutTab = -1;
+        lastParameterLayoutWidth = -1;
+        lastParameterLayoutHeight = -1;
+        lastParameterLayoutSettingsX = -1;
+        lastParameterLayoutSettingsY = -1;
+        lastParameterLayoutSettingsWidth = -1;
     }
 
     private void syncParameterRowsFromModel() {
@@ -3874,38 +3932,60 @@ public class SceneEditorScreen extends GuiScreen {
 
     private void refreshLinkedSelectionFromMarkdownCursor() {
         if (markdownTextArea == null || !markdownTextArea.isFocused()) {
+            lastLinkedSelectionRangeIndex = null;
+            lastLinkedSelectionCursorIndex = -1;
+            lastLinkedSelectionElementId = null;
             return;
         }
-        UUID nextSelectedElementId = linkedSelectionController.resolveSelectedElementId(
-            textSyncController.getDisplayRangeIndex(),
-            markdownTextArea.getCursorIndex(),
+        SceneEditorMarkdownElementRangeIndex rangeIndex = textSyncController.getDisplayRangeIndex();
+        int cursorIndex = markdownTextArea.getCursorIndex();
+        UUID selectedElementId = session.getSelectionState()
+            .getSelectedElementId();
+        if (rangeIndex == lastLinkedSelectionRangeIndex && cursorIndex == lastLinkedSelectionCursorIndex
+            && Objects.equals(selectedElementId, lastLinkedSelectionElementId)) {
+            return;
+        }
+        UUID nextSelectedElementId = linkedSelectionController
+            .resolveSelectedElementId(rangeIndex, cursorIndex, selectedElementId);
+        if (nextSelectedElementId != null) {
             session.getSelectionState()
-                .getSelectedElementId());
-        if (nextSelectedElementId == null) {
-            return;
+                .setSelectedElementId(nextSelectedElementId);
         }
-        session.getSelectionState()
-            .setSelectedElementId(nextSelectedElementId);
+        lastLinkedSelectionRangeIndex = rangeIndex;
+        lastLinkedSelectionCursorIndex = cursorIndex;
+        lastLinkedSelectionElementId = session.getSelectionState()
+            .getSelectedElementId();
     }
 
     private void refreshMarkdownHighlightFromSelectedElement() {
         if (markdownTextArea == null) {
+            lastHighlightRangeIndex = null;
+            lastHighlightedElementId = null;
             return;
         }
         UUID selectedElementId = session.getSelectionState()
             .getSelectedElementId();
-        if (selectedElementId == null) {
-            markdownTextArea.clearBackgroundHighlight();
+        SceneEditorMarkdownElementRangeIndex rangeIndex = textSyncController.getDisplayRangeIndex();
+        if (rangeIndex == lastHighlightRangeIndex && Objects.equals(selectedElementId, lastHighlightedElementId)) {
             return;
         }
-        SceneEditorMarkdownElementRange range = textSyncController.getDisplayRangeIndex()
-            .findByElementId(selectedElementId)
+        if (selectedElementId == null) {
+            markdownTextArea.clearBackgroundHighlight();
+            lastHighlightRangeIndex = rangeIndex;
+            lastHighlightedElementId = null;
+            return;
+        }
+        SceneEditorMarkdownElementRange range = rangeIndex.findByElementId(selectedElementId)
             .orElse(null);
         if (range == null) {
             markdownTextArea.clearBackgroundHighlight();
+            lastHighlightRangeIndex = rangeIndex;
+            lastHighlightedElementId = selectedElementId;
             return;
         }
         markdownTextArea.setBackgroundHighlight(range.getStartIndex(), range.getEndIndex());
+        lastHighlightRangeIndex = rangeIndex;
+        lastHighlightedElementId = selectedElementId;
     }
 
     private int getElementTotalHeight(SceneEditorElementModel element) {
