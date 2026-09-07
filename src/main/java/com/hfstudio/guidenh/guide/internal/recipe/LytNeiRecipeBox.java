@@ -68,6 +68,8 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     public static final int ACTION_BUTTON_SIZE = 12;
     private static final String GREGTECH_DEFAULT_NEI_HANDLER = "gregtech.nei.GTNEIDefaultHandler";
     private static final int GREGTECH_WINDOW_TOP_BLEED = 11;
+    private static final int BODY_HORIZONTAL_BLEED = 2;
+    private static final int TITLE_OFFSET = 1;
     private static final Set<String> WARNED_RECIPE_RENDER_FAILURES = Collections.synchronizedSet(new HashSet<>());
 
     @Getter
@@ -120,9 +122,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         if (handlerW <= 0) handlerW = FALLBACK_BODY_WIDTH;
         if (handlerH <= 0) handlerH = DEFAULT_BODY_HEIGHT;
 
-        // Respect the handler's declared background size verbatim; tight-fitting by slot bbox
-        // caused visible clipping for some handlers and was reverted.
-        this.bodyWidth = handlerW;
+        this.bodyWidth = handlerW + BODY_HORIZONTAL_BLEED * 2;
         this.bodyYShift = Math.max(0, registry.lookupRecipeHandlerYShift(handler));
         this.bodyTopInset = resolveBodyTopInset(
             handler.getClass()
@@ -179,13 +179,14 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
         int titleRowTop = innerTop + TITLE_PAD_TOP;
         int innerRight = x + w - FRAME_BORDER;
         int bodyX = innerLeft;
+        int contentX = bodyX + BODY_HORIZONTAL_BLEED;
         int bodyY = innerTop + titleHeight + BODY_MARGIN + bodyTopInset;
 
         context.restoreExternalRenderState();
         WindowNinePatch.drawWindow(x, y, w, h);
 
         try {
-            renderRecipeBody(bodyX, bodyY, context);
+            renderRecipeBody(contentX, bodyY, context);
         } catch (Throwable t) {
             warnRecipeRenderFailure(t);
         } finally {
@@ -243,15 +244,16 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
 
     private void drawTitleRow(RenderContext context, int innerLeft, int innerRight, int titleRowTop, int fontHeight) {
         int titleContentHeight = Math.max(ICON_SIZE, fontHeight);
-        int iconY = titleRowTop + (titleContentHeight - ICON_SIZE) / 2;
+        int titleX = innerLeft + TITLE_OFFSET;
+        int iconY = titleRowTop + (titleContentHeight - ICON_SIZE) / 2 + TITLE_OFFSET;
         if (iconStack != null) {
-            drawScaledItem(context, iconStack, innerLeft, iconY, ICON_SIZE);
+            drawScaledItem(context, iconStack, titleX, iconY, ICON_SIZE);
         } else if (iconImage != null) {
-            drawScaledImage(iconImage, innerLeft, iconY, ICON_SIZE, iconImageW, iconImageH);
+            drawScaledImage(iconImage, titleX, iconY, ICON_SIZE, iconImageW, iconImageH);
         }
         if (!handlerName.isEmpty()) {
-            int textX = innerLeft + iconSize() + (iconSize() > 0 ? TITLE_GAP_AFTER_ICON : 0);
-            int textY = titleRowTop + (Math.max(ICON_SIZE, fontHeight) - fontHeight) / 2;
+            int textX = titleX + iconSize() + (iconSize() > 0 ? TITLE_GAP_AFTER_ICON : 0);
+            int textY = titleRowTop + (Math.max(ICON_SIZE, fontHeight) - fontHeight) / 2 + TITLE_OFFSET;
             Minecraft.getMinecraft().fontRenderer.drawString(handlerName, textX, textY, ColorUtils.BLACK.getColor());
         }
         LytRect actionButtonBounds = getActionButtonBounds();
@@ -377,7 +379,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
             return Optional.ofNullable(actionButtonTooltip);
         }
 
-        int bodyX = bounds.x() + FRAME_BORDER;
+        int bodyX = bounds.x() + FRAME_BORDER + BODY_HORIZONTAL_BLEED;
         int bodyTop = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset;
         int bodyY = bodyTop + bodyYShift;
 
