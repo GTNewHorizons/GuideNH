@@ -11,7 +11,6 @@ import static org.lwjgl.opengl.GL11.GL_PROJECTION;
 import static org.lwjgl.opengl.GL11.GL_SCISSOR_TEST;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 
-import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,13 +64,16 @@ public class GuidebookLevelRenderer {
     private final GuideEntityRenderStateResolver.ResolvedEntityRenderState entityRenderState = new GuideEntityRenderStateResolver.ResolvedEntityRenderState();
     /** Reused per-frame list; block visibility is identical for opaque and translucent passes. */
     private final ArrayList<int[]> visibleBlocksScratch = new ArrayList<>();
+    /** Reused per-frame list of visible blocks that actually participate in the translucent pass. */
+    private final ArrayList<int[]> translucentBlocksScratch = new ArrayList<>();
+    /** Reused per-frame list of visible tile entities with a special renderer. */
+    private final ArrayList<TileEntity> visibleBlockEntitiesScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnsScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherRenderColumn> weatherColumnPool = new ArrayList<>();
+    private final BillboardAxes billboardAxesScratch = new BillboardAxes();
 
-    // Rebind RenderBlocks only when the level instance changes.
+    // The block access is rebound before every block render and cleared after the frame.
     private RenderBlocks cachedRenderBlocks;
-    /** Weak because RenderBlocks is a process-wide singleton and scenes are short-lived. */
-    private WeakReference<GuidebookLevel> cachedRenderBlocksLevel = new WeakReference<>(null);
 
     public static GuidebookLevelRenderer getInstance() {
         return INSTANCE;
@@ -276,6 +278,8 @@ public class GuidebookLevelRenderer {
                     var filledBlocks = level.getFilledBlocks();
                     var tileEntities = level.getTileEntities();
                     visibleBlocksScratch.clear();
+                    translucentBlocksScratch.clear();
+                    visibleBlockEntitiesScratch.clear();
                     collectVisibleBlocks(filledBlocks, layerSelection, camera, visibleBlocksScratch);
                     GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
                         : GuidebookSceneLayerSelection.all();
@@ -285,21 +289,25 @@ public class GuidebookLevelRenderer {
                     try {
                         setRenderPass(0);
                         GL11.glDisable(GL_BLEND);
-                        boolean hasTranslucentBlocks = renderBlocksPass(level, visibleBlocksScratch, 0, renderAllFaces);
+                        renderBlocksPass(level, visibleBlocksScratch, 0, renderAllFaces, translucentBlocksScratch);
 
-                        if (hasTranslucentBlocks) {
+                        if (!translucentBlocksScratch.isEmpty()) {
                             setRenderPass(1);
                             GL11.glEnable(GL_BLEND);
                             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                             GL11.glDepthMask(false);
-                            renderBlocksPass(level, visibleBlocksScratch, 1, renderAllFaces);
+                            renderBlocksPass(level, translucentBlocksScratch, 1, renderAllFaces, null);
                             GL11.glDepthMask(true);
                             GL11.glDisable(GL_BLEND);
                         }
 
                         setRenderPass(-1);
 
-                        renderBlockEntities(tileEntities, partialTicks, layerSelection, camera);
+                        // Block rendering may promote imported tiles to integration-specific
+                        // instances. Collect after that pass so TESRs render the promoted tile,
+                        // not the stale object captured before promotion.
+                        collectVisibleBlockEntities(tileEntities, layerSelection, camera, visibleBlockEntitiesScratch);
+                        renderBlockEntities(visibleBlockEntitiesScratch, partialTicks);
                         renderEntities(level.getEntities(), partialTicks, layerSelection, camera);
 
                         if (!annotations.isEmpty()) {
@@ -357,13 +365,13 @@ public class GuidebookLevelRenderer {
             // needed during this draw call, so clear it even when rendering aborts with an error.
             clearCachedRenderBlocksReference();
             visibleBlocksScratch.clear();
+            translucentBlocksScratch.clear();
+            visibleBlockEntitiesScratch.clear();
         }
     }
 
     public void releaseLevel(GuidebookLevel level) {
-        if (cachedRenderBlocksLevel.get() == level) {
-            clearCachedRenderBlocksReference();
-        }
+        clearCachedRenderBlocksReference();
     }
 
     /** Clears the renderer's process-wide fake-world binding during client world unload. */
@@ -372,13 +380,14 @@ public class GuidebookLevelRenderer {
         weatherColumnsScratch.clear();
         weatherColumnPool.clear();
         visibleBlocksScratch.clear();
+        translucentBlocksScratch.clear();
+        visibleBlockEntitiesScratch.clear();
     }
 
     private void clearCachedRenderBlocksReference() {
         if (cachedRenderBlocks != null) {
             cachedRenderBlocks.blockAccess = null;
         }
-        cachedRenderBlocksLevel.clear();
     }
 
     private void collectVisibleBlocks(Iterable<int[]> filledBlocks, GuidebookSceneLayerSelection layerSelection,
@@ -406,20 +415,19 @@ public class GuidebookLevelRenderer {
         }
     }
 
-    private boolean renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass,
-        boolean renderAllFaces) {
+    private void renderBlocksPass(GuidebookLevel level, Iterable<int[]> filledBlocks, int pass, boolean renderAllFaces,
+        @Nullable List<int[]> translucentBlocks) {
         RenderBlocks rb = cachedRenderBlocks;
-        if (rb == null || cachedRenderBlocksLevel.get() != level) {
+        if (rb == null) {
             rb = new RenderBlocks(level.getOrCreateFakeWorld());
             cachedRenderBlocks = rb;
-            cachedRenderBlocksLevel = new WeakReference<>(level);
         }
         Minecraft mc = Minecraft.getMinecraft();
         int savedAmbientOcclusion = mc.gameSettings.ambientOcclusion;
         mc.gameSettings.ambientOcclusion = 0;
         IBlockAccess fakeWorld = level.getOrCreateFakeWorld();
+        GuideNhClientIntegrationRegistry integrationRegistry = GuideNhClientIntegrationRegistry.global();
         var tes = Tessellator.instance;
-        boolean hasTranslucentBlocks = false;
         tes.startDrawingQuads();
         try {
             tes.setBrightness((15 << 20) | (15 << 4));
@@ -427,10 +435,12 @@ public class GuidebookLevelRenderer {
             for (int[] p : filledBlocks) {
                 Block block = level.getBlock(p[0], p[1], p[2]);
                 if (block == null) continue;
-                if (pass == 0 && block.canRenderInPass(1)) {
-                    hasTranslucentBlocks = true;
+                boolean rendersInTranslucentPass = block.canRenderInPass(1);
+                if (translucentBlocks != null && rendersInTranslucentPass) {
+                    translucentBlocks.add(p);
                 }
-                if (!block.canRenderInPass(pass)) continue;
+                boolean rendersInCurrentPass = pass == 1 ? rendersInTranslucentPass : block.canRenderInPass(0);
+                if (!rendersInCurrentPass) continue;
                 try {
                     TileEntity tileEntity = level.getTileEntity(p[0], p[1], p[2]);
                     // Promotion and GregTech repair mutate the level and only need to happen
@@ -446,8 +456,7 @@ public class GuidebookLevelRenderer {
                                 GregTechHelpers.describeTile(tileEntity));
                             GregTechHelpers.repairMetaTileBinding(tileEntity);
                         }
-                        TileEntity promoted = GuideNhClientIntegrationRegistry.global()
-                            .promotePreviewBlockTileEntity(block, tileEntity);
+                        TileEntity promoted = integrationRegistry.promotePreviewBlockTileEntity(block, tileEntity);
                         if (promoted != null && promoted != tileEntity) {
                             level.setTileEntity(p[0], p[1], p[2], promoted);
                         }
@@ -455,8 +464,7 @@ public class GuidebookLevelRenderer {
                     resetRenderBlocksState(rb, fakeWorld, filteredLayerMode);
                     boolean rendered = rb.renderBlockByRenderType(block, p[0], p[1], p[2]);
                     if (!rendered) {
-                        GuideNhClientIntegrationRegistry.global()
-                            .tryRenderPreviewWorldBlock(rb, fakeWorld, block, p[0], p[1], p[2]);
+                        integrationRegistry.tryRenderPreviewWorldBlock(rb, fakeWorld, block, p[0], p[1], p[2]);
                     }
                 } catch (Throwable t) {
                     log(t);
@@ -467,7 +475,6 @@ public class GuidebookLevelRenderer {
             tes.setTranslation(0.0D, 0.0D, 0.0D);
             mc.gameSettings.ambientOcclusion = savedAmbientOcclusion;
         }
-        return hasTranslucentBlocks;
     }
 
     public static void resetRenderBlocksState(RenderBlocks renderBlocks, IBlockAccess blockAccess,
@@ -490,19 +497,40 @@ public class GuidebookLevelRenderer {
         renderBlocks.setRenderBounds(0.0D, 0.0D, 0.0D, 1.0D, 1.0D, 1.0D);
     }
 
-    private void renderBlockEntities(Iterable<TileEntity> tileEntities, float partialTicks,
-        GuidebookSceneLayerSelection layerSelection, CameraSettings camera) {
+    private void collectVisibleBlockEntities(Iterable<TileEntity> tileEntities,
+        GuidebookSceneLayerSelection layerSelection, CameraSettings camera, List<TileEntity> destination) {
         GuidebookSceneLayerSelection effectiveSelection = layerSelection != null ? layerSelection
             : GuidebookSceneLayerSelection.all();
+        TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
+        for (TileEntity te : tileEntities) {
+            if (te == null || !effectiveSelection.isLayerVisible(te.yCoord)) {
+                continue;
+            }
+            if (!isAabbPotentiallyVisible(
+                camera,
+                te.xCoord,
+                te.yCoord,
+                te.zCoord,
+                te.xCoord + 1.0f,
+                te.yCoord + 1.0f,
+                te.zCoord + 1.0f)) {
+                continue;
+            }
+            if (dispatcher.hasSpecialRenderer(te)) {
+                destination.add(te);
+            }
+        }
+    }
+
+    private void renderBlockEntities(Iterable<TileEntity> tileEntities, float partialTicks) {
         TileEntityRendererDispatcher dispatcher = TileEntityRendererDispatcher.instance;
         for (int pass = 0; pass < 2; pass++) {
             setRenderPass(pass);
             setTileEntityRenderPassState(pass);
             preparePreviewModelLighting();
             for (TileEntity te : tileEntities) {
-                if (te == null) {
-                    continue;
-                }
+                // Preview repair can allocate and touch integration state. A culled tile or a
+                // tile without a TESR does not need that work in this frame.
                 if (GregTechHelpers.isGregTechTileEntity(te) && !GregTechHelpers.hasValidMetaTileBinding(te)) {
                     GregTechHelpers.logInfoOnce(
                         "render-invalid-tesr-pass:" + pass + ":" + GregTechHelpers.describeTile(te),
@@ -511,20 +539,7 @@ public class GuidebookLevelRenderer {
                         GregTechHelpers.describeTile(te));
                     GregTechHelpers.repairMetaTileBinding(te);
                 }
-                if (!effectiveSelection.isLayerVisible(te.yCoord)) {
-                    continue;
-                }
-                if (!isAabbPotentiallyVisible(
-                    camera,
-                    te.xCoord,
-                    te.yCoord,
-                    te.zCoord,
-                    te.xCoord + 1.0f,
-                    te.yCoord + 1.0f,
-                    te.zCoord + 1.0f)) {
-                    continue;
-                }
-                if (!dispatcher.hasSpecialRenderer(te) || !te.shouldRenderInPass(pass)) {
+                if (!te.shouldRenderInPass(pass)) {
                     continue;
                 }
                 try {
@@ -1011,7 +1026,7 @@ public class GuidebookLevelRenderer {
             horizontalRightX = 1.0f;
             horizontalRightZ = 0.0f;
         }
-        return new BillboardAxes(rightX, rightY, rightZ, upX, upY, upZ, horizontalRightX, horizontalRightZ);
+        return billboardAxesScratch.set(rightX, rightY, rightZ, upX, upY, upZ, horizontalRightX, horizontalRightZ);
     }
 
     private float normalize3(float x, float y, float z) {
@@ -1138,16 +1153,16 @@ public class GuidebookLevelRenderer {
 
     private static class BillboardAxes {
 
-        private final float rightX;
-        private final float rightY;
-        private final float rightZ;
-        private final float upX;
-        private final float upY;
-        private final float upZ;
-        private final float horizontalRightX;
-        private final float horizontalRightZ;
+        private float rightX;
+        private float rightY;
+        private float rightZ;
+        private float upX;
+        private float upY;
+        private float upZ;
+        private float horizontalRightX;
+        private float horizontalRightZ;
 
-        private BillboardAxes(float rightX, float rightY, float rightZ, float upX, float upY, float upZ,
+        private BillboardAxes set(float rightX, float rightY, float rightZ, float upX, float upY, float upZ,
             float horizontalRightX, float horizontalRightZ) {
             this.rightX = rightX;
             this.rightY = rightY;
@@ -1157,6 +1172,7 @@ public class GuidebookLevelRenderer {
             this.upZ = upZ;
             this.horizontalRightX = horizontalRightX;
             this.horizontalRightZ = horizontalRightZ;
+            return this;
         }
 
         public float rightX() {

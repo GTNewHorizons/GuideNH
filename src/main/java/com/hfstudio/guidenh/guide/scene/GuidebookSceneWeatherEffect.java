@@ -102,13 +102,13 @@ public class GuidebookSceneWeatherEffect {
         if (areas != null) {
             return areas;
         }
-        int[] resolvedBounds = bounds != null ? Arrays.copyOf(bounds, bounds.length)
-            : GuidebookSceneWeatherSupport.EMPTY_BOUNDS;
+        int[] resolvedBounds = bounds != null ? bounds : GuidebookSceneWeatherSupport.EMPTY_BOUNDS;
         if (cachedResolvedAreas != null && cachedBounds != null && Arrays.equals(cachedBounds, resolvedBounds)) {
             return cachedResolvedAreas;
         }
         cachedResolvedAreas = GuidebookSceneWeatherSupport.resolveWeatherAreas(resolvedBounds, xValues, zValues);
-        cachedBounds = resolvedBounds;
+        // Keep our cache independent from the level's reusable bounds scratch array.
+        cachedBounds = Arrays.copyOf(resolvedBounds, resolvedBounds.length);
         return cachedResolvedAreas;
     }
 
