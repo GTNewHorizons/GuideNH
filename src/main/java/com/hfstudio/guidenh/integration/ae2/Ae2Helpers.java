@@ -19,6 +19,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewRuntimeMutationTracker;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewWorld;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportBlockContext;
 import com.hfstudio.guidenh.guide.scene.snapshot.ExportSession;
@@ -172,7 +173,7 @@ public class Ae2Helpers {
         }
         for (TileEntity te : level.getTileEntities()) {
             CableBusContainer container = resolveCableContainer(te);
-            if (container != null && !hasCableAuthoritySnapshot(container, level)) {
+            if (container != null && !shouldUseCableAuthoritySnapshot(container, level)) {
                 container.updateConnections();
             }
         }
@@ -266,7 +267,7 @@ public class Ae2Helpers {
 
         int csOut;
         int sideOut;
-        if (snap.hasCableCore()) {
+        if (snap.hasCableCore() && shouldUseCableAuthoritySnapshot(container, level)) {
             // The exported cable stream is authoritative. A selected single cable may no longer
             // have its original neighbours in the preview level, so recomputing these bits would
             // erase valid connections that were present when the structure was captured.
@@ -348,6 +349,14 @@ public class Ae2Helpers {
             .get(posKey, Ae2ServerPreviewRegistration.SUPPLEMENT_ID);
         return raw != null && Ae2CablePreviewWireCodec.decode(raw)
             .hasCableCore();
+    }
+
+    @Optional.Method(modid = "appliedenergistics2")
+    private static boolean shouldUseCableAuthoritySnapshot(CableBusContainer container, GuidebookLevel level) {
+        TileEntity tile = container.getTile();
+        return !level.previewRuntimeMutations()
+            .isMarked(GuidebookPreviewRuntimeMutationTracker.BLOCK_TOPOLOGY, tile.xCoord, tile.yCoord, tile.zCoord)
+            && hasCableAuthoritySnapshot(container, level);
     }
 
     @Optional.Method(modid = "appliedenergistics2")

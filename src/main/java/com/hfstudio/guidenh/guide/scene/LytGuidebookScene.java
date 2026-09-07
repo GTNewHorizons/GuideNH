@@ -85,6 +85,7 @@ import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewRuntimeMutationTracker;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderEntityAnimationRuntimeSupport;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframe;
@@ -231,6 +232,17 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private final ArrayList<GuidebookSceneWeatherEffect> ponderWeatherEffects = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherEffect> renderWeatherEffectsScratch = new ArrayList<>();
     private final ArrayList<GuidebookSceneWeatherEffect> resolvedWeatherEffectsScratch = new ArrayList<>();
+    private long weatherEffectsRevision;
+    private long cachedWeatherEffectsRevision = Long.MIN_VALUE;
+    private long cachedWeatherSpatialRevision = Long.MIN_VALUE;
+    private int cachedWeatherActiveTick = Integer.MIN_VALUE;
+    @Nullable
+    private GuidebookSceneLayerSelection.Mode cachedWeatherLayerMode;
+    private Set<Integer> cachedWeatherVisibleLayers = Set.of();
+    @Nullable
+    private List<GuidebookSceneWeatherEffect> cachedRenderableWeatherEffects;
+    private int cachedWeatherLayerY = Integer.MIN_VALUE;
+    private GuidebookSceneLayerSelection cachedWeatherLayerSelection = GuidebookSceneLayerSelection.all();
     private final ArrayDeque<GuidebookSceneParticle> ponderParticlePool = new ArrayDeque<>();
     private final Random ponderParticleRng = new Random();
     private int sceneAnimationTick = 0;
@@ -1380,10 +1392,17 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                 Block block = pb.block();
                 if (block == null || block == Blocks.air) continue;
                 int bx = pb.x() + offsetX;
-                int by = Math.clamp(pb.y() + offsetY, 0, sceneLevel.getHeight() - 1);
+                int by = sceneLevel.clampBuildHeight(pb.y() + offsetY);
                 int bz = pb.z() + offsetZ;
                 GuidebookPreviewBlockPlacer.place(sceneLevel, bx, by, bz, block, pb.meta(), pb.tileTag(), pb.blockId());
                 ScenePreviewFormedState.updateAfterPlacement(sceneLevel, bx, by, bz, binding.isRebuildFormed());
+                sceneLevel.previewRuntimeMutations()
+                    .markAround(
+                        GuidebookPreviewRuntimeMutationTracker.BLOCK_TOPOLOGY,
+                        GuidebookPreviewRuntimeMutationTracker.SCENE_OPERATIONS,
+                        bx,
+                        by,
+                        bz);
             }
         }
     }
@@ -1871,6 +1890,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public void addStaticWeatherEffect(GuidebookSceneWeatherEffect effect) {
         if (effect != null) {
             staticWeatherEffects.add(effect);
+            invalidateRenderableWeatherEffects();
         }
     }
 
@@ -1929,25 +1949,70 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     private List<GuidebookSceneWeatherEffect> resolveRenderableWeatherEffectsForLayerSelection(
         @Nullable GuidebookSceneLayerSelection layerSelection, @Nullable Integer activeTick) {
+        int resolvedActiveTick = activeTick != null ? activeTick : Integer.MIN_VALUE;
+        long spatialRevision = level.getSpatialRevision();
+        if (cachedRenderableWeatherEffects != null && cachedWeatherEffectsRevision == weatherEffectsRevision
+            && cachedWeatherSpatialRevision == spatialRevision
+            && cachedWeatherActiveTick == resolvedActiveTick
+            && hasSameWeatherLayerSelection(layerSelection)) {
+            return cachedRenderableWeatherEffects;
+        }
         List<GuidebookSceneWeatherEffect> effects = resolveRenderableWeatherEffects();
         if (effects.isEmpty()) {
-            return effects;
+            return cacheRenderableWeatherEffects(effects, layerSelection, resolvedActiveTick, spatialRevision);
         }
-        int[] bounds = copyLevelBounds();
+        int[] bounds = getLevelBoundsForImmediateUse();
         List<GuidebookSceneWeatherEffect> resolved = GuidebookSceneWeatherSupport
             .resolveRenderableEffects(effects, bounds, activeTick, layerSelection, level);
         if (resolved.isEmpty()) {
-            return List.of();
+            return cacheRenderableWeatherEffects(List.of(), layerSelection, resolvedActiveTick, spatialRevision);
         }
         if (resolved == effects || resolved == staticWeatherEffects
             || resolved == ponderWeatherEffects
             || resolved == renderWeatherEffectsScratch) {
-            return resolved;
+            return cacheRenderableWeatherEffects(resolved, layerSelection, resolvedActiveTick, spatialRevision);
         }
         resolvedWeatherEffectsScratch.clear();
         resolvedWeatherEffectsScratch.ensureCapacity(resolved.size());
         resolvedWeatherEffectsScratch.addAll(resolved);
-        return resolvedWeatherEffectsScratch;
+        return cacheRenderableWeatherEffects(
+            resolvedWeatherEffectsScratch,
+            layerSelection,
+            resolvedActiveTick,
+            spatialRevision);
+    }
+
+    private List<GuidebookSceneWeatherEffect> cacheRenderableWeatherEffects(List<GuidebookSceneWeatherEffect> effects,
+        @Nullable GuidebookSceneLayerSelection layerSelection, int activeTick, long spatialRevision) {
+        cachedWeatherEffectsRevision = weatherEffectsRevision;
+        cachedWeatherSpatialRevision = spatialRevision;
+        cachedWeatherActiveTick = activeTick;
+        cachedWeatherLayerMode = layerSelection != null ? layerSelection.getMode()
+            : GuidebookSceneLayerSelection.Mode.ALL;
+        cachedWeatherVisibleLayers = layerSelection != null ? layerSelection.getVisibleLayers() : Set.of();
+        cachedRenderableWeatherEffects = effects;
+        return effects;
+    }
+
+    private boolean hasSameWeatherLayerSelection(@Nullable GuidebookSceneLayerSelection layerSelection) {
+        GuidebookSceneLayerSelection.Mode mode = layerSelection != null ? layerSelection.getMode()
+            : GuidebookSceneLayerSelection.Mode.ALL;
+        Set<Integer> visibleLayers = layerSelection != null ? layerSelection.getVisibleLayers() : Set.of();
+        return cachedWeatherLayerMode == mode && cachedWeatherVisibleLayers.equals(visibleLayers);
+    }
+
+    private GuidebookSceneLayerSelection resolveWeatherLayerSelection(@Nullable Integer visibleLayerY) {
+        int resolvedLayerY = visibleLayerY != null ? visibleLayerY : Integer.MIN_VALUE;
+        if (cachedWeatherLayerY != resolvedLayerY) {
+            cachedWeatherLayerY = resolvedLayerY;
+            cachedWeatherLayerSelection = GuidebookSceneLayerSelection.fromVisibleLayer(visibleLayerY);
+        }
+        return cachedWeatherLayerSelection;
+    }
+
+    private void invalidateRenderableWeatherEffects() {
+        weatherEffectsRevision++;
+        cachedRenderableWeatherEffects = null;
     }
 
     public List<InWorldAnnotation> collectInWorldAnnotationsForExport(boolean includeSceneAnnotations,
@@ -2371,7 +2436,11 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         this.renderedContentClip = updateCachedRect(this.renderedContentClip, clipX, clipY, clipW, clipH);
 
         LytSize camOverride = cameraViewportOverride;
-        camera.setViewportSize(camOverride != null ? camOverride : new LytSize(sceneW, sceneH));
+        if (camOverride != null) {
+            camera.setViewportSize(camOverride);
+        } else {
+            camera.setViewportSize(sceneW, sceneH);
+        }
         this.lastAbsX = absX;
         this.lastAbsY = absY;
         this.lastW = w;
@@ -2476,8 +2545,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             inWorld.add(hoverBoxAnnotation);
         }
         Integer visibleLayerY = resolveVisibleLayerY();
-        GuidebookSceneLayerSelection weatherLayerSelection = GuidebookSceneLayerSelection
-            .fromVisibleLayer(visibleLayerY);
+        GuidebookSceneLayerSelection weatherLayerSelection = resolveWeatherLayerSelection(visibleLayerY);
         List<GuidebookSceneWeatherEffect> weatherEffects = resolveRenderableWeatherEffectsForCurrentView(
             weatherLayerSelection);
 
@@ -4849,6 +4917,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (ponderSceneData == null) {
             return;
         }
+        level.previewRuntimeMutations()
+            .clearLayer(GuidebookPreviewRuntimeMutationTracker.PONDER_TIMELINE);
         restoreFromPonderSnapshot();
         clearPonderEntities();
         ponderBlockSnapshot.clear();
@@ -5348,6 +5418,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (restoreFromPonderSnapshot()) {
             markBlockStatsDirty();
         }
+        level.previewRuntimeMutations()
+            .clearLayer(GuidebookPreviewRuntimeMutationTracker.PONDER_TIMELINE);
         clearPonderEntities();
         ponderBlockSnapshot.clear();
         ponderEntityRefs.clear();
@@ -5393,6 +5465,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private void applyPonderTimelineActions(int upToKeyframeIdx, boolean triggerParticles) {
+        level.previewRuntimeMutations()
+            .clearLayer(GuidebookPreviewRuntimeMutationTracker.PONDER_TIMELINE);
         boolean blocksChanged = restoreFromPonderSnapshot();
         clearPonderEntities();
         if (upToKeyframeIdx < 0 || ponderSceneData == null) {
@@ -5446,7 +5520,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             }
             if (particle.isWeatherPreset()) {
                 if (weatherBounds == null) {
-                    weatherBounds = copyLevelBounds();
+                    weatherBounds = getLevelBoundsForImmediateUse();
                 }
                 List<GuidebookSceneWeatherArea> weatherAreas = resolveAvailableWeatherAreas(
                     particle,
@@ -5465,6 +5539,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                             GuidebookSceneWeatherSupport.defaultDensity(
                                 GuidebookSceneWeatherType.fromSerializedName(particle.getWeatherType()))),
                         true));
+                invalidateRenderableWeatherEffects();
                 continue;
             }
             if (particle.isIndicatorPreset()) {
@@ -5979,6 +6054,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private void clearPonderRuntimeWeather() {
         ponderWeatherEffects.clear();
         ponderWeatherColumnReservations.clear();
+        invalidateRenderableWeatherEffects();
     }
 
     private void rebuildPonderRuntimeParticlesAtCurrentTick() {
@@ -6237,9 +6313,12 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return particle.getLifetimeTicks(GuidebookSceneParticleFactory.DEFAULT_INDICATOR_LIFETIME_TICKS);
     }
 
-    private int[] copyLevelBounds() {
-        int[] bounds = level.getBounds();
-        return new int[] { bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5] };
+    /**
+     * Returns the level-owned bounds scratch array for synchronous consumers. Callers must not
+     * retain or mutate it because the level refreshes the same array after spatial changes.
+     */
+    private int[] getLevelBoundsForImmediateUse() {
+        return level.getBounds();
     }
 
     private List<GuidebookSceneWeatherArea> resolveAvailableWeatherAreas(PonderKeyframeParticle particle,
@@ -6350,6 +6429,13 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         @Nullable NBTTagCompound tileTag) {
         if (block == null || block == Blocks.air) {
             level.setBlock(bc.getX(), bc.getY(), bc.getZ(), Blocks.air, 0, null);
+            level.previewRuntimeMutations()
+                .markAround(
+                    GuidebookPreviewRuntimeMutationTracker.BLOCK_TOPOLOGY,
+                    GuidebookPreviewRuntimeMutationTracker.PONDER_TIMELINE,
+                    bc.getX(),
+                    bc.getY(),
+                    bc.getZ());
             return;
         }
         GuidebookPreviewBlockPlacer.place(
@@ -6361,6 +6447,13 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             resolvePonderBlockMeta(block, bc.getMeta()),
             tileTag != null ? (NBTTagCompound) tileTag.copy() : null,
             GuidebookLevel.resolveBlockId(block));
+        level.previewRuntimeMutations()
+            .markAround(
+                GuidebookPreviewRuntimeMutationTracker.BLOCK_TOPOLOGY,
+                GuidebookPreviewRuntimeMutationTracker.PONDER_TIMELINE,
+                bc.getX(),
+                bc.getY(),
+                bc.getZ());
     }
 
     private static int resolvePonderBlockMeta(@Nullable Block block, int requestedMeta) {

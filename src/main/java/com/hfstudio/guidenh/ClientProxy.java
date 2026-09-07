@@ -118,6 +118,12 @@ public class ClientProxy extends CommonProxy {
         super.preInit(event);
         GuideNhClientTaskScheduler.initialize();
         GuidebookLevel.setPreviewWorldFactory(GuidebookFakeWorld::new);
+        GuidebookLevel.setDefaultBuildHeightProvider(() -> {
+            var world = Minecraft.getMinecraft().theWorld;
+            // TODO: Read minimum/maximum build heights from the CubicChunks API when it is an explicit dependency.
+            int maxHeight = world != null ? world.getHeight() : GuidebookLevel.DEFAULT_MAX_BUILD_HEIGHT_EXCLUSIVE;
+            return new GuidebookLevel.BuildHeightBounds(GuidebookLevel.DEFAULT_MIN_BUILD_HEIGHT, maxHeight);
+        });
         GuideNhClientIntegrationBootstrap.preInitClient();
         GuideME.initClientProxy();
         GuideNhNetwork.channel()
