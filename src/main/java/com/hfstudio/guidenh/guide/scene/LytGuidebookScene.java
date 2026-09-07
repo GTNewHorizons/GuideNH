@@ -187,6 +187,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public static final int BLOCK_STATS_SELECTED_ROW_COLOR = ColorUtils.ARGB_6656C8FF.getColor();
     public static final int BLOCK_STATS_HIGHLIGHT_COLOR = ColorUtils.ARGB_6600F5FF.getColor();
     private static final int MAX_PONDER_PARTICLE_POOL_SIZE = 1024;
+    private static final long PONDER_TICK_NANOS = 50_000_000L;
 
     private int dragButton = -1;
     private int dragLastX;
@@ -216,6 +217,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     // the authored screen-pixel fallback until a JSON camera keyframe overrides them.
     private float ponderBaseCamOffX;
     private float ponderBaseCamOffY;
+    private final float[] ponderCameraDefaults = new float[6];
+    private final ArrayList<float[]> ponderResolvedCameraStates = new ArrayList<>();
+    private final float[] ponderActiveCameraScratch = new float[6];
+    private final float[] ponderNextCameraScratch = new float[6];
     private final SmoothFloatState visualCamZoom = new SmoothFloatState();
     private final SmoothFloatState visualCamRotX = new SmoothFloatState();
     private final SmoothFloatState visualCamRotY = new SmoothFloatState();
@@ -245,6 +250,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private GuidebookSceneLayerSelection cachedWeatherLayerSelection = GuidebookSceneLayerSelection.all();
     private final ArrayDeque<GuidebookSceneParticle> ponderParticlePool = new ArrayDeque<>();
     private final Random ponderParticleRng = new Random();
+    private long ponderLastTickNanos = System.nanoTime();
     private int sceneAnimationTick = 0;
     private int ponderLastKeyframeIdx = -2;
     private int ponderAnnotationFadeTick = 5;
@@ -255,6 +261,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private final Map<String, LinkedHashSet<String>> ponderSceneEntityRefs = new HashMap<>();
     private final List<PonderEntityAnimationRuntimeSupport.TimedAnimation> ponderTimedEntityAnimations = new ArrayList<>();
     private final Map<String, PonderEntityAnimationRuntimeSupport.Baseline> ponderEntityAnimationBaselines = new LinkedHashMap<>();
+    private final Map<String, Entity> ponderResolvedAnimatedEntitiesScratch = new HashMap<>();
     private final Long2ObjectLinkedOpenHashMap<PonderWeatherColumnReservation> ponderWeatherColumnReservations = new Long2ObjectLinkedOpenHashMap<>();
     private boolean ponderTimelineBaselineReady;
     @Nullable
@@ -389,8 +396,6 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private AxisAlignedBB cachedHoveredEntityBounds;
     @Nullable
     private MovingObjectPosition cachedHoveredEntityHitResult;
-    private final float[] diggingParticleColorScratch = new float[3];
-    private final float[] diggingParticleVelocityScratch = new float[3];
     private final ConstantColor hoverBoxColor = new ConstantColor(ColorUtils.WHITE.getColor());
     private final ConstantColor blockStatsHighlightColor = new ConstantColor(BLOCK_STATS_HIGHLIGHT_COLOR);
 
@@ -2563,7 +2568,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     clipY,
                     clipW,
                     clipH,
-                    0f,
+                    resolveSceneParticlePartialTicks(),
                     inWorld,
                     weatherLayerSelection,
                     resolveRenderableSceneParticles(),
@@ -4810,7 +4815,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         clearPonderBlockChanges();
         ponderBaseCamOffX = camera.getOffsetX();
         ponderBaseCamOffY = camera.getOffsetY();
+        ponderCameraDefaults[0] = camera.getZoom();
+        ponderCameraDefaults[1] = camera.getRotationX();
+        ponderCameraDefaults[2] = camera.getRotationY();
+        ponderCameraDefaults[3] = camera.getRotationZ();
+        ponderCameraDefaults[4] = ponderBaseCamOffX;
+        ponderCameraDefaults[5] = ponderBaseCamOffY;
         this.ponderSceneData = data;
+        rebuildPonderResolvedCameraStates();
         rebuildPonderTimedEntityAnimations();
         clearPonderEntityAnimationBaselines();
         this.ponderKeyframeAnnotationSets = annotationsByKeyframe != null ? new ArrayList<>(annotationsByKeyframe)
@@ -4833,7 +4845,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public void clearPonderDataForPreviewRebuild() {
         clearPonderBlockChanges();
         this.ponderSceneData = null;
+        this.ponderResolvedCameraStates.clear();
         this.ponderTimedEntityAnimations.clear();
+        this.ponderResolvedAnimatedEntitiesScratch.clear();
         clearPonderEntityAnimationBaselines();
         this.ponderKeyframeAnnotationSets = new ArrayList<>();
         this.ponderKeyframeSoundSets = new ArrayList<>();
@@ -4972,6 +4986,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                 recyclePonderParticle(ponderSceneParticles.remove(i));
             }
         }
+        ponderLastTickNanos = System.nanoTime();
         updatePonderState();
     }
 
@@ -5067,12 +5082,33 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         float fraction = (mouseAbsX - barLeft) / (float) barWidth;
         fraction = Math.clamp(fraction, 0f, 1f);
         int tick = Math.round(fraction * ponderSceneData.getTotalTime());
-        ponderCurrentTick = Math.clamp(tick, 0, ponderSceneData.getTotalTime());
+        int targetTick = Math.clamp(tick, 0, ponderSceneData.getTotalTime());
+        boolean tickChanged = targetTick != ponderCurrentTick;
+        ponderCurrentTick = targetTick;
         ponderPaused = true;
         ponderFinished = ponderCurrentTick >= ponderSceneData.getTotalTime();
+        if (!tickChanged) {
+            // Drag updates are delivered every frame. Rebuilding the same snapshot would recreate
+            // transient particles with new random samples, causing visible flashing while paused.
+            updatePonderState();
+            return;
+        }
         triggeredPonderSoundKeyframes.clear();
         rebuildPonderRuntimeParticlesAtCurrentTick();
         updatePonderState();
+    }
+
+    private float resolveSceneParticlePartialTicks() {
+        // A paused Ponder is a stable snapshot, so render the current state rather than repeatedly
+        // interpolating between its previous and current particle positions.
+        if (ponderPaused) {
+            return 1f;
+        }
+        if (ponderSceneData == null) {
+            return 0f;
+        }
+        long elapsedNanos = System.nanoTime() - ponderLastTickNanos;
+        return Math.clamp(elapsedNanos / (float) PONDER_TICK_NANOS, 0f, 1f);
     }
 
     public boolean containsPonderBar(int mouseX, int mouseY) {
@@ -5126,7 +5162,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             if (anns != null) ponderActiveAnnotations.addAll(anns);
         }
 
-        float[] activeCam = resolveFullCameraAt(activeIdx);
+        copyPonderResolvedCameraState(activeIdx, ponderActiveCameraScratch);
+        float[] activeCam = ponderActiveCameraScratch;
 
         if (activeIdx >= 0 && activeIdx < ponderSceneData.getKeyframeCount() - 1) {
             PonderKeyframe kfA = ponderSceneData.getKeyframe(activeIdx);
@@ -5142,7 +5179,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     int useDur = (easeTicks != null && easeTicks > 0) ? Math.min(easeTicks, segDur) : segDur;
                     t = elapsed >= useDur ? 1.0f : easeInOut(elapsed / (float) useDur);
                 }
-                float[] nextCam = resolveFullCameraAt(activeIdx + 1);
+                copyPonderResolvedCameraState(activeIdx + 1, ponderNextCameraScratch);
+                float[] nextCam = ponderNextCameraScratch;
                 activeCam[0] = lerp(activeCam[0], nextCam[0], t);
                 activeCam[1] = lerp(activeCam[1], nextCam[1], t);
                 activeCam[2] = lerp(activeCam[2], nextCam[2], t);
@@ -5277,43 +5315,38 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
     }
 
-    private float[] resolveFullCameraAt(int kfIndex) {
-        float[] result = new float[] { camera.getZoom(), camera.getRotationX(), camera.getRotationY(),
-            camera.getRotationZ(), ponderBaseCamOffX, ponderBaseCamOffY };
-        boolean[] resolved = new boolean[6];
-        int upper = Math.min(kfIndex, ponderSceneData.getKeyframeCount() - 1);
-        for (int i = upper; i >= 0; i--) {
-            PonderKeyframe kf = ponderSceneData.getKeyframe(i);
-            if (kf == null) continue;
-            PonderKeyframeCameraState cs = kf.getCamera();
-            if (cs == null) continue;
-            if (!resolved[0] && cs.getZoom() != null) {
-                result[0] = cs.getZoom();
-                resolved[0] = true;
-            }
-            if (!resolved[1] && cs.getRotX() != null) {
-                result[1] = cs.getRotX();
-                resolved[1] = true;
-            }
-            if (!resolved[2] && cs.getRotY() != null) {
-                result[2] = cs.getRotY();
-                resolved[2] = true;
-            }
-            if (!resolved[3] && cs.getRotZ() != null) {
-                result[3] = cs.getRotZ();
-                resolved[3] = true;
-            }
-            if (!resolved[4] && cs.getOffX() != null) {
-                result[4] = cs.getOffX();
-                resolved[4] = true;
-            }
-            if (!resolved[5] && cs.getOffY() != null) {
-                result[5] = cs.getOffY();
-                resolved[5] = true;
-            }
-            if (resolved[0] && resolved[1] && resolved[2] && resolved[3] && resolved[4] && resolved[5]) break;
+    private void rebuildPonderResolvedCameraStates() {
+        ponderResolvedCameraStates.clear();
+        if (ponderSceneData == null) {
+            return;
         }
-        return result;
+
+        float zoom = ponderCameraDefaults[0];
+        float rotX = ponderCameraDefaults[1];
+        float rotY = ponderCameraDefaults[2];
+        float rotZ = ponderCameraDefaults[3];
+        float offX = ponderCameraDefaults[4];
+        float offY = ponderCameraDefaults[5];
+        ponderResolvedCameraStates.ensureCapacity(ponderSceneData.getKeyframeCount());
+        for (PonderKeyframe keyframe : ponderSceneData.getKeyframes()) {
+            PonderKeyframeCameraState cameraState = keyframe != null ? keyframe.getCamera() : null;
+            if (cameraState != null) {
+                if (cameraState.getZoom() != null) zoom = cameraState.getZoom();
+                if (cameraState.getRotX() != null) rotX = cameraState.getRotX();
+                if (cameraState.getRotY() != null) rotY = cameraState.getRotY();
+                if (cameraState.getRotZ() != null) rotZ = cameraState.getRotZ();
+                if (cameraState.getOffX() != null) offX = cameraState.getOffX();
+                if (cameraState.getOffY() != null) offY = cameraState.getOffY();
+            }
+            ponderResolvedCameraStates.add(new float[] { zoom, rotX, rotY, rotZ, offX, offY });
+        }
+    }
+
+    private void copyPonderResolvedCameraState(int keyframeIndex, float[] destination) {
+        float[] source = keyframeIndex >= 0 && keyframeIndex < ponderResolvedCameraStates.size()
+            ? ponderResolvedCameraStates.get(keyframeIndex)
+            : ponderCameraDefaults;
+        System.arraycopy(source, 0, destination, 0, destination.length);
     }
 
     private static float easeInOut(float t) {
@@ -6080,7 +6113,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             return;
         }
 
-        Map<String, Entity> resolvedEntities = new HashMap<>();
+        Map<String, Entity> resolvedEntities = ponderResolvedAnimatedEntitiesScratch;
+        resolvedEntities.clear();
         boolean spatialChanged = false;
         for (String ref : ponderEntityAnimationBaselines.keySet()) {
             Entity entity = resolvePonderAnimatedEntity(ref);
@@ -6176,7 +6210,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (iconW <= 0 || iconH <= 0) return;
 
         Random rng = ponderParticleRng;
-        float[] color = resolveDiggingParticleColor(block, meta, bx, by, bz);
+        int tint = resolveDiggingParticleTint(block, meta, bx, by, bz);
+        float red = 0.6f * ((tint >> 16 & 255) / 255.0f);
+        float green = 0.6f * ((tint >> 8 & 255) / 255.0f);
+        float blue = 0.6f * ((tint & 255) / 255.0f);
         int grid = 4;
         ponderSceneParticles.ensureCapacity(ponderSceneParticles.size() + grid * grid * grid);
         for (int ix = 0; ix < grid; ix++) {
@@ -6186,11 +6223,21 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     float py = by + (iy + 0.5f) / grid;
                     float pz = bz + (iz + 0.5f) / grid;
 
-                    float[] velocity = vanillaDiggingParticleVelocity(
-                        rng,
-                        px - bx - 0.5f,
-                        py - by - 0.5f,
-                        pz - bz - 0.5f);
+                    float velocityX = px - bx - 0.5f + (rng.nextFloat() * 2.0f - 1.0f) * 0.4f;
+                    float velocityY = py - by - 0.5f + (rng.nextFloat() * 2.0f - 1.0f) * 0.4f;
+                    float velocityZ = pz - bz - 0.5f + (rng.nextFloat() * 2.0f - 1.0f) * 0.4f;
+                    float speed = (float) Math.sqrt(
+                        velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ);
+                    if (speed <= 1.0e-6f) {
+                        velocityX = 0.0f;
+                        velocityY = 0.1f;
+                        velocityZ = 0.0f;
+                    } else {
+                        float scale = (rng.nextFloat() + rng.nextFloat() + 1.0f) * 0.06f / speed;
+                        velocityX *= scale;
+                        velocityY = velocityY * scale + 0.1f;
+                        velocityZ *= scale;
+                    }
 
                     float textureJitterX = rng.nextFloat() * 3.0f;
                     float textureJitterY = rng.nextFloat() * 3.0f;
@@ -6206,16 +6253,16 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                             px,
                             py,
                             pz,
-                            velocity[0],
-                            velocity[1],
-                            velocity[2],
+                            velocityX,
+                            velocityY,
+                            velocityZ,
                             u0,
                             v0,
                             u1,
                             v1,
-                            color[0],
-                            color[1],
-                            color[2],
+                            red,
+                            green,
+                            blue,
                             maxAge,
                             size));
                 }
@@ -6223,46 +6270,17 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
     }
 
-    private float[] resolveDiggingParticleColor(Block block, int meta, int x, int y, int z) {
-        float red = 0.6f;
-        float green = 0.6f;
-        float blue = 0.6f;
+    private int resolveDiggingParticleTint(Block block, int meta, int x, int y, int z) {
         try {
             World fakeWorld = level.getOrCreateFakeWorld();
-            int color = block.colorMultiplier(fakeWorld, x, y, z);
-            red *= (color >> 16 & 255) / 255.0f;
-            green *= (color >> 8 & 255) / 255.0f;
-            blue *= (color & 255) / 255.0f;
+            return block.colorMultiplier(fakeWorld, x, y, z);
         } catch (Throwable ignored) {
             try {
-                int color = block.getRenderColor(meta);
-                red *= (color >> 16 & 255) / 255.0f;
-                green *= (color >> 8 & 255) / 255.0f;
-                blue *= (color & 255) / 255.0f;
-            } catch (Throwable ignoredAgain) {}
+                return block.getRenderColor(meta);
+            } catch (Throwable ignoredAgain) {
+                return 0xFFFFFF;
+            }
         }
-        diggingParticleColorScratch[0] = red;
-        diggingParticleColorScratch[1] = green;
-        diggingParticleColorScratch[2] = blue;
-        return diggingParticleColorScratch;
-    }
-
-    private float[] vanillaDiggingParticleVelocity(Random rng, float baseX, float baseY, float baseZ) {
-        float vx = baseX + (rng.nextFloat() * 2.0f - 1.0f) * 0.4f;
-        float vy = baseY + (rng.nextFloat() * 2.0f - 1.0f) * 0.4f;
-        float vz = baseZ + (rng.nextFloat() * 2.0f - 1.0f) * 0.4f;
-        float speed = (float) Math.sqrt(vx * vx + vy * vy + vz * vz);
-        if (speed <= 1.0e-6f) {
-            diggingParticleVelocityScratch[0] = 0.0f;
-            diggingParticleVelocityScratch[1] = 0.1f;
-            diggingParticleVelocityScratch[2] = 0.0f;
-            return diggingParticleVelocityScratch;
-        }
-        float scale = (rng.nextFloat() + rng.nextFloat() + 1.0f) * 0.15f * 0.4f;
-        diggingParticleVelocityScratch[0] = vx / speed * scale;
-        diggingParticleVelocityScratch[1] = vy / speed * scale + 0.1f;
-        diggingParticleVelocityScratch[2] = vz / speed * scale;
-        return diggingParticleVelocityScratch;
     }
 
     private int estimatePonderParticleBurstSize(PonderKeyframe keyframe) {

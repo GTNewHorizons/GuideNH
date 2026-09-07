@@ -678,6 +678,7 @@ public class GuidebookLevelRenderer {
         if (particles == null || particles.isEmpty()) {
             return;
         }
+        float interpolation = Math.clamp(partialTicks, 0f, 1f);
         BillboardAxes billboardAxes = resolveBillboardAxes();
         float rx = billboardAxes.rightX();
         float ry = billboardAxes.rightY();
@@ -698,6 +699,8 @@ public class GuidebookLevelRenderer {
 
             OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
             var tess = Tessellator.instance;
+            var textureManager = Minecraft.getMinecraft()
+                .getTextureManager();
             ResourceLocation activeTexture = null;
             boolean drawing = false;
             for (GuidebookSceneParticle p : particles) {
@@ -707,20 +710,21 @@ public class GuidebookLevelRenderer {
                     if (drawing) {
                         tess.draw();
                     }
-                    Minecraft.getMinecraft()
-                        .getTextureManager()
-                        .bindTexture(nextTexture);
+                    textureManager.bindTexture(nextTexture);
                     tess.startDrawingQuads();
                     activeTexture = nextTexture;
                     drawing = true;
                 }
-                float alpha = p.getAlpha(partialTicks);
-                int brightness = p.getBrightness(partialTicks);
+                float lifeProgress = p.maxAge > 0 ? Math.min((p.age + interpolation) / p.maxAge, 1f) : 0f;
+                float alpha = p.alphaStart + (p.alphaEnd - p.alphaStart) * lifeProgress;
+                int brightness = p.brightness;
                 tess.setBrightness(
                     brightness != GuidebookSceneParticle.NO_BRIGHTNESS_OVERRIDE ? brightness : FULL_BRIGHTNESS);
                 tess.setColorRGBA_F(p.red, p.green, p.blue, alpha);
-                float s = p.getSize(partialTicks);
-                float cx = p.getRenderX(partialTicks), cy = p.getRenderY(partialTicks), cz = p.getRenderZ(partialTicks);
+                float s = p.sizeStart + (p.sizeEnd - p.sizeStart) * lifeProgress;
+                float cx = p.prevX + (p.x - p.prevX) * interpolation;
+                float cy = p.prevY + (p.y - p.prevY) * interpolation;
+                float cz = p.prevZ + (p.z - p.prevZ) * interpolation;
                 tess.addVertexWithUV(cx - rx * s - ux * s, cy - ry * s - uy * s, cz - rz * s - uz * s, p.u0, p.v1);
                 tess.addVertexWithUV(cx + rx * s - ux * s, cy + ry * s - uy * s, cz + rz * s - uz * s, p.u1, p.v1);
                 tess.addVertexWithUV(cx + rx * s + ux * s, cy + ry * s + uy * s, cz + rz * s + uz * s, p.u1, p.v0);
