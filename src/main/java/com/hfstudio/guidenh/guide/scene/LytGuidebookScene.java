@@ -215,6 +215,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private float ponderCamOffY = 0f;
     /** Temporary camera save state reused by render and hover paths. */
     private final float[] cameraStateScratch = new float[6];
+    private final float[] projectedSoundPositionScratch = new float[2];
     // GameScene offsets are world-space in normal scenes. For a Ponder timeline they are
     // the authored screen-pixel fallback until a JSON camera keyframe overrides them.
     private float ponderBaseCamOffX;
@@ -4411,7 +4412,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         float[] saved = applyVisualCameraState();
         try {
             var projected = camera.worldToScreen(sound.x(), sound.y(), sound.z());
-            return new float[] { lastAbsX + projected.x, lastAbsY + projected.y };
+            projectedSoundPositionScratch[0] = lastAbsX + projected.x;
+            projectedSoundPositionScratch[1] = lastAbsY + projected.y;
+            return projectedSoundPositionScratch;
         } finally {
             applyCapturedCameraState(saved);
         }
