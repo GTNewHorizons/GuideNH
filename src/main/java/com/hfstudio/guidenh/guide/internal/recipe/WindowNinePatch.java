@@ -18,9 +18,7 @@ public class WindowNinePatch {
     public static final int TEX_SIZE = 16;
     public static final int BORDER = 4;
 
-    public static final ResourceLocation WINDOW = new ResourceLocation(
-        "guidenh",
-        "textures/gui/sprites/window.png");
+    public static final ResourceLocation WINDOW = new ResourceLocation("guidenh", "textures/gui/sprites/window.png");
     public static final ResourceLocation WINDOW_INNER = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/window_inner.png");

@@ -6238,8 +6238,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     float velocityX = px - bx - 0.5f + (rng.nextFloat() * 2.0f - 1.0f) * 0.4f;
                     float velocityY = py - by - 0.5f + (rng.nextFloat() * 2.0f - 1.0f) * 0.4f;
                     float velocityZ = pz - bz - 0.5f + (rng.nextFloat() * 2.0f - 1.0f) * 0.4f;
-                    float speed = (float) Math.sqrt(
-                        velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ);
+                    float speed = (float) Math
+                        .sqrt(velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ);
                     if (speed <= 1.0e-6f) {
                         velocityX = 0.0f;
                         velocityY = 0.1f;
