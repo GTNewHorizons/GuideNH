@@ -1061,7 +1061,10 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean hasBottomBar() {
-        return !isHomeRoute() && currentPage != null && !isSearchPage() && !isItemLinksPage() && !isGuideEditorActive();
+        // Reserve the content route's bottom bar while an asynchronously compiled page is loading.
+        // Depending on currentPage made the viewport grow for one frame, then shrink when the page
+        // mounted, which produced a visible flash under GuideScreen on first open.
+        return hasContentRoute() && !isSearchPage() && !isItemLinksPage() && !isGuideEditorActive();
     }
 
     private boolean isGuideEditorActive() {
@@ -3054,12 +3057,16 @@ public class GuideScreen extends GuiContainer
 
     private void drawBottomBar() {
         if (!hasBottomBar()) return;
-        @Nullable
-        FrontmatterPageMeta meta = currentPage.pageMeta();
 
         int barY = panelY + panelH - TOOLBAR_H;
         drawRect(panelX, barY, panelX + panelW, panelY + panelH, BG_COLOR);
         drawRect(panelX, barY, panelX + panelW, barY + 1, ColorUtils.ARGB_FF2A2A2A.getColor());
+
+        if (currentPage == null) {
+            return;
+        }
+        @Nullable
+        FrontmatterPageMeta meta = currentPage.pageMeta();
 
         FontRenderer fr = mc.fontRenderer;
         if (cachedBottomBarText == null || cachedBottomBarPage != currentPage || cachedBottomBarWidth != this.width) {

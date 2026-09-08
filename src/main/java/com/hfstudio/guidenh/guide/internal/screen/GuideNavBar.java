@@ -172,7 +172,8 @@ public class GuideNavBar {
     @Nullable
     private ResourceLocation activeGuideId;
     private int lastBookmarkStateVersion;
-    private int lastExpandedStateHash;
+    private int expandedStateVersion;
+    private int lastExpandedStateVersion;
     private boolean bookmarkGroupExpanded = true;
     @Nullable
     private GuideExpansionListener onExpansionChanged;
@@ -261,7 +262,7 @@ public class GuideNavBar {
         expandedPageIds.clear();
         expandedPageIds.addAll(
             effectiveState.expandedPageIds() != null ? effectiveState.expandedPageIds() : Collections.emptySet());
-        lastExpandedStateHash = expandedPageIds.hashCode();
+        expandedStateVersion++;
         scrollY = effectiveState.scrollY();
         visualScrollY.snapTo(scrollY);
         if (lastTree != null) {
@@ -314,6 +315,7 @@ public class GuideNavBar {
                 }
             }
         }
+        expandedStateVersion++;
 
         // 4. Single rebuild with final state
         if (tree != null) {
@@ -342,6 +344,7 @@ public class GuideNavBar {
             }
         }
         if (changed) {
+            expandedStateVersion++;
             rebuildRows(tree, bookmarkState);
         }
     }
@@ -356,7 +359,7 @@ public class GuideNavBar {
 
     private boolean shouldRebuildRows(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
         return tree != lastTree || lastBookmarkStateVersion != bookmarkState.version()
-            || lastExpandedStateHash != expandedPageIds.hashCode();
+            || lastExpandedStateVersion != expandedStateVersion;
     }
 
     private void rebuildRows(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
@@ -365,7 +368,7 @@ public class GuideNavBar {
         lastTree = tree;
         if (tree == null) {
             lastBookmarkStateVersion = bookmarkState.version();
-            lastExpandedStateHash = expandedPageIds.hashCode();
+            lastExpandedStateVersion = expandedStateVersion;
             clampScrollToRows();
             return;
         }
@@ -375,7 +378,7 @@ public class GuideNavBar {
             rows.add(new Row(projectedRow));
         }
         lastBookmarkStateVersion = bookmarkState.version();
-        lastExpandedStateHash = expandedPageIds.hashCode();
+        lastExpandedStateVersion = expandedStateVersion;
         clampScrollToRows();
     }
 
@@ -915,6 +918,7 @@ public class GuideNavBar {
         if (!changed) {
             return;
         }
+        expandedStateVersion++;
         rebuildRows(lastTree, bookmarkState);
         if (onExpansionChanged != null) {
             onExpansionChanged.onExpansionChanged(changes, allCollapsed);

@@ -71,6 +71,10 @@ public class TextAnnotation extends OverlayAnnotation {
 
     @Nullable
     private LytParagraph richContent;
+    // Rich content is laid out synchronously by this annotation on the client thread. Reuse its
+    // context, but create it only when rendering/layout first needs Minecraft's font renderer.
+    @Nullable
+    private LayoutContext richContentLayoutContext;
 
     @Nullable
     private LayoutMeasure cachedMeasure;
@@ -223,7 +227,7 @@ public class TextAnnotation extends OverlayAnnotation {
                 localViewport);
             int bx = bubble.x();
             int by = bubble.y();
-            LayoutContext layoutContext = new LayoutContext(new MinecraftFontMetrics());
+            LayoutContext layoutContext = getRichContentLayoutContext();
 
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -315,7 +319,7 @@ public class TextAnnotation extends OverlayAnnotation {
             return cachedMeasure;
         }
         if (richContent != null) {
-            LayoutContext layoutContext = new LayoutContext(new MinecraftFontMetrics());
+            LayoutContext layoutContext = getRichContentLayoutContext();
             int availableWidth = wrapWidth > 0 ? wrapWidth : Integer.MAX_VALUE;
             LytRect contentBounds = richContent.layout(layoutContext, 0, 0, availableWidth);
             cachedMeasure = new LayoutMeasure(
@@ -350,6 +354,13 @@ public class TextAnnotation extends OverlayAnnotation {
             return Math.min(maxWidth, viewportContentWidth);
         }
         return viewportContentWidth;
+    }
+
+    private LayoutContext getRichContentLayoutContext() {
+        if (richContentLayoutContext == null) {
+            richContentLayoutContext = new LayoutContext(new MinecraftFontMetrics());
+        }
+        return richContentLayoutContext.resetTransientState();
     }
 
     private LytRect bubbleRect(int anchorX, int anchorY, int boxW, int boxH) {

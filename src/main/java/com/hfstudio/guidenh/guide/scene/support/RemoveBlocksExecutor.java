@@ -7,6 +7,7 @@ import java.util.List;
 import net.minecraft.init.Blocks;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewRuntimeMutationTracker;
 
 public class RemoveBlocksExecutor {
 
@@ -26,6 +27,13 @@ public class RemoveBlocksExecutor {
 
         for (int[] pos : toRemove) {
             level.setBlock(pos[0], pos[1], pos[2], Blocks.air, 0, null);
+            level.previewRuntimeMutations()
+                .markAround(
+                    GuidebookPreviewRuntimeMutationTracker.BLOCK_TOPOLOGY,
+                    GuidebookPreviewRuntimeMutationTracker.SCENE_OPERATIONS,
+                    pos[0],
+                    pos[1],
+                    pos[2]);
         }
     }
 }

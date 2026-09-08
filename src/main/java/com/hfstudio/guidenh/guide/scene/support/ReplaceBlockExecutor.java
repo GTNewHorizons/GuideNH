@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewRuntimeMutationTracker;
 
 public class ReplaceBlockExecutor {
 
@@ -65,6 +66,13 @@ public class ReplaceBlockExecutor {
             NBTTagCompound tagCopy = toNbt != null ? (NBTTagCompound) toNbt.copy() : null;
             GuidebookPreviewBlockPlacer.place(level, pos[0], pos[1], pos[2], toBlock, toMeta, tagCopy, toExplicitId);
             ScenePreviewFormedState.updateAfterPlacement(level, pos[0], pos[1], pos[2], formed);
+            level.previewRuntimeMutations()
+                .markAround(
+                    GuidebookPreviewRuntimeMutationTracker.BLOCK_TOPOLOGY,
+                    GuidebookPreviewRuntimeMutationTracker.SCENE_OPERATIONS,
+                    pos[0],
+                    pos[1],
+                    pos[2]);
         }
     }
 

@@ -1,7 +1,10 @@
 package com.hfstudio.guidenh.guide.scene.level;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -31,8 +34,6 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
 
 /**
  * Lightweight client-only world wrapper backed by a {@link GuidebookLevel}.
@@ -47,7 +48,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     /** Stable read-only chunk views; renderer/CTM asks for the same coordinates repeatedly. */
     private final Long2ObjectOpenHashMap<GuidebookFakeChunk> chunkViews = new Long2ObjectOpenHashMap<>();
     @Nullable
-    private LongSet markBlockForUpdateGuard;
+    private Set<TileEntity> markBlockForUpdateGuard;
 
     public GuidebookFakeWorld(GuidebookLevel level) {
         super(
@@ -193,7 +194,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
 
     @Override
     public int getHeight() {
-        return 256;
+        return level != null ? level.getMaxBuildHeightExclusive() : GuidebookLevel.DEFAULT_MAX_BUILD_HEIGHT_EXCLUSIVE;
     }
 
     @Override
@@ -201,7 +202,7 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
 
     @Override
     public boolean blockExists(int x, int y, int z) {
-        return y >= 0 && y < 256;
+        return level != null && level.isValidBuildHeight(y);
     }
 
     @Override
@@ -250,15 +251,14 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
         if (suppressAe2StaleTileDescriptionRefresh(tileEntity)) {
             return;
         }
-        long guardKey = packBlockPos(x, y, z);
-        LongSet inProgress = getOrCreateMarkBlockForUpdateGuard();
-        if (!inProgress.add(guardKey)) {
+        Set<TileEntity> inProgress = getOrCreateMarkBlockForUpdateGuard();
+        if (!inProgress.add(tileEntity)) {
             return;
         }
         try {
             applyDescriptionPacketToTileEntity(tileEntity);
         } finally {
-            inProgress.remove(guardKey);
+            inProgress.remove(tileEntity);
         }
     }
 
@@ -403,14 +403,11 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
             .suppressMarkBlockForUpdateDescriptionResync(te, level);
     }
 
-    private LongSet getOrCreateMarkBlockForUpdateGuard() {
+    private Set<TileEntity> getOrCreateMarkBlockForUpdateGuard() {
         if (markBlockForUpdateGuard == null) {
-            markBlockForUpdateGuard = new LongOpenHashSet();
+            markBlockForUpdateGuard = Collections.newSetFromMap(new IdentityHashMap<>());
         }
         return markBlockForUpdateGuard;
     }
 
-    public static long packBlockPos(int x, int y, int z) {
-        return ((long) (x & 0x3FFFFFF)) | (((long) (z & 0x3FFFFFF)) << 26) | (((long) (y & 0xFFF)) << 52);
-    }
 }
