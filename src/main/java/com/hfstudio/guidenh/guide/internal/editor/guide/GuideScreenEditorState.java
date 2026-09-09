@@ -27,6 +27,16 @@ public class GuideScreenEditorState {
         ModConfig.save();
     }
 
+    /** The guide and scene markdown editors intentionally share one persisted preference. */
+    public static boolean isWrapEnabled() {
+        return ModConfig.ui.sceneEditorMarkdownWrapEnabled;
+    }
+
+    public static void setWrapEnabled(boolean enabled) {
+        ModConfig.ui.sceneEditorMarkdownWrapEnabled = enabled;
+        ModConfig.save();
+    }
+
     public static boolean isAutosaveEnabled() {
         return ModConfig.ui.guideEditorAutosaveEnabled;
     }

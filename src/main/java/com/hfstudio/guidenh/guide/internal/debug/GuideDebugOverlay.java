@@ -11,6 +11,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 
 import lombok.Getter;
@@ -118,7 +119,7 @@ public class GuideDebugOverlay {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             GL11.glTranslatef(0.0F, 0.0F, OVERLAY_Z);
 
             HoveredElementInfo documentHoveredInfo = null;
@@ -251,14 +252,14 @@ public class GuideDebugOverlay {
     }
 
     private void renderCursorDot(int mouseX, int mouseY) {
-        int color = ModConfig.debug.debugCursorColor;
+        int color = ColorUtils.DEBUG_CURSOR.getColor();
         float alpha = ((color >> 24) & 0xFF) / 255.0f;
         float red = ((color >> 16) & 0xFF) / 255.0f;
         float green = ((color >> 8) & 0xFF) / 255.0f;
         float blue = (color & 0xFF) / 255.0f;
 
         GL11.glDisable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(red, green, blue, alpha);
+        ColorUtils.applyGlColor(red, green, blue, alpha);
         GL11.glBegin(GL11.GL_QUADS);
         GL11.glVertex2f(mouseX, mouseY);
         GL11.glVertex2f(mouseX + 1, mouseY);

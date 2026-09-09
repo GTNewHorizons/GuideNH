@@ -7,7 +7,7 @@ import java.util.Set;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteContext;
 
-/** Suggests SymbolicColor names for &lt;Color id&gt; attributes. */
+/** Suggests ColorValue names for &lt;Color id&gt; attributes. */
 public class ColorProvider implements AutocompleteProvider {
 
     private static final String[] SYMBOLIC_NAMES = { "LINK", "BODY_TEXT", "ERROR_TEXT", "CRAFTING_RECIPE_TYPE",

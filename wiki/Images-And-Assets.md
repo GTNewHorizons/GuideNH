@@ -293,7 +293,7 @@ Key behavior:
 - transparent background and border
 - no scene buttons, no layer slider, no annotation authoring surface
 - hover still shows the selected block outline and tooltip
-- `scale` changes camera zoom
+- `scale` changes camera zoom and defaults to `4`
 - `perspective` accepts `isometric-north-east`, `isometric-north-west`, and `up`
 - `nbt` supplies tile-entity SNBT; inline `id="mod:block:meta:{...}"` SNBT still works, but the
   standalone `nbt` attribute is easier to read and is preferred
@@ -301,7 +301,7 @@ Key behavior:
 Example:
 
 ````md
-<BlockImage id="minecraft:stone" scale="2" />
+<BlockImage id="minecraft:stone" />
 <BlockImage id="minecraft:furnace" perspective="isometric-north-west" scale="2.5" />
 <BlockImage
   id="minecraft:chest"

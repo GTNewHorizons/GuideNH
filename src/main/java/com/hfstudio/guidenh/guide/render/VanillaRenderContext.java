@@ -15,8 +15,8 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -34,8 +34,6 @@ public class VanillaRenderContext implements RenderContext {
     private int screenHeight;
 
     @Setter
-    private LightDarkMode lightDarkMode;
-    @Setter
     private LytRect viewport;
 
     private final Deque<LytRect> scissorStack = new ArrayDeque<>();
@@ -50,8 +48,7 @@ public class VanillaRenderContext implements RenderContext {
     @Getter
     private float zoom = 1.0f;
 
-    public VanillaRenderContext(LightDarkMode mode, LytRect viewport, int screenHeight) {
-        this.lightDarkMode = mode;
+    public VanillaRenderContext(LytRect viewport, int screenHeight) {
         this.viewport = viewport;
         this.screenHeight = screenHeight;
         this.fontRenderer = Minecraft.getMinecraft().fontRenderer;
@@ -96,18 +93,13 @@ public class VanillaRenderContext implements RenderContext {
     }
 
     @Override
-    public LightDarkMode lightDarkMode() {
-        return lightDarkMode;
-    }
-
-    @Override
     public LytRect viewport() {
         return viewport;
     }
 
     @Override
     public int resolveColor(ColorValue ref) {
-        return ref.resolve(lightDarkMode);
+        return ref.resolve();
     }
 
     @Override
@@ -216,7 +208,7 @@ public class VanillaRenderContext implements RenderContext {
         if (text == null || text.isEmpty()) return;
         int color = resolveColor(style.color());
         if ((color >>> 24) == 0) {
-            color |= 0xFF000000;
+            color |= ColorUtils.BLACK.getColor();
         }
         String drawn = GuideFontCompat.prepareRenderedText(text, style);
 
@@ -314,7 +306,7 @@ public class VanillaRenderContext implements RenderContext {
         // flushes). We instead explicitly restore every state we touch in the finally block.
         try {
             GL11.glDisable(GL11.GL_BLEND);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
             RenderHelper.enableGUIStandardItemLighting();
             GL11.glEnable(GL11.GL_LIGHTING);
@@ -338,7 +330,7 @@ public class VanillaRenderContext implements RenderContext {
             GL11.glDisable(GL11.GL_ALPHA_TEST);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 
@@ -347,7 +339,7 @@ public class VanillaRenderContext implements RenderContext {
         Minecraft.getMinecraft()
             .getTextureManager()
             .bindTexture(texture);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         var tess = Tessellator.instance;
         float texW = 256f;
         float texH = 256f;
@@ -374,7 +366,7 @@ public class VanillaRenderContext implements RenderContext {
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
+            ColorUtils.applyGlColor(r / 255f, g / 255f, b / 255f, a / 255f);
             Minecraft.getMinecraft()
                 .getTextureManager()
                 .bindTexture(sprite.getTexture());
@@ -399,7 +391,7 @@ public class VanillaRenderContext implements RenderContext {
             tess.addVertexWithUV(x, y, 0, u / texW, v / texH);
             tess.draw();
         } finally {
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             GL11.glPopAttrib();
         }
     }
@@ -407,14 +399,14 @@ public class VanillaRenderContext implements RenderContext {
     @Override
     public void fillTexturedRect(LytRect rect, GuidePageTexture texture) {
         if (texture == null || texture.isMissing()) {
-            fillRect(rect, 0xFF333333);
-            drawBorder(rect, 0xFFFF00FF, 1);
+            fillRect(rect, ColorUtils.ARGB_FF333333.getColor());
+            drawBorder(rect, ColorUtils.ARGB_FFFF00FF.getColor(), 1);
             return;
         }
         ResourceLocation resolvedTexture = texture.getTexture();
         if (resolvedTexture == null) {
-            fillRect(rect, 0xFF333333);
-            drawBorder(rect, 0xFFFF00FF, 1);
+            fillRect(rect, ColorUtils.ARGB_FF333333.getColor());
+            drawBorder(rect, ColorUtils.ARGB_FFFF00FF.getColor(), 1);
             return;
         }
         Minecraft.getMinecraft()
@@ -423,7 +415,7 @@ public class VanillaRenderContext implements RenderContext {
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         int x = rect.x();
         int y = rect.y();
         int w = rect.width();
@@ -441,14 +433,14 @@ public class VanillaRenderContext implements RenderContext {
     public void fillTexturedRect(LytRect rect, GuidePageTexture texture, int sourceX, int sourceY, int sourceWidth,
         int sourceHeight) {
         if (texture == null || texture.isMissing()) {
-            fillRect(rect, 0xFF333333);
-            drawBorder(rect, 0xFFFF00FF, 1);
+            fillRect(rect, ColorUtils.ARGB_FF333333.getColor());
+            drawBorder(rect, ColorUtils.ARGB_FFFF00FF.getColor(), 1);
             return;
         }
         ResourceLocation resolvedTexture = texture.getTexture();
         if (resolvedTexture == null) {
-            fillRect(rect, 0xFF333333);
-            drawBorder(rect, 0xFFFF00FF, 1);
+            fillRect(rect, ColorUtils.ARGB_FF333333.getColor());
+            drawBorder(rect, ColorUtils.ARGB_FFFF00FF.getColor(), 1);
             return;
         }
         int naturalWidth = Math.max(
@@ -469,7 +461,7 @@ public class VanillaRenderContext implements RenderContext {
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         int x = rect.x();
         int y = rect.y();
         int w = rect.width();
@@ -536,7 +528,7 @@ public class VanillaRenderContext implements RenderContext {
         GL11.glDisable(GL11.GL_LIGHTING);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDepthMask(true);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         RenderHelper.disableStandardItemLighting();
 
         if (!scissorStack.isEmpty()) {
@@ -571,7 +563,7 @@ public class VanillaRenderContext implements RenderContext {
 
     private static void endShapeDraw() {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         GL11.glPopAttrib();
     }
 
@@ -583,7 +575,7 @@ public class VanillaRenderContext implements RenderContext {
         if (a == 0) {
             a = 0xFF;
         }
-        GL11.glColor4f(r / 255f, g / 255f, b / 255f, a / 255f);
+        ColorUtils.applyGlColor(r / 255f, g / 255f, b / 255f, a / 255f);
     }
 
     /**

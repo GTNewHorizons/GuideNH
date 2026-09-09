@@ -13,6 +13,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.gtnewhorizon.gtnhlib.blockpos.IBlockPos;
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter.SelectionAction;
@@ -176,11 +177,11 @@ public class RegionWandRenderer {
 
         GL11.glLineWidth(3f);
         GL11.glBegin(GL11.GL_LINES);
-        GL11.glColor4f(1f, 0.2f, 0.2f, 0.95f);
+        ColorUtils.applyGlColor(ColorUtils.REGION_X_AXIS.getColor());
         line(cx - radius, cy, cz, cx + radius, cy, cz);
-        GL11.glColor4f(0.25f, 1f, 0.25f, 0.95f);
+        ColorUtils.applyGlColor(ColorUtils.REGION_Y_AXIS.getColor());
         line(cx, cy - radius, cz, cx, cy + radius, cz);
-        GL11.glColor4f(0.25f, 0.45f, 1f, 0.95f);
+        ColorUtils.applyGlColor(ColorUtils.REGION_Z_AXIS.getColor());
         line(cx, cy, cz - radius, cx, cy, cz + radius);
         GL11.glEnd();
         GL11.glLineWidth(2f);

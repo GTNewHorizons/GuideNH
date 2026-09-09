@@ -18,6 +18,7 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewRuntimeMutationTracker;
 import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -62,6 +63,13 @@ public class BlockElementCompiler implements SceneElementTagCompiler {
             .toString();
         GuidebookPreviewBlockPlacer.place(level, x, y, z, block, meta, tileTag, explicitBlockId);
         ScenePreviewFormedState.updateAfterPlacement(level, x, y, z, formed);
+        level.previewRuntimeMutations()
+            .markAround(
+                GuidebookPreviewRuntimeMutationTracker.BLOCK_TOPOLOGY,
+                GuidebookPreviewRuntimeMutationTracker.SCENE_OPERATIONS,
+                x,
+                y,
+                z);
     }
 
     public static int resolvePlacementMeta(ResolvedBlockReference blockReference, String facing) {

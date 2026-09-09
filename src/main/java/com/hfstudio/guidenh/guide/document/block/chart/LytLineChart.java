@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -167,7 +168,7 @@ public class LytLineChart extends LytChartBase {
                     float r = hovered ? POINT_RADIUS + 2f : POINT_RADIUS;
                     context.fillCircle(x, y, r, s.getColor());
                     if (hovered) {
-                        context.drawCircleOutline(x, y, r, 1f, 0xFF000000);
+                        context.drawCircleOutline(x, y, r, 1f, ColorUtils.BLACK.getColor());
                     }
                 }
             }

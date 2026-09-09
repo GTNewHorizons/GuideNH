@@ -6,6 +6,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -125,7 +126,7 @@ public class MarkdownRuntimeBlocks {
 
         return new BlockquoteDirective(
             null,
-            color != null ? color : new ConstantColor(0xFF7C8795),
+            color != null ? color : new ConstantColor(ColorUtils.ARGB_FF7C8795.getColor()),
             title,
             icon,
             trimLeadingDirectiveText(trimmed, directiveEnd + 1),
@@ -255,7 +256,7 @@ public class MarkdownRuntimeBlocks {
         try {
             if (normalized.length() == 7) {
                 int rgb = Integer.parseInt(normalized.substring(1), 16);
-                return new ConstantColor(0xFF000000 | rgb);
+                return new ConstantColor(ColorUtils.BLACK.getColor() | rgb);
             }
             if (normalized.length() == 9) {
                 long argb = Long.parseLong(normalized.substring(1), 16);

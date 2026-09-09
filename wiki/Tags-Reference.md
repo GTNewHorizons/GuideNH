@@ -54,7 +54,7 @@ Inline markdown also supports action links for sound playback:
 | `<Column>` | vertical flex layout | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | width-constrained footnote container used by runtime markdown footnotes | `width` |
 | `<ItemGrid>` | compact grid of item icons | children must be `<ItemIcon id="..."/>` or `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | non-interactive 3D single-block preview | `id` or `ore`, `scale`, `float`, `perspective`, `nbt` |
+| `<BlockImage>` | non-interactive 3D single-block preview | `id` or `ore`, optional `scale` (defaults to `4`), `float`, `perspective`, `nbt` |
 | `<FloatingImage>` | cropped image block with float or true inline placement | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | navigation child listing | `id`, `alphabetical` |
 | `<Category>` | list pages from a category | `name`, `rows` |
@@ -486,7 +486,7 @@ selection outline and tooltip. `ore` must resolve to a block item stack.
 | --- | --- |
 | `id` | block id; supports the normal `modid:block[:meta][:{snbt}]` spelling |
 | `ore` | ore dictionary lookup; the first matching block item wins |
-| `scale` | camera zoom multiplier, default `1` |
+| `scale` | camera zoom multiplier, default `4` |
 | `float` | legacy flow float support: `left` or `right` |
 | `perspective` | `isometric-north-east` (default), `isometric-north-west`, or `up` |
 | `nbt` | optional SNBT tile-entity data merged onto any inline SNBT from `id` |

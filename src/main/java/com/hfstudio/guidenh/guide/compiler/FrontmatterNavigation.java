@@ -36,13 +36,14 @@ public class FrontmatterNavigation {
     private final List<String> requiredMods;
     @Nullable
     private final List<String> excludedMods;
+    private final List<String> keywords;
     private final int loadPriority;
 
     public FrontmatterNavigation(String title, @Nullable ResourceLocation parent, int position, int recommend,
         @Nullable String iconItemId, int iconItemMeta, @Nullable NBTTagCompound iconNbt,
         @Nullable ResourceLocation iconTextureId, @Nullable List<NavigationIconEntry> iconEntries,
         @Nullable List<ResourceLocation> iconTextureEntries, @Nullable List<String> requiredMods,
-        @Nullable List<String> excludedMods, int loadPriority) {
+        @Nullable List<String> excludedMods, @Nullable List<String> keywords, int loadPriority) {
         this.title = title;
         this.parent = parent;
         this.position = position;
@@ -55,6 +56,7 @@ public class FrontmatterNavigation {
         this.iconTextureEntries = iconTextureEntries;
         this.requiredMods = requiredMods;
         this.excludedMods = excludedMods;
+        this.keywords = keywords == null ? List.of() : List.copyOf(keywords);
         this.loadPriority = loadPriority;
     }
 
@@ -112,6 +114,11 @@ public class FrontmatterNavigation {
     @Nullable
     public List<String> excludedMods() {
         return excludedMods;
+    }
+
+    /** Search aliases that are indexed in addition to the page title and body. */
+    public List<String> keywords() {
+        return keywords;
     }
 
     public int loadPriority() {

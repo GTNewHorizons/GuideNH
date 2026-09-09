@@ -288,7 +288,7 @@ GuideNH 页面也可以引用非图片类运行时资源，最常见的是结构
 - 背景透明，边框透明
 - 没有场景按钮，没有 layer 滑条，也没有注解编辑面
 - 悬停时依然会显示方块选中线框与 tooltip
-- `scale` 控制相机缩放
+- `scale` 控制相机缩放，默认值为 `4`
 - `perspective` 支持 `isometric-north-east`、`isometric-north-west`、`up`
 - `nbt` 用于提供 TileEntity SNBT；`id="mod:block:meta:{...}"` 形式的内联 SNBT 仍然可用，
   但独立 `nbt` 属性更清晰，推荐优先使用
@@ -296,7 +296,7 @@ GuideNH 页面也可以引用非图片类运行时资源，最常见的是结构
 示例：
 
 ````md
-<BlockImage id="minecraft:stone" scale="2" />
+<BlockImage id="minecraft:stone" />
 <BlockImage id="minecraft:furnace" perspective="isometric-north-west" scale="2.5" />
 <BlockImage
   id="minecraft:chest"

@@ -22,7 +22,9 @@ public class SceneEditorScreenLayout {
     public static final int MAX_RIGHT_WIDTH = 216;
     public static final int MIN_PREVIEW_INTERACTION_WIDTH = 220;
     public static final int MARKDOWN_TEXT_TOP = 56;
-    public static final int MARKDOWN_TEXT_BOTTOM_MARGIN = 64;
+    // Space reserved below the editor for validation/synchronization status text.
+    // The old wrap toggle occupied the removed 28px; that space now belongs to the editor.
+    public static final int MARKDOWN_TEXT_BOTTOM_MARGIN = 36;
     public static final int MARKDOWN_FOOTER_HEIGHT = 18;
     public static final int MARKDOWN_FOOTER_BOTTOM_MARGIN = 10;
 

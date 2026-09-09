@@ -128,6 +128,7 @@ public enum GuideScreenEditorAction {
     PASTE(GuidebookText.GuideEditorPaste),
     SELECT_ALL(GuidebookText.GuideEditorSelectAll),
     FORMAT_DOCUMENT(GuidebookText.GuideEditorFormatDocument),
+    TOGGLE_WRAP(GuidebookText.GuideEditorWrap),
     TOGGLE_ADVANCED(GuidebookText.GuideEditorAdvancedToggle);
 
     private final GuidebookText tooltipKey;

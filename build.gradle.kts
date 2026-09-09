@@ -19,6 +19,7 @@ tasks.withType<Test>().configureEach {
 tasks.named<ShadowJar>("shadowJar") {
     mergeServiceFiles()
     exclude("META-INF/maven/**", "META-INF/LICENSE*", "META-INF/NOTICE*")
+    exclude("images/**")
     minimize {
         exclude(dependency("org.apache.lucene:lucene-core:.*"))
         exclude(dependency("org.apache.lucene:lucene-analyzers-common:.*"))

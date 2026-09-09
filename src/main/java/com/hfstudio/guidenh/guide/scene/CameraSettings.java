@@ -6,6 +6,7 @@ import org.joml.Vector3fc;
 import org.joml.Vector4f;
 
 import com.hfstudio.guidenh.guide.document.LytSize;
+import com.hfstudio.guidenh.guide.scene.support.GuideProjectionMath;
 
 import lombok.Getter;
 
@@ -159,6 +160,7 @@ public class CameraSettings {
     private final Vector4f reusableWorldToScreen = new Vector4f();
     private final Vector4f reusableNear = new Vector4f();
     private final Vector4f reusableFar = new Vector4f();
+    private final float[] reusableProjectedAabb = new float[4];
     private boolean viewDirty = true;
     private boolean projectionDirty = true;
     private boolean combinedDirty = true;
@@ -214,6 +216,32 @@ public class CameraSettings {
         float halfW = viewportSize.width() * 0.5f;
         float halfH = viewportSize.height() * 0.5f;
         return dest.set(v.x * halfW, -v.y * halfH, v.z);
+    }
+
+    /**
+     * Conservative AABB test for this camera's orthographic projection. Transforming the center
+     * once and expanding by the absolute matrix contribution is equivalent to projecting all eight
+     * corners, but avoids seven matrix-vector multiplications for every preview block.
+     */
+    public boolean isAabbPotentiallyVisible(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+        int width = viewportSize.width();
+        int height = viewportSize.height();
+        if (width <= 0 || height <= 0) {
+            return true;
+        }
+
+        GuideProjectionMath.projectAabbToScreen(
+            getCombinedMatrix(),
+            width,
+            height,
+            minX,
+            minY,
+            minZ,
+            maxX,
+            maxY,
+            maxZ,
+            reusableProjectedAabb);
+        return GuideProjectionMath.intersectsCenteredViewport(reusableProjectedAabb, width, height);
     }
 
     public float[] screenToWorldRay(float screenX, float screenY) {

@@ -32,13 +32,14 @@ public class LytPlaceholderBlock extends LytBlock {
 
     private void setCurrent(LytBlock block) {
         if (currentBlock != block) {
+            if (currentBlock != null) {
+                currentBlock.parent = null;
+            }
             currentChildren.clear();
             currentBlock = block;
+            block.parent = this;
             currentChildren.add(block);
-            var document = getDocument();
-            if (document != null) {
-                document.invalidateLayout();
-            }
+            invalidateLayout();
         }
     }
 

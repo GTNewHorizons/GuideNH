@@ -23,6 +23,7 @@ public class ModConfig {
 
     public static final Debug debug = new Debug();
     public static final Ui ui = new Ui();
+    public static final Runtime runtime = new Runtime();
     public static final RuntimeBridge runtimeBridge = new RuntimeBridge();
 
     @Comment("Debug section")
@@ -92,15 +93,6 @@ public class ModConfig {
         @Comment("Show mouse position in debug overlay")
         @DefaultBoolean(true)
         public boolean showMousePosition = true;
-
-        @Comment("Debug text color (ARGB format)")
-        public int debugTextColor = 0xFFC47BA1;
-
-        @Comment("Debug outline border color (ARGB format, 0 to mirror text color)")
-        public int debugOutlineColor = 0;
-
-        @Comment("Debug cursor dot color (ARGB format)")
-        public int debugCursorColor = 0xCC00FF00;
 
         @Comment("Debug text scale factor")
         @DefaultFloat(0.8f)
@@ -187,6 +179,10 @@ public class ModConfig {
         @DefaultBoolean(false)
         public boolean sceneEditorAutoPickEnabled = false;
 
+        @Comment("Whether exporting SNBT from the scene editor also opens the exported structure folder.")
+        @DefaultBoolean(false)
+        public boolean sceneEditorExportOpenFolderAfterExport = false;
+
         @Comment("Whether point snapping is enabled in the scene editor by default.")
         @DefaultBoolean(true)
         public boolean sceneEditorSnapPointEnabled = true;
@@ -231,7 +227,7 @@ public class ModConfig {
         @Comment("Expanded width of the markdown panel in the scene editor.")
         public int sceneEditorMarkdownPanelWidth = 208;
 
-        @Comment("Whether the markdown panel wraps lines in the scene editor.")
+        @Comment("Whether the guide editor and scene editor markdown panels wrap long lines.")
         @DefaultBoolean(true)
         public boolean sceneEditorMarkdownWrapEnabled = true;
 
@@ -314,6 +310,13 @@ public class ModConfig {
 
     public static int clampPositiveHomeLimit(int value, int fallback) {
         return value >= 1 ? value : fallback;
+    }
+
+    @Comment("Runtime section")
+    public static class Runtime {
+
+        @Comment("Maximum number of compiled guide pages retained in the LRU cache. Lower values reduce memory usage; higher values reduce recompilation.")
+        public int compiledPageCacheLimit = 64;
     }
 
     @Comment("Runtime bridge section. The bridge is disabled by default and requires a client restart.")

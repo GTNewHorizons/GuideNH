@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -34,7 +35,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     private static final ThreadLocal<BreakIterator> LINE_BREAK_ITERATOR = ThreadLocal
         .withInitial(BreakIterator::getLineInstance);
-    private static final ConstantColor SPOILER_MASK_COLOR = new ConstantColor(0xFF000000);
+    private static final ConstantColor SPOILER_MASK_COLOR = new ConstantColor(ColorUtils.BLACK.getColor());
 
     private final LayoutContext context;
     private final List<Line> lines;

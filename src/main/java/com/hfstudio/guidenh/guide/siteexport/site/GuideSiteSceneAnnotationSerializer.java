@@ -18,8 +18,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
@@ -410,7 +410,7 @@ public class GuideSiteSceneAnnotationSerializer {
     }
 
     private static String toCssColor(@Nullable ColorValue color) {
-        int argb = color != null ? color.resolve(LightDarkMode.LIGHT_MODE) : 0xFFFFFFFF;
+        int argb = color != null ? color.resolve() : ColorUtils.WHITE.getColor();
         int alpha = argb >>> 24 & 0xFF;
         int red = argb >>> 16 & 0xFF;
         int green = argb >>> 8 & 0xFF;

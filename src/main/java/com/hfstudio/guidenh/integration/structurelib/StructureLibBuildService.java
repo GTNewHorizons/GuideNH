@@ -43,11 +43,7 @@ public class StructureLibBuildService {
     public static final int SURVIVAL_BUDGET = Integer.MAX_VALUE;
     public static final int SURVIVAL_MAX_ROUNDS = 256;
 
-    // ========== DTO ==========
-
     public record ResolvedController(String blockId, Block block, int meta) {}
-
-    // ========== Pipeline ==========
 
     public StructureLibBuildResult build(StructureLibBuildRequest request) {
         try {
@@ -96,8 +92,6 @@ public class StructureLibBuildService {
         return new StructureLibBuildResult(snapshotBlocks(level), true, null);
     }
 
-    // ========== Controller resolution ==========
-
     public static ResolvedController resolveController(String controllerId) {
         GuideBlockMatcher matcher = GuideBlockMatcher.parse(controllerId);
         Block block = (Block) Block.blockRegistry.getObject(matcher.getBlockId());
@@ -106,8 +100,6 @@ public class StructureLibBuildService {
         }
         return new ResolvedController(matcher.getBlockId(), block, matcher.getMeta() != null ? matcher.getMeta() : 0);
     }
-
-    // ========== Controller placement ==========
 
     @Nullable
     public static TileEntity placeController(GuidebookLevel level, World world, ResolvedController controller) {
@@ -137,8 +129,6 @@ public class StructureLibBuildService {
         return placed;
     }
 
-    // ========== Constructable resolution ==========
-
     @Nullable
     public static IConstructable resolveConstructable(TileEntity controllerTile) {
         if (controllerTile instanceof IConstructableProvider provider) {
@@ -159,8 +149,6 @@ public class StructureLibBuildService {
         return null;
     }
 
-    // ========== Trigger stack ==========
-
     public static ItemStack createTrigger(StructureLibBuildRequest request) {
         ItemStack stack = new ItemStack(StructureLibAPI.getDefaultHologramItem(), Math.max(MIN_TIER, request.tier()));
         for (Map.Entry<String, Integer> entry : request.channels()
@@ -176,8 +164,6 @@ public class StructureLibBuildService {
         }
         return stack;
     }
-
-    // ========== Structure construction ==========
 
     private static void buildStructure(IConstructable constructable, ItemStack trigger, PreviewFakePlayer fakePlayer,
         StructureLibBuildRequest request, TileEntity controllerTile) {
@@ -225,8 +211,6 @@ public class StructureLibBuildService {
         return CreativeItemSource.instance;
     }
 
-    // ========== Preview state sync ==========
-
     private static void syncPreviewState(TileEntity controllerTile, ItemStack trigger,
         StructureLibBuildRequest request) {
         for (StructureLibPreviewStateSynchronizer synchronizer : StructureLibControllerIntegrationRegistry.global()
@@ -234,8 +218,6 @@ public class StructureLibBuildService {
             synchronizer.synchronizePreviewState(controllerTile, trigger, request);
         }
     }
-
-    // ========== Block snapshotting ==========
 
     public static List<StructureLibBuildResult.PlacedBlock> snapshotBlocks(GuidebookLevel level) {
         List<int[]> filledBlocks = new ArrayList<>(level.getFilledBlocks());
@@ -280,8 +262,6 @@ public class StructureLibBuildService {
                 .thenComparingInt(StructureLibBuildResult.PlacedBlock::z));
         return result;
     }
-
-    // ========== Utilities ==========
 
     @Nullable
     public static NBTTagCompound serializeTile(@Nullable TileEntity tile) {

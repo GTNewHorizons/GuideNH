@@ -1,7 +1,7 @@
 package com.hfstudio.guidenh.guide.document;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.TextStyle;
@@ -26,7 +26,7 @@ public class DefaultStyles {
         false,
         false,
         UNIFORM_FONT,
-        SymbolicColor.BODY_TEXT,
+        ColorUtils.BODY_TEXT,
         WhiteSpaceMode.NORMAL,
         TextAlignment.LEFT,
         false,
@@ -35,16 +35,16 @@ public class DefaultStyles {
 
     public static final TextStyle BODY_TEXT = TextStyle.builder()
         .font(UNIFORM_FONT)
-        .color(SymbolicColor.BODY_TEXT)
+        .color(ColorUtils.BODY_TEXT)
         .build();
 
     public static final TextStyle ERROR_TEXT = TextStyle.builder()
-        .color(SymbolicColor.ERROR_TEXT)
+        .color(ColorUtils.ERROR_TEXT)
         .build();
 
     public static final TextStyle CRAFTING_RECIPE_TYPE = TextStyle.builder()
         .font(UNIFORM_FONT)
-        .color(SymbolicColor.CRAFTING_RECIPE_TYPE)
+        .color(ColorUtils.CRAFTING_RECIPE_TYPE)
         .build();
 
     public static final TextStyle HEADING1 = TextStyle.builder()

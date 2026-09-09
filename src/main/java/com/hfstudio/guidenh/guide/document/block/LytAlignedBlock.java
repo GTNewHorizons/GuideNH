@@ -49,8 +49,7 @@ public class LytAlignedBlock extends LytBlock {
         inner.parent = null;
         inner = (LytBlock) newChild;
         inner.parent = this;
-        LytDocument doc = getDocument();
-        if (doc != null) doc.invalidateLayout();
+        invalidateLayout();
     }
 
     @Override

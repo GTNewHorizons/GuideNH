@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.Collections;
 import java.util.Set;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
@@ -180,7 +181,7 @@ public class LatexTagCompiler implements TagCompiler {
         }
         try {
             if (colorStr.length() == 6) {
-                return 0xFF000000 | Integer.parseUnsignedInt(colorStr, 16);
+                return ColorUtils.BLACK.getColor() | Integer.parseUnsignedInt(colorStr, 16);
             }
             if (colorStr.length() == 8) {
                 return (int) Long.parseLong(colorStr, 16);

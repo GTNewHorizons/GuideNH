@@ -3,12 +3,9 @@ package com.hfstudio.guidenh.guide.scene.cache;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
@@ -26,9 +23,15 @@ import com.hfstudio.guidenh.guide.scene.element.GuidebookCapeControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookPlayerPoseControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookSceneEntityLoader;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookBlockPosMap;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookTileEntityLoader;
+import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
+
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 public class GuideSceneStructureSnapshot implements Serializable {
 
@@ -53,7 +56,7 @@ public class GuideSceneStructureSnapshot implements Serializable {
 
     public GuidebookLevel restoreLevel() {
         GuidebookLevel level = new GuidebookLevel();
-        Map<Long, String> explicitBlockIdsByPos = indexExplicitBlockIds();
+        GuidebookBlockPosMap<String> explicitBlockIdsByPos = indexExplicitBlockIds();
         restoreBlocks(level, explicitBlockIdsByPos);
         restoreTileEntities(level);
         restoreEntities(level);
@@ -149,12 +152,8 @@ public class GuideSceneStructureSnapshot implements Serializable {
     }
 
     private void captureExplicitBlockIds(GuidebookLevel level) {
-        for (Map.Entry<Long, String> entry : level.snapshotExplicitBlockIds()
-            .entrySet()) {
-            long packedPos = entry.getKey();
-            explicitBlockIds.add(
-                new ExplicitBlockIdEntry(unpackX(packedPos), unpackY(packedPos), unpackZ(packedPos), entry.getValue()));
-        }
+        level.forEachExplicitBlockId(
+            (x, y, z, blockId) -> explicitBlockIds.add(new ExplicitBlockIdEntry(x, y, z, blockId)));
     }
 
     private void capturePreviewAuthority(GuidebookLevel level) {
@@ -165,19 +164,19 @@ public class GuideSceneStructureSnapshot implements Serializable {
         }
     }
 
-    private Map<Long, String> indexExplicitBlockIds() {
+    private GuidebookBlockPosMap<String> indexExplicitBlockIds() {
         if (explicitBlockIds.isEmpty()) {
-            return Map.of();
+            return new GuidebookBlockPosMap<>();
         }
-        HashMap<Long, String> indexed = new HashMap<>(explicitBlockIds.size());
+        GuidebookBlockPosMap<String> indexed = new GuidebookBlockPosMap<>();
         for (ExplicitBlockIdEntry entry : explicitBlockIds) {
-            indexed.put(GuidebookLevel.packPos(entry.x, entry.y, entry.z), entry.explicitBlockId);
+            indexed.put(entry.x, entry.y, entry.z, entry.explicitBlockId);
         }
         return indexed;
     }
 
-    private void restoreBlocks(GuidebookLevel level, Map<Long, String> explicitBlockIdsByPos) {
-        HashMap<String, Block> blockCache = new HashMap<>();
+    private void restoreBlocks(GuidebookLevel level, GuidebookBlockPosMap<String> explicitBlockIdsByPos) {
+        Object2ObjectOpenHashMap<String, Block> blockCache = new Object2ObjectOpenHashMap<>();
         for (BlockStateEntry entry : blocks) {
             Block block = resolveBlock(entry.blockId, blockCache);
             if (block != null) {
@@ -187,14 +186,14 @@ public class GuideSceneStructureSnapshot implements Serializable {
                     entry.z,
                     block,
                     entry.meta,
-                    explicitBlockIdsByPos.get(GuidebookLevel.packPos(entry.x, entry.y, entry.z)));
+                    explicitBlockIdsByPos.get(entry.x, entry.y, entry.z));
             }
         }
     }
 
     private void restoreTileEntities(GuidebookLevel level) {
         World world = tryResolveWorld(level);
-        HashMap<String, Block> blockCache = new HashMap<>();
+        Object2ObjectOpenHashMap<String, Block> blockCache = new Object2ObjectOpenHashMap<>();
         for (TileEntityEntry entry : tileEntities) {
             Block block = resolveBlock(entry.blockId, blockCache);
             if (block == null) {
@@ -205,10 +204,10 @@ public class GuideSceneStructureSnapshot implements Serializable {
                 ? GuidebookTileEntityLoader.load(world, block, entry.meta, entry.x, entry.y, entry.z, tag)
                 : GuidebookTileEntityLoader.tryCreateAndLoad(tag, entry.x, entry.y, entry.z);
             if (tileEntity != null) {
-                Integer metaTileId = GuidebookPreviewBlockPlacer.resolveGregTechMetaTileId(block, entry.meta, tag);
+                Integer metaTileId = GregTechHelpers.resolveMetaTileIdFromBlock(block, entry.meta, tag);
                 GuidebookPreviewBlockPlacer.initializeGregTechMetaTile(tileEntity, metaTileId, tag);
                 GuidebookPreviewBlockPlacer.applyGregTechDefaultFacing(tileEntity, tag);
-                GuidebookPreviewBlockPlacer.applyBartWorksGeneratedBlockMeta(tileEntity, block, entry.meta);
+                GregTechHelpers.applyBartWorksGeneratedBlockMeta(tileEntity, block, entry.meta);
                 level.restoreTileEntityFast(entry.x, entry.y, entry.z, tileEntity);
                 GuidebookPreviewBlockPlacer.finalizeSpecialPreviewTile(level, entry.x, entry.y, entry.z, tileEntity);
             }
@@ -231,7 +230,7 @@ public class GuideSceneStructureSnapshot implements Serializable {
         if (entities.isEmpty()) {
             return;
         }
-        Set<String> appliedUnmounts = new HashSet<>();
+        ObjectOpenHashSet<String> appliedUnmounts = new ObjectOpenHashSet<>();
         for (EntityEntry entry : entities) {
             String sceneEntityId = GuidebookSceneEntityLoader.trimToNull(entry.sceneEntityId);
             if (sceneEntityId == null) {
@@ -251,7 +250,7 @@ public class GuideSceneStructureSnapshot implements Serializable {
         if (previewAuthorityEntries.isEmpty()) {
             return;
         }
-        LinkedHashMap<Long, Map<String, byte[]>> restored = new LinkedHashMap<>();
+        Long2ObjectLinkedOpenHashMap<Map<String, byte[]>> restored = new Long2ObjectLinkedOpenHashMap<>();
         for (PreviewAuthorityEntry entry : previewAuthorityEntries) {
             restored.put(entry.packedPos, entry.payloads());
         }
@@ -261,18 +260,6 @@ public class GuideSceneStructureSnapshot implements Serializable {
 
     private static boolean isValidPos(int @Nullable [] pos) {
         return pos != null && pos.length >= 3;
-    }
-
-    private static int unpackX(long packedPos) {
-        return (int) (packedPos << 38 >> 38);
-    }
-
-    private static int unpackY(long packedPos) {
-        return (int) (packedPos >>> 52);
-    }
-
-    private static int unpackZ(long packedPos) {
-        return (int) (packedPos << 12 >> 38);
     }
 
     @Nullable

@@ -176,8 +176,10 @@ categories:
 ## BlockImage 缩放
 
 `BlockImage` 现在显示的是透明背景的 3D 放置方块预览，而不是物品形态图标。
+省略 `scale` 时，默认值为 `4`。
 
 <Row>
+  <BlockImage id="minecraft:stone" />
   <BlockImage id="minecraft:stone" scale="1" />
   <BlockImage id="minecraft:stone" scale="2" />
   <BlockImage id="minecraft:stone" scale="3" />

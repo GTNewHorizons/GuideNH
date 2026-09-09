@@ -13,6 +13,7 @@ import net.minecraft.item.ItemStack;
 
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
@@ -327,7 +328,7 @@ public class NeiCustomDiagramBridge {
             applyAbsoluteGuiScissor(guiScissorAbsX, guiScissorAbsY, gw, gh);
             GL11.glEnable(GL11.GL_SCISSOR_TEST);
             GL11.glTranslatef(renderX, renderY, 0f);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             METHOD_DIAGRAM_DRAW_BACKGROUND.invoke(diagram, diagramState);
             renderForeground(diagram, diagramState, guiScissorAbsX, guiScissorAbsY, gw, gh);
         } catch (Throwable t) {
@@ -340,7 +341,7 @@ public class NeiCustomDiagramBridge {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 
@@ -490,7 +491,7 @@ public class NeiCustomDiagramBridge {
     private static void reapplyClipState(int absGuiX, int absGuiY, int absGuiW, int absGuiH) {
         applyAbsoluteGuiScissor(absGuiX, absGuiY, absGuiW, absGuiH);
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
     }
 
     private static GuideTooltip tooltipForInteractiveComponentGroup(Object hovered, Object diagramState)

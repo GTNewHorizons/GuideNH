@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -41,7 +42,7 @@ public class TextAnnotation extends OverlayAnnotation {
     public static final int LINE_GAP = 2;
     public static final int CONNECTOR_HEIGHT = 6;
     public static final int DEFAULT_BACKGROUND_ALPHA = 0xCC;
-    private static final int BACKGROUND_RGB = 0x0E0E20;
+    private static final int BACKGROUND_RGB = ColorUtils.ARGB_0E0E20.getColor();
 
     @Getter
     private final Vector3f worldPos;
@@ -70,6 +71,10 @@ public class TextAnnotation extends OverlayAnnotation {
 
     @Nullable
     private LytParagraph richContent;
+    // Rich content is laid out synchronously by this annotation on the client thread. Reuse its
+    // context, but create it only when rendering/layout first needs Minecraft's font renderer.
+    @Nullable
+    private LayoutContext richContentLayoutContext;
 
     @Nullable
     private LayoutMeasure cachedMeasure;
@@ -213,7 +218,7 @@ public class TextAnnotation extends OverlayAnnotation {
             viewport.width(),
             viewport.height());
         float fade = getFade();
-        int borderArgb = borderColor.resolve(context.lightDarkMode());
+        int borderArgb = borderColor.resolve();
         LayoutMeasure measure = measureLayout(localViewport.width());
 
         if (richContent != null) {
@@ -222,7 +227,7 @@ public class TextAnnotation extends OverlayAnnotation {
                 localViewport);
             int bx = bubble.x();
             int by = bubble.y();
-            LayoutContext layoutContext = new LayoutContext(new MinecraftFontMetrics());
+            LayoutContext layoutContext = getRichContentLayoutContext();
 
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -246,7 +251,7 @@ public class TextAnnotation extends OverlayAnnotation {
             richContent.layout(layoutContext, bx + PADDING_X, by + PADDING_Y, measure.availableWidth());
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             richContent.render(context);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             GL11.glDisable(GL11.GL_BLEND);
             return;
         }
@@ -278,14 +283,14 @@ public class TextAnnotation extends OverlayAnnotation {
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
-        int textArgb = applyFade(0xFFFFFFFF, fade);
+        int textArgb = applyFade(ColorUtils.WHITE.getColor(), fade);
         int lineY = by + PADDING_Y;
         for (String line : lines) {
             fr.drawStringWithShadow(line, bx + PADDING_X, lineY, textArgb);
             lineY += fr.FONT_HEIGHT + LINE_GAP;
         }
 
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         GL11.glDisable(GL11.GL_BLEND);
     }
 
@@ -314,7 +319,7 @@ public class TextAnnotation extends OverlayAnnotation {
             return cachedMeasure;
         }
         if (richContent != null) {
-            LayoutContext layoutContext = new LayoutContext(new MinecraftFontMetrics());
+            LayoutContext layoutContext = getRichContentLayoutContext();
             int availableWidth = wrapWidth > 0 ? wrapWidth : Integer.MAX_VALUE;
             LytRect contentBounds = richContent.layout(layoutContext, 0, 0, availableWidth);
             cachedMeasure = new LayoutMeasure(
@@ -349,6 +354,13 @@ public class TextAnnotation extends OverlayAnnotation {
             return Math.min(maxWidth, viewportContentWidth);
         }
         return viewportContentWidth;
+    }
+
+    private LayoutContext getRichContentLayoutContext() {
+        if (richContentLayoutContext == null) {
+            richContentLayoutContext = new LayoutContext(new MinecraftFontMetrics());
+        }
+        return richContentLayoutContext.resetTransientState();
     }
 
     private LytRect bubbleRect(int anchorX, int anchorY, int boxW, int boxH) {

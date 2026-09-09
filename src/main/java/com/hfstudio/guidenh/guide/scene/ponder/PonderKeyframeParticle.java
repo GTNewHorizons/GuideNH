@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.hfstudio.guidenh.guide.color.Colors;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 /**
  * A particle effect entry triggered when a Ponder keyframe becomes active during forward playback.
@@ -20,7 +20,7 @@ public class PonderKeyframeParticle {
     public static final int MAX_WEATHER_DENSITY_PER_TICK = 64;
     public static final float MAX_POWER = 12f;
     public static final float MAX_SIZE = 4f;
-    public static final int DEFAULT_INDICATOR_COLOR = 0xFFFF0000;
+    public static final int DEFAULT_INDICATOR_COLOR = ColorUtils.ARGB_FFFF0000.getColor();
 
     @Nullable
     private String preset;
@@ -188,7 +188,7 @@ public class PonderKeyframeParticle {
         if (trimmed.startsWith("0x") || trimmed.startsWith("0X")) {
             trimmed = "#" + trimmed.substring(2);
         }
-        return Colors.hexToRgb(trimmed);
+        return ColorUtils.hexToRgb(trimmed);
     }
 
     @Nullable

@@ -10,6 +10,7 @@ import net.minecraft.client.gui.Gui;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 
 import lombok.Getter;
@@ -21,10 +22,10 @@ public class GuideScreenContextMenu {
     private static final int PADDING_Y = 4;
     private static final int TEXT_Y_OFFSET = 2;
     private static final int MIN_WIDTH = 72;
-    private static final int BACKGROUND_COLOR = 0xF0181C22;
-    private static final int BORDER_COLOR = 0xFF4D5661;
-    private static final int HOVER_COLOR = 0xCC2A3A46;
-    private static final int TEXT_COLOR = 0xFFF0F0F0;
+    private static final int BACKGROUND_COLOR = ColorUtils.DIALOG.getColor();
+    private static final int BORDER_COLOR = ColorUtils.ARGB_FF4D5661.getColor();
+    private static final int HOVER_COLOR = ColorUtils.ARGB_CC2A3A46.getColor();
+    private static final int TEXT_COLOR = ColorUtils.TEXT.getColor();
 
     public interface Listener {
 
@@ -226,6 +227,6 @@ public class GuideScreenContextMenu {
     private void popScissor() {
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
     }
 }

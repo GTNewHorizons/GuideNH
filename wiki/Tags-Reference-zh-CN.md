@@ -56,7 +56,7 @@
 | `<Column>` | 纵向 flex 布局 | `gap`, `alignItems`, `fullWidth`, `width` |
 | `<FootnoteList>` | 运行时 Markdown 脚注使用的限宽脚注容器 | `width` |
 | `<ItemGrid>` | 紧凑物品图标网格 | 子元素必须是 `<ItemIcon id="..."/>` 或 `<ItemIcon ore="..."/>` |
-| `<BlockImage>` | 非交互式的 3D 单方块预览 | `id` 或 `ore`，`scale`，`float`，`perspective`，`nbt` |
+| `<BlockImage>` | 非交互式的 3D 单方块预览 | `id` 或 `ore`，可选 `scale`（默认 `4`），`float`，`perspective`，`nbt` |
 | `<FloatingImage>` | 支持浮动或真正行内放置的裁剪图片块 | `src`, `x`, `y`, `width` / `w`, `height` / `h`, `scaleX`, `scaleY`, `displayWidth`, `displayHeight`, `wrap`, `align`, `title` |
 | `<SubPages>` | 导航子页面列表 | `id`, `alphabetical` |
 | `<Category>` | 分类页面列表 | `name`, `rows` |
@@ -459,7 +459,7 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 | --- | --- |
 | `id` | 方块 id；支持常规 `modid:block[:meta][:{snbt}]` 写法 |
 | `ore` | 矿辞查询；使用第一个匹配到的方块物品 |
-| `scale` | 相机缩放倍率，默认 `1` |
+| `scale` | 相机缩放倍率，默认 `4` |
 | `float` | 旧版流式浮动支持：`left` 或 `right` |
 | `perspective` | `isometric-north-east`（默认）、`isometric-north-west` 或 `up` |
 | `nbt` | 可选的 TileEntity SNBT；会合并到 `id` 内联 SNBT 之上 |

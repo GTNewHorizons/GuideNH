@@ -24,11 +24,14 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class GuideNhClientIntegrationRegistry {
 
     private static final GuideNhClientIntegrationRegistry GLOBAL = new GuideNhClientIntegrationRegistry();
-    private final List<PreviewPlayerSlimArmProvider> previewPlayerSlimArmProviders = new ArrayList<>();
-    private final List<PreviewPlayerModelProvider> previewPlayerModelProviders = new ArrayList<>();
-    private final List<PreviewPlayerElytraProvider> previewPlayerElytraProviders = new ArrayList<>();
-    private final List<PreviewBlockRenderProvider> previewBlockRenderProviders = new ArrayList<>();
-    private final List<QuestHoverProvider> questHoverProviders = new ArrayList<>();
+    // Providers are usually registered once during mod initialization but queried in render
+    // loops. Publish an immutable replacement on writes so reads require neither a lock nor a
+    // defensive List.copyOf allocation.
+    private volatile List<PreviewPlayerSlimArmProvider> previewPlayerSlimArmProviders = List.of();
+    private volatile List<PreviewPlayerModelProvider> previewPlayerModelProviders = List.of();
+    private volatile List<PreviewPlayerElytraProvider> previewPlayerElytraProviders = List.of();
+    private volatile List<PreviewBlockRenderProvider> previewBlockRenderProviders = List.of();
+    private volatile List<QuestHoverProvider> questHoverProviders = List.of();
 
     public GuideNhClientIntegrationRegistry() {}
 
@@ -41,12 +44,12 @@ public class GuideNhClientIntegrationRegistry {
             throw new IllegalArgumentException("provider");
         }
         if (!previewPlayerSlimArmProviders.contains(provider)) {
-            previewPlayerSlimArmProviders.add(provider);
+            previewPlayerSlimArmProviders = appendProvider(previewPlayerSlimArmProviders, provider);
         }
     }
 
-    public synchronized List<PreviewPlayerSlimArmProvider> previewPlayerSlimArmProviders() {
-        return List.copyOf(previewPlayerSlimArmProviders);
+    public List<PreviewPlayerSlimArmProvider> previewPlayerSlimArmProviders() {
+        return previewPlayerSlimArmProviders;
     }
 
     public synchronized void registerPreviewPlayerModelProvider(PreviewPlayerModelProvider provider) {
@@ -54,12 +57,12 @@ public class GuideNhClientIntegrationRegistry {
             throw new IllegalArgumentException("provider");
         }
         if (!previewPlayerModelProviders.contains(provider)) {
-            previewPlayerModelProviders.add(provider);
+            previewPlayerModelProviders = appendProvider(previewPlayerModelProviders, provider);
         }
     }
 
-    public synchronized List<PreviewPlayerModelProvider> previewPlayerModelProviders() {
-        return List.copyOf(previewPlayerModelProviders);
+    public List<PreviewPlayerModelProvider> previewPlayerModelProviders() {
+        return previewPlayerModelProviders;
     }
 
     public synchronized void registerPreviewPlayerElytraProvider(PreviewPlayerElytraProvider provider) {
@@ -67,12 +70,12 @@ public class GuideNhClientIntegrationRegistry {
             throw new IllegalArgumentException("provider");
         }
         if (!previewPlayerElytraProviders.contains(provider)) {
-            previewPlayerElytraProviders.add(provider);
+            previewPlayerElytraProviders = appendProvider(previewPlayerElytraProviders, provider);
         }
     }
 
-    public synchronized List<PreviewPlayerElytraProvider> previewPlayerElytraProviders() {
-        return List.copyOf(previewPlayerElytraProviders);
+    public List<PreviewPlayerElytraProvider> previewPlayerElytraProviders() {
+        return previewPlayerElytraProviders;
     }
 
     public synchronized void registerPreviewBlockRenderProvider(PreviewBlockRenderProvider provider) {
@@ -80,12 +83,12 @@ public class GuideNhClientIntegrationRegistry {
             throw new IllegalArgumentException("provider");
         }
         if (!previewBlockRenderProviders.contains(provider)) {
-            previewBlockRenderProviders.add(provider);
+            previewBlockRenderProviders = appendProvider(previewBlockRenderProviders, provider);
         }
     }
 
-    public synchronized List<PreviewBlockRenderProvider> previewBlockRenderProviders() {
-        return List.copyOf(previewBlockRenderProviders);
+    public List<PreviewBlockRenderProvider> previewBlockRenderProviders() {
+        return previewBlockRenderProviders;
     }
 
     public synchronized void registerQuestHoverProvider(QuestHoverProvider provider) {
@@ -93,12 +96,19 @@ public class GuideNhClientIntegrationRegistry {
             throw new IllegalArgumentException("provider");
         }
         if (!questHoverProviders.contains(provider)) {
-            questHoverProviders.add(provider);
+            questHoverProviders = appendProvider(questHoverProviders, provider);
         }
     }
 
-    public synchronized List<QuestHoverProvider> questHoverProviders() {
-        return List.copyOf(questHoverProviders);
+    public List<QuestHoverProvider> questHoverProviders() {
+        return questHoverProviders;
+    }
+
+    private static <T> List<T> appendProvider(List<T> currentProviders, T provider) {
+        List<T> updatedProviders = new ArrayList<>(currentProviders.size() + 1);
+        updatedProviders.addAll(currentProviders);
+        updatedProviders.add(provider);
+        return List.copyOf(updatedProviders);
     }
 
     @Nullable

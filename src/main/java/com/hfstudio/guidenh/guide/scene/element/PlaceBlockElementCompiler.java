@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewBlockPlacer;
+import com.hfstudio.guidenh.guide.scene.level.GuidebookPreviewRuntimeMutationTracker;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.ScenePreviewFormedState;
 import com.hfstudio.guidenh.guide.scene.support.SceneStructureOptions;
@@ -80,7 +81,7 @@ public class PlaceBlockElementCompiler implements SceneElementTagCompiler {
         int endZ = z + dz;
         for (int bx = x; bx < endX; bx++) {
             for (int by = y; by < endY; by++) {
-                if (by < 0 || by >= level.getHeight()) {
+                if (!level.isValidBuildHeight(by)) {
                     continue;
                 }
                 for (int bz = z; bz < endZ; bz++) {
@@ -90,5 +91,17 @@ public class PlaceBlockElementCompiler implements SceneElementTagCompiler {
                 }
             }
         }
+        int markedMinY = Math.max(level.getMinBuildHeight(), y);
+        int markedMaxY = Math.min(level.getMaxBuildHeightExclusive(), endY);
+        level.previewRuntimeMutations()
+            .markBoxAround(
+                GuidebookPreviewRuntimeMutationTracker.BLOCK_TOPOLOGY,
+                GuidebookPreviewRuntimeMutationTracker.SCENE_OPERATIONS,
+                x,
+                markedMinY,
+                z,
+                endX,
+                markedMaxY,
+                endZ);
     }
 }

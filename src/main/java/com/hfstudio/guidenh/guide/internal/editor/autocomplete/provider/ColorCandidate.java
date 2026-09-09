@@ -3,13 +3,15 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 public class ColorCandidate implements AutocompleteCandidate {
 
     private final String name;
     private final int color;
     private static final int SWATCH_SIZE = 12;
     private static final int TEXT_X = SWATCH_SIZE + 6;
-    private static final int TEXT_COLOR = 0xFFF0F0F0;
+    private static final int TEXT_COLOR = ColorUtils.TEXT.getColor();
 
     public ColorCandidate(String name, int color) {
         this.name = name;
@@ -40,8 +42,13 @@ public class ColorCandidate implements AutocompleteCandidate {
     public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {
         // Draw color swatch
         int swatchY = y + (renderHeight() - SWATCH_SIZE) / 2;
-        Gui.drawRect(x, swatchY, x + SWATCH_SIZE, swatchY + SWATCH_SIZE, 0xFF000000 | color);
-        Gui.drawRect(x - 1, swatchY - 1, x + SWATCH_SIZE + 1, swatchY + SWATCH_SIZE + 1, 0xFF4D5661);
+        Gui.drawRect(x, swatchY, x + SWATCH_SIZE, swatchY + SWATCH_SIZE, ColorUtils.BLACK.getColor() | color);
+        Gui.drawRect(
+            x - 1,
+            swatchY - 1,
+            x + SWATCH_SIZE + 1,
+            swatchY + SWATCH_SIZE + 1,
+            ColorUtils.ARGB_FF4D5661.getColor());
         // Draw name
         fontRenderer.drawString(name, x + TEXT_X, y + 3, TEXT_COLOR);
     }

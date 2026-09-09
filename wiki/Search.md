@@ -12,6 +12,10 @@ Each page contributes:
 - page id
 - language metadata
 
+Navigation frontmatter can add search aliases with `navigation.keyword` (one value) or
+`navigation.keywords` (a list). Aliases are analyzed and prefix-matched like other searchable text,
+but do not replace the displayed page title or body snippet.
+
 ### Title Source
 
 GuideNH chooses the title in this order:

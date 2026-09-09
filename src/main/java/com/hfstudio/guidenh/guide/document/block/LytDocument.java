@@ -34,6 +34,13 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     @Nullable
     private Layout layout;
 
+    /**
+     * Advances whenever document content invalidates its layout. Consumers can use this to refresh
+     * derived indexes without rescanning an unchanged document tree every client tick.
+     */
+    @Getter
+    private long contentRevision;
+
     @Nullable
     private DocumentInteractionSnapshot hoveredElement;
 
@@ -146,7 +153,9 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         cascadeLive(node, false);
     }
 
+    @Override
     public void invalidateLayout() {
+        contentRevision++;
         layout = null;
         invalidateVisibleCache();
     }

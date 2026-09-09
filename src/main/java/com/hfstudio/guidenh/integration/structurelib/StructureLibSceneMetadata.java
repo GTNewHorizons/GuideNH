@@ -54,8 +54,6 @@ public class StructureLibSceneMetadata {
         this.blockTooltipDataByPos = blockTooltipDataByPos != null ? blockTooltipDataByPos : Map.of();
     }
 
-    // ========== Fluent factories (for programmatic construction) ==========
-
     public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue) {
         return new StructureLibSceneMetadata(
             controller,
@@ -83,8 +81,6 @@ public class StructureLibSceneMetadata {
             blockTooltipDataByPos);
     }
 
-    // ========== Tooltip data (deprecated — always empty) ==========
-
     @Nullable
     public BlockTooltipData getBlockTooltipData(int x, int y, int z) {
         return null;
@@ -101,8 +97,6 @@ public class StructureLibSceneMetadata {
     public boolean hasHatchTooltipData() {
         return false;
     }
-
-    // ========== Getters ==========
 
     @Nullable
     public TierData getTierData() {
@@ -142,8 +136,6 @@ public class StructureLibSceneMetadata {
         return flip;
     }
 
-    // ========== Position encoding ==========
-
     public static long packBlockPos(int x, int y, int z) {
         return (((long) x & 0x3FFFFFFL) << 38) | (((long) z & 0x3FFFFFFL) << 12) | ((long) y & 0xFFFL);
     }
@@ -159,8 +151,6 @@ public class StructureLibSceneMetadata {
     public static int unpackBlockPosZ(long packedPos) {
         return (int) (packedPos << 26 >> 38);
     }
-
-    // ========== Statics ==========
 
     public static String requireController(@Nullable String controller) {
         if (controller == null) throw new IllegalArgumentException("StructureLib metadata controller cannot be null");
@@ -196,8 +186,6 @@ public class StructureLibSceneMetadata {
         if (value < minValue) return minValue;
         return Math.min(value, maxValue);
     }
-
-    // ========== Inner types ==========
 
     @Getter
     public static class BlockTooltipEntry {

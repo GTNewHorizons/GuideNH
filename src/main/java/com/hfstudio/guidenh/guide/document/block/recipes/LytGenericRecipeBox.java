@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBox;
@@ -16,7 +17,7 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 public class LytGenericRecipeBox extends LytBox {
 
     public static final int TITLE_HEIGHT = 10;
-    public static final int TITLE_COLOR = 0xFFAAAAAA;
+    public static final int TITLE_COLOR = ColorUtils.ARGB_FFAAAAAA.getColor();
     public static final int SLOT_INSET = (LytSlot.OUTER_SIZE - 16) / 2;
 
     private final String title;

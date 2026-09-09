@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
@@ -30,7 +30,7 @@ public class LytFlowLink extends LytTooltipSpan {
     private boolean playedCustomClickSound;
 
     public LytFlowLink() {
-        modifyStyle(style -> style.color(SymbolicColor.LINK));
+        modifyStyle(style -> style.color(ColorUtils.LINK));
         modifyHoverStyle(style -> style.underlined(true));
     }
 

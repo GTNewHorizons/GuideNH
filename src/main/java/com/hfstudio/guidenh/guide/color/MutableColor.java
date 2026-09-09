@@ -29,10 +29,10 @@ public class MutableColor implements ColorValue {
     }
 
     public static MutableColor ofArgb32(int packedColor) {
-        var r = ARGB.red(packedColor);
-        var g = ARGB.green(packedColor);
-        var b = ARGB.blue(packedColor);
-        var a = ARGB.alpha(packedColor);
+        var r = ColorUtils.red(packedColor);
+        var g = ColorUtils.green(packedColor);
+        var b = ColorUtils.blue(packedColor);
+        var a = ColorUtils.alpha(packedColor);
         return MutableColor.ofBytes(r, g, b, a);
     }
 
@@ -47,16 +47,12 @@ public class MutableColor implements ColorValue {
     /**
      * Resolves a symbolic color value and copies it into a new mutable color.
      */
-    public static MutableColor of(ColorValue color, LightDarkMode mode) {
-        return ofArgb32(color.resolve(mode));
+    public static MutableColor of(ColorValue color) {
+        return ofArgb32(color.resolve());
     }
 
     public int toArgb32() {
-        return ARGB.color(alphaByte(), redByte(), greenByte(), blueByte());
-    }
-
-    public int toAbgr32() {
-        return ARGB.color(alphaByte(), redByte(), greenByte(), blueByte());
+        return ColorUtils.argb(alphaByte(), redByte(), greenByte(), blueByte());
     }
 
     public float red() {
@@ -194,7 +190,7 @@ public class MutableColor implements ColorValue {
     }
 
     @Override
-    public int resolve(LightDarkMode lightDarkMode) {
+    public int resolve() {
         return toArgb32();
     }
 }

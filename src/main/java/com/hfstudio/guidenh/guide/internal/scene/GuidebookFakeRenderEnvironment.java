@@ -1,5 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.scene;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayDeque;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -15,25 +18,30 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 
 public class GuidebookFakeRenderEnvironment implements AutoCloseable {
 
-    public static GuidebookPreviewPlayer cachedPreviewPlayer;
+    /** Weak cache: the player points back to its preview WorldClient and must not keep old scenes alive. */
+    public static WeakReference<GuidebookPreviewPlayer> cachedPreviewPlayer = new WeakReference<>(null);
     public static NetHandlerPlayClient cachedNetHandler;
+    private static final ThreadLocal<ArrayDeque<GuidebookFakeRenderEnvironment>> ENVIRONMENT_POOL = ThreadLocal
+        .withInitial(ArrayDeque::new);
 
-    private final Minecraft minecraft;
-    private final EntityClientPlayerMP previousPlayer;
-    private final EntityLivingBase previousRenderViewEntity;
-    private final Entity previousPointedEntity;
-    private final WorldClient previousWorld;
-    private final RenderManagerState renderManagerState;
-    private final TileEntityDispatcherState tileEntityDispatcherState;
+    private Minecraft minecraft;
+    private EntityClientPlayerMP previousPlayer;
+    private EntityLivingBase previousRenderViewEntity;
+    private Entity previousPointedEntity;
+    private WorldClient previousWorld;
+    private final RenderManagerState renderManagerState = new RenderManagerState();
+    private final TileEntityDispatcherState tileEntityDispatcherState = new TileEntityDispatcherState();
+    private boolean active;
 
-    private GuidebookFakeRenderEnvironment(GuidebookLevel level, CameraSettings camera, float partialTicks) {
+    private void enterScope(GuidebookLevel level, CameraSettings camera, float partialTicks) {
         this.minecraft = Minecraft.getMinecraft();
         this.previousWorld = minecraft.theWorld;
         this.previousPlayer = minecraft.thePlayer;
         this.previousRenderViewEntity = minecraft.renderViewEntity;
         this.previousPointedEntity = minecraft.pointedEntity;
-        this.renderManagerState = new RenderManagerState(RenderManager.instance);
-        this.tileEntityDispatcherState = new TileEntityDispatcherState(TileEntityRendererDispatcher.instance);
+        this.renderManagerState.capture(RenderManager.instance);
+        this.tileEntityDispatcherState.capture(TileEntityRendererDispatcher.instance);
+        this.active = true;
 
         WorldClient fakeWorld = getOrCreateClientWorld(level);
         GuidebookPreviewPlayer previewPlayer = getOrCreatePreviewPlayer(minecraft, fakeWorld);
@@ -79,7 +87,13 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
     public static GuidebookFakeRenderEnvironment enter(GuidebookLevel level, CameraSettings camera,
         float partialTicks) {
         GuidebookPreviewPlayerRenderer.ensureRegistered();
-        return new GuidebookFakeRenderEnvironment(level, camera, partialTicks);
+        ArrayDeque<GuidebookFakeRenderEnvironment> pool = ENVIRONMENT_POOL.get();
+        GuidebookFakeRenderEnvironment environment = pool.pollFirst();
+        if (environment == null) {
+            environment = new GuidebookFakeRenderEnvironment();
+        }
+        environment.enterScope(level, camera, partialTicks);
+        return environment;
     }
 
     public static WorldClient getOrCreateClientWorld(GuidebookLevel level) {
@@ -92,6 +106,9 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
 
     @Override
     public void close() {
+        if (!active) {
+            return;
+        }
         minecraft.theWorld = previousWorld;
         minecraft.thePlayer = previousPlayer;
         minecraft.renderViewEntity = previousRenderViewEntity;
@@ -99,6 +116,20 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
 
         renderManagerState.restore(RenderManager.instance);
         tileEntityDispatcherState.restore(TileEntityRendererDispatcher.instance);
+        clearCapturedState();
+        ENVIRONMENT_POOL.get()
+            .addFirst(this);
+    }
+
+    private void clearCapturedState() {
+        previousWorld = null;
+        previousPlayer = null;
+        previousRenderViewEntity = null;
+        previousPointedEntity = null;
+        minecraft = null;
+        renderManagerState.clear();
+        tileEntityDispatcherState.clear();
+        active = false;
     }
 
     public static GuidebookPreviewPlayer getOrCreatePreviewPlayer(Minecraft minecraft, WorldClient world) {
@@ -106,28 +137,50 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
         if (netHandler == null) {
             throw new IllegalStateException("Guidebook preview requires an active client world");
         }
-        if (cachedPreviewPlayer == null || cachedNetHandler != netHandler) {
-            cachedPreviewPlayer = new GuidebookPreviewPlayer(minecraft, world, netHandler);
+        GuidebookPreviewPlayer previewPlayer = cachedPreviewPlayer.get();
+        if (previewPlayer == null || cachedNetHandler != netHandler) {
+            previewPlayer = new GuidebookPreviewPlayer(minecraft, world, netHandler);
+            cachedPreviewPlayer = new WeakReference<>(previewPlayer);
             cachedNetHandler = netHandler;
         }
-        return cachedPreviewPlayer;
+        return previewPlayer;
+    }
+
+    public static void releaseCachedPreviewPlayer(WorldClient world) {
+        GuidebookPreviewPlayer previewPlayer = cachedPreviewPlayer.get();
+        if (previewPlayer == null || previewPlayer.worldObj == world) {
+            cachedPreviewPlayer.clear();
+            cachedNetHandler = null;
+        }
+    }
+
+    /** Clears process-wide preview-player state during a client world transition. */
+    public static void clearClientRuntimeCaches() {
+        GuidebookPreviewPlayer previewPlayer = cachedPreviewPlayer.get();
+        if (previewPlayer != null) {
+            // A caller may still hold the player while the event is dispatched. Detach its
+            // back-reference explicitly instead of relying solely on clearing the weak cache.
+            previewPlayer.worldObj = null;
+        }
+        cachedPreviewPlayer.clear();
+        cachedNetHandler = null;
     }
 
     public static class RenderManagerState {
 
-        private final World world;
-        private final EntityLivingBase livingPlayer;
-        private final Entity field147941I;
-        private final float playerViewY;
-        private final float playerViewX;
-        private final double viewerPosX;
-        private final double viewerPosY;
-        private final double viewerPosZ;
-        private final double renderPosX;
-        private final double renderPosY;
-        private final double renderPosZ;
+        private World world;
+        private EntityLivingBase livingPlayer;
+        private Entity field147941I;
+        private float playerViewY;
+        private float playerViewX;
+        private double viewerPosX;
+        private double viewerPosY;
+        private double viewerPosZ;
+        private double renderPosX;
+        private double renderPosY;
+        private double renderPosZ;
 
-        private RenderManagerState(RenderManager renderManager) {
+        private void capture(RenderManager renderManager) {
             this.world = renderManager.worldObj;
             this.livingPlayer = renderManager.livingPlayer;
             this.field147941I = renderManager.field_147941_i;
@@ -154,22 +207,28 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
             RenderManager.renderPosY = renderPosY;
             RenderManager.renderPosZ = renderPosZ;
         }
+
+        private void clear() {
+            world = null;
+            livingPlayer = null;
+            field147941I = null;
+        }
     }
 
     public static class TileEntityDispatcherState {
 
-        private final World world;
-        private final EntityLivingBase livingPlayer;
-        private final float rotationYaw;
-        private final float rotationPitch;
-        private final double viewerPosX;
-        private final double viewerPosY;
-        private final double viewerPosZ;
-        private final double staticPlayerX;
-        private final double staticPlayerY;
-        private final double staticPlayerZ;
+        private World world;
+        private EntityLivingBase livingPlayer;
+        private float rotationYaw;
+        private float rotationPitch;
+        private double viewerPosX;
+        private double viewerPosY;
+        private double viewerPosZ;
+        private double staticPlayerX;
+        private double staticPlayerY;
+        private double staticPlayerZ;
 
-        private TileEntityDispatcherState(TileEntityRendererDispatcher dispatcher) {
+        private void capture(TileEntityRendererDispatcher dispatcher) {
             this.world = dispatcher.field_147550_f;
             this.livingPlayer = dispatcher.field_147551_g;
             this.rotationYaw = dispatcher.field_147562_h;
@@ -195,6 +254,11 @@ public class GuidebookFakeRenderEnvironment implements AutoCloseable {
             TileEntityRendererDispatcher.staticPlayerX = staticPlayerX;
             TileEntityRendererDispatcher.staticPlayerY = staticPlayerY;
             TileEntityRendererDispatcher.staticPlayerZ = staticPlayerZ;
+        }
+
+        private void clear() {
+            world = null;
+            livingPlayer = null;
         }
     }
 }

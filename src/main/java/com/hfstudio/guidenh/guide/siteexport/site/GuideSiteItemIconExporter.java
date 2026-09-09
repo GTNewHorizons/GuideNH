@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
@@ -119,7 +120,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
             GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
             float scale = (ICON_SIZE - 2f) / 16f;
             float origin = (ICON_SIZE - 16f * scale) / 2f;
@@ -169,7 +170,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glEnable(GL11.GL_BLEND);
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            GL11.glColor4f(1f, 1f, 1f, 1f);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
     }
 

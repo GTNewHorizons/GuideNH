@@ -7,6 +7,9 @@ import net.minecraft.tileentity.TileEntity;
 
 public interface GuidebookPreviewWorld {
 
+    /** Releases client renderer/player back-references before the owning level is discarded. */
+    void closePreviewWorld();
+
     void syncLoadedTileEntities(Collection<TileEntity> tileEntities);
 
     void syncLoadedEntities(Collection<Entity> entities);

@@ -107,8 +107,6 @@ public class StructureLibSceneBinding {
         return channelOverrides;
     }
 
-    // ========== Pending selection (UI state across page reloads) ==========
-
     @Nullable
     private StructureLibPreviewSelection pendingSelection;
 
@@ -121,8 +119,6 @@ public class StructureLibSceneBinding {
         this.pendingSelection = pendingSelection;
     }
 
-    // ========== Apply selection (convenience for scene to restore state) ==========
-
     public void applyPreviewSelection(StructureLibPreviewSelection selection) {
         if (selection == null) return;
         setCurrentTier(selection.getMasterTier());
@@ -132,8 +128,6 @@ public class StructureLibSceneBinding {
             setChannelValue(entry.getKey(), entry.getValue());
         }
     }
-
-    // ========== Rebuild recipe ==========
 
     public void setRebuildRecipe(StructureLibBuildRequest request, int offsetX, int offsetY, int offsetZ,
         boolean formed) {
@@ -164,8 +158,6 @@ public class StructureLibSceneBinding {
         return req;
     }
 
-    // ========== Selection listener ==========
-
     @Nullable
     public Consumer<StructureLibPreviewSelection> getSelectionChangeListener() {
         return selectionChangeListener;
@@ -174,8 +166,6 @@ public class StructureLibSceneBinding {
     public void setSelectionChangeListener(@Nullable Consumer<StructureLibPreviewSelection> listener) {
         this.selectionChangeListener = listener;
     }
-
-    // ========== Import result cache (deprecated — prefer BuildResult) ==========
 
     @Nullable
     public StructureLibImportResult getLastSuccessfulImportResult() {

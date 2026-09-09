@@ -8,8 +8,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.BorderRenderer;
@@ -42,12 +42,12 @@ public class MediaWikiGeneratedListBlock extends LytBlock implements Interactive
     private static final ConstantColor LIST_MARKER_COLOR = ConstantColor.WHITE;
     private static final ResolvedTextStyle LINK_STYLE = TextStyle.builder()
         .apply(DefaultStyles.BODY_TEXT)
-        .color(SymbolicColor.LINK)
+        .color(ColorUtils.LINK)
         .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
     private static final ResolvedTextStyle HOVER_LINK_STYLE = TextStyle.builder()
         .apply(DefaultStyles.BODY_TEXT)
-        .color(SymbolicColor.LINK)
+        .color(ColorUtils.LINK)
         .underlined(true)
         .build()
         .mergeWith(DefaultStyles.BASE_STYLE);

@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
 
@@ -21,7 +22,7 @@ public class SceneEditorElementType {
         builder("guidenh:block", "BlockAnnotation", GuidebookText.SceneEditorElementBlock)
             .iconPngPath("guidenh:textures/guide/buttons.png")
             .fallbackGlyph('B')
-            .accentColor(0xFF9FC6FF)
+            .accentColor(ColorUtils.ARGB_FF9FC6FF.getColor())
             .pointHandleMode(PointHandleMode.POINT)
             .includePrimaryVector(true)
             .includeSecondaryVector(false)
@@ -35,7 +36,7 @@ public class SceneEditorElementType {
         builder("guidenh:box", "BoxAnnotation", GuidebookText.SceneEditorElementBox)
             .iconPngPath("guidenh:textures/guide/buttons.png")
             .fallbackGlyph('O')
-            .accentColor(0xFFFFC07A)
+            .accentColor(ColorUtils.ARGB_FFFFC07A.getColor())
             .pointHandleMode(PointHandleMode.BOX)
             .includePrimaryVector(true)
             .includeSecondaryVector(true)
@@ -50,7 +51,7 @@ public class SceneEditorElementType {
         builder("guidenh:line", "LineAnnotation", GuidebookText.SceneEditorElementLine)
             .iconPngPath("guidenh:textures/guide/buttons.png")
             .fallbackGlyph('L')
-            .accentColor(0xFF9FFFB0)
+            .accentColor(ColorUtils.ARGB_FF9FFFB0.getColor())
             .pointHandleMode(PointHandleMode.LINE)
             .includePrimaryVector(true)
             .includeSecondaryVector(true)
@@ -65,7 +66,7 @@ public class SceneEditorElementType {
         builder("guidenh:diamond", "DiamondAnnotation", GuidebookText.SceneEditorElementDiamond)
             .iconPngPath("guidenh:textures/guide/diamond.png")
             .fallbackGlyph('D')
-            .accentColor(0xFFFFE16A)
+            .accentColor(ColorUtils.ARGB_FFFFE16A.getColor())
             .pointHandleMode(PointHandleMode.POINT)
             .includePrimaryVector(true)
             .includeSecondaryVector(false)
@@ -77,7 +78,7 @@ public class SceneEditorElementType {
             .build());
     public static final SceneEditorElementType TEXT = register(
         builder("guidenh:text", "TextAnnotation", GuidebookText.SceneEditorElementText).fallbackGlyph('T')
-            .accentColor(0xFFFFF1A8)
+            .accentColor(ColorUtils.ARGB_FFFFF1A8.getColor())
             .pointHandleMode(PointHandleMode.POINT)
             .includePrimaryVector(true)
             .includeSecondaryVector(false)
@@ -281,7 +282,7 @@ public class SceneEditorElementType {
             this.textKey = Objects.requireNonNull(textKey, "textKey");
             this.iconPngPath = null;
             this.fallbackGlyph = '?';
-            this.accentColor = 0xFFFFFFFF;
+            this.accentColor = ColorUtils.WHITE.getColor();
             this.pointHandleMode = PointHandleMode.NONE;
             this.includePrimaryVector = false;
             this.includeSecondaryVector = false;

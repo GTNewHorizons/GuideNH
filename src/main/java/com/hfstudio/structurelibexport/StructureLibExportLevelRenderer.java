@@ -2,7 +2,6 @@ package com.hfstudio.structurelibexport;
 
 import java.util.List;
 
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
@@ -42,7 +41,6 @@ public class StructureLibExportLevelRenderer extends GuidebookLevelRenderer {
             tileHeight,
             0f,
             annotations != null ? annotations : List.of(),
-            LightDarkMode.LIGHT_MODE,
             layers,
             List.of());
     }

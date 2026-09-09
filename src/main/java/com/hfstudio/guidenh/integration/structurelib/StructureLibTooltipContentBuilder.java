@@ -8,6 +8,7 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.config.ModConfig;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytSlotGrid;
@@ -21,10 +22,13 @@ public class StructureLibTooltipContentBuilder {
 
     public static final int DEFAULT_CANDIDATE_COLUMNS = 6;
     public static final TextStyle HATCH_LABEL_STYLE = TextStyle.builder()
-        .color(new ConstantColor(0xFFFFCC55))
+        .color(new ConstantColor(ColorUtils.ARGB_FFFFCC55.getColor()))
         .build();
-    public static final int[] HINT_DOT_COLORS = new int[] { 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFFFF00, 0xFFFF00FF,
-        0xFF00FFFF, 0xFFFFA500, 0xFF800080, 0xFF006400, 0xFF8B0000, 0xFF00008B, 0xFF008B8B };
+    public static final int[] HINT_DOT_COLORS = new int[] { ColorUtils.ARGB_FFFF0000.getColor(),
+        ColorUtils.ARGB_FF00FF00.getColor(), ColorUtils.ARGB_FF0000FF.getColor(), ColorUtils.ARGB_FFFFFF00.getColor(),
+        ColorUtils.ARGB_FFFF00FF.getColor(), ColorUtils.ARGB_FF00FFFF.getColor(), ColorUtils.ARGB_FFFFA500.getColor(),
+        ColorUtils.ARGB_FF800080.getColor(), ColorUtils.ARGB_FF006400.getColor(), ColorUtils.ARGB_FF8B0000.getColor(),
+        ColorUtils.ARGB_FF00008B.getColor(), ColorUtils.ARGB_FF008B8B.getColor() };
 
     private StructureLibTooltipContentBuilder() {}
 
@@ -151,7 +155,7 @@ public class StructureLibTooltipContentBuilder {
                 return (0x96 << 24) | (resolveHintDotColor(line.getHintDot()) & 0x00FFFFFF);
             }
         }
-        return 0x96D9B44A;
+        return ColorUtils.ARGB_96D9B44A.getColor();
     }
 
     public static void appendCandidateGrid(LytVBox root, List<ItemStack> candidates) {

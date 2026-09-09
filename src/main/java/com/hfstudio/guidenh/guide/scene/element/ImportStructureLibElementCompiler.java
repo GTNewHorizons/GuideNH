@@ -121,8 +121,6 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
         }
     }
 
-    // ========== Utility for callers that need to replicate parsing ==========
-
     @Nullable
     public static StructureLibBuildRequest buildDefaultPreviewRequest(MdxJsxElementFields el) {
         return buildDefaultPreviewRequest(null, NoopErrorSink.INSTANCE, el);

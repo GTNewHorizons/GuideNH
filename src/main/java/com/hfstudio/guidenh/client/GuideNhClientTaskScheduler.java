@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.client.Minecraft;
 
+import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -50,6 +51,10 @@ public class GuideNhClientTaskScheduler {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        // CompileWorker queues scene-world disposal from its background thread; drain it at the
+        // client tick boundary even when no GuideScreen is currently open.
+        ClientProxy.getWorker()
+            .drainRuntimeReleases();
         PENDING_TASKS.add(TICK_BOUNDARY);
         Runnable task;
         while ((task = PENDING_TASKS.poll()) != null && task != TICK_BOUNDARY) {

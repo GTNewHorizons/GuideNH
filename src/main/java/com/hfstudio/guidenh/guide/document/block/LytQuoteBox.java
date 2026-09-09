@@ -4,9 +4,9 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
-import com.hfstudio.guidenh.guide.color.SymbolicColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
@@ -15,7 +15,7 @@ import com.hfstudio.guidenh.guide.style.BorderStyle;
 
 public class LytQuoteBox extends LytBlock implements LytBlockContainer {
 
-    private static final ColorValue DEFAULT_ACCENT = new ConstantColor(0xFF4FA3FF);
+    private static final ColorValue DEFAULT_ACCENT = new ConstantColor(ColorUtils.ARGB_FF4FA3FF.getColor());
 
     private final LytVBox root = new LytVBox();
     private final LytParagraph titleParagraph = new LytParagraph();
@@ -28,7 +28,7 @@ public class LytQuoteBox extends LytBlock implements LytBlockContainer {
         root.setPadding(6);
         root.setGap(4);
         root.setFullWidth(true);
-        root.setBackgroundColor(SymbolicColor.BLOCKQUOTE_BACKGROUND);
+        root.setBackgroundColor(ColorUtils.BLOCKQUOTE_BACKGROUND);
         root.setBorderLeft(new BorderStyle(DEFAULT_ACCENT, 3));
 
         titleParagraph.setMarginTop(0);

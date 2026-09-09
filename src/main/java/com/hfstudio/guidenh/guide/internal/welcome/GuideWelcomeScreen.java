@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.internal.welcome;
 
 import java.awt.Desktop;
 import java.net.URI;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -28,7 +27,7 @@ import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.PageCollection;
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.LytRect;
@@ -72,14 +71,8 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private static final int EXTERNAL_LINK_CONFIRM_ID = 0;
 
     private final GuiScreen parent;
-    private final VanillaRenderContext renderContext = new VanillaRenderContext(
-        LightDarkMode.DARK_MODE,
-        LytRect.empty(),
-        0);
-    private final VanillaRenderContext contentTooltipRenderContext = new VanillaRenderContext(
-        LightDarkMode.LIGHT_MODE,
-        LytRect.empty(),
-        0);
+    private final VanillaRenderContext renderContext = new VanillaRenderContext(LytRect.empty(), 0);
+    private final VanillaRenderContext contentTooltipRenderContext = new VanillaRenderContext(LytRect.empty(), 0);
     private final MinecraftFontMetrics fontMetrics = new MinecraftFontMetrics();
 
     @Nullable
@@ -105,6 +98,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private String parentPageId;
     @Nullable
     private URI pendingExternalUri;
+    private boolean temporaryScreenChangeExpected;
 
     public GuideWelcomeScreen(GuiScreen parent, GuideWelcomeContent.LoadedContent content) {
         this.parent = parent;
@@ -203,7 +197,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
             drawDefaultBackground();
         }
 
-        drawRect(0, 0, width, height, 0x88000000);
+        drawRect(0, 0, width, height, ColorUtils.ARGB_88000000.getColor());
 
         int panelW = panelWidth();
         int panelH = panelHeight();
@@ -212,18 +206,18 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         int panelRight = panelX + panelW;
         int panelBottom = panelY + panelH;
 
-        drawRect(panelX, panelY, panelRight, panelBottom, 0xF0181C22);
-        drawRect(panelX, panelY, panelRight, panelY + 1, 0xFF586170);
-        drawRect(panelX, panelBottom - 1, panelRight, panelBottom, 0xFF586170);
-        drawRect(panelX, panelY, panelX + 1, panelBottom, 0xFF586170);
-        drawRect(panelRight - 1, panelY, panelRight, panelBottom, 0xFF586170);
+        drawRect(panelX, panelY, panelRight, panelBottom, ColorUtils.DIALOG.getColor());
+        drawRect(panelX, panelY, panelRight, panelY + 1, ColorUtils.ARGB_FF586170.getColor());
+        drawRect(panelX, panelBottom - 1, panelRight, panelBottom, ColorUtils.ARGB_FF586170.getColor());
+        drawRect(panelX, panelY, panelX + 1, panelBottom, ColorUtils.ARGB_FF586170.getColor());
+        drawRect(panelRight - 1, panelY, panelRight, panelBottom, ColorUtils.ARGB_FF586170.getColor());
 
         drawCenteredString(
             fontRendererObj,
             StatCollector.translateToLocal("guidenh.welcome.title"),
             width / 2,
             panelY + 10,
-            0xFFF0F0F0);
+            ColorUtils.TEXT.getColor());
         if (closeButton != null) {
             closeButton.drawButton(mc, mouseX, mouseY);
         }
@@ -239,7 +233,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
             StatCollector.translateToLocal("guidenh.welcome.close_hint"),
             width / 2,
             panelBottom - 14,
-            0xFFB8C0CC);
+            ColorUtils.ARGB_FFB8C0CC.getColor());
 
         drawHoverTooltip(mouseX, mouseY);
     }
@@ -274,6 +268,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     public void openExternalUrl(URI uri) {
         if (ModConfig.ui.confirmExternalLinks) {
             pendingExternalUri = uri;
+            temporaryScreenChangeExpected = true;
             mc.displayGuiScreen(createExternalLinkConfirmScreen(uri));
             return;
         }
@@ -292,6 +287,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         if (result && uri != null) {
             browseExternalUrl(uri);
         }
+        temporaryScreenChangeExpected = false;
         mc.displayGuiScreen(this);
     }
 
@@ -373,23 +369,22 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     }
 
     private static void registerRuntimeScenes(GuidePage page) {
-        LytDocument doc = page.document();
-        if (doc == null) {
+        page.refreshMaterializedScenes();
+    }
+
+    @Override
+    public void onGuiClosed() {
+        if (temporaryScreenChangeExpected) {
+            temporaryScreenChangeExpected = false;
             return;
         }
-        List<LytGuidebookScene> scenes = page.scenes();
-        ArrayDeque<LytNode> pending = new ArrayDeque<>();
-        pending.add(doc);
-        while (!pending.isEmpty()) {
-            LytNode node = pending.removeLast();
-            if (node instanceof LytGuidebookScene scene && !scenes.contains(scene)) {
-                scenes.add(scene);
-            }
-            List<? extends LytNode> children = node.getChildren();
-            for (int i = children.size() - 1; i >= 0; i--) {
-                pending.addLast(children.get(i));
-            }
+        if (page != null) {
+            page.releaseRuntimeScenes();
         }
+        page = null;
+        document = null;
+        pageCollection = null;
+        super.onGuiClosed();
     }
 
     @Nullable
@@ -435,7 +430,12 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
     private void renderDocument(int mouseX, int mouseY) {
         if (document == null) {
-            drawCenteredString(fontRendererObj, I18n.format("gui.done"), width / 2, documentTop(), 0xFFD0D8E0);
+            drawCenteredString(
+                fontRendererObj,
+                I18n.format("gui.done"),
+                width / 2,
+                documentTop(),
+                ColorUtils.TEXT_MUTED.getColor());
             return;
         }
 
@@ -451,7 +451,6 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         document.setHoveredElement(hit);
 
         int viewportTop = Math.max(0, Math.round(scrollY));
-        renderContext.setLightDarkMode(LightDarkMode.DARK_MODE);
         renderContext.setViewport(new LytRect(0, viewportTop, docW, docH));
         renderContext.setScreenHeight(height);
         renderContext.setDocumentOrigin(docX, docY);
@@ -581,8 +580,8 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     private void drawScrollbar() {
         LytRect track = scrollbarTrackRect();
         LytRect thumb = scrollbarThumbRect(track);
-        drawRect(track.x(), track.y(), track.right(), track.bottom(), 0x33262D38);
-        int color = draggingScrollbar ? 0xFFFFFFFF : 0x99B8C0CC;
+        drawRect(track.x(), track.y(), track.right(), track.bottom(), ColorUtils.ARGB_33262D38.getColor());
+        int color = draggingScrollbar ? ColorUtils.WHITE.getColor() : ColorUtils.ARGB_99B8C0CC.getColor();
         drawRect(thumb.x(), thumb.y(), thumb.right(), thumb.bottom(), color);
     }
 
@@ -688,6 +687,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         int right = width - padding;
         int bottom = height - padding;
         LytRect box = tooltip.layout(Math.max(80, (right - left) * 4 / 5));
+        LytRect contentBounds = tooltip.getContentBounds();
         int tooltipWidth = box.width();
         int tooltipHeight = box.height();
         int x = mouseX + 12;
@@ -701,9 +701,9 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         zLevel = 300F;
         itemRender.zLevel = 300F;
-        int background = 0xF0100010;
-        int borderTop = 0x505000FF;
-        int borderBottom = 0x5028007F;
+        int background = ColorUtils.ARGB_F0100010.getColor();
+        int borderTop = ColorUtils.ARGB_505000FF.getColor();
+        int borderBottom = ColorUtils.ARGB_5028007F.getColor();
         drawGradientRect(
             x - padding,
             y - padding,
@@ -756,13 +756,16 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
             borderTop,
             borderBottom);
 
-        contentTooltipRenderContext.setViewport(new LytRect(0, 0, tooltipWidth, tooltipHeight));
+        contentTooltipRenderContext
+            .setViewport(new LytRect(contentBounds.x(), contentBounds.y(), tooltipWidth, tooltipHeight));
         contentTooltipRenderContext.setScreenHeight(height);
-        contentTooltipRenderContext.setDocumentOrigin(x, y);
+        int contentX = x - contentBounds.x();
+        int contentY = y - contentBounds.y();
+        contentTooltipRenderContext.setDocumentOrigin(contentX, contentY);
         contentTooltipRenderContext.setScrollOffsetY(0);
         contentTooltipRenderContext.setZoom(1F);
         GL11.glPushMatrix();
-        GL11.glTranslatef(x, y, 300F);
+        GL11.glTranslatef(contentX, contentY, 300F);
         try {
             tooltip.getContent()
                 .render(contentTooltipRenderContext);

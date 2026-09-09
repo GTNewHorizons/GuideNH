@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.style.Styleable;
 import com.hfstudio.guidenh.guide.style.TextStyle;
@@ -117,6 +118,17 @@ public class LytFlowContent implements Styleable {
 
     public void setData(String key, Object value) {
         data.put(key, value);
+    }
+
+    /**
+     * Invalidates the block layout that owns this flow content, if it has one.
+     */
+    public void invalidateLayout() {
+        if (parent instanceof LytFlowContent flowContent) {
+            flowContent.invalidateLayout();
+        } else if (parent instanceof LytNode node) {
+            node.invalidateLayout();
+        }
     }
 
 }

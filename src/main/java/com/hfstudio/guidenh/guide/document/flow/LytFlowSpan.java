@@ -22,6 +22,7 @@ public class LytFlowSpan extends LytFlowContent implements LytFlowParent, Stylea
         }
         child.setParent(this);
         children.add(child);
+        invalidateLayout();
     }
 
     @Override

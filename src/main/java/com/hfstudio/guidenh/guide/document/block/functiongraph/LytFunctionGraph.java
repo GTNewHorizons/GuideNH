@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -66,10 +67,10 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private static final int MIN_PLOT_HEIGHT = 88;
     private static final float LABEL_LATEX_SOURCE_SCALE = 100f;
 
-    private static final ResolvedTextStyle TITLE_STYLE = makeStyle(0xFFE6E6E6, true);
-    private static final ResolvedTextStyle AXIS_LABEL_STYLE = makeStyle(0xFFB8C2CF, false);
-    private static final ResolvedTextStyle TOOLTIP_BODY_STYLE = makeStyle(0xFFD7DEE7, false);
-    private static final ResolvedTextStyle LEGEND_LABEL_STYLE = makeStyle(0xFFD7DEE7, false);
+    private static final ResolvedTextStyle TITLE_STYLE = makeStyle(ColorUtils.ARGB_FFE6E6E6.getColor(), true);
+    private static final ResolvedTextStyle AXIS_LABEL_STYLE = makeStyle(ColorUtils.CHART_LABEL.getColor(), false);
+    private static final ResolvedTextStyle TOOLTIP_BODY_STYLE = makeStyle(ColorUtils.ARGB_FFD7DEE7.getColor(), false);
+    private static final ResolvedTextStyle LEGEND_LABEL_STYLE = makeStyle(ColorUtils.ARGB_FFD7DEE7.getColor(), false);
 
     @Getter
     private final List<FunctionPlot> plots = new ArrayList<>();
@@ -91,16 +92,16 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     private int explicitHeight = -1;
     @Getter
     @Setter
-    private int backgroundColor = 0xFF1B1F23;
+    private int backgroundColor = ColorUtils.CHART_BACKGROUND.getColor();
     @Getter
     @Setter
-    private int borderColor = 0xFF3A4047;
+    private int borderColor = ColorUtils.CHART_BORDER.getColor();
     @Getter
     @Setter
-    private int axisColor = 0xFFB8C2CF;
+    private int axisColor = ColorUtils.CHART_LABEL.getColor();
     @Getter
     @Setter
-    private int gridColor = 0x33B8C2CF;
+    private int gridColor = ColorUtils.CHART_GRID.getColor();
     @Getter
     @Setter
     private boolean showGrid = true;
@@ -646,7 +647,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             if (sy < plotRect.y() - POINT_RADIUS || sy > plotRect.bottom() + POINT_RADIUS) {
                 continue;
             }
-            context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF);
+            context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, ColorUtils.WHITE.getColor());
             context.fillCircle(sx, sy, POINT_RADIUS, color);
         }
     }
@@ -865,7 +866,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             return false;
         }
         autoPointHitCache.add(new double[] { sx, sy, dataX, dataY, (double) color, (double) plotIndex });
-        context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF);
+        context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, ColorUtils.WHITE.getColor());
         context.fillCircle(sx, sy, POINT_RADIUS, color);
         if (labelMode != null && labelMode != AutoPointLabelMode.NONE) {
             String label = autoPointLabel(labelMode, dataX, dataY);
@@ -943,7 +944,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (sx < plotRect.x() || sx > plotRect.right() || sy < plotRect.y() || sy > plotRect.bottom()) {
             return;
         }
-        context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, 0xFFFFFFFF);
+        context.fillCircle(sx, sy, POINT_RADIUS + POINT_OUTER_RING, ColorUtils.WHITE.getColor());
         context.fillCircle(sx, sy, POINT_RADIUS, plot.getColor());
 
     }
@@ -958,8 +959,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             return;
         }
         // Larger highlight for marked points.
-        context.fillCircle(sx, sy, POINT_RADIUS + 2f, 0xFFFFFFFF);
-        context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000);
+        context.fillCircle(sx, sy, POINT_RADIUS + 2f, ColorUtils.WHITE.getColor());
+        context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, ColorUtils.BLACK.getColor());
         context.fillCircle(sx, sy, POINT_RADIUS, color);
 
     }
@@ -973,8 +974,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         if (sx < plotRect.x() || sx > plotRect.right() || sy < plotRect.y() || sy > plotRect.bottom()) {
             return;
         }
-        context.fillCircle(sx, sy, POINT_RADIUS + 2f, 0xFFFFFFFF);
-        context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, 0xFF000000);
+        context.fillCircle(sx, sy, POINT_RADIUS + 2f, ColorUtils.WHITE.getColor());
+        context.drawCircleOutline(sx, sy, POINT_RADIUS + 2f, 1f, ColorUtils.BLACK.getColor());
         context.fillCircle(sx, sy, POINT_RADIUS, color);
 
     }
@@ -1120,7 +1121,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
         int lineHeight = context.getLineHeight(style);
         int totalHeight = measureRichTextHeight(context, text, style);
         int cursorX = x;
-        int fillColor = style == TITLE_STYLE ? 0xFFE6E6E6 : 0xFFB8C2CF;
+        int fillColor = style == TITLE_STYLE ? ColorUtils.ARGB_FFE6E6E6.getColor() : ColorUtils.CHART_LABEL.getColor();
         for (MarkdownLatexShorthand.Segment segment : MarkdownLatexShorthand.split(text)) {
             if (!segment.isFormula()) {
                 context.drawText(segment.getValue(), cursorX, y + (totalHeight - lineHeight) / 2, style);
@@ -1150,7 +1151,8 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
     }
 
     private static LatexMetrics measureLatex(String formula, int lineHeight) {
-        int[] source = GuideLatexRenderer.INSTANCE.measureSize(formula, 0xFFFFFFFF, LABEL_LATEX_SOURCE_SCALE);
+        int[] source = GuideLatexRenderer.INSTANCE
+            .measureSize(formula, ColorUtils.WHITE.getColor(), LABEL_LATEX_SOURCE_SCALE);
         if (source == null) {
             return null;
         }
@@ -1289,7 +1291,7 @@ public class LytFunctionGraph extends LytBlock implements InteractiveElement, Do
             int swatchY = y + (rowHeight - LEGEND_SWATCH_SIZE) / 2;
             LytRect swatch = new LytRect(x, swatchY, LEGEND_SWATCH_SIZE, LEGEND_SWATCH_SIZE);
             context.fillRect(swatch, plot.getColor());
-            context.drawBorder(swatch, 0xFF000000, 1);
+            context.drawBorder(swatch, ColorUtils.BLACK.getColor(), 1);
             int textY = y + (rowHeight - context.getLineHeight(LEGEND_LABEL_STYLE)) / 2;
             context.drawText(label, x + LEGEND_SWATCH_SIZE + LEGEND_SWATCH_TEXT_GAP, textY, LEGEND_LABEL_STYLE);
             x += itemWidth;

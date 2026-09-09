@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.scene.level;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import lombok.Getter;
 
 public class GuidebookChunk {
@@ -11,13 +12,12 @@ public class GuidebookChunk {
 
     public final int chunkZ;
 
-    private final Block[] blocks = new Block[16 * 16 * 256];
-
-    // Use int[] instead of byte[] so that mods storing extended metadata in the block-meta
-    // (e.g. GregTech ores, where meta encodes material id + stone variant + small/natural flags
-    // and can reach ~24000) round-trip correctly. With NEID-style worlds the chunk storage uses
-    // a side array; for the synthetic preview chunk we just keep the full int.
-    private final int[] metas = new int[16 * 16 * 256];
+    /**
+     * Preview columns are partitioned into 16-block-high sections. This keeps the vanilla
+     * allocation profile for normal scenes, while allowing a level to expose arbitrary build
+     * heights without allocating every intervening Y section.
+     */
+    private final Int2ObjectOpenHashMap<Section> sections = new Int2ObjectOpenHashMap<>();
 
     @Getter
     private int filledCount = 0;
@@ -28,32 +28,44 @@ public class GuidebookChunk {
     }
 
     public static int index(int x, int y, int z) {
-        return ((x & 15) << 12) | ((z & 15) << 8) | (y & 255);
+        return ((x & 15) << 8) | ((z & 15) << 4) | (y & 15);
     }
 
     public Block getBlock(int x, int y, int z) {
-        if (y < 0 || y >= 256) return null;
-        return blocks[index(x, y, z)];
+        Section section = sections.get(y >> 4);
+        return section != null ? section.blocks[index(x, y, z)] : null;
     }
 
     public int getMeta(int x, int y, int z) {
-        if (y < 0 || y >= 256) return 0;
-        return metas[index(x, y, z)];
+        Section section = sections.get(y >> 4);
+        return section != null ? section.metas[index(x, y, z)] : 0;
     }
 
     public boolean setBlock(int x, int y, int z, Block block, int meta) {
-        if (y < 0 || y >= 256) return false;
         int idx = index(x, y, z);
-        Block prev = blocks[idx];
+        int sectionY = y >> 4;
+        Section section = sections.get(sectionY);
+        if (section == null) {
+            if (block == null || block == Blocks.air) {
+                return false;
+            }
+            section = new Section();
+            sections.put(sectionY, section);
+        }
+        Block prev = section.blocks[idx];
         boolean prevFilled = prev != null && prev != Blocks.air;
         boolean nextFilled = block != null && block != Blocks.air;
-        blocks[idx] = nextFilled ? block : null;
-        metas[idx] = meta;
+        section.blocks[idx] = nextFilled ? block : null;
+        section.metas[idx] = meta;
         if (prevFilled && !nextFilled) {
             filledCount--;
+            if (--section.filledCount == 0) {
+                sections.remove(sectionY);
+            }
             return true;
         } else if (!prevFilled && nextFilled) {
             filledCount++;
+            section.filledCount++;
             return true;
         }
         return false;
@@ -64,17 +76,29 @@ public class GuidebookChunk {
     }
 
     public void forEachBlock(BlockIterator it) {
-        for (int lx = 0; lx < 16; lx++) {
-            for (int lz = 0; lz < 16; lz++) {
-                for (int y = 0; y < 256; y++) {
-                    int idx = ((lx) << 12) | ((lz) << 8) | y;
-                    Block b = blocks[idx];
-                    if (b != null && b != Blocks.air) {
-                        it.accept(lx, y, lz, b, metas[idx]);
+        for (var sectionEntry : sections.int2ObjectEntrySet()) {
+            int sectionY = sectionEntry.getIntKey();
+            Section section = sectionEntry.getValue();
+            for (int lx = 0; lx < 16; lx++) {
+                for (int lz = 0; lz < 16; lz++) {
+                    for (int localY = 0; localY < 16; localY++) {
+                        int idx = ((lx) << 8) | ((lz) << 4) | localY;
+                        Block b = section.blocks[idx];
+                        if (b != null && b != Blocks.air) {
+                            it.accept(lx, (sectionY << 4) + localY, lz, b, section.metas[idx]);
+                        }
                     }
                 }
             }
         }
+    }
+
+    private static class Section {
+
+        private final Block[] blocks = new Block[16 * 16 * 16];
+        // Keep full metadata for mods that use extended values.
+        private final int[] metas = new int[16 * 16 * 16];
+        private int filledCount;
     }
 
     @FunctionalInterface

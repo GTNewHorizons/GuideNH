@@ -3,13 +3,10 @@ package com.hfstudio.guidenh.guide.scene.level;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -36,24 +33,49 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
-    private final LinkedHashMap<ChunkCoordIntPair, GuidebookChunk> chunks = new LinkedHashMap<>();
+    public static final int DEFAULT_MIN_BUILD_HEIGHT = 0;
+    public static final int DEFAULT_MAX_BUILD_HEIGHT_EXCLUSIVE = 256;
 
-    private final HashMap<Long, TileEntity> tileEntities = new HashMap<>();
-    private final LinkedHashMap<Integer, Entity> entities = new LinkedHashMap<>();
-    private final LinkedHashMap<String, LinkedHashSet<Integer>> sceneEntityIds = new LinkedHashMap<>();
-    private final HashMap<Integer, String> entitySceneIds = new HashMap<>();
-    private final HashMap<String, Integer> firstLiveSceneEntityIds = new HashMap<>();
+    private final Long2ObjectLinkedOpenHashMap<GuidebookChunk> chunks = new Long2ObjectLinkedOpenHashMap<>();
+    // Block and metadata reads are clustered by chunk during rendering. Keep the last lookup
+    // out of the map path to avoid allocating a ChunkCoordIntPair for every block access.
+    @Nullable
+    private GuidebookChunk cachedChunk;
+    private boolean cachedChunkValid;
+    private int cachedChunkX;
+    private int cachedChunkZ;
+
+    private final GuidebookBlockPosMap<TileEntity> tileEntities = new GuidebookBlockPosMap<>();
+    private final Int2ObjectLinkedOpenHashMap<Entity> entities = new Int2ObjectLinkedOpenHashMap<>();
+    private final LinkedHashMap<String, IntLinkedOpenHashSet> sceneEntityIds = new LinkedHashMap<>();
+    private final Int2ObjectOpenHashMap<String> entitySceneIds = new Int2ObjectOpenHashMap<>();
+    private final Object2IntOpenHashMap<String> firstLiveSceneEntityIds = new Object2IntOpenHashMap<>();
     private final LinkedHashMap<String, SceneEntityMountState> sceneEntityMountStates = new LinkedHashMap<>();
-    private final HashMap<String, LinkedHashSet<String>> sceneEntityMountChildren = new HashMap<>();
+    private final Object2ObjectOpenHashMap<String, ObjectOpenHashSet<String>> sceneEntityMountChildren = new Object2ObjectOpenHashMap<>();
 
-    private final HashMap<Long, int[]> filledBlocks = new HashMap<>();
-    private final HashMap<Long, String> explicitBlockIds = new HashMap<>();
+    // Coordinate indexes use primitive long keys to avoid boxing on scene import and updates.
+    private final GuidebookBlockPosMap<int[]> filledBlocks = new GuidebookBlockPosMap<>();
+    private final GuidebookBlockPosMap<String> explicitBlockIds = new GuidebookBlockPosMap<>();
 
     /** Opaque server-authoritative preview blobs per coordinate ({@link #packPos}); cleared when block becomes air. */
     private final GuidebookPreviewAuthorityStore previewAuthorityStore = new GuidebookPreviewAuthorityStore();
+
+    /** Runtime scene mutations that supersede imported preview state for affected integrations. */
+    private final GuidebookPreviewRuntimeMutationTracker previewRuntimeMutations;
+
+    private final int minBuildHeight;
+    private final int maxBuildHeightExclusive;
 
     // Pre-built unmodifiable views returned every call to avoid per-frame
     // Collections.unmodifiableCollection() wrapper allocation (hot on the render loop).
@@ -69,6 +91,17 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Nullable
     private static GuidebookPreviewWorldFactory previewWorldFactory;
 
+    private static volatile BuildHeightProvider defaultBuildHeightProvider = () -> new BuildHeightBounds(
+        DEFAULT_MIN_BUILD_HEIGHT,
+        DEFAULT_MAX_BUILD_HEIGHT_EXCLUSIVE);
+
+    /**
+     * Tracks live scene levels without owning them. Runtime worlds can also be created by the
+     * scene editor and semantic preview paths, so page-cache eviction alone is not a complete
+     * lifecycle boundary. The client unload hook snapshots this set and releases each world.
+     */
+    private static final Set<GuidebookLevel> LIVE_LEVELS = Collections.newSetFromMap(new WeakHashMap<>());
+
     @Nullable
     private World fakeWorld;
 
@@ -78,9 +111,50 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
     private boolean boundsDirty = true;
     private boolean centerDirty = true;
+    private long spatialRevision = 1L;
+
+    public GuidebookLevel() {
+        this(resolveDefaultBuildHeightBounds());
+    }
+
+    private GuidebookLevel(BuildHeightBounds bounds) {
+        this(bounds.minBuildHeight(), bounds.maxBuildHeightExclusive());
+    }
+
+    public GuidebookLevel(int minBuildHeight, int maxBuildHeightExclusive) {
+        if (minBuildHeight >= maxBuildHeightExclusive) {
+            throw new IllegalArgumentException(
+                "The maximum build height must be greater than the minimum build height.");
+        }
+        this.minBuildHeight = minBuildHeight;
+        this.maxBuildHeightExclusive = maxBuildHeightExclusive;
+        this.previewRuntimeMutations = new GuidebookPreviewRuntimeMutationTracker(this);
+        synchronized (LIVE_LEVELS) {
+            LIVE_LEVELS.add(this);
+        }
+    }
 
     public static void setPreviewWorldFactory(@Nullable GuidebookPreviewWorldFactory factory) {
         previewWorldFactory = factory;
+    }
+
+    /**
+     * Registers the source for new preview levels' vertical bounds. Client integrations can
+     * adapt optional world-height APIs here without making the core scene model depend on them.
+     */
+    public static void setDefaultBuildHeightProvider(@Nullable BuildHeightProvider provider) {
+        defaultBuildHeightProvider = provider != null ? provider
+            : () -> new BuildHeightBounds(DEFAULT_MIN_BUILD_HEIGHT, DEFAULT_MAX_BUILD_HEIGHT_EXCLUSIVE);
+    }
+
+    private static BuildHeightBounds resolveDefaultBuildHeightBounds() {
+        try {
+            BuildHeightBounds bounds = defaultBuildHeightProvider.resolve();
+            return bounds != null ? bounds
+                : new BuildHeightBounds(DEFAULT_MIN_BUILD_HEIGHT, DEFAULT_MAX_BUILD_HEIGHT_EXCLUSIVE);
+        } catch (RuntimeException ignored) {
+            return new BuildHeightBounds(DEFAULT_MIN_BUILD_HEIGHT, DEFAULT_MAX_BUILD_HEIGHT_EXCLUSIVE);
+        }
     }
 
     public World getOrCreateFakeWorld() {
@@ -139,43 +213,45 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     public void setBlock(int x, int y, int z, @Nullable Block block, int meta, @Nullable TileEntity tileEntity) {
-        if (y < 0 || y >= 256) return;
+        if (!isValidBuildHeight(y)) return;
 
         boolean isAir = block == null || block == Blocks.air;
-        var pair = new ChunkCoordIntPair(x >> 4, z >> 4);
-        GuidebookChunk chunk = chunks.get(pair);
+        long chunkKey = ChunkCoordIntPair.chunkXZ2Int(x >> 4, z >> 4);
+        GuidebookChunk chunk = chunks.get(chunkKey);
         if (chunk == null) {
             if (isAir) return;
             chunk = new GuidebookChunk(x >> 4, z >> 4);
-            chunks.put(pair, chunk);
+            chunks.put(chunkKey, chunk);
+            cachedChunkX = x >> 4;
+            cachedChunkZ = z >> 4;
+            cachedChunk = chunk;
+            cachedChunkValid = true;
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
-        long key = packPos(x, y, z);
-
         if (isAir) {
-            filledBlocks.remove(key);
-            tileEntities.remove(key);
-            explicitBlockIds.remove(key);
-            previewAuthorityStore.clearAt(key);
+            filledBlocks.remove(x, y, z);
+            tileEntities.remove(x, y, z);
+            explicitBlockIds.remove(x, y, z);
+            previewAuthorityStore.clearAt(packPos(x, y, z));
         } else {
-            if (!filledBlocks.containsKey(key)) {
-                filledBlocks.put(key, new int[] { x, y, z });
+            if (!filledBlocks.containsKey(x, y, z)) {
+                filledBlocks.put(x, y, z, new int[] { x, y, z });
             }
             String fallbackBlockId = resolveBlockId(block);
             String resolvedBlockId = GuideNhIntegrationRegistry.global()
                 .resolveBlockExportId(this, block, tileEntity, x, y, z, fallbackBlockId);
             if (resolvedBlockId != null) {
-                explicitBlockIds.put(key, resolvedBlockId);
+                explicitBlockIds.put(x, y, z, resolvedBlockId);
             } else {
-                explicitBlockIds.remove(key);
+                explicitBlockIds.remove(x, y, z);
             }
             if (tileEntity != null) {
                 bindTileEntity(tileEntity, x, y, z, getOrCreateFakeWorld());
                 tileEntity.validate();
-                tileEntities.put(key, tileEntity);
+                tileEntities.put(x, y, z, tileEntity);
             } else {
-                tileEntities.remove(key);
+                tileEntities.remove(x, y, z);
             }
             if (x < minX) minX = x;
             if (y < minY) minY = y;
@@ -194,37 +270,40 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     public void restoreBlockFast(int x, int y, int z, @Nullable Block block, int meta,
         @Nullable String explicitBlockId) {
-        if (y < 0 || y >= 256) {
+        if (!isValidBuildHeight(y)) {
             return;
         }
 
         boolean isAir = block == null || block == Blocks.air;
-        ChunkCoordIntPair pair = new ChunkCoordIntPair(x >> 4, z >> 4);
-        GuidebookChunk chunk = chunks.get(pair);
+        long chunkKey = ChunkCoordIntPair.chunkXZ2Int(x >> 4, z >> 4);
+        GuidebookChunk chunk = chunks.get(chunkKey);
         if (chunk == null) {
             if (isAir) {
                 return;
             }
             chunk = new GuidebookChunk(x >> 4, z >> 4);
-            chunks.put(pair, chunk);
+            chunks.put(chunkKey, chunk);
+            cachedChunkX = x >> 4;
+            cachedChunkZ = z >> 4;
+            cachedChunk = chunk;
+            cachedChunkValid = true;
         }
 
         chunk.setBlock(x, y, z, isAir ? null : block, meta);
-        long key = packPos(x, y, z);
         if (isAir) {
-            filledBlocks.remove(key);
-            tileEntities.remove(key);
-            explicitBlockIds.remove(key);
-            previewAuthorityStore.clearAt(key);
+            filledBlocks.remove(x, y, z);
+            tileEntities.remove(x, y, z);
+            explicitBlockIds.remove(x, y, z);
+            previewAuthorityStore.clearAt(packPos(x, y, z));
         } else {
-            if (!filledBlocks.containsKey(key)) {
-                filledBlocks.put(key, new int[] { x, y, z });
+            if (!filledBlocks.containsKey(x, y, z)) {
+                filledBlocks.put(x, y, z, new int[] { x, y, z });
             }
             String normalizedBlockId = trimToNull(explicitBlockId);
             if (normalizedBlockId != null) {
-                explicitBlockIds.put(key, normalizedBlockId);
+                explicitBlockIds.put(x, y, z, normalizedBlockId);
             } else {
-                explicitBlockIds.remove(key);
+                explicitBlockIds.remove(x, y, z);
             }
             if (x < minX) minX = x;
             if (y < minY) minY = y;
@@ -242,26 +321,26 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     public void setTileEntity(int x, int y, int z, @Nullable TileEntity tileEntity) {
-        long key = packPos(x, y, z);
-        TileEntity existing = tileEntities.get(key);
+        TileEntity existing = tileEntities.get(x, y, z);
         if (existing == tileEntity) {
             previewStateDirty = true;
             return;
         }
         if (tileEntity == null) {
-            tileEntities.remove(key);
+            tileEntities.remove(x, y, z);
         } else {
             bindTileEntity(tileEntity, x, y, z, getOrCreateFakeWorld());
             tileEntity.validate();
-            tileEntities.put(key, tileEntity);
+            tileEntities.put(x, y, z, tileEntity);
         }
+        markSpatialDirty();
         previewStateDirty = true;
     }
 
     public void restoreTileEntityFast(int x, int y, int z, @Nullable TileEntity tileEntity) {
-        long key = packPos(x, y, z);
         if (tileEntity == null) {
-            tileEntities.remove(key);
+            tileEntities.remove(x, y, z);
+            markSpatialDirty();
             previewStateDirty = true;
             return;
         }
@@ -270,12 +349,13 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         tileEntity.zCoord = z;
         tileEntity.blockType = getBlock(x, y, z);
         tileEntity.blockMetadata = getBlockMetadata(x, y, z);
-        tileEntities.put(key, tileEntity);
+        tileEntities.put(x, y, z, tileEntity);
+        markSpatialDirty();
         previewStateDirty = true;
     }
 
     public boolean setBlockMetadata(int x, int y, int z, int meta) {
-        if (y < 0 || y >= 256) {
+        if (!isValidBuildHeight(y)) {
             return false;
         }
 
@@ -291,32 +371,57 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
         chunk.setBlock(x, y, z, block, meta);
 
-        TileEntity tileEntity = tileEntities.get(packPos(x, y, z));
+        TileEntity tileEntity = tileEntities.get(x, y, z);
         if (tileEntity != null) {
             bindTileEntity(tileEntity, x, y, z, getOrCreateFakeWorld());
         }
 
+        markSpatialDirty();
         previewStateDirty = true;
         return true;
     }
 
     public void setExplicitBlockId(int x, int y, int z, @Nullable String blockId) {
-        long key = packPos(x, y, z);
         String normalizedBlockId = trimToNull(blockId);
         if (normalizedBlockId == null) {
-            explicitBlockIds.remove(key);
+            explicitBlockIds.remove(x, y, z);
         } else {
-            explicitBlockIds.put(key, normalizedBlockId);
+            explicitBlockIds.put(x, y, z, normalizedBlockId);
         }
     }
 
     @Nullable
     public String getExplicitBlockId(int x, int y, int z) {
-        return explicitBlockIds.get(packPos(x, y, z));
+        return explicitBlockIds.get(x, y, z);
     }
 
     public GuidebookPreviewAuthorityStore previewAuthorityStore() {
         return previewAuthorityStore;
+    }
+
+    /**
+     * Returns runtime mutation state shared by scene systems and integration compatibility layers.
+     * Preview contributors can use this to distinguish imported authority data from positions
+     * modified by a current scene operation or animation.
+     */
+    public GuidebookPreviewRuntimeMutationTracker previewRuntimeMutations() {
+        return previewRuntimeMutations;
+    }
+
+    public int getMinBuildHeight() {
+        return minBuildHeight;
+    }
+
+    public int getMaxBuildHeightExclusive() {
+        return maxBuildHeightExclusive;
+    }
+
+    public int clampBuildHeight(int y) {
+        return Math.clamp(y, minBuildHeight, maxBuildHeightExclusive - 1);
+    }
+
+    public boolean isValidBuildHeight(int y) {
+        return y >= minBuildHeight && y < maxBuildHeightExclusive;
     }
 
     public boolean isEmpty() {
@@ -337,6 +442,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             }
         }
         chunks.clear();
+        cachedChunk = null;
+        cachedChunkValid = false;
         tileEntities.clear();
         entities.clear();
         sceneEntityIds.clear();
@@ -347,6 +454,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         filledBlocks.clear();
         explicitBlockIds.clear();
         previewAuthorityStore.clear();
+        previewRuntimeMutations.clear();
         minX = Integer.MAX_VALUE;
         minY = Integer.MAX_VALUE;
         minZ = Integer.MAX_VALUE;
@@ -358,6 +466,66 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (fakeWorld instanceof GuidebookPreviewWorld previewWorld) {
             previewWorld.syncLoadedTileEntities(tileEntities.values());
             previewWorld.syncLoadedEntities(entities.values());
+        }
+    }
+
+    /**
+     * Releases the client-only WorldClient and renderer/player back-references when this level
+     * is replaced by another scene. {@link #clear()} intentionally keeps the world for rebuilds.
+     */
+    public void close() {
+        clear();
+        releaseRuntimeWorld();
+    }
+
+    /**
+     * Drops only the client-side world wrapper while keeping scene blocks, entities, and
+     * annotations intact. The wrapper is recreated lazily on the next render.
+     */
+    public void releaseRuntimeWorld() {
+        World oldWorld = fakeWorld;
+        if (oldWorld == null) {
+            return;
+        }
+        // Tile entities and entities are the canonical scene data and remain cached after a
+        // runtime world is released. Detach their back-references first, otherwise they would
+        // keep the old WorldClient alive through the level even after fakeWorld is cleared.
+        for (TileEntity tileEntity : tileEntities.values()) {
+            if (tileEntity != null && tileEntity.getWorldObj() == oldWorld) {
+                try {
+                    tileEntity.setWorldObj(null);
+                } catch (Throwable ignored) {}
+            }
+        }
+        for (Entity entity : entities.values()) {
+            if (entity != null && entity.worldObj == oldWorld) {
+                entity.worldObj = null;
+            }
+        }
+        if (oldWorld instanceof GuidebookPreviewWorld previewWorld) {
+            previewWorld.closePreviewWorld();
+        }
+        fakeWorld = null;
+        // A replacement world needs the canonical tile/entity state rebound before rendering.
+        previewStateDirty = true;
+    }
+
+    /**
+     * Releases every still-live preview world. The weak registry is deliberately independent of
+     * guide/page caches so temporary editor and semantic-preview levels are covered as well.
+     * Must run on the Minecraft client thread because WorldClient and renderer state are client
+     * owned.
+     */
+    @SideOnly(Side.CLIENT)
+    public static void releaseAllRuntimeWorlds() {
+        GuidebookLevel[] levels;
+        synchronized (LIVE_LEVELS) {
+            levels = LIVE_LEVELS.toArray(new GuidebookLevel[0]);
+        }
+        for (GuidebookLevel level : levels) {
+            if (level != null) {
+                level.releaseRuntimeWorld();
+            }
         }
     }
 
@@ -377,8 +545,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         return entitiesView;
     }
 
-    public Map<Long, String> snapshotExplicitBlockIds() {
-        return new LinkedHashMap<>(explicitBlockIds);
+    public void forEachExplicitBlockId(GuidebookBlockPosMap.PositionValueConsumer<String> consumer) {
+        explicitBlockIds.forEach(consumer);
     }
 
     public void addEntity(@Nullable Entity entity) {
@@ -414,15 +582,15 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (normalizedSceneEntityId == null) {
             return 0;
         }
-        LinkedHashSet<Integer> entityIds = sceneEntityIds.get(normalizedSceneEntityId);
+        IntLinkedOpenHashSet entityIds = sceneEntityIds.get(normalizedSceneEntityId);
         if (entityIds == null || entityIds.isEmpty()) {
             clearSceneEntityMountState(normalizedSceneEntityId);
             return 0;
         }
         int removedCount = 0;
-        Integer[] snapshot = entityIds.toArray(new Integer[0]);
-        for (Integer entityId : snapshot) {
-            if (entityId != null && removeEntityInternal(entityId, true)) {
+        int[] snapshot = entityIds.toIntArray();
+        for (int entityId : snapshot) {
+            if (removeEntityInternal(entityId, true)) {
                 removedCount++;
             }
         }
@@ -452,13 +620,14 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (normalizedSceneEntityId == null) {
             return List.of();
         }
-        LinkedHashSet<Integer> entityIds = sceneEntityIds.get(normalizedSceneEntityId);
+        IntLinkedOpenHashSet entityIds = sceneEntityIds.get(normalizedSceneEntityId);
         if (entityIds == null || entityIds.isEmpty()) {
             return List.of();
         }
         List<Entity> resolved = new ArrayList<>(entityIds.size());
-        for (Integer entityId : entityIds) {
-            Entity entity = entityId != null ? entities.get(entityId) : null;
+        for (IntIterator iterator = entityIds.iterator(); iterator.hasNext();) {
+            int entityId = iterator.nextInt();
+            Entity entity = entities.get(entityId);
             if (entity != null && !entity.isDead) {
                 resolved.add(entity);
             }
@@ -472,20 +641,21 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (normalizedSceneEntityId == null) {
             return null;
         }
-        Integer cachedEntityId = firstLiveSceneEntityIds.get(normalizedSceneEntityId);
-        if (cachedEntityId != null) {
+        if (firstLiveSceneEntityIds.containsKey(normalizedSceneEntityId)) {
+            int cachedEntityId = firstLiveSceneEntityIds.getInt(normalizedSceneEntityId);
             Entity cached = entities.get(cachedEntityId);
             if (cached != null && !cached.isDead) {
                 return cached;
             }
         }
-        LinkedHashSet<Integer> entityIds = sceneEntityIds.get(normalizedSceneEntityId);
+        IntLinkedOpenHashSet entityIds = sceneEntityIds.get(normalizedSceneEntityId);
         if (entityIds == null || entityIds.isEmpty()) {
             firstLiveSceneEntityIds.remove(normalizedSceneEntityId);
             return null;
         }
-        for (Integer entityId : entityIds) {
-            Entity entity = entityId != null ? entities.get(entityId) : null;
+        for (IntIterator iterator = entityIds.iterator(); iterator.hasNext();) {
+            int entityId = iterator.nextInt();
+            Entity entity = entities.get(entityId);
             if (entity != null && !entity.isDead) {
                 firstLiveSceneEntityIds.put(normalizedSceneEntityId, entity.getEntityId());
                 return entity;
@@ -658,11 +828,19 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     public void markSpatialDirty() {
         boundsDirty = true;
         centerDirty = true;
+        spatialRevision++;
+        if (spatialRevision == 0L) {
+            spatialRevision = 1L;
+        }
+    }
+
+    public long getSpatialRevision() {
+        return spatialRevision;
     }
 
     public int getPrecipitationBlockingY(int x, int z, int minY, int maxY) {
-        int lowerBound = Math.max(0, minY);
-        int upperBound = Math.min(255, maxY);
+        int lowerBound = Math.max(minBuildHeight, minY);
+        int upperBound = Math.min(maxBuildHeightExclusive - 1, maxY);
         for (int y = upperBound; y >= lowerBound; y--) {
             Block block = getBlock(x, y, z);
             if (block == null || block == Blocks.air) {
@@ -703,18 +881,27 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @Override
     @Nullable
     public GuidebookChunk getChunk(int chunkX, int chunkZ, boolean create) {
-        var pair = new ChunkCoordIntPair(chunkX, chunkZ);
-        var chunk = chunks.get(pair);
+        // A missing neighbour is common during modded block-light queries. Cache that negative
+        // lookup too, while still allowing callers that request creation to populate the chunk.
+        if (cachedChunkValid && cachedChunkX == chunkX && cachedChunkZ == chunkZ && (cachedChunk != null || !create)) {
+            return cachedChunk;
+        }
+        long chunkKey = ChunkCoordIntPair.chunkXZ2Int(chunkX, chunkZ);
+        var chunk = chunks.get(chunkKey);
         if (chunk == null && create) {
             chunk = new GuidebookChunk(chunkX, chunkZ);
-            chunks.put(pair, chunk);
+            chunks.put(chunkKey, chunk);
         }
+        cachedChunkX = chunkX;
+        cachedChunkZ = chunkZ;
+        cachedChunk = chunk;
+        cachedChunkValid = true;
         return chunk;
     }
 
     @Override
     public Block getBlock(int x, int y, int z) {
-        if (y < 0 || y >= 256) return Blocks.air;
+        if (!isValidBuildHeight(y)) return Blocks.air;
         var chunk = getChunk(x >> 4, z >> 4, false);
         if (chunk == null) return Blocks.air;
         Block b = chunk.getBlock(x, y, z);
@@ -723,12 +910,12 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     @Override
     public TileEntity getTileEntity(int x, int y, int z) {
-        return tileEntities.get(packPos(x, y, z));
+        return tileEntities.get(x, y, z);
     }
 
     @Override
     public int getBlockMetadata(int x, int y, int z) {
-        if (y < 0 || y >= 256) return 0;
+        if (!isValidBuildHeight(y)) return 0;
         var chunk = getChunk(x >> 4, z >> 4, false);
         return chunk == null ? 0 : chunk.getMeta(x, y, z);
     }
@@ -765,7 +952,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     @SideOnly(Side.CLIENT)
     @Override
     public int getHeight() {
-        return 256;
+        return maxBuildHeightExclusive;
     }
 
     @SideOnly(Side.CLIENT)
@@ -840,12 +1027,12 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (normalizedSceneEntityId == null) {
             return;
         }
-        sceneEntityIds.computeIfAbsent(normalizedSceneEntityId, ignored -> new LinkedHashSet<>())
+        sceneEntityIds.computeIfAbsent(normalizedSceneEntityId, ignored -> new IntLinkedOpenHashSet())
             .add(entityId);
         entitySceneIds.put(entityId, normalizedSceneEntityId);
         firstLiveSceneEntityIds.putIfAbsent(normalizedSceneEntityId, entityId);
         applySceneEntityMount(normalizedSceneEntityId);
-        LinkedHashSet<String> childIds = sceneEntityMountChildren.get(normalizedSceneEntityId);
+        ObjectOpenHashSet<String> childIds = sceneEntityMountChildren.get(normalizedSceneEntityId);
         if (childIds != null && !childIds.isEmpty()) {
             for (String childId : childIds) {
                 applySceneEntityMount(childId);
@@ -854,13 +1041,13 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     private void unregisterSceneEntityId(String sceneEntityId, int entityId) {
-        LinkedHashSet<Integer> entityIds = sceneEntityIds.get(sceneEntityId);
+        IntLinkedOpenHashSet entityIds = sceneEntityIds.get(sceneEntityId);
         if (entityIds == null) {
             return;
         }
         entityIds.remove(entityId);
-        Integer cachedEntityId = firstLiveSceneEntityIds.get(sceneEntityId);
-        if (cachedEntityId != null && cachedEntityId == entityId) {
+        if (firstLiveSceneEntityIds.containsKey(sceneEntityId)
+            && firstLiveSceneEntityIds.getInt(sceneEntityId) == entityId) {
             firstLiveSceneEntityIds.remove(sceneEntityId);
         }
         if (entityIds.isEmpty()) {
@@ -899,7 +1086,8 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private void setSceneEntityMountState(String riderSceneEntityId, SceneEntityMountState mountState) {
         clearSceneEntityMountState(riderSceneEntityId);
         sceneEntityMountStates.put(riderSceneEntityId, mountState);
-        sceneEntityMountChildren.computeIfAbsent(mountState.vehicleSceneEntityId(), ignored -> new LinkedHashSet<>())
+        sceneEntityMountChildren
+            .computeIfAbsent(mountState.vehicleSceneEntityId(), ignored -> new ObjectOpenHashSet<>())
             .add(riderSceneEntityId);
     }
 
@@ -908,7 +1096,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (previousState == null) {
             return;
         }
-        LinkedHashSet<String> childIds = sceneEntityMountChildren.get(previousState.vehicleSceneEntityId());
+        ObjectOpenHashSet<String> childIds = sceneEntityMountChildren.get(previousState.vehicleSceneEntityId());
         if (childIds != null) {
             childIds.remove(riderSceneEntityId);
             if (childIds.isEmpty()) {
@@ -918,7 +1106,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     }
 
     private void clearDependentSceneEntityMountStates(String vehicleSceneEntityId) {
-        LinkedHashSet<String> riderIds = sceneEntityMountChildren.remove(vehicleSceneEntityId);
+        ObjectOpenHashSet<String> riderIds = sceneEntityMountChildren.remove(vehicleSceneEntityId);
         if (riderIds == null || riderIds.isEmpty()) {
             return;
         }
@@ -941,7 +1129,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
     private boolean wouldCreateMountCycle(String riderSceneEntityId, String vehicleSceneEntityId) {
         String currentSceneEntityId = vehicleSceneEntityId;
-        Set<String> visited = new HashSet<>();
+        ObjectOpenHashSet<String> visited = new ObjectOpenHashSet<>();
         while (currentSceneEntityId != null && visited.add(currentSceneEntityId)) {
             if (riderSceneEntityId.equals(currentSceneEntityId)) {
                 return true;
@@ -1048,6 +1236,36 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
         public String vehicleSceneEntityId() {
             return vehicleSceneEntityId;
+        }
+    }
+
+    @FunctionalInterface
+    public interface BuildHeightProvider {
+
+        @Nullable
+        BuildHeightBounds resolve();
+    }
+
+    public static class BuildHeightBounds {
+
+        private final int minBuildHeight;
+        private final int maxBuildHeightExclusive;
+
+        public BuildHeightBounds(int minBuildHeight, int maxBuildHeightExclusive) {
+            if (minBuildHeight >= maxBuildHeightExclusive) {
+                throw new IllegalArgumentException(
+                    "The maximum build height must be greater than the minimum build height.");
+            }
+            this.minBuildHeight = minBuildHeight;
+            this.maxBuildHeightExclusive = maxBuildHeightExclusive;
+        }
+
+        public int minBuildHeight() {
+            return minBuildHeight;
+        }
+
+        public int maxBuildHeightExclusive() {
+            return maxBuildHeightExclusive;
         }
     }
 

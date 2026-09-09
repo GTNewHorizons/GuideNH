@@ -77,7 +77,7 @@ public class GuideSearch implements AutoCloseable {
 
     public static final long BACKGROUND_TIME_PER_TICK = TimeUnit.MILLISECONDS.toNanos(1);
     public static final long SEARCH_TIME_PER_TICK = TimeUnit.MILLISECONDS.toNanos(8);
-    private static final int INDEX_SCHEMA_VERSION = 2;
+    private static final int INDEX_SCHEMA_VERSION = 3;
     private static final String COMMIT_SCHEMA_VERSION = "guidenh.search.schema";
     private static final String COMMIT_FINGERPRINT = "guidenh.search.fingerprint";
     private static final long PUBLISH_INTERVAL_NANOS = TimeUnit.MILLISECONDS.toNanos(250);
@@ -181,11 +181,33 @@ public class GuideSearch implements AutoCloseable {
         }
     }
 
+    /**
+     * Invalidates the in-memory search view without parsing pages. The next search lazily opens or
+     * rebuilds the persistent index, keeping resource reloads cheap when search is unused.
+     */
+    public void deferIndexing() {
+        cancelPendingWork();
+        indexedLanguages.clear();
+        try {
+            closeIndex();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to close the deferred guide search index.", e);
+        }
+    }
+
     public void processWork() {
         processWork(BACKGROUND_TIME_PER_TICK);
     }
 
     public void processWork(long budgetNanos) {
+        processWork(budgetNanos, false);
+    }
+
+    /**
+     * Performs a bounded amount of indexing work. A search-triggered initial build may wait for
+     * its first document so the initiating query does not observe an empty, just-created index.
+     */
+    private void processWork(long budgetNanos, boolean awaitFirstDocument) {
         if (indexWriter == null || !hasPendingWork()) {
             return;
         }
@@ -194,7 +216,10 @@ public class GuideSearch implements AutoCloseable {
         schedulePendingPages();
         boolean wroteDocuments = false;
         while (!isTimeElapsed(start, budgetNanos)) {
-            Future<PageIndexDocument> completed = completedDocuments.poll();
+            Future<PageIndexDocument> completed = pollCompletedDocument(
+                start,
+                budgetNanos,
+                awaitFirstDocument && !wroteDocuments);
             if (completed == null) {
                 break;
             }
@@ -217,6 +242,24 @@ public class GuideSearch implements AutoCloseable {
                 "[GuideNH] [GuideSearch] Indexing of {} pages finished in {}",
                 pagesIndexed,
                 Duration.between(indexingStarted, Instant.now()));
+        }
+    }
+
+    @Nullable
+    private Future<PageIndexDocument> pollCompletedDocument(long start, long budgetNanos, boolean await) {
+        if (!await) {
+            return completedDocuments.poll();
+        }
+        long remainingNanos = budgetNanos - (System.nanoTime() - start);
+        if (remainingNanos <= 0) {
+            return null;
+        }
+        try {
+            return completedDocuments.poll(remainingNanos, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread()
+                .interrupt();
+            return null;
         }
     }
 
@@ -323,7 +366,18 @@ public class GuideSearch implements AutoCloseable {
         }
         searchPriorityUntilNanos = System.nanoTime() + SEARCH_PRIORITY_NANOS;
         if (indexSearcher == null) {
-            return List.of();
+            try {
+                indexAll();
+                // Initial indexing is normally asynchronous. Give the initiating query the
+                // established search budget so it can observe the first finished document.
+                processWork(SEARCH_TIME_PER_TICK, true);
+            } catch (Throwable t) {
+                GuideDebugLog.warn("[GuideNH] [GuideSearch] Failed to initialize deferred search index", t);
+                return List.of();
+            }
+            if (indexSearcher == null) {
+                return List.of();
+            }
         }
 
         var searchLanguage = getLuceneLanguageFromMinecraft(LangUtil.getCurrentLanguage());
@@ -445,6 +499,7 @@ public class GuideSearch implements AutoCloseable {
         var pageText = getSearchableText(guide, page);
         var pageTitle = getPageTitle(guide, page);
         var pageFilename = getPageFilename(page);
+        var pageKeywords = getPageKeywords(page);
 
         var searchLang = getLuceneLanguageFromMinecraft(page.getLanguage());
 
@@ -470,7 +525,18 @@ public class GuideSearch implements AutoCloseable {
         doc.add(new TextField(IndexSchema.getTitleField(searchLang), pageTitle, Field.Store.NO));
         doc.add(new TextField(IndexSchema.getFilenameField(searchLang), pageFilename, Field.Store.NO));
         doc.add(new TextField(IndexSchema.getTextField(searchLang), pageText, Field.Store.NO));
+        if (!pageKeywords.isEmpty()) {
+            doc.add(new TextField(IndexSchema.getKeywordField(searchLang), pageKeywords, Field.Store.NO));
+        }
         return doc;
+    }
+
+    private static String getPageKeywords(ParsedGuidePage page) {
+        var navigation = page.getFrontmatter()
+            .navigationEntry();
+        if (navigation == null || navigation.keywords()
+            .isEmpty()) return "";
+        return String.join("\n", navigation.keywords());
     }
 
     private static String getPageFilename(ParsedGuidePage page) {
@@ -582,7 +648,7 @@ public class GuideSearch implements AutoCloseable {
                     page.getId()
                         .toString());
                 updateFingerprint(digest, page.getLanguage());
-                updateFingerprint(digest, page.getSource());
+                updateFingerprint(digest, page.getSourceFingerprint());
             }
         }
         return HexFormat.of()

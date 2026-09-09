@@ -24,6 +24,8 @@ navigation:
 | Field | Description |
 | --- | --- |
 | `title` | Required display title |
+| `keyword` | Optional single search keyword or alias |
+| `keywords` | Optional list of search keywords or aliases |
 | `parent` | Optional parent page id, resolved like a guide page link |
 | `position` | Optional sibling ordering hint |
 | `recommend` | Optional home-page recommendation priority; absent means the page is not shown in the Recommended panel |
@@ -44,6 +46,22 @@ navigation:
 - Missing `position` defaults to `0`.
 - Larger values appear earlier.
 - If two pages have the same value, they are sorted by title alphabetically.
+
+### Search Keywords
+
+`navigation.keyword` adds one search alias. `navigation.keywords` adds a list of aliases. Both fields
+can be used together; values are trimmed and duplicate values are ignored. Keyword matches use the same
+language analyzer and prefix matching as title and page content searches, while results continue to show
+the normal navigation title.
+
+```yaml
+navigation:
+  title: Molecular Assembler
+  keyword: assembler
+  keywords:
+    - molecular assembler
+    - autocrafting machine
+```
 
 ## Home Page Recommendations
 

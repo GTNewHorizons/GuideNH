@@ -9,13 +9,15 @@ import net.minecraft.item.ItemStack;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+
 public class ItemCandidate implements AutocompleteCandidate {
 
     private final String id;
     private final ItemStack stack;
     private static final int ICON_SIZE = 16;
     private static final int TEXT_X = ICON_SIZE + 2;
-    private static final int TEXT_COLOR = 0xFFF0F0F0;
+    private static final int TEXT_COLOR = ColorUtils.TEXT.getColor();
     private static final RenderItem renderItem = new RenderItem();
 
     public ItemCandidate(String id, ItemStack stack) {

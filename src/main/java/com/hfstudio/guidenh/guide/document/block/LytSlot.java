@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 import net.minecraft.item.ItemStack;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
@@ -29,9 +30,9 @@ public class LytSlot extends LytBlock implements InteractiveElement {
     /** Precomputed nanosecond period for item cycling to avoid repeated TimeUnit conversion. */
     private static final long CYCLE_NANOS = TimeUnit.MILLISECONDS.toNanos(CYCLE_TIME);
 
-    private static final int SLOT_BORDER_DARK = 0xFF373737;
-    private static final int SLOT_BORDER_LIGHT = 0xFFFFFFFF;
-    private static final int SLOT_INNER_BG = 0xFF8B8B8B;
+    private static final int SLOT_BORDER_DARK = ColorUtils.ARGB_FF373737.getColor();
+    private static final int SLOT_BORDER_LIGHT = ColorUtils.WHITE.getColor();
+    private static final int SLOT_INNER_BG = ColorUtils.ARGB_FF8B8B8B.getColor();
 
     @Getter
     @Setter

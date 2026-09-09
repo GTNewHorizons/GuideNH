@@ -6,7 +6,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
-import com.hfstudio.guidenh.guide.color.LightDarkMode;
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 
 /**
  * Draws the {@code window.png} and {@code window_inner.png} 9-slice frames (16x16 source, 4px
@@ -18,27 +18,19 @@ public class WindowNinePatch {
     public static final int TEX_SIZE = 16;
     public static final int BORDER = 4;
 
-    public static final ResourceLocation WINDOW_LIGHT = new ResourceLocation(
-        "guidenh",
-        "textures/gui/sprites/window.png");
-    public static final ResourceLocation WINDOW_DARK = new ResourceLocation(
-        "guidenh",
-        "textures/gui/sprites/window_darkmode.png");
-    public static final ResourceLocation WINDOW_INNER_LIGHT = new ResourceLocation(
+    public static final ResourceLocation WINDOW = new ResourceLocation("guidenh", "textures/gui/sprites/window.png");
+    public static final ResourceLocation WINDOW_INNER = new ResourceLocation(
         "guidenh",
         "textures/gui/sprites/window_inner.png");
-    public static final ResourceLocation WINDOW_INNER_DARK = new ResourceLocation(
-        "guidenh",
-        "textures/gui/sprites/window_inner_darkmode.png");
 
     private WindowNinePatch() {}
 
-    public static void drawWindow(LightDarkMode mode, int x, int y, int w, int h) {
-        draw(mode == LightDarkMode.DARK_MODE ? WINDOW_DARK : WINDOW_LIGHT, x, y, w, h);
+    public static void drawWindow(int x, int y, int w, int h) {
+        draw(WINDOW, x, y, w, h);
     }
 
-    public static void drawWindowInner(LightDarkMode mode, int x, int y, int w, int h) {
-        draw(mode == LightDarkMode.DARK_MODE ? WINDOW_INNER_DARK : WINDOW_INNER_LIGHT, x, y, w, h);
+    public static void drawWindowInner(int x, int y, int w, int h) {
+        draw(WINDOW_INNER, x, y, w, h);
     }
 
     public static void draw(ResourceLocation texture, int x, int y, int w, int h) {
@@ -49,7 +41,7 @@ public class WindowNinePatch {
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
         var tess = Tessellator.instance;
         tess.startDrawingQuads();

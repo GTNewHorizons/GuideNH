@@ -48,7 +48,13 @@ public class YamlTokenizer implements LanguageTokenizer {
         if (index > 0) {
             TokenizerSupport.appendToken(tokens, content.substring(0, index), CodeTokenType.PLAIN);
         }
-        if (index < content.length() && content.charAt(index) == '-') {
+        if (isDocumentBoundaryMarker(content, index)) {
+            TokenizerSupport.appendToken(tokens, "---", CodeTokenType.PROPERTY);
+            if (content.length() > 3) {
+                TokenizerSupport.appendToken(tokens, content.substring(3), CodeTokenType.PLAIN);
+            }
+            index = content.length();
+        } else if (index < content.length() && content.charAt(index) == '-') {
             TokenizerSupport.appendToken(tokens, "-", CodeTokenType.PUNCTUATION);
             do {
                 index++;
@@ -79,6 +85,18 @@ public class YamlTokenizer implements LanguageTokenizer {
             TokenizerSupport.appendToken(tokens, comment, CodeTokenType.COMMENT);
         }
         return tokens;
+    }
+
+    private boolean isDocumentBoundaryMarker(String content, int firstContentIndex) {
+        if (firstContentIndex != 0 || !content.startsWith("---")) {
+            return false;
+        }
+        for (int index = 3; index < content.length(); index++) {
+            if (!Character.isWhitespace(content.charAt(index))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void appendValueTokens(List<CodeHighlightToken> tokens, String value) {

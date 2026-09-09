@@ -11,6 +11,7 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
@@ -27,12 +28,12 @@ public class HomePageController {
     private static final int DRAG_THRESHOLD = 3;
     private static final float ENTRY_TITLE_SCALE = 1.12f;
     private static final float ENTRY_SUMMARY_SCALE = 0.85f;
-    private static final int PANEL_COLOR = 0xA6181A20;
-    private static final int ROW_COLOR = 0x661E232B;
-    private static final int ROW_HOVER_COLOR = 0x88303946;
-    private static final int TITLE_COLOR = 0xFFE5E9F0;
-    private static final int EMPTY_COLOR = 0xFF9AA3B2;
-    private static final int SUMMARY_COLOR = 0xFF9AA3B2;
+    private static final int PANEL_COLOR = ColorUtils.ARGB_A6181A20.getColor();
+    private static final int ROW_COLOR = ColorUtils.ARGB_661E232B.getColor();
+    private static final int ROW_HOVER_COLOR = ColorUtils.ARGB_88303946.getColor();
+    private static final int TITLE_COLOR = ColorUtils.ARGB_FFE5E9F0.getColor();
+    private static final int EMPTY_COLOR = ColorUtils.ARGB_FF9AA3B2.getColor();
+    private static final int SUMMARY_COLOR = ColorUtils.ARGB_FF9AA3B2.getColor();
     private static final int ENTRY_TEXT_TOP = 4;
     private static final int ENTRY_TEXT_BOTTOM = 25;
 
@@ -162,7 +163,7 @@ public class HomePageController {
             .bindTexture(logoTexture);
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-        GL11.glColor4f(1f, 1f, 1f, 1f);
+        ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         Tessellator tessellator = Tessellator.instance;
         tessellator.startDrawingQuads();
         tessellator.addVertexWithUV(rect.x(), drawY + drawHeight, 0, 0f, 1f);
@@ -249,8 +250,8 @@ public class HomePageController {
         int thumbHeight = Math.max(18, visibleHeight * visibleHeight / Math.max(visibleHeight, contentHeight));
         int travel = Math.max(1, visibleHeight - thumbHeight);
         int thumbY = contentY + (int) ((long) scrollOffset * travel / maxScroll);
-        Gui.drawRect(x, contentY, x + SCROLLBAR_WIDTH, contentY + visibleHeight, 0x22262D38);
-        Gui.drawRect(x, thumbY, x + SCROLLBAR_WIDTH, thumbY + thumbHeight, 0x889AA3B2);
+        Gui.drawRect(x, contentY, x + SCROLLBAR_WIDTH, contentY + visibleHeight, ColorUtils.ARGB_22262D38.getColor());
+        Gui.drawRect(x, thumbY, x + SCROLLBAR_WIDTH, thumbY + thumbHeight, ColorUtils.SCROLLBAR_HOVER.getColor());
     }
 
     private int computeContentHeight(HomePageSection section) {

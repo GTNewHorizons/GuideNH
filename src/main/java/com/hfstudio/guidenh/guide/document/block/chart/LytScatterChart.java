@@ -5,6 +5,7 @@ import java.util.List;
 
 import net.minecraft.item.ItemStack;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
@@ -113,7 +114,7 @@ public class LytScatterChart extends LytChartBase {
                 int color = hovered ? brighten(s.getColor()) : s.getColor();
                 context.fillCircle(x, y, r, color);
                 if (hovered) {
-                    context.drawCircleOutline(x, y, r, 1f, 0xFF000000);
+                    context.drawCircleOutline(x, y, r, 1f, ColorUtils.BLACK.getColor());
                 }
                 if (getLabelPosition() != ChartLabelPosition.NONE) {
                     String text = "(" + formatValue(s.getXs()[i]) + "," + formatValue(s.getYs()[i]) + ")";
