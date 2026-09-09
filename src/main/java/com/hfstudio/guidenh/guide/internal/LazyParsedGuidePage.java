@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -60,7 +61,34 @@ public final class LazyParsedGuidePage extends ParsedGuidePage {
     public LazyParsedGuidePage(String sourcePack, ResourceLocation id, Frontmatter frontmatter, String language,
         @Nullable String parseFailureMessage, @Nullable UnistPoint parseFailureFrom,
         @Nullable UnistPoint parseFailureTo, Supplier<String> sourceLoader, @Nullable String sourceFingerprint) {
-        super(sourcePack, id, "", null, frontmatter, language, parseFailureMessage, parseFailureFrom, parseFailureTo);
+        this(
+            sourcePack,
+            null,
+            id,
+            frontmatter,
+            language,
+            parseFailureMessage,
+            parseFailureFrom,
+            parseFailureTo,
+            sourceLoader,
+            sourceFingerprint);
+    }
+
+    public LazyParsedGuidePage(String sourcePack, @Nullable IResourcePack sourceResourcePack, ResourceLocation id,
+        Frontmatter frontmatter, String language, @Nullable String parseFailureMessage,
+        @Nullable UnistPoint parseFailureFrom, @Nullable UnistPoint parseFailureTo, Supplier<String> sourceLoader,
+        @Nullable String sourceFingerprint) {
+        super(
+            sourcePack,
+            sourceResourcePack,
+            id,
+            "",
+            null,
+            frontmatter,
+            language,
+            parseFailureMessage,
+            parseFailureFrom,
+            parseFailureTo);
         this.sourceLoader = Objects.requireNonNull(sourceLoader, "sourceLoader");
         this.sourceFingerprint = sourceFingerprint;
     }

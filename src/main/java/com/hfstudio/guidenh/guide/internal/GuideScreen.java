@@ -4019,7 +4019,7 @@ public class GuideScreen extends GuiContainer
         FontRenderer fr = mc.fontRenderer;
         int maxW = (int) (this.width * 0.8);
 
-        String sourceDisplay = getSourceDisplayName(currentPage.sourcePack());
+        String sourceDisplay = getSourceDisplayName(currentPage.sourcePack(), currentPage.sourceResourcePack());
         List<String> authors = meta != null ? meta.authors() : List.of();
         String dateVal = meta != null ? meta.date() : null;
         String updatedVal = meta != null ? meta.updated() : null;
@@ -4109,33 +4109,15 @@ public class GuideScreen extends GuiContainer
         return text;
     }
 
-    private static String getSourceDisplayName(String sourcePack) {
-        int colon = sourcePack.indexOf(':');
-        String prefix = colon >= 0 ? sourcePack.substring(0, colon) : "";
-        String namespace = colon >= 0 ? sourcePack.substring(colon + 1) : sourcePack;
-
-        if ("resources".equals(prefix)) {
-            try {
-                var entries = Minecraft.getMinecraft()
-                    .getResourcePackRepository()
-                    .getRepositoryEntries();
-                for (int i = entries.size() - 1; i >= 0; i--) {
-                    var pack = entries.get(i)
-                        .getResourcePack();
-                    if (pack != null && pack.getResourceDomains()
-                        .contains(namespace)) {
-                        String packName = pack.getPackName();
-                        if (packName.length() > 4 && packName.substring(packName.length() - 4)
-                            .equalsIgnoreCase(".zip")) {
-                            packName = packName.substring(0, packName.length() - 4);
-                        }
-                        return packName;
-                    }
-                }
-            } catch (Throwable ignored) {}
+    private static String getSourceDisplayName(String sourcePack, @Nullable IResourcePack sourceResourcePack) {
+        if (sourceResourcePack != null) {
+            return formatResourcePackName(sourceResourcePack.getPackName());
         }
 
-        // For "development:" or no matching user resource pack: fall back to FML mod name
+        int colon = sourcePack.indexOf(':');
+        String namespace = colon >= 0 ? sourcePack.substring(colon + 1) : sourcePack;
+
+        // Pages constructed outside a resource-pack load keep their existing mod-name fallback.
         try {
             var mod = Loader.instance()
                 .getIndexedModList()
@@ -4145,6 +4127,13 @@ public class GuideScreen extends GuiContainer
             }
         } catch (Throwable ignored) {}
         return namespace;
+    }
+
+    private static String formatResourcePackName(String packName) {
+        if (packName.length() > 4 && packName.regionMatches(true, packName.length() - 4, ".zip", 0, 4)) {
+            return packName.substring(0, packName.length() - 4);
+        }
+        return packName;
     }
 
     private void drawPageTitle() {

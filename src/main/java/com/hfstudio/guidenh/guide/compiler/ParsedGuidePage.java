@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.compiler;
 
 import java.util.Objects;
 
+import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -15,6 +16,16 @@ public class ParsedGuidePage {
 
     @Getter
     private final String sourcePack;
+    /**
+     * The exact resource pack selected while loading this page, when it originated from a resource pack.
+     *
+     * <p>
+     * The textual source identifier remains useful for compiler identity, but it only contains a namespace and
+     * cannot identify which of several packs supplied the page.
+     * </p>
+     */
+    @Getter
+    private final @Nullable IResourcePack sourceResourcePack;
     @Getter
     private final ResourceLocation id;
     @Getter
@@ -47,7 +58,25 @@ public class ParsedGuidePage {
     public ParsedGuidePage(String sourcePack, ResourceLocation id, String source, MdAstRoot astRoot,
         Frontmatter frontmatter, String language, @Nullable String parseFailureMessage,
         @Nullable UnistPoint parseFailureFrom, @Nullable UnistPoint parseFailureTo) {
+        this(
+            sourcePack,
+            null,
+            id,
+            source,
+            astRoot,
+            frontmatter,
+            language,
+            parseFailureMessage,
+            parseFailureFrom,
+            parseFailureTo);
+    }
+
+    public ParsedGuidePage(String sourcePack, @Nullable IResourcePack sourceResourcePack, ResourceLocation id,
+        String source, MdAstRoot astRoot, Frontmatter frontmatter, String language,
+        @Nullable String parseFailureMessage, @Nullable UnistPoint parseFailureFrom,
+        @Nullable UnistPoint parseFailureTo) {
         this.sourcePack = sourcePack;
+        this.sourceResourcePack = sourceResourcePack;
         this.id = id;
         this.source = source;
         this.astRoot = astRoot;
