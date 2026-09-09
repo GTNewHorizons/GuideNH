@@ -19,8 +19,10 @@ public class ParsedGuidePage {
     /**
      * The exact resource pack selected while loading this page, when it originated from a resource pack.
      *
-     * <p>The textual source identifier remains useful for compiler identity, but it only contains a namespace and
-     * cannot identify which of several packs supplied the page.</p>
+     * <p>
+     * The textual source identifier remains useful for compiler identity, but it only contains a namespace and
+     * cannot identify which of several packs supplied the page.
+     * </p>
      */
     @Getter
     private final @Nullable IResourcePack sourceResourcePack;
