@@ -16,8 +16,8 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.client.resources.IResourcePack;
+import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
