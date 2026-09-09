@@ -235,6 +235,7 @@ public class GuideLightweightReloadService {
             };
             return new LazyParsedGuidePage(
                 sourcePack,
+                selected.pack(),
                 pageId,
                 frontmatter.getFrontmatter(),
                 frontmatter.getLanguage(),

@@ -7,6 +7,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
+import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +22,8 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 public class GuidePage {
 
     private final String sourcePack;
+    @Nullable
+    private final IResourcePack sourceResourcePack;
     private final ResourceLocation id;
     private final LytDocument document;
     private final List<LytGuidebookScene> scenes;
@@ -41,7 +44,13 @@ public class GuidePage {
 
     public GuidePage(String sourcePack, ResourceLocation id, LytDocument document, @Nullable LytHeading titleHeading,
         @Nullable FrontmatterPageMeta pageMeta) {
+        this(sourcePack, null, id, document, titleHeading, pageMeta);
+    }
+
+    public GuidePage(String sourcePack, @Nullable IResourcePack sourceResourcePack, ResourceLocation id,
+        LytDocument document, @Nullable LytHeading titleHeading, @Nullable FrontmatterPageMeta pageMeta) {
         this.sourcePack = sourcePack;
+        this.sourceResourcePack = sourceResourcePack;
         this.id = id;
         this.document = document;
         this.titleHeading = titleHeading;
@@ -54,6 +63,10 @@ public class GuidePage {
 
     public String sourcePack() {
         return sourcePack;
+    }
+
+    public @Nullable IResourcePack sourceResourcePack() {
+        return sourceResourcePack;
     }
 
     public ResourceLocation id() {

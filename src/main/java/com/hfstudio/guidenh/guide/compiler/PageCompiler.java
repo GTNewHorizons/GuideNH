@@ -17,6 +17,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.resources.IResourcePack;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -295,10 +296,16 @@ public class PageCompiler {
 
     public static GuidePage buildErrorGuidePage(PageCollection pages, ExtensionCollection extensions, String sourcePack,
         ResourceLocation id, String pageContent, String headingText, String errorText) {
+        return buildErrorGuidePage(pages, extensions, sourcePack, null, id, pageContent, headingText, errorText);
+    }
+
+    public static GuidePage buildErrorGuidePage(PageCollection pages, ExtensionCollection extensions, String sourcePack,
+        @Nullable IResourcePack sourceResourcePack, ResourceLocation id, String pageContent, String headingText,
+        String errorText) {
         var errorRoot = buildErrorPage(headingText, errorText);
         var document = new PageCompiler(pages, extensions, sourcePack, id, pageContent).compile(errorRoot);
         var titleHeading = extractPageTitleHeading(document);
-        return new GuidePage(sourcePack, id, document, titleHeading);
+        return new GuidePage(sourcePack, sourceResourcePack, id, document, titleHeading, null);
     }
 
     public static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage) {
@@ -314,7 +321,13 @@ public class PageCompiler {
         FrontmatterPageMeta pageMeta = parsedPage.getFrontmatter() != null ? parsedPage.getFrontmatter()
             .parseMeta() : null;
         if (pageMeta != null && pageMeta.isEmpty()) pageMeta = null;
-        return new GuidePage(parsedPage.getSourcePack(), parsedPage.getId(), document, titleHeading, pageMeta);
+        return new GuidePage(
+            parsedPage.getSourcePack(),
+            parsedPage.getSourceResourcePack(),
+            parsedPage.getId(),
+            document,
+            titleHeading,
+            pageMeta);
     }
 
     /**

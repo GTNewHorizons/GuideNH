@@ -828,6 +828,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             this,
             extensions,
             parsedPage.getSourcePack(),
+            parsedPage.getSourceResourcePack(),
             parsedPage.getId(),
             parsedPage.getSource(),
             effectiveFailure.headingText,
