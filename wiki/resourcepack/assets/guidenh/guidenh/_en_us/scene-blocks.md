@@ -154,8 +154,9 @@ checks:
 
 This scene does not declare `<BlockStats>`, but the block-stat toggle button is still available
 because the scene contains blocks. Opening it shows the default inside list. If `maxWidth` and
-`maxHeight` are not declared, the overlay is capped to 25% of the scene width and height, but it
-will still grow enough to show at least one item type without forcing a scrollbar.
+`maxHeight` are not declared, the overlay is capped to the fixed 224 by 96 pixels and grows to 40% of
+a scene that is larger than that, but it will still grow enough to show at least one item type without
+forcing a scrollbar.
 
 <GameScene zoom={4} interactive={true}>
     <Block id="minecraft:stone" />
@@ -193,8 +194,8 @@ scene contents. Manual mode shows author-provided rows, which is useful for plan
 | `showNames` | `false` | Shows item names beside icons; when enabled the count is also appended after the name. |
 | `filterMode` | `blacklist` | `blacklist` hides matching items; `whitelist` shows only matching items. |
 | `filter` | empty | Item keys like `minecraft:stone` or `minecraft:stone:0`, separated by spaces, commas, or semicolons. |
-| `maxWidth` | 25% scene width | Maximum overlay width before horizontal scrolling. |
-| `maxHeight` | 25% scene height | Maximum overlay height before vertical scrolling. |
+| `maxWidth` | 224 px, or 40% of a wider scene | Maximum overlay width before horizontal scrolling. |
+| `maxHeight` | 96 px, or 40% of a taller scene | Maximum overlay height before vertical scrolling. |
 
 For 3D region parameters, GuideNH keeps the field names `dx`/`dy`/`dz`, but the intended axis order is X/Y/Z. In other words, read them as length, height, and width/depth for the region.
 

@@ -30,7 +30,8 @@ Scenes that contain blocks enable the block-stat toggle button by default. Add a
 child when you want to override its mode, placement, filters, visibility, or size. The list is
 cached and only rebuilt when the scene blocks, Ponder timeline state, StructureLib selection, or
 block-stat settings change; normal rendering reuses the prepared rows. Long lists are clipped to
-`maxWidth` and `maxHeight`; if those are omitted, each defaults to 25% of the final scene size.
+`maxWidth` and `maxHeight`; if those are omitted, each defaults to the fixed `224` by `96` pixels and
+grows to 40% of a scene that is larger than that.
 Overflow receives draggable scrollbars, and the mouse wheel scrolls the list while the cursor is
 over the overlay. Hold Shift to wheel-scroll horizontally.
 
@@ -306,8 +307,8 @@ overlay to manual statistics mode for that scene.
 | `showNames` | no | `false` | whether to show item names beside icons; when enabled the count is also appended after the name |
 | `filterMode` | no | `blacklist` | `blacklist` or `whitelist` |
 | `filter` | no | empty | item keys such as `minecraft:stone` or `minecraft:stone:0`, separated by spaces, commas, or semicolons |
-| `maxWidth` | no | 25% of scene width | maximum overlay width in pixels before horizontal scrolling |
-| `maxHeight` | no | 25% of scene height | maximum overlay height in pixels before vertical scrolling |
+| `maxWidth` | no | `224` px, or 40% of a wider scene | maximum overlay width in pixels before horizontal scrolling |
+| `maxHeight` | no | `96` px, or 40% of a taller scene | maximum overlay height in pixels before vertical scrolling |
 
 `<BlockStat>` attributes:
 

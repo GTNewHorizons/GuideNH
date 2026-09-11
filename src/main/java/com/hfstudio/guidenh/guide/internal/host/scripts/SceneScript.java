@@ -318,6 +318,9 @@ public class SceneScript implements LytScript {
         }
 
         finalizeSceneGeometry(ph, scene, level, camera);
+        // A scene that does not size its statistics overlay itself follows the scene, so a large scene
+        // gets a larger overlay than the fixed minimum.
+        scene.applyDefaultBlockStatsMaxSizeFromScene();
         scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
         scene.clearLoadState();
         if (hasSceneErrors) {
@@ -595,7 +598,13 @@ public class SceneScript implements LytScript {
         List<Integer> counts = new ArrayList<>();
         for (UnistNode child : el.children()) {
             MdxJsxElementFields entry = SceneTagCompiler.unwrapSceneElement(child);
-            if (entry == null || !"BlockStat".equals(entry.name())) {
+            if (entry == null) {
+                continue;
+            }
+            if (!"BlockStat".equals(entry.name())) {
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [SceneScript] <BlockStats> ignores <{}>: only <BlockStat> rows are listed",
+                    entry.name());
                 continue;
             }
             String id = entry.getAttributeString("item", entry.getAttributeString("id", null));
