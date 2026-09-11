@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.internal.syntax.values;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.command.ICommand;
@@ -13,8 +12,16 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests registered client-side commands, written with their leading slash. */
+/**
+ * Suggests registered client-side commands, written with their leading slash.
+ *
+ * <p>
+ * Commands are registered while mods load, so they are answered from a snapshot. A typed slash is part
+ * of the written value but not of the command name, so it only takes part in the suggestion.
+ */
 public class CommandValueSource implements SyntaxValueSource {
+
+    private final NameSnapshot snapshot = new NameSnapshot(CommandValueSource::registeredNames);
 
     @Override
     public Set<SyntaxValueKind> kinds() {
@@ -24,22 +31,26 @@ public class CommandValueSource implements SyntaxValueSource {
     @Override
     public List<SyntaxSuggestion> suggest(SyntaxValueRequest request, int limit) {
         String partial = request.partialText();
-        String lower = partial != null ? partial.toLowerCase(Locale.ROOT) : "";
-        List<SyntaxSuggestion> results = new ArrayList<>();
-        for (Object command : ClientCommandHandler.instance.getCommands()
-            .values()) {
-            if (results.size() >= limit) {
-                break;
-            }
-            if (!(command instanceof ICommand registered)) {
-                continue;
-            }
-            String name = registered.getCommandName();
-            if (lower.isEmpty() || name.toLowerCase(Locale.ROOT)
-                .contains(lower)) {
-                results.add(SyntaxSuggestion.of("/" + name));
-            }
+        String bare = partial != null && partial.startsWith("/") ? partial.substring(1) : partial;
+        List<String> names = snapshot.match(bare, limit);
+        List<SyntaxSuggestion> results = new ArrayList<>(names.size());
+        for (String name : names) {
+            results.add(SyntaxSuggestion.of("/" + name));
         }
         return results;
+    }
+
+    private static List<String> registeredNames() {
+        List<String> names = new ArrayList<>();
+        for (Object command : ClientCommandHandler.instance.getCommands()
+            .values()) {
+            if (command instanceof ICommand registered) {
+                String name = registered.getCommandName();
+                if (name != null && !name.isEmpty()) {
+                    names.add(name);
+                }
+            }
+        }
+        return names;
     }
 }

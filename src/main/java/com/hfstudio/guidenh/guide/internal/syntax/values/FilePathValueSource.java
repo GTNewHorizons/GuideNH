@@ -41,6 +41,7 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
 
     @Nullable
     private List<String> candidatePaths;
+    private NameSnapshot snapshot = new NameSnapshot(() -> List.of());
     private boolean scanned;
 
     @Override
@@ -102,27 +103,12 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
         }
 
         candidatePaths = buildCandidatePaths(dirs);
+        snapshot = new NameSnapshot(() -> candidatePaths != null ? candidatePaths : List.of());
     }
 
     @Override
     public List<SyntaxSuggestion> suggest(SyntaxValueRequest request, int limit) {
-        List<String> paths = candidatePaths;
-        if (paths == null || paths.isEmpty()) {
-            return List.of();
-        }
-        String partial = request.partialText();
-        String lower = partial != null ? partial.toLowerCase(Locale.ROOT) : "";
-        List<SyntaxSuggestion> results = new ArrayList<>();
-        for (String path : paths) {
-            if (results.size() >= limit) {
-                break;
-            }
-            if (lower.isEmpty() || path.toLowerCase(Locale.ROOT)
-                .contains(lower)) {
-                results.add(SyntaxSuggestion.of(path));
-            }
-        }
-        return results;
+        return snapshot.suggestions(request.partialText(), limit);
     }
 
     private static List<String> buildCandidatePaths(List<File> dirs) {
