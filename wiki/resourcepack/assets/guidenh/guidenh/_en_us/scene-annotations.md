@@ -203,6 +203,21 @@ The icon is a 16x16 sprite drawn from `ponder_widgets.png`. The box background i
 dark (`#CC0E0E20`) with a light-blue border (`#80AAAADD`). When an `item` is specified the box
 expands to accommodate both the item icon and the mouse icon side by side.
 
+### Authoring
+
+In a page, write the annotation as a child of `<GameScene>`:
+
+```mdx
+<GameScene width="256" height="160">
+  <Block id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" />
+</GameScene>
+```
+
+It accepts `pos="x y z"` or the separate `x`, `y` and `z` attributes, and the same `inputType`,
+`modifier` and `item` values as above. `showWhenStructure`, `showWhenTier` and `showWhenChannels`
+restrict it to a StructureLib state, exactly like the other in-world annotations. The exported site
+renders the same annotation from the JSON above.
 ## Color Format
 
 Colors are ARGB hexadecimal strings. Both `"0xFFFFFF00"` (with `0x` prefix) and

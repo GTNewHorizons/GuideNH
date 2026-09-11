@@ -76,6 +76,7 @@ import com.hfstudio.guidenh.guide.scene.element.EntityElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportPonderElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ImportStructureLibElementCompiler;
+import com.hfstudio.guidenh.guide.scene.element.InputAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.IsometricCameraElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.ParticleElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.PlaceBlockElementCompiler;
@@ -199,6 +200,7 @@ public class DefaultExtensions {
             new ImportStructureLibElementCompiler(),
             new ImportPonderElementCompiler(),
             new IsometricCameraElementCompiler(),
+            new InputAnnotationElementCompiler(),
             new BlockAnnotationElementCompiler(),
             new BoxAnnotationElementCompiler(),
             new LineAnnotationElementCompiler(),
