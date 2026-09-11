@@ -1,6 +1,9 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -10,6 +13,7 @@ public class CodeBlockLanguageRegistry {
 
     private static final Map<String, CodeBlockLanguage> BY_LANGUAGE_ID = buildLanguageMap();
     private static final Map<String, String> NORMALIZED_ALIASES = buildNormalizedAliases();
+    private static final List<String> LANGUAGE_IDS = buildLanguageIds();
 
     protected CodeBlockLanguageRegistry() {}
 
@@ -18,6 +22,11 @@ public class CodeBlockLanguageRegistry {
             return null;
         }
         return BY_LANGUAGE_ID.get(languageId);
+    }
+
+    /** Every registered language id, sorted. Editors use this to offer fence names. */
+    public static List<String> getLanguageIds() {
+        return LANGUAGE_IDS;
     }
 
     public static @Nullable CodeBlockLanguage findByFenceName(@Nullable String fenceName) {
@@ -82,6 +91,12 @@ public class CodeBlockLanguageRegistry {
 
     private static void register(Map<String, CodeBlockLanguage> result, CodeBlockLanguage language) {
         result.put(language.id(), language);
+    }
+
+    private static List<String> buildLanguageIds() {
+        List<String> ids = new ArrayList<>(BY_LANGUAGE_ID.keySet());
+        Collections.sort(ids);
+        return Collections.unmodifiableList(ids);
     }
 
     private static void registerAlias(Map<String, String> result, String languageId, String... aliases) {

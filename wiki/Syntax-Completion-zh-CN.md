@@ -1,0 +1,187 @@
+# 语法智能补全
+
+GuideNH 的页面编辑器会补全 MDX 标签、标签属性、属性取值、Markdown 语法、代码围栏语言与
+frontmatter 键。这些**全部来自注册表**，没有任何硬编码：你的模组可以往里注册。
+
+入口有两条，通常两条都会用到。
+
+## 1. 标签名来自你的标签解析器
+
+编辑器会列出所有已注册 `TagCompiler` 与 `SceneElementTagCompiler` 的 `getTagNames()`。如果你的模组
+已经注册了标签解析器，它的标签会自动出现在补全里，不需要额外写任何补全代码：
+
+```java
+public class MyModMachineTagCompiler implements TagCompiler {
+
+    @Override
+    public Set<String> getTagNames() {
+        return Set.of("MyMachine");
+    }
+
+    @Override
+    public void compileBlockContext(PageCompiler compiler, LytBlockContainer parent, MdxJsxFlowElement el) {
+        // ...
+    }
+}
+```
+
+按原有方式注册即可：
+
+```java
+GuideNhIntegrationRegistry.global().registerTagCompilerProvider(compilers -> compilers.add(new MyModMachineTagCompiler()));
+```
+
+或只对某个指南生效：
+
+```java
+Guide.builder(id).extension(TagCompiler.EXTENSION_POINT, new MyModMachineTagCompiler()).build();
+```
+
+解析器接受但作者从不手写的标签（解析器产出的 `p`、`h1`、`em` 等）不会出现在补全里。本模组自己的这类
+标签通过 `SyntaxSink.hiddenTags(...)` 隐藏。
+
+## 2. 用语法贡献者（Contributor）补上其余信息
+
+标签解析器不表达"它读哪些属性"以及"这些属性接受什么值"。这正是 `SyntaxContributor` 的职责，它同时
+负责声明 Markdown 片段、代码围栏语言与 frontmatter 键。
+
+```java
+public class MyModSyntaxContributor implements SyntaxContributor {
+
+    @Override
+    public String namespace() {
+        return "mymod";
+    }
+
+    @Override
+    public void contribute(SyntaxSink sink) {
+        // 属性。取值类型决定由哪个取值源来补全。
+        sink.attributes(
+            "MyMachine",
+            AttributeSyntax.of("id", SyntaxValueKind.STRING),
+            AttributeSyntax.of("machine", SyntaxValueKind.of("MYMOD_MACHINE")),  // 你自己的类型
+            AttributeSyntax.of("tier", SyntaxValueKind.INT),
+            AttributeSyntax.of("formed", SyntaxValueKind.BOOLEAN),
+            AttributeSyntax.of("mode", SyntaxValueKind.ENUM, "input", "output", "both"));
+
+        // 会包裹内容的标签补全为 <Name></Name>，光标落在中间。
+        sink.containerTags("MyPanel");
+        sink.children("MyPanel", "MyMachine", "Tooltip");
+
+        // 补全时从你自己的注册表取值的取值源。
+        sink.valueSource(new MachineIdValueSource());
+
+        // 额外的 Markdown 片段与围栏语言。
+        sink.markdown(MarkdownSnippet.block("::", "模组提示", ":: note\n", 3));
+        sink.fenceLanguages("mymod-diagram");
+
+        // frontmatter 键：固定取值，或声明取值类型。
+        sink.frontmatterKeys("mymod_machine");
+        sink.frontmatterKind("mymod_machine", SyntaxValueKind.of("MYMOD_MACHINE"));
+    }
+}
+```
+
+全局注册，或只对单个指南注册：
+
+```java
+GuideNhIntegrationRegistry.global().registerSyntaxContributor(new MyModSyntaxContributor());
+Guide.builder(id).extension(SyntaxContributor.EXTENSION_POINT, new MyModSyntaxContributor()).build();
+```
+
+全局注册的贡献者先应用，因此指南自己的贡献者可以覆盖它们。
+
+本模组自带的内置语法就是一个普通贡献者（`BuiltinSyntaxContributor`），以默认扩展的方式注册。因此
+`GuideBuilder.disableDefaultExtensions()` 会连同默认标签解析器一起把内置语法关掉。
+
+## 3. 取值类型与取值源
+
+属性的 `SyntaxValueKind` 决定编辑器如何补全、以及如何书写它的值：
+
+| 类型 | 补全来源 | 书写形式 |
+| --- | --- | --- |
+| `STRING` | 自由文本（或属性旁边声明的固定候选） | `"..."` |
+| `INT`、`FLOAT` | 常见属性名的数值预设 | 裸值 |
+| `BOOLEAN` | `true`、`false` | 裸值 |
+| `ENUM` | 传给 `AttributeSyntax.of` 的枚举常量，或声明的固定候选 | `"..."` |
+| `COLOR` | `#rrggbb` 以及符号颜色名 | `"..."` |
+| `ITEM_ID`、`BLOCK_ID` | 物品/方块注册名，带图标 | `"..."` |
+| `ORE_DICT`、`ENTITY_ID`、`KEY_BIND`、`COMMAND` | 对应的游戏注册表 | `"..."` |
+| `PAGE_PATH`、`FILE_PATH` | 指南页面 id、指南资源目录中的文件 | `"..."` |
+| `MOD_ID` | 取自物品注册表命名空间的模组 id | `"..."` |
+| `EXPRESSION`、`DOMAIN`、`FORMAT_PATTERN` | 常用表达式、区间与格式模板 | `"..."` |
+| `VECTOR3` | 自由文本 | 裸值 |
+| `SNBT` | 自由文本 | `{...}` |
+| `QUEST_UUID` | 自由文本；任务 id 目前无法枚举 | `"..."` |
+
+复用内置类型不需要注册任何东西：把属性标成 `ITEM_ID`，它就有物品补全。
+
+要从你自己的注册表补全，就声明一个类型和一个取值源。类型只是一个标识，按你的习惯声明即可：
+
+```java
+public final class MyModValueKinds {
+
+    public static final SyntaxValueKind MACHINE = SyntaxValueKind.of("MYMOD_MACHINE");
+}
+```
+
+```java
+public class MachineIdValueSource implements SyntaxValueSource {
+
+    @Override
+    public Set<SyntaxValueKind> kinds() {
+        return Set.of(MyModValueKinds.MACHINE);
+    }
+
+    @Override
+    public List<SyntaxSuggestion> suggest(SyntaxValueRequest request, int limit) {
+        List<SyntaxSuggestion> results = new ArrayList<>();
+        for (MyMachine machine : MyMachineRegistry.all()) {
+            if (results.size() >= limit) {
+                break;
+            }
+            if (machine.id()
+                .startsWith(request.partialText())) {
+                results.add(SyntaxSuggestion.withValue(machine.id(), machine.id(), machine.displayName()));
+            }
+        }
+        return results;
+    }
+}
+```
+
+`request` 携带已输入文本、外层标签与属性名、以及 frontmatter 键，因此一个取值源可以服务多个属性。
+
+`SyntaxValueKind` 按值比较：两处独立声明同一个类型会路由到同一批取值源，所以类型不需要集中定义，
+也不需要依赖本模组提供的任何枚举类。
+
+## 4. 实时数据
+
+需要读取当前指南或文档内容的取值源实现 `SyntaxEnvironmentAware`。`prepare` 在每次补全 tick 中、任何
+请求被应答之前调用一次：
+
+```java
+public class MyMachineValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
+
+    @Override
+    public void prepare(SyntaxEnvironment environment) {
+        // environment.guide()、environment.pagePaths()、environment.documentText()
+    }
+}
+```
+
+`prepare` 要写得足够轻：它每个编辑器 tick 都会执行。把派生列表缓存起来，只在输入真正变化时重建——
+内置的 `PagePathValueSource` 与 `AnchorValueSource` 就是这么做的。
+
+## 5. 编辑器当前已覆盖的语法
+
+- MDX 标签，按外层容器收窄；会包裹内容的标签补全为 `<Name></Name>`。
+- 属性名，按取值类型展开为 `name=""`、`name={}` 或 `name={true}`。
+- 属性取值，按取值类型路由，包括配方、物品/方块 id 与模组 id。
+- Markdown 语法：标题、列表、任务列表、引用、提示块、表格、代码块、分隔线、公式块，以及行内的强调、
+  行内代码、链接与图片。每个片段都会把光标放在你接下来要继续输入的位置。
+- 代码围栏语言，来自代码块语言注册表加上 GuideNH 特有的几种围栏。
+- YAML frontmatter 键，以及声明了取值类型的键的取值。
+
+候选项会排序，弹窗默认选中最近的一个：先精确前缀，再匹配命名空间之后的标识，最后才是名称中任意位置
+匹配。

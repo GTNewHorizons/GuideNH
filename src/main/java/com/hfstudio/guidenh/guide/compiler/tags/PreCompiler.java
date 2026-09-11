@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,6 +31,11 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public class PreCompiler extends BlockTagCompiler {
+
+    /** Fence names that produce a file tree instead of a highlighted code block. */
+    public static final List<String> FILE_TREE_FENCES = List.of("tree", "filetree");
+    /** Fence names that produce a parsed function graph instead of a highlighted code block. */
+    public static final List<String> FUNCTION_GRAPH_FENCES = List.of("funcgraph", "function", "functiongraph");
 
     private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
     private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
@@ -232,17 +238,18 @@ public class PreCompiler extends BlockTagCompiler {
         if (fenceLanguage == null) {
             return false;
         }
-        String trimmed = fenceLanguage.trim();
-        return "tree".equalsIgnoreCase(trimmed) || "filetree".equalsIgnoreCase(trimmed);
+        return FILE_TREE_FENCES.contains(
+            fenceLanguage.trim()
+                .toLowerCase(Locale.ROOT));
     }
 
     private static boolean isFunctionGraphFence(@Nullable String fenceLanguage) {
         if (fenceLanguage == null) {
             return false;
         }
-        String trimmed = fenceLanguage.trim();
-        return "funcgraph".equalsIgnoreCase(trimmed) || "function".equalsIgnoreCase(trimmed)
-            || "functiongraph".equalsIgnoreCase(trimmed);
+        return FUNCTION_GRAPH_FENCES.contains(
+            fenceLanguage.trim()
+                .toLowerCase(Locale.ROOT));
     }
 
     private static @Nullable Integer parseCodeBlockWidth(@Nullable String meta) {

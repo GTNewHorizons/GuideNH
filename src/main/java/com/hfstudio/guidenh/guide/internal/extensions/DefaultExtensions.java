@@ -64,6 +64,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.SpecialCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
+import com.hfstudio.guidenh.guide.internal.syntax.BuiltinSyntaxContributor;
 import com.hfstudio.guidenh.guide.scene.SceneTagCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.BlockAnnotationTemplateElementCompiler;
@@ -85,6 +86,7 @@ import com.hfstudio.guidenh.guide.scene.element.ReplaceBlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.TextAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.WeatherElementCompiler;
+import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.TagCompilerProvider;
 
@@ -92,7 +94,8 @@ public class DefaultExtensions {
 
     public static final List<Registration<?>> EXTENSIONS = List.of(
         new Registration<>(TagCompiler.EXTENSION_POINT, DefaultExtensions::tagCompilers),
-        new Registration<>(SceneElementTagCompiler.EXTENSION_POINT, DefaultExtensions::sceneElementCompilers));
+        new Registration<>(SceneElementTagCompiler.EXTENSION_POINT, DefaultExtensions::sceneElementCompilers),
+        new Registration<>(SyntaxContributor.EXTENSION_POINT, DefaultExtensions::syntaxContributors));
 
     private DefaultExtensions() {}
 
@@ -111,6 +114,15 @@ public class DefaultExtensions {
         for (var extension : registration.factory.get()) {
             builder.add(registration.extensionPoint, extension);
         }
+    }
+
+    /**
+     * The syntax the editor completes for a guide. It is a default extension like the tag compilers, so
+     * {@link com.hfstudio.guidenh.guide.GuideBuilder#disableDefaultExtensions()} turns it off together
+     * with them and a guide can replace it with its own contributors.
+     */
+    public static List<SyntaxContributor> syntaxContributors() {
+        return List.of(new BuiltinSyntaxContributor());
     }
 
     public static List<TagCompiler> tagCompilers() {

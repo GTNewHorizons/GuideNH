@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
+import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 
 public class GuideNhIntegrationRegistry {
 
@@ -43,6 +44,8 @@ public class GuideNhIntegrationRegistry {
     private final List<RecipeHandlerRenderProvider> recipeHandlerRenderProviders = new ArrayList<>();
     private final List<BlockStatsProvider> blockStatsProviders = new ArrayList<>();
     private final List<GuidebookFakeWorldIntegration> fakeWorldIntegrations = new ArrayList<>();
+    private final List<SyntaxContributor> syntaxContributors = new ArrayList<>();
+    private int syntaxRevision;
 
     public GuideNhIntegrationRegistry() {}
 
@@ -171,6 +174,30 @@ public class GuideNhIntegrationRegistry {
 
     public synchronized List<GuideBuilderIntegrationHook> guideBuilderIntegrationHooks() {
         return List.copyOf(guideBuilderIntegrationHooks);
+    }
+
+    /**
+     * Registers a contributor that declares guide syntax to the editor. Registered contributors apply
+     * to every guide; attach one to a single guide through
+     * {@code GuideBuilder.extension(SyntaxContributor.EXTENSION_POINT, contributor)} instead.
+     */
+    public synchronized void registerSyntaxContributor(SyntaxContributor contributor) {
+        if (contributor == null) {
+            throw new IllegalArgumentException("contributor");
+        }
+        if (!syntaxContributors.contains(contributor)) {
+            syntaxContributors.add(contributor);
+            syntaxRevision++;
+        }
+    }
+
+    public synchronized List<SyntaxContributor> syntaxContributors() {
+        return List.copyOf(syntaxContributors);
+    }
+
+    /** Bumped whenever the registered syntax changes, so cached syntax models can detect staleness. */
+    public synchronized int syntaxRevision() {
+        return syntaxRevision;
     }
 
     public synchronized void registerTagCompilerProvider(TagCompilerProvider provider) {
