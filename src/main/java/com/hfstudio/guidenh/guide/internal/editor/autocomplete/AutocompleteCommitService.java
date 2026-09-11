@@ -26,7 +26,8 @@ public class AutocompleteCommitService {
         Replacement replacement = createReplacement(source, context, candidate);
         replacement = applyDeclaredCaret(replacement, candidate);
         String inserted = replacement.text + suffixOf(candidate);
-        String newText = source.substring(0, replaceStart) + inserted + source.substring(replaceEnd);
+        int swallowedEnd = clamp(replaceEnd + replacement.extraReplaceEnd, replaceEnd, source.length());
+        String newText = source.substring(0, replaceStart) + inserted + source.substring(swallowedEnd);
         int cursor = replaceStart + replacement.cursorOffset;
         int selectionEnd = replaceStart + replacement.selectionEndOffset;
         return new AutocompleteCommit(newText, cursor, selectionEnd);
@@ -39,7 +40,11 @@ public class AutocompleteCommitService {
             return replacement;
         }
         int selectionEnd = candidate.selectionEndInReplacement();
-        return new Replacement(replacement.text, caret, selectionEnd >= 0 ? selectionEnd : caret);
+        return new Replacement(
+            replacement.text,
+            caret,
+            selectionEnd >= 0 ? selectionEnd : caret,
+            replacement.extraReplaceEnd);
     }
 
     private static String suffixOf(AutocompleteCandidate candidate) {
@@ -54,7 +59,7 @@ public class AutocompleteCommitService {
         }
         String replacement = candidate.replacementText() != null ? candidate.replacementText() : "";
         if (context instanceof TagStartContext tagStart) {
-            return createTagReplacement(source, tagStart, replacement);
+            return createTagReplacement(source, tagStart, candidate);
         }
         if (context instanceof MdxValueContext value) {
             return createAttributeValueReplacement(source, value, replacement, candidate);
@@ -83,12 +88,20 @@ public class AutocompleteCommitService {
 
     /**
      * A tag candidate either supplies its own opening form (a container like {@code Row>} that the
-     * caller closes through {@link AutocompleteCandidate#suffixText()}) or is a plain name that becomes
-     * the self-closing {@code <Name />}.
+     * caller closes through {@link AutocompleteCandidate#suffixText()}, or a template) or is a plain name
+     * that becomes the self-closing {@code <Name />}.
      */
-    private static Replacement createTagReplacement(String source, TagStartContext context, String tagName) {
+    private static Replacement createTagReplacement(String source, TagStartContext context,
+        AutocompleteCandidate candidate) {
+        String tagName = candidate.replacementText() != null ? candidate.replacementText() : "";
         int replaceEnd = clamp(context.replaceEnd(), 0, source.length());
         int pos = skipSpaces(source, replaceEnd);
+        int closingEnd = closingBracketEnd(source, pos);
+        if (closingEnd > 0 && bringsCompleteForm(candidate)) {
+            // The author already typed the end of this tag, so the complete form replaces that too instead
+            // of leaving a second bracket behind.
+            return new Replacement(tagName, tagName.length(), tagName.length(), closingEnd - replaceEnd);
+        }
         if (pos < source.length()) {
             char next = source.charAt(pos);
             if (next == '>' || next == '/') {
@@ -100,6 +113,23 @@ public class AutocompleteCommitService {
         }
         String text = tagName + " />";
         return new Replacement(text, text.length() - 2, text.length() - 2);
+    }
+
+    /** True when a candidate brings its own complete tag form rather than a bare name. */
+    private static boolean bringsCompleteForm(AutocompleteCandidate candidate) {
+        return candidate.suffixText() != null || candidate.caretOffsetInReplacement() >= 0;
+    }
+
+    /** @return the end of a closing bracket at {@code position}, or -1 when the text there is something else */
+    private static int closingBracketEnd(String source, int position) {
+        if (position < 0 || position >= source.length()
+            || source.charAt(position) != '>' && source.charAt(position) != '/') {
+            return -1;
+        }
+        if (source.charAt(position) == '>') {
+            return position + 1;
+        }
+        return position + 1 < source.length() && source.charAt(position + 1) == '>' ? position + 2 : -1;
     }
 
     /**
@@ -201,11 +231,21 @@ public class AutocompleteCommitService {
         private final String text;
         private final int cursorOffset;
         private final int selectionEndOffset;
+        private final int extraReplaceEnd;
 
         private Replacement(String text, int cursorOffset, int selectionEndOffset) {
+            this(text, cursorOffset, selectionEndOffset, 0);
+        }
+
+        /**
+         * @param extraReplaceEnd characters after the context's range that the replacement consumes as
+         *                        well, used when the author already typed the end of a tag
+         */
+        private Replacement(String text, int cursorOffset, int selectionEndOffset, int extraReplaceEnd) {
             this.text = text;
             this.cursorOffset = cursorOffset;
             this.selectionEndOffset = selectionEndOffset;
+            this.extraReplaceEnd = extraReplaceEnd;
         }
 
         private static Replacement cursorAtEnd(String text) {

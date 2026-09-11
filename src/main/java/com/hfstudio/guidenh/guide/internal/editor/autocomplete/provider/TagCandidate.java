@@ -24,6 +24,7 @@ public class TagCandidate implements AutocompleteCandidate {
     private final boolean container;
     @Nullable
     private final InsertTemplate template;
+    private final String display;
 
     public TagCandidate(String tagName, boolean container) {
         this(tagName, container, null);
@@ -33,14 +34,23 @@ public class TagCandidate implements AutocompleteCandidate {
         this.tagName = tagName;
         this.container = container;
         this.template = template;
+        this.display = buildDisplay(tagName, container, template);
+    }
+
+    /** A template spans several lines, so the popup row shows it as one. */
+    private static String buildDisplay(String tagName, boolean container, @Nullable InsertTemplate template) {
+        if (template != null) {
+            return template.text()
+                .replace('\n', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
+        }
+        return container ? tagName + "  </" + tagName + ">" : tagName;
     }
 
     @Override
     public String displayText() {
-        if (template != null) {
-            return oneLine(template.text());
-        }
-        return container ? tagName + "  </" + tagName + ">" : tagName;
+        return display;
     }
 
     @Override
@@ -72,13 +82,6 @@ public class TagCandidate implements AutocompleteCandidate {
 
     @Override
     public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {
-        fontRenderer.drawString(displayText(), x, y + 2, LABEL_COLOR);
-    }
-
-    /** A template spans several lines, so the popup row shows it as one. */
-    private static String oneLine(String text) {
-        return text.replace('\n', ' ')
-            .replaceAll("\\s+", " ")
-            .trim();
+        fontRenderer.drawString(display, x, y + 2, LABEL_COLOR);
     }
 }
