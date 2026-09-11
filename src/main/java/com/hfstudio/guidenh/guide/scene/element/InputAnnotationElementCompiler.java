@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.guide.scene.StructureLibSceneConditionParser;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
@@ -55,7 +56,7 @@ public class InputAnnotationElementCompiler implements SceneElementTagCompiler {
         if (modifier != null) {
             annotation.setModifier(modifier);
         }
-        annotation.setItemStack(resolveItem(el.getAttributeString("item", null)));
+        annotation.setItemStack(resolveItem(compiler, errorSink, el));
         annotation.setStructureLibCondition(StructureLibSceneConditionParser.parse(compiler, errorSink, el));
         scene.addAnnotation(annotation);
     }
@@ -97,10 +98,29 @@ public class InputAnnotationElementCompiler implements SceneElementTagCompiler {
         };
     }
 
+    /**
+     * Resolves the optional item icon. A malformed id is an authoring mistake and is reported as an
+     * error, while a well formed id that no mod registers is only warned about: the annotation is still
+     * useful without its item icon.
+     */
     @Nullable
-    private static ItemStack resolveItem(@Nullable String itemId) {
-        String trimmed = trimToNull(itemId);
-        return trimmed != null ? GuideDisplayItemStacks.resolveItemStack(trimmed, "minecraft") : null;
+    private static ItemStack resolveItem(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
+        String itemId = trimToNull(el.getAttributeString("item", null));
+        if (itemId == null) {
+            return null;
+        }
+        ItemStack stack;
+        try {
+            stack = GuideDisplayItemStacks.resolveItemStack(itemId, "minecraft");
+        } catch (IllegalArgumentException e) {
+            errorSink.appendError(compiler, "item is not a valid item id: " + itemId, el);
+            return null;
+        }
+        if (stack == null || stack.getItem() == null) {
+            GuideDebugLog.warnAlways("[GuideNH] [InputAnnotation] No item is registered as '{}'", itemId);
+            return null;
+        }
+        return stack;
     }
 
     @Nullable

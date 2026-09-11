@@ -777,7 +777,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "BlockStat",
             AttributeSyntax.of("id", SyntaxValueKind.BLOCK_ID),
             AttributeSyntax.of("item", SyntaxValueKind.ITEM_ID),
-            AttributeSyntax.of("count", SyntaxValueKind.FLOAT));
+            AttributeSyntax.of("count", SyntaxValueKind.INT));
 
         registerCrossCuttingAttributes(sink);
     }
@@ -879,7 +879,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("y", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("z", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("inputType", SyntaxValueKind.ENUM, "lmb", "rmb", "scroll"),
-            AttributeSyntax.of("modifier", SyntaxValueKind.ENUM, "none", "sneak", "sprint", "use"),
+            // The renderer shows either key name: every other value reads as "Ctrl +", and the site
+            // viewer maps the same two spellings, so only these two are offered.
+            AttributeSyntax.of("modifier", SyntaxValueKind.ENUM, "sneak", "ctrl"),
             AttributeSyntax.of("item", SyntaxValueKind.ITEM_ID));
 
         // Chart axis options. ChartAttrParser reads these by prefix, so they were invisible to
@@ -1105,9 +1107,8 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("mode", SyntaxValueKind.ENUM, "auto", "manual"),
             AttributeSyntax.of("corner", SyntaxValueKind.ENUM, "topRight", "topLeft", "bottomRight", "bottomLeft"),
             AttributeSyntax.of("dock", SyntaxValueKind.ENUM, "inside", "left", "top", "right", "bottom"),
-            AttributeSyntax.of("filterMode", SyntaxValueKind.ENUM, "blacklist", "whitelist")); // Read as an integer
-                                                                                               // channel index, not as
-                                                                                               // free text.
+            AttributeSyntax.of("filterMode", SyntaxValueKind.ENUM, "blacklist", "whitelist"));
+        // The structure controller channel is an integer index, not free text.
         sink.attributes("ImportStructureLib", AttributeSyntax.of("channel", SyntaxValueKind.INT));
         // Read as a string, so the bare value form is the right completion.
         sink.attributes("BlockImage", AttributeSyntax.of("perspective", SyntaxValueKind.STRING));
@@ -1370,6 +1371,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.fenceLanguages(
             CodeBlockLanguageRegistry.getLanguageIds()
                 .toArray(new String[0]));
+        sink.fenceLanguages(
+            CodeBlockLanguageRegistry.getFenceAliases()
+                .toArray(new String[0]));
         sink.fenceLanguages(PreCompiler.FILE_TREE_FENCES.toArray(new String[0]));
         sink.fenceLanguages(PreCompiler.FUNCTION_GRAPH_FENCES.toArray(new String[0]));
     }
@@ -1454,7 +1458,10 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             MarkdownSnippet.inline("**", "Bold", "****", 2),
             MarkdownSnippet.inline("*", "Italic", "**", 1),
             MarkdownSnippet.inline("~~", "Strikethrough", "~~~~", 2),
+            MarkdownSnippet.inline("==", "Highlight", "====", 2),
             MarkdownSnippet.inline("++", "Underline", "++++", 2),
+            MarkdownSnippet.inline("^^", "Wavy underline", "^^^^", 2),
+            MarkdownSnippet.inline("::", "Dotted underline", "::::", 2),
             MarkdownSnippet.inline("`", "Inline code", "``", 1),
             MarkdownSnippet.inline("[", "Link", "[]()", 1),
             MarkdownSnippet.inline("![", "Image", "![]()", 2));

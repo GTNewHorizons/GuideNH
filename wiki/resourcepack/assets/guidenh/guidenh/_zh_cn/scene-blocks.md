@@ -174,7 +174,7 @@ categories:
 | --- | --- | --- |
 | `item` | 是，除非使用 `id` | 列表中显示的物品 id。 |
 | `id` | 是，除非使用 `item` | 既有物品栈属性写法。 |
-| `count` | 否 | 显示的堆叠数量，默认 `0`。 |
+| `count` | 否 | 显示的堆叠数量。省略时该行显示一次，写 `count="0"` 则隐藏该行。 |
 
 自动模式会按 `item:meta` 分组、按数量排序，并尽量把常见的复合方块解析为玩家实际看到的物品。安装对应模组时，这包括 AE2 cable bus 部件与 facade、ForgeMultipart 部件、Carpenters' Blocks cover 或 overlay。统计结果会缓存，仅在游戏场景方块、思索时间线状态、StructureLib 选择或统计设置变化时重建。
 

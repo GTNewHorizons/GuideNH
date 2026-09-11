@@ -22,6 +22,7 @@ import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -196,6 +197,12 @@ public class SceneScript implements LytScript {
 
         applyCameraAndViewport(ph, scene, level, camera);
 
+        // Block statistics are enabled before the elements are compiled, so a <BlockStats> child only
+        // overrides the defaults of a scene that already counts blocks.
+        scene.setBlockStatsEnabled(true);
+        scene.setBlockStatsVisible(ModConfig.ui.sceneBlockStatsVisible);
+        scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
+
         ExceptionCollector errorSink = new ExceptionCollector();
         PageCollection pageCollection = ctx.getPageCollection();
         ExtensionCollection extensions = pageCollection instanceof Guide guide ? guide.getExtensions()
@@ -232,7 +239,6 @@ public class SceneScript implements LytScript {
             }
         }
 
-        boolean[] blockStatsExplicitlySet = { false };
         List<String> compiledElements = new ArrayList<>();
         List<String> skippedElements = new ArrayList<>();
         int[] nonSceneChildren = { 0 };
@@ -251,8 +257,7 @@ public class SceneScript implements LytScript {
                     }
 
                     if ("BlockStats".equals(el.name())) {
-                        applyBlockStatsConfig(scene, el);
-                        blockStatsExplicitlySet[0] = true;
+                        applyBlockStatsConfig(scene, el, runtimeCompiler, errorSink);
                         skippedElements.add("<BlockStats> (configuration only)");
                         continue;
                     }
@@ -310,12 +315,6 @@ public class SceneScript implements LytScript {
             }
             GuideDebugLog.warn("[GuideNH] [SceneScript] {}", diagnostic);
             hasSceneErrors = true;
-        }
-
-        if (!blockStatsExplicitlySet[0]) {
-            scene.setBlockStatsEnabled(true);
-            scene.setBlockStatsVisible(ModConfig.ui.sceneBlockStatsVisible);
-            scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
         }
 
         finalizeSceneGeometry(ph, scene, level, camera);
@@ -529,11 +528,12 @@ public class SceneScript implements LytScript {
      * here: the scene carries a mode, a corner, a dock side, name visibility, a filter and a size cap,
      * and manual mode reads its entries from {@code <BlockStat>} children.
      */
-    public static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {
-        String visibleStr = el.getAttributeString("visible", null);
-        if (visibleStr != null) scene.setBlockStatsVisible(Boolean.parseBoolean(visibleStr));
-        String enabledStr = el.getAttributeString("buttonEnabled", null);
-        if (enabledStr != null) scene.setBlockStatsButtonEnabled(Boolean.parseBoolean(enabledStr));
+    public static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el, PageCompiler compiler,
+        LytErrorSink errorSink) {
+        scene.setBlockStatsVisible(
+            MdxAttrs.getBoolean(compiler, errorSink, el, "visible", ModConfig.ui.sceneBlockStatsVisible));
+        scene.setBlockStatsButtonEnabled(
+            MdxAttrs.getBoolean(compiler, errorSink, el, "buttonEnabled", ModConfig.ui.sceneBlockStatsButtonEnabled));
 
         BlockStatsMode mode = BlockStatsMode.fromString(el.getAttributeString("mode", null), null);
         if (mode != null) {
@@ -547,10 +547,7 @@ public class SceneScript implements LytScript {
         if (dock != null) {
             scene.setBlockStatsDock(dock);
         }
-        String showNamesStr = el.getAttributeString("showNames", null);
-        if (showNamesStr != null) {
-            scene.setBlockStatsShowNames(Boolean.parseBoolean(showNamesStr));
-        }
+        scene.setBlockStatsShowNames(MdxAttrs.getBoolean(compiler, errorSink, el, "showNames", false));
         BlockStatsFilterMode filterMode = BlockStatsFilterMode
             .fromString(el.getAttributeString("filterMode", null), null);
         if (filterMode != null) {
@@ -560,28 +557,27 @@ public class SceneScript implements LytScript {
         if (filter != null) {
             scene.setBlockStatsFilterKeys(parseBlockStatsFilter(filter));
         }
-        int maxWidth = parseOptionalInt(el.getAttributeString("maxWidth", null));
+        int maxWidth = parseOptionalInt(el.getAttributeString("maxWidth", null), "maxWidth");
         if (maxWidth > 0) {
             scene.setBlockStatsMaxWidth(maxWidth);
         }
-        int maxHeight = parseOptionalInt(el.getAttributeString("maxHeight", null));
+        int maxHeight = parseOptionalInt(el.getAttributeString("maxHeight", null), "maxHeight");
         if (maxHeight > 0) {
             scene.setBlockStatsMaxHeight(maxHeight);
         }
 
-        // Rows declared as <BlockStat> children are a manual list, so they select manual mode on
-        // their own. An explicit mode still wins, but then the rows cannot be listed and the author is
-        // told instead of losing them silently.
+        // A row list is a manual list, so it selects manual mode even when the element names another
+        // mode: the rows would otherwise be stored and never listed. The author is told about the
+        // override rather than losing the rows.
         int manualRows = applyManualBlockStatsEntries(scene, el);
         if (manualRows > 0) {
-            if (mode == null) {
-                scene.setBlockStatsMode(BlockStatsMode.MANUAL);
-            } else if (mode != BlockStatsMode.MANUAL) {
-                GuideDebugLog.warn(
-                    "[GuideNH] [SceneScript] <BlockStats mode=\"{}\"> declares {} <BlockStat> rows, which are only listed in manual mode",
+            if (mode != null && mode != BlockStatsMode.MANUAL) {
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [SceneScript] <BlockStats mode=\"{}\"> is overridden to manual by its {} listed <BlockStat> rows",
                     mode,
                     manualRows);
             }
+            scene.setBlockStatsMode(BlockStatsMode.MANUAL);
         }
     }
 
@@ -592,7 +588,7 @@ public class SceneScript implements LytScript {
      * An omitted {@code count} shows the row once, because the scene refuses to list an entry with a
      * count of zero; an explicit {@code count="0"} keeps that meaning and hides the row.
      *
-     * @return how many rows were added, so the caller can switch to manual mode
+     * @return how many rows the scene accepted, so the caller can switch to manual mode
      */
     private static int applyManualBlockStatsEntries(LytGuidebookScene scene, MdxJsxElementFields el) {
         List<ItemStack> stacks = new ArrayList<>();
@@ -606,11 +602,14 @@ public class SceneScript implements LytScript {
             ItemStack stack = resolveBlockStatStack(id);
             if (stack == null) {
                 GuideDebugLog
-                    .warn("[GuideNH] [SceneScript] Ignoring <BlockStat> without a resolvable item or id: '{}'", id);
+                    .warnAlways("[GuideNH] [SceneScript] <BlockStat> without a resolvable item or id: '{}'", id);
+                continue;
+            }
+            int declaredCount = parseOptionalInt(entry.getAttributeString("count", null), "count");
+            if (declaredCount == 0) {
                 continue;
             }
             stacks.add(stack);
-            int declaredCount = parseOptionalInt(entry.getAttributeString("count", null));
             counts.add(declaredCount < 0 ? 1 : declaredCount);
         }
         if (stacks.isEmpty()) {
@@ -630,7 +629,16 @@ public class SceneScript implements LytScript {
         if (ref == null || ref.isEmpty()) {
             return null;
         }
-        return GuideDisplayItemStacks.resolveItemStack(ref, "minecraft");
+        try {
+            return GuideDisplayItemStacks.resolveItemStack(ref, "minecraft");
+        } catch (IllegalArgumentException e) {
+            // A malformed id must not abort the scene, so the row is dropped with a report.
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [SceneScript] <BlockStat item=\"{}\"> is not a valid item id: {}",
+                ref,
+                e.getMessage());
+            return null;
+        }
     }
 
     /** Splits a filter attribute into the ids it lists, accepting spaces, commas and semicolons. */
@@ -645,7 +653,8 @@ public class SceneScript implements LytScript {
         return keys;
     }
 
-    private static int parseOptionalInt(@Nullable String raw) {
+    /** @return the parsed number, or -1 when the attribute is absent or not a whole number */
+    private static int parseOptionalInt(@Nullable String raw, String attributeName) {
         if (raw == null || raw.trim()
             .isEmpty()) {
             return -1;
@@ -653,7 +662,10 @@ public class SceneScript implements LytScript {
         try {
             return Integer.parseInt(raw.trim());
         } catch (NumberFormatException ignored) {
-            GuideDebugLog.warn("[GuideNH] [SceneScript] Ignoring non-numeric value '{}'", raw);
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [SceneScript] <BlockStats {}=\"{}\"> is not a whole number, so its default is used",
+                attributeName,
+                raw);
             return -1;
         }
     }

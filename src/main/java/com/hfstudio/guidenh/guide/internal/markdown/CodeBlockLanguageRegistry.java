@@ -14,6 +14,7 @@ public class CodeBlockLanguageRegistry {
     private static final Map<String, CodeBlockLanguage> BY_LANGUAGE_ID = buildLanguageMap();
     private static final Map<String, String> NORMALIZED_ALIASES = buildNormalizedAliases();
     private static final List<String> LANGUAGE_IDS = buildLanguageIds();
+    private static final List<String> FENCE_ALIASES = buildFenceAliases();
 
     protected CodeBlockLanguageRegistry() {}
 
@@ -27,6 +28,14 @@ public class CodeBlockLanguageRegistry {
     /** Every registered language id, sorted. Editors use this to offer fence names. */
     public static List<String> getLanguageIds() {
         return LANGUAGE_IDS;
+    }
+
+    /**
+     * Every accepted alias that is not itself a language id, sorted. A fence written with one of these
+     * names highlights with the language it maps to, so editors offer them next to the ids.
+     */
+    public static List<String> getFenceAliases() {
+        return FENCE_ALIASES;
     }
 
     public static @Nullable CodeBlockLanguage findByFenceName(@Nullable String fenceName) {
@@ -97,6 +106,17 @@ public class CodeBlockLanguageRegistry {
         List<String> ids = new ArrayList<>(BY_LANGUAGE_ID.keySet());
         Collections.sort(ids);
         return Collections.unmodifiableList(ids);
+    }
+
+    private static List<String> buildFenceAliases() {
+        List<String> aliases = new ArrayList<>(NORMALIZED_ALIASES.size());
+        for (String alias : NORMALIZED_ALIASES.keySet()) {
+            if (!BY_LANGUAGE_ID.containsKey(alias) && !aliases.contains(alias)) {
+                aliases.add(alias);
+            }
+        }
+        Collections.sort(aliases);
+        return Collections.unmodifiableList(aliases);
     }
 
     private static void registerAlias(Map<String, String> result, String languageId, String... aliases) {

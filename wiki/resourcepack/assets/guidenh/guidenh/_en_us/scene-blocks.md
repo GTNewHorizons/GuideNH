@@ -204,7 +204,7 @@ For 3D region parameters, GuideNH keeps the field names `dx`/`dy`/`dz`, but the 
 | --- | --- | --- |
 | `item` | yes, unless `id` is used | Item id shown in the row. |
 | `id` | yes, unless `item` is used | Existing item-stack attribute form. |
-| `count` | no | Displayed stack count. Defaults to `0`. |
+| `count` | no | Displayed stack count. Omitting it shows the row once, and `count="0"` hides the row. |
 
 Automatic mode groups by `item:meta`, sorts by count, and resolves common multipart-style blocks
 into the items players expect to see. This includes AE2 cable-bus parts and facades,

@@ -315,7 +315,7 @@ overlay to manual statistics mode for that scene.
 | --- | --- | --- |
 | `item` | yes, unless `id` is used | item id shown in the list |
 | `id` | yes, unless `item` is used | existing item-stack attribute form |
-| `count` | no | displayed count, default `0` |
+| `count` | no | displayed count; omitting it shows the row once, and `count="0"` hides the row |
 
 Example:
 
