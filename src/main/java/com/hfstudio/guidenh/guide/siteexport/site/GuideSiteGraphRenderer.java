@@ -2253,7 +2253,7 @@ public class GuideSiteGraphRenderer {
                         px,
                         labelY,
                         "middle",
-                        "(" + formatNum(s.xs[i]) + "," + formatNum(s.ys[i]) + ")",
+                        "(" + formatChartValue(s.xs[i]) + "," + formatChartValue(s.ys[i]) + ")",
                         style.labelFill());
                 }
             }
@@ -3446,7 +3446,15 @@ public class GuideSiteGraphRenderer {
     /** Draws one value label at the position the in-game charts use for it. */
     private static void appendValueLabel(StringBuilder svg, double x, double y, String anchor, double value,
         String fill) {
-        appendText(svg, x, y, anchor, formatNum(value), fill);
+        appendText(svg, x, y, anchor, formatChartValue(value), fill);
+    }
+
+    /** Formats a value the way the in-game charts label it: whole numbers plain, others with 2 decimals. */
+    private static String formatChartValue(double value) {
+        if (Math.abs(value - Math.rint(value)) < 1e-6) {
+            return Long.toString((long) Math.rint(value));
+        }
+        return String.format(Locale.ROOT, "%.2f", value);
     }
 
     /** Draws one chart label with the typography the exported charts share. */
