@@ -513,7 +513,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
         int valueStart = skipSpaces(text, eqIdx + 1, attrEnd);
         if (valueStart > cursorIndex) return null;
-        AttributeValueBounds bounds = valueBounds(text, valueStart, attrEnd);
+        AttributeValueBounds bounds = valueBounds(text, valueStart, attrEnd, cursorIndex);
         if (cursorIndex < bounds.valueStart || cursorIndex > bounds.valueEnd) return null;
 
         String partialText = text.substring(bounds.valueStart, cursorIndex);
@@ -602,7 +602,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                 continue;
             }
             int rawValueStart = skipSpaces(text, afterName + 1, tagEnd);
-            AttributeValueBounds bounds = valueBounds(text, rawValueStart, tagEnd);
+            AttributeValueBounds bounds = valueBounds(text, rawValueStart, tagEnd, cursorIndex);
             if (cursorIndex >= rawValueStart && cursorIndex <= bounds.valueEnd) {
                 return true;
             }
@@ -611,7 +611,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return false;
     }
 
-    private static AttributeValueBounds valueBounds(String text, int rawValueStart, int limit) {
+    private static AttributeValueBounds valueBounds(String text, int rawValueStart, int limit, int cursorIndex) {
         if (rawValueStart >= limit) {
             return new AttributeValueBounds(rawValueStart, rawValueStart, rawValueStart, '\0');
         }
@@ -622,7 +622,10 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             int rawEnd = findClosingValue(text, valueStart, limit, close);
             boolean closed = rawEnd < limit && text.charAt(rawEnd) == close;
             int rawValueEnd = closed ? rawEnd + 1 : rawEnd;
-            return new AttributeValueBounds(valueStart, rawEnd, rawValueEnd, closed ? '\0' : close);
+            // A value that is still open ends at the caret. Otherwise the range would reach the next
+            // '>' and replacing it would destroy what follows, such as the '/' of a self-closing tag.
+            int valueEnd = closed ? rawEnd : Math.max(valueStart, Math.min(rawEnd, cursorIndex));
+            return new AttributeValueBounds(valueStart, valueEnd, rawValueEnd, closed ? '\0' : close);
         }
 
         int rawEnd = rawValueStart;

@@ -21,6 +21,19 @@ public class AutocompleteKeyPolicy {
             || keyCode == Keyboard.KEY_SPACE;
     }
 
+    /**
+     * True for a control chord - save, undo, copy, paste, select all - or any other control character
+     * the editor has to handle itself. The popup never owns those keys, so it dismisses itself and lets
+     * the key through. A modifier key on its own is not a chord: holding Shift or Ctrl to type a
+     * character must not dismiss the popup.
+     */
+    public static boolean isControlChord(char typedChar, int keyCode) {
+        if (isModifierOnlyKey(keyCode)) {
+            return false;
+        }
+        return typedChar < 32 || Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+    }
+
     private static boolean isModifierOnlyKey(int keyCode) {
         return keyCode == Keyboard.KEY_LCONTROL || keyCode == Keyboard.KEY_RCONTROL
             || keyCode == Keyboard.KEY_LSHIFT

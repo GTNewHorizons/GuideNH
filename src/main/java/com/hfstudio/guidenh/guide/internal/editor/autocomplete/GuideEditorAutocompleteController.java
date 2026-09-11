@@ -31,7 +31,10 @@ public class GuideEditorAutocompleteController {
 
     /** How the host must react to a key that arrived while completion may be active. */
     public enum KeyResult {
-        /** No popup was interested in the key; the host keeps its normal handling. */
+        /**
+         * The popup did not take the key, so the host keeps its normal handling for it. The
+         * controller may have dismissed the popup first.
+         */
         IGNORED,
         /** The key only changed popup state. */
         CONSUMED,
@@ -122,6 +125,9 @@ public class GuideEditorAutocompleteController {
         }
 
         if (textChanged && !firstRun && System.currentTimeMillis() < nextQueryAtMillis) {
+            // The text moved while the query is debounced, so the open popup describes older text.
+            // Dismiss it without disarming the pending query: the next update fills it for the new text.
+            dismissPopup();
             return;
         }
 
@@ -151,9 +157,14 @@ public class GuideEditorAutocompleteController {
     }
 
     public void close() {
+        dismissPopup();
+        queryRequestedByEdit = false;
+    }
+
+    /** Drops the popup and its resolved slot, leaving any armed query intact. */
+    private void dismissPopup() {
         pendingContext = null;
         pendingCommit = null;
-        queryRequestedByEdit = false;
         if (popup.isOpen()) {
             popup.close();
         }
@@ -193,6 +204,12 @@ public class GuideEditorAutocompleteController {
                     if (pendingCommit != null) {
                         return KeyResult.COMMIT;
                     }
+                }
+                if (AutocompleteKeyPolicy.isControlChord(typedChar, keyCode)) {
+                    // Control chords belong to the host - save, undo, copy, paste - so the popup steps
+                    // aside instead of swallowing the key.
+                    close();
+                    return KeyResult.IGNORED;
                 }
                 if (!AutocompleteKeyPolicy.shouldCloseForKey(typedChar, keyCode)) {
                     return KeyResult.CONSUMED;
@@ -263,6 +280,23 @@ public class GuideEditorAutocompleteController {
             close();
             return;
         }
+        if (!stillDescribes(sourceText, pendingContext)) {
+            // An out-of-band edit moved the text, so the recorded range no longer describes the slot.
+            // Commit nothing rather than overwrite whatever now sits there.
+            close();
+            return;
+        }
         pendingCommit = AutocompleteCommitService.commit(sourceText, pendingContext, selected);
+    }
+
+    /** True when {@code text} still starts the slot's typed text at the slot's recorded position. */
+    private static boolean stillDescribes(String text, AutocompleteContext context) {
+        int start = context.replaceStart();
+        int end = context.replaceEnd();
+        String partial = context.getPartialText();
+        if (start < 0 || start > end || end > text.length() || partial == null) {
+            return false;
+        }
+        return text.startsWith(partial, start);
     }
 }

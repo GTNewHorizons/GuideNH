@@ -110,9 +110,33 @@ public class AutocompleteCommitService {
             int start = context.replaceStart();
             if (start > 0 && source.charAt(start - 1) == '\n') {
                 replacement = replacement.substring(1);
+            } else if (endsWithListMarker(source, start)) {
+                // The line already carries its list marker, so the value must not add a second one.
+                replacement = stripListMarkerLine(replacement.substring(1));
             }
         }
         return new Replacement(replacement, replacement.length(), replacement.length());
+    }
+
+    /** True when only a list marker and whitespace precede {@code position} on its line. */
+    private static boolean endsWithListMarker(String source, int position) {
+        int lineStart = source.lastIndexOf('\n', position - 1) + 1;
+        if (lineStart >= position) {
+            return false;
+        }
+        String before = source.substring(lineStart, position)
+            .trim();
+        return before.equals("-") || before.equals("+") || before.equals("*");
+    }
+
+    /** Drops the indentation and the list marker a multiline frontmatter value starts with. */
+    private static String stripListMarkerLine(String value) {
+        int index = skipSpaces(value, 0);
+        if (index < value.length()
+            && (value.charAt(index) == '-' || value.charAt(index) == '+' || value.charAt(index) == '*')) {
+            index++;
+        }
+        return value.substring(skipSpaces(value, index));
     }
 
     /** True when the character just outside the replaced range already delimits the value. */
