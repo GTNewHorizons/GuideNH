@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -31,8 +34,13 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.scene.BlockStatsCorner;
+import com.hfstudio.guidenh.guide.scene.BlockStatsDock;
+import com.hfstudio.guidenh.guide.scene.BlockStatsFilterMode;
+import com.hfstudio.guidenh.guide.scene.BlockStatsMode;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
@@ -516,11 +524,138 @@ public class SceneScript implements LytScript {
         scene.setStructureLibSelectionChangeListener(selection -> scene.rebuild());
     }
 
+    /**
+     * Applies the {@code <BlockStats>} child element of a scene. Every documented attribute is read
+     * here: the scene carries a mode, a corner, a dock side, name visibility, a filter and a size cap,
+     * and manual mode reads its entries from {@code <BlockStat>} children.
+     */
     public static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {
         String visibleStr = el.getAttributeString("visible", null);
         if (visibleStr != null) scene.setBlockStatsVisible(Boolean.parseBoolean(visibleStr));
         String enabledStr = el.getAttributeString("buttonEnabled", null);
         if (enabledStr != null) scene.setBlockStatsButtonEnabled(Boolean.parseBoolean(enabledStr));
+
+        BlockStatsMode mode = BlockStatsMode.fromString(el.getAttributeString("mode", null), null);
+        if (mode != null) {
+            scene.setBlockStatsMode(mode);
+        }
+        BlockStatsCorner corner = BlockStatsCorner.fromString(el.getAttributeString("corner", null), null);
+        if (corner != null) {
+            scene.setBlockStatsCorner(corner);
+        }
+        BlockStatsDock dock = BlockStatsDock.fromString(el.getAttributeString("dock", null), null);
+        if (dock != null) {
+            scene.setBlockStatsDock(dock);
+        }
+        String showNamesStr = el.getAttributeString("showNames", null);
+        if (showNamesStr != null) {
+            scene.setBlockStatsShowNames(Boolean.parseBoolean(showNamesStr));
+        }
+        BlockStatsFilterMode filterMode = BlockStatsFilterMode
+            .fromString(el.getAttributeString("filterMode", null), null);
+        if (filterMode != null) {
+            scene.setBlockStatsFilterMode(filterMode);
+        }
+        String filter = el.getAttributeString("filter", null);
+        if (filter != null) {
+            scene.setBlockStatsFilterKeys(parseBlockStatsFilter(filter));
+        }
+        int maxWidth = parseOptionalInt(el.getAttributeString("maxWidth", null));
+        if (maxWidth > 0) {
+            scene.setBlockStatsMaxWidth(maxWidth);
+        }
+        int maxHeight = parseOptionalInt(el.getAttributeString("maxHeight", null));
+        if (maxHeight > 0) {
+            scene.setBlockStatsMaxHeight(maxHeight);
+        }
+
+        // Rows declared as <BlockStat> children are a manual list, so they select manual mode on
+        // their own. An explicit mode still wins, but then the rows cannot be listed and the author is
+        // told instead of losing them silently.
+        int manualRows = applyManualBlockStatsEntries(scene, el);
+        if (manualRows > 0) {
+            if (mode == null) {
+                scene.setBlockStatsMode(BlockStatsMode.MANUAL);
+            } else if (mode != BlockStatsMode.MANUAL) {
+                GuideDebugLog.warn(
+                    "[GuideNH] [SceneScript] <BlockStats mode=\"{}\"> declares {} <BlockStat> rows, which are only listed in manual mode",
+                    mode,
+                    manualRows);
+            }
+        }
+    }
+
+    /**
+     * Manual mode lists its rows as {@code <BlockStat id|item count/>} children.
+     *
+     * <p>
+     * An omitted {@code count} shows the row once, because the scene refuses to list an entry with a
+     * count of zero; an explicit {@code count="0"} keeps that meaning and hides the row.
+     *
+     * @return how many rows were added, so the caller can switch to manual mode
+     */
+    private static int applyManualBlockStatsEntries(LytGuidebookScene scene, MdxJsxElementFields el) {
+        List<ItemStack> stacks = new ArrayList<>();
+        List<Integer> counts = new ArrayList<>();
+        for (UnistNode child : el.children()) {
+            MdxJsxElementFields entry = SceneTagCompiler.unwrapSceneElement(child);
+            if (entry == null || !"BlockStat".equals(entry.name())) {
+                continue;
+            }
+            String id = entry.getAttributeString("item", entry.getAttributeString("id", null));
+            ItemStack stack = resolveBlockStatStack(id);
+            if (stack == null) {
+                GuideDebugLog
+                    .warn("[GuideNH] [SceneScript] Ignoring <BlockStat> without a resolvable item or id: '{}'", id);
+                continue;
+            }
+            stacks.add(stack);
+            int declaredCount = parseOptionalInt(entry.getAttributeString("count", null));
+            counts.add(declaredCount < 0 ? 1 : declaredCount);
+        }
+        if (stacks.isEmpty()) {
+            return 0;
+        }
+        scene.clearManualBlockStatsEntries();
+        int added = 0;
+        for (int i = 0; i < stacks.size(); i++) {
+            scene.addManualBlockStatsEntry(stacks.get(i), counts.get(i));
+            added++;
+        }
+        return added;
+    }
+
+    @Nullable
+    private static ItemStack resolveBlockStatStack(@Nullable String ref) {
+        if (ref == null || ref.isEmpty()) {
+            return null;
+        }
+        return GuideDisplayItemStacks.resolveItemStack(ref, "minecraft");
+    }
+
+    /** Splits a filter attribute into the ids it lists, accepting spaces, commas and semicolons. */
+    private static Set<String> parseBlockStatsFilter(String filter) {
+        Set<String> keys = new LinkedHashSet<>();
+        for (String token : filter.split("[\\s,;]+")) {
+            String trimmed = token.trim();
+            if (!trimmed.isEmpty()) {
+                keys.add(trimmed);
+            }
+        }
+        return keys;
+    }
+
+    private static int parseOptionalInt(@Nullable String raw) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return -1;
+        }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException ignored) {
+            GuideDebugLog.warn("[GuideNH] [SceneScript] Ignoring non-numeric value '{}'", raw);
+            return -1;
+        }
     }
 
     public static String describeEmptyScene(String pageId, int astChildCount, List<String> compiledElements,
