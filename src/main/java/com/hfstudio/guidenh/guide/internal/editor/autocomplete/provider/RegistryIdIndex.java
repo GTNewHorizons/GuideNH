@@ -16,7 +16,8 @@ import net.minecraft.item.Item;
  *
  * <p>
  * Completion runs on every keystroke, so a registry is scanned when it changes rather than per query.
- * Registries only grow while mods load, which the key count detects.
+ * Registries only grow while mods load, which the key count detects; a slow interval bounds how long a
+ * change that keeps the count could stay invisible.
  */
 public class RegistryIdIndex {
 
@@ -76,27 +77,38 @@ public class RegistryIdIndex {
         }
     }
 
+    /**
+     * A registry only grows while mods load, which the key count detects, so a snapshot is rebuilt when
+     * the count moves. The rebuild also happens after this interval, so an entry a mod replaces with one
+     * of the same count cannot stay invisible forever.
+     */
+    private static final long REBUILD_INTERVAL_MILLIS = 60_000L;
+
     private static Snapshot itemSnapshot = build(Collections.emptySet());
     private static Snapshot blockSnapshot = build(Collections.emptySet());
     private static int cachedItemKeyCount = -1;
     private static int cachedBlockKeyCount = -1;
+    private static long nextItemRebuildAtMillis;
+    private static long nextBlockRebuildAtMillis;
 
     private RegistryIdIndex() {}
 
     public static Snapshot items() {
         Set<?> keysView = Item.itemRegistry.getKeys();
-        if (keysView.size() != cachedItemKeyCount) {
+        if (keysView.size() != cachedItemKeyCount || System.currentTimeMillis() >= nextItemRebuildAtMillis) {
             itemSnapshot = build(keysView);
             cachedItemKeyCount = keysView.size();
+            nextItemRebuildAtMillis = System.currentTimeMillis() + REBUILD_INTERVAL_MILLIS;
         }
         return itemSnapshot;
     }
 
     public static Snapshot blocks() {
         Set<?> keysView = Block.blockRegistry.getKeys();
-        if (keysView.size() != cachedBlockKeyCount) {
+        if (keysView.size() != cachedBlockKeyCount || System.currentTimeMillis() >= nextBlockRebuildAtMillis) {
             blockSnapshot = build(keysView);
             cachedBlockKeyCount = keysView.size();
+            nextBlockRebuildAtMillis = System.currentTimeMillis() + REBUILD_INTERVAL_MILLIS;
         }
         return blockSnapshot;
     }
