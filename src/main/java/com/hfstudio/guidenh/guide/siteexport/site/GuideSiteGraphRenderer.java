@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.MermaidNodeRenderer;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointLabelMode;
@@ -1123,20 +1124,31 @@ public class GuideSiteGraphRenderer {
     /** Backward-compatible overload. Delegates to the composite version with no inset. */
     public static String renderColumnChart(int w, int h, int bgColor, int borderColor, String title,
         String[] categories, List<SeriesData> series, boolean showLegend) {
-        return renderColumnChart(w, h, bgColor, borderColor, title, categories, series, showLegend, null, null, false);
+        return renderColumnChart(
+            w,
+            h,
+            bgColor,
+            borderColor,
+            title,
+            categories,
+            series,
+            showLegend,
+            null,
+            null,
+            ChartLabelPosition.NONE);
     }
 
     /**
      * Composite column chart: renders bar series, optional line-overlay series, and an optional
      * pie inset in one of the chart's corners.
      *
-     * @param pieInset   optional pie inset; {@code null} for a plain column chart
-     * @param yAxisUnit  optional unit label shown beside the Y-axis (e.g. "t"); {@code null} to omit
-     * @param labelAbove when {@code true}, draw the numeric value above each bar
+     * @param pieInset      optional pie inset; {@code null} for a plain column chart
+     * @param yAxisUnit     optional unit label shown beside the Y-axis (e.g. "t"); {@code null} to omit
+     * @param labelPosition where to draw each numeric value; {@link ChartLabelPosition#NONE} omits them
      */
     public static String renderColumnChart(int w, int h, int bgColor, int borderColor, String title,
         String[] categories, List<SeriesData> series, boolean showLegend, @Nullable PieInsetData pieInset,
-        @Nullable String yAxisUnit, boolean labelAbove) {
+        @Nullable String yAxisUnit, ChartLabelPosition labelPosition) {
         if (w <= 0) {
             w = CHART_DEFAULT_W;
         }
@@ -1244,13 +1256,26 @@ public class GuideSiteGraphRenderer {
                     .append("\"><title>")
                     .append(esc(buildChartTip(categories[ci], s.name, value)))
                     .append("</title></rect>");
-                if (labelAbove) {
+                if (labelPosition != null && labelPosition != ChartLabelPosition.NONE) {
+                    double labelX = bx + barW / 2;
+                    double labelY = by - 2;
+                    String labelFill = fill;
+                    switch (labelPosition) {
+                        case BELOW -> labelY = by + bh + 8;
+                        case INSIDE, CENTER -> {
+                            labelY = by + bh / 2 + 3;
+                            labelFill = "#ffffff";
+                        }
+                        default -> {
+                            // ABOVE and OUTSIDE both sit just above the bar.
+                        }
+                    }
                     svg.append("<text x=\"")
-                        .append(fmtD(bx + barW / 2))
+                        .append(fmtD(labelX))
                         .append("\" y=\"")
-                        .append(fmtD(by - 2))
+                        .append(fmtD(labelY))
                         .append("\" text-anchor=\"middle\" font-size=\"7\" fill=\"")
-                        .append(fill)
+                        .append(labelFill)
                         .append("\" font-family=\"inherit\">")
                         .append(esc(formatNum(value)))
                         .append("</text>");
