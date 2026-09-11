@@ -17,7 +17,7 @@ dependencies {
     shadowImplementation("org.eclipse.elk:org.eclipse.elk.alg.layered:0.11.0")
     shadowImplementation("org.eclipse.xtext:org.eclipse.xtext.xbase.lib:2.36.0")
 
-    devOnlyNonPublishable("com.github.GTNewHorizons:StructureLib:1.4.42:dev")
+    devOnlyNonPublishable("com.github.GTNewHorizons:StructureLib:1.4.44:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.36:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.8.128-GTNH:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1045-GTNH:dev")
@@ -61,7 +61,7 @@ dependencies {
     annotationProcessor("com.google.auto.value:auto-value:1.10.4")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.12.2")
-    testImplementation("com.github.GTNewHorizons:StructureLib:1.4.42:dev")
+    testImplementation("com.github.GTNewHorizons:StructureLib:1.4.44:dev")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.12.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
 }
