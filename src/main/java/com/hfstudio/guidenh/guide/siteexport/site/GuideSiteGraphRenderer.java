@@ -12,6 +12,7 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.MermaidNodeRenderer;
 import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartLegendPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendRenderer;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointLabelMode;
@@ -68,6 +69,8 @@ public class GuideSiteGraphRenderer {
     private static final int LEGEND_SWATCH = 8;
     private static final int LEGEND_GAP = 6;
     private static final int LEGEND_ROW_H = 11;
+    /** Width a legend column takes when the legend sits at the left or right of a chart. */
+    private static final int SIDE_LEGEND_WIDTH = 92;
     private static final int PIE_OUTSIDE_GAP = 6;
     // Function graph sample count
     private static final int N_SAMPLES = 1024;
@@ -1119,6 +1122,76 @@ public class GuideSiteGraphRenderer {
         }
     }
 
+    /** ARGB colour the exported charts use for value labels unless the page names another one. */
+    public static final int DEFAULT_LABEL_COLOR = ColorUtils.ARGB_FFEEEEEE.getColor();
+
+    /**
+     * Presentation every exported chart shares: size, frame, title, where its legend goes and how its
+     * value labels look. The in-game charts read the same attributes, so a page keeps one appearance.
+     *
+     * @param width          chart width in pixels, a non-positive value means the default
+     * @param height         chart height in pixels, a non-positive value means the default
+     * @param background     ARGB chart background
+     * @param border         ARGB chart border
+     * @param title          optional chart title
+     * @param legendPosition where the series legend is drawn
+     * @param labelPosition  where each value label is drawn
+     * @param labelColor     ARGB colour of the value labels
+     */
+    public record ChartStyle(int width, int height, int background, int border, @Nullable String title,
+        @Nullable ChartLegendPosition legendPosition, ChartLabelPosition labelPosition, int labelColor) {
+
+        public ChartStyle {
+            legendPosition = legendPosition != null ? legendPosition : ChartLegendPosition.NONE;
+            labelPosition = labelPosition != null ? labelPosition : ChartLabelPosition.NONE;
+        }
+
+        public static ChartStyle of(int width, int height, int background, int border, @Nullable String title) {
+            return new ChartStyle(
+                width,
+                height,
+                background,
+                border,
+                title,
+                ChartLegendPosition.NONE,
+                ChartLabelPosition.NONE,
+                DEFAULT_LABEL_COLOR);
+        }
+
+        public ChartStyle withLegend(@Nullable ChartLegendPosition position) {
+            return new ChartStyle(width, height, background, border, title, position, labelPosition, labelColor);
+        }
+
+        public ChartStyle withLabels(ChartLabelPosition position, int color) {
+            return new ChartStyle(width, height, background, border, title, legendPosition, position, color);
+        }
+
+        /** @return the width to lay out, with the default applied */
+        public int layoutWidth() {
+            return width > 0 ? width : CHART_DEFAULT_W;
+        }
+
+        /** @return the height to lay out, with the default applied */
+        public int layoutHeight() {
+            return height > 0 ? height : CHART_DEFAULT_H;
+        }
+
+        public boolean showsLegend() {
+            return legendPosition != ChartLegendPosition.NONE;
+        }
+
+        /** @return the value label colour as a CSS colour */
+        public String labelFill() {
+            return argbToRgba(labelColor);
+        }
+    }
+
+    /**
+     * Space a legend takes away from the plot and where it is drawn, so every chart reserves its own
+     * legend the same way instead of overlapping the plot.
+     */
+    private record LegendArea(int left, int right, int top, int bottom, int x, int y, int width) {}
+
     // Column chart (vertical bars, categorical X).
 
     /** Backward-compatible overload. Delegates to the composite version with no inset. */
@@ -1138,23 +1211,31 @@ public class GuideSiteGraphRenderer {
             ChartLabelPosition.NONE);
     }
 
+    /** Backward-compatible overload taking the individual presentation values. */
+    public static String renderColumnChart(int w, int h, int bgColor, int borderColor, String title,
+        String[] categories, List<SeriesData> series, boolean showLegend, @Nullable PieInsetData pieInset,
+        @Nullable String yAxisUnit, ChartLabelPosition labelPosition) {
+        ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
+            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE)
+            .withLabels(labelPosition, DEFAULT_LABEL_COLOR);
+        return renderColumnChart(style, categories, series, pieInset, yAxisUnit);
+    }
+
     /**
      * Composite column chart: renders bar series, optional line-overlay series, and an optional
      * pie inset in one of the chart's corners.
      *
-     * @param pieInset      optional pie inset; {@code null} for a plain column chart
-     * @param yAxisUnit     optional unit label shown beside the Y-axis (e.g. "t"); {@code null} to omit
-     * @param labelPosition where to draw each numeric value; {@link ChartLabelPosition#NONE} omits them
+     * @param pieInset  optional pie inset; {@code null} for a plain column chart
+     * @param yAxisUnit optional unit label shown beside the Y-axis (e.g. "t"); {@code null} to omit
      */
-    public static String renderColumnChart(int w, int h, int bgColor, int borderColor, String title,
-        String[] categories, List<SeriesData> series, boolean showLegend, @Nullable PieInsetData pieInset,
-        @Nullable String yAxisUnit, ChartLabelPosition labelPosition) {
-        if (w <= 0) {
-            w = CHART_DEFAULT_W;
-        }
-        if (h <= 0) {
-            h = CHART_DEFAULT_H;
-        }
+    public static String renderColumnChart(ChartStyle style, String[] categories, List<SeriesData> series,
+        @Nullable PieInsetData pieInset, @Nullable String yAxisUnit) {
+        int w = style.layoutWidth();
+        int h = style.layoutHeight();
+        String title = style.title();
+        int bgColor = style.background();
+        int borderColor = style.border();
+        ChartLabelPosition labelPosition = style.labelPosition();
         if (series == null) {
             series = new ArrayList<>();
         }
@@ -1180,14 +1261,18 @@ public class GuideSiteGraphRenderer {
             yMax = yMin + yStep;
         }
 
-        int titleBottom = computeTitleBottom(title);
-        int legendH = computeLegendH(series, showLegend, w);
-
-        int left = PADDING + AXIS_PAD_LEFT;
         boolean pieRightOutside = pieInset != null && isPieInsetRightOutside(pieInset.position);
-        int right = w - PADDING - (pieRightOutside ? pieInset.size + PIE_OUTSIDE_GAP : 0);
-        int top = titleBottom;
-        int bottom = h - PADDING - AXIS_PAD_BOTTOM - legendH;
+        LegendArea legend = legendArea(
+            style,
+            series.size(),
+            PADDING + AXIS_PAD_LEFT,
+            w - PADDING - (pieRightOutside ? pieInset.size + PIE_OUTSIDE_GAP : 0),
+            computeTitleBottom(title),
+            h - PADDING - AXIS_PAD_BOTTOM);
+        int left = legend.left();
+        int right = legend.right();
+        int top = legend.top();
+        int bottom = legend.bottom();
         int plotW = Math.max(1, right - left);
         int plotH = Math.max(1, bottom - top);
 
@@ -1256,29 +1341,24 @@ public class GuideSiteGraphRenderer {
                     .append("\"><title>")
                     .append(esc(buildChartTip(categories[ci], s.name, value)))
                     .append("</title></rect>");
-                if (labelPosition != null && labelPosition != ChartLabelPosition.NONE) {
+                if (labelPosition != ChartLabelPosition.NONE) {
+                    String labelFill = style.labelFill();
                     double labelX = bx + barW / 2;
                     double labelY = by - 2;
-                    String labelFill = fill;
                     switch (labelPosition) {
                         case BELOW -> labelY = by + bh + 8;
-                        case INSIDE, CENTER -> {
-                            labelY = by + bh / 2 + 3;
-                            labelFill = "#ffffff";
+                        case INSIDE, CENTER -> labelY = by + bh / 2 + 3;
+                        case OUTSIDE -> {
+                            // Outside a bar that grows downwards means below it, as in the game.
+                            if (value < 0) {
+                                labelY = by + bh + 8;
+                            }
                         }
                         default -> {
-                            // ABOVE and OUTSIDE both sit just above the bar.
+                            // ABOVE keeps the label just over the bar.
                         }
                     }
-                    svg.append("<text x=\"")
-                        .append(fmtD(labelX))
-                        .append("\" y=\"")
-                        .append(fmtD(labelY))
-                        .append("\" text-anchor=\"middle\" font-size=\"7\" fill=\"")
-                        .append(labelFill)
-                        .append("\" font-family=\"inherit\">")
-                        .append(esc(formatNum(value)))
-                        .append("</text>");
+                    appendValueLabel(svg, labelX, labelY, "middle", value, labelFill);
                 }
             }
             colIdx++;
@@ -1425,8 +1505,8 @@ public class GuideSiteGraphRenderer {
 
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
-        if (showLegend) {
-            renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
+        if (legend.width() > 0) {
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -1454,12 +1534,18 @@ public class GuideSiteGraphRenderer {
 
     public static String renderBarChart(int w, int h, int bgColor, int borderColor, String title, String[] categories,
         List<SeriesData> series, boolean showLegend) {
-        if (w <= 0) {
-            w = CHART_DEFAULT_W;
-        }
-        if (h <= 0) {
-            h = CHART_DEFAULT_H;
-        }
+        ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
+            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE);
+        return renderBarChart(style, categories, series);
+    }
+
+    public static String renderBarChart(ChartStyle style, String[] categories, List<SeriesData> series) {
+        int w = style.layoutWidth();
+        int h = style.layoutHeight();
+        String title = style.title();
+        int bgColor = style.background();
+        int borderColor = style.border();
+        ChartLabelPosition labelPosition = style.labelPosition();
         if (series == null) {
             series = new ArrayList<>();
         }
@@ -1486,13 +1572,17 @@ public class GuideSiteGraphRenderer {
         }
 
         int titleBottom = computeTitleBottom(title);
-        int legendH = computeLegendH(series, showLegend, w);
-
-        int catLabelW = 36;
-        int left = PADDING + catLabelW;
-        int right = w - PADDING;
-        int top = titleBottom;
-        int bottom = h - PADDING - AXIS_PAD_BOTTOM - legendH;
+        LegendArea legend = legendArea(
+            style,
+            series.size(),
+            PADDING + 36,
+            w - PADDING,
+            titleBottom,
+            h - PADDING - AXIS_PAD_BOTTOM);
+        int left = legend.left();
+        int right = legend.right();
+        int top = legend.top();
+        int bottom = legend.bottom();
         int plotW = Math.max(1, right - left);
         int plotH = Math.max(1, bottom - top);
 
@@ -1579,6 +1669,25 @@ public class GuideSiteGraphRenderer {
                     .append("\"><title>")
                     .append(esc(buildChartTip(ci < categories.length ? categories[ci] : "", s.name, value)))
                     .append("</title></rect>");
+                if (labelPosition != ChartLabelPosition.NONE) {
+                    String labelFill = style.labelFill();
+                    double barEnd = value >= 0 ? bx + bw : bx;
+                    double labelY = by + barH / 2 + 3;
+                    switch (labelPosition) {
+                        case ABOVE -> labelY = by - 2;
+                        case BELOW -> labelY = by + barH + 8;
+                        case OUTSIDE -> {
+                            // The label sits beyond the bar's end, on whichever side the bar grows.
+                            double labelX = value >= 0 ? barEnd + 3 : barEnd - 3;
+                            appendValueLabel(svg, labelX, labelY, value >= 0 ? "start" : "end", value, labelFill);
+                            continue;
+                        }
+                        default -> {
+                            // INSIDE and CENTER sit in the middle of the bar.
+                        }
+                    }
+                    appendValueLabel(svg, bx + bw / 2, labelY, "middle", value, labelFill);
+                }
             }
         }
 
@@ -1594,8 +1703,8 @@ public class GuideSiteGraphRenderer {
             .append("\" stroke=\"#B8C2CF\" stroke-width=\"1\"/>");
         appendXAxis(svg, left, right, bottom);
 
-        if (showLegend) {
-            renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
+        if (legend.width() > 0) {
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -1626,12 +1735,29 @@ public class GuideSiteGraphRenderer {
         List<SeriesData> series, boolean numericX, boolean showPoints, boolean showLegend,
         CornerLegendPosition cornerLegendPosition, int cornerLegendWidth, int cornerLegendHeight,
         int cornerLegendBackgroundColor) {
-        if (w <= 0) {
-            w = CHART_DEFAULT_W;
-        }
-        if (h <= 0) {
-            h = CHART_DEFAULT_H;
-        }
+        ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
+            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE);
+        return renderLineChart(
+            style,
+            categories,
+            series,
+            numericX,
+            showPoints,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackgroundColor);
+    }
+
+    public static String renderLineChart(ChartStyle style, String[] categories, List<SeriesData> series,
+        boolean numericX, boolean showPoints, CornerLegendPosition cornerLegendPosition, int cornerLegendWidth,
+        int cornerLegendHeight, int cornerLegendBackgroundColor) {
+        int w = style.layoutWidth();
+        int h = style.layoutHeight();
+        String title = style.title();
+        int bgColor = style.background();
+        int borderColor = style.border();
+        ChartLabelPosition labelPosition = style.labelPosition();
         if (series == null) {
             series = new ArrayList<>();
         }
@@ -1680,13 +1806,17 @@ public class GuideSiteGraphRenderer {
         yMin -= yRange * 0.05;
         yMax += yRange * 0.05;
 
-        int titleBottom = computeTitleBottom(title);
-        int legendH = computeLegendH(series, showLegend, w);
-
-        int left = PADDING + AXIS_PAD_LEFT;
-        int right = w - PADDING;
-        int top = titleBottom;
-        int bottom = h - PADDING - AXIS_PAD_BOTTOM - legendH;
+        LegendArea legend = legendArea(
+            style,
+            series.size(),
+            PADDING + AXIS_PAD_LEFT,
+            w - PADDING,
+            computeTitleBottom(title),
+            h - PADDING - AXIS_PAD_BOTTOM);
+        int left = legend.left();
+        int right = legend.right();
+        int top = legend.top();
+        int bottom = legend.bottom();
         int plotW = Math.max(1, right - left);
         int plotH = Math.max(1, bottom - top);
 
@@ -1802,6 +1932,23 @@ public class GuideSiteGraphRenderer {
                         .append("</title></circle>");
                 }
             }
+            if (labelPosition != ChartLabelPosition.NONE) {
+                String labelFill = style.labelFill();
+                for (int i = 0; i < len; i++) {
+                    int px = left + (int) Math.round((s.xs[i] - xMin) / (xMax - xMin) * plotW);
+                    int py = bottom - (int) Math.round((s.ys[i] - yMin) / (yMax - yMin) * plotH);
+                    int labelY;
+                    switch (labelPosition) {
+                        case ABOVE, OUTSIDE -> labelY = py - 4;
+                        case BELOW -> labelY = py + 9;
+                        case CENTER, INSIDE -> labelY = py + 3;
+                        default -> {
+                            continue;
+                        }
+                    }
+                    appendValueLabel(svg, px, labelY, "middle", s.ys[i], labelFill);
+                }
+            }
         }
 
         appendYAxis(svg, left, top, bottom);
@@ -1818,8 +1965,8 @@ public class GuideSiteGraphRenderer {
             cornerLegendHeight,
             cornerLegendBackgroundColor,
             true);
-        if (showLegend) {
-            renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
+        if (legend.width() > 0) {
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -1829,12 +1976,18 @@ public class GuideSiteGraphRenderer {
 
     public static String renderPieChart(int w, int h, int bgColor, int borderColor, String title,
         List<SliceData> slices, boolean showLegend) {
-        if (w <= 0) {
-            w = CHART_DEFAULT_W;
-        }
-        if (h <= 0) {
-            h = CHART_DEFAULT_H;
-        }
+        ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
+            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE);
+        return renderPieChart(style, slices);
+    }
+
+    public static String renderPieChart(ChartStyle style, List<SliceData> slices) {
+        int w = style.layoutWidth();
+        int h = style.layoutHeight();
+        String title = style.title();
+        int bgColor = style.background();
+        int borderColor = style.border();
+        ChartLabelPosition labelPosition = style.labelPosition();
         if (slices == null) {
             slices = new ArrayList<>();
         }
@@ -1847,17 +2000,21 @@ public class GuideSiteGraphRenderer {
             total = 1;
         }
 
-        int titleBottom = computeTitleBottom(title);
-        int legendH = 0;
-        if (showLegend && !slices.isEmpty()) {
-            int cols = Math.max(1, (w - 2 * PADDING) / 80);
-            legendH = (int) Math.ceil((double) slices.size() / cols) * (LEGEND_ROW_H + 2) + LEGEND_GAP;
+        List<SeriesData> legendItems = new ArrayList<>();
+        for (SliceData s : slices) {
+            legendItems.add(new SeriesData(s.label, s.color, new double[0], new double[0]));
         }
-
-        int left = PADDING;
-        int right = w - PADDING;
-        int top = titleBottom;
-        int bottom = h - PADDING - legendH;
+        LegendArea legend = legendArea(
+            style,
+            legendItems.size(),
+            PADDING,
+            w - PADDING,
+            computeTitleBottom(title),
+            h - PADDING);
+        int left = legend.left();
+        int right = legend.right();
+        int top = legend.top();
+        int bottom = legend.bottom();
         int plotW = right - left;
         int plotH = bottom - top;
 
@@ -1908,15 +2065,28 @@ public class GuideSiteGraphRenderer {
                 .append(
                     esc(s.label + ": " + formatNum(s.value) + " (" + String.format(Locale.ROOT, "%.1f", pct) + "%)"))
                 .append("</title></path>");
+            if (labelPosition != ChartLabelPosition.NONE) {
+                // Outside, above and below sit past the rim; inside and centre keep the label in the wedge.
+                boolean outside = labelPosition == ChartLabelPosition.OUTSIDE
+                    || labelPosition == ChartLabelPosition.ABOVE
+                    || labelPosition == ChartLabelPosition.BELOW;
+                String text = outside ? s.label + " " + String.format(Locale.ROOT, "%.1f%%", pct)
+                    : String.format(Locale.ROOT, "%.1f%%", pct);
+                double mid = (startAngle + endAngle) / 2;
+                double labelR = outside ? r + 4 : r * 0.6;
+                appendText(
+                    svg,
+                    Math.clamp((int) Math.round(cx + Math.cos(mid) * labelR), left, Math.max(left, right - 1)),
+                    Math.clamp((int) Math.round(cy + Math.sin(mid) * labelR) + 3, top, bottom),
+                    "middle",
+                    text,
+                    style.labelFill());
+            }
             startAngle = endAngle;
         }
 
-        if (showLegend && !slices.isEmpty()) {
-            List<SeriesData> legendItems = new ArrayList<>();
-            for (SliceData s : slices) {
-                legendItems.add(new SeriesData(s.label, s.color, new double[0], new double[0]));
-            }
-            renderLegend(svg, legendItems, PADDING, bottom + LEGEND_GAP, w - 2 * PADDING);
+        if (!slices.isEmpty() && legend.width() > 0) {
+            renderLegend(svg, legendItems, legend.x(), legend.y(), legend.width());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -1943,12 +2113,26 @@ public class GuideSiteGraphRenderer {
     public static String renderScatterChart(int w, int h, int bgColor, int borderColor, String title,
         List<SeriesData> series, boolean showLegend, CornerLegendPosition cornerLegendPosition, int cornerLegendWidth,
         int cornerLegendHeight, int cornerLegendBackgroundColor) {
-        if (w <= 0) {
-            w = CHART_DEFAULT_W;
-        }
-        if (h <= 0) {
-            h = CHART_DEFAULT_H;
-        }
+        ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
+            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE);
+        return renderScatterChart(
+            style,
+            series,
+            cornerLegendPosition,
+            cornerLegendWidth,
+            cornerLegendHeight,
+            cornerLegendBackgroundColor);
+    }
+
+    public static String renderScatterChart(ChartStyle style, List<SeriesData> series,
+        CornerLegendPosition cornerLegendPosition, int cornerLegendWidth, int cornerLegendHeight,
+        int cornerLegendBackgroundColor) {
+        int w = style.layoutWidth();
+        int h = style.layoutHeight();
+        String title = style.title();
+        int bgColor = style.background();
+        int borderColor = style.border();
+        ChartLabelPosition labelPosition = style.labelPosition();
         if (series == null) {
             series = new ArrayList<>();
         }
@@ -1990,13 +2174,17 @@ public class GuideSiteGraphRenderer {
         yMin -= yPad;
         yMax += yPad;
 
-        int titleBottom = computeTitleBottom(title);
-        int legendH = computeLegendH(series, showLegend, w);
-
-        int left = PADDING + AXIS_PAD_LEFT;
-        int right = w - PADDING;
-        int top = titleBottom;
-        int bottom = h - PADDING - AXIS_PAD_BOTTOM - legendH;
+        LegendArea legend = legendArea(
+            style,
+            series.size(),
+            PADDING + AXIS_PAD_LEFT,
+            w - PADDING,
+            computeTitleBottom(title),
+            h - PADDING - AXIS_PAD_BOTTOM);
+        int left = legend.left();
+        int right = legend.right();
+        int top = legend.top();
+        int bottom = legend.bottom();
         int plotW = Math.max(1, right - left);
         int plotH = Math.max(1, bottom - top);
 
@@ -2051,6 +2239,23 @@ public class GuideSiteGraphRenderer {
                                 + formatNum(s.ys[i])
                                 + ")"))
                     .append("</title></circle>");
+                if (labelPosition != ChartLabelPosition.NONE) {
+                    int labelY;
+                    switch (labelPosition) {
+                        case ABOVE, OUTSIDE -> labelY = py - 4;
+                        case BELOW -> labelY = py + 9;
+                        default -> {
+                            continue;
+                        }
+                    }
+                    appendText(
+                        svg,
+                        px,
+                        labelY,
+                        "middle",
+                        "(" + formatNum(s.xs[i]) + "," + formatNum(s.ys[i]) + ")",
+                        style.labelFill());
+                }
             }
         }
 
@@ -2068,8 +2273,8 @@ public class GuideSiteGraphRenderer {
             cornerLegendHeight,
             cornerLegendBackgroundColor,
             false);
-        if (showLegend) {
-            renderLegend(svg, series, left, bottom + AXIS_PAD_BOTTOM + LEGEND_GAP, w - 2 * PADDING);
+        if (legend.width() > 0) {
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -3181,6 +3386,82 @@ public class GuideSiteGraphRenderer {
             .append("\" y2=\"")
             .append(bottom)
             .append("\" stroke=\"#B8C2CF\" stroke-width=\"1\"/>");
+    }
+
+    /**
+     * Reserves the space a legend needs and reports where to draw it, so no chart overlaps its own
+     * legend. The reserved side follows the in-game attribute: top, bottom, left or right of the plot.
+     *
+     * @param plotLeft   left edge of the plot area before the reservation
+     * @param plotRight  right edge of the plot area before the reservation
+     * @param plotTop    top edge of the plot area before the reservation
+     * @param plotBottom bottom edge of the plot area before the reservation, axis labels included
+     */
+    private static LegendArea legendArea(ChartStyle style, int itemCount, int plotLeft, int plotRight, int plotTop,
+        int plotBottom) {
+        if (!style.showsLegend() || itemCount <= 0 || plotRight <= plotLeft || plotBottom <= plotTop) {
+            return new LegendArea(plotLeft, plotRight, plotTop, plotBottom, 0, 0, 0);
+        }
+        int availW = Math.max(1, plotRight - plotLeft);
+        int itemW = Math.clamp(availW / itemCount, 60, 100);
+        int cols = Math.max(1, availW / itemW);
+        int rows = (int) Math.ceil((double) itemCount / cols);
+        int rowsH = rows * (LEGEND_ROW_H + 2);
+        return switch (style.legendPosition()) {
+            case TOP -> new LegendArea(
+                plotLeft,
+                plotRight,
+                plotTop + rowsH + LEGEND_GAP,
+                plotBottom,
+                plotLeft,
+                plotTop,
+                availW);
+            case LEFT -> new LegendArea(
+                plotLeft + SIDE_LEGEND_WIDTH,
+                plotRight,
+                plotTop,
+                plotBottom,
+                Math.max(PADDING, plotLeft - AXIS_PAD_LEFT),
+                plotTop,
+                Math.max(LEGEND_SWATCH + LEGEND_GAP, SIDE_LEGEND_WIDTH - LEGEND_GAP));
+            case RIGHT -> new LegendArea(
+                plotLeft,
+                Math.max(plotLeft + 1, plotRight - SIDE_LEGEND_WIDTH),
+                plotTop,
+                plotBottom,
+                plotRight - SIDE_LEGEND_WIDTH + LEGEND_GAP,
+                plotTop,
+                Math.max(LEGEND_SWATCH + LEGEND_GAP, SIDE_LEGEND_WIDTH - LEGEND_GAP));
+            default -> new LegendArea(
+                plotLeft,
+                plotRight,
+                plotTop,
+                plotBottom - rowsH - LEGEND_GAP,
+                plotLeft,
+                plotBottom - rowsH,
+                availW);
+        };
+    }
+
+    /** Draws one value label at the position the in-game charts use for it. */
+    private static void appendValueLabel(StringBuilder svg, double x, double y, String anchor, double value,
+        String fill) {
+        appendText(svg, x, y, anchor, formatNum(value), fill);
+    }
+
+    /** Draws one chart label with the typography the exported charts share. */
+    private static void appendText(StringBuilder svg, double x, double y, String anchor, String text, String fill) {
+        svg.append("<text x=\"")
+            .append(fmtD(x))
+            .append("\" y=\"")
+            .append(fmtD(y))
+            .append("\" text-anchor=\"")
+            .append(anchor)
+            .append("\" font-size=\"7\" fill=\"")
+            .append(fill)
+            .append("\" font-family=\"inherit\">")
+            .append(esc(text))
+            .append("</text>");
     }
 
     private static void renderLegend(StringBuilder svg, List<SeriesData> series, int x, int y, int availW) {

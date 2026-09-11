@@ -1736,68 +1736,62 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
      * {@code legend="none"}; the export-only {@code showLegend} flag is still honoured when
      * {@code legend} is absent so pages written against it keep working.
      */
-    private boolean resolveShowLegend(MdxJsxElementFields element) {
+    /**
+     * Builds the presentation a chart shares from its attributes: size, frame, title, legend placement
+     * and value label style. The legend position comes from the in-game {@code legend} attribute; the
+     * export-only {@code showLegend} flag is still honoured when {@code legend} is absent, so pages
+     * written against it keep working.
+     */
+    private GuideSiteGraphRenderer.ChartStyle resolveChartStyle(MdxJsxElementFields element) {
+        return GuideSiteGraphRenderer.ChartStyle
+            .of(
+                readInt(element, "width", 1280),
+                readInt(element, "height", 800),
+                parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor()),
+                parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor()),
+                readOptional(element, "title"))
+            .withLegend(resolveLegendPosition(element))
+            .withLabels(
+                ChartLabelPosition.fromString(readOptional(element, "labelPosition"), ChartLabelPosition.NONE),
+                parseArgbAttr(element, "labelColor", GuideSiteGraphRenderer.DEFAULT_LABEL_COLOR));
+    }
+
+    private ChartLegendPosition resolveLegendPosition(MdxJsxElementFields element) {
         String legend = readOptional(element, "legend");
         if (legend != null && !legend.trim()
             .isEmpty()) {
             // An absent or unparsable value keeps the in-game default, which is a legend at the top.
-            return ChartAttrParser.parseLegendPosition(legend, ChartLegendPosition.TOP) != ChartLegendPosition.NONE;
+            return ChartAttrParser.parseLegendPosition(legend, ChartLegendPosition.TOP);
         }
-        return readBoolean(element, "showLegend", true);
+        return readBoolean(element, "showLegend", true) ? ChartLegendPosition.TOP : ChartLegendPosition.NONE;
     }
 
     private String renderColumnChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
-        String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
-        boolean showLegend = resolveShowLegend(element);
         String yAxisUnit = readOptional(element, "yAxisUnit");
-        ChartLabelPosition labelPosition = ChartLabelPosition
-            .fromString(readOptional(element, "labelPosition"), ChartLabelPosition.NONE);
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
         GuideSiteGraphRenderer.PieInsetData pieInset = parsePieInsetChildren(element);
         return GuideSiteGraphRenderer.renderColumnChart(
-            w,
-            h,
-            bgColor,
-            borderColor,
-            title,
-            categories,
+            resolveChartStyle(element),
+            ChartAttrParser.parseStringArray(readOptional(element, "categories")),
             series,
-            showLegend,
             pieInset,
-            yAxisUnit,
-            labelPosition);
+            yAxisUnit);
     }
 
     private String renderBarChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
-        String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
-        boolean showLegend = resolveShowLegend(element);
-        List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
-        return GuideSiteGraphRenderer.renderBarChart(w, h, bgColor, borderColor, title, categories, series, showLegend);
+        return GuideSiteGraphRenderer.renderBarChart(
+            resolveChartStyle(element),
+            ChartAttrParser.parseStringArray(readOptional(element, "categories")),
+            parseSeriesChildren(element));
     }
 
     private String renderLineChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
         String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
         boolean numericX = readBoolean(element, "numericX", false);
         if (!numericX && (categories == null || categories.length == 0)) {
             numericX = true;
         }
         boolean showPoints = readBoolean(element, "showPoints", true);
-        boolean showLegend = resolveShowLegend(element);
         CornerLegendPosition cornerLegendPosition = ChartAttrParser
             .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
         int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
@@ -1808,16 +1802,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             ColorUtils.ARGB_AA111922.getColor());
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
         return GuideSiteGraphRenderer.renderLineChart(
-            w,
-            h,
-            bgColor,
-            borderColor,
-            title,
+            resolveChartStyle(element),
             categories,
             series,
             numericX,
             showPoints,
-            showLegend,
             cornerLegendPosition,
             cornerLegendWidth,
             cornerLegendHeight,
@@ -1825,23 +1814,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderPieChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
-        boolean showLegend = resolveShowLegend(element);
         List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(element);
-        return GuideSiteGraphRenderer.renderPieChart(w, h, bgColor, borderColor, title, slices, showLegend);
+        return GuideSiteGraphRenderer.renderPieChart(resolveChartStyle(element), slices);
     }
 
     private String renderScatterChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
-        boolean showLegend = resolveShowLegend(element);
         CornerLegendPosition cornerLegendPosition = ChartAttrParser
             .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
         int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
@@ -1852,13 +1829,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             ColorUtils.ARGB_AA111922.getColor());
         List<GuideSiteGraphRenderer.SeriesData> series = parseScatterSeriesChildren(element);
         return GuideSiteGraphRenderer.renderScatterChart(
-            w,
-            h,
-            bgColor,
-            borderColor,
-            title,
+            resolveChartStyle(element),
             series,
-            showLegend,
             cornerLegendPosition,
             cornerLegendWidth,
             cornerLegendHeight,
