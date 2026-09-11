@@ -55,20 +55,21 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
     @Nullable
     private TextSyntaxContext resolveFromAst(MdAstRoot root, String text, int cursorIndex) {
-        // 1. YAML frontmatter
+        // 1. YAML frontmatter — a terminal region that never hosts markdown constructs.
         MdAstYamlFrontmatter yaml = findEnclosingNode(root, cursorIndex, MdAstYamlFrontmatter.class);
         if (yaml != null) {
             TextSyntaxContext result = resolveFrontmatter(yaml, text, cursorIndex);
-            if (result != null && result.shouldAutocomplete()) {
-                return result;
-            }
+            return result != null && result.shouldAutocomplete() ? result : resolvePlainTextWord(text, cursorIndex);
         }
 
-        // 2. Code fence language
+        // 2. Code fence language — code bodies are terminal as well.
         MdAstCode code = findEnclosingNode(root, cursorIndex, MdAstCode.class);
-        if (code != null && code.lang != null && !code.lang.isEmpty()) {
-            TextSyntaxContext result = resolveFenceLanguage(code, text, cursorIndex);
-            if (result != null) return result;
+        if (code != null) {
+            if (code.lang != null && !code.lang.isEmpty()) {
+                TextSyntaxContext result = resolveFenceLanguage(code, text, cursorIndex);
+                if (result != null) return result;
+            }
+            return resolvePlainTextWord(text, cursorIndex);
         }
 
         // 2.5. Markdown link/image URL
@@ -93,7 +94,8 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             return tagStart;
         }
 
-        return resolvePlainTextWord(text, cursorIndex);
+        // 5. No MDX syntax here: let the remaining resolvers inspect the plain text instead.
+        return null;
     }
 
     @Nullable
@@ -116,7 +118,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
         int colonIdx = line.indexOf(':');
         if (colonIdx < 0) {
-            return resolvePlainTextWord(text, cursorIndex);
+            return resolveFrontmatterDraftKey(text, cursorIndex);
         }
 
         String key = line.substring(0, colonIdx)
@@ -156,6 +158,33 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolvePlainTextWord(text, cursorIndex);
     }
 
+    /**
+     * Completes a top-level frontmatter key while it is still being typed, before its ':' exists.
+     * Indented lines belong to a parent key instead, so they keep the inherited value context.
+     */
+    private TextSyntaxContext resolveFrontmatterDraftKey(String text, int cursorIndex) {
+        int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
+        String typed = text.substring(lineStart, cursorIndex);
+        if (typed.isEmpty() || !isBareYamlKey(typed)) {
+            return resolvePlainTextWord(text, cursorIndex);
+        }
+        return new TextSyntaxContext(
+            SyntaxElementType.WORD,
+            lineStart,
+            cursorIndex,
+            new FrontmatterContext(typed, false, lineStart, cursorIndex, typed));
+    }
+
+    private static boolean isBareYamlKey(String typed) {
+        for (int i = 0; i < typed.length(); i++) {
+            char c = typed.charAt(i);
+            if (!Character.isLetterOrDigit(c) && c != '_' && c != '-') {
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Nullable
     private TextSyntaxContext resolveFrontmatterEmptyLine(String text, int cursorIndex) {
         int prevLineEnd = text.lastIndexOf('\n', cursorIndex - 1);
@@ -172,17 +201,13 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
         String prevKey = prevLine.substring(0, prevColon)
             .trim();
-        int prevIndent = prevLine.indexOf(prevKey);
-        if (prevIndent == 0) {
-            // Top-level key is the direct parent for a list item or empty line.
-            return new TextSyntaxContext(
-                SyntaxElementType.WORD,
-                cursorIndex,
-                cursorIndex,
-                new FrontmatterContext(prevKey, true, cursorIndex, cursorIndex, ""));
+        // A key with no value yet owns the block or list that follows it, whatever its indentation.
+        if (isYamlBlockKey(prevLine, prevColon) || prevLine.indexOf(prevKey) == 0) {
+            return resolveFrontmatterInheritedValue(text, cursorIndex, prevKey);
         }
 
-        // Find parent key at a lower indentation
+        // Otherwise walk outwards to the nearest key at a lower indentation.
+        int prevIndent = prevLine.indexOf(prevKey);
         int searchPos = prevLineStart - 1;
         while (searchPos > 0) {
             int lineEnd = searchPos;
@@ -193,17 +218,59 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                 String cKey = candidate.substring(0, cColon)
                     .trim();
                 if (!cKey.isEmpty() && candidate.indexOf(cKey) < prevIndent) {
-                    int valueStart = cursorIndex;
-                    return new TextSyntaxContext(
-                        SyntaxElementType.WORD,
-                        valueStart,
-                        valueStart,
-                        new FrontmatterContext(cKey, true, valueStart, valueStart, ""));
+                    return resolveFrontmatterInheritedValue(text, cursorIndex, cKey);
                 }
             }
             searchPos = lineStart - 1;
         }
         return resolvePlainTextWord(text, cursorIndex);
+    }
+
+    /** True when nothing follows the key's colon, so a nested block or list belongs to that key. */
+    private static boolean isYamlBlockKey(String line, int colonIndex) {
+        for (int i = colonIndex + 1; i < line.length(); i++) {
+            if (line.charAt(i) != ' ') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Builds a value context for a line that carries no key of its own, such as a list entry or an
+     * empty line under a key. The typed list content becomes the partial text so providers filter it,
+     * and the rest of the line is replaced on commit, matching the {@code key: value} behaviour.
+     */
+    private TextSyntaxContext resolveFrontmatterInheritedValue(String text, int cursorIndex, String key) {
+        int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
+        int lineEnd = text.indexOf('\n', cursorIndex);
+        if (lineEnd < 0) lineEnd = text.length();
+        String line = text.substring(lineStart, Math.min(cursorIndex, lineEnd));
+        int valueStart = lineStart + yamlEntryContentOffset(line);
+        int valueEnd = Math.max(valueStart, lineEnd);
+        return new TextSyntaxContext(
+            SyntaxElementType.WORD,
+            valueStart,
+            valueEnd,
+            new FrontmatterContext(key, true, valueStart, valueEnd, text.substring(valueStart, cursorIndex)));
+    }
+
+    /** Offset of the entry text on a YAML line, skipping indentation and an optional list marker. */
+    private static int yamlEntryContentOffset(String line) {
+        int index = 0;
+        while (index < line.length() && line.charAt(index) == ' ') {
+            index++;
+        }
+        if (index < line.length()
+            && (line.charAt(index) == '-' || line.charAt(index) == '+' || line.charAt(index) == '*')
+            && index + 1 < line.length()
+            && line.charAt(index + 1) == ' ') {
+            index++;
+            while (index < line.length() && line.charAt(index) == ' ') {
+                index++;
+            }
+        }
+        return index;
     }
 
     private static boolean isYamlListMarker(String trimmed) {

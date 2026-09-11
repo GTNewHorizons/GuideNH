@@ -91,6 +91,8 @@ import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommit;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.GuideEditorAutocompleteController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorActionRegistry;
@@ -147,6 +149,8 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.style.TextStyle;
+import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
+import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
@@ -239,6 +243,7 @@ public class GuideScreen extends GuiContainer
     private static final int SCROLLBAR_OUTLINE_LABEL_PADDING_Y = 4;
     private static final int SCROLLBAR_OUTLINE_LABEL_GAP = 6;
     private static final int GUIDE_EDITOR_DIVIDER_HOVER_DELAY_MILLIS = 1000;
+    private static final int AUTOCOMPLETE_CURSOR_GAP_Y = 14;
     private static final long GUIDE_EDITOR_SAFETY_AUTOSAVE_INTERVAL_MILLIS = 5L * 60L * 1000L;
     private static final long GUIDE_EDITOR_NAVIGATION_REFRESH_DELAY_MILLIS = 1500L;
     private static final int NON_FULL_WIDTH_DEFAULT_PERCENT = 90;
@@ -379,6 +384,11 @@ public class GuideScreen extends GuiContainer
     private boolean guideEditorAdvancedToolbarVisible;
     private int guideEditorDividerPercent = GuideScreenEditorState.getDividerPercent();
     private final GuideScreenEditorUndoHistory guideEditorUndoHistory = new GuideScreenEditorUndoHistory(100);
+    private final GuideEditorAutocompleteController autocompleteController = new GuideEditorAutocompleteController();
+    @Nullable
+    private Object autocompleteModelGuide;
+    @Nullable
+    private GuideSyntaxModel autocompleteModel;
 
     public static final int SEARCH_FIELD_H = 12;
     public static final int SEARCH_FIELD_GAP = 6;
@@ -894,6 +904,7 @@ public class GuideScreen extends GuiContainer
         tickGuideEditorPreviewScenes();
         updateGuideEditorNavigationRefresh();
         updateGuideEditorAutosave();
+        updateGuideEditorAutocomplete();
         if (!isFocusedTextInputReadyForCommittedCharacter() && OpenGuideHotkey.isKeyHeld()
             && hoveredItemStack != null) {
             pendingItemLinksStack = hoveredItemStack;
@@ -1084,8 +1095,11 @@ public class GuideScreen extends GuiContainer
     private void setGuideEditorLayoutMode(GuideScreenEditorLayoutMode mode) {
         GuideScreenEditorState.setLayoutMode(mode);
         guideEditorLayoutMode = mode;
-        if (mode == GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null) {
-            guideEditorTextArea.setFocused(false);
+        if (mode == GuideScreenEditorLayoutMode.PREVIEW_ONLY) {
+            if (guideEditorTextArea != null) {
+                guideEditorTextArea.setFocused(false);
+            }
+            autocompleteController.close();
         }
         guideEditorPreviewDirty = true;
     }
@@ -1110,6 +1124,7 @@ public class GuideScreen extends GuiContainer
 
     private void disableGuideEditor() {
         GuideScreenEditorState.setEnabled(false);
+        autocompleteController.close();
         if (guideEditorTextArea != null) {
             guideEditorTextArea.setFocused(false);
         }
@@ -1361,8 +1376,28 @@ public class GuideScreen extends GuiContainer
     private void ensureGuideEditorTextArea() {
         if (guideEditorTextArea == null) {
             guideEditorTextArea = new SceneEditorMultilineTextArea(fontRendererObj);
+            guideEditorTextArea.setDoubleClickHandler(new SceneEditorMultilineTextArea.DoubleClickHandler() {
+
+                @Override
+                public void onDoubleClick(int cursorIndex) {
+                    applyGuideEditorDoubleClickSelection(cursorIndex);
+                }
+            });
         }
         guideEditorTextArea.setWrapEnabled(GuideScreenEditorState.isWrapEnabled());
+    }
+
+    private void applyGuideEditorDoubleClickSelection(int cursorIndex) {
+        if (guideEditorTextArea == null) {
+            return;
+        }
+        String text = guideEditorTextArea.getText();
+        GuideEditorAutocompleteController.SelectionRange range = autocompleteController
+            .resolveDoubleClickSelection(text, cursorIndex);
+        if (range == null) {
+            return;
+        }
+        guideEditorTextArea.applyEdit(text, range.start(), range.end());
     }
 
     private void refreshGuideEditorDraft(boolean forceReload) {
@@ -1498,6 +1533,7 @@ public class GuideScreen extends GuiContainer
         }
         pushGuideEditorHistoryState(before, beforeSelectionStart, beforeSelectionEnd);
         markGuideEditorTextChanged();
+        autocompleteController.markEdit();
         pushGuideEditorCurrentHistoryState();
     }
 
@@ -2018,6 +2054,7 @@ public class GuideScreen extends GuiContainer
         if (entry == null || guideEditorTextArea == null) {
             return;
         }
+        autocompleteController.close();
         guideEditorSuppressUndoRecording = true;
         try {
             guideEditorTextArea
@@ -3172,6 +3209,132 @@ public class GuideScreen extends GuiContainer
             renderGuideEditorPreview(previewPaneX, editorTop, previewPaneWidth, editorHeight);
         }
 
+        drawGuideEditorAutocomplete(mouseX, mouseY);
+    }
+
+    private void drawGuideEditorAutocomplete(int mouseX, int mouseY) {
+        if (!autocompleteController.isOpen()) {
+            return;
+        }
+        if (!isAutocompleteAnchorVisible()) {
+            autocompleteController.close();
+            return;
+        }
+        autocompleteController.draw(mouseX, mouseY, fontRendererObj);
+    }
+
+    private boolean isAutocompleteAnchorVisible() {
+        if (guideEditorTextArea == null) {
+            return false;
+        }
+        int anchorY = getAutocompleteAnchorY();
+        return guideEditorTextArea.isCursorVisibleInViewport() && anchorY >= guideEditorEditorTop
+            && anchorY <= getGuideEditorContentBottom();
+    }
+
+    private int getAutocompleteAnchorX() {
+        return contentX + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelX() : 0);
+    }
+
+    private int getAutocompleteAnchorY() {
+        return getGuideEditorContentTop() + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelY() : 0)
+            + fontRendererObj.FONT_HEIGHT
+            + AUTOCOMPLETE_CURSOR_GAP_Y;
+    }
+
+    /**
+     * Feeds the completion session with the editor text and the guide data its providers resolve
+     * against. Runs every tick so page references, anchors, and image paths stay current.
+     */
+    private void updateGuideEditorAutocomplete() {
+        if (!isGuideEditorActive() || guideEditorTextArea == null) {
+            autocompleteController.close();
+            return;
+        }
+        resolveGuideSyntaxModel();
+        autocompleteController.update(
+            guideEditorTextArea.getText(),
+            guideEditorTextArea.getCursorIndex(),
+            getAutocompleteAnchorX(),
+            getAutocompleteAnchorY(),
+            width,
+            height,
+            fontRendererObj,
+            syntaxEnvironment());
+    }
+
+    /**
+     * The syntax model of the loaded guide. Building a model is cached per extension collection, so this
+     * only does work when the guide changes.
+     */
+    @Nullable
+    private SyntaxEnvironment syntaxEnvironment;
+
+    private SyntaxEnvironment syntaxEnvironment() {
+        if (syntaxEnvironment == null) {
+            syntaxEnvironment = new GuideEditorSyntaxEnvironment();
+        }
+        return syntaxEnvironment;
+    }
+
+    /** Live guide data for the value sources that complete against the guide or the document. */
+    private final class GuideEditorSyntaxEnvironment implements SyntaxEnvironment {
+
+        @Nullable
+        private Object cachedGuide;
+        private List<String> cachedPagePaths = List.of();
+
+        @Override
+        @Nullable
+        public Guide guide() {
+            return GuideScreen.this.guide;
+        }
+
+        @Override
+        public List<String> pagePaths() {
+            MutableGuide current = GuideScreen.this.guide;
+            int pageCount = current != null ? current.getPages()
+                .size() : 0;
+            if (cachedGuide == current && cachedPagePaths.size() == pageCount) {
+                return cachedPagePaths;
+            }
+            cachedGuide = current;
+            List<String> paths = new ArrayList<>(pageCount);
+            if (current != null) {
+                for (ParsedGuidePage page : current.getPages()) {
+                    paths.add(
+                        page.getId()
+                            .toString());
+                }
+            }
+            cachedPagePaths = paths;
+            return paths;
+        }
+
+        @Override
+        public String documentText() {
+            return guideEditorTextArea != null ? guideEditorTextArea.getText() : "";
+        }
+    }
+
+    private GuideSyntaxModel resolveGuideSyntaxModel() {
+        if (autocompleteModelGuide != guide || autocompleteModel == null) {
+            autocompleteModelGuide = guide;
+            autocompleteModel = GuideSyntaxModel.of(guide != null ? guide.getExtensions() : null);
+            autocompleteController.setModel(autocompleteModel);
+        }
+        return autocompleteModel;
+    }
+
+    private void applyGuideEditorAutocompleteCommit() {
+        AutocompleteCommit commit = autocompleteController.takePendingCommit();
+        if (commit == null || guideEditorTextArea == null) {
+            return;
+        }
+        runGuideEditorTextMutation(
+            () -> guideEditorTextArea
+                .applyEdit(commit.getText(), commit.getSelectionStart(), commit.getSelectionEnd()));
+        autocompleteController.close();
     }
 
     private int resolveGuideEditorDividerColor() {
@@ -3381,6 +3544,9 @@ public class GuideScreen extends GuiContainer
             }
             guideEditorSuppressTextFocusUntilGuideHotkeyRelease = false;
         }
+        if (handleGuideEditorAutocompleteKey(typedChar, keyCode)) {
+            return true;
+        }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             if (keyCode == Keyboard.KEY_ESCAPE) {
                 closeGuideEditorContextMenu();
@@ -3423,12 +3589,40 @@ public class GuideScreen extends GuiContainer
         return false;
     }
 
+    /**
+     * Routes a key stroke through the completion popup while it is open. Accepting a candidate edits
+     * the text through {@link #runGuideEditorTextMutation} so undo history stays consistent.
+     */
+    private boolean handleGuideEditorAutocompleteKey(char typedChar, int keyCode) {
+        GuideEditorAutocompleteController.KeyResult result = autocompleteController
+            .handleKey(guideEditorTextArea.getText(), typedChar, keyCode);
+        switch (result) {
+            case IGNORED:
+                return false;
+            case COMMIT:
+                applyGuideEditorAutocompleteCommit();
+                return true;
+            case FORWARD_TO_EDITOR:
+                runGuideEditorTextMutation(() -> guideEditorTextArea.keyTyped(typedChar, keyCode));
+                autocompleteController.close();
+                syncGuideEditorPreviewScrollFromEditor();
+                return true;
+            default:
+                return true;
+        }
+    }
+
     private boolean handleGuideEditorMouseClicked(int mouseX, int mouseY, int button) {
         if (!isGuideEditorActive()) {
             return false;
         }
         if (GuideScreenNeiBridge.isDraggingItem()) {
             return false;
+        }
+        if (guideEditorTextArea != null
+            && autocompleteController.handleMouseClick(guideEditorTextArea.getText(), mouseX, mouseY, button)) {
+            applyGuideEditorAutocompleteCommit();
+            return true;
         }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             if (button == 1 && tryOpenGuideEditorTextContextMenu(mouseX, mouseY)) {
@@ -3619,6 +3813,9 @@ public class GuideScreen extends GuiContainer
         if (!isGuideEditorActive()) {
             return false;
         }
+        if (autocompleteController.handleWheel(mouseX, mouseY, dwheel)) {
+            return true;
+        }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             guideEditorContextMenu.scrollWheel(mouseX, mouseY, dwheel, this.width, this.height, fontRendererObj);
             return true;
@@ -3626,6 +3823,7 @@ public class GuideScreen extends GuiContainer
         if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null
             && guideEditorTextArea.contains(mouseX, mouseY)) {
             guideEditorTextArea.scrollWheel(dwheel);
+            autocompleteController.close();
             updateGuideEditorTextFromArea();
             syncGuideEditorPreviewScrollFromEditor();
             return true;

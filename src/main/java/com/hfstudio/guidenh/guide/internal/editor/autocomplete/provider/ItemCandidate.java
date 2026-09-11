@@ -42,6 +42,12 @@ public class ItemCandidate implements AutocompleteCandidate {
 
     @Override
     public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {
+        renderIcon(stack, x, y);
+        fontRenderer.drawString(id, x + TEXT_X, y + 4, TEXT_COLOR);
+    }
+
+    /** Draws a 16x16 item icon at {@code x, y}. Shared with candidates that show an icon plus text. */
+    public static void renderIcon(ItemStack stack, int x, int y) {
         GL11.glPushMatrix();
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -59,6 +65,5 @@ public class ItemCandidate implements AutocompleteCandidate {
         RenderHelper.disableStandardItemLighting();
         GL11.glDisable(GL11.GL_BLEND);
         GL11.glPopMatrix();
-        fontRenderer.drawString(id, x + TEXT_X, y + 4, TEXT_COLOR);
     }
 }

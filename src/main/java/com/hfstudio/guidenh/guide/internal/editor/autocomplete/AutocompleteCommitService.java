@@ -1,13 +1,18 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
-import java.util.List;
-
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxAttrNameContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
 
+/**
+ * Applies an accepted candidate to the page text.
+ *
+ * <p>
+ * The context decides the shape of the slot - a tag, an attribute value, a frontmatter entry - while the
+ * candidate decides the snippet written into it: its text, where the caret lands, what gets selected and
+ * whether the value needs quotes. No tag or attribute knowledge lives here.
+ */
 public class AutocompleteCommitService {
 
     private AutocompleteCommitService() {}
@@ -16,30 +21,51 @@ public class AutocompleteCommitService {
         String source = text != null ? text : "";
         int replaceStart = clamp(context.replaceStart(), 0, source.length());
         int replaceEnd = clamp(context.replaceEnd(), replaceStart, source.length());
-        Replacement replacement = createReplacement(source, context, candidate.replacementText());
-        String newText = source.substring(0, replaceStart) + replacement.text + source.substring(replaceEnd);
+        Replacement replacement = createReplacement(source, context, candidate);
+        replacement = applyDeclaredCaret(replacement, candidate);
+        String inserted = replacement.text + suffixOf(candidate);
+        String newText = source.substring(0, replaceStart) + inserted + source.substring(replaceEnd);
         int cursor = replaceStart + replacement.cursorOffset;
         int selectionEnd = replaceStart + replacement.selectionEndOffset;
         return new AutocompleteCommit(newText, cursor, selectionEnd);
     }
 
-    private static Replacement createReplacement(String source, AutocompleteContext context, String rawText) {
-        String replacement = rawText != null ? rawText : "";
-        if (context instanceof TagStartContext) {
-            return createTagReplacement(source, (TagStartContext) context, replacement);
+    /** Honours a candidate that knows where the caret and the selection belong inside its replacement. */
+    private static Replacement applyDeclaredCaret(Replacement replacement, AutocompleteCandidate candidate) {
+        int caret = candidate.caretOffsetInReplacement();
+        if (caret < 0 || caret > replacement.text.length()) {
+            return replacement;
         }
-        if (context instanceof MdxAttrNameContext) {
-            return createAttributeNameReplacement(source, (MdxAttrNameContext) context, replacement);
+        int selectionEnd = candidate.selectionEndInReplacement();
+        return new Replacement(replacement.text, caret, selectionEnd >= 0 ? selectionEnd : caret);
+    }
+
+    private static String suffixOf(AutocompleteCandidate candidate) {
+        String suffix = candidate.suffixText();
+        return suffix != null ? suffix : "";
+    }
+
+    private static Replacement createReplacement(String source, AutocompleteContext context,
+        AutocompleteCandidate candidate) {
+        String replacement = candidate.replacementText() != null ? candidate.replacementText() : "";
+        if (context instanceof TagStartContext tagStart) {
+            return createTagReplacement(source, tagStart, replacement);
         }
-        if (context instanceof MdxValueContext) {
-            return createAttributeValueReplacement(source, (MdxValueContext) context, replacement);
+        if (context instanceof MdxValueContext value) {
+            return createAttributeValueReplacement(source, value, replacement, candidate);
         }
-        if (context instanceof FrontmatterContext) {
-            return createFrontmatterReplacement(source, (FrontmatterContext) context, replacement);
+        if (context instanceof FrontmatterContext frontmatter) {
+            return createFrontmatterReplacement(source, frontmatter, replacement);
         }
+        // Attribute names and markdown snippets already are complete snippets.
         return Replacement.cursorAtEnd(replacement);
     }
 
+    /**
+     * A tag candidate either supplies its own opening form (a container like {@code Row>} that the
+     * caller closes through {@link AutocompleteCandidate#suffixText()}) or is a plain name that becomes
+     * the self-closing {@code <Name />}.
+     */
     private static Replacement createTagReplacement(String source, TagStartContext context, String tagName) {
         int replaceEnd = clamp(context.replaceEnd(), 0, source.length());
         int pos = skipSpaces(source, replaceEnd);
@@ -49,85 +75,31 @@ public class AutocompleteCommitService {
                 return Replacement.cursorAtEnd(tagName);
             }
         }
+        if (tagName.endsWith(">")) {
+            return Replacement.cursorAtEnd(tagName);
+        }
         String text = tagName + " />";
         return new Replacement(text, text.length() - 2, text.length() - 2);
     }
 
-    private static Replacement createAttributeNameReplacement(String source, MdxAttrNameContext context,
-        String attributeName) {
-        AttributeSpec spec = findSpec(context.getTagName(), attributeName);
-        if (spec == null) {
-            return Replacement.cursorAtEnd(attributeName);
-        }
-
-        AttrType type = spec.getType();
-        String text;
-        int cursorOffset;
-        int selectionEndOffset;
-        if (type == AttrType.BOOLEAN) {
-            text = attributeName + "={true}";
-            cursorOffset = attributeName.length() + 2;
-            selectionEndOffset = cursorOffset + 4;
-        } else if (shouldUseBraceValue(type)) {
-            text = attributeName + "={}";
-            cursorOffset = text.length() - 1;
-            selectionEndOffset = cursorOffset;
-        } else {
-            text = attributeName + "=\"\"";
-            cursorOffset = text.length() - 1;
-            selectionEndOffset = cursorOffset;
-        }
-        return new Replacement(text, cursorOffset, selectionEndOffset);
-    }
-
-    private static Replacement createAttributeValueReplacement(String source, MdxValueContext context, String value) {
+    /**
+     * Writes an attribute value, adding quotes when the page does not quote it yet and closing a
+     * half-typed delimiter the resolver detected.
+     */
+    private static Replacement createAttributeValueReplacement(String source, MdxValueContext context, String value,
+        AutocompleteCandidate candidate) {
         int replaceStart = clamp(context.replaceStart(), 0, source.length());
         int replaceEnd = clamp(context.replaceEnd(), replaceStart, source.length());
-        ValueEnvelope envelope = findValueEnvelope(source, replaceStart, replaceEnd);
-        String replacement = value;
-        int cursorOffset = replacement.length();
-        int selectionEndOffset = cursorOffset;
-
-        if (!envelope.hasDelimiter && shouldQuoteAttributeValue(context)) {
-            replacement = "\"" + replacement + "\"";
-            cursorOffset = replacement.length();
-            selectionEndOffset = cursorOffset;
-        } else if (context.getMissingValueTerminator() != '\0'
-            && !endsWith(replacement, context.getMissingValueTerminator())) {
-                replacement += context.getMissingValueTerminator();
-                cursorOffset = replacement.length() - 1;
-                selectionEndOffset = cursorOffset;
-            }
-        return new Replacement(replacement, cursorOffset, selectionEndOffset);
-    }
-
-    private static AttributeSpec findSpec(String tagName, String attributeName) {
-        List<AttributeSpec> specs = TagAttributeRegistry.get(tagName);
-        for (AttributeSpec spec : specs) {
-            if (spec.getName()
-                .equals(attributeName)) {
-                return spec;
-            }
+        if (!hasValueDelimiter(source, replaceStart, replaceEnd) && candidate.quotesValue()) {
+            String quoted = "\"" + value + "\"";
+            return Replacement.cursorAtEnd(quoted);
         }
-        return null;
-    }
-
-    private static boolean shouldUseBraceValue(AttrType type) {
-        return switch (type) {
-            case INT, FLOAT, VECTOR3, SNBT, EXPRESSION -> true;
-            default -> false;
-        };
-    }
-
-    private static boolean shouldQuoteAttributeValue(MdxValueContext context) {
-        AttributeSpec spec = findSpec(context.getTagName(), context.getAttrName());
-        if (spec == null) {
-            return false;
+        char terminator = context.getMissingValueTerminator();
+        if (terminator != '\0' && !endsWith(value, terminator)) {
+            String closed = value + terminator;
+            return new Replacement(closed, closed.length() - 1, closed.length() - 1);
         }
-        return switch (spec.getType()) {
-            case INT, FLOAT, BOOLEAN, VECTOR3, SNBT, EXPRESSION -> false;
-            default -> true;
-        };
+        return Replacement.cursorAtEnd(value);
     }
 
     private static Replacement createFrontmatterReplacement(String source, FrontmatterContext context, String rawText) {
@@ -143,21 +115,22 @@ public class AutocompleteCommitService {
         return new Replacement(replacement, replacement.length(), replacement.length());
     }
 
-    private static ValueEnvelope findValueEnvelope(String source, int valueStart, int valueEnd) {
+    /** True when the character just outside the replaced range already delimits the value. */
+    private static boolean hasValueDelimiter(String source, int valueStart, int valueEnd) {
         int before = valueStart - 1;
         if (before >= 0) {
             char open = source.charAt(before);
             if (open == '"' || open == '\'' || open == '{') {
-                return new ValueEnvelope(true);
+                return true;
             }
         }
         if (valueEnd < source.length()) {
             char close = source.charAt(valueEnd);
             if (close == '"' || close == '\'' || close == '}') {
-                return new ValueEnvelope(true);
+                return true;
             }
         }
-        return new ValueEnvelope(false);
+        return false;
     }
 
     private static int skipSpaces(String source, int start) {
@@ -193,15 +166,6 @@ public class AutocompleteCommitService {
 
         private static Replacement cursorAtEnd(String text) {
             return new Replacement(text, text.length(), text.length());
-        }
-    }
-
-    private static class ValueEnvelope {
-
-        private final boolean hasDelimiter;
-
-        private ValueEnvelope(boolean hasDelimiter) {
-            this.hasDelimiter = hasDelimiter;
         }
     }
 }
