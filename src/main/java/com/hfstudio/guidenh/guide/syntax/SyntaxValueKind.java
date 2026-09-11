@@ -47,7 +47,7 @@ public record SyntaxValueKind(String id, boolean quoted) {
     public static final SyntaxValueKind FILE_PATH = new SyntaxValueKind("FILE_PATH", true);
     /** A BetterQuesting quest id. */
     public static final SyntaxValueKind QUEST_UUID = new SyntaxValueKind("QUEST_UUID", true);
-    /** A Minecraft command without the leading slash. */
+    /** A Minecraft command, written with its leading slash, for example {@code /tp @s 0 90 0}. */
     public static final SyntaxValueKind COMMAND = new SyntaxValueKind("COMMAND", true);
     /** A math expression. */
     public static final SyntaxValueKind EXPRESSION = new SyntaxValueKind("EXPRESSION", true);

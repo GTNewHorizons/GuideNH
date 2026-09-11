@@ -41,7 +41,9 @@ public class AttributeNameCandidate implements AutocompleteCandidate {
             || SyntaxValueKind.EXPRESSION.equals(kind)) {
             return name + "={}";
         }
-        return name + "=\"\"";
+        // A kind that is written without quotes keeps an empty bare value, so a value typed or accepted
+        // afterwards lands where the page expects it.
+        return kind.isQuoted() ? name + "=\"\"" : name + "=";
     }
 
     @Override

@@ -113,7 +113,9 @@ public class GuideSyntaxCompletion {
                 break;
             }
             if (snippet.kind()
-                .equals(context.getKind())) {
+                .lineLead()
+                == context.getKind()
+                    .lineLead()) {
                 results.add(new MarkdownSyntaxCandidate(snippet));
             }
         }

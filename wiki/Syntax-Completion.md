@@ -59,7 +59,7 @@ public class MyModSyntaxContributor implements SyntaxContributor {
         // Attributes. The value kind decides which value source answers completion.
         sink.attributes(
             "MyMachine",
-            AttributeSyntax.of("id", SyntaxValueKind.TEXT),
+            AttributeSyntax.of("id", SyntaxValueKind.STRING),
             AttributeSyntax.of("machine", SyntaxValueKind.of("MYMOD_MACHINE")),  // your own kind
             AttributeSyntax.of("tier", SyntaxValueKind.INT),
             AttributeSyntax.of("formed", SyntaxValueKind.BOOLEAN),

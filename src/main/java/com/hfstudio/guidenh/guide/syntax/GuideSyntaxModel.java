@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -34,13 +35,18 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
  * to every guide.
  *
  * <p>
- * Models are immutable and cached per extension collection, so building one costs once per guide
- * instead of once per keystroke.
+ * Models are immutable, so one is built once per extension collection and reused until the global
+ * registrations change.
  */
 public class GuideSyntaxModel {
 
-    private static final Map<ExtensionCollection, GuideSyntaxModel> CACHE = new IdentityHashMap<>();
-    private static final GuideSyntaxModel EMPTY = build(ExtensionCollection.empty());
+    /**
+     * Models are cached per extension collection while it is still reachable, so building one costs
+     * once per guide instead of once per keystroke. The cache holds its keys weakly: a guide reload
+     * builds a new collection and the entry for the replaced one disappears with it.
+     */
+    private static final Map<ExtensionCollection, GuideSyntaxModel> CACHE = Collections
+        .synchronizedMap(new WeakHashMap<>());
 
     private final int revision;
     private final Map<String, TagFact> tags;
@@ -68,9 +74,12 @@ public class GuideSyntaxModel {
         this.valueSources = Collections.unmodifiableMap(builder.valueSources);
     }
 
-    /** The model with only the built-in syntax, used when no guide is open. */
+    /**
+     * The model used when no guide is open: only what is registered globally, with no guide-declared
+     * syntax. It observes later global registrations like any other model.
+     */
     public static GuideSyntaxModel empty() {
-        return EMPTY;
+        return of(null);
     }
 
     /** The model for a guide, built once and reused until the global registrations change. */
@@ -133,8 +142,6 @@ public class GuideSyntaxModel {
             }
         }
     }
-
-    // ------------------------------------------------------------------ tags
 
     /** Tag names offered inside {@code parentTagName}, filtered by {@code partial}. */
     public List<String> tagNames(@Nullable String parentTagName, @Nullable String partial) {
@@ -205,13 +212,9 @@ public class GuideSyntaxModel {
         return null;
     }
 
-    // -------------------------------------------------------------- markdown
-
     public List<MarkdownSnippet> markdownSnippets() {
         return markdownSnippets;
     }
-
-    // ---------------------------------------------------------- code fences
 
     /** Fence names starting with {@code partial}. */
     public List<String> fenceLanguages(@Nullable String partial) {
@@ -225,8 +228,6 @@ public class GuideSyntaxModel {
         }
         return results;
     }
-
-    // ------------------------------------------------------------ frontmatter
 
     /** Frontmatter keys whose name contains {@code partial}. */
     public List<String> frontmatterKeys(@Nullable String partial) {
@@ -247,8 +248,6 @@ public class GuideSyntaxModel {
         ValueSlot slot = key != null ? frontmatterValues.get(key) : null;
         return slot != null ? slot.kind : null;
     }
-
-    // ----------------------------------------------------------- value kinds
 
     /**
      * Values for a request: the fixed values declared next to the attribute or frontmatter key first,

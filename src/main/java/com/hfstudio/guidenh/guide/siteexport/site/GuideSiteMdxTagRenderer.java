@@ -1740,7 +1740,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         String legend = readOptional(element, "legend");
         if (legend != null && !legend.trim()
             .isEmpty()) {
-            return ChartAttrParser.parseLegendPosition(legend, ChartLegendPosition.NONE) != ChartLegendPosition.NONE;
+            // An absent or unparsable value keeps the in-game default, which is a legend at the top.
+            return ChartAttrParser.parseLegendPosition(legend, ChartLegendPosition.TOP) != ChartLegendPosition.NONE;
         }
         return readBoolean(element, "showLegend", true);
     }
