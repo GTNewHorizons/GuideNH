@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 /**
@@ -56,8 +57,10 @@ public class GuideSyntaxModel {
     private final List<String> frontmatterKeys;
     private final Map<String, ValueSlot> frontmatterValues;
     private final Map<SyntaxValueKind, List<SyntaxValueSource>> valueSources;
+    private final Map<String, InsertTemplate> insertTemplates;
+    private final List<SyntaxSlot> slots;
 
-    private GuideSyntaxModel(Builder builder, int revision) {
+    private GuideSyntaxModel(Builder builder, int revision, List<SyntaxSlot> slots) {
         this.revision = revision;
         this.tags = Collections.unmodifiableMap(builder.buildTagFacts());
         List<String> roots = new ArrayList<>();
@@ -72,6 +75,8 @@ public class GuideSyntaxModel {
         this.frontmatterKeys = List.copyOf(builder.frontmatterKeys);
         this.frontmatterValues = Collections.unmodifiableMap(builder.frontmatterValues);
         this.valueSources = Collections.unmodifiableMap(builder.valueSources);
+        this.insertTemplates = Collections.unmodifiableMap(builder.insertTemplates);
+        this.slots = List.copyOf(slots);
     }
 
     /**
@@ -106,7 +111,27 @@ public class GuideSyntaxModel {
             contributor.contribute(builder);
         }
         collectCompilerTagNames(builder, extensions);
-        return new GuideSyntaxModel(builder, revision);
+        return new GuideSyntaxModel(builder, revision, slots(extensions));
+    }
+
+    /**
+     * The slots a contributor owns, guide-declared first: matching stops at the first slot that claims
+     * the caret, so the guide's own syntax answers before a global one.
+     */
+    private static List<SyntaxSlot> slots(ExtensionCollection extensions) {
+        List<SyntaxSlot> declared = extensions.get(SyntaxSlot.EXTENSION_POINT);
+        List<SyntaxSlot> global = GuideNhIntegrationRegistry.global()
+            .syntaxSlots();
+        if (global.isEmpty()) {
+            return declared;
+        }
+        if (declared.isEmpty()) {
+            return global;
+        }
+        List<SyntaxSlot> all = new ArrayList<>(declared.size() + global.size());
+        all.addAll(declared);
+        all.addAll(global);
+        return all;
     }
 
     private static List<SyntaxContributor> contributors(ExtensionCollection extensions) {
@@ -177,6 +202,77 @@ public class GuideSyntaxModel {
     public boolean isContainerTag(String tagName) {
         TagFact fact = tags.get(tagName);
         return fact != null && fact.container;
+    }
+
+    /** The text a tag completes as, or null when completing its name is enough. */
+    @Nullable
+    public InsertTemplate insertTemplate(@Nullable String tagName) {
+        return tagName != null ? insertTemplates.get(tagName) : null;
+    }
+
+    /** Every declared insert template, keyed by tag name. */
+    public Map<String, InsertTemplate> insertTemplates() {
+        return insertTemplates;
+    }
+
+    /** The slots that may own a caret, in the order they are asked. */
+    public List<SyntaxSlot> slots() {
+        return slots;
+    }
+
+    /**
+     * Asks every slot which one owns the caret. The first match wins, so a contributor's syntax answers
+     * before the editor's own resolvers, and a slot that claims text keeps it even when it has no values.
+     *
+     * @return the slot under the caret, or null when no slot owns it
+     */
+    @Nullable
+    public SyntaxSlotMatch matchSlot(String text, int cursorIndex) {
+        for (SyntaxSlot slot : slots) {
+            SyntaxSlotMatch match = matchSafely(slot, text, cursorIndex);
+            if (match != null) {
+                return match;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Asks every matching slot which range a double click inside it selects.
+     *
+     * @return the range to select, or null when no slot owns the caret
+     */
+    @Nullable
+    public SyntaxSelection matchSlotSelection(String text, int cursorIndex) {
+        for (SyntaxSlot slot : slots) {
+            try {
+                if (slot.match(text, cursorIndex, this) == null) {
+                    continue;
+                }
+                SyntaxSelection selection = slot.selection(text, cursorIndex);
+                if (selection != null && !selection.isEmpty()) {
+                    return selection;
+                }
+            } catch (RuntimeException e) {
+                reportSlotFailure(slot, e);
+            }
+        }
+        return null;
+    }
+
+    /** A slot of another mod must never break the editor, so a failure only skips that slot. */
+    @Nullable
+    private SyntaxSlotMatch matchSafely(SyntaxSlot slot, String text, int cursorIndex) {
+        try {
+            return slot.match(text, cursorIndex, this);
+        } catch (RuntimeException e) {
+            reportSlotFailure(slot, e);
+            return null;
+        }
+    }
+
+    private static void reportSlotFailure(SyntaxSlot slot, RuntimeException failure) {
+        GuideDebugLog.error("[GuideNH] [SyntaxSlot] {} failed to answer: {}", slot.namespace(), failure.toString());
     }
 
     /** Attributes of a tag whose names start with {@code partial}. */
@@ -393,6 +489,7 @@ public class GuideSyntaxModel {
         private final List<String> frontmatterKeys = new ArrayList<>();
         private final Map<String, ValueSlot> frontmatterValues = new LinkedHashMap<>();
         private final Map<SyntaxValueKind, List<SyntaxValueSource>> valueSources = new LinkedHashMap<>();
+        private final Map<String, InsertTemplate> insertTemplates = new LinkedHashMap<>();
 
         @Override
         public SyntaxSink tags(String... names) {
@@ -435,6 +532,17 @@ public class GuideSyntaxModel {
         @Override
         public SyntaxSink markdown(MarkdownSnippet... snippets) {
             markdownSnippets.addAll(List.of(snippets));
+            return this;
+        }
+
+        @Override
+        public SyntaxSink insertTemplates(InsertTemplate... templates) {
+            for (InsertTemplate template : templates) {
+                if (!template.tagName()
+                    .isEmpty()) {
+                    insertTemplates.put(template.tagName(), template);
+                }
+            }
             return this;
         }
 

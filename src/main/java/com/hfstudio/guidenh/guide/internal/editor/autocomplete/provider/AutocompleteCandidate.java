@@ -4,6 +4,8 @@ import net.minecraft.client.gui.FontRenderer;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
+
 /**
  * One entry of the completion popup. A candidate describes a snippet: {@link #replacementText()} is
  * written over the typed text, {@link #caretOffsetInReplacement()} places the caret inside it,
@@ -56,6 +58,15 @@ public interface AutocompleteCandidate {
      */
     default boolean quotesValue() {
         return false;
+    }
+
+    /**
+     * The suggestion this candidate stands for, when it wraps one. A slot of another mod writes its own
+     * replacement, so it needs the value the author picked rather than the rendered text.
+     */
+    @Nullable
+    default SyntaxSuggestion syntaxSuggestion() {
+        return null;
     }
 
     void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered);

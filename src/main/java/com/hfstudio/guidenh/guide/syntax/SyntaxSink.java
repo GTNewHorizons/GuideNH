@@ -24,6 +24,12 @@ public interface SyntaxSink {
     /** Declares the attributes of a tag. Re-declaring a name replaces its earlier declaration. */
     SyntaxSink attributes(String tagName, AttributeSyntax... attributes);
 
+    /**
+     * Declares the text a tag completes as, for tags whose useful form is more than the tag name.
+     * Re-declaring a tag replaces its earlier template.
+     */
+    SyntaxSink insertTemplates(InsertTemplate... templates);
+
     /** Declares markdown snippets. */
     SyntaxSink markdown(MarkdownSnippet... snippets);
 

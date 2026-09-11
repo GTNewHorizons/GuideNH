@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
 import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
+import com.hfstudio.guidenh.guide.syntax.SyntaxSlot;
 
 public class GuideNhIntegrationRegistry {
 
@@ -45,6 +46,7 @@ public class GuideNhIntegrationRegistry {
     private final List<BlockStatsProvider> blockStatsProviders = new ArrayList<>();
     private final List<GuidebookFakeWorldIntegration> fakeWorldIntegrations = new ArrayList<>();
     private final List<SyntaxContributor> syntaxContributors = new ArrayList<>();
+    private final List<SyntaxSlot> syntaxSlots = new ArrayList<>();
     private int syntaxRevision;
 
     public GuideNhIntegrationRegistry() {}
@@ -193,6 +195,25 @@ public class GuideNhIntegrationRegistry {
 
     public synchronized List<SyntaxContributor> syntaxContributors() {
         return List.copyOf(syntaxContributors);
+    }
+
+    /**
+     * Registers a slot for every guide. Use it for syntax of your own that the built-in editor cannot
+     * describe; for one guide only, pass the slot to
+     * {@code GuideBuilder.extension(SyntaxSlot.EXTENSION_POINT, slot)} instead.
+     */
+    public synchronized void registerSyntaxSlot(SyntaxSlot slot) {
+        if (slot == null) {
+            throw new IllegalArgumentException("slot");
+        }
+        if (!syntaxSlots.contains(slot)) {
+            syntaxSlots.add(slot);
+            syntaxRevision++;
+        }
+    }
+
+    public synchronized List<SyntaxSlot> syntaxSlots() {
+        return List.copyOf(syntaxSlots);
     }
 
     /** Bumped whenever the registered syntax changes, so cached syntax models can detect staleness. */

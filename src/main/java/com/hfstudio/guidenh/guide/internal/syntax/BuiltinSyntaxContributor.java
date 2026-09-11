@@ -26,6 +26,7 @@ import com.hfstudio.guidenh.guide.internal.syntax.values.OreDictValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.PagePathValueSource;
 import com.hfstudio.guidenh.guide.internal.syntax.values.QuestIdValueSource;
 import com.hfstudio.guidenh.guide.syntax.AttributeSyntax;
+import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
 import com.hfstudio.guidenh.guide.syntax.MarkdownSnippet;
 import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSink;
@@ -1011,6 +1012,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         contributeMarkdown(sink);
         contributeFences(sink);
         contributeFrontmatter(sink);
+        contributeInsertTemplates(sink);
         contributeValueSources(sink);
     }
 
@@ -1365,6 +1367,47 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.tags("link", "image");
         sink.attributes("link", AttributeSyntax.of("url", SyntaxValueKind.PAGE_PATH));
         sink.attributes("image", AttributeSyntax.of("url", SyntaxValueKind.FILE_PATH));
+    }
+
+    /**
+     * The form a tag completes as, for tags that need attributes or content to be useful. Completing the
+     * name alone would only write {@code <Name />}, which is why the editor writes these instead.
+     */
+    private static void contributeInsertTemplates(SyntaxSink sink) {
+        sink.insertTemplates(
+            InsertTemplate
+                .caretAfter("InputAnnotation", "<InputAnnotation pos=\"0.5 1.5 0.5\" inputType=\"lmb\" />", "pos=\""),
+            InsertTemplate.caretAfter("BlockStat", "<BlockStat item=\"\" count=\"1\" />", "item=\""),
+            InsertTemplate.caretAfter("BlockStats", "<BlockStats corner=\"topRight\">\n  \n</BlockStats>", "\n  "),
+            InsertTemplate.caretAfter(
+                "ImportStructureLib",
+                "<ImportStructureLib controller=\"\" formed={true} />",
+                "controller=\""),
+            InsertTemplate.caretAfter("Recipe", "<Recipe id=\"\" />", "id=\""),
+            InsertTemplate.caretAfter(
+                "GameScene",
+                "<GameScene width=\"256\" height=\"160\" interactive={true}>\n  \n</GameScene>",
+                "\n  "),
+            InsertTemplate.caretAfter(
+                "ColumnChart",
+                "<ColumnChart title=\"Total\" width=\"360\" height=\"220\">\n  <Series name=\"A\" data=\"1 2 3\" />\n</ColumnChart>",
+                "title=\""),
+            InsertTemplate.caretAfter(
+                "BarChart",
+                "<BarChart title=\"Total\" width=\"360\" height=\"220\">\n  <Series name=\"A\" data=\"1 2 3\" />\n</BarChart>",
+                "title=\""),
+            InsertTemplate.caretAfter(
+                "LineChart",
+                "<LineChart title=\"Trend\" width=\"360\" height=\"220\">\n  <Series name=\"A\" data=\"1 2 3\" />\n</LineChart>",
+                "title=\""),
+            InsertTemplate.caretAfter(
+                "PieChart",
+                "<PieChart title=\"Share\" width=\"320\" height=\"220\">\n  <Slice label=\"A\" value=\"1\" />\n</PieChart>",
+                "title=\""),
+            InsertTemplate.caretAfter(
+                "FunctionGraph",
+                "<FunctionGraph width=\"360\" height=\"220\" xRange=\"-6..6\" yRange=\"-3..3\">\n  <Plot expr=\"sin(x)\" color=\"#ff5566\" />\n</FunctionGraph>",
+                "expr=\""));
     }
 
     private static void contributeFences(SyntaxSink sink) {

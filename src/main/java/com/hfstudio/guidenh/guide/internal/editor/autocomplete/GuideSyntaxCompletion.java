@@ -24,6 +24,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStart
 import com.hfstudio.guidenh.guide.syntax.AttributeSyntax;
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.MarkdownSnippet;
+import com.hfstudio.guidenh.guide.syntax.SyntaxSlotMatch;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
@@ -50,7 +51,32 @@ public class GuideSyntaxCompletion {
             return List.of();
         }
         AutocompleteContext context = syntax.getAutocomplete();
-        List<AutocompleteCandidate> candidates = resolve(model, context, limit);
+        return ranked(resolve(model, context, limit), context, limit);
+    }
+
+    /**
+     * Candidates for a slot another mod owns. The slot decides the range and the values, so this only
+     * wraps them and gives them the ordering every other slot gets.
+     */
+    public static List<AutocompleteCandidate> slotQuery(@Nullable SyntaxSlotMatch match, int limit) {
+        if (match == null) {
+            return List.of();
+        }
+        SlotContext context = new SlotContext(match);
+        List<AutocompleteCandidate> candidates = new ArrayList<>();
+        for (SyntaxSuggestion suggestion : match.suggestions()) {
+            if (candidates.size() >= limit) {
+                break;
+            }
+            // A slot writes its own replacement, so the kind is only what the candidate falls back to.
+            candidates.add(new SyntaxValueCandidate(suggestion, SyntaxValueKind.STRING));
+        }
+        return ranked(candidates, context, limit);
+    }
+
+    /** Drops candidates that add nothing and orders what is left by how close it is to the typed text. */
+    private static List<AutocompleteCandidate> ranked(List<AutocompleteCandidate> candidates,
+        AutocompleteContext context, int limit) {
         if (candidates.isEmpty()) {
             return candidates;
         }
@@ -88,7 +114,7 @@ public class GuideSyntaxCompletion {
             if (results.size() >= limit) {
                 break;
             }
-            results.add(new TagCandidate(tagName, model.isContainerTag(tagName)));
+            results.add(new TagCandidate(tagName, model.isContainerTag(tagName), model.insertTemplate(tagName)));
         }
         return results;
     }

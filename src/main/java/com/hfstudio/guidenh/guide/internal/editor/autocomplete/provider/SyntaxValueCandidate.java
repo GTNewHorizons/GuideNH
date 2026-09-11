@@ -42,6 +42,11 @@ public class SyntaxValueCandidate implements AutocompleteCandidate {
     }
 
     @Override
+    public SyntaxSuggestion syntaxSuggestion() {
+        return suggestion;
+    }
+
+    @Override
     public int renderHeight() {
         return suggestion.icon() != null ? ICON_SIZE + 2 : 14;
     }

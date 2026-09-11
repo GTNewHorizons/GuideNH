@@ -173,7 +173,79 @@ public class MyMachineValueSource implements SyntaxValueSource, SyntaxEnvironmen
 `prepare` 要写得足够轻：它每个编辑器 tick 都会执行。把派生列表缓存起来，只在输入真正变化时重建——
 内置的 `PagePathValueSource` 与 `AnchorValueSource` 就是这么做的。
 
-## 5. 编辑器当前已覆盖的语法
+## 5. 插入模板
+
+补全标签名默认写入 `<Name />`，或者写入成对标签并把光标放在容器内部。如果某个标签必须带上属性或内容才
+有意义，就声明它应该补全成什么文本：
+
+```java
+sink.insertTemplates(
+    InsertTemplate.caretAfter("MyMachine", "<MyMachine id=\"\" tier=\"1\" />", "id=\""),
+    InsertTemplate.caretAfter("MyBlock", "<MyBlock id=\"\">\n  \n</MyBlock>", "\n  "));
+```
+
+`caretAfter` 把光标放在给定标记第一次出现的位置之后，因此模板不需要手数字符数就能说明接下来在哪里继续
+输入。`InsertTemplate.of(tag, text)` 则把光标放在文本末尾。模板会替换已输入标签名，作者确认后就直接落
+在所写好的形式里。
+
+本模组自身也为"光有标签名不够用"的标签声明了模板，例如 `<BlockStat item="" count="1" />`、
+`<InputAnnotation pos="0.5 1.5 0.5" inputType="lmb" />`，以及带第一个数据系列的图表。
+
+## 6. 槽位：你自己的语法
+
+以上都是本模组已经解析的语法。若要补全你自己的语法——块内的指令、代码围栏里的迷你语言、你自己编译的字
+段——注册一个 `SyntaxSlot`：
+
+```java
+public class MyModSlot implements SyntaxSlot {
+
+    @Override
+    public String namespace() {
+        return "mymod";
+    }
+
+    @Override
+    public SyntaxSlotMatch match(String text, int cursorIndex, GuideSyntaxModel model) {
+        // 只接管你自己标签里某个属性的取值，且引号尚未闭合。
+        String attribute = "ports=\"";
+        int attributeStart = text.lastIndexOf(attribute, cursorIndex);
+        if (attributeStart < 0) {
+            return null;
+        }
+        int from = attributeStart + attribute.length();
+        int closingQuote = text.indexOf('"', from);
+        if (closingQuote >= 0 && cursorIndex > closingQuote) {
+            return null;
+        }
+        return new SyntaxSlotMatch(
+            from,
+            cursorIndex,
+            text.substring(from, cursorIndex),
+            MyPortRegistry.suggestions(),
+            suggestion -> SyntaxReplacement.cursorAtEnd(suggestion.value()));
+    }
+}
+```
+
+注册方式与贡献者完全一致：
+
+```java
+GuideNhIntegrationRegistry.global().registerSyntaxSlot(new MyModSlot());
+Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build();
+```
+
+槽位能控制的内容：
+
+- `match` 决定"确认候选项后替换哪一段范围"、"这段里已经输入了什么"、"编辑器提供哪些取值"。光标不在你的
+  语法里时返回 `null`。
+- match 里的 `SyntaxValueWriter` 决定确认后写入什么：替换范围的文本、光标落点、以及选中范围。留空
+  （`null`）表示用取值本身替换该范围。
+- `selection` 可选声明双击你的语法时选中哪一段。
+
+槽位会在编辑器自身的解析器之前被询问；第一个命中的槽位即拥有光标，即使它当下没有可提供的取值——因此本模
+组不会在别的模组声明的文本里乱猜。
+
+## 7. 编辑器当前已覆盖的语法
 
 - MDX 标签，按外层容器收窄；会包裹内容的标签补全为 `<Name></Name>`。
 - 属性名，按取值类型展开为 `name=""`、`name={}` 或 `name={true}`。
@@ -182,6 +254,7 @@ public class MyMachineValueSource implements SyntaxValueSource, SyntaxEnvironmen
   行内代码、链接与图片。每个片段都会把光标放在你接下来要继续输入的位置。
 - 代码围栏语言，来自代码块语言注册表加上 GuideNH 特有的几种围栏。
 - YAML frontmatter 键，以及声明了取值类型的键的取值。
+- 插入模板：光有标签名不够用的标签会一次性补全成完整形式。
 
 候选项会排序，弹窗默认选中最近的一个：先精确前缀，再匹配命名空间之后的标识，最后才是名称中任意位置
 匹配。

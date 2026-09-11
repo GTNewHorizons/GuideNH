@@ -175,7 +175,81 @@ public class MyMachineValueSource implements SyntaxValueSource, SyntaxEnvironmen
 Keep `prepare` cheap: it runs on every editor tick. Cache derived lists and only rebuild them when the
 input actually changed - that is what the built-in `PagePathValueSource` and `AnchorValueSource` do.
 
-## 5. What the editor already completes
+## 5. Insert templates
+
+Completing a tag name writes `<Name />`, or a paired tag with the caret inside the container. A tag that
+needs attributes or content to be useful declares the text it should complete as instead:
+
+```java
+sink.insertTemplates(
+    InsertTemplate.caretAfter("MyMachine", "<MyMachine id=\"\" tier=\"1\" />", "id=\""),
+    InsertTemplate.caretAfter("MyBlock", "<MyBlock id=\"\">\n  \n</MyBlock>", "\n  "));
+```
+
+`caretAfter` puts the caret right after the first occurrence of the marker it is given, so a template can
+say where typing continues without counting characters. `InsertTemplate.of(tag, text)` writes the text
+with the caret at its end. The template replaces the typed tag name, so the author accepts it and carries
+on inside the form that was written.
+
+The mod itself declares templates for the tags whose useful form is more than the tag name, for example
+`<BlockStat item="" count="1" />`, `<InputAnnotation pos="0.5 1.5 0.5" inputType="lmb" />` and a chart
+with its first series.
+
+## 6. Slots: syntax of your own
+
+Everything above describes syntax this mod already parses. For syntax of your own - a directive inside a
+block, a small language in a code fence, a field you compile yourself - register a `SyntaxSlot`:
+
+```java
+public class MyModSlot implements SyntaxSlot {
+
+    @Override
+    public String namespace() {
+        return "mymod";
+    }
+
+    @Override
+    public SyntaxSlotMatch match(String text, int cursorIndex, GuideSyntaxModel model) {
+        // Own the value of one attribute of your own tag, while its quote is still open.
+        String attribute = "ports=\"";
+        int attributeStart = text.lastIndexOf(attribute, cursorIndex);
+        if (attributeStart < 0) {
+            return null;
+        }
+        int from = attributeStart + attribute.length();
+        int closingQuote = text.indexOf('"', from);
+        if (closingQuote >= 0 && cursorIndex > closingQuote) {
+            return null;
+        }
+        return new SyntaxSlotMatch(
+            from,
+            cursorIndex,
+            text.substring(from, cursorIndex),
+            MyPortRegistry.suggestions(),
+            suggestion -> SyntaxReplacement.cursorAtEnd(suggestion.value()));
+    }
+}
+```
+
+Register it globally or per guide, exactly like a contributor:
+
+```java
+GuideNhIntegrationRegistry.global().registerSyntaxSlot(new MyModSlot());
+Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build();
+```
+
+What a slot controls:
+
+- `match` decides the range an accepted value replaces, the text already typed inside it and the values
+  the editor offers. Return `null` when the caret is not inside your syntax.
+- The `SyntaxValueWriter` of the match writes an accepted value: the text that replaces the range, where
+  the caret lands and what is selected. Leaving it `null` replaces the range with the value itself.
+- `selection` optionally declares the range a double click inside your syntax selects.
+
+Slots are asked before the editor's own resolvers, and the first slot that matches owns the caret even
+when it offers no values, so this mod never guesses inside text another mod claims.
+
+## 7. What the editor already completes
 
 - MDX tags, scoped to the enclosing container, with container tags completing as `<Name></Name>`.
 - Attribute names, which expand to `name=""`, `name={}` or `name={true}` according to the value kind.
@@ -185,6 +259,7 @@ input actually changed - that is what the built-in `PagePathValueSource` and `An
   continue typing.
 - Code fence names, derived from the code block language registry plus the GuideNH specific fences.
 - YAML frontmatter keys, and values for the keys that declare a value kind.
+- Insert templates, so a tag whose useful form is more than its name is written complete.
 
 Candidates are ranked so the popup pre-selects the closest match: an exact prefix first, then a match on
 the identifier after the namespace, then a match anywhere in the name.

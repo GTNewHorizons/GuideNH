@@ -4,6 +4,8 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.Autocomp
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
+import com.hfstudio.guidenh.guide.syntax.SyntaxReplacement;
+import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
 /**
  * Applies an accepted candidate to the page text.
@@ -47,6 +49,9 @@ public class AutocompleteCommitService {
 
     private static Replacement createReplacement(String source, AutocompleteContext context,
         AutocompleteCandidate candidate) {
+        if (context instanceof SlotContext slot) {
+            return createSlotReplacement(slot, candidate);
+        }
         String replacement = candidate.replacementText() != null ? candidate.replacementText() : "";
         if (context instanceof TagStartContext tagStart) {
             return createTagReplacement(source, tagStart, replacement);
@@ -59,6 +64,21 @@ public class AutocompleteCommitService {
         }
         // Attribute names and markdown snippets already are complete snippets.
         return Replacement.cursorAtEnd(replacement);
+    }
+
+    /**
+     * A slot of another mod writes its own replacement, so the candidate only has to say which value the
+     * author picked; the slot decides the surroundings and where the caret lands.
+     */
+    private static Replacement createSlotReplacement(SlotContext context, AutocompleteCandidate candidate) {
+        SyntaxSuggestion suggestion = candidate.syntaxSuggestion();
+        if (suggestion == null) {
+            String text = candidate.replacementText() != null ? candidate.replacementText() : "";
+            suggestion = SyntaxSuggestion.of(text);
+        }
+        SyntaxReplacement replacement = context.match()
+            .replacementFor(suggestion);
+        return new Replacement(replacement.text(), replacement.caretOffset(), replacement.selectionEndOffset());
     }
 
     /**

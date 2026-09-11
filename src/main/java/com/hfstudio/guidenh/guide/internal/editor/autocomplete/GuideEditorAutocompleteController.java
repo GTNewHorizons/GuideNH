@@ -17,6 +17,8 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.WordBoun
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.ui.AutocompletePopup;
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
+import com.hfstudio.guidenh.guide.syntax.SyntaxSelection;
+import com.hfstudio.guidenh.guide.syntax.SyntaxSlotMatch;
 
 /**
  * Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the
@@ -136,14 +138,23 @@ public class GuideEditorAutocompleteController {
         queryRequestedByEdit = false;
 
         model.prepare(environment);
-        TextSyntaxContext syntax = resolver.resolve(text, cursorIndex);
-        if (syntax == null || !syntax.shouldAutocomplete()) {
-            close();
-            return;
+        List<AutocompleteCandidate> candidates;
+        AutocompleteContext context;
+        SyntaxSlotMatch slotMatch = model.matchSlot(text, cursorIndex);
+        if (slotMatch != null) {
+            // A slot of another mod claims the caret, so the editor's own resolvers stay out of it even
+            // when the slot has no values to offer right now.
+            candidates = GuideSyntaxCompletion.slotQuery(slotMatch, QUERY_LIMIT);
+            context = new SlotContext(slotMatch);
+        } else {
+            TextSyntaxContext syntax = resolver.resolve(text, cursorIndex);
+            if (syntax == null || !syntax.shouldAutocomplete()) {
+                close();
+                return;
+            }
+            candidates = GuideSyntaxCompletion.query(model, syntax, QUERY_LIMIT);
+            context = syntax.getAutocomplete();
         }
-
-        List<AutocompleteCandidate> candidates = GuideSyntaxCompletion.query(model, syntax, QUERY_LIMIT);
-        AutocompleteContext context = syntax.getAutocomplete();
         if (candidates.isEmpty() || context == null) {
             close();
             return;
@@ -261,6 +272,11 @@ public class GuideEditorAutocompleteController {
     /** Resolves the syntax element under a double click so the host can extend the selection. */
     @Nullable
     public SelectionRange resolveDoubleClickSelection(String text, int cursorIndex) {
+        // A slot of another mod knows its own boundaries, so it answers before the editor's strategies.
+        SyntaxSelection slotSelection = model.matchSlotSelection(text, cursorIndex);
+        if (slotSelection != null) {
+            return new SelectionRange(slotSelection.start(), slotSelection.end());
+        }
         TextSyntaxContext syntax = resolver.resolve(text, cursorIndex);
         if (syntax == null) {
             return null;
