@@ -386,8 +386,6 @@ public class GuideScreen extends GuiContainer
     private final GuideScreenEditorUndoHistory guideEditorUndoHistory = new GuideScreenEditorUndoHistory(100);
     private final GuideEditorAutocompleteController autocompleteController = new GuideEditorAutocompleteController();
     @Nullable
-    private Object autocompleteModelGuide;
-    @Nullable
     private GuideSyntaxModel autocompleteModel;
 
     public static final int SEARCH_FIELD_H = 12;
@@ -3317,13 +3315,18 @@ public class GuideScreen extends GuiContainer
         }
     }
 
+    /**
+     * The syntax model of the guide in the editor. Looking it up is cached per extension collection and per
+     * registration revision, so this is called on every tick: a contributor or slot another mod registers
+     * while the editor is open is picked up as soon as its revision changes.
+     */
     private GuideSyntaxModel resolveGuideSyntaxModel() {
-        if (autocompleteModelGuide != guide || autocompleteModel == null) {
-            autocompleteModelGuide = guide;
-            autocompleteModel = GuideSyntaxModel.of(guide != null ? guide.getExtensions() : null);
-            autocompleteController.setModel(autocompleteModel);
+        GuideSyntaxModel model = GuideSyntaxModel.of(guide != null ? guide.getExtensions() : null);
+        if (model != autocompleteModel) {
+            autocompleteModel = model;
+            autocompleteController.setModel(model);
         }
-        return autocompleteModel;
+        return model;
     }
 
     private void applyGuideEditorAutocompleteCommit() {

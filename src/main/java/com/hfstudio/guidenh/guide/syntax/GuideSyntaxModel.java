@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.syntax;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -10,6 +11,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +58,7 @@ public class GuideSyntaxModel {
     private final List<String> fenceLanguages;
     private final List<String> frontmatterKeys;
     private final Map<String, ValueSlot> frontmatterValues;
-    private final Map<SyntaxValueKind, List<SyntaxValueSource>> valueSources;
+    private final Map<String, List<SyntaxValueSource>> valueSources;
     private final Map<String, InsertTemplate> insertTemplates;
     private final List<SyntaxSlot> slots;
 
@@ -97,10 +99,14 @@ public class GuideSyntaxModel {
             if (cached != null && cached.revision == revision) {
                 return cached;
             }
-            GuideSyntaxModel model = build(key);
-            CACHE.put(key, model);
-            return model;
         }
+        // Contributors run outside the cache monitor: their code belongs to another mod, so it must not be
+        // able to block or re-enter every other model lookup. A duplicate build only costs what it builds.
+        GuideSyntaxModel model = build(key);
+        synchronized (CACHE) {
+            CACHE.put(key, model);
+        }
+        return model;
     }
 
     private static GuideSyntaxModel build(ExtensionCollection extensions) {
@@ -108,10 +114,42 @@ public class GuideSyntaxModel {
             .syntaxRevision();
         Builder builder = new Builder();
         for (SyntaxContributor contributor : contributors(extensions)) {
-            contributor.contribute(builder);
+            try {
+                contributor.contribute(builder);
+            } catch (RuntimeException e) {
+                // A contributor of another mod must never keep the editor from opening, so a failed one is
+                // reported and its remaining declarations are skipped.
+                GuideDebugLog.error(
+                    "[GuideNH] [SyntaxContributor] {} failed to contribute: {}",
+                    namespaceOf(contributor),
+                    e.toString());
+            }
         }
         collectCompilerTagNames(builder, extensions);
         return new GuideSyntaxModel(builder, revision, slots(extensions));
+    }
+
+    /** Names a contributor for a report, tolerating an implementation whose namespace fails. */
+    private static String namespaceOf(SyntaxContributor contributor) {
+        return namespaceOf(contributor, contributor::namespace);
+    }
+
+    /** Names a slot for a report, tolerating an implementation whose namespace fails. */
+    private static String namespaceOf(SyntaxSlot slot) {
+        return namespaceOf(slot, slot::namespace);
+    }
+
+    private static String namespaceOf(Object owner, Supplier<String> namespace) {
+        try {
+            String declared = namespace.get();
+            if (declared != null && !declared.isEmpty()) {
+                return declared;
+            }
+        } catch (RuntimeException e) {
+            // The report is about a failure already, so a failing namespace must not hide it.
+        }
+        return owner.getClass()
+            .getSimpleName();
     }
 
     /**
@@ -157,12 +195,34 @@ public class GuideSyntaxModel {
      */
     private static void collectCompilerTagNames(Builder builder, ExtensionCollection extensions) {
         for (TagCompiler compiler : extensions.get(TagCompiler.EXTENSION_POINT)) {
-            for (String tagName : compiler.getTagNames()) {
-                builder.declareCompilerTag(tagName);
-            }
+            declareCompilerTagNames(builder, compiler, compiler::getTagNames);
         }
         for (SceneElementTagCompiler compiler : extensions.get(SceneElementTagCompiler.EXTENSION_POINT)) {
-            for (String tagName : compiler.getTagNames()) {
+            declareCompilerTagNames(builder, compiler, compiler::getTagNames);
+        }
+    }
+
+    /**
+     * A compiler of another mod publishes its tag names, and one that cannot answer is reported instead of
+     * keeping the editor from opening.
+     */
+    private static void declareCompilerTagNames(Builder builder, Object owner, Supplier<Collection<String>> tagNames) {
+        Collection<String> published;
+        try {
+            published = tagNames.get();
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SyntaxModel] {} failed to publish its tags: {}",
+                owner.getClass()
+                    .getSimpleName(),
+                e.toString());
+            return;
+        }
+        if (published == null) {
+            return;
+        }
+        for (String tagName : published) {
+            if (tagName != null && !tagName.isEmpty()) {
                 builder.declareCompilerTag(tagName);
             }
         }
@@ -280,7 +340,7 @@ public class GuideSyntaxModel {
     }
 
     private static void reportSlotFailure(SyntaxSlot slot, RuntimeException failure) {
-        GuideDebugLog.error("[GuideNH] [SyntaxSlot] {} failed to answer: {}", slot.namespace(), failure.toString());
+        GuideDebugLog.error("[GuideNH] [SyntaxSlot] {} failed to answer: {}", namespaceOf(slot), failure.toString());
     }
 
     /** Attributes of a tag whose names start with {@code partial}. */
@@ -374,16 +434,45 @@ public class GuideSyntaxModel {
             }
             results.add(suggestion);
         }
-        for (SyntaxValueSource source : valueSources.getOrDefault(request.kind(), List.of())) {
+        for (SyntaxValueSource source : valueSources.getOrDefault(
+            request.kind()
+                .id(),
+            List.of())) {
             if (results.size() >= safeLimit) {
                 break;
             }
-            List<SyntaxSuggestion> suggested = source.suggest(request, safeLimit - results.size());
-            if (suggested != null) {
-                results.addAll(suggested);
-            }
+            results.addAll(suggestSafely(source, request, safeLimit - results.size()));
         }
         return results;
+    }
+
+    /**
+     * A source of another mod answering a request. A source that fails or answers nothing is reported and
+     * contributes no values, so a broken plugin only costs its own suggestions.
+     */
+    private static List<SyntaxSuggestion> suggestSafely(SyntaxValueSource source, SyntaxValueRequest request,
+        int limit) {
+        List<SyntaxSuggestion> suggested;
+        try {
+            suggested = source.suggest(request, limit);
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SyntaxValueSource] {} failed to suggest values: {}",
+                source.getClass()
+                    .getSimpleName(),
+                e.toString());
+            return List.of();
+        }
+        if (suggested == null) {
+            return List.of();
+        }
+        List<SyntaxSuggestion> values = new ArrayList<>(suggested.size());
+        for (SyntaxSuggestion suggestion : suggested) {
+            if (suggestion != null) {
+                values.add(suggestion);
+            }
+        }
+        return values;
     }
 
     /**
@@ -452,9 +541,25 @@ public class GuideSyntaxModel {
         for (List<SyntaxValueSource> sources : valueSources.values()) {
             for (SyntaxValueSource source : sources) {
                 if (source instanceof SyntaxEnvironmentAware aware && prepared.add(source)) {
-                    aware.prepare(environment);
+                    prepareSafely(aware, environment);
                 }
             }
+        }
+    }
+
+    /**
+     * A source of another mod refreshing itself. A failure is reported and the source keeps the data it
+     * already had, because a query must still be answered.
+     */
+    private static void prepareSafely(SyntaxEnvironmentAware source, SyntaxEnvironment environment) {
+        try {
+            source.prepare(environment);
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SyntaxValueSource] {} failed to refresh: {}",
+                source.getClass()
+                    .getSimpleName(),
+                e.toString());
         }
     }
 
@@ -496,7 +601,7 @@ public class GuideSyntaxModel {
         private final List<String> fenceLanguages = new ArrayList<>();
         private final List<String> frontmatterKeys = new ArrayList<>();
         private final Map<String, ValueSlot> frontmatterValues = new LinkedHashMap<>();
-        private final Map<SyntaxValueKind, List<SyntaxValueSource>> valueSources = new LinkedHashMap<>();
+        private final Map<String, List<SyntaxValueSource>> valueSources = new LinkedHashMap<>();
         private final Map<String, InsertTemplate> insertTemplates = new LinkedHashMap<>();
 
         @Override
@@ -595,9 +700,28 @@ public class GuideSyntaxModel {
 
         @Override
         public SyntaxSink valueSource(SyntaxValueSource source) {
-            for (SyntaxValueKind kind : source.kinds()) {
-                valueSources.computeIfAbsent(kind, ignored -> new ArrayList<>())
-                    .add(source);
+            Set<SyntaxValueKind> kinds;
+            try {
+                kinds = source.kinds();
+            } catch (RuntimeException e) {
+                // A source that cannot say which kinds it answers is registered for none of them.
+                GuideDebugLog.error(
+                    "[GuideNH] [SyntaxValueSource] {} failed to declare its kinds: {}",
+                    source.getClass()
+                        .getSimpleName(),
+                    e.toString());
+                return this;
+            }
+            if (kinds == null) {
+                return this;
+            }
+            for (SyntaxValueKind kind : kinds) {
+                // Sources are routed by the kind id: the quoting hint belongs to the attribute that
+                // declares the value, not to the source that answers for it.
+                if (kind != null) {
+                    valueSources.computeIfAbsent(kind.id(), ignored -> new ArrayList<>())
+                        .add(source);
+                }
             }
             return this;
         }

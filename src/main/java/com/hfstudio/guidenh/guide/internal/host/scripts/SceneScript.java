@@ -233,7 +233,7 @@ public class SceneScript implements LytScript {
         Map<String, SceneElementTagCompiler> elementCompilers = new HashMap<>();
         if (ph.sceneElementCompilers != null) {
             for (SceneElementTagCompiler compiler : ph.sceneElementCompilers) {
-                for (String name : compiler.getTagNames()) {
+                for (String name : publishedSceneTags(compiler)) {
                     elementCompilers.put(name, compiler);
                 }
             }
@@ -524,6 +524,34 @@ public class SceneScript implements LytScript {
             binding.setSelectionChangeListener(selection -> scene.rebuild());
         }
         scene.setStructureLibSelectionChangeListener(selection -> scene.rebuild());
+    }
+
+    /**
+     * The tags a scene element compiler publishes. A compiler of another mod that cannot answer is reported
+     * and skipped, because one broken plugin must not keep every scene from compiling.
+     */
+    private static Collection<String> publishedSceneTags(SceneElementTagCompiler compiler) {
+        Collection<String> tagNames;
+        try {
+            tagNames = compiler.getTagNames();
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SceneScript] {} failed to publish its tags: {}",
+                compiler.getClass()
+                    .getSimpleName(),
+                e.toString());
+            return List.of();
+        }
+        if (tagNames == null) {
+            return List.of();
+        }
+        List<String> usable = new ArrayList<>(tagNames.size());
+        for (String tagName : tagNames) {
+            if (tagName != null && !tagName.isEmpty()) {
+                usable.add(tagName);
+            }
+        }
+        return usable;
     }
 
     /**

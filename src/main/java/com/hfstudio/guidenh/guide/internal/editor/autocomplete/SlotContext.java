@@ -21,8 +21,18 @@ public class SlotContext implements AutocompleteContext {
 
     /** Namespace of the slot that answered, used when reporting that its writer failed. */
     public String slotNamespace() {
+        try {
+            String namespace = slotMatch.slot()
+                .namespace();
+            if (namespace != null && !namespace.isEmpty()) {
+                return namespace;
+            }
+        } catch (RuntimeException e) {
+            // The report is about a failure already, so a failing namespace must not hide it.
+        }
         return slotMatch.slot()
-            .namespace();
+            .getClass()
+            .getSimpleName();
     }
 
     @Override

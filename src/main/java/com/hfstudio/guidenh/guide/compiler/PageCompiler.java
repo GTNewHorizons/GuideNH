@@ -144,10 +144,38 @@ public class PageCompiler {
 
         // Index available tag-compilers
         for (var tagCompiler : extensions.get(TagCompiler.EXTENSION_POINT)) {
-            for (String tagName : tagCompiler.getTagNames()) {
+            for (String tagName : publishedTagNames(tagCompiler)) {
                 tagCompilers.put(tagName, tagCompiler);
             }
         }
+    }
+
+    /**
+     * The tags a compiler publishes. A compiler of another mod that cannot answer is reported and skipped,
+     * because one broken plugin must not keep every page from compiling.
+     */
+    private static Collection<String> publishedTagNames(TagCompiler compiler) {
+        Collection<String> tagNames;
+        try {
+            tagNames = compiler.getTagNames();
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [PageCompiler] {} failed to publish its tags: {}",
+                compiler.getClass()
+                    .getSimpleName(),
+                e.toString());
+            return List.of();
+        }
+        if (tagNames == null) {
+            return List.of();
+        }
+        List<String> usable = new ArrayList<>(tagNames.size());
+        for (String tagName : tagNames) {
+            if (tagName != null && !tagName.isEmpty()) {
+                usable.add(tagName);
+            }
+        }
+        return usable;
     }
 
     @Deprecated
