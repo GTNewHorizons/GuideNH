@@ -142,6 +142,7 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialGeneratedBlock;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageIds;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
@@ -3359,7 +3360,7 @@ public class GuideScreen extends GuiContainer
     private int getAutocompleteAnchorY() {
         return getGuideEditorContentTop() + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelY() : 0)
             + (guideEditorTextArea != null ? guideEditorTextArea.getLineHeightPixels()
-                : fontRendererObj.FONT_HEIGHT + 2)
+                : GuideFontCompat.getLineHeight(fontRendererObj) + 2)
             + AUTOCOMPLETE_CURSOR_GAP_Y;
     }
 

@@ -132,7 +132,12 @@ public class SceneEditorMultilineTextArea {
     public SceneEditorMultilineTextArea(FontRenderer fontRenderer, ClipboardAccess clipboardAccess) {
         this.fontRenderer = fontRenderer;
         this.clipboardAccess = clipboardAccess;
-        this.imeFocusProxy = new GuiTextField(fontRenderer, 0, 0, 1, Math.max(1, fontRenderer.FONT_HEIGHT + 2));
+        this.imeFocusProxy = new GuiTextField(
+            fontRenderer,
+            0,
+            0,
+            1,
+            Math.max(1, GuideFontCompat.getLineHeight(fontRenderer) + 2));
         this.imeFocusProxy.setEnableBackgroundDrawing(false);
         this.imeFocusProxy.setMaxStringLength(1);
         this.wrapEnabled = true;
@@ -1086,7 +1091,7 @@ public class SceneEditorMultilineTextArea {
                 cursorX,
                 cursorY,
                 cursorX + 1,
-                cursorY + fontRenderer.FONT_HEIGHT + 1,
+                cursorY + GuideFontCompat.getLineHeight(fontRenderer) + 1,
                 ColorUtils.WHITE.getColor());
         }
 
@@ -1197,7 +1202,7 @@ public class SceneEditorMultilineTextArea {
                 selectionX,
                 drawY - 1,
                 selectionX + selectionWidth,
-                drawY + fontRenderer.FONT_HEIGHT + 1,
+                drawY + GuideFontCompat.getLineHeight(fontRenderer) + 1,
                 SELECTION_COLOR);
         }
     }
@@ -1230,7 +1235,7 @@ public class SceneEditorMultilineTextArea {
                 highlightX,
                 drawY - 1,
                 highlightX + highlightWidth,
-                drawY + fontRenderer.FONT_HEIGHT + 1,
+                drawY + GuideFontCompat.getLineHeight(fontRenderer) + 1,
                 EXTERNAL_HIGHLIGHT_COLOR);
         }
     }
@@ -1258,7 +1263,7 @@ public class SceneEditorMultilineTextArea {
         if (warningWidth <= 0 && spansLineBreak) {
             warningWidth = 2;
         }
-        int warningY = drawY + fontRenderer.FONT_HEIGHT + 1;
+        int warningY = drawY + GuideFontCompat.getLineHeight(fontRenderer) + 1;
         for (int pixelX = warningX; pixelX < warningX + warningWidth; pixelX += 4) {
             Gui.drawRect(pixelX, warningY, pixelX + 2, warningY + 1, SYNTAX_WARNING_COLOR);
             Gui.drawRect(pixelX + 2, warningY + 1, pixelX + 4, warningY + 2, SYNTAX_WARNING_COLOR);

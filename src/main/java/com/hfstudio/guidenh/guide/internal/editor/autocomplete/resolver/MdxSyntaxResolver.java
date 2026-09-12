@@ -32,7 +32,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
     private static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
 
-    /** The document this resolver last parsed, and the result. */
     @Nullable
     private String cachedText;
     @Nullable

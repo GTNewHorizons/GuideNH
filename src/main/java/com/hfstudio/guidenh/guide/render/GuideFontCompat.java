@@ -5,6 +5,8 @@ import net.minecraft.client.gui.FontRenderer;
 import com.gtnewhorizon.gtnhlib.util.font.FontRendering;
 import com.gtnewhorizon.gtnhlib.util.font.IFontParameters;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.angelica.AngelicaFontSupport;
 
 public class GuideFontCompat {
 
@@ -49,12 +51,8 @@ public class GuideFontCompat {
     }
 
     /**
-     * The width of {@code text} under this font.
-     *
-     * <p>
-     * GTNHLib's measurement casts the renderer to its own font interface, which every renderer satisfies
-     * only while its font mixin is active; the cast is checked here so a renderer without it falls back to
-     * the vanilla measurement instead of failing.
+     * The width of {@code text} under this font. GTNHLib's measurement casts the renderer to its own font
+     * interface, which it only satisfies while that mixin is active, so the cast is checked here.
      */
     public static int getStringWidth(FontRenderer fontRenderer, String text) {
         if (text == null || text.isEmpty()) {
@@ -100,15 +98,21 @@ public class GuideFontCompat {
     }
 
     /**
-     * How tall one line of this font is, in pixels.
+     * How tall one line of this font is, in pixels, which callers add their own gap to.
      *
      * <p>
-     * A custom font scales its glyphs vertically without changing {@code FONT_HEIGHT}, which stays 8, so
-     * laying out text against that constant alone makes the lines overlap once the scale is not 1. This
-     * reads the vertical scale the font reports, and answers {@code FONT_HEIGHT} when there is none.
+     * A custom font draws its glyphs taller without changing {@code FONT_HEIGHT}, so a line laid out against
+     * that constant alone overlaps once the font is larger. The drawn height is
+     * {@code (FONT_HEIGHT - 1) * glyphScaleY * yScaleMultiplier}, where the last factor belongs to the font
+     * a glyph comes from and is not part of {@link IFontParameters}. That height is used only when it exceeds
+     * {@code FONT_HEIGHT}, so a font drawing at the usual size keeps the line it already had.
      */
     public static int getLineHeight(FontRenderer fontRenderer) {
-        return Math.max(1, (int) Math.ceil(fontRenderer.FONT_HEIGHT * getGlyphScaleY(fontRenderer)));
+        float drawn = (fontRenderer.FONT_HEIGHT - 1) * getGlyphScaleY(fontRenderer) * getYScaleMultiplier();
+        if (drawn <= fontRenderer.FONT_HEIGHT) {
+            return fontRenderer.FONT_HEIGHT;
+        }
+        return (int) Math.ceil(drawn);
     }
 
     /** The vertical scale the font draws its glyphs at, or 1 when it does not scale them. */
@@ -120,6 +124,18 @@ public class GuideFontCompat {
             }
         }
         return 1f;
+    }
+
+    /**
+     * The tallest vertical multiplier a glyph can be drawn at, which belongs to the font a glyph comes from.
+     *
+     * <p>
+     * A renderer picks its font per character, so the multiplier is not reachable from the renderer itself;
+     * it lives on Angelica's font configuration. The tallest font is taken because a line has to fit every
+     * glyph in it. The result is 1 while that mod is absent.
+     */
+    public static float getYScaleMultiplier() {
+        return Mods.Angelica.isModLoaded() ? AngelicaFontSupport.yScaleMultiplier() : 1f;
     }
 
     public static float getRenderedAdvance(FontRenderer fontRenderer, int codePoint, boolean bold,
