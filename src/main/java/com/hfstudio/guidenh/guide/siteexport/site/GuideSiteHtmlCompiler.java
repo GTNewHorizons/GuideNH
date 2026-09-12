@@ -23,6 +23,8 @@ import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics.TaskMarker;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
@@ -598,10 +600,33 @@ public class GuideSiteHtmlCompiler {
             + ">";
     }
 
+    /**
+     * A list item, with the task-list marker the book draws turned into the checkbox the site styles.
+     *
+     * <p>
+     * The marker is read with the same helper the in-game compiler uses, so a list is a task list on both
+     * sides. Without this the reader saw the marker as text — a literal {@code [x]} in front of the item.
+     */
     private String compileListItemMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
-        return "<li>" + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
-            + "</li>";
+        TaskMarker marker = MarkdownListSemantics.extractTaskMarker(el.children());
+        if (marker == null) {
+            return "<li>" + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</li>";
+        }
+        // The marker is matched only for a single paragraph child, and it is the leading text of that
+        // paragraph: the item is that paragraph with the marker taken off its text node, exactly as the
+        // in-game list item compiler does it.
+        marker.textNode()
+            .setValue(marker.remainingText());
+        String content = compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver);
+        // A real disabled checkbox: the stylesheet colours it with accent-color, so the reader sees the same
+        // state the book draws.
+        return "<li class=\"guide-task-list-item\"><input type=\"checkbox\" class=\"guide-task-list-checkbox\" disabled"
+            + (marker.checked() ? " checked" : "")
+            + "><span class=\"guide-task-list-content\">"
+            + content
+            + "</span></li>";
     }
 
     private String compileCodeBlockMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
