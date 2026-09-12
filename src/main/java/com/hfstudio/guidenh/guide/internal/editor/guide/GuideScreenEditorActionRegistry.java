@@ -6,7 +6,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
+import com.hfstudio.guidenh.guide.editor.GuideEditorActionContribution;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuideScreenEditorActionRegistry {
 
@@ -30,14 +32,28 @@ public class GuideScreenEditorActionRegistry {
     }
 
     /**
+     * The toolbar and menu entries other mods contribute.
+     *
+     * <p>
+     * Read when the toolbar is built rather than cached, so an action registered while the editor is open is
+     * offered on the next rebuild.
+     */
+    public static List<GuideEditorActionContribution> contributedActions() {
+        return GuideNhIntegrationRegistry.global()
+            .editorActions();
+    }
+
+    /**
      * The editor's context menu.
      *
-     * @param templateEntries extra insert entries, one per contributed insert template, appended to the
-     *                        insert menu so a tag whose useful form is more than its name is reachable
-     *                        without typing it out
+     * @param templateEntries    extra insert entries, one per contributed insert template, appended to the
+     *                           insert menu so a tag whose useful form is more than its name is reachable
+     *                           without typing it out
+     * @param contributedEntries entries for the actions other mods contribute, appended to an extras submenu
      */
     public static List<GuideScreenEditorContextMenu.Entry> contextMenuEntries(
-        List<GuideScreenEditorContextMenu.Entry> templateEntries) {
+        List<GuideScreenEditorContextMenu.Entry> templateEntries,
+        List<GuideScreenEditorContextMenu.Entry> contributedEntries) {
         List<GuideScreenEditorContextMenu.Entry> editEntries = actionEntries(GuideScreenEditorActionGroup.EDIT);
         List<GuideScreenEditorContextMenu.Entry> insertEntries = new ArrayList<>();
         append(insertEntries, GuideScreenEditorActionGroup.ROOT_INSERT);
@@ -55,6 +71,10 @@ public class GuideScreenEditorActionRegistry {
             insertEntries.add(
                 GuideScreenEditorContextMenu.Entry
                     .submenu(GuidebookText.GuideEditorContextMenuTemplates.text(), templateEntries));
+        }
+        if (contributedEntries != null && !contributedEntries.isEmpty()) {
+            insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+            insertEntries.addAll(contributedEntries);
         }
         insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
 

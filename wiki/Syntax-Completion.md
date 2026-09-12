@@ -291,11 +291,13 @@ compiled, so register during mod loading.
 | Add a scene editor toolbar button or menu item | `SceneEditorToolbarRegistry` / `SceneEditorMenuRegistry` |
 | Add a resource to the exported site | `ExportableResourceProvider` on your node |
 | Report a problem with your own syntax to the reader | `LytErrorSink.appendError(compiler, text, element)`, which is the `parent` your tag compiler is given |
+| Add a button or menu entry to the guide editor | `GuideNhIntegrationRegistry.registerEditorAction(GuideEditorActionContribution.insert(...))` or `.wrap(...)` |
 
 Deliberately closed, with what it costs you:
 
-- The guide editor's toolbar is a fixed set: a contributed template appears in the insert menu (the
-  Templates submenu) and through completion, but not as a toolbar button.
+- The guide editor's built-in toolbar is a fixed set. A contributed *action* (see
+  `GuideEditorActionContribution`) gets its own toolbar button and menu entry after the built-ins, so what
+  cannot be added is a change to a built-in action, not a new one.
 - Diagnostics are reported at compile time through `LytErrorSink`: the error block is appended to the
   document, so the reader sees it in the book and on the exported site. There is no separate "warn
   while typing" hook in the editor.

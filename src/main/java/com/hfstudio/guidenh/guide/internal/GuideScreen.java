@@ -83,6 +83,7 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.editor.GuideEditorActionContribution;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
@@ -1994,6 +1995,56 @@ public class GuideScreen extends GuiContainer
         }
     }
 
+    /**
+     * Button id the first contributed editor action gets.
+     *
+     * <p>
+     * The built-in actions take {@code 2000} plus their enum ordinal, so a contributed action sits in its own
+     * range above them: it is a real button without an enum constant, and it can never collide with a
+     * built-in action even if the enum grows.
+     */
+    private static final int CONTRIBUTED_EDITOR_ACTION_ID_BASE = 8000;
+
+    /**
+     * Applies a contributed editor action to the document.
+     *
+     * <p>
+     * A contribution carries text rather than behaviour, so it is applied here: the editor owns the mutation,
+     * which keeps a contributed action on the same undo, dirty-state and completion path as every other edit.
+     */
+    private void runContributedGuideEditorAction(int index) {
+        List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions();
+        if (index < 0 || index >= actions.size() || guideEditorTextArea == null) {
+            return;
+        }
+        GuideEditorActionContribution action = actions.get(index);
+        runGuideEditorTextMutation(() -> {
+            guideEditorTextArea.setFocused(true);
+            String source = guideEditorTextArea.getText();
+            int start = Math.clamp(guideEditorTextArea.getSelectionStart(), 0, source.length());
+            int end = Math.clamp(guideEditorTextArea.getSelectionEnd(), start, source.length());
+            String selected = source.substring(start, end);
+            String insertText = action.insertText();
+            String written;
+            int caretOffset;
+            if (insertText != null) {
+                written = insertText;
+                caretOffset = insertText.length();
+            } else {
+                String prefix = action.wrapPrefix();
+                String suffix = action.wrapSuffix();
+                written = prefix + selected + suffix;
+                // With nothing selected the caret goes between the markers, ready for the text they mark up;
+                // with a selection it goes after it, so typing continues where the author was.
+                caretOffset = selected.isEmpty() ? prefix.length() : written.length();
+            }
+            String edited = source.substring(0, start) + written + source.substring(end);
+            int caretIndex = start + caretOffset;
+            guideEditorTextArea.applyEditPreservingViewport(edited, caretIndex, caretIndex);
+        });
+        syncGuideEditorPreviewScrollFromEditor();
+    }
+
     private void handleGuideEditorActionButton(int actionId) {
         if (guideEditorTextArea == null || actionId < 0 || actionId >= GuideScreenEditorAction.values().length) {
             return;
@@ -2103,7 +2154,28 @@ public class GuideScreen extends GuiContainer
     }
 
     private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContextMenuEntries() {
-        return GuideScreenEditorActionRegistry.contextMenuEntries(buildGuideEditorTemplateEntries());
+        return GuideScreenEditorActionRegistry
+            .contextMenuEntries(buildGuideEditorTemplateEntries(), buildGuideEditorContributedEntries());
+    }
+
+    /**
+     * One menu entry per contributed editor action, so an action a mod adds is reachable from the toolbar and
+     * from the context menu alike.
+     */
+    private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContributedEntries() {
+        List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions();
+        if (actions.isEmpty()) {
+            return List.of();
+        }
+        List<GuideScreenEditorContextMenu.Entry> entries = new ArrayList<>(actions.size());
+        for (int i = 0; i < actions.size(); i++) {
+            int index = i;
+            GuideEditorActionContribution action = actions.get(i);
+            entries.add(
+                GuideScreenEditorContextMenu.Entry
+                    .runnable(action.label(), () -> runContributedGuideEditorAction(index)));
+        }
+        return entries;
     }
 
     /**
@@ -2326,6 +2398,22 @@ public class GuideScreen extends GuiContainer
             }
             buttonList.add(button);
         }
+
+        // Contributed actions get their own id range above the built-in ones, so an action of another mod is
+        // a real toolbar button without an enum constant of its own.
+        List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions();
+        for (int i = 0; i < contributed.size(); i++) {
+            GuideEditorActionContribution action = contributed.get(i);
+            int id = CONTRIBUTED_EDITOR_ACTION_ID_BASE + i;
+            GuideIconButton button = guideEditorActionButtons.get(id);
+            if (button == null) {
+                button = new GuideIconButton(id, 0, 0, action.icon(), action.label());
+                guideEditorActionButtons.put(id, button);
+            } else {
+                button.visible = true;
+            }
+            buttonList.add(button);
+        }
     }
 
     private List<GuideScreenEditorAction> getGuideEditorActionOrder() {
@@ -2392,6 +2480,8 @@ public class GuideScreen extends GuiContainer
             setGuideEditorLayoutMode(GuideScreenEditorLayoutMode.PREVIEW_ONLY);
         } else if (btn == btnGuideEditorAdvancedToggle) {
             toggleGuideEditorAdvancedButtons();
+        } else if (btn != null && btn.id >= CONTRIBUTED_EDITOR_ACTION_ID_BASE) {
+            runContributedGuideEditorAction(btn.id - CONTRIBUTED_EDITOR_ACTION_ID_BASE);
         } else if (btn != null && btn.id >= 2000) {
             handleGuideEditorActionButton(btn.id - 2000);
         }
@@ -3473,6 +3563,25 @@ public class GuideScreen extends GuiContainer
         for (GuideScreenEditorAction action : actions) {
             int buttonId = 2000 + action.ordinal();
             GuideIconButton button = guideEditorActionButtons.get(buttonId);
+            if (button == null) {
+                continue;
+            }
+            if (x + GuideIconButton.WIDTH > maxX && x > startX) {
+                x = startX;
+                y += rowHeight;
+            }
+            button.xPosition = x;
+            button.yPosition = y;
+            button.visible = true;
+            button.enabled = true;
+            x += GuideIconButton.WIDTH + TOOLBAR_GAP;
+        }
+
+        // Contributed actions follow the built-in ones on the same rows, so a mod's button is laid out like
+        // any other instead of staying at the origin.
+        List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions();
+        for (int i = 0; i < contributed.size(); i++) {
+            GuideIconButton button = guideEditorActionButtons.get(CONTRIBUTED_EDITOR_ACTION_ID_BASE + i);
             if (button == null) {
                 continue;
             }

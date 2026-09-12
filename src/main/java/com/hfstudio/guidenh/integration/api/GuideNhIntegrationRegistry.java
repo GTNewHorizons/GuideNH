@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.SymbolicColorResolver;
 import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderer;
+import com.hfstudio.guidenh.guide.editor.GuideEditorActionContribution;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
@@ -64,6 +65,7 @@ public class GuideNhIntegrationRegistry {
     private final List<SceneElementTagCompilerProvider> sceneElementTagCompilerProviders = new ArrayList<>();
     private final List<SymbolicColorResolver> symbolicColorResolvers = new ArrayList<>();
     private final List<CodeFenceRenderer> codeFenceRenderers = new ArrayList<>();
+    private final List<GuideEditorActionContribution> editorActions = new ArrayList<>();
     private int syntaxRevision;
 
     public GuideNhIntegrationRegistry() {}
@@ -249,6 +251,26 @@ public class GuideNhIntegrationRegistry {
 
     public synchronized List<GuideSiteTagRenderer> siteTagRenderers() {
         return List.copyOf(siteTagRenderers);
+    }
+
+    /**
+     * Registers an entry in the guide editor's toolbar and context menu.
+     *
+     * <p>
+     * The action carries the text to write rather than code to run, so the editor applies it to the document
+     * itself.
+     */
+    public synchronized void registerEditorAction(GuideEditorActionContribution action) {
+        if (action == null) {
+            throw new IllegalArgumentException("action");
+        }
+        if (!editorActions.contains(action)) {
+            editorActions.add(action);
+        }
+    }
+
+    public synchronized List<GuideEditorActionContribution> editorActions() {
+        return List.copyOf(editorActions);
     }
 
     /** Bumped whenever the registered syntax changes, so cached syntax models can detect staleness. */
