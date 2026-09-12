@@ -1202,7 +1202,14 @@ public class GuideSiteGraphRenderer {
      * Space a legend takes away from the plot and where it is drawn, so every chart reserves its own
      * legend the same way instead of overlapping the plot.
      */
-    private record LegendArea(int left, int right, int top, int bottom, int x, int y, int width, int limit) {}
+       /**
+        * The room a legend was given, and how it is filled.
+        *
+        * @param limit first row the legend may not draw past, 0 for no limit
+        * @param cols  entries per row the room was reserved for, so drawing cannot need more rows than were
+        *              reserved
+        */
+    private record LegendArea(int left, int right, int top, int bottom, int x, int y, int width, int limit, int cols) {}
 
     // Column chart (vertical bars, categorical X).
 
@@ -1522,7 +1529,7 @@ public class GuideSiteGraphRenderer {
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
         if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit());
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit(), legend.cols());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -1720,7 +1727,7 @@ public class GuideSiteGraphRenderer {
         appendXAxis(svg, left, right, bottom);
 
         if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit());
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit(), legend.cols());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -1982,7 +1989,7 @@ public class GuideSiteGraphRenderer {
             cornerLegendBackgroundColor,
             true);
         if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit());
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit(), legend.cols());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -2109,7 +2116,7 @@ public class GuideSiteGraphRenderer {
         }
 
         if (!slices.isEmpty() && legend.width() > 0) {
-            renderLegend(svg, legendItems, legend.x(), legend.y(), legend.width(), legend.limit());
+            renderLegend(svg, legendItems, legend.x(), legend.y(), legend.width(), legend.limit(), legend.cols());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -2298,7 +2305,7 @@ public class GuideSiteGraphRenderer {
             cornerLegendBackgroundColor,
             false);
         if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit());
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit(), legend.cols());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -3436,13 +3443,12 @@ public class GuideSiteGraphRenderer {
         int plotTop, int plotBottom) {
         int itemCount = legendNames != null ? legendNames.size() : 0;
         if (!style.showsLegend() || itemCount <= 0 || plotRight <= plotLeft || plotBottom <= plotTop) {
-            return new LegendArea(plotLeft, plotRight, plotTop, plotBottom, 0, 0, 0, 0);
+            return new LegendArea(plotLeft, plotRight, plotTop, plotBottom, 0, 0, 0, 0, 1);
         }
         int availW = Math.max(1, plotRight - plotLeft);
-        // A wide name may need more room than the widest column we allow, so the lower bound is capped as
-        // well: clamping with a minimum above the maximum would throw.
-        int maxItemW = 100 + 4 * CHART_TEXT_SIZE;
-        int itemW = Math.clamp(availW / itemCount, Math.min(legendItemWidth(legendNames), maxItemW), maxItemW);
+        // The rows are reserved from the same column count the legend is drawn with, so a wide name cannot
+        // make the drawn legend taller than the room it was given.
+        int itemW = legendItemWidthFor(itemCount, availW);
         int cols = Math.max(1, availW / Math.max(1, itemW));
         int rows = (int) Math.ceil((double) itemCount / cols);
         int rowsH = rows * (LEGEND_ROW_H + 2);
@@ -3456,7 +3462,8 @@ public class GuideSiteGraphRenderer {
                 plotLeft,
                 plotTop,
                 availW,
-                plotTop + rowsH + LEGEND_GAP);
+                plotTop + rowsH + LEGEND_GAP,
+                cols);
             case LEFT -> new LegendArea(
                 plotLeft + sideWidth,
                 plotRight,
@@ -3465,7 +3472,8 @@ public class GuideSiteGraphRenderer {
                 Math.max(PADDING, plotLeft - AXIS_PAD_LEFT),
                 plotTop,
                 Math.max(LEGEND_SWATCH + LEGEND_GAP, sideWidth - LEGEND_GAP),
-                plotBottom);
+                plotBottom,
+                1);
             case RIGHT -> new LegendArea(
                 plotLeft,
                 Math.max(plotLeft + 1, plotRight - sideWidth),
@@ -3474,7 +3482,8 @@ public class GuideSiteGraphRenderer {
                 plotRight - sideWidth + LEGEND_GAP,
                 plotTop,
                 Math.max(LEGEND_SWATCH + LEGEND_GAP, sideWidth - LEGEND_GAP),
-                plotBottom);
+                plotBottom,
+                1);
             default -> new LegendArea(
                 plotLeft,
                 plotRight,
@@ -3483,7 +3492,8 @@ public class GuideSiteGraphRenderer {
                 plotLeft,
                 plotBottom - rowsH,
                 availW,
-                plotBottom);
+                plotBottom,
+                cols);
         };
     }
 
@@ -3555,9 +3565,27 @@ public class GuideSiteGraphRenderer {
             .append("</text>");
     }
 
+    /**
+     * Draws a legend into room that was reserved by hand rather than by {@link #legendArea}.
+     *
+     * <p>
+     * Such a caller has already laid its legend out with {@link #computeLegendH}, so the column count comes
+     * from the same helper that decided the reserved height.
+     */
     private static void renderLegend(StringBuilder svg, List<SeriesData> series, int x, int y, int availW, int limit) {
-        int itemW = Math.clamp(availW / Math.max(1, series.size()), 60, 100);
-        int maxCols = Math.max(1, availW / itemW);
+        renderLegend(svg, series, x, y, availW, limit, legendColumns(series.size(), availW));
+    }
+
+    /**
+     * Draws the legend into the space its layout reserved.
+     *
+     * @param cols columns the reservation was computed with, so the drawn rows cannot outnumber the
+     *             reserved ones
+     */
+    private static void renderLegend(StringBuilder svg, List<SeriesData> series, int x, int y, int availW, int limit,
+        int cols) {
+        int itemW = Math.max(1, availW / Math.max(1, cols));
+        int maxCols = Math.max(1, cols);
         int col = 0;
         int curX = x;
         int curY = y;
@@ -3588,7 +3616,9 @@ public class GuideSiteGraphRenderer {
                 .append("\" font-size=\"")
                 .append(CHART_TEXT_SIZE)
                 .append("\" fill=\"#D7DEE7\" font-family=\"inherit\">")
-                .append(esc(s.name))
+                // A name wider than its column is shortened rather than left to run into the next entry.
+                .append(
+                    esc(ellipsize(s.name, Math.max(1, (itemW - LEGEND_SWATCH - 2 * LEGEND_GAP) / CHART_CHAR_WIDTH))))
                 .append("</text>");
             curX += itemW;
             col++;
@@ -3606,9 +3636,30 @@ public class GuideSiteGraphRenderer {
         if (!showLegend || series == null || series.isEmpty()) {
             return 0;
         }
-        int itemW = Math.clamp((w - 2 * PADDING) / series.size(), 60, 100);
-        int cols = Math.max(1, (w - 2 * PADDING) / itemW);
+        int availW = w - 2 * PADDING;
+        int cols = legendColumns(series.size(), availW);
         return (int) Math.ceil((double) series.size() / cols) * (LEGEND_ROW_H + 2) + LEGEND_GAP;
+    }
+
+    /**
+     * How many legend entries fit on one row.
+     *
+     * <p>
+     * The legend is laid out to reserve room for it and drawn later, so both steps have to agree on this
+     * number: computing it twice from different widths left the drawn legend needing more rows than the
+     * layout had reserved.
+     */
+    private static int legendColumns(int itemCount, int availW) {
+        int itemW = legendItemWidthFor(itemCount, availW);
+        return Math.max(1, Math.max(1, availW) / itemW);
+    }
+
+    /** Width of one legend entry for a given count and available width. */
+    private static int legendItemWidthFor(int itemCount, int availW) {
+        if (itemCount <= 0) {
+            return 1;
+        }
+        return Math.clamp(Math.max(1, availW) / itemCount, 60, 100 + 4 * CHART_TEXT_SIZE);
     }
 
     private static String ellipsize(String text, int maxChars) {
