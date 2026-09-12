@@ -614,12 +614,6 @@ public class SceneScript implements LytScript {
 
     /**
      * Manual mode lists its rows as {@code <BlockStat id|item count/>} children.
-     *
-     * <p>
-     * An omitted {@code count} shows the row once, because the scene refuses to list an entry with a
-     * count of zero; an explicit {@code count="0"} keeps that meaning and hides the row.
-     *
-     * @return how many rows the scene accepted, so the caller can switch to manual mode
      */
     private static int applyManualBlockStatsEntries(LytGuidebookScene scene, MdxJsxElementFields el) {
         List<ItemStack> stacks = new ArrayList<>();

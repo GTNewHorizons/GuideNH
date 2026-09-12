@@ -11,10 +11,6 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
  * One axis of an exported chart: the label, the range, the tick step and the formatting of its ticks.
- *
- * <p>
- * The in-game charts read these from the same attributes through {@code ChartAxisOptions}, so an exported
- * chart shows the axis its page declares instead of an auto-scaled one.
  */
 public class SiteChartAxis {
 
@@ -47,10 +43,6 @@ public class SiteChartAxis {
 
     /**
      * Reads one axis from a chart element.
-     *
-     * @param prefix        attribute prefix, {@code xAxis} or {@code yAxis}
-     * @param gridFlagAttr  attribute that turns this axis' grid off
-     * @param gridColorAttr attribute holding this axis' grid colour
      */
     public static SiteChartAxis read(MdxJsxElementFields el, String prefix, String gridFlagAttr, String gridColorAttr,
         int defaultGridColor) {

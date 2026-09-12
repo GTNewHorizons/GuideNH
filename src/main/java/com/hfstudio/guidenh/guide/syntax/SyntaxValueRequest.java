@@ -4,12 +4,6 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * A completion request routed to a {@link SyntaxValueSource}.
- *
- * @param kind           the value kind being completed
- * @param partialText    what the user typed so far, without any surrounding quotes
- * @param tagName        enclosing tag, or null outside a tag
- * @param attributeName  attribute being completed, or null outside an attribute value
- * @param frontmatterKey frontmatter key being completed, or null outside the frontmatter
  */
 public record SyntaxValueRequest(SyntaxValueKind kind, String partialText, @Nullable String tagName,
     @Nullable String attributeName, @Nullable String frontmatterKey) {

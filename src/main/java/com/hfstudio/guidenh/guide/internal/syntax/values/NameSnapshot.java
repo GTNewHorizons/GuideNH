@@ -13,11 +13,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
  * A cached view of the names a registry or a document exposes, with the lowercase form of each name
  * precomputed, so answering a completion query scans strings instead of allocating a lowercase copy of
  * every candidate.
- *
- * <p>
- * The snapshot refreshes at most once per {@link #REFRESH_INTERVAL_MILLIS}, which keeps a registry that
- * a reload rebuilt visible without reading the live registry on every keystroke. A source whose names
- * change with the open guide builds a new snapshot instead, so its list is never stale.
  */
 public class NameSnapshot {
 

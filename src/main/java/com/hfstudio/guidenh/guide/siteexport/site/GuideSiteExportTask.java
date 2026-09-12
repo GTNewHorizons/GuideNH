@@ -77,10 +77,6 @@ public class GuideSiteExportTask {
     private static final long SCENE_MATERIALIZATION_WAIT_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     /**
      * How long materialization may make no progress before the page is reported.
-     *
-     * <p>
-     * Well above the step budget, so ordinary yielding is not mistaken for a stuck scene, and far below
-     * the overall timeout, so a stuck scene does not hold the export for the whole of it.
      */
     private static final long SCENE_MATERIALIZATION_NO_PROGRESS_NANOS = TimeUnit.SECONDS.toNanos(3);
 
@@ -861,10 +857,6 @@ public class GuideSiteExportTask {
 
     /**
      * Whether a materialised document still holds a scene placeholder.
-     *
-     * <p>
-     * The document is author content, so the walk is iterative: a page nested deeply enough would otherwise
-     * overflow the stack while the export is running.
      */
     private boolean containsScenePlaceholder(LytNode node) {
         Deque<LytNode> pending = new ArrayDeque<>();
@@ -885,11 +877,6 @@ public class GuideSiteExportTask {
 
     /**
      * Reports a scene the book shows as failed.
-     *
-     * <p>
-     * A scene whose elements could not be compiled says why in the book: an unsupported element, a scene
-     * with no supported elements, or a compiler that failed. The export used to write that scene as a blank
-     * image with nothing said, so an author could not tell a broken scene from an empty one.
      */
     private static void reportSceneLoadFailure(LytGuidebookScene scene, ParsedGuidePage parsedPage) {
         String failure = scene.getLoadFailure();
@@ -1544,12 +1531,6 @@ public class GuideSiteExportTask {
 
     /**
      * Hands the exported scenes to the renderer in the order the page declares them.
-     *
-     * <p>
-     * The list has one entry per scene element of the page, holding null where that scene could not be
-     * exported. A null is returned in its own position rather than skipped: the renderer consumes one entry
-     * per scene element in document order, so skipping would give an element the scene of the element after
-     * it and shift every later one. The element that lost its scene falls back to its own rendering.
      */
     private GuideSiteHtmlCompiler.SceneResolver createSceneResolver(List<GuideSiteExportedScene> exportedScenes) {
         return new GuideSiteHtmlCompiler.SceneResolver() {

@@ -7,10 +7,9 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
 /**
- * One entry of the completion popup. A candidate describes a snippet: {@link #replacementText()} is
- * written over the typed text, {@link #caretOffsetInReplacement()} places the caret inside it,
- * {@link #selectionEndInReplacement()} optionally selects part of it, and {@link #suffixText()} is
- * appended after the caret (a closing tag, for instance).
+ * One entry of the completion popup. {@link #replacementText()} is written over the typed text,
+ * {@link #caretOffsetInReplacement()} places the caret inside it, {@link #selectionEndInReplacement()}
+ * optionally selects part of it, and {@link #suffixText()} is appended after the caret.
  */
 public interface AutocompleteCandidate {
 

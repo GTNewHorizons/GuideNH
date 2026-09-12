@@ -12,11 +12,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
 /**
  * Suggests guide page ids for link and page reference attributes.
- *
- * <p>
- * One instance belongs to one guide model, so the page list it answers with is the list of the guide
- * the editor currently has open. A changed page list builds a new snapshot, so the answer never mixes
- * two guides.
  */
 public class PagePathValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
 

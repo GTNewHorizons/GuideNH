@@ -2,9 +2,6 @@ package com.hfstudio.guidenh.guide.syntax;
 
 /**
  * A range of the editor's text, such as the range a double click inside a {@link SyntaxSlot} selects.
- *
- * @param start first character of the range
- * @param end   first character after the range
  */
 public record SyntaxSelection(int start, int end) {
 

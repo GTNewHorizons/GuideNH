@@ -92,9 +92,6 @@ public class GuideSiteHtmlCompiler {
         /**
          * Tag renderers contributed by other mods, which this compiler asks before its own built-in
          * branches so a tag that a mod redefines means the same thing on the site as in the book.
-         *
-         * <p>
-         * Empty by default, so a renderer that has no guide behind it, or none of its own, needs no change.
          */
         default List<GuideSiteTagRenderer> contributedTagRenderers() {
             return List.of();
@@ -475,10 +472,6 @@ public class GuideSiteHtmlCompiler {
 
     /**
      * Whether a contributed fence renderer owns this fence name.
-     *
-     * <p>
-     * The book asks the same renderers through {@code CodeFenceRenderers}, so a fence name a mod declares is
-     * that mod's fence on both sides rather than only in the book.
      */
     private boolean isContributedFence(@Nullable String lang) {
         if (lang == null || lang.isEmpty()) {
@@ -659,10 +652,6 @@ public class GuideSiteHtmlCompiler {
 
     /**
      * A list item, with the task-list marker the book draws turned into the checkbox the site styles.
-     *
-     * <p>
-     * The marker is read with the same helper the in-game compiler uses, so a list is a task list on both
-     * sides. Without this the reader saw the marker as text — a literal {@code [x]} in front of the item.
      */
     private String compileListItemMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
@@ -976,11 +965,6 @@ public class GuideSiteHtmlCompiler {
 
     /**
      * True for every tag {@code RecipeCompiler} compiles.
-     *
-     * <p>
-     * The list has to match the compiler's own tag names: a recipe tag the exporter does not claim falls
-     * through to the MDX renderer, which answers nothing for it, and the element is then replaced by its
-     * children — the reader loses the recipes and the id with them.
      */
     private boolean isRecipeElement(MdxJsxElementFields element) {
         String name = element.name();

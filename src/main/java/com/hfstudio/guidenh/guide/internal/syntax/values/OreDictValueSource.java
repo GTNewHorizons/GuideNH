@@ -14,10 +14,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
 /**
  * Suggests OreDictionary names for ore attributes.
- *
- * <p>
- * The ore dictionary holds thousands of names and only changes while mods load, so it is answered from
- * a snapshot that a query scans without allocating.
  */
 public class OreDictValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
 

@@ -22,24 +22,9 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 /**
- * The syntax a guide's editor can complete, assembled from two plugin sources:
- *
- * <ol>
- * <li>every registered {@link TagCompiler} and {@link SceneElementTagCompiler} publishes its tag names,
- * so a mod that adds a tag compiler gets tag completion without touching autocomplete at all;
- * <li>every registered {@link SyntaxContributor} adds the facts a compiler does not express - container
- * shape, child tags, attributes and their value kinds - plus markdown snippets, fence names,
- * frontmatter keys and {@link SyntaxValueSource value sources}.
- * </ol>
- *
- * <p>
- * Contributions come from the guide's {@link SyntaxContributor} extensions - which include the
- * library's own built-in syntax - and from {@link GuideNhIntegrationRegistry} registrations that apply
- * to every guide.
- *
- * <p>
- * Models are immutable, so one is built once per extension collection and reused until the global
- * registrations change.
+ * The syntax a guide's editor can complete, assembled from {@link TagCompiler} and
+ * {@link SceneElementTagCompiler} tag names plus every registered {@link SyntaxContributor}. Models are
+ * immutable, so one is built per extension collection and reused until the global registrations change.
  */
 public class GuideSyntaxModel {
 
@@ -111,11 +96,6 @@ public class GuideSyntaxModel {
 
     /**
      * Builds a model for a revision the caller read before building.
-     *
-     * <p>
-     * The revision is stamped as read rather than re-read on completion: a registration that arrives while
-     * the contributors are running is not part of this model, so stamping it newer would let the next
-     * lookup accept a model that is missing that registration.
      */
     private static GuideSyntaxModel build(ExtensionCollection extensions, int revision) {
         Builder builder = new Builder();
@@ -288,17 +268,12 @@ public class GuideSyntaxModel {
 
     /**
      * The slot that owns a caret together with what it found there.
-     *
-     * @param slot  the contributor's slot that answered
-     * @param match the range, values and writer it reported
      */
     public record SlotMatch(SyntaxSlot slot, SyntaxSlotMatch match) {}
 
     /**
      * Asks every slot which one owns the caret. The first match wins, so a contributor's syntax answers
      * before the editor's own resolvers, and a slot that claims text keeps it even when it has no values.
-     *
-     * @return the slot under the caret with what it found, or null when no slot owns it
      */
     @Nullable
     public SlotMatch matchSlot(String text, int cursorIndex) {

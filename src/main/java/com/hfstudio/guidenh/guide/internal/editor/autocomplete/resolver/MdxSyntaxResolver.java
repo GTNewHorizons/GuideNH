@@ -31,28 +31,8 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     private static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
 
     /**
-     * The document this resolver last parsed, and the result.
-     *
-     * <p>
-     * Parsing is the whole cost of a completion query: it is measured at about 0.2 ms for a tiny document
-     * and about 0.4 microseconds per character after that, so a 14 KB page costs roughly 5 ms and a 39 KB
-     * page roughly 15-18 ms per query, while the MDX conversion that follows adds well under half a
-     * millisecond. Queries are debounced to about ten a second, so a long page spends a noticeable part of
-     * the tick budget here.
-     *
-     * <p>
-     * Two cheaper approaches were measured and rejected rather than guessed at. Parsing only the text before
-     * the caret still costs about 5.8 ms for the first quarter of a 39 KB page, because the cost tracks the
-     * text parsed, so the saving does not pay for changing what the document means — and it would change it:
-     * a frontmatter block, a fence without its closing marker and a tag still being typed all read
-     * differently from a prefix. Skipping the parse whenever the caret is not in frontmatter or a fence was
-     * tried and reverted, because the answers for those two regions are read from the parsed nodes
-     * ({@code MdAstYamlFrontmatter}, {@code MdAstCode}) and reimplementing them from the text would be a
-     * second copy of the same rules.
-     *
-     * <p>
-     * A real fix has to make the parse incremental or caret-local without changing what the document means,
-     * which is a change to the parser rather than to this resolver.
+     * The document this resolver last parsed, and the result. Parsing is most of the cost of a query, so it
+     * is kept for as long as the text is unchanged.
      */
     @Nullable
     private String cachedText;
@@ -64,17 +44,110 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     public TextSyntaxContext resolve(String text, int cursorIndex) {
         if (text == null || text.isEmpty() || cursorIndex < 0 || cursorIndex > text.length()) return null;
 
-        MdAstRoot root;
-        if (text.equals(cachedText) && cachedRoot != null) {
-            root = cachedRoot;
-        } else {
-            root = MdAst.fromMarkdown(text, PARSE_OPTIONS);
-            MdAstToMdxConverter.convert(root, Collections.emptyMap());
-            cachedText = text;
-            cachedRoot = root;
+        // Frontmatter and a fence's language line are answered from the text: their answers never needed the
+        // parsed document, and those two regions are cheap to recognise.
+        if (isInFrontmatter(text, cursorIndex)) {
+            TextSyntaxContext frontmatter = resolveFrontmatterText(text, cursorIndex);
+            if (frontmatter != null && frontmatter.shouldAutocomplete()) {
+                return frontmatter;
+            }
+            return resolvePlainTextWord(text, cursorIndex);
         }
 
-        return resolveFromAst(root, text, cursorIndex);
+        MdAstRoot root = parsedRoot(text);
+        if (root != null) {
+            // A fence body is terminal: its language line completes, its body does not.
+            MdAstCode code = findEnclosingNode(root, cursorIndex, MdAstCode.class);
+            if (code != null) {
+                if (code.lang != null && !code.lang.isEmpty()) {
+                    TextSyntaxContext result = resolveFenceLanguage(code, text, cursorIndex);
+                    if (result != null) return result;
+                }
+                return resolvePlainTextWord(text, cursorIndex);
+            }
+            return resolveFromAst(root, text, cursorIndex);
+        }
+
+        // The document could not be parsed, so only what the text alone can answer is offered.
+        TextSyntaxContext fence = resolveFenceLanguageLine(text, cursorIndex);
+        return fence != null ? fence : resolvePlainTextWord(text, cursorIndex);
+    }
+
+    /** The parsed document, reused while the text is unchanged. */
+    @Nullable
+    private MdAstRoot parsedRoot(String text) {
+        if (text.equals(cachedText) && cachedRoot != null) {
+            return cachedRoot;
+        }
+        MdAstRoot root = MdAst.fromMarkdown(text, PARSE_OPTIONS);
+        MdAstToMdxConverter.convert(root, Collections.emptyMap());
+        cachedText = text;
+        cachedRoot = root;
+        return root;
+    }
+
+    /**
+     * The fence language at the caret, read from the line the caret is on: only the line that opens a fence
+     * carries a language. This is the same rule as {@link #resolveFenceLanguage}, applied to the text so a
+     * document that fails to parse still completes its fence languages.
+     */
+    @Nullable
+    private static TextSyntaxContext resolveFenceLanguageLine(String text, int cursorIndex) {
+        int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
+        int lineEnd = text.indexOf('\n', cursorIndex);
+        if (lineEnd < 0) lineEnd = text.length();
+        if (lineStart >= lineEnd) return null;
+
+        int markerStart = lineStart;
+        while (markerStart < lineEnd && text.charAt(markerStart) == ' ') markerStart++;
+        char marker = markerStart < lineEnd ? text.charAt(markerStart) : 0;
+        if (marker != '`' && marker != '~') return null;
+        int runEnd = markerStart;
+        while (runEnd < lineEnd && text.charAt(runEnd) == marker) runEnd++;
+        if (runEnd - markerStart < 3) return null;
+
+        int langStart = skipSpaces(text, runEnd, lineEnd);
+        if (cursorIndex < langStart || cursorIndex > lineEnd) return null;
+
+        String partial = text.substring(langStart, cursorIndex);
+        return new TextSyntaxContext(
+            SyntaxElementType.FENCE_LANGUAGE,
+            langStart,
+            cursorIndex,
+            new FenceLanguageContext(langStart, cursorIndex, partial));
+    }
+
+    /**
+     * True when the caret sits inside the leading YAML frontmatter block.
+     */
+    private static boolean isInFrontmatter(String text, int cursorIndex) {
+        int firstBreak = text.indexOf('\n');
+        if (firstBreak < 0) return false;
+        if (!text.substring(0, firstBreak)
+            .trim()
+            .equals("---")) {
+            return false;
+        }
+        int pos = firstBreak + 1;
+        while (pos <= cursorIndex) {
+            int lineEnd = text.indexOf('\n', pos);
+            if (lineEnd < 0) lineEnd = text.length();
+            if (text.substring(pos, lineEnd)
+                .trim()
+                .equals("---")) {
+                // The closing marker ends the block: the caret is inside it only while on the marker itself.
+                return cursorIndex <= pos;
+            }
+            if (lineEnd >= cursorIndex) return true;
+            pos = lineEnd + 1;
+        }
+        return false;
+    }
+
+    /** The frontmatter answer, read from the caret's line rather than from the parsed block. */
+    @Nullable
+    private TextSyntaxContext resolveFrontmatterText(String text, int cursorIndex) {
+        return resolveFrontmatter(null, text, cursorIndex);
     }
 
     @Nullable
@@ -123,7 +196,11 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     @Nullable
-    private TextSyntaxContext resolveFrontmatter(MdAstYamlFrontmatter yaml, String text, int cursorIndex) {
+    /**
+     * The frontmatter answer for the caret. The parsed block is not read: the region is recognised from the
+     * text, so this answers for a document that failed to parse as well.
+     */
+    private TextSyntaxContext resolveFrontmatter(@Nullable MdAstYamlFrontmatter yaml, String text, int cursorIndex) {
         String line = getLineAt(text, cursorIndex);
         if (line == null) return resolvePlainTextWord(text, cursorIndex);
 

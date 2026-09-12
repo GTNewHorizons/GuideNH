@@ -4,16 +4,6 @@ import java.util.List;
 
 /**
  * Where a markdown snippet belongs in a line.
- *
- * <p>
- * The two constants cover markdown as this mod writes it. A contributor that needs another placement
- * declares its own kind with {@link #of(String)}; kinds compare by value, so a kind declared in two
- * places behaves as one. Snippet detection only asks a kind two questions - whether it starts a line
- * and whether it sits on a word boundary - so a custom kind has to say which of those it wants.
- *
- * @param id       stable identifier of the kind
- * @param lineLead true when the snippet is triggered at the start of a line, false when it applies
- *                 inline within text
  */
 public record MarkdownSnippetKind(String id, boolean lineLead) {
 

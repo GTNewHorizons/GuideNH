@@ -25,11 +25,6 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 /**
  * Compiles {@code <InputAnnotation pos="0.5 1.5 0.5" inputType="lmb" />} into the mouse-input icon a
  * scene shows to hint that the player should click somewhere.
- *
- * <p>
- * The icon is anchored at a world position, optionally prefixed with a modifier key and followed by an
- * item icon, so a scene can say "sneak and right-click with this item". The same tag is understood by
- * the site exporter, which renders the equivalent HTML annotation.
  */
 public class InputAnnotationElementCompiler implements SceneElementTagCompiler {
 

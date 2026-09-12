@@ -147,10 +147,6 @@ public class GuideSiteWriter {
 
     /**
      * The file a page is written to.
-     *
-     * <p>
-     * Page paths come from resource pack entry names, and one that climbs to a parent directory would write
-     * outside the export directory, so the resolved path has to stay inside it.
      */
     private static Path containedPagePath(Path outDir, String namespace, String guidePath, String language,
         String pageRelativeFile) throws Exception {

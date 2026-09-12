@@ -34,12 +34,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 
 /**
  * The guide syntax that ships with the mod.
- *
- * <p>
- * It is an ordinary {@link SyntaxContributor}: tag names arrive from the registered tag compilers, and
- * this class only adds the facts a compiler does not express. Attribute kinds drive which
- * {@code SyntaxValueSource} answers a completion request, so marking an attribute as an item id is all
- * it takes to get item completion for it.
  */
 public class BuiltinSyntaxContributor implements SyntaxContributor {
 

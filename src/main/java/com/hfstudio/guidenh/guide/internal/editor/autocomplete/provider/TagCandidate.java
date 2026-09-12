@@ -11,10 +11,6 @@ import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
  * A tag suggestion. Container tags close themselves around the caret, self-closing tags get the
  * {@code />} tail from {@code AutocompleteCommitService}, and a tag with an
  * {@link InsertTemplate} writes the form the contributor declared instead.
- *
- * <p>
- * Whether a tag wraps content and which template it declares come from the guide's syntax model, not
- * from this class.
  */
 public class TagCandidate implements AutocompleteCandidate {
 

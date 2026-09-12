@@ -108,11 +108,6 @@ public class DirectoryResourcePack implements IResourcePack {
 
     /**
      * A path inside the pack, or null when it would leave it.
-     *
-     * <p>
-     * Resource ids reach this method from page content, and a pack directory is joined with them at the
-     * filesystem level, where {@code ..} resolves instead of being part of a name. Normalising and checking
-     * the prefix keeps a page from reading a file outside its own pack.
      */
     private @Nullable Path containedPath(Path candidate) {
         Path normalizedRoot = root.toAbsolutePath()

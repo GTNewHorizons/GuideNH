@@ -30,9 +30,6 @@ import cpw.mods.fml.client.FMLClientHandler;
 
 /**
  * Suggests paths relative to the guide asset directory for file attributes such as {@code src}.
- *
- * <p>
- * The resource pack directories are scanned once, the first time a guide is available.
  */
 public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
 

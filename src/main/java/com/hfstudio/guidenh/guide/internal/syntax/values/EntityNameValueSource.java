@@ -13,10 +13,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
 /**
  * Suggests entity registry names for entity id attributes.
- *
- * <p>
- * The entity registry is filled while mods load, so it is answered from a snapshot instead of a fresh
- * lowercase copy of every name per keystroke.
  */
 public class EntityNameValueSource implements SyntaxValueSource {
 

@@ -4,16 +4,6 @@ import java.util.List;
 
 /**
  * The kind of value an attribute (or frontmatter key) expects.
- *
- * <p>
- * The kind decides which {@link SyntaxValueSource} answers the completion request and how the value is
- * written into the page. The constants below cover the registries this mod knows about; a mod that owns
- * another registry declares its own kind with {@link #of(String)} and registers a
- * {@link SyntaxValueSource} for it. Kinds compare by value, so a kind declared in two places still
- * routes to the same sources.
- *
- * @param id     stable identifier of the kind
- * @param quoted true when a suggested value is written inside quotes unless the page already quotes it
  */
 public record SyntaxValueKind(String id, boolean quoted) {
 

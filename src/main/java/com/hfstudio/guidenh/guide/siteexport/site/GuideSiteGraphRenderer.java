@@ -1214,9 +1214,6 @@ public class GuideSiteGraphRenderer {
 
         /**
          * The same appearance with the title colour and bar width the page declares.
-         *
-         * @param titleColor    ARGB title colour, or a non-positive value to keep the default
-         * @param barWidthRatio share of a category slot a bar fills, or a non-positive value to keep 0.7
          */
         public ChartStyle withBarLayout(int titleColor, float barWidthRatio) {
             return new ChartStyle(
@@ -1248,9 +1245,6 @@ public class GuideSiteGraphRenderer {
 
         /**
          * The same appearance with the pie layout the page declares.
-         *
-         * @param startAngleDeg where the first slice starts, in degrees
-         * @param clockwise     the direction the slices are drawn in
          */
         public ChartStyle withPieLayout(float startAngleDeg, boolean clockwise) {
             return new ChartStyle(
@@ -1350,10 +1344,6 @@ public class GuideSiteGraphRenderer {
      */
        /**
         * The room a legend was given, and how it is filled.
-        *
-        * @param limit first row the legend may not draw past, 0 for no limit
-        * @param cols  entries per row the room was reserved for, so drawing cannot need more rows than were
-        *              reserved
         */
     private record LegendArea(int left, int right, int top, int bottom, int x, int y, int width, int limit, int cols) {}
 

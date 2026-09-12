@@ -12,11 +12,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
 /**
  * Applies an accepted candidate to the page text.
- *
- * <p>
- * The context decides the shape of the slot - a tag, an attribute value, a frontmatter entry - while the
- * candidate decides the snippet written into it: its text, where the caret lands, what gets selected and
- * whether the value needs quotes. No tag or attribute knowledge lives here.
  */
 public class AutocompleteCommitService {
 
@@ -88,10 +83,6 @@ public class AutocompleteCommitService {
     /**
      * A slot of another mod writes its own replacement, so the candidate only has to say which value the
      * author picked; the slot decides the surroundings and where the caret lands.
-     *
-     * <p>
-     * A writer that fails or answers nothing is reported and the commit is dropped, because a slot of
-     * another mod must never break the editor or write text the author did not ask for.
      */
     @Nullable
     private static Replacement createSlotReplacement(SlotContext context, AutocompleteCandidate candidate) {
@@ -292,10 +283,10 @@ public class AutocompleteCommitService {
         }
 
         /**
-         * @param extraReplaceStart characters before the context's range that the replacement consumes as
-         *                          well, used when the candidate writes a whole tag including its bracket
-         * @param extraReplaceEnd   characters after the context's range that the replacement consumes as
-         *                          well, used when the author already typed the end of a tag
+         * @param extraReplaceStart characters before the context's range the replacement also consumes,
+         *                          used when the candidate writes a whole tag including its bracket
+         * @param extraReplaceEnd   characters after it the replacement also consumes, used when the author
+         *                          already typed the end of a tag
          */
         private Replacement(String text, int cursorOffset, int selectionEndOffset, int extraReplaceStart,
             int extraReplaceEnd) {

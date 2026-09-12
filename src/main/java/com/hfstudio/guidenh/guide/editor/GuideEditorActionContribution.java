@@ -3,15 +3,9 @@ package com.hfstudio.guidenh.guide.editor;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * A toolbar or menu entry another mod adds to the guide editor.
- *
- * <p>
- * The entry carries text rather than behaviour: the editor applies it to the document itself, so a
- * contributed action cannot run arbitrary code while the editor draws or while a key is handled. Use
- * {@link #insert} to write text at the caret, or {@link #wrap} to put a selection inside markers.
- *
- * <p>
- * Register through {@code GuideNhIntegrationRegistry.registerEditorAction(action)}.
+ * A toolbar or menu entry another mod adds to the guide editor. It carries text rather than behaviour, so
+ * the editor applies it itself: {@link #insert} writes text at the caret, {@link #wrap} puts a selection
+ * inside markers. Register through {@code GuideNhIntegrationRegistry.registerEditorAction(action)}.
  */
 public class GuideEditorActionContribution {
 
@@ -35,10 +29,6 @@ public class GuideEditorActionContribution {
 
     /**
      * An action that writes text at the caret, replacing the selection when there is one.
-     *
-     * @param label name shown in the toolbar and the context menu
-     * @param icon  sprite the toolbar draws
-     * @param text  the text to write
      */
     public static GuideEditorActionContribution insert(String label, SceneEditorIcon icon, String text) {
         requireText(label, "label");
@@ -54,11 +44,6 @@ public class GuideEditorActionContribution {
     /**
      * An action that surrounds the selection with markers, or inserts the pair at the caret when nothing is
      * selected.
-     *
-     * @param label  name shown in the toolbar and the context menu
-     * @param icon   sprite the toolbar draws
-     * @param prefix text written before the selection
-     * @param suffix text written after the selection
      */
     public static GuideEditorActionContribution wrap(String label, SceneEditorIcon icon, String prefix, String suffix) {
         requireText(label, "label");

@@ -255,10 +255,6 @@ public class GuideNhIntegrationRegistry {
 
     /**
      * Registers an entry in the guide editor's toolbar and context menu.
-     *
-     * <p>
-     * The action carries the text to write rather than code to run, so the editor applies it to the document
-     * itself.
      */
     public synchronized void registerEditorAction(GuideEditorActionContribution action) {
         if (action == null) {
@@ -868,11 +864,6 @@ public class GuideNhIntegrationRegistry {
 
     /**
      * Reports a provider of another mod that failed.
-     *
-     * <p>
-     * These lookups run while a scene is drawn, so a provider must never be able to stop the frame; a
-     * failure only skips that provider. Each failing provider is named once: a provider that fails for
-     * every block of a scene would otherwise write a line per block per frame.
      */
     private static void reportProviderFailure(Object provider, RuntimeException failure) {
         String key = provider.getClass()

@@ -10,11 +10,6 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * A value offered for an attribute or frontmatter key.
- *
- * @param value    text written into the page
- * @param label    text shown in the popup; falls back to {@code value} when null
- * @param subtitle dimmed text shown after the label, for example a display name
- * @param icon     item rendered next to the label, or null
  */
 public record SyntaxSuggestion(String value, @Nullable String label, @Nullable String subtitle,
     @Nullable ItemStack icon) {

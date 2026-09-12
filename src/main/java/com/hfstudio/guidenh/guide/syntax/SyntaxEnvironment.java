@@ -8,10 +8,6 @@ import com.hfstudio.guidenh.guide.Guide;
 
 /**
  * The live data a {@link SyntaxValueSource} may consult while answering a request.
- *
- * <p>
- * Values are pulled on demand, so a source that needs nothing costs nothing. Implementations are
- * created by the editor once per completion tick.
  */
 public interface SyntaxEnvironment {
 

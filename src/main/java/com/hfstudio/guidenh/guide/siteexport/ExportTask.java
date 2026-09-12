@@ -114,10 +114,6 @@ public class ExportTask {
 
     /**
      * A file inside the export directory, or null when the id would place it outside.
-     *
-     * <p>
-     * Page ids come from resource pack entry names, so an id that climbs to a parent directory would
-     * otherwise write wherever it points.
      */
     @Nullable
     private static Path containedPath(Path root, String namespace, String path) {

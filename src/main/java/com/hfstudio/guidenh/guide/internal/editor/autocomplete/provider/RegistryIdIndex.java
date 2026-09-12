@@ -13,11 +13,6 @@ import net.minecraft.item.Item;
 /**
  * Read-only views of the game registries shaped for completion queries: identifiers sorted, their
  * lowercase forms precomputed, and the distinct namespaces collected once.
- *
- * <p>
- * Completion runs on every keystroke, so a registry is scanned when it changes rather than per query.
- * Registries only grow while mods load, which the key count detects; a slow interval bounds how long a
- * change that keeps the count could stay invisible.
  */
 public class RegistryIdIndex {
 

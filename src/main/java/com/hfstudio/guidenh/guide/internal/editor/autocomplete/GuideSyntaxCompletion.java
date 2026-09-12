@@ -30,11 +30,9 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 
 /**
- * Turns the syntax under the caret into completion candidates, using only the information a guide's
- * {@link GuideSyntaxModel} carries. Nothing here knows a specific tag: which tags exist, which
- * attributes they accept and which values those attributes take all come from the model, so a plugin
- * that registers a contributor or a tag compiler changes what the editor offers without touching this
- * class.
+ * Turns the syntax under the caret into completion candidates, using only what a guide's
+ * {@link GuideSyntaxModel} carries. Nothing here knows a specific tag, so registering a contributor or a
+ * tag compiler changes what the editor offers without touching this class.
  */
 public class GuideSyntaxCompletion {
 

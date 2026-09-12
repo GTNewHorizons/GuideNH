@@ -33,10 +33,6 @@ public class GuideScreenEditorActionRegistry {
 
     /**
      * The toolbar and menu entries other mods contribute.
-     *
-     * <p>
-     * Read when the toolbar is built rather than cached, so an action registered while the editor is open is
-     * offered on the next rebuild.
      */
     public static List<GuideEditorActionContribution> contributedActions() {
         return GuideNhIntegrationRegistry.global()
@@ -45,11 +41,6 @@ public class GuideScreenEditorActionRegistry {
 
     /**
      * The editor's context menu.
-     *
-     * @param templateEntries    extra insert entries, one per contributed insert template, appended to the
-     *                           insert menu so a tag whose useful form is more than its name is reachable
-     *                           without typing it out
-     * @param contributedEntries entries for the actions other mods contribute, appended to an extras submenu
      */
     public static List<GuideScreenEditorContextMenu.Entry> contextMenuEntries(
         List<GuideScreenEditorContextMenu.Entry> templateEntries,

@@ -8,12 +8,6 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * A snippet the editor offers for markdown syntax.
- *
- * @param kind        whether the snippet is line-leading or applies inline
- * @param trigger     exact markdown prefix that summons the suggestion
- * @param label       name shown in the completion popup
- * @param snippet     text written over the typed trigger
- * @param caretOffset caret position counted from the snippet start
  */
 public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String label, String snippet, int caretOffset) {
 
@@ -30,12 +24,6 @@ public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String l
 
     /**
      * True when this snippet should be offered for {@code typed}.
-     *
-     * <p>
-     * Line-leading snippets grow with what was typed, so typing {@code #} offers every heading level
-     * while {@code > [!N} narrows down to the note alert. A trailing space closes the list, because
-     * the line already reads as markdown and Enter should insert a line break. Inline snippets are
-     * matched by the exact trigger the resolver detected.
      */
     public boolean matches(String typed) {
         String normalized = typed != null ? typed.toLowerCase(Locale.ROOT) : "";

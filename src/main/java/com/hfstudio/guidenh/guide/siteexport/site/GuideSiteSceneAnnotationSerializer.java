@@ -146,11 +146,6 @@ public class GuideSiteSceneAnnotationSerializer {
 
     /**
      * Adds what an annotation of another mod asks the site viewer to draw.
-     *
-     * <p>
-     * The viewer only understands the payloads this mod ships, so an annotation that does not describe
-     * itself is reported: the author sees why it is missing from the export instead of finding an empty
-     * scene.
      */
     private static void addContributedPayload(List<Map<String, Object>> target, SceneAnnotation annotation) {
         Map<String, Object> payload;

@@ -22,11 +22,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxSelection;
 /**
  * Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the
  * guide's {@link GuideSyntaxModel} for candidates, and drives the completion popup.
- *
- * <p>
- * The controller never touches the text area itself. It reports what the host should do through
- * {@link KeyResult} and {@link #takePendingCommit()}, so the host keeps full control over edits and
- * undo history.
  */
 public class GuideEditorAutocompleteController {
 

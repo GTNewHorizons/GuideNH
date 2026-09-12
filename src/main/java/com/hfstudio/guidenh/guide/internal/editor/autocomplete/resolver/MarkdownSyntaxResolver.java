@@ -13,11 +13,6 @@ import com.hfstudio.guidenh.guide.syntax.MarkdownSnippetKind;
  * Detects markdown constructs that are about to be typed. The constructs themselves come from the
  * guide's {@link GuideSyntaxModel}, so a contributor that registers markdown snippets - or a mod that
  * adds its own - changes what is detected here without touching this class.
- *
- * <p>
- * Line-leading constructs win over inline ones so {@code *} at the start of a line is offered as a
- * bullet rather than as emphasis. The resolver returns {@code null} whenever it has nothing markdown
- * specific to say, which lets the chain fall through to the plain word resolver.
  */
 public class MarkdownSyntaxResolver implements SyntaxContextResolver {
 

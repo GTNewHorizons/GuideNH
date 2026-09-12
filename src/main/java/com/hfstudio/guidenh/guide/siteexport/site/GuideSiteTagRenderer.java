@@ -9,20 +9,9 @@ import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * Renders one kind of MDX tag into the exported site.
- *
- * <p>
- * The exported site knows the tags that ship with this mod. A mod whose tags are compiled by its own
- * {@code TagCompiler} registers a renderer here so its tags are exported too, instead of disappearing from
- * the site while they work in the book.
- *
- * <p>
- * Registered renderers are asked before the built-in ones and the first answer wins, so a renderer only
- * has to handle the tags it declares. A renderer that fails is reported and skipped.
- *
- * <p>
- * Register through {@code GuideBuilder.extension(GuideSiteTagRenderer.EXTENSION_POINT, renderer)} for one
- * guide, or {@code GuideNhIntegrationRegistry.registerSiteTagRenderer(renderer)} for every guide.
+ * Renders one kind of MDX tag into the exported site, so a mod whose own {@code TagCompiler} compiles its
+ * tags exports them too. Registered renderers are asked before the built-in ones; register through
+ * {@code GuideNhIntegrationRegistry.registerSiteTagRenderer} or {@code GuideBuilder.extension}.
  */
 public interface GuideSiteTagRenderer extends Extension {
 
