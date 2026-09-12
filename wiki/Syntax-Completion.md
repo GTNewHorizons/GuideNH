@@ -284,7 +284,7 @@ compiled, so register during mod loading.
 | Complete syntax of your own (your own slot, your own writer, double-click range) | `SyntaxSlot` |
 | Make a tag complete as a whole form | `sink.insertTemplates(...)` (also offered in the editor's insert menu) |
 | Add markdown snippets, fence names, frontmatter keys and values | `SyntaxContributor` |
-| Decide what the body of your own fence means | `CodeFenceRenderer` (declare the name with `sink.fenceLanguages(...)`) |
+| Decide what the body of your own fence means | `CodeFenceRenderer` (declare the name with `sink.fenceLanguages(...)`; override `renderSiteFence` so the site shows it too) |
 | Add a symbolic colour name | `SymbolicColorResolver` (per guide) or `registerSymbolicColorResolver` |
 | Add a page index | `GuideBuilder.index(...)` / `GuideBuilderIntegrationHook` |
 | Export your tags to the site | `GuideSiteTagRenderer` (see [Mod Compatibility](Mod-Compatibility)) |
@@ -295,8 +295,9 @@ Deliberately closed, with what it costs you:
 
 - The guide editor's toolbar is a fixed set: a contributed template appears in the insert menu (the
   Templates submenu) and through completion, but not as a toolbar button.
-- The site export renders its own tags with a built-in chain. A registered renderer is asked first, so your
-  tags export, but the built-in chain itself is not a set of registered renderers yet.
+- The site export renders its own tags with a built-in chain. A registered renderer is asked first, for
+  every MDX element and for your fence names, so your tags and fences export; the built-in chain itself is
+  not a set of registered renderers yet.
 - Scene annotations of your own render in the book but are not serialized into the exported site's viewer.
 
 Conventions that matter for a plugin:
