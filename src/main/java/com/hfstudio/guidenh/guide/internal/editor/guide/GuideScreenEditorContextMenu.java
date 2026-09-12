@@ -52,25 +52,38 @@ public class GuideScreenEditorContextMenu {
         private final List<Entry> children;
         @Getter
         private final boolean separator;
+        /** Extra behaviour of an entry that is not one of the built-in editor actions. */
+        @Nullable
+        private final Runnable onSelected;
 
-        private Entry(String label, @Nullable GuideScreenEditorAction action, List<Entry> children, boolean separator) {
+        private Entry(String label, @Nullable GuideScreenEditorAction action, List<Entry> children, boolean separator,
+            @Nullable Runnable onSelected) {
             this.label = label != null ? label : "";
             this.action = action;
             this.children = children;
             this.separator = separator;
+            this.onSelected = onSelected;
         }
 
         public static Entry action(GuideScreenEditorAction action) {
-            return new Entry(action.getTooltip(), action, List.of(), false);
+            return new Entry(action.getTooltip(), action, List.of(), false, null);
+        }
+
+        /**
+         * An entry that runs its own behaviour, used for contributions that are not one of the built-in
+         * editor actions.
+         */
+        public static Entry runnable(String label, Runnable onSelected) {
+            return new Entry(label, null, List.of(), false, onSelected);
         }
 
         public static Entry submenu(String label, List<Entry> children) {
             List<Entry> safeChildren = children != null ? new ArrayList<>(children) : new ArrayList<>();
-            return new Entry(label, null, List.copyOf(safeChildren), false);
+            return new Entry(label, null, List.copyOf(safeChildren), false, null);
         }
 
         public static Entry separator() {
-            return new Entry("", null, List.of(), true);
+            return new Entry("", null, List.of(), true, null);
         }
 
         @Nullable
@@ -78,8 +91,14 @@ public class GuideScreenEditorContextMenu {
             return action;
         }
 
+        public void select() {
+            if (onSelected != null) {
+                onSelected.run();
+            }
+        }
+
         public boolean isLeaf() {
-            return !separator && action != null && children.isEmpty();
+            return !separator && children.isEmpty() && (action != null || onSelected != null);
         }
 
         public boolean hasChildren() {
@@ -152,8 +171,12 @@ public class GuideScreenEditorContextMenu {
         if (hovered.hasChildren()) {
             return true;
         }
-        if (button == 0 && hovered.getAction() != null) {
-            listener.onAction(hovered.getAction());
+        if (button == 0) {
+            if (hovered.getAction() != null) {
+                listener.onAction(hovered.getAction());
+            } else if (hovered.isLeaf()) {
+                hovered.select();
+            }
         }
         close();
         return true;

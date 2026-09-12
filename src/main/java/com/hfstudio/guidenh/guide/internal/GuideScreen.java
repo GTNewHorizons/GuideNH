@@ -150,6 +150,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
+import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
 import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
@@ -2090,9 +2091,8 @@ public class GuideScreen extends GuiContainer
         }
         closeHomePageContextMenu();
         closeNavBarContextMenu();
-        if (guideEditorContextMenu == null) {
-            guideEditorContextMenu = new GuideScreenEditorContextMenu(buildGuideEditorContextMenuEntries());
-        }
+        // Built per open, so a template another mod registers while the editor is open is offered too.
+        guideEditorContextMenu = new GuideScreenEditorContextMenu(buildGuideEditorContextMenuEntries());
         guideEditorContextMenu.open(mouseX, mouseY, width, height, fontRendererObj);
     }
 
@@ -2103,7 +2103,45 @@ public class GuideScreen extends GuiContainer
     }
 
     private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContextMenuEntries() {
-        return GuideScreenEditorActionRegistry.contextMenuEntries();
+        return GuideScreenEditorActionRegistry.contextMenuEntries(buildGuideEditorTemplateEntries());
+    }
+
+    /**
+     * One entry per contributed insert template, so the templates the editor offers while typing are also
+     * reachable from the menu: the model holds the built-in templates and those of any other mod alike.
+     */
+    private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorTemplateEntries() {
+        Map<String, InsertTemplate> templates = resolveGuideSyntaxModel().insertTemplates();
+        if (templates.isEmpty()) {
+            return List.of();
+        }
+        List<GuideScreenEditorContextMenu.Entry> entries = new ArrayList<>(templates.size());
+        for (InsertTemplate template : templates.values()) {
+            entries.add(
+                GuideScreenEditorContextMenu.Entry
+                    .runnable(template.tagName(), () -> insertGuideEditorTemplate(template)));
+        }
+        entries.sort(Comparator.comparing(GuideScreenEditorContextMenu.Entry::getLabel, String.CASE_INSENSITIVE_ORDER));
+        return entries;
+    }
+
+    /** Writes a template at the caret and leaves the caret where the template says it continues. */
+    private void insertGuideEditorTemplate(InsertTemplate template) {
+        if (guideEditorTextArea == null) {
+            return;
+        }
+        String text = template.text();
+        int caret = Math.clamp(template.caretOffset(), 0, text.length());
+        runGuideEditorTextMutation(() -> {
+            guideEditorTextArea.setFocused(true);
+            String source = guideEditorTextArea.getText();
+            int start = Math.clamp(guideEditorTextArea.getSelectionStart(), 0, source.length());
+            int end = Math.clamp(guideEditorTextArea.getSelectionEnd(), start, source.length());
+            String edited = source.substring(0, start) + text + source.substring(end);
+            int caretIndex = start + caret;
+            guideEditorTextArea.applyEditPreservingViewport(edited, caretIndex, caretIndex);
+        });
+        syncGuideEditorPreviewScrollFromEditor();
     }
 
     private int getGuideEditorPreviewLayoutWidth() {

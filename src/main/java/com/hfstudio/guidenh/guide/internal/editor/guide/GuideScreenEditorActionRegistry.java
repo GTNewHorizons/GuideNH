@@ -30,6 +30,18 @@ public class GuideScreenEditorActionRegistry {
     }
 
     public static List<GuideScreenEditorContextMenu.Entry> contextMenuEntries() {
+        return contextMenuEntries(List.of());
+    }
+
+    /**
+     * The editor's context menu.
+     *
+     * @param templateEntries extra insert entries, one per contributed insert template, appended to the
+     *                        insert menu so a tag whose useful form is more than its name is reachable
+     *                        without typing it out
+     */
+    public static List<GuideScreenEditorContextMenu.Entry> contextMenuEntries(
+        List<GuideScreenEditorContextMenu.Entry> templateEntries) {
         List<GuideScreenEditorContextMenu.Entry> editEntries = actionEntries(GuideScreenEditorActionGroup.EDIT);
         List<GuideScreenEditorContextMenu.Entry> insertEntries = new ArrayList<>();
         append(insertEntries, GuideScreenEditorActionGroup.ROOT_INSERT);
@@ -42,6 +54,12 @@ public class GuideScreenEditorActionRegistry {
         append(insertEntries, GuideScreenEditorActionGroup.LINK_AND_TEXT);
         insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
         append(insertEntries, GuideScreenEditorActionGroup.LIST_AND_TABLE);
+        if (templateEntries != null && !templateEntries.isEmpty()) {
+            insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+            insertEntries.add(
+                GuideScreenEditorContextMenu.Entry
+                    .submenu(GuidebookText.GuideEditorContextMenuTemplates.text(), templateEntries));
+        }
         insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
 
         List<GuideScreenEditorContextMenu.Entry> blockEntries = new ArrayList<>();
