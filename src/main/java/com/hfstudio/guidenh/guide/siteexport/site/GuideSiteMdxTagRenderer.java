@@ -124,6 +124,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private Map<String, PageAnchor> itemAnchorsByItemId;
     private final MediaWikiSpecialPageResolver specialPageResolver = new MediaWikiSpecialPageResolver();
     private final AtomicInteger contentTabsSequence = new AtomicInteger();
+    private final List<GuideSiteTagRenderer> siteTagRenderers;
 
     public GuideSiteMdxTagRenderer(Guide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree) {
@@ -160,12 +161,21 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         this.assetExportersByGuideId = assetExportersByGuideId;
         this.mediaWikiListContext = mediaWikiListContext;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
+        // Resolved once: the renderers that may claim a tag do not change while a guide is exported.
+        this.siteTagRenderers = GuideSiteTagRenderers.of(guide);
     }
 
     @Override
     public @Nullable String render(MdxJsxElementFields element, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+        String contributed = GuideSiteTagRenderers.render(
+            siteTagRenderers,
+            new GuideSiteTagRenderContext(defaultNamespace, currentPageId, templates, sceneResolver, compiler),
+            element);
+        if (contributed != null) {
+            return contributed;
+        }
         String name = element.name();
         if ("ItemImage".equals(name)) {
             return renderItemImage(element, defaultNamespace, currentPageId, templates, true);

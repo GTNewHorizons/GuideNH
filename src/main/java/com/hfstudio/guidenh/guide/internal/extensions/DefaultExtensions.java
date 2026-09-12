@@ -89,6 +89,7 @@ import com.hfstudio.guidenh.guide.scene.element.TextAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.WeatherElementCompiler;
 import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.api.SceneElementTagCompilerProvider;
 import com.hfstudio.guidenh.integration.api.TagCompilerProvider;
 
 public class DefaultExtensions {
@@ -193,27 +194,33 @@ public class DefaultExtensions {
     }
 
     public static List<SceneElementTagCompiler> sceneElementCompilers() {
-        return List.of(
-            new EntityElementCompiler(),
-            new BlockElementCompiler(),
-            new ImportStructureElementCompiler(),
-            new ImportStructureLibElementCompiler(),
-            new ImportPonderElementCompiler(),
-            new IsometricCameraElementCompiler(),
-            new InputAnnotationElementCompiler(),
-            new BlockAnnotationElementCompiler(),
-            new BoxAnnotationElementCompiler(),
-            new LineAnnotationElementCompiler(),
-            new DiamondAnnotationElementCompiler(),
-            new BlockAnnotationTemplateElementCompiler(),
-            new TextAnnotationElementCompiler(),
-            new ParticleElementCompiler(),
-            new WeatherElementCompiler(),
-            new PlaySoundElementCompiler(),
-            new RemoveBlocksElementCompiler(),
-            new RemoveEntityElementCompiler(),
-            new ReplaceBlockElementCompiler(),
-            new PlaceBlockElementCompiler());
+        List<SceneElementTagCompiler> compilers = new ArrayList<>(
+            List.of(
+                new EntityElementCompiler(),
+                new BlockElementCompiler(),
+                new ImportStructureElementCompiler(),
+                new ImportStructureLibElementCompiler(),
+                new ImportPonderElementCompiler(),
+                new IsometricCameraElementCompiler(),
+                new InputAnnotationElementCompiler(),
+                new BlockAnnotationElementCompiler(),
+                new BoxAnnotationElementCompiler(),
+                new LineAnnotationElementCompiler(),
+                new DiamondAnnotationElementCompiler(),
+                new BlockAnnotationTemplateElementCompiler(),
+                new TextAnnotationElementCompiler(),
+                new ParticleElementCompiler(),
+                new WeatherElementCompiler(),
+                new PlaySoundElementCompiler(),
+                new RemoveBlocksElementCompiler(),
+                new RemoveEntityElementCompiler(),
+                new ReplaceBlockElementCompiler(),
+                new PlaceBlockElementCompiler()));
+        for (SceneElementTagCompilerProvider provider : GuideNhIntegrationRegistry.global()
+            .sceneElementTagCompilerProviders()) {
+            provider.appendSceneElementTagCompilers(compilers);
+        }
+        return compilers;
     }
 
     @Desugar

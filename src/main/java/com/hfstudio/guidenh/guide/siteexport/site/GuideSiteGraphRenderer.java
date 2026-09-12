@@ -3438,7 +3438,10 @@ public class GuideSiteGraphRenderer {
             return new LegendArea(plotLeft, plotRight, plotTop, plotBottom, 0, 0, 0, 0);
         }
         int availW = Math.max(1, plotRight - plotLeft);
-        int itemW = Math.clamp(availW / itemCount, legendItemWidth(legendNames), 100 + 4 * CHART_TEXT_SIZE);
+        // A wide name may need more room than the widest column we allow, so the lower bound is capped as
+        // well: clamping with a minimum above the maximum would throw.
+        int maxItemW = 100 + 4 * CHART_TEXT_SIZE;
+        int itemW = Math.clamp(availW / itemCount, Math.min(legendItemWidth(legendNames), maxItemW), maxItemW);
         int cols = Math.max(1, availW / Math.max(1, itemW));
         int rows = (int) Math.ceil((double) itemCount / cols);
         int rowsH = rows * (LEGEND_ROW_H + 2);

@@ -115,4 +115,41 @@ This path is independent of the inventory item-tooltip path, so hovering items i
 - The hotkey's quest-hover branch becomes a no-op.
 - BetterQuesting `[guide]...[/guide]` description links are never parsed because the BetterQuesting text box and related mixins are not loaded.
 
+## Exporting your tags to the site
+
+The exported site renders the tags that ship with GuideNH. A mod whose tags are compiled by its own
+`TagCompiler` registers a renderer so its tags are exported as well, instead of showing up in the book and
+disappearing from the site:
+
+```java
+public class MyModSiteTagRenderer implements GuideSiteTagRenderer {
+
+    @Override
+    public Set<String> getTagNames() {
+        return Set.of("MyMachine");
+    }
+
+    @Override
+    public String render(GuideSiteTagRenderContext context, MdxJsxElementFields element) {
+        String id = element.getAttributeString("id", "");
+        return "<div class=\"mymod-machine\">" + GuideSiteGraphRenderer.esc(id) + "</div>";
+    }
+}
+```
+
+```java
+GuideNhIntegrationRegistry.global().registerSiteTagRenderer(new MyModSiteTagRenderer());
+Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, new MyModSiteTagRenderer()).build();
+```
+
+Registered renderers are asked before the built-in ones, and the first one that returns markup wins, so a
+renderer only has to handle the tags it declares. Returning `null` leaves the element to the next renderer
+or to the built-in export. A renderer that throws is reported in the log and skipped, so one broken plugin
+cannot fail the export of a page it does not own.
+
+The context carries the page being exported and the shared export services: `defaultNamespace`,
+`currentPageId`, `templates`, `sceneResolver` and `compiler`, the same values the built-in renderers work
+with. Markup you write is inserted into the page as it is, so escape text with
+`GuideSiteGraphRenderer.esc(...)`.
+
 This means a guide that targets BetterQuesting can be authored once and silently degrade in environments where BetterQuesting is not installed.

@@ -15,9 +15,11 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.SymbolicColorResolver;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTagRenderer;
 import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSlot;
 
@@ -47,6 +49,9 @@ public class GuideNhIntegrationRegistry {
     private final List<GuidebookFakeWorldIntegration> fakeWorldIntegrations = new ArrayList<>();
     private final List<SyntaxContributor> syntaxContributors = new ArrayList<>();
     private final List<SyntaxSlot> syntaxSlots = new ArrayList<>();
+    private final List<GuideSiteTagRenderer> siteTagRenderers = new ArrayList<>();
+    private final List<SceneElementTagCompilerProvider> sceneElementTagCompilerProviders = new ArrayList<>();
+    private final List<SymbolicColorResolver> symbolicColorResolvers = new ArrayList<>();
     private int syntaxRevision;
 
     public GuideNhIntegrationRegistry() {}
@@ -216,9 +221,61 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(syntaxSlots);
     }
 
+    /**
+     * Registers a renderer that exports your tags to the site. Use it for tags the built-in site export
+     * does not know about; for one guide only, pass the renderer to
+     * {@code GuideBuilder.extension(GuideSiteTagRenderer.EXTENSION_POINT, renderer)} instead.
+     */
+    public synchronized void registerSiteTagRenderer(GuideSiteTagRenderer renderer) {
+        if (renderer == null) {
+            throw new IllegalArgumentException("renderer");
+        }
+        if (!siteTagRenderers.contains(renderer)) {
+            siteTagRenderers.add(renderer);
+        }
+    }
+
+    public synchronized List<GuideSiteTagRenderer> siteTagRenderers() {
+        return List.copyOf(siteTagRenderers);
+    }
+
     /** Bumped whenever the registered syntax changes, so cached syntax models can detect staleness. */
     public synchronized int syntaxRevision() {
         return syntaxRevision;
+    }
+
+    /**
+     * Registers scene element compilers for every guide. The global counterpart of passing them to
+     * {@code GuideBuilder.extension(SceneElementTagCompiler.EXTENSION_POINT, compiler)}.
+     */
+    public synchronized void registerSceneElementTagCompilerProvider(SceneElementTagCompilerProvider provider) {
+        if (provider == null) {
+            throw new IllegalArgumentException("provider");
+        }
+        if (!sceneElementTagCompilerProviders.contains(provider)) {
+            sceneElementTagCompilerProviders.add(provider);
+        }
+    }
+
+    public synchronized List<SceneElementTagCompilerProvider> sceneElementTagCompilerProviders() {
+        return List.copyOf(sceneElementTagCompilerProviders);
+    }
+
+    /**
+     * Registers a symbolic colour resolver for every guide. The global counterpart of passing one to
+     * {@code GuideBuilder.extension(SymbolicColorResolver.EXTENSION_POINT, resolver)}.
+     */
+    public synchronized void registerSymbolicColorResolver(SymbolicColorResolver resolver) {
+        if (resolver == null) {
+            throw new IllegalArgumentException("resolver");
+        }
+        if (!symbolicColorResolvers.contains(resolver)) {
+            symbolicColorResolvers.add(resolver);
+        }
+    }
+
+    public synchronized List<SymbolicColorResolver> symbolicColorResolvers() {
+        return List.copyOf(symbolicColorResolvers);
     }
 
     public synchronized void registerTagCompilerProvider(TagCompilerProvider provider) {
