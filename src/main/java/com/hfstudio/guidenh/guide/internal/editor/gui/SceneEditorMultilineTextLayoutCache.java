@@ -72,13 +72,22 @@ public class SceneEditorMultilineTextLayoutCache {
 
         int offset = 0;
         while (offset < logicalLine.length()) {
-            // Measuring a window instead of everything that is left keeps the copy per chunk bounded: the
-            // window is far wider than one chunk, so the wrap points are exactly the ones the font gives.
+            // Measuring a window instead of everything that is left bounds the copy per chunk, and the
+            // window is widened until the font stops at the width rather than at the end of the window: a
+            // window the font consumed entirely could hide text that still fits, which happens when a run
+            // of zero-width formatting codes makes one chunk longer than the window.
             int windowEnd = Math.min(logicalLine.length(), offset + MEASURE_WINDOW_CHARS);
-            String window = logicalLine.substring(offset, windowEnd);
-            String chunk = fontRenderer.trimStringToWidth(window, textWidth);
+            String chunk;
+            while (true) {
+                String window = logicalLine.substring(offset, windowEnd);
+                chunk = fontRenderer.trimStringToWidth(window, textWidth);
+                if (chunk.length() < window.length() || windowEnd >= logicalLine.length()) {
+                    break;
+                }
+                windowEnd = Math.min(logicalLine.length(), windowEnd + MEASURE_WINDOW_CHARS);
+            }
             if (chunk.isEmpty()) {
-                chunk = window.substring(0, 1);
+                chunk = logicalLine.substring(offset, offset + 1);
             }
             int consumed = Math.max(1, chunk.length());
             int startIndex = lineStart + offset;
