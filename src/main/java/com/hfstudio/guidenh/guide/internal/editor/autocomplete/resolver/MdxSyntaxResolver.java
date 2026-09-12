@@ -30,6 +30,30 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
     private static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
 
+    /**
+     * The document this resolver last parsed, and the result.
+     *
+     * <p>
+     * Parsing is the whole cost of a completion query: it is measured at about 0.2 ms for a tiny document
+     * and about 0.4 microseconds per character after that, so a 14 KB page costs roughly 5 ms and a 39 KB
+     * page roughly 15-18 ms per query, while the MDX conversion that follows adds well under half a
+     * millisecond. Queries are debounced to about ten a second, so a long page spends a noticeable part of
+     * the tick budget here.
+     *
+     * <p>
+     * Two cheaper approaches were measured and rejected rather than guessed at. Parsing only the text before
+     * the caret still costs about 5.8 ms for the first quarter of a 39 KB page, because the cost tracks the
+     * text parsed, so the saving does not pay for changing what the document means — and it would change it:
+     * a frontmatter block, a fence without its closing marker and a tag still being typed all read
+     * differently from a prefix. Skipping the parse whenever the caret is not in frontmatter or a fence was
+     * tried and reverted, because the answers for those two regions are read from the parsed nodes
+     * ({@code MdAstYamlFrontmatter}, {@code MdAstCode}) and reimplementing them from the text would be a
+     * second copy of the same rules.
+     *
+     * <p>
+     * A real fix has to make the parse incremental or caret-local without changing what the document means,
+     * which is a change to the parser rather than to this resolver.
+     */
     @Nullable
     private String cachedText;
     @Nullable
