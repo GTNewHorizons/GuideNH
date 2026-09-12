@@ -8,7 +8,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests format patterns such as {@code %s} for label format attributes. */
 public class FormatPatternValueSource implements SyntaxValueSource {
 
     private static final List<SyntaxSuggestion> PATTERNS = List.of(

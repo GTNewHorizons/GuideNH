@@ -17,13 +17,9 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/**
- * Suggests heading anchors of the page being edited for {@code href="#..."} on an anchor tag. Only
- * answers for the {@code a} tag and only once the partial starts with {@code #}.
- */
+/** Suggests heading anchors of the page being edited for {@code href="#..."} on an anchor tag. */
 public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
 
-    /** A heading anchor and the heading text it came from. */
     public record Heading(String anchor, String title) {}
 
     private static final String ANCHOR_TAG = "a";
@@ -33,9 +29,7 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
     private static final List<Heading> NO_HEADINGS = List.of();
 
     /**
-     * The document the cached headings were parsed from, held weakly: it is only a key for "did the text
-     * change", so keeping the whole page alive here would retain the editor's document for as long as this
-     * source is registered, which is the life of the editor.
+     * The document the cached headings were parsed from, held weakly: it is only a key for "did the text change", so.
      */
     @Nullable
     private WeakReference<String> cachedSource;
@@ -56,8 +50,6 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
             cachedHeadings = NO_HEADINGS;
             return;
         }
-        // The editor hands out the same instance until the text really changes, so identity plus length is
-        // enough to recognise it, and a collected key simply means the headings are parsed again.
         String cached = cachedSource != null ? cachedSource.get() : null;
         if (cached != null && cached == text && cachedSourceLength == text.length()) {
             return;
@@ -91,10 +83,7 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
         return results;
     }
 
-    /**
-     * Parses the headings once per document instead of once per keystroke. The editor hands out the
-     * same string instance until the text actually changes, so identity is a sufficient cache key.
-     */
+    /** Parses the headings once per document instead of once per keystroke. */
     private static List<Heading> parseHeadings(String text) {
         List<Heading> headings = new ArrayList<>();
         Matcher matcher = HEADING.matcher(text);

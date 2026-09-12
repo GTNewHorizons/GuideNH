@@ -106,9 +106,7 @@ public class DirectoryResourcePack implements IResourcePack {
         return nativePath != null && Files.isRegularFile(nativePath) ? nativePath : null;
     }
 
-    /**
-     * A path inside the pack, or null when it would leave it.
-     */
+    /** A path inside the pack, or null when it would leave it. */
     private @Nullable Path containedPath(Path candidate) {
         Path normalizedRoot = root.toAbsolutePath()
             .normalize();

@@ -13,7 +13,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests item registry names, including the namespace shortcuts that start a mod id. */
 public class ItemIdValueSource implements SyntaxValueSource {
 
     @Override
@@ -25,10 +24,6 @@ public class ItemIdValueSource implements SyntaxValueSource {
     public List<SyntaxSuggestion> suggest(SyntaxValueRequest request, int limit) {
         int wanted = Math.max(1, limit);
         List<SyntaxSuggestion> results = new ArrayList<>();
-        // The index trims its answer to a limit, and an entry that is not an item is dropped here, so asking
-        // for exactly the limit can return fewer than that - or none at all when the first matches happen to
-        // be entries without an item. A larger window is asked for and the list is trimmed once it is full of
-        // entries that really have an icon.
         int window = wanted * 4;
         for (String candidate : RegistryIdIndex.items()
             .match(request.partialText(), window)) {

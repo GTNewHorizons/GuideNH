@@ -33,8 +33,7 @@ public class GuideNhIntegrationRegistry {
     private static final GuideNhIntegrationRegistry GLOBAL = new GuideNhIntegrationRegistry();
 
     /**
-     * Providers that already reported a failure, so a lookup that runs per block per frame cannot flood
-     * the log.
+     * Providers that already reported a failure, so a lookup that runs per block per frame cannot flood the log.
      */
     private static final Set<String> REPORTED_PROVIDER_FAILURES = new HashSet<>();
     private final Map<String, IntegrationModDescriptor> modDescriptors = new LinkedHashMap<>();
@@ -197,11 +196,7 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(guideBuilderIntegrationHooks);
     }
 
-    /**
-     * Registers a contributor that declares guide syntax to the editor. Registered contributors apply
-     * to every guide; attach one to a single guide through
-     * {@code GuideBuilder.extension(SyntaxContributor.EXTENSION_POINT, contributor)} instead.
-     */
+    /** Registers a contributor that declares guide syntax to the editor. */
     public synchronized void registerSyntaxContributor(SyntaxContributor contributor) {
         if (contributor == null) {
             throw new IllegalArgumentException("contributor");
@@ -216,11 +211,7 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(syntaxContributors);
     }
 
-    /**
-     * Registers a slot for every guide. Use it for syntax of your own that the built-in editor cannot
-     * describe; for one guide only, pass the slot to
-     * {@code GuideBuilder.extension(SyntaxSlot.EXTENSION_POINT, slot)} instead.
-     */
+    /** Registers a slot for every guide. */
     public synchronized void registerSyntaxSlot(SyntaxSlot slot) {
         if (slot == null) {
             throw new IllegalArgumentException("slot");
@@ -235,11 +226,7 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(syntaxSlots);
     }
 
-    /**
-     * Registers a renderer that exports your tags to the site. Use it for tags the built-in site export
-     * does not know about; for one guide only, pass the renderer to
-     * {@code GuideBuilder.extension(GuideSiteTagRenderer.EXTENSION_POINT, renderer)} instead.
-     */
+    /** Registers a renderer that exports your tags to the site. */
     public synchronized void registerSiteTagRenderer(GuideSiteTagRenderer renderer) {
         if (renderer == null) {
             throw new IllegalArgumentException("renderer");
@@ -253,9 +240,7 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(siteTagRenderers);
     }
 
-    /**
-     * Registers an entry in the guide editor's toolbar and context menu.
-     */
+    /** Registers an entry in the guide editor's toolbar and context menu. */
     public synchronized void registerEditorAction(GuideEditorActionContribution action) {
         if (action == null) {
             throw new IllegalArgumentException("action");
@@ -269,15 +254,11 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(editorActions);
     }
 
-    /** Bumped whenever the registered syntax changes, so cached syntax models can detect staleness. */
     public synchronized int syntaxRevision() {
         return syntaxRevision;
     }
 
-    /**
-     * Registers scene element compilers for every guide. The global counterpart of passing them to
-     * {@code GuideBuilder.extension(SceneElementTagCompiler.EXTENSION_POINT, compiler)}.
-     */
+    /** Registers scene element compilers for every guide. */
     public synchronized void registerSceneElementTagCompilerProvider(SceneElementTagCompilerProvider provider) {
         if (provider == null) {
             throw new IllegalArgumentException("provider");
@@ -292,9 +273,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     /**
-     * Registers a renderer for fence names of your own, so the body of such a fence is not read as a
-     * plain code block. Its names should also be declared through {@code SyntaxSink.fenceLanguages(...)}
-     * so the editor offers them.
+     * Registers a renderer for fence names of your own, so the body of such a fence is not read as a plain code.
      */
     public synchronized void registerCodeFenceRenderer(CodeFenceRenderer renderer) {
         if (renderer == null) {
@@ -309,10 +288,7 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(codeFenceRenderers);
     }
 
-    /**
-     * Registers a symbolic colour resolver for every guide. The global counterpart of passing one to
-     * {@code GuideBuilder.extension(SymbolicColorResolver.EXTENSION_POINT, resolver)}.
-     */
+    /** Registers a symbolic colour resolver for every guide. */
     public synchronized void registerSymbolicColorResolver(SymbolicColorResolver resolver) {
         if (resolver == null) {
             throw new IllegalArgumentException("resolver");
@@ -787,8 +763,6 @@ public class GuideNhIntegrationRegistry {
         }
         if (!blockStatsProviders.contains(provider)) {
             blockStatsProviders.add(provider);
-            // Block statistics ask for the providers once per block, so they read a snapshot instead of a
-            // fresh copy of the list.
             blockStatsProviderSnapshot = List.copyOf(blockStatsProviders);
         }
     }
@@ -862,9 +836,7 @@ public class GuideNhIntegrationRegistry {
         }
     }
 
-    /**
-     * Reports a provider of another mod that failed.
-     */
+    /** Reports a provider of another mod that failed. */
     private static void reportProviderFailure(Object provider, RuntimeException failure) {
         String key = provider.getClass()
             .getName();

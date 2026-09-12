@@ -11,22 +11,15 @@ import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 
 /**
- * Read-only views of the game registries shaped for completion queries: identifiers sorted, their
- * lowercase forms precomputed, and the distinct namespaces collected once.
+ * Read-only views of the game registries shaped for completion queries: identifiers sorted, their lowercase.
  */
 public class RegistryIdIndex {
 
-    /** One registry identifier with its lowercase form, so matching never allocates. */
     public record Entry(String id, String lower) {}
 
-    /** A registry snapshot that can answer ranked identifier queries. */
     public record Snapshot(List<Entry> ids, List<Entry> namespaces) {
 
-        /**
-         * Identifiers matching {@code partial}, closest first: namespaces (so {@code minecraft:} is
-         * one keystroke away), then identifiers whose path starts with the partial, then identifiers
-         * that merely contain it.
-         */
+        /** Identifiers matching {@code partial}, closest first, with namespaces offered as well. */
         public List<String> match(String partial, int limit) {
             int safeLimit = Math.max(0, limit);
             List<String> results = new ArrayList<>();
@@ -73,9 +66,7 @@ public class RegistryIdIndex {
     }
 
     /**
-     * A registry only grows while mods load, which the key count detects, so a snapshot is rebuilt when
-     * the count moves. The rebuild also happens after this interval, so an entry a mod replaces with one
-     * of the same count cannot stay invisible forever.
+     * A registry only grows while mods load, which the key count detects, so a snapshot is rebuilt when the count.
      */
     private static final long REBUILD_INTERVAL_MILLIS = 60_000L;
 
@@ -108,7 +99,6 @@ public class RegistryIdIndex {
         return blockSnapshot;
     }
 
-    /** True when the identifier or its path segment starts with the partial text. */
     private static boolean matchesPathPrefix(String lowerId, String lower) {
         if (lower.isEmpty()) {
             return false;

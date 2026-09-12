@@ -23,8 +23,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeTagRenderer {
 
     /**
-     * Reads the ingredient or other slots of a recipe the way the in-game renderer does: through the
-     * registered slot providers, so a mod that supplies its own slots exports them too.
+     * Reads the ingredient or other slots of a recipe the way the in-game renderer does: through the registered slot.
      */
     private static List<NeiRecipeLookup.Slot> siteRecipeSlots(Object handler, int recipeIndex, boolean ingredients) {
         List<RecipeSlot> slots = ingredients ? GuideNhIntegrationRegistry.global()

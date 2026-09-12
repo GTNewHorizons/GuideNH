@@ -8,9 +8,7 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
 
 /**
- * A tag suggestion. Container tags close themselves around the caret, self-closing tags get the
- * {@code />} tail from {@code AutocompleteCommitService}, and a tag with an
- * {@link InsertTemplate} writes the form the contributor declared instead.
+ * A tag suggestion. Container tags close themselves around the caret, self-closing tags get the {@code />} tail.
  */
 public class TagCandidate implements AutocompleteCandidate {
 
@@ -33,7 +31,6 @@ public class TagCandidate implements AutocompleteCandidate {
         this.display = buildDisplay(tagName, container, template);
     }
 
-    /** A template spans several lines, so the popup row shows it as one. */
     private static String buildDisplay(String tagName, boolean container, @Nullable InsertTemplate template) {
         if (template != null) {
             return template.text()
@@ -59,7 +56,6 @@ public class TagCandidate implements AutocompleteCandidate {
 
     @Override
     public String rankingText() {
-        // A template writes the whole tag, but the author is typing the tag name.
         return tagName;
     }
 

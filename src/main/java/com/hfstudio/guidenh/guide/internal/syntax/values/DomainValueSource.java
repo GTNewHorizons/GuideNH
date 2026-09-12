@@ -8,7 +8,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests domain interval templates for domain attributes. */
 public class DomainValueSource implements SyntaxValueSource {
 
     private static final List<SyntaxSuggestion> DOMAINS = List.of(

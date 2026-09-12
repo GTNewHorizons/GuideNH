@@ -112,8 +112,6 @@ public class GuideSiteSceneAnnotationSerializer {
                     case InWorldLineAnnotation line -> inWorld.add(serializeLine(line, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldBlockFaceOverlayAnnotation blockOverlay -> inWorld.add(
                             serializeBlockOverlay(blockOverlay, templates, currentPageId, assetExporter, itemIconResolver));
-                    // An annotation of another mod describes its own site payload; without one it cannot be
-                    // drawn by the viewer, so it is reported rather than dropped in silence.
                     default -> addContributedPayload(inWorld, annotation);
                 }
             }
@@ -134,8 +132,6 @@ public class GuideSiteSceneAnnotationSerializer {
                                     currentPageId,
                                     assetExporter,
                                     itemIconResolver));
-                    // Same as the in-world annotations above: an annotation of another mod describes its own
-                    // payload, and one that cannot is reported rather than dropped in silence.
                     default -> addContributedPayload(overlay, annotation);
                 }
             }
@@ -144,9 +140,7 @@ public class GuideSiteSceneAnnotationSerializer {
         return new AnnotationPayload(GSON.toJson(inWorld), GSON.toJson(overlay));
     }
 
-    /**
-     * Adds what an annotation of another mod asks the site viewer to draw.
-     */
+    /** Adds what an annotation of another mod asks the site viewer to draw. */
     private static void addContributedPayload(List<Map<String, Object>> target, SceneAnnotation annotation) {
         Map<String, Object> payload;
         try {

@@ -11,7 +11,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests common math expressions for attributes that take one. */
 public class ExpressionValueSource implements SyntaxValueSource {
 
     private static final Set<SyntaxValueKind> KINDS = Collections.singleton(SyntaxValueKind.EXPRESSION);

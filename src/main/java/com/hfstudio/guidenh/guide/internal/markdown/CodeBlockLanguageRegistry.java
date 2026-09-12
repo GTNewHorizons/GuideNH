@@ -25,15 +25,11 @@ public class CodeBlockLanguageRegistry {
         return BY_LANGUAGE_ID.get(languageId);
     }
 
-    /** Every registered language id, sorted. Editors use this to offer fence names. */
     public static List<String> getLanguageIds() {
         return LANGUAGE_IDS;
     }
 
-    /**
-     * Every accepted alias that is not itself a language id, sorted. A fence written with one of these
-     * names highlights with the language it maps to, so editors offer them next to the ids.
-     */
+    /** Every accepted alias that is not itself a language id, sorted. */
     public static List<String> getFenceAliases() {
         return FENCE_ALIASES;
     }

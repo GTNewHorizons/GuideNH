@@ -20,23 +20,15 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSelection;
 
 /**
- * Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the
- * guide's {@link GuideSyntaxModel} for candidates, and drives the completion popup.
+ * Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the guide's.
  */
 public class GuideEditorAutocompleteController {
 
-    /** How the host must react to a key that arrived while completion may be active. */
     public enum KeyResult {
-        /**
-         * The popup did not take the key, so the host keeps its normal handling for it. The
-         * controller may have dismissed the popup first.
-         */
+        /** The popup did not take the key, so the host keeps its normal handling for it. */
         IGNORED,
-        /** The key only changed popup state. */
         CONSUMED,
-        /** A candidate was accepted into {@link #takePendingCommit()}. */
         COMMIT,
-        /** The popup closed and the key still has to reach the text area. */
         FORWARD_TO_EDITOR
     }
 
@@ -72,23 +64,18 @@ public class GuideEditorAutocompleteController {
         this.selectionStrategies = SelectionStrategies.defaults();
     }
 
-    /** Points the session at the syntax of the guide currently open in the editor. */
     public void setModel(@Nullable GuideSyntaxModel model) {
         this.model = model != null ? model : GuideSyntaxModel.empty();
         this.markdownResolver.setModel(this.model);
         close();
     }
 
-    /** Records that the text area changed, arming a debounced query for the next tick. */
     public void markEdit() {
         queryRequestedByEdit = true;
         nextQueryAtMillis = System.currentTimeMillis() + QUERY_DEBOUNCE_MILLIS;
     }
 
-    /**
-     * Resolves the syntax under the caret and refreshes the popup. Queries only run after an edit so
-     * merely moving the caret never reopens the popup.
-     */
+    /** Resolves the syntax under the caret and refreshes the popup. */
     public void update(@Nullable String text, int cursorIndex, int anchorX, int anchorY, int viewportWidth,
         int viewportHeight, FontRenderer fontRenderer, SyntaxEnvironment environment) {
         this.anchorX = anchorX;
@@ -134,8 +121,6 @@ public class GuideEditorAutocompleteController {
         AutocompleteContext context;
         GuideSyntaxModel.SlotMatch slotMatch = model.matchSlot(text, cursorIndex);
         if (slotMatch != null) {
-            // A slot of another mod claims the caret, so the editor's own resolvers stay out of it even
-            // when the slot has no values to offer right now.
             candidates = GuideSyntaxCompletion.slotQuery(slotMatch, QUERY_LIMIT);
             context = new SlotContext(slotMatch);
         } else {
@@ -147,8 +132,6 @@ public class GuideEditorAutocompleteController {
             candidates = GuideSyntaxCompletion.query(model, syntax, QUERY_LIMIT);
             context = syntax.getAutocomplete();
         }
-        // The query has been answered, so the next edit arms a new one. Disarming before the answer would
-        // leave the popup shut until the next keystroke if anything above failed.
         queryRequestedByEdit = false;
         if (candidates.isEmpty() || context == null) {
             close();
@@ -167,7 +150,6 @@ public class GuideEditorAutocompleteController {
         queryRequestedByEdit = false;
     }
 
-    /** Drops the popup and its resolved slot, leaving any armed query intact. */
     private void dismissPopup() {
         pendingContext = null;
         pendingCommit = null;
@@ -176,7 +158,6 @@ public class GuideEditorAutocompleteController {
         }
     }
 
-    /** Draws the popup at the anchor recorded by the last {@link #update}. */
     public void draw(int mouseX, int mouseY, FontRenderer fontRenderer) {
         if (!popup.isOpen()) {
             return;
@@ -212,8 +193,6 @@ public class GuideEditorAutocompleteController {
                     }
                 }
                 if (AutocompleteKeyPolicy.isControlChord(typedChar, keyCode)) {
-                    // Control chords belong to the host - save, undo, copy, paste - so the popup steps
-                    // aside instead of swallowing the key.
                     close();
                     return KeyResult.IGNORED;
                 }
@@ -225,18 +204,15 @@ public class GuideEditorAutocompleteController {
         }
     }
 
-    /** @return true when the click belonged to the popup. */
     public boolean handleMouseClick(String text, int mouseX, int mouseY, int button) {
         if (!popup.isOpen()) {
             return false;
         }
         if (!popup.contains(mouseX, mouseY)) {
-            // Any click elsewhere dismisses the popup before the screen handles it.
             close();
             return false;
         }
         if (button != MOUSE_BUTTON_PRIMARY) {
-            // Keep a secondary click from accepting a candidate by accident.
             return true;
         }
         popup.mouseClicked(mouseX, mouseY);
@@ -244,7 +220,6 @@ public class GuideEditorAutocompleteController {
         return true;
     }
 
-    /** @return true when the wheel moved the popup list. */
     public boolean handleWheel(int mouseX, int mouseY, int wheelDelta) {
         if (!popup.isOpen() || !popup.contains(mouseX, mouseY)) {
             return false;
@@ -253,10 +228,7 @@ public class GuideEditorAutocompleteController {
         return true;
     }
 
-    /**
-     * Consumes the accepted candidate. The caller applies it and then calls {@link #close()} so the
-     * freshly inserted text is not queried again.
-     */
+    /** Consumes the accepted candidate. */
     @Nullable
     public AutocompleteCommit takePendingCommit() {
         AutocompleteCommit commit = pendingCommit;
@@ -264,10 +236,8 @@ public class GuideEditorAutocompleteController {
         return commit;
     }
 
-    /** Resolves the syntax element under a double click so the host can extend the selection. */
     @Nullable
     public SelectionRange resolveDoubleClickSelection(String text, int cursorIndex) {
-        // A slot of another mod knows its own boundaries, so it answers before the editor's strategies.
         SyntaxSelection slotSelection = model.matchSlotSelection(text, cursorIndex);
         if (slotSelection != null) {
             return new SelectionRange(slotSelection.start(), slotSelection.end());
@@ -292,22 +262,17 @@ public class GuideEditorAutocompleteController {
             return;
         }
         if (!stillDescribes(sourceText, pendingContext)) {
-            // An out-of-band edit moved the text, so the recorded range no longer describes the slot.
-            // Commit nothing rather than overwrite whatever now sits there.
             close();
             return;
         }
         AutocompleteCommit commit = AutocompleteCommitService.commit(sourceText, pendingContext, selected);
         if (commit == null) {
-            // The candidate could not produce an edit - a slot writer failed, for instance - so nothing is
-            // written and the popup closes instead of leaving a session whose slot no longer holds.
             close();
             return;
         }
         pendingCommit = commit;
     }
 
-    /** True when {@code text} still starts the slot's typed text at the slot's recorded position. */
     private static boolean stillDescribes(String text, AutocompleteContext context) {
         int start = context.replaceStart();
         int end = context.replaceEnd();

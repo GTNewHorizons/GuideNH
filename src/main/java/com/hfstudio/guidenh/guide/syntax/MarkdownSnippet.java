@@ -6,12 +6,9 @@ import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
-/**
- * A snippet the editor offers for markdown syntax.
- */
+/** A snippet the editor offers for markdown syntax. */
 public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String label, String snippet, int caretOffset) {
 
-    /** Characters after which an inline construct may start; a word character must not trigger one. */
     private static final String INLINE_BOUNDARY_CHARS = "([{>\"'";
 
     public static MarkdownSnippet block(String trigger, String label, String snippet, int caretOffset) {
@@ -22,9 +19,7 @@ public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String l
         return new MarkdownSnippet(MarkdownSnippetKind.INLINE, trigger, label, snippet, caretOffset);
     }
 
-    /**
-     * True when this snippet should be offered for {@code typed}.
-     */
+    /** True when this snippet should be offered for {@code typed}. */
     public boolean matches(String typed) {
         String normalized = typed != null ? typed.toLowerCase(Locale.ROOT) : "";
         if (kind.lineLead()) {
@@ -34,7 +29,6 @@ public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String l
         return trigger.equalsIgnoreCase(normalized);
     }
 
-    /** True when at least one of {@code snippets} matches {@code typed}. */
     public static boolean anyMatches(List<MarkdownSnippet> snippets, String typed) {
         for (MarkdownSnippet snippet : snippets) {
             if (snippet.matches(typed)) {
@@ -44,7 +38,6 @@ public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String l
         return false;
     }
 
-    /** All snippets in {@code snippets} that match {@code typed}. */
     public static List<MarkdownSnippet> matching(List<MarkdownSnippet> snippets, String typed) {
         List<MarkdownSnippet> results = new ArrayList<>();
         for (MarkdownSnippet snippet : snippets) {
@@ -56,8 +49,7 @@ public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String l
     }
 
     /**
-     * The longest inline trigger that {@code text} ends with, requiring the trigger to sit on a word
-     * boundary so that prose such as {@code 2*3} or a finished {@code **bold**} does not trigger one.
+     * The longest inline trigger that {@code text} ends with, requiring the trigger to sit on a word boundary so.
      */
     @Nullable
     public static MarkdownSnippet longestInlineTrigger(List<MarkdownSnippet> snippets, String text, int cursorIndex) {

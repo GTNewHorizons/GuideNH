@@ -67,7 +67,6 @@ public interface SymbolicColorResolver extends Extension {
         return null;
     }
 
-    /** A resolver of another mod cannot keep a page from compiling, so a failure only skips it. */
     @Nullable
     private static ColorValue resolveSafely(SymbolicColorResolver resolver, ResourceLocation id) {
         try {

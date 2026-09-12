@@ -20,7 +20,6 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
 
-    /** Longest region side a scene accepts, so a mistyped extent cannot freeze the scene build. */
     private static final int MAX_REGION_SIDE = 256;
 
     @Override
@@ -127,10 +126,7 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
             formed);
     }
 
-    /**
-     * A region side that no scene can hold. The extents are author input, and a mistyped one would make the
-     * replacement walk billions of positions while the scene builds.
-     */
+    /** A region side that no scene can hold. */
     private static int boundedExtent(int declared) {
         return Math.clamp(declared, 1, MAX_REGION_SIDE);
     }

@@ -75,9 +75,7 @@ public class GuideSiteExportTask {
     private static final long SCENE_MATERIALIZATION_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long SCENE_MATERIALIZATION_STEP_NANOS = TimeUnit.MILLISECONDS.toNanos(2);
     private static final long SCENE_MATERIALIZATION_WAIT_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
-    /**
-     * How long materialization may make no progress before the page is reported.
-     */
+    /** How long materialization may make no progress before the page is reported. */
     private static final long SCENE_MATERIALIZATION_NO_PROGRESS_NANOS = TimeUnit.SECONDS.toNanos(3);
 
     private final Path outDir;
@@ -834,12 +832,9 @@ public class GuideSiteExportTask {
             host.step(System.nanoTime() + SCENE_MATERIALIZATION_STEP_NANOS);
             int workSize = host.pendingWorkSize();
             if (workSize < lastWorkSize) {
-                // A task finished, so the queue is moving; wait again before calling it stuck.
                 lastWorkSize = workSize;
                 noProgressUntil = System.nanoTime() + SCENE_MATERIALIZATION_NO_PROGRESS_NANOS;
             } else if (System.nanoTime() >= noProgressUntil) {
-                // Every task keeps yielding without finishing, which no amount of waiting resolves, so the
-                // page is reported now instead of after the full timeout.
                 GuideDebugLog.warnAlways(
                     "[GuideNH] [GuideSiteExportTask] Scene materialization stopped making progress for page {}",
                     compiledPage.id());
@@ -855,9 +850,7 @@ public class GuideSiteExportTask {
         }
     }
 
-    /**
-     * Whether a materialised document still holds a scene placeholder.
-     */
+    /** Whether a materialised document still holds a scene placeholder. */
     private boolean containsScenePlaceholder(LytNode node) {
         Deque<LytNode> pending = new ArrayDeque<>();
         pending.add(node);
@@ -875,9 +868,7 @@ public class GuideSiteExportTask {
         return false;
     }
 
-    /**
-     * Reports a scene the book shows as failed.
-     */
+    /** Reports a scene the book shows as failed. */
     private static void reportSceneLoadFailure(LytGuidebookScene scene, ParsedGuidePage parsedPage) {
         String failure = scene.getLoadFailure();
         if (failure == null || failure.isEmpty()) {
@@ -1018,7 +1009,6 @@ public class GuideSiteExportTask {
             html.append("<span class=\"guide-scene-block-stat-label\">")
                 .append(escapeHtml(entry.getLabel()))
                 .append("</span><span class=\"guide-scene-block-stat-count\">x")
-                // The same short form the book prints, so a large count reads the same on both sides.
                 .append(LytGuidebookScene.formatBlockStatsDisplayCount(entry.getCount()))
                 .append("</span></div>");
         }
@@ -1529,9 +1519,7 @@ public class GuideSiteExportTask {
         return left * right;
     }
 
-    /**
-     * Hands the exported scenes to the renderer in the order the page declares them.
-     */
+    /** Hands the exported scenes to the renderer in the order the page declares them. */
     private GuideSiteHtmlCompiler.SceneResolver createSceneResolver(List<GuideSiteExportedScene> exportedScenes) {
         return new GuideSiteHtmlCompiler.SceneResolver() {
 

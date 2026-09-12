@@ -10,18 +10,12 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.syntax.SyntaxReplacement;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
-/**
- * Applies an accepted candidate to the page text.
- */
+/** Applies an accepted candidate to the page text. */
 public class AutocompleteCommitService {
 
     private AutocompleteCommitService() {}
 
-    /**
-     * Applies an accepted candidate to the page text.
-     *
-     * @return the edit to apply, or null when the candidate could not produce one
-     */
+    /** Applies an accepted candidate to the page text. */
     @Nullable
     public static AutocompleteCommit commit(String text, AutocompleteContext context, AutocompleteCandidate candidate) {
         String source = text != null ? text : "";
@@ -41,7 +35,6 @@ public class AutocompleteCommitService {
         return new AutocompleteCommit(newText, cursor, selectionEnd);
     }
 
-    /** Honours a candidate that knows where the caret and the selection belong inside its replacement. */
     private static Replacement applyDeclaredCaret(Replacement replacement, AutocompleteCandidate candidate) {
         int caret = candidate.caretOffsetInReplacement();
         if (caret < 0 || caret > replacement.text.length()) {
@@ -76,13 +69,11 @@ public class AutocompleteCommitService {
         if (context instanceof FrontmatterContext frontmatter) {
             return createFrontmatterReplacement(source, frontmatter, replacement);
         }
-        // Attribute names and markdown snippets already are complete snippets.
         return Replacement.cursorAtEnd(replacement);
     }
 
     /**
-     * A slot of another mod writes its own replacement, so the candidate only has to say which value the
-     * author picked; the slot decides the surroundings and where the caret lands.
+     * A slot of another mod writes its own replacement, so the candidate only has to say which value the author.
      */
     @Nullable
     private static Replacement createSlotReplacement(SlotContext context, AutocompleteCandidate candidate) {
@@ -111,9 +102,7 @@ public class AutocompleteCommitService {
     }
 
     /**
-     * A tag candidate either supplies its own opening form (a container like {@code Row>} that the
-     * caller closes through {@link AutocompleteCandidate#suffixText()}, or a template) or is a plain name
-     * that becomes the self-closing {@code <Name />}.
+     * A tag candidate either supplies its own opening form (a container like {@code Row>} that the caller closes.
      */
     private static Replacement createTagReplacement(String source, TagStartContext context,
         AutocompleteCandidate candidate) {
@@ -124,8 +113,6 @@ public class AutocompleteCommitService {
         int pos = skipSpaces(source, replaceEnd);
         int closingEnd = closingBracketEnd(source, pos);
         if (closingEnd > 0 && bringsCompleteForm(candidate)) {
-            // The author already typed the end of this tag, so the complete form replaces that too instead
-            // of leaving a second bracket behind.
             return new Replacement(
                 tagName,
                 tagName.length(),
@@ -147,20 +134,16 @@ public class AutocompleteCommitService {
     }
 
     /**
-     * True when a candidate writes the whole tag, opening bracket included, while the page already has a
-     * bracket just before the typed name: the bracket belongs to the replacement, so it is replaced too
-     * instead of staying behind as a second one.
+     * True when a candidate writes the whole tag, opening bracket included, while the page already has a bracket.
      */
     private static boolean swallowsOpeningBracket(String source, int replaceStart, String replacement) {
         return replacement.startsWith("<") && replaceStart > 0 && source.charAt(replaceStart - 1) == '<';
     }
 
-    /** True when a candidate brings its own complete tag form rather than a bare name. */
     private static boolean bringsCompleteForm(AutocompleteCandidate candidate) {
         return candidate.suffixText() != null || candidate.caretOffsetInReplacement() >= 0;
     }
 
-    /** @return the end of a closing bracket at {@code position}, or -1 when the text there is something else */
     private static int closingBracketEnd(String source, int position) {
         if (position < 0 || position >= source.length()
             || source.charAt(position) != '>' && source.charAt(position) != '/') {
@@ -173,8 +156,7 @@ public class AutocompleteCommitService {
     }
 
     /**
-     * Writes an attribute value, adding quotes when the page does not quote it yet and closing a
-     * half-typed delimiter the resolver detected.
+     * Writes an attribute value, adding quotes when the page does not quote it yet and closing a half-typed.
      */
     private static Replacement createAttributeValueReplacement(String source, MdxValueContext context, String value,
         AutocompleteCandidate candidate) {
@@ -201,14 +183,12 @@ public class AutocompleteCommitService {
             if (start > 0 && source.charAt(start - 1) == '\n') {
                 replacement = replacement.substring(1);
             } else if (endsWithListMarker(source, start)) {
-                // The line already carries its list marker, so the value must not add a second one.
                 replacement = stripListMarkerLine(replacement.substring(1));
             }
         }
         return new Replacement(replacement, replacement.length(), replacement.length());
     }
 
-    /** True when only a list marker and whitespace precede {@code position} on its line. */
     private static boolean endsWithListMarker(String source, int position) {
         int lineStart = source.lastIndexOf('\n', position - 1) + 1;
         if (lineStart >= position) {
@@ -219,7 +199,6 @@ public class AutocompleteCommitService {
         return before.equals("-") || before.equals("+") || before.equals("*");
     }
 
-    /** Drops the indentation and the list marker a multiline frontmatter value starts with. */
     private static String stripListMarkerLine(String value) {
         int index = skipSpaces(value, 0);
         if (index < value.length()
@@ -229,7 +208,6 @@ public class AutocompleteCommitService {
         return value.substring(skipSpaces(value, index));
     }
 
-    /** True when the character just outside the replaced range already delimits the value. */
     private static boolean hasValueDelimiter(String source, int valueStart, int valueEnd) {
         int before = valueStart - 1;
         if (before >= 0) {
@@ -282,12 +260,6 @@ public class AutocompleteCommitService {
             this(text, cursorOffset, selectionEndOffset, 0, extraReplaceEnd);
         }
 
-        /**
-         * @param extraReplaceStart characters before the context's range the replacement also consumes,
-         *                          used when the candidate writes a whole tag including its bracket
-         * @param extraReplaceEnd   characters after it the replacement also consumes, used when the author
-         *                          already typed the end of a tag
-         */
         private Replacement(String text, int cursorOffset, int selectionEndOffset, int extraReplaceStart,
             int extraReplaceEnd) {
             this.text = text;

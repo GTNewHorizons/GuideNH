@@ -264,8 +264,6 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
      */
     private byte @Nullable [] readAssetPath(ResourceLocation id) {
         if (!IdUtils.isSafeAssetPath(id.getResourcePath())) {
-            // Page content decides this path, and the lookup below resolves it on the filesystem, where a
-            // parent step would read a file that is not part of the guide.
             GuideDebugLog.warnAlways("[GuideNH] [MutableGuide] Refusing asset {}: it leaves the guide directory", id);
             return null;
         }

@@ -10,7 +10,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests the two boolean literals. */
 public class BooleanValueSource implements SyntaxValueSource {
 
     private static final String[] VALUES = { "true", "false" };

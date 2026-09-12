@@ -31,17 +31,13 @@ public class GuideScreenEditorActionRegistry {
         return actions;
     }
 
-    /**
-     * The toolbar and menu entries other mods contribute.
-     */
+    /** The toolbar and menu entries other mods contribute. */
     public static List<GuideEditorActionContribution> contributedActions() {
         return GuideNhIntegrationRegistry.global()
             .editorActions();
     }
 
-    /**
-     * The editor's context menu.
-     */
+    /** The editor's context menu. */
     public static List<GuideScreenEditorContextMenu.Entry> contextMenuEntries(
         List<GuideScreenEditorContextMenu.Entry> templateEntries,
         List<GuideScreenEditorContextMenu.Entry> contributedEntries) {

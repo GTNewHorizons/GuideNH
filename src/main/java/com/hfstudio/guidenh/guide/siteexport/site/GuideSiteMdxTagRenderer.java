@@ -165,7 +165,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         this.assetExportersByGuideId = assetExportersByGuideId;
         this.mediaWikiListContext = mediaWikiListContext;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
-        // Resolved once: the renderers that may claim a tag do not change while a guide is exported.
         this.siteTagRenderers = GuideSiteTagRenderers.of(guide);
     }
 
@@ -827,9 +826,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if (exportedScene != null) {
             int logicalWidth = exportedScene.logicalWidth() > 0 ? exportedScene.logicalWidth() : 256;
             int logicalHeight = exportedScene.logicalHeight() > 0 ? exportedScene.logicalHeight() : 192;
-            // renderSceneHtml emits the start tag and its attributes but no closing bracket: the scene tag
-            // appends forwarded and action attributes after it and closes the tag itself. A block image has
-            // no such attributes, so it closes the tag here.
             String sceneHtml = GuideSiteSceneTagRenderer
                 .renderSceneHtml(logicalWidth, logicalHeight, false, defaultNamespace, null, exportedScene) + ">";
             return wrapBlockImageFloat(element, sceneHtml);
@@ -1783,24 +1779,19 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             .withLabels(
                 ChartLabelPosition.fromString(readOptional(element, "labelPosition"), ChartLabelPosition.NONE),
                 parseArgbAttr(element, "labelColor", GuideSiteGraphRenderer.DEFAULT_LABEL_COLOR))
-            // The axis attributes are read here so an exported axis carries the range, the step, the grid and
-            // the tick text the page declares, the way the in-game charts do.
             .withAxes(
                 SiteChartAxis
                     .read(element, "xAxis", "showXGrid", "xGridColor", GuideSiteGraphRenderer.DEFAULT_GRID_COLOR),
                 SiteChartAxis
                     .read(element, "yAxis", "showYGrid", "yGridColor", GuideSiteGraphRenderer.DEFAULT_GRID_COLOR))
-            // The title colour and the bar width are declared on the chart element as well.
             .withBarLayout(
                 parseArgbAttr(element, "titleColor", GuideSiteGraphRenderer.DEFAULT_TITLE_COLOR),
                 readFloat(element, "barWidthRatio", GuideSiteGraphRenderer.DEFAULT_BAR_WIDTH_RATIO))
-            // A pie starts at the angle and draws in the direction the page declares, like the in-game pie.
             .withPieLayout(
                 readFloat(element, "startAngle", GuideSiteGraphRenderer.DEFAULT_PIE_START_ANGLE_DEG),
                 MdxAttrs.getBoolean(element, "clockwise", true));
     }
 
-    /** Reads a float attribute, falling back when it is absent or unreadable. */
     private float readFloat(MdxJsxElementFields element, String name, float fallback) {
         String raw = readOptional(element, name);
         if (raw == null || raw.isEmpty()) {
@@ -1808,7 +1799,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         try {
             float parsed = Float.parseFloat(raw.trim());
-            // A share outside (0, 1] is not a width the chart can draw with, so the default is kept.
             return parsed > 0f && parsed <= 1f ? parsed : fallback;
         } catch (NumberFormatException e) {
             return fallback;
@@ -1819,7 +1809,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         String legend = readOptional(element, "legend");
         if (legend != null && !legend.trim()
             .isEmpty()) {
-            // An absent or unparsable value keeps the in-game default, which is a legend at the top.
             return ChartAttrParser.parseLegendPosition(legend, ChartLegendPosition.TOP);
         }
         return readBoolean(element, "showLegend", true) ? ChartLegendPosition.TOP : ChartLegendPosition.NONE;
@@ -2956,8 +2945,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 return color;
             }
         }
-        // Resolvers registered for every guide are consulted too, the way the in-game resolver does it, so a
-        // colour a mod registers globally is not missing from the site.
         for (SymbolicColorResolver resolver : GuideNhIntegrationRegistry.global()
             .symbolicColorResolvers()) {
             ColorValue color = resolveColorSafely(resolver, colorId);
@@ -2968,7 +2955,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return null;
     }
 
-    /** A resolver of another mod cannot fail an export, so a failure only skips that resolver. */
     @Nullable
     private static ColorValue resolveColorSafely(SymbolicColorResolver resolver, ResourceLocation colorId) {
         try {

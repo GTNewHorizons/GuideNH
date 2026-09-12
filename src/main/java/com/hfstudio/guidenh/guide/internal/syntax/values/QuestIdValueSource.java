@@ -8,11 +8,7 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/**
- * Placeholder for BetterQuesting quest ids. Quest ids are not discoverable yet, so this source
- * answers nothing rather than guessing; it exists so the kind is owned by a registered source and
- * a later implementation only has to fill in this class.
- */
+/** Placeholder for BetterQuesting quest ids. */
 public class QuestIdValueSource implements SyntaxValueSource {
 
     @Override

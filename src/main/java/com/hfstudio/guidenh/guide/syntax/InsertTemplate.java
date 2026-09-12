@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.syntax;
 
-/**
- * The text a tag completes as, for tags whose useful form is more than the tag name.
- */
+/** The text a tag completes as, for tags whose useful form is more than the tag name. */
 public record InsertTemplate(String tagName, String text, int caretOffset) {
 
     public InsertTemplate {
@@ -11,16 +9,13 @@ public record InsertTemplate(String tagName, String text, int caretOffset) {
         caretOffset = Math.clamp(caretOffset, 0, text.length());
     }
 
-    /** A template that leaves the caret at the end of its text. */
     public static InsertTemplate of(String tagName, String text) {
         String safe = text != null ? text : "";
         return new InsertTemplate(tagName, safe, safe.length());
     }
 
     /**
-     * A template that puts the caret right after the first occurrence of {@code marker}, so a template can
-     * say where typing continues without counting characters. A marker the text does not contain leaves
-     * the caret at the end.
+     * A template that puts the caret right after the first occurrence of {@code marker}, so a template can say where.
      */
     public static InsertTemplate caretAfter(String tagName, String text, String marker) {
         String safe = text != null ? text : "";

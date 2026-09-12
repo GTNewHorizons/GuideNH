@@ -23,8 +23,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * Compiles {@code <InputAnnotation pos="0.5 1.5 0.5" inputType="lmb" />} into the mouse-input icon a
- * scene shows to hint that the player should click somewhere.
+ * Compiles {@code <InputAnnotation pos="0.5 1.5 0.5" inputType="lmb" />} into the mouse-input icon a scene shows.
  */
 public class InputAnnotationElementCompiler implements SceneElementTagCompiler {
 
@@ -56,7 +55,6 @@ public class InputAnnotationElementCompiler implements SceneElementTagCompiler {
         scene.addAnnotation(annotation);
     }
 
-    /** Reads {@code pos="x y z"}, falling back to separate {@code x}, {@code y} and {@code z} attributes. */
     private static Vector3f readPosition(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
         String pos = trimToNull(el.getAttributeString("pos", null));
         if (pos != null) {
@@ -80,7 +78,6 @@ public class InputAnnotationElementCompiler implements SceneElementTagCompiler {
             MdxAttrs.getFloat(compiler, errorSink, el, "z", 0f));
     }
 
-    /** Accepts the short names plus the spellings the site exporter accepts. */
     private static PonderInputAnnotation.InputType resolveInputType(@Nullable String raw) {
         if (raw == null) {
             return PonderInputAnnotation.InputType.LMB;
@@ -93,11 +90,7 @@ public class InputAnnotationElementCompiler implements SceneElementTagCompiler {
         };
     }
 
-    /**
-     * Resolves the optional item icon. A malformed id is an authoring mistake and is reported as an
-     * error, while a well formed id that no mod registers is only warned about: the annotation is still
-     * useful without its item icon.
-     */
+    /** Resolves the optional item icon. */
     @Nullable
     private static ItemStack resolveItem(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
         String itemId = trimToNull(el.getAttributeString("item", null));

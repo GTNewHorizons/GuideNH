@@ -28,24 +28,19 @@ import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 public class MdxSyntaxResolver implements SyntaxContextResolver {
 
-    public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
+    private static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
 
-    /**
-     * The document this resolver last parsed, and the result. Parsing is most of the cost of a query, so it
-     * is kept for as long as the text is unchanged.
-     */
+    /** The document this resolver last parsed, and the result. */
     @Nullable
-    public String cachedText;
+    private String cachedText;
     @Nullable
-    public MdAstRoot cachedRoot;
+    private MdAstRoot cachedRoot;
 
     @Override
     @Nullable
     public TextSyntaxContext resolve(String text, int cursorIndex) {
         if (text == null || text.isEmpty() || cursorIndex < 0 || cursorIndex > text.length()) return null;
 
-        // Frontmatter and a fence's language line are answered from the text: their answers never needed the
-        // parsed document, and those two regions are cheap to recognise.
         if (isInFrontmatter(text, cursorIndex)) {
             TextSyntaxContext frontmatter = resolveFrontmatterText(text, cursorIndex);
             if (frontmatter != null && frontmatter.shouldAutocomplete()) {
@@ -56,7 +51,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
         MdAstRoot root = parsedRoot(text);
         if (root != null) {
-            // A fence body is terminal: its language line completes, its body does not.
             MdAstCode code = findEnclosingNode(root, cursorIndex, MdAstCode.class);
             if (code != null) {
                 if (code.lang != null && !code.lang.isEmpty()) {
@@ -81,10 +75,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     /**
-     * The tag the caret is inside, read from the text: its attribute value, its attribute name, or its name
-     * while the tag is being opened.
-     *
-     * @return the context, or null when the caret is not inside a tag
+     * The tag the caret is inside, read from the text: its attribute value, its attribute name, or its name while.
      */
     @Nullable
     private TextSyntaxContext resolveTextLevelTagContext(String text, int cursorIndex) {
@@ -95,7 +86,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolveTagStart(text, cursorIndex, null);
     }
 
-    /** The parsed document, reused while the text is unchanged. */
     @Nullable
     public MdAstRoot parsedRoot(String text) {
         if (text.equals(cachedText)) {
@@ -106,8 +96,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             root = MdAst.fromMarkdown(text, PARSE_OPTIONS);
             MdAstToMdxConverter.convert(root, Collections.emptyMap());
         } catch (RuntimeException e) {
-            // Remember the failure for this text, so a keystroke that cannot be parsed is not re-parsed on
-            // every query until the author changes it again.
             cachedText = text;
             cachedRoot = null;
             return null;
@@ -118,9 +106,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     /**
-     * The fence language at the caret, read from the line the caret is on: only the line that opens a fence
-     * carries a language. This is the same rule as {@link #resolveFenceLanguage}, applied to the text so a
-     * document that fails to parse still completes its fence languages.
+     * The fence language at the caret, read from the line the caret is on: only the line that opens a fence carries.
      */
     @Nullable
     public static TextSyntaxContext resolveFenceLanguageLine(String text, int cursorIndex) {
@@ -148,9 +134,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new FenceLanguageContext(langStart, cursorIndex, partial));
     }
 
-    /**
-     * True when the caret sits inside the leading YAML frontmatter block.
-     */
+    /** True when the caret sits inside the leading YAML frontmatter block. */
     public static boolean isInFrontmatter(String text, int cursorIndex) {
         int firstBreak = text.indexOf('\n');
         if (firstBreak < 0) return false;
@@ -166,7 +150,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             if (text.substring(pos, lineEnd)
                 .trim()
                 .equals("---")) {
-                // The closing marker ends the block: the caret is inside it only while on the marker itself.
                 return cursorIndex <= pos;
             }
             if (lineEnd >= cursorIndex) return true;
@@ -175,7 +158,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return false;
     }
 
-    /** The frontmatter answer, read from the caret's line rather than from the parsed block. */
     @Nullable
     public TextSyntaxContext resolveFrontmatterText(String text, int cursorIndex) {
         return resolveFrontmatter(null, text, cursorIndex);
@@ -183,14 +165,12 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
     @Nullable
     public TextSyntaxContext resolveFromAst(MdAstRoot root, String text, int cursorIndex) {
-        // 1. YAML frontmatter — a terminal region that never hosts markdown constructs.
         MdAstYamlFrontmatter yaml = findEnclosingNode(root, cursorIndex, MdAstYamlFrontmatter.class);
         if (yaml != null) {
             TextSyntaxContext result = resolveFrontmatter(yaml, text, cursorIndex);
             return result != null && result.shouldAutocomplete() ? result : resolvePlainTextWord(text, cursorIndex);
         }
 
-        // 2. Code fence language — code bodies are terminal as well.
         MdAstCode code = findEnclosingNode(root, cursorIndex, MdAstCode.class);
         if (code != null) {
             if (code.lang != null && !code.lang.isEmpty()) {
@@ -222,7 +202,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             return tagStart;
         }
 
-        // 5. No MDX syntax here: let the remaining resolvers inspect the plain text instead.
         return null;
     }
 
@@ -286,10 +265,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolvePlainTextWord(text, cursorIndex);
     }
 
-    /**
-     * Completes a top-level frontmatter key while it is still being typed, before its ':' exists.
-     * Indented lines belong to a parent key instead, so they keep the inherited value context.
-     */
+    /** Completes a top-level frontmatter key while it is still being typed, before its ':' exists. */
     public TextSyntaxContext resolveFrontmatterDraftKey(String text, int cursorIndex) {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
         String typed = text.substring(lineStart, cursorIndex);
@@ -329,12 +305,10 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
         String prevKey = prevLine.substring(0, prevColon)
             .trim();
-        // A key with no value yet owns the block or list that follows it, whatever its indentation.
         if (isYamlBlockKey(prevLine, prevColon) || prevLine.indexOf(prevKey) == 0) {
             return resolveFrontmatterInheritedValue(text, cursorIndex, prevKey);
         }
 
-        // Otherwise walk outwards to the nearest key at a lower indentation.
         int prevIndent = prevLine.indexOf(prevKey);
         int searchPos = prevLineStart - 1;
         while (searchPos > 0) {
@@ -354,7 +328,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolvePlainTextWord(text, cursorIndex);
     }
 
-    /** True when nothing follows the key's colon, so a nested block or list belongs to that key. */
     public static boolean isYamlBlockKey(String line, int colonIndex) {
         for (int i = colonIndex + 1; i < line.length(); i++) {
             if (line.charAt(i) != ' ') {
@@ -365,9 +338,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     /**
-     * Builds a value context for a line that carries no key of its own, such as a list entry or an
-     * empty line under a key. The typed list content becomes the partial text so providers filter it,
-     * and the rest of the line is replaced on commit, matching the {@code key: value} behaviour.
+     * Builds a value context for a line that carries no key of its own, such as a list entry or an empty line under.
      */
     public TextSyntaxContext resolveFrontmatterInheritedValue(String text, int cursorIndex, String key) {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
@@ -383,7 +354,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new FrontmatterContext(key, true, valueStart, valueEnd, text.substring(valueStart, cursorIndex)));
     }
 
-    /** Offset of the entry text on a YAML line, skipping indentation and an optional list marker. */
     public static int yamlEntryContentOffset(String line) {
         int index = 0;
         while (index < line.length() && line.charAt(index) == ' ') {
@@ -469,15 +439,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new MdxValueContext(tagName, "url", urlStart, urlEnd, partial, '\0'));
     }
 
-    /**
-     * The tag the caret sits inside, read from the text.
-     *
-     * <p>
-     * Attribute completion has to work while a tag is half written, and a half-written tag makes the
-     * document unparsable, so the enclosing tag is found by scanning back for its {@code <} and the name
-     * after it. The scan stops at the enclosing tag's own end, so a caret in a later tag is not answered
-     * with an earlier one.
-     */
+    /** The tag the caret sits inside, read from the text. */
     @Nullable
     private static TagSpan findOpenTagAt(String text, int cursorIndex) {
         int tagStart = text.lastIndexOf('<', Math.max(0, cursorIndex - 1));
@@ -498,14 +460,12 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             return null;
         }
         int tagEnd = findOpeningTagEnd(text, tagStart);
-        // A caret past this tag's end belongs to something else, such as a later tag or the text after it.
         if (cursorIndex > tagEnd) {
             return null;
         }
         return new TagSpan(text.substring(nameStart, nameEnd), tagStart, tagEnd);
     }
 
-    /** A tag found in the text: its name and the range of its opening form. */
     private record TagSpan(String name, int tagStart, int tagEnd) {}
 
     @Nullable
@@ -517,7 +477,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         if (cursorIndex <= tag.tagStart() + 1
             + tag.name()
                 .length()) {
-            // The caret is still in the tag name, which tag start completion answers.
             return null;
         }
         TextSyntaxContext value = resolveTextLevelAttributeValue(text, tag, cursorIndex);
@@ -527,13 +486,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolveAttributeNameFromTag(text, tag.name(), tag.tagStart(), tag.tagEnd(), cursorIndex);
     }
 
-    /**
-     * The attribute value at the caret, found by reading the tag's attributes from the text.
-     *
-     * <p>
-     * A value that is still open is answered as well: while an author types inside an unterminated quote the
-     * document cannot be parsed, and that is precisely when the value has to complete.
-     */
+    /** The attribute value at the caret, found by reading the tag's attributes from the text. */
     @Nullable
     private static TextSyntaxContext resolveTextLevelAttributeValue(String text, TagSpan tag, int cursorIndex) {
         int pos = tag.tagStart() + 1
@@ -560,9 +513,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             int rawEnd = Math.max(bounds.rawEnd, valueStart);
             if (cursorIndex >= bounds.valueStart && cursorIndex <= Math.max(bounds.valueEnd, rawEnd)) {
                 String partial = text.substring(bounds.valueStart, cursorIndex);
-                // The bounds already say which span a value replaces: the text up to the closing quote when
-                // one is there, and up to the caret when the value is still open. Using the caret as the end
-                // instead would leave the closing quote behind, or include it in the typed text.
                 return new TextSyntaxContext(
                     SyntaxElementType.ATTRIBUTE_VALUE,
                     bounds.valueStart,
@@ -860,8 +810,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             int rawEnd = findClosingValue(text, valueStart, limit, close);
             boolean closed = rawEnd < limit && text.charAt(rawEnd) == close;
             int rawValueEnd = closed ? rawEnd + 1 : rawEnd;
-            // A value that is still open ends at the caret. Otherwise the range would reach the next
-            // '>' and replacing it would destroy what follows, such as the '/' of a self-closing tag.
             int valueEnd = closed ? rawEnd : Math.max(valueStart, Math.min(rawEnd, cursorIndex));
             return new AttributeValueBounds(valueStart, valueEnd, rawValueEnd, closed ? '\0' : close);
         }

@@ -22,9 +22,7 @@ public class AutocompleteKeyPolicy {
     }
 
     /**
-     * True for a control chord - save, undo, copy, paste, select all - or any other control character the
-     * editor handles itself: the popup dismisses itself and lets the key through. A modifier key on its own
-     * is not a chord, so holding Shift to type a character does not dismiss the popup.
+     * True for a control chord - save, undo, copy, paste, select all - or any other control character the editor.
      */
     public static boolean isControlChord(char typedChar, int keyCode) {
         if (isModifierOnlyKey(keyCode)) {

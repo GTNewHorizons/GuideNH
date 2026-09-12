@@ -1108,8 +1108,6 @@ public class SceneEditorMultilineTextArea {
 
         for (int i = 0; i < 3; i++) {
             int nextTextWidth = Math.max(4, width - PADDING * 2 - (verticalVisible ? SCROLLBAR_SIZE + 1 : 0));
-            // Re-laying the text out costs one font measurement per visual line, and the second pass only
-            // changes anything when wrapping uses the width it is given.
             boolean relayout = i == 0 || (wrapEnabled && nextTextWidth != resolvedTextWidth);
             resolvedTextWidth = nextTextWidth;
             if (relayout) {
@@ -1614,7 +1612,6 @@ public class SceneEditorMultilineTextArea {
         return fontRenderer.FONT_HEIGHT + 2;
     }
 
-    /** Height of one rendered line, for callers that place something beside the text. */
     public int getLineHeightPixels() {
         return getLineHeight();
     }

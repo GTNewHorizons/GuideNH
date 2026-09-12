@@ -52,7 +52,6 @@ public class GuideScreenEditorContextMenu {
         private final List<Entry> children;
         @Getter
         private final boolean separator;
-        /** Extra behaviour of an entry that is not one of the built-in editor actions. */
         @Nullable
         private final Runnable onSelected;
 
@@ -70,8 +69,7 @@ public class GuideScreenEditorContextMenu {
         }
 
         /**
-         * An entry that runs its own behaviour, used for contributions that are not one of the built-in
-         * editor actions.
+         * An entry that runs its own behaviour, used for contributions that are not one of the built-in editor actions.
          */
         public static Entry runnable(String label, Runnable onSelected) {
             return new Entry(label, null, List.of(), false, onSelected);

@@ -33,9 +33,7 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public class PreCompiler extends BlockTagCompiler {
 
-    /** Fence names that produce a file tree instead of a highlighted code block. */
     public static final List<String> FILE_TREE_FENCES = List.of("tree", "filetree");
-    /** Fence names that produce a parsed function graph instead of a highlighted code block. */
     public static final List<String> FUNCTION_GRAPH_FENCES = List.of("funcgraph", "function", "functiongraph");
 
     private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
@@ -61,7 +59,6 @@ public class PreCompiler extends BlockTagCompiler {
 
         CodeBlockLanguage language = CodeBlockLanguageDetector.detect(lang, codeText);
 
-        // A contributed renderer owns its fence name, so it is asked before the built-in handling.
         LytBlock contributed = CodeFenceRenderers.render(
             CodeFenceRenderers.of(compiler.getPageCollection() instanceof Guide guide ? guide : null),
             compiler,

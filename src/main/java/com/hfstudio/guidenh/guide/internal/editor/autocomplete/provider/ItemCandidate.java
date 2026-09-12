@@ -46,7 +46,6 @@ public class ItemCandidate implements AutocompleteCandidate {
         fontRenderer.drawString(id, x + TEXT_X, y + 4, TEXT_COLOR);
     }
 
-    /** Draws a 16x16 item icon at {@code x, y}. Shared with candidates that show an icon plus text. */
     public static void renderIcon(ItemStack stack, int x, int y) {
         GL11.glPushMatrix();
         GL11.glEnable(GL11.GL_BLEND);

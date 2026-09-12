@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.syntax;
 
-/**
- * A range of the editor's text, such as the range a double click inside a {@link SyntaxSlot} selects.
- */
+/** A range of the editor's text, such as the range a double click inside a {@link SyntaxSlot} selects. */
 public record SyntaxSelection(int start, int end) {
 
     public SyntaxSelection {

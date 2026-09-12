@@ -12,15 +12,12 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * Asks the contributed {@link GuideSiteTagRenderer}s for an element, so a tag of another mod is exported by
- * its own renderer instead of being dropped. The first renderer that answers wins, and the built-in ones
- * run only when no contributor claims the tag.
+ * Asks the contributed {@link GuideSiteTagRenderer}s for an element, so a tag of another mod is exported by its.
  */
 public class GuideSiteTagRenderers {
 
     private GuideSiteTagRenderers() {}
 
-    /** The renderers that apply to a guide: the guide's own first, then the globally registered ones. */
     public static List<GuideSiteTagRenderer> of(@Nullable Guide guide) {
         List<GuideSiteTagRenderer> declared = guide != null ? guide.getExtensions()
             .get(GuideSiteTagRenderer.EXTENSION_POINT) : List.of();
@@ -38,11 +35,7 @@ public class GuideSiteTagRenderers {
         return all;
     }
 
-    /**
-     * The markup a contributed renderer produces for an element.
-     *
-     * @return the rendered markup, or null when no renderer answers
-     */
+    /** The markup a contributed renderer produces for an element. */
     @Nullable
     public static String render(List<GuideSiteTagRenderer> renderers, GuideSiteTagRenderContext context,
         MdxJsxElementFields element) {
@@ -60,8 +53,6 @@ public class GuideSiteTagRenderers {
                     return markup;
                 }
             } catch (RuntimeException e) {
-                // A renderer of another mod must not break the export of a page it has nothing to do with,
-                // so a failed one is reported and the next renderer, or the built-in one, gets its turn.
                 GuideDebugLog.error(
                     "[GuideNH] [GuideSiteTagRenderer] {} failed to render <{}>: {}",
                     renderer.getClass()

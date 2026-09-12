@@ -13,10 +13,7 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/**
- * Common values for well known attribute names. These are not tied to a tag: an attribute called
- * {@code align} accepts left, center or right wherever it appears.
- */
+/** Common values for well known attribute names. */
 public class AttributePresetValueSource implements SyntaxValueSource {
 
     private static final Set<SyntaxValueKind> KINDS = Set

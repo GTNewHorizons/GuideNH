@@ -246,8 +246,6 @@ public class FunctionGraphAttrs {
             return fallback;
         }
         double parsed = DomainPredicate.parseNumberOrConstant(trimmed, fallback);
-        // An infinite bound or step would make the graph's sample and tick loops run forever, so only a
-        // finite value is accepted; the caller then keeps its own default.
         return Double.isFinite(parsed) ? parsed : fallback;
     }
 

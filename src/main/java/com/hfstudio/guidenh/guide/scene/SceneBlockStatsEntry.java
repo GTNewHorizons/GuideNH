@@ -71,10 +71,7 @@ public class SceneBlockStatsEntry {
         return Math.max(1, count);
     }
 
-    /**
-     * The placements of this entry. The list is a live view: it is read once per block while the entry is
-     * highlighted, which happens every rendered frame, so it must not be copied.
-     */
+    /** The placements of this entry. */
     public List<BlockStatsPlacement> getPlacements() {
         return Collections.unmodifiableList(placements);
     }

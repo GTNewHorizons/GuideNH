@@ -34,13 +34,11 @@ public class MdxAttrNameContext implements AutocompleteContext {
         return partialText;
     }
 
-    /** Accepting an attribute name also writes its value placeholder. */
     @Override
     public boolean expandsTypedText() {
         return true;
     }
 
-    /** '=' ends the attribute name, so it should expand the highlighted name instead of being typed. */
     @Override
     public boolean isCommitCharacter(char typedChar) {
         return typedChar == '=';

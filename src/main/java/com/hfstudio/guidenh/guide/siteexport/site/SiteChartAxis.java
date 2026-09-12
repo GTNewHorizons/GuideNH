@@ -9,9 +9,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
-/**
- * One axis of an exported chart: the label, the range, the tick step and the formatting of its ticks.
- */
+/** One axis of an exported chart: the label, the range, the tick step and the formatting of its ticks. */
 public class SiteChartAxis {
 
     @Nullable
@@ -41,9 +39,7 @@ public class SiteChartAxis {
         this.gridColor = gridColor;
     }
 
-    /**
-     * Reads one axis from a chart element.
-     */
+    /** Reads one axis from a chart element. */
     public static SiteChartAxis read(MdxJsxElementFields el, String prefix, String gridFlagAttr, String gridColorAttr,
         int defaultGridColor) {
         int gridColor = defaultGridColor;
@@ -62,7 +58,6 @@ public class SiteChartAxis {
             gridColor);
     }
 
-    /** An axis with nothing declared, used where a chart has no axis of that kind. */
     public static SiteChartAxis automatic(int defaultGridColor) {
         return new SiteChartAxis(null, null, null, null, null, null, true, defaultGridColor);
     }
@@ -72,19 +67,16 @@ public class SiteChartAxis {
         return label;
     }
 
-    /** The lower bound the axis declares, or null to derive it from the data. */
     @Nullable
     public Double min() {
         return min;
     }
 
-    /** The upper bound the axis declares, or null to derive it from the data. */
     @Nullable
     public Double max() {
         return max;
     }
 
-    /** The tick step the axis declares, or null to choose one. */
     @Nullable
     public Double step() {
         return step;
@@ -98,7 +90,6 @@ public class SiteChartAxis {
         return gridColor;
     }
 
-    /** The step to walk the axis with, given an already resolved range. */
     public double stepFor(double range) {
         if (step != null && step > 0 && Double.isFinite(step)) {
             return step;
@@ -106,11 +97,7 @@ public class SiteChartAxis {
         return GuideSiteGraphRenderer.niceStepForAxis(range);
     }
 
-    /**
-     * The range an axis shows: the declared bounds where they exist, the data otherwise.
-     *
-     * @return the lower and upper bound, in that order
-     */
+    /** The range an axis shows: the declared bounds where they exist, the data otherwise. */
     public double[] rangeFor(double dataMin, double dataMax, double dataStep) {
         double low = min != null ? min : Math.floor(dataMin / dataStep) * dataStep;
         double high = max != null ? max : Math.ceil(dataMax / dataStep) * dataStep;
@@ -120,7 +107,6 @@ public class SiteChartAxis {
         return new double[] { low, high };
     }
 
-    /** Formats one tick, with the declared format and unit, the way the in-game axis does. */
     public String formatTick(double value) {
         String text;
         if (tickFormat != null && !tickFormat.isEmpty()) {

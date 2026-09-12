@@ -8,9 +8,7 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
-/**
- * A value offered for an attribute or frontmatter key.
- */
+/** A value offered for an attribute or frontmatter key. */
 public record SyntaxSuggestion(String value, @Nullable String label, @Nullable String subtitle,
     @Nullable ItemStack icon) {
 
@@ -30,12 +28,10 @@ public record SyntaxSuggestion(String value, @Nullable String label, @Nullable S
         return new SyntaxSuggestion(value, null, null, icon);
     }
 
-    /** Text shown in the popup. */
     public String displayText() {
         return label != null ? label : value;
     }
 
-    /** All suggestions in {@code suggestions} whose value contains {@code partial}, case-insensitively. */
     public static List<SyntaxSuggestion> containing(List<SyntaxSuggestion> suggestions, String partial, int limit) {
         String lower = partial != null ? partial.toLowerCase(Locale.ROOT) : "";
         List<SyntaxSuggestion> results = new ArrayList<>();

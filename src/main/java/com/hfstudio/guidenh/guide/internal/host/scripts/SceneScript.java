@@ -197,8 +197,6 @@ public class SceneScript implements LytScript {
 
         applyCameraAndViewport(ph, scene, level, camera);
 
-        // Block statistics are enabled before the elements are compiled, so a <BlockStats> child only
-        // overrides the defaults of a scene that already counts blocks.
         scene.setBlockStatsEnabled(true);
         scene.setBlockStatsVisible(ModConfig.ui.sceneBlockStatsVisible);
         scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
@@ -318,8 +316,6 @@ public class SceneScript implements LytScript {
         }
 
         finalizeSceneGeometry(ph, scene, level, camera);
-        // A scene that does not size its statistics overlay itself follows the scene, so a large scene
-        // gets a larger overlay than the fixed minimum.
         scene.applyDefaultBlockStatsMaxSizeFromScene();
         scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
         scene.clearLoadState();
@@ -526,10 +522,7 @@ public class SceneScript implements LytScript {
         scene.setStructureLibSelectionChangeListener(selection -> scene.rebuild());
     }
 
-    /**
-     * The tags a scene element compiler publishes. A compiler of another mod that cannot answer is reported
-     * and skipped, because one broken plugin must not keep every scene from compiling.
-     */
+    /** The tags a scene element compiler publishes. */
     private static Collection<String> publishedSceneTags(SceneElementTagCompiler compiler) {
         Collection<String> tagNames;
         try {
@@ -554,11 +547,7 @@ public class SceneScript implements LytScript {
         return usable;
     }
 
-    /**
-     * Applies the {@code <BlockStats>} child element of a scene. Every documented attribute is read
-     * here: the scene carries a mode, a corner, a dock side, name visibility, a filter and a size cap,
-     * and manual mode reads its entries from {@code <BlockStat>} children.
-     */
+    /** Applies the {@code <BlockStats>} child element of a scene. */
     public static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el, PageCompiler compiler,
         LytErrorSink errorSink) {
         scene.setBlockStatsVisible(
@@ -597,9 +586,6 @@ public class SceneScript implements LytScript {
             scene.setBlockStatsMaxHeight(maxHeight);
         }
 
-        // A row list is a manual list, so it selects manual mode even when the element names another
-        // mode: the rows would otherwise be stored and never listed. The author is told about the
-        // override rather than losing the rows.
         int manualRows = applyManualBlockStatsEntries(scene, el);
         if (manualRows > 0) {
             if (mode != null && mode != BlockStatsMode.MANUAL) {
@@ -612,17 +598,13 @@ public class SceneScript implements LytScript {
         }
     }
 
-    /**
-     * Manual mode lists its rows as {@code <BlockStat id|item count/>} children.
-     */
+    /** Manual mode lists its rows as {@code <BlockStat id|item count/>} children. */
     private static int applyManualBlockStatsEntries(LytGuidebookScene scene, MdxJsxElementFields el) {
         List<ItemStack> stacks = new ArrayList<>();
         List<Integer> counts = new ArrayList<>();
         for (UnistNode child : el.children()) {
             MdxJsxElementFields entry = SceneTagCompiler.unwrapSceneElement(child);
             if (entry == null) {
-                // Text, an expression or a paragraph holding several nodes is not a row either, so a child
-                // that is not a <BlockStat> is reported whatever form it takes.
                 reportIgnoredBlockStatsChild(describeSceneChild(child));
                 continue;
             }
@@ -666,7 +648,6 @@ public class SceneScript implements LytScript {
             description);
     }
 
-    /** Names a child of a configuration element, so the author knows what was ignored. */
     private static String describeSceneChild(@Nullable UnistNode child) {
         if (child == null) {
             return "";
@@ -682,7 +663,6 @@ public class SceneScript implements LytScript {
         try {
             return GuideDisplayItemStacks.resolveItemStack(ref, "minecraft");
         } catch (IllegalArgumentException e) {
-            // A malformed id must not abort the scene, so the row is dropped with a report.
             GuideDebugLog.warnAlways(
                 "[GuideNH] [SceneScript] <BlockStat item=\"{}\"> is not a valid item id: {}",
                 ref,
@@ -691,7 +671,6 @@ public class SceneScript implements LytScript {
         }
     }
 
-    /** Splits a filter attribute into the ids it lists, accepting spaces, commas and semicolons. */
     private static Set<String> parseBlockStatsFilter(String filter) {
         Set<String> keys = new LinkedHashSet<>();
         for (String token : filter.split("[\\s,;]+")) {
@@ -703,7 +682,6 @@ public class SceneScript implements LytScript {
         return keys;
     }
 
-    /** @return the parsed number, or -1 when the attribute is absent or not a whole number */
     private static int parseOptionalInt(@Nullable String raw, String attributeName) {
         if (raw == null || raw.trim()
             .isEmpty()) {

@@ -13,7 +13,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests key binding descriptions for key bind attributes. */
 public class KeyBindValueSource implements SyntaxValueSource {
 
     @Override

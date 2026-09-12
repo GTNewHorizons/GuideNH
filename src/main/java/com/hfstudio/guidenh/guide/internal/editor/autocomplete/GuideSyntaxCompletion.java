@@ -29,11 +29,7 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 
-/**
- * Turns the syntax under the caret into completion candidates, using only what a guide's
- * {@link GuideSyntaxModel} carries. Nothing here knows a specific tag, so registering a contributor or a
- * tag compiler changes what the editor offers without touching this class.
- */
+/** Turns the syntax under the caret into completion candidates from a guide's syntax model. */
 public class GuideSyntaxCompletion {
 
     private static final int RELEVANCE_PREFIX = 0;
@@ -52,10 +48,7 @@ public class GuideSyntaxCompletion {
         return ranked(resolve(model, context, limit), context, limit);
     }
 
-    /**
-     * Candidates for a slot another mod owns. The slot decides the range and the values, so this only
-     * wraps them and gives them the ordering every other slot gets.
-     */
+    /** Candidates for a slot another mod owns. */
     public static List<AutocompleteCandidate> slotQuery(@Nullable GuideSyntaxModel.SlotMatch slotMatch, int limit) {
         if (slotMatch == null) {
             return List.of();
@@ -67,13 +60,11 @@ public class GuideSyntaxCompletion {
             if (candidates.size() >= limit) {
                 break;
             }
-            // A slot writes its own replacement, so the kind is only what the candidate falls back to.
             candidates.add(new SyntaxValueCandidate(suggestion, SyntaxValueKind.STRING));
         }
         return ranked(candidates, context, limit);
     }
 
-    /** Drops candidates that add nothing and orders what is left by how close it is to the typed text. */
     private static List<AutocompleteCandidate> ranked(List<AutocompleteCandidate> candidates,
         AutocompleteContext context, int limit) {
         if (candidates.isEmpty()) {
@@ -200,11 +191,7 @@ public class GuideSyntaxCompletion {
         return results;
     }
 
-    /**
-     * Drops candidates that would insert exactly what the user already typed. Contexts that wrap the
-     * typed text in markup keep them, because accepting still adds something. Duplicate values are
-     * removed too, since a fixed value list and a value source may overlap.
-     */
+    /** Drops candidates that would insert exactly what the user already typed. */
     private static List<AutocompleteCandidate> removeRedundant(List<AutocompleteCandidate> candidates,
         AutocompleteContext context) {
         Set<String> seen = new HashSet<>();
@@ -231,9 +218,7 @@ public class GuideSyntaxCompletion {
     }
 
     /**
-     * Ranks the closest matches first, since the popup pre-selects the head of the list: an exact
-     * prefix beats a match on the identifier path, which beats a match anywhere in the name. The sort
-     * is stable, so sources keep their own ordering inside a rank.
+     * Ranks the closest matches first, since the popup pre-selects the head of the list: an exact prefix beats a.
      */
     private static Comparator<AutocompleteCandidate> relevanceOrder(@Nullable String partialText) {
         if (partialText == null || partialText.isEmpty()) {

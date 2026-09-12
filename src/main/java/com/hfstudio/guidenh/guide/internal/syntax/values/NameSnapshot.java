@@ -10,13 +10,10 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
 /**
- * A cached view of the names a registry or a document exposes, with the lowercase form of each name
- * precomputed, so answering a completion query scans strings instead of allocating a lowercase copy of
- * every candidate.
+ * A cached view of the names a registry or a document exposes, with the lowercase form of each name precomputed,.
  */
 public class NameSnapshot {
 
-    /** One name with its lowercase form, so matching never allocates. */
     public record Entry(String name, String lower) {}
 
     private static final long REFRESH_INTERVAL_MILLIS = 10_000L;
@@ -29,7 +26,6 @@ public class NameSnapshot {
         this.source = source;
     }
 
-    /** Copies the names when the snapshot is stale, so the next query answers from memory. */
     public void refresh() {
         long now = System.currentTimeMillis();
         if (!entries.isEmpty() && now < nextRefreshAtMillis) {
@@ -45,7 +41,6 @@ public class NameSnapshot {
         nextRefreshAtMillis = now + REFRESH_INTERVAL_MILLIS;
     }
 
-    /** Names containing {@code partial}, in source order, at most {@code limit} of them. */
     public List<String> match(@Nullable String partial, int limit) {
         refresh();
         int safeLimit = Math.max(0, limit);
@@ -66,7 +61,6 @@ public class NameSnapshot {
         return results;
     }
 
-    /** The matching names as suggestions, ready to answer a value request. */
     public List<SyntaxSuggestion> suggestions(@Nullable String partial, int limit) {
         List<String> names = match(partial, limit);
         List<SyntaxSuggestion> results = new ArrayList<>(names.size());

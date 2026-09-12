@@ -226,9 +226,6 @@ public class IdUtils {
         if (idText.startsWith("/")) {
             return new ResourceLocation(anchor.getResourceDomain(), idText.substring(1));
         } else if (!idText.contains(":")) {
-            // A relative link may climb to a sibling or a parent page: that is how a page under a folder
-            // reaches the rest of the guide, and it stays inside the guide once resolved. Whether the
-            // resolved path is safe to join onto a pack directory is decided where that join happens.
             URI uri = URI.create(anchorParentPath(anchor.getResourcePath()));
             uri = uri.resolve(idText);
             return new ResourceLocation(anchor.getResourceDomain(), uri.toString());

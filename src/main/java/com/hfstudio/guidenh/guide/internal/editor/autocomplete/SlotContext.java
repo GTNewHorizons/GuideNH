@@ -3,10 +3,7 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSlotMatch;
 
-/**
- * The slot a {@code SyntaxSlot} of another mod owns. The match carries the range, the values and the
- * writer, so the commit step only asks it what to write instead of knowing any slot of its own.
- */
+/** The slot a {@code SyntaxSlot} of another mod owns. */
 public class SlotContext implements AutocompleteContext {
 
     private final GuideSyntaxModel.SlotMatch slotMatch;
@@ -19,7 +16,6 @@ public class SlotContext implements AutocompleteContext {
         return slotMatch.match();
     }
 
-    /** Namespace of the slot that answered, used when reporting that its writer failed. */
     public String slotNamespace() {
         try {
             String namespace = slotMatch.slot()
@@ -27,9 +23,7 @@ public class SlotContext implements AutocompleteContext {
             if (namespace != null && !namespace.isEmpty()) {
                 return namespace;
             }
-        } catch (RuntimeException e) {
-            // The report is about a failure already, so a failing namespace must not hide it.
-        }
+        } catch (RuntimeException e) {}
         return slotMatch.slot()
             .getClass()
             .getSimpleName();

@@ -43,7 +43,6 @@ public class TagStartContext implements AutocompleteContext {
         return partialText;
     }
 
-    /** Accepting a tag writes the closing form too, so a fully typed tag name stays selectable. */
     @Override
     public boolean expandsTypedText() {
         return true;

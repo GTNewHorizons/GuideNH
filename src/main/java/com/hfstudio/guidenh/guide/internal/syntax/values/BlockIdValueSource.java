@@ -14,7 +14,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests block registry names, with the block item as icon when the block has one. */
 public class BlockIdValueSource implements SyntaxValueSource {
 
     @Override

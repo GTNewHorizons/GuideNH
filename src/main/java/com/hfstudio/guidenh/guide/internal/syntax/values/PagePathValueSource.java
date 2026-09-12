@@ -10,9 +10,7 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/**
- * Suggests guide page ids for link and page reference attributes.
- */
+/** Suggests guide page ids for link and page reference attributes. */
 public class PagePathValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
 
     private List<String> pagePaths = List.of();

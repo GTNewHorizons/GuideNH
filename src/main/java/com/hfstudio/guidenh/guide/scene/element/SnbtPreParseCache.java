@@ -18,14 +18,10 @@ import org.jetbrains.annotations.Nullable;
  */
 public class SnbtPreParseCache {
 
-    /** Structures kept at once, well above what a single scene imports. */
     private static final int MAX_ENTRIES = 64;
 
     private static final ConcurrentHashMap<ResourceLocation, NBTTagCompound> cache = new ConcurrentHashMap<>();
-    /**
-     * Insertion order of the cached ids, guarded by itself. A {@link LinkedHashMap} in access order would
-     * need the reads to write, so the reader path stays lock-free and only insertion is recorded here.
-     */
+    /** Insertion order of the cached ids, guarded by itself. */
     private static final LinkedHashMap<ResourceLocation, Boolean> insertionOrder = new LinkedHashMap<>();
 
     public static void put(ResourceLocation id, NBTTagCompound root) {

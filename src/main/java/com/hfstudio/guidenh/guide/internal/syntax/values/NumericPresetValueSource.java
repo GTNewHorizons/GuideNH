@@ -13,8 +13,7 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
 /**
- * Suggests common numeric values for number attributes, keyed by attribute name so that a width
- * offers widths and a scale offers scales.
+ * Suggests common numeric values for number attributes, keyed by attribute name so that a width offers widths.
  */
 public class NumericPresetValueSource implements SyntaxValueSource {
 

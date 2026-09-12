@@ -9,18 +9,13 @@ import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.MarkdownSnippet;
 import com.hfstudio.guidenh.guide.syntax.MarkdownSnippetKind;
 
-/**
- * Detects markdown constructs that are about to be typed. The constructs themselves come from the
- * guide's {@link GuideSyntaxModel}, so a contributor that registers markdown snippets - or a mod that
- * adds its own - changes what is detected here without touching this class.
- */
+/** Detects markdown constructs that are about to be typed. */
 public class MarkdownSyntaxResolver implements SyntaxContextResolver {
 
     private static final int MAX_BLOCK_INDENT = 8;
 
     private GuideSyntaxModel model = GuideSyntaxModel.empty();
 
-    /** Points this resolver at the syntax of the guide currently open in the editor. */
     public void setModel(@Nullable GuideSyntaxModel model) {
         this.model = model != null ? model : GuideSyntaxModel.empty();
     }

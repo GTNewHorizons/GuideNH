@@ -431,9 +431,6 @@ public class LytHost {
     }
 
     public void step(long deadlineNs) {
-        // One pass over the tasks that are queued now. A task that yields is only deferred, not blocking:
-        // stopping at it would let one slow materialization hold up every task behind it, including the
-        // scenes of the other document this host serves.
         int remaining = taskQueue.size();
         while (remaining > 0 && !taskQueue.isEmpty() && System.nanoTime() < deadlineNs) {
             remaining--;

@@ -21,18 +21,10 @@ import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
-/**
- * The syntax a guide's editor can complete, assembled from {@link TagCompiler} and
- * {@link SceneElementTagCompiler} tag names plus every registered {@link SyntaxContributor}. Models are
- * immutable, so one is built per extension collection and reused until the global registrations change.
- */
+/** The syntax a guide's editor can complete, assembled from its tag compilers and contributors. */
 public class GuideSyntaxModel {
 
-    /**
-     * Models are cached per extension collection while it is still reachable, so building one costs
-     * once per guide instead of once per keystroke. The cache holds its keys weakly: a guide reload
-     * builds a new collection and the entry for the replaced one disappears with it.
-     */
+    /** Cached per extension collection while it is still reachable, so building costs once per guide. */
     private static final Map<ExtensionCollection, GuideSyntaxModel> CACHE = Collections
         .synchronizedMap(new WeakHashMap<>());
 
@@ -67,14 +59,12 @@ public class GuideSyntaxModel {
     }
 
     /**
-     * The model used when no guide is open: only what is registered globally, with no guide-declared
-     * syntax. It observes later global registrations like any other model.
+     * The model used when no guide is open: only what is registered globally, with no guide-declared syntax.
      */
     public static GuideSyntaxModel empty() {
         return of(null);
     }
 
-    /** The model for a guide, built once and reused until the global registrations change. */
     public static GuideSyntaxModel of(@Nullable ExtensionCollection extensions) {
         ExtensionCollection key = extensions != null ? extensions : ExtensionCollection.empty();
         int revision = GuideNhIntegrationRegistry.global()
@@ -85,8 +75,6 @@ public class GuideSyntaxModel {
                 return cached;
             }
         }
-        // Contributors run outside the cache monitor: their code belongs to another mod, so it must not be
-        // able to block or re-enter every other model lookup. A duplicate build only costs what it builds.
         GuideSyntaxModel model = build(key, revision);
         synchronized (CACHE) {
             CACHE.put(key, model);
@@ -94,17 +82,13 @@ public class GuideSyntaxModel {
         return model;
     }
 
-    /**
-     * Builds a model for a revision the caller read before building.
-     */
+    /** Builds a model for a revision the caller read before building. */
     private static GuideSyntaxModel build(ExtensionCollection extensions, int revision) {
         Builder builder = new Builder();
         for (SyntaxContributor contributor : contributors(extensions)) {
             try {
                 contributor.contribute(builder);
             } catch (RuntimeException e) {
-                // A contributor of another mod must never keep the editor from opening, so a failed one is
-                // reported and its remaining declarations are skipped.
                 GuideDebugLog.error(
                     "[GuideNH] [SyntaxContributor] {} failed to contribute: {}",
                     namespaceOf(contributor),
@@ -115,12 +99,10 @@ public class GuideSyntaxModel {
         return new GuideSyntaxModel(builder, revision, slots(extensions));
     }
 
-    /** Names a contributor for a report, tolerating an implementation whose namespace fails. */
     private static String namespaceOf(SyntaxContributor contributor) {
         return namespaceOf(contributor, contributor::namespace);
     }
 
-    /** Names a slot for a report, tolerating an implementation whose namespace fails. */
     private static String namespaceOf(SyntaxSlot slot) {
         return namespaceOf(slot, slot::namespace);
     }
@@ -131,16 +113,13 @@ public class GuideSyntaxModel {
             if (declared != null && !declared.isEmpty()) {
                 return declared;
             }
-        } catch (RuntimeException e) {
-            // The report is about a failure already, so a failing namespace must not hide it.
-        }
+        } catch (RuntimeException e) {}
         return owner.getClass()
             .getSimpleName();
     }
 
     /**
-     * The slots a contributor owns, guide-declared first: matching stops at the first slot that claims
-     * the caret, so the guide's own syntax answers before a global one.
+     * The slots a contributor owns, guide-declared first: matching stops at the first slot that claims the caret, so.
      */
     private static List<SyntaxSlot> slots(ExtensionCollection extensions) {
         List<SyntaxSlot> declared = extensions.get(SyntaxSlot.EXTENSION_POINT);
@@ -168,17 +147,13 @@ public class GuideSyntaxModel {
         if (declared.isEmpty()) {
             return global;
         }
-        // Globally registered contributors come first, so a guide's own contributors override theirs.
         List<SyntaxContributor> all = new ArrayList<>(global.size() + declared.size());
         all.addAll(global);
         all.addAll(declared);
         return all;
     }
 
-    /**
-     * Tags declared by the compilers themselves. This is what makes a third-party tag compiler appear in
-     * completion without knowing anything about the editor.
-     */
+    /** Tags declared by the compilers themselves. */
     private static void collectCompilerTagNames(Builder builder, ExtensionCollection extensions) {
         for (TagCompiler compiler : extensions.get(TagCompiler.EXTENSION_POINT)) {
             declareCompilerTagNames(builder, compiler, compiler::getTagNames);
@@ -189,8 +164,7 @@ public class GuideSyntaxModel {
     }
 
     /**
-     * A compiler of another mod publishes its tag names, and one that cannot answer is reported instead of
-     * keeping the editor from opening.
+     * A compiler of another mod publishes its tag names, and one that cannot answer is reported instead of keeping.
      */
     private static void declareCompilerTagNames(Builder builder, Object owner, Supplier<Collection<String>> tagNames) {
         Collection<String> published;
@@ -214,7 +188,6 @@ public class GuideSyntaxModel {
         }
     }
 
-    /** Tag names offered inside {@code parentTagName}, filtered by {@code partial}. */
     public List<String> tagNames(@Nullable String parentTagName, @Nullable String partial) {
         List<String> candidates = childTags(parentTagName);
         String lower = partial != null ? partial.toLowerCase(Locale.ROOT) : "";
@@ -244,37 +217,28 @@ public class GuideSyntaxModel {
         return parent.children;
     }
 
-    /** True when the tag wraps content and is completed as {@code <Name></Name>}. */
     public boolean isContainerTag(String tagName) {
         TagFact fact = tags.get(tagName);
         return fact != null && fact.container;
     }
 
-    /** The text a tag completes as, or null when completing its name is enough. */
     @Nullable
     public InsertTemplate insertTemplate(@Nullable String tagName) {
         return tagName != null ? insertTemplates.get(tagName) : null;
     }
 
-    /** Every declared insert template, keyed by tag name. */
     public Map<String, InsertTemplate> insertTemplates() {
         return insertTemplates;
     }
 
-    /** The slots that may own a caret, in the order they are asked. */
     public List<SyntaxSlot> slots() {
         return slots;
     }
 
-    /**
-     * The slot that owns a caret together with what it found there.
-     */
+    /** The slot that owns a caret together with what it found there. */
     public record SlotMatch(SyntaxSlot slot, SyntaxSlotMatch match) {}
 
-    /**
-     * Asks every slot which one owns the caret. The first match wins, so a contributor's syntax answers
-     * before the editor's own resolvers, and a slot that claims text keeps it even when it has no values.
-     */
+    /** Asks every slot which one owns the caret. */
     @Nullable
     public SlotMatch matchSlot(String text, int cursorIndex) {
         for (SyntaxSlot slot : slots) {
@@ -286,11 +250,7 @@ public class GuideSyntaxModel {
         return null;
     }
 
-    /**
-     * Asks every matching slot which range a double click inside it selects.
-     *
-     * @return the range to select, or null when no slot owns the caret
-     */
+    /** Asks every matching slot which range a double click inside it selects. */
     @Nullable
     public SyntaxSelection matchSlotSelection(String text, int cursorIndex) {
         for (SyntaxSlot slot : slots) {
@@ -309,7 +269,6 @@ public class GuideSyntaxModel {
         return null;
     }
 
-    /** A slot of another mod must never break the editor, so a failure only skips that slot. */
     @Nullable
     private SyntaxSlotMatch matchSafely(SyntaxSlot slot, String text, int cursorIndex) {
         try {
@@ -324,7 +283,6 @@ public class GuideSyntaxModel {
         GuideDebugLog.error("[GuideNH] [SyntaxSlot] {} failed to answer: {}", namespaceOf(slot), failure.toString());
     }
 
-    /** Attributes of a tag whose names start with {@code partial}. */
     public List<AttributeSyntax> attributes(@Nullable String tagName, @Nullable String partial) {
         TagFact fact = tagName != null ? tags.get(tagName) : null;
         if (fact == null || fact.attributes.isEmpty()) {
@@ -361,7 +319,6 @@ public class GuideSyntaxModel {
         return markdownSnippets;
     }
 
-    /** Fence names starting with {@code partial}. */
     public List<String> fenceLanguages(@Nullable String partial) {
         String lower = partial != null ? partial.toLowerCase(Locale.ROOT) : "";
         List<String> results = new ArrayList<>();
@@ -374,7 +331,6 @@ public class GuideSyntaxModel {
         return results;
     }
 
-    /** Frontmatter keys whose name contains {@code partial}. */
     public List<String> frontmatterKeys(@Nullable String partial) {
         String lower = partial != null ? partial.toLowerCase(Locale.ROOT) : "";
         List<String> results = new ArrayList<>();
@@ -387,7 +343,6 @@ public class GuideSyntaxModel {
         return results;
     }
 
-    /** The value kind declared for a frontmatter key, or null when it has none. */
     @Nullable
     public SyntaxValueKind frontmatterKind(@Nullable String key) {
         ValueSlot slot = key != null ? frontmatterValues.get(key) : null;
@@ -395,8 +350,7 @@ public class GuideSyntaxModel {
     }
 
     /**
-     * Values for a request: the fixed values declared next to the attribute or frontmatter key first,
-     * then everything the registered sources for the request's kind produce.
+     * Values for a request: the fixed values declared next to the attribute or frontmatter key first, then.
      */
     public List<SyntaxSuggestion> values(SyntaxValueRequest request, int limit) {
         int safeLimit = Math.max(0, limit);
@@ -427,10 +381,7 @@ public class GuideSyntaxModel {
         return results;
     }
 
-    /**
-     * A source of another mod answering a request. A source that fails or answers nothing is reported and
-     * contributes no values, so a broken plugin only costs its own suggestions.
-     */
+    /** A source of another mod answering a request. */
     private static List<SyntaxSuggestion> suggestSafely(SyntaxValueSource source, SyntaxValueRequest request,
         int limit) {
         List<SyntaxSuggestion> suggested;
@@ -456,10 +407,7 @@ public class GuideSyntaxModel {
         return values;
     }
 
-    /**
-     * Constants of an enum declared next to the attribute. An {@code ENUM} attribute does not need a
-     * value source: the compiler-facing enum is the single source of truth for the allowed values.
-     */
+    /** Constants of an enum declared next to the attribute. */
     private List<SyntaxSuggestion> enumValues(SyntaxValueRequest request) {
         if (request.kind() != SyntaxValueKind.ENUM) {
             return List.of();
@@ -516,7 +464,6 @@ public class GuideSyntaxModel {
             .contains(partial.toLowerCase(Locale.ROOT));
     }
 
-    /** Lets sources that need live data refresh it before a query. */
     public void prepare(SyntaxEnvironment environment) {
         Set<SyntaxValueSource> prepared = Collections.newSetFromMap(new IdentityHashMap<>());
         for (List<SyntaxValueSource> sources : valueSources.values()) {
@@ -528,10 +475,7 @@ public class GuideSyntaxModel {
         }
     }
 
-    /**
-     * A source of another mod refreshing itself. A failure is reported and the source keeps the data it
-     * already had, because a query must still be answered.
-     */
+    /** A source of another mod refreshing itself. */
     private static void prepareSafely(SyntaxEnvironmentAware source, SyntaxEnvironment environment) {
         try {
             source.prepare(environment);
@@ -544,7 +488,6 @@ public class GuideSyntaxModel {
         }
     }
 
-    /** Internal tag facts. Tag names come from compiler and contributor registration. */
     private static final class TagFact {
 
         private final boolean container;
@@ -571,7 +514,6 @@ public class GuideSyntaxModel {
         }
     }
 
-    /** Collects contributions. Contributors only ever see the {@link SyntaxSink} surface. */
     private static final class Builder implements SyntaxSink {
 
         private final Map<String, Boolean> containers = new LinkedHashMap<>();
@@ -685,7 +627,6 @@ public class GuideSyntaxModel {
             try {
                 kinds = source.kinds();
             } catch (RuntimeException e) {
-                // A source that cannot say which kinds it answers is registered for none of them.
                 GuideDebugLog.error(
                     "[GuideNH] [SyntaxValueSource] {} failed to declare its kinds: {}",
                     source.getClass()
@@ -697,8 +638,6 @@ public class GuideSyntaxModel {
                 return this;
             }
             for (SyntaxValueKind kind : kinds) {
-                // Sources are routed by the kind id: the quoting hint belongs to the attribute that
-                // declares the value, not to the source that answers for it.
                 if (kind != null) {
                     valueSources.computeIfAbsent(kind.id(), ignored -> new ArrayList<>())
                         .add(source);
@@ -715,7 +654,6 @@ public class GuideSyntaxModel {
 
         private Map<String, TagFact> buildTagFacts() {
             Set<String> names = new LinkedHashSet<>(containers.keySet());
-            // A contributor may declare attributes for a tag it never lists, so include those too.
             names.addAll(attributes.keySet());
             names.addAll(children.keySet());
             Map<String, TagFact> result = new LinkedHashMap<>();

@@ -2034,8 +2034,6 @@ public class GuideScreen extends GuiContainer
                 String prefix = action.wrapPrefix();
                 String suffix = action.wrapSuffix();
                 written = prefix + selected + suffix;
-                // With nothing selected the caret goes between the markers, ready for the text they mark up;
-                // with a selection it goes after it, so typing continues where the author was.
                 caretOffset = selected.isEmpty() ? prefix.length() : written.length();
             }
             String edited = source.substring(0, start) + written + source.substring(end);
@@ -2142,7 +2140,6 @@ public class GuideScreen extends GuiContainer
         }
         closeHomePageContextMenu();
         closeNavBarContextMenu();
-        // Built per open, so a template another mod registers while the editor is open is offered too.
         guideEditorContextMenu = new GuideScreenEditorContextMenu(buildGuideEditorContextMenuEntries());
         guideEditorContextMenu.open(mouseX, mouseY, width, height, fontRendererObj);
     }
@@ -2197,7 +2194,6 @@ public class GuideScreen extends GuiContainer
         return entries;
     }
 
-    /** Writes a template at the caret and leaves the caret where the template says it continues. */
     private void insertGuideEditorTemplate(InsertTemplate template) {
         if (guideEditorTextArea == null) {
             return;
@@ -2399,8 +2395,6 @@ public class GuideScreen extends GuiContainer
             buttonList.add(button);
         }
 
-        // Contributed actions get their own id range above the built-in ones, so an action of another mod is
-        // a real toolbar button without an enum constant of its own.
         List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions();
         for (int i = 0; i < contributed.size(); i++) {
             GuideEditorActionContribution action = contributed.get(i);
@@ -3404,7 +3398,6 @@ public class GuideScreen extends GuiContainer
         return syntaxEnvironment;
     }
 
-    /** Live guide data for the value sources that complete against the guide or the document. */
     private final class GuideEditorSyntaxEnvironment implements SyntaxEnvironment {
 
         @Nullable
@@ -3578,8 +3571,6 @@ public class GuideScreen extends GuiContainer
             x += GuideIconButton.WIDTH + TOOLBAR_GAP;
         }
 
-        // Contributed actions follow the built-in ones on the same rows, so a mod's button is laid out like
-        // any other instead of staying at the origin.
         List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions();
         for (int i = 0; i < contributed.size(); i++) {
             GuideIconButton button = guideEditorActionButtons.get(CONTRIBUTED_EDITOR_ACTION_ID_BASE + i);

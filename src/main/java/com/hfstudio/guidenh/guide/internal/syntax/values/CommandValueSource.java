@@ -12,10 +12,7 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/**
- * Suggests registered client-side commands, written with their leading slash. A typed slash is part of the
- * written value but not of the command name, so it only takes part in the suggestion.
- */
+/** Suggests registered client-side commands, written with their leading slash. */
 public class CommandValueSource implements SyntaxValueSource {
 
     private final NameSnapshot snapshot = new NameSnapshot(CommandValueSource::registeredNames);

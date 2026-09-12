@@ -46,8 +46,6 @@ public class GuideSceneStructureSnapshot implements Serializable {
 
     public static GuideSceneStructureSnapshot capture(GuidebookLevel level) {
         GuideSceneStructureSnapshot snapshot = new GuideSceneStructureSnapshot();
-        // One walk over the filled blocks fills the block and tile entity lists: each position resolves its
-        // block id once instead of once per list.
         snapshot.captureBlocksAndTileEntities(level);
         snapshot.captureEntities(level);
         snapshot.captureExplicitBlockIds(level);

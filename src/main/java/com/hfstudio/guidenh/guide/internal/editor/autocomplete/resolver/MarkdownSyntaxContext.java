@@ -5,7 +5,6 @@ import com.hfstudio.guidenh.guide.syntax.MarkdownSnippetKind;
 
 import lombok.Getter;
 
-/** Carries the markdown construct region the cursor sits in. */
 public class MarkdownSyntaxContext implements AutocompleteContext {
 
     @Getter

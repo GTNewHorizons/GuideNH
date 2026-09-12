@@ -90,17 +90,13 @@ public class GuideSiteHtmlCompiler {
         }
 
         /**
-         * Tag renderers contributed by other mods, which this compiler asks before its own built-in
-         * branches so a tag that a mod redefines means the same thing on the site as in the book.
+         * Tag renderers contributed by other mods, which this compiler asks before its own built-in branches so a tag.
          */
         default List<GuideSiteTagRenderer> contributedTagRenderers() {
             return List.of();
         }
 
-        /**
-         * Fence renderers contributed by other mods, consulted for a fence name this exporter does not
-         * handle itself, so a fence a mod owns in the book is not shown as raw source on the site.
-         */
+        /** Fence renderers contributed by other mods, for names this exporter does not handle itself. */
         default List<CodeFenceRenderer> contributedFenceRenderers() {
             return List.of();
         }
@@ -326,9 +322,6 @@ public class GuideSiteHtmlCompiler {
 
     private String compileMdxElement(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
-        // Contributed renderers are asked before every built-in branch below, so a tag a mod redefines is
-        // rendered by that mod on the site the way its compiler renders it in the book. This is the single
-        // entry for MDX elements, so a contribution cannot be bypassed by a built-in name.
         String contributed = renderContributedTag(el, defaultNamespace, currentPageId, templates, sceneResolver);
         if (contributed != null) return contributed;
         // Block-level elements
@@ -460,7 +453,6 @@ public class GuideSiteHtmlCompiler {
         return compileChildren(flowElement.children(), templates, defaultNamespace, currentPageId, sceneResolver);
     }
 
-    /** The markup a contributed site tag renderer produces, or null when none claims the element. */
     @Nullable
     private String renderContributedTag(MdxJsxElementFields element, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates, SceneResolver sceneResolver) {
@@ -470,9 +462,7 @@ public class GuideSiteHtmlCompiler {
             element);
     }
 
-    /**
-     * Whether a contributed fence renderer owns this fence name.
-     */
+    /** Whether a contributed fence renderer owns this fence name. */
     private boolean isContributedFence(@Nullable String lang) {
         if (lang == null || lang.isEmpty()) {
             return false;
@@ -518,7 +508,6 @@ public class GuideSiteHtmlCompiler {
             + "</p>";
     }
 
-    /** A heading depth that is not a number falls back to a top level heading instead of failing. */
     private static int parseHeadingDepth(@Nullable String declared) {
         int depth;
         try {
@@ -650,9 +639,7 @@ public class GuideSiteHtmlCompiler {
             + ">";
     }
 
-    /**
-     * A list item, with the task-list marker the book draws turned into the checkbox the site styles.
-     */
+    /** A list item, with the task-list marker the book draws turned into the checkbox the site styles. */
     private String compileListItemMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         TaskMarker marker = MarkdownListSemantics.extractTaskMarker(el.children());
@@ -660,14 +647,9 @@ public class GuideSiteHtmlCompiler {
             return "<li>" + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
                 + "</li>";
         }
-        // The marker is matched only for a single paragraph child, and it is the leading text of that
-        // paragraph: the item is that paragraph with the marker taken off its text node, exactly as the
-        // in-game list item compiler does it.
         marker.textNode()
             .setValue(marker.remainingText());
         String content = compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver);
-        // A real disabled checkbox: the stylesheet colours it with accent-color, so the reader sees the same
-        // state the book draws.
         return "<li class=\"guide-task-list-item\"><input type=\"checkbox\" class=\"guide-task-list-checkbox\" disabled"
             + (marker.checked() ? " checked" : "")
             + "><span class=\"guide-task-list-content\">"
@@ -686,8 +668,6 @@ public class GuideSiteHtmlCompiler {
             lang = lang.toLowerCase(Locale.ROOT);
         }
 
-        // A fence name another mod owns is that mod's fence on both sides: ask its renderer for markup before
-        // falling through to a plain code block of raw source.
         if (isContributedFence(lang)) {
             String markup = CodeFenceRenderers
                 .renderSite(mdxTagRenderer.contributedFenceRenderers(), lang, codeText, meta);
@@ -963,9 +943,7 @@ public class GuideSiteHtmlCompiler {
         return "Spoiler".equals(element.name());
     }
 
-    /**
-     * True for every tag {@code RecipeCompiler} compiles.
-     */
+    /** True for every tag {@code RecipeCompiler} compiles. */
     private boolean isRecipeElement(MdxJsxElementFields element) {
         String name = element.name();
         return "Recipe".equals(name) || "RecipeFor".equals(name)

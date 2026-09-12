@@ -119,11 +119,7 @@ public class DefaultExtensions {
         }
     }
 
-    /**
-     * The syntax the editor completes for a guide. It is a default extension like the tag compilers, so
-     * {@link com.hfstudio.guidenh.guide.GuideBuilder#disableDefaultExtensions()} turns it off together
-     * with them and a guide can replace it with its own contributors.
-     */
+    /** The syntax the editor completes for a guide. */
     public static List<SyntaxContributor> syntaxContributors() {
         return List.of(new BuiltinSyntaxContributor());
     }
@@ -236,7 +232,6 @@ public class DefaultExtensions {
         return compilers;
     }
 
-    /** Lets a provider of another mod add its scene element compilers, skipping one that fails. */
     private static void appendSceneElementCompilersSafely(SceneElementTagCompilerProvider provider,
         List<SceneElementTagCompiler> compilers) {
         try {

@@ -6,8 +6,7 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.syntax.MarkdownSnippet;
 
 /**
- * Renders a markdown construct with a preview of the text it inserts, and remembers where the caret
- * lands after committing.
+ * Renders a markdown construct with a preview of the text it inserts, and remembers where the caret lands after.
  */
 public class MarkdownSyntaxCandidate implements AutocompleteCandidate {
 

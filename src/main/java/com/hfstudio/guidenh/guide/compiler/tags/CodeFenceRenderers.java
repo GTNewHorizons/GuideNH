@@ -13,14 +13,12 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 /**
- * Asks the contributed {@link CodeFenceRenderer}s what a fence body means, so a fence name a mod declares is
- * rendered by that mod instead of falling through to a plain code block.
+ * Asks the contributed {@link CodeFenceRenderer}s what a fence body means, so a fence name a mod declares is.
  */
 public class CodeFenceRenderers {
 
     private CodeFenceRenderers() {}
 
-    /** The renderers that apply to a guide: the guide's own first, then the globally registered ones. */
     public static List<CodeFenceRenderer> of(@Nullable Guide guide) {
         List<CodeFenceRenderer> declared = guide != null ? guide.getExtensions()
             .get(CodeFenceRenderer.EXTENSION_POINT) : List.of();
@@ -38,11 +36,7 @@ public class CodeFenceRenderers {
         return all;
     }
 
-    /**
-     * The block a contributed renderer produces for a fence.
-     *
-     * @return the block to append, or null when no renderer answers
-     */
+    /** The block a contributed renderer produces for a fence. */
     @Nullable
     public static LytBlock render(List<CodeFenceRenderer> renderers, PageCompiler compiler, @Nullable String fenceName,
         String codeText, @Nullable String meta) {
@@ -59,8 +53,6 @@ public class CodeFenceRenderers {
                     return block;
                 }
             } catch (RuntimeException e) {
-                // A renderer of another mod must not take a page down, so a failed one is reported and the
-                // next renderer, or the built-in handling, gets its turn.
                 GuideDebugLog.error(
                     "[GuideNH] [CodeFenceRenderer] {} failed to render the '{}' fence: {}",
                     renderer.getClass()
@@ -86,11 +78,7 @@ public class CodeFenceRenderers {
         }
     }
 
-    /**
-     * The markup a contributed renderer produces for a fence on the exported site.
-     *
-     * @return the markup, or null when no renderer answers for the fence or none of them renders markup
-     */
+    /** The markup a contributed renderer produces for a fence on the exported site. */
     @Nullable
     public static String renderSite(List<CodeFenceRenderer> renderers, @Nullable String fenceName, String codeText,
         @Nullable String meta) {

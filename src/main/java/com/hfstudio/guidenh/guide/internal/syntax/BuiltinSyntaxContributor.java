@@ -32,9 +32,7 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSink;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 
-/**
- * The guide syntax that ships with the mod.
- */
+/** The guide syntax that ships with the mod. */
 public class BuiltinSyntaxContributor implements SyntaxContributor {
 
     @Override
@@ -67,7 +65,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         .of("show_tooltip", SyntaxValueKind.BOOLEAN);
 
     public void contribute(SyntaxSink sink) {
-        // Inline/Flow tags
         sink.attributes(
             "ItemImage",
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
@@ -233,7 +230,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes("ItemGrid"); // no attributes - uses child elements
         sink.attributes("FootnoteList", AttributeSyntax.of("width", SyntaxValueKind.INT));
 
-        // Charts share CommonChartAttrs.
         sink.attributes(
             "BarChart",
             AttributeSyntax.of("title", SyntaxValueKind.STRING),
@@ -383,7 +379,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("startAngle", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("clockwise", SyntaxValueKind.BOOLEAN));
 
-        // Chart child tags.
         sink.attributes(
             "Series",
             AttributeSyntax.of("name", SyntaxValueKind.STRING),
@@ -418,7 +413,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("title", SyntaxValueKind.STRING),
             AttributeSyntax.of("titleColor", SyntaxValueKind.COLOR));
 
-        // FunctionGraph child tags.
         sink.attributes(
             "Plot",
             AttributeSyntax.of("expr", SyntaxValueKind.EXPRESSION),
@@ -443,9 +437,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("atX", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("atY", SyntaxValueKind.FLOAT));
 
-        // Existing registrations with extended attributes.
-
-        // GameScene: add camera attributes
         sink.attributes(
             "Scene",
             AttributeSyntax.of("width", SyntaxValueKind.INT),
@@ -465,7 +456,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("gridButtonEnabled", SyntaxValueKind.BOOLEAN),
             AttributeSyntax.of("showGrid", SyntaxValueKind.BOOLEAN));
 
-        // GameScene: also register as "GameScene" with same attrs (SceneTagCompiler handles both)
         sink.attributes(
             "GameScene",
             AttributeSyntax.of("width", SyntaxValueKind.INT),
@@ -485,7 +475,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("gridButtonEnabled", SyntaxValueKind.BOOLEAN),
             AttributeSyntax.of("showGrid", SyntaxValueKind.BOOLEAN));
 
-        // Function: add missing container + plot attrs
         sink.attributes(
             "Function",
             AttributeSyntax.of("title", SyntaxValueKind.STRING),
@@ -525,7 +514,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("autoPointLabel", SyntaxValueKind.ENUM, AutoPointLabelMode.class),
             AttributeSyntax.of("autoPointColor", SyntaxValueKind.COLOR));
 
-        // FunctionGraph: add missing container attrs
         sink.attributes(
             "FunctionGraph",
             AttributeSyntax.of("title", SyntaxValueKind.STRING),
@@ -554,7 +542,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("cornerLegendHeight", SyntaxValueKind.INT),
             AttributeSyntax.of("cornerLegendBackground", SyntaxValueKind.COLOR));
 
-        // Entity: add missing rotation attrs
         sink.attributes(
             "Entity",
             AttributeSyntax.of("id", SyntaxValueKind.ENTITY_ID),
@@ -576,7 +563,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("rightLegRotation", SyntaxValueKind.STRING),
             AttributeSyntax.of("capeRotation", SyntaxValueKind.STRING));
 
-        // Latex: add missing attrs
         sink.attributes(
             "Latex",
             AttributeSyntax.of("formula", SyntaxValueKind.STRING),
@@ -588,7 +574,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("offsetX", SyntaxValueKind.INT),
             AttributeSyntax.of("offsetY", SyntaxValueKind.INT));
 
-        // ImportStructureLib: add offset attrs
         sink.attributes(
             "ImportStructureLib",
             AttributeSyntax.of("controller", SyntaxValueKind.STRING),
@@ -619,7 +604,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes("GregTechPlaceHatches");
         sink.attributes("GtPlaceHatches");
 
-        // PlaceBlock: add dx/dy/dz
         sink.attributes(
             "PlaceBlock",
             AttributeSyntax.of("id", SyntaxValueKind.BLOCK_ID),
@@ -631,7 +615,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("dy", SyntaxValueKind.INT),
             AttributeSyntax.of("dz", SyntaxValueKind.INT));
 
-        // ReplaceBlock: add bounds attrs
         sink.attributes(
             "ReplaceBlock",
             AttributeSyntax.of("from", SyntaxValueKind.BLOCK_ID),
@@ -645,7 +628,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("dy", SyntaxValueKind.INT),
             AttributeSyntax.of("dz", SyntaxValueKind.INT));
 
-        // ImportStructure: fix types + add x/y/z
         sink.attributes(
             "ImportStructure",
             AttributeSyntax.of("src", SyntaxValueKind.FILE_PATH),
@@ -656,7 +638,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("offsetY", SyntaxValueKind.INT),
             AttributeSyntax.of("offsetZ", SyntaxValueKind.INT));
 
-        // Block scene element
         sink.attributes(
             "Block",
             AttributeSyntax.of("id", SyntaxValueKind.BLOCK_ID),
@@ -668,7 +649,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("facing", SyntaxValueKind.STRING),
             AttributeSyntax.of("nbt", SyntaxValueKind.SNBT));
 
-        // Annotation tags
         sink.attributes(
             "BlockAnnotation",
             AttributeSyntax.of("pos", SyntaxValueKind.VECTOR3),
@@ -715,7 +695,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
 
         sink.attributes("BlockAnnotationTemplate", AttributeSyntax.of("id", SyntaxValueKind.STRING));
 
-        // Sound tags (share GuideSoundParsers.parseAttributes)
         sink.attributes(
             "PlaySound",
             AttributeSyntax.of("sound", SyntaxValueKind.STRING),
@@ -743,7 +722,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("y", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("z", SyntaxValueKind.FLOAT));
 
-        // Quest integration tags
         sink.attributes(
             "QuestLink",
             AttributeSyntax.of("id", SyntaxValueKind.STRING),
@@ -754,7 +732,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("id", SyntaxValueKind.STRING),
             AttributeSyntax.of("show_desc", SyntaxValueKind.STRING));
 
-        // Scene block stats
         sink.attributes(
             "BlockStats",
             AttributeSyntax.of("visible", SyntaxValueKind.BOOLEAN),
@@ -778,12 +755,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     }
 
     /**
-     * Attributes that are read by shared parsers or written back by the scene editor rather than by a
-     * single tag compiler, plus the tags that only exist as children of another tag. Keeping them in
-     * one place mirrors where their readers live.
+     * Attributes that are read by shared parsers or written back by the scene editor rather than by a single tag.
      */
     private static void registerCrossCuttingAttributes(SyntaxSink sink) {
-        // Recipe family: <Usage>, <RecipeUsage> and <RecipesUsage> are the ingredient-directed twins.
         sink.attributes("Recipe", RECIPE_INDEX);
         sink.attributes("RecipeFor", RECIPE_INDEX);
         sink.attributes("RecipesFor", RECIPE_INDEX);
@@ -821,13 +795,11 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("limit", SyntaxValueKind.INT),
             RECIPE_INDEX);
 
-        // Multi-part structures: every structural element shares the "formed" flag.
         sink.attributes("Block", FORMED);
         sink.attributes("ImportStructure", FORMED);
         sink.attributes("PlaceBlock", FORMED);
         sink.attributes("ReplaceBlock", FORMED);
 
-        // StructureLib driven visibility, honoured by every in-world annotation and by sounds.
         sink.attributes("BlockAnnotation", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
         sink.attributes("BoxAnnotation", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
         sink.attributes("LineAnnotation", SHOW_WHEN_STRUCTURE, SHOW_WHEN_TIER, SHOW_WHEN_CHANNELS);
@@ -866,7 +838,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("width", SyntaxValueKind.INT),
             AttributeSyntax.of("height", SyntaxValueKind.INT));
 
-        // The mouse-input hint: a world position, which button, an optional modifier and item.
         sink.attributes(
             "InputAnnotation",
             AttributeSyntax.of("pos", SyntaxValueKind.VECTOR3),
@@ -874,13 +845,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("y", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("z", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("inputType", SyntaxValueKind.ENUM, "lmb", "rmb", "scroll"),
-            // The renderer shows either key name: every other value reads as "Ctrl +", and the site
-            // viewer maps the same two spellings, so only these two are offered.
             AttributeSyntax.of("modifier", SyntaxValueKind.ENUM, "sneak", "ctrl"),
             AttributeSyntax.of("item", SyntaxValueKind.ITEM_ID));
 
-        // Chart axis options. ChartAttrParser reads these by prefix, so they were invisible to
-        // the editor even though the tag reference documents them.
         sink.attributes(
             "BarChart",
             AttributeSyntax.of("xAxisLabel", SyntaxValueKind.STRING),
@@ -957,7 +924,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("showYGrid", SyntaxValueKind.BOOLEAN),
             AttributeSyntax.of("yGridColor", SyntaxValueKind.COLOR));
 
-        // Child-only tags.
         sink.attributes(
             "ItemIcon",
             AttributeSyntax.of("id", SyntaxValueKind.ITEM_ID),
@@ -1011,11 +977,9 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     }
 
     /**
-     * {@code BlockTagCompiler} applies {@code wrap}, {@code align} and {@code float} to every block tag
-     * it compiles, so all of its subclasses accept them.
+     * {@code BlockTagCompiler} applies {@code wrap}, {@code align} and {@code float} to every block tag it compiles,.
      */
     private static void registerBlockLayoutAttributes(SyntaxSink sink) {
-        // BlockTagCompiler applies wrap, align and float to every block tag it compiles.
         sink.attributes("details", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
         sink.attributes("ContentTabs", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
         sink.attributes("FileTree", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
@@ -1047,8 +1011,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     }
 
     /**
-     * StructureLib scene options are only read from {@code <ImportStructureLib>}, and its child tags
-     * describe tiers, channels and orientations.
+     * StructureLib scene options are only read from {@code <ImportStructureLib>}, and its child tags describe tiers,.
      */
     private static void registerStructureLibAttributes(SyntaxSink sink) {
         sink.attributes(
@@ -1079,7 +1042,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("name", SyntaxValueKind.STRING));
     }
 
-    /** Facts that correct or complete an existing tag registration. */
     private static void registerAttributeCorrections(SyntaxSink sink) {
         sink.attributes(
             "Entity",
@@ -1097,20 +1059,16 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("hlMaxY", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("hlMaxZ", SyntaxValueKind.FLOAT),
             AttributeSyntax.of("highlightColor", SyntaxValueKind.COLOR));
-        // Block statistics: the values the scene parsers accept for each option.
         sink.attributes(
             "BlockStats",
             AttributeSyntax.of("mode", SyntaxValueKind.ENUM, "auto", "manual"),
             AttributeSyntax.of("corner", SyntaxValueKind.ENUM, "topRight", "topLeft", "bottomRight", "bottomLeft"),
             AttributeSyntax.of("dock", SyntaxValueKind.ENUM, "inside", "left", "top", "right", "bottom"),
             AttributeSyntax.of("filterMode", SyntaxValueKind.ENUM, "blacklist", "whitelist"));
-        // The structure controller channel is an integer index, not free text.
         sink.attributes("ImportStructureLib", AttributeSyntax.of("channel", SyntaxValueKind.INT));
-        // Read as a string, so the bare value form is the right completion.
         sink.attributes("BlockImage", AttributeSyntax.of("perspective", SyntaxValueKind.STRING));
     }
 
-    /** MediaWiki list tags can select the generated page, its label prefix, and its query. */
     private static void registerMediaWikiSpecialAttributes(SyntaxSink sink) {
         sink.attributes("Special", SPECIAL_PAGE, SPECIAL_PREFIX, SPECIAL_LANGUAGE, SPECIAL_QUERY);
         sink.attributes("Category", SPECIAL_PAGE, SPECIAL_PREFIX, SPECIAL_LANGUAGE, SPECIAL_QUERY);
@@ -1122,8 +1080,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     }
 
     /**
-     * Which tags wrap content, which tags may appear inside them, and the tags a compiler accepts but
-     * authors never write.
+     * Which tags wrap content, which tags may appear inside them, and the tags a compiler accepts but authors never.
      */
     private static void contributeTagShape(SyntaxSink sink) {
         sink.containerTags(
@@ -1263,7 +1220,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.children("Mermaid", "NodeContent");
         sink.children("details", "summary");
         sink.children("FloatingImage", "ImageAnnotation", "SoundArea");
-        // Annotations nest inside annotations so a template can describe a whole structure.
         sink.children(
             "BlockAnnotation",
             "BlockAnnotation",
@@ -1316,8 +1272,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.children("GameScene", "InputAnnotation");
         sink.children("Scene", "InputAnnotation");
 
-        // The markdown parser models paragraphs, headings, lists and inline emphasis as tags. Authors
-        // write markdown for those, so they stay out of tag completion.
         sink.hiddenTags(
             "p",
             "h1",
@@ -1345,11 +1299,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "image");
     }
 
-    /**
-     * Attributes whose value kind the editor must know about but which the compiler reads loosely.
-     * {@code link} and {@code image} are not tags: they are the markdown link and image targets the
-     * resolver reports so page and file completion work inside {@code [](...)}.
-     */
+    /** Attributes whose value kind the editor must know about but which the compiler reads loosely. */
     private static void contributeValueKinds(SyntaxSink sink) {
         sink.attributes("Recipe", RECIPE_INPUT, RECIPE_OUTPUT);
         sink.attributes("RecipeFor", RECIPE_INPUT, RECIPE_OUTPUT);
@@ -1363,10 +1313,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes("image", AttributeSyntax.of("url", SyntaxValueKind.FILE_PATH));
     }
 
-    /**
-     * The form a tag completes as, for tags that need attributes or content to be useful. Completing the
-     * name alone would only write {@code <Name />}, which is why the editor writes these instead.
-     */
+    /** The form a tag completes as, for tags that need attributes or content to be useful. */
     private static void contributeInsertTemplates(SyntaxSink sink) {
         sink.insertTemplates(
             InsertTemplate

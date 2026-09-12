@@ -37,7 +37,6 @@ public class FrontmatterContext implements AutocompleteContext {
         return partialText;
     }
 
-    /** Accepting a key appends ': ', so a fully typed key stays selectable. */
     @Override
     public boolean expandsTypedText() {
         return !isValue;

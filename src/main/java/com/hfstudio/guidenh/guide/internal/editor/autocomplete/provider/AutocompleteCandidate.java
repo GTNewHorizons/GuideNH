@@ -6,11 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
-/**
- * One entry of the completion popup. {@link #replacementText()} is written over the typed text,
- * {@link #caretOffsetInReplacement()} places the caret inside it, {@link #selectionEndInReplacement()}
- * optionally selects part of it, and {@link #suffixText()} is appended after the caret.
- */
+/** One entry of the completion popup. */
 public interface AutocompleteCandidate {
 
     String displayText();
@@ -26,52 +22,34 @@ public interface AutocompleteCandidate {
         return 0;
     }
 
-    /**
-     * Caret position counted from the start of {@link #replacementText()} once the candidate is
-     * committed. A negative value keeps the caret at the end of the replacement.
-     */
+    /** Caret position counted from the start of {@link #replacementText()} once the candidate is committed. */
     default int caretOffsetInReplacement() {
         return -1;
     }
 
-    /**
-     * Selection end counted from the start of {@link #replacementText()}. A negative value leaves the
-     * caret without a selection.
-     */
+    /** Selection end counted from the start of {@link #replacementText()}. */
     default int selectionEndInReplacement() {
         return -1;
     }
 
-    /**
-     * Text written directly after the caret, so a single candidate can produce a paired construct
-     * such as {@code <Row>|</Row>}. Null means nothing is appended.
-     */
+    /** Text written after the caret, so one candidate can produce a pair such as a closing tag. */
     @Nullable
     default String suffixText() {
         return null;
     }
 
-    /**
-     * True when the value must be quoted unless the surrounding page already quotes it. Attribute
-     * value candidates derive this from their {@code SyntaxValueKind}.
-     */
+    /** True when the value must be quoted unless the surrounding page already quotes it. */
     default boolean quotesValue() {
         return false;
     }
 
-    /**
-     * The suggestion this candidate stands for, when it wraps one. A slot of another mod writes its own
-     * replacement, so it needs the value the author picked rather than the rendered text.
-     */
+    /** The suggestion this candidate stands for, when it wraps one. */
     @Nullable
     default SyntaxSuggestion syntaxSuggestion() {
         return null;
     }
 
-    /**
-     * The text this candidate is ranked by, which is what the author is typing towards. A candidate whose
-     * written form is longer than that, such as a whole tag template, ranks on the name it stands for.
-     */
+    /** The text this candidate is ranked by, which is what the author is typing towards. */
     default String rankingText() {
         return replacementText();
     }

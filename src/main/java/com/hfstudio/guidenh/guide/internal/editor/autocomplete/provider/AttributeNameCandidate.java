@@ -8,10 +8,7 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.syntax.AttributeSyntax;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 
-/**
- * An attribute name suggestion. Accepting it also writes the value placeholder that matches the
- * attribute's {@link SyntaxValueKind}, so the caret lands ready to type or accept the value.
- */
+/** An attribute name suggestion. */
 public class AttributeNameCandidate implements AutocompleteCandidate {
 
     private static final int LABEL_COLOR = ColorUtils.TEXT.getColor();
@@ -41,8 +38,6 @@ public class AttributeNameCandidate implements AutocompleteCandidate {
             || SyntaxValueKind.EXPRESSION.equals(kind)) {
             return name + "={}";
         }
-        // A kind that is written without quotes keeps an empty bare value, so a value typed or accepted
-        // afterwards lands where the page expects it.
         return kind.isQuoted() ? name + "=\"\"" : name + "=";
     }
 
