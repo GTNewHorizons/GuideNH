@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -462,18 +461,18 @@ public class GuideSiteHtmlCompiler {
             element);
     }
 
-    /** Whether a contributed fence renderer owns this fence name. */
+    /**
+     * Whether a contributed fence renderer owns this fence name.
+     *
+     * <p>
+     * The lookup is the renderer registry's, which reports and skips a renderer that cannot answer, so a
+     * broken plugin costs its own fence rather than the page it appears on.
+     */
     private boolean isContributedFence(@Nullable String lang) {
         if (lang == null || lang.isEmpty()) {
             return false;
         }
-        for (CodeFenceRenderer renderer : mdxTagRenderer.contributedFenceRenderers()) {
-            Set<String> names = renderer.getFenceNames();
-            if (names != null && names.contains(lang)) {
-                return true;
-            }
-        }
-        return false;
+        return CodeFenceRenderers.owns(mdxTagRenderer.contributedFenceRenderers(), lang);
     }
 
     private String compileCustomTextElement(MdxJsxTextElement textElement, GuideSiteTemplateRegistry templates,

@@ -3951,8 +3951,9 @@ public class GuideSiteGraphRenderer {
         }
     }
 
+    /** The tick step an axis uses when the page declares none: a nice step for about five divisions. */
     static double niceStepForAxis(double range) {
-        return niceStep(range);
+        return niceStep(range / 5.0);
     }
 
     /** Choose a nice grid step for the given rough interval. */

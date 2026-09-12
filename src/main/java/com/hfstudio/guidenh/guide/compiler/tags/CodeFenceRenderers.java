@@ -78,6 +78,25 @@ public class CodeFenceRenderers {
         }
     }
 
+    /**
+     * Whether any contributed renderer owns a fence name.
+     *
+     * <p>
+     * The export asks this before deciding to treat a fence as a contributed one, and a renderer that fails
+     * is reported and skipped here exactly as it is when rendering, so a broken plugin cannot fail a page.
+     */
+    public static boolean owns(List<CodeFenceRenderer> renderers, @Nullable String fenceName) {
+        if (fenceName == null || fenceName.isEmpty()) {
+            return false;
+        }
+        for (CodeFenceRenderer renderer : renderers) {
+            if (answers(renderer, fenceName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The markup a contributed renderer produces for a fence on the exported site. */
     @Nullable
     public static String renderSite(List<CodeFenceRenderer> renderers, @Nullable String fenceName, String codeText,
