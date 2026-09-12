@@ -221,17 +221,25 @@ public class GuideSyntaxModel {
     }
 
     /**
+     * The slot that owns a caret together with what it found there.
+     *
+     * @param slot  the contributor's slot that answered
+     * @param match the range, values and writer it reported
+     */
+    public record SlotMatch(SyntaxSlot slot, SyntaxSlotMatch match) {}
+
+    /**
      * Asks every slot which one owns the caret. The first match wins, so a contributor's syntax answers
      * before the editor's own resolvers, and a slot that claims text keeps it even when it has no values.
      *
-     * @return the slot under the caret, or null when no slot owns it
+     * @return the slot under the caret with what it found, or null when no slot owns it
      */
     @Nullable
-    public SyntaxSlotMatch matchSlot(String text, int cursorIndex) {
+    public SlotMatch matchSlot(String text, int cursorIndex) {
         for (SyntaxSlot slot : slots) {
             SyntaxSlotMatch match = matchSafely(slot, text, cursorIndex);
             if (match != null) {
-                return match;
+                return new SlotMatch(slot, match);
             }
         }
         return null;

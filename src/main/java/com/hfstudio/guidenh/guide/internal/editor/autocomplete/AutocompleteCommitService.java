@@ -1,9 +1,12 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.syntax.SyntaxReplacement;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
@@ -19,17 +22,27 @@ public class AutocompleteCommitService {
 
     private AutocompleteCommitService() {}
 
+    /**
+     * Applies an accepted candidate to the page text.
+     *
+     * @return the edit to apply, or null when the candidate could not produce one
+     */
+    @Nullable
     public static AutocompleteCommit commit(String text, AutocompleteContext context, AutocompleteCandidate candidate) {
         String source = text != null ? text : "";
         int replaceStart = clamp(context.replaceStart(), 0, source.length());
         int replaceEnd = clamp(context.replaceEnd(), replaceStart, source.length());
         Replacement replacement = createReplacement(source, context, candidate);
+        if (replacement == null) {
+            return null;
+        }
         replacement = applyDeclaredCaret(replacement, candidate);
         String inserted = replacement.text + suffixOf(candidate);
-        int swallowedEnd = clamp(replaceEnd + replacement.extraReplaceEnd, replaceEnd, source.length());
-        String newText = source.substring(0, replaceStart) + inserted + source.substring(swallowedEnd);
-        int cursor = replaceStart + replacement.cursorOffset;
-        int selectionEnd = replaceStart + replacement.selectionEndOffset;
+        int swallowedStart = clamp(replaceStart - replacement.extraReplaceStart, 0, replaceEnd);
+        int swallowedEnd = clamp(replaceEnd + replacement.extraReplaceEnd, swallowedStart, source.length());
+        String newText = source.substring(0, swallowedStart) + inserted + source.substring(swallowedEnd);
+        int cursor = swallowedStart + replacement.cursorOffset;
+        int selectionEnd = swallowedStart + replacement.selectionEndOffset;
         return new AutocompleteCommit(newText, cursor, selectionEnd);
     }
 
@@ -44,6 +57,7 @@ public class AutocompleteCommitService {
             replacement.text,
             caret,
             selectionEnd >= 0 ? selectionEnd : caret,
+            replacement.extraReplaceStart,
             replacement.extraReplaceEnd);
     }
 
@@ -74,15 +88,34 @@ public class AutocompleteCommitService {
     /**
      * A slot of another mod writes its own replacement, so the candidate only has to say which value the
      * author picked; the slot decides the surroundings and where the caret lands.
+     *
+     * <p>
+     * A writer that fails or answers nothing is reported and the commit is dropped, because a slot of
+     * another mod must never break the editor or write text the author did not ask for.
      */
+    @Nullable
     private static Replacement createSlotReplacement(SlotContext context, AutocompleteCandidate candidate) {
         SyntaxSuggestion suggestion = candidate.syntaxSuggestion();
         if (suggestion == null) {
             String text = candidate.replacementText() != null ? candidate.replacementText() : "";
             suggestion = SyntaxSuggestion.of(text);
         }
-        SyntaxReplacement replacement = context.match()
-            .replacementFor(suggestion);
+        SyntaxReplacement replacement;
+        try {
+            replacement = context.match()
+                .replacementFor(suggestion);
+        } catch (RuntimeException e) {
+            GuideDebugLog
+                .error("[GuideNH] [SyntaxSlot] {} failed to write a value: {}", context.slotNamespace(), e.toString());
+            return null;
+        }
+        if (replacement == null) {
+            GuideDebugLog.error(
+                "[GuideNH] [SyntaxSlot] {} answered no replacement for '{}'",
+                context.slotNamespace(),
+                suggestion.value());
+            return null;
+        }
         return new Replacement(replacement.text(), replacement.caretOffset(), replacement.selectionEndOffset());
     }
 
@@ -94,25 +127,41 @@ public class AutocompleteCommitService {
     private static Replacement createTagReplacement(String source, TagStartContext context,
         AutocompleteCandidate candidate) {
         String tagName = candidate.replacementText() != null ? candidate.replacementText() : "";
-        int replaceEnd = clamp(context.replaceEnd(), 0, source.length());
+        int replaceStart = clamp(context.replaceStart(), 0, source.length());
+        int replaceEnd = clamp(context.replaceEnd(), replaceStart, source.length());
+        int extraReplaceStart = swallowsOpeningBracket(source, replaceStart, tagName) ? 1 : 0;
         int pos = skipSpaces(source, replaceEnd);
         int closingEnd = closingBracketEnd(source, pos);
         if (closingEnd > 0 && bringsCompleteForm(candidate)) {
             // The author already typed the end of this tag, so the complete form replaces that too instead
             // of leaving a second bracket behind.
-            return new Replacement(tagName, tagName.length(), tagName.length(), closingEnd - replaceEnd);
+            return new Replacement(
+                tagName,
+                tagName.length(),
+                tagName.length(),
+                extraReplaceStart,
+                closingEnd - replaceEnd);
         }
         if (pos < source.length()) {
             char next = source.charAt(pos);
             if (next == '>' || next == '/') {
-                return Replacement.cursorAtEnd(tagName);
+                return new Replacement(tagName, tagName.length(), tagName.length(), extraReplaceStart, 0);
             }
         }
         if (tagName.endsWith(">")) {
-            return Replacement.cursorAtEnd(tagName);
+            return new Replacement(tagName, tagName.length(), tagName.length(), extraReplaceStart, 0);
         }
         String text = tagName + " />";
-        return new Replacement(text, text.length() - 2, text.length() - 2);
+        return new Replacement(text, text.length() - 2, text.length() - 2, extraReplaceStart, 0);
+    }
+
+    /**
+     * True when a candidate writes the whole tag, opening bracket included, while the page already has a
+     * bracket just before the typed name: the bracket belongs to the replacement, so it is replaced too
+     * instead of staying behind as a second one.
+     */
+    private static boolean swallowsOpeningBracket(String source, int replaceStart, String replacement) {
+        return replacement.startsWith("<") && replaceStart > 0 && source.charAt(replaceStart - 1) == '<';
     }
 
     /** True when a candidate brings its own complete tag form rather than a bare name. */
@@ -231,20 +280,29 @@ public class AutocompleteCommitService {
         private final String text;
         private final int cursorOffset;
         private final int selectionEndOffset;
+        private final int extraReplaceStart;
         private final int extraReplaceEnd;
 
         private Replacement(String text, int cursorOffset, int selectionEndOffset) {
-            this(text, cursorOffset, selectionEndOffset, 0);
+            this(text, cursorOffset, selectionEndOffset, 0, 0);
+        }
+
+        private Replacement(String text, int cursorOffset, int selectionEndOffset, int extraReplaceEnd) {
+            this(text, cursorOffset, selectionEndOffset, 0, extraReplaceEnd);
         }
 
         /**
-         * @param extraReplaceEnd characters after the context's range that the replacement consumes as
-         *                        well, used when the author already typed the end of a tag
+         * @param extraReplaceStart characters before the context's range that the replacement consumes as
+         *                          well, used when the candidate writes a whole tag including its bracket
+         * @param extraReplaceEnd   characters after the context's range that the replacement consumes as
+         *                          well, used when the author already typed the end of a tag
          */
-        private Replacement(String text, int cursorOffset, int selectionEndOffset, int extraReplaceEnd) {
+        private Replacement(String text, int cursorOffset, int selectionEndOffset, int extraReplaceStart,
+            int extraReplaceEnd) {
             this.text = text;
             this.cursorOffset = cursorOffset;
             this.selectionEndOffset = selectionEndOffset;
+            this.extraReplaceStart = extraReplaceStart;
             this.extraReplaceEnd = extraReplaceEnd;
         }
 

@@ -58,11 +58,12 @@ public class GuideSyntaxCompletion {
      * Candidates for a slot another mod owns. The slot decides the range and the values, so this only
      * wraps them and gives them the ordering every other slot gets.
      */
-    public static List<AutocompleteCandidate> slotQuery(@Nullable SyntaxSlotMatch match, int limit) {
-        if (match == null) {
+    public static List<AutocompleteCandidate> slotQuery(@Nullable GuideSyntaxModel.SlotMatch slotMatch, int limit) {
+        if (slotMatch == null) {
             return List.of();
         }
-        SlotContext context = new SlotContext(match);
+        SyntaxSlotMatch match = slotMatch.match();
+        SlotContext context = new SlotContext(slotMatch);
         List<AutocompleteCandidate> candidates = new ArrayList<>();
         for (SyntaxSuggestion suggestion : match.suggestions()) {
             if (candidates.size() >= limit) {

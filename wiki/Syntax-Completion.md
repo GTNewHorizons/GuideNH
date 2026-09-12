@@ -241,9 +241,12 @@ Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build()
 What a slot controls:
 
 - `match` decides the range an accepted value replaces, the text already typed inside it and the values
-  the editor offers. Return `null` when the caret is not inside your syntax.
+  the editor offers. Return `null` when the caret is not inside your syntax. The text you report as typed
+  has to be what the document really holds in that range: the editor re-checks it before writing, and a
+  normalized form of it would drop the commit.
 - The `SyntaxValueWriter` of the match writes an accepted value: the text that replaces the range, where
-  the caret lands and what is selected. Leaving it `null` replaces the range with the value itself.
+  the caret lands and what is selected. Leaving it `null` replaces the range with the value itself. A
+  writer that throws or answers nothing is reported in the log and the editor writes nothing.
 - `selection` optionally declares the range a double click inside your syntax selects.
 
 Slots are asked before the editor's own resolvers, and the first slot that matches owns the caret even

@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
+import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSlotMatch;
 
 /**
@@ -8,29 +9,35 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxSlotMatch;
  */
 public class SlotContext implements AutocompleteContext {
 
-    private final SyntaxSlotMatch match;
+    private final GuideSyntaxModel.SlotMatch slotMatch;
 
-    public SlotContext(SyntaxSlotMatch match) {
-        this.match = match;
+    public SlotContext(GuideSyntaxModel.SlotMatch slotMatch) {
+        this.slotMatch = slotMatch;
     }
 
     public SyntaxSlotMatch match() {
-        return match;
+        return slotMatch.match();
+    }
+
+    /** Namespace of the slot that answered, used when reporting that its writer failed. */
+    public String slotNamespace() {
+        return slotMatch.slot()
+            .namespace();
     }
 
     @Override
     public int replaceStart() {
-        return match.replaceStart();
+        return match().replaceStart();
     }
 
     @Override
     public int replaceEnd() {
-        return match.replaceEnd();
+        return match().replaceEnd();
     }
 
     @Override
     public String getPartialText() {
-        return match.typedText();
+        return match().typedText();
     }
 
     @Override

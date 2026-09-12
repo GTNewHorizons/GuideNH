@@ -18,7 +18,6 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.ui.AutocompletePo
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSelection;
-import com.hfstudio.guidenh.guide.syntax.SyntaxSlotMatch;
 
 /**
  * Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the
@@ -140,7 +139,7 @@ public class GuideEditorAutocompleteController {
         model.prepare(environment);
         List<AutocompleteCandidate> candidates;
         AutocompleteContext context;
-        SyntaxSlotMatch slotMatch = model.matchSlot(text, cursorIndex);
+        GuideSyntaxModel.SlotMatch slotMatch = model.matchSlot(text, cursorIndex);
         if (slotMatch != null) {
             // A slot of another mod claims the caret, so the editor's own resolvers stay out of it even
             // when the slot has no values to offer right now.
@@ -302,7 +301,14 @@ public class GuideEditorAutocompleteController {
             close();
             return;
         }
-        pendingCommit = AutocompleteCommitService.commit(sourceText, pendingContext, selected);
+        AutocompleteCommit commit = AutocompleteCommitService.commit(sourceText, pendingContext, selected);
+        if (commit == null) {
+            // The candidate could not produce an edit - a slot writer failed, for instance - so nothing is
+            // written and the popup closes instead of leaving a session whose slot no longer holds.
+            close();
+            return;
+        }
+        pendingCommit = commit;
     }
 
     /** True when {@code text} still starts the slot's typed text at the slot's recorded position. */
