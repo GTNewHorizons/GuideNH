@@ -595,6 +595,27 @@ public class PageCompiler {
     }
 
     public void compileBlockContext(List<? extends MdAstAnyContent> children, LytBlockContainer layoutParent) {
+        if (blockNestingDepth >= MAX_BLOCK_NESTING) {
+            // Reported without a source position: the reader needs to know the page is nested too deep, not
+            // where the thousandth level happens to be.
+            LytParagraph tooDeep = new LytParagraph();
+            LytFlowSpan span = new LytFlowSpan();
+            span.modifyStyle(style -> style.color(ColorUtils.ERROR_TEXT));
+            span.appendText("Block nesting is deeper than the " + MAX_BLOCK_NESTING + " levels a guide supports");
+            tooDeep.append(span);
+            layoutParent.append(tooDeep);
+            return;
+        }
+        blockNestingDepth++;
+        try {
+            compileBlockContextAtCurrentDepth(children, layoutParent);
+        } finally {
+            blockNestingDepth--;
+        }
+    }
+
+    private void compileBlockContextAtCurrentDepth(List<? extends MdAstAnyContent> children,
+        LytBlockContainer layoutParent) {
         LytBlock previousLayoutChild = null;
         for (MdAstAnyContent child : children) {
             LytBlock layoutChild = null;
@@ -1012,6 +1033,17 @@ public class PageCompiler {
         blockTagChildrenCache.put(element, cachedEntry);
         return cachedEntry;
     }
+
+    /**
+     * Deepest block nesting a page may use.
+     *
+     * <p>
+     * Compiling a nested tag re-parses and re-enters this compiler per level, so content nested deeper
+     * than this is reported as an error instead of exhausting the stack.
+     */
+    private static final int MAX_BLOCK_NESTING = 64;
+
+    private int blockNestingDepth;
 
     public LytBlock createErrorBlock(String text, UnistNode child) {
         var paragraph = new LytParagraph();
