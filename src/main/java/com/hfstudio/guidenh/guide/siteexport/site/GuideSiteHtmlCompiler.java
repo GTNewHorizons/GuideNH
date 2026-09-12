@@ -882,10 +882,21 @@ public class GuideSiteHtmlCompiler {
         return "Spoiler".equals(element.name());
     }
 
+    /**
+     * True for every tag {@code RecipeCompiler} compiles.
+     *
+     * <p>
+     * The list has to match the compiler's own tag names: a recipe tag the exporter does not claim falls
+     * through to the MDX renderer, which answers nothing for it, and the element is then replaced by its
+     * children — the reader loses the recipes and the id with them.
+     */
     private boolean isRecipeElement(MdxJsxElementFields element) {
-        return "Recipe".equals(element.name()) || "RecipeFor".equals(element.name())
-            || "RecipeUsage".equals(element.name())
-            || "RecipesFor".equals(element.name());
+        String name = element.name();
+        return "Recipe".equals(name) || "RecipeFor".equals(name)
+            || "RecipeUsage".equals(name)
+            || "RecipesFor".equals(name)
+            || "Usage".equals(name)
+            || "RecipesUsage".equals(name);
     }
 
     private boolean isSceneElement(MdxJsxElementFields element) {
