@@ -60,13 +60,34 @@ public class GuideSiteGraphRenderer {
     private static final int GRAPH_DEFAULT_W = 320;
     private static final int GRAPH_DEFAULT_H = 220;
     // Layout constants shared across chart types
+    /**
+     * Text size the stylesheet gives a function graph label. It has a rule of its own that is larger than
+     * the chart one, so graph geometry is measured against this size rather than the smaller attributes
+     * the SVG carries.
+     */
+    private static final int GRAPH_TEXT_SIZE = 18;
     private static final int PADDING = 8;
-    private static final int TITLE_H = 10;
+    /**
+     * Height one line of a title takes.
+     *
+     * <p>
+     * Titles are shared by charts and function graphs, and the stylesheet renders a graph label larger than
+     * a chart one, so the box is sized for the larger of the two: a box that is generous for a chart costs
+     * a few pixels, while a box that is too small clips the text.
+     */
+    private static final int TITLE_H = GRAPH_TEXT_SIZE;
     private static final int TITLE_GAP = 4;
-    private static final int AXIS_TITLE_H = 10;
+    private static final int AXIS_TITLE_H = GRAPH_TEXT_SIZE;
     private static final int AXIS_TITLE_GAP = 4;
-    private static final int AXIS_PAD_LEFT = 28;
-    private static final int AXIS_PAD_BOTTOM = 14;
+    /**
+     * Room the axes leave for their labels.
+     *
+     * <p>
+     * Both are measured against the graph text size, because the stylesheet renders those labels larger
+     * than the font-size attributes ask for and the tick labels would otherwise sit on the plot edge.
+     */
+    private static final int AXIS_PAD_LEFT = 3 * GRAPH_TEXT_SIZE;
+    private static final int AXIS_PAD_BOTTOM = GRAPH_TEXT_SIZE + 4;
     /**
      * Text size the site stylesheet gives every chart label. Its rule wins over the font-size attributes
      * the SVG carries, so the layout below is measured against this size instead of the attributes.
@@ -94,7 +115,7 @@ public class GuideSiteGraphRenderer {
     private static final int CORNER_LEGEND_PADDING_X = 5;
     private static final int CORNER_LEGEND_PADDING_Y = 4;
     private static final int CORNER_LEGEND_GAP = 4;
-    private static final int CORNER_LEGEND_ROW_H = 11;
+    private static final int CORNER_LEGEND_ROW_H = GRAPH_TEXT_SIZE + 3;
     private static final int CORNER_LEGEND_MARKER_W = 10;
     private static final int CORNER_LEGEND_MARKER_H = 6;
 
