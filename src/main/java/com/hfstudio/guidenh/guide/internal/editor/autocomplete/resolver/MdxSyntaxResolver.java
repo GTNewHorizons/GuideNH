@@ -479,7 +479,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
      * with an earlier one.
      */
     @Nullable
-    public static TagSpan findOpenTagAt(String text, int cursorIndex) {
+    private static TagSpan findOpenTagAt(String text, int cursorIndex) {
         int tagStart = text.lastIndexOf('<', Math.max(0, cursorIndex - 1));
         if (tagStart < 0) {
             return null;
@@ -506,10 +506,10 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     /** A tag found in the text: its name and the range of its opening form. */
-    public record TagSpan(String name, int tagStart, int tagEnd) {}
+    private record TagSpan(String name, int tagStart, int tagEnd) {}
 
     @Nullable
-    public TextSyntaxContext resolveTextLevelAttribute(String text, int cursorIndex) {
+    private TextSyntaxContext resolveTextLevelAttribute(String text, int cursorIndex) {
         TagSpan tag = findOpenTagAt(text, cursorIndex);
         if (tag == null) {
             return null;
@@ -535,7 +535,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
      * document cannot be parsed, and that is precisely when the value has to complete.
      */
     @Nullable
-    public static TextSyntaxContext resolveTextLevelAttributeValue(String text, TagSpan tag, int cursorIndex) {
+    private static TextSyntaxContext resolveTextLevelAttributeValue(String text, TagSpan tag, int cursorIndex) {
         int pos = tag.tagStart() + 1
             + tag.name()
                 .length();
