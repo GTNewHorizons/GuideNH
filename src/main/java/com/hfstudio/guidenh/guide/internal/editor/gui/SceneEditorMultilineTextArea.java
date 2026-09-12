@@ -21,6 +21,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstListContent;
@@ -1609,7 +1610,9 @@ public class SceneEditorMultilineTextArea {
     }
 
     private int getLineHeight() {
-        return fontRenderer.FONT_HEIGHT + 2;
+        // A custom font scales its glyphs vertically without changing FONT_HEIGHT, so the line is measured
+        // through the font rather than from that constant.
+        return GuideFontCompat.getLineHeight(fontRenderer) + 2;
     }
 
     public int getLineHeightPixels() {

@@ -48,8 +48,22 @@ public class GuideFontCompat {
         return preprocessText(buildStyledText(text, style));
     }
 
+    /**
+     * The width of {@code text} under this font.
+     *
+     * <p>
+     * GTNHLib's measurement casts the renderer to its own font interface, which every renderer satisfies
+     * only while its font mixin is active; the cast is checked here so a renderer without it falls back to
+     * the vanilla measurement instead of failing.
+     */
     public static int getStringWidth(FontRenderer fontRenderer, String text) {
-        return FontRendering.getStringWidth(text, fontRenderer);
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        if (fontRenderer instanceof IFontParameters) {
+            return FontRendering.getStringWidth(text, fontRenderer);
+        }
+        return fontRenderer.getStringWidth(text);
     }
 
     public static int getStringWidth(FontRenderer fontRenderer, String text, ResolvedTextStyle style) {
@@ -83,6 +97,29 @@ public class GuideFontCompat {
             return parameters.getGlyphSpacing();
         }
         return 0f;
+    }
+
+    /**
+     * How tall one line of this font is, in pixels.
+     *
+     * <p>
+     * A custom font scales its glyphs vertically without changing {@code FONT_HEIGHT}, which stays 8, so
+     * laying out text against that constant alone makes the lines overlap once the scale is not 1. This
+     * reads the vertical scale the font reports, and answers {@code FONT_HEIGHT} when there is none.
+     */
+    public static int getLineHeight(FontRenderer fontRenderer) {
+        return Math.max(1, (int) Math.ceil(fontRenderer.FONT_HEIGHT * getGlyphScaleY(fontRenderer)));
+    }
+
+    /** The vertical scale the font draws its glyphs at, or 1 when it does not scale them. */
+    public static float getGlyphScaleY(FontRenderer fontRenderer) {
+        if (fontRenderer instanceof IFontParameters parameters) {
+            float scale = parameters.getGlyphScaleY();
+            if (scale > 0f && Float.isFinite(scale)) {
+                return scale;
+            }
+        }
+        return 1f;
     }
 
     public static float getRenderedAdvance(FontRenderer fontRenderer, int codePoint, boolean bold,

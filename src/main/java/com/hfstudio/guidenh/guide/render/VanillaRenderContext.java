@@ -285,7 +285,7 @@ public class VanillaRenderContext implements RenderContext {
     @Override
     public int getLineHeight(ResolvedTextStyle style) {
         float scale = style != null ? style.fontScale() : 1f;
-        return (int) Math.ceil((fontRenderer.FONT_HEIGHT + 1) * scale);
+        return (int) Math.ceil((GuideFontCompat.getLineHeight(fontRenderer) + 1) * scale);
     }
 
     @Override

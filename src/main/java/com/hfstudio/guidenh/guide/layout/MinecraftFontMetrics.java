@@ -47,13 +47,11 @@ public class MinecraftFontMetrics implements FontMetrics {
 
     @Override
     public int getLineHeight(ResolvedTextStyle style) {
+        int base = GuideFontCompat.getLineHeight(font) + 1;
         if (style == null) {
-            return font.FONT_HEIGHT + 1;
+            return base;
         }
         float scale = style.fontScale();
-        if (scale == 1f) {
-            return font.FONT_HEIGHT + 1;
-        }
-        return (int) Math.ceil((font.FONT_HEIGHT + 1) * scale);
+        return scale == 1f ? base : (int) Math.ceil(base * scale);
     }
 }
