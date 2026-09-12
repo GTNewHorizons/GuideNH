@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.internal.host;
 
+import com.hfstudio.guidenh.guide.document.block.LytDocument;
+
 public interface DeferredTask {
 
     enum Priority {
@@ -16,4 +18,12 @@ public interface DeferredTask {
 
     TaskResult step(long deadlineNs);
 
+    /**
+     * Whether this task belongs to a document, so unmounting that document drops only its own work.
+     *
+     * @return true when the task should be discarded with {@code owner}
+     */
+    default boolean belongsTo(LytDocument owner) {
+        return true;
+    }
 }

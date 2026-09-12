@@ -58,7 +58,7 @@ public class LytHost {
     public void mountDocument(@Nullable LytDocument newDoc) {
         if (this.document != null && this.document != newDoc) {
             this.document.setLive(false); // onDetach cascade on old doc
-            taskQueue.clear();
+            discardTasksFor(this.document);
         }
         this.document = newDoc;
         if (newDoc != null) {
@@ -83,6 +83,18 @@ public class LytHost {
     @Nullable
     public LytDocument getDocument() {
         return document;
+    }
+
+    /**
+     * Drops the pending work of one document, leaving the other documents' work queued.
+     *
+     * <p>
+     * The host serves the page on screen and the guide editor's preview at the same time, so clearing the
+     * whole queue when one document is unmounted discarded the other's scene materialization: its scenes
+     * stayed as amber placeholders until an edit rebuilt them.
+     */
+    private void discardTasksFor(LytDocument owner) {
+        taskQueue.removeIf(task -> task.belongsTo(owner));
     }
 
     public NavigationState getNavigation() {
@@ -319,6 +331,11 @@ public class LytHost {
         @Override
         public Priority priority() {
             return Priority.HIGH;
+        }
+
+        @Override
+        public boolean belongsTo(LytDocument owner) {
+            return ctx.document() == owner;
         }
 
         @Override
