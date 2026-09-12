@@ -121,8 +121,14 @@ public class RecipeScript implements LytScript {
                 return NeiRecipeLookup.readResultSlot(h, ri);
             }
         };
-        List<Object> handlers = RecipeCompiler
-            .filterHandlers(rawHandlers, ph.handlerName, ph.handlerId, ph.handlerOrder, metadataReader);
+        List<Object> handlers = RecipeCompiler.filterHandlers(
+            rawHandlers,
+            ph.handlerName,
+            ph.handlerId,
+            ph.handlerOrder,
+            metadataReader,
+            ph.handlerWhitelist,
+            RecipeCompiler.effectiveHandlerBlacklist(ph.handlerBlacklist));
         if (!handlers.isEmpty()) {
             List<LytNeiRecipeBox> boxes = new ArrayList<>();
             for (int hi = 0; hi < handlers.size() && boxes.size() < limit; hi++) {
