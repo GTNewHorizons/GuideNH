@@ -102,16 +102,22 @@ public class GuideSyntaxModel {
         }
         // Contributors run outside the cache monitor: their code belongs to another mod, so it must not be
         // able to block or re-enter every other model lookup. A duplicate build only costs what it builds.
-        GuideSyntaxModel model = build(key);
+        GuideSyntaxModel model = build(key, revision);
         synchronized (CACHE) {
             CACHE.put(key, model);
         }
         return model;
     }
 
-    private static GuideSyntaxModel build(ExtensionCollection extensions) {
-        int revision = GuideNhIntegrationRegistry.global()
-            .syntaxRevision();
+    /**
+     * Builds a model for a revision the caller read before building.
+     *
+     * <p>
+     * The revision is stamped as read rather than re-read on completion: a registration that arrives while
+     * the contributors are running is not part of this model, so stamping it newer would let the next
+     * lookup accept a model that is missing that registration.
+     */
+    private static GuideSyntaxModel build(ExtensionCollection extensions, int revision) {
         Builder builder = new Builder();
         for (SyntaxContributor contributor : contributors(extensions)) {
             try {

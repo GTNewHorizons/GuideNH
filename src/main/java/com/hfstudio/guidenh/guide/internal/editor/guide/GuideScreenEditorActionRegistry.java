@@ -29,10 +29,6 @@ public class GuideScreenEditorActionRegistry {
         return actions;
     }
 
-    public static List<GuideScreenEditorContextMenu.Entry> contextMenuEntries() {
-        return contextMenuEntries(List.of());
-    }
-
     /**
      * The editor's context menu.
      *
