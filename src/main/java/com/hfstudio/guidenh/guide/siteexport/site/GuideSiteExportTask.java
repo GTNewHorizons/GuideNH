@@ -988,7 +988,8 @@ public class GuideSiteExportTask {
             html.append("<span class=\"guide-scene-block-stat-label\">")
                 .append(escapeHtml(entry.getLabel()))
                 .append("</span><span class=\"guide-scene-block-stat-count\">x")
-                .append(entry.getCount())
+                // The same short form the book prints, so a large count reads the same on both sides.
+                .append(LytGuidebookScene.formatBlockStatsDisplayCount(entry.getCount()))
                 .append("</span></div>");
         }
         html.append("</div>");

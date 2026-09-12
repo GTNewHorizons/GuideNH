@@ -2830,7 +2830,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return entry.getLabel() + " x" + entry.getCount();
     }
 
-    private static String formatBlockStatsDisplayCount(int count) {
+    /**
+     * How a block-statistics count is written: plain below a thousand, then shortened.
+     *
+     * <p>
+     * The exported site reads this too, so a row that says {@code 1.2k} in the book says the same on the
+     * site instead of showing the raw number.
+     */
+    public static String formatBlockStatsDisplayCount(int count) {
         int value = Math.max(1, count);
         if (value < 1000) {
             return Integer.toString(value);
