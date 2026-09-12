@@ -139,11 +139,6 @@ public class Layouts {
         var maxContentWidth = contentWidth;
 
         var itemsOnLine = 0;
-        // Alignment is applied per line rather than once for the whole box: a child is centred or end-aligned
-        // within the line it is on, so a wrapped line cannot move a child out of its own row.
-        var lineStart = 0;
-        var lineTop = innerY;
-        var lineHeight = 0;
         for (int i = 0; i < children.size(); i++) {
             var child = children.get(i);
             // Account for margins of the child, and margin collapsing
@@ -153,12 +148,8 @@ public class Layouts {
 
             // Wrap, but not if we're the first item on the line
             if (wrap && childBounds.right() + child.getMarginRight() > x + innerWidth && itemsOnLine > 0) {
-                alignLine(LytAxis.VERTICAL, children, lineStart, i, alignItems, lineTop, lineTop + lineHeight);
-                lineStart = i;
                 innerX = x + paddingLeft;
                 innerY = y + contentHeight + gap;
-                lineTop = innerY;
-                lineHeight = 0;
                 previousBlock = null;
                 itemsOnLine = 0;
                 contentWidth = paddingLeft;
@@ -170,8 +161,6 @@ public class Layouts {
             contentWidth = Math.max(contentWidth, childBounds.right() - x);
             maxContentWidth = Math.max(maxContentWidth, contentWidth);
             contentHeight = Math.max(contentHeight, childBounds.bottom() - y);
-            // Measured from the line's own top, which is what alignment centres within.
-            lineHeight = Math.max(lineHeight, childBounds.bottom() + child.getMarginBottom() - lineTop);
             previousBlock = child;
             itemsOnLine++;
         }
@@ -180,40 +169,10 @@ public class Layouts {
             maxContentWidth = availableWidth;
         }
 
-        // Align the last line, which is also the only line when the children did not wrap.
-        alignLine(LytAxis.VERTICAL, children, lineStart, children.size(), alignItems, lineTop, lineTop + lineHeight);
+        // Align on the orthogonal axis
+        alignChildren(LytAxis.VERTICAL, children, alignItems, y + paddingTop, y + contentHeight);
 
         return new LytRect(x, y, maxContentWidth + paddingRight, contentHeight + paddingBottom);
-    }
-
-    /**
-     * Aligns one line's children on the axis orthogonal to the line.
-     *
-     * <p>
-     * A line spans {@code start} to {@code end}, so this is the whole box for a layout that did not wrap.
-     */
-    private static void alignLine(LytAxis axis, List<LytBlock> children, int from, int to, AlignItems alignItems,
-        int start, int end) {
-        if (from >= to || alignItems == AlignItems.START) {
-            return;
-        }
-        var space = end - start;
-        for (int i = from; i < to; i++) {
-            var child = children.get(i);
-            var bounds = child.getBounds();
-            var childSize = size(bounds, axis) + child.getMarginStart(axis) + child.getMarginEnd(axis);
-            if (axis == LytAxis.HORIZONTAL) {
-                switch (alignItems) {
-                    case CENTER -> child.moveLayoutPos(start + (space - childSize) / 2 - bounds.x(), 0);
-                    case END -> child.moveLayoutPos(end - childSize - bounds.x(), 0);
-                }
-            } else {
-                switch (alignItems) {
-                    case CENTER -> child.moveLayoutPos(0, start + (space - childSize) / 2 - bounds.y());
-                    case END -> child.moveLayoutPos(0, end - childSize - bounds.y());
-                }
-            }
-        }
     }
 
     public static void alignChildren(LytAxis axis, List<LytBlock> children, AlignItems alignItems, int start, int end) {
