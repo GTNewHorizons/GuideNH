@@ -15,10 +15,41 @@ import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeLayoutContext;
 import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeLayoutStrategyRegistry;
 import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeRawHandlerAccess;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.api.RecipeSlot;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeTagRenderer {
+
+    /**
+     * Reads the ingredient or other slots of a recipe the way the in-game renderer does: through the
+     * registered slot providers, so a mod that supplies its own slots exports them too.
+     */
+    private static List<NeiRecipeLookup.Slot> siteRecipeSlots(Object handler, int recipeIndex, boolean ingredients) {
+        List<RecipeSlot> slots = ingredients ? GuideNhIntegrationRegistry.global()
+            .readRecipeIngredientSlots(handler, recipeIndex)
+            : GuideNhIntegrationRegistry.global()
+                .readRecipeOtherSlots(handler, recipeIndex);
+        return toNeiSlots(slots);
+    }
+
+    private static NeiRecipeLookup.Slot siteRecipeResultSlot(Object handler, int recipeIndex) {
+        RecipeSlot slot = GuideNhIntegrationRegistry.global()
+            .readRecipeResultSlot(handler, recipeIndex);
+        return slot != null ? new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks()) : null;
+    }
+
+    private static List<NeiRecipeLookup.Slot> toNeiSlots(List<RecipeSlot> slots) {
+        if (slots == null || slots.isEmpty()) {
+            return List.of();
+        }
+        List<NeiRecipeLookup.Slot> converted = new ArrayList<>(slots.size());
+        for (RecipeSlot slot : slots) {
+            converted.add(new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks()));
+        }
+        return converted;
+    }
 
     public interface TargetStackResolver {
 
@@ -148,17 +179,17 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
             @Override
             public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
-                return NeiRecipeLookup.readIngredientSlots(handler, recipeIndex);
+                return siteRecipeSlots(handler, recipeIndex, true);
             }
 
             @Override
             public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
-                return NeiRecipeLookup.readResultSlot(handler, recipeIndex);
+                return siteRecipeResultSlot(handler, recipeIndex);
             }
 
             @Override
             public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
-                return NeiRecipeLookup.readOtherSlots(handler, recipeIndex);
+                return siteRecipeSlots(handler, recipeIndex, false);
             }
         }, neiPhase1BackgroundExporter);
     }
