@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -59,6 +60,18 @@ public class PreCompiler extends BlockTagCompiler {
         String meta = el.getAttributeString("meta", null);
 
         CodeBlockLanguage language = CodeBlockLanguageDetector.detect(lang, codeText);
+
+        // A contributed renderer owns its fence name, so it is asked before the built-in handling.
+        LytBlock contributed = CodeFenceRenderers.render(
+            CodeFenceRenderers.of(compiler.getPageCollection() instanceof Guide guide ? guide : null),
+            compiler,
+            lang != null ? lang : language.id(),
+            codeText,
+            meta);
+        if (contributed != null) {
+            parent.append(contributed);
+            return;
+        }
 
         // CSV table
         if (lang != null && "csv".equals(language.id())) {

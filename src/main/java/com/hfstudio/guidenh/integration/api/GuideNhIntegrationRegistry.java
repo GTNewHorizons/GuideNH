@@ -16,6 +16,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.color.SymbolicColorResolver;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
@@ -54,6 +55,7 @@ public class GuideNhIntegrationRegistry {
     private final List<GuideSiteTagRenderer> siteTagRenderers = new ArrayList<>();
     private final List<SceneElementTagCompilerProvider> sceneElementTagCompilerProviders = new ArrayList<>();
     private final List<SymbolicColorResolver> symbolicColorResolvers = new ArrayList<>();
+    private final List<CodeFenceRenderer> codeFenceRenderers = new ArrayList<>();
     private int syntaxRevision;
 
     public GuideNhIntegrationRegistry() {}
@@ -261,6 +263,24 @@ public class GuideNhIntegrationRegistry {
 
     public synchronized List<SceneElementTagCompilerProvider> sceneElementTagCompilerProviders() {
         return List.copyOf(sceneElementTagCompilerProviders);
+    }
+
+    /**
+     * Registers a renderer for fence names of your own, so the body of such a fence is not read as a
+     * plain code block. Its names should also be declared through {@code SyntaxSink.fenceLanguages(...)}
+     * so the editor offers them.
+     */
+    public synchronized void registerCodeFenceRenderer(CodeFenceRenderer renderer) {
+        if (renderer == null) {
+            throw new IllegalArgumentException("renderer");
+        }
+        if (!codeFenceRenderers.contains(renderer)) {
+            codeFenceRenderers.add(renderer);
+        }
+    }
+
+    public synchronized List<CodeFenceRenderer> codeFenceRenderers() {
+        return List.copyOf(codeFenceRenderers);
     }
 
     /**
