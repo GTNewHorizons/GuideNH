@@ -7,8 +7,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -833,13 +835,25 @@ public class GuideSiteExportTask {
         }
     }
 
+    /**
+     * Whether a materialised document still holds a scene placeholder.
+     *
+     * <p>
+     * The document is author content, so the walk is iterative: a page nested deeply enough would otherwise
+     * overflow the stack while the export is running.
+     */
     private boolean containsScenePlaceholder(LytNode node) {
-        if (node instanceof ScenePlaceholder) {
-            return true;
-        }
-        for (LytNode child : node.getChildren()) {
-            if (containsScenePlaceholder(child)) {
+        Deque<LytNode> pending = new ArrayDeque<>();
+        pending.add(node);
+        while (!pending.isEmpty()) {
+            LytNode current = pending.poll();
+            if (current instanceof ScenePlaceholder) {
                 return true;
+            }
+            for (LytNode child : current.getChildren()) {
+                if (child != null) {
+                    pending.add(child);
+                }
             }
         }
         return false;
