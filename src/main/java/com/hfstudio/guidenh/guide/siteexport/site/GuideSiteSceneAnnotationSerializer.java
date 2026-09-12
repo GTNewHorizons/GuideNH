@@ -60,6 +60,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 
@@ -111,8 +112,9 @@ public class GuideSiteSceneAnnotationSerializer {
                     case InWorldLineAnnotation line -> inWorld.add(serializeLine(line, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldBlockFaceOverlayAnnotation blockOverlay -> inWorld.add(
                             serializeBlockOverlay(blockOverlay, templates, currentPageId, assetExporter, itemIconResolver));
-                    default -> {
-                    }
+                    // An annotation of another mod describes its own site payload; without one it cannot be
+                    // drawn by the viewer, so it is reported rather than dropped in silence.
+                    default -> addContributedPayload(inWorld, annotation);
                 }
             }
             for (OverlayAnnotation annotation : scene.collectOverlayAnnotationsForExport(layerSelection)) {
@@ -132,13 +134,46 @@ public class GuideSiteSceneAnnotationSerializer {
                                     currentPageId,
                                     assetExporter,
                                     itemIconResolver));
-                    default -> {
-                    }
+                    // Same as the in-world annotations above: an annotation of another mod describes its own
+                    // payload, and one that cannot is reported rather than dropped in silence.
+                    default -> addContributedPayload(overlay, annotation);
                 }
             }
         }
 
         return new AnnotationPayload(GSON.toJson(inWorld), GSON.toJson(overlay));
+    }
+
+    /**
+     * Adds what an annotation of another mod asks the site viewer to draw.
+     *
+     * <p>
+     * The viewer only understands the payloads this mod ships, so an annotation that does not describe
+     * itself is reported: the author sees why it is missing from the export instead of finding an empty
+     * scene.
+     */
+    private static void addContributedPayload(List<Map<String, Object>> target, SceneAnnotation annotation) {
+        Map<String, Object> payload;
+        try {
+            payload = annotation.toSitePayload();
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SceneExport] {} failed to describe itself for the site: {}",
+                annotation.getClass()
+                    .getSimpleName(),
+                e.toString());
+            return;
+        }
+        if (payload != null) {
+            target.add(payload);
+            return;
+        }
+        if (annotation instanceof InWorldAnnotation || annotation instanceof OverlayAnnotation) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [SceneExport] {} is not exported to the site: it does not describe a site payload",
+                annotation.getClass()
+                    .getSimpleName());
+        }
     }
 
     private static Map<String, Object> serializeBox(InWorldBoxAnnotation box, GuideSiteTemplateRegistry templates,

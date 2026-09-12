@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
+import java.util.Map;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -46,4 +48,22 @@ public abstract class SceneAnnotation {
         this.structureLibCondition = structureLibCondition;
     }
 
+    /**
+     * How this annotation appears in an exported scene, or null when the exporter does not know it.
+     *
+     * <p>
+     * The exported site draws the annotations this mod ships with. An annotation of your own renders in the
+     * book but would be dropped from the site unless it describes itself here, so override this and return a
+     * payload the site runtime understands.
+     *
+     * <p>
+     * The returned map is serialized as JSON and read by the scene viewer, which expects a {@code "type"}
+     * field it knows. Return null to leave the annotation out of the export.
+     *
+     * @return the payload for the site viewer, or null to omit the annotation
+     */
+    @Nullable
+    public Map<String, Object> toSitePayload() {
+        return null;
+    }
 }
