@@ -3152,7 +3152,7 @@ public class GuideSiteGraphRenderer {
         int rowY = y + CORNER_LEGEND_PADDING_Y + 8;
         int markerX = x + CORNER_LEGEND_PADDING_X;
         int textX = markerX + CORNER_LEGEND_MARKER_W + CORNER_LEGEND_GAP;
-        int maxChars = Math.max(0, (x + width - CORNER_LEGEND_PADDING_X - textX) / 6);
+        int maxChars = cornerLegendMaxChars(x, width, textX);
         for (FunctionPlot plot : visible) {
             int markerY = rowY - CORNER_LEGEND_MARKER_H / 2 - 2;
             svg.append("<line x1=\"")
@@ -3231,7 +3231,7 @@ public class GuideSiteGraphRenderer {
         int rowY = y + CORNER_LEGEND_PADDING_Y + 8;
         int markerX = x + CORNER_LEGEND_PADDING_X;
         int textX = markerX + CORNER_LEGEND_MARKER_W + CORNER_LEGEND_GAP;
-        int maxChars = Math.max(0, (x + width - CORNER_LEGEND_PADDING_X - textX) / 6);
+        int maxChars = cornerLegendMaxChars(x, width, textX);
         for (SeriesData item : visible) {
             int markerY = rowY - CORNER_LEGEND_MARKER_H / 2 - 2;
             if (lineMarker) {
@@ -3686,6 +3686,18 @@ public class GuideSiteGraphRenderer {
             return 1;
         }
         return Math.clamp(Math.max(1, availW) / itemCount, 60, 100 + 4 * CHART_TEXT_SIZE);
+    }
+
+    /**
+     * Characters a corner legend entry can show before it would leave its box.
+     *
+     * <p>
+     * Measured with the width the chart text really takes, so a name is shortened rather than drawn over the
+     * edge of the legend box.
+     */
+    private static int cornerLegendMaxChars(int boxX, int boxWidth, int textX) {
+        int room = boxX + boxWidth - CORNER_LEGEND_PADDING_X - textX;
+        return Math.max(0, room / CHART_CHAR_WIDTH);
     }
 
     private static String ellipsize(String text, int maxChars) {
