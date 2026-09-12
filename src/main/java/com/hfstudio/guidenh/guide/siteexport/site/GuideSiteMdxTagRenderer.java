@@ -806,8 +806,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if (exportedScene != null) {
             int logicalWidth = exportedScene.logicalWidth() > 0 ? exportedScene.logicalWidth() : 256;
             int logicalHeight = exportedScene.logicalHeight() > 0 ? exportedScene.logicalHeight() : 192;
+            // renderSceneHtml emits the start tag and its attributes but no closing bracket: the scene tag
+            // appends forwarded and action attributes after it and closes the tag itself. A block image has
+            // no such attributes, so it closes the tag here.
             String sceneHtml = GuideSiteSceneTagRenderer
-                .renderSceneHtml(logicalWidth, logicalHeight, false, defaultNamespace, null, exportedScene);
+                .renderSceneHtml(logicalWidth, logicalHeight, false, defaultNamespace, null, exportedScene) + ">";
             return wrapBlockImageFloat(element, sceneHtml);
         }
 
