@@ -28,16 +28,16 @@ import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 public class MdxSyntaxResolver implements SyntaxContextResolver {
 
-    private static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
+    public static final MdastOptions PARSE_OPTIONS = GuideMarkdownOptions.runtime();
 
     /**
      * The document this resolver last parsed, and the result. Parsing is most of the cost of a query, so it
      * is kept for as long as the text is unchanged.
      */
     @Nullable
-    private String cachedText;
+    public String cachedText;
     @Nullable
-    private MdAstRoot cachedRoot;
+    public MdAstRoot cachedRoot;
 
     @Override
     @Nullable
@@ -65,22 +65,53 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                 }
                 return resolvePlainTextWord(text, cursorIndex);
             }
-            return resolveFromAst(root, text, cursorIndex);
+            TextSyntaxContext fromAst = resolveFromAst(root, text, cursorIndex);
+            if (fromAst != null) {
+                return fromAst;
+            }
+            return resolveTextLevelTagContext(text, cursorIndex);
         }
 
-        // The document could not be parsed, so only what the text alone can answer is offered.
+        TextSyntaxContext fromText = resolveTextLevelTagContext(text, cursorIndex);
+        if (fromText != null) {
+            return fromText;
+        }
         TextSyntaxContext fence = resolveFenceLanguageLine(text, cursorIndex);
-        return fence != null ? fence : resolvePlainTextWord(text, cursorIndex);
+        return fence != null ? fence : null;
+    }
+
+    /**
+     * The tag the caret is inside, read from the text: its attribute value, its attribute name, or its name
+     * while the tag is being opened.
+     *
+     * @return the context, or null when the caret is not inside a tag
+     */
+    @Nullable
+    private TextSyntaxContext resolveTextLevelTagContext(String text, int cursorIndex) {
+        TextSyntaxContext attribute = resolveTextLevelAttribute(text, cursorIndex);
+        if (attribute != null) {
+            return attribute;
+        }
+        return resolveTagStart(text, cursorIndex, null);
     }
 
     /** The parsed document, reused while the text is unchanged. */
     @Nullable
-    private MdAstRoot parsedRoot(String text) {
-        if (text.equals(cachedText) && cachedRoot != null) {
+    public MdAstRoot parsedRoot(String text) {
+        if (text.equals(cachedText)) {
             return cachedRoot;
         }
-        MdAstRoot root = MdAst.fromMarkdown(text, PARSE_OPTIONS);
-        MdAstToMdxConverter.convert(root, Collections.emptyMap());
+        MdAstRoot root;
+        try {
+            root = MdAst.fromMarkdown(text, PARSE_OPTIONS);
+            MdAstToMdxConverter.convert(root, Collections.emptyMap());
+        } catch (RuntimeException e) {
+            // Remember the failure for this text, so a keystroke that cannot be parsed is not re-parsed on
+            // every query until the author changes it again.
+            cachedText = text;
+            cachedRoot = null;
+            return null;
+        }
         cachedText = text;
         cachedRoot = root;
         return root;
@@ -92,7 +123,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
      * document that fails to parse still completes its fence languages.
      */
     @Nullable
-    private static TextSyntaxContext resolveFenceLanguageLine(String text, int cursorIndex) {
+    public static TextSyntaxContext resolveFenceLanguageLine(String text, int cursorIndex) {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
         int lineEnd = text.indexOf('\n', cursorIndex);
         if (lineEnd < 0) lineEnd = text.length();
@@ -120,7 +151,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     /**
      * True when the caret sits inside the leading YAML frontmatter block.
      */
-    private static boolean isInFrontmatter(String text, int cursorIndex) {
+    public static boolean isInFrontmatter(String text, int cursorIndex) {
         int firstBreak = text.indexOf('\n');
         if (firstBreak < 0) return false;
         if (!text.substring(0, firstBreak)
@@ -146,12 +177,12 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
     /** The frontmatter answer, read from the caret's line rather than from the parsed block. */
     @Nullable
-    private TextSyntaxContext resolveFrontmatterText(String text, int cursorIndex) {
+    public TextSyntaxContext resolveFrontmatterText(String text, int cursorIndex) {
         return resolveFrontmatter(null, text, cursorIndex);
     }
 
     @Nullable
-    private TextSyntaxContext resolveFromAst(MdAstRoot root, String text, int cursorIndex) {
+    public TextSyntaxContext resolveFromAst(MdAstRoot root, String text, int cursorIndex) {
         // 1. YAML frontmatter — a terminal region that never hosts markdown constructs.
         MdAstYamlFrontmatter yaml = findEnclosingNode(root, cursorIndex, MdAstYamlFrontmatter.class);
         if (yaml != null) {
@@ -196,11 +227,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     @Nullable
-    /**
-     * The frontmatter answer for the caret. The parsed block is not read: the region is recognised from the
-     * text, so this answers for a document that failed to parse as well.
-     */
-    private TextSyntaxContext resolveFrontmatter(@Nullable MdAstYamlFrontmatter yaml, String text, int cursorIndex) {
+    public TextSyntaxContext resolveFrontmatter(@Nullable MdAstYamlFrontmatter yaml, String text, int cursorIndex) {
         String line = getLineAt(text, cursorIndex);
         if (line == null) return resolvePlainTextWord(text, cursorIndex);
 
@@ -263,7 +290,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
      * Completes a top-level frontmatter key while it is still being typed, before its ':' exists.
      * Indented lines belong to a parent key instead, so they keep the inherited value context.
      */
-    private TextSyntaxContext resolveFrontmatterDraftKey(String text, int cursorIndex) {
+    public TextSyntaxContext resolveFrontmatterDraftKey(String text, int cursorIndex) {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
         String typed = text.substring(lineStart, cursorIndex);
         if (typed.isEmpty() || !isBareYamlKey(typed)) {
@@ -276,7 +303,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new FrontmatterContext(typed, false, lineStart, cursorIndex, typed));
     }
 
-    private static boolean isBareYamlKey(String typed) {
+    public static boolean isBareYamlKey(String typed) {
         for (int i = 0; i < typed.length(); i++) {
             char c = typed.charAt(i);
             if (!Character.isLetterOrDigit(c) && c != '_' && c != '-') {
@@ -287,7 +314,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     @Nullable
-    private TextSyntaxContext resolveFrontmatterEmptyLine(String text, int cursorIndex) {
+    public TextSyntaxContext resolveFrontmatterEmptyLine(String text, int cursorIndex) {
         int prevLineEnd = text.lastIndexOf('\n', cursorIndex - 1);
         if (prevLineEnd < 0) return resolvePlainTextWord(text, cursorIndex);
         int prevLineStart = text.lastIndexOf('\n', prevLineEnd - 1) + 1;
@@ -328,7 +355,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     /** True when nothing follows the key's colon, so a nested block or list belongs to that key. */
-    private static boolean isYamlBlockKey(String line, int colonIndex) {
+    public static boolean isYamlBlockKey(String line, int colonIndex) {
         for (int i = colonIndex + 1; i < line.length(); i++) {
             if (line.charAt(i) != ' ') {
                 return false;
@@ -342,7 +369,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
      * empty line under a key. The typed list content becomes the partial text so providers filter it,
      * and the rest of the line is replaced on commit, matching the {@code key: value} behaviour.
      */
-    private TextSyntaxContext resolveFrontmatterInheritedValue(String text, int cursorIndex, String key) {
+    public TextSyntaxContext resolveFrontmatterInheritedValue(String text, int cursorIndex, String key) {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
         int lineEnd = text.indexOf('\n', cursorIndex);
         if (lineEnd < 0) lineEnd = text.length();
@@ -357,7 +384,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     /** Offset of the entry text on a YAML line, skipping indentation and an optional list marker. */
-    private static int yamlEntryContentOffset(String line) {
+    public static int yamlEntryContentOffset(String line) {
         int index = 0;
         while (index < line.length() && line.charAt(index) == ' ') {
             index++;
@@ -366,15 +393,14 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             && (line.charAt(index) == '-' || line.charAt(index) == '+' || line.charAt(index) == '*')
             && index + 1 < line.length()
             && line.charAt(index + 1) == ' ') {
-            index++;
-            while (index < line.length() && line.charAt(index) == ' ') {
+            do {
                 index++;
-            }
+            } while (index < line.length() && line.charAt(index) == ' ');
         }
         return index;
     }
 
-    private static boolean isYamlListMarker(String trimmed) {
+    public static boolean isYamlListMarker(String trimmed) {
         if (trimmed.isEmpty()) return false;
         char c = trimmed.charAt(0);
         if ((c == '-' || c == '*' || c == '+') && (trimmed.length() == 1 || trimmed.charAt(1) == ' ')) return true;
@@ -384,7 +410,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     @Nullable
-    private TextSyntaxContext resolveFenceLanguage(MdAstCode code, String text, int cursorIndex) {
+    public TextSyntaxContext resolveFenceLanguage(MdAstCode code, String text, int cursorIndex) {
         UnistPosition pos = code.position();
         if (pos == null || pos.start() == null) return null;
 
@@ -410,14 +436,14 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     @Nullable
-    private MdAstResource findEnclosingLink(UnistNode node, int cursorIndex) {
+    public MdAstResource findEnclosingLink(UnistNode node, int cursorIndex) {
         MdAstLink link = findEnclosingNode(node, cursorIndex, MdAstLink.class);
         if (link != null) return link;
         return findEnclosingNode(node, cursorIndex, MdAstImage.class);
     }
 
     @Nullable
-    private TextSyntaxContext resolveLinkUrl(MdAstResource resource, String text, int cursorIndex) {
+    public TextSyntaxContext resolveLinkUrl(MdAstResource resource, String text, int cursorIndex) {
         UnistPosition pos = ((UnistNode) resource).position();
         if (pos == null || pos.start() == null || pos.end() == null) return null;
 
@@ -443,8 +469,116 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new MdxValueContext(tagName, "url", urlStart, urlEnd, partial, '\0'));
     }
 
+    /**
+     * The tag the caret sits inside, read from the text.
+     *
+     * <p>
+     * Attribute completion has to work while a tag is half written, and a half-written tag makes the
+     * document unparsable, so the enclosing tag is found by scanning back for its {@code <} and the name
+     * after it. The scan stops at the enclosing tag's own end, so a caret in a later tag is not answered
+     * with an earlier one.
+     */
     @Nullable
-    private TextSyntaxContext resolveTagStart(String text, int cursorIndex, @Nullable String parentTagName) {
+    public static TagSpan findOpenTagAt(String text, int cursorIndex) {
+        int tagStart = text.lastIndexOf('<', Math.max(0, cursorIndex - 1));
+        if (tagStart < 0) {
+            return null;
+        }
+        if (tagStart + 1 >= text.length() || text.charAt(tagStart + 1) == '/'
+            || text.charAt(tagStart + 1) == '!'
+            || text.charAt(tagStart + 1) == '?') {
+            return null;
+        }
+        int nameStart = tagStart + 1;
+        int nameEnd = nameStart;
+        while (nameEnd < text.length() && isTagNameChar(text.charAt(nameEnd))) {
+            nameEnd++;
+        }
+        if (nameEnd == nameStart) {
+            return null;
+        }
+        int tagEnd = findOpeningTagEnd(text, tagStart);
+        // A caret past this tag's end belongs to something else, such as a later tag or the text after it.
+        if (cursorIndex > tagEnd) {
+            return null;
+        }
+        return new TagSpan(text.substring(nameStart, nameEnd), tagStart, tagEnd);
+    }
+
+    /** A tag found in the text: its name and the range of its opening form. */
+    public record TagSpan(String name, int tagStart, int tagEnd) {}
+
+    @Nullable
+    public TextSyntaxContext resolveTextLevelAttribute(String text, int cursorIndex) {
+        TagSpan tag = findOpenTagAt(text, cursorIndex);
+        if (tag == null) {
+            return null;
+        }
+        if (cursorIndex <= tag.tagStart() + 1
+            + tag.name()
+                .length()) {
+            // The caret is still in the tag name, which tag start completion answers.
+            return null;
+        }
+        TextSyntaxContext value = resolveTextLevelAttributeValue(text, tag, cursorIndex);
+        if (value != null) {
+            return value;
+        }
+        return resolveAttributeNameFromTag(text, tag.name(), tag.tagStart(), tag.tagEnd(), cursorIndex);
+    }
+
+    /**
+     * The attribute value at the caret, found by reading the tag's attributes from the text.
+     *
+     * <p>
+     * A value that is still open is answered as well: while an author types inside an unterminated quote the
+     * document cannot be parsed, and that is precisely when the value has to complete.
+     */
+    @Nullable
+    public static TextSyntaxContext resolveTextLevelAttributeValue(String text, TagSpan tag, int cursorIndex) {
+        int pos = tag.tagStart() + 1
+            + tag.name()
+                .length();
+        int tagEnd = tag.tagEnd();
+        while (pos < tagEnd) {
+            pos = skipSpaces(text, pos, tagEnd);
+            if (pos >= tagEnd || !isAttributeNameStart(text.charAt(pos))) {
+                pos++;
+                continue;
+            }
+            int attrStart = pos;
+            while (pos < tagEnd && isAttributeNameChar(text.charAt(pos))) {
+                pos++;
+            }
+            String attrName = text.substring(attrStart, pos);
+            int afterName = skipSpaces(text, pos, tagEnd);
+            if (afterName >= tagEnd || text.charAt(afterName) != '=') {
+                continue;
+            }
+            int valueStart = skipSpaces(text, afterName + 1, tagEnd);
+            AttributeValueBounds bounds = valueBounds(text, valueStart, tagEnd, cursorIndex);
+            int rawEnd = Math.max(bounds.rawEnd, valueStart);
+            if (cursorIndex >= bounds.valueStart && cursorIndex <= Math.max(bounds.valueEnd, rawEnd)) {
+                String partial = text.substring(bounds.valueStart, cursorIndex);
+                return new TextSyntaxContext(
+                    SyntaxElementType.ATTRIBUTE_VALUE,
+                    bounds.valueStart,
+                    cursorIndex,
+                    new MdxValueContext(
+                        tag.name(),
+                        attrName,
+                        bounds.valueStart,
+                        cursorIndex,
+                        partial,
+                        bounds.missingTerminator));
+            }
+            pos = Math.max(rawEnd, pos);
+        }
+        return null;
+    }
+
+    @Nullable
+    public TextSyntaxContext resolveTagStart(String text, int cursorIndex, @Nullable String parentTagName) {
         if (cursorIndex < 1) return null;
 
         char atCursor = text.charAt(cursorIndex - 1);
@@ -495,12 +629,12 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return null;
     }
 
-    private static boolean isTagNameChar(char c) {
+    public static boolean isTagNameChar(char c) {
         return Character.isLetterOrDigit(c) || c == '-';
     }
 
     @Nullable
-    private MdxJsxElementFields findEnclosingMdxElement(UnistNode node, int cursorIndex) {
+    public MdxJsxElementFields findEnclosingMdxElement(UnistNode node, int cursorIndex) {
         UnistPosition pos = node.position();
         if (pos != null && pos.start() != null && pos.end() != null) {
             if (cursorIndex < pos.start()
@@ -526,14 +660,14 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return null;
     }
 
-    private static boolean isRecovered(MdxJsxElementFields el) {
+    public static boolean isRecovered(MdxJsxElementFields el) {
         if (el instanceof MdxJsxFlowElement f) return f.recovered;
         if (el instanceof MdxJsxTextElement t) return t.recovered;
         return false;
     }
 
     @Nullable
-    private TextSyntaxContext resolveMdxAttribute(MdxJsxElementFields element, String text, int cursorIndex) {
+    public TextSyntaxContext resolveMdxAttribute(MdxJsxElementFields element, String text, int cursorIndex) {
         String tagName = element.name();
         if (tagName == null) return resolvePlainTextWord(text, cursorIndex);
 
@@ -577,7 +711,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
     @SuppressWarnings("unchecked")
     @Nullable
-    private <T extends UnistNode> T findEnclosingNode(UnistNode node, int cursorIndex, Class<T> type) {
+    public <T extends UnistNode> T findEnclosingNode(UnistNode node, int cursorIndex, Class<T> type) {
         UnistPosition pos = node.position();
         if (pos != null && pos.start() != null && pos.end() != null) {
             if (cursorIndex < pos.start()
@@ -602,12 +736,12 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return null;
     }
 
-    private TextSyntaxContext resolvePlainTextWord(String text, int cursorIndex) {
+    public TextSyntaxContext resolvePlainTextWord(String text, int cursorIndex) {
         return SyntaxUtils.resolveWord(text, cursorIndex);
     }
 
     @Nullable
-    private TextSyntaxContext resolveAttributeValue(String text, String tagName, String attrName, int attrStart,
+    public TextSyntaxContext resolveAttributeValue(String text, String tagName, String attrName, int attrStart,
         int attrEnd, int cursorIndex) {
         int eqIdx = indexOf(text, '=', attrStart, attrEnd);
         if (eqIdx < 0) return null;
@@ -632,7 +766,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     @Nullable
-    private TextSyntaxContext resolveAttributeNameFromTag(String text, String tagName, int tagStart, int tagEnd,
+    public TextSyntaxContext resolveAttributeNameFromTag(String text, String tagName, int tagStart, int tagEnd,
         int cursorIndex) {
         int scanStart = Math.max(tagStart + 1 + tagName.length(), 0);
         if (cursorIndex < scanStart || cursorIndex > tagEnd) return null;
@@ -654,7 +788,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new MdxAttrNameContext(tagName, nameStart, nameEnd, partial));
     }
 
-    private static int findOpeningTagEnd(String text, int tagStart) {
+    public static int findOpeningTagEnd(String text, int tagStart) {
         boolean inSingle = false;
         boolean inDouble = false;
         int braceDepth = 0;
@@ -686,7 +820,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return text.length();
     }
 
-    private static boolean isInsideAnyAttributeValue(String text, int scanStart, int tagEnd, int cursorIndex) {
+    public static boolean isInsideAnyAttributeValue(String text, int scanStart, int tagEnd, int cursorIndex) {
         int pos = scanStart;
         while (pos < tagEnd) {
             pos = skipSpaces(text, pos, tagEnd);
@@ -712,7 +846,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return false;
     }
 
-    private static AttributeValueBounds valueBounds(String text, int rawValueStart, int limit, int cursorIndex) {
+    public static AttributeValueBounds valueBounds(String text, int rawValueStart, int limit, int cursorIndex) {
         if (rawValueStart >= limit) {
             return new AttributeValueBounds(rawValueStart, rawValueStart, rawValueStart, '\0');
         }
@@ -740,7 +874,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return new AttributeValueBounds(rawValueStart, rawEnd, rawEnd, '\0');
     }
 
-    private static int findClosingValue(String text, int start, int limit, char close) {
+    public static int findClosingValue(String text, int start, int limit, char close) {
         for (int i = start; i < limit; i++) {
             char c = text.charAt(i);
             if (c == close || c == '>' || c == '\n' || c == '\r') {
@@ -751,7 +885,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     @Nullable
-    private static String getLineAt(String text, int cursorIndex) {
+    public static String getLineAt(String text, int cursorIndex) {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
         int lineEnd = text.indexOf('\n', cursorIndex);
         if (lineEnd < 0) lineEnd = text.length();
@@ -759,14 +893,14 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return text.substring(lineStart, lineEnd);
     }
 
-    private static int indexOf(String text, char target, int start, int end) {
+    public static int indexOf(String text, char target, int start, int end) {
         for (int i = start; i < end; i++) {
             if (text.charAt(i) == target) return i;
         }
         return -1;
     }
 
-    private static int skipSpaces(String text, int start, int end) {
+    public static int skipSpaces(String text, int start, int end) {
         int pos = start;
         while (pos < end && text.charAt(pos) == ' ') {
             pos++;
@@ -774,22 +908,22 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return pos;
     }
 
-    private static boolean isAttributeNameStart(char c) {
+    public static boolean isAttributeNameStart(char c) {
         return Character.isLetter(c) || c == '_' || c == ':';
     }
 
-    private static boolean isAttributeNameChar(char c) {
+    public static boolean isAttributeNameChar(char c) {
         return Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == ':' || c == '.';
     }
 
-    private static class AttributeValueBounds {
+    public static class AttributeValueBounds {
 
-        private final int valueStart;
-        private final int valueEnd;
-        private final int rawEnd;
-        private final char missingTerminator;
+        public final int valueStart;
+        public final int valueEnd;
+        public final int rawEnd;
+        public final char missingTerminator;
 
-        private AttributeValueBounds(int valueStart, int valueEnd, int rawEnd, char missingTerminator) {
+        public AttributeValueBounds(int valueStart, int valueEnd, int rawEnd, char missingTerminator) {
             this.valueStart = valueStart;
             this.valueEnd = valueEnd;
             this.rawEnd = rawEnd;

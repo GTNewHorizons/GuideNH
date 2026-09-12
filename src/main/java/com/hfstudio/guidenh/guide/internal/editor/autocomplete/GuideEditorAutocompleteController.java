@@ -121,10 +121,9 @@ public class GuideEditorAutocompleteController {
         }
 
         if (textChanged && !firstRun && System.currentTimeMillis() < nextQueryAtMillis) {
-            // The text moved while the query is debounced, so the open popup describes older text.
-            // Dismiss it without disarming the pending query: the next update fills it for the new text.
-            dismissPopup();
-            return;
+            if (!popup.isOpen()) {
+                return;
+            }
         }
 
         lastText = text;

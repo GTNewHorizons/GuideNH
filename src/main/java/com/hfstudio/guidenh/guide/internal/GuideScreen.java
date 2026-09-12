@@ -245,7 +245,7 @@ public class GuideScreen extends GuiContainer
     private static final int SCROLLBAR_OUTLINE_LABEL_PADDING_Y = 4;
     private static final int SCROLLBAR_OUTLINE_LABEL_GAP = 6;
     private static final int GUIDE_EDITOR_DIVIDER_HOVER_DELAY_MILLIS = 1000;
-    private static final int AUTOCOMPLETE_CURSOR_GAP_Y = 14;
+    private static final int AUTOCOMPLETE_CURSOR_GAP_Y = 2;
     private static final long GUIDE_EDITOR_SAFETY_AUTOSAVE_INTERVAL_MILLIS = 5L * 60L * 1000L;
     private static final long GUIDE_EDITOR_NAVIGATION_REFRESH_DELAY_MILLIS = 1500L;
     private static final int NON_FULL_WIDTH_DEFAULT_PERCENT = 90;
@@ -3364,7 +3364,8 @@ public class GuideScreen extends GuiContainer
 
     private int getAutocompleteAnchorY() {
         return getGuideEditorContentTop() + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelY() : 0)
-            + fontRendererObj.FONT_HEIGHT
+            + (guideEditorTextArea != null ? guideEditorTextArea.getLineHeightPixels()
+                : fontRendererObj.FONT_HEIGHT + 2)
             + AUTOCOMPLETE_CURSOR_GAP_Y;
     }
 

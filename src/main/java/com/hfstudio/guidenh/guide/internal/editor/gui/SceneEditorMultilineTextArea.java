@@ -1614,6 +1614,11 @@ public class SceneEditorMultilineTextArea {
         return fontRenderer.FONT_HEIGHT + 2;
     }
 
+    /** Height of one rendered line, for callers that place something beside the text. */
+    public int getLineHeightPixels() {
+        return getLineHeight();
+    }
+
     private boolean shouldRenderCursor() {
         return (System.currentTimeMillis() / 500L) % 2L == 0L;
     }
