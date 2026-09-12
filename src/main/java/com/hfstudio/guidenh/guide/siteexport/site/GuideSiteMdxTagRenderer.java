@@ -1782,7 +1782,37 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             .withLegend(resolveLegendPosition(element))
             .withLabels(
                 ChartLabelPosition.fromString(readOptional(element, "labelPosition"), ChartLabelPosition.NONE),
-                parseArgbAttr(element, "labelColor", GuideSiteGraphRenderer.DEFAULT_LABEL_COLOR));
+                parseArgbAttr(element, "labelColor", GuideSiteGraphRenderer.DEFAULT_LABEL_COLOR))
+            // The axis attributes are read here so an exported axis carries the range, the step, the grid and
+            // the tick text the page declares, the way the in-game charts do.
+            .withAxes(
+                SiteChartAxis
+                    .read(element, "xAxis", "showXGrid", "xGridColor", GuideSiteGraphRenderer.DEFAULT_GRID_COLOR),
+                SiteChartAxis
+                    .read(element, "yAxis", "showYGrid", "yGridColor", GuideSiteGraphRenderer.DEFAULT_GRID_COLOR))
+            // The title colour and the bar width are declared on the chart element as well.
+            .withBarLayout(
+                parseArgbAttr(element, "titleColor", GuideSiteGraphRenderer.DEFAULT_TITLE_COLOR),
+                readFloat(element, "barWidthRatio", GuideSiteGraphRenderer.DEFAULT_BAR_WIDTH_RATIO))
+            // A pie starts at the angle and draws in the direction the page declares, like the in-game pie.
+            .withPieLayout(
+                readFloat(element, "startAngle", GuideSiteGraphRenderer.DEFAULT_PIE_START_ANGLE_DEG),
+                MdxAttrs.getBoolean(element, "clockwise", true));
+    }
+
+    /** Reads a float attribute, falling back when it is absent or unreadable. */
+    private float readFloat(MdxJsxElementFields element, String name, float fallback) {
+        String raw = readOptional(element, name);
+        if (raw == null || raw.isEmpty()) {
+            return fallback;
+        }
+        try {
+            float parsed = Float.parseFloat(raw.trim());
+            // A share outside (0, 1] is not a width the chart can draw with, so the default is kept.
+            return parsed > 0f && parsed <= 1f ? parsed : fallback;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 
     private ChartLegendPosition resolveLegendPosition(MdxJsxElementFields element) {

@@ -87,6 +87,14 @@ public class GuideSiteGraphRenderer {
      * the SVG carries, so the layout below is measured against this size instead of the attributes.
      */
     private static final int CHART_TEXT_SIZE = 16;
+    /** Title colour a chart uses when its page does not declare one: the {@code #E6E6E6} the charts draw. */
+    static final int DEFAULT_TITLE_COLOR = 0xFFE6E6E6;
+    /** Direction a pie starts drawing from when the page does not declare one: straight up. */
+    static final float DEFAULT_PIE_START_ANGLE_DEG = -90f;
+    /** Share of a category slot a bar fills when the page does not declare one. */
+    static final float DEFAULT_BAR_WIDTH_RATIO = 0.7f;
+    /** Grid colour a chart uses when its page does not declare one: the {@code #3A4047} the charts draw. */
+    static final int DEFAULT_GRID_COLOR = 0xFF3A4047;
     /**
      * Room the axes leave for their labels.
      *
@@ -1176,11 +1184,90 @@ public class GuideSiteGraphRenderer {
      * @param labelColor     ARGB colour of the value labels
      */
     public record ChartStyle(int width, int height, int background, int border, @Nullable String title,
-        @Nullable ChartLegendPosition legendPosition, ChartLabelPosition labelPosition, int labelColor) {
+        @Nullable ChartLegendPosition legendPosition, ChartLabelPosition labelPosition, int labelColor,
+        @Nullable SiteChartAxis xAxis, @Nullable SiteChartAxis yAxis, int titleColor, float barWidthRatio,
+        float pieStartAngleDeg, boolean pieClockwise) {
 
         public ChartStyle {
             legendPosition = legendPosition != null ? legendPosition : ChartLegendPosition.NONE;
             labelPosition = labelPosition != null ? labelPosition : ChartLabelPosition.NONE;
+        }
+
+        /** The same appearance with the axes the page declares, read from the chart element. */
+        public ChartStyle withAxes(@Nullable SiteChartAxis xAxis, @Nullable SiteChartAxis yAxis) {
+            return new ChartStyle(
+                width,
+                height,
+                background,
+                border,
+                title,
+                legendPosition,
+                labelPosition,
+                labelColor,
+                xAxis,
+                yAxis,
+                titleColor,
+                barWidthRatio,
+                pieStartAngleDeg,
+                pieClockwise);
+        }
+
+        /**
+         * The same appearance with the title colour and bar width the page declares.
+         *
+         * @param titleColor    ARGB title colour, or a non-positive value to keep the default
+         * @param barWidthRatio share of a category slot a bar fills, or a non-positive value to keep 0.7
+         */
+        public ChartStyle withBarLayout(int titleColor, float barWidthRatio) {
+            return new ChartStyle(
+                width,
+                height,
+                background,
+                border,
+                title,
+                legendPosition,
+                labelPosition,
+                labelColor,
+                xAxis,
+                yAxis,
+                titleColor,
+                barWidthRatio,
+                pieStartAngleDeg,
+                pieClockwise);
+        }
+
+        /** The X axis to draw with, falling back to an automatic one. */
+        public SiteChartAxis xAxisOrDefault() {
+            return xAxis != null ? xAxis : SiteChartAxis.automatic(DEFAULT_GRID_COLOR);
+        }
+
+        /** The Y axis to draw with, falling back to an automatic one. */
+        public SiteChartAxis yAxisOrDefault() {
+            return yAxis != null ? yAxis : SiteChartAxis.automatic(DEFAULT_GRID_COLOR);
+        }
+
+        /**
+         * The same appearance with the pie layout the page declares.
+         *
+         * @param startAngleDeg where the first slice starts, in degrees
+         * @param clockwise     the direction the slices are drawn in
+         */
+        public ChartStyle withPieLayout(float startAngleDeg, boolean clockwise) {
+            return new ChartStyle(
+                width,
+                height,
+                background,
+                border,
+                title,
+                legendPosition,
+                labelPosition,
+                labelColor,
+                xAxis,
+                yAxis,
+                titleColor,
+                barWidthRatio,
+                startAngleDeg,
+                clockwise);
         }
 
         public static ChartStyle of(int width, int height, int background, int border, @Nullable String title) {
@@ -1192,15 +1279,49 @@ public class GuideSiteGraphRenderer {
                 title,
                 ChartLegendPosition.NONE,
                 ChartLabelPosition.NONE,
-                DEFAULT_LABEL_COLOR);
+                DEFAULT_LABEL_COLOR,
+                null,
+                null,
+                DEFAULT_TITLE_COLOR,
+                DEFAULT_BAR_WIDTH_RATIO,
+                DEFAULT_PIE_START_ANGLE_DEG,
+                true);
         }
 
         public ChartStyle withLegend(@Nullable ChartLegendPosition position) {
-            return new ChartStyle(width, height, background, border, title, position, labelPosition, labelColor);
+            return new ChartStyle(
+                width,
+                height,
+                background,
+                border,
+                title,
+                position,
+                labelPosition,
+                labelColor,
+                xAxis,
+                yAxis,
+                titleColor,
+                barWidthRatio,
+                pieStartAngleDeg,
+                pieClockwise);
         }
 
         public ChartStyle withLabels(ChartLabelPosition position, int color) {
-            return new ChartStyle(width, height, background, border, title, legendPosition, position, color);
+            return new ChartStyle(
+                width,
+                height,
+                background,
+                border,
+                title,
+                legendPosition,
+                position,
+                color,
+                xAxis,
+                yAxis,
+                titleColor,
+                barWidthRatio,
+                pieStartAngleDeg,
+                pieClockwise);
         }
 
         /** @return the width to lay out, with the default applied */
@@ -1304,6 +1425,16 @@ public class GuideSiteGraphRenderer {
         if (yMin == yMax) {
             yMax = yMin + yStep;
         }
+        // A range or step the page declares wins over the one derived from the data, so the exported axes
+        // match the in-game ones.
+        SiteChartAxis yAxis = style.yAxisOrDefault();
+        yStep = yAxis.stepFor(yMax - yMin);
+        double[] yRange = yAxis.rangeFor(yMin, yMax, yStep);
+        yMin = yRange[0];
+        yMax = yRange[1];
+        if (yMin == yMax) {
+            yMax = yMin + yStep;
+        }
 
         boolean pieRightOutside = pieInset != null && isPieInsetRightOutside(pieInset.position);
         LegendArea legend = legendArea(
@@ -1324,8 +1455,8 @@ public class GuideSiteGraphRenderer {
         double clusterW = (double) plotW / nCat;
 
         StringBuilder svg = openSvg(w, h, "guide-chart", bgColor, borderColor);
-        appendTitle(svg, title, w);
-        appendYGridAndLabels(svg, left, right, top, bottom, plotH, yMin, yMax);
+        appendTitle(svg, title, w, style.titleColor());
+        appendYGridAndLabels(svg, left, right, top, bottom, plotH, yMin, yMax, yAxis);
         appendCategoryXLabels(svg, categories, left, clusterW, bottom);
 
         // Y-axis unit label (e.g. "(t)" above Y axis)
@@ -1340,13 +1471,15 @@ public class GuideSiteGraphRenderer {
                 .append(esc(yAxisUnit))
                 .append(")</text>");
         }
+        // Axis names the page declares, drawn where the in-game charts put them.
+        appendAxisLabels(svg, left, right, top, bottom, style);
 
         // Determine how many COLUMN series there are for bar-width calculation
         int nColSer = (int) series.stream()
             .filter(s -> SeriesData.TYPE_COLUMN.equals(s.type))
             .count();
         if (nColSer == 0) nColSer = 1;
-        double barW = clusterW * 0.7 / nColSer;
+        double barW = clusterW * style.barWidthRatio() / nColSer;
         double gap = (clusterW - barW * nColSer) / 2.0;
 
         int colIdx = 0;
@@ -1618,6 +1751,18 @@ public class GuideSiteGraphRenderer {
         if (xMin == xMax) {
             xMax = xMin + xStep;
         }
+        // A bar chart's value axis is its X axis, so a range the page declares there is the one it shows.
+        SiteChartAxis barValueAxis = style.xAxisOrDefault();
+        xStep = barValueAxis.stepFor(xMax - xMin);
+        if (xStep <= 0 || !Double.isFinite(xStep)) {
+            xStep = niceStep((xMax - xMin) / 5.0);
+        }
+        double[] barRange = barValueAxis.rangeFor(xMin, xMax, xStep);
+        xMin = barRange[0];
+        xMax = barRange[1];
+        if (xMin == xMax) {
+            xMax = xMin + xStep;
+        }
 
         int titleBottom = computeTitleBottom(title);
         LegendArea legend = legendArea(
@@ -1637,36 +1782,41 @@ public class GuideSiteGraphRenderer {
         int nCat = Math.max(1, categories.length);
         int nSer = Math.max(1, series.size());
         double rowH = (double) plotH / nCat;
-        double barH = rowH * 0.7 / nSer;
+        double barH = rowH * style.barWidthRatio() / nSer;
         double gap = (rowH - barH * nSer) / 2.0;
 
         StringBuilder svg = openSvg(w, h, "guide-chart", bgColor, borderColor);
         appendTitle(svg, title, w);
 
         // X grid + labels at bottom
-        double xStepG = niceStep((xMax - xMin) / 5.0);
+        double xStepG = xStep;
         int nGridX = (int) Math.round((xMax - xMin) / xStepG);
         nGridX = Math.clamp(nGridX, 1, 10);
         for (int gi = 0; gi <= nGridX; gi++) {
             double xv = xMin + gi * (xMax - xMin) / nGridX;
             int gx = left + (int) Math.round((xv - xMin) / (xMax - xMin) * plotW);
-            svg.append("<line x1=\"")
-                .append(gx)
-                .append("\" y1=\"")
-                .append(top)
-                .append("\" x2=\"")
-                .append(gx)
-                .append("\" y2=\"")
-                .append(bottom)
-                .append("\" stroke=\"#3A4047\" stroke-width=\"1\"/>");
+            if (barValueAxis.gridVisible()) {
+                svg.append("<line x1=\"")
+                    .append(gx)
+                    .append("\" y1=\"")
+                    .append(top)
+                    .append("\" x2=\"")
+                    .append(gx)
+                    .append("\" y2=\"")
+                    .append(bottom)
+                    .append("\" stroke=\"")
+                    .append(argbToRgba(barValueAxis.gridColor()))
+                    .append("\" stroke-width=\"1\"/>");
+            }
             svg.append("<text x=\"")
                 .append(gx)
                 .append("\" y=\"")
                 .append(bottom + 10)
                 .append("\" text-anchor=\"middle\" font-size=\"8\" fill=\"#B8C2CF\" font-family=\"inherit\">")
-                .append(esc(formatNum(xv)))
+                .append(esc(barValueAxis.formatTick(xv)))
                 .append("</text>");
         }
+        appendAxisLabels(svg, left, right, top, bottom, style);
 
         // Category labels on left (Y axis)
         for (int ci = 0; ci < categories.length; ci++) {
@@ -1853,6 +2003,14 @@ public class GuideSiteGraphRenderer {
         double yRange = yMax - yMin;
         yMin -= yRange * 0.05;
         yMax += yRange * 0.05;
+        // A range the page declares is used as it stands: the padding above only exists to keep the data off
+        // the plot edges when the range is derived.
+        SiteChartAxis lineYAxis = style.yAxisOrDefault();
+        double[] declaredY = lineYAxis.rangeFor(yMin, yMax, lineYAxis.stepFor(yMax - yMin));
+        if (lineYAxis.min() != null || lineYAxis.max() != null) {
+            yMin = declaredY[0];
+            yMax = declaredY[1];
+        }
 
         LegendArea legend = legendArea(
             style,
@@ -1869,30 +2027,38 @@ public class GuideSiteGraphRenderer {
         int plotH = Math.max(1, bottom - top);
 
         StringBuilder svg = openSvg(w, h, "guide-chart", bgColor, borderColor);
-        appendTitle(svg, title, w);
+        appendTitle(svg, title, w, style.titleColor());
+        appendAxisLabels(svg, left, right, top, bottom, style);
 
         // Y grid + labels
-        double yStep = niceStep((yMax - yMin) / 5.0);
+        double yStep = lineYAxis.stepFor(yMax - yMin);
+        if (yStep <= 0 || !Double.isFinite(yStep)) {
+            yStep = niceStep((yMax - yMin) / 5.0);
+        }
         for (double yv = Math.floor(yMin / yStep) * yStep; yv <= yMax + yStep * 0.01; yv += yStep) {
             int gy = bottom - (int) Math.round((yv - yMin) / (yMax - yMin) * plotH);
             if (gy < top - 2 || gy > bottom + 2) {
                 continue;
             }
-            svg.append("<line x1=\"")
-                .append(left)
-                .append("\" y1=\"")
-                .append(gy)
-                .append("\" x2=\"")
-                .append(right)
-                .append("\" y2=\"")
-                .append(gy)
-                .append("\" stroke=\"#3A4047\" stroke-width=\"1\"/>");
+            if (lineYAxis.gridVisible()) {
+                svg.append("<line x1=\"")
+                    .append(left)
+                    .append("\" y1=\"")
+                    .append(gy)
+                    .append("\" x2=\"")
+                    .append(right)
+                    .append("\" y2=\"")
+                    .append(gy)
+                    .append("\" stroke=\"")
+                    .append(argbToRgba(lineYAxis.gridColor()))
+                    .append("\" stroke-width=\"1\"/>");
+            }
             svg.append("<text x=\"")
                 .append(left - 3)
                 .append("\" y=\"")
                 .append(gy + 4)
                 .append("\" text-anchor=\"end\" font-size=\"8\" fill=\"#B8C2CF\" font-family=\"inherit\">")
-                .append(esc(formatNum(yv)))
+                .append(esc(lineYAxis.formatTick(yv)))
                 .append("</text>");
         }
 
@@ -2074,13 +2240,14 @@ public class GuideSiteGraphRenderer {
         }
 
         StringBuilder svg = openSvg(w, h, "guide-chart", bgColor, borderColor);
-        appendTitle(svg, title, w);
+        appendTitle(svg, title, w, style.titleColor());
 
-        // Draw slices (startAngle = -90 deg = top, clockwise)
-        double startAngle = -Math.PI / 2;
+        // Draw slices from the start angle the page declares, sweeping the way it declares.
+        double startAngle = Math.toRadians(style.pieStartAngleDeg());
+        double sweepDirection = style.pieClockwise() ? 1d : -1d;
         String labelFill = style.labelFill();
         for (SliceData s : slices) {
-            double sweep = (s.value / total) * 2 * Math.PI;
+            double sweep = (s.value / total) * 2 * Math.PI * sweepDirection;
             double endAngle = startAngle + sweep;
             double x1 = cx + r * Math.cos(startAngle);
             double y1 = cy + r * Math.sin(startAngle);
@@ -2228,6 +2395,20 @@ public class GuideSiteGraphRenderer {
         xMax += xPad;
         yMin -= yPad;
         yMax += yPad;
+        // A scatter plot has both axes numeric, so a declared range on either one is used as it stands; the
+        // padding above only keeps derived data off the plot edges.
+        SiteChartAxis scatterXAxis = style.xAxisOrDefault();
+        SiteChartAxis scatterYAxis = style.yAxisOrDefault();
+        double[] declaredX = scatterXAxis.rangeFor(xMin, xMax, scatterXAxis.stepFor(xMax - xMin));
+        double[] declaredY = scatterYAxis.rangeFor(yMin, yMax, scatterYAxis.stepFor(yMax - yMin));
+        if (scatterXAxis.min() != null || scatterXAxis.max() != null) {
+            xMin = declaredX[0];
+            xMax = declaredX[1];
+        }
+        if (scatterYAxis.min() != null || scatterYAxis.max() != null) {
+            yMin = declaredY[0];
+            yMax = declaredY[1];
+        }
 
         LegendArea legend = legendArea(
             style,
@@ -2247,30 +2428,38 @@ public class GuideSiteGraphRenderer {
         appendTitle(svg, title, w);
 
         // X grid + labels
-        double xStep = niceStep((xMax - xMin) / 5.0);
+        double xStep = scatterXAxis.stepFor(xMax - xMin);
+        if (xStep <= 0 || !Double.isFinite(xStep)) {
+            xStep = niceStep((xMax - xMin) / 5.0);
+        }
         for (double xv = Math.floor(xMin / xStep) * xStep; xv <= xMax + xStep * 0.01; xv += xStep) {
             int gx = left + (int) Math.round((xv - xMin) / (xMax - xMin) * plotW);
             if (gx < left - 2 || gx > right + 2) {
                 continue;
             }
-            svg.append("<line x1=\"")
-                .append(gx)
-                .append("\" y1=\"")
-                .append(top)
-                .append("\" x2=\"")
-                .append(gx)
-                .append("\" y2=\"")
-                .append(bottom)
-                .append("\" stroke=\"#3A4047\" stroke-width=\"1\"/>");
+            if (scatterXAxis.gridVisible()) {
+                svg.append("<line x1=\"")
+                    .append(gx)
+                    .append("\" y1=\"")
+                    .append(top)
+                    .append("\" x2=\"")
+                    .append(gx)
+                    .append("\" y2=\"")
+                    .append(bottom)
+                    .append("\" stroke=\"")
+                    .append(argbToRgba(scatterXAxis.gridColor()))
+                    .append("\" stroke-width=\"1\"/>");
+            }
             svg.append("<text x=\"")
                 .append(gx)
                 .append("\" y=\"")
                 .append(bottom + 10)
                 .append("\" text-anchor=\"middle\" font-size=\"8\" fill=\"#B8C2CF\" font-family=\"inherit\">")
-                .append(esc(formatNum(xv)))
+                .append(esc(scatterXAxis.formatTick(xv)))
                 .append("</text>");
         }
-        appendYGridAndLabels(svg, left, right, top, bottom, plotH, yMin, yMax);
+        appendYGridAndLabels(svg, left, right, top, bottom, plotH, yMin, yMax, scatterYAxis);
+        appendAxisLabels(svg, left, right, top, bottom, style);
 
         // Scatter points
         String labelFill = style.labelFill();
@@ -3374,6 +3563,11 @@ public class GuideSiteGraphRenderer {
     }
 
     private static void appendTitle(StringBuilder svg, String title, int w) {
+        appendTitle(svg, title, w, DEFAULT_TITLE_COLOR);
+    }
+
+    /** Draws the chart title in the colour the page declares, or the default one. */
+    private static void appendTitle(StringBuilder svg, String title, int w, int titleColor) {
         if (title == null || title.isEmpty()) {
             return;
         }
@@ -3381,34 +3575,64 @@ public class GuideSiteGraphRenderer {
             .append(w / 2)
             .append("\" y=\"")
             .append(PADDING + TITLE_H)
-            .append("\" text-anchor=\"middle\" font-size=\"10\" fill=\"#E6E6E6\" font-family=\"inherit\">")
+            .append("\" text-anchor=\"middle\" font-size=\"10\" fill=\"")
+            .append(argbToRgba(titleColor))
+            .append("\" font-family=\"inherit\">")
             .append(esc(title))
             .append("</text>");
     }
 
     private static void appendYGridAndLabels(StringBuilder svg, int left, int right, int top, int bottom, int plotH,
         double yMin, double yMax) {
-        double yStep = niceStep((yMax - yMin) / 5.0);
+        appendYGridAndLabels(
+            svg,
+            left,
+            right,
+            top,
+            bottom,
+            plotH,
+            yMin,
+            yMax,
+            SiteChartAxis.automatic(DEFAULT_GRID_COLOR));
+    }
+
+    /**
+     * Draws the Y grid and its labels.
+     *
+     * <p>
+     * The step, the grid and the tick text come from the axis the page declares, so the exported chart is
+     * labelled the way the in-game chart is instead of always using an automatic step.
+     */
+    private static void appendYGridAndLabels(StringBuilder svg, int left, int right, int top, int bottom, int plotH,
+        double yMin, double yMax, SiteChartAxis axis) {
+        double yStep = axis.stepFor(yMax - yMin);
+        if (yStep <= 0 || !Double.isFinite(yStep)) {
+            yStep = niceStep((yMax - yMin) / 5.0);
+        }
         for (double yv = Math.floor(yMin / yStep) * yStep; yv <= yMax + yStep * 0.01; yv += yStep) {
             int gy = bottom - (int) Math.round((yv - yMin) / (yMax - yMin) * plotH);
             if (gy < top - 2 || gy > bottom + 2) {
                 continue;
             }
-            svg.append("<line x1=\"")
-                .append(left)
-                .append("\" y1=\"")
-                .append(gy)
-                .append("\" x2=\"")
-                .append(right)
-                .append("\" y2=\"")
-                .append(gy)
-                .append("\" stroke=\"#3A4047\" stroke-width=\"1\"/>");
+            if (axis.gridVisible()) {
+                svg.append("<line x1=\"")
+                    .append(left)
+                    .append("\" y1=\"")
+                    .append(gy)
+                    .append("\" x2=\"")
+                    .append(right)
+                    .append("\" y2=\"")
+                    .append(gy)
+                    .append("\" stroke=\"")
+                    .append(argbToRgba(axis.gridColor()))
+                    .append("\" stroke-width=\"1\"/>");
+            }
             svg.append("<text x=\"")
                 .append(left - 3)
                 .append("\" y=\"")
                 .append(gy + 4)
                 .append("\" text-anchor=\"end\" font-size=\"8\" fill=\"#B8C2CF\" font-family=\"inherit\">")
-                .append(esc(formatNum(yv)))
+                .append(esc(axis.formatTick(yv)))
                 .append("</text>");
         }
     }
@@ -3550,7 +3774,7 @@ public class GuideSiteGraphRenderer {
     }
 
     /** Formats a value the way the in-game charts label it: whole numbers plain, others with 2 decimals. */
-    private static String formatChartValue(double value) {
+    static String formatChartValue(double value) {
         if (Math.abs(value - Math.rint(value)) < 1e-6) {
             return Long.toString((long) Math.rint(value));
         }
@@ -3753,6 +3977,48 @@ public class GuideSiteGraphRenderer {
             return String.valueOf(r / 10);
         }
         return (r / 10) + "." + Math.abs(r % 10);
+    }
+
+    /**
+     * Draws the axis names a chart declares: the X name under the plot, the Y name above it.
+     *
+     * <p>
+     * The in-game cartesian charts draw them in the same places, so a page that names its axes is readable
+     * the same way on the site.
+     */
+    private static void appendAxisLabels(StringBuilder svg, int left, int right, int top, int bottom,
+        ChartStyle style) {
+        String xLabel = style.xAxisOrDefault()
+            .label();
+        if (xLabel != null && !xLabel.isEmpty()) {
+            svg.append("<text x=\"")
+                .append(left + (right - left) / 2)
+                .append("\" y=\"")
+                .append(bottom + AXIS_PAD_BOTTOM - 2)
+                .append("\" text-anchor=\"middle\" font-size=\"")
+                .append(CHART_TEXT_SIZE)
+                .append("\" fill=\"#B8C2CF\" font-family=\"inherit\">")
+                .append(esc(xLabel))
+                .append("</text>");
+        }
+        String yLabel = style.yAxisOrDefault()
+            .label();
+        if (yLabel != null && !yLabel.isEmpty()) {
+            svg.append("<text x=\"")
+                .append(left)
+                .append("\" y=\"")
+                .append(top - 2)
+                .append("\" text-anchor=\"start\" font-size=\"")
+                .append(CHART_TEXT_SIZE)
+                .append("\" fill=\"#B8C2CF\" font-family=\"inherit\">")
+                .append(esc(yLabel))
+                .append("</text>");
+        }
+    }
+
+    /** The tick step an axis uses when the page does not declare one. */
+    static double niceStepForAxis(double range) {
+        return niceStep(range);
     }
 
     /** Choose a nice grid step for the given rough interval. */
