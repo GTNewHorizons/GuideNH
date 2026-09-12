@@ -66,6 +66,9 @@ public class GuideSiteGraphRenderer {
      * the SVG carries.
      */
     private static final int GRAPH_TEXT_SIZE = 18;
+    /** Room a function graph leaves for its own, larger axis labels. */
+    private static final int GRAPH_AXIS_PAD_LEFT = 3 * GRAPH_TEXT_SIZE;
+    private static final int GRAPH_AXIS_PAD_BOTTOM = GRAPH_TEXT_SIZE + 4;
     private static final int PADDING = 8;
     /**
      * Height one line of a title takes.
@@ -80,19 +83,20 @@ public class GuideSiteGraphRenderer {
     private static final int AXIS_TITLE_H = GRAPH_TEXT_SIZE;
     private static final int AXIS_TITLE_GAP = 4;
     /**
-     * Room the axes leave for their labels.
-     *
-     * <p>
-     * Both are measured against the graph text size, because the stylesheet renders those labels larger
-     * than the font-size attributes ask for and the tick labels would otherwise sit on the plot edge.
-     */
-    private static final int AXIS_PAD_LEFT = 3 * GRAPH_TEXT_SIZE;
-    private static final int AXIS_PAD_BOTTOM = GRAPH_TEXT_SIZE + 4;
-    /**
      * Text size the site stylesheet gives every chart label. Its rule wins over the font-size attributes
      * the SVG carries, so the layout below is measured against this size instead of the attributes.
      */
     private static final int CHART_TEXT_SIZE = 16;
+    /**
+     * Room the axes leave for their labels.
+     *
+     * <p>
+     * Both are measured against the chart text size, because the stylesheet renders those labels larger
+     * than the font-size attributes ask for and the tick labels would otherwise sit on the plot edge. A
+     * function graph renders its labels even larger and measures its own room.
+     */
+    private static final int AXIS_PAD_LEFT = 3 * CHART_TEXT_SIZE;
+    private static final int AXIS_PAD_BOTTOM = CHART_TEXT_SIZE + 4;
     /** Baseline offset that puts a value label just above the shape it belongs to. */
     private static final int LABEL_ABOVE_OFFSET = CHART_TEXT_SIZE / 2 - 2;
     /** Baseline offset that puts a value label just below the shape it belongs to. */
@@ -2472,8 +2476,9 @@ public class GuideSiteGraphRenderer {
         int cornerLegendBackgroundColor, @Nullable GuideSiteLatexExporter latexExporter) {
 
         int titleBottom = computeTitleBottom(title);
-        int leftPad = showAxes ? AXIS_PAD_LEFT : PADDING;
-        int bottomPad = showAxes ? AXIS_PAD_BOTTOM : PADDING;
+        // The graph renders its labels larger than a chart does, so it reserves its own room.
+        int leftPad = showAxes ? GRAPH_AXIS_PAD_LEFT : PADDING;
+        int bottomPad = showAxes ? GRAPH_AXIS_PAD_BOTTOM : PADDING;
         List<SeriesData> legendItems = new ArrayList<>();
         for (FunctionPlot plot : plots) {
             if (hasText(plot.getLabel())) {
