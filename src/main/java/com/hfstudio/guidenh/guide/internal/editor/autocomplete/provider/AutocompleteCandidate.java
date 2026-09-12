@@ -69,5 +69,13 @@ public interface AutocompleteCandidate {
         return null;
     }
 
+    /**
+     * The text this candidate is ranked by, which is what the author is typing towards. A candidate whose
+     * written form is longer than that, such as a whole tag template, ranks on the name it stands for.
+     */
+    default String rankingText() {
+        return replacementText();
+    }
+
     void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered);
 }

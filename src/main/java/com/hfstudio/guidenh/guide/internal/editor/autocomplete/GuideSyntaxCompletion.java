@@ -242,7 +242,7 @@ public class GuideSyntaxCompletion {
             return (left, right) -> 0;
         }
         String partial = partialText.toLowerCase(Locale.ROOT);
-        return Comparator.comparingInt(candidate -> relevanceRank(candidate.replacementText(), partial));
+        return Comparator.comparingInt(candidate -> relevanceRank(candidate.rankingText(), partial));
     }
 
     private static int relevanceRank(@Nullable String replacement, String partial) {

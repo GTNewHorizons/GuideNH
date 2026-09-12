@@ -62,6 +62,12 @@ public class TagCandidate implements AutocompleteCandidate {
     }
 
     @Override
+    public String rankingText() {
+        // A template writes the whole tag, but the author is typing the tag name.
+        return tagName;
+    }
+
+    @Override
     public int caretOffsetInReplacement() {
         return template != null ? template.caretOffset() : -1;
     }
