@@ -1301,7 +1301,9 @@ public class GuideSiteGraphRenderer {
                 .append(left - 3)
                 .append("\" y=\"")
                 .append(top - 2)
-                .append("\" text-anchor=\"end\" font-size=\"7\" fill=\"#B8C2CF\" font-family=\"inherit\">(")
+                .append("\" text-anchor=\"end\" font-size=\"")
+                .append(CHART_TEXT_SIZE)
+                .append("\" fill=\"#B8C2CF\" font-family=\"inherit\">(")
                 .append(esc(yAxisUnit))
                 .append(")</text>");
         }
@@ -1508,7 +1510,9 @@ public class GuideSiteGraphRenderer {
                     .append(pcx)
                     .append("\" y=\"")
                     .append(pcy + pr + 9)
-                    .append("\" text-anchor=\"middle\" font-size=\"7\" fill=\"#B8C2CF\" font-family=\"inherit\">")
+                    .append("\" text-anchor=\"middle\" font-size=\"")
+                    .append(CHART_TEXT_SIZE)
+                    .append("\" fill=\"#B8C2CF\" font-family=\"inherit\">")
                     .append(esc(pieInset.title))
                     .append("</text>");
             }
@@ -3538,7 +3542,9 @@ public class GuideSiteGraphRenderer {
             .append(fmtD(y))
             .append("\" text-anchor=\"")
             .append(anchor)
-            .append("\" font-size=\"7\" fill=\"")
+            .append("\" font-size=\"")
+            .append(CHART_TEXT_SIZE)
+            .append("\" fill=\"")
             .append(fill)
             .append("\" font-family=\"inherit\">")
             .append(esc(text))
@@ -3575,7 +3581,9 @@ public class GuideSiteGraphRenderer {
                 .append(curX + LEGEND_SWATCH + LEGEND_GAP)
                 .append("\" y=\"")
                 .append(curY + LEGEND_SWATCH - 1)
-                .append("\" font-size=\"9\" fill=\"#D7DEE7\" font-family=\"inherit\">")
+                .append("\" font-size=\"")
+                .append(CHART_TEXT_SIZE)
+                .append("\" fill=\"#D7DEE7\" font-family=\"inherit\">")
                 .append(esc(s.name))
                 .append("</text>");
             curX += itemW;
