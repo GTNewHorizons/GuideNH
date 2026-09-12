@@ -1,9 +1,11 @@
 package com.hfstudio.guidenh.integration.api;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
@@ -28,6 +30,12 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxSlot;
 public class GuideNhIntegrationRegistry {
 
     private static final GuideNhIntegrationRegistry GLOBAL = new GuideNhIntegrationRegistry();
+
+    /**
+     * Providers that already reported a failure, so a lookup that runs per block per frame cannot flood
+     * the log.
+     */
+    private static final Set<String> REPORTED_PROVIDER_FAILURES = new HashSet<>();
     private final Map<String, IntegrationModDescriptor> modDescriptors = new LinkedHashMap<>();
     private final List<ItemStackNormalizationProvider> itemStackNormalizationProviders = new ArrayList<>();
     private final List<BlockDisplayProvider> blockDisplayProviders = new ArrayList<>();
@@ -841,14 +849,18 @@ public class GuideNhIntegrationRegistry {
      *
      * <p>
      * These lookups run while a scene is drawn, so a provider must never be able to stop the frame; a
-     * failure only skips that provider.
+     * failure only skips that provider. Each failing provider is named once: a provider that fails for
+     * every block of a scene would otherwise write a line per block per frame.
      */
     private static void reportProviderFailure(Object provider, RuntimeException failure) {
-        GuideDebugLog.error(
-            "[GuideNH] [Integration] {} failed: {}",
-            provider.getClass()
-                .getSimpleName(),
-            failure.toString());
+        String key = provider.getClass()
+            .getName();
+        synchronized (REPORTED_PROVIDER_FAILURES) {
+            if (!REPORTED_PROVIDER_FAILURES.add(key)) {
+                return;
+            }
+        }
+        GuideDebugLog.error("[GuideNH] [Integration] {} failed: {}", key, failure.toString());
     }
 
     public List<GuideBlockStatsStackResolver.ResolvedStack> resolveBlockStatsEntries(GuidebookLevel level, Block block,
