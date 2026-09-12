@@ -50,7 +50,10 @@ public class ChartAttrParser {
                 continue;
             }
             try {
-                values.add(Double.parseDouble(p));
+                double parsed = Double.parseDouble(p);
+                if (Double.isFinite(parsed)) {
+                    values.add(parsed);
+                }
             } catch (NumberFormatException ex) {
                 // Skip unparsable item
             }
@@ -205,7 +208,9 @@ public class ChartAttrParser {
             return null;
         }
         try {
-            return Double.parseDouble(t);
+            double parsed = Double.parseDouble(t);
+            // Infinity or NaN would make the axis tick loops run forever, so only a finite value is used.
+            return Double.isFinite(parsed) ? parsed : null;
         } catch (NumberFormatException ex) {
             return null;
         }

@@ -466,10 +466,20 @@ public class GuideSiteHtmlCompiler {
             + "</p>";
     }
 
+    /** A heading depth that is not a number falls back to a top level heading instead of failing. */
+    private static int parseHeadingDepth(@Nullable String declared) {
+        int depth;
+        try {
+            depth = Integer.parseInt(declared != null ? declared.trim() : "1");
+        } catch (NumberFormatException ignored) {
+            depth = 1;
+        }
+        return Math.clamp(depth, 1, 6);
+    }
+
     private String compileHeadingMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
-        int depth = Integer.parseInt(el.getAttributeString("depth", "1"));
-        depth = depth <= 0 ? 1 : Math.min(depth, 6);
+        int depth = parseHeadingDepth(el.getAttributeString("depth", "1"));
         String body = compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver);
         String anchor = GuideSiteHrefResolver.headingAnchor(extractTextFromElement(el));
         if (anchor == null || anchor.isEmpty()) {

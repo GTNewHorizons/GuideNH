@@ -20,6 +20,9 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
 
+    /** Longest region side a scene accepts, so a mistyped extent cannot freeze the scene build. */
+    private static final int MAX_REGION_SIDE = 256;
+
     @Override
     public Set<String> getTagNames() {
         return Collections.singleton("ReplaceBlock");
@@ -101,9 +104,9 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
         int bx = MdxAttrs.getInt(compiler, errorSink, el, "x", 0);
         int by = MdxAttrs.getInt(compiler, errorSink, el, "y", 0);
         int bz = MdxAttrs.getInt(compiler, errorSink, el, "z", 0);
-        int bdx = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dx", 1));
-        int bdy = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dy", 1));
-        int bdz = Math.max(1, MdxAttrs.getInt(compiler, errorSink, el, "dz", 1));
+        int bdx = boundedExtent(MdxAttrs.getInt(compiler, errorSink, el, "dx", 1));
+        int bdy = boundedExtent(MdxAttrs.getInt(compiler, errorSink, el, "dy", 1));
+        int bdz = boundedExtent(MdxAttrs.getInt(compiler, errorSink, el, "dz", 1));
         boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
 
         ReplaceBlockExecutor.execute(
@@ -122,5 +125,13 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
             bdy,
             bdz,
             formed);
+    }
+
+    /**
+     * A region side that no scene can hold. The extents are author input, and a mistyped one would make the
+     * replacement walk billions of positions while the scene builds.
+     */
+    private static int boundedExtent(int declared) {
+        return Math.clamp(declared, 1, MAX_REGION_SIDE);
     }
 }

@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.scene;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import net.minecraft.item.ItemStack;
@@ -70,8 +71,12 @@ public class SceneBlockStatsEntry {
         return Math.max(1, count);
     }
 
+    /**
+     * The placements of this entry. The list is a live view: it is read once per block while the entry is
+     * highlighted, which happens every rendered frame, so it must not be copied.
+     */
     public List<BlockStatsPlacement> getPlacements() {
-        return List.copyOf(placements);
+        return Collections.unmodifiableList(placements);
     }
 
     public int getPlacementCount() {

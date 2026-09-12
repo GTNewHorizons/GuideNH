@@ -219,12 +219,22 @@ public class IdUtils {
     }
 
     public static ResourceLocation resolveLink(String idText, ResourceLocation anchor) throws IllegalArgumentException {
+        if (!isAssetPath(idText)) {
+            // Asset lookups join this path onto a pack root, so a path that climbs out of it would read a
+            // file outside the guide. Refusing it here keeps every caller honest.
+            GuideDebugLog.warn("[GuideNH] [IdUtils] Ignoring id '{}': it is not a plain guide path", idText);
+            throw new IllegalArgumentException("Unsafe guide path: " + idText);
+        }
         if (idText.startsWith("/")) {
             return new ResourceLocation(anchor.getResourceDomain(), idText.substring(1));
         } else if (!idText.contains(":")) {
             URI uri = URI.create(anchorParentPath(anchor.getResourcePath()));
             uri = uri.resolve(idText);
-            return new ResourceLocation(anchor.getResourceDomain(), uri.toString());
+            String resolved = uri.toString();
+            if (!isAssetPath(resolved)) {
+                throw new IllegalArgumentException("Unsafe guide path: " + resolved);
+            }
+            return new ResourceLocation(anchor.getResourceDomain(), resolved);
         }
         int namespaceSeparator = idText.indexOf(':');
         if (namespaceSeparator >= 0 && namespaceSeparator < idText.length() - 1
@@ -234,6 +244,25 @@ public class IdUtils {
                 idText.substring(namespaceSeparator + 2));
         }
         return new ResourceLocation(idText);
+    }
+
+    /**
+     * True when an id is a plain resource path inside the guide: no segment that climbs to a parent
+     * directory and no separator the asset lookup would pass to the filesystem unchanged.
+     */
+    private static boolean isAssetPath(String id) {
+        if (id == null || id.isEmpty()) {
+            return false;
+        }
+        if (id.indexOf('\\') >= 0 || id.indexOf('\0') >= 0) {
+            return false;
+        }
+        for (String segment : id.split("/")) {
+            if ("..".equals(segment)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static String anchorParentPath(String anchorPath) {

@@ -92,16 +92,34 @@ public class DirectoryResourcePack implements IResourcePack {
         String namespace = resourceLocation.getResourceDomain();
         String path = resourceLocation.getResourcePath();
 
-        Path assetPath = root.resolve("assets")
-            .resolve(namespace)
-            .resolve(path);
-        if (Files.isRegularFile(assetPath)) {
+        Path assetPath = containedPath(
+            root.resolve("assets")
+                .resolve(namespace)
+                .resolve(path));
+        if (assetPath != null && Files.isRegularFile(assetPath)) {
             return assetPath;
         }
 
-        Path nativePath = root.resolve(namespace)
-            .resolve(path);
-        return Files.isRegularFile(nativePath) ? nativePath : null;
+        Path nativePath = containedPath(
+            root.resolve(namespace)
+                .resolve(path));
+        return nativePath != null && Files.isRegularFile(nativePath) ? nativePath : null;
+    }
+
+    /**
+     * A path inside the pack, or null when it would leave it.
+     *
+     * <p>
+     * Resource ids reach this method from page content, and a pack directory is joined with them at the
+     * filesystem level, where {@code ..} resolves instead of being part of a name. Normalising and checking
+     * the prefix keeps a page from reading a file outside its own pack.
+     */
+    private @Nullable Path containedPath(Path candidate) {
+        Path normalizedRoot = root.toAbsolutePath()
+            .normalize();
+        Path normalized = candidate.toAbsolutePath()
+            .normalize();
+        return normalized.startsWith(normalizedRoot) ? normalized : null;
     }
 
     private static LinkedHashSet<String> discoverResourceDomains(Path root) {
