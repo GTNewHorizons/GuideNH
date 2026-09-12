@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -75,7 +77,13 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     /**
-     * The tag the caret is inside, read from the text: its attribute value, its attribute name, or its name while.
+     * The tag the caret is inside, read from the text: its attribute value, its attribute name, or its name
+     * while the tag is being opened.
+     *
+     * <p>
+     * The enclosing container is read from the text as well, so a caret inside a half-typed tag is offered
+     * that container's children rather than every root tag. The parsed path knows the container from the
+     * element it sits in, and this path is the one that answers when the document cannot be parsed.
      */
     @Nullable
     private TextSyntaxContext resolveTextLevelTagContext(String text, int cursorIndex) {
@@ -83,7 +91,60 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         if (attribute != null) {
             return attribute;
         }
-        return resolveTagStart(text, cursorIndex, null);
+        return resolveTagStart(text, cursorIndex, enclosingContainerName(text, cursorIndex));
+    }
+
+    /**
+     * The name of the nearest tag that opens before the caret and has not been closed, or null at the root.
+     *
+     * <p>
+     * A tag the caret is still typing is skipped, since it is the tag completion is offering a name for and
+     * not a container the caret is inside.
+     */
+    @Nullable
+    private static String enclosingContainerName(String text, int cursorIndex) {
+        Deque<String> open = new ArrayDeque<>();
+        int pos = 0;
+        int limit = Math.min(cursorIndex, text.length());
+        while (pos < limit) {
+            int lt = text.indexOf('<', pos);
+            if (lt < 0 || lt >= limit) {
+                break;
+            }
+            // Comments and declarations do not open a tag.
+            if (lt + 1 < text.length() && (text.charAt(lt + 1) == '!' || text.charAt(lt + 1) == '?')) {
+                pos = lt + 1;
+                continue;
+            }
+            boolean closing = lt + 1 < text.length() && text.charAt(lt + 1) == '/';
+            int nameStart = closing ? lt + 2 : lt + 1;
+            int nameEnd = nameStart;
+            while (nameEnd < text.length() && isTagNameChar(text.charAt(nameEnd))) {
+                nameEnd++;
+            }
+            if (nameEnd == nameStart) {
+                pos = lt + 1;
+                continue;
+            }
+            int tagEnd = findOpeningTagEnd(text, lt);
+            // A tag whose opening form is not finished is the one being typed, so it encloses nothing yet.
+            boolean unfinished = tagEnd >= text.length();
+            if (unfinished) {
+                break;
+            }
+            String name = text.substring(nameStart, nameEnd);
+            if (closing) {
+                if (!open.isEmpty() && open.peekLast()
+                    .equals(name)) {
+                    open.removeLast();
+                }
+            } else if (!(tagEnd >= 2 && text.charAt(tagEnd - 2) == '/')) {
+                // A self-closing tag encloses nothing.
+                open.addLast(name);
+            }
+            pos = Math.max(tagEnd, lt + 1);
+        }
+        return open.peekLast();
     }
 
     @Nullable
