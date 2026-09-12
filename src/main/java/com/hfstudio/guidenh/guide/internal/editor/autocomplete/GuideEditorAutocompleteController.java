@@ -114,10 +114,12 @@ public class GuideEditorAutocompleteController {
 
         if (textChanged && !firstRun && System.currentTimeMillis() < nextQueryAtMillis) {
             // The text moved while the query is debounced. The open popup describes older text, so it is
-            // dismissed rather than left showing candidates that no longer match what is typed; the pending
-            // query is not disarmed, so the next update fills it for the new text. The wait is kept short
-            // because a query parses the whole page and this runs every tick.
-            dismissPopup();
+            // hidden rather than left showing candidates that no longer match, and the pending query is not
+            // disarmed: the next update fills it for the new text. The selection survives, because hiding it
+            // here would move the highlight back to the first entry on every keystroke.
+            pendingContext = null;
+            pendingCommit = null;
+            popup.hideForPendingQuery();
             return;
         }
 
