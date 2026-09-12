@@ -431,14 +431,16 @@ public class LytHost {
     }
 
     public void step(long deadlineNs) {
-        while (!taskQueue.isEmpty() && System.nanoTime() < deadlineNs) {
-            DeferredTask task = taskQueue.peekFirst();
+        // One pass over the tasks that are queued now. A task that yields is only deferred, not blocking:
+        // stopping at it would let one slow materialization hold up every task behind it, including the
+        // scenes of the other document this host serves.
+        int remaining = taskQueue.size();
+        while (remaining > 0 && !taskQueue.isEmpty() && System.nanoTime() < deadlineNs) {
+            remaining--;
+            DeferredTask task = taskQueue.pollFirst();
             DeferredTask.TaskResult result = task.step(deadlineNs);
-            if (result == DeferredTask.TaskResult.DONE) {
-                taskQueue.pollFirst();
-            }
             if (result == DeferredTask.TaskResult.YIELD) {
-                break;
+                taskQueue.addLast(task);
             }
         }
     }
