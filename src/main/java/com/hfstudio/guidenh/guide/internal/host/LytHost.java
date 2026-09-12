@@ -402,6 +402,17 @@ public class LytHost {
         return !taskQueue.isEmpty();
     }
 
+    /**
+     * How many deferred tasks are still queued.
+     *
+     * <p>
+     * A caller waiting for the queue to drain reads this to tell a queue that is making progress from one
+     * whose tasks keep yielding without ever finishing.
+     */
+    public int pendingWorkSize() {
+        return taskQueue.size();
+    }
+
     public void step(long deadlineNs) {
         while (!taskQueue.isEmpty() && System.nanoTime() < deadlineNs) {
             DeferredTask task = taskQueue.peekFirst();
