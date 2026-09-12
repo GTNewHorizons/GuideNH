@@ -6,8 +6,12 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.editor.GuideEditorActionContribution;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuideScreenEditorActionRegistry {
@@ -31,10 +35,46 @@ public class GuideScreenEditorActionRegistry {
         return actions;
     }
 
-    /** The toolbar and menu entries other mods contribute. */
-    public static List<GuideEditorActionContribution> contributedActions() {
-        return GuideNhIntegrationRegistry.global()
+    /**
+     * The toolbar and menu entries other mods contribute, the guide's own first so its entries come first in
+     * the order they are laid out.
+     */
+    public static List<GuideEditorActionContribution> contributedActions(@Nullable Guide guide) {
+        List<GuideEditorActionContribution> declared = new ArrayList<>();
+        if (guide != null) {
+            for (GuideEditorActionContribution.Provider provider : guide.getExtensions()
+                .get(GuideEditorActionContribution.Provider.EXTENSION_POINT)) {
+                appendDeclaredActions(provider, declared);
+            }
+        }
+        List<GuideEditorActionContribution> global = GuideNhIntegrationRegistry.global()
             .editorActions();
+        if (declared.isEmpty()) {
+            return global;
+        }
+        declared.addAll(global);
+        return declared;
+    }
+
+    /** A provider of another mod that cannot answer is reported and skipped. */
+    private static void appendDeclaredActions(GuideEditorActionContribution.Provider provider,
+        List<GuideEditorActionContribution> target) {
+        try {
+            List<GuideEditorActionContribution> actions = provider.editorActions();
+            if (actions != null) {
+                for (GuideEditorActionContribution action : actions) {
+                    if (action != null) {
+                        target.add(action);
+                    }
+                }
+            }
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [GuideEditorActionContribution] {} failed to publish its actions: {}",
+                provider.getClass()
+                    .getSimpleName(),
+                e.toString());
+        }
     }
 
     /** The editor's context menu. */

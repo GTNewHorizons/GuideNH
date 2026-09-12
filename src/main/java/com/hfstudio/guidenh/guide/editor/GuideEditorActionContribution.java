@@ -1,9 +1,24 @@
 package com.hfstudio.guidenh.guide.editor;
 
+import java.util.List;
+
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.extensions.Extension;
+import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
+
 /** A toolbar or menu entry another mod adds to the guide editor. */
-public class GuideEditorActionContribution {
+public class GuideEditorActionContribution implements Extension {
+
+    /**
+     * Declares editor actions for one guide, next to the global registration that adds them to every guide.
+     */
+    public interface Provider extends Extension {
+
+        ExtensionPoint<Provider> EXTENSION_POINT = new ExtensionPoint<>(Provider.class);
+
+        List<GuideEditorActionContribution> editorActions();
+    }
 
     private final String label;
     private final SceneEditorIcon icon;

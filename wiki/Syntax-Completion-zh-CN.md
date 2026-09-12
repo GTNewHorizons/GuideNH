@@ -281,7 +281,7 @@ Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build()
 | 给场景编辑器加工具栏按钮或菜单项 | `SceneEditorToolbarRegistry` / `SceneEditorMenuRegistry` |
 | 让导出站点多一份资源 | 在你的节点上实现 `ExportableResourceProvider` |
 | 把你自己的语法问题报告给读者 | `LytErrorSink.appendError(compiler, text, element)`，即标签编译器拿到的 `parent` |
-| 给指南编辑器加按钮或菜单项 | `GuideNhIntegrationRegistry.registerEditorAction(GuideEditorActionContribution.insert(...))` 或 `.wrap(...)` |
+| 给指南编辑器加按钮或菜单项 | `GuideNhIntegrationRegistry.registerEditorAction(GuideEditorActionContribution.insert(...))` 或 `.wrap(...)`，或实现 `GuideEditorActionContribution.Provider` 只加到某个指南 |
 
 刻意保持封闭的部分，以及代价：
 
@@ -289,6 +289,7 @@ Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build()
 - 诊断在编译期通过 `LytErrorSink` 上报：错误块会被追加进文档，因此书内与导出站点都会显示。编辑器里没有单独的“边打字边告警”钩子。
 - 站点导出用自己的内置链渲染自带标签。注册的渲染器会先被询问（对每个 MDX 元素、以及你自己的围栏名），所以你的标签与围栏都能导出；但内置链本身还不是一组注册式渲染器。
 - 你自己的场景注解能在书内渲染，但不会被序列化进导出站点的查看器。
+- 你自己注册为 `SceneElementTagCompiler` 的场景元素能在书内渲染，但只有它的元素是 `SceneAnnotation` 时才进得了站点：导出器只收集这一种形态。其他形态（例如自行绘制几何体的元素）会被排除在导出之外，而场景其余部分照常导出。要让这类元素导出，需要一个能承载它的注解，或为产出该标签的站点渲染器提供标记。
 
 插件需要注意的约定：
 

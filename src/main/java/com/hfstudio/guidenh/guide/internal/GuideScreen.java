@@ -2014,7 +2014,7 @@ public class GuideScreen extends GuiContainer
      * which keeps a contributed action on the same undo, dirty-state and completion path as every other edit.
      */
     private void runContributedGuideEditorAction(int index) {
-        List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions();
+        List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions(guide);
         if (index < 0 || index >= actions.size() || guideEditorTextArea == null) {
             return;
         }
@@ -2161,7 +2161,7 @@ public class GuideScreen extends GuiContainer
      * from the context menu alike.
      */
     private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContributedEntries() {
-        List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions();
+        List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions(guide);
         if (actions.isEmpty()) {
             return List.of();
         }
@@ -2396,7 +2396,7 @@ public class GuideScreen extends GuiContainer
             buttonList.add(button);
         }
 
-        List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions();
+        List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions(guide);
         for (int i = 0; i < contributed.size(); i++) {
             GuideEditorActionContribution action = contributed.get(i);
             int id = CONTRIBUTED_EDITOR_ACTION_ID_BASE + i;
@@ -3572,7 +3572,7 @@ public class GuideScreen extends GuiContainer
             x += GuideIconButton.WIDTH + TOOLBAR_GAP;
         }
 
-        List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions();
+        List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions(guide);
         for (int i = 0; i < contributed.size(); i++) {
             GuideIconButton button = guideEditorActionButtons.get(CONTRIBUTED_EDITOR_ACTION_ID_BASE + i);
             if (button == null) {

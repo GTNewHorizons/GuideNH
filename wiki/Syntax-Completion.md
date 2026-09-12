@@ -291,7 +291,7 @@ compiled, so register during mod loading.
 | Add a scene editor toolbar button or menu item | `SceneEditorToolbarRegistry` / `SceneEditorMenuRegistry` |
 | Add a resource to the exported site | `ExportableResourceProvider` on your node |
 | Report a problem with your own syntax to the reader | `LytErrorSink.appendError(compiler, text, element)`, which is the `parent` your tag compiler is given |
-| Add a button or menu entry to the guide editor | `GuideNhIntegrationRegistry.registerEditorAction(GuideEditorActionContribution.insert(...))` or `.wrap(...)` |
+| Add a button or menu entry to the guide editor | `GuideNhIntegrationRegistry.registerEditorAction(GuideEditorActionContribution.insert(...))` or `.wrap(...)`, or `GuideEditorActionContribution.Provider` for one guide |
 
 Deliberately closed, with what it costs you:
 
@@ -305,6 +305,11 @@ Deliberately closed, with what it costs you:
   every MDX element and for your fence names, so your tags and fences export; the built-in chain itself is
   not a set of registered renderers yet.
 - Scene annotations of your own render in the book but are not serialized into the exported site's viewer.
+- A scene element of your own, registered as a `SceneElementTagCompiler`, renders in the book and reaches the
+  site only if its element is a `SceneAnnotation`: that is the one shape the exporter collects. An element of
+  any other shape, such as one that draws geometry of its own, is left out of the export while the rest of the
+  scene is exported around it. Exporting such an element needs an annotation that carries it, or a site
+  renderer for the tag that produces the markup.
 
 Conventions that matter for a plugin:
 

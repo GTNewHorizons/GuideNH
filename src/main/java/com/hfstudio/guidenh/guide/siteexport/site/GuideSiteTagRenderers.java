@@ -12,7 +12,7 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 /**
- * Asks the contributed {@link GuideSiteTagRenderer}s for an element, so a tag of another mod is exported by its.
+ * Asks the contributed {@link GuideSiteTagRenderer}s for an element, so a tag of another mod exports as its own.
  */
 public class GuideSiteTagRenderers {
 

@@ -13,7 +13,8 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 /**
- * Asks the contributed {@link CodeFenceRenderer}s what a fence body means, so a fence name a mod declares is.
+ * Asks the contributed {@link CodeFenceRenderer}s what a fence body means, so a fence a mod declares exports as its
+ * own.
  */
 public class CodeFenceRenderers {
 
