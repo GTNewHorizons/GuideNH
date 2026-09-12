@@ -18,9 +18,9 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.block.LytBalancedColumns;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
-import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.integration.api.RecipeEntry;
@@ -136,9 +136,8 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     /**
-     * Wraps multiple recipe boxes in a horizontal flex row that wraps onto additional lines when
-     * the available width runs out. Single recipes are appended directly so they keep their
-     * original block flow (no extra wrapper overhead).
+     * Wraps multiple recipe boxes in columns that fill the space beside a short recipe. Single recipes are
+     * appended directly so they keep their original block flow (no extra wrapper overhead).
      */
     public static void appendRecipes(LytBlockContainer parent, List<? extends LytBlock> boxes, boolean multi) {
         if (boxes.isEmpty()) return;
@@ -146,10 +145,10 @@ public class RecipeCompiler extends BlockTagCompiler {
             for (var b : boxes) parent.append(b);
             return;
         }
-        LytHBox row = new LytHBox();
-        row.setGap(MULTI_GAP);
-        for (var b : boxes) row.append(b);
-        parent.append(row);
+        LytBalancedColumns columns = new LytBalancedColumns();
+        columns.setGap(MULTI_GAP);
+        for (var b : boxes) columns.append(b);
+        parent.append(columns);
     }
 
     /**

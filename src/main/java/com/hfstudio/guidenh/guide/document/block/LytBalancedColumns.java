@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Places children into equal-width columns, filling the shortest column first.
+ * Places children into columns as wide as the widest of them, filling the shortest column first.
  *
  * <p>
  * Column count is based on the widest child and limited by {@link #getMaxColumns()}.
@@ -41,12 +41,7 @@ public class LytBalancedColumns extends LytBox {
             return verticalStack(context, x, y, availableWidth);
         }
 
-        int columnWidth = Math.max(1, (availableWidth - gap * (columns - 1)) / columns);
-        if (widest > columnWidth) {
-            // The widest child does not fit any column at this count, so fall back rather than overlap.
-            return verticalStack(context, x, y, availableWidth);
-        }
-
+        int columnWidth = widest;
         int[] columnBottoms = new int[columns];
         LytBlock[] previousBlocks = new LytBlock[columns];
         int contentWidth = 0;
@@ -87,7 +82,7 @@ public class LytBalancedColumns extends LytBox {
         if (widest <= 0) {
             return Math.max(1, limit);
         }
-        // n columns give each (availableWidth - gap * (n - 1)) / n.
+        // Columns are as wide as the widest child, so n of them need n widths and n-1 gaps.
         int byWidth = (availableWidth + gap) / (widest + gap);
         return Math.max(1, Math.min(limit, byWidth));
     }
