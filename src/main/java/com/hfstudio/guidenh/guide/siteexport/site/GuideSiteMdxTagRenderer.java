@@ -89,8 +89,10 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResolver;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResult;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -2919,12 +2921,37 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
 
         for (SymbolicColorResolver resolver : guide.getExtensions()
             .get(SymbolicColorResolver.EXTENSION_POINT)) {
-            ColorValue color = resolver.resolve(colorId);
+            ColorValue color = resolveColorSafely(resolver, colorId);
+            if (color != null) {
+                return color;
+            }
+        }
+        // Resolvers registered for every guide are consulted too, the way the in-game resolver does it, so a
+        // colour a mod registers globally is not missing from the site.
+        for (SymbolicColorResolver resolver : GuideNhIntegrationRegistry.global()
+            .symbolicColorResolvers()) {
+            ColorValue color = resolveColorSafely(resolver, colorId);
             if (color != null) {
                 return color;
             }
         }
         return null;
+    }
+
+    /** A resolver of another mod cannot fail an export, so a failure only skips that resolver. */
+    @Nullable
+    private static ColorValue resolveColorSafely(SymbolicColorResolver resolver, ResourceLocation colorId) {
+        try {
+            return resolver.resolve(colorId);
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SymbolicColorResolver] {} failed to resolve {}: {}",
+                resolver.getClass()
+                    .getSimpleName(),
+                colorId,
+                e.toString());
+            return null;
+        }
     }
 
     @Nullable
