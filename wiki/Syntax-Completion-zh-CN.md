@@ -272,7 +272,7 @@ Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build()
 | --- | --- |
 | 新增标签、场景元素、属性、取值类型及其取值 | `TagCompiler`、`SceneElementTagCompiler`、`SyntaxContributor`、`SyntaxValueSource` |
 | 补全你自己的语法（自己的槽位、自己的写入方式、双击范围） | `SyntaxSlot` |
-| 让某个标签一次性补全成完整形式 | `sink.insertTemplates(...)` |
+| 让某个标签一次性补全成完整形式 | `sink.insertTemplates(...)`（同时出现在编辑器插入菜单里） |
 | 新增 Markdown 片段、围栏名、frontmatter 键与取值 | `SyntaxContributor` |
 | 决定你自己围栏的内容如何解析 | `CodeFenceRenderer`（围栏名同时用 `sink.fenceLanguages(...)` 声明） |
 | 新增符号颜色名 | `SymbolicColorResolver`（单指南）或 `registerSymbolicColorResolver`（全局） |
@@ -283,7 +283,7 @@ Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build()
 
 刻意保持封闭的部分，以及代价：
 
-- 指南编辑器的工具栏与插入菜单是固定集合。第三方标签可以通过补全和插入模板插入，但暂时无法添加自己的按钮。
+- 指南编辑器的工具栏是固定集合：贡献的模板会出现在插入菜单（“模板”子菜单）与补全里，但不会变成工具栏按钮。
 - 站点导出用自己的内置链渲染自带标签。注册的渲染器会先被询问，所以你的标签能导出；但内置链本身还不是一组注册式渲染器。
 - 你自己的场景注解能在书内渲染，但不会被序列化进导出站点的查看器。
 

@@ -282,7 +282,7 @@ compiled, so register during mod loading.
 | --- | --- |
 | Add a tag, a scene element, an attribute, a value kind and its values | `TagCompiler`, `SceneElementTagCompiler`, `SyntaxContributor`, `SyntaxValueSource` |
 | Complete syntax of your own (your own slot, your own writer, double-click range) | `SyntaxSlot` |
-| Make a tag complete as a whole form | `sink.insertTemplates(...)` |
+| Make a tag complete as a whole form | `sink.insertTemplates(...)` (also offered in the editor's insert menu) |
 | Add markdown snippets, fence names, frontmatter keys and values | `SyntaxContributor` |
 | Decide what the body of your own fence means | `CodeFenceRenderer` (declare the name with `sink.fenceLanguages(...)`) |
 | Add a symbolic colour name | `SymbolicColorResolver` (per guide) or `registerSymbolicColorResolver` |
@@ -293,8 +293,8 @@ compiled, so register during mod loading.
 
 Deliberately closed, with what it costs you:
 
-- The guide editor's toolbar and insert menu are a fixed set. A contributed tag is insertable through
-  completion and through insert templates, but it cannot add its own button yet.
+- The guide editor's toolbar is a fixed set: a contributed template appears in the insert menu (the
+  Templates submenu) and through completion, but not as a toolbar button.
 - The site export renders its own tags with a built-in chain. A registered renderer is asked first, so your
   tags export, but the built-in chain itself is not a set of registered renderers yet.
 - Scene annotations of your own render in the book but are not serialized into the exported site's viewer.
