@@ -34,7 +34,12 @@ public class GuideEditorAutocompleteController {
 
     public record SelectionRange(int start, int end) {}
 
-    private static final long QUERY_DEBOUNCE_MILLIS = 100L;
+    /**
+     * How long an edit waits before a query runs. A query parses the whole page, so it cannot run on every
+     * tick of a fast typist, but the wait is also what the popup is hidden for - a long one reads as lag.
+     * Two ticks is enough to coalesce a burst of keystrokes without being noticeable.
+     */
+    private static final long QUERY_DEBOUNCE_MILLIS = 40L;
     private static final int QUERY_LIMIT = 20;
     private static final int MOUSE_BUTTON_PRIMARY = 0;
 
@@ -108,9 +113,12 @@ public class GuideEditorAutocompleteController {
         }
 
         if (textChanged && !firstRun && System.currentTimeMillis() < nextQueryAtMillis) {
-            if (!popup.isOpen()) {
-                return;
-            }
+            // The text moved while the query is debounced. The open popup describes older text, so it is
+            // dismissed rather than left showing candidates that no longer match what is typed; the pending
+            // query is not disarmed, so the next update fills it for the new text. The wait is kept short
+            // because a query parses the whole page and this runs every tick.
+            dismissPopup();
+            return;
         }
 
         lastText = text;
