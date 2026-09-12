@@ -46,6 +46,7 @@ public class GuideNhIntegrationRegistry {
     private final List<RecipeDrawableRenderProvider> recipeDrawableRenderProviders = new ArrayList<>();
     private final List<RecipeHandlerRenderProvider> recipeHandlerRenderProviders = new ArrayList<>();
     private final List<BlockStatsProvider> blockStatsProviders = new ArrayList<>();
+    private List<BlockStatsProvider> blockStatsProviderSnapshot = List.of();
     private final List<GuidebookFakeWorldIntegration> fakeWorldIntegrations = new ArrayList<>();
     private final List<SyntaxContributor> syntaxContributors = new ArrayList<>();
     private final List<SyntaxSlot> syntaxSlots = new ArrayList<>();
@@ -739,11 +740,14 @@ public class GuideNhIntegrationRegistry {
         }
         if (!blockStatsProviders.contains(provider)) {
             blockStatsProviders.add(provider);
+            // Block statistics ask for the providers once per block, so they read a snapshot instead of a
+            // fresh copy of the list.
+            blockStatsProviderSnapshot = List.copyOf(blockStatsProviders);
         }
     }
 
-    public synchronized List<BlockStatsProvider> blockStatsProviders() {
-        return List.copyOf(blockStatsProviders);
+    public List<BlockStatsProvider> blockStatsProviders() {
+        return blockStatsProviderSnapshot;
     }
 
     public synchronized void registerFakeWorldIntegration(GuidebookFakeWorldIntegration integration) {

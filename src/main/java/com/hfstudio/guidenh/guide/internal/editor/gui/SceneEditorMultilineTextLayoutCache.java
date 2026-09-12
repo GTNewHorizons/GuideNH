@@ -11,6 +11,13 @@ import lombok.Getter;
 
 public class SceneEditorMultilineTextLayoutCache {
 
+    /**
+     * How much of a logical line is handed to the font at once when wrapping. Measuring a window instead of
+     * the whole remainder costs a constant copy per wrapped chunk rather than one that shrinks with it, and
+     * a window this wide always contains more than one wrapped chunk, so the wrap points do not change.
+     */
+    private static final int MEASURE_WINDOW_CHARS = 4096;
+
     private final List<VisualLine> visualLines = new ArrayList<>();
     private List<VisualLine> readonlyVisualLines = List.of();
     @Getter
@@ -65,10 +72,13 @@ public class SceneEditorMultilineTextLayoutCache {
 
         int offset = 0;
         while (offset < logicalLine.length()) {
-            String remaining = logicalLine.substring(offset);
-            String chunk = fontRenderer.trimStringToWidth(remaining, textWidth);
+            // Measuring a window instead of everything that is left keeps the copy per chunk bounded: the
+            // window is far wider than one chunk, so the wrap points are exactly the ones the font gives.
+            int windowEnd = Math.min(logicalLine.length(), offset + MEASURE_WINDOW_CHARS);
+            String window = logicalLine.substring(offset, windowEnd);
+            String chunk = fontRenderer.trimStringToWidth(window, textWidth);
             if (chunk.isEmpty()) {
-                chunk = remaining.substring(0, 1);
+                chunk = window.substring(0, 1);
             }
             int consumed = Math.max(1, chunk.length());
             int startIndex = lineStart + offset;

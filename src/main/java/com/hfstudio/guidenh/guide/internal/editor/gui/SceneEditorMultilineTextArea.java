@@ -1107,9 +1107,15 @@ public class SceneEditorMultilineTextArea {
         int resolvedViewportHeight = Math.max(0, height - PADDING * 2);
 
         for (int i = 0; i < 3; i++) {
-            resolvedTextWidth = Math.max(4, width - PADDING * 2 - (verticalVisible ? SCROLLBAR_SIZE + 1 : 0));
-            layoutCache
-                .rebuild(selectionModel.getText(), fontRenderer, resolvedTextWidth, wrapEnabled, getLineHeight());
+            int nextTextWidth = Math.max(4, width - PADDING * 2 - (verticalVisible ? SCROLLBAR_SIZE + 1 : 0));
+            // Re-laying the text out costs one font measurement per visual line, and the second pass only
+            // changes anything when wrapping uses the width it is given.
+            boolean relayout = i == 0 || (wrapEnabled && nextTextWidth != resolvedTextWidth);
+            resolvedTextWidth = nextTextWidth;
+            if (relayout) {
+                layoutCache
+                    .rebuild(selectionModel.getText(), fontRenderer, resolvedTextWidth, wrapEnabled, getLineHeight());
+            }
             horizontalVisible = !wrapEnabled && layoutCache.getContentWidthPixels() > resolvedTextWidth;
             resolvedViewportHeight = Math.max(0, height - PADDING * 2 - (horizontalVisible ? SCROLLBAR_SIZE + 1 : 0));
             boolean newVerticalVisible = layoutCache.getContentHeightPixels() > resolvedViewportHeight;
