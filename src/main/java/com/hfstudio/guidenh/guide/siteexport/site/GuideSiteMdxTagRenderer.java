@@ -129,6 +129,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private final MediaWikiSpecialPageResolver specialPageResolver = new MediaWikiSpecialPageResolver();
     private final AtomicInteger contentTabsSequence = new AtomicInteger();
     private final List<GuideSiteTagRenderer> siteTagRenderers;
+    private final List<CodeFenceRenderer> fenceRenderers;
 
     public GuideSiteMdxTagRenderer(Guide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree) {
@@ -166,6 +167,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         this.mediaWikiListContext = mediaWikiListContext;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
         this.siteTagRenderers = GuideSiteTagRenderers.of(guide);
+        // Cached for the same reason as the tag renderers: the export asks for this list once per fence, and
+        // resolving it copies the registry each time.
+        this.fenceRenderers = CodeFenceRenderers.of(guide);
     }
 
     @Override
@@ -175,7 +179,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
 
     @Override
     public List<CodeFenceRenderer> contributedFenceRenderers() {
-        return CodeFenceRenderers.of(guide);
+        return fenceRenderers;
     }
 
     /**

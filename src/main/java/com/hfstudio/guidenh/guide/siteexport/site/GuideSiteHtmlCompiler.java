@@ -455,8 +455,14 @@ public class GuideSiteHtmlCompiler {
     @Nullable
     private String renderContributedTag(MdxJsxElementFields element, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates, SceneResolver sceneResolver) {
+        List<GuideSiteTagRenderer> renderers = mdxTagRenderer.contributedTagRenderers();
+        // This runs once per MDX element of the page, and the context is only needed when a mod has
+        // contributed a renderer, which is the uncommon case.
+        if (renderers.isEmpty()) {
+            return null;
+        }
         return GuideSiteTagRenderers.render(
-            mdxTagRenderer.contributedTagRenderers(),
+            renderers,
             new GuideSiteTagRenderContext(defaultNamespace, currentPageId, templates, sceneResolver, this),
             element);
     }
