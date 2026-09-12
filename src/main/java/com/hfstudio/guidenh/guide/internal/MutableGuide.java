@@ -263,7 +263,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
      * a "miss" — callers own the policy (which candidates to try and when to report failure).
      */
     private byte @Nullable [] readAssetPath(ResourceLocation id) {
-        if (!IdUtils.isSafeAssetPath(id.getResourcePath())) {
+        if (!IdUtils.isSafeAssetPath(folder, id.getResourcePath())) {
             GuideDebugLog.warnAlways("[GuideNH] [MutableGuide] Refusing asset {}: it leaves the guide directory", id);
             return null;
         }

@@ -241,21 +241,38 @@ public class IdUtils {
     }
 
     /**
-     * True when a path can be joined onto a pack directory safely: a path that climbs out of the pack with
-     * {@code ..} would read a file that is not part of the guide. Page links are not checked this way,
-     * because they legitimately reach a sibling page through {@code ..}.
+     * True when joining {@code folder} and {@code path} stays inside {@code folder}.
+     *
+     * <p>
+     * A parent step is not refused on sight: the language candidates a lookup tries are built as
+     * {@code _en_us/../assets/...}, and the content root keeps its shared assets beside the language folders,
+     * so such a path resolves back inside the root and is how those assets are reached at all. What is
+     * refused is a path whose parent steps still climb once resolved, which would read a file outside it.
+     *
+     * @param folder the content root the path is joined onto
+     * @param path   the path as written, using {@code /} separators
      */
-    public static boolean isSafeAssetPath(String id) {
-        if (id == null || id.isEmpty()) {
+    public static boolean isSafeAssetPath(String folder, String path) {
+        if (path == null || path.isEmpty()) {
             return false;
         }
-        if (id.indexOf('\\') >= 0 || id.indexOf('\0') >= 0) {
+        if (path.indexOf('\\') >= 0 || path.indexOf('\0') >= 0) {
             return false;
         }
-        for (String segment : id.split("/")) {
-            if ("..".equals(segment)) {
-                return false;
+        // Depth of the resolved path within the root. A parent step above zero would leave it.
+        int depth = 0;
+        for (String segment : path.split("/")) {
+            if (segment.isEmpty() || ".".equals(segment)) {
+                continue;
             }
+            if ("..".equals(segment)) {
+                if (depth == 0) {
+                    return false;
+                }
+                depth--;
+                continue;
+            }
+            depth++;
         }
         return true;
     }
