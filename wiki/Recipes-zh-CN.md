@@ -116,6 +116,39 @@ GuideNH 会按以下顺序尝试配方：
 <RecipesFor id="minecraft:fire_charge" handlerName="shapeless" />
 ````
 
+### Handler 黑名单与白名单
+
+`handlerBlacklist` 将 handler 从结果中剔除，`handlerWhitelist` 再放回来。两者都接受**英文逗号分隔的列表**，条目会与 handler id、overlay id 或类名比对，不区分大小写且按包含处理 —— 因此一条就能指名单个 handler 或整个包。
+
+命中黑名单的 handler 会被剔除，**除非**标签主动要它：`handlerId`、`handlerWhitelist`，以及类名的小写匹配都能保住它。
+
+**为什么是列表：单个 handler id 很少独自出现。**木板既是合成材料又是燃料，把不想要的 handler id 列出来：
+
+````md
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
+````
+
+**一条覆盖整个包。**条目同样按类名做子串匹配，所以一个模组 id 就能覆盖它注册的全部 handler —— 当某个模组的 handler 对这个物品全是噪音时很方便：
+
+````md
+<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
+````
+
+**白名单：在单个页面上撤销黑名单。**配置对所有页面隐藏了两个多方块 handler，在这里用白名单指名即可放回；写成列表同理：
+
+````md
+<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="没有多方块预览。" />
+````
+
+**白名单本身不做筛选。**它只负责把黑名单要剔除的 handler 救回来；要把结果收窄到某个 handler，用 `handlerId` / `handlerName` / `handlerOrder`，要限制渲染数量则用 `limit`。
+
+配置项 `recipeHandlerBlacklist`（`config/guidenh/guidenh.cfg`）对所有页面生效，默认包含：
+
+- `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
+- `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
+
+页面自身的列表是**追加**到配置之后的，所以页面只能比配置隐藏更多、不能更少。改配置会影响所有页面；在标签上指名只影响该页面。
+
 ### 输入/输出过滤
 
 ````md
