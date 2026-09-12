@@ -560,15 +560,18 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             int rawEnd = Math.max(bounds.rawEnd, valueStart);
             if (cursorIndex >= bounds.valueStart && cursorIndex <= Math.max(bounds.valueEnd, rawEnd)) {
                 String partial = text.substring(bounds.valueStart, cursorIndex);
+                // The bounds already say which span a value replaces: the text up to the closing quote when
+                // one is there, and up to the caret when the value is still open. Using the caret as the end
+                // instead would leave the closing quote behind, or include it in the typed text.
                 return new TextSyntaxContext(
                     SyntaxElementType.ATTRIBUTE_VALUE,
                     bounds.valueStart,
-                    cursorIndex,
+                    bounds.valueEnd,
                     new MdxValueContext(
                         tag.name(),
                         attrName,
                         bounds.valueStart,
-                        cursorIndex,
+                        bounds.valueEnd,
                         partial,
                         bounds.missingTerminator));
             }
