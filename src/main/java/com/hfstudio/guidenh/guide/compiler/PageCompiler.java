@@ -790,8 +790,24 @@ public class PageCompiler {
     }
 
     public void compileFlowContext(Collection<? extends MdAstAnyContent> children, LytFlowParent layoutParent) {
-        for (var child : children) {
-            compileFlowContent(layoutParent, child);
+        if (flowNestingDepth >= MAX_BLOCK_NESTING) {
+            // Reported instead of compiled: inline tags nest through this method, and a page nested deeper
+            // than a guide can draw would otherwise exhaust the stack while the page is compiled. The
+            // message carries no source position, because the compiler would have to walk the very content
+            // it is refusing to walk.
+            LytFlowSpan span = new LytFlowSpan();
+            span.modifyStyle(style -> style.color(ColorUtils.ERROR_TEXT));
+            span.appendText("Inline nesting is deeper than the " + MAX_BLOCK_NESTING + " levels a guide supports");
+            layoutParent.append(span);
+            return;
+        }
+        flowNestingDepth++;
+        try {
+            for (var child : children) {
+                compileFlowContent(layoutParent, child);
+            }
+        } finally {
+            flowNestingDepth--;
         }
     }
 
@@ -1044,6 +1060,9 @@ public class PageCompiler {
     private static final int MAX_BLOCK_NESTING = 64;
 
     private int blockNestingDepth;
+
+    /** Inline nesting depth, bounded for the same reason as the block one. */
+    private int flowNestingDepth;
 
     public LytBlock createErrorBlock(String text, UnistNode child) {
         var paragraph = new LytParagraph();
