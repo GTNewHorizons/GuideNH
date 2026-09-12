@@ -27,7 +27,10 @@ public class RegistryIdIndex {
                 return results;
             }
             String lower = partial != null ? partial.toLowerCase(Locale.ROOT) : "";
-            if (lower.indexOf(':') < 0) {
+            // Namespaces are offered once the author has started a mod id, so that minecraft: is one
+            // keystroke away. With nothing typed they are not useful - every namespace would take the front
+            // of the list away from the entries themselves, which are the ones that carry an icon.
+            if (!lower.isEmpty() && lower.indexOf(':') < 0) {
                 addNamespaces(results, lower, safeLimit);
             }
             addIdentifierMatches(results, lower, safeLimit, true);
