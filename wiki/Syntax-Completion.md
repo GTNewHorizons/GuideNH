@@ -290,11 +290,15 @@ compiled, so register during mod loading.
 | Export your tags to the site | `GuideSiteTagRenderer` (see [Mod Compatibility](Mod-Compatibility)) |
 | Add a scene editor toolbar button or menu item | `SceneEditorToolbarRegistry` / `SceneEditorMenuRegistry` |
 | Add a resource to the exported site | `ExportableResourceProvider` on your node |
+| Report a problem with your own syntax to the reader | `LytErrorSink.appendError(compiler, text, element)`, which is the `parent` your tag compiler is given |
 
 Deliberately closed, with what it costs you:
 
 - The guide editor's toolbar is a fixed set: a contributed template appears in the insert menu (the
   Templates submenu) and through completion, but not as a toolbar button.
+- Diagnostics are reported at compile time through `LytErrorSink`: the error block is appended to the
+  document, so the reader sees it in the book and on the exported site. There is no separate "warn
+  while typing" hook in the editor.
 - The site export renders its own tags with a built-in chain. A registered renderer is asked first, for
   every MDX element and for your fence names, so your tags and fences export; the built-in chain itself is
   not a set of registered renderers yet.
