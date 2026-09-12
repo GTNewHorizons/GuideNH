@@ -119,7 +119,7 @@ public class GuideSyntaxModel {
     }
 
     /**
-     * The slots a contributor owns, guide-declared first: matching stops at the first slot that claims the caret, so.
+     * The slots a contributor owns, guide-declared first. Matching stops at the first slot that claims the caret.
      */
     private static List<SyntaxSlot> slots(ExtensionCollection extensions) {
         List<SyntaxSlot> declared = extensions.get(SyntaxSlot.EXTENSION_POINT);

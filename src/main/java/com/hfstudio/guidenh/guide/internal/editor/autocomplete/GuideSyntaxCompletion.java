@@ -218,7 +218,7 @@ public class GuideSyntaxCompletion {
     }
 
     /**
-     * Ranks the closest matches first, since the popup pre-selects the head of the list: an exact prefix beats a.
+     * Ranks the closest matches first, since the popup pre-selects the head of the list.
      */
     private static Comparator<AutocompleteCandidate> relevanceOrder(@Nullable String partialText) {
         if (partialText == null || partialText.isEmpty()) {

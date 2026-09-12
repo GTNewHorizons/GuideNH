@@ -106,7 +106,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     }
 
     /**
-     * The fence language at the caret, read from the line the caret is on: only the line that opens a fence carries.
+     * The fence language at the caret, read from the line the caret is on.
      */
     @Nullable
     public static TextSyntaxContext resolveFenceLanguageLine(String text, int cursorIndex) {

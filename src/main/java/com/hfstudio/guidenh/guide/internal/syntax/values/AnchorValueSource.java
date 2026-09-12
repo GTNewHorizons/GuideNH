@@ -29,7 +29,7 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
     private static final List<Heading> NO_HEADINGS = List.of();
 
     /**
-     * The document the cached headings were parsed from, held weakly: it is only a key for "did the text change", so.
+     * The document the cached headings came from, held weakly: it is only a key for "did the text change".
      */
     @Nullable
     private WeakReference<String> cachedSource;

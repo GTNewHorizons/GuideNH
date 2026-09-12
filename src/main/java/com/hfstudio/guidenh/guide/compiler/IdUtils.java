@@ -241,13 +241,9 @@ public class IdUtils {
     }
 
     /**
-     * True when a path can be joined onto a pack directory safely.
-     *
-     * <p>
-     * A resource lookup resolves its path at the filesystem level, where {@code ..} is a step to a parent
-     * directory rather than part of a name, so a path that climbs out of the pack would read a file that is
-     * not part of the guide. This is deliberately not applied to page links, which legitimately reach a
-     * sibling page through {@code ..}; the lookups that touch the filesystem ask for it instead.
+     * True when a path can be joined onto a pack directory safely: a path that climbs out of the pack with
+     * {@code ..} would read a file that is not part of the guide. Page links are not checked this way,
+     * because they legitimately reach a sibling page through {@code ..}.
      */
     public static boolean isSafeAssetPath(String id) {
         if (id == null || id.isEmpty()) {

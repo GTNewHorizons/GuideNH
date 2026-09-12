@@ -977,7 +977,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     }
 
     /**
-     * {@code BlockTagCompiler} applies {@code wrap}, {@code align} and {@code float} to every block tag it compiles,.
+     * Declares the layout attributes that {@code BlockTagCompiler} applies to every block tag.
      */
     private static void registerBlockLayoutAttributes(SyntaxSink sink) {
         sink.attributes("details", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
@@ -1011,7 +1011,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     }
 
     /**
-     * StructureLib scene options are only read from {@code <ImportStructureLib>}, and its child tags describe tiers,.
+     * Declares the StructureLib options, which are read from {@code <ImportStructureLib>} and its children.
      */
     private static void registerStructureLibAttributes(SyntaxSink sink) {
         sink.attributes(
