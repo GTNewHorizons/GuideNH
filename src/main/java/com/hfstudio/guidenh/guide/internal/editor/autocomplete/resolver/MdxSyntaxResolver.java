@@ -134,7 +134,15 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new FenceLanguageContext(langStart, cursorIndex, partial));
     }
 
-    /** True when the caret sits inside the leading YAML frontmatter block. */
+    /**
+     * True when the caret sits inside the leading YAML frontmatter block.
+     *
+     * <p>
+     * The block is only frontmatter when its closing delimiter is there, which is what the parser requires
+     * too. Without that check a page that opens with a thematic break and never closes it claimed every
+     * caret in the document, and tag, attribute and fence completion were all answered from the frontmatter
+     * path instead.
+     */
     public static boolean isInFrontmatter(String text, int cursorIndex) {
         int firstBreak = text.indexOf('\n');
         if (firstBreak < 0) return false;
@@ -144,15 +152,18 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             return false;
         }
         int pos = firstBreak + 1;
-        while (pos <= cursorIndex) {
+        while (pos <= text.length()) {
             int lineEnd = text.indexOf('\n', pos);
             if (lineEnd < 0) lineEnd = text.length();
             if (text.substring(pos, lineEnd)
                 .trim()
                 .equals("---")) {
+                // The block ends here, so only a caret before this line is inside the frontmatter.
                 return cursorIndex <= pos;
             }
-            if (lineEnd >= cursorIndex) return true;
+            if (lineEnd >= text.length()) {
+                return false;
+            }
             pos = lineEnd + 1;
         }
         return false;
