@@ -283,21 +283,26 @@ public class LytHost {
      */
     private void dispatchScriptInPhase(LytScript script, Object node, boolean asyncPhase) {
         String nodeUid = nodeUidOf(node);
+        // The task belongs to the tree the node is in, which is not always the document the host has
+        // mounted: the guide editor dispatches its preview tree while the page is mounted. Tagging a task
+        // with the mounted document made a preview's scenes be dropped when the page navigated, and left
+        // them queued forever against their own document.
+        LytDocument owner = documentOf(node);
         if (nodeUid != null) {
             Object cached = getNodeResult(currentPageId, nodeUid);
             if (cached != null) {
-                new ScriptContextImpl(node, this, document).replace(cached);
+                new ScriptContextImpl(node, this, owner).replace(cached);
                 return;
             }
         }
         if (asyncPhase) {
             if (script.isAsync()) {
-                taskQueue.addLast(new MaterializeTask(script, node, new ScriptContextImpl(node, this, document)));
+                taskQueue.addLast(new MaterializeTask(script, node, new ScriptContextImpl(node, this, owner)));
             }
         } else {
             if (!script.isAsync()) {
                 try {
-                    ScriptContextImpl ctx = new ScriptContextImpl(node, this, document);
+                    ScriptContextImpl ctx = new ScriptContextImpl(node, this, owner);
                     script.onEvent(node, new LytEvent(EventType.MOUNT, node), ctx);
                 } catch (Exception e) {
                     GuideDebugLog
@@ -413,6 +418,23 @@ public class LytHost {
     public void dispatchToSubtree(LytNode root) {
         allocateNodeUids(root);
         dispatchMountEvents(root);
+    }
+
+    /**
+     * The document a node belongs to, falling back to the mounted one for a node that is not in a tree.
+     *
+     * <p>
+     * A script runs against the tree its node is in, which is what decides when its work should be dropped,
+     * and the host serves more than one tree at a time.
+     */
+    private LytDocument documentOf(Object node) {
+        if (node instanceof LytNode lytNode) {
+            LytDocument owner = lytNode.getDocument();
+            if (owner != null) {
+                return owner;
+            }
+        }
+        return document;
     }
 
     public boolean hasWork() {
