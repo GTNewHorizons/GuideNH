@@ -58,6 +58,23 @@ The small icon in the top-left shows which "recipe pool" the entry belongs to (s
 - `32767`, `*`, or any uppercase-letter token (e.g. `W`, `ANY`) acts as a wildcard.
 - An SNBT tail (beginning with `{`) carries NBT data.
 - Filter attributes `handlerName` (substring), `handlerId` (overlay id, exact), and `handlerOrder` (0-based index).
+- `handlerBlacklist` drops handlers from the results; `handlerWhitelist` keeps them. Both take a comma-separated list and name a handler by its id, its overlay id or its class name, case-insensitively and by substring, so one entry can name a single handler or a whole package.
+- A handler that `handlerId` asks for stays in the results even when a blacklist names it, and a `handlerWhitelist` entry does the same. That is how a handler hidden by configuration is reached on purpose.
+
+**Blacklist** (keep only the crafting table entries for a block that many handlers produce):
+
+<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech" limit="4" />
+
+**Whitelist** (ask for a handler that is hidden by default):
+
+<RecipeFor id="minecraft:chest" handlerWhitelist="blockrenderer6343" fallbackText="No multiblock preview." />
+
+The configuration file `config/guidenh/guidenh.cfg` holds `recipeHandlerBlacklist`, which applies to every page. These two handlers are in it by default, because they render a whole multiblock rather than a recipe:
+
+- `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
+- `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
+
+A page's own `handlerBlacklist` is added to the configured one, so a page can hide more handlers but not fewer. To show a default-hidden handler, name it with `handlerId`, `handlerWhitelist`, or remove it from the configuration.
 
 **Anvil** (overlay id `"repair"`):
 

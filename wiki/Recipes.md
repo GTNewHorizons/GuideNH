@@ -34,6 +34,8 @@ If multiple recipes exist and you use the single-recipe forms, GuideNH renders o
 | `fallbackText` | no       | text shown when no usable recipe is found         |
 | `handlerName`  | no       | case-insensitive substring filter on handler name |
 | `handlerId`    | no       | exact overlay/handler id filter, case-insensitive |
+| `handlerBlacklist` | no   | comma-separated handlers to drop from the results |
+| `handlerWhitelist` | no   | comma-separated handlers to keep, even if blacklisted |
 | `handlerOrder` | no       | 0-based index after handler filtering             |
 | `input`        | no       | ingredient filter expression                      |
 | `output`       | no       | result filter expression                          |
@@ -136,6 +138,10 @@ If nothing matches:
 
 - use `fallbackText` for optional-mod integrations
 - use `handlerId` when you know the exact NEI handler you want
+- use `handlerBlacklist` when one block is produced by many handlers and only some are worth showing
+- the two handlers below are hidden by default in `config/guidenh/guidenh.cfg` because they render a whole multiblock; name one with `handlerId` or `handlerWhitelist` to show it
+  - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
+  - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
 - use `limit` when a tag could expand into many recipes
 - keep complex filter logic in comments near the tag for maintainability
 

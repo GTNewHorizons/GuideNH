@@ -30,6 +30,8 @@ GuideNH 可以直接在指南页面中渲染合成配方和基于 NEI 的配方�
 | `fallbackText` | 否 | 没有可用配方时显示的文本 |
 | `handlerName` | 否 | 对 handler 名称做大小写不敏感的子串过滤 |
 | `handlerId` | 否 | 对 overlay/handler id 做大小写不敏感的精确过滤 |
+| `handlerBlacklist` | 否 | 逗号分隔，将这些 handler 从结果中剔除 |
+| `handlerWhitelist` | 否 | 逗号分隔，保留这些 handler（即使被拉黑） |
 | `handlerOrder` | 否 | 过滤后 handler 的 0 基索引 |
 | `input` | 否 | 输入物品过滤表达式 |
 | `output` | 否 | 输出物品过滤表达式 |
@@ -132,6 +134,10 @@ GuideNH 会按以下顺序尝试配方：
 
 - 面向可选模组整合时，优先提供 `fallbackText`
 - 若已知确切的 NEI handler，优先使用 `handlerId`
+- 当同一物品被大量 handler 命中、而只有部分值得展示时，使用 `handlerBlacklist`
+- 以下两个 handler 默认在 `config/guidenh/guidenh.cfg` 中被隐藏，因为它们渲染的是整个多方块结构；用 `handlerId` 或 `handlerWhitelist` 指名即可显示
+  - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
+  - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
 - 当标签可能展开出大量配方时，使用 `limit`
 - 复杂过滤逻辑最好在标签旁边用注释解释，便于维护
 
