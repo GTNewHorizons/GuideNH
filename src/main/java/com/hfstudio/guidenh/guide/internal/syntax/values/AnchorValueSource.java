@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.internal.syntax.values;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -31,8 +32,14 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
     private static final Pattern HEADING = Pattern.compile("^#{1,6}\\s+(.+)$", Pattern.MULTILINE);
     private static final List<Heading> NO_HEADINGS = List.of();
 
+    /**
+     * The document the cached headings were parsed from, held weakly: it is only a key for "did the text
+     * change", so keeping the whole page alive here would retain the editor's document for as long as this
+     * source is registered, which is the life of the editor.
+     */
     @Nullable
-    private String cachedSource;
+    private WeakReference<String> cachedSource;
+    private int cachedSourceLength = -1;
     private List<Heading> cachedHeadings = NO_HEADINGS;
 
     @Override
@@ -45,14 +52,19 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
         String text = environment.documentText();
         if (text == null) {
             cachedSource = null;
+            cachedSourceLength = -1;
             cachedHeadings = NO_HEADINGS;
             return;
         }
-        if (text == cachedSource) {
+        // The editor hands out the same instance until the text really changes, so identity plus length is
+        // enough to recognise it, and a collected key simply means the headings are parsed again.
+        String cached = cachedSource != null ? cachedSource.get() : null;
+        if (cached != null && cached == text && cachedSourceLength == text.length()) {
             return;
         }
         cachedHeadings = parseHeadings(text);
-        cachedSource = text;
+        cachedSource = new WeakReference<>(text);
+        cachedSourceLength = text.length();
     }
 
     @Override
