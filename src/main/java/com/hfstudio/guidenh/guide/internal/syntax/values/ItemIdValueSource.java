@@ -23,9 +23,18 @@ public class ItemIdValueSource implements SyntaxValueSource {
 
     @Override
     public List<SyntaxSuggestion> suggest(SyntaxValueRequest request, int limit) {
+        int wanted = Math.max(1, limit);
         List<SyntaxSuggestion> results = new ArrayList<>();
+        // The index trims its answer to a limit, and an entry that is not an item is dropped here, so asking
+        // for exactly the limit can return fewer than that - or none at all when the first matches happen to
+        // be entries without an item. A larger window is asked for and the list is trimmed once it is full of
+        // entries that really have an icon.
+        int window = wanted * 4;
         for (String candidate : RegistryIdIndex.items()
-            .match(request.partialText(), limit)) {
+            .match(request.partialText(), window)) {
+            if (results.size() >= wanted) {
+                break;
+            }
             if (candidate.endsWith(":")) {
                 results.add(SyntaxSuggestion.of(candidate));
                 continue;
