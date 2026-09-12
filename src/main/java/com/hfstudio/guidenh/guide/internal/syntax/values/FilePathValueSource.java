@@ -59,7 +59,6 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
         if (scanned || guide == null) {
             return;
         }
-        scanned = true;
 
         List<File> dirs = new ArrayList<>();
 
@@ -102,7 +101,9 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
             }
         }
 
+        // Only a scan that finished counts as done, so a failed one is retried on the next tick.
         candidatePaths = buildCandidatePaths(dirs);
+        scanned = true;
         snapshot = new NameSnapshot(() -> candidatePaths != null ? candidatePaths : List.of());
     }
 

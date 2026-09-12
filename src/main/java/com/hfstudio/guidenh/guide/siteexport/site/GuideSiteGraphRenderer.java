@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -50,7 +51,7 @@ public class GuideSiteGraphRenderer {
     // Monotonically increasing counter used to generate unique clip-path IDs so that
     // multiple function-graph SVGs embedded in the same HTML page do not share the
     // same id="gc" definition (inline SVGs share the document's ID namespace).
-    private static int nextClipId = 0;
+    private static final AtomicInteger nextClipId = new AtomicInteger();
 
     // Chart default dimensions
     private static final int CHART_DEFAULT_W = 320;
@@ -2485,7 +2486,7 @@ public class GuideSiteGraphRenderer {
 
         // Clip path for curve rendering. Use a unique ID so that multiple function-graph
         // SVGs embedded in the same HTML page do not collide on the shared document ID namespace.
-        String clipId = "fg" + nextClipId++;
+        String clipId = "fg" + nextClipId.incrementAndGet();
         svg.append("<defs><clipPath id=\"")
             .append(clipId)
             .append("\"><rect x=\"")

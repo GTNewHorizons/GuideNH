@@ -134,7 +134,6 @@ public class GuideEditorAutocompleteController {
 
         lastText = text;
         lastCursor = cursorIndex;
-        queryRequestedByEdit = false;
 
         model.prepare(environment);
         List<AutocompleteCandidate> candidates;
@@ -154,6 +153,9 @@ public class GuideEditorAutocompleteController {
             candidates = GuideSyntaxCompletion.query(model, syntax, QUERY_LIMIT);
             context = syntax.getAutocomplete();
         }
+        // The query has been answered, so the next edit arms a new one. Disarming before the answer would
+        // leave the popup shut until the next keystroke if anything above failed.
+        queryRequestedByEdit = false;
         if (candidates.isEmpty() || context == null) {
             close();
             return;
