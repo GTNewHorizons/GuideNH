@@ -34,6 +34,8 @@ import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.MdxBlockTagSourceExtractor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderer;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderers;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor.DetailsContent;
@@ -165,6 +167,23 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         this.siteTagRenderers = GuideSiteTagRenderers.of(guide);
     }
 
+    @Override
+    public List<GuideSiteTagRenderer> contributedTagRenderers() {
+        return siteTagRenderers;
+    }
+
+    @Override
+    public List<CodeFenceRenderer> contributedFenceRenderers() {
+        return CodeFenceRenderers.of(guide);
+    }
+
+    /**
+     * Renders one MDX element.
+     *
+     * <p>
+     * Renderers contributed by other mods are asked first, and this compiler's own chain answers only when
+     * none of them claims the tag.
+     */
     @Override
     public @Nullable String render(MdxJsxElementFields element, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,

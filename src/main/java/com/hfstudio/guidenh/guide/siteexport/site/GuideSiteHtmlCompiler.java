@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,6 +18,8 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderer;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderers;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
@@ -84,6 +87,25 @@ public class GuideSiteHtmlCompiler {
         default String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
             GuideSiteTemplateRegistry templates, SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
             return null;
+        }
+
+        /**
+         * Tag renderers contributed by other mods, which this compiler asks before its own built-in
+         * branches so a tag that a mod redefines means the same thing on the site as in the book.
+         *
+         * <p>
+         * Empty by default, so a renderer that has no guide behind it, or none of its own, needs no change.
+         */
+        default List<GuideSiteTagRenderer> contributedTagRenderers() {
+            return List.of();
+        }
+
+        /**
+         * Fence renderers contributed by other mods, consulted for a fence name this exporter does not
+         * handle itself, so a fence a mod owns in the book is not shown as raw source on the site.
+         */
+        default List<CodeFenceRenderer> contributedFenceRenderers() {
+            return List.of();
         }
     }
 
@@ -307,6 +329,11 @@ public class GuideSiteHtmlCompiler {
 
     private String compileMdxElement(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        // Contributed renderers are asked before every built-in branch below, so a tag a mod redefines is
+        // rendered by that mod on the site the way its compiler renders it in the book. This is the single
+        // entry for MDX elements, so a contribution cannot be bypassed by a built-in name.
+        String contributed = renderContributedTag(el, defaultNamespace, currentPageId, templates, sceneResolver);
+        if (contributed != null) return contributed;
         // Block-level elements
         if ("p".equals(el.name())) {
             return compileParagraph(el, templates, defaultNamespace, currentPageId, sceneResolver);
@@ -434,6 +461,36 @@ public class GuideSiteHtmlCompiler {
             .render(flowElement, defaultNamespace, currentPageId, templates, sceneResolver, this);
         if (rendered != null) return rendered;
         return compileChildren(flowElement.children(), templates, defaultNamespace, currentPageId, sceneResolver);
+    }
+
+    /** The markup a contributed site tag renderer produces, or null when none claims the element. */
+    @Nullable
+    private String renderContributedTag(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates, SceneResolver sceneResolver) {
+        return GuideSiteTagRenderers.render(
+            mdxTagRenderer.contributedTagRenderers(),
+            new GuideSiteTagRenderContext(defaultNamespace, currentPageId, templates, sceneResolver, this),
+            element);
+    }
+
+    /**
+     * Whether a contributed fence renderer owns this fence name.
+     *
+     * <p>
+     * The book asks the same renderers through {@code CodeFenceRenderers}, so a fence name a mod declares is
+     * that mod's fence on both sides rather than only in the book.
+     */
+    private boolean isContributedFence(@Nullable String lang) {
+        if (lang == null || lang.isEmpty()) {
+            return false;
+        }
+        for (CodeFenceRenderer renderer : mdxTagRenderer.contributedFenceRenderers()) {
+            Set<String> names = renderer.getFenceNames();
+            if (names != null && names.contains(lang)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String compileCustomTextElement(MdxJsxTextElement textElement, GuideSiteTemplateRegistry templates,
@@ -638,6 +695,16 @@ public class GuideSiteHtmlCompiler {
         Integer height = parseMetaInt(meta, "height");
         if (lang != null) {
             lang = lang.toLowerCase(Locale.ROOT);
+        }
+
+        // A fence name another mod owns is that mod's fence on both sides: ask its renderer for markup before
+        // falling through to a plain code block of raw source.
+        if (isContributedFence(lang)) {
+            String markup = CodeFenceRenderers
+                .renderSite(mdxTagRenderer.contributedFenceRenderers(), lang, codeText, meta);
+            if (markup != null) {
+                return markup;
+            }
         }
 
         // Sub-language rendering

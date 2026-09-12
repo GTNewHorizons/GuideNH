@@ -39,4 +39,19 @@ public interface CodeFenceRenderer extends Extension {
      */
     @Nullable
     LytBlock renderFence(PageCompiler compiler, String fenceName, String codeText, @Nullable String meta);
+
+    /**
+     * The HTML a fence body becomes on the exported site.
+     *
+     * <p>
+     * A fence a renderer owns in the book is shown on the site as a plain code block unless the renderer
+     * answers here too, which would leave the reader with raw source where the book draws the rendered
+     * form. The markup is inserted into the page as it is, so escape any text in it.
+     *
+     * @return the markup, or null to show the body as a code block
+     */
+    @Nullable
+    default String renderSiteFence(String fenceName, String codeText, @Nullable String meta) {
+        return null;
+    }
 }

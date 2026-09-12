@@ -85,4 +85,36 @@ public class CodeFenceRenderers {
             return false;
         }
     }
+
+    /**
+     * The markup a contributed renderer produces for a fence on the exported site.
+     *
+     * @return the markup, or null when no renderer answers for the fence or none of them renders markup
+     */
+    @Nullable
+    public static String renderSite(List<CodeFenceRenderer> renderers, @Nullable String fenceName, String codeText,
+        @Nullable String meta) {
+        if (fenceName == null || fenceName.isEmpty()) {
+            return null;
+        }
+        for (CodeFenceRenderer renderer : renderers) {
+            if (!answers(renderer, fenceName)) {
+                continue;
+            }
+            try {
+                String markup = renderer.renderSiteFence(fenceName, codeText, meta);
+                if (markup != null) {
+                    return markup;
+                }
+            } catch (RuntimeException e) {
+                GuideDebugLog.error(
+                    "[GuideNH] [CodeFenceRenderer] {} failed to render the '{}' fence for the site: {}",
+                    renderer.getClass()
+                        .getSimpleName(),
+                    fenceName,
+                    e.toString());
+            }
+        }
+        return null;
+    }
 }
