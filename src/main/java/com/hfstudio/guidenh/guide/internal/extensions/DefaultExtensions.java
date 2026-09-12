@@ -87,6 +87,7 @@ import com.hfstudio.guidenh.guide.scene.element.ReplaceBlockElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.element.TextAnnotationElementCompiler;
 import com.hfstudio.guidenh.guide.scene.element.WeatherElementCompiler;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.SceneElementTagCompilerProvider;
@@ -188,9 +189,21 @@ public class DefaultExtensions {
                 new ImageCompiler()));
         for (TagCompilerProvider provider : GuideNhIntegrationRegistry.global()
             .tagCompilerProviders()) {
-            provider.appendTagCompilers(compilers);
+            appendTagCompilersSafely(provider, compilers);
         }
         return compilers;
+    }
+
+    private static void appendTagCompilersSafely(TagCompilerProvider provider, List<TagCompiler> compilers) {
+        try {
+            provider.appendTagCompilers(compilers);
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [TagCompilerProvider] {} failed to add its compilers: {}",
+                provider.getClass()
+                    .getSimpleName(),
+                e.toString());
+        }
     }
 
     public static List<SceneElementTagCompiler> sceneElementCompilers() {
@@ -218,9 +231,23 @@ public class DefaultExtensions {
                 new PlaceBlockElementCompiler()));
         for (SceneElementTagCompilerProvider provider : GuideNhIntegrationRegistry.global()
             .sceneElementTagCompilerProviders()) {
-            provider.appendSceneElementTagCompilers(compilers);
+            appendSceneElementCompilersSafely(provider, compilers);
         }
         return compilers;
+    }
+
+    /** Lets a provider of another mod add its scene element compilers, skipping one that fails. */
+    private static void appendSceneElementCompilersSafely(SceneElementTagCompilerProvider provider,
+        List<SceneElementTagCompiler> compilers) {
+        try {
+            provider.appendSceneElementTagCompilers(compilers);
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SceneElementTagCompilerProvider] {} failed to add its compilers: {}",
+                provider.getClass()
+                    .getSimpleName(),
+                e.toString());
+        }
     }
 
     @Desugar
