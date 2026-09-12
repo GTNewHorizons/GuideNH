@@ -64,10 +64,29 @@ public class CodeFenceRenderers {
         return null;
     }
 
+    /**
+     * Whether a renderer answers for a fence name.
+     *
+     * <p>
+     * Fence names are matched ignoring case, because the book uses the author's spelling while the export
+     * lowercases the language before asking: a renderer declaring {@code MyFence} would otherwise be asked
+     * for it in the book and never for the site, and its fence would export as a plain code block.
+     */
     private static boolean answers(CodeFenceRenderer renderer, String fenceName) {
         try {
             Set<String> names = renderer.getFenceNames();
-            return names != null && names.contains(fenceName);
+            if (names == null) {
+                return false;
+            }
+            if (names.contains(fenceName)) {
+                return true;
+            }
+            for (String name : names) {
+                if (name != null && name.equalsIgnoreCase(fenceName)) {
+                    return true;
+                }
+            }
+            return false;
         } catch (RuntimeException e) {
             GuideDebugLog.error(
                 "[GuideNH] [CodeFenceRenderer] {} failed to publish its fence names: {}",

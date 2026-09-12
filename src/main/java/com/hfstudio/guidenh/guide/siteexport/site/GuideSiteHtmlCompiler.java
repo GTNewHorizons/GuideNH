@@ -659,17 +659,17 @@ public class GuideSiteHtmlCompiler {
     private String compileCodeBlockMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String codeText = extractTextFromElement(el);
-        String lang = el.getAttributeString("lang", null);
+        String declaredLang = el.getAttributeString("lang", null);
         String meta = el.getAttributeString("meta", null);
         Integer width = parseMetaInt(meta, "width");
         Integer height = parseMetaInt(meta, "height");
-        if (lang != null) {
-            lang = lang.toLowerCase(Locale.ROOT);
-        }
+        // The built-in fence names are matched lowercased, but a contributed renderer is asked with the name
+        // the author wrote, which is what the book passes it, so both sides see the same value.
+        String lang = declaredLang != null ? declaredLang.toLowerCase(Locale.ROOT) : null;
 
-        if (isContributedFence(lang)) {
+        if (isContributedFence(declaredLang)) {
             String markup = CodeFenceRenderers
-                .renderSite(mdxTagRenderer.contributedFenceRenderers(), lang, codeText, meta);
+                .renderSite(mdxTagRenderer.contributedFenceRenderers(), declaredLang, codeText, meta);
             if (markup != null) {
                 return markup;
             }
