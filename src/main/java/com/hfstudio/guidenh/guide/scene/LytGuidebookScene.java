@@ -1728,6 +1728,18 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         this.loadStatusColor = ColorUtils.ARGB_FFFF5555.getColor();
     }
 
+    /**
+     * The reason this scene reports a failure, or null when it has none.
+     *
+     * <p>
+     * The book shows this text in place of the scene. The export reads it too, so a scene the book calls
+     * failed is reported rather than exported as a blank image in silence.
+     */
+    @Nullable
+    public String getLoadFailure() {
+        return loadFailed ? loadStatusText : null;
+    }
+
     public void clearLoadState() {
         this.isLoading = false;
         this.loadFailed = false;

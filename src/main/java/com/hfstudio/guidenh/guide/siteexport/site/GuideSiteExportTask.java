@@ -774,6 +774,7 @@ public class GuideSiteExportTask {
         Collections.reverse(exportOrder);
 
         for (LytGuidebookScene scene : exportOrder) {
+            reportSceneLoadFailure(scene, parsedPage);
             try (
                 GuideSiteSceneAnnotationSerializer.ExportedSceneLookupScope ignored = GuideSiteSceneAnnotationSerializer
                     .pushExportedSceneLookup(exportedScenesByScene)) {
@@ -857,6 +858,25 @@ public class GuideSiteExportTask {
             }
         }
         return false;
+    }
+
+    /**
+     * Reports a scene the book shows as failed.
+     *
+     * <p>
+     * A scene whose elements could not be compiled says why in the book: an unsupported element, a scene
+     * with no supported elements, or a compiler that failed. The export used to write that scene as a blank
+     * image with nothing said, so an author could not tell a broken scene from an empty one.
+     */
+    private static void reportSceneLoadFailure(LytGuidebookScene scene, ParsedGuidePage parsedPage) {
+        String failure = scene.getLoadFailure();
+        if (failure == null || failure.isEmpty()) {
+            return;
+        }
+        GuideDebugLog.warnAlways(
+            "[GuideNH] [GuideSiteExportTask] Exporting a scene the book reports as failed on page {}: {}",
+            parsedPage.getId(),
+            failure);
     }
 
     private GuideSiteExportedScene exportScene(ParsedGuidePage parsedPage, LytGuidebookScene scene,
