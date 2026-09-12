@@ -25,6 +25,7 @@ import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageChange;
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
@@ -262,6 +263,12 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
      * a "miss" — callers own the policy (which candidates to try and when to report failure).
      */
     private byte @Nullable [] readAssetPath(ResourceLocation id) {
+        if (!IdUtils.isSafeAssetPath(id.getResourcePath())) {
+            // Page content decides this path, and the lookup below resolves it on the filesystem, where a
+            // parent step would read a file that is not part of the guide.
+            GuideDebugLog.warnAlways("[GuideNH] [MutableGuide] Refusing asset {}: it leaves the guide directory", id);
+            return null;
+        }
         // Also load assets from the development sources folder.
         if (canLoadDevelopmentSource(id)) {
             var path = resolveDevelopmentSourcePath(id);
