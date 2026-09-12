@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.HandlerMetadataReader;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.HandlerRecipeAccess;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.RecipePlaceholder;
+import com.hfstudio.guidenh.guide.document.block.AlignItems;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -239,6 +240,7 @@ public class RecipeScript implements LytScript {
         if (boxes.size() == 1) return boxes.getFirst();
         var row = new LytHBox();
         row.setGap(RecipeCompiler.MULTI_GAP);
+        row.setAlignItems(AlignItems.CENTER);
         for (var b : boxes) row.append(b);
         return row;
     }
