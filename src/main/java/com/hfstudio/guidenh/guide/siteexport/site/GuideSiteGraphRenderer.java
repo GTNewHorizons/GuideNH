@@ -66,11 +66,22 @@ public class GuideSiteGraphRenderer {
     private static final int AXIS_TITLE_GAP = 4;
     private static final int AXIS_PAD_LEFT = 28;
     private static final int AXIS_PAD_BOTTOM = 14;
-    private static final int LEGEND_SWATCH = 8;
+    /**
+     * Text size the site stylesheet gives every chart label. Its rule wins over the font-size attributes
+     * the SVG carries, so the layout below is measured against this size instead of the attributes.
+     */
+    private static final int CHART_TEXT_SIZE = 16;
+    /** Baseline offset that puts a value label just above the shape it belongs to. */
+    private static final int LABEL_ABOVE_OFFSET = CHART_TEXT_SIZE / 2 - 2;
+    /** Baseline offset that puts a value label just below the shape it belongs to. */
+    private static final int LABEL_BELOW_OFFSET = CHART_TEXT_SIZE + 2;
+    /** Baseline offset that centres a value label inside the shape it belongs to. */
+    private static final int LABEL_CENTER_OFFSET = CHART_TEXT_SIZE / 3;
+    private static final int LEGEND_SWATCH = CHART_TEXT_SIZE - 4;
     private static final int LEGEND_GAP = 6;
-    private static final int LEGEND_ROW_H = 11;
-    /** Width a legend column takes when the legend sits at the left or right of a chart. */
-    private static final int SIDE_LEGEND_WIDTH = 92;
+    private static final int LEGEND_ROW_H = CHART_TEXT_SIZE + 4;
+    /** Width one character of the chart text takes, used to size legends and clamp labels. */
+    private static final int CHART_CHAR_WIDTH = 9;
     private static final int PIE_OUTSIDE_GAP = 6;
     // Function graph sample count
     private static final int N_SAMPLES = 1024;
@@ -1190,7 +1201,7 @@ public class GuideSiteGraphRenderer {
      * Space a legend takes away from the plot and where it is drawn, so every chart reserves its own
      * legend the same way instead of overlapping the plot.
      */
-    private record LegendArea(int left, int right, int top, int bottom, int x, int y, int width) {}
+    private record LegendArea(int left, int right, int top, int bottom, int x, int y, int width, int limit) {}
 
     // Column chart (vertical bars, categorical X).
 
@@ -1216,7 +1227,7 @@ public class GuideSiteGraphRenderer {
         String[] categories, List<SeriesData> series, boolean showLegend, @Nullable PieInsetData pieInset,
         @Nullable String yAxisUnit, ChartLabelPosition labelPosition) {
         ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
-            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE)
+            .withLegend(showLegend ? ChartLegendPosition.TOP : ChartLegendPosition.NONE)
             .withLabels(labelPosition, DEFAULT_LABEL_COLOR);
         return renderColumnChart(style, categories, series, pieInset, yAxisUnit);
     }
@@ -1264,7 +1275,7 @@ public class GuideSiteGraphRenderer {
         boolean pieRightOutside = pieInset != null && isPieInsetRightOutside(pieInset.position);
         LegendArea legend = legendArea(
             style,
-            series.size(),
+            seriesNames(series),
             PADDING + AXIS_PAD_LEFT,
             w - PADDING - (pieRightOutside ? pieInset.size + PIE_OUTSIDE_GAP : 0),
             computeTitleBottom(title),
@@ -1304,6 +1315,7 @@ public class GuideSiteGraphRenderer {
         double gap = (clusterW - barW * nColSer) / 2.0;
 
         int colIdx = 0;
+        String labelFill = style.labelFill();
         for (SeriesData s : series) {
             if (!SeriesData.TYPE_COLUMN.equals(s.type)) continue;
             String fill = argbToRgba(s.color);
@@ -1342,16 +1354,15 @@ public class GuideSiteGraphRenderer {
                     .append(esc(buildChartTip(categories[ci], s.name, value)))
                     .append("</title></rect>");
                 if (labelPosition != ChartLabelPosition.NONE) {
-                    String labelFill = style.labelFill();
                     double labelX = bx + barW / 2;
-                    double labelY = by - 2;
+                    double labelY = by - LABEL_ABOVE_OFFSET;
                     switch (labelPosition) {
-                        case BELOW -> labelY = by + bh + 8;
-                        case INSIDE, CENTER -> labelY = by + bh / 2 + 3;
+                        case BELOW -> labelY = by + bh + LABEL_BELOW_OFFSET;
+                        case INSIDE, CENTER -> labelY = by + bh / 2 + LABEL_CENTER_OFFSET;
                         case OUTSIDE -> {
                             // Outside a bar that grows downwards means below it, as in the game.
                             if (value < 0) {
-                                labelY = by + bh + 8;
+                                labelY = by + bh + LABEL_BELOW_OFFSET;
                             }
                         }
                         default -> {
@@ -1506,7 +1517,7 @@ public class GuideSiteGraphRenderer {
         appendYAxis(svg, left, top, bottom);
         appendXAxis(svg, left, right, bottom);
         if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width());
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -1535,7 +1546,7 @@ public class GuideSiteGraphRenderer {
     public static String renderBarChart(int w, int h, int bgColor, int borderColor, String title, String[] categories,
         List<SeriesData> series, boolean showLegend) {
         ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
-            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE);
+            .withLegend(showLegend ? ChartLegendPosition.TOP : ChartLegendPosition.NONE);
         return renderBarChart(style, categories, series);
     }
 
@@ -1574,7 +1585,7 @@ public class GuideSiteGraphRenderer {
         int titleBottom = computeTitleBottom(title);
         LegendArea legend = legendArea(
             style,
-            series.size(),
+            seriesNames(series),
             PADDING + 36,
             w - PADDING,
             titleBottom,
@@ -1633,6 +1644,7 @@ public class GuideSiteGraphRenderer {
         }
 
         double xBase = left + Math.max(0, -xMin) / (xMax - xMin) * plotW;
+        String labelFill = style.labelFill();
         for (int si = 0; si < series.size(); si++) {
             SeriesData s = series.get(si);
             String fill = argbToRgba(s.color);
@@ -1670,12 +1682,11 @@ public class GuideSiteGraphRenderer {
                     .append(esc(buildChartTip(ci < categories.length ? categories[ci] : "", s.name, value)))
                     .append("</title></rect>");
                 if (labelPosition != ChartLabelPosition.NONE) {
-                    String labelFill = style.labelFill();
                     double barEnd = value >= 0 ? bx + bw : bx;
-                    double labelY = by + barH / 2 + 3;
+                    double labelY = by + barH / 2 + LABEL_CENTER_OFFSET;
                     switch (labelPosition) {
-                        case ABOVE -> labelY = by - 2;
-                        case BELOW -> labelY = by + barH + 8;
+                        case ABOVE -> labelY = by - LABEL_ABOVE_OFFSET;
+                        case BELOW -> labelY = by + barH + LABEL_BELOW_OFFSET;
                         case OUTSIDE -> {
                             // The label sits beyond the bar's end, on whichever side the bar grows.
                             double labelX = value >= 0 ? barEnd + 3 : barEnd - 3;
@@ -1704,7 +1715,7 @@ public class GuideSiteGraphRenderer {
         appendXAxis(svg, left, right, bottom);
 
         if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width());
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -1736,7 +1747,7 @@ public class GuideSiteGraphRenderer {
         CornerLegendPosition cornerLegendPosition, int cornerLegendWidth, int cornerLegendHeight,
         int cornerLegendBackgroundColor) {
         ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
-            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE);
+            .withLegend(showLegend ? ChartLegendPosition.TOP : ChartLegendPosition.NONE);
         return renderLineChart(
             style,
             categories,
@@ -1808,7 +1819,7 @@ public class GuideSiteGraphRenderer {
 
         LegendArea legend = legendArea(
             style,
-            series.size(),
+            seriesNames(series),
             PADDING + AXIS_PAD_LEFT,
             w - PADDING,
             computeTitleBottom(title),
@@ -1887,6 +1898,7 @@ public class GuideSiteGraphRenderer {
         }
 
         // Lines + optional points
+        String labelFill = style.labelFill();
         for (SeriesData s : series) {
             String stroke = argbToRgba(s.color);
             int len = Math.min(s.xs.length, s.ys.length);
@@ -1916,7 +1928,7 @@ public class GuideSiteGraphRenderer {
                     int px = left + (int) Math.round((s.xs[i] - xMin) / (xMax - xMin) * plotW);
                     int py = bottom - (int) Math.round((s.ys[i] - yMin) / (yMax - yMin) * plotH);
                     String pointTip = buildChartTip(
-                        numericX ? formatNum(s.xs[i])
+                        numericX ? formatChartValue(s.xs[i])
                             : ((int) s.xs[i] >= 0 && (int) s.xs[i] < categories.length ? categories[(int) s.xs[i]]
                                 : ""),
                         s.name,
@@ -1933,15 +1945,14 @@ public class GuideSiteGraphRenderer {
                 }
             }
             if (labelPosition != ChartLabelPosition.NONE) {
-                String labelFill = style.labelFill();
                 for (int i = 0; i < len; i++) {
                     int px = left + (int) Math.round((s.xs[i] - xMin) / (xMax - xMin) * plotW);
                     int py = bottom - (int) Math.round((s.ys[i] - yMin) / (yMax - yMin) * plotH);
                     int labelY;
                     switch (labelPosition) {
-                        case ABOVE, OUTSIDE -> labelY = py - 4;
-                        case BELOW -> labelY = py + 9;
-                        case CENTER, INSIDE -> labelY = py + 3;
+                        case ABOVE, OUTSIDE -> labelY = py - LABEL_ABOVE_OFFSET;
+                        case BELOW -> labelY = py + LABEL_BELOW_OFFSET;
+                        case CENTER, INSIDE -> labelY = py + LABEL_CENTER_OFFSET;
                         default -> {
                             continue;
                         }
@@ -1966,7 +1977,7 @@ public class GuideSiteGraphRenderer {
             cornerLegendBackgroundColor,
             true);
         if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width());
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -1977,7 +1988,7 @@ public class GuideSiteGraphRenderer {
     public static String renderPieChart(int w, int h, int bgColor, int borderColor, String title,
         List<SliceData> slices, boolean showLegend) {
         ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
-            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE);
+            .withLegend(showLegend ? ChartLegendPosition.TOP : ChartLegendPosition.NONE);
         return renderPieChart(style, slices);
     }
 
@@ -2006,7 +2017,7 @@ public class GuideSiteGraphRenderer {
         }
         LegendArea legend = legendArea(
             style,
-            legendItems.size(),
+            seriesNames(legendItems),
             PADDING,
             w - PADDING,
             computeTitleBottom(title),
@@ -2030,6 +2041,7 @@ public class GuideSiteGraphRenderer {
 
         // Draw slices (startAngle = -90 deg = top, clockwise)
         double startAngle = -Math.PI / 2;
+        String labelFill = style.labelFill();
         for (SliceData s : slices) {
             double sweep = (s.value / total) * 2 * Math.PI;
             double endAngle = startAngle + sweep;
@@ -2063,30 +2075,36 @@ public class GuideSiteGraphRenderer {
                 .append(argbToRgba(bgColor))
                 .append("\" stroke-width=\"0.5\"><title>")
                 .append(
-                    esc(s.label + ": " + formatNum(s.value) + " (" + String.format(Locale.ROOT, "%.1f", pct) + "%)"))
+                    esc(
+                        s.label + ": "
+                            + formatChartValue(s.value)
+                            + " ("
+                            + String.format(Locale.ROOT, "%.1f", pct)
+                            + "%)"))
                 .append("</title></path>");
             if (labelPosition != ChartLabelPosition.NONE) {
                 // Outside, above and below sit past the rim; inside and centre keep the label in the wedge.
                 boolean outside = labelPosition == ChartLabelPosition.OUTSIDE
                     || labelPosition == ChartLabelPosition.ABOVE
                     || labelPosition == ChartLabelPosition.BELOW;
-                String text = outside ? s.label + " " + String.format(Locale.ROOT, "%.1f%%", pct)
-                    : String.format(Locale.ROOT, "%.1f%%", pct);
+                String percent = formatChartPercent(s.value / total);
+                String text = outside ? s.label + " " + percent : percent;
                 double mid = (startAngle + endAngle) / 2;
                 double labelR = outside ? r + 4 : r * 0.6;
-                appendText(
-                    svg,
-                    Math.clamp((int) Math.round(cx + Math.cos(mid) * labelR), left, Math.max(left, right - 1)),
-                    Math.clamp((int) Math.round(cy + Math.sin(mid) * labelR) + 3, top, bottom),
-                    "middle",
-                    text,
-                    style.labelFill());
+                // The label is placed by its box, not by its anchor, so a slice pointing sideways keeps its
+                // text inside the plot instead of spilling over the page.
+                int textWidth = approximateTextWidth(text);
+                double labelX = Math
+                    .clamp(cx + Math.cos(mid) * labelR - textWidth / 2.0, left, Math.max(left, right - textWidth));
+                double labelY = Math
+                    .clamp(cy + Math.sin(mid) * labelR + LABEL_CENTER_OFFSET, top + CHART_TEXT_SIZE, bottom);
+                appendText(svg, labelX, labelY, "start", text, style.labelFill());
             }
             startAngle = endAngle;
         }
 
         if (!slices.isEmpty() && legend.width() > 0) {
-            renderLegend(svg, legendItems, legend.x(), legend.y(), legend.width());
+            renderLegend(svg, legendItems, legend.x(), legend.y(), legend.width(), legend.limit());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -2114,7 +2132,7 @@ public class GuideSiteGraphRenderer {
         List<SeriesData> series, boolean showLegend, CornerLegendPosition cornerLegendPosition, int cornerLegendWidth,
         int cornerLegendHeight, int cornerLegendBackgroundColor) {
         ChartStyle style = ChartStyle.of(w, h, bgColor, borderColor, title)
-            .withLegend(showLegend ? ChartLegendPosition.BOTTOM : ChartLegendPosition.NONE);
+            .withLegend(showLegend ? ChartLegendPosition.TOP : ChartLegendPosition.NONE);
         return renderScatterChart(
             style,
             series,
@@ -2176,7 +2194,7 @@ public class GuideSiteGraphRenderer {
 
         LegendArea legend = legendArea(
             style,
-            series.size(),
+            seriesNames(series),
             PADDING + AXIS_PAD_LEFT,
             w - PADDING,
             computeTitleBottom(title),
@@ -2218,6 +2236,7 @@ public class GuideSiteGraphRenderer {
         appendYGridAndLabels(svg, left, right, top, bottom, plotH, yMin, yMax);
 
         // Scatter points
+        String labelFill = style.labelFill();
         for (SeriesData s : series) {
             String fill = argbToRgba(s.color);
             int len = Math.min(s.xs.length, s.ys.length);
@@ -2234,16 +2253,16 @@ public class GuideSiteGraphRenderer {
                     .append(
                         esc(
                             (s.name.isEmpty() ? "" : s.name + ": ") + "("
-                                + formatNum(s.xs[i])
+                                + formatChartValue(s.xs[i])
                                 + ", "
-                                + formatNum(s.ys[i])
+                                + formatChartValue(s.ys[i])
                                 + ")"))
                     .append("</title></circle>");
                 if (labelPosition != ChartLabelPosition.NONE) {
                     int labelY;
                     switch (labelPosition) {
-                        case ABOVE, OUTSIDE -> labelY = py - 4;
-                        case BELOW -> labelY = py + 9;
+                        case ABOVE, OUTSIDE -> labelY = py - LABEL_ABOVE_OFFSET;
+                        case BELOW -> labelY = py + LABEL_BELOW_OFFSET;
                         default -> {
                             continue;
                         }
@@ -2254,7 +2273,7 @@ public class GuideSiteGraphRenderer {
                         labelY,
                         "middle",
                         "(" + formatChartValue(s.xs[i]) + "," + formatChartValue(s.ys[i]) + ")",
-                        style.labelFill());
+                        labelFill);
                 }
             }
         }
@@ -2274,7 +2293,7 @@ public class GuideSiteGraphRenderer {
             cornerLegendBackgroundColor,
             false);
         if (legend.width() > 0) {
-            renderLegend(svg, series, legend.x(), legend.y(), legend.width());
+            renderLegend(svg, series, legend.x(), legend.y(), legend.width(), legend.limit());
         }
         return svg.append("</svg></div>")
             .toString();
@@ -2668,7 +2687,13 @@ public class GuideSiteGraphRenderer {
             cornerLegendHeight,
             cornerLegendBackgroundColor);
         if (!legendItems.isEmpty()) {
-            renderLegend(svg, legendItems, left, bottom + bottomPad + LEGEND_GAP, w - 2 * PADDING);
+            renderLegend(
+                svg,
+                legendItems,
+                left,
+                bottom + bottomPad + LEGEND_GAP,
+                w - 2 * PADDING,
+                bottom + bottomPad + legendH);
         }
         appendFunctionGraphLabel(
             svg,
@@ -3275,7 +3300,7 @@ public class GuideSiteGraphRenderer {
         if (!sb.isEmpty()) {
             sb.append(": ");
         }
-        sb.append(formatNum(value));
+        sb.append(formatChartValue(value));
         return sb.toString();
     }
 
@@ -3392,21 +3417,28 @@ public class GuideSiteGraphRenderer {
      * Reserves the space a legend needs and reports where to draw it, so no chart overlaps its own
      * legend. The reserved side follows the in-game attribute: top, bottom, left or right of the plot.
      *
-     * @param plotLeft   left edge of the plot area before the reservation
-     * @param plotRight  right edge of the plot area before the reservation
-     * @param plotTop    top edge of the plot area before the reservation
-     * @param plotBottom bottom edge of the plot area before the reservation, axis labels included
+     * <p>
+     * A side legend is as wide as its longest name, and every legend stops at the last row that still
+     * fits, so a chart with many series cannot push its legend over the plot or out of the frame.
+     *
+     * @param legendNames names the legend lists, in order
+     * @param plotLeft    left edge of the plot area before the reservation
+     * @param plotRight   right edge of the plot area before the reservation
+     * @param plotTop     top edge of the plot area before the reservation
+     * @param plotBottom  bottom edge of the plot area before the reservation, axis labels included
      */
-    private static LegendArea legendArea(ChartStyle style, int itemCount, int plotLeft, int plotRight, int plotTop,
-        int plotBottom) {
+    private static LegendArea legendArea(ChartStyle style, List<String> legendNames, int plotLeft, int plotRight,
+        int plotTop, int plotBottom) {
+        int itemCount = legendNames != null ? legendNames.size() : 0;
         if (!style.showsLegend() || itemCount <= 0 || plotRight <= plotLeft || plotBottom <= plotTop) {
-            return new LegendArea(plotLeft, plotRight, plotTop, plotBottom, 0, 0, 0);
+            return new LegendArea(plotLeft, plotRight, plotTop, plotBottom, 0, 0, 0, 0);
         }
         int availW = Math.max(1, plotRight - plotLeft);
-        int itemW = Math.clamp(availW / itemCount, 60, 100);
-        int cols = Math.max(1, availW / itemW);
+        int itemW = Math.clamp(availW / itemCount, legendItemWidth(legendNames), 100 + 4 * CHART_TEXT_SIZE);
+        int cols = Math.max(1, availW / Math.max(1, itemW));
         int rows = (int) Math.ceil((double) itemCount / cols);
         int rowsH = rows * (LEGEND_ROW_H + 2);
+        int sideWidth = sideLegendWidth(legendNames);
         return switch (style.legendPosition()) {
             case TOP -> new LegendArea(
                 plotLeft,
@@ -3415,23 +3447,26 @@ public class GuideSiteGraphRenderer {
                 plotBottom,
                 plotLeft,
                 plotTop,
-                availW);
+                availW,
+                plotTop + rowsH + LEGEND_GAP);
             case LEFT -> new LegendArea(
-                plotLeft + SIDE_LEGEND_WIDTH,
+                plotLeft + sideWidth,
                 plotRight,
                 plotTop,
                 plotBottom,
                 Math.max(PADDING, plotLeft - AXIS_PAD_LEFT),
                 plotTop,
-                Math.max(LEGEND_SWATCH + LEGEND_GAP, SIDE_LEGEND_WIDTH - LEGEND_GAP));
+                Math.max(LEGEND_SWATCH + LEGEND_GAP, sideWidth - LEGEND_GAP),
+                plotBottom);
             case RIGHT -> new LegendArea(
                 plotLeft,
-                Math.max(plotLeft + 1, plotRight - SIDE_LEGEND_WIDTH),
+                Math.max(plotLeft + 1, plotRight - sideWidth),
                 plotTop,
                 plotBottom,
-                plotRight - SIDE_LEGEND_WIDTH + LEGEND_GAP,
+                plotRight - sideWidth + LEGEND_GAP,
                 plotTop,
-                Math.max(LEGEND_SWATCH + LEGEND_GAP, SIDE_LEGEND_WIDTH - LEGEND_GAP));
+                Math.max(LEGEND_SWATCH + LEGEND_GAP, sideWidth - LEGEND_GAP),
+                plotBottom);
             default -> new LegendArea(
                 plotLeft,
                 plotRight,
@@ -3439,8 +3474,29 @@ public class GuideSiteGraphRenderer {
                 plotBottom - rowsH - LEGEND_GAP,
                 plotLeft,
                 plotBottom - rowsH,
-                availW);
+                availW,
+                plotBottom);
         };
+    }
+
+    /** Width one legend entry needs for its name, so a row never runs into the next one. */
+    private static int legendItemWidth(List<String> legendNames) {
+        int longest = 0;
+        for (String name : legendNames) {
+            longest = Math.max(longest, approximateTextWidth(name));
+        }
+        return LEGEND_SWATCH + LEGEND_GAP + longest + LEGEND_GAP;
+    }
+
+    /** Width the legend column takes when the legend sits at the left or right of a chart. */
+    private static int sideLegendWidth(List<String> legendNames) {
+        int needed = legendItemWidth(legendNames);
+        return Math.clamp(needed, 6 * CHART_TEXT_SIZE, 18 * CHART_TEXT_SIZE);
+    }
+
+    /** Width the chart text takes, measured with the average character width of that font. */
+    private static int approximateTextWidth(String text) {
+        return text != null ? text.length() * CHART_CHAR_WIDTH : 0;
     }
 
     /** Draws one value label at the position the in-game charts use for it. */
@@ -3455,6 +3511,23 @@ public class GuideSiteGraphRenderer {
             return Long.toString((long) Math.rint(value));
         }
         return String.format(Locale.ROOT, "%.2f", value);
+    }
+
+    /** Formats a ratio as a percentage, with the same guard the in-game charts use for a broken value. */
+    private static String formatChartPercent(double ratio) {
+        if (Double.isNaN(ratio) || Double.isInfinite(ratio)) {
+            return "0%";
+        }
+        return String.format(Locale.ROOT, "%.1f%%", ratio * 100d);
+    }
+
+    /** Names a legend lists, in the order the chart draws them. */
+    private static List<String> seriesNames(List<SeriesData> series) {
+        List<String> names = new ArrayList<>(series.size());
+        for (SeriesData entry : series) {
+            names.add(entry.name);
+        }
+        return names;
     }
 
     /** Draws one chart label with the typography the exported charts share. */
@@ -3472,7 +3545,7 @@ public class GuideSiteGraphRenderer {
             .append("</text>");
     }
 
-    private static void renderLegend(StringBuilder svg, List<SeriesData> series, int x, int y, int availW) {
+    private static void renderLegend(StringBuilder svg, List<SeriesData> series, int x, int y, int availW, int limit) {
         int itemW = Math.clamp(availW / Math.max(1, series.size()), 60, 100);
         int maxCols = Math.max(1, availW / itemW);
         int col = 0;
@@ -3483,6 +3556,9 @@ public class GuideSiteGraphRenderer {
                 col = 0;
                 curX = x;
                 curY += LEGEND_ROW_H + 2;
+            }
+            if (limit > 0 && curY + LEGEND_ROW_H > limit) {
+                return;
             }
             svg.append("<rect x=\"")
                 .append(curX)

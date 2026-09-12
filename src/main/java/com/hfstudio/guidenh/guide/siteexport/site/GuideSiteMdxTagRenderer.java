@@ -1732,11 +1732,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     /**
-     * Legend visibility, taken from the in-game {@code legend} attribute. Charts hide their legend with
-     * {@code legend="none"}; the export-only {@code showLegend} flag is still honoured when
-     * {@code legend} is absent so pages written against it keep working.
-     */
-    /**
      * Builds the presentation a chart shares from its attributes: size, frame, title, legend placement
      * and value label style. The legend position comes from the in-game {@code legend} attribute; the
      * export-only {@code showLegend} flag is still honoured when {@code legend} is absent, so pages

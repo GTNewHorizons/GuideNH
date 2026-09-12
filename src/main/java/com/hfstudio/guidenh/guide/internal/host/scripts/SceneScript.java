@@ -599,12 +599,14 @@ public class SceneScript implements LytScript {
         for (UnistNode child : el.children()) {
             MdxJsxElementFields entry = SceneTagCompiler.unwrapSceneElement(child);
             if (entry == null) {
+                // Text, an expression or a paragraph holding several nodes is not a row either, so a child
+                // that is not a <BlockStat> is reported whatever form it takes.
+                reportIgnoredBlockStatsChild(describeSceneChild(child));
                 continue;
             }
             if (!"BlockStat".equals(entry.name())) {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH] [SceneScript] <BlockStats> ignores <{}>: only <BlockStat> rows are listed",
-                    entry.name());
+                String name = entry.name();
+                reportIgnoredBlockStatsChild(name != null ? "<" + name + ">" : "a fragment without a name");
                 continue;
             }
             String id = entry.getAttributeString("item", entry.getAttributeString("id", null));
@@ -631,6 +633,23 @@ public class SceneScript implements LytScript {
             added++;
         }
         return added;
+    }
+
+    private static void reportIgnoredBlockStatsChild(String description) {
+        if (description.isEmpty()) {
+            return;
+        }
+        GuideDebugLog.warnAlways(
+            "[GuideNH] [SceneScript] <BlockStats> ignores {}: only <BlockStat> rows are listed",
+            description);
+    }
+
+    /** Names a child of a configuration element, so the author knows what was ignored. */
+    private static String describeSceneChild(@Nullable UnistNode child) {
+        if (child == null) {
+            return "";
+        }
+        return "<" + child.type() + ">";
     }
 
     @Nullable

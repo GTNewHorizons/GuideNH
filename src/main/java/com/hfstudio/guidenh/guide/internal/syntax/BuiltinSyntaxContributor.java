@@ -1402,7 +1402,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
                 "title=\""),
             InsertTemplate.caretAfter(
                 "PieChart",
-                "<PieChart title=\"Share\" width=\"320\" height=\"220\">\n  <Slice label=\"A\" value=\"1\" />\n</PieChart>",
+                "<PieChart title=\"Share\" width=\"320\" height=\"220\">\n  <Slice name=\"A\" value=\"1\" />\n</PieChart>",
                 "title=\""),
             InsertTemplate.caretAfter(
                 "FunctionGraph",
