@@ -11,6 +11,12 @@ There are two ways in, and you normally want both.
 The editor lists the tag names of every registered `TagCompiler` and `SceneElementTagCompiler`. If your
 mod already registers a tag compiler, its tags are offered in the editor with no extra work:
 
+A `TagCompiler` can be registered for every guide through
+`GuideNhIntegrationRegistry.registerTagCompilerProvider(...)`, and a `SceneElementTagCompiler` through
+`registerSceneElementTagCompilerProvider(...)`; both can also be added to one guide with
+`GuideBuilder.extension(...)`. A provider is read when a guide is built, so register it while your mod is
+loading rather than while someone is reading.
+
 ```java
 public class MyModMachineTagCompiler implements TagCompiler {
 
@@ -266,3 +272,40 @@ when it offers no values, so this mod never guesses inside text another mod clai
 
 Candidates are ranked so the popup pre-selects the closest match: an exact prefix first, then a match on
 the identifier after the namespace, then a match anywhere in the name.
+
+## 8. What you can extend, and what you cannot yet
+
+Everything on this page is a registry, and a registered plugin is only read when a guide is built or a page
+compiled, so register during mod loading.
+
+| You want to | Use |
+| --- | --- |
+| Add a tag, a scene element, an attribute, a value kind and its values | `TagCompiler`, `SceneElementTagCompiler`, `SyntaxContributor`, `SyntaxValueSource` |
+| Complete syntax of your own (your own slot, your own writer, double-click range) | `SyntaxSlot` |
+| Make a tag complete as a whole form | `sink.insertTemplates(...)` |
+| Add markdown snippets, fence names, frontmatter keys and values | `SyntaxContributor` |
+| Add a symbolic colour name | `SymbolicColorResolver` (per guide) or `registerSymbolicColorResolver` |
+| Add a page index | `GuideBuilder.index(...)` / `GuideBuilderIntegrationHook` |
+| Export your tags to the site | `GuideSiteTagRenderer` (see [Mod Compatibility](Mod-Compatibility)) |
+| Add a scene editor toolbar button or menu item | `SceneEditorToolbarRegistry` / `SceneEditorMenuRegistry` |
+| Add a resource to the exported site | `ExportableResourceProvider` on your node |
+
+Deliberately closed, with what it costs you:
+
+- The guide editor's toolbar and insert menu are a fixed set. A contributed tag is insertable through
+  completion and through insert templates, but it cannot add its own button yet.
+- The site export renders its own tags with a built-in chain. A registered renderer is asked first, so your
+  tags export, but the built-in chain itself is not a set of registered renderers yet.
+- Code fence **names** are contributed; what a fence **body** means is not. A body language of your own is
+  shown as a plain code block.
+- Scene annotations of your own render in the book but are not serialized into the exported site's viewer.
+
+Conventions that matter for a plugin:
+
+- Give your `SyntaxValueKind` a mod-namespaced id (`"MYMOD_MACHINE"`). Kinds route to value sources by that
+  id alone; the quoting hint belongs to the attribute that declares the value.
+- Return what the document really holds from `SyntaxSlot.match`: the editor re-checks the text before it
+  writes, and a normalized form drops the commit.
+- A plugin that throws is reported with its namespace and skipped, so a failure costs your own
+  contributions rather than the editor.
+

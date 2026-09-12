@@ -10,6 +10,10 @@ frontmatter 键。这些**全部来自注册表**，没有任何硬编码：你�
 编辑器会列出所有已注册 `TagCompiler` 与 `SceneElementTagCompiler` 的 `getTagNames()`。如果你的模组
 已经注册了标签解析器，它的标签会自动出现在补全里，不需要额外写任何补全代码：
 
+`TagCompiler` 可以通过 `GuideNhIntegrationRegistry.registerTagCompilerProvider(...)` 对所有指南注册，
+`SceneElementTagCompiler` 则通过 `registerSceneElementTagCompilerProvider(...)`；两者也可以用
+`GuideBuilder.extension(...)` 只加到某个指南上。provider 只在构建指南时被读取，因此请在模组加载阶段注册。
+
 ```java
 public class MyModMachineTagCompiler implements TagCompiler {
 
@@ -259,3 +263,33 @@ Guide.builder(id).extension(SyntaxSlot.EXTENSION_POINT, new MyModSlot()).build()
 
 候选项会排序，弹窗默认选中最近的一个：先精确前缀，再匹配命名空间之后的标识，最后才是名称中任意位置
 匹配。
+
+## 8. 可扩展的范围，以及目前还不行的地方
+
+本页所有内容都是注册表；注册进去的插件只在构建指南或编译页面时被读取，因此请在模组加载阶段注册。
+
+| 你想做的事 | 用什么 |
+| --- | --- |
+| 新增标签、场景元素、属性、取值类型及其取值 | `TagCompiler`、`SceneElementTagCompiler`、`SyntaxContributor`、`SyntaxValueSource` |
+| 补全你自己的语法（自己的槽位、自己的写入方式、双击范围） | `SyntaxSlot` |
+| 让某个标签一次性补全成完整形式 | `sink.insertTemplates(...)` |
+| 新增 Markdown 片段、围栏名、frontmatter 键与取值 | `SyntaxContributor` |
+| 新增符号颜色名 | `SymbolicColorResolver`（单指南）或 `registerSymbolicColorResolver`（全局） |
+| 新增页面索引 | `GuideBuilder.index(...)` / `GuideBuilderIntegrationHook` |
+| 把自己的标签导出到站点 | `GuideSiteTagRenderer`（见 [模组兼容](Mod-Compatibility-zh-CN)） |
+| 给场景编辑器加工具栏按钮或菜单项 | `SceneEditorToolbarRegistry` / `SceneEditorMenuRegistry` |
+| 让导出站点多一份资源 | 在你的节点上实现 `ExportableResourceProvider` |
+
+刻意保持封闭的部分，以及代价：
+
+- 指南编辑器的工具栏与插入菜单是固定集合。第三方标签可以通过补全和插入模板插入，但暂时无法添加自己的按钮。
+- 站点导出用自己的内置链渲染自带标签。注册的渲染器会先被询问，所以你的标签能导出；但内置链本身还不是一组注册式渲染器。
+- 代码围栏**名字**可以贡献，围栏**内容**的含义不行。你自己的围栏语言会按普通代码块显示。
+- 你自己的场景注解能在书内渲染，但不会被序列化进导出站点的查看器。
+
+插件需要注意的约定：
+
+- `SyntaxValueKind` 的 id 请带你的模组命名空间（如 `"MYMOD_MACHINE"`）。取值来源只按 id 路由；是否需要引号属于声明该属性的那一方。
+- `SyntaxSlot.match` 请返回文档里真实存在的那段文本：编辑器写入前会重新核对，规范化后的形式会让这次确认被丢弃。
+- 插件抛异常会被记录（带命名空间）并跳过，因此失败只影响你自己的贡献，不会拖垮编辑器。
+
