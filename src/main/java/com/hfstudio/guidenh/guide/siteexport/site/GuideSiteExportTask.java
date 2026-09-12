@@ -1484,6 +1484,13 @@ public class GuideSiteExportTask {
         return left * right;
     }
 
+    /**
+     * Hands the exported scenes to the renderer in the order the page declares them.
+     *
+     * <p>
+     * A scene that failed to export is not handed out at all: the renderer counts the scenes it is given,
+     * so yielding a scene the page cannot show would put every later one on the wrong element.
+     */
     private GuideSiteHtmlCompiler.SceneResolver createSceneResolver(List<GuideSiteExportedScene> exportedScenes) {
         return new GuideSiteHtmlCompiler.SceneResolver() {
 
@@ -1491,10 +1498,13 @@ public class GuideSiteExportTask {
 
             @Override
             public GuideSiteExportedScene nextScene() {
-                if (index >= exportedScenes.size()) {
-                    return null;
+                while (index < exportedScenes.size()) {
+                    GuideSiteExportedScene scene = exportedScenes.get(index++);
+                    if (scene != null) {
+                        return scene;
+                    }
                 }
-                return exportedScenes.get(index++);
+                return null;
             }
         };
     }

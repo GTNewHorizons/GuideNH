@@ -19,6 +19,7 @@ import com.hfstudio.guidenh.guide.color.SymbolicColorResolver;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTagRenderer;
 import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSlot;
@@ -815,6 +816,21 @@ public class GuideNhIntegrationRegistry {
         }
     }
 
+    /**
+     * Reports a provider of another mod that failed.
+     *
+     * <p>
+     * These lookups run while a scene is drawn, so a provider must never be able to stop the frame; a
+     * failure only skips that provider.
+     */
+    private static void reportProviderFailure(Object provider, RuntimeException failure) {
+        GuideDebugLog.error(
+            "[GuideNH] [Integration] {} failed: {}",
+            provider.getClass()
+                .getSimpleName(),
+            failure.toString());
+    }
+
     public List<GuideBlockStatsStackResolver.ResolvedStack> resolveBlockStatsEntries(GuidebookLevel level, Block block,
         @Nullable TileEntity tileEntity, int x, int y, int z, @Nullable AxisAlignedBB fallbackBounds) {
         if (level == null || block == null) {
@@ -822,7 +838,11 @@ public class GuideNhIntegrationRegistry {
         }
         ArrayList<GuideBlockStatsStackResolver.ResolvedStack> entries = new ArrayList<>(4);
         for (BlockStatsProvider provider : blockStatsProviders()) {
-            provider.appendBlockStatsEntries(level, block, tileEntity, x, y, z, fallbackBounds, entries);
+            try {
+                provider.appendBlockStatsEntries(level, block, tileEntity, x, y, z, fallbackBounds, entries);
+            } catch (RuntimeException e) {
+                reportProviderFailure(provider, e);
+            }
             if (!entries.isEmpty()) {
                 return entries;
             }
@@ -837,7 +857,13 @@ public class GuideNhIntegrationRegistry {
         }
         ItemStack current = stack;
         for (ItemStackNormalizationProvider provider : itemStackNormalizationProviders()) {
-            ItemStack normalized = provider.normalize(current);
+            ItemStack normalized;
+            try {
+                normalized = provider.normalize(current);
+            } catch (RuntimeException e) {
+                reportProviderFailure(provider, e);
+                continue;
+            }
             if (normalized != null && normalized.getItem() != null) {
                 current = normalized;
             }
@@ -852,7 +878,13 @@ public class GuideNhIntegrationRegistry {
             return null;
         }
         for (BlockDisplayProvider provider : blockDisplayProviders()) {
-            ItemStack stack = provider.resolveDisplayStack(level, block, x, y, z, target);
+            ItemStack stack;
+            try {
+                stack = provider.resolveDisplayStack(level, block, x, y, z, target);
+            } catch (RuntimeException e) {
+                reportProviderFailure(provider, e);
+                continue;
+            }
             if (stack != null) {
                 return stack;
             }
@@ -867,7 +899,13 @@ public class GuideNhIntegrationRegistry {
             return null;
         }
         for (BlockDisplayNameProvider provider : blockDisplayNameProviders()) {
-            String displayName = provider.resolveDisplayName(level, block, x, y, z, target);
+            String displayName;
+            try {
+                displayName = provider.resolveDisplayName(level, block, x, y, z, target);
+            } catch (RuntimeException e) {
+                reportProviderFailure(provider, e);
+                continue;
+            }
             if (displayName != null) {
                 return displayName;
             }
