@@ -50,7 +50,6 @@ public class GuideNhIntegrationRegistry {
     private final List<RecipeAnimationUpdateProvider> recipeAnimationUpdateProviders = new ArrayList<>();
     private final List<RecipeHandlerMetadataProvider> recipeHandlerMetadataProviders = new ArrayList<>();
     private final List<RecipeHandlerSlotProvider> recipeHandlerSlotProviders = new ArrayList<>();
-    private final List<RecipeAvailabilityProvider> recipeAvailabilityProviders = new ArrayList<>();
     private final List<RecipeDrawableRenderProvider> recipeDrawableRenderProviders = new ArrayList<>();
     private final List<RecipeHandlerRenderProvider> recipeHandlerRenderProviders = new ArrayList<>();
     private final List<BlockStatsProvider> blockStatsProviders = new ArrayList<>();
@@ -394,19 +393,6 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(recipeHandlerSlotProviders);
     }
 
-    public synchronized void registerRecipeAvailabilityProvider(RecipeAvailabilityProvider provider) {
-        if (provider == null) {
-            throw new IllegalArgumentException("provider");
-        }
-        if (!recipeAvailabilityProviders.contains(provider)) {
-            recipeAvailabilityProviders.add(provider);
-        }
-    }
-
-    public synchronized List<RecipeAvailabilityProvider> recipeAvailabilityProviders() {
-        return List.copyOf(recipeAvailabilityProviders);
-    }
-
     public synchronized void registerRecipeDrawableRenderProvider(RecipeDrawableRenderProvider provider) {
         if (provider == null) {
             throw new IllegalArgumentException("provider");
@@ -504,12 +490,7 @@ public class GuideNhIntegrationRegistry {
     }
 
     public boolean isRecipeIntegrationAvailable() {
-        for (RecipeAvailabilityProvider provider : recipeAvailabilityProviders()) {
-            if (provider.isRecipeIntegrationAvailable()) {
-                return true;
-            }
-        }
-        return false;
+        return !recipeHandlerRenderProviders().isEmpty();
     }
 
     public boolean drawRecipeDrawable(@Nullable Object drawable, int x, int y) {

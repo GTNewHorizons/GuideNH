@@ -12,10 +12,6 @@ import com.hfstudio.guidenh.integration.Mods;
 
 public class NeiRecipeLookup {
 
-    public static boolean isAvailable() {
-        return Mods.NotEnoughItems.isModLoaded();
-    }
-
     public static class Slot {
 
         public final int relx;

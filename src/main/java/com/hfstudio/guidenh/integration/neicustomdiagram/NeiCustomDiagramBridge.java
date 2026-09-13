@@ -68,10 +68,10 @@ public class NeiCustomDiagramBridge {
             return;
         }
         Diagram diagram = diagramAt(diagramGroup, recipeIndex);
-        DiagramState diagramState = diagramState(diagramGroup);
-        if (diagram == null || diagramState == null) {
+        if (diagram == null) {
             return;
         }
+        DiagramState diagramState = ((AccessorDiagramGroup) diagramGroup).getDiagramState();
 
         Minecraft mc = Minecraft.getMinecraft();
         ScaledResolution sr = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
@@ -119,10 +119,10 @@ public class NeiCustomDiagramBridge {
             return null;
         }
         Diagram diagram = diagramAt(diagramGroup, recipeIndex);
-        DiagramState diagramState = diagramState(diagramGroup);
-        if (diagram == null || diagramState == null) {
+        if (diagram == null) {
             return null;
         }
+        DiagramState diagramState = ((AccessorDiagramGroup) diagramGroup).getDiagramState();
 
         try {
             Interactable hovered = findHoveredInteractable(diagram, diagramState, localMouseX, localMouseY);
@@ -142,14 +142,8 @@ public class NeiCustomDiagramBridge {
 
     private static void renderForeground(Diagram diagram, DiagramState diagramState, int clipX, int clipY,
         int clipWidth, int clipHeight) {
-        Iterable<Interactable> interactables = diagram.interactables(diagramState);
-        if (interactables == null) {
-            diagram.drawForeground(diagramState);
-            return;
-        }
-
-        for (Interactable interactable : interactables) {
-            if (interactable == null || interactable instanceof Slot) {
+        for (Interactable interactable : diagram.interactables(diagramState)) {
+            if (interactable instanceof Slot) {
                 continue;
             }
 
@@ -192,9 +186,6 @@ public class NeiCustomDiagramBridge {
 
     private static void renderDisplayComponent(DisplayComponent displayComponent, Point position, int clipX, int clipY,
         int clipWidth, int clipHeight) {
-        if (displayComponent == null) {
-            return;
-        }
         if (displayComponent.stack() instanceof ItemStack stack) {
             reapplyClipState(clipX, clipY, clipWidth, clipHeight);
             NeiHandlerRenderer.drawItemIcon(stack, position.x() - 8, position.y() - 8);
@@ -207,9 +198,6 @@ public class NeiCustomDiagramBridge {
 
     private static void renderComponent(Component component, Point position, int clipX, int clipY, int clipWidth,
         int clipHeight) {
-        if (component == null) {
-            return;
-        }
         if (component.stack() instanceof ItemStack stack) {
             reapplyClipState(clipX, clipY, clipWidth, clipHeight);
             NeiHandlerRenderer.drawItemIcon(stack, position.x() - 8, position.y() - 8);
@@ -221,14 +209,13 @@ public class NeiCustomDiagramBridge {
 
     private static void renderDisplayComponentDecorations(DisplayComponent displayComponent, Point position) {
         var stackSize = displayComponent.stackSize();
-        if (stackSize != null && stackSize.isPresent() && shouldDrawStackSize(stackSize.get())) {
+        if (stackSize.isPresent() && shouldDrawStackSize(stackSize.get())) {
             Draw.drawStackSize(stackSize.get(), position);
         }
 
         var additionalInfo = displayComponent.additionalInfo();
-        if (additionalInfo != null && additionalInfo.isPresent()
-            && !additionalInfo.get()
-                .isEmpty()) {
+        if (additionalInfo.isPresent() && !additionalInfo.get()
+            .isEmpty()) {
             Draw.drawAdditionalInfo(additionalInfo.get(), position, true);
         }
     }
@@ -246,10 +233,6 @@ public class NeiCustomDiagramBridge {
     private static GuideTooltip tooltipForInteractiveComponentGroup(InteractiveComponentGroup hovered,
         DiagramState diagramState) {
         DisplayComponent displayComponent = hovered.currentComponent(diagramState);
-        if (displayComponent == null) {
-            return null;
-        }
-
         ItemStack stack = displayComponent.stack() instanceof ItemStack itemStack && itemStack.stackSize > 0 ? itemStack
             : null;
         List<String> extraLines = new ArrayList<>();
@@ -269,13 +252,9 @@ public class NeiCustomDiagramBridge {
 
     private static Interactable findHoveredInteractable(Diagram diagram, DiagramState diagramState, int localMouseX,
         int localMouseY) {
-        Iterable<Interactable> interactables = diagram.interactables(diagramState);
-        if (interactables == null) {
-            return null;
-        }
         Point point = Point.create(localMouseX, localMouseY);
-        for (Interactable interactable : interactables) {
-            if (interactable != null && interactable.checkBoundingBox(point)) {
+        for (Interactable interactable : diagram.interactables(diagramState)) {
+            if (interactable.checkBoundingBox(point)) {
                 return interactable;
             }
         }
@@ -299,16 +278,9 @@ public class NeiCustomDiagramBridge {
     }
 
     private static List<String> flattenTooltip(Tooltip tooltip) {
-        if (tooltip == null) {
-            return List.of();
-        }
         try {
-            ImmutableList<TooltipLine> lines = tooltip.lines();
-            if (lines == null) {
-                return List.of();
-            }
             List<String> flattened = new ArrayList<>();
-            for (TooltipLine line : lines) {
+            for (TooltipLine line : tooltip.lines()) {
                 String text = flattenTooltipLine(line);
                 if (!text.isEmpty()) {
                     flattened.add(text);
@@ -321,18 +293,16 @@ public class NeiCustomDiagramBridge {
     }
 
     private static String flattenTooltipLine(TooltipLine line) {
-        ImmutableList<TooltipElement> elements = line.elements();
-        if (elements == null) {
-            return "";
-        }
         StringBuilder builder = new StringBuilder();
-        for (TooltipElement element : elements) {
+        for (TooltipElement element : line.elements()) {
             TooltipElement.ElementType type = element.type();
             if (type == TooltipElement.ElementType.TEXT) {
                 appendToken(builder, element.text());
             } else if (type == TooltipElement.ElementType.COMPONENT_DESCRIPTION) {
-                Component component = element.componentDescription();
-                appendToken(builder, component == null ? "" : component.description());
+                appendToken(
+                    builder,
+                    element.componentDescription()
+                        .description());
             }
             if (type == TooltipElement.ElementType.SPACING && !builder.isEmpty()
                 && builder.charAt(builder.length() - 1) != ' ') {
@@ -344,9 +314,6 @@ public class NeiCustomDiagramBridge {
     }
 
     private static void appendToken(StringBuilder builder, String token) {
-        if (token == null) {
-            return;
-        }
         String trimmed = token.trim();
         if (trimmed.isEmpty()) {
             return;
@@ -364,11 +331,6 @@ public class NeiCustomDiagramBridge {
             return null;
         }
         return diagrams.get(recipeIndex);
-    }
-
-    @Nullable
-    private static DiagramState diagramState(DiagramGroup diagramGroup) {
-        return ((AccessorDiagramGroup) diagramGroup).getDiagramState();
     }
 
     private static void applyAbsoluteGuiScissor(int guiX, int guiY, int guiW, int guiH) {

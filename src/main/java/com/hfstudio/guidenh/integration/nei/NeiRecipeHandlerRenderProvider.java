@@ -6,7 +6,7 @@ public class NeiRecipeHandlerRenderProvider implements RecipeHandlerRenderProvid
 
     @Override
     public boolean canRenderRecipeHandler(Object handler) {
-        return handler != null && NeiRecipeLookup.isAvailable();
+        return handler != null;
     }
 
     @Override

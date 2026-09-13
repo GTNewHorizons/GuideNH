@@ -122,15 +122,6 @@ public class GuideNhClientIntegrationRegistry {
         return null;
     }
 
-    public boolean isPreviewPlayerModelProvided() {
-        for (PreviewPlayerModelProvider provider : previewPlayerModelProviders()) {
-            if (provider.isModelProvided()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public boolean tryInitializePreviewPlayerModel(Object model) {
         if (model == null) {
             return false;
@@ -196,21 +187,9 @@ public class GuideNhClientIntegrationRegistry {
         return false;
     }
 
-    public boolean isQuestHoverAvailable() {
-        for (QuestHoverProvider provider : questHoverProviders()) {
-            if (provider.isQuestHoverAvailable()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Nullable
     public UUID currentHoveredQuestId() {
         for (QuestHoverProvider provider : questHoverProviders()) {
-            if (!provider.isQuestHoverAvailable()) {
-                continue;
-            }
             UUID questId = provider.currentHoveredQuestId();
             if (questId != null) {
                 return questId;
@@ -225,9 +204,6 @@ public class GuideNhClientIntegrationRegistry {
             return null;
         }
         for (QuestHoverProvider provider : questHoverProviders()) {
-            if (!provider.isQuestHoverAvailable()) {
-                continue;
-            }
             PageAnchor pageAnchor = provider.findQuestHoverPage(guide, questId);
             if (pageAnchor != null) {
                 return pageAnchor;

@@ -25,10 +25,6 @@ public class StructureLibSceneImportService {
         this.buildService = buildService != null ? buildService : resolveBuildService();
     }
 
-    public boolean isAvailable() {
-        return Mods.StructureLib.isModLoaded();
-    }
-
     @Nullable
     public StructureLibImportResult importScene(@Nullable StructureLibImportRequest request) {
         if (request == null) return null;

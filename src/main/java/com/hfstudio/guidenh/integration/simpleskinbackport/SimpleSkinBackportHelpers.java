@@ -4,8 +4,6 @@ import net.minecraft.client.entity.AbstractClientPlayer;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.hfstudio.guidenh.integration.Mods;
-
 import cpw.mods.fml.common.Optional;
 import roadhog360.simpleskinbackport.ducks.IArmsState;
 import roadhog360.simpleskinbackport.ducks.INewBipedModel;
@@ -13,10 +11,6 @@ import roadhog360.simpleskinbackport.ducks.INewBipedModel;
 public class SimpleSkinBackportHelpers {
 
     private SimpleSkinBackportHelpers() {}
-
-    public static boolean isAvailable() {
-        return Mods.SimpleSkinBackport.isModLoaded();
-    }
 
     @Nullable
     @Optional.Method(modid = "simpleskinbackport")
