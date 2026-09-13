@@ -7,6 +7,7 @@ public enum SyntaxElementType {
     ATTRIBUTE_NAME,
     ATTRIBUTE_VALUE,
     FENCE_LANGUAGE,
+    MARKDOWN_SYNTAX,
     FRONTMATTER_KEY,
     OTHER
 }

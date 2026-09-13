@@ -128,7 +128,7 @@ categories:
 
 ## 默认统计按钮的红石线路
 
-这个游戏场景没有声明 `<BlockStats>`，但因为场景包含方块，方块统计切换按钮仍然可用。打开后会显示默认内部列表。如果没有声明 `maxWidth` 和 `maxHeight`，统计框默认限制为游戏场景宽高的 25%，但至少会扩展到能完整显示 1 种方块，不会为了 1 个条目强行出现滚动条。
+这个游戏场景没有声明 `<BlockStats>`，但因为场景包含方块，方块统计切换按钮仍然可用。打开后会显示默认内部列表。如果没有声明 `maxWidth` 和 `maxHeight`，统计框默认取"固定的 224 × 96 像素"与"场景宽高的 40%"两者中较大的一个，但至少会扩展到能完整显示 1 种方块，不会为了 1 个条目强行出现滚动条。
 
 <GameScene zoom={4} interactive={true}>
     <Block id="minecraft:stone" />
@@ -165,8 +165,8 @@ categories:
 | `showNames` | `false` | 是否在图标旁显示物品名；开启后名称后面也会追加数量。 |
 | `filterMode` | `blacklist` | `blacklist` 隐藏匹配项；`whitelist` 只显示匹配项。 |
 | `filter` | 空 | 物品键，例如 `minecraft:stone` 或 `minecraft:stone:0`，可用空格、逗号或分号分隔。 |
-| `maxWidth` | 游戏场景宽度的 25% | 统计框最大宽度，超出后出现水平滚动条。 |
-| `maxHeight` | 游戏场景高度的 25% | 统计框最大高度，超出后出现垂直滚动条。 |
+| `maxWidth` | 取 224 像素与场景宽度 40% 中较大者 | 统计框最大宽度，超出后出现水平滚动条。 |
+| `maxHeight` | 取 96 像素与场景高度 40% 中较大者 | 统计框最大高度，超出后出现垂直滚动条。 |
 
 手动模式的 `<BlockStat>` 行：
 
@@ -174,7 +174,7 @@ categories:
 | --- | --- | --- |
 | `item` | 是，除非使用 `id` | 列表中显示的物品 id。 |
 | `id` | 是，除非使用 `item` | 既有物品栈属性写法。 |
-| `count` | 否 | 显示的堆叠数量，默认 `0`。 |
+| `count` | 否 | 显示的堆叠数量。省略时该行显示一次，写 `count="0"` 则隐藏该行。 |
 
 自动模式会按 `item:meta` 分组、按数量排序，并尽量把常见的复合方块解析为玩家实际看到的物品。安装对应模组时，这包括 AE2 cable bus 部件与 facade、ForgeMultipart 部件、Carpenters' Blocks cover 或 overlay。统计结果会缓存，仅在游戏场景方块、思索时间线状态、StructureLib 选择或统计设置变化时重建。
 

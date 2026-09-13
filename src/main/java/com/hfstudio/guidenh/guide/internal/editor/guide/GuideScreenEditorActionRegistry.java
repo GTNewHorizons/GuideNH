@@ -6,7 +6,13 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.editor.GuideEditorActionContribution;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuideScreenEditorActionRegistry {
 
@@ -29,7 +35,50 @@ public class GuideScreenEditorActionRegistry {
         return actions;
     }
 
-    public static List<GuideScreenEditorContextMenu.Entry> contextMenuEntries() {
+    /**
+     * The toolbar and menu entries other mods contribute, the guide's own first so its entries come first in
+     * the order they are laid out.
+     */
+    public static List<GuideEditorActionContribution> contributedActions(@Nullable Guide guide) {
+        List<GuideEditorActionContribution> declared = new ArrayList<>();
+        if (guide != null) {
+            for (GuideEditorActionContribution.Provider provider : guide.getExtensions()
+                .get(GuideEditorActionContribution.Provider.EXTENSION_POINT)) {
+                appendDeclaredActions(provider, declared);
+            }
+        }
+        List<GuideEditorActionContribution> global = GuideNhIntegrationRegistry.global()
+            .editorActions();
+        if (declared.isEmpty()) {
+            return global;
+        }
+        declared.addAll(global);
+        return declared;
+    }
+
+    private static void appendDeclaredActions(GuideEditorActionContribution.Provider provider,
+        List<GuideEditorActionContribution> target) {
+        try {
+            List<GuideEditorActionContribution> actions = provider.editorActions();
+            if (actions != null) {
+                for (GuideEditorActionContribution action : actions) {
+                    if (action != null) {
+                        target.add(action);
+                    }
+                }
+            }
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [GuideEditorActionContribution] {} failed to publish its actions: {}",
+                provider.getClass()
+                    .getSimpleName(),
+                e.toString());
+        }
+    }
+
+    public static List<GuideScreenEditorContextMenu.Entry> contextMenuEntries(
+        List<GuideScreenEditorContextMenu.Entry> templateEntries,
+        List<GuideScreenEditorContextMenu.Entry> contributedEntries) {
         List<GuideScreenEditorContextMenu.Entry> editEntries = actionEntries(GuideScreenEditorActionGroup.EDIT);
         List<GuideScreenEditorContextMenu.Entry> insertEntries = new ArrayList<>();
         append(insertEntries, GuideScreenEditorActionGroup.ROOT_INSERT);
@@ -42,6 +91,16 @@ public class GuideScreenEditorActionRegistry {
         append(insertEntries, GuideScreenEditorActionGroup.LINK_AND_TEXT);
         insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
         append(insertEntries, GuideScreenEditorActionGroup.LIST_AND_TABLE);
+        if (templateEntries != null && !templateEntries.isEmpty()) {
+            insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+            insertEntries.add(
+                GuideScreenEditorContextMenu.Entry
+                    .submenu(GuidebookText.GuideEditorContextMenuTemplates.text(), templateEntries));
+        }
+        if (contributedEntries != null && !contributedEntries.isEmpty()) {
+            insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
+            insertEntries.addAll(contributedEntries);
+        }
         insertEntries.add(GuideScreenEditorContextMenu.Entry.separator());
 
         List<GuideScreenEditorContextMenu.Entry> blockEntries = new ArrayList<>();

@@ -1,0 +1,83 @@
+package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
+
+import net.minecraft.client.gui.FontRenderer;
+
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
+
+/** A tag suggestion. Container tags close themselves around the caret, self-closing tags get the {@code />} tail. */
+public class TagCandidate implements AutocompleteCandidate {
+
+    private static final int LABEL_COLOR = ColorUtils.TEXT.getColor();
+
+    private final String tagName;
+    private final boolean container;
+    @Nullable
+    private final InsertTemplate template;
+    private final String display;
+
+    public TagCandidate(String tagName, boolean container) {
+        this(tagName, container, null);
+    }
+
+    public TagCandidate(String tagName, boolean container, @Nullable InsertTemplate template) {
+        this.tagName = tagName;
+        this.container = container;
+        this.template = template;
+        this.display = buildDisplay(tagName, container, template);
+    }
+
+    private static String buildDisplay(String tagName, boolean container, @Nullable InsertTemplate template) {
+        if (template != null) {
+            return template.text()
+                .replace('\n', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
+        }
+        return container ? tagName + "  </" + tagName + ">" : tagName;
+    }
+
+    @Override
+    public String displayText() {
+        return display;
+    }
+
+    @Override
+    public String replacementText() {
+        if (template != null) {
+            return template.text();
+        }
+        return container ? tagName + ">" : tagName;
+    }
+
+    @Override
+    public String rankingText() {
+        return tagName;
+    }
+
+    @Override
+    public int caretOffsetInReplacement() {
+        return template != null ? template.caretOffset() : -1;
+    }
+
+    @Override
+    public int selectionEndInReplacement() {
+        return template != null ? template.caretOffset() : -1;
+    }
+
+    @Nullable
+    @Override
+    public String suffixText() {
+        if (template != null) {
+            return null;
+        }
+        return container ? "</" + tagName + ">" : null;
+    }
+
+    @Override
+    public void render(FontRenderer fontRenderer, int x, int y, int width, boolean hovered) {
+        fontRenderer.drawString(display, x, y + 2, LABEL_COLOR);
+    }
+}

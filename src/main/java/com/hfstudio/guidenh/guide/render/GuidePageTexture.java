@@ -22,8 +22,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.mixins.early.minecraft.AccessorTextureManager;
 
-import cpw.mods.fml.relauncher.ReflectionHelper;
 import lombok.Getter;
 
 public class GuidePageTexture {
@@ -31,8 +31,6 @@ public class GuidePageTexture {
     private static final LytSize DEFAULT_SIZE = new LytSize(256, 256);
 
     public static final GuidePageTexture MISSING = new GuidePageTexture(null, 0, 0, null);
-    private static final String TEXTURE_OBJECTS_FIELD = "mapTextureObjects";
-    private static final String TEXTURE_OBJECTS_SRG_FIELD = "field_110585_a";
 
     public static final Map<ResourceLocation, GuidePageTexture> CACHE = new HashMap<>();
 
@@ -184,32 +182,19 @@ public class GuidePageTexture {
         return imageData == null && texture == null;
     }
 
-    private void releaseTexture(TextureManager textureManager) {
+    @SuppressWarnings("unchecked")
+    public void releaseTexture(TextureManager textureManager) {
         if (texture == null || texture == sourceId) {
             return;
         }
-        ITextureObject textureObject = removeTextureObject(textureManager, texture);
+        Map<ResourceLocation, ITextureObject> objectMap = ((AccessorTextureManager) textureManager)
+            .guidenh$getMapTextureObjects();
+        ITextureObject textureObject = objectMap.remove(texture);
         if (textureObject != null) {
             TextureUtil.deleteTexture(textureObject.getGlTextureId());
         }
         texture = null;
         imageData = null;
-    }
-
-    @Nullable
-    private static ITextureObject removeTextureObject(TextureManager textureManager, ResourceLocation location) {
-        try {
-            Map<ResourceLocation, ITextureObject> textureObjects = ReflectionHelper.getPrivateValue(
-                TextureManager.class,
-                textureManager,
-                TEXTURE_OBJECTS_FIELD,
-                TEXTURE_OBJECTS_SRG_FIELD);
-            return textureObjects.remove(location);
-        } catch (Throwable t) {
-            GuideDebugLog
-                .warn("Failed to remove dynamic guide page texture {} from Minecraft texture manager", location, t);
-            return null;
-        }
     }
 
     @Nullable

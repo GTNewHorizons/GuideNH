@@ -15,11 +15,12 @@ import net.minecraft.nbt.NBTBase;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.document.block.LytBalancedColumns;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
-import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.integration.api.RecipeEntry;
@@ -67,6 +68,10 @@ public class RecipeCompiler extends BlockTagCompiler {
 
         String handlerNameFilter = trimToNull(MdxAttrs.getString(compiler, parent, el, "handlerName", null));
         String handlerIdFilter = trimToNull(MdxAttrs.getString(compiler, parent, el, "handlerId", null));
+        List<String> handlerWhitelist = parseNameList(
+            MdxAttrs.getString(compiler, parent, el, "handlerWhitelist", null));
+        List<String> handlerBlacklist = parseNameList(
+            MdxAttrs.getString(compiler, parent, el, "handlerBlacklist", null));
         String handlerOrderStr = MdxAttrs.getString(compiler, parent, el, "handlerOrder", null);
         int handlerOrder = -1;
         if (handlerOrderStr != null && !handlerOrderStr.isEmpty()) {
@@ -116,6 +121,8 @@ public class RecipeCompiler extends BlockTagCompiler {
             handlerNameFilter,
             handlerIdFilter,
             handlerOrder,
+            handlerWhitelist,
+            handlerBlacklist,
             exactRecipeIndex,
             inputExpr,
             outputExpr,
@@ -129,9 +136,8 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     /**
-     * Wraps multiple recipe boxes in a horizontal flex row that wraps onto additional lines when
-     * the available width runs out. Single recipes are appended directly so they keep their
-     * original block flow (no extra wrapper overhead).
+     * Wraps multiple recipe boxes in columns that fill the space beside a short recipe. Single recipes are
+     * appended directly so they keep their original block flow (no extra wrapper overhead).
      */
     public static void appendRecipes(LytBlockContainer parent, List<? extends LytBlock> boxes, boolean multi) {
         if (boxes.isEmpty()) return;
@@ -139,19 +145,25 @@ public class RecipeCompiler extends BlockTagCompiler {
             for (var b : boxes) parent.append(b);
             return;
         }
-        LytHBox row = new LytHBox();
-        row.setGap(MULTI_GAP);
-        for (var b : boxes) row.append(b);
-        parent.append(row);
+        LytBalancedColumns columns = new LytBalancedColumns();
+        columns.setGap(MULTI_GAP);
+        for (var b : boxes) columns.append(b);
+        parent.append(columns);
     }
 
     /**
      * Applies {@code handlerName} (case-insensitive substring), {@code handlerId} (case-insensitive
-     * overlay identifier equality) and {@code handlerOrder} (0-based index into the post-filter
-     * list) in that order. Null / empty filters are no-ops.
+     * overlay identifier equality), the handler lists and {@code handlerOrder} (0-based index into the
+     * post-filter list). Null / empty filters are no-ops.
+     *
+     * <p>
+     * A handler named by {@code handlerBlacklist}, or by the configured blacklist, is skipped unless it is
+     * asked for: a handler the tag names with {@code handlerId}, or one named by {@code handlerWhitelist},
+     * stays in the list. That is what makes an excluded handler reachable on purpose while leaving it out
+     * of the results a tag only refers to by item.
      */
     public static List<Object> filterHandlers(List<Object> raw, @Nullable String nameFilter, @Nullable String idFilter,
-        int order, HandlerMetadataReader metadataReader) {
+        int order, HandlerMetadataReader metadataReader, List<String> handlerWhitelist, List<String> handlerBlacklist) {
         if (raw.isEmpty()) return raw;
         List<Object> out = new ArrayList<>(raw.size());
         String nameLower = nameFilter != null ? nameFilter.toLowerCase(Locale.ROOT) : null;
@@ -162,6 +174,7 @@ public class RecipeCompiler extends BlockTagCompiler {
                 if (n == null || !n.toLowerCase(Locale.ROOT)
                     .contains(nameLower)) continue;
             }
+            boolean namedByTag = false;
             if (idLower != null) {
                 String oid = metadataReader.overlayIdentifier(h);
                 boolean match = oid != null && oid.toLowerCase(Locale.ROOT)
@@ -181,6 +194,11 @@ public class RecipeCompiler extends BlockTagCompiler {
                         .contains(idLower);
                 }
                 if (!match) continue;
+                namedByTag = true;
+            }
+            if (!namedByTag && !matchesAnyHandler(h, handlerWhitelist, metadataReader)
+                && matchesAnyHandler(h, handlerBlacklist, metadataReader)) {
+                continue;
             }
             out.add(h);
         }
@@ -196,10 +214,79 @@ public class RecipeCompiler extends BlockTagCompiler {
         return out;
     }
 
+    public static boolean matchesAnyHandler(Object handler, List<String> patterns,
+        HandlerMetadataReader metadataReader) {
+        for (String pattern : patterns) {
+            if (matchesHandler(handler, pattern, metadataReader)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Whether one pattern names this handler. The pattern is compared case-insensitively against the
+     * handler id, the overlay identifier and the class name as a substring, so a pattern can name one
+     * handler or a whole package of them.
+     */
+    public static boolean matchesHandler(Object handler, @Nullable String pattern,
+        HandlerMetadataReader metadataReader) {
+        if (pattern == null || pattern.isEmpty()) return false;
+        String lower = pattern.toLowerCase(Locale.ROOT);
+        String id = metadataReader.handlerId(handler);
+        if (id != null && id.toLowerCase(Locale.ROOT)
+            .contains(lower)) return true;
+        String overlay = metadataReader.overlayIdentifier(handler);
+        if (overlay != null && overlay.toLowerCase(Locale.ROOT)
+            .contains(lower)) return true;
+        return handler.getClass()
+            .getName()
+            .toLowerCase(Locale.ROOT)
+            .contains(lower);
+    }
+
     public static @Nullable String trimToNull(@Nullable String s) {
         if (s == null) return null;
         String t = s.trim();
         return t.isEmpty() ? null : t;
+    }
+
+    /**
+     * Splits a comma or semicolon separated attribute into its entries, dropping blanks. Returns an empty
+     * list for null or blank input, so an absent attribute is the same as an empty one.
+     */
+    public static List<String> parseNameList(@Nullable String raw) {
+        if (raw == null || raw.trim()
+            .isEmpty()) return List.of();
+        List<String> entries = new ArrayList<>();
+        for (String part : raw.split("[,;]")) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) entries.add(trimmed);
+        }
+        return entries;
+    }
+
+    /**
+     * The handler patterns the page-level blacklist is combined with: those configured as hidden unless a
+     * tag asks for them.
+     */
+    public static List<String> configuredHandlerBlacklist() {
+        String[] configured = ModConfig.runtime.recipeHandlerBlacklist;
+        if (configured == null || configured.length == 0) return List.of();
+        List<String> patterns = new ArrayList<>(configured.length);
+        for (String pattern : configured) {
+            String trimmed = trimToNull(pattern);
+            if (trimmed != null) patterns.add(trimmed);
+        }
+        return patterns;
+    }
+
+    public static List<String> effectiveHandlerBlacklist(List<String> pageBlacklist) {
+        List<String> configured = configuredHandlerBlacklist();
+        if (configured.isEmpty()) return pageBlacklist;
+        if (pageBlacklist.isEmpty()) return configured;
+        List<String> combined = new ArrayList<>(configured.size() + pageBlacklist.size());
+        combined.addAll(configured);
+        combined.addAll(pageBlacklist);
+        return combined;
     }
 
     /**
@@ -277,6 +364,8 @@ public class RecipeCompiler extends BlockTagCompiler {
         public final String handlerName;
         public final String handlerId;
         public final int handlerOrder;
+        public final List<String> handlerWhitelist;
+        public final List<String> handlerBlacklist;
         public final int recipeIndex;
         public final FilterExpr inputExpr;
         public final FilterExpr outputExpr;
@@ -285,8 +374,9 @@ public class RecipeCompiler extends BlockTagCompiler {
         public final boolean usageQuery;
 
         public RecipePlaceholder(String tagName, String idStr, IdUtils.ParsedItemRef ref, String fallbackText,
-            String handlerName, String handlerId, int handlerOrder, int recipeIndex, FilterExpr inputExpr,
-            FilterExpr outputExpr, int limit, boolean multi, boolean usageQuery) {
+            String handlerName, String handlerId, int handlerOrder, List<String> handlerWhitelist,
+            List<String> handlerBlacklist, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr, int limit,
+            boolean multi, boolean usageQuery) {
             this.tagName = tagName;
             this.idStr = idStr;
             this.ref = ref;
@@ -294,6 +384,8 @@ public class RecipeCompiler extends BlockTagCompiler {
             this.handlerName = handlerName;
             this.handlerId = handlerId;
             this.handlerOrder = handlerOrder;
+            this.handlerWhitelist = handlerWhitelist;
+            this.handlerBlacklist = handlerBlacklist;
             this.recipeIndex = recipeIndex;
             this.inputExpr = inputExpr;
             this.outputExpr = outputExpr;

@@ -317,6 +317,14 @@ public class ModConfig {
 
         @Comment("Maximum number of compiled guide pages retained in the LRU cache. Lower values reduce memory usage; higher values reduce recompilation.")
         public int compiledPageCacheLimit = 64;
+
+        @Comment("Recipe handler ids that a recipe tag skips unless it names them itself. "
+            + "Matches the handler id, the overlay identifier, or the handler class simple name, "
+            + "case-insensitively and by substring.")
+        @DefaultStringList({ "blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler",
+            "blockrenderer6343.integration.structurelib.StructureCompatNEIHandler" })
+        public String[] recipeHandlerBlacklist = { "blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler",
+            "blockrenderer6343.integration.structurelib.StructureCompatNEIHandler" };
     }
 
     @Comment("Runtime bridge section. The bridge is disabled by default and requires a client restart.")

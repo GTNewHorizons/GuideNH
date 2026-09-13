@@ -94,6 +94,17 @@ public class AutocompletePopup {
         snapVisualScrollToTarget();
     }
 
+    /**
+     * Hides the popup for a query that is about to replace it, keeping what {@link #show} needs to
+     * recognise the same list and leave the selection alone; closing outright would move the highlight
+     * back to the first entry on every edit.
+     */
+    public void hideForPendingQuery() {
+        open = false;
+        candidates = Collections.emptyList();
+        snapVisualScrollToTarget();
+    }
+
     public void moveSelection(int delta) {
         if (!open || candidates.isEmpty()) return;
         int next = selectedIndex + delta;

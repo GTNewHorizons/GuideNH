@@ -42,4 +42,9 @@ public class TagStartContext implements AutocompleteContext {
     public String getPartialText() {
         return partialText;
     }
+
+    @Override
+    public boolean expandsTypedText() {
+        return true;
+    }
 }

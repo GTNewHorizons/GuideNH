@@ -245,7 +245,8 @@ public class FunctionGraphAttrs {
         if (trimmed.isEmpty()) {
             return fallback;
         }
-        return DomainPredicate.parseNumberOrConstant(trimmed, fallback);
+        double parsed = DomainPredicate.parseNumberOrConstant(trimmed, fallback);
+        return Double.isFinite(parsed) ? parsed : fallback;
     }
 
     public static AutoPointSpec parseAutoPointSpec(String everyXText, String everyYText, String labelModeText,

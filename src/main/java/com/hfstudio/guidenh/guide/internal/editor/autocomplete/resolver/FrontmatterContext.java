@@ -36,4 +36,9 @@ public class FrontmatterContext implements AutocompleteContext {
     public String getPartialText() {
         return partialText;
     }
+
+    @Override
+    public boolean expandsTypedText() {
+        return !isValue;
+    }
 }

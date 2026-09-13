@@ -34,6 +34,8 @@ import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.MdxBlockTagSourceExtractor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderer;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderers;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor.DetailsContent;
@@ -43,6 +45,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphAttrs;
 import com.hfstudio.guidenh.guide.document.block.LytStructureView;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartLabelPosition;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartLegendPosition;
 import com.hfstudio.guidenh.guide.document.block.chart.CornerLegendPosition;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.AutoPointSpec;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.DomainPredicate;
@@ -85,8 +89,10 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResolver;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageResult;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
@@ -122,6 +128,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     private Map<String, PageAnchor> itemAnchorsByItemId;
     private final MediaWikiSpecialPageResolver specialPageResolver = new MediaWikiSpecialPageResolver();
     private final AtomicInteger contentTabsSequence = new AtomicInteger();
+    private final List<GuideSiteTagRenderer> siteTagRenderers;
+    private final List<CodeFenceRenderer> fenceRenderers;
 
     public GuideSiteMdxTagRenderer(Guide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree) {
@@ -158,12 +166,40 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         this.assetExportersByGuideId = assetExportersByGuideId;
         this.mediaWikiListContext = mediaWikiListContext;
         this.itemIconResolver = itemIconResolver != null ? itemIconResolver : GuideSiteItemIconResolver.NONE;
+        this.siteTagRenderers = GuideSiteTagRenderers.of(guide);
+        // Cached for the same reason as the tag renderers: the export asks for this list once per fence, and
+        // resolving it copies the registry each time.
+        this.fenceRenderers = CodeFenceRenderers.of(guide);
     }
 
+    @Override
+    public List<GuideSiteTagRenderer> contributedTagRenderers() {
+        return siteTagRenderers;
+    }
+
+    @Override
+    public List<CodeFenceRenderer> contributedFenceRenderers() {
+        return fenceRenderers;
+    }
+
+    /**
+     * Renders one MDX element.
+     *
+     * <p>
+     * Renderers contributed by other mods are asked first, and this compiler's own chain answers only when
+     * none of them claims the tag.
+     */
     @Override
     public @Nullable String render(MdxJsxElementFields element, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates,
         GuideSiteHtmlCompiler.SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
+        String contributed = GuideSiteTagRenderers.render(
+            siteTagRenderers,
+            new GuideSiteTagRenderContext(defaultNamespace, currentPageId, templates, sceneResolver, compiler),
+            element);
+        if (contributed != null) {
+            return contributed;
+        }
         String name = element.name();
         if ("ItemImage".equals(name)) {
             return renderItemImage(element, defaultNamespace, currentPageId, templates, true);
@@ -795,7 +831,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             int logicalWidth = exportedScene.logicalWidth() > 0 ? exportedScene.logicalWidth() : 256;
             int logicalHeight = exportedScene.logicalHeight() > 0 ? exportedScene.logicalHeight() : 192;
             String sceneHtml = GuideSiteSceneTagRenderer
-                .renderSceneHtml(logicalWidth, logicalHeight, false, defaultNamespace, null, exportedScene);
+                .renderSceneHtml(logicalWidth, logicalHeight, false, defaultNamespace, null, exportedScene) + ">";
             return wrapBlockImageFloat(element, sceneHtml);
         }
 
@@ -1729,57 +1765,106 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         return GuideSiteGraphRenderer.renderCsvTable(csvText, hasHeader);
     }
 
+    /**
+     * Builds the presentation a chart shares from its attributes: size, frame, title, legend placement
+     * and value label style. The legend position comes from the in-game {@code legend} attribute; the
+     * export-only {@code showLegend} flag is still honoured when {@code legend} is absent, so pages
+     * written against it keep working.
+     */
+    private GuideSiteGraphRenderer.ChartStyle resolveChartStyle(MdxJsxElementFields element) {
+        return GuideSiteGraphRenderer.ChartStyle
+            .of(
+                readInt(element, "width", 1280),
+                readInt(element, "height", 800),
+                parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor()),
+                parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor()),
+                readOptional(element, "title"))
+            .withLegend(resolveLegendPosition(element))
+            .withLabels(
+                ChartLabelPosition.fromString(readOptional(element, "labelPosition"), ChartLabelPosition.NONE),
+                parseArgbAttr(element, "labelColor", GuideSiteGraphRenderer.DEFAULT_LABEL_COLOR))
+            .withAxes(
+                SiteChartAxis
+                    .read(element, "xAxis", "showXGrid", "xGridColor", GuideSiteGraphRenderer.DEFAULT_GRID_COLOR),
+                SiteChartAxis
+                    .read(element, "yAxis", "showYGrid", "yGridColor", GuideSiteGraphRenderer.DEFAULT_GRID_COLOR))
+            .withBarLayout(
+                parseArgbAttr(element, "titleColor", GuideSiteGraphRenderer.DEFAULT_TITLE_COLOR),
+                readFloat(element, "barWidthRatio", GuideSiteGraphRenderer.DEFAULT_BAR_WIDTH_RATIO))
+            .withPieLayout(
+                readDegrees(element, "startAngle", GuideSiteGraphRenderer.DEFAULT_PIE_START_ANGLE_DEG),
+                MdxAttrs.getBoolean(element, "clockwise", true));
+    }
+
+    private float readFloat(MdxJsxElementFields element, String name, float fallback) {
+        String raw = readOptional(element, name);
+        if (raw == null || raw.isEmpty()) {
+            return fallback;
+        }
+        try {
+            float parsed = Float.parseFloat(raw.trim());
+            return parsed > 0f && parsed <= 1f ? parsed : fallback;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    /**
+     * A rotation in degrees, which is not a ratio and so is read as any finite value.
+     *
+     * <p>
+     * {@link #readFloat} exists for attributes that are a share of something and refuses anything outside
+     * {@code (0, 1]}. Reading an angle with it dropped every value a page could reasonably write - a page
+     * asking for {@code startAngle="90"} was exported at the default -90 while the book honoured it.
+     */
+    private float readDegrees(MdxJsxElementFields element, String name, float fallback) {
+        String raw = readOptional(element, name);
+        if (raw == null || raw.isEmpty()) {
+            return fallback;
+        }
+        try {
+            float parsed = Float.parseFloat(raw.trim());
+            return Float.isFinite(parsed) ? parsed : fallback;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private ChartLegendPosition resolveLegendPosition(MdxJsxElementFields element) {
+        String legend = readOptional(element, "legend");
+        if (legend != null && !legend.trim()
+            .isEmpty()) {
+            return ChartAttrParser.parseLegendPosition(legend, ChartLegendPosition.TOP);
+        }
+        return readBoolean(element, "showLegend", true) ? ChartLegendPosition.TOP : ChartLegendPosition.NONE;
+    }
+
     private String renderColumnChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
-        String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
-        boolean showLegend = readBoolean(element, "showLegend", true);
         String yAxisUnit = readOptional(element, "yAxisUnit");
-        boolean labelAbove = "above".equals(readOptional(element, "labelPosition"));
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
         GuideSiteGraphRenderer.PieInsetData pieInset = parsePieInsetChildren(element);
         return GuideSiteGraphRenderer.renderColumnChart(
-            w,
-            h,
-            bgColor,
-            borderColor,
-            title,
-            categories,
+            resolveChartStyle(element),
+            ChartAttrParser.parseStringArray(readOptional(element, "categories")),
             series,
-            showLegend,
             pieInset,
-            yAxisUnit,
-            labelAbove);
+            yAxisUnit);
     }
 
     private String renderBarChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
-        String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
-        boolean showLegend = readBoolean(element, "showLegend", true);
-        List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
-        return GuideSiteGraphRenderer.renderBarChart(w, h, bgColor, borderColor, title, categories, series, showLegend);
+        return GuideSiteGraphRenderer.renderBarChart(
+            resolveChartStyle(element),
+            ChartAttrParser.parseStringArray(readOptional(element, "categories")),
+            parseSeriesChildren(element));
     }
 
     private String renderLineChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
         String[] categories = ChartAttrParser.parseStringArray(readOptional(element, "categories"));
         boolean numericX = readBoolean(element, "numericX", false);
         if (!numericX && (categories == null || categories.length == 0)) {
             numericX = true;
         }
         boolean showPoints = readBoolean(element, "showPoints", true);
-        boolean showLegend = readBoolean(element, "showLegend", true);
         CornerLegendPosition cornerLegendPosition = ChartAttrParser
             .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
         int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
@@ -1790,16 +1875,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             ColorUtils.ARGB_AA111922.getColor());
         List<GuideSiteGraphRenderer.SeriesData> series = parseSeriesChildren(element);
         return GuideSiteGraphRenderer.renderLineChart(
-            w,
-            h,
-            bgColor,
-            borderColor,
-            title,
+            resolveChartStyle(element),
             categories,
             series,
             numericX,
             showPoints,
-            showLegend,
             cornerLegendPosition,
             cornerLegendWidth,
             cornerLegendHeight,
@@ -1807,23 +1887,11 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
     }
 
     private String renderPieChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
-        boolean showLegend = readBoolean(element, "showLegend", true);
         List<GuideSiteGraphRenderer.SliceData> slices = parseSliceChildren(element);
-        return GuideSiteGraphRenderer.renderPieChart(w, h, bgColor, borderColor, title, slices, showLegend);
+        return GuideSiteGraphRenderer.renderPieChart(resolveChartStyle(element), slices);
     }
 
     private String renderScatterChart(MdxJsxElementFields element) {
-        int w = readInt(element, "width", 1280);
-        int h = readInt(element, "height", 800);
-        int bgColor = parseArgbAttr(element, "background", ColorUtils.CHART_BACKGROUND.getColor());
-        int borderColor = parseArgbAttr(element, "border", ColorUtils.CHART_BORDER.getColor());
-        String title = readOptional(element, "title");
-        boolean showLegend = readBoolean(element, "showLegend", true);
         CornerLegendPosition cornerLegendPosition = ChartAttrParser
             .parseCornerLegendPosition(readOptional(element, "cornerLegend"), CornerLegendPosition.NONE);
         int cornerLegendWidth = readInt(element, "cornerLegendWidth", 120);
@@ -1834,13 +1902,8 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             ColorUtils.ARGB_AA111922.getColor());
         List<GuideSiteGraphRenderer.SeriesData> series = parseScatterSeriesChildren(element);
         return GuideSiteGraphRenderer.renderScatterChart(
-            w,
-            h,
-            bgColor,
-            borderColor,
-            title,
+            resolveChartStyle(element),
             series,
-            showLegend,
             cornerLegendPosition,
             cornerLegendWidth,
             cornerLegendHeight,
@@ -2902,12 +2965,34 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
 
         for (SymbolicColorResolver resolver : guide.getExtensions()
             .get(SymbolicColorResolver.EXTENSION_POINT)) {
-            ColorValue color = resolver.resolve(colorId);
+            ColorValue color = resolveColorSafely(resolver, colorId);
+            if (color != null) {
+                return color;
+            }
+        }
+        for (SymbolicColorResolver resolver : GuideNhIntegrationRegistry.global()
+            .symbolicColorResolvers()) {
+            ColorValue color = resolveColorSafely(resolver, colorId);
             if (color != null) {
                 return color;
             }
         }
         return null;
+    }
+
+    @Nullable
+    private static ColorValue resolveColorSafely(SymbolicColorResolver resolver, ResourceLocation colorId) {
+        try {
+            return resolver.resolve(colorId);
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SymbolicColorResolver] {} failed to resolve {}: {}",
+                resolver.getClass()
+                    .getSimpleName(),
+                colorId,
+                e.toString());
+            return null;
+        }
     }
 
     @Nullable

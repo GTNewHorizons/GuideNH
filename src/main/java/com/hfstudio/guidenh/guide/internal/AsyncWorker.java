@@ -7,16 +7,6 @@ import java.util.concurrent.Future;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
-/**
- * General-purpose background computation pool.
- *
- * <p>
- * Submit heavy CPU/IO work that does NOT touch Minecraft registries
- * or main-thread data structures. Poll for completion from the main thread.
- *
- * <p>
- * 4 daemon threads. Threads die with the JVM.
- */
 public class AsyncWorker {
 
     private static final ExecutorService pool = Executors.newFixedThreadPool(4, r -> {
@@ -44,6 +34,15 @@ public class AsyncWorker {
     public static boolean isDone(String name) {
         var f = tasks.get(name);
         return f == null || f.isDone();
+    }
+
+    public static boolean hasRunningTasks() {
+        for (var f : tasks.values()) {
+            if (!f.isDone()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Remove completed task entry to free the name. */

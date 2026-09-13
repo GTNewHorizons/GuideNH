@@ -197,6 +197,20 @@ categories:
 
 图标来自 `ponder_widgets.png` 的 16x16 精灵。背景是深色半透明块（`#CC0E0E20`），边框是浅蓝色（`#80AAAADD`）。指定 `item` 时，气泡会横向扩展以容纳物品图标和鼠标图标。
 
+### 在页面中使用
+
+在页面里把它写成 `<GameScene>` 的子标签：
+
+```mdx
+<GameScene width="256" height="160">
+  <Block id="minecraft:stone" />
+  <InputAnnotation pos="0.5 1.5 0.5" inputType="rmb" />
+</GameScene>
+```
+
+位置既可以用 `pos="x y z"`，也可以用分开的 `x`、`y`、`z` 属性；`inputType`、`modifier`、`item`
+的取值与上表相同。`showWhenStructure`、`showWhenTier`、`showWhenChannels` 可以把它限制在某个
+StructureLib 状态下显示，与其它世界内注解一致。导出的站点会用上面的 JSON 渲染同一个注解。
 ## 颜色格式
 
 颜色使用 ARGB 十六进制字符串。`"0xFFFFFF00"`（带 `0x` 前缀）和 `"FFFF00"`（不带前缀）都可以。

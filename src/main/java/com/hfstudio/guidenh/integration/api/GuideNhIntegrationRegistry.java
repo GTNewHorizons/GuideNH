@@ -1,9 +1,11 @@
 package com.hfstudio.guidenh.integration.api;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
@@ -15,13 +17,23 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.color.SymbolicColorResolver;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderer;
+import com.hfstudio.guidenh.guide.editor.GuideEditorActionContribution;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.snapshot.PreviewPrepareContributor;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTagRenderer;
+import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
+import com.hfstudio.guidenh.guide.syntax.SyntaxSlot;
 
 public class GuideNhIntegrationRegistry {
 
     private static final GuideNhIntegrationRegistry GLOBAL = new GuideNhIntegrationRegistry();
+
+    /** Providers that already reported a failure, so a lookup that runs per block per frame cannot flood the log. */
+    private static final Set<String> REPORTED_PROVIDER_FAILURES = new HashSet<>();
     private final Map<String, IntegrationModDescriptor> modDescriptors = new LinkedHashMap<>();
     private final List<ItemStackNormalizationProvider> itemStackNormalizationProviders = new ArrayList<>();
     private final List<BlockDisplayProvider> blockDisplayProviders = new ArrayList<>();
@@ -42,7 +54,25 @@ public class GuideNhIntegrationRegistry {
     private final List<RecipeDrawableRenderProvider> recipeDrawableRenderProviders = new ArrayList<>();
     private final List<RecipeHandlerRenderProvider> recipeHandlerRenderProviders = new ArrayList<>();
     private final List<BlockStatsProvider> blockStatsProviders = new ArrayList<>();
+    /**
+     * Published for the compile worker, which reads it while this thread may still be registering a provider.
+     * The list itself is immutable, so the reference is all that has to be visible.
+     */
+    private volatile List<BlockStatsProvider> blockStatsProviderSnapshot = List.of();
     private final List<GuidebookFakeWorldIntegration> fakeWorldIntegrations = new ArrayList<>();
+    private final List<SyntaxContributor> syntaxContributors = new ArrayList<>();
+    private final List<SyntaxSlot> syntaxSlots = new ArrayList<>();
+    private final List<GuideSiteTagRenderer> siteTagRenderers = new ArrayList<>();
+    private final List<SceneElementTagCompilerProvider> sceneElementTagCompilerProviders = new ArrayList<>();
+    private final List<SymbolicColorResolver> symbolicColorResolvers = new ArrayList<>();
+    private final List<CodeFenceRenderer> codeFenceRenderers = new ArrayList<>();
+    private final List<GuideEditorActionContribution> editorActions = new ArrayList<>();
+    /**
+     * Bumped by every registration the editor's syntax model is built from, so a model built before it is
+     * rebuilt rather than served stale. The two provider lists below contribute tag names through the
+     * guide's extension collection, and a model built before they were registered would not offer them.
+     */
+    private int syntaxRevision;
 
     public GuideNhIntegrationRegistry() {}
 
@@ -173,12 +203,112 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(guideBuilderIntegrationHooks);
     }
 
+    public synchronized void registerSyntaxContributor(SyntaxContributor contributor) {
+        if (contributor == null) {
+            throw new IllegalArgumentException("contributor");
+        }
+        if (!syntaxContributors.contains(contributor)) {
+            syntaxContributors.add(contributor);
+            syntaxRevision++;
+        }
+    }
+
+    public synchronized List<SyntaxContributor> syntaxContributors() {
+        return List.copyOf(syntaxContributors);
+    }
+
+    public synchronized void registerSyntaxSlot(SyntaxSlot slot) {
+        if (slot == null) {
+            throw new IllegalArgumentException("slot");
+        }
+        if (!syntaxSlots.contains(slot)) {
+            syntaxSlots.add(slot);
+            syntaxRevision++;
+        }
+    }
+
+    public synchronized List<SyntaxSlot> syntaxSlots() {
+        return List.copyOf(syntaxSlots);
+    }
+
+    public synchronized void registerSiteTagRenderer(GuideSiteTagRenderer renderer) {
+        if (renderer == null) {
+            throw new IllegalArgumentException("renderer");
+        }
+        if (!siteTagRenderers.contains(renderer)) {
+            siteTagRenderers.add(renderer);
+        }
+    }
+
+    public synchronized List<GuideSiteTagRenderer> siteTagRenderers() {
+        return List.copyOf(siteTagRenderers);
+    }
+
+    public synchronized void registerEditorAction(GuideEditorActionContribution action) {
+        if (action == null) {
+            throw new IllegalArgumentException("action");
+        }
+        if (!editorActions.contains(action)) {
+            editorActions.add(action);
+        }
+    }
+
+    public synchronized List<GuideEditorActionContribution> editorActions() {
+        return List.copyOf(editorActions);
+    }
+
+    public synchronized int syntaxRevision() {
+        return syntaxRevision;
+    }
+
+    public synchronized void registerSceneElementTagCompilerProvider(SceneElementTagCompilerProvider provider) {
+        if (provider == null) {
+            throw new IllegalArgumentException("provider");
+        }
+        if (!sceneElementTagCompilerProviders.contains(provider)) {
+            sceneElementTagCompilerProviders.add(provider);
+            syntaxRevision++;
+        }
+    }
+
+    public synchronized List<SceneElementTagCompilerProvider> sceneElementTagCompilerProviders() {
+        return List.copyOf(sceneElementTagCompilerProviders);
+    }
+
+    /** Registers a renderer for fence names of your own, so the body of such a fence is not read as a plain code. */
+    public synchronized void registerCodeFenceRenderer(CodeFenceRenderer renderer) {
+        if (renderer == null) {
+            throw new IllegalArgumentException("renderer");
+        }
+        if (!codeFenceRenderers.contains(renderer)) {
+            codeFenceRenderers.add(renderer);
+        }
+    }
+
+    public synchronized List<CodeFenceRenderer> codeFenceRenderers() {
+        return List.copyOf(codeFenceRenderers);
+    }
+
+    public synchronized void registerSymbolicColorResolver(SymbolicColorResolver resolver) {
+        if (resolver == null) {
+            throw new IllegalArgumentException("resolver");
+        }
+        if (!symbolicColorResolvers.contains(resolver)) {
+            symbolicColorResolvers.add(resolver);
+        }
+    }
+
+    public synchronized List<SymbolicColorResolver> symbolicColorResolvers() {
+        return List.copyOf(symbolicColorResolvers);
+    }
+
     public synchronized void registerTagCompilerProvider(TagCompilerProvider provider) {
         if (provider == null) {
             throw new IllegalArgumentException("provider");
         }
         if (!tagCompilerProviders.contains(provider)) {
             tagCompilerProviders.add(provider);
+            syntaxRevision++;
         }
     }
 
@@ -634,11 +764,12 @@ public class GuideNhIntegrationRegistry {
         }
         if (!blockStatsProviders.contains(provider)) {
             blockStatsProviders.add(provider);
+            blockStatsProviderSnapshot = List.copyOf(blockStatsProviders);
         }
     }
 
-    public synchronized List<BlockStatsProvider> blockStatsProviders() {
-        return List.copyOf(blockStatsProviders);
+    public List<BlockStatsProvider> blockStatsProviders() {
+        return blockStatsProviderSnapshot;
     }
 
     public synchronized void registerFakeWorldIntegration(GuidebookFakeWorldIntegration integration) {
@@ -706,6 +837,17 @@ public class GuideNhIntegrationRegistry {
         }
     }
 
+    private static void reportProviderFailure(Object provider, RuntimeException failure) {
+        String key = provider.getClass()
+            .getName();
+        synchronized (REPORTED_PROVIDER_FAILURES) {
+            if (!REPORTED_PROVIDER_FAILURES.add(key)) {
+                return;
+            }
+        }
+        GuideDebugLog.error("[GuideNH] [Integration] {} failed: {}", key, failure.toString());
+    }
+
     public List<GuideBlockStatsStackResolver.ResolvedStack> resolveBlockStatsEntries(GuidebookLevel level, Block block,
         @Nullable TileEntity tileEntity, int x, int y, int z, @Nullable AxisAlignedBB fallbackBounds) {
         if (level == null || block == null) {
@@ -713,7 +855,11 @@ public class GuideNhIntegrationRegistry {
         }
         ArrayList<GuideBlockStatsStackResolver.ResolvedStack> entries = new ArrayList<>(4);
         for (BlockStatsProvider provider : blockStatsProviders()) {
-            provider.appendBlockStatsEntries(level, block, tileEntity, x, y, z, fallbackBounds, entries);
+            try {
+                provider.appendBlockStatsEntries(level, block, tileEntity, x, y, z, fallbackBounds, entries);
+            } catch (RuntimeException e) {
+                reportProviderFailure(provider, e);
+            }
             if (!entries.isEmpty()) {
                 return entries;
             }
@@ -728,7 +874,13 @@ public class GuideNhIntegrationRegistry {
         }
         ItemStack current = stack;
         for (ItemStackNormalizationProvider provider : itemStackNormalizationProviders()) {
-            ItemStack normalized = provider.normalize(current);
+            ItemStack normalized;
+            try {
+                normalized = provider.normalize(current);
+            } catch (RuntimeException e) {
+                reportProviderFailure(provider, e);
+                continue;
+            }
             if (normalized != null && normalized.getItem() != null) {
                 current = normalized;
             }
@@ -743,7 +895,13 @@ public class GuideNhIntegrationRegistry {
             return null;
         }
         for (BlockDisplayProvider provider : blockDisplayProviders()) {
-            ItemStack stack = provider.resolveDisplayStack(level, block, x, y, z, target);
+            ItemStack stack;
+            try {
+                stack = provider.resolveDisplayStack(level, block, x, y, z, target);
+            } catch (RuntimeException e) {
+                reportProviderFailure(provider, e);
+                continue;
+            }
             if (stack != null) {
                 return stack;
             }
@@ -758,7 +916,13 @@ public class GuideNhIntegrationRegistry {
             return null;
         }
         for (BlockDisplayNameProvider provider : blockDisplayNameProviders()) {
-            String displayName = provider.resolveDisplayName(level, block, x, y, z, target);
+            String displayName;
+            try {
+                displayName = provider.resolveDisplayName(level, block, x, y, z, target);
+            } catch (RuntimeException e) {
+                reportProviderFailure(provider, e);
+                continue;
+            }
             if (displayName != null) {
                 return displayName;
             }

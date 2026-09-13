@@ -33,4 +33,14 @@ public class MdxAttrNameContext implements AutocompleteContext {
     public String getPartialText() {
         return partialText;
     }
+
+    @Override
+    public boolean expandsTypedText() {
+        return true;
+    }
+
+    @Override
+    public boolean isCommitCharacter(char typedChar) {
+        return typedChar == '=';
+    }
 }
