@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.scene.element;
 
-import java.lang.reflect.Constructor;
-import java.net.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.item.Item;
@@ -25,6 +24,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.mojang.authlib.Agent;
 import com.mojang.authlib.GameProfile;
@@ -32,6 +32,8 @@ import com.mojang.authlib.GameProfileRepository;
 import com.mojang.authlib.ProfileLookupCallback;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import lombok.Getter;
 
 public class GuidebookSceneEntityLoader {
@@ -42,11 +44,6 @@ public class GuidebookSceneEntityLoader {
     public static final Map<String, GameProfile> PREVIEW_PLAYER_PROFILE_CACHE = Collections
         .synchronizedMap(createPreviewPlayerProfileCache());
     public static volatile GameProfileRepository previewPlayerProfileRepository;
-    @Nullable
-    public static volatile Constructor<?> previewPlayerConstructor;
-    @Nullable
-    public static volatile Constructor<?> fallbackPreviewPlayerConstructor;
-    public static volatile boolean previewPlayerConstructorsResolved;
 
     private GuidebookSceneEntityLoader() {}
 
@@ -241,6 +238,7 @@ public class GuidebookSceneEntityLoader {
         return normalizeEntityId(suffix);
     }
 
+    @SideOnly(Side.CLIENT)
     public static @NotNull Entity loadPreviewPlayer(@Nullable World world, NBTTagCompound data,
         @Nullable String playerName, @Nullable String playerUuid) {
         GameProfileSpec profileSpec = resolvePreviewPlayerProfile(playerName, playerUuid);
@@ -251,12 +249,9 @@ public class GuidebookSceneEntityLoader {
             throw new IllegalArgumentException("Preview player entities require an active client world");
         }
 
-        GameProfile gameProfile = resolveInitialPreviewPlayerGameProfile(profileSpec);
-        Entity entity = createPreviewPlayerEntity(world, gameProfile);
-        if (entity == null) {
-            throw new IllegalArgumentException("Failed to create preview player entity");
-        }
-
+        Entity entity = new GuidebookScenePreviewPlayerEntity(
+            world,
+            resolveInitialPreviewPlayerGameProfile(profileSpec));
         if (data != null) {
             entity.readFromNBT(data);
         }
@@ -346,21 +341,6 @@ public class GuidebookSceneEntityLoader {
         }
     }
 
-    @Nullable
-    public static Entity createPreviewPlayerEntity(World world, GameProfile gameProfile) {
-        Constructor<?> constructor = resolvePreviewPlayerConstructor();
-        if (constructor == null) {
-            return null;
-        }
-
-        try {
-            Object entity = constructor.newInstance(world, gameProfile);
-            return entity instanceof Entity ? (Entity) entity : null;
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
     public static GameProfile resolveInitialPreviewPlayerGameProfile(GameProfileSpec profileSpec) {
         if (profileSpec.getUuid() != null) {
             return new GameProfile(profileSpec.getUuid(), profileSpec.getName());
@@ -403,6 +383,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
+    @SideOnly(Side.CLIENT)
     public static GameProfile lookupProfileFromRepository(String playerName) {
         GameProfileRepository repository = getPreviewPlayerProfileRepository();
         if (repository == null) {
@@ -439,6 +420,7 @@ public class GuidebookSceneEntityLoader {
     }
 
     @Nullable
+    @SideOnly(Side.CLIENT)
     public static GameProfileRepository getPreviewPlayerProfileRepository() {
         GameProfileRepository repository = previewPlayerProfileRepository;
         if (repository != null) {
@@ -452,7 +434,8 @@ public class GuidebookSceneEntityLoader {
             }
             try {
                 YggdrasilAuthenticationService authenticationService = new YggdrasilAuthenticationService(
-                    resolveMinecraftProxy(),
+                    Minecraft.getMinecraft()
+                        .getProxy(),
                     UUID.randomUUID()
                         .toString());
                 repository = authenticationService.createProfileRepository();
@@ -461,19 +444,6 @@ public class GuidebookSceneEntityLoader {
             } catch (Throwable ignored) {
                 return null;
             }
-        }
-    }
-
-    public static Proxy resolveMinecraftProxy() {
-        try {
-            Class<?> minecraftClass = Class.forName("net.minecraft.client.Minecraft");
-            Object minecraft = minecraftClass.getMethod("getMinecraft")
-                .invoke(null);
-            Object proxy = minecraftClass.getMethod("getProxy")
-                .invoke(minecraft);
-            return proxy instanceof Proxy ? (Proxy) proxy : Proxy.NO_PROXY;
-        } catch (Throwable ignored) {
-            return Proxy.NO_PROXY;
         }
     }
 
@@ -605,32 +575,6 @@ public class GuidebookSceneEntityLoader {
                 return size() > MAX_PREVIEW_PLAYER_PROFILE_CACHE_ENTRIES;
             }
         };
-    }
-
-    @Nullable
-    private static Constructor<?> resolvePreviewPlayerConstructor() {
-        if (!previewPlayerConstructorsResolved) {
-            synchronized (GuidebookSceneEntityLoader.class) {
-                if (!previewPlayerConstructorsResolved) {
-                    previewPlayerConstructor = tryResolvePreviewPlayerConstructor(
-                        "com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity");
-                    fallbackPreviewPlayerConstructor = tryResolvePreviewPlayerConstructor(
-                        "net.minecraft.client.entity.EntityOtherPlayerMP");
-                    previewPlayerConstructorsResolved = true;
-                }
-            }
-        }
-        return previewPlayerConstructor != null ? previewPlayerConstructor : fallbackPreviewPlayerConstructor;
-    }
-
-    @Nullable
-    private static Constructor<?> tryResolvePreviewPlayerConstructor(String className) {
-        try {
-            Class<?> entityClass = Class.forName(className);
-            return entityClass.getConstructor(World.class, GameProfile.class);
-        } catch (Throwable ignored) {
-            return null;
-        }
     }
 
     @Getter

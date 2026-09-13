@@ -12,28 +12,8 @@ import com.hfstudio.guidenh.integration.Mods;
 
 public class NeiRecipeLookup {
 
-    public static final boolean AVAILABLE;
-
-    static {
-        boolean ok = false;
-        if (Mods.NotEnoughItems.isModLoaded()) {
-            try {
-                Class.forName(
-                    "com.hfstudio.guidenh.integration.nei.NeiDirectCalls",
-                    true,
-                    NeiRecipeLookup.class.getClassLoader());
-                ok = true;
-            } catch (Throwable t) {
-                GuideDebugLog.warn(
-                    "[GuideNH] [NeiRecipeLookup] NEI API incompatible; recipe rendering falls back to vanilla. Reason: {}",
-                    t.toString());
-            }
-        }
-        AVAILABLE = ok;
-    }
-
     public static boolean isAvailable() {
-        return AVAILABLE;
+        return Mods.NotEnoughItems.isModLoaded();
     }
 
     public static class Slot {
@@ -82,7 +62,7 @@ public class NeiRecipeLookup {
     }
 
     public static List<CraftingRecipeRef> findCraftingRecipeRefs(ItemStack target) {
-        if (!AVAILABLE || target == null) return List.of();
+        if (!Mods.NotEnoughItems.isModLoaded() || target == null) return List.of();
         try {
             List<Object> handlers = NeiDirectCalls.getCraftingHandlers(target);
             List<CraftingRecipeRef> out = new ArrayList<>();
@@ -110,7 +90,7 @@ public class NeiRecipeLookup {
     }
 
     public static List<Entry> findUsages(ItemStack target) {
-        if (!AVAILABLE || target == null) return List.of();
+        if (!Mods.NotEnoughItems.isModLoaded() || target == null) return List.of();
         try {
             return processHandlers(NeiDirectCalls.getUsageHandlers(target));
         } catch (Throwable t) {
@@ -124,7 +104,7 @@ public class NeiRecipeLookup {
      * {@link #lookupNumRecipes(Object)} before iterating recipe indices.
      */
     public static List<Object> queryRawCraftingHandlers(ItemStack target) {
-        if (!AVAILABLE || target == null) return List.of();
+        if (!Mods.NotEnoughItems.isModLoaded() || target == null) return List.of();
         try {
             return NeiDirectCalls.getCraftingHandlers(target);
         } catch (Throwable t) {
@@ -138,7 +118,7 @@ public class NeiRecipeLookup {
      * that consume {@code target} as an input (anvil / fuel / brewing ingredient).
      */
     public static List<Object> queryRawUsageHandlers(ItemStack target) {
-        if (!AVAILABLE || target == null) return List.of();
+        if (!Mods.NotEnoughItems.isModLoaded() || target == null) return List.of();
         try {
             return NeiDirectCalls.getUsageHandlers(target);
         } catch (Throwable t) {
@@ -148,7 +128,7 @@ public class NeiRecipeLookup {
     }
 
     public static int lookupNumRecipes(Object handler) {
-        if (!AVAILABLE || handler == null) return 0;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return 0;
         try {
             return NeiDirectCalls.numRecipes(handler);
         } catch (Throwable t) {
@@ -157,7 +137,7 @@ public class NeiRecipeLookup {
     }
 
     public static String lookupHandlerName(Object handler) {
-        if (!AVAILABLE || handler == null) return "";
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return "";
         try {
             return NeiDirectCalls.recipeName(handler);
         } catch (Throwable t) {
@@ -166,7 +146,7 @@ public class NeiRecipeLookup {
     }
 
     public static @Nullable String lookupOverlayIdentifier(Object handler) {
-        if (!AVAILABLE || handler == null) return null;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
         try {
             return NeiDirectCalls.overlayId(handler);
         } catch (Throwable t) {
@@ -175,7 +155,7 @@ public class NeiRecipeLookup {
     }
 
     public static @Nullable String lookupHandlerId(Object handler) {
-        if (!AVAILABLE || handler == null) return null;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
         try {
             return NeiDirectCalls.handlerId(handler);
         } catch (Throwable t) {
@@ -184,28 +164,28 @@ public class NeiRecipeLookup {
     }
 
     public static void callOnUpdate(Object handler) {
-        if (!AVAILABLE || handler == null) return;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return;
         try {
             NeiDirectCalls.onUpdate(handler);
         } catch (Throwable ignored) {}
     }
 
     public static void callDrawBackground(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return;
         try {
             NeiDirectCalls.drawBackground(handler, recipeIndex);
         } catch (Throwable ignored) {}
     }
 
     public static void callDrawForeground(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return;
         try {
             NeiDirectCalls.drawForeground(handler, recipeIndex);
         } catch (Throwable ignored) {}
     }
 
     public static void callDrawExtras(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return;
         try {
             NeiDirectCalls.drawExtras(handler, recipeIndex);
         } catch (Throwable ignored) {}
@@ -215,14 +195,14 @@ public class NeiRecipeLookup {
      * Append handler-specific tooltip lines for a hovered stack.
      */
     public static void appendItemTooltip(Object handler, ItemStack stack, List<String> tooltip, int recipeIndex) {
-        if (!AVAILABLE || handler == null || stack == null || tooltip == null) return;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null || stack == null || tooltip == null) return;
         try {
             NeiDirectCalls.handleItemTooltip(handler, stack, tooltip, recipeIndex);
         } catch (Throwable ignored) {}
     }
 
     public static int lookupRecipeHeight(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return 0;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return 0;
         try {
             return NeiDirectCalls.recipeHeight(handler, recipeIndex);
         } catch (Throwable t) {
@@ -231,7 +211,7 @@ public class NeiRecipeLookup {
     }
 
     public static List<Slot> readIngredientSlots(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return List.of();
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return List.of();
         try {
             return readSlotList(NeiDirectCalls.ingredientStacks(handler, recipeIndex));
         } catch (Throwable t) {
@@ -240,7 +220,7 @@ public class NeiRecipeLookup {
     }
 
     public static List<Slot> readOtherSlots(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return List.of();
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return List.of();
         try {
             return readSlotList(NeiDirectCalls.otherStacks(handler, recipeIndex));
         } catch (Throwable t) {
@@ -254,7 +234,7 @@ public class NeiRecipeLookup {
      * clean.
      */
     public static boolean otherStacksThrows(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return false;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return false;
         try {
             return NeiDirectCalls.otherStacksThrows(handler, recipeIndex);
         } catch (Throwable t) {
@@ -263,7 +243,7 @@ public class NeiRecipeLookup {
     }
 
     public static @Nullable Slot readResultSlot(Object handler, int recipeIndex) {
-        if (!AVAILABLE || handler == null) return null;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
         try {
             return readSlot(NeiDirectCalls.resultStack(handler, recipeIndex));
         } catch (Throwable t) {
@@ -273,7 +253,7 @@ public class NeiRecipeLookup {
 
     /** Returns the {@code HandlerInfo} display stack for a handler's recipe tab icon. */
     public static @Nullable ItemStack lookupHandlerIcon(Object handler) {
-        if (!AVAILABLE || handler == null) return null;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
         try {
             return NeiDirectCalls.handlerIconStack(handler);
         } catch (Throwable t) {
@@ -287,7 +267,7 @@ public class NeiRecipeLookup {
      * {@link #drawableHeight}, and {@link #drawHandlerImage}.
      */
     public static @Nullable Object lookupHandlerImage(Object handler) {
-        if (!AVAILABLE || handler == null) return null;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
         try {
             return NeiDirectCalls.handlerImage(handler);
         } catch (Throwable t) {
@@ -296,7 +276,7 @@ public class NeiRecipeLookup {
     }
 
     public static int lookupHandlerWidth(Object handler) {
-        if (!AVAILABLE || handler == null) return 166;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return 166;
         try {
             return NeiDirectCalls.handlerWidth(handler);
         } catch (Throwable t) {
@@ -305,7 +285,7 @@ public class NeiRecipeLookup {
     }
 
     public static int lookupHandlerHeight(Object handler) {
-        if (!AVAILABLE || handler == null) return 65;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return 65;
         try {
             return NeiDirectCalls.handlerHeight(handler);
         } catch (Throwable t) {
@@ -314,7 +294,7 @@ public class NeiRecipeLookup {
     }
 
     public static int lookupHandlerYShift(Object handler) {
-        if (!AVAILABLE || handler == null) return 0;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return 0;
         try {
             return NeiDirectCalls.handlerYShift(handler);
         } catch (Throwable t) {
@@ -324,7 +304,7 @@ public class NeiRecipeLookup {
 
     /** Native pixel width of a {@code DrawableResource} (includes padding). */
     public static int drawableWidth(Object drawable) {
-        if (drawable == null || !AVAILABLE) return 0;
+        if (drawable == null || !Mods.NotEnoughItems.isModLoaded()) return 0;
         try {
             return NeiDirectCalls.drawableWidth(drawable);
         } catch (Throwable t) {
@@ -334,7 +314,7 @@ public class NeiRecipeLookup {
 
     /** Native pixel height of a {@code DrawableResource} (includes padding). */
     public static int drawableHeight(Object drawable) {
-        if (drawable == null || !AVAILABLE) return 0;
+        if (drawable == null || !Mods.NotEnoughItems.isModLoaded()) return 0;
         try {
             return NeiDirectCalls.drawableHeight(drawable);
         } catch (Throwable t) {
@@ -347,14 +327,14 @@ public class NeiRecipeLookup {
      * should wrap the call in {@code glPushMatrix / glScalef / glPopMatrix}.
      */
     public static void drawHandlerImage(Object drawable, int x, int y) {
-        if (drawable == null || !AVAILABLE) return;
+        if (drawable == null || !Mods.NotEnoughItems.isModLoaded()) return;
         try {
             NeiDirectCalls.drawDrawable(drawable, x, y);
         } catch (Throwable ignored) {}
     }
 
     public static @Nullable CraftingRecipeRef[] readHandlerCraftingRecipeRefs(Object handler) {
-        if (!AVAILABLE || handler == null) return null;
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
         try {
             int n = NeiDirectCalls.numRecipes(handler);
             if (n <= 0) return new CraftingRecipeRef[0];
