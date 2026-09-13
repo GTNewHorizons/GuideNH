@@ -126,7 +126,6 @@ public class ReplaceBlockElementCompiler implements SceneElementTagCompiler {
             formed);
     }
 
-    /** A region side that no scene can hold. */
     private static int boundedExtent(int declared) {
         return Math.clamp(declared, 1, MAX_REGION_SIDE);
     }

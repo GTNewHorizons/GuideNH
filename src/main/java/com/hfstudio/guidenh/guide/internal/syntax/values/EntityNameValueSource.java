@@ -11,7 +11,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests entity registry names for entity id attributes. */
 public class EntityNameValueSource implements SyntaxValueSource {
 
     private final NameSnapshot snapshot = new NameSnapshot(EntityNameValueSource::registeredNames);

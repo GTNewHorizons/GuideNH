@@ -6,7 +6,6 @@ import java.util.Locale;
 
 import org.jetbrains.annotations.Nullable;
 
-/** A snippet the editor offers for markdown syntax. */
 public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String label, String snippet, int caretOffset) {
 
     private static final String INLINE_BOUNDARY_CHARS = "([{>\"'";
@@ -19,7 +18,6 @@ public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String l
         return new MarkdownSnippet(MarkdownSnippetKind.INLINE, trigger, label, snippet, caretOffset);
     }
 
-    /** True when this snippet should be offered for {@code typed}. */
     public boolean matches(String typed) {
         String normalized = typed != null ? typed.toLowerCase(Locale.ROOT) : "";
         if (kind.lineLead()) {
@@ -48,9 +46,7 @@ public record MarkdownSnippet(MarkdownSnippetKind kind, String trigger, String l
         return results;
     }
 
-    /**
-     * The longest inline trigger that {@code text} ends with, on a word boundary.
-     */
+    /** The longest inline trigger that {@code text} ends with, on a word boundary. */
     @Nullable
     public static MarkdownSnippet longestInlineTrigger(List<MarkdownSnippet> snippets, String text, int cursorIndex) {
         MarkdownSnippet best = null;

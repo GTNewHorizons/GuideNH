@@ -140,7 +140,6 @@ public class GuideSiteSceneAnnotationSerializer {
         return new AnnotationPayload(GSON.toJson(inWorld), GSON.toJson(overlay));
     }
 
-    /** Adds what an annotation of another mod asks the site viewer to draw. */
     private static void addContributedPayload(List<Map<String, Object>> target, SceneAnnotation annotation) {
         Map<String, Object> payload;
         try {

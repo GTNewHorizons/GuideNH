@@ -522,7 +522,6 @@ public class SceneScript implements LytScript {
         scene.setStructureLibSelectionChangeListener(selection -> scene.rebuild());
     }
 
-    /** The tags a scene element compiler publishes. */
     private static Collection<String> publishedSceneTags(SceneElementTagCompiler compiler) {
         Collection<String> tagNames;
         try {
@@ -547,7 +546,6 @@ public class SceneScript implements LytScript {
         return usable;
     }
 
-    /** Applies the {@code <BlockStats>} child element of a scene. */
     public static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el, PageCompiler compiler,
         LytErrorSink errorSink) {
         scene.setBlockStatsVisible(
@@ -598,7 +596,6 @@ public class SceneScript implements LytScript {
         }
     }
 
-    /** Manual mode lists its rows as {@code <BlockStat id|item count/>} children. */
     private static int applyManualBlockStatsEntries(LytGuidebookScene scene, MdxJsxElementFields el) {
         List<ItemStack> stacks = new ArrayList<>();
         List<Integer> counts = new ArrayList<>();

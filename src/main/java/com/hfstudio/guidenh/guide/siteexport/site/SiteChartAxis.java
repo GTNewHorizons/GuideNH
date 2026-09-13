@@ -9,7 +9,6 @@ import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
-/** One axis of an exported chart: the label, the range, the tick step and the formatting of its ticks. */
 public class SiteChartAxis {
 
     @Nullable
@@ -39,7 +38,6 @@ public class SiteChartAxis {
         this.gridColor = gridColor;
     }
 
-    /** Reads one axis from a chart element. */
     public static SiteChartAxis read(MdxJsxElementFields el, String prefix, String gridFlagAttr, String gridColorAttr,
         int defaultGridColor) {
         int gridColor = defaultGridColor;
@@ -97,7 +95,6 @@ public class SiteChartAxis {
         return GuideSiteGraphRenderer.niceStepForAxis(range);
     }
 
-    /** The range an axis shows: the declared bounds where they exist, the data otherwise. */
     public double[] rangeFor(double dataMin, double dataMax, double dataStep) {
         double low = min != null ? min : Math.floor(dataMin / dataStep) * dataStep;
         double high = max != null ? max : Math.ceil(dataMax / dataStep) * dataStep;

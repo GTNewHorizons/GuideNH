@@ -90,7 +90,6 @@ public class InputAnnotationElementCompiler implements SceneElementTagCompiler {
         };
     }
 
-    /** Resolves the optional item icon. */
     @Nullable
     private static ItemStack resolveItem(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el) {
         String itemId = trimToNull(el.getAttributeString("item", null));

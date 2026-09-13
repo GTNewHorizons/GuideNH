@@ -32,9 +32,7 @@ public class GuideNhIntegrationRegistry {
 
     private static final GuideNhIntegrationRegistry GLOBAL = new GuideNhIntegrationRegistry();
 
-    /**
-     * Providers that already reported a failure, so a lookup that runs per block per frame cannot flood the log.
-     */
+    /** Providers that already reported a failure, so a lookup that runs per block per frame cannot flood the log. */
     private static final Set<String> REPORTED_PROVIDER_FAILURES = new HashSet<>();
     private final Map<String, IntegrationModDescriptor> modDescriptors = new LinkedHashMap<>();
     private final List<ItemStackNormalizationProvider> itemStackNormalizationProviders = new ArrayList<>();
@@ -205,7 +203,6 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(guideBuilderIntegrationHooks);
     }
 
-    /** Registers a contributor that declares guide syntax to the editor. */
     public synchronized void registerSyntaxContributor(SyntaxContributor contributor) {
         if (contributor == null) {
             throw new IllegalArgumentException("contributor");
@@ -220,7 +217,6 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(syntaxContributors);
     }
 
-    /** Registers a slot for every guide. */
     public synchronized void registerSyntaxSlot(SyntaxSlot slot) {
         if (slot == null) {
             throw new IllegalArgumentException("slot");
@@ -235,7 +231,6 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(syntaxSlots);
     }
 
-    /** Registers a renderer that exports your tags to the site. */
     public synchronized void registerSiteTagRenderer(GuideSiteTagRenderer renderer) {
         if (renderer == null) {
             throw new IllegalArgumentException("renderer");
@@ -249,7 +244,6 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(siteTagRenderers);
     }
 
-    /** Registers an entry in the guide editor's toolbar and context menu. */
     public synchronized void registerEditorAction(GuideEditorActionContribution action) {
         if (action == null) {
             throw new IllegalArgumentException("action");
@@ -267,7 +261,6 @@ public class GuideNhIntegrationRegistry {
         return syntaxRevision;
     }
 
-    /** Registers scene element compilers for every guide. */
     public synchronized void registerSceneElementTagCompilerProvider(SceneElementTagCompilerProvider provider) {
         if (provider == null) {
             throw new IllegalArgumentException("provider");
@@ -282,9 +275,7 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(sceneElementTagCompilerProviders);
     }
 
-    /**
-     * Registers a renderer for fence names of your own, so the body of such a fence is not read as a plain code.
-     */
+    /** Registers a renderer for fence names of your own, so the body of such a fence is not read as a plain code. */
     public synchronized void registerCodeFenceRenderer(CodeFenceRenderer renderer) {
         if (renderer == null) {
             throw new IllegalArgumentException("renderer");
@@ -298,7 +289,6 @@ public class GuideNhIntegrationRegistry {
         return List.copyOf(codeFenceRenderers);
     }
 
-    /** Registers a symbolic colour resolver for every guide. */
     public synchronized void registerSymbolicColorResolver(SymbolicColorResolver resolver) {
         if (resolver == null) {
             throw new IllegalArgumentException("resolver");
@@ -847,7 +837,6 @@ public class GuideNhIntegrationRegistry {
         }
     }
 
-    /** Reports a provider of another mod that failed. */
     private static void reportProviderFailure(Object provider, RuntimeException failure) {
         String key = provider.getClass()
             .getName();

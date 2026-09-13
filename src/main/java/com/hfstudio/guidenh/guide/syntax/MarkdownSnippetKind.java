@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.syntax;
 
 import java.util.List;
 
-/** Where a markdown snippet belongs in a line. */
 public record MarkdownSnippetKind(String id, boolean lineLead) {
 
     public static final MarkdownSnippetKind BLOCK = new MarkdownSnippetKind("BLOCK", true);

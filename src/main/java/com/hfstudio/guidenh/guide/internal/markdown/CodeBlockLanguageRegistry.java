@@ -29,7 +29,6 @@ public class CodeBlockLanguageRegistry {
         return LANGUAGE_IDS;
     }
 
-    /** Every accepted alias that is not itself a language id, sorted. */
     public static List<String> getFenceAliases() {
         return FENCE_ALIASES;
     }

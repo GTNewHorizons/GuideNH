@@ -9,9 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
-/**
- * A cached view of the names a registry or a document exposes, with each lowercase form precomputed.
- */
+/** A cached view of the names a registry or a document exposes, with each lowercase form precomputed. */
 public class NameSnapshot {
 
     public record Entry(String name, String lower) {}

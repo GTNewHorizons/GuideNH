@@ -37,7 +37,6 @@ public class CodeFenceRenderers {
         return all;
     }
 
-    /** The block a contributed renderer produces for a fence. */
     @Nullable
     public static LytBlock render(List<CodeFenceRenderer> renderers, PageCompiler compiler, @Nullable String fenceName,
         String codeText, @Nullable String meta) {
@@ -65,14 +64,6 @@ public class CodeFenceRenderers {
         return null;
     }
 
-    /**
-     * Whether a renderer answers for a fence name.
-     *
-     * <p>
-     * Fence names are matched ignoring case, because the book uses the author's spelling while the export
-     * lowercases the language before asking: a renderer declaring {@code MyFence} would otherwise be asked
-     * for it in the book and never for the site, and its fence would export as a plain code block.
-     */
     private static boolean answers(CodeFenceRenderer renderer, String fenceName) {
         try {
             Set<String> names = renderer.getFenceNames();
@@ -98,13 +89,6 @@ public class CodeFenceRenderers {
         }
     }
 
-    /**
-     * Whether any contributed renderer owns a fence name.
-     *
-     * <p>
-     * The export asks this before deciding to treat a fence as a contributed one, and a renderer that fails
-     * is reported and skipped here exactly as it is when rendering, so a broken plugin cannot fail a page.
-     */
     public static boolean owns(List<CodeFenceRenderer> renderers, @Nullable String fenceName) {
         if (fenceName == null || fenceName.isEmpty()) {
             return false;
@@ -117,7 +101,6 @@ public class CodeFenceRenderers {
         return false;
     }
 
-    /** The markup a contributed renderer produces for a fence on the exported site. */
     @Nullable
     public static String renderSite(List<CodeFenceRenderer> renderers, @Nullable String fenceName, String codeText,
         @Nullable String meta) {

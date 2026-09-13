@@ -8,7 +8,6 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
-/** A value offered for an attribute or frontmatter key. */
 public record SyntaxSuggestion(String value, @Nullable String label, @Nullable String subtitle,
     @Nullable ItemStack icon) {
 

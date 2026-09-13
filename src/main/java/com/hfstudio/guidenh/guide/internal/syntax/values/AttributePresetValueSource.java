@@ -13,7 +13,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Common values for well known attribute names. */
 public class AttributePresetValueSource implements SyntaxValueSource {
 
     private static final Set<SyntaxValueKind> KINDS = Set

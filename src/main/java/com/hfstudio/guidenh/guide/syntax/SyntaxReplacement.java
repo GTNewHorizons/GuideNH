@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.syntax;
 
-/** The text an accepted value is written as, plus where the caret and the selection end land inside it. */
 public record SyntaxReplacement(String text, int caretOffset, int selectionEndOffset) {
 
     public SyntaxReplacement {

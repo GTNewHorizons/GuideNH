@@ -1201,7 +1201,6 @@ public class GuideSiteGraphRenderer {
                 pieClockwise);
         }
 
-        /** The same appearance with the title colour and bar width the page declares. */
         public ChartStyle withBarLayout(int titleColor, float barWidthRatio) {
             return new ChartStyle(
                 width,
@@ -1228,7 +1227,6 @@ public class GuideSiteGraphRenderer {
             return yAxis != null ? yAxis : SiteChartAxis.automatic(DEFAULT_GRID_COLOR);
         }
 
-        /** The same appearance with the pie layout the page declares. */
         public ChartStyle withPieLayout(float startAngleDeg, boolean clockwise) {
             return new ChartStyle(
                 width,
@@ -1322,7 +1320,6 @@ public class GuideSiteGraphRenderer {
      * Space a legend takes away from the plot and where it is drawn, so every chart reserves its own
      * legend the same way instead of overlapping the plot.
      */
-       /** The room a legend was given, and how it is filled. */
     private record LegendArea(int left, int right, int top, int bottom, int x, int y, int width, int limit, int cols) {}
 
     // Column chart (vertical bars, categorical X).
@@ -3951,7 +3948,6 @@ public class GuideSiteGraphRenderer {
         }
     }
 
-    /** The tick step an axis uses when the page declares none: a nice step for about five divisions. */
     static double niceStepForAxis(double range) {
         return niceStep(range / 5.0);
     }

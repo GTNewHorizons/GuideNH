@@ -95,7 +95,6 @@ public class GuideSiteHtmlCompiler {
             return List.of();
         }
 
-        /** Fence renderers contributed by other mods, for names this exporter does not handle itself. */
         default List<CodeFenceRenderer> contributedFenceRenderers() {
             return List.of();
         }
@@ -467,13 +466,6 @@ public class GuideSiteHtmlCompiler {
             element);
     }
 
-    /**
-     * Whether a contributed fence renderer owns this fence name.
-     *
-     * <p>
-     * The lookup is the renderer registry's, which reports and skips a renderer that cannot answer, so a
-     * broken plugin costs its own fence rather than the page it appears on.
-     */
     private boolean isContributedFence(@Nullable String lang) {
         if (lang == null || lang.isEmpty()) {
             return false;
@@ -644,7 +636,6 @@ public class GuideSiteHtmlCompiler {
             + ">";
     }
 
-    /** A list item, with the task-list marker the book draws turned into the checkbox the site styles. */
     private String compileListItemMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         TaskMarker marker = MarkdownListSemantics.extractTaskMarker(el.children());
@@ -948,7 +939,6 @@ public class GuideSiteHtmlCompiler {
         return "Spoiler".equals(element.name());
     }
 
-    /** True for every tag {@code RecipeCompiler} compiles. */
     private boolean isRecipeElement(MdxJsxElementFields element) {
         String name = element.name();
         return "Recipe".equals(name) || "RecipeFor".equals(name)

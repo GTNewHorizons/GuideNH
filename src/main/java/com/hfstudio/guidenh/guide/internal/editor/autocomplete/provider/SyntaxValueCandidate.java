@@ -6,7 +6,6 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 
-/** A value suggested by a {@code SyntaxValueSource}, rendered with its optional icon and subtitle. */
 public class SyntaxValueCandidate implements AutocompleteCandidate {
 
     private static final int LABEL_COLOR = ColorUtils.TEXT.getColor();

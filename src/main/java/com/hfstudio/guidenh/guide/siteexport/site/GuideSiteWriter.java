@@ -145,7 +145,6 @@ public class GuideSiteWriter {
         Files.writeString(path, json);
     }
 
-    /** The file a page is written to. */
     private static Path containedPagePath(Path outDir, String namespace, String guidePath, String language,
         String pageRelativeFile) throws Exception {
         Path root = outDir.toAbsolutePath()

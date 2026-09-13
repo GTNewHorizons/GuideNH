@@ -29,7 +29,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 
-/** Turns the syntax under the caret into completion candidates from a guide's syntax model. */
 public class GuideSyntaxCompletion {
 
     private static final int RELEVANCE_PREFIX = 0;
@@ -48,7 +47,6 @@ public class GuideSyntaxCompletion {
         return ranked(resolve(model, context, limit), context, limit);
     }
 
-    /** Candidates for a slot another mod owns. */
     public static List<AutocompleteCandidate> slotQuery(@Nullable GuideSyntaxModel.SlotMatch slotMatch, int limit) {
         if (slotMatch == null) {
             return List.of();
@@ -191,7 +189,6 @@ public class GuideSyntaxCompletion {
         return results;
     }
 
-    /** Drops candidates that would insert exactly what the user already typed. */
     private static List<AutocompleteCandidate> removeRedundant(List<AutocompleteCandidate> candidates,
         AutocompleteContext context) {
         Set<String> seen = new HashSet<>();
@@ -217,9 +214,7 @@ public class GuideSyntaxCompletion {
         return results;
     }
 
-    /**
-     * Ranks the closest matches first, since the popup pre-selects the head of the list.
-     */
+    /** Ranks the closest matches first, since the popup pre-selects the head of the list. */
     private static Comparator<AutocompleteCandidate> relevanceOrder(@Nullable String partialText) {
         if (partialText == null || partialText.isEmpty()) {
             return (left, right) -> 0;

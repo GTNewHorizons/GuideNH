@@ -214,7 +214,6 @@ public class RecipeCompiler extends BlockTagCompiler {
         return out;
     }
 
-    /** Whether any of {@code patterns} names this handler. An empty list matches nothing. */
     public static boolean matchesAnyHandler(Object handler, List<String> patterns,
         HandlerMetadataReader metadataReader) {
         for (String pattern : patterns) {
@@ -280,7 +279,6 @@ public class RecipeCompiler extends BlockTagCompiler {
         return patterns;
     }
 
-    /** The configured blacklist followed by the page's own, so a page can hide more but not fewer. */
     public static List<String> effectiveHandlerBlacklist(List<String> pageBlacklist) {
         List<String> configured = configuredHandlerBlacklist();
         if (configured.isEmpty()) return pageBlacklist;

@@ -119,7 +119,6 @@ public class DefaultExtensions {
         }
     }
 
-    /** The syntax the editor completes for a guide. */
     public static List<SyntaxContributor> syntaxContributors() {
         return List.of(new BuiltinSyntaxContributor());
     }

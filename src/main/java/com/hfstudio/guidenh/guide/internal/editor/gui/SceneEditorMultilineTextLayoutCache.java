@@ -11,7 +11,6 @@ import lombok.Getter;
 
 public class SceneEditorMultilineTextLayoutCache {
 
-    /** How much of a logical line is handed to the font at once when wrapping. */
     private static final int MEASURE_WINDOW_CHARS = 4096;
 
     private final List<VisualLine> visualLines = new ArrayList<>();

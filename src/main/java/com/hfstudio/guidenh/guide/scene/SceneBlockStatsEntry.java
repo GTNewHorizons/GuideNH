@@ -71,7 +71,6 @@ public class SceneBlockStatsEntry {
         return Math.max(1, count);
     }
 
-    /** The placements of this entry. */
     public List<BlockStatsPlacement> getPlacements() {
         return Collections.unmodifiableList(placements);
     }

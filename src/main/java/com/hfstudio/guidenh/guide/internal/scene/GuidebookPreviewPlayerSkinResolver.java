@@ -266,14 +266,7 @@ public class GuidebookPreviewPlayerSkinResolver {
         return resourceLocation;
     }
 
-    /**
-     * The texture location for a skin hash, keeping the map bounded.
-     *
-     * <p>
-     * The game holds a texture per location until it is released, so an evicted entry has its texture deleted
-     * first. That is done after the map's monitor is released, because releasing a texture touches the
-     * texture manager and must not run while this map is locked.
-     */
+    /** The texture location for a skin hash, keeping the map bounded. */
     private static ResourceLocation previewSkinTextureLocation(String textureHash) {
         List<ResourceLocation> evicted = null;
         ResourceLocation location;

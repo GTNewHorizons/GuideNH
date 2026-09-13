@@ -17,7 +17,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests heading anchors of the page being edited for {@code href="#..."} on an anchor tag. */
 public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
 
     public record Heading(String anchor, String title) {}
@@ -28,13 +27,10 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
     private static final Pattern HEADING = Pattern.compile("^#{1,6}\\s+(.+)$", Pattern.MULTILINE);
     private static final List<Heading> NO_HEADINGS = List.of();
 
-    /**
-     * The document the cached headings came from, held weakly: it is only a key for "did the text change".
-     */
+    /** The document the cached headings came from, held weakly: it is only a key for "did the text change". */
     @Nullable
     private WeakReference<String> cachedSource;
     private int cachedSourceLength = -1;
-    /** The headings of {@link #cachedSource}, or null when they have not been parsed yet. */
     @Nullable
     private List<Heading> cachedHeadings = NO_HEADINGS;
 
@@ -89,14 +85,7 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
         return results;
     }
 
-    /**
-     * The headings of the current document, parsed on the first query that needs them.
-     *
-     * <p>
-     * The document is held weakly, so it can be collected between the edit that set it and the query that
-     * needs it. That case is not cached: caching it would answer every later query with no headings even
-     * though the text is unchanged.
-     */
+    /** The headings of the current document, parsed on the first query that needs them. */
     private List<Heading> headings() {
         List<Heading> parsed = cachedHeadings;
         if (parsed != null) {
@@ -111,7 +100,6 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
         return parsed;
     }
 
-    /** Parses the headings once per document instead of once per keystroke. */
     private static List<Heading> parseHeadings(String text) {
         List<Heading> headings = new ArrayList<>();
         Matcher matcher = HEADING.matcher(text);

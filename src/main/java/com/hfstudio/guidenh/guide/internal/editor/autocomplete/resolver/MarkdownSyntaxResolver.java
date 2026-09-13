@@ -9,7 +9,6 @@ import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.MarkdownSnippet;
 import com.hfstudio.guidenh.guide.syntax.MarkdownSnippetKind;
 
-/** Detects markdown constructs that are about to be typed. */
 public class MarkdownSyntaxResolver implements SyntaxContextResolver {
 
     private static final int MAX_BLOCK_INDENT = 8;

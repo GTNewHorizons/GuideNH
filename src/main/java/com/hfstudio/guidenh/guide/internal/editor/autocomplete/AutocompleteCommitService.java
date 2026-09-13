@@ -10,12 +10,10 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.syntax.SyntaxReplacement;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
-/** Applies an accepted candidate to the page text. */
 public class AutocompleteCommitService {
 
     private AutocompleteCommitService() {}
 
-    /** Applies an accepted candidate to the page text. */
     @Nullable
     public static AutocompleteCommit commit(String text, AutocompleteContext context, AutocompleteCandidate candidate) {
         String source = text != null ? text : "";
@@ -72,9 +70,7 @@ public class AutocompleteCommitService {
         return Replacement.cursorAtEnd(replacement);
     }
 
-    /**
-     * A slot of another mod writes its own replacement, so the candidate only has to say which value the author.
-     */
+    /** A slot of another mod writes its own replacement, so the candidate only has to say which value the author. */
     @Nullable
     private static Replacement createSlotReplacement(SlotContext context, AutocompleteCandidate candidate) {
         SyntaxSuggestion suggestion = candidate.syntaxSuggestion();
@@ -101,9 +97,7 @@ public class AutocompleteCommitService {
         return new Replacement(replacement.text(), replacement.caretOffset(), replacement.selectionEndOffset());
     }
 
-    /**
-     * A tag candidate either supplies its own opening form (a container like {@code Row>} that the caller closes.
-     */
+    /** A tag candidate either supplies its own opening form (a container like {@code Row>} that the caller closes. */
     private static Replacement createTagReplacement(String source, TagStartContext context,
         AutocompleteCandidate candidate) {
         String tagName = candidate.replacementText() != null ? candidate.replacementText() : "";
@@ -133,9 +127,7 @@ public class AutocompleteCommitService {
         return new Replacement(text, text.length() - 2, text.length() - 2, extraReplaceStart, 0);
     }
 
-    /**
-     * True when a candidate writes the whole tag, opening bracket included, while the page already has a bracket.
-     */
+    /** True when a candidate writes the whole tag, opening bracket included, while the page already has a bracket. */
     private static boolean swallowsOpeningBracket(String source, int replaceStart, String replacement) {
         return replacement.startsWith("<") && replaceStart > 0 && source.charAt(replaceStart - 1) == '<';
     }
@@ -155,9 +147,7 @@ public class AutocompleteCommitService {
         return position + 1 < source.length() && source.charAt(position + 1) == '>' ? position + 2 : -1;
     }
 
-    /**
-     * Writes an attribute value, adding quotes when the page does not quote it yet and closing a half-typed.
-     */
+    /** Writes an attribute value, adding quotes when the page does not quote it yet and closing a half-typed. */
     private static Replacement createAttributeValueReplacement(String source, MdxValueContext context, String value,
         AutocompleteCandidate candidate) {
         int replaceStart = clamp(context.replaceStart(), 0, source.length());

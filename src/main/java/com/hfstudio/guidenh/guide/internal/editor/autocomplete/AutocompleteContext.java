@@ -11,16 +11,12 @@ public interface AutocompleteContext {
 
     String getPartialText();
 
-    /**
-     * True when accepting any candidate inserts markup around the typed text, so a candidate whose name already.
-     */
+    /** True when accepting any candidate inserts markup around the typed text, so a candidate whose name already. */
     default boolean expandsTypedText() {
         return false;
     }
 
-    /**
-     * True when {@code typedChar} ends this slot, so accepting the highlighted candidate produces a better result.
-     */
+    /** True when {@code typedChar} ends this slot, so accepting the highlighted candidate produces a better result. */
     default boolean isCommitCharacter(char typedChar) {
         return false;
     }

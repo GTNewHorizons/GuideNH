@@ -13,7 +13,6 @@ public class MinecraftFontMetrics implements FontMetrics {
     @Nullable
     private final FontRenderer fixedFont;
 
-    /** Follows the game's font, which the game replaces when the language or the resources change. */
     public MinecraftFontMetrics() {
         this.fixedFont = null;
     }

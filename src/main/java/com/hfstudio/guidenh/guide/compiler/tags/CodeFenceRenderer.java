@@ -9,14 +9,12 @@ import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
 
-/** Renders the body of a code fence whose name you own. */
 public interface CodeFenceRenderer extends Extension {
 
     ExtensionPoint<CodeFenceRenderer> EXTENSION_POINT = new ExtensionPoint<>(CodeFenceRenderer.class);
 
     Set<String> getFenceNames();
 
-    /** The block a fence body becomes. */
     @Nullable
     LytBlock renderFence(PageCompiler compiler, String fenceName, String codeText, @Nullable String meta);
 

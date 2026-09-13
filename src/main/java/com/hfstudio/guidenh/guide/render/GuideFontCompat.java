@@ -97,16 +97,7 @@ public class GuideFontCompat {
         return 0f;
     }
 
-    /**
-     * How tall one line of this font is, in pixels, which callers add their own gap to.
-     *
-     * <p>
-     * A custom font draws its glyphs taller without changing {@code FONT_HEIGHT}, so a line laid out against
-     * that constant alone overlaps once the font is larger. The drawn height is
-     * {@code (FONT_HEIGHT - 1) * glyphScaleY * yScaleMultiplier}, where the last factor belongs to the font
-     * a glyph comes from and is not part of {@link IFontParameters}. That height is used only when it exceeds
-     * {@code FONT_HEIGHT}, so a font drawing at the usual size keeps the line it already had.
-     */
+    /** How tall one line of this font is, in pixels, which callers add their own gap to. */
     public static int getLineHeight(FontRenderer fontRenderer) {
         float drawn = (fontRenderer.FONT_HEIGHT - 1) * getGlyphScaleY(fontRenderer) * getYScaleMultiplier();
         if (drawn <= fontRenderer.FONT_HEIGHT) {
@@ -115,7 +106,6 @@ public class GuideFontCompat {
         return (int) Math.ceil(drawn);
     }
 
-    /** The vertical scale the font draws its glyphs at, or 1 when it does not scale them. */
     public static float getGlyphScaleY(FontRenderer fontRenderer) {
         if (fontRenderer instanceof IFontParameters parameters) {
             float scale = parameters.getGlyphScaleY();
@@ -126,14 +116,7 @@ public class GuideFontCompat {
         return 1f;
     }
 
-    /**
-     * The tallest vertical multiplier a glyph can be drawn at, which belongs to the font a glyph comes from.
-     *
-     * <p>
-     * A renderer picks its font per character, so the multiplier is not reachable from the renderer itself;
-     * it lives on Angelica's font configuration. The tallest font is taken because a line has to fit every
-     * glyph in it. The result is 1 while that mod is absent.
-     */
+    /** The tallest vertical multiplier a glyph can be drawn at, which belongs to the font a glyph comes from. */
     public static float getYScaleMultiplier() {
         return Mods.Angelica.isModLoaded() ? AngelicaFontSupport.yScaleMultiplier() : 1f;
     }

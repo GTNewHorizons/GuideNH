@@ -12,7 +12,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests OreDictionary names for ore attributes. */
 public class OreDictValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
 
     private final NameSnapshot snapshot = new NameSnapshot(() -> List.of(OreDictionary.getOreNames()));

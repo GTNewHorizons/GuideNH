@@ -5,9 +5,7 @@ import net.minecraft.client.gui.FontRenderer;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.syntax.MarkdownSnippet;
 
-/**
- * Renders a markdown construct with a preview of the text it inserts, and remembers where the caret lands after.
- */
+/** Renders a markdown construct with a preview of the text it inserts, and remembers where the caret lands after. */
 public class MarkdownSyntaxCandidate implements AutocompleteCandidate {
 
     private static final int LABEL_COLOR = ColorUtils.TEXT.getColor();

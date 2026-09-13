@@ -21,10 +21,8 @@ import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
-/** The syntax a guide's editor can complete, assembled from its tag compilers and contributors. */
 public class GuideSyntaxModel {
 
-    /** Cached per extension collection while it is still reachable, so building costs once per guide. */
     private static final Map<ExtensionCollection, GuideSyntaxModel> CACHE = Collections
         .synchronizedMap(new WeakHashMap<>());
 
@@ -60,21 +58,10 @@ public class GuideSyntaxModel {
         this.slots = List.copyOf(slots);
     }
 
-    /**
-     * The model used when no guide is open: only what is registered globally, with no guide-declared syntax.
-     */
     public static GuideSyntaxModel empty() {
         return of(null);
     }
 
-    /**
-     * Drops every cached model.
-     *
-     * <p>
-     * A guide that is registered in code keeps its extension collection across a reload, so the key would
-     * stay the same and the model built from the previous pack would keep being served - including the
-     * per-source state it holds, such as the documents and paths the value sources scanned.
-     */
     public static void clearCache() {
         synchronized (CACHE) {
             CACHE.clear();
@@ -98,7 +85,6 @@ public class GuideSyntaxModel {
         return model;
     }
 
-    /** Builds a model for a revision the caller read before building. */
     private static GuideSyntaxModel build(ExtensionCollection extensions, int revision) {
         Builder builder = new Builder();
         for (SyntaxContributor contributor : contributors(extensions)) {
@@ -134,9 +120,6 @@ public class GuideSyntaxModel {
             .getSimpleName();
     }
 
-    /**
-     * The slots a contributor owns, guide-declared first. Matching stops at the first slot that claims the caret.
-     */
     private static List<SyntaxSlot> slots(ExtensionCollection extensions) {
         List<SyntaxSlot> declared = extensions.get(SyntaxSlot.EXTENSION_POINT);
         List<SyntaxSlot> global = GuideNhIntegrationRegistry.global()
@@ -169,7 +152,6 @@ public class GuideSyntaxModel {
         return all;
     }
 
-    /** Tags declared by the compilers themselves. */
     private static void collectCompilerTagNames(Builder builder, ExtensionCollection extensions) {
         for (TagCompiler compiler : extensions.get(TagCompiler.EXTENSION_POINT)) {
             declareCompilerTagNames(builder, compiler, compiler::getTagNames);
@@ -179,9 +161,6 @@ public class GuideSyntaxModel {
         }
     }
 
-    /**
-     * A compiler of another mod publishes its tag names, and one that cannot answer is reported instead of keeping.
-     */
     private static void declareCompilerTagNames(Builder builder, Object owner, Supplier<Collection<String>> tagNames) {
         Collection<String> published;
         try {
@@ -251,10 +230,8 @@ public class GuideSyntaxModel {
         return slots;
     }
 
-    /** The slot that owns a caret together with what it found there. */
     public record SlotMatch(SyntaxSlot slot, SyntaxSlotMatch match) {}
 
-    /** Asks every slot which one owns the caret. */
     @Nullable
     public SlotMatch matchSlot(String text, int cursorIndex) {
         for (SyntaxSlot slot : slots) {
@@ -266,7 +243,6 @@ public class GuideSyntaxModel {
         return null;
     }
 
-    /** Asks every matching slot which range a double click inside it selects. */
     @Nullable
     public SyntaxSelection matchSlotSelection(String text, int cursorIndex) {
         for (SyntaxSlot slot : slots) {
@@ -365,9 +341,6 @@ public class GuideSyntaxModel {
         return slot != null ? slot.kind : null;
     }
 
-    /**
-     * Values for a request: the fixed values declared next to the attribute or frontmatter key first, then.
-     */
     public List<SyntaxSuggestion> values(SyntaxValueRequest request, int limit) {
         int safeLimit = Math.max(0, limit);
         List<SyntaxSuggestion> results = new ArrayList<>();
@@ -397,7 +370,6 @@ public class GuideSyntaxModel {
         return results;
     }
 
-    /** A source of another mod answering a request. */
     private static List<SyntaxSuggestion> suggestSafely(SyntaxValueSource source, SyntaxValueRequest request,
         int limit) {
         List<SyntaxSuggestion> suggested;
@@ -423,7 +395,6 @@ public class GuideSyntaxModel {
         return values;
     }
 
-    /** Constants of an enum declared next to the attribute. */
     private List<SyntaxSuggestion> enumValues(SyntaxValueRequest request) {
         if (request.kind() != SyntaxValueKind.ENUM) {
             return List.of();
@@ -505,7 +476,6 @@ public class GuideSyntaxModel {
         return List.copyOf(aware);
     }
 
-    /** A source of another mod refreshing itself. */
     private static void prepareSafely(SyntaxEnvironmentAware source, SyntaxEnvironment environment) {
         try {
             source.prepare(environment);

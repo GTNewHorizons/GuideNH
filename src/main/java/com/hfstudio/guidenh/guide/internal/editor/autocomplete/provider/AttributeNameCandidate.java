@@ -8,7 +8,6 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.syntax.AttributeSyntax;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 
-/** An attribute name suggestion. */
 public class AttributeNameCandidate implements AutocompleteCandidate {
 
     private static final int LABEL_COLOR = ColorUtils.TEXT.getColor();

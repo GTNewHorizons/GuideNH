@@ -78,11 +78,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
     /**
      * The tag the caret is inside, read from the text: its attribute value, its attribute name, or its name
      * while the tag is being opened.
-     *
-     * <p>
-     * The enclosing container is read from the text as well, so a caret inside a half-typed tag is offered
-     * that container's children rather than every root tag. The parsed path knows the container from the
-     * element it sits in, and this path is the one that answers when the document cannot be parsed.
      */
     @Nullable
     private TextSyntaxContext resolveTextLevelTagContext(String text, int cursorIndex) {
@@ -93,13 +88,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolveTagStart(text, cursorIndex, enclosingContainerName(text, cursorIndex));
     }
 
-    /**
-     * The name of the nearest tag that opens before the caret and has not been closed, or null at the root.
-     *
-     * <p>
-     * A tag the caret is still typing is skipped, since it is the tag completion is offering a name for and
-     * not a container the caret is inside.
-     */
+    /** The name of the nearest tag that opens before the caret and has not been closed, or null at the root. */
     @Nullable
     private static String enclosingContainerName(String text, int cursorIndex) {
         Deque<String> open = new ArrayDeque<>();
@@ -165,9 +154,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return root;
     }
 
-    /**
-     * The fence language at the caret, read from the line the caret is on.
-     */
+    /** The fence language at the caret, read from the line the caret is on. */
     @Nullable
     public static TextSyntaxContext resolveFenceLanguageLine(String text, int cursorIndex) {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
@@ -194,15 +181,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new FenceLanguageContext(langStart, cursorIndex, partial));
     }
 
-    /**
-     * True when the caret sits inside the leading YAML frontmatter block.
-     *
-     * <p>
-     * The block is only frontmatter when its closing delimiter is there, which is what the parser requires
-     * too. Without that check a page that opens with a thematic break and never closes it claimed every
-     * caret in the document, and tag, attribute and fence completion were all answered from the frontmatter
-     * path instead.
-     */
     public static boolean isInFrontmatter(String text, int cursorIndex) {
         int firstBreak = text.indexOf('\n');
         if (firstBreak < 0) return false;
@@ -336,7 +314,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolvePlainTextWord(text, cursorIndex);
     }
 
-    /** Completes a top-level frontmatter key while it is still being typed, before its ':' exists. */
     public TextSyntaxContext resolveFrontmatterDraftKey(String text, int cursorIndex) {
         int lineStart = text.lastIndexOf('\n', cursorIndex - 1) + 1;
         String typed = text.substring(lineStart, cursorIndex);
@@ -510,7 +487,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             new MdxValueContext(tagName, "url", urlStart, urlEnd, partial, '\0'));
     }
 
-    /** The tag the caret sits inside, read from the text. */
     @Nullable
     private static TagSpan findOpenTagAt(String text, int cursorIndex) {
         int tagStart = text.lastIndexOf('<', Math.max(0, cursorIndex - 1));
@@ -557,7 +533,6 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
         return resolveAttributeNameFromTag(text, tag.name(), tag.tagStart(), tag.tagEnd(), cursorIndex);
     }
 
-    /** The attribute value at the caret, found by reading the tag's attributes from the text. */
     @Nullable
     private static TextSyntaxContext resolveTextLevelAttributeValue(String text, TagSpan tag, int cursorIndex) {
         int pos = tag.tagStart() + 1

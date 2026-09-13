@@ -48,7 +48,6 @@ public class LytHost {
     private final NavigationState nav = new NavigationState();
     private final Deque<LytEvent> eventQueue = new ArrayDeque<>();
     private final Deque<DeferredTask> taskQueue = new ArrayDeque<>();
-    /** Monotonic, so a caller waiting on the queue has a signal that cannot be produced by yielding. */
     private long completedTasks;
 
     // Debug implementation

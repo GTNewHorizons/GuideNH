@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.syntax;
 
 import java.util.List;
 
-/** The kind of value an attribute (or frontmatter key) expects. */
 public record SyntaxValueKind(String id, boolean quoted) {
 
     public static final SyntaxValueKind STRING = new SyntaxValueKind("STRING", true);

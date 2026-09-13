@@ -28,7 +28,6 @@ import com.hfstudio.guidenh.mixins.early.fml.AccessorFMLClientHandler;
 
 import cpw.mods.fml.client.FMLClientHandler;
 
-/** Suggests paths relative to the guide asset directory for file attributes such as {@code src}. */
 public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
 
     private static final String[] EXTENSIONS = { ".png", ".jpg", ".jpeg", ".gif", ".snbt", ".nbt", ".csv", ".json",
@@ -50,7 +49,6 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
         return Set.of(SyntaxValueKind.FILE_PATH);
     }
 
-    /** Scans the guide's resource pack directories for asset folders matching page paths. */
     @Override
     public void prepare(SyntaxEnvironment environment) {
         Guide guide = environment.guide();

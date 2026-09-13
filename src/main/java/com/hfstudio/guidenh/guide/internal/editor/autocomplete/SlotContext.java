@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSlotMatch;
 
-/** The slot a {@code SyntaxSlot} of another mod owns. */
 public class SlotContext implements AutocompleteContext {
 
     private final GuideSyntaxModel.SlotMatch slotMatch;

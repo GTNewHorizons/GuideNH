@@ -6,7 +6,6 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.Guide;
 
-/** The live data a {@link SyntaxValueSource} may consult while answering a request. */
 public interface SyntaxEnvironment {
 
     @Nullable

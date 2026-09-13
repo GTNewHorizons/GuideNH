@@ -11,7 +11,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Suggests mod ids for the frontmatter keys that gate a page on installed mods. */
 public class ModIdValueSource implements SyntaxValueSource {
 
     @Override

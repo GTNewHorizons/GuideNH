@@ -11,16 +11,13 @@ import java.util.Set;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 
-/**
- * Read-only views of the game registries shaped for completion queries: identifiers sorted, their lowercase.
- */
+/** Read-only views of the game registries shaped for completion queries: identifiers sorted, their lowercase. */
 public class RegistryIdIndex {
 
     public record Entry(String id, String lower) {}
 
     public record Snapshot(List<Entry> ids, List<Entry> namespaces) {
 
-        /** Identifiers matching {@code partial}, closest first, with namespaces offered as well. */
         public List<String> match(String partial, int limit) {
             int safeLimit = Math.max(0, limit);
             List<String> results = new ArrayList<>();
@@ -115,7 +112,6 @@ public class RegistryIdIndex {
         return blockSnapshot;
     }
 
-    /** Whether the current keys are exactly the ones the snapshot was built from. */
     private static boolean sameKeys(Set<?> keysView, Set<String> previous) {
         if (keysView.size() != previous.size()) {
             return false;
@@ -128,7 +124,6 @@ public class RegistryIdIndex {
         return true;
     }
 
-    /** The string keys of a registry view, which is what a snapshot is built from. */
     private static Set<String> copyStringKeys(Set<?> keysView) {
         Set<String> keys = new HashSet<>(Math.max(4, keysView.size() * 2));
         for (Object key : keysView) {

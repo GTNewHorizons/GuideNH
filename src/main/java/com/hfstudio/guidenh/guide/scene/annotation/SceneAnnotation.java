@@ -48,7 +48,6 @@ public abstract class SceneAnnotation {
         this.structureLibCondition = structureLibCondition;
     }
 
-    /** How this annotation appears in an exported scene, or null when the exporter does not know it. */
     @Nullable
     public Map<String, Object> toSitePayload() {
         return null;

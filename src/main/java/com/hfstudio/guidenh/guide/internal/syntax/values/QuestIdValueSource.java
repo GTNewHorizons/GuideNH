@@ -8,7 +8,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueRequest;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 
-/** Placeholder for BetterQuesting quest ids. */
 public class QuestIdValueSource implements SyntaxValueSource {
 
     @Override

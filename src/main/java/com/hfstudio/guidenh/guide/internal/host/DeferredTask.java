@@ -18,7 +18,6 @@ public interface DeferredTask {
 
     TaskResult step(long deadlineNs);
 
-    /** Whether this task belongs to a document, so unmounting that document drops only its own work. */
     default boolean belongsTo(LytDocument owner) {
         return true;
     }

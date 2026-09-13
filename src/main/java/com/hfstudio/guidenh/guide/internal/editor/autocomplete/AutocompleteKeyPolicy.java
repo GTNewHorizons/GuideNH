@@ -21,9 +21,7 @@ public class AutocompleteKeyPolicy {
             || keyCode == Keyboard.KEY_SPACE;
     }
 
-    /**
-     * True for a control chord - save, undo, copy, paste, select all - or any other control character the editor.
-     */
+    /** True for a control chord - save, undo, copy, paste, select all - or any other control character the editor. */
     public static boolean isControlChord(char typedChar, int keyCode) {
         if (isModifierOnlyKey(keyCode)) {
             return false;

@@ -18,7 +18,6 @@ import lombok.Setter;
 @Setter
 public class LytBalancedColumns extends LytBox {
 
-    /** The most columns a page will show, so a row of small children does not become a wall of them. */
     public static final int DEFAULT_MAX_COLUMNS = 4;
 
     private int gap;

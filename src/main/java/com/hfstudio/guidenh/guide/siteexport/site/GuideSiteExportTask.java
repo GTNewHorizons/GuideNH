@@ -76,7 +76,6 @@ public class GuideSiteExportTask {
     private static final long SCENE_MATERIALIZATION_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long SCENE_MATERIALIZATION_STEP_NANOS = TimeUnit.MILLISECONDS.toNanos(2);
     private static final long SCENE_MATERIALIZATION_WAIT_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
-    /** How long materialization may make no progress before the page is reported. */
     private static final long SCENE_MATERIALIZATION_NO_PROGRESS_NANOS = TimeUnit.SECONDS.toNanos(3);
 
     private final Path outDir;
@@ -854,7 +853,6 @@ public class GuideSiteExportTask {
         }
     }
 
-    /** Whether a materialised document still holds a scene placeholder. */
     private boolean containsScenePlaceholder(LytNode node) {
         Deque<LytNode> pending = new ArrayDeque<>();
         pending.add(node);
@@ -872,7 +870,6 @@ public class GuideSiteExportTask {
         return false;
     }
 
-    /** Reports a scene the book shows as failed. */
     private static void reportSceneLoadFailure(LytGuidebookScene scene, ParsedGuidePage parsedPage) {
         String failure = scene.getLoadFailure();
         if (failure == null || failure.isEmpty()) {
@@ -1523,7 +1520,6 @@ public class GuideSiteExportTask {
         return left * right;
     }
 
-    /** Hands the exported scenes to the renderer in the order the page declares them. */
     private GuideSiteHtmlCompiler.SceneResolver createSceneResolver(List<GuideSiteExportedScene> exportedScenes) {
         return new GuideSiteHtmlCompiler.SceneResolver() {
 

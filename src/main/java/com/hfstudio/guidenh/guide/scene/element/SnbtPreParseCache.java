@@ -21,7 +21,6 @@ public class SnbtPreParseCache {
     private static final int MAX_ENTRIES = 64;
 
     private static final ConcurrentHashMap<ResourceLocation, NBTTagCompound> cache = new ConcurrentHashMap<>();
-    /** Insertion order of the cached ids, guarded by itself. */
     private static final LinkedHashMap<ResourceLocation, Boolean> insertionOrder = new LinkedHashMap<>();
 
     public static void put(ResourceLocation id, NBTTagCompound root) {

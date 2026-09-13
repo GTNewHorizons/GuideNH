@@ -24,7 +24,6 @@ public class SnbtPlacement {
     private final int offsetY;
     private final int offsetZ;
     private final boolean formed;
-    /** The parsed structure, or null when the compiler could not read it and reported that instead. */
     private final NBTTagCompound root;
 
     public SnbtPlacement(ResourceLocation src, int offsetX, int offsetY, int offsetZ, boolean formed,

@@ -7,9 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
 
-/**
- * A tag suggestion. Container tags close themselves around the caret, self-closing tags get the {@code />} tail.
- */
+/** A tag suggestion. Container tags close themselves around the caret, self-closing tags get the {@code />} tail. */
 public class TagCandidate implements AutocompleteCandidate {
 
     private static final int LABEL_COLOR = ColorUtils.TEXT.getColor();

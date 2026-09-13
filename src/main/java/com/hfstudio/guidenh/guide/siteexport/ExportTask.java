@@ -112,7 +112,6 @@ public class ExportTask {
         return new Result(ok, failed, assetsCopied, outDir);
     }
 
-    /** A file inside the export directory, or null when the id would place it outside. */
     @Nullable
     private static Path containedPath(Path root, String namespace, String path) {
         Path normalizedRoot = root.toAbsolutePath()

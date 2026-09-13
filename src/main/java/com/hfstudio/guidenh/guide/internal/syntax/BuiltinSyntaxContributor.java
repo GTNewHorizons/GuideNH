@@ -32,7 +32,6 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxContributor;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSink;
 import com.hfstudio.guidenh.guide.syntax.SyntaxValueKind;
 
-/** The guide syntax that ships with the mod. */
 public class BuiltinSyntaxContributor implements SyntaxContributor {
 
     @Override
@@ -760,9 +759,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         registerCrossCuttingAttributes(sink);
     }
 
-    /**
-     * Attributes that are read by shared parsers or written back by the scene editor rather than by a single tag.
-     */
+    /** Attributes that are read by shared parsers or written back by the scene editor rather than by a single tag. */
     private static void registerCrossCuttingAttributes(SyntaxSink sink) {
         sink.attributes("Recipe", RECIPE_INDEX);
         sink.attributes("RecipeFor", RECIPE_INDEX);
@@ -988,9 +985,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         contributeValueSources(sink);
     }
 
-    /**
-     * Declares the layout attributes that {@code BlockTagCompiler} applies to every block tag.
-     */
+    /** Declares the layout attributes that {@code BlockTagCompiler} applies to every block tag. */
     private static void registerBlockLayoutAttributes(SyntaxSink sink) {
         sink.attributes("details", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
         sink.attributes("ContentTabs", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
@@ -1022,9 +1017,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes("Special", LAYOUT_WRAP, LAYOUT_ALIGN, LAYOUT_FLOAT);
     }
 
-    /**
-     * Declares the StructureLib options, which are read from {@code <ImportStructureLib>} and its children.
-     */
+    /** Declares the StructureLib options, which are read from {@code <ImportStructureLib>} and its children. */
     private static void registerStructureLibAttributes(SyntaxSink sink) {
         sink.attributes(
             "ImportStructureLib",
@@ -1311,7 +1304,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "image");
     }
 
-    /** Attributes whose value kind the editor must know about but which the compiler reads loosely. */
     private static void contributeValueKinds(SyntaxSink sink) {
         sink.attributes("Recipe", RECIPE_INPUT, RECIPE_OUTPUT);
         sink.attributes("RecipeFor", RECIPE_INPUT, RECIPE_OUTPUT);
@@ -1325,7 +1317,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes("image", AttributeSyntax.of("url", SyntaxValueKind.FILE_PATH));
     }
 
-    /** The form a tag completes as, for tags that need attributes or content to be useful. */
     private static void contributeInsertTemplates(SyntaxSink sink) {
         sink.insertTemplates(
             InsertTemplate

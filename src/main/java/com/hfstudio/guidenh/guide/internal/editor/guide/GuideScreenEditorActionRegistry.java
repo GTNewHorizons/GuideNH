@@ -56,7 +56,6 @@ public class GuideScreenEditorActionRegistry {
         return declared;
     }
 
-    /** A provider of another mod that cannot answer is reported and skipped. */
     private static void appendDeclaredActions(GuideEditorActionContribution.Provider provider,
         List<GuideEditorActionContribution> target) {
         try {
@@ -77,7 +76,6 @@ public class GuideScreenEditorActionRegistry {
         }
     }
 
-    /** The editor's context menu. */
     public static List<GuideScreenEditorContextMenu.Entry> contextMenuEntries(
         List<GuideScreenEditorContextMenu.Entry> templateEntries,
         List<GuideScreenEditorContextMenu.Entry> contributedEntries) {

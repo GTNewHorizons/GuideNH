@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.syntax;
 
 import org.jetbrains.annotations.Nullable;
 
-/** A completion request routed to a {@link SyntaxValueSource}. */
 public record SyntaxValueRequest(SyntaxValueKind kind, String partialText, @Nullable String tagName,
     @Nullable String attributeName, @Nullable String frontmatterKey) {
 

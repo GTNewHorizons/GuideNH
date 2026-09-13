@@ -4,9 +4,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-/**
- * One attribute of a tag: its name, the kind of value it expects, and optionally a fixed set of suggestions.
- */
+/** One attribute of a tag: its name, the kind of value it expects, and optionally a fixed set of suggestions. */
 public record AttributeSyntax(String name, SyntaxValueKind kind, List<String> suggestions,
     @Nullable Class<? extends Enum<?>> enumType) {
 

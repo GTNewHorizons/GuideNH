@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.syntax;
 
-/** The text a tag completes as, for tags whose useful form is more than the tag name. */
 public record InsertTemplate(String tagName, String text, int caretOffset) {
 
     public InsertTemplate {

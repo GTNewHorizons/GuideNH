@@ -19,13 +19,10 @@ import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
 import com.hfstudio.guidenh.guide.syntax.SyntaxSelection;
 
-/**
- * Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the guide's.
- */
+/** Owns the guide editor's syntax completion session: it resolves what the cursor is inside, asks the guide's. */
 public class GuideEditorAutocompleteController {
 
     public enum KeyResult {
-        /** The popup did not take the key, so the host keeps its normal handling for it. */
         IGNORED,
         CONSUMED,
         COMMIT,
@@ -80,7 +77,6 @@ public class GuideEditorAutocompleteController {
         nextQueryAtMillis = System.currentTimeMillis() + QUERY_DEBOUNCE_MILLIS;
     }
 
-    /** Resolves the syntax under the caret and refreshes the popup. */
     public void update(@Nullable String text, int cursorIndex, int anchorX, int anchorY, int viewportWidth,
         int viewportHeight, FontRenderer fontRenderer, SyntaxEnvironment environment) {
         this.anchorX = anchorX;
@@ -238,7 +234,6 @@ public class GuideEditorAutocompleteController {
         return true;
     }
 
-    /** Consumes the accepted candidate. */
     @Nullable
     public AutocompleteCommit takePendingCommit() {
         AutocompleteCommit commit = pendingCommit;
