@@ -395,10 +395,6 @@ public class NeiRecipeLookup {
         }
     }
 
-    public static String safeString(@Nullable Object o) {
-        return o == null ? "" : o.toString();
-    }
-
     private static List<Entry> processHandlers(List<Object> handlers) {
         List<Entry> out = new ArrayList<>();
         for (Object handler : handlers) {
