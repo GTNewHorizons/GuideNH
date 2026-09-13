@@ -1792,7 +1792,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 parseArgbAttr(element, "titleColor", GuideSiteGraphRenderer.DEFAULT_TITLE_COLOR),
                 readFloat(element, "barWidthRatio", GuideSiteGraphRenderer.DEFAULT_BAR_WIDTH_RATIO))
             .withPieLayout(
-                readFloat(element, "startAngle", GuideSiteGraphRenderer.DEFAULT_PIE_START_ANGLE_DEG),
+                readDegrees(element, "startAngle", GuideSiteGraphRenderer.DEFAULT_PIE_START_ANGLE_DEG),
                 MdxAttrs.getBoolean(element, "clockwise", true));
     }
 
@@ -1804,6 +1804,27 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         try {
             float parsed = Float.parseFloat(raw.trim());
             return parsed > 0f && parsed <= 1f ? parsed : fallback;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    /**
+     * A rotation in degrees, which is not a ratio and so is read as any finite value.
+     *
+     * <p>
+     * {@link #readFloat} exists for attributes that are a share of something and refuses anything outside
+     * {@code (0, 1]}. Reading an angle with it dropped every value a page could reasonably write - a page
+     * asking for {@code startAngle="90"} was exported at the default -90 while the book honoured it.
+     */
+    private float readDegrees(MdxJsxElementFields element, String name, float fallback) {
+        String raw = readOptional(element, name);
+        if (raw == null || raw.isEmpty()) {
+            return fallback;
+        }
+        try {
+            float parsed = Float.parseFloat(raw.trim());
+            return Float.isFinite(parsed) ? parsed : fallback;
         } catch (NumberFormatException e) {
             return fallback;
         }

@@ -3403,6 +3403,7 @@ public class GuideScreen extends GuiContainer
 
         @Nullable
         private Object cachedGuide;
+        private long cachedPagePathsRevision = Long.MIN_VALUE;
         private List<String> cachedPagePaths = List.of();
 
         @Override
@@ -3414,12 +3415,17 @@ public class GuideScreen extends GuiContainer
         @Override
         public List<String> pagePaths() {
             MutableGuide current = GuideScreen.this.guide;
-            int pageCount = current != null ? current.getPages()
-                .size() : 0;
-            if (cachedGuide == current && cachedPagePaths.size() == pageCount) {
+            // Keyed on the navigation revision, not the page count: a reload can replace every page id while
+            // the count stays the same, which is what a language switch does, and the old ids would then be
+            // suggested for links.
+            long revision = GuideRegistry.getNavigationRevision();
+            if (cachedGuide == current && cachedPagePathsRevision == revision) {
                 return cachedPagePaths;
             }
             cachedGuide = current;
+            cachedPagePathsRevision = revision;
+            int pageCount = current != null ? current.getPages()
+                .size() : 0;
             List<String> paths = new ArrayList<>(pageCount);
             if (current != null) {
                 for (ParsedGuidePage page : current.getPages()) {

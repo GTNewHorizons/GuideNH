@@ -48,6 +48,8 @@ public class LytHost {
     private final NavigationState nav = new NavigationState();
     private final Deque<LytEvent> eventQueue = new ArrayDeque<>();
     private final Deque<DeferredTask> taskQueue = new ArrayDeque<>();
+    /** Monotonic, so a caller waiting on the queue has a signal that cannot be produced by yielding. */
+    private long completedTasks;
 
     // Debug implementation
 
@@ -452,6 +454,18 @@ public class LytHost {
         return taskQueue.size();
     }
 
+    /**
+     * How many tasks have finished since this host started.
+     *
+     * <p>
+     * A caller waiting for the queue to drain reads this to tell work that is progressing from work that is
+     * stuck. It cannot use {@link #pendingWorkSize()} for that: a task that yields is put back in the queue,
+     * so a scene waiting on background work keeps the size unchanged while it is making progress.
+     */
+    public long completedTaskCount() {
+        return completedTasks;
+    }
+
     public void step(long deadlineNs) {
         int remaining = taskQueue.size();
         while (remaining > 0 && !taskQueue.isEmpty() && System.nanoTime() < deadlineNs) {
@@ -460,6 +474,8 @@ public class LytHost {
             DeferredTask.TaskResult result = task.step(deadlineNs);
             if (result == DeferredTask.TaskResult.YIELD) {
                 taskQueue.addLast(task);
+            } else {
+                completedTasks++;
             }
         }
     }

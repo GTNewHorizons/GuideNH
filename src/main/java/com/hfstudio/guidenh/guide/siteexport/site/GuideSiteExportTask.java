@@ -41,6 +41,7 @@ import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
+import com.hfstudio.guidenh.guide.internal.AsyncWorker;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
@@ -827,12 +828,15 @@ public class GuideSiteExportTask {
 
         long timeoutAt = System.nanoTime() + SCENE_MATERIALIZATION_TIMEOUT_NANOS;
         long noProgressUntil = System.nanoTime() + SCENE_MATERIALIZATION_NO_PROGRESS_NANOS;
-        int lastWorkSize = host.pendingWorkSize();
+        // A scene waiting on the background SNBT parse yields, which puts its task back and leaves both the
+        // queue and the completed count unchanged while it is getting on with its work. So a scene also
+        // counts as progressing while the background pool still has something running.
+        long lastCompleted = host.completedTaskCount();
         while (host.hasWork() && System.nanoTime() < timeoutAt) {
             host.step(System.nanoTime() + SCENE_MATERIALIZATION_STEP_NANOS);
-            int workSize = host.pendingWorkSize();
-            if (workSize < lastWorkSize) {
-                lastWorkSize = workSize;
+            long completed = host.completedTaskCount();
+            if (completed > lastCompleted || AsyncWorker.hasRunningTasks()) {
+                lastCompleted = completed;
                 noProgressUntil = System.nanoTime() + SCENE_MATERIALIZATION_NO_PROGRESS_NANOS;
             } else if (System.nanoTime() >= noProgressUntil) {
                 GuideDebugLog.warnAlways(

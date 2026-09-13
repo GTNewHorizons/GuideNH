@@ -110,16 +110,21 @@ public class Ae2CableStructureSupport {
             long corr = ThreadLocalRandom.current()
                 .nextLong();
             GuideNhAe2CableBatchAwait.register(corr);
-            GuideNhNetwork.channel()
-                .sendToServer(new GuideNhAe2CableBatchRequestMessage(corr, dim, xyz));
             GuideNhAe2CableBatchReplyMessage reply;
             try {
+                GuideNhNetwork.channel()
+                    .sendToServer(new GuideNhAe2CableBatchRequestMessage(corr, dim, xyz));
                 reply = GuideNhAe2CableBatchAwait.await(corr, timeoutMsPerBatch);
             } catch (InterruptedException e) {
                 Thread.currentThread()
                     .interrupt();
                 logEmptyFetchOnce();
                 return Ae2CableMpSnapshot.empty();
+            } catch (RuntimeException e) {
+                // The request never left, so nothing will answer it and the registration would sit in the
+                // await map for the session.
+                GuideNhAe2CableBatchAwait.cancel(corr);
+                throw e;
             }
             if (reply == null || !reply.isConsistentPayload(n)) {
                 logEmptyFetchOnce();

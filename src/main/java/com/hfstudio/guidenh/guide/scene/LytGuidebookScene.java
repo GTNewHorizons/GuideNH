@@ -1367,9 +1367,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
         // Phase 1: SNBT static placements (ImportStructure)
         for (SnbtPlacement p : snbtPlacements) {
-            NBTTagCompound root = SnbtPreParseCache.get(p.getSrc());
+            // The compiler parsed this when it registered the placement, so a rebuild uses that rather than
+            // the shared cache, which is bounded and may no longer hold it.
+            NBTTagCompound root = p.getRoot();
             if (root == null) {
-                GuideDebugLog.warn("[Scene] SNBT cache miss for {} during build", p.getSrc());
+                root = SnbtPreParseCache.get(p.getSrc());
+            }
+            if (root == null) {
+                GuideDebugLog.warn("[Scene] SNBT unavailable for {} during build", p.getSrc());
                 continue;
             }
             ImportStructureElementCompiler.placeStructure(

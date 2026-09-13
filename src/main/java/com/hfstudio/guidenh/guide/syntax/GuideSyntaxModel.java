@@ -36,6 +36,7 @@ public class GuideSyntaxModel {
     private final List<String> frontmatterKeys;
     private final Map<String, ValueSlot> frontmatterValues;
     private final Map<String, List<SyntaxValueSource>> valueSources;
+    private final List<SyntaxEnvironmentAware> environmentAwareSources;
     private final Map<String, InsertTemplate> insertTemplates;
     private final List<SyntaxSlot> slots;
 
@@ -54,6 +55,7 @@ public class GuideSyntaxModel {
         this.frontmatterKeys = List.copyOf(builder.frontmatterKeys);
         this.frontmatterValues = Collections.unmodifiableMap(builder.frontmatterValues);
         this.valueSources = Collections.unmodifiableMap(builder.valueSources);
+        this.environmentAwareSources = collectEnvironmentAwareSources(builder.valueSources);
         this.insertTemplates = Collections.unmodifiableMap(builder.insertTemplates);
         this.slots = List.copyOf(slots);
     }
@@ -63,6 +65,20 @@ public class GuideSyntaxModel {
      */
     public static GuideSyntaxModel empty() {
         return of(null);
+    }
+
+    /**
+     * Drops every cached model.
+     *
+     * <p>
+     * A guide that is registered in code keeps its extension collection across a reload, so the key would
+     * stay the same and the model built from the previous pack would keep being served - including the
+     * per-source state it holds, such as the documents and paths the value sources scanned.
+     */
+    public static void clearCache() {
+        synchronized (CACHE) {
+            CACHE.clear();
+        }
     }
 
     public static GuideSyntaxModel of(@Nullable ExtensionCollection extensions) {
@@ -465,14 +481,28 @@ public class GuideSyntaxModel {
     }
 
     public void prepare(SyntaxEnvironment environment) {
-        Set<SyntaxValueSource> prepared = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (List<SyntaxValueSource> sources : valueSources.values()) {
-            for (SyntaxValueSource source : sources) {
-                if (source instanceof SyntaxEnvironmentAware aware && prepared.add(source)) {
-                    prepareSafely(aware, environment);
+        for (SyntaxEnvironmentAware aware : environmentAwareSources) {
+            prepareSafely(aware, environment);
+        }
+    }
+
+    /**
+     * The sources that refresh themselves from the environment, collected once so a query does not rebuild
+     * the list. A source registered under more than one kind appears once, which is why they are de-duplicated
+     * by identity.
+     */
+    private static List<SyntaxEnvironmentAware> collectEnvironmentAwareSources(
+        Map<String, List<SyntaxValueSource>> sources) {
+        Set<SyntaxValueSource> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        List<SyntaxEnvironmentAware> aware = new ArrayList<>();
+        for (List<SyntaxValueSource> perKind : sources.values()) {
+            for (SyntaxValueSource source : perKind) {
+                if (source instanceof SyntaxEnvironmentAware environmentAware && seen.add(source)) {
+                    aware.add(environmentAware);
                 }
             }
         }
+        return List.copyOf(aware);
     }
 
     /** A source of another mod refreshing itself. */

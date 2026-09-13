@@ -34,6 +34,8 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
     @Nullable
     private WeakReference<String> cachedSource;
     private int cachedSourceLength = -1;
+    /** The headings of {@link #cachedSource}, or null when they have not been parsed yet. */
+    @Nullable
     private List<Heading> cachedHeadings = NO_HEADINGS;
 
     @Override
@@ -43,6 +45,9 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
 
     @Override
     public void prepare(SyntaxEnvironment environment) {
+        // The document is only remembered here. Parsing its headings is deferred to the query that needs
+        // them: prepare runs for every edit, and almost none of them are an anchor, so parsing here walked
+        // the whole page for nothing. Measured at about a millisecond for a long page, per query.
         String text = environment.documentText();
         if (text == null) {
             cachedSource = null;
@@ -54,9 +59,9 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
         if (cached != null && cached == text && cachedSourceLength == text.length()) {
             return;
         }
-        cachedHeadings = parseHeadings(text);
         cachedSource = new WeakReference<>(text);
         cachedSourceLength = text.length();
+        cachedHeadings = null;
     }
 
     @Override
@@ -68,10 +73,11 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
         if (partial == null || !partial.startsWith(ANCHOR_PREFIX)) {
             return List.of();
         }
+        List<Heading> headings = headings();
         String query = partial.substring(1)
             .toLowerCase(Locale.ROOT);
         List<SyntaxSuggestion> results = new ArrayList<>();
-        for (Heading heading : cachedHeadings) {
+        for (Heading heading : headings) {
             if (results.size() >= limit) {
                 break;
             }
@@ -81,6 +87,28 @@ public class AnchorValueSource implements SyntaxValueSource, SyntaxEnvironmentAw
             }
         }
         return results;
+    }
+
+    /**
+     * The headings of the current document, parsed on the first query that needs them.
+     *
+     * <p>
+     * The document is held weakly, so it can be collected between the edit that set it and the query that
+     * needs it. That case is not cached: caching it would answer every later query with no headings even
+     * though the text is unchanged.
+     */
+    private List<Heading> headings() {
+        List<Heading> parsed = cachedHeadings;
+        if (parsed != null) {
+            return parsed;
+        }
+        String text = cachedSource != null ? cachedSource.get() : null;
+        if (text == null) {
+            return NO_HEADINGS;
+        }
+        parsed = parseHeadings(text);
+        cachedHeadings = parsed;
+        return parsed;
     }
 
     /** Parses the headings once per document instead of once per keystroke. */

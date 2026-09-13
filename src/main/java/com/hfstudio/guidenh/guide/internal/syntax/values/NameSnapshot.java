@@ -20,6 +20,11 @@ public class NameSnapshot {
 
     private final Supplier<List<String>> source;
     private List<Entry> entries = List.of();
+    /**
+     * Whether a read has happened, which cannot be inferred from {@link #entries}: a source that legitimately
+     * reports no names leaves it empty, and reading that as "never read" ran the source on every query.
+     */
+    private boolean read;
     private long nextRefreshAtMillis;
 
     public NameSnapshot(Supplier<List<String>> source) {
@@ -28,7 +33,7 @@ public class NameSnapshot {
 
     public void refresh() {
         long now = System.currentTimeMillis();
-        if (!entries.isEmpty() && now < nextRefreshAtMillis) {
+        if (read && now < nextRefreshAtMillis) {
             return;
         }
         List<Entry> snapshot = new ArrayList<>();
@@ -38,6 +43,7 @@ public class NameSnapshot {
             }
         }
         entries = List.copyOf(snapshot);
+        read = true;
         nextRefreshAtMillis = now + REFRESH_INTERVAL_MILLIS;
     }
 

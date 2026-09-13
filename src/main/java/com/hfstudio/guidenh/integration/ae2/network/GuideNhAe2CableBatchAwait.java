@@ -14,6 +14,17 @@ public class GuideNhAe2CableBatchAwait {
         PENDING.put(corrId, new Holder());
     }
 
+    /**
+     * Drops a registration whose reply will not be waited for.
+     *
+     * <p>
+     * A send that fails after {@link #register} leaves an entry keyed by a random id that nothing will ever
+     * reuse, so without this the map keeps one entry - and its latch - per failed send for the session.
+     */
+    public static void cancel(long corrId) {
+        PENDING.remove(corrId);
+    }
+
     public static void complete(GuideNhAe2CableBatchReplyMessage msg) {
         if (msg == null) {
             return;

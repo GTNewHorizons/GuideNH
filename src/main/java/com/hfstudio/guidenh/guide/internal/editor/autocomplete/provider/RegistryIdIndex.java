@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -69,7 +70,9 @@ public class RegistryIdIndex {
     }
 
     /**
-     * A registry only grows while mods load, which the key count detects, so a snapshot is rebuilt when the count.
+     * A registry only grows while mods load, which the key count detects. A mod can also replace an entry
+     * with one of the same count, which the count cannot see, so the keys themselves are compared once this
+     * long - the comparison is a set lookup per key rather than the sort a rebuild costs.
      */
     private static final long REBUILD_INTERVAL_MILLIS = 60_000L;
 
@@ -77,6 +80,8 @@ public class RegistryIdIndex {
     private static Snapshot blockSnapshot = build(Collections.emptySet());
     private static int cachedItemKeyCount = -1;
     private static int cachedBlockKeyCount = -1;
+    private static Set<String> cachedItemKeys = Set.of();
+    private static Set<String> cachedBlockKeys = Set.of();
     private static long nextItemRebuildAtMillis;
     private static long nextBlockRebuildAtMillis;
 
@@ -84,22 +89,54 @@ public class RegistryIdIndex {
 
     public static Snapshot items() {
         Set<?> keysView = Item.itemRegistry.getKeys();
-        if (keysView.size() != cachedItemKeyCount || System.currentTimeMillis() >= nextItemRebuildAtMillis) {
-            itemSnapshot = build(keysView);
-            cachedItemKeyCount = keysView.size();
-            nextItemRebuildAtMillis = System.currentTimeMillis() + REBUILD_INTERVAL_MILLIS;
+        long now = System.currentTimeMillis();
+        if (keysView.size() != cachedItemKeyCount || now >= nextItemRebuildAtMillis) {
+            if (keysView.size() != cachedItemKeyCount || !sameKeys(keysView, cachedItemKeys)) {
+                itemSnapshot = build(keysView);
+                cachedItemKeyCount = keysView.size();
+                cachedItemKeys = copyStringKeys(keysView);
+            }
+            nextItemRebuildAtMillis = now + REBUILD_INTERVAL_MILLIS;
         }
         return itemSnapshot;
     }
 
     public static Snapshot blocks() {
         Set<?> keysView = Block.blockRegistry.getKeys();
-        if (keysView.size() != cachedBlockKeyCount || System.currentTimeMillis() >= nextBlockRebuildAtMillis) {
-            blockSnapshot = build(keysView);
-            cachedBlockKeyCount = keysView.size();
-            nextBlockRebuildAtMillis = System.currentTimeMillis() + REBUILD_INTERVAL_MILLIS;
+        long now = System.currentTimeMillis();
+        if (keysView.size() != cachedBlockKeyCount || now >= nextBlockRebuildAtMillis) {
+            if (keysView.size() != cachedBlockKeyCount || !sameKeys(keysView, cachedBlockKeys)) {
+                blockSnapshot = build(keysView);
+                cachedBlockKeyCount = keysView.size();
+                cachedBlockKeys = copyStringKeys(keysView);
+            }
+            nextBlockRebuildAtMillis = now + REBUILD_INTERVAL_MILLIS;
         }
         return blockSnapshot;
+    }
+
+    /** Whether the current keys are exactly the ones the snapshot was built from. */
+    private static boolean sameKeys(Set<?> keysView, Set<String> previous) {
+        if (keysView.size() != previous.size()) {
+            return false;
+        }
+        for (Object key : keysView) {
+            if (!(key instanceof String id) || !previous.contains(id)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** The string keys of a registry view, which is what a snapshot is built from. */
+    private static Set<String> copyStringKeys(Set<?> keysView) {
+        Set<String> keys = new HashSet<>(Math.max(4, keysView.size() * 2));
+        for (Object key : keysView) {
+            if (key instanceof String id) {
+                keys.add(id);
+            }
+        }
+        return keys;
     }
 
     private static boolean matchesPathPrefix(String lowerId, String lower) {

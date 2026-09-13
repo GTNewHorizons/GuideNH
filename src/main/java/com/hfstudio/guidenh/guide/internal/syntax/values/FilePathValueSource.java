@@ -37,7 +37,13 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
     @Nullable
     private List<String> candidatePaths;
     private NameSnapshot snapshot = new NameSnapshot(() -> List.of());
-    private boolean scanned;
+    /**
+     * The guide the scan was made for. A guide is replaced when the pack is reloaded and the editor can be
+     * pointed at another one, so this cannot be a plain "already scanned" flag: that would keep suggesting
+     * the first guide's files for the rest of the session.
+     */
+    @Nullable
+    private Object scannedGuide;
 
     @Override
     public Set<SyntaxValueKind> kinds() {
@@ -48,7 +54,7 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
     @Override
     public void prepare(SyntaxEnvironment environment) {
         Guide guide = environment.guide();
-        if (scanned || guide == null) {
+        if (guide == null || guide == scannedGuide) {
             return;
         }
 
@@ -92,7 +98,7 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
         }
 
         candidatePaths = buildCandidatePaths(dirs);
-        scanned = true;
+        scannedGuide = guide;
         snapshot = new NameSnapshot(() -> candidatePaths != null ? candidatePaths : List.of());
     }
 

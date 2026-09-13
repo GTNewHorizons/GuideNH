@@ -20,33 +20,48 @@ import codechicken.nei.recipe.TemplateRecipeHandler;
 
 public class NeiDirectCalls {
 
+    /**
+     * Serializes the window in which this class substitutes NEI's static handler list.
+     *
+     * <p>
+     * The list is NEI's own static field, saved, swapped for a private copy and restored. Without this lock
+     * two callers interleave and the restore of the second puts a private copy into NEI's field for good,
+     * because it saved the first caller's copy rather than the original. The cache in front of the crafting
+     * and usage queries holds its own lock, but the site export reaches these two entry points directly.
+     */
+    private static final Object NEI_LIST_LOCK = new Object();
+
     public static List<Object> getCraftingHandlers(ItemStack target) {
-        ArrayList<ICraftingHandler> original = GuiCraftingRecipe.craftinghandlers;
-        GuiCraftingRecipe.craftinghandlers = new ArrayList<>(original);
-        try {
-            List<ICraftingHandler> result = GuiCraftingRecipe.getCraftingHandlers("item", target);
-            List<Object> out = new ArrayList<>(result.size());
-            for (ICraftingHandler h : result) {
-                if (h != null) out.add(h);
+        synchronized (NEI_LIST_LOCK) {
+            ArrayList<ICraftingHandler> original = GuiCraftingRecipe.craftinghandlers;
+            GuiCraftingRecipe.craftinghandlers = new ArrayList<>(original);
+            try {
+                List<ICraftingHandler> result = GuiCraftingRecipe.getCraftingHandlers("item", target);
+                List<Object> out = new ArrayList<>(result.size());
+                for (ICraftingHandler h : result) {
+                    if (h != null) out.add(h);
+                }
+                return out;
+            } finally {
+                GuiCraftingRecipe.craftinghandlers = original;
             }
-            return out;
-        } finally {
-            GuiCraftingRecipe.craftinghandlers = original;
         }
     }
 
     public static List<Object> getUsageHandlers(ItemStack target) {
-        ArrayList<IUsageHandler> original = GuiUsageRecipe.usagehandlers;
-        GuiUsageRecipe.usagehandlers = new ArrayList<>(original);
-        try {
-            List<IUsageHandler> result = GuiUsageRecipe.getUsageHandlers("item", target);
-            List<Object> out = new ArrayList<>(result.size());
-            for (IUsageHandler h : result) {
-                if (h != null) out.add(h);
+        synchronized (NEI_LIST_LOCK) {
+            ArrayList<IUsageHandler> original = GuiUsageRecipe.usagehandlers;
+            GuiUsageRecipe.usagehandlers = new ArrayList<>(original);
+            try {
+                List<IUsageHandler> result = GuiUsageRecipe.getUsageHandlers("item", target);
+                List<Object> out = new ArrayList<>(result.size());
+                for (IUsageHandler h : result) {
+                    if (h != null) out.add(h);
+                }
+                return out;
+            } finally {
+                GuiUsageRecipe.usagehandlers = original;
             }
-            return out;
-        } finally {
-            GuiUsageRecipe.usagehandlers = original;
         }
     }
 

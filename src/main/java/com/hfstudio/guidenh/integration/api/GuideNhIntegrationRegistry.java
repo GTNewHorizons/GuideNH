@@ -56,7 +56,11 @@ public class GuideNhIntegrationRegistry {
     private final List<RecipeDrawableRenderProvider> recipeDrawableRenderProviders = new ArrayList<>();
     private final List<RecipeHandlerRenderProvider> recipeHandlerRenderProviders = new ArrayList<>();
     private final List<BlockStatsProvider> blockStatsProviders = new ArrayList<>();
-    private List<BlockStatsProvider> blockStatsProviderSnapshot = List.of();
+    /**
+     * Published for the compile worker, which reads it while this thread may still be registering a provider.
+     * The list itself is immutable, so the reference is all that has to be visible.
+     */
+    private volatile List<BlockStatsProvider> blockStatsProviderSnapshot = List.of();
     private final List<GuidebookFakeWorldIntegration> fakeWorldIntegrations = new ArrayList<>();
     private final List<SyntaxContributor> syntaxContributors = new ArrayList<>();
     private final List<SyntaxSlot> syntaxSlots = new ArrayList<>();
@@ -65,6 +69,11 @@ public class GuideNhIntegrationRegistry {
     private final List<SymbolicColorResolver> symbolicColorResolvers = new ArrayList<>();
     private final List<CodeFenceRenderer> codeFenceRenderers = new ArrayList<>();
     private final List<GuideEditorActionContribution> editorActions = new ArrayList<>();
+    /**
+     * Bumped by every registration the editor's syntax model is built from, so a model built before it is
+     * rebuilt rather than served stale. The two provider lists below contribute tag names through the
+     * guide's extension collection, and a model built before they were registered would not offer them.
+     */
     private int syntaxRevision;
 
     public GuideNhIntegrationRegistry() {}
@@ -265,6 +274,7 @@ public class GuideNhIntegrationRegistry {
         }
         if (!sceneElementTagCompilerProviders.contains(provider)) {
             sceneElementTagCompilerProviders.add(provider);
+            syntaxRevision++;
         }
     }
 
@@ -308,6 +318,7 @@ public class GuideNhIntegrationRegistry {
         }
         if (!tagCompilerProviders.contains(provider)) {
             tagCompilerProviders.add(provider);
+            syntaxRevision++;
         }
     }
 
