@@ -156,7 +156,7 @@ public class GuideEditorAutocompleteController {
         queryRequestedByEdit = false;
     }
 
-    private void dismissPopup() {
+    public void dismissPopup() {
         pendingContext = null;
         pendingCommit = null;
         if (popup.isOpen()) {

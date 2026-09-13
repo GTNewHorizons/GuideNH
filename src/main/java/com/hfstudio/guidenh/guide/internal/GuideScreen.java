@@ -3466,7 +3466,7 @@ public class GuideScreen extends GuiContainer
         runGuideEditorTextMutation(
             () -> guideEditorTextArea
                 .applyEdit(commit.getText(), commit.getSelectionStart(), commit.getSelectionEnd()));
-        autocompleteController.close();
+        autocompleteController.dismissPopup();
     }
 
     private int resolveGuideEditorDividerColor() {
@@ -3753,7 +3753,6 @@ public class GuideScreen extends GuiContainer
                 return true;
             case FORWARD_TO_EDITOR:
                 runGuideEditorTextMutation(() -> guideEditorTextArea.keyTyped(typedChar, keyCode));
-                autocompleteController.close();
                 syncGuideEditorPreviewScrollFromEditor();
                 return true;
             default:
