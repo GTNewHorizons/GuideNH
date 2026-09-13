@@ -238,7 +238,6 @@ public class GuidebookSceneEntityLoader {
         return normalizeEntityId(suffix);
     }
 
-    @SideOnly(Side.CLIENT)
     public static @NotNull Entity loadPreviewPlayer(@Nullable World world, NBTTagCompound data,
         @Nullable String playerName, @Nullable String playerUuid) {
         GameProfileSpec profileSpec = resolvePreviewPlayerProfile(playerName, playerUuid);

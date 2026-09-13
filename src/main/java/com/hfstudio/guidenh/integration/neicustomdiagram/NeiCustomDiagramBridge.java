@@ -35,6 +35,7 @@ import com.hfstudio.guidenh.guide.internal.recipe.NeiHandlerRenderer;
 import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.mixins.late.compat.neicustomdiagram.AccessorCustomInteractable;
 import com.hfstudio.guidenh.mixins.late.compat.neicustomdiagram.AccessorDiagramGroup;
 import com.hfstudio.guidenh.mixins.late.compat.neicustomdiagram.AccessorInteractiveComponentGroup;
@@ -45,8 +46,12 @@ public class NeiCustomDiagramBridge {
 
     private NeiCustomDiagramBridge() {}
 
-    @Optional.Method(modid = "neicustomdiagram")
     public static boolean isDiagramGroupHandler(Object handler) {
+        return Mods.NeiCustomDiagram.isModLoaded() && isDiagramGroupHandlerImpl(handler);
+    }
+
+    @Optional.Method(modid = "neicustomdiagram")
+    private static boolean isDiagramGroupHandlerImpl(Object handler) {
         return handler instanceof DiagramGroup;
     }
 
@@ -61,9 +66,24 @@ public class NeiCustomDiagramBridge {
      * For wide diagrams, {@code guiScissorAbsW} may be smaller than intrinsic layout (NEI {@code HandlerInfo}
      * width defaults); clip width is inflated up to the scaled GUI bounds.
      */
-    @Optional.Method(modid = "neicustomdiagram")
     public static void renderEmbedded(Object handler, int recipeIndex, int renderX, int renderY, int guiScissorAbsX,
         int guiScissorAbsY, int guiScissorAbsW, int guiScissorAbsH) {
+        if (Mods.NeiCustomDiagram.isModLoaded()) {
+            renderEmbeddedImpl(
+                handler,
+                recipeIndex,
+                renderX,
+                renderY,
+                guiScissorAbsX,
+                guiScissorAbsY,
+                guiScissorAbsW,
+                guiScissorAbsH);
+        }
+    }
+
+    @Optional.Method(modid = "neicustomdiagram")
+    private static void renderEmbeddedImpl(Object handler, int recipeIndex, int renderX, int renderY,
+        int guiScissorAbsX, int guiScissorAbsY, int guiScissorAbsW, int guiScissorAbsH) {
         if (!(handler instanceof DiagramGroup diagramGroup) || guiScissorAbsW <= 0 || guiScissorAbsH <= 0) {
             return;
         }
@@ -113,8 +133,15 @@ public class NeiCustomDiagramBridge {
         }
     }
 
-    @Optional.Method(modid = "neicustomdiagram")
     public static GuideTooltip getEmbeddedTooltip(Object handler, int recipeIndex, int localMouseX, int localMouseY) {
+        return Mods.NeiCustomDiagram.isModLoaded()
+            ? getEmbeddedTooltipImpl(handler, recipeIndex, localMouseX, localMouseY)
+            : null;
+    }
+
+    @Optional.Method(modid = "neicustomdiagram")
+    private static GuideTooltip getEmbeddedTooltipImpl(Object handler, int recipeIndex, int localMouseX,
+        int localMouseY) {
         if (!(handler instanceof DiagramGroup diagramGroup)) {
             return null;
         }
