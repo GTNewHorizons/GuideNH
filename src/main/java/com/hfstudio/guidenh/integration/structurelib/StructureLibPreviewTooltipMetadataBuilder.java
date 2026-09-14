@@ -13,6 +13,7 @@ import net.minecraft.world.World;
 import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IItemSource;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
+import com.gtnewhorizon.structurelib.structure.IStructureElementChain;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import blockrenderer6343.client.utils.ConstructableData;
@@ -107,6 +108,16 @@ final class StructureLibPreviewTooltipMetadataBuilder {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static StructureLibSceneMetadata.BlockTooltipData resolve(IStructureElement<?> element, Object context,
         World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor, List<ItemStack> machineStacks) {
+        if (element instanceof IStructureElementChain<?> chain) {
+            return resolveChain(chain, context, world, x, y, z, trigger, actor, machineStacks);
+        }
+
+        return resolveSingle(element, context, world, x, y, z, trigger, actor, machineStacks);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static StructureLibSceneMetadata.BlockTooltipData resolveSingle(IStructureElement<?> element, Object context,
+        World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor, List<ItemStack> machineStacks) {
         IStructureElement.BlocksToPlace blocksToPlace;
         try {
             blocksToPlace = ((IStructureElement) element).getBlocksToPlace(
@@ -143,6 +154,60 @@ final class StructureLibPreviewTooltipMetadataBuilder {
         return new StructureLibSceneMetadata.BlockTooltipData(
             STRUCTURELIB_DESCRIPTION,
             blockCandidates,
+            hatchLines,
+            hatchCandidates);
+    }
+
+    /**
+     * A HatchElementBuilder followed by {@code buildAndChain(casing)} is visited as one chain.
+     * The active branch only describes the casing fallback, so inspect every public fallback element
+     * to retain the hatch candidates that are valid at that position.
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static StructureLibSceneMetadata.BlockTooltipData resolveChain(IStructureElementChain<?> chain,
+        Object context, World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor,
+        List<ItemStack> machineStacks) {
+        IStructureElement<?>[] fallbacks = chain.fallbacks();
+        if (fallbacks == null || fallbacks.length == 0) {
+            return new StructureLibSceneMetadata.BlockTooltipData(
+                STRUCTURELIB_DESCRIPTION,
+                List.of(),
+                List.of(),
+                List.of());
+        }
+
+        List<ItemStack> blockCandidates = new ArrayList<>();
+        List<StructureLibHatchDescriptionLine> hatchLines = new ArrayList<>();
+        List<ItemStack> hatchCandidates = new ArrayList<>();
+        for (IStructureElement<?> fallback : fallbacks) {
+            if (fallback == null) {
+                continue;
+            }
+            StructureLibSceneMetadata.BlockTooltipData data = resolve(
+                fallback,
+                context,
+                world,
+                x,
+                y,
+                z,
+                trigger,
+                actor,
+                machineStacks);
+            if (data == null) {
+                continue;
+            }
+            blockCandidates.addAll(data.getBlockCandidates());
+            hatchLines.addAll(data.getHatchDescriptionLines());
+            hatchCandidates.addAll(data.getHatchCandidates());
+        }
+
+        hatchCandidates = normalize(hatchCandidates);
+        if (!hatchCandidates.isEmpty()) {
+            blockCandidates.removeIf(stack -> GregTechHelpers.isMTEHatch(GregTechHelpers.getMetaTileEntityFromItem(stack)));
+        }
+        return new StructureLibSceneMetadata.BlockTooltipData(
+            STRUCTURELIB_DESCRIPTION,
+            normalize(blockCandidates),
             hatchLines,
             hatchCandidates);
     }
