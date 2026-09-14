@@ -1,11 +1,11 @@
 package com.hfstudio.guidenh.mixins.late.compat.structurelib;
 
+import net.minecraft.world.World;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
-import net.minecraft.world.World;
 
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibMinimumHatchPlacement;
@@ -15,8 +15,8 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibMinimumHatchPla
 public abstract class MixinSurvivalBuildStructureWalker {
 
     @Inject(method = "visit", at = @At("HEAD"))
-    private void guidenh$setCurrentPreviewElement(IStructureElement<?> element, World world, int x, int y, int z,
-        int a, int b, int c, CallbackInfoReturnable<Boolean> callback) {
+    private void guidenh$setCurrentPreviewElement(IStructureElement<?> element, World world, int x, int y, int z, int a,
+        int b, int c, CallbackInfoReturnable<Boolean> callback) {
         StructureLibMinimumHatchPlacement.setCurrentElement(element);
     }
 

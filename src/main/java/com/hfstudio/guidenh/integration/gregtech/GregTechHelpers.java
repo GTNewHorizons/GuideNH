@@ -606,7 +606,8 @@ public class GregTechHelpers {
      * validation alone leaves forced placements with the default hatch texture.
      */
     public static void updatePreviewHatchTexture(@Nullable World world, int x, int y, int z, int casingTextureId) {
-        if (world == null || casingTextureId <= 0 || !(world instanceof GuidebookFakeWorld)
+        if (world == null || casingTextureId <= 0
+            || !(world instanceof GuidebookFakeWorld)
             || !Mods.GregTech.isModLoaded()) {
             return;
         }
