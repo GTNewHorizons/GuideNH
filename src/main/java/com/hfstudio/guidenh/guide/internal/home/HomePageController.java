@@ -15,6 +15,7 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 
 public class HomePageController {
 
@@ -435,7 +436,8 @@ public class HomePageController {
         if (lines.isEmpty()) {
             lines = List.of(text);
         }
-        int lineHeight = font.FONT_HEIGHT + 1;
+        // Through the font, because a custom font draws its lines taller than FONT_HEIGHT suggests.
+        int lineHeight = GuideFontCompat.getLineHeight(font) + 1;
         int textHeight = lines.size() * lineHeight - 1;
         int textY = rect.y() + Math.max(0, (rect.height() - textHeight) / 2);
         for (String line : lines) {

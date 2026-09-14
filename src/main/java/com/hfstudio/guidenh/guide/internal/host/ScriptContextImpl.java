@@ -25,6 +25,13 @@ class ScriptContextImpl implements ScriptContext {
     private final Object node;
     private final LytHost host;
     private final LytDocument document;
+    /**
+     * The page this script was dispatched for. Captured rather than read when the work finishes, because a
+     * task that yields resumes after the author may have moved to another page, and its result belongs to
+     * the page it came from.
+     */
+    @Nullable
+    private final String pageId;
     private long yieldDeadlineNs;
     private boolean isComplete;
     private boolean yieldRequested;
@@ -33,6 +40,7 @@ class ScriptContextImpl implements ScriptContext {
         this.node = node;
         this.host = host;
         this.document = document;
+        this.pageId = host.currentPageId;
         this.yieldDeadlineNs = System.nanoTime() + 50_000_000L; // 50ms default
     }
 
@@ -108,7 +116,7 @@ class ScriptContextImpl implements ScriptContext {
 
     @Override
     public String allocateId(String prefix) {
-        return host.allocateNodeUid(host.currentPageId, prefix);
+        return host.allocateNodeUid(pageId, prefix);
     }
 
     @Override
@@ -206,7 +214,7 @@ class ScriptContextImpl implements ScriptContext {
         if (node instanceof LytNode ln) uid = ln.getNodeUid();
         else if (node instanceof LytFlowContent fc) uid = fc.getNodeUid();
         if (uid != null) {
-            host.recordNodeResult(host.currentPageId, uid, result);
+            host.recordNodeResult(pageId, uid, result);
         }
     }
 }

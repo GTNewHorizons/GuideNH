@@ -15,8 +15,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.HandlerMetadataReader;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.HandlerRecipeAccess;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.RecipePlaceholder;
+import com.hfstudio.guidenh.guide.document.block.LytBalancedColumns;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
-import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
@@ -121,8 +121,14 @@ public class RecipeScript implements LytScript {
                 return NeiRecipeLookup.readResultSlot(h, ri);
             }
         };
-        List<Object> handlers = RecipeCompiler
-            .filterHandlers(rawHandlers, ph.handlerName, ph.handlerId, ph.handlerOrder, metadataReader);
+        List<Object> handlers = RecipeCompiler.filterHandlers(
+            rawHandlers,
+            ph.handlerName,
+            ph.handlerId,
+            ph.handlerOrder,
+            metadataReader,
+            ph.handlerWhitelist,
+            RecipeCompiler.effectiveHandlerBlacklist(ph.handlerBlacklist));
         if (!handlers.isEmpty()) {
             List<LytNeiRecipeBox> boxes = new ArrayList<>();
             for (int hi = 0; hi < handlers.size() && boxes.size() < limit; hi++) {
@@ -231,10 +237,10 @@ public class RecipeScript implements LytScript {
 
     private static LytBlock buildResultTyped(List<LytBlock> boxes) {
         if (boxes.size() == 1) return boxes.getFirst();
-        var row = new LytHBox();
-        row.setGap(RecipeCompiler.MULTI_GAP);
-        for (var b : boxes) row.append(b);
-        return row;
+        var columns = new LytBalancedColumns();
+        columns.setGap(RecipeCompiler.MULTI_GAP);
+        for (var b : boxes) columns.append(b);
+        return columns;
     }
 
     private void showFallback(ScriptContext ctx, RecipePlaceholder ph, String autoMessage) {

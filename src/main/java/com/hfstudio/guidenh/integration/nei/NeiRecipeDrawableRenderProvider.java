@@ -6,7 +6,7 @@ public class NeiRecipeDrawableRenderProvider implements RecipeDrawableRenderProv
 
     @Override
     public boolean drawDrawable(Object drawable, int x, int y) {
-        if (drawable == null || !NeiRecipeLookup.isAvailable()) {
+        if (drawable == null) {
             return false;
         }
         NeiRecipeLookup.drawHandlerImage(drawable, x, y);

@@ -59,11 +59,6 @@ public class GuidebookPreviewPlayerCompat {
 
     }
 
-    public static boolean isSimpleSkinBackportAvailable() {
-        return GuideNhClientIntegrationRegistry.global()
-            .isPreviewPlayerModelProvided();
-    }
-
     public static boolean tryInitializeSimpleSkinBackport64xModel(Object model) {
         return GuideNhClientIntegrationRegistry.global()
             .tryInitializePreviewPlayerModel(model);

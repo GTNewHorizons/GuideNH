@@ -104,16 +104,21 @@ public class Ae2BaseTileNetworkStructureSupport {
             long corr = ThreadLocalRandom.current()
                 .nextLong();
             GuideNhAe2BaseTileNetworkBatchAwait.register(corr);
-            GuideNhNetwork.channel()
-                .sendToServer(new GuideNhAe2BaseTileNetworkBatchRequestMessage(corr, dim, xyz));
             GuideNhAe2BaseTileNetworkBatchReplyMessage reply;
             try {
+                GuideNhNetwork.channel()
+                    .sendToServer(new GuideNhAe2BaseTileNetworkBatchRequestMessage(corr, dim, xyz));
                 reply = GuideNhAe2BaseTileNetworkBatchAwait.await(corr, timeoutMsPerBatch);
             } catch (InterruptedException e) {
                 Thread.currentThread()
                     .interrupt();
                 logEmptyFetchOnceBaseTile();
                 return Ae2BaseTileNetworkMpSnapshot.empty();
+            } catch (RuntimeException e) {
+                // The request never left, so nothing will answer it and the registration would sit in the
+                // await map for the session.
+                GuideNhAe2BaseTileNetworkBatchAwait.cancel(corr);
+                throw e;
             }
             if (reply == null || !reply.isConsistentPayload(n)) {
                 logEmptyFetchOnceBaseTile();

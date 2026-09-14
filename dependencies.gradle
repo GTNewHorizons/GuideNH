@@ -49,6 +49,7 @@ dependencies {
     compileOnlyApi("com.github.GTNewHorizons:BuildCraft:7.1.61:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:Translocators:1.4.4:dev") { transitive = false }
     compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.2.21-GTNH-daily") { transitive = false }
+    compileOnlyApi("com.github.GTNewHorizons:SimpleSkinBackport:1.0.2-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.DarkShadow44:DistantHorizonsStandalone:9.9.9:dev") { transitive = false }
 
     // jvmDowngrader

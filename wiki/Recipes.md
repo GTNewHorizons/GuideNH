@@ -34,6 +34,8 @@ If multiple recipes exist and you use the single-recipe forms, GuideNH renders o
 | `fallbackText` | no       | text shown when no usable recipe is found         |
 | `handlerName`  | no       | case-insensitive substring filter on handler name |
 | `handlerId`    | no       | exact overlay/handler id filter, case-insensitive |
+| `handlerBlacklist` | no   | comma-separated handlers to drop from the results |
+| `handlerWhitelist` | no   | comma-separated handlers to keep, even if blacklisted |
 | `handlerOrder` | no       | 0-based index after handler filtering             |
 | `input`        | no       | ingredient filter expression                      |
 | `output`       | no       | result filter expression                          |
@@ -118,6 +120,49 @@ If nothing matches:
 <RecipesFor id="minecraft:fire_charge" handlerName="shapeless" />
 ````
 
+### Handler blacklist and whitelist
+
+`handlerBlacklist` drops handlers from the results, `handlerWhitelist` puts them back. Both take a
+**comma-separated list**, and an entry matches the handler id, its overlay id or its class name,
+case-insensitively and as a substring — so one entry can name a single handler or a whole package.
+
+A handler is dropped when it is named by a blacklist **unless** the tag asks for it: `handlerId`,
+`handlerWhitelist` and a lowercased class-name match all keep it.
+
+**A list, because one handler id rarely appears alone.** Planks are both a crafting material and a fuel, so
+list the handler ids you do not want:
+
+````md
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
+````
+
+**A package in one entry.** An entry is a substring of the class name too, so a mod id covers every handler
+that mod registers — handy when one mod's handlers are all noise for this item:
+
+````md
+<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
+````
+
+**Whitelist, to undo a blacklist for one page.** The configuration hides two multiblock handlers on every
+page. A whitelist naming them brings them back here, and a list works the same way:
+
+````md
+<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="Multiblock preview unavailable." />
+````
+
+**Whitelist does not filter on its own.** It only rescues handlers a blacklist would drop; use
+`handlerId` / `handlerName` / `handlerOrder` to narrow the result to one handler, and `limit` to cap how
+many are drawn.
+
+The configuration file `config/guidenh/guidenh.cfg` holds `recipeHandlerBlacklist`, which applies to every
+page and by default contains:
+
+- `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
+- `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
+
+A page's own list is **added** to the configured one, so a page can hide more but not fewer. Editing the
+configuration changes every page; naming a handler on a tag changes only that page.
+
 ### Input/output filtering
 
 ````md
@@ -136,6 +181,10 @@ If nothing matches:
 
 - use `fallbackText` for optional-mod integrations
 - use `handlerId` when you know the exact NEI handler you want
+- use `handlerBlacklist` when one block is produced by many handlers and only some are worth showing
+- the two handlers below are hidden by default in `config/guidenh/guidenh.cfg` because they render a whole multiblock; name one with `handlerId` or `handlerWhitelist` to show it
+  - `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
+  - `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
 - use `limit` when a tag could expand into many recipes
 - keep complex filter logic in comments near the tag for maintainability
 

@@ -219,6 +219,10 @@ public class IdUtils {
     }
 
     public static ResourceLocation resolveLink(String idText, ResourceLocation anchor) throws IllegalArgumentException {
+        if (idText == null || idText.isEmpty() || idText.indexOf('\\') >= 0 || idText.indexOf('\0') >= 0) {
+            GuideDebugLog.warn("[GuideNH] [IdUtils] Ignoring id '{}': it is not a plain guide path", idText);
+            throw new IllegalArgumentException("Unsafe guide path: " + idText);
+        }
         if (idText.startsWith("/")) {
             return new ResourceLocation(anchor.getResourceDomain(), idText.substring(1));
         } else if (!idText.contains(":")) {
@@ -234,6 +238,43 @@ public class IdUtils {
                 idText.substring(namespaceSeparator + 2));
         }
         return new ResourceLocation(idText);
+    }
+
+    /**
+     * True when joining {@code folder} and {@code path} stays inside {@code folder}.
+     *
+     * <p>
+     * A parent step is not refused on sight: the language candidates a lookup tries are built as
+     * {@code _en_us/../assets/...}, and the content root keeps its shared assets beside the language folders,
+     * so such a path resolves back inside the root and is how those assets are reached at all. What is
+     * refused is a path whose parent steps still climb once resolved, which would read a file outside it.
+     *
+     * @param folder the content root the path is joined onto
+     * @param path   the path as written, using {@code /} separators
+     */
+    public static boolean isSafeAssetPath(String folder, String path) {
+        if (path == null || path.isEmpty()) {
+            return false;
+        }
+        if (path.indexOf('\\') >= 0 || path.indexOf('\0') >= 0) {
+            return false;
+        }
+        // Depth of the resolved path within the root. A parent step above zero would leave it.
+        int depth = 0;
+        for (String segment : path.split("/")) {
+            if (segment.isEmpty() || ".".equals(segment)) {
+                continue;
+            }
+            if ("..".equals(segment)) {
+                if (depth == 0) {
+                    return false;
+                }
+                depth--;
+                continue;
+            }
+            depth++;
+        }
+        return true;
     }
 
     private static String anchorParentPath(String anchorPath) {

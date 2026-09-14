@@ -15,8 +15,8 @@ public enum Mixins implements IMixins {
     EARLY(Side.CLIENT, "forge.AccessorForgeHooksClient", "forge.AccessorGuiIngameForge", "fml.AccessorFMLClientHandler",
         "minecraft.AccessorAbstractResourcePack", "minecraft.AccessorFallbackResourceManager",
         "minecraft.AccessorSimpleReloadableResourceManager", "forge.AccessorShapedOreRecipe",
-        "forge.AccessorShapelessOreRecipe", "minecraft.MixinTessellatorSceneExportCapture",
-        "minecraft.MixinModelRendererSceneExportCapture"),
+        "forge.AccessorShapelessOreRecipe", "minecraft.AccessorTextureManager",
+        "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture"),
 
     AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
@@ -42,6 +42,10 @@ public enum Mixins implements IMixins {
     BLOCK_RENDERER_6343(Side.CLIENT, Phase.LATE, Mods.BlockRenderer6343,
         "compat.blockrenderer6343.AccessorConstructableData",
         "compat.blockrenderer6343.AccessorGTNEIMultiblockHandler"),
+
+    NEI_CUSTOM_DIAGRAM(Side.CLIENT, Phase.LATE, Mods.NeiCustomDiagram, "compat.neicustomdiagram.AccessorDiagramGroup",
+        "compat.neicustomdiagram.AccessorInteractiveComponentGroup",
+        "compat.neicustomdiagram.AccessorCustomInteractable"),
 
     ;
 

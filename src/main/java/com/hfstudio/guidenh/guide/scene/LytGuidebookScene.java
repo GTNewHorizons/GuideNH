@@ -1367,9 +1367,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
         // Phase 1: SNBT static placements (ImportStructure)
         for (SnbtPlacement p : snbtPlacements) {
-            NBTTagCompound root = SnbtPreParseCache.get(p.getSrc());
+            // The compiler parsed this when it registered the placement, so a rebuild uses that rather than
+            // the shared cache, which is bounded and may no longer hold it.
+            NBTTagCompound root = p.getRoot();
             if (root == null) {
-                GuideDebugLog.warn("[Scene] SNBT cache miss for {} during build", p.getSrc());
+                root = SnbtPreParseCache.get(p.getSrc());
+            }
+            if (root == null) {
+                GuideDebugLog.warn("[Scene] SNBT unavailable for {} during build", p.getSrc());
                 continue;
             }
             ImportStructureElementCompiler.placeStructure(
@@ -1726,6 +1731,18 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         this.loadStatusText = message != null && !message.trim()
             .isEmpty() ? message.trim() : "StructureLib preview failed";
         this.loadStatusColor = ColorUtils.ARGB_FFFF5555.getColor();
+    }
+
+    /**
+     * The reason this scene reports a failure, or null when it has none.
+     *
+     * <p>
+     * The book shows this text in place of the scene. The export reads it too, so a scene the book calls
+     * failed is reported rather than exported as a blank image in silence.
+     */
+    @Nullable
+    public String getLoadFailure() {
+        return loadFailed ? loadStatusText : null;
     }
 
     public void clearLoadState() {
@@ -2830,7 +2847,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return entry.getLabel() + " x" + entry.getCount();
     }
 
-    private static String formatBlockStatsDisplayCount(int count) {
+    /**
+     * How a block-statistics count is written: plain below a thousand, then shortened.
+     *
+     * <p>
+     * The exported site reads this too, so a row that says {@code 1.2k} in the book says the same on the
+     * site instead of showing the raw number.
+     */
+    public static String formatBlockStatsDisplayCount(int count) {
         int value = Math.max(1, count);
         if (value < 1000) {
             return Integer.toString(value);

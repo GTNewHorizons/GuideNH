@@ -21,6 +21,7 @@ import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
+import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstList;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstListContent;
@@ -131,7 +132,12 @@ public class SceneEditorMultilineTextArea {
     public SceneEditorMultilineTextArea(FontRenderer fontRenderer, ClipboardAccess clipboardAccess) {
         this.fontRenderer = fontRenderer;
         this.clipboardAccess = clipboardAccess;
-        this.imeFocusProxy = new GuiTextField(fontRenderer, 0, 0, 1, Math.max(1, fontRenderer.FONT_HEIGHT + 2));
+        this.imeFocusProxy = new GuiTextField(
+            fontRenderer,
+            0,
+            0,
+            1,
+            Math.max(1, GuideFontCompat.getLineHeight(fontRenderer) + 2));
         this.imeFocusProxy.setEnableBackgroundDrawing(false);
         this.imeFocusProxy.setMaxStringLength(1);
         this.wrapEnabled = true;
@@ -1085,7 +1091,7 @@ public class SceneEditorMultilineTextArea {
                 cursorX,
                 cursorY,
                 cursorX + 1,
-                cursorY + fontRenderer.FONT_HEIGHT + 1,
+                cursorY + GuideFontCompat.getLineHeight(fontRenderer) + 1,
                 ColorUtils.WHITE.getColor());
         }
 
@@ -1107,9 +1113,13 @@ public class SceneEditorMultilineTextArea {
         int resolvedViewportHeight = Math.max(0, height - PADDING * 2);
 
         for (int i = 0; i < 3; i++) {
-            resolvedTextWidth = Math.max(4, width - PADDING * 2 - (verticalVisible ? SCROLLBAR_SIZE + 1 : 0));
-            layoutCache
-                .rebuild(selectionModel.getText(), fontRenderer, resolvedTextWidth, wrapEnabled, getLineHeight());
+            int nextTextWidth = Math.max(4, width - PADDING * 2 - (verticalVisible ? SCROLLBAR_SIZE + 1 : 0));
+            boolean relayout = i == 0 || (wrapEnabled && nextTextWidth != resolvedTextWidth);
+            resolvedTextWidth = nextTextWidth;
+            if (relayout) {
+                layoutCache
+                    .rebuild(selectionModel.getText(), fontRenderer, resolvedTextWidth, wrapEnabled, getLineHeight());
+            }
             horizontalVisible = !wrapEnabled && layoutCache.getContentWidthPixels() > resolvedTextWidth;
             resolvedViewportHeight = Math.max(0, height - PADDING * 2 - (horizontalVisible ? SCROLLBAR_SIZE + 1 : 0));
             boolean newVerticalVisible = layoutCache.getContentHeightPixels() > resolvedViewportHeight;
@@ -1192,7 +1202,7 @@ public class SceneEditorMultilineTextArea {
                 selectionX,
                 drawY - 1,
                 selectionX + selectionWidth,
-                drawY + fontRenderer.FONT_HEIGHT + 1,
+                drawY + GuideFontCompat.getLineHeight(fontRenderer) + 1,
                 SELECTION_COLOR);
         }
     }
@@ -1225,7 +1235,7 @@ public class SceneEditorMultilineTextArea {
                 highlightX,
                 drawY - 1,
                 highlightX + highlightWidth,
-                drawY + fontRenderer.FONT_HEIGHT + 1,
+                drawY + GuideFontCompat.getLineHeight(fontRenderer) + 1,
                 EXTERNAL_HIGHLIGHT_COLOR);
         }
     }
@@ -1253,7 +1263,7 @@ public class SceneEditorMultilineTextArea {
         if (warningWidth <= 0 && spansLineBreak) {
             warningWidth = 2;
         }
-        int warningY = drawY + fontRenderer.FONT_HEIGHT + 1;
+        int warningY = drawY + GuideFontCompat.getLineHeight(fontRenderer) + 1;
         for (int pixelX = warningX; pixelX < warningX + warningWidth; pixelX += 4) {
             Gui.drawRect(pixelX, warningY, pixelX + 2, warningY + 1, SYNTAX_WARNING_COLOR);
             Gui.drawRect(pixelX + 2, warningY + 1, pixelX + 4, warningY + 2, SYNTAX_WARNING_COLOR);
@@ -1605,7 +1615,13 @@ public class SceneEditorMultilineTextArea {
     }
 
     private int getLineHeight() {
-        return fontRenderer.FONT_HEIGHT + 2;
+        // A custom font scales its glyphs vertically without changing FONT_HEIGHT, so the line is measured
+        // through the font rather than from that constant.
+        return GuideFontCompat.getLineHeight(fontRenderer) + 2;
+    }
+
+    public int getLineHeightPixels() {
+        return getLineHeight();
     }
 
     private boolean shouldRenderCursor() {

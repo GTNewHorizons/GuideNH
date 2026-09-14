@@ -30,8 +30,10 @@ import com.hfstudio.guidenh.guide.latex.GuideLatexTextureCache;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiTranslationStats;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
+import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 
 public class GuideLightweightReloadService {
 
@@ -50,6 +52,8 @@ public class GuideLightweightReloadService {
         LazyParsedGuidePage.clearResidentPages();
         DataDrivenGuideLoader.clearCaches();
         RecipeCache.clear();
+        SnbtPreParseCache.clear();
+        GuideSyntaxModel.clearCache();
         NeiAnimationTicker.clear();
         GuidePageTexture.clear();
         GuideResourceAccess.clearCache();

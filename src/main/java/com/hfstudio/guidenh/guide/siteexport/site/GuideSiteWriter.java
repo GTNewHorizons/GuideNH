@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -125,8 +126,7 @@ public class GuideSiteWriter {
     public void writePage(Path outDir, String namespace, String guidePath, String language, String pageRelativeFile,
         String langSwitcherHtml, String sidebarHtml, String contentHtml, List<String> templateHtml, String title)
         throws Exception {
-        Path pagePath = outDir.resolve(Paths.get("guides", namespace, guidePath, language))
-            .resolve(pageRelativeFile);
+        Path pagePath = containedPagePath(outDir, namespace, guidePath, language, pageRelativeFile);
         Files.createDirectories(pagePath.getParent());
 
         String layout = loadText("/assets/guidenh/siteexport/layout.html").replace("{{lang}}", escapeHtml(language))
@@ -143,6 +143,19 @@ public class GuideSiteWriter {
         Path path = outDir.resolve(Paths.get("_data", "nav", namespace, guidePath, language + ".json"));
         Files.createDirectories(path.getParent());
         Files.writeString(path, json);
+    }
+
+    private static Path containedPagePath(Path outDir, String namespace, String guidePath, String language,
+        String pageRelativeFile) throws Exception {
+        Path root = outDir.toAbsolutePath()
+            .normalize();
+        Path pagePath = root.resolve(Paths.get("guides", namespace, guidePath, language))
+            .resolve(pageRelativeFile)
+            .normalize();
+        if (!pagePath.startsWith(root)) {
+            throw new IOException("Refusing to write a page outside the export directory: " + pageRelativeFile);
+        }
+        return pagePath;
     }
 
     public void writeSearchIndex(Path outDir, String language, String json) throws Exception {

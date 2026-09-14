@@ -28,7 +28,6 @@ import com.hfstudio.guidenh.integration.logisticspipes.LogisticsPipesBlockDispla
 import com.hfstudio.guidenh.integration.logisticspipes.LogisticsPipesPreviewPrepareContributor;
 import com.hfstudio.guidenh.integration.nei.NeiRawRecipeHandlerProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeAnimationUpdateProvider;
-import com.hfstudio.guidenh.integration.nei.NeiRecipeAvailabilityProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeDrawableRenderProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeEntryProvider;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeHandlerMetadataProvider;
@@ -180,9 +179,6 @@ public class GuideNhClientIntegrationBootstrap {
 
             GuideNhIntegrationRegistry.global()
                 .registerRecipeHandlerSlotProvider(new NeiRecipeHandlerSlotProvider());
-
-            GuideNhIntegrationRegistry.global()
-                .registerRecipeAvailabilityProvider(new NeiRecipeAvailabilityProvider());
 
             GuideNhIntegrationRegistry.global()
                 .registerRecipeDrawableRenderProvider(new NeiRecipeDrawableRenderProvider());

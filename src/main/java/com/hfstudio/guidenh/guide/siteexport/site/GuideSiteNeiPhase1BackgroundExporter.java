@@ -62,7 +62,7 @@ public class GuideSiteNeiPhase1BackgroundExporter {
      * @return png site-relative URL (with {@link GuideSitePageAssetExporter#ROOT_PREFIX}), or {@code null} if skipped
      */
     public synchronized @Nullable Result capture(@Nullable Object handler, int recipeIndex) {
-        if (handler == null || !NeiRecipeLookup.isAvailable()) {
+        if (handler == null) {
             return null;
         }
         if (NeiCustomDiagramBridge.isDiagramGroupHandler(handler)) {

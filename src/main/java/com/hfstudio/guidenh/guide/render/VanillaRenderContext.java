@@ -28,7 +28,7 @@ public class VanillaRenderContext implements RenderContext {
 
     public static final RenderItem ITEM_RENDERER = new RenderItem();
 
-    private final FontRenderer fontRenderer;
+    private FontRenderer fontRenderer;
     @Getter
     @Setter
     private int screenHeight;
@@ -52,6 +52,14 @@ public class VanillaRenderContext implements RenderContext {
         this.viewport = viewport;
         this.screenHeight = screenHeight;
         this.fontRenderer = Minecraft.getMinecraft().fontRenderer;
+    }
+
+    private FontRenderer font() {
+        FontRenderer current = Minecraft.getMinecraft().fontRenderer;
+        if (current != null) {
+            fontRenderer = current;
+        }
+        return fontRenderer;
     }
 
     public void setDocumentOrigin(int absX, int absY) {
@@ -219,15 +227,15 @@ public class VanillaRenderContext implements RenderContext {
             GL11.glTranslatef(x, y, 0f);
             GL11.glScalef(scale, scale, 1f);
             if (style.dropShadow()) {
-                fontRenderer.drawStringWithShadow(drawn, 0, 0, color);
+                font().drawStringWithShadow(drawn, 0, 0, color);
             } else {
-                fontRenderer.drawString(drawn, 0, 0, color);
+                font().drawString(drawn, 0, 0, color);
             }
             GL11.glPopMatrix();
         } else if (style.dropShadow()) {
-            fontRenderer.drawStringWithShadow(drawn, x, y, color);
+            font().drawStringWithShadow(drawn, x, y, color);
         } else {
-            fontRenderer.drawString(drawn, x, y, color);
+            font().drawString(drawn, x, y, color);
         }
 
         boolean hasUnderline = style.underlined();
@@ -237,9 +245,9 @@ public class VanillaRenderContext implements RenderContext {
             return;
         }
 
-        int scaledFontHeight = Math.round(fontRenderer.FONT_HEIGHT * scale);
+        int scaledFontHeight = Math.round(font().FONT_HEIGHT * scale);
         int decorationY = y + scaledFontHeight - 1;
-        int decoratedWidth = GuideFontCompat.getPreparedStringWidth(fontRenderer, drawn, style);
+        int decoratedWidth = GuideFontCompat.getPreparedStringWidth(font(), drawn, style);
         if (hasUnderline) {
             Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
         }
@@ -264,7 +272,7 @@ public class VanillaRenderContext implements RenderContext {
                     i++;
                     continue;
                 }
-                float advance = GuideFontCompat.getRenderedAdvance(fontRenderer, c, bold, visibleGlyphSeen);
+                float advance = GuideFontCompat.getRenderedAdvance(font(), c, bold, visibleGlyphSeen);
                 int cw = Math.round(advance * scale);
                 if (cw <= 0) {
                     continue;
@@ -279,13 +287,13 @@ public class VanillaRenderContext implements RenderContext {
 
     @Override
     public int getStringWidth(String text, ResolvedTextStyle style) {
-        return GuideFontCompat.getStringWidth(fontRenderer, text, style);
+        return GuideFontCompat.getStringWidth(font(), text, style);
     }
 
     @Override
     public int getLineHeight(ResolvedTextStyle style) {
         float scale = style != null ? style.fontScale() : 1f;
-        return (int) Math.ceil((fontRenderer.FONT_HEIGHT + 1) * scale);
+        return (int) Math.ceil((GuideFontCompat.getLineHeight(font()) + 1) * scale);
     }
 
     @Override
@@ -315,9 +323,9 @@ public class VanillaRenderContext implements RenderContext {
             GL11.glEnable(GL11.GL_ALPHA_TEST);
 
             ITEM_RENDERER.zLevel = 100f;
-            ITEM_RENDERER.renderItemAndEffectIntoGUI(fontRenderer, mc.getTextureManager(), stack, x, y);
+            ITEM_RENDERER.renderItemAndEffectIntoGUI(font(), mc.getTextureManager(), stack, x, y);
             if (drawOverlay) {
-                ITEM_RENDERER.renderItemOverlayIntoGUI(fontRenderer, mc.getTextureManager(), stack, x, y);
+                ITEM_RENDERER.renderItemOverlayIntoGUI(font(), mc.getTextureManager(), stack, x, y);
             }
             RenderHelper.disableStandardItemLighting();
         } finally {

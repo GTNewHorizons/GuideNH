@@ -46,26 +46,14 @@ public class GuideSceneStructureSnapshot implements Serializable {
 
     public static GuideSceneStructureSnapshot capture(GuidebookLevel level) {
         GuideSceneStructureSnapshot snapshot = new GuideSceneStructureSnapshot();
-        snapshot.captureBlocks(level);
-        snapshot.captureTileEntities(level);
+        snapshot.captureBlocksAndTileEntities(level);
         snapshot.captureEntities(level);
         snapshot.captureExplicitBlockIds(level);
         snapshot.capturePreviewAuthority(level);
         return snapshot;
     }
 
-    public GuidebookLevel restoreLevel() {
-        GuidebookLevel level = new GuidebookLevel();
-        GuidebookBlockPosMap<String> explicitBlockIdsByPos = indexExplicitBlockIds();
-        restoreBlocks(level, explicitBlockIdsByPos);
-        restoreTileEntities(level);
-        restoreEntities(level);
-        restoreEntityMounts(level);
-        restorePreviewAuthority(level);
-        return level;
-    }
-
-    private void captureBlocks(GuidebookLevel level) {
+    private void captureBlocksAndTileEntities(GuidebookLevel level) {
         for (int[] pos : level.getFilledBlocks()) {
             if (!isValidPos(pos)) {
                 continue;
@@ -75,21 +63,8 @@ public class GuideSceneStructureSnapshot implements Serializable {
             if (blockId == null) {
                 continue;
             }
-            blocks.add(
-                new BlockStateEntry(pos[0], pos[1], pos[2], blockId, level.getBlockMetadata(pos[0], pos[1], pos[2])));
-        }
-    }
-
-    private void captureTileEntities(GuidebookLevel level) {
-        for (int[] pos : level.getFilledBlocks()) {
-            if (!isValidPos(pos)) {
-                continue;
-            }
-            Block block = level.getBlock(pos[0], pos[1], pos[2]);
-            String blockId = GuidebookLevel.resolveBlockId(block);
-            if (blockId == null) {
-                continue;
-            }
+            int metadata = level.getBlockMetadata(pos[0], pos[1], pos[2]);
+            blocks.add(new BlockStateEntry(pos[0], pos[1], pos[2], blockId, metadata));
             var tileEntity = level.getTileEntity(pos[0], pos[1], pos[2]);
             if (tileEntity == null) {
                 continue;
@@ -102,15 +77,19 @@ public class GuideSceneStructureSnapshot implements Serializable {
             }
             String encoded = encodeCompound(
                 GuidebookTileEntityLoader.withWorldPosition(tileTag, pos[0], pos[1], pos[2]));
-            tileEntities.add(
-                new TileEntityEntry(
-                    pos[0],
-                    pos[1],
-                    pos[2],
-                    blockId,
-                    level.getBlockMetadata(pos[0], pos[1], pos[2]),
-                    encoded));
+            tileEntities.add(new TileEntityEntry(pos[0], pos[1], pos[2], blockId, metadata, encoded));
         }
+    }
+
+    public GuidebookLevel restoreLevel() {
+        GuidebookLevel level = new GuidebookLevel();
+        GuidebookBlockPosMap<String> explicitBlockIdsByPos = indexExplicitBlockIds();
+        restoreBlocks(level, explicitBlockIdsByPos);
+        restoreTileEntities(level);
+        restoreEntities(level);
+        restoreEntityMounts(level);
+        restorePreviewAuthority(level);
+        return level;
     }
 
     private void captureEntities(GuidebookLevel level) {

@@ -8,7 +8,7 @@ public class NeiRecipeAnimationUpdateProvider implements RecipeAnimationUpdatePr
 
     @Override
     public boolean canUpdateRecipeAnimation(Object handler) {
-        return handler != null && NeiRecipeLookup.isAvailable();
+        return handler != null;
     }
 
     @Override

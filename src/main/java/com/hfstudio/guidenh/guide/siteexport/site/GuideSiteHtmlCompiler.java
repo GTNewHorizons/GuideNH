@@ -17,12 +17,16 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderer;
+import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderers;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.guide.document.block.functiongraph.LytFunctionGraph;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownActionLink;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLatexShorthand;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics;
+import com.hfstudio.guidenh.guide.internal.markdown.MarkdownListSemantics.TaskMarker;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
@@ -82,6 +86,17 @@ public class GuideSiteHtmlCompiler {
         default String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
             GuideSiteTemplateRegistry templates, SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
             return null;
+        }
+
+        /**
+         * Tag renderers contributed by other mods, which this compiler asks before its own built-in branches so a tag.
+         */
+        default List<GuideSiteTagRenderer> contributedTagRenderers() {
+            return List.of();
+        }
+
+        default List<CodeFenceRenderer> contributedFenceRenderers() {
+            return List.of();
         }
     }
 
@@ -305,6 +320,8 @@ public class GuideSiteHtmlCompiler {
 
     private String compileMdxElement(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        String contributed = renderContributedTag(el, defaultNamespace, currentPageId, templates, sceneResolver);
+        if (contributed != null) return contributed;
         // Block-level elements
         if ("p".equals(el.name())) {
             return compileParagraph(el, templates, defaultNamespace, currentPageId, sceneResolver);
@@ -434,6 +451,28 @@ public class GuideSiteHtmlCompiler {
         return compileChildren(flowElement.children(), templates, defaultNamespace, currentPageId, sceneResolver);
     }
 
+    @Nullable
+    private String renderContributedTag(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates, SceneResolver sceneResolver) {
+        List<GuideSiteTagRenderer> renderers = mdxTagRenderer.contributedTagRenderers();
+        // This runs once per MDX element of the page, and the context is only needed when a mod has
+        // contributed a renderer, which is the uncommon case.
+        if (renderers.isEmpty()) {
+            return null;
+        }
+        return GuideSiteTagRenderers.render(
+            renderers,
+            new GuideSiteTagRenderContext(defaultNamespace, currentPageId, templates, sceneResolver, this),
+            element);
+    }
+
+    private boolean isContributedFence(@Nullable String lang) {
+        if (lang == null || lang.isEmpty()) {
+            return false;
+        }
+        return CodeFenceRenderers.owns(mdxTagRenderer.contributedFenceRenderers(), lang);
+    }
+
     private String compileCustomTextElement(MdxJsxTextElement textElement, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         if (isHtmlAnchorElement(textElement))
@@ -466,10 +505,19 @@ public class GuideSiteHtmlCompiler {
             + "</p>";
     }
 
+    private static int parseHeadingDepth(@Nullable String declared) {
+        int depth;
+        try {
+            depth = Integer.parseInt(declared != null ? declared.trim() : "1");
+        } catch (NumberFormatException ignored) {
+            depth = 1;
+        }
+        return Math.clamp(depth, 1, 6);
+    }
+
     private String compileHeadingMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
-        int depth = Integer.parseInt(el.getAttributeString("depth", "1"));
-        depth = depth <= 0 ? 1 : Math.min(depth, 6);
+        int depth = parseHeadingDepth(el.getAttributeString("depth", "1"));
         String body = compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver);
         String anchor = GuideSiteHrefResolver.headingAnchor(extractTextFromElement(el));
         if (anchor == null || anchor.isEmpty()) {
@@ -590,19 +638,38 @@ public class GuideSiteHtmlCompiler {
 
     private String compileListItemMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
-        return "<li>" + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
-            + "</li>";
+        TaskMarker marker = MarkdownListSemantics.extractTaskMarker(el.children());
+        if (marker == null) {
+            return "<li>" + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</li>";
+        }
+        marker.textNode()
+            .setValue(marker.remainingText());
+        String content = compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver);
+        return "<li class=\"guide-task-list-item\"><input type=\"checkbox\" class=\"guide-task-list-checkbox\" disabled"
+            + (marker.checked() ? " checked" : "")
+            + "><span class=\"guide-task-list-content\">"
+            + content
+            + "</span></li>";
     }
 
     private String compileCodeBlockMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String codeText = extractTextFromElement(el);
-        String lang = el.getAttributeString("lang", null);
+        String declaredLang = el.getAttributeString("lang", null);
         String meta = el.getAttributeString("meta", null);
         Integer width = parseMetaInt(meta, "width");
         Integer height = parseMetaInt(meta, "height");
-        if (lang != null) {
-            lang = lang.toLowerCase(Locale.ROOT);
+        // The built-in fence names are matched lowercased, but a contributed renderer is asked with the name
+        // the author wrote, which is what the book passes it, so both sides see the same value.
+        String lang = declaredLang != null ? declaredLang.toLowerCase(Locale.ROOT) : null;
+
+        if (isContributedFence(declaredLang)) {
+            String markup = CodeFenceRenderers
+                .renderSite(mdxTagRenderer.contributedFenceRenderers(), declaredLang, codeText, meta);
+            if (markup != null) {
+                return markup;
+            }
         }
 
         // Sub-language rendering
@@ -873,9 +940,12 @@ public class GuideSiteHtmlCompiler {
     }
 
     private boolean isRecipeElement(MdxJsxElementFields element) {
-        return "Recipe".equals(element.name()) || "RecipeFor".equals(element.name())
-            || "RecipeUsage".equals(element.name())
-            || "RecipesFor".equals(element.name());
+        String name = element.name();
+        return "Recipe".equals(name) || "RecipeFor".equals(name)
+            || "RecipeUsage".equals(name)
+            || "RecipesFor".equals(name)
+            || "Usage".equals(name)
+            || "RecipesUsage".equals(name);
     }
 
     private boolean isSceneElement(MdxJsxElementFields element) {

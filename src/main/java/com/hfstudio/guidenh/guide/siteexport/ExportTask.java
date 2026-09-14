@@ -14,6 +14,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.github.bsideup.jabel.Desugar;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -48,12 +50,18 @@ public class ExportTask {
         int failed = 0;
 
         for (ParsedGuidePage page : guide.getPages()) {
-            Path rel = pagesDir.resolve(
+            Path rel = containedPath(
+                pagesDir,
                 page.getId()
-                    .getResourceDomain())
-                .resolve(
-                    page.getId()
-                        .getResourcePath() + ".json");
+                    .getResourceDomain(),
+                page.getId()
+                    .getResourcePath() + ".json");
+            if (rel == null) {
+                GuideDebugLog
+                    .warnAlways("[GuideNH] [ExportTask] Skipping page outside the export directory: {}", page.getId());
+                failed++;
+                continue;
+            }
             try {
                 PageJsonWriter.write(page, rel);
                 pageIds.add(
@@ -76,8 +84,12 @@ public class ExportTask {
                     if (bytes == null) {
                         continue;
                     }
-                    Path dest = assetsDir.resolve(id.getResourceDomain())
-                        .resolve(id.getResourcePath());
+                    Path dest = containedPath(assetsDir, id.getResourceDomain(), id.getResourcePath());
+                    if (dest == null) {
+                        GuideDebugLog
+                            .warnAlways("[GuideNH] [ExportTask] Skipping asset outside the export directory: {}", id);
+                        continue;
+                    }
                     Files.createDirectories(dest.getParent());
                     Files.write(dest, bytes);
                     assetsCopied++;
@@ -98,6 +110,16 @@ public class ExportTask {
         Files.writeString(outDir.resolve("index.json"), GSON.toJson(index));
 
         return new Result(ok, failed, assetsCopied, outDir);
+    }
+
+    @Nullable
+    private static Path containedPath(Path root, String namespace, String path) {
+        Path normalizedRoot = root.toAbsolutePath()
+            .normalize();
+        Path candidate = normalizedRoot.resolve(namespace)
+            .resolve(path)
+            .normalize();
+        return candidate.startsWith(normalizedRoot) ? candidate : null;
     }
 
     public ResourceExporter getExporter() {

@@ -1,5 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.annotation;
 
+import java.util.Map;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -46,4 +48,8 @@ public abstract class SceneAnnotation {
         this.structureLibCondition = structureLibCondition;
     }
 
+    @Nullable
+    public Map<String, Object> toSitePayload() {
+        return null;
+    }
 }

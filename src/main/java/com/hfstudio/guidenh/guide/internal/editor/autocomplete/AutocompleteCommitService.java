@@ -1,133 +1,167 @@
 package com.hfstudio.guidenh.guide.internal.editor.autocomplete;
 
-import java.util.List;
+import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.AutocompleteCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext;
-import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxAttrNameContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.MdxValueContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.TagStartContext;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.syntax.SyntaxReplacement;
+import com.hfstudio.guidenh.guide.syntax.SyntaxSuggestion;
 
 public class AutocompleteCommitService {
 
     private AutocompleteCommitService() {}
 
+    @Nullable
     public static AutocompleteCommit commit(String text, AutocompleteContext context, AutocompleteCandidate candidate) {
         String source = text != null ? text : "";
         int replaceStart = clamp(context.replaceStart(), 0, source.length());
         int replaceEnd = clamp(context.replaceEnd(), replaceStart, source.length());
-        Replacement replacement = createReplacement(source, context, candidate.replacementText());
-        String newText = source.substring(0, replaceStart) + replacement.text + source.substring(replaceEnd);
-        int cursor = replaceStart + replacement.cursorOffset;
-        int selectionEnd = replaceStart + replacement.selectionEndOffset;
+        Replacement replacement = createReplacement(source, context, candidate);
+        if (replacement == null) {
+            return null;
+        }
+        replacement = applyDeclaredCaret(replacement, candidate);
+        String inserted = replacement.text + suffixOf(candidate);
+        int swallowedStart = clamp(replaceStart - replacement.extraReplaceStart, 0, replaceEnd);
+        int swallowedEnd = clamp(replaceEnd + replacement.extraReplaceEnd, swallowedStart, source.length());
+        String newText = source.substring(0, swallowedStart) + inserted + source.substring(swallowedEnd);
+        int cursor = swallowedStart + replacement.cursorOffset;
+        int selectionEnd = swallowedStart + replacement.selectionEndOffset;
         return new AutocompleteCommit(newText, cursor, selectionEnd);
     }
 
-    private static Replacement createReplacement(String source, AutocompleteContext context, String rawText) {
-        String replacement = rawText != null ? rawText : "";
-        if (context instanceof TagStartContext) {
-            return createTagReplacement(source, (TagStartContext) context, replacement);
+    private static Replacement applyDeclaredCaret(Replacement replacement, AutocompleteCandidate candidate) {
+        int caret = candidate.caretOffsetInReplacement();
+        if (caret < 0 || caret > replacement.text.length()) {
+            return replacement;
         }
-        if (context instanceof MdxAttrNameContext) {
-            return createAttributeNameReplacement(source, (MdxAttrNameContext) context, replacement);
+        int selectionEnd = candidate.selectionEndInReplacement();
+        return new Replacement(
+            replacement.text,
+            caret,
+            selectionEnd >= 0 ? selectionEnd : caret,
+            replacement.extraReplaceStart,
+            replacement.extraReplaceEnd);
+    }
+
+    private static String suffixOf(AutocompleteCandidate candidate) {
+        String suffix = candidate.suffixText();
+        return suffix != null ? suffix : "";
+    }
+
+    private static Replacement createReplacement(String source, AutocompleteContext context,
+        AutocompleteCandidate candidate) {
+        if (context instanceof SlotContext slot) {
+            return createSlotReplacement(slot, candidate);
         }
-        if (context instanceof MdxValueContext) {
-            return createAttributeValueReplacement(source, (MdxValueContext) context, replacement);
+        String replacement = candidate.replacementText() != null ? candidate.replacementText() : "";
+        if (context instanceof TagStartContext tagStart) {
+            return createTagReplacement(source, tagStart, candidate);
         }
-        if (context instanceof FrontmatterContext) {
-            return createFrontmatterReplacement(source, (FrontmatterContext) context, replacement);
+        if (context instanceof MdxValueContext value) {
+            return createAttributeValueReplacement(source, value, replacement, candidate);
+        }
+        if (context instanceof FrontmatterContext frontmatter) {
+            return createFrontmatterReplacement(source, frontmatter, replacement);
         }
         return Replacement.cursorAtEnd(replacement);
     }
 
-    private static Replacement createTagReplacement(String source, TagStartContext context, String tagName) {
-        int replaceEnd = clamp(context.replaceEnd(), 0, source.length());
+    /** A slot of another mod writes its own replacement, so the candidate only has to say which value the author. */
+    @Nullable
+    private static Replacement createSlotReplacement(SlotContext context, AutocompleteCandidate candidate) {
+        SyntaxSuggestion suggestion = candidate.syntaxSuggestion();
+        if (suggestion == null) {
+            String text = candidate.replacementText() != null ? candidate.replacementText() : "";
+            suggestion = SyntaxSuggestion.of(text);
+        }
+        SyntaxReplacement replacement;
+        try {
+            replacement = context.match()
+                .replacementFor(suggestion);
+        } catch (RuntimeException e) {
+            GuideDebugLog
+                .error("[GuideNH] [SyntaxSlot] {} failed to write a value: {}", context.slotNamespace(), e.toString());
+            return null;
+        }
+        if (replacement == null) {
+            GuideDebugLog.error(
+                "[GuideNH] [SyntaxSlot] {} answered no replacement for '{}'",
+                context.slotNamespace(),
+                suggestion.value());
+            return null;
+        }
+        return new Replacement(replacement.text(), replacement.caretOffset(), replacement.selectionEndOffset());
+    }
+
+    /** A tag candidate either supplies its own opening form (a container like {@code Row>} that the caller closes. */
+    private static Replacement createTagReplacement(String source, TagStartContext context,
+        AutocompleteCandidate candidate) {
+        String tagName = candidate.replacementText() != null ? candidate.replacementText() : "";
+        int replaceStart = clamp(context.replaceStart(), 0, source.length());
+        int replaceEnd = clamp(context.replaceEnd(), replaceStart, source.length());
+        int extraReplaceStart = swallowsOpeningBracket(source, replaceStart, tagName) ? 1 : 0;
         int pos = skipSpaces(source, replaceEnd);
+        int closingEnd = closingBracketEnd(source, pos);
+        if (closingEnd > 0 && bringsCompleteForm(candidate)) {
+            return new Replacement(
+                tagName,
+                tagName.length(),
+                tagName.length(),
+                extraReplaceStart,
+                closingEnd - replaceEnd);
+        }
         if (pos < source.length()) {
             char next = source.charAt(pos);
             if (next == '>' || next == '/') {
-                return Replacement.cursorAtEnd(tagName);
+                return new Replacement(tagName, tagName.length(), tagName.length(), extraReplaceStart, 0);
             }
+        }
+        if (tagName.endsWith(">")) {
+            return new Replacement(tagName, tagName.length(), tagName.length(), extraReplaceStart, 0);
         }
         String text = tagName + " />";
-        return new Replacement(text, text.length() - 2, text.length() - 2);
+        return new Replacement(text, text.length() - 2, text.length() - 2, extraReplaceStart, 0);
     }
 
-    private static Replacement createAttributeNameReplacement(String source, MdxAttrNameContext context,
-        String attributeName) {
-        AttributeSpec spec = findSpec(context.getTagName(), attributeName);
-        if (spec == null) {
-            return Replacement.cursorAtEnd(attributeName);
-        }
-
-        AttrType type = spec.getType();
-        String text;
-        int cursorOffset;
-        int selectionEndOffset;
-        if (type == AttrType.BOOLEAN) {
-            text = attributeName + "={true}";
-            cursorOffset = attributeName.length() + 2;
-            selectionEndOffset = cursorOffset + 4;
-        } else if (shouldUseBraceValue(type)) {
-            text = attributeName + "={}";
-            cursorOffset = text.length() - 1;
-            selectionEndOffset = cursorOffset;
-        } else {
-            text = attributeName + "=\"\"";
-            cursorOffset = text.length() - 1;
-            selectionEndOffset = cursorOffset;
-        }
-        return new Replacement(text, cursorOffset, selectionEndOffset);
+    /** True when a candidate writes the whole tag, opening bracket included, while the page already has a bracket. */
+    private static boolean swallowsOpeningBracket(String source, int replaceStart, String replacement) {
+        return replacement.startsWith("<") && replaceStart > 0 && source.charAt(replaceStart - 1) == '<';
     }
 
-    private static Replacement createAttributeValueReplacement(String source, MdxValueContext context, String value) {
+    private static boolean bringsCompleteForm(AutocompleteCandidate candidate) {
+        return candidate.suffixText() != null || candidate.caretOffsetInReplacement() >= 0;
+    }
+
+    private static int closingBracketEnd(String source, int position) {
+        if (position < 0 || position >= source.length()
+            || source.charAt(position) != '>' && source.charAt(position) != '/') {
+            return -1;
+        }
+        if (source.charAt(position) == '>') {
+            return position + 1;
+        }
+        return position + 1 < source.length() && source.charAt(position + 1) == '>' ? position + 2 : -1;
+    }
+
+    /** Writes an attribute value, adding quotes when the page does not quote it yet and closing a half-typed. */
+    private static Replacement createAttributeValueReplacement(String source, MdxValueContext context, String value,
+        AutocompleteCandidate candidate) {
         int replaceStart = clamp(context.replaceStart(), 0, source.length());
         int replaceEnd = clamp(context.replaceEnd(), replaceStart, source.length());
-        ValueEnvelope envelope = findValueEnvelope(source, replaceStart, replaceEnd);
-        String replacement = value;
-        int cursorOffset = replacement.length();
-        int selectionEndOffset = cursorOffset;
-
-        if (!envelope.hasDelimiter && shouldQuoteAttributeValue(context)) {
-            replacement = "\"" + replacement + "\"";
-            cursorOffset = replacement.length();
-            selectionEndOffset = cursorOffset;
-        } else if (context.getMissingValueTerminator() != '\0'
-            && !endsWith(replacement, context.getMissingValueTerminator())) {
-                replacement += context.getMissingValueTerminator();
-                cursorOffset = replacement.length() - 1;
-                selectionEndOffset = cursorOffset;
-            }
-        return new Replacement(replacement, cursorOffset, selectionEndOffset);
-    }
-
-    private static AttributeSpec findSpec(String tagName, String attributeName) {
-        List<AttributeSpec> specs = TagAttributeRegistry.get(tagName);
-        for (AttributeSpec spec : specs) {
-            if (spec.getName()
-                .equals(attributeName)) {
-                return spec;
-            }
+        if (!hasValueDelimiter(source, replaceStart, replaceEnd) && candidate.quotesValue()) {
+            String quoted = "\"" + value + "\"";
+            return Replacement.cursorAtEnd(quoted);
         }
-        return null;
-    }
-
-    private static boolean shouldUseBraceValue(AttrType type) {
-        return switch (type) {
-            case INT, FLOAT, VECTOR3, SNBT, EXPRESSION -> true;
-            default -> false;
-        };
-    }
-
-    private static boolean shouldQuoteAttributeValue(MdxValueContext context) {
-        AttributeSpec spec = findSpec(context.getTagName(), context.getAttrName());
-        if (spec == null) {
-            return false;
+        char terminator = context.getMissingValueTerminator();
+        if (terminator != '\0' && !endsWith(value, terminator)) {
+            String closed = value + terminator;
+            return new Replacement(closed, closed.length() - 1, closed.length() - 1);
         }
-        return switch (spec.getType()) {
-            case INT, FLOAT, BOOLEAN, VECTOR3, SNBT, EXPRESSION -> false;
-            default -> true;
-        };
+        return Replacement.cursorAtEnd(value);
     }
 
     private static Replacement createFrontmatterReplacement(String source, FrontmatterContext context, String rawText) {
@@ -138,26 +172,47 @@ public class AutocompleteCommitService {
             int start = context.replaceStart();
             if (start > 0 && source.charAt(start - 1) == '\n') {
                 replacement = replacement.substring(1);
+            } else if (endsWithListMarker(source, start)) {
+                replacement = stripListMarkerLine(replacement.substring(1));
             }
         }
         return new Replacement(replacement, replacement.length(), replacement.length());
     }
 
-    private static ValueEnvelope findValueEnvelope(String source, int valueStart, int valueEnd) {
+    private static boolean endsWithListMarker(String source, int position) {
+        int lineStart = source.lastIndexOf('\n', position - 1) + 1;
+        if (lineStart >= position) {
+            return false;
+        }
+        String before = source.substring(lineStart, position)
+            .trim();
+        return before.equals("-") || before.equals("+") || before.equals("*");
+    }
+
+    private static String stripListMarkerLine(String value) {
+        int index = skipSpaces(value, 0);
+        if (index < value.length()
+            && (value.charAt(index) == '-' || value.charAt(index) == '+' || value.charAt(index) == '*')) {
+            index++;
+        }
+        return value.substring(skipSpaces(value, index));
+    }
+
+    private static boolean hasValueDelimiter(String source, int valueStart, int valueEnd) {
         int before = valueStart - 1;
         if (before >= 0) {
             char open = source.charAt(before);
             if (open == '"' || open == '\'' || open == '{') {
-                return new ValueEnvelope(true);
+                return true;
             }
         }
         if (valueEnd < source.length()) {
             char close = source.charAt(valueEnd);
             if (close == '"' || close == '\'' || close == '}') {
-                return new ValueEnvelope(true);
+                return true;
             }
         }
-        return new ValueEnvelope(false);
+        return false;
     }
 
     private static int skipSpaces(String source, int start) {
@@ -184,24 +239,28 @@ public class AutocompleteCommitService {
         private final String text;
         private final int cursorOffset;
         private final int selectionEndOffset;
+        private final int extraReplaceStart;
+        private final int extraReplaceEnd;
 
         private Replacement(String text, int cursorOffset, int selectionEndOffset) {
+            this(text, cursorOffset, selectionEndOffset, 0, 0);
+        }
+
+        private Replacement(String text, int cursorOffset, int selectionEndOffset, int extraReplaceEnd) {
+            this(text, cursorOffset, selectionEndOffset, 0, extraReplaceEnd);
+        }
+
+        private Replacement(String text, int cursorOffset, int selectionEndOffset, int extraReplaceStart,
+            int extraReplaceEnd) {
             this.text = text;
             this.cursorOffset = cursorOffset;
             this.selectionEndOffset = selectionEndOffset;
+            this.extraReplaceStart = extraReplaceStart;
+            this.extraReplaceEnd = extraReplaceEnd;
         }
 
         private static Replacement cursorAtEnd(String text) {
             return new Replacement(text, text.length(), text.length());
-        }
-    }
-
-    private static class ValueEnvelope {
-
-        private final boolean hasDelimiter;
-
-        private ValueEnvelope(boolean hasDelimiter) {
-            this.hasDelimiter = hasDelimiter;
         }
     }
 }

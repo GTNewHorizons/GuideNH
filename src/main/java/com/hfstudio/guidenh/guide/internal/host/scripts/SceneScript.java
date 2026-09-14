@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -19,6 +22,7 @@ import com.hfstudio.guidenh.guide.compiler.GuideMarkdownOptions;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
@@ -31,8 +35,13 @@ import com.hfstudio.guidenh.guide.internal.host.LytEvent;
 import com.hfstudio.guidenh.guide.internal.host.LytScript;
 import com.hfstudio.guidenh.guide.internal.host.ScriptContext;
 import com.hfstudio.guidenh.guide.internal.host.ScriptType;
+import com.hfstudio.guidenh.guide.internal.item.GuideDisplayItemStacks;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.scene.BlockStatsCorner;
+import com.hfstudio.guidenh.guide.scene.BlockStatsDock;
+import com.hfstudio.guidenh.guide.scene.BlockStatsFilterMode;
+import com.hfstudio.guidenh.guide.scene.BlockStatsMode;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.PerspectivePreset;
@@ -188,6 +197,10 @@ public class SceneScript implements LytScript {
 
         applyCameraAndViewport(ph, scene, level, camera);
 
+        scene.setBlockStatsEnabled(true);
+        scene.setBlockStatsVisible(ModConfig.ui.sceneBlockStatsVisible);
+        scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
+
         ExceptionCollector errorSink = new ExceptionCollector();
         PageCollection pageCollection = ctx.getPageCollection();
         ExtensionCollection extensions = pageCollection instanceof Guide guide ? guide.getExtensions()
@@ -218,13 +231,12 @@ public class SceneScript implements LytScript {
         Map<String, SceneElementTagCompiler> elementCompilers = new HashMap<>();
         if (ph.sceneElementCompilers != null) {
             for (SceneElementTagCompiler compiler : ph.sceneElementCompilers) {
-                for (String name : compiler.getTagNames()) {
+                for (String name : publishedSceneTags(compiler)) {
                     elementCompilers.put(name, compiler);
                 }
             }
         }
 
-        boolean[] blockStatsExplicitlySet = { false };
         List<String> compiledElements = new ArrayList<>();
         List<String> skippedElements = new ArrayList<>();
         int[] nonSceneChildren = { 0 };
@@ -243,8 +255,7 @@ public class SceneScript implements LytScript {
                     }
 
                     if ("BlockStats".equals(el.name())) {
-                        applyBlockStatsConfig(scene, el);
-                        blockStatsExplicitlySet[0] = true;
+                        applyBlockStatsConfig(scene, el, runtimeCompiler, errorSink);
                         skippedElements.add("<BlockStats> (configuration only)");
                         continue;
                     }
@@ -304,13 +315,8 @@ public class SceneScript implements LytScript {
             hasSceneErrors = true;
         }
 
-        if (!blockStatsExplicitlySet[0]) {
-            scene.setBlockStatsEnabled(true);
-            scene.setBlockStatsVisible(ModConfig.ui.sceneBlockStatsVisible);
-            scene.setBlockStatsButtonEnabled(ModConfig.ui.sceneBlockStatsButtonEnabled);
-        }
-
         finalizeSceneGeometry(ph, scene, level, camera);
+        scene.applyDefaultBlockStatsMaxSizeFromScene();
         scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
         scene.clearLoadState();
         if (hasSceneErrors) {
@@ -516,11 +522,177 @@ public class SceneScript implements LytScript {
         scene.setStructureLibSelectionChangeListener(selection -> scene.rebuild());
     }
 
-    public static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el) {
-        String visibleStr = el.getAttributeString("visible", null);
-        if (visibleStr != null) scene.setBlockStatsVisible(Boolean.parseBoolean(visibleStr));
-        String enabledStr = el.getAttributeString("buttonEnabled", null);
-        if (enabledStr != null) scene.setBlockStatsButtonEnabled(Boolean.parseBoolean(enabledStr));
+    private static Collection<String> publishedSceneTags(SceneElementTagCompiler compiler) {
+        Collection<String> tagNames;
+        try {
+            tagNames = compiler.getTagNames();
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SceneScript] {} failed to publish its tags: {}",
+                compiler.getClass()
+                    .getSimpleName(),
+                e.toString());
+            return List.of();
+        }
+        if (tagNames == null) {
+            return List.of();
+        }
+        List<String> usable = new ArrayList<>(tagNames.size());
+        for (String tagName : tagNames) {
+            if (tagName != null && !tagName.isEmpty()) {
+                usable.add(tagName);
+            }
+        }
+        return usable;
+    }
+
+    public static void applyBlockStatsConfig(LytGuidebookScene scene, MdxJsxElementFields el, PageCompiler compiler,
+        LytErrorSink errorSink) {
+        scene.setBlockStatsVisible(
+            MdxAttrs.getBoolean(compiler, errorSink, el, "visible", ModConfig.ui.sceneBlockStatsVisible));
+        scene.setBlockStatsButtonEnabled(
+            MdxAttrs.getBoolean(compiler, errorSink, el, "buttonEnabled", ModConfig.ui.sceneBlockStatsButtonEnabled));
+
+        BlockStatsMode mode = BlockStatsMode.fromString(el.getAttributeString("mode", null), null);
+        if (mode != null) {
+            scene.setBlockStatsMode(mode);
+        }
+        BlockStatsCorner corner = BlockStatsCorner.fromString(el.getAttributeString("corner", null), null);
+        if (corner != null) {
+            scene.setBlockStatsCorner(corner);
+        }
+        BlockStatsDock dock = BlockStatsDock.fromString(el.getAttributeString("dock", null), null);
+        if (dock != null) {
+            scene.setBlockStatsDock(dock);
+        }
+        scene.setBlockStatsShowNames(MdxAttrs.getBoolean(compiler, errorSink, el, "showNames", false));
+        BlockStatsFilterMode filterMode = BlockStatsFilterMode
+            .fromString(el.getAttributeString("filterMode", null), null);
+        if (filterMode != null) {
+            scene.setBlockStatsFilterMode(filterMode);
+        }
+        String filter = el.getAttributeString("filter", null);
+        if (filter != null) {
+            scene.setBlockStatsFilterKeys(parseBlockStatsFilter(filter));
+        }
+        int maxWidth = parseOptionalInt(el.getAttributeString("maxWidth", null), "maxWidth");
+        if (maxWidth > 0) {
+            scene.setBlockStatsMaxWidth(maxWidth);
+        }
+        int maxHeight = parseOptionalInt(el.getAttributeString("maxHeight", null), "maxHeight");
+        if (maxHeight > 0) {
+            scene.setBlockStatsMaxHeight(maxHeight);
+        }
+
+        int manualRows = applyManualBlockStatsEntries(scene, el);
+        if (manualRows > 0) {
+            if (mode != null && mode != BlockStatsMode.MANUAL) {
+                GuideDebugLog.warnAlways(
+                    "[GuideNH] [SceneScript] <BlockStats mode=\"{}\"> is overridden to manual by its {} listed <BlockStat> rows",
+                    mode,
+                    manualRows);
+            }
+            scene.setBlockStatsMode(BlockStatsMode.MANUAL);
+        }
+    }
+
+    private static int applyManualBlockStatsEntries(LytGuidebookScene scene, MdxJsxElementFields el) {
+        List<ItemStack> stacks = new ArrayList<>();
+        List<Integer> counts = new ArrayList<>();
+        for (UnistNode child : el.children()) {
+            MdxJsxElementFields entry = SceneTagCompiler.unwrapSceneElement(child);
+            if (entry == null) {
+                reportIgnoredBlockStatsChild(describeSceneChild(child));
+                continue;
+            }
+            if (!"BlockStat".equals(entry.name())) {
+                String name = entry.name();
+                reportIgnoredBlockStatsChild(name != null ? "<" + name + ">" : "a fragment without a name");
+                continue;
+            }
+            String id = entry.getAttributeString("item", entry.getAttributeString("id", null));
+            ItemStack stack = resolveBlockStatStack(id);
+            if (stack == null) {
+                GuideDebugLog
+                    .warnAlways("[GuideNH] [SceneScript] <BlockStat> without a resolvable item or id: '{}'", id);
+                continue;
+            }
+            int declaredCount = parseOptionalInt(entry.getAttributeString("count", null), "count");
+            if (declaredCount == 0) {
+                continue;
+            }
+            stacks.add(stack);
+            counts.add(declaredCount < 0 ? 1 : declaredCount);
+        }
+        if (stacks.isEmpty()) {
+            return 0;
+        }
+        scene.clearManualBlockStatsEntries();
+        int added = 0;
+        for (int i = 0; i < stacks.size(); i++) {
+            scene.addManualBlockStatsEntry(stacks.get(i), counts.get(i));
+            added++;
+        }
+        return added;
+    }
+
+    private static void reportIgnoredBlockStatsChild(String description) {
+        if (description.isEmpty()) {
+            return;
+        }
+        GuideDebugLog.warnAlways(
+            "[GuideNH] [SceneScript] <BlockStats> ignores {}: only <BlockStat> rows are listed",
+            description);
+    }
+
+    private static String describeSceneChild(@Nullable UnistNode child) {
+        if (child == null) {
+            return "";
+        }
+        return "<" + child.type() + ">";
+    }
+
+    @Nullable
+    private static ItemStack resolveBlockStatStack(@Nullable String ref) {
+        if (ref == null || ref.isEmpty()) {
+            return null;
+        }
+        try {
+            return GuideDisplayItemStacks.resolveItemStack(ref, "minecraft");
+        } catch (IllegalArgumentException e) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [SceneScript] <BlockStat item=\"{}\"> is not a valid item id: {}",
+                ref,
+                e.getMessage());
+            return null;
+        }
+    }
+
+    private static Set<String> parseBlockStatsFilter(String filter) {
+        Set<String> keys = new LinkedHashSet<>();
+        for (String token : filter.split("[\\s,;]+")) {
+            String trimmed = token.trim();
+            if (!trimmed.isEmpty()) {
+                keys.add(trimmed);
+            }
+        }
+        return keys;
+    }
+
+    private static int parseOptionalInt(@Nullable String raw, String attributeName) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return -1;
+        }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException ignored) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [SceneScript] <BlockStats {}=\"{}\"> is not a whole number, so its default is used",
+                attributeName,
+                raw);
+            return -1;
+        }
     }
 
     public static String describeEmptyScene(String pageId, int astChildCount, List<String> compiledElements,
