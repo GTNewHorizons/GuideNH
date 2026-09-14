@@ -1418,6 +1418,12 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                         by,
                         bz);
             }
+            StructureLibSceneMetadata metadata = result.metadata();
+            if (metadata != null) {
+                setStructureLibSceneMetadata(
+                    binding.getName(),
+                    metadata.offsetBlockTooltips(offsetX, offsetY, offsetZ));
+            }
         }
     }
 

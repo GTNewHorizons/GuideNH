@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -16,6 +17,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import com.gtnewhorizon.structurelib.StructureLibAPI;
@@ -27,6 +29,7 @@ import com.gtnewhorizon.structurelib.alignment.constructable.IMultiblockInfoCont
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.structure.IItemSource;
+import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
@@ -36,6 +39,8 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import blockrenderer6343.api.utils.CreativeItemSource;
 import cpw.mods.fml.common.registry.GameRegistry;
+import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
 
 public class StructureLibBuildService {
@@ -90,11 +95,84 @@ public class StructureLibBuildService {
         }
 
         ItemStack trigger = createTrigger(request);
-
-        buildStructure(constructable, trigger, fakePlayer, request, controllerTile);
+        Map<Long, IStructureElement<?>> visitedElements = Map.of();
+        Object instrumentId = new Object();
+        StructureLibVisitedElementCollector visitCollector = new StructureLibVisitedElementCollector(
+            instrumentId,
+            world);
+        boolean instrumentEnabled = false;
+        boolean instrumentRegistered = false;
+        try {
+            StructureLibAPI.enableInstrument(instrumentId);
+            instrumentEnabled = true;
+            MinecraftForge.EVENT_BUS.register(visitCollector);
+            instrumentRegistered = true;
+        } catch (IllegalStateException e) {
+            GuideDebugLog.warn("[GuideNH] [StructureLib] Instrumentation unavailable for {}", request.controllerId());
+        }
+        try {
+            buildStructure(constructable, trigger, fakePlayer, request, controllerTile);
+        } finally {
+            StructureLibMinimumHatchPlacement.clearCurrentElement();
+            if (instrumentRegistered) {
+                visitedElements = visitCollector.snapshot();
+                MinecraftForge.EVENT_BUS.unregister(visitCollector);
+            }
+            if (instrumentEnabled) {
+                StructureLibAPI.disableInstrument();
+            }
+        }
         syncPreviewState(controllerTile, trigger, request);
 
-        return new StructureLibBuildResult(snapshotBlocks(level), true, null);
+        List<StructureLibBuildResult.PlacedBlock> blocks = snapshotBlocks(level);
+        int[] origin = snapshotOrigin(level);
+        List<ItemStack> machineStacks = new ArrayList<>();
+        GregTechHelpers.appendMachineStacks(machineStacks);
+        Object metadataContext = resolveMetadataContext(controllerTile, constructable);
+        StructureLibSceneMetadata metadata;
+        try {
+            metadata = StructureLibPreviewTooltipMetadataBuilder.build(
+                request,
+                blocks,
+                visitedElements,
+                origin[0],
+                origin[1],
+                origin[2],
+                metadataContext,
+                world,
+                trigger,
+                fakePlayer,
+                machineStacks);
+            GuideDebugLog.info(
+                "[GuideNH] [StructureLib] Preview metadata: controller={}, blocks={}, visited={}, hatchTooltips={}",
+                request.controllerId(),
+                blocks.size(),
+                visitedElements.size(),
+                metadata.getHatchTooltipEntries()
+                    .size());
+        } catch (Throwable t) {
+            GuideDebugLog.warn(
+                "[GuideNH] [StructureLib] Preview metadata generation failed for {}; scene blocks remain available",
+                request.controllerId(),
+                t);
+            metadata = null;
+        }
+        return new StructureLibBuildResult(blocks, true, null, metadata);
+    }
+
+    /**
+     * StructureLib constructables may be lightweight wrappers around the actual GT meta tile entity. Hatch
+     * elements are parameterized with that concrete controller type, so metadata queries must use the same object
+     * that the structure definition expects rather than the wrapper used to invoke construction.
+     */
+    private static Object resolveMetadataContext(TileEntity controllerTile, IConstructable constructable) {
+        if (controllerTile instanceof IGregTechTileEntity gtTile) {
+            IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
+            if (metaTileEntity != null) {
+                return metaTileEntity;
+            }
+        }
+        return constructable;
     }
 
     public static ResolvedController resolveController(String controllerId) {
@@ -178,6 +256,7 @@ public class StructureLibBuildService {
             ISurvivalConstructable sc = (ISurvivalConstructable) constructable;
             ISurvivalBuildEnvironment env = ISurvivalBuildEnvironment.create(createItemSource(), fakePlayer);
             int rounds = 0;
+            boolean creativeFallback = false;
             while (rounds++ < SURVIVAL_MAX_ROUNDS) {
                 int result = sc.survivalConstruct(trigger, SURVIVAL_BUDGET, env);
                 if (result == -1) {
@@ -189,6 +268,7 @@ public class StructureLibBuildService {
                         "[GuideNH] [StructureLib] Survival preview requested creative fallback: controller={}, round={}",
                         request.controllerId(),
                         rounds);
+                    creativeFallback = true;
                     break;
                 }
                 if (result <= 0) {
@@ -201,8 +281,20 @@ public class StructureLibBuildService {
                 }
                 GregTechHelpers.refreshPreviewHatchList(controllerTile, trigger, null);
             }
+            if (!creativeFallback) {
+                GuideDebugLog.warn(
+                    "[GuideNH] [StructureLib] Survival preview exceeded the round limit; creative fallback suppressed to preserve optional hatch positions: controller={}, rounds={}",
+                    request.controllerId(),
+                    rounds);
+                creativeFallback = true;
+            }
         }
-        constructable.construct(trigger.copy(), false);
+        StructureLibMinimumHatchPlacement.beginCreativeConstruct();
+        try {
+            constructable.construct(trigger.copy(), false);
+        } finally {
+            StructureLibMinimumHatchPlacement.endCreativeConstruct();
+        }
         GregTechHelpers.resolvePreviewModifier(controllerTile, trigger, false);
     }
 
@@ -363,6 +455,22 @@ public class StructureLibBuildService {
                 .thenComparingInt(StructureLibBuildResult.PlacedBlock::y)
                 .thenComparingInt(StructureLibBuildResult.PlacedBlock::z));
         return result;
+    }
+
+    private static int[] snapshotOrigin(GuidebookLevel level) {
+        Collection<int[]> filledBlocks = level.getFilledBlocks();
+        if (filledBlocks.isEmpty()) {
+            return new int[] { CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z };
+        }
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        for (int[] pos : filledBlocks) {
+            minX = Math.min(minX, pos[0]);
+            minY = Math.min(minY, pos[1]);
+            minZ = Math.min(minZ, pos[2]);
+        }
+        return new int[] { Math.min(minX, CONTROLLER_X), Math.min(minY, CONTROLLER_Y), Math.min(minZ, CONTROLLER_Z) };
     }
 
     @Nullable

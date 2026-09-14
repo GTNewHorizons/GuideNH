@@ -1,7 +1,6 @@
 package com.hfstudio.guidenh.integration.gregtech;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -601,6 +600,33 @@ public class GregTechHelpers {
         checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
     }
 
+    /**
+     * Applies the casing texture selected by a HatchElementBuilder to a hatch placed in the preview world.
+     * StructureLib's creative placement path does not invoke the hatch adder, so relying on later machine
+     * validation alone leaves forced placements with the default hatch texture.
+     */
+    public static void updatePreviewHatchTexture(@Nullable World world, int x, int y, int z, int casingTextureId) {
+        if (world == null || casingTextureId <= 0 || !(world instanceof GuidebookFakeWorld)
+            || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            updatePreviewHatchTextureImpl(world, x, y, z, casingTextureId);
+        } catch (Throwable ignored) {}
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    private static void updatePreviewHatchTextureImpl(World world, int x, int y, int z, int casingTextureId) {
+        TileEntity tileEntity = world.getTileEntity(x, y, z);
+        if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
+            return;
+        }
+        IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
+        if (metaTileEntity instanceof MTEHatch hatch) {
+            hatch.updateTexture(casingTextureId);
+        }
+    }
+
     public static void synchronizeMultiblockPreviewState(@Nullable TileEntity controllerTile,
         @Nullable ItemStack triggerStack, boolean activeController, @Nullable List<String> warnings) {
         if (controllerTile == null || !Mods.GregTech.isModLoaded()) {
@@ -638,7 +664,6 @@ public class GregTechHelpers {
                 gtTile.setActive(true);
                 gtTile.issueTextureUpdate();
                 applyPreviewTextureUpdate(metaTileEntity);
-                refreshHatchTexturesInWorld(controllerTile, metaTileEntity);
                 valid = true;
             } else {
                 multiBlockBase.clearHatches();
@@ -678,38 +703,6 @@ public class GregTechHelpers {
                 "preview-state-sync-failed:" + describeTile(controllerTile),
                 "GregTech preview state sync could not finish for {}",
                 describeTile(controllerTile));
-        }
-    }
-
-    private static void refreshHatchTexturesInWorld(TileEntity controllerTile, Object metaTileEntity) {
-        if (controllerTile == null || metaTileEntity == null) return;
-        int casingTextureId = -1;
-        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
-            try {
-                Method method = type.getDeclaredMethod("getCasingTextureId");
-                method.setAccessible(true);
-                casingTextureId = (int) method.invoke(metaTileEntity);
-                break;
-            } catch (NoSuchMethodException ignored) {} catch (Throwable ignored) {
-                return;
-            }
-        }
-        if (casingTextureId < 0) return;
-        World world;
-        try {
-            world = controllerTile.getWorldObj();
-        } catch (Throwable ignored) {
-            return;
-        }
-        if (!(world instanceof GuidebookFakeWorld fakeWorld)) return;
-        GuidebookLevel level = fakeWorld.getGuidebookLevel();
-        if (level == null) return;
-        for (TileEntity tileEntity : level.getTileEntities()) {
-            if (!isGregTechTileEntity(tileEntity)) continue;
-            IMetaTileEntity metaTile = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
-            if (metaTile instanceof MTEHatch hatch) {
-                hatch.updateTexture(casingTextureId);
-            }
         }
     }
 

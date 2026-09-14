@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +35,8 @@ public class StructureLibSceneMetadata {
     private final List<ChannelData> channelDataList;
     private final Map<String, ChannelData> channelDataById;
     private final Map<Long, BlockTooltipData> blockTooltipDataByPos;
+    private final List<BlockTooltipEntry> hatchTooltipEntries;
+    private final Set<Long> hatchTooltipPositions;
 
     public StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip) {
@@ -51,7 +54,41 @@ public class StructureLibSceneMetadata {
         this.tierData = tierData;
         this.channelDataList = immutableChannels(channelDataList);
         this.channelDataById = indexChannels(this.channelDataList);
-        this.blockTooltipDataByPos = blockTooltipDataByPos != null ? blockTooltipDataByPos : Map.of();
+        this.blockTooltipDataByPos = immutableTooltipData(blockTooltipDataByPos);
+        this.hatchTooltipEntries = computeHatchTooltipEntries(this.blockTooltipDataByPos);
+        this.hatchTooltipPositions = computeHatchTooltipPositions(this.hatchTooltipEntries);
+    }
+
+    public StructureLibSceneMetadata withBlockTooltips(@Nullable Map<Long, BlockTooltipData> tooltipDataByPos) {
+        return new StructureLibSceneMetadata(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            tierData,
+            channelDataList,
+            tooltipDataByPos);
+    }
+
+    public StructureLibSceneMetadata withTooltipDataFrom(@Nullable StructureLibSceneMetadata source) {
+        return source == null ? withBlockTooltips(Map.of()) : withBlockTooltips(source.blockTooltipDataByPos);
+    }
+
+    public StructureLibSceneMetadata offsetBlockTooltips(int offsetX, int offsetY, int offsetZ) {
+        if (blockTooltipDataByPos.isEmpty() || (offsetX == 0 && offsetY == 0 && offsetZ == 0)) {
+            return this;
+        }
+        Map<Long, BlockTooltipData> shifted = new LinkedHashMap<>(blockTooltipDataByPos.size());
+        for (Map.Entry<Long, BlockTooltipData> entry : blockTooltipDataByPos.entrySet()) {
+            shifted.put(
+                packBlockPos(
+                    unpackBlockPosX(entry.getKey()) + offsetX,
+                    unpackBlockPosY(entry.getKey()) + offsetY,
+                    unpackBlockPosZ(entry.getKey()) + offsetZ),
+                entry.getValue());
+        }
+        return withBlockTooltips(shifted);
     }
 
     public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue) {
@@ -83,19 +120,19 @@ public class StructureLibSceneMetadata {
 
     @Nullable
     public BlockTooltipData getBlockTooltipData(int x, int y, int z) {
-        return null;
+        return blockTooltipDataByPos.get(packBlockPos(x, y, z));
     }
 
     public List<BlockTooltipEntry> getHatchTooltipEntries() {
-        return List.of();
+        return hatchTooltipEntries;
     }
 
     public Set<Long> getHatchTooltipPositions() {
-        return Set.of();
+        return hatchTooltipPositions;
     }
 
     public boolean hasHatchTooltipData() {
-        return false;
+        return !hatchTooltipEntries.isEmpty();
     }
 
     @Nullable
@@ -180,6 +217,51 @@ public class StructureLibSceneMetadata {
         LinkedHashMap<String, ChannelData> indexed = new LinkedHashMap<>(channels.size());
         for (ChannelData cd : channels) indexed.put(cd.getChannelId(), cd);
         return Map.copyOf(indexed);
+    }
+
+    private static Map<Long, BlockTooltipData> immutableTooltipData(@Nullable Map<Long, BlockTooltipData> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, BlockTooltipData> filtered = new LinkedHashMap<>(source.size());
+        for (Map.Entry<Long, BlockTooltipData> entry : source.entrySet()) {
+            if (entry.getKey() != null && entry.getValue() != null
+                && entry.getValue()
+                    .hasAdditionalTooltipContent()) {
+                filtered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return filtered.isEmpty() ? Map.of() : Map.copyOf(filtered);
+    }
+
+    private static List<BlockTooltipEntry> computeHatchTooltipEntries(Map<Long, BlockTooltipData> tooltipDataByPos) {
+        if (tooltipDataByPos.isEmpty()) {
+            return List.of();
+        }
+        List<BlockTooltipEntry> entries = new ArrayList<>();
+        for (Map.Entry<Long, BlockTooltipData> entry : tooltipDataByPos.entrySet()) {
+            if (entry.getValue()
+                .hasHatchDetails()) {
+                entries.add(
+                    new BlockTooltipEntry(
+                        unpackBlockPosX(entry.getKey()),
+                        unpackBlockPosY(entry.getKey()),
+                        unpackBlockPosZ(entry.getKey()),
+                        entry.getValue()));
+            }
+        }
+        return entries.isEmpty() ? List.of() : List.copyOf(entries);
+    }
+
+    private static Set<Long> computeHatchTooltipPositions(List<BlockTooltipEntry> entries) {
+        if (entries.isEmpty()) {
+            return Set.of();
+        }
+        Set<Long> positions = new LinkedHashSet<>(entries.size());
+        for (BlockTooltipEntry entry : entries) {
+            positions.add(packBlockPos(entry.getX(), entry.getY(), entry.getZ()));
+        }
+        return Set.copyOf(positions);
     }
 
     public static int clamp(int value, int minValue, int maxValue) {
