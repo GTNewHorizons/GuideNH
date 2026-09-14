@@ -43,8 +43,8 @@ public enum Mixins implements IMixins {
         "compat.blockrenderer6343.AccessorConstructableData",
         "compat.blockrenderer6343.AccessorGTNEIMultiblockHandler"),
 
-    NEI_CUSTOM_DIAGRAM(Side.CLIENT, Phase.LATE, Mods.NeiCustomDiagram, "compat.neicustomdiagram.AccessorDiagramGroup",
-        "compat.neicustomdiagram.AccessorInteractiveComponentGroup",
+    NEI_CUSTOM_DIAGRAM(Side.CLIENT, Phase.LATE, Mods.NeiCustomDiagram,
+
         "compat.neicustomdiagram.AccessorCustomInteractable"),
 
     ;
