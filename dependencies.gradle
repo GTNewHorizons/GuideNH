@@ -42,16 +42,17 @@ dependencies {
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 
     compileOnlyApi("com.github.GTNewHorizons:nei-custom-diagram:1.8.35:dev") { transitive = false }
-    compileOnlyApi("com.github.slprime:ChromaticTooltips:1.0.28-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:TinkersConstruct:1.14.112-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:Mantle:0.5.4:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:Mobs-Info:0.6.0-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:LogisticsPipes:1.5.36-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:BuildCraft:7.1.63:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:Translocators:1.4.5:dev") { transitive = false }
-    compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.2.21-GTNH-daily") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:SimpleSkinBackport:1.0.3-GTNH:dev") { transitive = false }
+    compileOnlyApi("com.github.GTNewHorizons:OpenComputers:1.12.61-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.DarkShadow44:DistantHorizonsStandalone:9.9.9:dev") { transitive = false }
+    compileOnlyApi("com.github.slprime:ChromaticTooltips:1.0.28-GTNH:dev") { transitive = false }
+    compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.2.21-GTNH-daily") { transitive = false }
 
     // jvmDowngrader
     compileOnly("javax.xml.bind:jaxb-api:2.3.1")

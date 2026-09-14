@@ -46,8 +46,6 @@ public class StructureLibDefinitionCache {
         }
     }
 
-    // ===== Machine discovery =====
-
     /**
      * Find IConstructable by controller blockId (e.g. "gregtech:gt.blockmachines:3013").
      * Iterates GregTechAPI.METATILEENTITIES — the full unfiltered list of all GT machines.
@@ -78,8 +76,6 @@ public class StructureLibDefinitionCache {
         return false;
     }
 
-    // ===== Tier/channel metadata =====
-
     /**
      * Get tier/channel metadata for a machine. If the machine has no tiered elements,
      * falls back to ConstructableData.getTierData() which returns an empty default (maxTotalTier=1).
@@ -95,8 +91,6 @@ public class StructureLibDefinitionCache {
         IConstructable c = findConstructable(controllerBlockId);
         return c != null ? getConstructableData(c) : null;
     }
-
-    // ===== Accessors =====
 
     public Map<IConstructable, ConstructableData> getAllConstructableData() {
         return constructableDataMap;
