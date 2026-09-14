@@ -37,8 +37,6 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.mixins.late.compat.neicustomdiagram.AccessorCustomInteractable;
-import com.hfstudio.guidenh.mixins.late.compat.neicustomdiagram.AccessorDiagramGroup;
-import com.hfstudio.guidenh.mixins.late.compat.neicustomdiagram.AccessorInteractiveComponentGroup;
 
 import cpw.mods.fml.common.Optional;
 
@@ -91,7 +89,7 @@ public class NeiCustomDiagramBridge {
         if (diagram == null) {
             return;
         }
-        DiagramState diagramState = ((AccessorDiagramGroup) diagramGroup).getDiagramState();
+        DiagramState diagramState = diagramGroup.diagramState;
 
         Minecraft mc = Minecraft.getMinecraft();
         ScaledResolution sr = new ScaledResolution(mc, mc.displayWidth, mc.displayHeight);
@@ -149,7 +147,7 @@ public class NeiCustomDiagramBridge {
         if (diagram == null) {
             return null;
         }
-        DiagramState diagramState = ((AccessorDiagramGroup) diagramGroup).getDiagramState();
+        DiagramState diagramState = diagramGroup.diagramState;
 
         try {
             Interactable hovered = findHoveredInteractable(diagram, diagramState, localMouseX, localMouseY);
@@ -267,7 +265,7 @@ public class NeiCustomDiagramBridge {
             extraLines,
             displayComponent.descriptionTooltip(),
             stack == null ? null : stack.getDisplayName());
-        appendTooltipLines(extraLines, ((AccessorInteractiveComponentGroup) hovered).getSlotTooltip(), null);
+        appendTooltipLines(extraLines, hovered.slotTooltip, null);
         appendTooltipLines(extraLines, displayComponent.additionalTooltip(), null);
         appendTooltipLines(extraLines, hovered.cycleTooltip(diagramState), null);
 
@@ -353,7 +351,7 @@ public class NeiCustomDiagramBridge {
 
     @Nullable
     private static Diagram diagramAt(DiagramGroup diagramGroup, int recipeIndex) {
-        ImmutableList<Diagram> diagrams = ((AccessorDiagramGroup) diagramGroup).getDiagrams();
+        ImmutableList<Diagram> diagrams = diagramGroup.diagrams;
         if (recipeIndex < 0 || recipeIndex >= diagrams.size()) {
             return null;
         }
