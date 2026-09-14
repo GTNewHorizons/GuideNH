@@ -105,7 +105,7 @@ public class GregTechStructureLibControllerIntegration implements StructureLibCo
 
     @Override
     public void configureTrigger(ItemStack triggerStack, StructureLibBuildRequest request) {
-        boolean placeHatches = Boolean.TRUE.equals(
+        boolean placeHatches = !Boolean.FALSE.equals(
             request.options()
                 .get(PLACE_HATCHES_OPTION));
         boolean forceHatch = Boolean.TRUE.equals(

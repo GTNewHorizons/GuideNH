@@ -22,8 +22,7 @@ public enum Mixins implements IMixins {
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
 
     BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.MixinPanelButtonQuest",
-        "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox",
-        "compat.betterquesting.AccessorPanelTextBoxHotZone"),
+        "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox"),
 
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
 
@@ -36,15 +35,10 @@ public enum Mixins implements IMixins {
     LP_TILE_GENERIC_PIPE(Side.CLIENT, Phase.LATE, Mods.LogisticsPipes,
         "compat.logisticspipes.AccessorLogisticsTileGenericPipe"),
 
-    WR_CBE_UNLOADED_JAM_STATE(Side.CLIENT, Phase.LATE, Mods.WirelessRedstoneCore,
-        "compat.wirelessredstone.MixinRedstoneEther"),
-
     BLOCK_RENDERER_6343(Side.CLIENT, Phase.LATE, Mods.BlockRenderer6343,
-        "compat.blockrenderer6343.AccessorConstructableData",
-        "compat.blockrenderer6343.AccessorGTNEIMultiblockHandler"),
+        "compat.blockrenderer6343.AccessorConstructableData"),
 
     NEI_CUSTOM_DIAGRAM(Side.CLIENT, Phase.LATE, Mods.NeiCustomDiagram,
-
         "compat.neicustomdiagram.AccessorCustomInteractable"),
 
     ;

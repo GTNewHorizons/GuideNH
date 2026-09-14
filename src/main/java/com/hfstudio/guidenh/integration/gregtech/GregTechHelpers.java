@@ -30,6 +30,7 @@ import bartworks.system.material.BWMetaGeneratedBlocks;
 import bartworks.system.material.TileEntityMetaGeneratedBlock;
 import cpw.mods.fml.common.Optional;
 import gregtech.api.GregTechAPI;
+import gregtech.api.interfaces.INEIPreviewModifier;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.BaseMetaPipeEntity;
@@ -203,6 +204,25 @@ public class GregTechHelpers {
     @Optional.Method(modid = "gregtech_nh")
     private static boolean isGregTechTileEntityImpl(TileEntity tileEntity) {
         return tileEntity instanceof IGregTechTileEntity;
+    }
+
+    public static void resolvePreviewModifier(@Nullable TileEntity tileEntity, @Nullable ItemStack trigger,
+        boolean beforeConstruct) {
+        if (tileEntity == null || trigger == null || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        resolvePreviewModifierImpl(tileEntity, trigger, beforeConstruct);
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    private static void resolvePreviewModifierImpl(TileEntity tileEntity, ItemStack trigger, boolean beforeConstruct) {
+        if (!(tileEntity instanceof IGregTechTileEntity gtTile)) return;
+        if (!(gtTile.getMetaTileEntity() instanceof INEIPreviewModifier modifier)) return;
+        if (beforeConstruct) {
+            modifier.onPreviewConstruct(trigger);
+        } else {
+            modifier.onPreviewStructureComplete(trigger);
+        }
     }
 
     public static boolean isMultiblockController(@Nullable TileEntity tileEntity) {

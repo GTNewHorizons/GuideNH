@@ -1,10 +1,13 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.block.Block;
@@ -28,10 +31,12 @@ import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import blockrenderer6343.api.utils.CreativeItemSource;
 import cpw.mods.fml.common.registry.GameRegistry;
+import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
 
 public class StructureLibBuildService {
 
@@ -165,9 +170,9 @@ public class StructureLibBuildService {
         return stack;
     }
 
-    private static void buildStructure(IConstructable constructable, ItemStack trigger, PreviewFakePlayer fakePlayer,
+    public static void buildStructure(IConstructable constructable, ItemStack trigger, PreviewFakePlayer fakePlayer,
         StructureLibBuildRequest request, TileEntity controllerTile) {
-        previewHook(controllerTile, trigger, true);
+        GregTechHelpers.resolvePreviewModifier(controllerTile, trigger, true);
         boolean useSurvival = constructable instanceof ISurvivalConstructable;
         if (useSurvival) {
             ISurvivalConstructable sc = (ISurvivalConstructable) constructable;
@@ -176,42 +181,139 @@ public class StructureLibBuildService {
             while (rounds++ < SURVIVAL_MAX_ROUNDS) {
                 int result = sc.survivalConstruct(trigger, SURVIVAL_BUDGET, env);
                 if (result == -1) {
-                    previewHook(controllerTile, trigger, false);
+                    GregTechHelpers.resolvePreviewModifier(controllerTile, trigger, false);
                     return; // success
                 }
-                if (result == -2) break; // needs creative fallback
-                if (result <= 0) break; // no progress
-                hatchRefresh(controllerTile, trigger);
+                if (result == -2) {
+                    GuideDebugLog.warn(
+                        "[GuideNH] [StructureLib] Survival preview requested creative fallback: controller={}, round={}",
+                        request.controllerId(),
+                        rounds);
+                    break;
+                }
+                if (result <= 0) {
+                    GuideDebugLog.warn(
+                        "[GuideNH] [StructureLib] Survival preview stopped without progress: controller={}, round={}, result={}",
+                        request.controllerId(),
+                        rounds,
+                        result);
+                    break;
+                }
+                GregTechHelpers.refreshPreviewHatchList(controllerTile, trigger, null);
             }
         }
         constructable.construct(trigger.copy(), false);
-        previewHook(controllerTile, trigger, false);
+        GregTechHelpers.resolvePreviewModifier(controllerTile, trigger, false);
     }
 
-    private static void previewHook(TileEntity tile, ItemStack trigger, boolean before) {
-        try {
-            Object mte = tile.getClass()
-                .getMethod("getMetaTileEntity")
-                .invoke(tile);
-            if (mte == null) return;
-            String method = before ? "onPreviewConstruct" : "onPreviewStructureComplete";
-            mte.getClass()
-                .getMethod(method, ItemStack.class)
-                .invoke(mte, trigger);
-        } catch (Throwable ignored) {}
+    public static IItemSource createItemSource() {
+        return PreviewItemSourceHolder.INSTANCE;
     }
 
-    private static void hatchRefresh(TileEntity tile, ItemStack trigger) {
-        try {
-            GregTechHelpers.refreshPreviewHatchList(tile, trigger, null);
-        } catch (Throwable ignored) {}
+    /** Lazily initializes after GregTech has registered its meta tile entities. */
+    private static final class PreviewItemSourceHolder {
+
+        private static final IItemSource INSTANCE = createPreviewItemSource();
+
+        private static IItemSource createPreviewItemSource() {
+            List<ItemStack> hiddenGregTechItems = new ArrayList<>();
+            if (Mods.GregTech.isModLoaded()) {
+                GregTechHelpers.appendMachineStacks(hiddenGregTechItems);
+            }
+            return hiddenGregTechItems.isEmpty() ? CreativeItemSource.instance
+                : new FallbackItemSource(
+                    CreativeItemSource.instance,
+                    new CachedCreativeItemSource(hiddenGregTechItems));
+        }
     }
 
-    private static IItemSource createItemSource() {
-        return CreativeItemSource.instance;
+    /**
+     * NEI omits some valid meta tile entities, including hidden hatches. StructureLib's
+     * placement predicates still need to see every registered GregTech MTE in preview mode.
+     */
+    public static class FallbackItemSource implements IItemSource {
+
+        public final IItemSource primary;
+        public final IItemSource fallback;
+
+        public FallbackItemSource(IItemSource primary, IItemSource fallback) {
+            this.primary = primary;
+            this.fallback = fallback;
+        }
+
+        @Nonnull
+        @Override
+        public Map<ItemStack, Integer> take(Predicate<ItemStack> predicate, boolean simulate, int count) {
+            Map<ItemStack, Integer> result = primary.take(predicate, simulate, count);
+            return result.isEmpty() ? fallback.take(predicate, simulate, count) : result;
+        }
+
+        @Override
+        public ItemStack takeOne(Predicate<ItemStack> predicate, boolean simulate) {
+            ItemStack result = primary.takeOne(predicate, simulate);
+            return result != null ? result : fallback.takeOne(predicate, simulate);
+        }
+
+        @Override
+        public boolean takeOne(ItemStack stack, boolean simulate) {
+            return primary.takeOne(stack, simulate) || fallback.takeOne(stack, simulate);
+        }
+
+        @Override
+        public boolean takeAll(ItemStack stack, boolean simulate) {
+            return primary.takeAll(stack, simulate) || fallback.takeAll(stack, simulate);
+        }
     }
 
-    private static void syncPreviewState(TileEntity controllerTile, ItemStack trigger,
+    /**
+     * Supplies all registered GregTech MTEs, including hatches deliberately hidden from
+     * NEI. Successful predicate matches are checked first on later placement attempts,
+     * matching BlockRenderer6343's creative item-source cache.
+     */
+    public static class CachedCreativeItemSource implements IItemSource {
+
+        public final List<ItemStack> itemList;
+        private final Reference2ReferenceLinkedOpenHashMap<ItemStack, ItemStack> recentMatches = new Reference2ReferenceLinkedOpenHashMap<>();
+
+        public CachedCreativeItemSource(List<ItemStack> itemList) {
+            this.itemList = itemList;
+        }
+
+        @Nonnull
+        @Override
+        public Map<ItemStack, Integer> take(Predicate<ItemStack> predicate, boolean simulate, int count) {
+            ItemStack itemStack = takeOne(predicate, simulate);
+            return itemStack != null ? Collections.singletonMap(itemStack, Integer.MAX_VALUE) : Collections.emptyMap();
+        }
+
+        @Override
+        public ItemStack takeOne(Predicate<ItemStack> predicate, boolean simulate) {
+            for (ItemStack itemStack : recentMatches.values()) {
+                if (predicate.test(itemStack)) {
+                    return itemStack;
+                }
+            }
+            for (ItemStack itemStack : itemList) {
+                if (predicate.test(itemStack)) {
+                    recentMatches.put(itemStack, itemStack);
+                    return itemStack;
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public boolean takeOne(ItemStack stack, boolean simulate) {
+            return true;
+        }
+
+        @Override
+        public boolean takeAll(ItemStack stack, boolean simulate) {
+            return true;
+        }
+    }
+
+    public static void syncPreviewState(TileEntity controllerTile, ItemStack trigger,
         StructureLibBuildRequest request) {
         for (StructureLibPreviewStateSynchronizer synchronizer : StructureLibControllerIntegrationRegistry.global()
             .previewStateSynchronizers()) {
