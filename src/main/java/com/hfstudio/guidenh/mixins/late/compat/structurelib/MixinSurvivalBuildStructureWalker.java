@@ -19,4 +19,10 @@ public abstract class MixinSurvivalBuildStructureWalker {
         int a, int b, int c, CallbackInfoReturnable<Boolean> callback) {
         StructureLibMinimumHatchPlacement.setCurrentElement(element);
     }
+
+    @Inject(method = "visit", at = @At("RETURN"))
+    private void guidenh$clearCurrentPreviewElement(IStructureElement<?> element, World world, int x, int y, int z,
+        int a, int b, int c, CallbackInfoReturnable<Boolean> callback) {
+        StructureLibMinimumHatchPlacement.clearCurrentElement();
+    }
 }
