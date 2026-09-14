@@ -39,6 +39,7 @@ dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.21:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:EnderCore:0.5.15:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:ServerUtilities:2.4.10:dev")
+    runtimeOnlyNonPublishable("it.unimi.dsi:fastutil:8.5.18")
     runtimeOnlyNonPublishable(rfg.deobf("curse.maven:spark-361579:4271867"))
 
     compileOnlyApi("com.github.GTNewHorizons:nei-custom-diagram:1.8.35:dev") { transitive = false }
