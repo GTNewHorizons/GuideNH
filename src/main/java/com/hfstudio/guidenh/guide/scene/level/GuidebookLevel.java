@@ -235,7 +235,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             explicitBlockIds.remove(x, y, z);
             previewAuthorityStore.clearAt(packPos(x, y, z));
         } else {
-            if (!filledBlocks.containsKey(x, y, z)) {
+            if (filledBlocks.get(x, y, z) == null) {
                 filledBlocks.put(x, y, z, new int[] { x, y, z });
             }
             String fallbackBlockId = resolveBlockId(block);
@@ -296,7 +296,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             explicitBlockIds.remove(x, y, z);
             previewAuthorityStore.clearAt(packPos(x, y, z));
         } else {
-            if (!filledBlocks.containsKey(x, y, z)) {
+            if (filledBlocks.get(x, y, z) == null) {
                 filledBlocks.put(x, y, z, new int[] { x, y, z });
             }
             String normalizedBlockId = trimToNull(explicitBlockId);
