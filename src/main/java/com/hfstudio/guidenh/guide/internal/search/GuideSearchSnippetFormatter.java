@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.block.LytVisitor;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -317,7 +316,6 @@ public class GuideSearchSnippetFormatter {
         return content;
     }
 
-    @Desugar
     public record IntRange(int startInclusive, int endExclusive) {
 
         public IntRange {
@@ -327,9 +325,7 @@ public class GuideSearchSnippetFormatter {
         }
     }
 
-    @Desugar
     private record SanitizedSnippet(String text, List<IntRange> ranges) {}
 
-    @Desugar
     private record MarkdownDelimiter(String token, int startInclusive, int endExclusive) {}
 }

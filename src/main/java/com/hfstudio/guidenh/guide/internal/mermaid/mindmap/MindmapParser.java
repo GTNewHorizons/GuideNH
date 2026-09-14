@@ -8,7 +8,6 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidParser.NodeShapePattern;
@@ -260,6 +259,5 @@ public class MindmapParser {
         return indent;
     }
 
-    @Desugar
     public record StackEntry(int indent, MindmapNode node) {}
 }

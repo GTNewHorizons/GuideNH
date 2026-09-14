@@ -46,7 +46,6 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.hotkey.GuidePageHistoryHotkey;
@@ -4956,7 +4955,6 @@ public class GuideScreen extends GuiContainer
         return lineCount == 1 ? 8 : 8 + (lineCount - 1) * 10;
     }
 
-    @Desugar
     private record TooltipLayout(int mouseAnchorX, int mouseAnchorY, int textX, int top, int width, int height,
         boolean placedRightOfCursor) {
 

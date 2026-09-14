@@ -7,10 +7,8 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
-@Desugar
 public record GuidePageIcon(@Nullable ItemStack itemStack, @Nullable ResourceLocation textureId,
     @Nullable GuidePageTexture texture, @Nullable List<ItemStack> cycleItemStacks,
     @Nullable List<GuidePageTexture> cycleTextures, @Nullable List<ResourceLocation> cycleTextureIds) {

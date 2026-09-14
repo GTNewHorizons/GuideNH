@@ -1,7 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
-import com.github.bsideup.jabel.Desugar;
-
 public class SceneEditorVerticalScrollbar {
 
     public static final int MIN_THUMB_SIZE = 18;
@@ -51,7 +49,6 @@ public class SceneEditorVerticalScrollbar {
         return Math.min(value, maxValue);
     }
 
-    @Desugar
     public record Thumb(int start, int size) {
 
         public int end() {

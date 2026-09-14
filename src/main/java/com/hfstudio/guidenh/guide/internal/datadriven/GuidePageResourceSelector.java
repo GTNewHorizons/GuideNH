@@ -13,7 +13,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.compiler.Frontmatter;
 
 public class GuidePageResourceSelector {
@@ -203,6 +202,5 @@ public class GuidePageResourceSelector {
     /**
      * A resource location found in a specific resource pack.
      */
-    @Desugar
     public record SelectedPack(ResourceLocation sourceId, IResourcePack pack) {}
 }

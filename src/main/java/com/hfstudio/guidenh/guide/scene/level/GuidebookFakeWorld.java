@@ -322,13 +322,8 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
             try {
                 blockIn.onBlockAdded(this, x, y, z);
             } catch (Throwable t) {
-                GuideDebugLog.warn(
-                    "Preview block onBlockAdded hook failed at ({}, {}, {}) for {}",
-                    x,
-                    y,
-                    z,
-                    blockIn,
-                    t);
+                GuideDebugLog
+                    .warn("Preview block onBlockAdded hook failed at ({}, {}, {}) for {}", x, y, z, blockIn, t);
             }
         }
         return true;

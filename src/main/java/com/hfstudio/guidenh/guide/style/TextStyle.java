@@ -2,13 +2,12 @@ package com.hfstudio.guidenh.guide.style;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 
 /**
  * A text style that only contains a subset of properties found in {@link ResolvedTextStyle}.
  */
-@Desugar
+
 public record TextStyle(@Nullable Float fontScale, @Nullable Boolean bold, @Nullable Boolean italic,
     @Nullable Boolean underlined, @Nullable Boolean wavyUnderline, @Nullable Boolean dottedUnderline,
     @Nullable Boolean strikethrough, @Nullable Boolean obfuscated, @Nullable String font, @Nullable ColorValue color,
