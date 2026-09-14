@@ -7,7 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -19,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookCapeControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
