@@ -103,6 +103,23 @@ public class StructureLibSceneMetadata {
             blockTooltipDataByPos);
     }
 
+    /**
+     * Rebuilds control metadata once when a StructureLib controller exposes both tier and channel data.
+     * Keeping the operation batched avoids repeatedly copying the immutable metadata maps for each channel.
+     */
+    public StructureLibSceneMetadata withTierAndChannelData(int minValue, int maxValue, int defaultValue,
+        int currentValue, @Nullable List<ChannelData> channels) {
+        return new StructureLibSceneMetadata(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            new TierData(minValue, maxValue, defaultValue, currentValue),
+            channels != null ? channels : List.of(),
+            blockTooltipDataByPos);
+    }
+
     public StructureLibSceneMetadata withChannelData(String channelId, String label, int maxValue, int currentValue) {
         LinkedHashMap<String, ChannelData> updated = new LinkedHashMap<>(channelDataById);
         ChannelData next = new ChannelData(channelId, label, maxValue, 0, currentValue);

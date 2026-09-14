@@ -41,7 +41,9 @@ import blockrenderer6343.api.utils.CreativeItemSource;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 
 public class StructureLibBuildService {
 
@@ -95,7 +97,7 @@ public class StructureLibBuildService {
         }
 
         ItemStack trigger = createTrigger(request);
-        Map<Long, IStructureElement<?>> visitedElements = Map.of();
+        Long2ObjectMap<IStructureElement<?>> visitedElements = Long2ObjectMaps.emptyMap();
         Object instrumentId = new Object();
         StructureLibVisitedElementCollector visitCollector = new StructureLibVisitedElementCollector(
             instrumentId,
@@ -124,8 +126,8 @@ public class StructureLibBuildService {
         }
         syncPreviewState(controllerTile, trigger, request);
 
-        List<StructureLibBuildResult.PlacedBlock> blocks = snapshotBlocks(level);
-        int[] origin = snapshotOrigin(level);
+        BlockSnapshot blockSnapshot = snapshotBlocksAndOrigin(level);
+        List<StructureLibBuildResult.PlacedBlock> blocks = blockSnapshot.blocks();
         List<ItemStack> machineStacks = new ArrayList<>();
         GregTechHelpers.appendMachineStacks(machineStacks);
         Object metadataContext = resolveMetadataContext(controllerTile, constructable);
@@ -135,9 +137,9 @@ public class StructureLibBuildService {
                 request,
                 blocks,
                 visitedElements,
-                origin[0],
-                origin[1],
-                origin[2],
+                blockSnapshot.originX(),
+                blockSnapshot.originY(),
+                blockSnapshot.originZ(),
                 metadataContext,
                 world,
                 trigger,
@@ -414,8 +416,18 @@ public class StructureLibBuildService {
     }
 
     public static List<StructureLibBuildResult.PlacedBlock> snapshotBlocks(GuidebookLevel level) {
-        List<int[]> filledBlocks = new ArrayList<>(level.getFilledBlocks());
-        if (filledBlocks.isEmpty()) return List.of();
+        return snapshotBlocksAndOrigin(level).blocks();
+    }
+
+    private static BlockSnapshot snapshotBlocksAndOrigin(GuidebookLevel level) {
+        Collection<int[]> filledBlocks = level.getFilledBlocks();
+        if (filledBlocks.isEmpty()) {
+            return new BlockSnapshot(
+                List.of(),
+                CONTROLLER_X,
+                CONTROLLER_Y,
+                CONTROLLER_Z);
+        }
 
         // First pass: find min corner (matching old StructureLibRuntimeFacade behavior)
         int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
@@ -454,24 +466,15 @@ public class StructureLibBuildService {
             Comparator.comparingInt(StructureLibBuildResult.PlacedBlock::x)
                 .thenComparingInt(StructureLibBuildResult.PlacedBlock::y)
                 .thenComparingInt(StructureLibBuildResult.PlacedBlock::z));
-        return result;
+        return new BlockSnapshot(
+            result,
+            minX,
+            minY,
+            minZ);
     }
 
-    private static int[] snapshotOrigin(GuidebookLevel level) {
-        Collection<int[]> filledBlocks = level.getFilledBlocks();
-        if (filledBlocks.isEmpty()) {
-            return new int[] { CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z };
-        }
-        int minX = Integer.MAX_VALUE;
-        int minY = Integer.MAX_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        for (int[] pos : filledBlocks) {
-            minX = Math.min(minX, pos[0]);
-            minY = Math.min(minY, pos[1]);
-            minZ = Math.min(minZ, pos[2]);
-        }
-        return new int[] { Math.min(minX, CONTROLLER_X), Math.min(minY, CONTROLLER_Y), Math.min(minZ, CONTROLLER_Z) };
-    }
+    private record BlockSnapshot(List<StructureLibBuildResult.PlacedBlock> blocks, int originX, int originY,
+        int originZ) {}
 
     @Nullable
     public static NBTTagCompound serializeTile(@Nullable TileEntity tile) {

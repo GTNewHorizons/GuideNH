@@ -16,6 +16,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import blockrenderer6343.client.utils.ConstructableData;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 
 /**
  * Converts StructureLib's public element-visit instrumentation into scene hover metadata.
@@ -30,7 +31,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
     private StructureLibPreviewTooltipMetadataBuilder() {}
 
     static StructureLibSceneMetadata build(StructureLibBuildRequest request,
-        List<StructureLibBuildResult.PlacedBlock> blocks, Map<Long, IStructureElement<?>> visitedElements, int originX,
+        List<StructureLibBuildResult.PlacedBlock> blocks, Long2ObjectMap<IStructureElement<?>> visitedElements, int originX,
         int originY, int originZ, Object context, World world, ItemStack trigger, EntityPlayer actor,
         List<ItemStack> machineStacks) {
         StructureLibSceneMetadata metadata = createControlMetadata(
@@ -51,8 +52,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
             int worldX = block.x() + originX;
             int worldY = block.y() + originY;
             int worldZ = block.z() + originZ;
-            IStructureElement<?> element = visitedElements
-                .get(StructureLibSceneMetadata.packBlockPos(worldX, worldY, worldZ));
+            IStructureElement<?> element = visitedElements.get(StructureLibSceneMetadata.packBlockPos(worldX, worldY, worldZ));
             if (element == null) {
                 continue;
             }
@@ -84,23 +84,24 @@ final class StructureLibPreviewTooltipMetadataBuilder {
             return metadata;
         }
         int maxTier = Math.max(1, data.getMaxTotalTier());
-        metadata = metadata.withTierData(1, maxTier, request.tier(), request.tier());
+        List<StructureLibSceneMetadata.ChannelData> channels = new ArrayList<>();
         if (data.getChannelData() == null) {
-            return metadata;
+            return metadata.withTierAndChannelData(1, maxTier, request.tier(), request.tier(), channels);
         }
         for (var entry : data.getChannelData()
             .object2IntEntrySet()) {
             String channel = StructureLibPreviewSelection.normalizeChannelId(entry.getKey());
             if (channel != null) {
-                metadata = metadata.withChannelData(
+                channels.add(new StructureLibSceneMetadata.ChannelData(
                     channel,
                     channel,
                     entry.getIntValue(),
+                    0,
                     request.channels()
-                        .getOrDefault(channel, 0));
+                        .getOrDefault(channel, 0)));
             }
         }
-        return metadata;
+        return metadata.withTierAndChannelData(1, maxTier, request.tier(), request.tier(), channels);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
