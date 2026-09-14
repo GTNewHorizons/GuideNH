@@ -1,19 +1,24 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IItemSource;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.IStructureElementChain;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import blockrenderer6343.client.utils.ConstructableData;
@@ -32,8 +37,8 @@ final class StructureLibPreviewTooltipMetadataBuilder {
     private StructureLibPreviewTooltipMetadataBuilder() {}
 
     static StructureLibSceneMetadata build(StructureLibBuildRequest request,
-        List<StructureLibBuildResult.PlacedBlock> blocks, Long2ObjectMap<IStructureElement<?>> visitedElements, int originX,
-        int originY, int originZ, Object context, World world, ItemStack trigger, EntityPlayer actor,
+        List<StructureLibBuildResult.PlacedBlock> blocks, Long2ObjectMap<IStructureElement<?>> visitedElements,
+        int originX, int originY, int originZ, Object context, World world, ItemStack trigger, EntityPlayer actor,
         List<ItemStack> machineStacks) {
         StructureLibSceneMetadata metadata = createControlMetadata(
             request.controllerId(),
@@ -48,12 +53,15 @@ final class StructureLibPreviewTooltipMetadataBuilder {
         }
 
         Map<Long, StructureLibSceneMetadata.BlockTooltipData> tooltipData = new LinkedHashMap<>();
-        List<ItemStack> hatchStacks = collectHatchStacks(machineStacks);
+        List<ItemStack> candidates = collectMachineCandidates(machineStacks);
+        Set<Class<?>> failedElements = new HashSet<>();
+        Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions = new IdentityHashMap<>();
         for (StructureLibBuildResult.PlacedBlock block : blocks) {
             int worldX = block.x() + originX;
             int worldY = block.y() + originY;
             int worldZ = block.z() + originZ;
-            IStructureElement<?> element = visitedElements.get(StructureLibSceneMetadata.packBlockPos(worldX, worldY, worldZ));
+            IStructureElement<?> element = visitedElements
+                .get(StructureLibSceneMetadata.packBlockPos(worldX, worldY, worldZ));
             if (element == null) {
                 continue;
             }
@@ -66,7 +74,9 @@ final class StructureLibPreviewTooltipMetadataBuilder {
                 worldZ,
                 trigger,
                 actor,
-                hatchStacks);
+                candidates,
+                failedElements,
+                descriptions);
             if (data != null && data.hasAdditionalTooltipContent()) {
                 tooltipData.put(StructureLibSceneMetadata.packBlockPos(block.x(), block.y(), block.z()), data);
             }
@@ -93,13 +103,14 @@ final class StructureLibPreviewTooltipMetadataBuilder {
             .object2IntEntrySet()) {
             String channel = StructureLibPreviewSelection.normalizeChannelId(entry.getKey());
             if (channel != null) {
-                channels.add(new StructureLibSceneMetadata.ChannelData(
-                    channel,
-                    channel,
-                    entry.getIntValue(),
-                    0,
-                    request.channels()
-                        .getOrDefault(channel, 0)));
+                channels.add(
+                    new StructureLibSceneMetadata.ChannelData(
+                        channel,
+                        channel,
+                        entry.getIntValue(),
+                        0,
+                        request.channels()
+                            .getOrDefault(channel, 0)));
             }
         }
         return metadata.withTierAndChannelData(1, maxTier, request.tier(), request.tier(), channels);
@@ -107,34 +118,54 @@ final class StructureLibPreviewTooltipMetadataBuilder {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static StructureLibSceneMetadata.BlockTooltipData resolve(IStructureElement<?> element, Object context,
-        World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor, List<ItemStack> machineStacks) {
-        if (element instanceof IStructureElementChain<?> chain) {
-            return resolveChain(chain, context, world, x, y, z, trigger, actor, machineStacks);
+        World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor, List<ItemStack> machineStacks,
+        Set<Class<?>> failedElements, Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions) {
+        try {
+            if (element instanceof IStructureElementChain<?>chain) {
+                return resolveChain(
+                    chain,
+                    context,
+                    world,
+                    x,
+                    y,
+                    z,
+                    trigger,
+                    actor,
+                    machineStacks,
+                    failedElements,
+                    descriptions);
+            }
+            return resolveSingle(element, context, world, x, y, z, trigger, actor, machineStacks, descriptions);
+        } catch (RuntimeException e) {
+            if (failedElements.add(element.getClass())) {
+                GuideDebugLog.warn(
+                    "[GuideNH] [StructureLib] Candidate query failed: element={}, context={}, position=({}, {}, {}); other elements remain available",
+                    element.getClass()
+                        .getName(),
+                    context == null ? "null"
+                        : context.getClass()
+                            .getName(),
+                    x,
+                    y,
+                    z,
+                    e);
+            }
+            return null;
         }
-
-        return resolveSingle(element, context, world, x, y, z, trigger, actor, machineStacks);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static StructureLibSceneMetadata.BlockTooltipData resolveSingle(IStructureElement<?> element, Object context,
-        World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor, List<ItemStack> machineStacks) {
-        IStructureElement.BlocksToPlace blocksToPlace;
-        try {
-            blocksToPlace = ((IStructureElement) element).getBlocksToPlace(
-                context,
-                world,
-                x,
-                y,
-                z,
-                trigger,
-                AutoPlaceEnvironment.fromLegacy(EMPTY_ITEM_SOURCE, actor, ignored -> {}));
-        } catch (RuntimeException ignored) {
-            return new StructureLibSceneMetadata.BlockTooltipData(
-                STRUCTURELIB_DESCRIPTION,
-                List.of(),
-                List.of(),
-                List.of());
-        }
+    private static StructureLibSceneMetadata.BlockTooltipData resolveSingle(IStructureElement<?> element,
+        Object context, World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor,
+        List<ItemStack> machineStacks, Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions) {
+        IStructureElement.BlocksToPlace blocksToPlace = ((IStructureElement) element).getBlocksToPlace(
+            context,
+            world,
+            x,
+            y,
+            z,
+            trigger,
+            AutoPlaceEnvironment.fromLegacy(EMPTY_ITEM_SOURCE, actor, ignored -> {}));
         if (blocksToPlace == null) {
             return new StructureLibSceneMetadata.BlockTooltipData(
                 STRUCTURELIB_DESCRIPTION,
@@ -146,11 +177,15 @@ final class StructureLibPreviewTooltipMetadataBuilder {
         List<ItemStack> blockCandidates = normalize(blocksToPlace.getStacks());
         List<ItemStack> hatchCandidates = resolveHatches(blocksToPlace.getPredicate(), machineStacks);
         if (!hatchCandidates.isEmpty()) {
-            blockCandidates
-                .removeIf(stack -> GregTechHelpers.isMTEHatch(GregTechHelpers.getMetaTileEntityFromItem(stack)));
+            // Explicit non-hatch machine blocks are fixed structure parts, not replaceable hatch positions.
+            // Modules accepted only by the hatch predicate must still be shown even though they are not MTEHatch.
+            hatchCandidates.removeIf(
+                stack -> !GregTechHelpers.isMTEHatch(GregTechHelpers.getMetaTileEntityFromItem(stack))
+                    && containsStack(blockCandidates, stack));
+            blockCandidates.removeIf(stack -> containsStack(hatchCandidates, stack));
         }
         List<StructureLibHatchDescriptionLine> hatchLines = hatchCandidates.isEmpty() ? List.of()
-            : descriptions(element, context);
+            : descriptions.computeIfAbsent(element, key -> describe(key, context));
         return new StructureLibSceneMetadata.BlockTooltipData(
             STRUCTURELIB_DESCRIPTION,
             blockCandidates,
@@ -160,13 +195,14 @@ final class StructureLibPreviewTooltipMetadataBuilder {
 
     /**
      * A HatchElementBuilder followed by {@code buildAndChain(casing)} is visited as one chain.
-     * The active branch only describes the casing fallback, so inspect every public fallback element
-     * to retain the hatch candidates that are valid at that position.
+     * Resolve each public fallback separately so a failing branch cannot hide the other candidates,
+     * and descriptions remain associated with their hatch branch instead of the casing fallback.
      */
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static StructureLibSceneMetadata.BlockTooltipData resolveChain(IStructureElementChain<?> chain,
         Object context, World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor,
-        List<ItemStack> machineStacks) {
+        List<ItemStack> machineStacks, Set<Class<?>> failedElements,
+        Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions) {
         IStructureElement<?>[] fallbacks = chain.fallbacks();
         if (fallbacks == null || fallbacks.length == 0) {
             return new StructureLibSceneMetadata.BlockTooltipData(
@@ -192,7 +228,9 @@ final class StructureLibPreviewTooltipMetadataBuilder {
                 z,
                 trigger,
                 actor,
-                machineStacks);
+                machineStacks,
+                failedElements,
+                descriptions);
             if (data == null) {
                 continue;
             }
@@ -201,45 +239,55 @@ final class StructureLibPreviewTooltipMetadataBuilder {
             hatchCandidates.addAll(data.getHatchCandidates());
         }
 
-        hatchCandidates = normalize(hatchCandidates);
-        if (!hatchCandidates.isEmpty()) {
-            blockCandidates.removeIf(stack -> GregTechHelpers.isMTEHatch(GregTechHelpers.getMetaTileEntityFromItem(stack)));
+        List<ItemStack> normalizedHatches = normalize(hatchCandidates);
+        if (!normalizedHatches.isEmpty()) {
+            blockCandidates.removeIf(stack -> containsStack(normalizedHatches, stack));
         }
         return new StructureLibSceneMetadata.BlockTooltipData(
             STRUCTURELIB_DESCRIPTION,
             normalize(blockCandidates),
             hatchLines,
-            hatchCandidates);
+            normalizedHatches);
     }
 
-    private static List<ItemStack> resolveHatches(Predicate<ItemStack> predicate, List<ItemStack> hatchStacks) {
-        if (predicate == null || hatchStacks.isEmpty()) {
+    private static List<ItemStack> resolveHatches(Predicate<ItemStack> predicate, List<ItemStack> machineStacks) {
+        if (predicate == null || machineStacks.isEmpty()) {
             return List.of();
         }
         List<ItemStack> matches = new ArrayList<>();
-        for (ItemStack stack : hatchStacks) {
+        for (ItemStack stack : machineStacks) {
             if (predicate.test(stack)) {
                 matches.add(copyUnit(stack));
             }
         }
-        return matches.isEmpty() ? List.of() : List.copyOf(matches);
+        return matches;
     }
 
-    private static List<ItemStack> collectHatchStacks(List<ItemStack> machineStacks) {
+    private static boolean containsStack(List<ItemStack> candidates, ItemStack stack) {
+        for (ItemStack candidate : candidates) {
+            if (ItemStack.areItemStacksEqual(candidate, stack)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<ItemStack> collectMachineCandidates(List<ItemStack> machineStacks) {
         if (machineStacks == null || machineStacks.isEmpty()) {
             return List.of();
         }
-        List<ItemStack> hatches = new ArrayList<>();
+        List<ItemStack> candidates = new ArrayList<>();
+        // IHatchElement can accept module controllers as well as MTEHatch implementations.
         for (ItemStack stack : machineStacks) {
-            if (stack != null && GregTechHelpers.isMTEHatch(GregTechHelpers.getMetaTileEntityFromItem(stack))) {
-                hatches.add(stack);
+            if (stack != null && stack.getItem() != null) {
+                candidates.add(stack);
             }
         }
-        return hatches.isEmpty() ? List.of() : List.copyOf(hatches);
+        return candidates.isEmpty() ? List.of() : List.copyOf(candidates);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static List<StructureLibHatchDescriptionLine> descriptions(IStructureElement<?> element, Object context) {
+    private static List<StructureLibHatchDescriptionLine> describe(IStructureElement<?> element, Object context) {
         try {
             List<String> descriptions = ((IStructureElement) element).getDescription(context);
             if (descriptions == null || descriptions.isEmpty()) {
@@ -249,6 +297,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
                 .filter(
                     value -> value != null && !value.trim()
                         .isEmpty())
+                .map(StatCollector::translateToLocal)
                 .toList();
             return filtered.isEmpty() ? List.of()
                 : List.of(StructureLibHatchDescriptionLine.validHatches(String.join(" / ", filtered)));

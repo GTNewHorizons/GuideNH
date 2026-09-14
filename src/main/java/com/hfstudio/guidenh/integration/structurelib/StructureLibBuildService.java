@@ -41,9 +41,9 @@ import blockrenderer6343.api.utils.CreativeItemSource;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 
 public class StructureLibBuildService {
 
@@ -132,7 +132,7 @@ public class StructureLibBuildService {
         GregTechHelpers.appendMachineStacks(machineStacks);
         Object metadataContext = resolveMetadataContext(controllerTile, constructable);
         StructureLibSceneMetadata metadata;
-        try {
+        try (StructureLibPreviewMetadataScope ignored = StructureLibPreviewMetadataScope.open()) {
             metadata = StructureLibPreviewTooltipMetadataBuilder.build(
                 request,
                 blocks,
@@ -422,11 +422,7 @@ public class StructureLibBuildService {
     private static BlockSnapshot snapshotBlocksAndOrigin(GuidebookLevel level) {
         Collection<int[]> filledBlocks = level.getFilledBlocks();
         if (filledBlocks.isEmpty()) {
-            return new BlockSnapshot(
-                List.of(),
-                CONTROLLER_X,
-                CONTROLLER_Y,
-                CONTROLLER_Z);
+            return new BlockSnapshot(List.of(), CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z);
         }
 
         // First pass: find min corner (matching old StructureLibRuntimeFacade behavior)
@@ -466,11 +462,7 @@ public class StructureLibBuildService {
             Comparator.comparingInt(StructureLibBuildResult.PlacedBlock::x)
                 .thenComparingInt(StructureLibBuildResult.PlacedBlock::y)
                 .thenComparingInt(StructureLibBuildResult.PlacedBlock::z));
-        return new BlockSnapshot(
-            result,
-            minX,
-            minY,
-            minZ);
+        return new BlockSnapshot(result, minX, minY, minZ);
     }
 
     private record BlockSnapshot(List<StructureLibBuildResult.PlacedBlock> blocks, int originX, int originY,
