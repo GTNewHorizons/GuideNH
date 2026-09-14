@@ -171,7 +171,8 @@ public class StructureLibBuildService {
         boolean useSurvival = constructable instanceof ISurvivalConstructable;
         if (useSurvival) {
             ISurvivalConstructable sc = (ISurvivalConstructable) constructable;
-            ISurvivalBuildEnvironment env = ISurvivalBuildEnvironment.create(createItemSource(), fakePlayer);
+            ISurvivalBuildEnvironment env = ISurvivalBuildEnvironment
+                .create(createItemSource(), CreativeFluidSource.instance, fakePlayer);
             int rounds = 0;
             while (rounds++ < SURVIVAL_MAX_ROUNDS) {
                 int result = sc.survivalConstruct(trigger, SURVIVAL_BUDGET, env);
