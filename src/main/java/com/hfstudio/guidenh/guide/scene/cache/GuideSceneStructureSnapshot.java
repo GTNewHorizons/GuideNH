@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
@@ -303,19 +304,8 @@ public class GuideSceneStructureSnapshot implements Serializable {
         if (entry.previewPose != null && entity instanceof GuidebookPlayerPoseControllable poseControllable) {
             poseControllable.setGuidebookPreviewPlayerPose(entry.previewPose.restore());
         }
-        if (entry.previewBaby != null) {
-            tryInvokeBooleanInstanceMethod(entity, "setGuidebookBaby", entry.previewBaby);
-        }
-    }
-
-    private static boolean tryInvokeBooleanInstanceMethod(Entity entity, String methodName, boolean value) {
-        try {
-            entity.getClass()
-                .getMethod(methodName, Boolean.TYPE)
-                .invoke(entity, value);
-            return true;
-        } catch (Throwable ignored) {
-            return false;
+        if (entry.previewBaby != null && entity instanceof GuidebookScenePreviewPlayerEntity player) {
+            player.setGuidebookBaby(entry.previewBaby);
         }
     }
 
