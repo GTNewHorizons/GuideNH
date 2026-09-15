@@ -127,6 +127,17 @@ final class StructureLibPreviewTooltipMetadataBuilder {
         String rotation, String flip, Object context, StructureLibBuildRequest request) {
         StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(controller, piece, facing, rotation, flip);
         ConstructableData data = resolveControlData(controller, context);
+        GuideDebugLog.warnAlways(
+            "[GuideNH] [StructureLib] Control metadata for {}: data={}, hasData={}, maxTier={}, channels={}",
+            controller,
+            data == null ? "null"
+                : data.getClass()
+                    .getSimpleName(),
+            data != null && data.hasData(),
+            data == null ? -1 : data.getMaxTotalTier(),
+            data == null || data.getChannelData() == null ? -1
+                : data.getChannelData()
+                    .size());
         if (data == null) {
             return metadata;
         }
