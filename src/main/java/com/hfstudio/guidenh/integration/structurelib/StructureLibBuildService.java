@@ -304,7 +304,6 @@ public class StructureLibBuildService {
         return PreviewItemSourceHolder.INSTANCE;
     }
 
-    /** Lazily initializes after GregTech has registered its meta tile entities. */
     private static final class PreviewItemSourceHolder {
 
         private static final IItemSource INSTANCE = createPreviewItemSource();
