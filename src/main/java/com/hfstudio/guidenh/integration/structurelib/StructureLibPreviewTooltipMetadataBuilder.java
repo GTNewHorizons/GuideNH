@@ -54,8 +54,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
 
         Map<Long, StructureLibSceneMetadata.BlockTooltipData> tooltipData = new LinkedHashMap<>();
         List<ItemStack> candidates = collectMachineCandidates(machineStacks);
-        Set<Class<?>> failedElements = new HashSet<>();
-        Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions = new IdentityHashMap<>();
+        Resolution resolution = Resolution.create();
         for (StructureLibBuildResult.PlacedBlock block : blocks) {
             int worldX = block.x() + originX;
             int worldY = block.y() + originY;
@@ -75,8 +74,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
                 trigger,
                 actor,
                 candidates,
-                failedElements,
-                descriptions);
+                resolution);
             if (data != null && data.hasAdditionalTooltipContent()) {
                 tooltipData.put(StructureLibSceneMetadata.packBlockPos(block.x(), block.y(), block.z()), data);
             }
@@ -119,25 +117,15 @@ final class StructureLibPreviewTooltipMetadataBuilder {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static StructureLibSceneMetadata.BlockTooltipData resolve(IStructureElement<?> element, Object context,
         World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor, List<ItemStack> machineStacks,
-        Set<Class<?>> failedElements, Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions) {
+        Resolution resolution) {
         try {
             if (element instanceof IStructureElementChain<?>chain) {
-                return resolveChain(
-                    chain,
-                    context,
-                    world,
-                    x,
-                    y,
-                    z,
-                    trigger,
-                    actor,
-                    machineStacks,
-                    failedElements,
-                    descriptions);
+                return resolveChain(chain, context, world, x, y, z, trigger, actor, machineStacks, resolution);
             }
-            return resolveSingle(element, context, world, x, y, z, trigger, actor, machineStacks, descriptions);
+            return resolveSingle(element, context, world, x, y, z, trigger, actor, machineStacks, resolution);
         } catch (RuntimeException e) {
-            if (failedElements.add(element.getClass())) {
+            if (resolution.failedElements()
+                .add(element.getClass())) {
                 GuideDebugLog.warn(
                     "[GuideNH] [StructureLib] Candidate query failed: element={}, context={}, position=({}, {}, {}); other elements remain available",
                     element.getClass()
@@ -157,7 +145,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static StructureLibSceneMetadata.BlockTooltipData resolveSingle(IStructureElement<?> element,
         Object context, World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor,
-        List<ItemStack> machineStacks, Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions) {
+        List<ItemStack> machineStacks, Resolution resolution) {
         IStructureElement.BlocksToPlace blocksToPlace = ((IStructureElement) element).getBlocksToPlace(
             context,
             world,
@@ -175,7 +163,8 @@ final class StructureLibPreviewTooltipMetadataBuilder {
         }
 
         List<ItemStack> blockCandidates = normalize(blocksToPlace.getStacks());
-        List<ItemStack> hatchCandidates = resolveHatches(blocksToPlace.getPredicate(), machineStacks);
+        List<ItemStack> hatchCandidates = new ArrayList<>(
+            cachedHatches(element, blocksToPlace, machineStacks, resolution.hatchCache()));
         if (!hatchCandidates.isEmpty()) {
             // Explicit non-hatch machine blocks are fixed structure parts, not replaceable hatch positions.
             // Modules accepted only by the hatch predicate must still be shown even though they are not MTEHatch.
@@ -185,12 +174,51 @@ final class StructureLibPreviewTooltipMetadataBuilder {
             blockCandidates.removeIf(stack -> containsStack(hatchCandidates, stack));
         }
         List<StructureLibHatchDescriptionLine> hatchLines = hatchCandidates.isEmpty() ? List.of()
-            : descriptions.computeIfAbsent(element, key -> describe(key, context));
+            : resolution.descriptions()
+                .computeIfAbsent(element, key -> describe(key, context));
         return new StructureLibSceneMetadata.BlockTooltipData(
             STRUCTURELIB_DESCRIPTION,
             blockCandidates,
             hatchLines,
             hatchCandidates);
+    }
+
+    /**
+     * State shared by one metadata build. The hatch cache is what keeps a build from re-testing the whole
+     * meta tile entity registry for every block of a structure; see {@link #cachedHatches}.
+     */
+    private record Resolution(Set<Class<?>> failedElements,
+        Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions,
+        Map<IStructureElement<?>, List<ItemStack>> hatchCache) {
+
+        static Resolution create() {
+            return new Resolution(new HashSet<>(), new IdentityHashMap<>(), new IdentityHashMap<>());
+        }
+    }
+
+    /**
+     * The hatch candidates for one element, resolved at most once per build.
+     *
+     * <p>
+     * A structure visits the same element at every position it occupies, and both halves of the query are
+     * expensive: {@code getBlocksToPlace} rebuilds the hatch rule, which streams the element's declared hatch
+     * list, and testing that rule walks the whole meta tile entity registry. The element is the stable
+     * identity to key on; its predicate is not, because {@code HatchElementBuilder} builds a fresh predicate
+     * on every call, so keying on the predicate would never hit and would retain one entry per block.
+     */
+    private static List<ItemStack> cachedHatches(IStructureElement<?> element,
+        IStructureElement.BlocksToPlace blocksToPlace, List<ItemStack> machineStacks,
+        Map<IStructureElement<?>, List<ItemStack>> hatchCache) {
+        if (blocksToPlace == null || machineStacks.isEmpty()) {
+            return List.of();
+        }
+        List<ItemStack> cached = hatchCache.get(element);
+        if (cached != null) {
+            return cached;
+        }
+        List<ItemStack> resolved = List.copyOf(resolveHatches(blocksToPlace.getPredicate(), machineStacks));
+        hatchCache.put(element, resolved);
+        return resolved;
     }
 
     /**
@@ -201,8 +229,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private static StructureLibSceneMetadata.BlockTooltipData resolveChain(IStructureElementChain<?> chain,
         Object context, World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor,
-        List<ItemStack> machineStacks, Set<Class<?>> failedElements,
-        Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions) {
+        List<ItemStack> machineStacks, Resolution resolution) {
         IStructureElement<?>[] fallbacks = chain.fallbacks();
         if (fallbacks == null || fallbacks.length == 0) {
             return new StructureLibSceneMetadata.BlockTooltipData(
@@ -229,8 +256,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
                 trigger,
                 actor,
                 machineStacks,
-                failedElements,
-                descriptions);
+                resolution);
             if (data == null) {
                 continue;
             }
