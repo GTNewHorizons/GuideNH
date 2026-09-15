@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.block.Block;
@@ -600,20 +599,22 @@ public class GregTechHelpers {
         checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
     }
 
-    /**
-     * Applies the casing texture selected by a HatchElementBuilder to a hatch placed in the preview world.
-     * StructureLib's creative placement path does not invoke the hatch adder, so relying on later machine
-     * validation alone leaves forced placements with the default hatch texture.
-     */
     public static void updatePreviewHatchTexture(@Nullable World world, int x, int y, int z, int casingTextureId) {
-        if (world == null || casingTextureId <= 0
-            || !(world instanceof GuidebookFakeWorld)
-            || !Mods.GregTech.isModLoaded()) {
+        if (casingTextureId < 0 || !(world instanceof GuidebookFakeWorld) || !Mods.GregTech.isModLoaded()) {
             return;
         }
         try {
             updatePreviewHatchTextureImpl(world, x, y, z, casingTextureId);
-        } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            // A StructureLib placement callback can run before the freshly-created tile has a base entity.
+            // Texture selection is auxiliary preview state and must never abort the remaining structure build.
+            logInfoOnce(
+                "preview-hatch-texture:" + x + ':' + y + ':' + z + ':' + casingTextureId,
+                "GregTech preview hatch texture update deferred for ({}, {}, {})",
+                x,
+                y,
+                z);
+        }
     }
 
     @Optional.Method(modid = "gregtech_nh")
@@ -657,34 +658,40 @@ public class GregTechHelpers {
         try {
             boolean activeBefore = gtTile.isActive();
             Boolean machineBefore = readPreviewMachineState(multiBlockBase);
-            boolean valid;
-            boolean machineApplied;
-            if (triggerStack != null && triggerStack.stackSize > 0) {
-                applyTierFromTriggerStack(metaTileEntity, triggerStack);
-                machineApplied = applyPreviewMachineState(multiBlockBase, true);
-                gtTile.setActive(true);
-                gtTile.issueTextureUpdate();
-                applyPreviewTextureUpdate(metaTileEntity);
-                valid = true;
-            } else {
+            boolean importedPreview = triggerStack != null && triggerStack.stackSize > 0;
+            boolean valid = false;
+            try {
+                // The fake world is client-side, so GT's checkStructure skips its server-only checkMachine
+                // call. Run the completed check directly: it derives tiers from the placed blocks and
+                // updates dynamic hatch casing textures before the structure is saved to NBT.
                 multiBlockBase.clearHatches();
                 List<StructureError> structureErrors = checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
                 valid = structureErrors.isEmpty();
-                machineApplied = applyPreviewMachineState(multiBlockBase, valid);
                 if (!valid) {
                     appendPreviewStructureWarning(warnings, structureErrors);
                     logInfoOnce(
                         "preview-state-sync-invalid:" + describeTile(controllerTile),
-                        "GregTech preview state sync kept invalid structure state for {}",
+                        "GregTech preview structure check reported {} error(s) for {}",
+                        structureErrors.size(),
                         describeTile(controllerTile));
                 }
-                if (shouldActivatePreviewController(activeController, valid)) {
-                    gtTile.setActive(true);
-                }
-                if (activeController) {
-                    gtTile.issueTextureUpdate();
-                    applyPreviewTextureUpdate(metaTileEntity);
-                }
+            } catch (Throwable t) {
+                logInfoOnce(
+                    "preview-state-sync-check-failed:" + describeTile(controllerTile),
+                    "GregTech preview structure check could not finish for {}",
+                    describeTile(controllerTile),
+                    t);
+                if (!importedPreview) return;
+            }
+            // A display-only import may omit operational requirements. Keep its previous formed/active
+            // preview behavior without guessing controller fields or overwriting the derived casing tiers.
+            boolean machineApplied = applyPreviewMachineState(multiBlockBase, importedPreview || valid);
+            if (importedPreview || shouldActivatePreviewController(activeController, valid)) {
+                gtTile.setActive(true);
+            }
+            if (importedPreview || activeController) {
+                gtTile.issueTextureUpdate();
+                applyPreviewTextureUpdate(metaTileEntity);
             }
             Boolean machineAfter = readPreviewMachineState(multiBlockBase);
             GuideDebugLog.info(
@@ -704,22 +711,6 @@ public class GregTechHelpers {
                 "preview-state-sync-failed:" + describeTile(controllerTile),
                 "GregTech preview state sync could not finish for {}",
                 describeTile(controllerTile));
-        }
-    }
-
-    private static void applyTierFromTriggerStack(Object metaTileEntity, ItemStack triggerStack) {
-        int tier = triggerStack.stackSize;
-        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (field.getType() != Integer.TYPE) continue;
-                if (!field.getName()
-                    .toLowerCase(Locale.ROOT)
-                    .matches(".*(?:tier|casing).*")) continue;
-                try {
-                    field.setAccessible(true);
-                    field.setInt(metaTileEntity, tier);
-                } catch (Throwable ignored) {}
-            }
         }
     }
 

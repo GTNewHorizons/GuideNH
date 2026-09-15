@@ -28,13 +28,18 @@ public final class MinimumHatchStructureElement<T> implements IStructureElement<
         this.casingIndex = casingIndex;
     }
 
+    /**
+     * Returns the original StructureLib element for compatibility scanners. The preview wrapper must stay
+     * transparent to consumers that identify channel elements by their concrete StructureLib class.
+     */
+    public IStructureElement<T> getDelegate() {
+        return delegate;
+    }
+
     @Override
     public boolean check(T context, World world, int x, int y, int z) {
-        boolean valid = delegate.check(context, world, x, y, z);
-        if (valid) {
-            GregTechHelpers.updatePreviewHatchTexture(world, x, y, z, casingIndex);
-        }
-        return valid;
+        // The hatch adder may choose a dynamic casing texture; its result is authoritative.
+        return delegate.check(context, world, x, y, z);
     }
 
     @Override
@@ -69,7 +74,7 @@ public final class MinimumHatchStructureElement<T> implements IStructureElement<
         IItemSource source, EntityPlayerMP actor, Consumer<IChatComponent> chatter) {
         if (useFallback()) return PlaceResult.REJECT;
         PlaceResult result = delegate.survivalPlaceBlock(context, world, x, y, z, trigger, source, actor, chatter);
-        if (result == PlaceResult.ACCEPT || result == PlaceResult.ACCEPT_STOP || result == PlaceResult.SKIP) {
+        if (result == PlaceResult.ACCEPT || result == PlaceResult.ACCEPT_STOP) {
             GregTechHelpers.updatePreviewHatchTexture(world, x, y, z, casingIndex);
         }
         return result;
@@ -80,7 +85,7 @@ public final class MinimumHatchStructureElement<T> implements IStructureElement<
         AutoPlaceEnvironment environment) {
         if (useFallback()) return PlaceResult.REJECT;
         PlaceResult result = delegate.survivalPlaceBlock(context, world, x, y, z, trigger, environment);
-        if (result == PlaceResult.ACCEPT || result == PlaceResult.ACCEPT_STOP || result == PlaceResult.SKIP) {
+        if (result == PlaceResult.ACCEPT || result == PlaceResult.ACCEPT_STOP) {
             GregTechHelpers.updatePreviewHatchTexture(world, x, y, z, casingIndex);
         }
         return result;

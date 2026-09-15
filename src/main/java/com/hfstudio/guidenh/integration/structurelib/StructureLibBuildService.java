@@ -175,6 +175,8 @@ public class StructureLibBuildService {
             }
         }
         syncPreviewState(controllerTile, trigger, request);
+        // Apply explicit NEI preview overrides after the final machine check, which may reset them.
+        GregTechHelpers.resolvePreviewModifier(controllerTile, trigger, false);
 
         BlockSnapshot blockSnapshot = snapshotBlocksAndOrigin(level);
         List<StructureLibBuildResult.PlacedBlock> blocks = blockSnapshot.blocks();
@@ -314,7 +316,6 @@ public class StructureLibBuildService {
             while (rounds++ < SURVIVAL_MAX_ROUNDS) {
                 int result = sc.survivalConstruct(trigger, SURVIVAL_BUDGET, env);
                 if (result == -1) {
-                    GregTechHelpers.resolvePreviewModifier(controllerTile, trigger, false);
                     return; // success
                 }
                 if (result == -2) {
@@ -349,7 +350,6 @@ public class StructureLibBuildService {
         } finally {
             StructureLibMinimumHatchPlacement.endCreativeConstruct();
         }
-        GregTechHelpers.resolvePreviewModifier(controllerTile, trigger, false);
     }
 
     public static IItemSource createItemSource() {

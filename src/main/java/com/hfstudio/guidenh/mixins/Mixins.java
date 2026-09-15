@@ -34,7 +34,8 @@ public enum Mixins implements IMixins {
         "compat.buildcraft.AccessorTileGenericPipe"),
 
     BLOCK_RENDERER_6343(Side.CLIENT, Phase.LATE, Mods.BlockRenderer6343,
-        "compat.blockrenderer6343.AccessorConstructableData"),
+        "compat.blockrenderer6343.AccessorConstructableData",
+        "compat.blockrenderer6343.MixinStructureHacksMinimumHatch"),
 
     NEI_CUSTOM_DIAGRAM(Side.CLIENT, Phase.LATE, Mods.NeiCustomDiagram,
         "compat.neicustomdiagram.AccessorCustomInteractable"),

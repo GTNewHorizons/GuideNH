@@ -97,6 +97,7 @@ import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeParticle;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeTileNbtOperation;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderSceneData;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
@@ -451,6 +452,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     @Nullable
     private StructureLibSceneMetadata structureLibSceneMetadata;
     private final LinkedHashMap<String, StructureLibSceneBinding> structureLibBindings = new LinkedHashMap<>();
+    private long structureLibControlMetadataRefreshGeneration = -1L;
     private final LinkedHashMap<String, LongSet> bindingFootprints = new LinkedHashMap<>();
     private final List<SnbtPlacement> snbtPlacements = new ArrayList<>();
     @Nullable
@@ -1187,6 +1189,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         created.setSelectionChangeListener(structureLibSelectionChangeListener);
         structureLibBindings.put(bindingKey, created);
+        structureLibControlMetadataRefreshGeneration = -1L;
         if (structureLibPrimaryBindingKey == null) {
             structureLibPrimaryBindingKey = bindingKey;
         }
@@ -1318,11 +1321,16 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
      * @return true when a binding now reports ranges it did not have before
      */
     public boolean refreshStructureLibControlMetadata() {
+        StructureLibDefinitionCache definitions = StructureLibDefinitionCache.getInstance();
+        if (!definitions.areScansComplete()) {
+            return false;
+        }
+        long generation = definitions.getScanGeneration();
+        if (structureLibControlMetadataRefreshGeneration == generation) {
+            return false;
+        }
         boolean changed = false;
         for (StructureLibSceneBinding binding : structureLibBindings.values()) {
-            if (carriesRanges(binding.getMetadata())) {
-                continue;
-            }
             StructureLibSceneMetadata ranges = StructureLibBuildService
                 .readControlMetadata(binding.getRebuildRequestTemplate());
             StructureLibSceneMetadata.TierData tierData = ranges != null ? ranges.getTierData() : null;
@@ -1338,9 +1346,16 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     tierData.getDefaultValue(),
                     tierData.getCurrentValue(),
                     ranges.getChannelDataList());
-            setStructureLibSceneMetadata(binding.getName(), merged);
+            // Use the binding instance directly. A null name is valid for multiple imports; resolving by
+            // name would otherwise return the primary binding for every unnamed structure and overwrite its
+            // channel metadata repeatedly.
+            binding.setMetadata(merged);
+            if (binding == getPrimaryStructureLibBinding()) {
+                bindPrimaryStructureLibState(binding);
+            }
             changed = true;
         }
+        structureLibControlMetadataRefreshGeneration = generation;
         return changed;
     }
 
