@@ -35,7 +35,9 @@ public class StructureLibSceneMetadata {
     private final List<ChannelData> channelDataList;
     private final Map<String, ChannelData> channelDataById;
     private final Map<Long, BlockTooltipData> blockTooltipDataByPos;
+    @Getter
     private final List<BlockTooltipEntry> hatchTooltipEntries;
+    @Getter
     private final Set<Long> hatchTooltipPositions;
 
     public StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
@@ -138,14 +140,6 @@ public class StructureLibSceneMetadata {
     @Nullable
     public BlockTooltipData getBlockTooltipData(int x, int y, int z) {
         return blockTooltipDataByPos.get(packBlockPos(x, y, z));
-    }
-
-    public List<BlockTooltipEntry> getHatchTooltipEntries() {
-        return hatchTooltipEntries;
-    }
-
-    public Set<Long> getHatchTooltipPositions() {
-        return hatchTooltipPositions;
     }
 
     public boolean hasHatchTooltipData() {

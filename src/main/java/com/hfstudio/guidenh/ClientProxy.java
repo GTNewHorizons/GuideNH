@@ -205,15 +205,16 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void completeInit(FMLLoadCompleteEvent event) {
         super.completeInit(event);
+        // BlockRenderer6343's StructureLib scans must start after every mod has registered its
+        // controllers and multiblock containers. Starting them earlier captures an incomplete registry,
+        // which leaves ConstructableData without tier/channel ranges for the affected machines.
+        StructureLibDefinitionCache.getInstance()
+            .startScans();
         GuideDevelopmentResourcePackWatcher.init();
         GuideReloadListener.markBootComplete();
         MasterScheduler.getInstance()
             .submit(new DevWatchWorkItem());
         GuideOnStartup.init();
-        // Every mod has registered its multiblocks by now, which is what BlockRenderer6343 scans. Starting
-        // the scan here means the data is already there when the first scene asks for its tiers.
-        StructureLibDefinitionCache.getInstance()
-            .startScans();
     }
 
     @SubscribeEvent

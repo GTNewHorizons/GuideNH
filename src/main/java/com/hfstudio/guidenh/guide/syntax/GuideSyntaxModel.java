@@ -640,8 +640,8 @@ public class GuideSyntaxModel {
 
         @Override
         public SyntaxSink frontmatterKind(String key, SyntaxValueKind kind) {
-            ValueSlot existing = frontmatterValues.get(key);
-            frontmatterValues.put(key, new ValueSlot(kind, existing != null ? existing.values : List.of()));
+            frontmatterValues
+                .compute(key, (k, existing) -> new ValueSlot(kind, existing != null ? existing.values : List.of()));
             return this;
         }
 

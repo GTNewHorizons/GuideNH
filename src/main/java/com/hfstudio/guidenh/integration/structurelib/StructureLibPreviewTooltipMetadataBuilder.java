@@ -33,18 +33,16 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
  * The candidates are resolved through {@link IStructureElement#getBlocksToPlace}, the same
  * API StructureLib uses for survival construction; no element implementation is inspected.
  */
-final class StructureLibPreviewTooltipMetadataBuilder {
+public final class StructureLibPreviewTooltipMetadataBuilder {
 
-    private static final String STRUCTURELIB_DESCRIPTION = "StructureLib";
-    private static final IItemSource EMPTY_ITEM_SOURCE = (predicate, simulate, count) -> Map.of();
-
-    private StructureLibPreviewTooltipMetadataBuilder() {}
+    public static final String STRUCTURELIB_DESCRIPTION = "StructureLib";
+    public static final IItemSource EMPTY_ITEM_SOURCE = (predicate, simulate, count) -> Map.of();
 
     /**
      * Adds the per-block tooltips to metadata that already carries the controller's tier and channel ranges.
      * Separating the two lets a failure here leave those ranges, and so the sliders, intact.
      */
-    static StructureLibSceneMetadata build(StructureLibSceneMetadata metadata, StructureLibBuildRequest request,
+    public static StructureLibSceneMetadata build(StructureLibSceneMetadata metadata, StructureLibBuildRequest request,
         List<StructureLibBuildResult.PlacedBlock> blocks, Long2ObjectMap<IStructureElement<?>> visitedElements,
         int originX, int originY, int originZ, Object context, World world, ItemStack trigger, EntityPlayer actor,
         List<ItemStack> machineStacks) {
@@ -87,7 +85,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
      * definition lookup with no world work, which is why a caller can obtain it before, or without, building
      * the structure itself.
      */
-    static StructureLibSceneMetadata createControlMetadata(StructureLibBuildRequest request) {
+    public static StructureLibSceneMetadata createControlMetadata(StructureLibBuildRequest request) {
         return createControlMetadata(
             request.controllerId(),
             request.piece(),
@@ -141,7 +139,6 @@ final class StructureLibPreviewTooltipMetadataBuilder {
         return metadata.withTierAndChannelData(1, maxTier, request.tier(), request.tier(), channels);
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     private static StructureLibSceneMetadata.BlockTooltipData resolve(IStructureElement<?> element, Object context,
         World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor, List<ItemStack> machineStacks,
         Resolution resolution) {
@@ -218,7 +215,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
      * State shared by one metadata build. The hatch cache is what keeps a build from re-testing the whole
      * meta tile entity registry for every block of a structure; see {@link #cachedHatches}.
      */
-    private record Resolution(Set<Class<?>> failedElements,
+    public record Resolution(Set<Class<?>> failedElements,
         Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions,
         Map<IStructureElement<?>, List<ItemStack>> hatchCache, Map<IStructureElement<?>, List<ItemStack>> blockCache) {
 
@@ -284,7 +281,6 @@ final class StructureLibPreviewTooltipMetadataBuilder {
      * Resolve each public fallback separately so a failing branch cannot hide the other candidates,
      * and descriptions remain associated with their hatch branch instead of the casing fallback.
      */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     private static StructureLibSceneMetadata.BlockTooltipData resolveChain(IStructureElementChain<?> chain,
         Object context, World world, int x, int y, int z, ItemStack trigger, EntityPlayer actor,
         List<ItemStack> machineStacks, Resolution resolution) {

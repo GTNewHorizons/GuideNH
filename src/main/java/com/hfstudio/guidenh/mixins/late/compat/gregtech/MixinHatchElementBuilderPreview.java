@@ -38,8 +38,8 @@ public abstract class MixinHatchElementBuilderPreview<T> {
         if (element == null) {
             return;
         }
-        boolean hasMinimumRequirement = ((AccessorHatchElementBuilder) (Object) this).guidenh$getReject() != null;
-        int casingIndex = ((AccessorHatchElementBuilder) (Object) this).guidenh$getCasingIndex();
+        boolean hasMinimumRequirement = ((AccessorHatchElementBuilder) this).guidenh$getReject() != null;
+        int casingIndex = ((AccessorHatchElementBuilder) this).guidenh$getCasingIndex();
         callback.setReturnValue(new MinimumHatchStructureElement<>(element, hasMinimumRequirement, casingIndex));
     }
 }

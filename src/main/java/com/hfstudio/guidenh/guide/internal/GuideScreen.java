@@ -1376,13 +1376,7 @@ public class GuideScreen extends GuiContainer
     private void ensureGuideEditorTextArea() {
         if (guideEditorTextArea == null) {
             guideEditorTextArea = new SceneEditorMultilineTextArea(fontRendererObj);
-            guideEditorTextArea.setDoubleClickHandler(new SceneEditorMultilineTextArea.DoubleClickHandler() {
-
-                @Override
-                public void onDoubleClick(int cursorIndex) {
-                    applyGuideEditorDoubleClickSelection(cursorIndex);
-                }
-            });
+            guideEditorTextArea.setDoubleClickHandler(cursorIndex -> applyGuideEditorDoubleClickSelection(cursorIndex));
         }
         guideEditorTextArea.setWrapEnabled(GuideScreenEditorState.isWrapEnabled());
     }
@@ -6357,7 +6351,6 @@ public class GuideScreen extends GuiContainer
         }
         if (draggingDocument && state != -1) {
             draggingDocument = false;
-            return;
         }
     }
 
