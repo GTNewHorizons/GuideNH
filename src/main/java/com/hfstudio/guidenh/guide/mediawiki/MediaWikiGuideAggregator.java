@@ -22,6 +22,8 @@ import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
+import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorState;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
 public class MediaWikiGuideAggregator implements Guide {
@@ -56,11 +58,14 @@ public class MediaWikiGuideAggregator implements Guide {
     public static MediaWikiGuideAggregator create(Guide primaryGuide) {
         CachedAggregation aggregation = cachedAggregation;
         long revision = GuideRegistry.getNavigationRevision();
-        if (aggregation == null || aggregation.revision() != revision) {
+        boolean includeTemplates = templatesAreBrowsable();
+        if (aggregation == null || aggregation.revision() != revision
+            || aggregation.includeTemplates() != includeTemplates) {
             synchronized (CACHE_LOCK) {
                 aggregation = cachedAggregation;
-                if (aggregation == null || aggregation.revision() != revision) {
-                    aggregation = rebuildAggregation(revision);
+                if (aggregation == null || aggregation.revision() != revision
+                    || aggregation.includeTemplates() != includeTemplates) {
+                    aggregation = rebuildAggregation(revision, includeTemplates);
                     cachedAggregation = aggregation;
                 }
             }
@@ -74,7 +79,15 @@ public class MediaWikiGuideAggregator implements Guide {
             aggregation.categoryIndex());
     }
 
-    private static CachedAggregation rebuildAggregation(long revision) {
+    private static boolean templatesAreBrowsable() {
+        try {
+            return GuideScreenEditorState.isEnabled();
+        } catch (Throwable configUnavailable) {
+            return false;
+        }
+    }
+
+    private static CachedAggregation rebuildAggregation(long revision, boolean includeTemplates) {
         LinkedHashMap<ResourceLocation, ParsedGuidePage> pagesById = new LinkedHashMap<>();
         LinkedHashMap<ResourceLocation, MutableGuide> ownerGuidesByPageId = new LinkedHashMap<>();
         ArrayList<ParsedGuidePage> indexablePages = new ArrayList<>();
@@ -84,9 +97,13 @@ public class MediaWikiGuideAggregator implements Guide {
                 if (page == null || MediaWikiPageIds.isSyntheticPage(page.getId())) {
                     continue;
                 }
+                boolean isTemplate = MediaWikiTemplatePageIds.isTemplatePage(page.getId());
+                if (isTemplate && !includeTemplates) {
+                    continue;
+                }
                 pagesById.putIfAbsent(page.getId(), page);
                 ownerGuidesByPageId.putIfAbsent(page.getId(), guide);
-                if (NavigationTree.areModRequirementsMet(
+                if (isTemplate || NavigationTree.areModRequirementsMet(
                     page.getFrontmatter() != null ? page.getFrontmatter()
                         .navigationEntry() : null)) {
                     indexablePages.add(page);
@@ -97,6 +114,7 @@ public class MediaWikiGuideAggregator implements Guide {
         categoryIndex.rebuild(indexablePages);
         return new CachedAggregation(
             revision,
+            includeTemplates,
             pagesById,
             ownerGuidesByPageId,
             componentGuides,
@@ -205,7 +223,7 @@ public class MediaWikiGuideAggregator implements Guide {
     }
 
     @Desugar
-    private record CachedAggregation(long revision, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
-        Map<ResourceLocation, MutableGuide> ownerGuidesByPageId, List<MutableGuide> componentGuides,
-        NavigationTree navigationTree, CategoryIndex categoryIndex) {}
+    private record CachedAggregation(long revision, boolean includeTemplates,
+        Map<ResourceLocation, ParsedGuidePage> parsedPagesById, Map<ResourceLocation, MutableGuide> ownerGuidesByPageId,
+        List<MutableGuide> componentGuides, NavigationTree navigationTree, CategoryIndex categoryIndex) {}
 }

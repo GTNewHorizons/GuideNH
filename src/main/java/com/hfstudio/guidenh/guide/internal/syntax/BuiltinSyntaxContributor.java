@@ -174,6 +174,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "Special",
             AttributeSyntax.of("name", SyntaxValueKind.STRING),
             AttributeSyntax.of("rows", SyntaxValueKind.INT));
+        registerTemplateSyntax(sink);
         sink.attributes(
             "Structure",
             AttributeSyntax.of("width", SyntaxValueKind.INT),
@@ -1079,17 +1080,75 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes("Category", SPECIAL_PAGE, SPECIAL_PREFIX, SPECIAL_LANGUAGE, SPECIAL_QUERY);
     }
 
+    private static void registerTemplateSyntax(SyntaxSink sink) {
+        AttributeSyntax name = AttributeSyntax.of("name", SyntaxValueKind.STRING);
+        AttributeSyntax pos = AttributeSyntax.of("pos", SyntaxValueKind.INT);
+        AttributeSyntax defaultValue = AttributeSyntax.of("default", SyntaxValueKind.STRING);
+        AttributeSyntax value = AttributeSyntax.of("value", SyntaxValueKind.STRING);
+
+        sink.attributes("Template", name);
+        sink.attributes("Arg", name);
+        sink.attributes("Param", name, pos, defaultValue);
+        sink.attributes("If", AttributeSyntax.of("test", SyntaxValueKind.STRING));
+        sink.attributes(
+            "IfEq",
+            AttributeSyntax.of("a", SyntaxValueKind.STRING),
+            AttributeSyntax.of("b", SyntaxValueKind.STRING));
+        sink.attributes("IfExist", AttributeSyntax.of("page", SyntaxValueKind.PAGE_PATH));
+        sink.attributes("Switch", AttributeSyntax.of("test", SyntaxValueKind.STRING));
+        sink.attributes("Case", value);
+        sink.attributes("Expr", AttributeSyntax.of("value", SyntaxValueKind.EXPRESSION));
+        AttributeSyntax start = AttributeSyntax.of("start", SyntaxValueKind.INT);
+        AttributeSyntax length = AttributeSyntax.of("length", SyntaxValueKind.INT);
+        AttributeSyntax from = AttributeSyntax.of("from", SyntaxValueKind.STRING);
+        AttributeSyntax to = AttributeSyntax.of("to", SyntaxValueKind.STRING);
+        AttributeSyntax index = AttributeSyntax.of("index", SyntaxValueKind.INT);
+        AttributeSyntax width = AttributeSyntax.of("width", SyntaxValueKind.INT);
+        AttributeSyntax pad = AttributeSyntax.of("pad", SyntaxValueKind.STRING);
+        AttributeSyntax needle = AttributeSyntax.of("needle", SyntaxValueKind.STRING);
+        AttributeSyntax delimiter = AttributeSyntax.of("delimiter", SyntaxValueKind.STRING);
+        for (String function : new String[] { "Lower", "Upper", "Trim", "Len", "Sub", "Replace", "Explode", "PadLeft",
+            "PadRight", "UrlEncode", "Pos" }) {
+            sink.attributes(function, value, start, length, from, to, index, width, pad, needle, delimiter);
+        }
+
+        sink.children("Template", "Arg");
+        sink.children("If", "Else");
+        sink.children("IfEq", "Else");
+        sink.children("IfExist", "Else");
+        sink.children("Switch", "Case", "Default");
+    }
+
     private static void registerQuestVisibilityAttributes(SyntaxSink sink) {
         sink.attributes("QuestLink", QUEST_SHOW_TOOLTIP, QUEST_SHOW_TOOLTIP_SNAKE);
         sink.attributes("QuestCard", QUEST_SHOW_TOOLTIP, QUEST_SHOW_TOOLTIP_SNAKE);
     }
 
-    /**
-     * Which tags wrap content, which tags may appear inside them, and the tags a compiler accepts but authors never.
-     */
     private static void contributeTagShape(SyntaxSink sink) {
         sink.containerTags(
             "a",
+            "Template",
+            "Arg",
+            "Param",
+            "If",
+            "Else",
+            "IfEq",
+            "IfExist",
+            "Switch",
+            "Case",
+            "Default",
+            "Expr",
+            "Lower",
+            "Upper",
+            "Trim",
+            "Len",
+            "Sub",
+            "Replace",
+            "Explode",
+            "PadLeft",
+            "PadRight",
+            "UrlEncode",
+            "Pos",
             "Tooltip",
             "Color",
             "CommandLink",
