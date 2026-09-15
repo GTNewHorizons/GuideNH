@@ -87,14 +87,13 @@ final class StructureLibPreviewTooltipMetadataBuilder {
      * definition lookup with no world work, which is why a caller can obtain it before, or without, building
      * the structure itself.
      */
-    static StructureLibSceneMetadata createControlMetadata(StructureLibBuildRequest request, Object context) {
+    static StructureLibSceneMetadata createControlMetadata(StructureLibBuildRequest request) {
         return createControlMetadata(
             request.controllerId(),
             request.piece(),
             request.facing(),
             request.rotation(),
             request.flip(),
-            context,
             request);
     }
 
@@ -102,62 +101,21 @@ final class StructureLibPreviewTooltipMetadataBuilder {
      * The tier and channel data for a controller.
      *
      * <p>
-     * {@code ConstructableData} is keyed by the registered {@link IConstructable} using identity, but placing
-     * a controller in the preview world creates a fresh instance, so looking the placed tile up directly
-     * always misses and reports no tiers or channels. Both lookups therefore run and the one that actually
-     * carries data wins, which is what keeps the tier and channel sliders available.
+     * Resolved through the controller id because BlockRenderer6343 keys its data on the registered
+     * {@link IConstructable} by identity, and placing a controller in the preview world builds a fresh
+     * instance that such a lookup cannot match. A data-less result is still returned rather than null, since
+     * the controller identity it carries keeps block tooltips working.
      */
     @Nullable
-    private static ConstructableData resolveControlData(String controllerId, Object context) {
-        ConstructableData byId = StructureLibDefinitionCache.getInstance()
+    private static ConstructableData resolveControlData(String controllerId) {
+        return StructureLibDefinitionCache.getInstance()
             .getConstructableDataFor(controllerId);
-        ConstructableData byContext = context instanceof IConstructable constructable
-            ? ConstructableData.getTierData(constructable)
-            : null;
-        GuideDebugLog.warnAlways(
-            "[GuideNH] [StructureLib] Resolve {}: byId={}, byContext={}, contextIsConstructable={}",
-            controllerId,
-            describeData(byId),
-            describeData(byContext),
-            context instanceof IConstructable);
-        if (byId != null && byId.hasData()) {
-            return byId;
-        }
-        if (byContext != null && byContext.hasData()) {
-            return byContext;
-        }
-        // Reporting the data-less result still yields a controller identity, so block tooltips keep working.
-        return byId;
-    }
-
-    private static String describeData(@Nullable ConstructableData data) {
-        if (data == null) {
-            return "null";
-        }
-        return "hasData=" + data.hasData()
-            + ",maxTier="
-            + data.getMaxTotalTier()
-            + ",channels="
-            + (data.getChannelData() == null ? -1
-                : data.getChannelData()
-                    .size());
     }
 
     private static StructureLibSceneMetadata createControlMetadata(String controller, String piece, String facing,
-        String rotation, String flip, Object context, StructureLibBuildRequest request) {
+        String rotation, String flip, StructureLibBuildRequest request) {
         StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(controller, piece, facing, rotation, flip);
-        ConstructableData data = resolveControlData(controller, context);
-        GuideDebugLog.warnAlways(
-            "[GuideNH] [StructureLib] Control metadata for {}: data={}, hasData={}, maxTier={}, channels={}",
-            controller,
-            data == null ? "null"
-                : data.getClass()
-                    .getSimpleName(),
-            data != null && data.hasData(),
-            data == null ? -1 : data.getMaxTotalTier(),
-            data == null || data.getChannelData() == null ? -1
-                : data.getChannelData()
-                    .size());
+        ConstructableData data = resolveControlData(controller);
         if (data == null) {
             return metadata;
         }

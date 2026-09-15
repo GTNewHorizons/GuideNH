@@ -104,7 +104,7 @@ public class StructureLibBuildService {
         if (request == null) {
             return null;
         }
-        return StructureLibPreviewTooltipMetadataBuilder.createControlMetadata(request, null);
+        return StructureLibPreviewTooltipMetadataBuilder.createControlMetadata(request);
     }
 
     public StructureLibBuildResult build(StructureLibBuildRequest request) {
@@ -181,8 +181,7 @@ public class StructureLibBuildService {
         List<ItemStack> machineStacks = new ArrayList<>();
         GregTechHelpers.appendMachineStacks(machineStacks);
         Object metadataContext = resolveMetadataContext(controllerTile, constructable);
-        StructureLibSceneMetadata metadata = StructureLibPreviewTooltipMetadataBuilder
-            .createControlMetadata(request, metadataContext);
+        StructureLibSceneMetadata metadata = StructureLibPreviewTooltipMetadataBuilder.createControlMetadata(request);
         try (StructureLibPreviewMetadataScope ignored = StructureLibPreviewMetadataScope.open()) {
             metadata = StructureLibPreviewTooltipMetadataBuilder.build(
                 metadata,
