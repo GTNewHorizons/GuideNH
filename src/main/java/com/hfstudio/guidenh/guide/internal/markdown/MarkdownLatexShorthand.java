@@ -9,7 +9,6 @@ import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstLiteral;
@@ -177,7 +176,6 @@ public class MarkdownLatexShorthand {
         }
     }
 
-    @Desugar
     public record MaskResult(String source, Map<String, String> formulas) {
 
         public MaskResult {

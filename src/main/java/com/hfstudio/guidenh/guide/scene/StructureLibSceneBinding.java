@@ -62,6 +62,9 @@ public class StructureLibSceneBinding {
     }
 
     public void setMetadata(@Nullable StructureLibSceneMetadata metadata) {
+        int previousTier = currentTier;
+        LinkedHashMap<String, Integer> previousChannels = new LinkedHashMap<>(channelOverrides);
+        boolean hadMetadata = this.metadata != null;
         this.metadata = metadata;
         if (metadata == null) {
             currentTier = StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
@@ -70,10 +73,16 @@ public class StructureLibSceneBinding {
         }
         channelOverrides.clear();
         StructureLibSceneMetadata.TierData td = metadata.getTierData();
-        currentTier = td != null ? td.getCurrentValue() : StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
+        currentTier = td != null
+            ? StructureLibSceneMetadata
+                .clamp(hadMetadata ? previousTier : td.getCurrentValue(), td.getMinValue(), td.getMaxValue())
+            : StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
         for (StructureLibSceneMetadata.ChannelData cd : metadata.getChannelDataList()) {
-            if (cd != null && cd.getCurrentValue() > 0) {
-                channelOverrides.put(cd.getChannelId(), cd.getCurrentValue());
+            if (cd == null) continue;
+            int value = hadMetadata ? previousChannels.getOrDefault(cd.getChannelId(), 0) : cd.getCurrentValue();
+            value = StructureLibSceneMetadata.clamp(value, cd.getMinValue(), cd.getMaxValue());
+            if (value > 0) {
+                channelOverrides.put(cd.getChannelId(), value);
             }
         }
     }
@@ -156,6 +165,16 @@ public class StructureLibSceneBinding {
             channelOverrides,
             rebuildRequestTemplate.options());
         return req;
+    }
+
+    /**
+     * The template this binding was compiled with, for readers that need the controller before metadata
+     * exists. The template is set once at compile time, so it is available even while
+     * {@link #buildRebuildRequest()} still returns null for want of metadata.
+     */
+    @Nullable
+    public StructureLibBuildRequest getRebuildRequestTemplate() {
+        return hasRebuildRecipe ? rebuildRequestTemplate : null;
     }
 
     @Nullable

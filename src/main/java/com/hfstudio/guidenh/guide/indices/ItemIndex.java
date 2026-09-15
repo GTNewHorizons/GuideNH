@@ -10,7 +10,6 @@ import net.minecraftforge.oredict.OreDictionary;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.PageAnchor;
@@ -201,9 +200,7 @@ public class ItemIndex extends UniqueIndex<ItemId, PageAnchor> {
             && !IdUtils.isNonNegativeInt(value);
     }
 
-    @Desugar
     public record ItemIdExpressionBinding(ItemIdExpression expression, PageAnchor anchor) {}
 
-    @Desugar
     private record ItemExpressionSource(String expression, @Nullable String anchor) {}
 }

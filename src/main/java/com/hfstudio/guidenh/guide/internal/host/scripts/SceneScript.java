@@ -289,10 +289,23 @@ public class SceneScript implements LytScript {
         // Set metadata on scene from binding results
         for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
             StructureLibSceneMetadata metadata = binding.getMetadata();
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [StructureLib] Binding {} metadata before apply: {}",
+                binding.getName(),
+                metadata == null ? "null"
+                    : "tierSelectable=" + (metadata.getTierData() != null && metadata.getTierData()
+                        .isSelectable())
+                        + ", channels="
+                        + metadata.getChannelDataList()
+                            .size());
             if (metadata != null) {
                 scene.setStructureLibSceneMetadata(binding.getName(), metadata);
             }
         }
+        GuideDebugLog.warnAlways(
+            "[GuideNH] [StructureLib] Scene sliders after build: tier={}, channels={}",
+            scene.hasStructureLibTierData(),
+            scene.hasStructureLibChannelData());
 
         boolean hasUnsupportedElements = skippedElements.stream()
             .anyMatch(element -> !element.contains("(configuration only)"));

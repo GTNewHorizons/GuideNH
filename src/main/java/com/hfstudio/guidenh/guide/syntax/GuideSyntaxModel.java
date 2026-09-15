@@ -206,7 +206,20 @@ public class GuideSyntaxModel {
 
     private List<String> childTags(@Nullable String parentTagName) {
         TagFact parent = parentTagName != null ? tags.get(parentTagName) : null;
-        if (parent == null || parent.children.isEmpty()) {
+        if (parent == null) {
+            return rootTags;
+        }
+        if (!parent.preferredChildren.isEmpty()) {
+            // The body takes any block tag, so the container's own tags are offered first and the rest follow.
+            List<String> ordered = new ArrayList<>(parent.preferredChildren);
+            for (String name : rootTags) {
+                if (!ordered.contains(name)) {
+                    ordered.add(name);
+                }
+            }
+            return ordered;
+        }
+        if (parent.children.isEmpty()) {
             return rootTags;
         }
         return parent.children;
@@ -492,12 +505,15 @@ public class GuideSyntaxModel {
 
         private final boolean container;
         private final List<String> children;
+        private final List<String> preferredChildren;
         private final List<AttributeSyntax> attributes;
         private final boolean hidden;
 
-        private TagFact(boolean container, List<String> children, List<AttributeSyntax> attributes, boolean hidden) {
+        private TagFact(boolean container, List<String> children, List<String> preferredChildren,
+            List<AttributeSyntax> attributes, boolean hidden) {
             this.container = container;
             this.children = children;
+            this.preferredChildren = preferredChildren;
             this.attributes = attributes;
             this.hidden = hidden;
         }
@@ -518,6 +534,7 @@ public class GuideSyntaxModel {
 
         private final Map<String, Boolean> containers = new LinkedHashMap<>();
         private final Map<String, Set<String>> children = new LinkedHashMap<>();
+        private final Map<String, Set<String>> preferredChildren = new LinkedHashMap<>();
         private final Map<String, Map<String, AttributeSyntax>> attributes = new LinkedHashMap<>();
         private final Set<String> hidden = new LinkedHashSet<>();
         private final List<MarkdownSnippet> markdownSnippets = new ArrayList<>();
@@ -546,6 +563,13 @@ public class GuideSyntaxModel {
         @Override
         public SyntaxSink children(String containerTag, String... childTags) {
             children.computeIfAbsent(containerTag, ignored -> new LinkedHashSet<>())
+                .addAll(List.of(childTags));
+            return this;
+        }
+
+        @Override
+        public SyntaxSink preferredChildren(String containerTag, String... childTags) {
+            preferredChildren.computeIfAbsent(containerTag, ignored -> new LinkedHashSet<>())
                 .addAll(List.of(childTags));
             return this;
         }
@@ -616,8 +640,8 @@ public class GuideSyntaxModel {
 
         @Override
         public SyntaxSink frontmatterKind(String key, SyntaxValueKind kind) {
-            ValueSlot existing = frontmatterValues.get(key);
-            frontmatterValues.put(key, new ValueSlot(kind, existing != null ? existing.values : List.of()));
+            frontmatterValues
+                .compute(key, (k, existing) -> new ValueSlot(kind, existing != null ? existing.values : List.of()));
             return this;
         }
 
@@ -656,16 +680,19 @@ public class GuideSyntaxModel {
             Set<String> names = new LinkedHashSet<>(containers.keySet());
             names.addAll(attributes.keySet());
             names.addAll(children.keySet());
+            names.addAll(preferredChildren.keySet());
             Map<String, TagFact> result = new LinkedHashMap<>();
             for (String name : names) {
                 Boolean isContainer = containers.get(name);
                 Set<String> declaredChildren = children.get(name);
+                Set<String> declaredPreferred = preferredChildren.get(name);
                 Map<String, AttributeSyntax> declaredAttributes = attributes.get(name);
                 result.put(
                     name,
                     new TagFact(
                         isContainer != null && isContainer,
                         declaredChildren != null ? List.copyOf(declaredChildren) : List.of(),
+                        declaredPreferred != null ? List.copyOf(declaredPreferred) : List.of(),
                         declaredAttributes != null ? List.copyOf(declaredAttributes.values()) : List.of(),
                         hidden.contains(name)));
             }

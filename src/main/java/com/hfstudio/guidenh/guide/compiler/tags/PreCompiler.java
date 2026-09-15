@@ -10,7 +10,6 @@ import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
@@ -196,7 +195,6 @@ public class PreCompiler extends BlockTagCompiler {
         return value;
     }
 
-    @Desugar
     private record CsvFenceMeta(boolean header, List<Integer> widthHints) {}
 
     private @Nullable LytBlock compileMermaid(String source) {

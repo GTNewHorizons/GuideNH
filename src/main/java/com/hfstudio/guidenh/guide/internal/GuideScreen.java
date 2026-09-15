@@ -46,7 +46,6 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
 import com.hfstudio.guidenh.client.hotkey.GuidePageHistoryHotkey;
@@ -1377,13 +1376,7 @@ public class GuideScreen extends GuiContainer
     private void ensureGuideEditorTextArea() {
         if (guideEditorTextArea == null) {
             guideEditorTextArea = new SceneEditorMultilineTextArea(fontRendererObj);
-            guideEditorTextArea.setDoubleClickHandler(new SceneEditorMultilineTextArea.DoubleClickHandler() {
-
-                @Override
-                public void onDoubleClick(int cursorIndex) {
-                    applyGuideEditorDoubleClickSelection(cursorIndex);
-                }
-            });
+            guideEditorTextArea.setDoubleClickHandler(cursorIndex -> applyGuideEditorDoubleClickSelection(cursorIndex));
         }
         guideEditorTextArea.setWrapEnabled(GuideScreenEditorState.isWrapEnabled());
     }
@@ -2699,6 +2692,9 @@ public class GuideScreen extends GuiContainer
         // when the document content revision has changed.
         registerRuntimeScenes(currentPage);
         for (LytGuidebookScene scene : currentPage.scenes()) {
+            // BlockRenderer6343 publishes its tier data from a scan thread, so a scene built before that
+            // finishes has no sliders. This adds them once the data is there and does nothing afterwards.
+            scene.refreshStructureLibControlMetadata();
             scene.ponderTick();
         }
     }
@@ -3040,9 +3036,6 @@ public class GuideScreen extends GuiContainer
             panelY + TOOLBAR_H + 1,
             ColorUtils.ARGB_FF2A2A2A.getColor());
 
-        if (!isHomeRoute() && !isGuideEditorActive()) {
-            updateSceneHover(contentMouseX, contentMouseY);
-        }
         pollActiveSceneDrag();
 
         if (isGuideEditorActive()) {
@@ -3068,6 +3061,14 @@ public class GuideScreen extends GuiContainer
             }
 
             drawBottomBar();
+        }
+
+        // Scene layout writes the screen-space viewport (lastAbs*/lastW/lastH) while rendering the
+        // document. Recompute the hover ray after that write so tooltip picking uses the current viewport,
+        // rather than the previous frame's geometry. This also prevents a transient miss from clearing the
+        // debug coordinate tooltip whenever scrolling, resizing, or a scene's layout changes.
+        if (!isHomeRoute() && !isGuideEditorActive()) {
+            updateSceneHover(contentMouseX, contentMouseY);
         }
 
         if (specialSearchField != null) {
@@ -4608,6 +4609,9 @@ public class GuideScreen extends GuiContainer
                     hoveredHatch[2]);
                 if (tooltip != null) {
                     renderGuideTooltip(tooltip, mouseX, mouseY, interaction);
+                    if (ModConfig.debug.enableDebugMode) {
+                        drawDebugBlockCoordTooltip(hoveredHatch, mouseX, mouseY, interaction);
+                    }
                     return;
                 }
             }
@@ -4625,9 +4629,12 @@ public class GuideScreen extends GuiContainer
                 if (tooltip != null) {
                     renderGuideTooltip(tooltip, mouseX, mouseY, interaction);
                     if (ModConfig.debug.enableDebugMode) {
-                        drawDebugBlockCoordTooltip(tooltip, hb, mouseX, mouseY, interaction);
+                        drawDebugBlockCoordTooltip(hb, mouseX, mouseY, interaction);
                     }
                     return;
+                }
+                if (ModConfig.debug.enableDebugMode) {
+                    drawDebugBlockCoordTooltip(hb, mouseX, mouseY, interaction);
                 }
             }
         }
@@ -4737,9 +4744,13 @@ public class GuideScreen extends GuiContainer
             return null;
         }
 
-        GuideTooltip structureLibTooltip = scene.createStructureLibTooltipForHoveredBlock(name, isShiftDown());
-        if (structureLibTooltip != null && isShiftDown()) {
-            return structureLibTooltip;
+        boolean shiftDown = isShiftDown();
+        GuideTooltip structureLibTooltip = null;
+        if (shiftDown) {
+            structureLibTooltip = scene.createStructureLibTooltipForHoveredBlock(name, true);
+            if (structureLibTooltip != null) {
+                return structureLibTooltip;
+            }
         }
 
         ItemStack stack = blockDisplayStack(scene, x, y, z);
@@ -4747,7 +4758,11 @@ public class GuideScreen extends GuiContainer
             return new ItemTooltip(stack);
         }
 
-        return Objects.requireNonNullElseGet(structureLibTooltip, () -> new TextTooltip(name));
+        // Most blocks use their item tooltip. Build the rich StructureLib tree only when it is displayed.
+        if (!shiftDown) {
+            structureLibTooltip = scene.createStructureLibTooltipForHoveredBlock(name, false);
+        }
+        return structureLibTooltip != null ? structureLibTooltip : new TextTooltip(name);
     }
 
     private void drawContentTooltip(ContentTooltip ct, int mouseX, int mouseY,
@@ -4816,25 +4831,16 @@ public class GuideScreen extends GuiContainer
      * Uses magnetic snapping: if there is not enough space above the cursor, the tooltip
      * moves to below the cursor area instead.
      */
-    private void drawDebugBlockCoordTooltip(GuideTooltip tooltip, int[] pos, int mouseX, int mouseY,
+    private void drawDebugBlockCoordTooltip(int[] pos, int mouseX, int mouseY,
         @Nullable DocumentInteractionState interaction) {
-        if (!(tooltip instanceof ItemTooltip itemTooltip)) {
-            return;
-        }
-        ItemStack stack = itemTooltip.getStack();
-        if (stack == null) {
-            return;
-        }
-        List<String> itemLines = GuideItemTooltipLines.build(itemTooltip, mc);
-        FontRenderer itemFont = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
         LytRect bounds = resolveTooltipBounds(interaction);
-        TooltipLayout itemLayout = computeHoveringTextLayout(itemLines, mouseX, mouseY, itemFont, bounds);
         String coordText = "§6" + pos[0] + ", " + pos[1] + ", " + pos[2];
-        // §6 = gold color; the coordinate tooltip renders above the main block tooltip.
-        // drawHoveringText(list, x, y, font) draws starting at (x+12, y-12).
-        // We want the debug tooltip to appear above the default position (mouseY - 12).
-        // Targeting 26px above the cursor leaves room above the typical single-line tooltip.
-        drawTooltipTextAnchored(List.of(coordText), mc.fontRenderer, itemLayout, bounds);
+        // Coordinate diagnostics are independent of the content tooltip type. StructureLib may return an
+        // ItemTooltip, a rich ContentTooltip, or a plain text tooltip for the same block; tying this overlay
+        // to ItemTooltip made it blink whenever the resolver changed representation between frames.
+        // Anchor it to the current cursor and viewport every frame, so camera movement cannot reuse a stale
+        // tooltip layout.
+        drawHoveringTextAtAdjustedPosition(List.of(coordText), mouseX, mouseY - 18, mc.fontRenderer, bounds);
     }
 
     private void drawTooltipText(String text, int mouseX, int mouseY) {
@@ -4956,7 +4962,6 @@ public class GuideScreen extends GuiContainer
         return lineCount == 1 ? 8 : 8 + (lineCount - 1) * 10;
     }
 
-    @Desugar
     private record TooltipLayout(int mouseAnchorX, int mouseAnchorY, int textX, int top, int width, int height,
         boolean placedRightOfCursor) {
 
@@ -6356,7 +6361,6 @@ public class GuideScreen extends GuiContainer
         }
         if (draggingDocument && state != -1) {
             draggingDocument = false;
-            return;
         }
     }
 
@@ -6398,9 +6402,10 @@ public class GuideScreen extends GuiContainer
     }
 
     private void updateSceneHover(int mouseX, int mouseY) {
-        clearHoveredScene();
         var interaction = getDocumentInteractionState(mouseX, mouseY);
         LytGuidebookScene scene = interaction != null ? interaction.scene : null;
+        // updateHoveredScene clears a previous scene on transitions. Clearing every frame would also
+        // invalidate the scene's camera/world-aware ray-pick cache while the cursor is stationary.
         updateHoveredScene(scene, mouseX, mouseY);
     }
 

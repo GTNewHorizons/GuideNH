@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +35,10 @@ public class StructureLibSceneMetadata {
     private final List<ChannelData> channelDataList;
     private final Map<String, ChannelData> channelDataById;
     private final Map<Long, BlockTooltipData> blockTooltipDataByPos;
+    @Getter
+    private final List<BlockTooltipEntry> hatchTooltipEntries;
+    @Getter
+    private final Set<Long> hatchTooltipPositions;
 
     public StructureLibSceneMetadata(String controller, @Nullable String piece, @Nullable String facing,
         @Nullable String rotation, @Nullable String flip) {
@@ -51,7 +56,41 @@ public class StructureLibSceneMetadata {
         this.tierData = tierData;
         this.channelDataList = immutableChannels(channelDataList);
         this.channelDataById = indexChannels(this.channelDataList);
-        this.blockTooltipDataByPos = blockTooltipDataByPos != null ? blockTooltipDataByPos : Map.of();
+        this.blockTooltipDataByPos = immutableTooltipData(blockTooltipDataByPos);
+        this.hatchTooltipEntries = computeHatchTooltipEntries(this.blockTooltipDataByPos);
+        this.hatchTooltipPositions = computeHatchTooltipPositions(this.hatchTooltipEntries);
+    }
+
+    public StructureLibSceneMetadata withBlockTooltips(@Nullable Map<Long, BlockTooltipData> tooltipDataByPos) {
+        return new StructureLibSceneMetadata(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            tierData,
+            channelDataList,
+            tooltipDataByPos);
+    }
+
+    public StructureLibSceneMetadata withTooltipDataFrom(@Nullable StructureLibSceneMetadata source) {
+        return source == null ? withBlockTooltips(Map.of()) : withBlockTooltips(source.blockTooltipDataByPos);
+    }
+
+    public StructureLibSceneMetadata offsetBlockTooltips(int offsetX, int offsetY, int offsetZ) {
+        if (blockTooltipDataByPos.isEmpty() || (offsetX == 0 && offsetY == 0 && offsetZ == 0)) {
+            return this;
+        }
+        Map<Long, BlockTooltipData> shifted = new LinkedHashMap<>(blockTooltipDataByPos.size());
+        for (Map.Entry<Long, BlockTooltipData> entry : blockTooltipDataByPos.entrySet()) {
+            shifted.put(
+                packBlockPos(
+                    unpackBlockPosX(entry.getKey()) + offsetX,
+                    unpackBlockPosY(entry.getKey()) + offsetY,
+                    unpackBlockPosZ(entry.getKey()) + offsetZ),
+                entry.getValue());
+        }
+        return withBlockTooltips(shifted);
     }
 
     public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue) {
@@ -63,6 +102,23 @@ public class StructureLibSceneMetadata {
             flip,
             new TierData(minValue, maxValue, defaultValue, currentValue),
             channelDataList,
+            blockTooltipDataByPos);
+    }
+
+    /**
+     * Rebuilds control metadata once when a StructureLib controller exposes both tier and channel data.
+     * Keeping the operation batched avoids repeatedly copying the immutable metadata maps for each channel.
+     */
+    public StructureLibSceneMetadata withTierAndChannelData(int minValue, int maxValue, int defaultValue,
+        int currentValue, @Nullable List<ChannelData> channels) {
+        return new StructureLibSceneMetadata(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            new TierData(minValue, maxValue, defaultValue, currentValue),
+            channels != null ? channels : List.of(),
             blockTooltipDataByPos);
     }
 
@@ -83,19 +139,11 @@ public class StructureLibSceneMetadata {
 
     @Nullable
     public BlockTooltipData getBlockTooltipData(int x, int y, int z) {
-        return null;
-    }
-
-    public List<BlockTooltipEntry> getHatchTooltipEntries() {
-        return List.of();
-    }
-
-    public Set<Long> getHatchTooltipPositions() {
-        return Set.of();
+        return blockTooltipDataByPos.get(packBlockPos(x, y, z));
     }
 
     public boolean hasHatchTooltipData() {
-        return false;
+        return !hatchTooltipEntries.isEmpty();
     }
 
     @Nullable
@@ -182,6 +230,51 @@ public class StructureLibSceneMetadata {
         return Map.copyOf(indexed);
     }
 
+    private static Map<Long, BlockTooltipData> immutableTooltipData(@Nullable Map<Long, BlockTooltipData> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, BlockTooltipData> filtered = new LinkedHashMap<>(source.size());
+        for (Map.Entry<Long, BlockTooltipData> entry : source.entrySet()) {
+            if (entry.getKey() != null && entry.getValue() != null
+                && entry.getValue()
+                    .hasAdditionalTooltipContent()) {
+                filtered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return filtered.isEmpty() ? Map.of() : Map.copyOf(filtered);
+    }
+
+    private static List<BlockTooltipEntry> computeHatchTooltipEntries(Map<Long, BlockTooltipData> tooltipDataByPos) {
+        if (tooltipDataByPos.isEmpty()) {
+            return List.of();
+        }
+        List<BlockTooltipEntry> entries = new ArrayList<>();
+        for (Map.Entry<Long, BlockTooltipData> entry : tooltipDataByPos.entrySet()) {
+            if (entry.getValue()
+                .hasHatchDetails()) {
+                entries.add(
+                    new BlockTooltipEntry(
+                        unpackBlockPosX(entry.getKey()),
+                        unpackBlockPosY(entry.getKey()),
+                        unpackBlockPosZ(entry.getKey()),
+                        entry.getValue()));
+            }
+        }
+        return entries.isEmpty() ? List.of() : List.copyOf(entries);
+    }
+
+    private static Set<Long> computeHatchTooltipPositions(List<BlockTooltipEntry> entries) {
+        if (entries.isEmpty()) {
+            return Set.of();
+        }
+        Set<Long> positions = new LinkedHashSet<>(entries.size());
+        for (BlockTooltipEntry entry : entries) {
+            positions.add(packBlockPos(entry.getX(), entry.getY(), entry.getZ()));
+        }
+        return Set.copyOf(positions);
+    }
+
     public static int clamp(int value, int minValue, int maxValue) {
         if (value < minValue) return minValue;
         return Math.min(value, maxValue);
@@ -216,10 +309,20 @@ public class StructureLibSceneMetadata {
 
         public BlockTooltipData(@Nullable String structureLibDescription, List<ItemStack> blockCandidates,
             List<StructureLibHatchDescriptionLine> hatchDescriptionLines, List<ItemStack> hatchCandidates) {
+            this(structureLibDescription, blockCandidates, hatchDescriptionLines, hatchCandidates, false);
+        }
+
+        /**
+         * @param candidatesAlreadyDetached true when every candidate stack was created for this object, so no
+         *                                  further copy is needed; see {@link #immutableStacks}
+         */
+        public BlockTooltipData(@Nullable String structureLibDescription, List<ItemStack> blockCandidates,
+            List<StructureLibHatchDescriptionLine> hatchDescriptionLines, List<ItemStack> hatchCandidates,
+            boolean candidatesAlreadyDetached) {
             this.structureLibDescription = normalizeOptional(structureLibDescription);
-            this.blockCandidates = immutableStacks(blockCandidates);
+            this.blockCandidates = immutableStacks(blockCandidates, candidatesAlreadyDetached);
             this.hatchDescriptionLines = immutableLines(hatchDescriptionLines);
-            this.hatchCandidates = immutableStacks(hatchCandidates);
+            this.hatchCandidates = immutableStacks(hatchCandidates, candidatesAlreadyDetached);
         }
 
         @Nullable
@@ -237,13 +340,25 @@ public class StructureLibSceneMetadata {
             return !hatchDescriptionLines.isEmpty() || !hatchCandidates.isEmpty();
         }
 
-        static List<ItemStack> immutableStacks(@Nullable List<ItemStack> stacks) {
+        /**
+         * A defensive copy of candidate stacks.
+         *
+         * <p>
+         * Copying an {@link ItemStack} makes Forge run capability collection on it, which dominates the cost
+         * of building tooltip metadata, so a list is only copied when it is not already detached. The
+         * metadata builder hands over lists whose every stack it created itself, so the list and its
+         * contents are already owned here; re-copying them would pay the capability cost a second time for
+         * no benefit.
+         */
+        static List<ItemStack> immutableStacks(@Nullable List<ItemStack> stacks, boolean alreadyDetached) {
             if (stacks == null || stacks.isEmpty()) return List.of();
-            List<ItemStack> copied = new ArrayList<>(stacks.size());
+            List<ItemStack> result = new ArrayList<>(stacks.size());
             for (ItemStack s : stacks) {
-                if (s != null && s.stackSize > 0) copied.add(s.copy());
+                if (s == null || s.stackSize <= 0) continue;
+                // Re-copying a stack the builder just detached would repeat Forge's capability collection.
+                result.add(alreadyDetached ? s : s.copy());
             }
-            return copied.isEmpty() ? List.of() : List.copyOf(copied);
+            return result.isEmpty() ? List.of() : List.copyOf(result);
         }
 
         static List<StructureLibHatchDescriptionLine> immutableLines(

@@ -22,29 +22,22 @@ public enum Mixins implements IMixins {
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
 
     BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.MixinPanelButtonQuest",
-        "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox",
-        "compat.betterquesting.AccessorPanelTextBoxHotZone"),
+        "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox"),
 
-    GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder"),
+    GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder",
+        "compat.gregtech.MixinHatchElementBuilderPreview"),
 
-    FMP_BLOCK_MICRO_MATERIAL(Side.CLIENT, Phase.LATE, Mods.ForgeMultipart,
-        "compat.forgemultipart.AccessorBlockMicroMaterial"),
+    STRUCTURELIB_MINIMUM_HATCHES(Side.CLIENT, Phase.LATE, Mods.StructureLib,
+        "compat.structurelib.MixinSurvivalBuildStructureWalker"),
 
     BC_TILE_GENERIC_PIPE(Side.CLIENT, Phase.LATE, Mods.BuildCraftTransport,
         "compat.buildcraft.AccessorTileGenericPipe"),
 
-    LP_TILE_GENERIC_PIPE(Side.CLIENT, Phase.LATE, Mods.LogisticsPipes,
-        "compat.logisticspipes.AccessorLogisticsTileGenericPipe"),
-
-    WR_CBE_UNLOADED_JAM_STATE(Side.CLIENT, Phase.LATE, Mods.WirelessRedstoneCore,
-        "compat.wirelessredstone.MixinRedstoneEther"),
-
     BLOCK_RENDERER_6343(Side.CLIENT, Phase.LATE, Mods.BlockRenderer6343,
         "compat.blockrenderer6343.AccessorConstructableData",
-        "compat.blockrenderer6343.AccessorGTNEIMultiblockHandler"),
+        "compat.blockrenderer6343.MixinStructureHacksMinimumHatch"),
 
     NEI_CUSTOM_DIAGRAM(Side.CLIENT, Phase.LATE, Mods.NeiCustomDiagram,
-
         "compat.neicustomdiagram.AccessorCustomInteractable"),
 
     ;

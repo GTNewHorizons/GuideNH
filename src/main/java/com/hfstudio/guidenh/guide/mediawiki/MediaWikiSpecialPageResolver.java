@@ -17,7 +17,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.GuideLightweightReloadService;
@@ -1424,6 +1423,5 @@ public class MediaWikiSpecialPageResolver {
             .toLowerCase(Locale.ROOT);
     }
 
-    @Desugar
     private record LanguageScopedQuery(@Nullable String languageFilter, String pageQuery) {}
 }

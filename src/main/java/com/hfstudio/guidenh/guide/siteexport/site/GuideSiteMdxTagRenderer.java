@@ -20,7 +20,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
@@ -3472,7 +3471,6 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
     }
 
-    @Desugar
     private record DetailsRenderContent(String summaryHtml, String bodyHtml) {}
 
     private static class StructureLegendEntry {

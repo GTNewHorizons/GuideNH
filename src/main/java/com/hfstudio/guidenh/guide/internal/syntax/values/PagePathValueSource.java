@@ -13,7 +13,7 @@ import com.hfstudio.guidenh.guide.syntax.SyntaxValueSource;
 public class PagePathValueSource implements SyntaxValueSource, SyntaxEnvironmentAware {
 
     private List<String> pagePaths = List.of();
-    private NameSnapshot snapshot = new NameSnapshot(() -> List.of());
+    private NameSnapshot snapshot = new NameSnapshot(List::of);
 
     @Override
     public Set<SyntaxValueKind> kinds() {

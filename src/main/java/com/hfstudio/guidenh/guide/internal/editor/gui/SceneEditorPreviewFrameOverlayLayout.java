@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.LytRect;
 
 public class SceneEditorPreviewFrameOverlayLayout {
@@ -27,6 +26,5 @@ public class SceneEditorPreviewFrameOverlayLayout {
         return new Layout(frameRect, labelX, labelY);
     }
 
-    @Desugar
     public record Layout(LytRect frameRect, int labelX, int labelY) {}
 }

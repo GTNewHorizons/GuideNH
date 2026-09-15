@@ -18,7 +18,6 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.internal.GuideME;
@@ -485,6 +484,5 @@ public class GuideNhClientCommand extends CommandBase {
         }
     }
 
-    @Desugar
     private record ExportStructureOptions(RegionWandExportMode mode, int coordinateStartIndex) {}
 }

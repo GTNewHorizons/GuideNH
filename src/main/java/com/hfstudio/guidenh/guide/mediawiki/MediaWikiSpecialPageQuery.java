@@ -3,9 +3,6 @@ package com.hfstudio.guidenh.guide.mediawiki;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import com.github.bsideup.jabel.Desugar;
-
-@Desugar
 public record MediaWikiSpecialPageQuery(String searchText, int visibleCount, Map<String, String> parameters) {
 
     public static final String PARAM_PAGE = "page";

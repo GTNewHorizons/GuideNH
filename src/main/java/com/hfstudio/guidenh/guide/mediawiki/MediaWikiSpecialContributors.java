@@ -10,7 +10,6 @@ import net.minecraft.util.StatCollector;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.hfstudio.guidenh.guide.Guide;
@@ -84,6 +83,5 @@ public class MediaWikiSpecialContributors {
         }
     }
 
-    @Desugar
     public record ContributorEntry(String nameKey, String roleKey, String link) {}
 }

@@ -15,7 +15,6 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -51,7 +50,6 @@ public class IdUtils {
      * explicit {@code :0}. {@link #nbt} is {@code null} when no SNBT tail was provided or when SNBT
      * parsing failed (a warning is logged in that case).
      */
-    @Desugar
     public record ParsedItemRef(ResourceLocation id, int meta, boolean hasExplicitMeta, @Nullable NBTTagCompound nbt,
         String rawKey) {
 
