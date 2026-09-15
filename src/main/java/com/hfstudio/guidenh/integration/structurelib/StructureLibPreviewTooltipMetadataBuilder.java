@@ -162,7 +162,10 @@ final class StructureLibPreviewTooltipMetadataBuilder {
                 List.of());
         }
 
-        List<ItemStack> blockCandidates = normalize(blocksToPlace.getStacks());
+        // Both candidate lists come from the element's own placement rule, which does not vary between the
+        // positions that element occupies, so each is resolved and detached once per element.
+        List<ItemStack> blockCandidates = new ArrayList<>(
+            cachedBlocks(element, blocksToPlace, resolution.blockCache()));
         List<ItemStack> hatchCandidates = new ArrayList<>(
             cachedHatches(element, blocksToPlace, machineStacks, resolution.hatchCache()));
         if (!hatchCandidates.isEmpty()) {
@@ -180,7 +183,8 @@ final class StructureLibPreviewTooltipMetadataBuilder {
             STRUCTURELIB_DESCRIPTION,
             blockCandidates,
             hatchLines,
-            hatchCandidates);
+            hatchCandidates,
+            true);
     }
 
     /**
@@ -189,11 +193,38 @@ final class StructureLibPreviewTooltipMetadataBuilder {
      */
     private record Resolution(Set<Class<?>> failedElements,
         Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions,
-        Map<IStructureElement<?>, List<ItemStack>> hatchCache) {
+        Map<IStructureElement<?>, List<ItemStack>> hatchCache, Map<IStructureElement<?>, List<ItemStack>> blockCache) {
 
         static Resolution create() {
-            return new Resolution(new HashSet<>(), new IdentityHashMap<>(), new IdentityHashMap<>());
+            return new Resolution(
+                new HashSet<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>());
         }
+    }
+
+    /**
+     * The block candidates for one element, resolved at most once per build.
+     *
+     * <p>
+     * A structure visits the same element at every position it occupies, and detaching each candidate is
+     * expensive because copying an {@link ItemStack} makes Forge collect its capabilities. The list is keyed
+     * by element for the same reason as {@link #cachedHatches}: the element is what the placement rule
+     * belongs to.
+     */
+    private static List<ItemStack> cachedBlocks(IStructureElement<?> element,
+        IStructureElement.BlocksToPlace blocksToPlace, Map<IStructureElement<?>, List<ItemStack>> blockCache) {
+        if (blocksToPlace == null) {
+            return List.of();
+        }
+        List<ItemStack> cached = blockCache.get(element);
+        if (cached != null) {
+            return cached;
+        }
+        List<ItemStack> resolved = List.copyOf(normalize(blocksToPlace.getStacks()));
+        blockCache.put(element, resolved);
+        return resolved;
     }
 
     /**
@@ -273,7 +304,8 @@ final class StructureLibPreviewTooltipMetadataBuilder {
             STRUCTURELIB_DESCRIPTION,
             normalize(blockCandidates),
             hatchLines,
-            normalizedHatches);
+            normalizedHatches,
+            true);
     }
 
     private static List<ItemStack> resolveHatches(Predicate<ItemStack> predicate, List<ItemStack> machineStacks) {

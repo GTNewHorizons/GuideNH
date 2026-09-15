@@ -315,10 +315,20 @@ public class StructureLibSceneMetadata {
 
         public BlockTooltipData(@Nullable String structureLibDescription, List<ItemStack> blockCandidates,
             List<StructureLibHatchDescriptionLine> hatchDescriptionLines, List<ItemStack> hatchCandidates) {
+            this(structureLibDescription, blockCandidates, hatchDescriptionLines, hatchCandidates, false);
+        }
+
+        /**
+         * @param candidatesAlreadyDetached true when every candidate stack was created for this object, so no
+         *                                  further copy is needed; see {@link #immutableStacks}
+         */
+        public BlockTooltipData(@Nullable String structureLibDescription, List<ItemStack> blockCandidates,
+            List<StructureLibHatchDescriptionLine> hatchDescriptionLines, List<ItemStack> hatchCandidates,
+            boolean candidatesAlreadyDetached) {
             this.structureLibDescription = normalizeOptional(structureLibDescription);
-            this.blockCandidates = immutableStacks(blockCandidates);
+            this.blockCandidates = immutableStacks(blockCandidates, candidatesAlreadyDetached);
             this.hatchDescriptionLines = immutableLines(hatchDescriptionLines);
-            this.hatchCandidates = immutableStacks(hatchCandidates);
+            this.hatchCandidates = immutableStacks(hatchCandidates, candidatesAlreadyDetached);
         }
 
         @Nullable
@@ -336,13 +346,25 @@ public class StructureLibSceneMetadata {
             return !hatchDescriptionLines.isEmpty() || !hatchCandidates.isEmpty();
         }
 
-        static List<ItemStack> immutableStacks(@Nullable List<ItemStack> stacks) {
+        /**
+         * A defensive copy of candidate stacks.
+         *
+         * <p>
+         * Copying an {@link ItemStack} makes Forge run capability collection on it, which dominates the cost
+         * of building tooltip metadata, so a list is only copied when it is not already detached. The
+         * metadata builder hands over lists whose every stack it created itself, so the list and its
+         * contents are already owned here; re-copying them would pay the capability cost a second time for
+         * no benefit.
+         */
+        static List<ItemStack> immutableStacks(@Nullable List<ItemStack> stacks, boolean alreadyDetached) {
             if (stacks == null || stacks.isEmpty()) return List.of();
-            List<ItemStack> copied = new ArrayList<>(stacks.size());
+            List<ItemStack> result = new ArrayList<>(stacks.size());
             for (ItemStack s : stacks) {
-                if (s != null && s.stackSize > 0) copied.add(s.copy());
+                if (s == null || s.stackSize <= 0) continue;
+                // Re-copying a stack the builder just detached would repeat Forge's capability collection.
+                result.add(alreadyDetached ? s : s.copy());
             }
-            return copied.isEmpty() ? List.of() : List.copyOf(copied);
+            return result.isEmpty() ? List.of() : List.copyOf(result);
         }
 
         static List<StructureLibHatchDescriptionLine> immutableLines(
