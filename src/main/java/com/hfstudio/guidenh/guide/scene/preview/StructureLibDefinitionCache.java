@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.scene.preview;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -35,15 +36,48 @@ public class StructureLibDefinitionCache {
         return INSTANCE;
     }
 
+    /**
+     * Reads BlockRenderer6343's map into a snapshot.
+     *
+     * <p>
+     * BlockRenderer6343 publishes it from its own scan thread while holding the map as the lock, so the copy
+     * is taken under the same lock to avoid reading a map mid-resize. Every failure mode ends in an empty
+     * snapshot because the caller cannot tell a missing accessor from a genuinely empty map.
+     */
     @SuppressWarnings("unchecked")
     public void refresh() {
         try {
             Object2ObjectMap<IConstructable, ConstructableData> dataMap = AccessorConstructableData
                 .getConstructableDataMap();
-            constructableDataMap = dataMap != null ? Collections.unmodifiableMap(dataMap) : Collections.emptyMap();
+            if (dataMap == null) {
+                constructableDataMap = Collections.emptyMap();
+                return;
+            }
+            synchronized (dataMap) {
+                constructableDataMap = Collections.unmodifiableMap(new HashMap<>(dataMap));
+            }
         } catch (Throwable t) {
             constructableDataMap = Collections.emptyMap();
         }
+    }
+
+    /**
+     * The snapshot, re-read while it is still empty because BlockRenderer6343 fills its map asynchronously.
+     *
+     * <p>
+     * That scan starts when NotEnoughItems loads its multiblock handler, which is after the resource reload
+     * that calls {@link #refresh()}, and the accessor mixin is applied later still. A snapshot taken at
+     * reload time therefore fails and stays empty for the whole session, which would report that no
+     * controller has tiers or channels and hide both sliders. Retrying while empty covers that ordering, and
+     * once a snapshot has data it is never re-read per lookup.
+     */
+    private Map<IConstructable, ConstructableData> dataMap() {
+        Map<IConstructable, ConstructableData> current = constructableDataMap;
+        if (!current.isEmpty()) {
+            return current;
+        }
+        refresh();
+        return constructableDataMap;
     }
 
     /**
@@ -82,7 +116,7 @@ public class StructureLibDefinitionCache {
      * Only determines whether tier/channel sliders appear — does NOT affect rendering.
      */
     public ConstructableData getConstructableData(IConstructable c) {
-        ConstructableData data = constructableDataMap.get(c);
+        ConstructableData data = dataMap().get(c);
         return data != null ? data : ConstructableData.getTierData(c);
     }
 

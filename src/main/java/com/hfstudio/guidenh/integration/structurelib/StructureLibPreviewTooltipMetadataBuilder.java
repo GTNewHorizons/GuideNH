@@ -16,6 +16,7 @@ import net.minecraft.world.World;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IItemSource;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
@@ -110,7 +111,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
     private static ConstructableData resolveControlData(String controllerId, Object context) {
         ConstructableData byId = StructureLibDefinitionCache.getInstance()
             .getConstructableDataFor(controllerId);
-        ConstructableData byContext = context instanceof com.gtnewhorizon.structurelib.alignment.constructable.IConstructable constructable
+        ConstructableData byContext = context instanceof IConstructable constructable
             ? ConstructableData.getTierData(constructable)
             : null;
         GuideDebugLog.warnAlways(
@@ -118,7 +119,7 @@ final class StructureLibPreviewTooltipMetadataBuilder {
             controllerId,
             describeData(byId),
             describeData(byContext),
-            context instanceof com.gtnewhorizon.structurelib.alignment.constructable.IConstructable);
+            context instanceof IConstructable);
         if (byId != null && byId.hasData()) {
             return byId;
         }
