@@ -15,6 +15,8 @@ public class SceneEditorMarkdownElementRangeIndex {
     public static final SceneEditorMarkdownElementRangeIndex EMPTY = new SceneEditorMarkdownElementRangeIndex(
         List.of());
 
+    private static final Pattern ELEMENT_START_PATTERN = createElementStartPattern();
+
     private final List<SceneEditorMarkdownElementRange> ranges;
 
     private SceneEditorMarkdownElementRangeIndex(List<SceneEditorMarkdownElementRange> ranges) {
@@ -84,7 +86,7 @@ public class SceneEditorMarkdownElementRangeIndex {
 
     public static List<MatchedTag> collectMatchedTags(String text) {
         List<MatchedTag> matchedTags = new ArrayList<>();
-        Matcher matcher = createElementStartPattern().matcher(text);
+        Matcher matcher = ELEMENT_START_PATTERN.matcher(text);
         while (matcher.find()) {
             String tagName = matcher.group(1);
             int startIndex = matcher.start();

@@ -116,7 +116,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
         // Register placement on scene; fall back to direct placement if no scene context
         LytGuidebookScene scene = AnnotationTagCompiler.CURRENT_SCENE.get();
         if (scene != null) {
-            scene.addSnbtPlacement(new SnbtPlacement(absSrc, offsetX, offsetY, offsetZ, formed));
+            scene.addSnbtPlacement(new SnbtPlacement(absSrc, offsetX, offsetY, offsetZ, formed, root));
         } else {
             placeStructure(level, root, offsetX, offsetY, offsetZ, formed, compiler, errorSink, absSrc);
         }

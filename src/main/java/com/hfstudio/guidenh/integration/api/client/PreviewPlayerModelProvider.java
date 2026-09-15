@@ -6,7 +6,5 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public interface PreviewPlayerModelProvider {
 
-    boolean isModelProvided();
-
     boolean tryInitializeModel(Object model);
 }

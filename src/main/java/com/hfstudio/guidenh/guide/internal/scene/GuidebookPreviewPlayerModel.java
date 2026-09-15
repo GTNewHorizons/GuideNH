@@ -7,6 +7,7 @@ import net.minecraft.entity.Entity;
 import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.scene.element.GuidebookPlayerPoseControllable;
+import com.hfstudio.guidenh.integration.Mods;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -90,7 +91,7 @@ public class GuidebookPreviewPlayerModel extends ModelBiped {
     }
 
     private static int resolveBaseTextureHeight(boolean modernSkinLayout) {
-        return modernSkinLayout && !GuidebookPreviewPlayerCompat.isSimpleSkinBackportAvailable() ? MODERN_TEXTURE_HEIGHT
+        return modernSkinLayout && !Mods.SimpleSkinBackport.isModLoaded() ? MODERN_TEXTURE_HEIGHT
             : LEGACY_TEXTURE_HEIGHT;
     }
 

@@ -11,11 +11,6 @@ public class SimpleSkinBackportPreviewPlayerModelProvider implements PreviewPlay
     public SimpleSkinBackportPreviewPlayerModelProvider() {}
 
     @Override
-    public boolean isModelProvided() {
-        return SimpleSkinBackportHelpers.isAvailable();
-    }
-
-    @Override
     public boolean tryInitializeModel(Object model) {
         return SimpleSkinBackportHelpers.tryInitialize64xModel(model);
     }

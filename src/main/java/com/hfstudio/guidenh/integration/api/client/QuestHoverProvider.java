@@ -9,8 +9,6 @@ import com.hfstudio.guidenh.guide.internal.MutableGuide;
 
 public interface QuestHoverProvider {
 
-    boolean isQuestHoverAvailable();
-
     @Nullable
     UUID currentHoveredQuestId();
 

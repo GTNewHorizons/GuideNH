@@ -58,6 +58,29 @@ categories:
 - `meta` 填 `32767`、`*`、或任意大写字母（如 `W`、`ANY`）均视为通配符。
 - 可在末尾追加 SNBT（以 `{` 开始）来携带 NBT 数据。
 - 新增 `handlerName`（包含匹配）/ `handlerId`（精确匹配）/ `handlerOrder`（按序取一条）过滤属性。
+- `handlerBlacklist` 将这些处理器从结果中剔除；`handlerWhitelist` 将其保留。两者都接受英文逗号分隔的列表，条目可以是处理器 id、overlay id 或类名，匹配不区分大小写且按包含处理，所以一条就能指名单个处理器或整个包。
+- 被 `handlerId` 指名的处理器即便出现在黑名单里也会保留，`handlerWhitelist` 同理。配置中默认隐藏的处理器就是靠这个方式显式取回的。
+
+**黑名单**（英文逗号分隔的列表，把不想要的处理器列出来）：
+
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
+
+条目会与 handler id、overlay id 或类名比对，所以一条即可覆盖整个模组：
+
+<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
+
+**白名单**（把黑名单要剔除的处理器救回来；写多个同理）：
+
+<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="没有多方块预览。" />
+
+白名单只负责救回处理器，本身不做筛选。要把结果收窄到某个处理器请用 `handlerId`、`handlerName` 或 `handlerOrder`，限制数量用 `limit`。
+
+配置文件 `config/guidenh/guidenh.cfg` 中的 `recipeHandlerBlacklist` 对所有页面生效。以下两个处理器默认在其中，因为它们渲染的是整个多方块结构而非配方：
+
+- `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
+- `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
+
+页面自身的 `handlerBlacklist` 会追加到配置黑名单之后，所以页面只能隐藏更多、不能更少。要显示默认隐藏的处理器，可用 `handlerId` 或 `handlerWhitelist` 指名，或将其从配置中移除。
 
 **铁砧**（overlay id `"repair"`）：
 

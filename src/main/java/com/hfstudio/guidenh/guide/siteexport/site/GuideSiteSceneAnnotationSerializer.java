@@ -60,6 +60,7 @@ import com.hfstudio.guidenh.guide.scene.annotation.OverlayAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.PonderInputAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.SceneAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.TextAnnotation;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 
@@ -111,8 +112,7 @@ public class GuideSiteSceneAnnotationSerializer {
                     case InWorldLineAnnotation line -> inWorld.add(serializeLine(line, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldBlockFaceOverlayAnnotation blockOverlay -> inWorld.add(
                             serializeBlockOverlay(blockOverlay, templates, currentPageId, assetExporter, itemIconResolver));
-                    default -> {
-                    }
+                    default -> addContributedPayload(inWorld, annotation);
                 }
             }
             for (OverlayAnnotation annotation : scene.collectOverlayAnnotationsForExport(layerSelection)) {
@@ -132,13 +132,36 @@ public class GuideSiteSceneAnnotationSerializer {
                                     currentPageId,
                                     assetExporter,
                                     itemIconResolver));
-                    default -> {
-                    }
+                    default -> addContributedPayload(overlay, annotation);
                 }
             }
         }
 
         return new AnnotationPayload(GSON.toJson(inWorld), GSON.toJson(overlay));
+    }
+
+    private static void addContributedPayload(List<Map<String, Object>> target, SceneAnnotation annotation) {
+        Map<String, Object> payload;
+        try {
+            payload = annotation.toSitePayload();
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [SceneExport] {} failed to describe itself for the site: {}",
+                annotation.getClass()
+                    .getSimpleName(),
+                e.toString());
+            return;
+        }
+        if (payload != null) {
+            target.add(payload);
+            return;
+        }
+        if (annotation instanceof InWorldAnnotation || annotation instanceof OverlayAnnotation) {
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [SceneExport] {} is not exported to the site: it does not describe a site payload",
+                annotation.getClass()
+                    .getSimpleName());
+        }
     }
 
     private static Map<String, Object> serializeBox(InWorldBoxAnnotation box, GuideSiteTemplateRegistry templates,

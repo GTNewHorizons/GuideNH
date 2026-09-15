@@ -48,6 +48,7 @@ public class LytHost {
     private final NavigationState nav = new NavigationState();
     private final Deque<LytEvent> eventQueue = new ArrayDeque<>();
     private final Deque<DeferredTask> taskQueue = new ArrayDeque<>();
+    private long completedTasks;
 
     // Debug implementation
 
@@ -58,7 +59,7 @@ public class LytHost {
     public void mountDocument(@Nullable LytDocument newDoc) {
         if (this.document != null && this.document != newDoc) {
             this.document.setLive(false); // onDetach cascade on old doc
-            taskQueue.clear();
+            discardTasksFor(this.document);
         }
         this.document = newDoc;
         if (newDoc != null) {
@@ -83,6 +84,18 @@ public class LytHost {
     @Nullable
     public LytDocument getDocument() {
         return document;
+    }
+
+    /**
+     * Drops the pending work of one document, leaving the other documents' work queued.
+     *
+     * <p>
+     * The host serves the page on screen and the guide editor's preview at the same time, so clearing the
+     * whole queue when one document is unmounted discarded the other's scene materialization: its scenes
+     * stayed as amber placeholders until an edit rebuilt them.
+     */
+    private void discardTasksFor(LytDocument owner) {
+        taskQueue.removeIf(task -> task.belongsTo(owner));
     }
 
     public NavigationState getNavigation() {
@@ -271,21 +284,26 @@ public class LytHost {
      */
     private void dispatchScriptInPhase(LytScript script, Object node, boolean asyncPhase) {
         String nodeUid = nodeUidOf(node);
+        // The task belongs to the tree the node is in, which is not always the document the host has
+        // mounted: the guide editor dispatches its preview tree while the page is mounted. Tagging a task
+        // with the mounted document made a preview's scenes be dropped when the page navigated, and left
+        // them queued forever against their own document.
+        LytDocument owner = documentOf(node);
         if (nodeUid != null) {
             Object cached = getNodeResult(currentPageId, nodeUid);
             if (cached != null) {
-                new ScriptContextImpl(node, this, document).replace(cached);
+                new ScriptContextImpl(node, this, owner).replace(cached);
                 return;
             }
         }
         if (asyncPhase) {
             if (script.isAsync()) {
-                taskQueue.addLast(new MaterializeTask(script, node, new ScriptContextImpl(node, this, document)));
+                taskQueue.addLast(new MaterializeTask(script, node, new ScriptContextImpl(node, this, owner)));
             }
         } else {
             if (!script.isAsync()) {
                 try {
-                    ScriptContextImpl ctx = new ScriptContextImpl(node, this, document);
+                    ScriptContextImpl ctx = new ScriptContextImpl(node, this, owner);
                     script.onEvent(node, new LytEvent(EventType.MOUNT, node), ctx);
                 } catch (Exception e) {
                     GuideDebugLog
@@ -319,6 +337,11 @@ public class LytHost {
         @Override
         public Priority priority() {
             return Priority.HIGH;
+        }
+
+        @Override
+        public boolean belongsTo(LytDocument owner) {
+            return ctx.document() == owner;
         }
 
         @Override
@@ -398,19 +421,60 @@ public class LytHost {
         dispatchMountEvents(root);
     }
 
+    /**
+     * The document a node belongs to, falling back to the mounted one for a node that is not in a tree.
+     *
+     * <p>
+     * A script runs against the tree its node is in, which is what decides when its work should be dropped,
+     * and the host serves more than one tree at a time.
+     */
+    private LytDocument documentOf(Object node) {
+        if (node instanceof LytNode lytNode) {
+            LytDocument owner = lytNode.getDocument();
+            if (owner != null) {
+                return owner;
+            }
+        }
+        return document;
+    }
+
     public boolean hasWork() {
         return !taskQueue.isEmpty();
     }
 
+    /**
+     * How many deferred tasks are still queued.
+     *
+     * <p>
+     * A caller waiting for the queue to drain reads this to tell a queue that is making progress from one
+     * whose tasks keep yielding without ever finishing.
+     */
+    public int pendingWorkSize() {
+        return taskQueue.size();
+    }
+
+    /**
+     * How many tasks have finished since this host started.
+     *
+     * <p>
+     * A caller waiting for the queue to drain reads this to tell work that is progressing from work that is
+     * stuck. It cannot use {@link #pendingWorkSize()} for that: a task that yields is put back in the queue,
+     * so a scene waiting on background work keeps the size unchanged while it is making progress.
+     */
+    public long completedTaskCount() {
+        return completedTasks;
+    }
+
     public void step(long deadlineNs) {
-        while (!taskQueue.isEmpty() && System.nanoTime() < deadlineNs) {
-            DeferredTask task = taskQueue.peekFirst();
+        int remaining = taskQueue.size();
+        while (remaining > 0 && !taskQueue.isEmpty() && System.nanoTime() < deadlineNs) {
+            remaining--;
+            DeferredTask task = taskQueue.pollFirst();
             DeferredTask.TaskResult result = task.step(deadlineNs);
-            if (result == DeferredTask.TaskResult.DONE) {
-                taskQueue.pollFirst();
-            }
             if (result == DeferredTask.TaskResult.YIELD) {
-                break;
+                taskQueue.addLast(task);
+            } else {
+                completedTasks++;
             }
         }
     }

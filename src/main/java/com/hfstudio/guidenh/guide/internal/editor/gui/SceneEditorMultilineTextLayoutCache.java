@@ -11,6 +11,8 @@ import lombok.Getter;
 
 public class SceneEditorMultilineTextLayoutCache {
 
+    private static final int MEASURE_WINDOW_CHARS = 4096;
+
     private final List<VisualLine> visualLines = new ArrayList<>();
     private List<VisualLine> readonlyVisualLines = List.of();
     @Getter
@@ -65,10 +67,18 @@ public class SceneEditorMultilineTextLayoutCache {
 
         int offset = 0;
         while (offset < logicalLine.length()) {
-            String remaining = logicalLine.substring(offset);
-            String chunk = fontRenderer.trimStringToWidth(remaining, textWidth);
+            int windowEnd = Math.min(logicalLine.length(), offset + MEASURE_WINDOW_CHARS);
+            String chunk;
+            while (true) {
+                String window = logicalLine.substring(offset, windowEnd);
+                chunk = fontRenderer.trimStringToWidth(window, textWidth);
+                if (chunk.length() < window.length() || windowEnd >= logicalLine.length()) {
+                    break;
+                }
+                windowEnd = Math.min(logicalLine.length(), windowEnd + MEASURE_WINDOW_CHARS);
+            }
             if (chunk.isEmpty()) {
-                chunk = remaining.substring(0, 1);
+                chunk = logicalLine.substring(offset, offset + 1);
             }
             int consumed = Math.max(1, chunk.length());
             int startIndex = lineStart + offset;

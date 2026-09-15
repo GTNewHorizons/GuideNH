@@ -114,3 +114,32 @@ GuideNH 永不渲染处于 `HIDDEN` 或 `SECRET` 状态且仍处于锁定的任�
 - BetterQuesting 描述中的 `[guide]...[/guide]` 链接不会被解析，因为 BetterQuesting 文本框和相关 mixin 都不会加载。
 
 这意味着面向 BetterQuesting 的指南只需编写一次，即可在没有 BetterQuesting 的环境下静默降级。
+
+## 把你自己的标签导出到站点
+
+导出的静态站点只会渲染 GuideNH 自带的标签。若你的标签由自己的 `TagCompiler` 编译，可以注册一个渲染器，让它同样出现在站点里，而不是"游戏里能看、站点上没有"：
+
+```java
+public class MyModSiteTagRenderer implements GuideSiteTagRenderer {
+
+    @Override
+    public Set<String> getTagNames() {
+        return Set.of("MyMachine");
+    }
+
+    @Override
+    public String render(GuideSiteTagRenderContext context, MdxJsxElementFields element) {
+        String id = element.getAttributeString("id", "");
+        return "<div class=\"mymod-machine\">" + GuideSiteGraphRenderer.esc(id) + "</div>";
+    }
+}
+```
+
+```java
+GuideNhIntegrationRegistry.global().registerSiteTagRenderer(new MyModSiteTagRenderer());
+Guide.builder(id).extension(GuideSiteTagRenderer.EXTENSION_POINT, new MyModSiteTagRenderer()).build();
+```
+
+注册的渲染器先于内置渲染器被询问，第一个返回内容的胜出，因此你只需要处理自己声明的标签。返回 `null` 表示把该元素交给下一个渲染器或内置导出。渲染器抛异常会记录到日志并跳过，因此一个坏插件不会让你并不拥有页面的导出失败。
+
+上下文携带当前导出的页面与共享服务：`defaultNamespace`、`currentPageId`、`templates`、`sceneResolver`、`compiler`，与内置渲染器拿到的完全一致。你写出的标记会原样插入页面，因此文本请用 `GuideSiteGraphRenderer.esc(...)` 转义。

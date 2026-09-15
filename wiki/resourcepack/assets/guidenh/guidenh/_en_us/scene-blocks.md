@@ -154,7 +154,7 @@ checks:
 
 This scene does not declare `<BlockStats>`, but the block-stat toggle button is still available
 because the scene contains blocks. Opening it shows the default inside list. If `maxWidth` and
-`maxHeight` are not declared, the overlay is capped to 25% of the scene width and height, but it
+`maxHeight` are not declared, the overlay is capped to the larger of the fixed 224 by 96 pixels and 40% of the scene size, but it
 will still grow enough to show at least one item type without forcing a scrollbar.
 
 <GameScene zoom={4} interactive={true}>
@@ -193,8 +193,8 @@ scene contents. Manual mode shows author-provided rows, which is useful for plan
 | `showNames` | `false` | Shows item names beside icons; when enabled the count is also appended after the name. |
 | `filterMode` | `blacklist` | `blacklist` hides matching items; `whitelist` shows only matching items. |
 | `filter` | empty | Item keys like `minecraft:stone` or `minecraft:stone:0`, separated by spaces, commas, or semicolons. |
-| `maxWidth` | 25% scene width | Maximum overlay width before horizontal scrolling. |
-| `maxHeight` | 25% scene height | Maximum overlay height before vertical scrolling. |
+| `maxWidth` | the larger of 224 px and 40% of the scene width | Maximum overlay width before horizontal scrolling. |
+| `maxHeight` | the larger of 96 px and 40% of the scene height | Maximum overlay height before vertical scrolling. |
 
 For 3D region parameters, GuideNH keeps the field names `dx`/`dy`/`dz`, but the intended axis order is X/Y/Z. In other words, read them as length, height, and width/depth for the region.
 
@@ -204,7 +204,7 @@ For 3D region parameters, GuideNH keeps the field names `dx`/`dy`/`dz`, but the 
 | --- | --- | --- |
 | `item` | yes, unless `id` is used | Item id shown in the row. |
 | `id` | yes, unless `item` is used | Existing item-stack attribute form. |
-| `count` | no | Displayed stack count. Defaults to `0`. |
+| `count` | no | Displayed stack count. Omitting it shows the row once, and `count="0"` hides the row. |
 
 Automatic mode groups by `item:meta`, sorts by count, and resolves common multipart-style blocks
 into the items players expect to see. This includes AE2 cable-bus parts and facades,

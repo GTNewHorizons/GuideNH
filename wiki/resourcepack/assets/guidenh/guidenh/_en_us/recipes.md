@@ -58,6 +58,30 @@ The small icon in the top-left shows which "recipe pool" the entry belongs to (s
 - `32767`, `*`, or any uppercase-letter token (e.g. `W`, `ANY`) acts as a wildcard.
 - An SNBT tail (beginning with `{`) carries NBT data.
 - Filter attributes `handlerName` (substring), `handlerId` (overlay id, exact), and `handlerOrder` (0-based index).
+- `handlerBlacklist` drops handlers from the results; `handlerWhitelist` keeps them. Both take a comma-separated list and name a handler by its id, its overlay id or its class name, case-insensitively and by substring, so one entry can name a single handler or a whole package.
+- A handler that `handlerId` asks for stays in the results even when a blacklist names it, and a `handlerWhitelist` entry does the same. That is how a handler hidden by configuration is reached on purpose.
+
+**Blacklist** (a comma-separated list; drop the handlers you do not want):
+
+<RecipesFor id="minecraft:planks" handlerBlacklist="fuel,repair" />
+
+An entry matches the handler id, its overlay id or its class name, so one entry can cover a whole mod:
+
+<RecipesFor id="minecraft:chest" handlerBlacklist="gregtech,ic2,railcraft" limit="6" />
+
+**Whitelist** (bring back handlers a blacklist would drop; listing several works the same way):
+
+<Recipe id="minecraft:chest" handlerWhitelist="GTNEIMultiblockHandler,StructureCompatNEIHandler" fallbackText="No multiblock preview." />
+
+A whitelist only rescues handlers; it does not narrow the result on its own. Use `handlerId`, `handlerName`
+or `handlerOrder` for that, and `limit` to cap the count.
+
+The configuration file `config/guidenh/guidenh.cfg` holds `recipeHandlerBlacklist`, which applies to every page. These two handlers are in it by default, because they render a whole multiblock rather than a recipe:
+
+- `blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler`
+- `blockrenderer6343.integration.structurelib.StructureCompatNEIHandler`
+
+A page's own `handlerBlacklist` is added to the configured one, so a page can hide more handlers but not fewer. To show a default-hidden handler, name it with `handlerId`, `handlerWhitelist`, or remove it from the configuration.
 
 **Anvil** (overlay id `"repair"`):
 

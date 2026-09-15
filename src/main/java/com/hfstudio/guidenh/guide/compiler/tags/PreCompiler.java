@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.compiler.tags;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -10,6 +11,7 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.Nullable;
 
 import com.github.bsideup.jabel.Desugar;
+import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphFenceParser;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -30,6 +32,9 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
 public class PreCompiler extends BlockTagCompiler {
+
+    public static final List<String> FILE_TREE_FENCES = List.of("tree", "filetree");
+    public static final List<String> FUNCTION_GRAPH_FENCES = List.of("funcgraph", "function", "functiongraph");
 
     private static final Pattern CODEBLOCK_META_WIDTH = Pattern.compile("(^|\\s)width=(\"([^\"]+)\"|'([^']+)'|(\\S+))");
     private static final Pattern CODEBLOCK_META_HEIGHT = Pattern
@@ -53,6 +58,17 @@ public class PreCompiler extends BlockTagCompiler {
         String meta = el.getAttributeString("meta", null);
 
         CodeBlockLanguage language = CodeBlockLanguageDetector.detect(lang, codeText);
+
+        LytBlock contributed = CodeFenceRenderers.render(
+            CodeFenceRenderers.of(compiler.getPageCollection() instanceof Guide guide ? guide : null),
+            compiler,
+            lang != null ? lang : language.id(),
+            codeText,
+            meta);
+        if (contributed != null) {
+            parent.append(contributed);
+            return;
+        }
 
         // CSV table
         if (lang != null && "csv".equals(language.id())) {
@@ -232,17 +248,18 @@ public class PreCompiler extends BlockTagCompiler {
         if (fenceLanguage == null) {
             return false;
         }
-        String trimmed = fenceLanguage.trim();
-        return "tree".equalsIgnoreCase(trimmed) || "filetree".equalsIgnoreCase(trimmed);
+        return FILE_TREE_FENCES.contains(
+            fenceLanguage.trim()
+                .toLowerCase(Locale.ROOT));
     }
 
     private static boolean isFunctionGraphFence(@Nullable String fenceLanguage) {
         if (fenceLanguage == null) {
             return false;
         }
-        String trimmed = fenceLanguage.trim();
-        return "funcgraph".equalsIgnoreCase(trimmed) || "function".equalsIgnoreCase(trimmed)
-            || "functiongraph".equalsIgnoreCase(trimmed);
+        return FUNCTION_GRAPH_FENCES.contains(
+            fenceLanguage.trim()
+                .toLowerCase(Locale.ROOT));
     }
 
     private static @Nullable Integer parseCodeBlockWidth(@Nullable String meta) {

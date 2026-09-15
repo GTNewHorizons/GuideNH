@@ -20,6 +20,7 @@ public class SelectionStrategies {
         map.put(SyntaxElementType.ATTRIBUTE_NAME, new ElementBoundarySelection());
         map.put(SyntaxElementType.ATTRIBUTE_VALUE, new ElementBoundarySelection());
         map.put(SyntaxElementType.FENCE_LANGUAGE, new ElementBoundarySelection());
+        map.put(SyntaxElementType.MARKDOWN_SYNTAX, new ElementBoundarySelection());
         map.put(SyntaxElementType.OTHER, new NoOpSelection());
         return map;
     }

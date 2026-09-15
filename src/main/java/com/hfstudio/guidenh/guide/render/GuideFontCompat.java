@@ -5,6 +5,8 @@ import net.minecraft.client.gui.FontRenderer;
 import com.gtnewhorizon.gtnhlib.util.font.FontRendering;
 import com.gtnewhorizon.gtnhlib.util.font.IFontParameters;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+import com.hfstudio.guidenh.integration.Mods;
+import com.hfstudio.guidenh.integration.angelica.AngelicaFontSupport;
 
 public class GuideFontCompat {
 
@@ -48,8 +50,18 @@ public class GuideFontCompat {
         return preprocessText(buildStyledText(text, style));
     }
 
+    /**
+     * The width of {@code text} under this font. GTNHLib's measurement casts the renderer to its own font
+     * interface, which it only satisfies while that mixin is active, so the cast is checked here.
+     */
     public static int getStringWidth(FontRenderer fontRenderer, String text) {
-        return FontRendering.getStringWidth(text, fontRenderer);
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        if (fontRenderer instanceof IFontParameters) {
+            return FontRendering.getStringWidth(text, fontRenderer);
+        }
+        return fontRenderer.getStringWidth(text);
     }
 
     public static int getStringWidth(FontRenderer fontRenderer, String text, ResolvedTextStyle style) {
@@ -83,6 +95,30 @@ public class GuideFontCompat {
             return parameters.getGlyphSpacing();
         }
         return 0f;
+    }
+
+    /** How tall one line of this font is, in pixels, which callers add their own gap to. */
+    public static int getLineHeight(FontRenderer fontRenderer) {
+        float drawn = (fontRenderer.FONT_HEIGHT - 1) * getGlyphScaleY(fontRenderer) * getYScaleMultiplier();
+        if (drawn <= fontRenderer.FONT_HEIGHT) {
+            return fontRenderer.FONT_HEIGHT;
+        }
+        return (int) Math.ceil(drawn);
+    }
+
+    public static float getGlyphScaleY(FontRenderer fontRenderer) {
+        if (fontRenderer instanceof IFontParameters parameters) {
+            float scale = parameters.getGlyphScaleY();
+            if (scale > 0f && Float.isFinite(scale)) {
+                return scale;
+            }
+        }
+        return 1f;
+    }
+
+    /** The tallest vertical multiplier a glyph can be drawn at, which belongs to the font a glyph comes from. */
+    public static float getYScaleMultiplier() {
+        return Mods.Angelica.isModLoaded() ? AngelicaFontSupport.yScaleMultiplier() : 1f;
     }
 
     public static float getRenderedAdvance(FontRenderer fontRenderer, int codePoint, boolean bold,

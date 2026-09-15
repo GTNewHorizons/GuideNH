@@ -144,10 +144,38 @@ public class PageCompiler {
 
         // Index available tag-compilers
         for (var tagCompiler : extensions.get(TagCompiler.EXTENSION_POINT)) {
-            for (String tagName : tagCompiler.getTagNames()) {
+            for (String tagName : publishedTagNames(tagCompiler)) {
                 tagCompilers.put(tagName, tagCompiler);
             }
         }
+    }
+
+    /**
+     * The tags a compiler publishes. A compiler of another mod that cannot answer is reported and skipped,
+     * because one broken plugin must not keep every page from compiling.
+     */
+    private static Collection<String> publishedTagNames(TagCompiler compiler) {
+        Collection<String> tagNames;
+        try {
+            tagNames = compiler.getTagNames();
+        } catch (RuntimeException e) {
+            GuideDebugLog.error(
+                "[GuideNH] [PageCompiler] {} failed to publish its tags: {}",
+                compiler.getClass()
+                    .getSimpleName(),
+                e.toString());
+            return List.of();
+        }
+        if (tagNames == null) {
+            return List.of();
+        }
+        List<String> usable = new ArrayList<>(tagNames.size());
+        for (String tagName : tagNames) {
+            if (tagName != null && !tagName.isEmpty()) {
+                usable.add(tagName);
+            }
+        }
+        return usable;
     }
 
     @Deprecated
@@ -567,6 +595,25 @@ public class PageCompiler {
     }
 
     public void compileBlockContext(List<? extends MdAstAnyContent> children, LytBlockContainer layoutParent) {
+        if (blockNestingDepth >= MAX_BLOCK_NESTING) {
+            LytParagraph tooDeep = new LytParagraph();
+            LytFlowSpan span = new LytFlowSpan();
+            span.modifyStyle(style -> style.color(ColorUtils.ERROR_TEXT));
+            span.appendText("Block nesting is deeper than the " + MAX_BLOCK_NESTING + " levels a guide supports");
+            tooDeep.append(span);
+            layoutParent.append(tooDeep);
+            return;
+        }
+        blockNestingDepth++;
+        try {
+            compileBlockContextAtCurrentDepth(children, layoutParent);
+        } finally {
+            blockNestingDepth--;
+        }
+    }
+
+    private void compileBlockContextAtCurrentDepth(List<? extends MdAstAnyContent> children,
+        LytBlockContainer layoutParent) {
         LytBlock previousLayoutChild = null;
         for (MdAstAnyContent child : children) {
             LytBlock layoutChild = null;
@@ -741,8 +788,20 @@ public class PageCompiler {
     }
 
     public void compileFlowContext(Collection<? extends MdAstAnyContent> children, LytFlowParent layoutParent) {
-        for (var child : children) {
-            compileFlowContent(layoutParent, child);
+        if (flowNestingDepth >= MAX_BLOCK_NESTING) {
+            LytFlowSpan span = new LytFlowSpan();
+            span.modifyStyle(style -> style.color(ColorUtils.ERROR_TEXT));
+            span.appendText("Inline nesting is deeper than the " + MAX_BLOCK_NESTING + " levels a guide supports");
+            layoutParent.append(span);
+            return;
+        }
+        flowNestingDepth++;
+        try {
+            for (var child : children) {
+                compileFlowContent(layoutParent, child);
+            }
+        } finally {
+            flowNestingDepth--;
         }
     }
 
@@ -984,6 +1043,19 @@ public class PageCompiler {
         blockTagChildrenCache.put(element, cachedEntry);
         return cachedEntry;
     }
+
+    /**
+     * Deepest block nesting a page may use.
+     *
+     * <p>
+     * Compiling a nested tag re-parses and re-enters this compiler per level, so content nested deeper
+     * than this is reported as an error instead of exhausting the stack.
+     */
+    private static final int MAX_BLOCK_NESTING = 64;
+
+    private int blockNestingDepth;
+
+    private int flowNestingDepth;
 
     public LytBlock createErrorBlock(String text, UnistNode child) {
         var paragraph = new LytParagraph();

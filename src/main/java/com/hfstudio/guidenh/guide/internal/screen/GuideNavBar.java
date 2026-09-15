@@ -30,6 +30,7 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 
 import lombok.Getter;
@@ -1162,6 +1163,9 @@ public class GuideNavBar {
         private int cachedMaxTw = -1;
         private int cachedTitleWidth = -1;
         private int cachedScrollCycleWidth = -1;
+        // The width these were measured at, so a font whose metrics change (a custom font from another mod)
+        // re-measures instead of keeping a width the new font no longer matches.
+        private int cachedWidthAtLineHeight = -1;
 
         public Row(GuideNavProjection.ProjectedRow projectedRow) {
             this.projectedRow = projectedRow;
@@ -1240,16 +1244,17 @@ public class GuideNavBar {
         }
 
         public int getTitleWidth(FontRenderer fr) {
-            if (cachedTitleWidth < 0) {
+            int lineHeight = GuideFontCompat.getLineHeight(fr);
+            if (cachedTitleWidth < 0 || cachedWidthAtLineHeight != lineHeight) {
+                cachedWidthAtLineHeight = lineHeight;
                 cachedTitleWidth = fr.getStringWidth(displayRow.title());
+                cachedScrollCycleWidth = fr.getStringWidth(displayRow.title() + TITLE_SCROLL_GAP);
             }
             return cachedTitleWidth;
         }
 
         public int getScrollCycleWidth(FontRenderer fr) {
-            if (cachedScrollCycleWidth < 0) {
-                cachedScrollCycleWidth = fr.getStringWidth(displayRow.title() + TITLE_SCROLL_GAP);
-            }
+            getTitleWidth(fr);
             return cachedScrollCycleWidth;
         }
 

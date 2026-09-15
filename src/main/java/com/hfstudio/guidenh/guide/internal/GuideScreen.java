@@ -83,6 +83,7 @@ import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
+import com.hfstudio.guidenh.guide.editor.GuideEditorActionContribution;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
@@ -91,6 +92,8 @@ import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.debug.GuideDebugOverlay;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.AutocompleteCommit;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.GuideEditorAutocompleteController;
 import com.hfstudio.guidenh.guide.internal.editor.gui.SceneEditorMultilineTextArea;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorAction;
 import com.hfstudio.guidenh.guide.internal.editor.guide.GuideScreenEditorActionRegistry;
@@ -139,6 +142,7 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialGeneratedBlock;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageIds;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
+import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
@@ -147,6 +151,9 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.style.TextStyle;
+import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
+import com.hfstudio.guidenh.guide.syntax.InsertTemplate;
+import com.hfstudio.guidenh.guide.syntax.SyntaxEnvironment;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
@@ -239,6 +246,7 @@ public class GuideScreen extends GuiContainer
     private static final int SCROLLBAR_OUTLINE_LABEL_PADDING_Y = 4;
     private static final int SCROLLBAR_OUTLINE_LABEL_GAP = 6;
     private static final int GUIDE_EDITOR_DIVIDER_HOVER_DELAY_MILLIS = 1000;
+    private static final int AUTOCOMPLETE_CURSOR_GAP_Y = 2;
     private static final long GUIDE_EDITOR_SAFETY_AUTOSAVE_INTERVAL_MILLIS = 5L * 60L * 1000L;
     private static final long GUIDE_EDITOR_NAVIGATION_REFRESH_DELAY_MILLIS = 1500L;
     private static final int NON_FULL_WIDTH_DEFAULT_PERCENT = 90;
@@ -379,6 +387,9 @@ public class GuideScreen extends GuiContainer
     private boolean guideEditorAdvancedToolbarVisible;
     private int guideEditorDividerPercent = GuideScreenEditorState.getDividerPercent();
     private final GuideScreenEditorUndoHistory guideEditorUndoHistory = new GuideScreenEditorUndoHistory(100);
+    private final GuideEditorAutocompleteController autocompleteController = new GuideEditorAutocompleteController();
+    @Nullable
+    private GuideSyntaxModel autocompleteModel;
 
     public static final int SEARCH_FIELD_H = 12;
     public static final int SEARCH_FIELD_GAP = 6;
@@ -894,6 +905,7 @@ public class GuideScreen extends GuiContainer
         tickGuideEditorPreviewScenes();
         updateGuideEditorNavigationRefresh();
         updateGuideEditorAutosave();
+        updateGuideEditorAutocomplete();
         if (!isFocusedTextInputReadyForCommittedCharacter() && OpenGuideHotkey.isKeyHeld()
             && hoveredItemStack != null) {
             pendingItemLinksStack = hoveredItemStack;
@@ -1084,8 +1096,11 @@ public class GuideScreen extends GuiContainer
     private void setGuideEditorLayoutMode(GuideScreenEditorLayoutMode mode) {
         GuideScreenEditorState.setLayoutMode(mode);
         guideEditorLayoutMode = mode;
-        if (mode == GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null) {
-            guideEditorTextArea.setFocused(false);
+        if (mode == GuideScreenEditorLayoutMode.PREVIEW_ONLY) {
+            if (guideEditorTextArea != null) {
+                guideEditorTextArea.setFocused(false);
+            }
+            autocompleteController.close();
         }
         guideEditorPreviewDirty = true;
     }
@@ -1110,6 +1125,7 @@ public class GuideScreen extends GuiContainer
 
     private void disableGuideEditor() {
         GuideScreenEditorState.setEnabled(false);
+        autocompleteController.close();
         if (guideEditorTextArea != null) {
             guideEditorTextArea.setFocused(false);
         }
@@ -1361,8 +1377,28 @@ public class GuideScreen extends GuiContainer
     private void ensureGuideEditorTextArea() {
         if (guideEditorTextArea == null) {
             guideEditorTextArea = new SceneEditorMultilineTextArea(fontRendererObj);
+            guideEditorTextArea.setDoubleClickHandler(new SceneEditorMultilineTextArea.DoubleClickHandler() {
+
+                @Override
+                public void onDoubleClick(int cursorIndex) {
+                    applyGuideEditorDoubleClickSelection(cursorIndex);
+                }
+            });
         }
         guideEditorTextArea.setWrapEnabled(GuideScreenEditorState.isWrapEnabled());
+    }
+
+    private void applyGuideEditorDoubleClickSelection(int cursorIndex) {
+        if (guideEditorTextArea == null) {
+            return;
+        }
+        String text = guideEditorTextArea.getText();
+        GuideEditorAutocompleteController.SelectionRange range = autocompleteController
+            .resolveDoubleClickSelection(text, cursorIndex);
+        if (range == null) {
+            return;
+        }
+        guideEditorTextArea.applyEdit(text, range.start(), range.end());
     }
 
     private void refreshGuideEditorDraft(boolean forceReload) {
@@ -1498,6 +1534,7 @@ public class GuideScreen extends GuiContainer
         }
         pushGuideEditorHistoryState(before, beforeSelectionStart, beforeSelectionEnd);
         markGuideEditorTextChanged();
+        autocompleteController.markEdit();
         pushGuideEditorCurrentHistoryState();
     }
 
@@ -1959,6 +1996,54 @@ public class GuideScreen extends GuiContainer
         }
     }
 
+    /**
+     * Button id the first contributed editor action gets.
+     *
+     * <p>
+     * The built-in actions take {@code 2000} plus their enum ordinal, so a contributed action sits in its own
+     * range above them: it is a real button without an enum constant, and it can never collide with a
+     * built-in action even if the enum grows.
+     */
+    private static final int CONTRIBUTED_EDITOR_ACTION_ID_BASE = 8000;
+
+    /**
+     * Applies a contributed editor action to the document.
+     *
+     * <p>
+     * A contribution carries text rather than behaviour, so it is applied here: the editor owns the mutation,
+     * which keeps a contributed action on the same undo, dirty-state and completion path as every other edit.
+     */
+    private void runContributedGuideEditorAction(int index) {
+        List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions(guide);
+        if (index < 0 || index >= actions.size() || guideEditorTextArea == null) {
+            return;
+        }
+        GuideEditorActionContribution action = actions.get(index);
+        runGuideEditorTextMutation(() -> {
+            guideEditorTextArea.setFocused(true);
+            String source = guideEditorTextArea.getText();
+            int start = Math.clamp(guideEditorTextArea.getSelectionStart(), 0, source.length());
+            int end = Math.clamp(guideEditorTextArea.getSelectionEnd(), start, source.length());
+            String selected = source.substring(start, end);
+            String insertText = action.insertText();
+            String written;
+            int caretOffset;
+            if (insertText != null) {
+                written = insertText;
+                caretOffset = insertText.length();
+            } else {
+                String prefix = action.wrapPrefix();
+                String suffix = action.wrapSuffix();
+                written = prefix + selected + suffix;
+                caretOffset = selected.isEmpty() ? prefix.length() : written.length();
+            }
+            String edited = source.substring(0, start) + written + source.substring(end);
+            int caretIndex = start + caretOffset;
+            guideEditorTextArea.applyEditPreservingViewport(edited, caretIndex, caretIndex);
+        });
+        syncGuideEditorPreviewScrollFromEditor();
+    }
+
     private void handleGuideEditorActionButton(int actionId) {
         if (guideEditorTextArea == null || actionId < 0 || actionId >= GuideScreenEditorAction.values().length) {
             return;
@@ -2018,6 +2103,7 @@ public class GuideScreen extends GuiContainer
         if (entry == null || guideEditorTextArea == null) {
             return;
         }
+        autocompleteController.close();
         guideEditorSuppressUndoRecording = true;
         try {
             guideEditorTextArea
@@ -2055,9 +2141,7 @@ public class GuideScreen extends GuiContainer
         }
         closeHomePageContextMenu();
         closeNavBarContextMenu();
-        if (guideEditorContextMenu == null) {
-            guideEditorContextMenu = new GuideScreenEditorContextMenu(buildGuideEditorContextMenuEntries());
-        }
+        guideEditorContextMenu = new GuideScreenEditorContextMenu(buildGuideEditorContextMenuEntries());
         guideEditorContextMenu.open(mouseX, mouseY, width, height, fontRendererObj);
     }
 
@@ -2068,7 +2152,65 @@ public class GuideScreen extends GuiContainer
     }
 
     private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContextMenuEntries() {
-        return GuideScreenEditorActionRegistry.contextMenuEntries();
+        return GuideScreenEditorActionRegistry
+            .contextMenuEntries(buildGuideEditorTemplateEntries(), buildGuideEditorContributedEntries());
+    }
+
+    /**
+     * One menu entry per contributed editor action, so an action a mod adds is reachable from the toolbar and
+     * from the context menu alike.
+     */
+    private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorContributedEntries() {
+        List<GuideEditorActionContribution> actions = GuideScreenEditorActionRegistry.contributedActions(guide);
+        if (actions.isEmpty()) {
+            return List.of();
+        }
+        List<GuideScreenEditorContextMenu.Entry> entries = new ArrayList<>(actions.size());
+        for (int i = 0; i < actions.size(); i++) {
+            int index = i;
+            GuideEditorActionContribution action = actions.get(i);
+            entries.add(
+                GuideScreenEditorContextMenu.Entry
+                    .runnable(action.label(), () -> runContributedGuideEditorAction(index)));
+        }
+        return entries;
+    }
+
+    /**
+     * One entry per contributed insert template, so the templates the editor offers while typing are also
+     * reachable from the menu: the model holds the built-in templates and those of any other mod alike.
+     */
+    private List<GuideScreenEditorContextMenu.Entry> buildGuideEditorTemplateEntries() {
+        Map<String, InsertTemplate> templates = resolveGuideSyntaxModel().insertTemplates();
+        if (templates.isEmpty()) {
+            return List.of();
+        }
+        List<GuideScreenEditorContextMenu.Entry> entries = new ArrayList<>(templates.size());
+        for (InsertTemplate template : templates.values()) {
+            entries.add(
+                GuideScreenEditorContextMenu.Entry
+                    .runnable(template.tagName(), () -> insertGuideEditorTemplate(template)));
+        }
+        entries.sort(Comparator.comparing(GuideScreenEditorContextMenu.Entry::getLabel, String.CASE_INSENSITIVE_ORDER));
+        return entries;
+    }
+
+    private void insertGuideEditorTemplate(InsertTemplate template) {
+        if (guideEditorTextArea == null) {
+            return;
+        }
+        String text = template.text();
+        int caret = Math.clamp(template.caretOffset(), 0, text.length());
+        runGuideEditorTextMutation(() -> {
+            guideEditorTextArea.setFocused(true);
+            String source = guideEditorTextArea.getText();
+            int start = Math.clamp(guideEditorTextArea.getSelectionStart(), 0, source.length());
+            int end = Math.clamp(guideEditorTextArea.getSelectionEnd(), start, source.length());
+            String edited = source.substring(0, start) + text + source.substring(end);
+            int caretIndex = start + caret;
+            guideEditorTextArea.applyEditPreservingViewport(edited, caretIndex, caretIndex);
+        });
+        syncGuideEditorPreviewScrollFromEditor();
     }
 
     private int getGuideEditorPreviewLayoutWidth() {
@@ -2253,6 +2395,20 @@ public class GuideScreen extends GuiContainer
             }
             buttonList.add(button);
         }
+
+        List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions(guide);
+        for (int i = 0; i < contributed.size(); i++) {
+            GuideEditorActionContribution action = contributed.get(i);
+            int id = CONTRIBUTED_EDITOR_ACTION_ID_BASE + i;
+            GuideIconButton button = guideEditorActionButtons.get(id);
+            if (button == null) {
+                button = new GuideIconButton(id, 0, 0, action.icon(), action.label());
+                guideEditorActionButtons.put(id, button);
+            } else {
+                button.visible = true;
+            }
+            buttonList.add(button);
+        }
     }
 
     private List<GuideScreenEditorAction> getGuideEditorActionOrder() {
@@ -2319,6 +2475,8 @@ public class GuideScreen extends GuiContainer
             setGuideEditorLayoutMode(GuideScreenEditorLayoutMode.PREVIEW_ONLY);
         } else if (btn == btnGuideEditorAdvancedToggle) {
             toggleGuideEditorAdvancedButtons();
+        } else if (btn != null && btn.id >= CONTRIBUTED_EDITOR_ACTION_ID_BASE) {
+            runContributedGuideEditorAction(btn.id - CONTRIBUTED_EDITOR_ACTION_ID_BASE);
         } else if (btn != null && btn.id >= 2000) {
             handleGuideEditorActionButton(btn.id - 2000);
         }
@@ -3172,6 +3330,143 @@ public class GuideScreen extends GuiContainer
             renderGuideEditorPreview(previewPaneX, editorTop, previewPaneWidth, editorHeight);
         }
 
+        drawGuideEditorAutocomplete(mouseX, mouseY);
+    }
+
+    private void drawGuideEditorAutocomplete(int mouseX, int mouseY) {
+        if (!autocompleteController.isOpen()) {
+            return;
+        }
+        if (!isAutocompleteAnchorVisible()) {
+            autocompleteController.close();
+            return;
+        }
+        autocompleteController.draw(mouseX, mouseY, fontRendererObj);
+    }
+
+    private boolean isAutocompleteAnchorVisible() {
+        if (guideEditorTextArea == null) {
+            return false;
+        }
+        int anchorY = getAutocompleteAnchorY();
+        return guideEditorTextArea.isCursorVisibleInViewport() && anchorY >= guideEditorEditorTop
+            && anchorY <= getGuideEditorContentBottom();
+    }
+
+    private int getAutocompleteAnchorX() {
+        return contentX + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelX() : 0);
+    }
+
+    private int getAutocompleteAnchorY() {
+        return getGuideEditorContentTop() + (guideEditorTextArea != null ? guideEditorTextArea.getCursorPixelY() : 0)
+            + (guideEditorTextArea != null ? guideEditorTextArea.getLineHeightPixels()
+                : GuideFontCompat.getLineHeight(fontRendererObj) + 2)
+            + AUTOCOMPLETE_CURSOR_GAP_Y;
+    }
+
+    /**
+     * Feeds the completion session with the editor text and the guide data its providers resolve
+     * against. Runs every tick so page references, anchors, and image paths stay current.
+     */
+    private void updateGuideEditorAutocomplete() {
+        if (!isGuideEditorActive() || guideEditorTextArea == null) {
+            autocompleteController.close();
+            return;
+        }
+        resolveGuideSyntaxModel();
+        autocompleteController.update(
+            guideEditorTextArea.getText(),
+            guideEditorTextArea.getCursorIndex(),
+            getAutocompleteAnchorX(),
+            getAutocompleteAnchorY(),
+            width,
+            height,
+            fontRendererObj,
+            syntaxEnvironment());
+    }
+
+    /**
+     * The syntax model of the loaded guide. Building a model is cached per extension collection, so this
+     * only does work when the guide changes.
+     */
+    @Nullable
+    private SyntaxEnvironment syntaxEnvironment;
+
+    private SyntaxEnvironment syntaxEnvironment() {
+        if (syntaxEnvironment == null) {
+            syntaxEnvironment = new GuideEditorSyntaxEnvironment();
+        }
+        return syntaxEnvironment;
+    }
+
+    private final class GuideEditorSyntaxEnvironment implements SyntaxEnvironment {
+
+        @Nullable
+        private Object cachedGuide;
+        private long cachedPagePathsRevision = Long.MIN_VALUE;
+        private List<String> cachedPagePaths = List.of();
+
+        @Override
+        @Nullable
+        public Guide guide() {
+            return GuideScreen.this.guide;
+        }
+
+        @Override
+        public List<String> pagePaths() {
+            MutableGuide current = GuideScreen.this.guide;
+            // Keyed on the navigation revision, not the page count: a reload can replace every page id while
+            // the count stays the same, which is what a language switch does, and the old ids would then be
+            // suggested for links.
+            long revision = GuideRegistry.getNavigationRevision();
+            if (cachedGuide == current && cachedPagePathsRevision == revision) {
+                return cachedPagePaths;
+            }
+            cachedGuide = current;
+            cachedPagePathsRevision = revision;
+            int pageCount = current != null ? current.getPages()
+                .size() : 0;
+            List<String> paths = new ArrayList<>(pageCount);
+            if (current != null) {
+                for (ParsedGuidePage page : current.getPages()) {
+                    paths.add(
+                        page.getId()
+                            .toString());
+                }
+            }
+            cachedPagePaths = paths;
+            return paths;
+        }
+
+        @Override
+        public String documentText() {
+            return guideEditorTextArea != null ? guideEditorTextArea.getText() : "";
+        }
+    }
+
+    /**
+     * The syntax model of the guide in the editor. Looking it up is cached per extension collection and per
+     * registration revision, so this is called on every tick: a contributor or slot another mod registers
+     * while the editor is open is picked up as soon as its revision changes.
+     */
+    private GuideSyntaxModel resolveGuideSyntaxModel() {
+        GuideSyntaxModel model = GuideSyntaxModel.of(guide != null ? guide.getExtensions() : null);
+        if (model != autocompleteModel) {
+            autocompleteModel = model;
+            autocompleteController.setModel(model);
+        }
+        return model;
+    }
+
+    private void applyGuideEditorAutocompleteCommit() {
+        AutocompleteCommit commit = autocompleteController.takePendingCommit();
+        if (commit == null || guideEditorTextArea == null) {
+            return;
+        }
+        runGuideEditorTextMutation(
+            () -> guideEditorTextArea
+                .applyEdit(commit.getText(), commit.getSelectionStart(), commit.getSelectionEnd()));
+        autocompleteController.dismissPopup();
     }
 
     private int resolveGuideEditorDividerColor() {
@@ -3269,6 +3564,23 @@ public class GuideScreen extends GuiContainer
         for (GuideScreenEditorAction action : actions) {
             int buttonId = 2000 + action.ordinal();
             GuideIconButton button = guideEditorActionButtons.get(buttonId);
+            if (button == null) {
+                continue;
+            }
+            if (x + GuideIconButton.WIDTH > maxX && x > startX) {
+                x = startX;
+                y += rowHeight;
+            }
+            button.xPosition = x;
+            button.yPosition = y;
+            button.visible = true;
+            button.enabled = true;
+            x += GuideIconButton.WIDTH + TOOLBAR_GAP;
+        }
+
+        List<GuideEditorActionContribution> contributed = GuideScreenEditorActionRegistry.contributedActions(guide);
+        for (int i = 0; i < contributed.size(); i++) {
+            GuideIconButton button = guideEditorActionButtons.get(CONTRIBUTED_EDITOR_ACTION_ID_BASE + i);
             if (button == null) {
                 continue;
             }
@@ -3381,6 +3693,9 @@ public class GuideScreen extends GuiContainer
             }
             guideEditorSuppressTextFocusUntilGuideHotkeyRelease = false;
         }
+        if (handleGuideEditorAutocompleteKey(typedChar, keyCode)) {
+            return true;
+        }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             if (keyCode == Keyboard.KEY_ESCAPE) {
                 closeGuideEditorContextMenu();
@@ -3423,12 +3738,39 @@ public class GuideScreen extends GuiContainer
         return false;
     }
 
+    /**
+     * Routes a key stroke through the completion popup while it is open. Accepting a candidate edits
+     * the text through {@link #runGuideEditorTextMutation} so undo history stays consistent.
+     */
+    private boolean handleGuideEditorAutocompleteKey(char typedChar, int keyCode) {
+        GuideEditorAutocompleteController.KeyResult result = autocompleteController
+            .handleKey(guideEditorTextArea.getText(), typedChar, keyCode);
+        switch (result) {
+            case IGNORED:
+                return false;
+            case COMMIT:
+                applyGuideEditorAutocompleteCommit();
+                return true;
+            case FORWARD_TO_EDITOR:
+                runGuideEditorTextMutation(() -> guideEditorTextArea.keyTyped(typedChar, keyCode));
+                syncGuideEditorPreviewScrollFromEditor();
+                return true;
+            default:
+                return true;
+        }
+    }
+
     private boolean handleGuideEditorMouseClicked(int mouseX, int mouseY, int button) {
         if (!isGuideEditorActive()) {
             return false;
         }
         if (GuideScreenNeiBridge.isDraggingItem()) {
             return false;
+        }
+        if (guideEditorTextArea != null
+            && autocompleteController.handleMouseClick(guideEditorTextArea.getText(), mouseX, mouseY, button)) {
+            applyGuideEditorAutocompleteCommit();
+            return true;
         }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             if (button == 1 && tryOpenGuideEditorTextContextMenu(mouseX, mouseY)) {
@@ -3619,6 +3961,9 @@ public class GuideScreen extends GuiContainer
         if (!isGuideEditorActive()) {
             return false;
         }
+        if (autocompleteController.handleWheel(mouseX, mouseY, dwheel)) {
+            return true;
+        }
         if (guideEditorContextMenu != null && guideEditorContextMenu.isOpen()) {
             guideEditorContextMenu.scrollWheel(mouseX, mouseY, dwheel, this.width, this.height, fontRendererObj);
             return true;
@@ -3626,6 +3971,7 @@ public class GuideScreen extends GuiContainer
         if (guideEditorLayoutMode != GuideScreenEditorLayoutMode.PREVIEW_ONLY && guideEditorTextArea != null
             && guideEditorTextArea.contains(mouseX, mouseY)) {
             guideEditorTextArea.scrollWheel(dwheel);
+            autocompleteController.close();
             updateGuideEditorTextFromArea();
             syncGuideEditorPreviewScrollFromEditor();
             return true;

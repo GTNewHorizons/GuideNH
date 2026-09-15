@@ -38,7 +38,7 @@ public class NeiGuideNavigation {
 
     public static boolean handleHoveredStackShortcut(@Nullable GuideScreenNeiBridge.EditorAccess editorAccess,
         @Nullable ItemStack stack) {
-        if (!NeiRecipeLookup.isAvailable() || stack == null) {
+        if (stack == null) {
             return false;
         }
         if (NEIClientConfig.isKeyHashDown("gui.recipe")) {
@@ -52,7 +52,7 @@ public class NeiGuideNavigation {
 
     public static boolean openExactCraftingRecipe(@Nullable GuideScreenNeiBridge.EditorAccess editorAccess,
         Object handler, int recipeIndex, @Nullable ItemStack displayedResult) {
-        if (!NeiRecipeLookup.isAvailable() || !(handler instanceof IRecipeHandler recipeHandler)) {
+        if (!(handler instanceof IRecipeHandler recipeHandler)) {
             return false;
         }
         if (isGregTechDefaultHandler(recipeHandler)) {

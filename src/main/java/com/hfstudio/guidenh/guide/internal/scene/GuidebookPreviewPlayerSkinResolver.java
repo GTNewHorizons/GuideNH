@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -53,10 +54,24 @@ public class GuidebookPreviewPlayerSkinResolver {
         PREVIEW_SKIN_RESOURCE_DOMAIN,
         PREVIEW_SKIN_RESOURCE_PATH_PREFIX + "default-steve");
     private static final int MAX_RESOLVED_SKINS = 256;
+    /**
+     * How many preview skin textures to keep the location of. Each one is a 64x64 texture the game holds
+     * until it is released, and a session can walk through far more players than a screen shows, so the
+     * oldest is released rather than kept for the session.
+     */
+    private static final int MAX_PREVIEW_SKIN_TEXTURES = 256;
     public static final ExecutorService LOOKUP_EXECUTOR = Executors
         .newSingleThreadExecutor(new GuidebookPreviewPlayerSkinThreadFactory());
     public static final Map<String, ResolvedPreviewPlayerSkin> RESOLVED_SKINS = createResolvedSkinCache();
-    public static final Map<String, ResourceLocation> PREVIEW_SKIN_TEXTURE_LOCATIONS = new ConcurrentHashMap<>();
+    /**
+     * Texture locations by skin hash, oldest first. The location is derived from the hash, so an entry can be
+     * dropped and rebuilt on demand; the texture the game loaded for it has to be released, which is done
+     * outside this map's monitor by {@link #trimPreviewSkinTextures()}.
+     */
+    private static final Map<String, ResourceLocation> PREVIEW_SKIN_TEXTURE_LOCATIONS = new LinkedHashMap<>(
+        MAX_PREVIEW_SKIN_TEXTURES + 1,
+        0.75f,
+        true);
     public static final Map<String, List<WeakReference<GuidebookScenePreviewPlayerEntity>>> PENDING_ENTITIES = new ConcurrentHashMap<>();
     public static final Set<String> INFLIGHT_LOOKUPS = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
@@ -195,9 +210,14 @@ public class GuidebookPreviewPlayerSkinResolver {
         ResolvedPreviewPlayerSkin resolvedSkin) {
         SkinManager skinManager = Minecraft.getMinecraft()
             .func_152342_ad();
-        ResourceLocation skinLocation = resolvedSkin.skinLocation != null ? resolvedSkin.skinLocation
-            : resolvedSkin.skinTexture != null ? loadPreviewSkinTexture(resolvedSkin.skinTexture)
-                : loadDefaultPreviewSkinTexture();
+        // A resolved skin keeps its location, and the location cache is bounded, so the texture behind it may
+        // have been released. Re-loading when the texture is gone keeps a released one from being drawn.
+        ResourceLocation skinLocation = resolvedSkin.skinLocation != null && Minecraft.getMinecraft()
+            .getTextureManager()
+            .getTexture(resolvedSkin.skinLocation) != null ? resolvedSkin.skinLocation
+                : resolvedSkin.skinTexture != null ? loadPreviewSkinTexture(resolvedSkin.skinTexture)
+                    : loadDefaultPreviewSkinTexture();
+        resolvedSkin.skinLocation = skinLocation;
         entity.setGuidebookPreferredSkinLocation(skinLocation);
         entity.setGuidebookSlimArms(resolvedSkin.slimArms);
         if (resolvedSkin.capeTexture != null) {
@@ -231,11 +251,7 @@ public class GuidebookPreviewPlayerSkinResolver {
             return loadDefaultPreviewSkinTexture();
         }
 
-        ResourceLocation resourceLocation = PREVIEW_SKIN_TEXTURE_LOCATIONS.computeIfAbsent(
-            textureHash,
-            ignored -> new ResourceLocation(
-                PREVIEW_SKIN_RESOURCE_DOMAIN,
-                PREVIEW_SKIN_RESOURCE_PATH_PREFIX + textureHash));
+        ResourceLocation resourceLocation = previewSkinTextureLocation(textureHash);
         TextureManager textureManager = Minecraft.getMinecraft()
             .getTextureManager();
         if (textureManager.getTexture(resourceLocation) == null) {
@@ -248,6 +264,44 @@ public class GuidebookPreviewPlayerSkinResolver {
                     new GuidebookPreviewPlayerSkinImageBuffer()));
         }
         return resourceLocation;
+    }
+
+    /** The texture location for a skin hash, keeping the map bounded. */
+    private static ResourceLocation previewSkinTextureLocation(String textureHash) {
+        List<ResourceLocation> evicted = null;
+        ResourceLocation location;
+        synchronized (PREVIEW_SKIN_TEXTURE_LOCATIONS) {
+            location = PREVIEW_SKIN_TEXTURE_LOCATIONS.get(textureHash);
+            if (location == null) {
+                location = new ResourceLocation(
+                    PREVIEW_SKIN_RESOURCE_DOMAIN,
+                    PREVIEW_SKIN_RESOURCE_PATH_PREFIX + textureHash);
+                PREVIEW_SKIN_TEXTURE_LOCATIONS.put(textureHash, location);
+                while (PREVIEW_SKIN_TEXTURE_LOCATIONS.size() > MAX_PREVIEW_SKIN_TEXTURES) {
+                    Iterator<Map.Entry<String, ResourceLocation>> oldest = PREVIEW_SKIN_TEXTURE_LOCATIONS.entrySet()
+                        .iterator();
+                    if (!oldest.hasNext()) {
+                        break;
+                    }
+                    Map.Entry<String, ResourceLocation> entry = oldest.next();
+                    oldest.remove();
+                    if (evicted == null) {
+                        evicted = new ArrayList<>(2);
+                    }
+                    evicted.add(entry.getValue());
+                }
+            }
+        }
+        if (evicted != null) {
+            TextureManager textureManager = Minecraft.getMinecraft()
+                .getTextureManager();
+            for (ResourceLocation stale : evicted) {
+                if (!stale.equals(DEFAULT_PREVIEW_SKIN_LOCATION)) {
+                    textureManager.deleteTexture(stale);
+                }
+            }
+        }
+        return location;
     }
 
     private static ResourceLocation loadDefaultPreviewSkinTexture() {

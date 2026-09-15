@@ -15,10 +15,40 @@ import com.hfstudio.guidenh.guide.internal.recipe.RecipeLookup;
 import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeLayoutContext;
 import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeLayoutStrategyRegistry;
 import com.hfstudio.guidenh.guide.siteexport.site.layout.SiteRecipeRawHandlerAccess;
+import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.api.RecipeSlot;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeTagRenderer {
+
+    /**
+     * Reads the ingredient or other slots of a recipe the way the in-game renderer does: through the registered slot.
+     */
+    private static List<NeiRecipeLookup.Slot> siteRecipeSlots(Object handler, int recipeIndex, boolean ingredients) {
+        List<RecipeSlot> slots = ingredients ? GuideNhIntegrationRegistry.global()
+            .readRecipeIngredientSlots(handler, recipeIndex)
+            : GuideNhIntegrationRegistry.global()
+                .readRecipeOtherSlots(handler, recipeIndex);
+        return toNeiSlots(slots);
+    }
+
+    private static NeiRecipeLookup.Slot siteRecipeResultSlot(Object handler, int recipeIndex) {
+        RecipeSlot slot = GuideNhIntegrationRegistry.global()
+            .readRecipeResultSlot(handler, recipeIndex);
+        return slot != null ? new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks()) : null;
+    }
+
+    private static List<NeiRecipeLookup.Slot> toNeiSlots(List<RecipeSlot> slots) {
+        if (slots == null || slots.isEmpty()) {
+            return List.of();
+        }
+        List<NeiRecipeLookup.Slot> converted = new ArrayList<>(slots.size());
+        for (RecipeSlot slot : slots) {
+            converted.add(new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks()));
+        }
+        return converted;
+    }
 
     public interface TargetStackResolver {
 
@@ -148,17 +178,17 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
             @Override
             public List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex) {
-                return NeiRecipeLookup.readIngredientSlots(handler, recipeIndex);
+                return siteRecipeSlots(handler, recipeIndex, true);
             }
 
             @Override
             public @Nullable NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex) {
-                return NeiRecipeLookup.readResultSlot(handler, recipeIndex);
+                return siteRecipeResultSlot(handler, recipeIndex);
             }
 
             @Override
             public List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
-                return NeiRecipeLookup.readOtherSlots(handler, recipeIndex);
+                return siteRecipeSlots(handler, recipeIndex, false);
             }
         }, neiPhase1BackgroundExporter);
     }
@@ -360,6 +390,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 RecipeCompiler.trimToNull(element.getAttributeString("handlerName", null)),
                 RecipeCompiler.trimToNull(element.getAttributeString("handlerId", null)),
                 parsedHandlerOrder != null ? parsedHandlerOrder : -1,
+                RecipeCompiler.parseNameList(element.getAttributeString("handlerWhitelist", null)),
+                RecipeCompiler.parseNameList(element.getAttributeString("handlerBlacklist", null)),
                 RecipeCompiler.parseFilterExpr(
                     RecipeCompiler.trimToNull(element.getAttributeString("input", null)),
                     defaultNamespace),
@@ -393,6 +425,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
                 null,
                 null,
                 -1,
+                List.of(),
+                List.of(),
                 RecipeCompiler.parseFilterExpr(null, defaultNamespace),
                 RecipeCompiler.parseFilterExpr(null, defaultNamespace),
                 -1,
@@ -458,7 +492,9 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             request.handlerNameFilter,
             request.handlerIdFilter,
             request.handlerOrder,
-            handlerRuntime);
+            handlerRuntime,
+            request.handlerWhitelist,
+            RecipeCompiler.effectiveHandlerBlacklist(request.handlerBlacklist));
         if (handlers.isEmpty()) {
             return new RawHandlerRenderResult(List.of(), false);
         }
@@ -713,6 +749,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         @Nullable
         private final String handlerIdFilter;
         private final int handlerOrder;
+        private final List<String> handlerWhitelist;
+        private final List<String> handlerBlacklist;
         private final RecipeCompiler.FilterExpr inputExpr;
         private final RecipeCompiler.FilterExpr outputExpr;
         private final int recipeIndex;
@@ -722,8 +760,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
         private RenderRequest(String tagName, String recipeId, String fallbackText, String defaultNamespace,
             @Nullable String handlerNameFilter, @Nullable String handlerIdFilter, int handlerOrder,
-            RecipeCompiler.FilterExpr inputExpr, RecipeCompiler.FilterExpr outputExpr, int recipeIndex, int limit,
-            boolean multi, boolean usageQuery) {
+            List<String> handlerWhitelist, List<String> handlerBlacklist, RecipeCompiler.FilterExpr inputExpr,
+            RecipeCompiler.FilterExpr outputExpr, int recipeIndex, int limit, boolean multi, boolean usageQuery) {
             this.tagName = tagName;
             this.recipeId = recipeId;
             this.fallbackText = fallbackText;
@@ -731,6 +769,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             this.handlerNameFilter = handlerNameFilter;
             this.handlerIdFilter = handlerIdFilter;
             this.handlerOrder = handlerOrder;
+            this.handlerWhitelist = handlerWhitelist;
+            this.handlerBlacklist = handlerBlacklist;
             this.inputExpr = inputExpr;
             this.outputExpr = outputExpr;
             this.recipeIndex = recipeIndex;

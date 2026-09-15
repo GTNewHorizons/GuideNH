@@ -84,10 +84,7 @@ public class OpenGuideHotkey {
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
             newTick = true;
-            if (GuideNhClientIntegrationRegistry.global()
-                .isQuestHoverAvailable()) {
-                tickQuestHover();
-            }
+            tickQuestHover();
         }
     }
 
