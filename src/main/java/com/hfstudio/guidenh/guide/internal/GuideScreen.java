@@ -2698,6 +2698,9 @@ public class GuideScreen extends GuiContainer
         // when the document content revision has changed.
         registerRuntimeScenes(currentPage);
         for (LytGuidebookScene scene : currentPage.scenes()) {
+            // BlockRenderer6343 publishes its tier data from a scan thread, so a scene built before that
+            // finishes has no sliders. This adds them once the data is there and does nothing afterwards.
+            scene.refreshStructureLibControlMetadata();
             scene.ponderTick();
         }
     }

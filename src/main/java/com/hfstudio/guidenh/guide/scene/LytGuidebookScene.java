@@ -1302,6 +1302,56 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         invalidateBottomControlLayoutIfNeeded(previousBottomControlGeometryHash);
     }
 
+    /**
+     * Re-reads the tier and channel ranges of every bound structure and republishes them.
+     *
+     * <p>
+     * A scene materializes before BlockRenderer6343's scan has published anything, so its bindings were built
+     * without tiers or channels and both sliders stay hidden until the page is reopened. Reading the ranges
+     * again is a definition lookup with no world work, so a scene can do it while it is on screen.
+     *
+     * <p>
+     * The ranges are merged into the metadata a binding already holds rather than replacing it, because the
+     * ranges are read from the structure definition and carry no per-block tooltip data, which the original
+     * build produced.
+     *
+     * @return true when a binding now reports ranges it did not have before
+     */
+    public boolean refreshStructureLibControlMetadata() {
+        boolean changed = false;
+        for (StructureLibSceneBinding binding : structureLibBindings.values()) {
+            if (carriesRanges(binding.getMetadata())) {
+                continue;
+            }
+            StructureLibSceneMetadata ranges = StructureLibBuildService
+                .readControlMetadata(binding.getRebuildRequestTemplate());
+            StructureLibSceneMetadata.TierData tierData = ranges != null ? ranges.getTierData() : null;
+            if (tierData == null || !carriesRanges(ranges)) {
+                continue;
+            }
+            StructureLibSceneMetadata current = binding.getMetadata();
+            StructureLibSceneMetadata merged = (current == null
+                ? new StructureLibSceneMetadata(ranges.getController(), null, null, null, null)
+                : current).withTierAndChannelData(
+                    tierData.getMinValue(),
+                    tierData.getMaxValue(),
+                    tierData.getDefaultValue(),
+                    tierData.getCurrentValue(),
+                    ranges.getChannelDataList());
+            setStructureLibSceneMetadata(binding.getName(), merged);
+            changed = true;
+        }
+        return changed;
+    }
+
+    private static boolean carriesRanges(@Nullable StructureLibSceneMetadata metadata) {
+        if (metadata == null) {
+            return false;
+        }
+        StructureLibSceneMetadata.TierData tierData = metadata.getTierData();
+        return (tierData != null && tierData.isSelectable()) || metadata.hasSelectableChannels();
+    }
+
     public void setStructureLibSceneMetadata(@Nullable StructureLibSceneMetadata structureLibSceneMetadata) {
         structureLibBindings.clear();
         structureLibPrimaryBindingKey = null;

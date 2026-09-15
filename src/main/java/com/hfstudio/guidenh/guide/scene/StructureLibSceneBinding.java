@@ -158,6 +158,16 @@ public class StructureLibSceneBinding {
         return req;
     }
 
+    /**
+     * The template this binding was compiled with, for readers that need the controller before metadata
+     * exists. The template is set once at compile time, so it is available even while
+     * {@link #buildRebuildRequest()} still returns null for want of metadata.
+     */
+    @Nullable
+    public StructureLibBuildRequest getRebuildRequestTemplate() {
+        return hasRebuildRecipe ? rebuildRequestTemplate : null;
+    }
+
     @Nullable
     public Consumer<StructureLibPreviewSelection> getSelectionChangeListener() {
         return selectionChangeListener;

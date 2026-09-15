@@ -56,6 +56,7 @@ import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
 import com.hfstudio.guidenh.integration.Mods;
@@ -209,6 +210,10 @@ public class ClientProxy extends CommonProxy {
         MasterScheduler.getInstance()
             .submit(new DevWatchWorkItem());
         GuideOnStartup.init();
+        // Every mod has registered its multiblocks by now, which is what BlockRenderer6343 scans. Starting
+        // the scan here means the data is already there when the first scene asks for its tiers.
+        StructureLibDefinitionCache.getInstance()
+            .startScans();
     }
 
     @SubscribeEvent

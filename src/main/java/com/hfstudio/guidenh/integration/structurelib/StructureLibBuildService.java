@@ -92,6 +92,21 @@ public class StructureLibBuildService {
         return level;
     }
 
+    /**
+     * The tier and channel ranges a controller exposes, read from its structure definition.
+     *
+     * <p>
+     * Only a definition lookup, with no world work and no block placement, so a scene built before
+     * BlockRenderer6343 published its scan can ask for the ranges again while it is still on screen.
+     */
+    @Nullable
+    public static StructureLibSceneMetadata readControlMetadata(@Nullable StructureLibBuildRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return StructureLibPreviewTooltipMetadataBuilder.createControlMetadata(request, null);
+    }
+
     public StructureLibBuildResult build(StructureLibBuildRequest request) {
         try {
             return doBuild(request);

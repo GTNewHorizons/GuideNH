@@ -40,30 +40,28 @@ public class StructureLibDefinitionCache {
     }
 
     /**
-     * Starts BlockRenderer6343's structure scans if Nothing has published them yet.
+     * Starts BlockRenderer6343's structure scans, which it normally starts from {@code NEIConfig.loadConfig}.
      *
      * <p>
-     * BlockRenderer6343 fills {@code ConstructableData} from two scans, both started by the static initializer
-     * of the class that owns them: its GregTech handler covers the machines in the meta tile entity registry,
-     * and its StructureLib handler covers every multiblock registered through {@code IMultiblockInfoContainer},
-     * which includes the mods that build their multiblocks on top of GregTech. Those initializers normally run
-     * from {@code NEIConfig.loadConfig}, and when that does not happen the map stays empty for the whole
-     * session, so nothing reports tiers or channels and both sliders stay hidden.
+     * Both scans fill the map this cache reads, and each is started by the static initializer of the handler
+     * that owns it: the GregTech handler covers the machines in the meta tile entity registry, and the
+     * StructureLib handler covers the multiblocks registered through {@code IMultiblockInfoContainer}. When
+     * that initializer never runs, the map stays empty for the whole session, so no controller reports tiers
+     * or channels and both sliders stay hidden.
      *
      * <p>
-     * Only the class is initialized, not an instance built, because constructing a handler would also register
-     * a recipe handler with NotEnoughItems a second time. Initialization is attempted once; the scans it starts
-     * publish asynchronously, so an empty map right afterwards is expected and {@link #dataMap()} keeps
-     * re-reading until they do.
+     * Called once when loading completes, which is the first moment every mod has registered its multiblocks.
+     * Only the class is initialized rather than an instance built, because constructing a handler would also
+     * register its recipe handler with NotEnoughItems a second time. The scans then publish on their own
+     * thread, so callers still re-read through {@link #dataMap()}.
      */
-    private void requestScan() {
+    public void startScans() {
         if (scanRequested || !Mods.BlockRenderer6343.isModLoaded()) {
             return;
         }
         scanRequested = true;
-        // Both handlers only make sense on the client: they extend NotEnoughItems' recipe handler and are
-        // reached from the guide's client-side scene, so a missing client class is reported rather than
-        // allowed to abort the caller.
+        // Both handlers extend NotEnoughItems' recipe handler and are only reached from the client-side scene,
+        // so a missing client class is reported instead of being allowed to abort the caller.
         initializeScan("blockrenderer6343.integration.structurelib.StructureCompatNEIHandler");
         if (Mods.GregTech.isModLoaded()) {
             initializeScan("blockrenderer6343.integration.gregtech.GTNEIMultiblockHandler");
@@ -111,19 +109,18 @@ public class StructureLibDefinitionCache {
     }
 
     /**
-     * The snapshot, re-read while it is still empty because BlockRenderer6343 publishes asynchronously.
+     * The current snapshot, re-read while it is still empty.
      *
      * <p>
-     * A scene materializes long before the scan finishes, so the first lookups see nothing. Asking for the
-     * scan and reading again keeps those lookups correct once it has published, and because a snapshot with
-     * entries is never re-read, a populated session costs one lookup per query.
+     * The scans publish on their own thread after {@link #startScans()}, so a scene that opens immediately
+     * afterwards can still find nothing. Re-reading until the first entries appear covers that window, and
+     * once a snapshot has entries it is never re-read, so a populated session reads a field per lookup.
      */
     private Map<IConstructable, ConstructableData> dataMap() {
         Map<IConstructable, ConstructableData> current = constructableDataMap;
         if (!current.isEmpty()) {
             return current;
         }
-        requestScan();
         refresh();
         return constructableDataMap;
     }
