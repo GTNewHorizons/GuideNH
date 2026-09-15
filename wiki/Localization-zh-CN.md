@@ -86,6 +86,21 @@ foo.bar.md -> foo_x2e_bar
 
 GuideNH 不会仅凭 `.lang` 自动生成一个新页面；实体页面文件仍然必须存在。
 
+## 模板与语言
+
+`templates/` 目录下的模板页与其他页面遵循相同的语言查找顺序，因此同一个模板可以每种语言各有一个文件：
+
+```text
+_en_us/templates/InfoBox.md
+_zh_cn/templates/InfoBox.md
+```
+
+模板页同样可以像其他页面一样被 `.lang` 键整页替换。键的格式是在页面路径后追加模板路径：
+
+```text
+guidenh.page.<命名空间>.<目录>.templates.<名称>
+```
+
 ## Key 长度
 
 GuideNH 本身没有再额外给这类页面 key 施加字符上限。Minecraft 1.7.10 / Forge 这层的语言数据本质上更接近
@@ -138,4 +153,5 @@ wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png
 ## 相关页面
 
 - [指南页面格式](Guide-Page-Format-zh-CN)
+- [模板](Templates-zh-CN)
 - [图片与资源](Images-And-Assets-zh-CN)

@@ -119,6 +119,7 @@ The child tags set StructureLib defaults for the scene and are restored when the
 - use `index.md` when testing mixed runtime features together, including StructureLib tooltip, hatch-highlight, and cleanup behavior
 - use `scene-blocks.md` when you only need static block layout previews
 - use `example_structure.snbt` when you need a reusable imported structure asset
+- use `templates-demo.md` with the `templates/` folder when testing template transclusion, conditionals, and include control. See [Templates](Templates)
 
 ## Recommended Learning Order
 
