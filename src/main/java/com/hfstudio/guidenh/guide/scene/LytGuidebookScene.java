@@ -2177,6 +2177,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     @Nullable
     public SceneAnnotation updateAnnotationHover(int mouseX, int mouseY) {
+        if (annotations.isEmpty()) {
+            return null;
+        }
         if (!annotationsVisible) {
             clearAnnotationHover();
             return null;
@@ -3780,11 +3783,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public GuideIconButton.Role sceneButtonAt(int mouseX, int mouseY) {
         if (ponderSceneData != null && lastOuterH > 0 && cachedPonderBtnScreenW > 0) {
             if (mouseY >= cachedPonderBtnAbsY && mouseY < cachedPonderBtnAbsY + cachedPonderBtnScreenH) {
-                GuideIconButton.Role[] pRoles = { GuideIconButton.Role.PONDER_PREV_KEYFRAME,
-                    GuideIconButton.Role.PONDER_PLAY_PAUSE, GuideIconButton.Role.PONDER_RESTART };
-                for (int i = 0; i < pRoles.length; i++) {
+                for (int i = 0; i < PONDER_BUTTON_ROLES.length; i++) {
                     int bx = cachedPonderBtnAbsX + i * cachedPonderBtnScreenW;
-                    if (mouseX >= bx && mouseX < bx + cachedPonderBtnScreenW) return pRoles[i];
+                    if (mouseX >= bx && mouseX < bx + cachedPonderBtnScreenW) return PONDER_BUTTON_ROLES[i];
                 }
             }
         }

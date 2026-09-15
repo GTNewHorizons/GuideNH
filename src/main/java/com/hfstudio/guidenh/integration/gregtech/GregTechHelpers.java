@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.integration.gregtech;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -300,10 +299,13 @@ public class GregTechHelpers {
         if (existingMeta != null) {
             existingMeta.setBaseMetaTileEntity(gtTile);
             if (existingMeta.getBaseMetaTileEntity() == tileEntity) {
-                logInfoOnce(
-                    "repair-rebind:" + describeTile(tileEntity),
-                    "Rebound existing GregTech MetaTileEntity: {}",
-                    describeTile(tileEntity));
+                if (GuideDebugLog.isEnabled()) {
+                    String tileDescription = describeTile(tileEntity);
+                    logInfoOnce(
+                        "repair-rebind:" + tileDescription,
+                        "Rebound existing GregTech MetaTileEntity: {}",
+                        tileDescription);
+                }
                 return true;
             }
         }
@@ -323,11 +325,14 @@ public class GregTechHelpers {
         }
         gtTile.setInitialValuesAsNBT(snapshot, (short) 0);
         boolean repaired = hasValidMetaTileBindingImpl(tileEntity);
-        logInfoOnce(
-            (repaired ? "repair-success:" : "repair-failed:") + describeTile(tileEntity),
-            repaired ? "Recreated GregTech MetaTileEntity binding successfully: {}"
-                : "GregTech MetaTileEntity binding was still invalid after recreation: {}",
-            describeTile(tileEntity));
+        if (GuideDebugLog.isEnabled()) {
+            String tileDescription = describeTile(tileEntity);
+            logInfoOnce(
+                (repaired ? "repair-success:" : "repair-failed:") + tileDescription,
+                repaired ? "Recreated GregTech MetaTileEntity binding successfully: {}"
+                    : "GregTech MetaTileEntity binding was still invalid after recreation: {}",
+                tileDescription);
+        }
         return repaired;
     }
 
@@ -656,8 +661,9 @@ public class GregTechHelpers {
         }
 
         try {
-            boolean activeBefore = gtTile.isActive();
-            Boolean machineBefore = readPreviewMachineState(multiBlockBase);
+            boolean debugEnabled = GuideDebugLog.isEnabled();
+            boolean activeBefore = debugEnabled && gtTile.isActive();
+            boolean machineBefore = multiBlockBase.mMachine;
             boolean importedPreview = triggerStack != null && triggerStack.stackSize > 0;
             boolean valid = false;
             try {
@@ -669,11 +675,14 @@ public class GregTechHelpers {
                 valid = structureErrors.isEmpty();
                 if (!valid) {
                     appendPreviewStructureWarning(warnings, structureErrors);
-                    logInfoOnce(
-                        "preview-state-sync-invalid:" + describeTile(controllerTile),
-                        "GregTech preview structure check reported {} error(s) for {}",
-                        structureErrors.size(),
-                        describeTile(controllerTile));
+                    if (debugEnabled) {
+                        String tileDescription = describeTile(controllerTile);
+                        logInfoOnce(
+                            "preview-state-sync-invalid:" + tileDescription,
+                            "GregTech preview structure check reported {} error(s) for {}",
+                            structureErrors.size(),
+                            tileDescription);
+                    }
                 }
             } catch (Throwable t) {
                 logInfoOnce(
@@ -685,7 +694,7 @@ public class GregTechHelpers {
             }
             // A display-only import may omit operational requirements. Keep its previous formed/active
             // preview behavior without guessing controller fields or overwriting the derived casing tiers.
-            boolean machineApplied = applyPreviewMachineState(multiBlockBase, importedPreview || valid);
+            multiBlockBase.mMachine = importedPreview || valid;
             if (importedPreview || shouldActivatePreviewController(activeController, valid)) {
                 gtTile.setActive(true);
             }
@@ -693,19 +702,20 @@ public class GregTechHelpers {
                 gtTile.issueTextureUpdate();
                 applyPreviewTextureUpdate(metaTileEntity);
             }
-            Boolean machineAfter = readPreviewMachineState(multiBlockBase);
-            GuideDebugLog.info(
-                "GregTech preview sync controller={} meta={} facing={} valid={} activeRequested={} activeBefore={} activeAfter={} machineBefore={} machineAfter={} machineApplied={}",
-                describeTile(controllerTile),
-                describeMetaTile(metaTileEntity),
-                describeFacing(gtTile),
-                valid,
-                activeController,
-                activeBefore,
-                gtTile.isActive(),
-                machineBefore,
-                machineAfter,
-                machineApplied);
+            if (debugEnabled) {
+                GuideDebugLog.info(
+                    "GregTech preview sync controller={} meta={} facing={} valid={} activeRequested={} activeBefore={} activeAfter={} machineBefore={} machineAfter={} machineApplied={}",
+                    describeTile(controllerTile),
+                    describeMetaTile(metaTileEntity),
+                    describeFacing(gtTile),
+                    valid,
+                    activeController,
+                    activeBefore,
+                    gtTile.isActive(),
+                    machineBefore,
+                    multiBlockBase.mMachine,
+                    true);
+            }
         } catch (Throwable t) {
             logInfoOnce(
                 "preview-state-sync-failed:" + describeTile(controllerTile),
@@ -767,21 +777,17 @@ public class GregTechHelpers {
     }
 
     public static boolean applyPreviewMachineState(@Nullable Object multiBlockController, boolean formed) {
-        if (multiBlockController == null) {
+        if (multiBlockController == null || !Mods.GregTech.isModLoaded()) {
             return false;
         }
-        for (Class<?> type = multiBlockController.getClass(); type != null; type = type.getSuperclass()) {
-            try {
-                Field field = type.getDeclaredField("mMachine");
-                if (field.getType() != Boolean.TYPE) {
-                    continue;
-                }
-                field.setAccessible(true);
-                field.setBoolean(multiBlockController, formed);
-                return true;
-            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
-                return false;
-            }
+        return applyPreviewMachineStateImpl(multiBlockController, formed);
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    private static boolean applyPreviewMachineStateImpl(Object multiBlockController, boolean formed) {
+        if (multiBlockController instanceof MTEMultiBlockBase controller) {
+            controller.mMachine = formed;
+            return true;
         }
         return false;
     }
@@ -804,22 +810,16 @@ public class GregTechHelpers {
 
     @Nullable
     public static Boolean readPreviewMachineState(@Nullable Object multiBlockController) {
-        if (multiBlockController == null) {
+        if (multiBlockController == null || !Mods.GregTech.isModLoaded()) {
             return null;
         }
-        for (Class<?> type = multiBlockController.getClass(); type != null; type = type.getSuperclass()) {
-            try {
-                Field field = type.getDeclaredField("mMachine");
-                if (field.getType() != Boolean.TYPE) {
-                    continue;
-                }
-                field.setAccessible(true);
-                return field.getBoolean(multiBlockController);
-            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
-                return null;
-            }
-        }
-        return null;
+        return readPreviewMachineStateImpl(multiBlockController);
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    @Nullable
+    private static Boolean readPreviewMachineStateImpl(Object multiBlockController) {
+        return multiBlockController instanceof MTEMultiBlockBase controller ? controller.mMachine : null;
     }
 
     public static void applyDefaultFacing(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound tileTag) {
@@ -960,10 +960,12 @@ public class GregTechHelpers {
     }
 
     public static void logInfoOnce(String key, String message, Object... args) {
-        if (key == null || key.isEmpty() || message == null || message.isEmpty()) {
+        if (!GuideDebugLog.isEnabled() || key == null || key.isEmpty() || message == null || message.isEmpty()) {
             return;
         }
-        GuideDebugLog.runOnce(LOGGED_KEYS, key, () -> GuideDebugLog.info(message, args));
+        if (LOGGED_KEYS.add(key)) {
+            GuideDebugLog.info(message, args);
+        }
     }
 
     public static String describeBlock(@Nullable Block block) {

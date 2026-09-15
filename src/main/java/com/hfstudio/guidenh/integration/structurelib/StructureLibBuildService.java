@@ -44,6 +44,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 
 public class StructureLibBuildService {
 
@@ -489,6 +490,9 @@ public class StructureLibBuildService {
         if (minZ > CONTROLLER_Z) minZ = CONTROLLER_Z;
 
         List<StructureLibBuildResult.PlacedBlock> result = new ArrayList<>(filledBlocks.size());
+        // A casing can occupy thousands of positions. Resolve its registry string once per snapshot,
+        // while retaining explicit per-position identifiers such as the controller's block id.
+        Map<Block, String> blockIds = new Reference2ReferenceOpenHashMap<>();
         for (int[] pos : filledBlocks) {
             int x = pos[0], y = pos[1], z = pos[2];
             Block block = level.getBlock(x, y, z);
@@ -496,7 +500,10 @@ public class StructureLibBuildService {
 
             int meta = level.getBlockMetadata(x, y, z);
             TileEntity tile = level.getTileEntity(x, y, z);
-            String blockId = resolvePlacedBlockId(level, x, y, z, block);
+            String blockId = level.getExplicitBlockId(x, y, z);
+            if (blockId == null) {
+                blockId = blockIds.computeIfAbsent(block, StructureLibBuildService::resolveBlockId);
+            }
 
             result.add(
                 new StructureLibBuildResult.PlacedBlock(
@@ -549,12 +556,6 @@ public class StructureLibBuildService {
         int idx = trimmed.indexOf(":tile.");
         if (idx >= 0) return trimmed.substring(0, idx + 1) + trimmed.substring(idx + 6);
         return trimmed.indexOf(':') >= 0 ? trimmed : "minecraft:" + trimmed;
-    }
-
-    @Nullable
-    private static String resolvePlacedBlockId(GuidebookLevel level, int x, int y, int z, Block block) {
-        String explicit = level.getExplicitBlockId(x, y, z);
-        return explicit != null ? explicit : resolveBlockId(block);
     }
 
     public static IAlignment resolveAlignment(TileEntity tile) {

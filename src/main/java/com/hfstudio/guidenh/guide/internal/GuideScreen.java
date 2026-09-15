@@ -4744,9 +4744,13 @@ public class GuideScreen extends GuiContainer
             return null;
         }
 
-        GuideTooltip structureLibTooltip = scene.createStructureLibTooltipForHoveredBlock(name, isShiftDown());
-        if (structureLibTooltip != null && isShiftDown()) {
-            return structureLibTooltip;
+        boolean shiftDown = isShiftDown();
+        GuideTooltip structureLibTooltip = null;
+        if (shiftDown) {
+            structureLibTooltip = scene.createStructureLibTooltipForHoveredBlock(name, true);
+            if (structureLibTooltip != null) {
+                return structureLibTooltip;
+            }
         }
 
         ItemStack stack = blockDisplayStack(scene, x, y, z);
@@ -4754,7 +4758,11 @@ public class GuideScreen extends GuiContainer
             return new ItemTooltip(stack);
         }
 
-        return Objects.requireNonNullElseGet(structureLibTooltip, () -> new TextTooltip(name));
+        // Most blocks use their item tooltip. Build the rich StructureLib tree only when it is displayed.
+        if (!shiftDown) {
+            structureLibTooltip = scene.createStructureLibTooltipForHoveredBlock(name, false);
+        }
+        return structureLibTooltip != null ? structureLibTooltip : new TextTooltip(name);
     }
 
     private void drawContentTooltip(ContentTooltip ct, int mouseX, int mouseY,
@@ -6394,9 +6402,10 @@ public class GuideScreen extends GuiContainer
     }
 
     private void updateSceneHover(int mouseX, int mouseY) {
-        clearHoveredScene();
         var interaction = getDocumentInteractionState(mouseX, mouseY);
         LytGuidebookScene scene = interaction != null ? interaction.scene : null;
+        // updateHoveredScene clears a previous scene on transitions. Clearing every frame would also
+        // invalidate the scene's camera/world-aware ray-pick cache while the cursor is stationary.
         updateHoveredScene(scene, mouseX, mouseY);
     }
 

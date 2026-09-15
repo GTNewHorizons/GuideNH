@@ -10,6 +10,7 @@ import javax.annotation.Nullable;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
+import com.gtnewhorizon.gtnhlib.util.data.ItemId;
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.IMultiblockInfoContainer;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -130,6 +131,20 @@ public class StructureLibDefinitionCache {
         IConstructable cached = resolvedControllers.get(controllerBlockId);
         if (cached != null) return cached;
         try {
+            // Explicit GT controller metadata is normally its registry slot. Verify the actual stack
+            // before accepting it so integrations with custom stack forms still use the fallback below.
+            int separator = controllerBlockId.lastIndexOf(':');
+            if (separator > controllerBlockId.indexOf(':') && separator + 1 < controllerBlockId.length()) {
+                try {
+                    int meta = Integer.parseInt(controllerBlockId.substring(separator + 1));
+                    if (meta >= 0 && meta < GregTechAPI.METATILEENTITIES.length
+                        && GregTechAPI.METATILEENTITIES[meta] instanceof IConstructable c
+                        && isControllerMatch(c, controllerBlockId)) {
+                        resolvedControllers.put(controllerBlockId, c);
+                        return c;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
             for (IMetaTileEntity mte : GregTechAPI.METATILEENTITIES) {
                 if (mte instanceof IConstructable c && isControllerMatch(c, controllerBlockId)) {
                     resolvedControllers.put(controllerBlockId, c);
@@ -161,12 +176,14 @@ public class StructureLibDefinitionCache {
             var map = AccessorConstructableData.getConstructableDataMap();
             synchronized (map) {
                 merged = mergeData(merged, map.get(c));
+                ItemId controllerItem = resolveControllerItem(c);
                 // ConstructableData is identity-keyed. StructureLib container scans may create an equivalent
                 // constructable instance, so match every published entry by its controller stack as a fallback.
                 // A controller can have multiple definitions (and therefore multiple channel sets); selecting
                 // one entry loses channels such as glass when another definition owns them.
                 for (var entry : map.object2ObjectEntrySet()) {
-                    if (isSameController(entry.getKey(), c)) {
+                    IConstructable candidate = entry.getKey();
+                    if (candidate != c && controllerItem != null && isControllerMatch(candidate, controllerItem)) {
                         merged = mergeData(merged, entry.getValue());
                     }
                 }
@@ -241,10 +258,19 @@ public class StructureLibDefinitionCache {
         return data;
     }
 
-    private static boolean isSameController(IConstructable a, IConstructable b) {
-        if (!(a instanceof IMetaTileEntity ma) || !(b instanceof IMetaTileEntity mb)) return a == b;
-        ItemStack sa = ma.getStackForm(1);
-        ItemStack sb = mb.getStackForm(1);
-        return sa != null && sb != null && sa.getItem() == sb.getItem() && sa.getItemDamage() == sb.getItemDamage();
+    @Nullable
+    private static ItemId resolveControllerItem(IConstructable constructable) {
+        if (!(constructable instanceof IMetaTileEntity mte)) return null;
+        ItemStack stack = mte.getStackForm(1);
+        // Keep this identity local to one lookup. Controller registrations and scan results may still
+        // change while the asynchronous scans are running; no mutable stacks are retained across builds.
+        return stack != null ? ItemId.createNoCopy(stack.getItem(), stack.getItemDamage(), null) : null;
+    }
+
+    private static boolean isControllerMatch(IConstructable candidate, ItemId controllerItem) {
+        if (!(candidate instanceof IMetaTileEntity mte)) return false;
+        ItemStack stack = mte.getStackForm(1);
+        return stack != null && stack.getItem() == controllerItem.getItem()
+            && stack.getItemDamage() == controllerItem.getItemMeta();
     }
 }
