@@ -110,17 +110,36 @@ final class StructureLibPreviewTooltipMetadataBuilder {
     private static ConstructableData resolveControlData(String controllerId, Object context) {
         ConstructableData byId = StructureLibDefinitionCache.getInstance()
             .getConstructableDataFor(controllerId);
+        ConstructableData byContext = context instanceof com.gtnewhorizon.structurelib.alignment.constructable.IConstructable constructable
+            ? ConstructableData.getTierData(constructable)
+            : null;
+        GuideDebugLog.warnAlways(
+            "[GuideNH] [StructureLib] Resolve {}: byId={}, byContext={}, contextIsConstructable={}",
+            controllerId,
+            describeData(byId),
+            describeData(byContext),
+            context instanceof com.gtnewhorizon.structurelib.alignment.constructable.IConstructable);
         if (byId != null && byId.hasData()) {
             return byId;
         }
-        if (context instanceof com.gtnewhorizon.structurelib.alignment.constructable.IConstructable constructable) {
-            ConstructableData byContext = ConstructableData.getTierData(constructable);
-            if (byContext != null && byContext.hasData()) {
-                return byContext;
-            }
+        if (byContext != null && byContext.hasData()) {
+            return byContext;
         }
         // Reporting the data-less result still yields a controller identity, so block tooltips keep working.
         return byId;
+    }
+
+    private static String describeData(@Nullable ConstructableData data) {
+        if (data == null) {
+            return "null";
+        }
+        return "hasData=" + data.hasData()
+            + ",maxTier="
+            + data.getMaxTotalTier()
+            + ",channels="
+            + (data.getChannelData() == null ? -1
+                : data.getChannelData()
+                    .size());
     }
 
     private static StructureLibSceneMetadata createControlMetadata(String controller, String piece, String facing,
