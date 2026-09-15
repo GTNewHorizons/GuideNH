@@ -10,6 +10,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.mixins.late.compat.blockrenderer6343.AccessorConstructableData;
 
 import blockrenderer6343.client.utils.ConstructableData;
@@ -56,7 +57,11 @@ public class StructureLibDefinitionCache {
             synchronized (dataMap) {
                 constructableDataMap = Collections.unmodifiableMap(new HashMap<>(dataMap));
             }
+            GuideDebugLog.warnAlways(
+                "[GuideNH] [StructureLib] Definition cache refreshed: entries={}",
+                constructableDataMap.size());
         } catch (Throwable t) {
+            GuideDebugLog.warnAlways("[GuideNH] [StructureLib] Definition cache refresh failed: {}", t.toString());
             constructableDataMap = Collections.emptyMap();
         }
     }
