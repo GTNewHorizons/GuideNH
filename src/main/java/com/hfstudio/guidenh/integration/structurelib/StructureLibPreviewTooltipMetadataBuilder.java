@@ -334,13 +334,15 @@ final class StructureLibPreviewTooltipMetadataBuilder {
             hatchCandidates.addAll(data.getHatchCandidates());
         }
 
-        List<ItemStack> normalizedHatches = normalize(hatchCandidates);
+        // The fallbacks already handed over detached stacks, so only their identity is decided here; a
+        // further normalize would re-run Forge's capability collection for every stack of every fallback.
+        List<ItemStack> normalizedHatches = deduplicate(hatchCandidates);
         if (!normalizedHatches.isEmpty()) {
             blockCandidates.removeIf(stack -> containsStack(normalizedHatches, stack));
         }
         return new StructureLibSceneMetadata.BlockTooltipData(
             STRUCTURELIB_DESCRIPTION,
-            normalize(blockCandidates),
+            deduplicate(blockCandidates),
             hatchLines,
             normalizedHatches,
             true);
@@ -415,6 +417,28 @@ final class StructureLibPreviewTooltipMetadataBuilder {
                         .getUnlocalizedName() + ':'
                         + copy.getItemDamage(),
                     copy);
+            }
+        }
+        return new ArrayList<>(deduplicated.values());
+    }
+
+    /**
+     * Keeps one stack per item and damage value, without detaching them.
+     *
+     * <p>
+     * Used where the stacks already came from {@link #normalize} or from another resolve, so copying them
+     * again would only repeat Forge's capability collection. The identity of the surviving stack is what the
+     * caller stores, which is why this may share instances.
+     */
+    private static List<ItemStack> deduplicate(Iterable<ItemStack> stacks) {
+        Map<String, ItemStack> deduplicated = new LinkedHashMap<>();
+        for (ItemStack stack : stacks) {
+            if (stack != null && stack.getItem() != null) {
+                deduplicated.putIfAbsent(
+                    stack.getItem()
+                        .getUnlocalizedName() + ':'
+                        + stack.getItemDamage(),
+                    stack);
             }
         }
         return new ArrayList<>(deduplicated.values());
