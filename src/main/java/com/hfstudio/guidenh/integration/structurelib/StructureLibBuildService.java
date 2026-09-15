@@ -131,9 +131,11 @@ public class StructureLibBuildService {
         List<ItemStack> machineStacks = new ArrayList<>();
         GregTechHelpers.appendMachineStacks(machineStacks);
         Object metadataContext = resolveMetadataContext(controllerTile, constructable);
-        StructureLibSceneMetadata metadata;
+        StructureLibSceneMetadata metadata = StructureLibPreviewTooltipMetadataBuilder
+            .createControlMetadata(request, metadataContext);
         try (StructureLibPreviewMetadataScope ignored = StructureLibPreviewMetadataScope.open()) {
             metadata = StructureLibPreviewTooltipMetadataBuilder.build(
+                metadata,
                 request,
                 blocks,
                 visitedElements,
@@ -153,11 +155,12 @@ public class StructureLibBuildService {
                 metadata.getHatchTooltipEntries()
                     .size());
         } catch (Throwable t) {
+            // Only the block tooltips are lost here; the tier and channel ranges come from the structure
+            // definition and stay valid, so the sliders must not disappear because a tooltip failed.
             GuideDebugLog.warn(
-                "[GuideNH] [StructureLib] Preview metadata generation failed for {}; scene blocks remain available",
+                "[GuideNH] [StructureLib] Preview tooltips failed for {}; tier and channel controls remain available",
                 request.controllerId(),
                 t);
-            metadata = null;
         }
         return new StructureLibBuildResult(blocks, true, null, metadata);
     }

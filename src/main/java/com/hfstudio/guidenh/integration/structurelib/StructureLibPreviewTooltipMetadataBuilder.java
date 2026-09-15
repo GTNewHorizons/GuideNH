@@ -14,10 +14,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.gtnewhorizon.structurelib.structure.AutoPlaceEnvironment;
 import com.gtnewhorizon.structurelib.structure.IItemSource;
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.gtnewhorizon.structurelib.structure.IStructureElementChain;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
@@ -36,18 +39,14 @@ final class StructureLibPreviewTooltipMetadataBuilder {
 
     private StructureLibPreviewTooltipMetadataBuilder() {}
 
-    static StructureLibSceneMetadata build(StructureLibBuildRequest request,
+    /**
+     * Adds the per-block tooltips to metadata that already carries the controller's tier and channel ranges.
+     * Separating the two lets a failure here leave those ranges, and so the sliders, intact.
+     */
+    static StructureLibSceneMetadata build(StructureLibSceneMetadata metadata, StructureLibBuildRequest request,
         List<StructureLibBuildResult.PlacedBlock> blocks, Long2ObjectMap<IStructureElement<?>> visitedElements,
         int originX, int originY, int originZ, Object context, World world, ItemStack trigger, EntityPlayer actor,
         List<ItemStack> machineStacks) {
-        StructureLibSceneMetadata metadata = createControlMetadata(
-            request.controllerId(),
-            request.piece(),
-            request.facing(),
-            request.rotation(),
-            request.flip(),
-            context,
-            request);
         if (blocks.isEmpty() || visitedElements.isEmpty()) {
             return metadata;
         }
@@ -82,13 +81,52 @@ final class StructureLibPreviewTooltipMetadataBuilder {
         return metadata.withBlockTooltips(tooltipData);
     }
 
+    /**
+     * The tier and channel ranges a controller exposes, read from its structure definition. This is a
+     * definition lookup with no world work, which is why a caller can obtain it before, or without, building
+     * the structure itself.
+     */
+    static StructureLibSceneMetadata createControlMetadata(StructureLibBuildRequest request, Object context) {
+        return createControlMetadata(
+            request.controllerId(),
+            request.piece(),
+            request.facing(),
+            request.rotation(),
+            request.flip(),
+            context,
+            request);
+    }
+
+    /**
+     * The tier and channel data for a controller.
+     *
+     * <p>
+     * {@code ConstructableData} is keyed by the registered {@link IConstructable} using identity, but placing
+     * a controller in the preview world creates a fresh instance, so looking the placed tile up directly
+     * always misses and reports no tiers or channels. Both lookups therefore run and the one that actually
+     * carries data wins, which is what keeps the tier and channel sliders available.
+     */
+    @Nullable
+    private static ConstructableData resolveControlData(String controllerId, Object context) {
+        ConstructableData byId = StructureLibDefinitionCache.getInstance()
+            .getConstructableDataFor(controllerId);
+        if (byId != null && byId.hasData()) {
+            return byId;
+        }
+        if (context instanceof com.gtnewhorizon.structurelib.alignment.constructable.IConstructable constructable) {
+            ConstructableData byContext = ConstructableData.getTierData(constructable);
+            if (byContext != null && byContext.hasData()) {
+                return byContext;
+            }
+        }
+        // Reporting the data-less result still yields a controller identity, so block tooltips keep working.
+        return byId;
+    }
+
     private static StructureLibSceneMetadata createControlMetadata(String controller, String piece, String facing,
         String rotation, String flip, Object context, StructureLibBuildRequest request) {
         StructureLibSceneMetadata metadata = new StructureLibSceneMetadata(controller, piece, facing, rotation, flip);
-        if (!(context instanceof com.gtnewhorizon.structurelib.alignment.constructable.IConstructable constructable)) {
-            return metadata;
-        }
-        ConstructableData data = ConstructableData.getTierData(constructable);
+        ConstructableData data = resolveControlData(controller, context);
         if (data == null) {
             return metadata;
         }
