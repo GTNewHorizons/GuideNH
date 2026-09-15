@@ -63,6 +63,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.12.2")
     testImplementation("com.github.GTNewHorizons:StructureLib:1.4.43:dev")
+    testImplementation("org.joml:joml:1.10.8")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.12.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
 }
