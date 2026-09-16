@@ -69,7 +69,10 @@ public class GuideNavProjection {
     public enum RowKind {
         BOOKMARK_GROUP,
         BOOKMARK_PAGE,
-        TREE_PAGE
+        TREE_PAGE,
+        /** The collapsible section the guide editor appends below the tree, holding every template page. */
+        TEMPLATE_GROUP,
+        TEMPLATE_PAGE
     }
 
     public static class DisplayRow {
@@ -178,6 +181,33 @@ public class GuideNavProjection {
         for (var root : tree.getRootNodes()) {
             addTreeRows(rows, root, 0, expandedTreePageIds, -1);
         }
+        return new ProjectionResult(rows);
+    }
+
+    /**
+     * Appends the template section below the tree. The guide editor uses it so a template can be opened and
+     * edited in game without leaving the guide, which is why it is driven by an explicit flag rather than by
+     * the tree: templates have pages, but the tree shows them only where the pack filed them.
+     *
+     * @param templatePages         the template pages to list, already resolved and ordered
+     * @param templateGroupExpanded whether the section is open
+     */
+    public ProjectionResult withTemplates(ProjectionResult base, List<DisplayRow> templatePages,
+        boolean templateGroupExpanded) {
+        if (templatePages.isEmpty()) {
+            return base;
+        }
+        var rows = new ArrayList<>(base.rows());
+        var groupRow = appendRow(
+            rows,
+            new DisplayRow(RowKind.TEMPLATE_GROUP, 0, GuidebookText.Templates.text(), null, null, null, true, false),
+            -1);
+        if (templateGroupExpanded) {
+            for (DisplayRow templateRow : templatePages) {
+                appendRow(rows, templateRow, groupRow.rowIndex());
+            }
+        }
+        groupRow.setSubtreeEndRowIndexExclusive(rows.size());
         return new ProjectionResult(rows);
     }
 

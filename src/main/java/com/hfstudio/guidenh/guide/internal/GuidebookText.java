@@ -318,6 +318,7 @@ public enum GuidebookText implements LocalizationEnum {
     Bookmarks,
     Bookmark,
     Bookmarked,
+    Templates,
     SearchNoQuery,
     SearchNoResults,
     SearchPlaceholder,
