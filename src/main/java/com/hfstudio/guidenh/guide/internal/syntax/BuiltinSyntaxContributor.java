@@ -978,6 +978,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         registerMediaWikiSpecialAttributes(sink);
         registerQuestVisibilityAttributes(sink);
         contributeTagShape(sink);
+        contributeIncludeControlTags(sink);
         contributeValueKinds(sink);
         contributeMarkdown(sink);
         contributeFences(sink);
@@ -1112,11 +1113,24 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             sink.attributes(function, value, start, length, from, to, index, width, pad, needle, delimiter);
         }
 
-        sink.children("Template", "Arg");
-        sink.children("If", "Else");
-        sink.children("IfEq", "Else");
-        sink.children("IfExist", "Else");
-        sink.children("Switch", "Case", "Default");
+        // A template body, an <If> branch and a <Switch> branch are all ordinary block content, so these lists
+        // rank completion rather than restricting it: a template may emit any tag, and the control tags only
+        // take their own branch markers.
+        sink.preferredChildren("Template", "Arg", "Param");
+        sink.preferredChildren("If", "Else");
+        sink.preferredChildren("IfEq", "Else");
+        sink.preferredChildren("IfExist", "Else");
+        sink.preferredChildren("Switch", "Case", "Default");
+    }
+
+    private static void contributeIncludeControlTags(SyntaxSink sink) {
+        // Written as literals rather than the MediaWikiIncludeControl constants so the schema generator, which
+        // reads this source as text, sees the tag names directly.
+        sink.containerTags("NoInclude", "IncludeOnly", "OnlyInclude");
+        // Each of these wraps a body a template can fill with anything, so they rank rather than restrict.
+        sink.preferredChildren("NoInclude");
+        sink.preferredChildren("IncludeOnly");
+        sink.preferredChildren("OnlyInclude");
     }
 
     private static void registerQuestVisibilityAttributes(SyntaxSink sink) {
