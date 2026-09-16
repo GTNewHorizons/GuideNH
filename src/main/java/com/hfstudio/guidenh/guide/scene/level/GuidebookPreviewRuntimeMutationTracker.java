@@ -10,6 +10,7 @@ import it.unimi.dsi.fastutil.ints.Int2ByteOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import lombok.Getter;
 
 /**
  * Tracks positions whose imported preview state has been superseded by runtime scene mutations.
@@ -424,16 +425,13 @@ public class GuidebookPreviewRuntimeMutationTracker {
      * Identifies one integration-specific category of runtime preview mutation. IDs must be
      * namespaced, for example {@code examplemod:pipe_connections}.
      */
+    @Getter
     public static class MutationKind {
 
         private final String id;
 
         public MutationKind(String id) {
             this.id = requireNamespacedId(id, "mutation kind");
-        }
-
-        public String getId() {
-            return id;
         }
 
         @Override
@@ -451,16 +449,13 @@ public class GuidebookPreviewRuntimeMutationTracker {
      * Identifies the lifecycle that owns a set of runtime preview mutations. IDs must be
      * namespaced, for example {@code examplemod:animation}.
      */
+    @Getter
     public static class MutationLayer {
 
         private final String id;
 
         public MutationLayer(String id) {
             this.id = requireNamespacedId(id, "mutation layer");
-        }
-
-        public String getId() {
-            return id;
         }
 
         @Override

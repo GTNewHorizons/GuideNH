@@ -6,8 +6,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.github.bsideup.jabel.Desugar;
-
 public class MediaWikiSpecialPageRefreshController {
 
     private final AtomicLong revision = new AtomicLong(1L);
@@ -86,6 +84,5 @@ public class MediaWikiSpecialPageRefreshController {
         }
     }
 
-    @Desugar
     private record RefreshTask(long revision, Runnable task) {}
 }

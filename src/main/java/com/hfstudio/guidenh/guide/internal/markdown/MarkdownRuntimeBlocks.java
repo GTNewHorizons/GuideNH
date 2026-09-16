@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
@@ -278,12 +277,10 @@ public class MarkdownRuntimeBlocks {
         return null;
     }
 
-    @Desugar
     public record BlockquoteDirective(@Nullable GithubAlertType alertType, ColorValue accentColor,
         @Nullable String title, @Nullable QuoteIconSpec icon, String remainingText,
         @Nullable MdAstAnyContent firstParagraph, List<? extends MdAstAnyContent> children) {}
 
-    @Desugar
     public record QuoteIconSpec(QuoteIconKind kind, String value) {}
 
     public enum QuoteIconKind {
@@ -292,10 +289,8 @@ public class MarkdownRuntimeBlocks {
         ITEM
     }
 
-    @Desugar
     private record FirstParagraphText(@Nullable MdAstAnyContent paragraph, String text) {}
 
-    @Desugar
     public record GithubAlertBlock(GithubAlertType type, List<? extends MdAstAnyContent> children,
         String remainingText) {}
 }

@@ -6,8 +6,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-import com.github.bsideup.jabel.Desugar;
-
 public class MediaWikiListPlanner {
 
     public static final int DEFAULT_ROWS = 3;
@@ -189,12 +187,9 @@ public class MediaWikiListPlanner {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
-    @Desugar
     public record MediaWikiListGroup(String key, List<MediaWikiListEntry> entries) {}
 
-    @Desugar
     public record MediaWikiListSection(String key, List<MediaWikiListEntry> entries) {}
 
-    @Desugar
     public record MediaWikiListColumn(List<MediaWikiListSection> sections) {}
 }

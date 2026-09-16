@@ -9,22 +9,23 @@ import net.minecraft.util.IChatComponent;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.mojang.authlib.GameProfile;
 
-class PreviewFakePlayer extends EntityPlayer {
+public class PreviewFakePlayer extends EntityPlayer {
 
-    static final int CONTROLLER_X = 0;
-    static final int CONTROLLER_Y = 64;
-    static final int CONTROLLER_Z = 0;
+    public static final int CONTROLLER_X = 0;
+    public static final int CONTROLLER_Y = 64;
+    public static final int CONTROLLER_Z = 0;
 
-    PreviewFakePlayer(World world) {
+    public PreviewFakePlayer(World world) {
         super(world, new GameProfile(UUID.fromString("9c7ef542-6ab6-4524-b7d7-8caaf8df467c"), "GuideNHPreview"));
         capabilities.isCreativeMode = true;
         noClip = true;
         configureForControllerFacing(ForgeDirection.SOUTH);
     }
 
-    void configureForControllerFacing(ForgeDirection controllerFacing) {
+    public void configureForControllerFacing(ForgeDirection controllerFacing) {
         ForgeDirection facing = controllerFacing != null && controllerFacing != ForgeDirection.UNKNOWN
             ? controllerFacing
             : ForgeDirection.SOUTH;
@@ -40,7 +41,7 @@ class PreviewFakePlayer extends EntityPlayer {
         setPositionAndRotation(x, y, z, yaw, 0.0F);
     }
 
-    private static float yawForFacing(ForgeDirection facing) {
+    public static float yawForFacing(ForgeDirection facing) {
         return switch (facing) {
             case EAST -> 90.0F;
             case SOUTH -> 180.0F;
@@ -50,7 +51,11 @@ class PreviewFakePlayer extends EntityPlayer {
     }
 
     @Override
-    public void addChatMessage(IChatComponent message) {}
+    public void addChatMessage(IChatComponent message) {
+        if (message != null) {
+            GuideDebugLog.warn("[GuideNH] [StructureLib] Auto-placement rejected: {}", message.getUnformattedText());
+        }
+    }
 
     @Override
     public boolean canCommandSenderUseCommand(int i, String s) {

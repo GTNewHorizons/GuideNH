@@ -4,6 +4,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
+
 /**
  * One SNBT export run; contributors may stash batch state in {@link #shared}.
  */
@@ -19,6 +21,7 @@ public class ExportSession {
     private final int sizeX;
     private final int sizeY;
     private final int sizeZ;
+    @Getter
     private final boolean serverPreviewFetchEnabled;
     private final ConcurrentHashMap<String, Object> shared = new ConcurrentHashMap<>();
 
@@ -80,10 +83,6 @@ public class ExportSession {
 
     public int sizeZ() {
         return sizeZ;
-    }
-
-    public boolean isServerPreviewFetchEnabled() {
-        return serverPreviewFetchEnabled;
     }
 
     public ConcurrentHashMap<String, Object> shared() {

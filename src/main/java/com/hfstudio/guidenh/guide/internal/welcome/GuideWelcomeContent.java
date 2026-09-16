@@ -6,7 +6,6 @@ import java.io.InputStream;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.GuideNH;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
@@ -67,6 +66,5 @@ public class GuideWelcomeContent {
         }
     }
 
-    @Desugar
     public record LoadedContent(String sourcePack, String language, String source) {}
 }

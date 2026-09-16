@@ -1,8 +1,5 @@
 package com.hfstudio.guidenh.guide.color;
 
-import com.github.bsideup.jabel.Desugar;
-
-@Desugar
 public record ConstantColor(int color) implements ColorValue {
 
     public static ConstantColor WHITE = ColorUtils.constant(ColorUtils.WHITE);

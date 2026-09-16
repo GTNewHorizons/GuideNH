@@ -14,7 +14,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -31,7 +30,6 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiTranslationStats;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
 import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
-import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.syntax.GuideSyntaxModel;
 
@@ -61,8 +59,6 @@ public class GuideLightweightReloadService {
         GuideLatexTextureCache.INSTANCE.clearAll();
         GuideSceneStructureCache.global()
             .clear();
-        StructureLibDefinitionCache.getInstance()
-            .refresh();
         ClientProxy.getLytHost()
             .clearPageCaches();
 
@@ -328,6 +324,5 @@ public class GuideLightweightReloadService {
         RAW_SOURCE
     }
 
-    @Desugar
     private record PageLoadResult(ParsedGuidePage page, LoadKind kind) {}
 }

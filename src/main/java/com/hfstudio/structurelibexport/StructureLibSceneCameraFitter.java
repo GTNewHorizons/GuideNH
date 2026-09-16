@@ -1,6 +1,5 @@
 package com.hfstudio.structurelibexport;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideProjectionMath;
@@ -60,10 +59,8 @@ public class StructureLibSceneCameraFitter {
         return new ProjectionBounds(projected[0], projected[1], projected[2], projected[3]);
     }
 
-    @Desugar
     public record FittedCamera(CameraSettings camera, int width, int height) {}
 
-    @Desugar
     public record ProjectionBounds(float minX, float maxX, float minY, float maxY) {
 
         public float width() {

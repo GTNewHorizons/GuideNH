@@ -11,7 +11,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.unist.UnistPoint;
 
@@ -321,7 +320,6 @@ public class Tokenizer {
         void handle(Construct construct, Info info);
     }
 
-    @Desugar
     record Info(Runnable restore, int from) {}
 
     /**
@@ -490,7 +488,6 @@ public class Tokenizer {
     public static class ContainerState extends HashMap<String, Object> {
     }
 
-    @Desugar
     public record Event(EventType type, Token token, TokenizeContext context) {
 
         public static Event enter(Token token, TokenizeContext context) {

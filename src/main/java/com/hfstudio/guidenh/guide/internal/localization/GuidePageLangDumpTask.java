@@ -17,7 +17,6 @@ import java.util.zip.ZipFile;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
@@ -271,13 +270,10 @@ public class GuidePageLangDumpTask {
         return builder.toString();
     }
 
-    @Desugar
     public record Result(Path outDir, int writtenLanguageFileCount, int exportedPageCount, int languageCount,
         int namespaceCount, int resourcePackCount, long durationMillis) {}
 
-    @Desugar
     private record LangFileTarget(String namespace, String language) {}
 
-    @Desugar
     private record PageDumpKey(String namespace, String contentRootFolder, String language, String pagePath) {}
 }

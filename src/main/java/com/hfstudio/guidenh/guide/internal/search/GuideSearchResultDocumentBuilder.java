@@ -6,7 +6,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
@@ -206,7 +205,6 @@ public class GuideSearchResultDocumentBuilder {
         return SEARCH_TITLE_COLOR;
     }
 
-    @Desugar
     public record SearchPageResult(@Nullable ResourceLocation guideId, PageAnchor anchor, @Nullable GuidePageIcon icon,
         String title, String pagePath, LytFlowContent snippet) {}
 

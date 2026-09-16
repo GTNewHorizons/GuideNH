@@ -55,7 +55,6 @@ import org.apache.lucene.store.FSDirectory;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -724,13 +723,10 @@ public class GuideSearch implements AutoCloseable {
         closeIndex();
     }
 
-    @Desugar
     public record GuideIndexingTask(Guide guide, Deque<ParsedGuidePage> pendingPages) {}
 
-    @Desugar
     public record PageIndexDocument(Guide guide, ParsedGuidePage page, Document document, long generation) {}
 
-    @Desugar
     public record SearchResult(ResourceLocation guideId, ResourceLocation pageId, String pageTitle, LytFlowContent text,
         float score) {
 

@@ -10,13 +10,11 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 
-@Desugar
 public record MediaWikiListContext(Guide guide, Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
     NavigationTree navigationTree, CategoryIndex categoryIndex, MediaWikiSpecialDataIndex specialDataIndex) {
 

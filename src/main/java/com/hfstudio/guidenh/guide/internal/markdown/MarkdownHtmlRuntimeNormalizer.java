@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
@@ -340,9 +339,7 @@ public class MarkdownHtmlRuntimeNormalizer {
             .trim();
     }
 
-    @Desugar
     private record TagInfo(String name, boolean closing, boolean selfClosing, Map<String, String> attributes) {}
 
-    @Desugar
     private record DetailsOpenTag(Map<String, String> attributes, String summaryText, boolean open) {}
 }

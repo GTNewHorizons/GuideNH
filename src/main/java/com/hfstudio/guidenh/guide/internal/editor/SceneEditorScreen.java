@@ -527,7 +527,8 @@ public class SceneEditorScreen extends GuiScreen {
 
         this.buttonList.clear();
         int toolbarX = TOOLBAR_MARGIN_X;
-        List<GuideIconButton> defaultButtons = defaultControlRegistry.createToolbarButtons(toolbarX, TOOLBAR_Y);
+        List<GuideIconButton> defaultButtons = SceneEditorDefaultControlRegistry
+            .createToolbarButtons(toolbarX, TOOLBAR_Y);
         closeButton = defaultButtons.get(0);
         resetPreviewButton = defaultButtons.get(1);
         snapButton = defaultButtons.get(2);
@@ -4364,7 +4365,7 @@ public class SceneEditorScreen extends GuiScreen {
             }
 
             public void drawRect(int left, int top, int right, int bottom, int color) {
-                SceneEditorScreen.this.drawRect(left, top, right, bottom, color);
+                Gui.drawRect(left, top, right, bottom, color);
             }
 
             public void drawBorder(int left, int top, int width, int height, int color) {

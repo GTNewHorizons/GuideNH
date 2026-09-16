@@ -15,7 +15,6 @@ public class ExtensionCollection {
     public static final ExtensionCollection EMPTY = new ExtensionCollection(Map.of());
 
     /**
-     * -- GETTER --
      *
      * @return The extension points for which this collection contains extensions.
      */

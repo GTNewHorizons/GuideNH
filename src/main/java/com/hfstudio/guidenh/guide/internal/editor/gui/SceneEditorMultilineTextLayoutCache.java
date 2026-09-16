@@ -5,8 +5,6 @@ import java.util.List;
 
 import net.minecraft.client.gui.FontRenderer;
 
-import com.github.bsideup.jabel.Desugar;
-
 import lombok.Getter;
 
 public class SceneEditorMultilineTextLayoutCache {
@@ -90,6 +88,5 @@ public class SceneEditorMultilineTextLayoutCache {
         }
     }
 
-    @Desugar
     public record VisualLine(int startIndex, int endIndex, String text, boolean endsWithNewline) {}
 }

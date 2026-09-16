@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity;
 import com.hfstudio.guidenh.guide.internal.structure.GuideTextNbtCodec;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookCapeControllable;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookNameplateControllable;
@@ -303,19 +304,8 @@ public class GuideSceneStructureSnapshot implements Serializable {
         if (entry.previewPose != null && entity instanceof GuidebookPlayerPoseControllable poseControllable) {
             poseControllable.setGuidebookPreviewPlayerPose(entry.previewPose.restore());
         }
-        if (entry.previewBaby != null) {
-            tryInvokeBooleanInstanceMethod(entity, "setGuidebookBaby", entry.previewBaby);
-        }
-    }
-
-    private static boolean tryInvokeBooleanInstanceMethod(Entity entity, String methodName, boolean value) {
-        try {
-            entity.getClass()
-                .getMethod(methodName, Boolean.TYPE)
-                .invoke(entity, value);
-            return true;
-        } catch (Throwable ignored) {
-            return false;
+        if (entry.previewBaby != null && entity instanceof GuidebookScenePreviewPlayerEntity player) {
+            player.setGuidebookBaby(entry.previewBaby);
         }
     }
 

@@ -294,7 +294,7 @@ public class RecipeCompiler extends BlockTagCompiler {
      * {@code negated == true} means "no stack matches this ref" (for ingredient-slot lists) or "the
      * target stack does not match this ref" (for single-stack matching).
      */
-    private static class FilterTerm {
+    public static class FilterTerm {
 
         private final IdUtils.ParsedItemRef ref;
         private final boolean negated;

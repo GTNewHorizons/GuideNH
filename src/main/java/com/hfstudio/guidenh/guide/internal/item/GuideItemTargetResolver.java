@@ -5,7 +5,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.indices.ItemIndex;
 import com.hfstudio.guidenh.guide.indices.ItemMultiIndex;
@@ -61,6 +60,5 @@ public class GuideItemTargetResolver {
         return guideId == null || guideId.isEmpty() ? null : new ResourceLocation(guideId);
     }
 
-    @Desugar
     public record GuideOpenTarget(ResourceLocation guideId, @Nullable PageAnchor anchor) {}
 }

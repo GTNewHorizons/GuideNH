@@ -41,6 +41,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import lombok.Getter;
 
 public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
 
@@ -74,13 +75,15 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     /** Runtime scene mutations that supersede imported preview state for affected integrations. */
     private final GuidebookPreviewRuntimeMutationTracker previewRuntimeMutations;
 
+    @Getter
     private final int minBuildHeight;
+    @Getter
     private final int maxBuildHeightExclusive;
 
     // Pre-built unmodifiable views returned every call to avoid per-frame
     // Collections.unmodifiableCollection() wrapper allocation (hot on the render loop).
-    private final Collection<int[]> filledBlocksView = Collections.unmodifiableCollection(filledBlocks.values());
-    private final Collection<TileEntity> tileEntitiesView = Collections.unmodifiableCollection(tileEntities.values());
+    private final Collection<int[]> filledBlocksView = filledBlocks.values();
+    private final Collection<TileEntity> tileEntitiesView = tileEntities.values();
     private final Collection<Entity> entitiesView = Collections.unmodifiableCollection(entities.values());
     private final Collection<GuidebookChunk> chunksView = Collections.unmodifiableCollection(chunks.values());
 
@@ -111,6 +114,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
     private int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
     private boolean boundsDirty = true;
     private boolean centerDirty = true;
+    @Getter
     private long spatialRevision = 1L;
 
     public GuidebookLevel() {
@@ -235,7 +239,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             explicitBlockIds.remove(x, y, z);
             previewAuthorityStore.clearAt(packPos(x, y, z));
         } else {
-            if (!filledBlocks.containsKey(x, y, z)) {
+            if (filledBlocks.get(x, y, z) == null) {
                 filledBlocks.put(x, y, z, new int[] { x, y, z });
             }
             String fallbackBlockId = resolveBlockId(block);
@@ -296,7 +300,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
             explicitBlockIds.remove(x, y, z);
             previewAuthorityStore.clearAt(packPos(x, y, z));
         } else {
-            if (!filledBlocks.containsKey(x, y, z)) {
+            if (filledBlocks.get(x, y, z) == null) {
                 filledBlocks.put(x, y, z, new int[] { x, y, z });
             }
             String normalizedBlockId = trimToNull(explicitBlockId);
@@ -406,14 +410,6 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
      */
     public GuidebookPreviewRuntimeMutationTracker previewRuntimeMutations() {
         return previewRuntimeMutations;
-    }
-
-    public int getMinBuildHeight() {
-        return minBuildHeight;
-    }
-
-    public int getMaxBuildHeightExclusive() {
-        return maxBuildHeightExclusive;
     }
 
     public int clampBuildHeight(int y) {
@@ -832,10 +828,6 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         if (spatialRevision == 0L) {
             spatialRevision = 1L;
         }
-    }
-
-    public long getSpatialRevision() {
-        return spatialRevision;
     }
 
     public int getPrecipitationBlockingY(int x, int z, int minY, int maxY) {

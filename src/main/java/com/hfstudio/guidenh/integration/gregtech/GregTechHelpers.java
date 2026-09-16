@@ -1,12 +1,9 @@
 package com.hfstudio.guidenh.integration.gregtech;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 import net.minecraft.block.Block;
@@ -30,6 +27,7 @@ import bartworks.system.material.BWMetaGeneratedBlocks;
 import bartworks.system.material.TileEntityMetaGeneratedBlock;
 import cpw.mods.fml.common.Optional;
 import gregtech.api.GregTechAPI;
+import gregtech.api.interfaces.INEIPreviewModifier;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.BaseMetaPipeEntity;
@@ -205,6 +203,25 @@ public class GregTechHelpers {
         return tileEntity instanceof IGregTechTileEntity;
     }
 
+    public static void resolvePreviewModifier(@Nullable TileEntity tileEntity, @Nullable ItemStack trigger,
+        boolean beforeConstruct) {
+        if (tileEntity == null || trigger == null || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        resolvePreviewModifierImpl(tileEntity, trigger, beforeConstruct);
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    private static void resolvePreviewModifierImpl(TileEntity tileEntity, ItemStack trigger, boolean beforeConstruct) {
+        if (!(tileEntity instanceof IGregTechTileEntity gtTile)) return;
+        if (!(gtTile.getMetaTileEntity() instanceof INEIPreviewModifier modifier)) return;
+        if (beforeConstruct) {
+            modifier.onPreviewConstruct(trigger);
+        } else {
+            modifier.onPreviewStructureComplete(trigger);
+        }
+    }
+
     public static boolean isMultiblockController(@Nullable TileEntity tileEntity) {
         if (!isGregTechTileEntity(tileEntity)) {
             return false;
@@ -282,10 +299,13 @@ public class GregTechHelpers {
         if (existingMeta != null) {
             existingMeta.setBaseMetaTileEntity(gtTile);
             if (existingMeta.getBaseMetaTileEntity() == tileEntity) {
-                logInfoOnce(
-                    "repair-rebind:" + describeTile(tileEntity),
-                    "Rebound existing GregTech MetaTileEntity: {}",
-                    describeTile(tileEntity));
+                if (GuideDebugLog.isEnabled()) {
+                    String tileDescription = describeTile(tileEntity);
+                    logInfoOnce(
+                        "repair-rebind:" + tileDescription,
+                        "Rebound existing GregTech MetaTileEntity: {}",
+                        tileDescription);
+                }
                 return true;
             }
         }
@@ -305,11 +325,14 @@ public class GregTechHelpers {
         }
         gtTile.setInitialValuesAsNBT(snapshot, (short) 0);
         boolean repaired = hasValidMetaTileBindingImpl(tileEntity);
-        logInfoOnce(
-            (repaired ? "repair-success:" : "repair-failed:") + describeTile(tileEntity),
-            repaired ? "Recreated GregTech MetaTileEntity binding successfully: {}"
-                : "GregTech MetaTileEntity binding was still invalid after recreation: {}",
-            describeTile(tileEntity));
+        if (GuideDebugLog.isEnabled()) {
+            String tileDescription = describeTile(tileEntity);
+            logInfoOnce(
+                (repaired ? "repair-success:" : "repair-failed:") + tileDescription,
+                repaired ? "Recreated GregTech MetaTileEntity binding successfully: {}"
+                    : "GregTech MetaTileEntity binding was still invalid after recreation: {}",
+                tileDescription);
+        }
         return repaired;
     }
 
@@ -581,6 +604,36 @@ public class GregTechHelpers {
         checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
     }
 
+    public static void updatePreviewHatchTexture(@Nullable World world, int x, int y, int z, int casingTextureId) {
+        if (casingTextureId < 0 || !(world instanceof GuidebookFakeWorld) || !Mods.GregTech.isModLoaded()) {
+            return;
+        }
+        try {
+            updatePreviewHatchTextureImpl(world, x, y, z, casingTextureId);
+        } catch (Throwable t) {
+            // A StructureLib placement callback can run before the freshly-created tile has a base entity.
+            // Texture selection is auxiliary preview state and must never abort the remaining structure build.
+            logInfoOnce(
+                "preview-hatch-texture:" + x + ':' + y + ':' + z + ':' + casingTextureId,
+                "GregTech preview hatch texture update deferred for ({}, {}, {})",
+                x,
+                y,
+                z);
+        }
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    private static void updatePreviewHatchTextureImpl(World world, int x, int y, int z, int casingTextureId) {
+        TileEntity tileEntity = world.getTileEntity(x, y, z);
+        if (!(tileEntity instanceof IGregTechTileEntity gtTile)) {
+            return;
+        }
+        IMetaTileEntity metaTileEntity = gtTile.getMetaTileEntity();
+        if (metaTileEntity instanceof MTEHatch hatch) {
+            hatch.updateTexture(casingTextureId);
+        }
+    }
+
     public static void synchronizeMultiblockPreviewState(@Nullable TileEntity controllerTile,
         @Nullable ItemStack triggerStack, boolean activeController, @Nullable List<String> warnings) {
         if (controllerTile == null || !Mods.GregTech.isModLoaded()) {
@@ -608,104 +661,66 @@ public class GregTechHelpers {
         }
 
         try {
-            boolean activeBefore = gtTile.isActive();
-            Boolean machineBefore = readPreviewMachineState(multiBlockBase);
-            boolean valid;
-            boolean machineApplied;
-            if (triggerStack != null && triggerStack.stackSize > 0) {
-                applyTierFromTriggerStack(metaTileEntity, triggerStack);
-                machineApplied = applyPreviewMachineState(multiBlockBase, true);
-                gtTile.setActive(true);
-                gtTile.issueTextureUpdate();
-                applyPreviewTextureUpdate(metaTileEntity);
-                refreshHatchTexturesInWorld(controllerTile, metaTileEntity);
-                valid = true;
-            } else {
+            boolean debugEnabled = GuideDebugLog.isEnabled();
+            boolean activeBefore = debugEnabled && gtTile.isActive();
+            boolean machineBefore = multiBlockBase.mMachine;
+            boolean importedPreview = triggerStack != null && triggerStack.stackSize > 0;
+            boolean valid = false;
+            try {
+                // The fake world is client-side, so GT's checkStructure skips its server-only checkMachine
+                // call. Run the completed check directly: it derives tiers from the placed blocks and
+                // updates dynamic hatch casing textures before the structure is saved to NBT.
                 multiBlockBase.clearHatches();
                 List<StructureError> structureErrors = checkPreviewMachine(multiBlockBase, gtTile, triggerStack);
                 valid = structureErrors.isEmpty();
-                machineApplied = applyPreviewMachineState(multiBlockBase, valid);
                 if (!valid) {
                     appendPreviewStructureWarning(warnings, structureErrors);
-                    logInfoOnce(
-                        "preview-state-sync-invalid:" + describeTile(controllerTile),
-                        "GregTech preview state sync kept invalid structure state for {}",
-                        describeTile(controllerTile));
+                    if (debugEnabled) {
+                        String tileDescription = describeTile(controllerTile);
+                        logInfoOnce(
+                            "preview-state-sync-invalid:" + tileDescription,
+                            "GregTech preview structure check reported {} error(s) for {}",
+                            structureErrors.size(),
+                            tileDescription);
+                    }
                 }
-                if (shouldActivatePreviewController(activeController, valid)) {
-                    gtTile.setActive(true);
-                }
-                if (activeController) {
-                    gtTile.issueTextureUpdate();
-                    applyPreviewTextureUpdate(metaTileEntity);
-                }
+            } catch (Throwable t) {
+                logInfoOnce(
+                    "preview-state-sync-check-failed:" + describeTile(controllerTile),
+                    "GregTech preview structure check could not finish for {}",
+                    describeTile(controllerTile),
+                    t);
+                if (!importedPreview) return;
             }
-            Boolean machineAfter = readPreviewMachineState(multiBlockBase);
-            GuideDebugLog.info(
-                "GregTech preview sync controller={} meta={} facing={} valid={} activeRequested={} activeBefore={} activeAfter={} machineBefore={} machineAfter={} machineApplied={}",
-                describeTile(controllerTile),
-                describeMetaTile(metaTileEntity),
-                describeFacing(gtTile),
-                valid,
-                activeController,
-                activeBefore,
-                gtTile.isActive(),
-                machineBefore,
-                machineAfter,
-                machineApplied);
+            // A display-only import may omit operational requirements. Keep its previous formed/active
+            // preview behavior without guessing controller fields or overwriting the derived casing tiers.
+            multiBlockBase.mMachine = importedPreview || valid;
+            if (importedPreview || shouldActivatePreviewController(activeController, valid)) {
+                gtTile.setActive(true);
+            }
+            if (importedPreview || activeController) {
+                gtTile.issueTextureUpdate();
+                applyPreviewTextureUpdate(metaTileEntity);
+            }
+            if (debugEnabled) {
+                GuideDebugLog.info(
+                    "GregTech preview sync controller={} meta={} facing={} valid={} activeRequested={} activeBefore={} activeAfter={} machineBefore={} machineAfter={} machineApplied={}",
+                    describeTile(controllerTile),
+                    describeMetaTile(metaTileEntity),
+                    describeFacing(gtTile),
+                    valid,
+                    activeController,
+                    activeBefore,
+                    gtTile.isActive(),
+                    machineBefore,
+                    multiBlockBase.mMachine,
+                    true);
+            }
         } catch (Throwable t) {
             logInfoOnce(
                 "preview-state-sync-failed:" + describeTile(controllerTile),
                 "GregTech preview state sync could not finish for {}",
                 describeTile(controllerTile));
-        }
-    }
-
-    private static void refreshHatchTexturesInWorld(TileEntity controllerTile, Object metaTileEntity) {
-        if (controllerTile == null || metaTileEntity == null) return;
-        int casingTextureId = -1;
-        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
-            try {
-                Method method = type.getDeclaredMethod("getCasingTextureId");
-                method.setAccessible(true);
-                casingTextureId = (int) method.invoke(metaTileEntity);
-                break;
-            } catch (NoSuchMethodException ignored) {} catch (Throwable ignored) {
-                return;
-            }
-        }
-        if (casingTextureId < 0) return;
-        World world;
-        try {
-            world = controllerTile.getWorldObj();
-        } catch (Throwable ignored) {
-            return;
-        }
-        if (!(world instanceof GuidebookFakeWorld fakeWorld)) return;
-        GuidebookLevel level = fakeWorld.getGuidebookLevel();
-        if (level == null) return;
-        for (TileEntity tileEntity : level.getTileEntities()) {
-            if (!isGregTechTileEntity(tileEntity)) continue;
-            IMetaTileEntity metaTile = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
-            if (metaTile instanceof MTEHatch hatch) {
-                hatch.updateTexture(casingTextureId);
-            }
-        }
-    }
-
-    private static void applyTierFromTriggerStack(Object metaTileEntity, ItemStack triggerStack) {
-        int tier = triggerStack.stackSize;
-        for (Class<?> type = metaTileEntity.getClass(); type != null; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (field.getType() != Integer.TYPE) continue;
-                if (!field.getName()
-                    .toLowerCase(Locale.ROOT)
-                    .matches(".*(?:tier|casing).*")) continue;
-                try {
-                    field.setAccessible(true);
-                    field.setInt(metaTileEntity, tier);
-                } catch (Throwable ignored) {}
-            }
         }
     }
 
@@ -762,21 +777,17 @@ public class GregTechHelpers {
     }
 
     public static boolean applyPreviewMachineState(@Nullable Object multiBlockController, boolean formed) {
-        if (multiBlockController == null) {
+        if (multiBlockController == null || !Mods.GregTech.isModLoaded()) {
             return false;
         }
-        for (Class<?> type = multiBlockController.getClass(); type != null; type = type.getSuperclass()) {
-            try {
-                Field field = type.getDeclaredField("mMachine");
-                if (field.getType() != Boolean.TYPE) {
-                    continue;
-                }
-                field.setAccessible(true);
-                field.setBoolean(multiBlockController, formed);
-                return true;
-            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
-                return false;
-            }
+        return applyPreviewMachineStateImpl(multiBlockController, formed);
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    private static boolean applyPreviewMachineStateImpl(Object multiBlockController, boolean formed) {
+        if (multiBlockController instanceof MTEMultiBlockBase controller) {
+            controller.mMachine = formed;
+            return true;
         }
         return false;
     }
@@ -799,22 +810,16 @@ public class GregTechHelpers {
 
     @Nullable
     public static Boolean readPreviewMachineState(@Nullable Object multiBlockController) {
-        if (multiBlockController == null) {
+        if (multiBlockController == null || !Mods.GregTech.isModLoaded()) {
             return null;
         }
-        for (Class<?> type = multiBlockController.getClass(); type != null; type = type.getSuperclass()) {
-            try {
-                Field field = type.getDeclaredField("mMachine");
-                if (field.getType() != Boolean.TYPE) {
-                    continue;
-                }
-                field.setAccessible(true);
-                return field.getBoolean(multiBlockController);
-            } catch (NoSuchFieldException ignored) {} catch (Throwable ignored) {
-                return null;
-            }
-        }
-        return null;
+        return readPreviewMachineStateImpl(multiBlockController);
+    }
+
+    @Optional.Method(modid = "gregtech_nh")
+    @Nullable
+    private static Boolean readPreviewMachineStateImpl(Object multiBlockController) {
+        return multiBlockController instanceof MTEMultiBlockBase controller ? controller.mMachine : null;
     }
 
     public static void applyDefaultFacing(@Nullable TileEntity tileEntity, @Nullable NBTTagCompound tileTag) {
@@ -955,10 +960,12 @@ public class GregTechHelpers {
     }
 
     public static void logInfoOnce(String key, String message, Object... args) {
-        if (key == null || key.isEmpty() || message == null || message.isEmpty()) {
+        if (!GuideDebugLog.isEnabled() || key == null || key.isEmpty() || message == null || message.isEmpty()) {
             return;
         }
-        GuideDebugLog.runOnce(LOGGED_KEYS, key, () -> GuideDebugLog.info(message, args));
+        if (LOGGED_KEYS.add(key)) {
+            GuideDebugLog.info(message, args);
+        }
     }
 
     public static String describeBlock(@Nullable Block block) {

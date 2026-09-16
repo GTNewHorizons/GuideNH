@@ -105,15 +105,9 @@ public class GregTechStructureLibControllerIntegration implements StructureLibCo
 
     @Override
     public void configureTrigger(ItemStack triggerStack, StructureLibBuildRequest request) {
-        boolean placeHatches = Boolean.TRUE.equals(
-            request.options()
-                .get(PLACE_HATCHES_OPTION));
-        boolean forceHatch = Boolean.TRUE.equals(
-            request.options()
-                .get("structurelib.force_hatch_placement"));
-        if (placeHatches || forceHatch) {
-            GregTechHelpers.enableHatchPreviewChannel(triggerStack);
-        }
+        // A StructureLib preview must be able to satisfy required hatch elements. Optional
+        // HatchElementBuilder fallback-chain positions are left to their casing alternative.
+        GregTechHelpers.enableHatchPreviewChannel(triggerStack);
     }
 
     @Override

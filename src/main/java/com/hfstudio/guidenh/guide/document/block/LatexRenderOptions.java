@@ -2,11 +2,9 @@ package com.hfstudio.guidenh.guide.document.block;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 
-@Desugar
 public record LatexRenderOptions(int fillColorArgb, float sourceScale, float userScale, @Nullable GuideTooltip tooltip,
     LatexVerticalAlign valign, int offsetX, int offsetY) {
 

@@ -12,17 +12,14 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 
 public class GuideItemReferenceResolver {
 
     private GuideItemReferenceResolver() {}
 
-    @Desugar
     public record ResolvedItemReference(ResourceLocation registryId, ItemStack stack) {}
 
-    @Desugar
     public record ResolvedBlockReference(ResourceLocation registryId, Block block, @Nullable ItemStack stack,
         boolean hasExplicitMeta, int explicitMeta) {}
 

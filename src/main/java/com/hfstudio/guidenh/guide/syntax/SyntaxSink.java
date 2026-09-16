@@ -8,6 +8,14 @@ public interface SyntaxSink {
 
     SyntaxSink children(String containerTag, String... childTags);
 
+    /**
+     * Declares the tags worth suggesting first inside a container whose body also takes ordinary block
+     * content, such as an annotation tooltip or a {@code <details>} body. Unlike {@link #children} the list is
+     * a suggestion order rather than a restriction: validation accepts any block tag there, while completion
+     * still offers these first.
+     */
+    SyntaxSink preferredChildren(String containerTag, String... childTags);
+
     SyntaxSink hiddenTags(String... names);
 
     SyntaxSink attributes(String tagName, AttributeSyntax... attributes);

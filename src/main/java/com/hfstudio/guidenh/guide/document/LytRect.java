@@ -1,8 +1,5 @@
 package com.hfstudio.guidenh.guide.document;
 
-import com.github.bsideup.jabel.Desugar;
-
-@Desugar
 public record LytRect(int x, int y, int width, int height) {
 
     public static final LytRect EMPTY = new LytRect(0, 0, 0, 0);

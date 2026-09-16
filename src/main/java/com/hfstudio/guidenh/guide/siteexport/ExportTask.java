@@ -16,7 +16,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.Guide;
@@ -126,7 +125,6 @@ public class ExportTask {
         return collector;
     }
 
-    @Desugar
     public record Result(int pagesExported, int pagesFailed, int assetsCopied, Path outDir) {}
 
     public class Collector implements ResourceExporter {

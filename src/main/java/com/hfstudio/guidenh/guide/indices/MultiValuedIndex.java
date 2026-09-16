@@ -11,7 +11,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import com.github.bsideup.jabel.Desugar;
 import com.google.gson.stream.JsonWriter;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -122,6 +121,5 @@ public class MultiValuedIndex<K, V> implements PageIndex {
         Iterable<Pair<K, V>> getEntry(ParsedGuidePage page);
     }
 
-    @Desugar
     private record Record<V> (ResourceLocation pageId, V value) {}
 }

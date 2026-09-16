@@ -7,7 +7,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
@@ -15,7 +14,6 @@ public class GuideStartupOptions {
 
     public GuideStartupOptions() {}
 
-    @Desugar
     public record ShowOnStartup(ResourceLocation guideId, @Nullable PageAnchor anchor) {}
 
     public static @Nullable ShowOnStartup parseShowOnStartup(@Nullable String value) {

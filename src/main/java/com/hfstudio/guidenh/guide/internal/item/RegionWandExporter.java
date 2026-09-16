@@ -27,7 +27,6 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureData;
@@ -756,10 +755,8 @@ public class RegionWandExporter {
         return new ExportPayload(new GuideStructureData(root, dx, dy, dz), nonAir, teCount, entityCount);
     }
 
-    @Desugar
     public record ExportResult(String text, int nonAir, int teCount, int entityCount) {}
 
-    @Desugar
     private record ExportPayload(GuideStructureData structure, int nonAir, int teCount, int entityCount) {}
 
     public static void send(EntityPlayer player, GuidebookText key, Object... args) {

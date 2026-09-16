@@ -15,6 +15,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
+import net.minecraftforge.common.util.Constants.NBT;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -219,16 +220,18 @@ public class GuidebookPreviewBlockPlacer {
         }
 
         NBTTagCompound sanitized = normalizeGregTechByteArrays(tileTag);
-        ArrayList<String> unresolvedWrappers = new ArrayList<>();
-        collectUnresolvedByteArrayWrappers(sanitized, "", unresolvedWrappers);
-        if (!unresolvedWrappers.isEmpty()) {
-            GregTechHelpers.logInfoOnce(
-                "preview-gregtech-bytearray-wrapper:" + unresolvedWrappers
-                    + ":"
-                    + GregTechHelpers.describeTileTag(tileTag),
-                "Preview GregTech init tag still contains unresolved byte-array wrappers at {} for tileTag=[{}]",
-                unresolvedWrappers,
-                GregTechHelpers.describeTileTag(tileTag));
+        if (GuideDebugLog.isEnabled()) {
+            ArrayList<String> unresolvedWrappers = new ArrayList<>();
+            collectUnresolvedByteArrayWrappers(sanitized, "", unresolvedWrappers);
+            if (!unresolvedWrappers.isEmpty()) {
+                GregTechHelpers.logInfoOnce(
+                    "preview-gregtech-bytearray-wrapper:" + unresolvedWrappers
+                        + ":"
+                        + GregTechHelpers.describeTileTag(tileTag),
+                    "Preview GregTech init tag still contains unresolved byte-array wrappers at {} for tileTag=[{}]",
+                    unresolvedWrappers,
+                    GregTechHelpers.describeTileTag(tileTag));
+            }
         }
         if (!sanitized.hasKey("mRedstoneSided")) {
             return sanitized;
@@ -250,8 +253,7 @@ public class GuidebookPreviewBlockPlacer {
 
     public static NBTTagCompound normalizeGregTechByteArrays(NBTTagCompound tileTag) {
         NBTTagCompound normalized = new NBTTagCompound();
-        ArrayList<String> keys = new ArrayList<>(tileTag.func_150296_c());
-        for (String key : keys) {
+        for (String key : tileTag.func_150296_c()) {
             NBTBase value = tileTag.getTag(key);
             if (value != null) {
                 byte[] knownByteArray = decodeKnownGregTechByteArray(key, value);
@@ -285,10 +287,11 @@ public class GuidebookPreviewBlockPlacer {
 
     public static NBTTagList normalizeGregTechList(NBTTagList list) {
         NBTTagList normalized = new NBTTagList();
-        NBTTagList remaining = (NBTTagList) list.copy();
-        int count = remaining.tagCount();
+        int count = list.tagCount();
+        // Read source entries directly; normalization creates independent output tags.
+        // Copying and draining the list also repeatedly shifted all remaining entries.
         for (int index = 0; index < count; index++) {
-            normalized.appendTag(normalizeGregTechTag(remaining.removeTag(0)));
+            normalized.appendTag(normalizeGregTechTag((NBTBase) list.tagList.get(index)));
         }
         return normalized;
     }
@@ -315,7 +318,8 @@ public class GuidebookPreviewBlockPlacer {
 
     public static byte @Nullable [] tryDecodeLegacyByteArray(@Nullable NBTBase tag, boolean allowEmptyList) {
         if (tag instanceof NBTTagByteArray byteArray) {
-            return byteArray.func_150292_c();
+            return byteArray.func_150292_c()
+                .clone();
         }
         if (tag instanceof NBTTagIntArray intArray) {
             int[] source = intArray.func_150302_c();
@@ -333,7 +337,7 @@ public class GuidebookPreviewBlockPlacer {
             if (numeric != null) {
                 return numeric;
             }
-            if (list.tagCount() == 1) {
+            if (list.tagCount() == 1 && list.func_150303_d() == NBT.TAG_STRING) {
                 Integer legacyLength = parseLegacyByteArrayLength(list.getStringTagAt(0));
                 if (legacyLength != null) {
                     return new byte[legacyLength];
@@ -344,11 +348,27 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static byte @Nullable [] tryDecodeNumericByteList(NBTTagList list, boolean allowEmptyList) {
-        if (list.tagCount() <= 0) {
+        int count = list.tagCount();
+        if (count <= 0) {
             return allowEmptyList ? new byte[0] : null;
         }
-        byte[] decoded = new byte[list.tagCount()];
-        for (int index = 0; index < list.tagCount(); index++) {
+        int tagType = list.func_150303_d();
+        if (tagType != NBT.TAG_BYTE && tagType != NBT.TAG_INT && tagType != NBT.TAG_STRING) {
+            // Compound/list serialization cannot be a byte literal and can be very expensive.
+            return null;
+        }
+        byte[] decoded = new byte[count];
+        if (tagType != NBT.TAG_STRING) {
+            for (int index = 0; index < count; index++) {
+                int value = ((NBTBase.NBTPrimitive) list.tagList.get(index)).func_150287_d();
+                if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
+                    return null;
+                }
+                decoded[index] = (byte) value;
+            }
+            return decoded;
+        }
+        for (int index = 0; index < count; index++) {
             String value = list.getStringTagAt(index);
             try {
                 decoded[index] = Byte.parseByte(trimNumericSuffix(value));
@@ -442,11 +462,10 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static void collectUnresolvedByteArrayWrappers(NBTTagCompound tag, String path, ArrayList<String> issues) {
-        ArrayList<String> keys = new ArrayList<>(tag.func_150296_c());
-        for (String key : keys) {
-            String nextPath = path.isEmpty() ? key : path + "." + key;
+        for (String key : tag.func_150296_c()) {
             NBTBase value = tag.getTag(key);
             if (value instanceof NBTTagCompound compound) {
+                String nextPath = path.isEmpty() ? key : path + "." + key;
                 if (isEncodedByteArrayWrapper(compound)) {
                     NBTBase wrappedValue = compound.getTag(BYTE_ARRAY_WRAPPER_TAG);
                     if (!(wrappedValue instanceof NBTTagByteArray)) {
@@ -459,18 +478,18 @@ public class GuidebookPreviewBlockPlacer {
                 }
                 collectUnresolvedByteArrayWrappers(compound, nextPath, issues);
             } else if (value instanceof NBTTagList list) {
+                String nextPath = path.isEmpty() ? key : path + "." + key;
                 collectUnresolvedByteArrayWrappers(list, nextPath, issues);
             }
         }
     }
 
     public static void collectUnresolvedByteArrayWrappers(NBTTagList list, String path, ArrayList<String> issues) {
-        NBTTagList remaining = (NBTTagList) list.copy();
-        int count = remaining.tagCount();
+        int count = list.tagCount();
         for (int index = 0; index < count; index++) {
-            NBTBase entry = remaining.removeTag(0);
-            String nextPath = path + "[" + index + "]";
+            NBTBase entry = (NBTBase) list.tagList.get(index);
             if (entry instanceof NBTTagCompound compound) {
+                String nextPath = path + "[" + index + "]";
                 if (isEncodedByteArrayWrapper(compound)) {
                     NBTBase wrappedValue = compound.getTag(BYTE_ARRAY_WRAPPER_TAG);
                     if (!(wrappedValue instanceof NBTTagByteArray)) {
@@ -483,6 +502,7 @@ public class GuidebookPreviewBlockPlacer {
                 }
                 collectUnresolvedByteArrayWrappers(compound, nextPath, issues);
             } else if (entry instanceof NBTTagList nestedList) {
+                String nextPath = path + "[" + index + "]";
                 collectUnresolvedByteArrayWrappers(nestedList, nextPath, issues);
             }
         }
@@ -631,6 +651,9 @@ public class GuidebookPreviewBlockPlacer {
 
     public static void logLoadedTile(String stage, int x, int y, int z, @Nullable TileEntity tileEntity,
         @Nullable Integer metaTileId, @Nullable NBTTagCompound tileTag) {
+        if (!GuideDebugLog.isEnabled()) {
+            return;
+        }
         if (!GregTechHelpers.isGregTechTileEntity(tileEntity)
             && !GregTechHelpers.isBartWorksGeneratedTile(tileEntity)) {
             return;
@@ -655,7 +678,8 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static boolean shouldLogPlacement(Block block, PlacementData placementData) {
-        return placementData.metaTileId != null || GregTechHelpers.isBartWorksGeneratedBlock(block);
+        return GuideDebugLog.isEnabled()
+            && (placementData.metaTileId != null || GregTechHelpers.isBartWorksGeneratedBlock(block));
     }
 
     public static String describePosition(int x, int y, int z) {

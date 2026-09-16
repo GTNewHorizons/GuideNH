@@ -31,6 +31,7 @@ import guideme.flatbuffers.scene.ExpDepthTest;
 import guideme.flatbuffers.scene.ExpIndexElementType;
 import guideme.flatbuffers.scene.ExpPrimitiveType;
 import guideme.flatbuffers.scene.ExpTransparency;
+import lombok.Setter;
 
 public class GuideSiteSceneTessellatorCapture {
 
@@ -60,6 +61,7 @@ public class GuideSiteSceneTessellatorCapture {
     private int currentVertexCount;
     @Nullable
     private String currentSourceTextureId;
+    @Setter
     private boolean capturingParticles;
 
     public GuideSiteSceneTessellatorCapture(GuideSiteAssetRegistry assets, TextureExportCache textureCache,
@@ -105,10 +107,6 @@ public class GuideSiteSceneTessellatorCapture {
 
     public void setCurrentSourceTextureId(@Nullable String currentSourceTextureId) {
         this.currentSourceTextureId = currentSourceTextureId;
-    }
-
-    public void setCapturingParticles(boolean capturingParticles) {
-        this.capturingParticles = capturingParticles;
     }
 
     public void startDrawing(int drawMode) {

@@ -21,7 +21,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageChange;
@@ -861,6 +860,5 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         }
     }
 
-    @Desugar
     public record GuidePageFailureView(String headingText, String errorText, boolean parseFailure) {}
 }

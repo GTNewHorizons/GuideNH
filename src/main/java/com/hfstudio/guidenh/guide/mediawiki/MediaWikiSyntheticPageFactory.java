@@ -7,7 +7,6 @@ import java.util.Map;
 
 import net.minecraft.util.ResourceLocation;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
@@ -138,7 +137,6 @@ public class MediaWikiSyntheticPageFactory {
         ParsedGuidePage parse(ResourceLocation pageId, String sourcePack, String language, String source);
     }
 
-    @Desugar
     public record SyntheticSourceSnapshot(String sourcePack, String language, String source,
         ParsedGuidePage parsedPage) {}
 }

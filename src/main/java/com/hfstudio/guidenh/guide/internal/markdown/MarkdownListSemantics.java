@@ -6,7 +6,6 @@ import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
@@ -39,6 +38,5 @@ public class MarkdownListSemantics {
         return null;
     }
 
-    @Desugar
     public record TaskMarker(boolean checked, String remainingText, MdAstText textNode) {}
 }

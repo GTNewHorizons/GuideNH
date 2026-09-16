@@ -18,7 +18,8 @@ public abstract class MixinPanelTextBox {
     @ModifyVariable(
         method = "setText(Ljava/lang/String;)Lbetterquesting/api2/client/gui/panels/content/PanelTextBox;",
         at = @At("HEAD"),
-        argsOnly = true)
+        argsOnly = true,
+        name = "text")
     private String guidenh$replaceGuideTags(String text) {
         return BqGuidePageLinks.replaceGuideTags(text);
     }
@@ -29,11 +30,9 @@ public abstract class MixinPanelTextBox {
             .getX();
         int myt = my + ((PanelTextBox) (Object) this).getTransform()
             .getY();
-        for (Object hotZone : ((AccessorPanelTextBox) this).guidenh$getHotZones()) {
-            AccessorPanelTextBoxHotZone accessor = (AccessorPanelTextBoxHotZone) hotZone;
-            if (accessor.guidenh$getLocation()
-                .contains(mxt, myt)) {
-                Object link = accessor.guidenh$getLink();
+        for (PanelTextBox.HotZone hotZone : ((AccessorPanelTextBox) this).guidenh$getHotZones()) {
+            if (hotZone.location.contains(mxt, myt)) {
+                Object link = hotZone.link;
                 if (link instanceof String) {
                     List<String> tooltip = BqGuidePageLinks.getTooltip((String) link);
                     if (tooltip != null && !tooltip.isEmpty()) {

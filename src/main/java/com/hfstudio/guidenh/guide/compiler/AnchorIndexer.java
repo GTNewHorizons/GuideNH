@@ -5,7 +5,6 @@ import java.util.Stack;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
@@ -86,6 +85,5 @@ public class AnchorIndexer {
         return normalized.toString();
     }
 
-    @Desugar
     public record AnchorTarget(LytNode blockNode, @Nullable LytFlowContent flowContent) {}
 }

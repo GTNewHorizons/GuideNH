@@ -5,14 +5,12 @@ import java.util.concurrent.ConcurrentMap;
 
 import net.minecraft.util.ResourceLocation;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageTitleResolver;
 
-@Desugar
 public record GuidePageLinkTarget(ResourceLocation guideId, PageAnchor anchor, String title) {
 
     private static final ConcurrentMap<PageAnchor, GuidePageLinkTarget> CACHE = new ConcurrentHashMap<>();

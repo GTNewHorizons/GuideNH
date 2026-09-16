@@ -15,7 +15,6 @@ import net.minecraft.client.shader.Framebuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
@@ -202,6 +201,5 @@ public class StructureLibSceneImageExporter {
         return image;
     }
 
-    @Desugar
     public record ExportedImage(Path path, int width, int height) {}
 }

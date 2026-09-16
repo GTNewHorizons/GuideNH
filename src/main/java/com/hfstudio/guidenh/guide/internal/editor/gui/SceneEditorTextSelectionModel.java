@@ -173,9 +173,7 @@ public class SceneEditorTextSelectionModel {
         for (LineEdit edit : edits) {
             updated.append(text, source, edit.offset);
             if (edit.added > 0) {
-                for (int i = 0; i < edit.added; i++) {
-                    updated.append(' ');
-                }
+                updated.repeat(" ", edit.added);
             }
             source = edit.offset + edit.removed;
         }

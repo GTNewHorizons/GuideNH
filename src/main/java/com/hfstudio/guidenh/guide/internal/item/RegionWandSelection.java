@@ -10,7 +10,6 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.gtnewhorizon.gtnhlib.blockpos.BlockPos;
 import com.gtnewhorizon.gtnhlib.blockpos.IBlockPos;
 import com.hfstudio.guidenh.config.ModConfig;
@@ -161,7 +160,6 @@ public class RegionWandSelection {
         return new Bounds(minX, minY, minZ, maxX, maxY, maxZ);
     }
 
-    @Desugar
     public record Bounds(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
 
         public int sizeX() {
@@ -177,7 +175,6 @@ public class RegionWandSelection {
         }
     }
 
-    @Desugar
     private record BindingCache(Map<Item, BitSet> metadataByItem, Set<String> keys) {
 
         private static BindingCache empty() {

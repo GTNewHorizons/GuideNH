@@ -11,7 +11,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
@@ -961,10 +960,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         return rendered != null && rendered.endsWith("...") && !rendered.equals(original);
     }
 
-    @Desugar
     private record GroupLayout(@Nullable String title, List<MediaWikiSpecialListEntry> entries) {}
 
-    @Desugar
     private record RenderRow(String title, String subtitle, @Nullable ResourceLocation pageId,
         @Nullable Integer lineNumber, @Nullable GuidePageIcon icon, @Nullable String externalUrl, boolean header,
         boolean loadMoreRow) {
@@ -974,7 +971,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         }
     }
 
-    @Desugar
     private record VisibilityCache(MediaWikiSpecialPageResult source, String normalizedQuery, int visibleCount,
         MediaWikiSpecialPageResult result) {
 
