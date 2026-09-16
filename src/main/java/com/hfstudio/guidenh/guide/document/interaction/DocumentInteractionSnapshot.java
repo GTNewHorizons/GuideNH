@@ -6,12 +6,10 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
 
-@Desugar
 public record DocumentInteractionSnapshot(@Nullable LytNode node, FlowInteractionPath flowPath,
     @Nullable LytFlowContent primaryHoverTarget, @Nullable LytFlowContent primaryClickTarget,
     List<LytFlowContent> tooltipTargets, List<LytFlowContent> revealTargets, @Nullable LytSpoilerSpan activeSpoiler) {

@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 
 /**
@@ -198,10 +197,8 @@ public class FileTreeParser {
         ITEM
     }
 
-    @Desugar
     public record FileTreeIcon(FileTreeIconKind kind, String value) {}
 
-    @Desugar
     public record FileTreeEntry(List<SlotKind> slots, boolean isLastSibling, String payloadSource,
         @Nullable FileTreeIcon icon) {
 
@@ -210,10 +207,8 @@ public class FileTreeParser {
         }
     }
 
-    @Desugar
     public record FileTreeModel(List<FileTreeEntry> entries) {}
 
-    @Desugar
     private record IconExtraction(String payload, @Nullable FileTreeIcon icon) {}
 
 }

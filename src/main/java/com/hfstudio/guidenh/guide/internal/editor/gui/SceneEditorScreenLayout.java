@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.internal.editor.gui;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.LytRect;
 
 public class SceneEditorScreenLayout {
@@ -127,7 +126,6 @@ public class SceneEditorScreenLayout {
         return Math.min(value, maxValue);
     }
 
-    @Desugar
     public record Layout(LytRect leftPanel, LytRect rightPanel, LytRect previewRender, LytRect previewInteraction,
         LytRect markdownToggle, LytRect markdownContent, LytRect markdownFooter, LytRect markdownResizeHandle,
         LytRect rightContent, LytRect rightToggle) {}

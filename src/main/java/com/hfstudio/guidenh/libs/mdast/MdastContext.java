@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.micromark.Token;
 
@@ -13,7 +12,6 @@ import com.hfstudio.guidenh.libs.micromark.Token;
  */
 public interface MdastContext {
 
-    @Desugar
     record TokenStackEntry(Token token, @Nullable OnEnterError onError) {}
 
     @FunctionalInterface

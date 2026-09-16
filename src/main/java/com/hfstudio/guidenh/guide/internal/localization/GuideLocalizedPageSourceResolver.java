@@ -7,7 +7,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
@@ -260,7 +259,6 @@ public class GuideLocalizedPageSourceResolver {
         return builder.toString();
     }
 
-    @Desugar
     public record ResolvedGuidePageSource(String source, boolean localized, @Nullable String langKey,
         String contentFingerprint) {
 

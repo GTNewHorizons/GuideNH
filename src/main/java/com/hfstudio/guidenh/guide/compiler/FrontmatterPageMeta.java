@@ -4,9 +4,6 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
-
-@Desugar
 public record FrontmatterPageMeta(List<String> authors, @Nullable String date, @Nullable String updated, float zoom) {
 
     public boolean isEmpty() {

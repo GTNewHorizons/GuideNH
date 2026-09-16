@@ -11,5 +11,5 @@ import betterquesting.api2.client.gui.panels.content.PanelTextBox;
 public interface AccessorPanelTextBox {
 
     @Accessor("hotZones")
-    List<Object> guidenh$getHotZones();
+    List<PanelTextBox.HotZone> guidenh$getHotZones();
 }

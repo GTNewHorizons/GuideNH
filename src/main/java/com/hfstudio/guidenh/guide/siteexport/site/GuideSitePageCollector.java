@@ -12,7 +12,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
@@ -244,6 +243,5 @@ public class GuideSitePageCollector {
         return neutral != null ? Optional.of(new LoadedPage(null, true, neutral)) : Optional.empty();
     }
 
-    @Desugar
     public record LoadedPage(@Nullable String sourceLanguage, boolean fallbackUsed, ParsedGuidePage page) {}
 }
