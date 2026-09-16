@@ -65,7 +65,6 @@ public class HtmlTagName {
             "optgroup",
             "option",
             "p",
-            "param",
             "section",
             "summary",
             "table",
