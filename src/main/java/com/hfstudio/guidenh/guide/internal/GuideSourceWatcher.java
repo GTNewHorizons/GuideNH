@@ -26,7 +26,6 @@ import net.minecraft.util.StringTranslate;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
-import com.github.bsideup.jabel.Desugar;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.hfstudio.guidenh.guide.GuidePageChange;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -60,7 +59,6 @@ public class GuideSourceWatcher implements AutoCloseable {
     private final DirectoryWatcher sourceWatcher;
 
     // Queued changes that come in from a separate thread
-    @Desugar
     private static class PageLangKey {
 
         @Nullable
@@ -98,7 +96,6 @@ public class GuideSourceWatcher implements AutoCloseable {
         }
     }
 
-    @Desugar
     private static class PageSource {
 
         private final String requestedLanguage;
@@ -125,7 +122,6 @@ public class GuideSourceWatcher implements AutoCloseable {
         }
     }
 
-    @Desugar
     private static class PageReloadRequest {
 
         @Nullable
@@ -163,7 +159,6 @@ public class GuideSourceWatcher implements AutoCloseable {
         }
     }
 
-    @Desugar
     private static class ResolvedPageState {
 
         @Nullable

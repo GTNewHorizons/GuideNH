@@ -6,7 +6,6 @@ import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
@@ -292,7 +291,6 @@ public class LytDocument extends LytNode implements LytBlockContainer {
         return null;
     }
 
-    @Desugar
     public record Layout(int availableWidth, int contentHeight, LytRect bounds) {}
 
 }

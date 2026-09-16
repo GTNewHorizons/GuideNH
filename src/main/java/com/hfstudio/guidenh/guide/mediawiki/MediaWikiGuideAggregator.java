@@ -12,7 +12,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
@@ -222,7 +221,6 @@ public class MediaWikiGuideAggregator implements Guide {
         return ownerGuidesByPageId.get(pageId);
     }
 
-    @Desugar
     private record CachedAggregation(long revision, boolean includeTemplates,
         Map<ResourceLocation, ParsedGuidePage> parsedPagesById, Map<ResourceLocation, MutableGuide> ownerGuidesByPageId,
         List<MutableGuide> componentGuides, NavigationTree navigationTree, CategoryIndex categoryIndex) {}

@@ -1282,9 +1282,11 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.children("BlockStats", "BlockStat");
         sink.children("ItemGrid", "ItemIcon");
         sink.children("Mermaid", "NodeContent");
-        sink.children("details", "summary");
         sink.children("FloatingImage", "ImageAnnotation", "SoundArea");
-        sink.children(
+        // A details body is ordinary block markdown and an annotation body is tooltip content, so both take
+        // any block tag; these lists only decide which tags completion offers first.
+        sink.preferredChildren("details", "summary");
+        sink.preferredChildren(
             "BlockAnnotation",
             "BlockAnnotation",
             "BoxAnnotation",
@@ -1292,7 +1294,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "DiamondAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
-        sink.children(
+        sink.preferredChildren(
             "BoxAnnotation",
             "BlockAnnotation",
             "BoxAnnotation",
@@ -1300,7 +1302,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "DiamondAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
-        sink.children(
+        sink.preferredChildren(
             "LineAnnotation",
             "BlockAnnotation",
             "BoxAnnotation",
@@ -1308,7 +1310,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "DiamondAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
-        sink.children(
+        sink.preferredChildren(
             "DiamondAnnotation",
             "BlockAnnotation",
             "BoxAnnotation",
@@ -1316,7 +1318,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "DiamondAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
-        sink.children(
+        sink.preferredChildren(
             "TextAnnotation",
             "BlockAnnotation",
             "BoxAnnotation",
@@ -1324,7 +1326,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "DiamondAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
-        sink.children(
+        sink.preferredChildren(
             "BlockAnnotationTemplate",
             "BlockAnnotation",
             "BoxAnnotation",
@@ -1332,7 +1334,15 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "DiamondAnnotation",
             "TextAnnotation",
             "BlockAnnotationTemplate");
-        sink.children("LineAnnotation", "LinePoint");
+        sink.preferredChildren(
+            "LineAnnotation",
+            "LinePoint",
+            "BlockAnnotation",
+            "BoxAnnotation",
+            "LineAnnotation",
+            "DiamondAnnotation",
+            "TextAnnotation",
+            "BlockAnnotationTemplate");
         sink.children("GameScene", "InputAnnotation");
         sink.children("Scene", "InputAnnotation");
 

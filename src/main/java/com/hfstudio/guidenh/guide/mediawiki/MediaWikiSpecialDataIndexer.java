@@ -20,7 +20,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
@@ -723,17 +722,13 @@ public class MediaWikiSpecialDataIndexer {
         return total;
     }
 
-    @Desugar
     private record PageSourceLookup(ResourceLocation sourceId, String sourceLanguage) {}
 
-    @Desugar
     private record PageSourceCandidate(String sourcePack, int priority, int order) {}
 
-    @Desugar
     private record PageSourceSelection(ResourceLocation sourceId, String sourceLanguage,
         List<PageSourceCandidate> candidates) {}
 
-    @Desugar
     private record AssetReference(String rawPath, @Nullable ResourceLocation assetId, @Nullable Integer lineNumber,
         boolean valid) {
 

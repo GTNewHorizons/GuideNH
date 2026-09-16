@@ -28,7 +28,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.Guide;
@@ -1826,7 +1825,6 @@ public class GuideSiteExportTask {
         }
     }
 
-    @Desugar
     private record LanguageExportContext(Map<ResourceLocation, ParsedGuidePage> parsedPagesById,
         NavigationTree navigationTree, Map<ResourceLocation, ResourceLocation> guideIdsByPageId,
         Map<ResourceLocation, MediaWikiListContext> mediaWikiContextsByGuideId,

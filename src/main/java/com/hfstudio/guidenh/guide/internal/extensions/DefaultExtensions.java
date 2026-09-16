@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ATagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler;
@@ -246,7 +245,6 @@ public class DefaultExtensions {
         }
     }
 
-    @Desugar
     public record Registration<T extends Extension> (ExtensionPoint<T> extensionPoint,
         Supplier<Collection<T>> factory) {}
 }

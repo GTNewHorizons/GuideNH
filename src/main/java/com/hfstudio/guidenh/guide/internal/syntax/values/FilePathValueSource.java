@@ -35,7 +35,7 @@ public class FilePathValueSource implements SyntaxValueSource, SyntaxEnvironment
 
     @Nullable
     private List<String> candidatePaths;
-    private NameSnapshot snapshot = new NameSnapshot(() -> List.of());
+    private NameSnapshot snapshot = new NameSnapshot(List::of);
     /**
      * The guide the scan was made for. A guide is replaced when the pack is reloaded and the editor can be
      * pointed at another one, so this cannot be a plain "already scanned" flag: that would keep suggesting

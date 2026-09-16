@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.micromark.Assert;
 import com.hfstudio.guidenh.libs.micromark.ListUtils;
 import com.hfstudio.guidenh.libs.micromark.Token;
@@ -117,7 +116,6 @@ public class Subtokenize {
         return !more;
     }
 
-    @Desugar
     record Jump(int first, int second) {}
 
     /**

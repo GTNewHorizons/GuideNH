@@ -56,7 +56,7 @@ public class GuidePage {
         this.titleHeading = titleHeading;
         this.pageMeta = pageMeta;
         this.scenes = collectScenes(document);
-        this.registeredScenes = Collections.newSetFromMap(new IdentityHashMap<LytGuidebookScene, Boolean>());
+        this.registeredScenes = Collections.newSetFromMap(new IdentityHashMap<>());
         this.registeredScenes.addAll(scenes);
         this.registeredScenesContentRevision = document.getContentRevision();
     }

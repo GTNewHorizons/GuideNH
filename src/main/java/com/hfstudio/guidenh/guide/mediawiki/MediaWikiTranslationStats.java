@@ -14,7 +14,6 @@ import java.util.zip.ZipFile;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.util.ResourceLocation;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 
@@ -174,7 +173,6 @@ public class MediaWikiTranslationStats {
         } catch (IOException ignored) {}
     }
 
-    @Desugar
     public record TranslationSnapshot(List<String> languages, Map<String, Set<String>> pagePathsByLanguage,
         int sourcePageCount) {
 
@@ -258,7 +256,6 @@ public class MediaWikiTranslationStats {
         }
     }
 
-    @Desugar
     private record TranslationCacheEntry(String cacheKey, long revision, TranslationSnapshot snapshot) {
 
         private boolean matches(String candidateKey, long candidateRevision) {

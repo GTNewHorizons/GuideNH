@@ -23,7 +23,6 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
@@ -1275,15 +1274,11 @@ public class PageCompiler {
         return (Class<T>) rawClass;
     }
 
-    @Desugar
     private record BlockTagChildSource(String source) {}
 
-    @Desugar
     private record BlockTagChildrenCacheEntry(@Nullable String source, @Nullable ParsedGuidePage parsedPage) {}
 
-    @Desugar
     private record SourceSlice(String source) {}
 
-    @Desugar
     public record State<T> (String name, Class<T> dataClass, T defaultValue) {}
 }

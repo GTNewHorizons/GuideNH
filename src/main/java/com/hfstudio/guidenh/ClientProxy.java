@@ -56,6 +56,7 @@ import com.hfstudio.guidenh.guide.internal.scheduler.SearchIndexWorkItem;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.GuideNhClientIntegrationBootstrap;
 import com.hfstudio.guidenh.integration.Mods;
@@ -204,6 +205,11 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void completeInit(FMLLoadCompleteEvent event) {
         super.completeInit(event);
+        // BlockRenderer6343's StructureLib scans must start after every mod has registered its
+        // controllers and multiblock containers. Starting them earlier captures an incomplete registry,
+        // which leaves ConstructableData without tier/channel ranges for the affected machines.
+        StructureLibDefinitionCache.getInstance()
+            .startScans();
         GuideDevelopmentResourcePackWatcher.init();
         GuideReloadListener.markBootComplete();
         MasterScheduler.getInstance()

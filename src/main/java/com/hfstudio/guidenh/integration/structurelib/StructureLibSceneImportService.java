@@ -67,7 +67,7 @@ public class StructureLibSceneImportService {
                     pb.tileTag(),
                     pb.blockId()));
         }
-        return StructureLibImportResult.success(dst, List.of(), null);
+        return StructureLibImportResult.success(dst, List.of(), result.metadata());
     }
 
     private static StructureLibBuildService resolveBuildService() {

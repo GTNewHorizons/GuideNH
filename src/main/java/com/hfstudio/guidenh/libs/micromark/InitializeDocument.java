@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.micromark.factory.FactorySpace;
 import com.hfstudio.guidenh.libs.micromark.symbol.Codes;
 import com.hfstudio.guidenh.libs.micromark.symbol.Constants;
@@ -25,7 +24,6 @@ public class InitializeDocument {
         containerConstruct.tokenize = InitializeDocument::tokenizeContainer;
     }
 
-    @Desugar
     record StackItem(Construct construct, Tokenizer.ContainerState stackState) {}
 
     public static class StateMachine {

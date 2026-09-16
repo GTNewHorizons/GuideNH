@@ -28,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
@@ -320,7 +321,10 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
         if (blockIn != null && blockIn != Blocks.air) {
             try {
                 blockIn.onBlockAdded(this, x, y, z);
-            } catch (Throwable ignored) {}
+            } catch (Throwable t) {
+                GuideDebugLog
+                    .warn("Preview block onBlockAdded hook failed at ({}, {}, {}) for {}", x, y, z, blockIn, t);
+            }
         }
         return true;
     }

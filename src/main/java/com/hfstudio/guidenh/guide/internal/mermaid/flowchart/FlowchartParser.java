@@ -17,7 +17,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.guide.internal.mermaid.FrontmatterKey;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
@@ -908,14 +907,11 @@ public class FlowchartParser {
         }
     }
 
-    @Desugar
     record NodeSpec(String id, String label, MermaidNodeShape shape, List<String> classes, @Nullable String icon,
         boolean markdownLabel, @Nullable Map<String, String> extendedProperties, @Nullable String labelSource) {}
 
-    @Desugar
     record PipedLabel(@Nullable String label, int endPosition) {}
 
-    @Desugar
     record TokenLink(LinkDefinition.MatchResult match, @Nullable String label, @Nullable String edgeId) {}
 
     static class FlowchartGraphBuilder {
@@ -1199,7 +1195,6 @@ public class FlowchartParser {
             final List<FlowchartSubgraph> children = new ArrayList<>();
         }
 
-        @Desugar
         record LinkStyleEntry(List<String> indices, @Nullable List<String> styles, @Nullable String interpolate) {}
     }
 }

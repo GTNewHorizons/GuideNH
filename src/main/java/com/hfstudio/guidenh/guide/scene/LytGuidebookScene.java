@@ -97,6 +97,7 @@ import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeParticle;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderKeyframeTileNbtOperation;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderNbtPath;
 import com.hfstudio.guidenh.guide.scene.ponder.PonderSceneData;
+import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.snapshot.ServerPreviewSupplementNbt;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockStatsStackResolver;
@@ -451,6 +452,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     @Nullable
     private StructureLibSceneMetadata structureLibSceneMetadata;
     private final LinkedHashMap<String, StructureLibSceneBinding> structureLibBindings = new LinkedHashMap<>();
+    private long structureLibControlMetadataRefreshGeneration = -1L;
     private final LinkedHashMap<String, LongSet> bindingFootprints = new LinkedHashMap<>();
     private final List<SnbtPlacement> snbtPlacements = new ArrayList<>();
     @Nullable
@@ -1187,6 +1189,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         created.setSelectionChangeListener(structureLibSelectionChangeListener);
         structureLibBindings.put(bindingKey, created);
+        structureLibControlMetadataRefreshGeneration = -1L;
         if (structureLibPrimaryBindingKey == null) {
             structureLibPrimaryBindingKey = bindingKey;
         }
@@ -1300,6 +1303,68 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         binding.setSelectionChangeListener(structureLibSelectionChangeListener);
         pendingStructureLibPreviewSelection = binding.getPendingSelection();
         invalidateBottomControlLayoutIfNeeded(previousBottomControlGeometryHash);
+    }
+
+    /**
+     * Re-reads the tier and channel ranges of every bound structure and republishes them.
+     *
+     * <p>
+     * A scene materializes before BlockRenderer6343's scan has published anything, so its bindings were built
+     * without tiers or channels and both sliders stay hidden until the page is reopened. Reading the ranges
+     * again is a definition lookup with no world work, so a scene can do it while it is on screen.
+     *
+     * <p>
+     * The ranges are merged into the metadata a binding already holds rather than replacing it, because the
+     * ranges are read from the structure definition and carry no per-block tooltip data, which the original
+     * build produced.
+     *
+     * @return true when a binding now reports ranges it did not have before
+     */
+    public boolean refreshStructureLibControlMetadata() {
+        StructureLibDefinitionCache definitions = StructureLibDefinitionCache.getInstance();
+        if (!definitions.areScansComplete()) {
+            return false;
+        }
+        long generation = definitions.getScanGeneration();
+        if (structureLibControlMetadataRefreshGeneration == generation) {
+            return false;
+        }
+        boolean changed = false;
+        for (StructureLibSceneBinding binding : structureLibBindings.values()) {
+            StructureLibSceneMetadata ranges = StructureLibBuildService
+                .readControlMetadata(binding.getRebuildRequestTemplate());
+            StructureLibSceneMetadata.TierData tierData = ranges != null ? ranges.getTierData() : null;
+            if (tierData == null || !carriesRanges(ranges)) {
+                continue;
+            }
+            StructureLibSceneMetadata current = binding.getMetadata();
+            StructureLibSceneMetadata merged = (current == null
+                ? new StructureLibSceneMetadata(ranges.getController(), null, null, null, null)
+                : current).withTierAndChannelData(
+                    tierData.getMinValue(),
+                    tierData.getMaxValue(),
+                    tierData.getDefaultValue(),
+                    tierData.getCurrentValue(),
+                    ranges.getChannelDataList());
+            // Use the binding instance directly. A null name is valid for multiple imports; resolving by
+            // name would otherwise return the primary binding for every unnamed structure and overwrite its
+            // channel metadata repeatedly.
+            binding.setMetadata(merged);
+            if (binding == getPrimaryStructureLibBinding()) {
+                bindPrimaryStructureLibState(binding);
+            }
+            changed = true;
+        }
+        structureLibControlMetadataRefreshGeneration = generation;
+        return changed;
+    }
+
+    private static boolean carriesRanges(@Nullable StructureLibSceneMetadata metadata) {
+        if (metadata == null) {
+            return false;
+        }
+        StructureLibSceneMetadata.TierData tierData = metadata.getTierData();
+        return (tierData != null && tierData.isSelectable()) || metadata.hasSelectableChannels();
     }
 
     public void setStructureLibSceneMetadata(@Nullable StructureLibSceneMetadata structureLibSceneMetadata) {
@@ -1417,6 +1482,12 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                         bx,
                         by,
                         bz);
+            }
+            StructureLibSceneMetadata metadata = result.metadata();
+            if (metadata != null) {
+                setStructureLibSceneMetadata(
+                    binding.getName(),
+                    metadata.offsetBlockTooltips(offsetX, offsetY, offsetZ));
             }
         }
     }
@@ -2106,6 +2177,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     @Nullable
     public SceneAnnotation updateAnnotationHover(int mouseX, int mouseY) {
+        if (annotations.isEmpty()) {
+            return null;
+        }
         if (!annotationsVisible) {
             clearAnnotationHover();
             return null;
@@ -3709,11 +3783,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public GuideIconButton.Role sceneButtonAt(int mouseX, int mouseY) {
         if (ponderSceneData != null && lastOuterH > 0 && cachedPonderBtnScreenW > 0) {
             if (mouseY >= cachedPonderBtnAbsY && mouseY < cachedPonderBtnAbsY + cachedPonderBtnScreenH) {
-                GuideIconButton.Role[] pRoles = { GuideIconButton.Role.PONDER_PREV_KEYFRAME,
-                    GuideIconButton.Role.PONDER_PLAY_PAUSE, GuideIconButton.Role.PONDER_RESTART };
-                for (int i = 0; i < pRoles.length; i++) {
+                for (int i = 0; i < PONDER_BUTTON_ROLES.length; i++) {
                     int bx = cachedPonderBtnAbsX + i * cachedPonderBtnScreenW;
-                    if (mouseX >= bx && mouseX < bx + cachedPonderBtnScreenW) return pRoles[i];
+                    if (mouseX >= bx && mouseX < bx + cachedPonderBtnScreenW) return PONDER_BUTTON_ROLES[i];
                 }
             }
         }

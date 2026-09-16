@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.libs.micromark.extensions.gfmstrikethrough;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.github.bsideup.jabel.Desugar;
 import com.hfstudio.guidenh.libs.micromark.Assert;
 import com.hfstudio.guidenh.libs.micromark.ClassifyCharacter;
 import com.hfstudio.guidenh.libs.micromark.Construct;
@@ -175,7 +174,6 @@ public class GfmStrikethroughSyntax extends Extension {
         return new StateMachine()::start;
     }
 
-    @Desugar
     public record Options(boolean singleTilde) {
 
         public static Options DEFAULT = new Options(true);
