@@ -30,6 +30,7 @@ public class MediaWikiSpecialPageIds {
     public static final String SEARCH_TRANSLATIONS = "SearchTranslations";
     public static final String TRANSLATION_STATISTICS = "TranslationStatistics";
     public static final String CONTRIBUTE = "Contribute";
+    public static final String TEMPLATES = "Templates";
 
     private MediaWikiSpecialPageIds() {}
 }

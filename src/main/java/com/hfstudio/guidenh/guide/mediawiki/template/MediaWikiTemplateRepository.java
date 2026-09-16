@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.mediawiki.template;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.minecraft.util.ResourceLocation;
@@ -67,6 +69,18 @@ public class MediaWikiTemplateRepository {
 
     public static int size() {
         return templates.size();
+    }
+
+    /** Every template, ordered by name, for lists that show what the guide defines. */
+    public static List<MediaWikiTemplateDefinition> all() {
+        return templates.values()
+            .stream()
+            .sorted(
+                Comparator.comparing(
+                    definition -> definition.name()
+                        .value(),
+                    String.CASE_INSENSITIVE_ORDER))
+            .toList();
     }
 
     public record TemplatePageSource(String sourcePack, String language, ResourceLocation pageId,

@@ -109,6 +109,12 @@ public class MediaWikiSpecialCatalog {
                 MediaWikiSpecialPageKind.GROUPED));
         definitions.add(
             definition(
+                MediaWikiSpecialPageIds.TEMPLATES,
+                "guidenh.mediawiki.special.templates",
+                "lists",
+                MediaWikiSpecialPageKind.GRID));
+        definitions.add(
+            definition(
                 MediaWikiSpecialPageIds.DISAMBIGUATION_PAGES,
                 "guidenh.mediawiki.special.disambiguationpages",
                 "lists",
