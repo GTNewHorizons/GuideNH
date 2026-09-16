@@ -1,5 +1,6 @@
 package com.hfstudio.guidenh.guide.mediawiki.template;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -92,6 +93,44 @@ class MediaWikiTemplateExamplePackTest {
         register("_en_us", "InfoBox");
         String text = harness.textOfPage("<Template name=\"InfoBox\" />");
         assertTrue(text.contains("Untitled"), () -> text);
+    }
+
+    @Test
+    void everyExampleTemplateDeclaresTheParametersTheEditorCompletes() {
+        // The editor offers these as arguments, so the index has to find them in the shipped templates.
+        assertEquals(
+            List.of("name", "icon", "note"),
+            MediaWikiTemplateParameters.of(
+                harness.parse(read(templatePath("_en_us", "InfoBox")))
+                    .getAstRoot()
+                    .children())
+                .named());
+        assertEquals(
+            List.of("icon", "label"),
+            MediaWikiTemplateParameters.of(
+                harness.parse(read(templatePath("_en_us", "Row")))
+                    .getAstRoot()
+                    .children())
+                .named());
+        assertEquals(
+            List.of(1, 2, 3),
+            MediaWikiTemplateParameters.of(
+                harness.parse(read(templatePath("_en_us", "CraftCost")))
+                    .getAstRoot()
+                    .children())
+                .positions());
+    }
+
+    @Test
+    void parametersUsedAsAttributeValuesAreIndexed() {
+        // <ItemImage id={<Param name="icon" />} /> keeps the parameter as expression text, not as a node.
+        List<String> named = MediaWikiTemplateParameters
+            .of(
+                harness.parse("<ItemImage id={<Param name=\"icon\" />} />\n")
+                    .getAstRoot()
+                    .children())
+            .named();
+        assertEquals(List.of("icon"), named);
     }
 
     @Test

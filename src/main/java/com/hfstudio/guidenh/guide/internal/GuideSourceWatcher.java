@@ -35,6 +35,7 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDependencyGraph;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateInvalidator;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateParameters;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateRepository;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
@@ -384,7 +385,10 @@ public class GuideSourceWatcher implements AutoCloseable {
                 new MediaWikiTemplateRepository.TemplatePageSource(
                     page.getSourcePack(),
                     page.getLanguage(),
-                    page.getId()));
+                    page.getId(),
+                    MediaWikiTemplateParameters.of(
+                        page.getAstRoot() != null ? page.getAstRoot()
+                            .children() : null)));
             templatePages.add(page.getId());
         }
         if (templatePages.isEmpty()) {

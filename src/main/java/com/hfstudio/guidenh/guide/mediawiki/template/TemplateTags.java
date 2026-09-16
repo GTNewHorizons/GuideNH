@@ -29,6 +29,7 @@ public class TemplateTags {
     public static final String A_ATTRIBUTE = "a";
     public static final String B_ATTRIBUTE = "b";
     public static final String PAGE_ATTRIBUTE = "page";
+    public static final String POS_ATTRIBUTE = "pos";
 
     public static final String LOWER = "Lower";
     public static final String UPPER = "Upper";

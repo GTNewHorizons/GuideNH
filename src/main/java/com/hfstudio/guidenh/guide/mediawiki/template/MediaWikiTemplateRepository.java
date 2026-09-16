@@ -39,7 +39,14 @@ public class MediaWikiTemplateRepository {
                 continue;
             }
             MediaWikiTemplateName name = MediaWikiTemplateName.parse(templateName);
-            rebuilt.put(name, new MediaWikiTemplateDefinition(name, page.pageId(), page.sourcePack(), page.language()));
+            rebuilt.put(
+                name,
+                new MediaWikiTemplateDefinition(
+                    name,
+                    page.pageId(),
+                    page.sourcePack(),
+                    page.language(),
+                    page.parameters()));
         }
         synchronized (LOCK) {
             templates = Map.copyOf(rebuilt);
@@ -62,5 +69,11 @@ public class MediaWikiTemplateRepository {
         return templates.size();
     }
 
-    public record TemplatePageSource(String sourcePack, String language, ResourceLocation pageId) {}
+    public record TemplatePageSource(String sourcePack, String language, ResourceLocation pageId,
+        MediaWikiTemplateParameters parameters) {
+
+        public TemplatePageSource(String sourcePack, String language, ResourceLocation pageId) {
+            this(sourcePack, language, pageId, MediaWikiTemplateParameters.EMPTY);
+        }
+    }
 }

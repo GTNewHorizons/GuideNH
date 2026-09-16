@@ -31,6 +31,7 @@ import com.hfstudio.guidenh.guide.latex.GuideLatexTextureCache;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiTranslationStats;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDependencyGraph;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateParameters;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateRepository;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
@@ -129,7 +130,10 @@ public class GuideLightweightReloadService {
                     new MediaWikiTemplateRepository.TemplatePageSource(
                         page.getSourcePack(),
                         page.getLanguage(),
-                        page.getId()));
+                        page.getId(),
+                        MediaWikiTemplateParameters.of(
+                            page.getAstRoot() != null ? page.getAstRoot()
+                                .children() : null)));
             }
         }
         MediaWikiTemplateRepository.rebuild(sources);
