@@ -1089,6 +1089,8 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
 
         sink.attributes("Template", name);
         sink.attributes("Arg", name);
+        // Every other attribute on a call is an argument, so the accepted set cannot be enumerated.
+        sink.forwardsAttributes("Template", "Arg");
         sink.attributes("Param", name, pos, defaultValue);
         sink.attributes("If", AttributeSyntax.of("test", SyntaxValueKind.STRING));
         sink.attributes(

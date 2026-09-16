@@ -230,6 +230,12 @@ public class GuideSyntaxModel {
         return fact != null && fact.container;
     }
 
+    /** True when the tag accepts any attribute, so an undeclared one is legal rather than a mistake. */
+    public boolean forwardsAttributes(@Nullable String tagName) {
+        TagFact fact = tagName != null ? tags.get(tagName) : null;
+        return fact != null && fact.forwardsAttributes;
+    }
+
     @Nullable
     public InsertTemplate insertTemplate(@Nullable String tagName) {
         return tagName != null ? insertTemplates.get(tagName) : null;
@@ -507,14 +513,16 @@ public class GuideSyntaxModel {
         private final List<String> children;
         private final List<String> preferredChildren;
         private final List<AttributeSyntax> attributes;
+        private final boolean forwardsAttributes;
         private final boolean hidden;
 
         private TagFact(boolean container, List<String> children, List<String> preferredChildren,
-            List<AttributeSyntax> attributes, boolean hidden) {
+            List<AttributeSyntax> attributes, boolean forwardsAttributes, boolean hidden) {
             this.container = container;
             this.children = children;
             this.preferredChildren = preferredChildren;
             this.attributes = attributes;
+            this.forwardsAttributes = forwardsAttributes;
             this.hidden = hidden;
         }
     }
@@ -536,6 +544,7 @@ public class GuideSyntaxModel {
         private final Map<String, Set<String>> children = new LinkedHashMap<>();
         private final Map<String, Set<String>> preferredChildren = new LinkedHashMap<>();
         private final Map<String, Map<String, AttributeSyntax>> attributes = new LinkedHashMap<>();
+        private final Set<String> forwardsAttributes = new LinkedHashSet<>();
         private final Set<String> hidden = new LinkedHashSet<>();
         private final List<MarkdownSnippet> markdownSnippets = new ArrayList<>();
         private final List<String> fenceLanguages = new ArrayList<>();
@@ -586,6 +595,12 @@ public class GuideSyntaxModel {
             for (AttributeSyntax attribute : declared) {
                 target.put(attribute.name(), attribute);
             }
+            return this;
+        }
+
+        @Override
+        public SyntaxSink forwardsAttributes(String... tagNames) {
+            forwardsAttributes.addAll(List.of(tagNames));
             return this;
         }
 
@@ -681,6 +696,7 @@ public class GuideSyntaxModel {
             names.addAll(attributes.keySet());
             names.addAll(children.keySet());
             names.addAll(preferredChildren.keySet());
+            names.addAll(forwardsAttributes);
             Map<String, TagFact> result = new LinkedHashMap<>();
             for (String name : names) {
                 Boolean isContainer = containers.get(name);
@@ -694,6 +710,7 @@ public class GuideSyntaxModel {
                         declaredChildren != null ? List.copyOf(declaredChildren) : List.of(),
                         declaredPreferred != null ? List.copyOf(declaredPreferred) : List.of(),
                         declaredAttributes != null ? List.copyOf(declaredAttributes.values()) : List.of(),
+                        forwardsAttributes.contains(name),
                         hidden.contains(name)));
             }
             return result;
