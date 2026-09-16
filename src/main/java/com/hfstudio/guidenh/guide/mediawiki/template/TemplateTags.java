@@ -68,6 +68,15 @@ public class TemplateTags {
         return name != null && ARGUMENT_TAGS.contains(name);
     }
 
+    /**
+     * True for the node the parser wraps a multi-line call body in. {@code <Arg>} tags written on their own
+     * lines end up inside a paragraph rather than directly under {@code <Template>}, so reading a call's
+     * arguments has to look through these wrappers.
+     */
+    public static boolean isArgumentWrapper(String name) {
+        return "p".equals(name) || "div".equals(name);
+    }
+
     public static boolean isParameter(String name) {
         return PARAMETER.equals(name);
     }

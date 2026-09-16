@@ -95,14 +95,17 @@ public class TemplateNodeExpander {
             return null;
         }
         String name = attributeText(reference, TemplateTags.NAME_ATTRIBUTE);
+        String rawPosition = attributeText(reference, "pos");
+        String key = name != null && !name.trim()
+            .isEmpty() ? MediaWikiTemplateName.normalize(name) : positionalKey(rawPosition, context);
         String fallback = attributeText(reference, TemplateTags.DEFAULT_ATTRIBUTE);
-        if (name == null) {
+        if (key == null) {
             context.addIssue(
                 MediaWikiTemplateIssueKind.MALFORMED_INVOCATION,
-                "Attribute parameter needs a name: " + reference);
+                "Attribute parameter needs a name or a positive pos: " + reference);
             return fallback;
         }
-        MediaWikiTemplateValue supplied = arguments.get(name);
+        MediaWikiTemplateValue supplied = arguments.get(key);
         if (supplied != null && !supplied.isBlank()) {
             return supplied.text();
         }
@@ -111,7 +114,28 @@ public class TemplateNodeExpander {
         }
         context.addIssue(
             MediaWikiTemplateIssueKind.MISSING_PARAMETER,
-            "Attribute parameter " + name + " was not supplied and has no default");
+            "Attribute parameter " + key + " was not supplied and has no default");
+        return null;
+    }
+
+    private static @Nullable String positionalKey(@Nullable String rawPosition, MediaWikiTemplateContext context) {
+        if (rawPosition == null) {
+            return null;
+        }
+        try {
+            int position = Integer.parseInt(rawPosition.trim());
+            if (position > 0) {
+                return String.valueOf(position);
+            }
+        } catch (NumberFormatException notANumber) {
+            context.addIssue(
+                MediaWikiTemplateIssueKind.MALFORMED_INVOCATION,
+                "Parameter pos is not a number: " + rawPosition);
+            return null;
+        }
+        context.addIssue(
+            MediaWikiTemplateIssueKind.MALFORMED_INVOCATION,
+            "Parameter pos must be positive: " + rawPosition);
         return null;
     }
 

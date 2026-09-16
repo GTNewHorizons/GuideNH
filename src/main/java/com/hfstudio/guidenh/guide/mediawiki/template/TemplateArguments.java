@@ -32,7 +32,8 @@ public class TemplateArguments {
         @Nullable MediaWikiTemplateArguments outer) {
         MediaWikiTemplateArguments arguments = new MediaWikiTemplateArguments();
         int position = 0;
-        for (MdAstAnyContent child : element.children()) {
+        boolean nameAttributeSeen = false;
+        for (MdAstAnyContent child : argumentChildren(element)) {
             if (!(child instanceof MdxJsxElementFields arg) || !TemplateTags.isArgument(arg.name())) {
                 continue;
             }
@@ -43,7 +44,14 @@ public class TemplateArguments {
             if (!(attributeNode instanceof MdxJsxAttribute attribute)) {
                 continue;
             }
-            if (!TemplateTags.isArgumentAttribute(attribute.name)) {
+            // The first `name` selects the template. A later one is an argument, which is how
+            // <Template name="InfoBox" name="Gold Ingot" /> passes the template's own `name` parameter.
+            if (TemplateTags.NAME_ATTRIBUTE.equals(attribute.name)) {
+                if (!nameAttributeSeen) {
+                    nameAttributeSeen = true;
+                    continue;
+                }
+            } else if (!TemplateTags.isArgumentAttribute(attribute.name)) {
                 continue;
             }
             position++;
@@ -57,6 +65,30 @@ public class TemplateArguments {
                 forwarded != null ? forwarded.copy() : MediaWikiTemplateValue.ofText(raw));
         }
         return arguments;
+    }
+
+    /**
+     * The child nodes that hold arguments. A multi-line call written as
+     * {@code <Template name="x">\n  <Arg .../>\n</Template>} has its {@code <Arg>} tags wrapped in a
+     * paragraph by the parser, so a call only reaches its arguments by descending through the wrappers the
+     * parser inserts. Wrappers themselves contribute nothing, so the walk stays at that one level.
+     */
+    private static List<MdAstAnyContent> argumentChildren(MdxJsxElementFields element) {
+        List<MdAstAnyContent> found = new ArrayList<>();
+        for (MdAstAnyContent child : element.children()) {
+            if (child instanceof MdxJsxElementFields direct && TemplateTags.isArgument(direct.name())) {
+                found.add(child);
+                continue;
+            }
+            if (child instanceof MdxJsxElementFields wrapper && TemplateTags.isArgumentWrapper(wrapper.name())) {
+                for (MdAstAnyContent nested : wrapper.children()) {
+                    if (nested instanceof MdxJsxElementFields arg && TemplateTags.isArgument(arg.name())) {
+                        found.add(nested);
+                    }
+                }
+            }
+        }
+        return found;
     }
 
     private static MediaWikiTemplateValue valueOf(List<? extends MdAstAnyContent> nodes,
