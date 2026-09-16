@@ -229,7 +229,10 @@ public class PageCompiler {
         pageContent = FootnotePreprocessor.preprocess(pageContent);
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
         MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(pageContent);
-        String parseContent = MdxCommentMasker.mask(latexMask.source());
+        // Masked before parsing, because `&[label](uri)` otherwise reads as an ordinary Markdown link and the
+        // URI is consumed by the parser before the compiler can turn it into an action.
+        MarkdownActionLink.MaskResult actionMask = MarkdownActionLink.mask(latexMask.source());
+        String parseContent = MdxCommentMasker.mask(actionMask.source());
 
         MdAstRoot astRoot;
         String parseFailureMessage = null;
@@ -239,6 +242,7 @@ public class PageCompiler {
         try {
             astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
             MarkdownLatexShorthand.restore(astRoot, latexMask);
+            MarkdownActionLink.restore(astRoot, actionMask);
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
 
             Map<String, MdAstDefinition> definitions = GuideMarkdownDefinitions.collect(astRoot);
