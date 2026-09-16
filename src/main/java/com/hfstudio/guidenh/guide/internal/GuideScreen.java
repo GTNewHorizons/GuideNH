@@ -1089,7 +1089,10 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean hasEditableContentRoute() {
-        return hasContentRoute() && !isSearchPage() && !isItemLinksPage();
+        // A special page is generated from the guide's own data and has no source file, so there is nothing to
+        // edit: the editor pane stays out of the way rather than offering to change a page that cannot be
+        // written. The same applies to the two built-in synthetic views.
+        return hasContentRoute() && !isSearchPage() && !isItemLinksPage() && !isSpecialPage();
     }
 
     private void syncGuideEditorStateFromConfig() {
