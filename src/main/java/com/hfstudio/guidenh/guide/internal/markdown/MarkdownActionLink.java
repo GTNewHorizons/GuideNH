@@ -63,7 +63,6 @@ public class MarkdownActionLink {
         return new MaskResult(masked.toString(), actions);
     }
 
-    /** Puts the original action links back into the parsed text nodes. */
     public static void restore(MdAstNode root, MaskResult maskResult) {
         if (maskResult == null || maskResult.isEmpty() || root == null) {
             return;
@@ -212,7 +211,6 @@ public class MarkdownActionLink {
 
     }
 
-    /** The masked source together with the action links that were taken out of it. */
     public record MaskResult(String source, Map<String, String> actions) {
 
         public MaskResult {
