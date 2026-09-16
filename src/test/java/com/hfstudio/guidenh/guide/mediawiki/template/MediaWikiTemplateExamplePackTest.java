@@ -55,6 +55,29 @@ class MediaWikiTemplateExamplePackTest {
     }
 
     @Test
+    void infoBoxRendersArgumentsWrittenOnTheirOwnLines() {
+        register("_en_us", "InfoBox");
+        // Writing each <Arg> on its own line makes the parser wrap them in a paragraph, which is the form the
+        // documentation shows and the form that once dropped every argument.
+        String text = harness.textOfPage(
+            "<Template name=\"InfoBox\">\n  <Arg name=\"name\">Steel Ingot</Arg>\n"
+                + "  <Arg name=\"icon\">minecraft:iron_ingot</Arg>\n</Template>");
+        assertTrue(text.contains("Steel Ingot"), () -> text);
+        assertFalse(text.contains("Untitled"), () -> "an argument written on its own line must still apply: " + text);
+    }
+
+    @Test
+    void craftCostResolvesPositionalArgumentsWrittenOnTheirOwnLines() {
+        registerCraftCost();
+        String text = harness.textOfPage(
+            "<Template name=\"CraftCost\" tier=\"mv\">\n  <Arg>minecraft:iron_ingot</Arg>\n"
+                + "  <Arg>Iron Ingot</Arg>\n  <Arg>2 iron ingots</Arg>\n</Template>");
+        assertTrue(text.contains("Iron Ingot"), () -> text);
+        assertTrue(text.contains("2 iron ingots"), () -> text);
+        assertFalse(text.contains("Unknown"), () -> "the positional defaults must not appear: " + text);
+    }
+
+    @Test
     void infoBoxRendersItsArguments() {
         register("_en_us", "InfoBox");
         String text = harness.textOfPage(

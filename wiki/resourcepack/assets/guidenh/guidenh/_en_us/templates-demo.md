@@ -35,7 +35,8 @@ Omitting every argument falls back to the defaults:
 
 <Template name="InfoBox" />
 
-An attribute is shorthand for the same thing, which is easier to read on one line:
+An attribute is shorthand for the same thing, which is easier to read on one line. The first `name` selects
+the template, so a second one passes the template's own `name` parameter:
 
 <Template name="InfoBox" name="Gold Ingot" icon="minecraft:gold_ingot" />
 
@@ -59,25 +60,27 @@ The `tier` attribute is resolved by a `<Switch>` inside the template, and an unk
 
 ## Arithmetic And String Helpers
 
-These tags compute while the page is compiled. A value comes from `value`, or from a nested `<Param>`:
+These tags work inside a template, not on an ordinary page, so the examples below are written the way a
+template body would use them. A value comes from `value`, or from a nested `<Param>`:
 
-- `<Expr value="2 + 3 * 4" />` gives <Expr value="2 + 3 * 4" />
-- `<Expr value="10 / 4" />` gives <Expr value="10 / 4" />
-- `<Expr value="7 &gt; 5" />` gives <Expr value="7 &gt; 5" />, because a comparison yields `1` or `0`
-- `<Len value="Etching Array" />` gives <Len value="Etching Array" /> characters
-- `<Sub value="Etching Array" start="0" length="7" />` gives `<Sub value="Etching Array" start="0" length="7" />`
-- `<Replace value="a-b" from="-" to="+" />` gives <Replace value="a-b" from="-" to="+" />
-- `<Explode value="a,b,c" delimiter="," index="1" />` gives <Explode value="a,b,c" delimiter="," index="1" />
-- `<PadLeft value="7" width="3" pad="0" />` gives <PadLeft value="7" width="3" pad="0" />
-- `<PadRight value="7" width="3" pad="0" />` gives <PadRight value="7" width="3" pad="0" />
-- `<Lower value="ABC" />` gives <Lower value="ABC" /> and `<Upper value="abc" />` gives <Upper value="abc" />
-- `<Trim value=" spaced " />` gives `<Trim value=" spaced " />`
-- `<UrlEncode value="a b" />` gives <UrlEncode value="a b" />
-- `<Pos value="abc" needle="c" />` gives <Pos value="abc" needle="c" />
+```md
+<Expr value="2 + 3 * 4" /> gives 14
+<Expr value="10 / 4" /> gives 2.5
+<Expr value="7 &gt; 5" /> gives 1, because a comparison yields `1` or `0`
+<Len value="Etching Array" /> gives 13 characters
+<Sub value="Etching Array" start="0" length="7" /> gives `Etching`
+<Replace value="a-b" from="-" to="+" /> gives `a+b`
+<Explode value="a,b,c" delimiter="," index="1" /> gives `b`
+<PadLeft value="7" width="3" pad="0" /> gives `007`
+<PadRight value="7" width="3" pad="0" /> gives `700`
+<Lower value="ABC" /> gives `abc`, and <Upper value="abc" /> gives `ABC`
+<Trim value=" spaced " /> removes the surrounding spaces
+<UrlEncode value="a b" /> gives `a%20b`
+<Pos value="abc" needle="c" /> gives 3
+```
 
-Right-to-left scripts and Japanese names exercise the same tags:
-
-- `<Upper value="steel ingot" /><Lower value="STEEL INGOT" /><Len value="鋼鉄" />
+Right-to-left scripts and Japanese names work the same way, so `<Upper value="steel ingot" />`,
+`<Lower value="STEEL INGOT" />` and `<Len value="鋼鉄" />` all behave as expected.
 
 ## Conditionals
 
@@ -87,14 +90,17 @@ Right-to-left scripts and Japanese names exercise the same tags:
 <If test="note">note is present<Else />no note was supplied</If>
 ```
 
-<If test="note">note is present<Else />no note was supplied</If>
+`InfoBox` uses exactly that to print nothing when `note` is absent.
 
 `<IfEq>` compares two values, `<Switch>` picks a branch by value, and `<IfExist>` asks whether a page
 exists:
 
-- `<IfEq a="iron" b="iron">same<Else />different</IfEq>` gives <IfEq a="iron" b="iron">same<Else />different</IfEq>
-- `<IfExist page="index.md">the page exists<Else />no such page</IfExist>` gives <IfExist page="index.md">the page exists<Else />no such page</IfExist>
-- `<IfExist page="no/Such/Page.md">the page exists<Else />no such page</IfExist>` gives <IfExist page="no/Such/Page.md">the page exists<Else />no such page</IfExist>
+```md
+<IfEq a="iron" b="iron">same<Else />different</IfEq>
+<IfExist page="index.md">the page exists<Else />no such page</IfExist>
+```
+
+`CraftCost` uses a `<Switch>` to turn its `tier` argument into a voltage line:
 
 ```md
 <Switch test="tier">

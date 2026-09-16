@@ -29,6 +29,27 @@ class MediaWikiTemplateCompileTest {
     }
 
     @Test
+    void readsArgumentsWrittenOnTheirOwnLines() {
+        harness.defineTemplate("Box", "Name: <Param name=\"name\" />");
+        // One argument per line makes the parser wrap them in a paragraph, so this is the form that once lost
+        // every argument and silently fell back to the defaults.
+        assertEquals("Name: Steel", text("<Template name=\"Box\">\n  <Arg name=\"name\">Steel</Arg>\n</Template>"));
+    }
+
+    @Test
+    void readsPositionalArgumentsWrittenOnTheirOwnLines() {
+        harness.defineTemplate("Box", "Name: <Param pos=\"1\" />");
+        assertEquals("Name: Steel", text("<Template name=\"Box\">\n  <Arg>Steel</Arg>\n</Template>"));
+    }
+
+    @Test
+    void aSecondNameAttributeIsAnArgument() {
+        harness.defineTemplate("Box", "Name: <Param name=\"name\" default=\"Untitled\" />");
+        // The first `name` selects the template, so the second one has to reach the `name` parameter.
+        assertEquals("Name: Gold", text("<Template name=\"Box\" name=\"Gold\" />"));
+    }
+
+    @Test
     void rendersAParameterByPosition() {
         harness.defineTemplate("Box", "Name: <Param pos=\"1\" />");
         assertEquals("Name: Steel", text("<Template name=\"Box\"><Arg>Steel</Arg></Template>"));
@@ -302,6 +323,28 @@ class MediaWikiTemplateCompileTest {
         String text = text("<Template name=\"Line\"><Arg>minecraft:iron_ingot</Arg><Arg>Iron Ingot</Arg></Template>");
         assertTrue(text.contains("Iron Ingot"), () -> text);
         assertFalse(text.contains("<Param"), () -> text);
+    }
+
+    @Test
+    void resolvesAPositionalParameterUsedAsAnAttributeValue() {
+        // The value can only be checked through a tag that renders a string, because an item icon needs the
+        // game registry. The attribute path is the same one, so a Color id proves the substitution happened.
+        harness.defineTemplate("Swatch", "<Color id={<Param pos=\"1\" />}>x</Color>");
+        String text = text("<Template name=\"Swatch\"><Arg>RED</Arg></Template>");
+        assertFalse(text.contains("<Param"), () -> text);
+        assertFalse(
+            text.contains("Expected string"),
+            () -> "the attribute must be substituted before the tag reads it: " + text);
+    }
+
+    @Test
+    void resolvesANamedParameterUsedAsAnAttributeValue() {
+        harness.defineTemplate("Swatch", "<Color id={<Param name=\"colour\" />}>x</Color>");
+        String text = text("<Template name=\"Swatch\"><Arg name=\"colour\">RED</Arg></Template>");
+        assertFalse(text.contains("<Param"), () -> text);
+        assertFalse(
+            text.contains("Expected string"),
+            () -> "the attribute must be substituted before the tag reads it: " + text);
     }
 
     @Test
