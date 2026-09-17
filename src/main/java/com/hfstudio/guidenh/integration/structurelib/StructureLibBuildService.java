@@ -307,49 +307,53 @@ public class StructureLibBuildService {
 
     public static void buildStructure(IConstructable constructable, ItemStack trigger, PreviewFakePlayer fakePlayer,
         StructureLibBuildRequest request, TileEntity controllerTile) {
-        GregTechHelpers.resolvePreviewModifier(controllerTile, trigger, true);
-        boolean useSurvival = constructable instanceof ISurvivalConstructable;
-        if (useSurvival) {
-            ISurvivalConstructable sc = (ISurvivalConstructable) constructable;
-            ISurvivalBuildEnvironment env = ISurvivalBuildEnvironment.create(createItemSource(), fakePlayer);
-            int rounds = 0;
-            boolean creativeFallback = false;
-            while (rounds++ < SURVIVAL_MAX_ROUNDS) {
-                int result = sc.survivalConstruct(trigger, SURVIVAL_BUDGET, env);
-                if (result == -1) {
-                    return; // success
+        StructureLibMinimumHatchPlacement.beginPreviewBuild();
+        try {
+            GregTechHelpers.resolvePreviewModifier(controllerTile, trigger, true);
+            boolean useSurvival = constructable instanceof ISurvivalConstructable;
+            if (useSurvival) {
+                ISurvivalConstructable sc = (ISurvivalConstructable) constructable;
+                ISurvivalBuildEnvironment env = ISurvivalBuildEnvironment.create(createItemSource(), fakePlayer);
+                int rounds = 0;
+                boolean creativeFallback = false;
+                while (rounds++ < SURVIVAL_MAX_ROUNDS) {
+                    int result = sc.survivalConstruct(trigger, SURVIVAL_BUDGET, env);
+                    if (result == -1) {
+                        return; // success
+                    }
+                    if (result == -2) {
+                        GuideDebugLog.warn(
+                            "[GuideNH] [StructureLib] Survival preview requested creative fallback: controller={}, round={}",
+                            request.controllerId(),
+                            rounds);
+                        creativeFallback = true;
+                        break;
+                    }
+                    if (result <= 0) {
+                        GuideDebugLog.warn(
+                            "[GuideNH] [StructureLib] Survival preview stopped without progress: controller={}, round={}, result={}",
+                            request.controllerId(),
+                            rounds,
+                            result);
+                        break;
+                    }
+                    GregTechHelpers.refreshPreviewHatchList(controllerTile, trigger, null);
                 }
-                if (result == -2) {
+                if (!creativeFallback) {
                     GuideDebugLog.warn(
-                        "[GuideNH] [StructureLib] Survival preview requested creative fallback: controller={}, round={}",
+                        "[GuideNH] [StructureLib] Survival preview exceeded the round limit; creative fallback suppressed to preserve optional hatch positions: controller={}, rounds={}",
                         request.controllerId(),
                         rounds);
-                    creativeFallback = true;
-                    break;
                 }
-                if (result <= 0) {
-                    GuideDebugLog.warn(
-                        "[GuideNH] [StructureLib] Survival preview stopped without progress: controller={}, round={}, result={}",
-                        request.controllerId(),
-                        rounds,
-                        result);
-                    break;
-                }
-                GregTechHelpers.refreshPreviewHatchList(controllerTile, trigger, null);
             }
-            if (!creativeFallback) {
-                GuideDebugLog.warn(
-                    "[GuideNH] [StructureLib] Survival preview exceeded the round limit; creative fallback suppressed to preserve optional hatch positions: controller={}, rounds={}",
-                    request.controllerId(),
-                    rounds);
-                creativeFallback = true;
+            StructureLibMinimumHatchPlacement.beginCreativeConstruct();
+            try {
+                constructable.construct(trigger.copy(), false);
+            } finally {
+                StructureLibMinimumHatchPlacement.endCreativeConstruct();
             }
-        }
-        StructureLibMinimumHatchPlacement.beginCreativeConstruct();
-        try {
-            constructable.construct(trigger.copy(), false);
         } finally {
-            StructureLibMinimumHatchPlacement.endCreativeConstruct();
+            StructureLibMinimumHatchPlacement.endPreviewBuild();
         }
     }
 

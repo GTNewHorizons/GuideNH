@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.gtnewhorizon.structurelib.structure.IStructureElement;
 import com.hfstudio.guidenh.integration.gregtech.GregTechPreviewHatchCandidates;
-import com.hfstudio.guidenh.integration.structurelib.MinimumHatchStructureElement;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibMinimumHatchPlacement;
 
 import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.util.HatchElementBuilder;
@@ -32,14 +32,14 @@ public abstract class MixinHatchElementBuilderPreview<T> {
         mHatchItemFilter = GregTechPreviewHatchCandidates.withDeclaredCandidates(mHatchItemFilter, elements.keySet());
     }
 
-    @Inject(method = "build", at = @At("RETURN"), cancellable = true)
-    private void guidenh$preserveOptionalChainFallbacks(CallbackInfoReturnable<IStructureElement<?>> callback) {
+    @Inject(method = "build", at = @At("RETURN"))
+    private void guidenh$recordPreviewPlacementMetadata(CallbackInfoReturnable<IStructureElement<?>> callback) {
         IStructureElement<?> element = callback.getReturnValue();
         if (element == null) {
             return;
         }
         boolean hasMinimumRequirement = ((AccessorHatchElementBuilder) this).guidenh$getReject() != null;
         int casingIndex = ((AccessorHatchElementBuilder) this).guidenh$getCasingIndex();
-        callback.setReturnValue(new MinimumHatchStructureElement<>(element, hasMinimumRequirement, casingIndex));
+        StructureLibMinimumHatchPlacement.register(element, hasMinimumRequirement, casingIndex);
     }
 }
