@@ -19,14 +19,14 @@ public class MediaWikiTemplateRepository {
 
     private static final Object LOCK = new Object();
     private static volatile Map<MediaWikiTemplateName, MediaWikiTemplateDefinition> templates = Map.of();
-    private static volatile long revision;
+    private static volatile List<MediaWikiTemplateDefinition> sortedTemplates = List.of();
 
     private MediaWikiTemplateRepository() {}
 
     public static void clear() {
         synchronized (LOCK) {
             templates = Map.of();
-            revision++;
+            sortedTemplates = List.of();
         }
     }
 
@@ -52,7 +52,14 @@ public class MediaWikiTemplateRepository {
         }
         synchronized (LOCK) {
             templates = Map.copyOf(rebuilt);
-            revision++;
+            sortedTemplates = rebuilt.values()
+                .stream()
+                .sorted(
+                    Comparator.comparing(
+                        definition -> definition.name()
+                            .value(),
+                        String.CASE_INSENSITIVE_ORDER))
+                .toList();
         }
     }
 
@@ -71,16 +78,8 @@ public class MediaWikiTemplateRepository {
         return templates.size();
     }
 
-    /** Every template, ordered by name, for lists that show what the guide defines. */
     public static List<MediaWikiTemplateDefinition> all() {
-        return templates.values()
-            .stream()
-            .sorted(
-                Comparator.comparing(
-                    definition -> definition.name()
-                        .value(),
-                    String.CASE_INSENSITIVE_ORDER))
-            .toList();
+        return sortedTemplates;
     }
 
     public record TemplatePageSource(String sourcePack, String language, ResourceLocation pageId,

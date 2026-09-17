@@ -17,18 +17,16 @@ public class MediaWikiTemplateContext {
 
     public static final int MAX_DEPTH = 32;
     public static final int MAX_INCLUSIONS = 4096;
-    /** Only so many problems are kept per page; the rest are counted rather than stored. */
     private static final int MAX_RECORDED_ISSUES = 64;
-
-    private int suppressedIssues;
 
     private final String sourcePack;
     private final String language;
     private final ResourceLocation pageId;
-    private final List<MediaWikiTemplateIssue> issues = new ArrayList<>();
-    private final Set<String> visited = new HashSet<>();
-    // Innermost last; the top is the template whose body is being expanded right now.
-    private final List<ResourceLocation> expandingTemplatePages = new ArrayList<>();
+    private List<MediaWikiTemplateIssue> issues;
+    private String onlyVisited;
+    private Set<String> visited;
+    private ResourceLocation expandingTemplatePage;
+    private List<ResourceLocation> parentTemplatePages;
 
     private int depth;
     private int inclusions;
@@ -39,10 +37,6 @@ public class MediaWikiTemplateContext {
         this.pageId = pageId;
     }
 
-    /**
-     * The context for the page being compiled. One instance is shared by every call on that page, so the
-     * inclusion budget applies to the page as a whole rather than being reset for each call.
-     */
     public static MediaWikiTemplateContext forPage(PageCompiler compiler) {
         return compiler.templateContext();
     }
@@ -77,16 +71,36 @@ public class MediaWikiTemplateContext {
         }
     }
 
-    public boolean markVisited(MediaWikiTemplateDefinition definition, MediaWikiTemplateArguments arguments) {
+    public String enterInclusion(MediaWikiTemplateDefinition definition, MediaWikiTemplateArguments arguments) {
         if (inclusions >= MAX_INCLUSIONS) {
-            return false;
+            return null;
         }
         inclusions++;
-        return visited.add(keyOf(definition, arguments));
+        String key = keyOf(definition, arguments);
+        if (onlyVisited == null && visited == null) {
+            onlyVisited = key;
+            return key;
+        }
+        if (visited == null) {
+            visited = new HashSet<>();
+            visited.add(onlyVisited);
+            onlyVisited = null;
+        }
+        return visited.add(key) ? key : null;
     }
 
-    public void unmarkVisited(MediaWikiTemplateDefinition definition, MediaWikiTemplateArguments arguments) {
-        visited.remove(keyOf(definition, arguments));
+    public void leaveInclusion(String key) {
+        if (key == null) {
+            return;
+        }
+        if (visited != null) {
+            visited.remove(key);
+            if (visited.isEmpty()) {
+                visited = null;
+            }
+        } else if (key.equals(onlyVisited)) {
+            onlyVisited = null;
+        }
     }
 
     private static String keyOf(MediaWikiTemplateDefinition definition, MediaWikiTemplateArguments arguments) {
@@ -96,38 +110,45 @@ public class MediaWikiTemplateContext {
     }
 
     public void addIssue(MediaWikiTemplateIssueKind kind, String message) {
-        // Bounded because a page that fails the same way thousands of times would otherwise accumulate an
-        // issue per failure; the count is kept so the log can still say how many there were.
+        if (issues == null) {
+            issues = new ArrayList<>();
+        }
         if (issues.size() < MAX_RECORDED_ISSUES) {
             issues.add(new MediaWikiTemplateIssue(kind, message));
-        } else {
-            suppressedIssues++;
         }
     }
 
     public void recordInclusion(MediaWikiTemplateName included) {
-        ResourceLocation owner = expandingTemplatePages.isEmpty() ? null
-            : expandingTemplatePages.get(expandingTemplatePages.size() - 1);
-        if (owner != null) {
-            MediaWikiTemplateDependencyGraph.addEdge(owner, included);
+        if (expandingTemplatePage != null) {
+            MediaWikiTemplateDependencyGraph.addEdge(expandingTemplatePage, included);
         }
     }
 
     public void beginTemplatePage(ResourceLocation templatePageId) {
-        expandingTemplatePages.add(templatePageId);
+        if (expandingTemplatePage != null) {
+            if (parentTemplatePages == null) {
+                parentTemplatePages = new ArrayList<>();
+            }
+            parentTemplatePages.add(expandingTemplatePage);
+        }
+        expandingTemplatePage = templatePageId;
     }
 
     public void endTemplatePage() {
-        if (!expandingTemplatePages.isEmpty()) {
-            expandingTemplatePages.remove(expandingTemplatePages.size() - 1);
+        expandingTemplatePage = parentTemplatePages == null || parentTemplatePages.isEmpty() ? null
+            : parentTemplatePages.remove(parentTemplatePages.size() - 1);
+        if (parentTemplatePages != null && parentTemplatePages.isEmpty()) {
+            parentTemplatePages = null;
         }
     }
 
     public List<MediaWikiTemplateIssue> issues() {
-        return List.copyOf(issues);
+        return issues == null ? List.of() : List.copyOf(issues);
     }
 
     public void report() {
-        MediaWikiTemplateDiagnostics.report(pageId, issues);
+        if (issues != null) {
+            MediaWikiTemplateDiagnostics.report(pageId, issues);
+        }
     }
 }

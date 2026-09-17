@@ -68,7 +68,8 @@ public class TemplateCompiler extends BlockTagCompiler {
 
         try {
             MediaWikiTemplateArguments arguments = TemplateArguments.collect(el);
-            if (!context.markVisited(definition, arguments)) {
+            String inclusionKey = context.enterInclusion(definition, arguments);
+            if (inclusionKey == null) {
                 context.addIssue(
                     MediaWikiTemplateIssueKind.RECURSION_LIMIT,
                     "Template " + name.trim() + " includes itself");
@@ -77,7 +78,7 @@ public class TemplateCompiler extends BlockTagCompiler {
                 return;
             }
             try {
-                List<MdAstAnyContent> body = TemplateBodyResolver.resolve(compiler, definition, arguments, context);
+                List<MdAstAnyContent> body = TemplateBodyResolver.resolve(compiler, definition, context);
                 if (body.isEmpty()) {
                     return;
                 }
@@ -89,7 +90,7 @@ public class TemplateCompiler extends BlockTagCompiler {
                 }
                 compiler.compileBlockContext(body, parent);
             } finally {
-                context.unmarkVisited(definition, arguments);
+                context.leaveInclusion(inclusionKey);
             }
         } catch (RuntimeException | StackOverflowError failed) {
             // A template must not be able to break the page that calls it, so an unexpected failure is

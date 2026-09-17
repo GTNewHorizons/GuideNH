@@ -1,8 +1,6 @@
 package com.hfstudio.guidenh.guide.mediawiki.template;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -15,15 +13,15 @@ public class MediaWikiTemplateDependencyGraph {
 
     private static final Object LOCK = new Object();
 
-    private static Map<ResourceLocation, Set<MediaWikiTemplateName>> byPage = Map.of();
-    private static Map<MediaWikiTemplateName, Set<ResourceLocation>> byTemplate = Map.of();
+    private static final Map<ResourceLocation, Set<MediaWikiTemplateName>> byPage = new HashMap<>();
+    private static final Map<MediaWikiTemplateName, Set<ResourceLocation>> byTemplate = new HashMap<>();
 
     private MediaWikiTemplateDependencyGraph() {}
 
     public static void clear() {
         synchronized (LOCK) {
-            byPage = Map.of();
-            byTemplate = Map.of();
+            byPage.clear();
+            byTemplate.clear();
         }
     }
 
@@ -32,20 +30,14 @@ public class MediaWikiTemplateDependencyGraph {
             return;
         }
         synchronized (LOCK) {
-            Map<ResourceLocation, Set<MediaWikiTemplateName>> pages = new HashMap<>(byPage);
-            Map<MediaWikiTemplateName, Set<ResourceLocation>> templates = new HashMap<>(byTemplate);
-
-            Set<MediaWikiTemplateName> previous = pages.remove(pageId);
+            Set<MediaWikiTemplateName> previous = byPage.remove(pageId);
             if (previous != null) {
                 for (MediaWikiTemplateName name : previous) {
-                    Set<ResourceLocation> users = templates.get(name);
+                    Set<ResourceLocation> users = byTemplate.get(name);
                     if (users != null) {
-                        Set<ResourceLocation> remaining = new HashSet<>(users);
-                        remaining.remove(pageId);
-                        if (remaining.isEmpty()) {
-                            templates.remove(name);
-                        } else {
-                            templates.put(name, remaining);
+                        users.remove(pageId);
+                        if (users.isEmpty()) {
+                            byTemplate.remove(name);
                         }
                     }
                 }
@@ -53,13 +45,11 @@ public class MediaWikiTemplateDependencyGraph {
 
             if (used != null && !used.isEmpty()) {
                 Set<MediaWikiTemplateName> recorded = new LinkedHashSet<>(used);
-                pages.put(pageId, recorded);
+                byPage.put(pageId, recorded);
                 for (MediaWikiTemplateName name : recorded) {
-                    link(templates, name, pageId);
+                    link(name, pageId);
                 }
             }
-            byPage = Map.copyOf(pages);
-            byTemplate = copyOfSets(templates);
         }
     }
 
@@ -72,19 +62,14 @@ public class MediaWikiTemplateDependencyGraph {
             if (existing != null && existing.contains(used)) {
                 return;
             }
-            Map<ResourceLocation, Set<MediaWikiTemplateName>> pages = new HashMap<>(byPage);
-            Map<MediaWikiTemplateName, Set<ResourceLocation>> templates = new HashMap<>(byTemplate);
-            pages.computeIfAbsent(pageId, key -> new LinkedHashSet<>())
+            byPage.computeIfAbsent(pageId, key -> new LinkedHashSet<>())
                 .add(used);
-            link(templates, used, pageId);
-            byPage = Map.copyOf(pages);
-            byTemplate = copyOfSets(templates);
+            link(used, pageId);
         }
     }
 
-    private static void link(Map<MediaWikiTemplateName, Set<ResourceLocation>> templates, MediaWikiTemplateName name,
-        ResourceLocation pageId) {
-        templates.computeIfAbsent(name, key -> new LinkedHashSet<>())
+    private static void link(MediaWikiTemplateName name, ResourceLocation pageId) {
+        byTemplate.computeIfAbsent(name, key -> new LinkedHashSet<>())
             .add(pageId);
     }
 
@@ -126,28 +111,25 @@ public class MediaWikiTemplateDependencyGraph {
         if (pageId == null) {
             return Set.of();
         }
-        Set<MediaWikiTemplateName> used = byPage.get(pageId);
-        return used == null ? Set.of() : Set.copyOf(used);
+        synchronized (LOCK) {
+            Set<MediaWikiTemplateName> used = byPage.get(pageId);
+            return used == null ? Set.of() : Set.copyOf(used);
+        }
     }
 
     public static int edgeCount() {
-        int total = 0;
-        for (Set<ResourceLocation> users : byTemplate.values()) {
-            total += users.size();
+        synchronized (LOCK) {
+            int total = 0;
+            for (Set<ResourceLocation> users : byTemplate.values()) {
+                total += users.size();
+            }
+            return total;
         }
-        return total;
     }
 
     public static int pageCount() {
-        return byPage.size();
-    }
-
-    private static Map<MediaWikiTemplateName, Set<ResourceLocation>> copyOfSets(
-        Map<MediaWikiTemplateName, Set<ResourceLocation>> source) {
-        Map<MediaWikiTemplateName, Set<ResourceLocation>> copy = new LinkedHashMap<>();
-        for (Map.Entry<MediaWikiTemplateName, Set<ResourceLocation>> entry : source.entrySet()) {
-            copy.put(entry.getKey(), Set.copyOf(entry.getValue()));
+        synchronized (LOCK) {
+            return byPage.size();
         }
-        return Map.copyOf(copy);
     }
 }

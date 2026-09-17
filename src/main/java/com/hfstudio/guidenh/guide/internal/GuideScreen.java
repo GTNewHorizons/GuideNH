@@ -1417,7 +1417,7 @@ public class GuideScreen extends GuiContainer
     private void ensureGuideEditorTextArea() {
         if (guideEditorTextArea == null) {
             guideEditorTextArea = new SceneEditorMultilineTextArea(fontRendererObj);
-            guideEditorTextArea.setDoubleClickHandler(cursorIndex -> applyGuideEditorDoubleClickSelection(cursorIndex));
+            guideEditorTextArea.setDoubleClickHandler(this::applyGuideEditorDoubleClickSelection);
         }
         guideEditorTextArea.setWrapEnabled(GuideScreenEditorState.isWrapEnabled());
     }

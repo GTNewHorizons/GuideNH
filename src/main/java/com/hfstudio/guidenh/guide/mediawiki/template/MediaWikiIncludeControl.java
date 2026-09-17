@@ -3,19 +3,12 @@ package com.hfstudio.guidenh.guide.mediawiki.template;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 
-/**
- * Applies the include-control tags when a template is transcluded. The tags are ordinary MDX elements, so
- * their bodies are already parsed and this only chooses which bodies survive.
- *
- * <p>
- * {@code <NoInclude>} is documentation that belongs on the template page, {@code <IncludeOnly>} is output
- * that belongs only where the template is called, and {@code <OnlyInclude>} narrows transclusion to its own
- * body when a template contains one.
- */
-public class MediaWikiIncludeControl {
+/** Applies transclusion-only include-control tags. */
+public final class MediaWikiIncludeControl {
 
     public static final String NO_INCLUDE = "NoInclude";
     public static final String INCLUDE_ONLY = "IncludeOnly";
@@ -23,38 +16,56 @@ public class MediaWikiIncludeControl {
 
     private MediaWikiIncludeControl() {}
 
-    public static List<MdAstAnyContent> filterForTransclusion(List<MdAstAnyContent> body) {
-        List<MdAstAnyContent> onlyInclude = collectOnlyInclude(body);
-        if (onlyInclude != null) {
-            return onlyInclude;
+    /** Filters and clones in one pass, avoiding a discarded deep copy of excluded nodes. */
+    public static List<MdAstAnyContent> copyForTransclusion(List<? extends MdAstAnyContent> body) {
+        List<? extends MdAstAnyContent> selected = findOnlyInclude(body);
+        if (selected != null) {
+            // Keep the established OnlyInclude semantics: once it selects a body, nested include-control
+            // tags are content, not another filtering pass.
+            return copySelectedNodes(selected);
         }
-        return filterNodes(body);
+        return copyFilteredNodes(body, true);
     }
 
-    private static List<MdAstAnyContent> filterNodes(List<MdAstAnyContent> body) {
-        List<MdAstAnyContent> result = new ArrayList<>(body.size());
-        for (MdAstAnyContent node : body) {
-            if (!(node instanceof MdxJsxElementFields element)) {
-                result.add(node);
-                continue;
-            }
-            String tag = element.name();
-            if (NO_INCLUDE.equals(tag)) {
-                continue;
-            }
-            if (INCLUDE_ONLY.equals(tag)) {
-                result.addAll(MediaWikiTemplateValue.copyNodes(element.children()));
-                continue;
-            }
-            // Any other tag keeps itself but has its own children filtered, so a control tag nested inside
-            // an ordinary tag still works.
-            MediaWikiTemplateAst.replaceChildren(node, filterNodes(new ArrayList<>(element.children())));
-            result.add(node);
+    private static List<MdAstAnyContent> copySelectedNodes(List<? extends MdAstAnyContent> nodes) {
+        List<MdAstAnyContent> copied = new ArrayList<>(nodes.size());
+        for (MdAstAnyContent node : nodes) {
+            copied.add(MediaWikiTemplateAst.copy(node));
         }
-        return result;
+        return copied;
     }
 
-    private static List<MdAstAnyContent> collectOnlyInclude(List<MdAstAnyContent> body) {
+    private static List<MdAstAnyContent> copyFilteredNodes(List<? extends MdAstAnyContent> nodes,
+        boolean skipFrontmatter) {
+        List<MdAstAnyContent> copied = new ArrayList<>(nodes.size());
+        for (MdAstAnyContent node : nodes) {
+            if (skipFrontmatter && node instanceof MdAstYamlFrontmatter) {
+                continue;
+            }
+            if (node instanceof MdxJsxElementFields element) {
+                String tag = element.name();
+                if (NO_INCLUDE.equals(tag)) {
+                    continue;
+                }
+                if (INCLUDE_ONLY.equals(tag)) {
+                    copied.addAll(copySelectedNodes(element.children()));
+                    continue;
+                }
+                MdAstAnyContent shell = MediaWikiTemplateAst.copyShell(node);
+                if (shell == null) {
+                    copied.add(MediaWikiTemplateAst.text(MediaWikiTemplateAst.flatten(node)));
+                    continue;
+                }
+                MediaWikiTemplateAst.replaceChildren(shell, copyFilteredNodes(element.children(), false));
+                copied.add(shell);
+            } else {
+                copied.add(MediaWikiTemplateAst.copy(node));
+            }
+        }
+        return copied;
+    }
+
+    private static List<? extends MdAstAnyContent> findOnlyInclude(List<? extends MdAstAnyContent> body) {
         List<MdAstAnyContent> collected = null;
         for (MdAstAnyContent node : body) {
             if (!(node instanceof MdxJsxElementFields element)) {
@@ -64,10 +75,10 @@ public class MediaWikiIncludeControl {
                 if (collected == null) {
                     collected = new ArrayList<>();
                 }
-                collected.addAll(MediaWikiTemplateValue.copyNodes(element.children()));
+                collected.addAll(element.children());
                 continue;
             }
-            List<MdAstAnyContent> nested = collectOnlyInclude(new ArrayList<>(element.children()));
+            List<? extends MdAstAnyContent> nested = findOnlyInclude(element.children());
             if (nested != null) {
                 if (collected == null) {
                     collected = new ArrayList<>();
@@ -77,4 +88,5 @@ public class MediaWikiIncludeControl {
         }
         return collected;
     }
+
 }

@@ -39,18 +39,16 @@ public class TemplateInclusion {
         }
         try {
             MediaWikiTemplateArguments arguments = TemplateArguments.collect(element, outerArguments);
-            // The page currently being expanded may itself be a template, which is read as a body rather than
-            // compiled, so its own edge is recorded here; otherwise editing the inner template would not
-            // reach the pages that use the outer one.
             context.recordInclusion(definition.name());
-            if (!context.markVisited(definition, arguments)) {
+            String inclusionKey = context.enterInclusion(definition, arguments);
+            if (inclusionKey == null) {
                 context.addIssue(
                     MediaWikiTemplateIssueKind.RECURSION_LIMIT,
                     "Template " + name.trim() + " includes itself");
                 return null;
             }
             try {
-                List<MdAstAnyContent> body = TemplateBodyResolver.resolve(compiler, definition, arguments, context);
+                List<MdAstAnyContent> body = TemplateBodyResolver.resolve(compiler, definition, context);
                 if (body.isEmpty()) {
                     return body;
                 }
@@ -62,25 +60,17 @@ public class TemplateInclusion {
                 }
                 return isInlineCall(element) ? unwrapParagraphs(body) : body;
             } finally {
-                context.unmarkVisited(definition, arguments);
+                context.leaveInclusion(inclusionKey);
             }
         } finally {
             context.leave();
         }
     }
 
-    /**
-     * True when the call sits inside phrasing content. The parser reports that by producing a text element,
-     * which is the signal that the included body has to become inline content.
-     */
     private static boolean isInlineCall(MdxJsxElementFields element) {
         return element instanceof MdxJsxTextElement;
     }
 
-    /**
-     * Replaces top-level paragraphs with their children. An inline call may not hold a block, so a body
-     * written as paragraphs contributes its phrasing content to the surrounding sentence.
-     */
     private static List<MdAstAnyContent> unwrapParagraphs(List<MdAstAnyContent> body) {
         List<MdAstAnyContent> unwrapped = new ArrayList<>(body.size());
         for (MdAstAnyContent node : body) {

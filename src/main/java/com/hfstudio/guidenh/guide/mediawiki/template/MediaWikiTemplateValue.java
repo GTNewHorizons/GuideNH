@@ -11,38 +11,35 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
  * One argument value. Rich values keep their MDX nodes so an argument may itself be a tag, and a plain
  * value keeps its text so it can be substituted into an attribute, which cannot hold block content.
  */
-public class MediaWikiTemplateValue {
+public final class MediaWikiTemplateValue {
 
     private final List<MdAstAnyContent> nodes;
     private final String text;
     private final boolean rich;
 
     private MediaWikiTemplateValue(List<MdAstAnyContent> nodes, String text, boolean rich) {
-        this.nodes = List.copyOf(nodes);
+        this.nodes = nodes;
         this.text = text;
         this.rich = rich;
     }
 
     public static MediaWikiTemplateValue ofText(String text) {
         String safe = text != null ? text : "";
-        List<MdAstAnyContent> nodes = new ArrayList<>(1);
         MdAstText node = new MdAstText();
         node.value = safe;
-        nodes.add(node);
-        return new MediaWikiTemplateValue(nodes, safe, false);
+        return new MediaWikiTemplateValue(List.of(node), safe, false);
     }
 
     public static MediaWikiTemplateValue ofNodes(List<? extends MdAstAnyContent> nodes) {
-        List<MdAstAnyContent> copy = new ArrayList<>(nodes);
         StringBuilder builder = new StringBuilder();
-        for (MdAstAnyContent node : copy) {
+        for (MdAstAnyContent node : nodes) {
             if (node instanceof MdAstText textNode) {
                 builder.append(textNode.value);
             } else {
                 builder.append(node instanceof MdAstNode astNode ? astNode.toText() : "");
             }
         }
-        return new MediaWikiTemplateValue(copy, builder.toString(), true);
+        return new MediaWikiTemplateValue(List.copyOf(nodes), builder.toString(), true);
     }
 
     public List<MdAstAnyContent> nodes() {
@@ -63,7 +60,7 @@ public class MediaWikiTemplateValue {
     }
 
     public MediaWikiTemplateValue copy() {
-        return rich ? ofNodes(copyNodes(nodes)) : ofText(text);
+        return rich ? new MediaWikiTemplateValue(copyNodes(nodes), text, true) : ofText(text);
     }
 
     static List<MdAstAnyContent> copyNodes(List<? extends MdAstAnyContent> source) {
@@ -71,6 +68,6 @@ public class MediaWikiTemplateValue {
         for (MdAstAnyContent node : source) {
             copies.add(MediaWikiTemplateAst.copy(node));
         }
-        return copies;
+        return List.copyOf(copies);
     }
 }

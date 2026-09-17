@@ -1,6 +1,5 @@
 package com.hfstudio.guidenh.guide.mediawiki.template;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
@@ -26,8 +25,6 @@ public class TemplateNodeExpander {
         for (int index = 0; index < nodes.size(); index++) {
             MdAstAnyContent node = nodes.get(index);
             if (!(node instanceof MdxJsxElementFields element)) {
-                // A parameter written inline sits inside a paragraph or other wrapper, so the walk has to
-                // descend through ordinary parents rather than only looking at JSX elements.
                 descend(node, arguments, context, compiler);
                 continue;
             }
@@ -60,15 +57,10 @@ public class TemplateNodeExpander {
                 }
             }
             substituteAttributes(element, arguments, context);
-            MediaWikiTemplateAst.replaceChildren(node, expanded(element.children(), arguments, context, compiler));
+            expandMutable(element.children(), arguments, context, compiler);
         }
     }
 
-    /**
-     * Replaces a {@code <Param>} used as an attribute value. A template writes
-     * {@code <ItemImage id={<Param name="icon" />} />}, and the parser hands that back as raw expression text
-     * rather than nodes, so the reference is resolved from the text before the tag is compiled.
-     */
     private static void substituteAttributes(MdxJsxElementFields element, MediaWikiTemplateArguments arguments,
         MediaWikiTemplateContext context) {
         for (MdxJsxAttributeNode attributeNode : element.attributes()) {
@@ -155,8 +147,7 @@ public class TemplateNodeExpander {
         if (!(node instanceof MdAstParent<?>)) {
             return;
         }
-        MediaWikiTemplateAst
-            .replaceChildren(node, expanded(MediaWikiTemplateAst.childrenOf(node), arguments, context, compiler));
+        expandMutable(MediaWikiTemplateAst.childrenOf(node), arguments, context, compiler);
     }
 
     private static void replace(List<MdAstAnyContent> nodes, int index, List<MdAstAnyContent> replacement) {
@@ -164,18 +155,12 @@ public class TemplateNodeExpander {
         nodes.addAll(index, replacement);
     }
 
-    private static List<MdAstAnyContent> expanded(List<? extends MdAstAnyContent> source,
-        MediaWikiTemplateArguments arguments, MediaWikiTemplateContext context, PageCompiler compiler) {
-        List<MdAstAnyContent> copy = new ArrayList<>(source);
-        expandInto(copy, arguments, context, compiler);
-        return copy;
+    @SuppressWarnings("unchecked")
+    private static void expandMutable(List<? extends MdAstAnyContent> children, MediaWikiTemplateArguments arguments,
+        MediaWikiTemplateContext context, PageCompiler compiler) {
+        expandInto((List<MdAstAnyContent>) children, arguments, context, compiler);
     }
 
-    /**
-     * The nodes a {@code <Param>} resolves to. A parameter is identified by {@code name} or by an explicit
-     * {@code pos}; an unsupplied one falls back to its {@code default}, then to the text written between the
-     * tags, so a template can carry placeholder text of its own.
-     */
     private static List<MdAstAnyContent> resolveParameter(MdxJsxElementFields element,
         MediaWikiTemplateArguments arguments, MediaWikiTemplateContext context) {
         String key = parameterKey(element, context);

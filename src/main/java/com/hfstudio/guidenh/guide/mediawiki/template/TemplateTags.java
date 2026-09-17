@@ -45,8 +45,6 @@ public class TemplateTags {
 
     private static final Set<String> ARGUMENT_TAGS = Set.of(ARGUMENT, PARAMETER);
 
-    // Lower-case, because lookup folds the tag name: an author may write a function in any casing, so every
-    // entry has to match the folded form.
     private static final Set<String> STRING_FUNCTIONS = Set.of(
         "lower",
         "upper",
@@ -69,11 +67,6 @@ public class TemplateTags {
         return name != null && ARGUMENT_TAGS.contains(name);
     }
 
-    /**
-     * True for the node the parser wraps a multi-line call body in. {@code <Arg>} tags written on their own
-     * lines end up inside a paragraph rather than directly under {@code <Template>}, so reading a call's
-     * arguments has to look through these wrappers.
-     */
     public static boolean isArgumentWrapper(String name) {
         return "p".equals(name) || "div".equals(name);
     }
@@ -94,10 +87,6 @@ public class TemplateTags {
         return name == null ? "" : name.toLowerCase(Locale.ROOT);
     }
 
-    /**
-     * True when a call-site attribute is a shorthand argument. {@code name} selects the template and is
-     * therefore excluded.
-     */
     public static boolean isArgumentAttribute(String attributeName) {
         return attributeName != null && !attributeName.isEmpty() && !NAME_ATTRIBUTE.equals(attributeName);
     }

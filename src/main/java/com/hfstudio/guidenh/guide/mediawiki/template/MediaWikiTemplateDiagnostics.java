@@ -22,8 +22,6 @@ public class MediaWikiTemplateDiagnostics {
 
     public static final String LOGGER_NAME = "GuideNH-MediaWikiTemplate";
 
-    // A brace call or parameter, which is what the old syntax looked like. The triple-brace alternative comes
-    // first so a parameter is reported whole rather than as the two-brace call found inside it.
     private static final Pattern LEGACY_CALL = Pattern
         .compile("\\{\\{\\{[^{}\\n]{1,80}\\}\\}\\}|\\{\\{[^{}\\n]{1,80}\\}\\}");
 
@@ -41,10 +39,6 @@ public class MediaWikiTemplateDiagnostics {
         LOGGER.error(formatFailure(pageId, failure));
     }
 
-    /**
-     * Reports a node that could not be copied for a call site. Such a node renders as its own text instead,
-     * so the page still works but a construct may lose its formatting.
-     */
     public static void reportCopyFailure(String nodeType, Throwable failure) {
         LOGGER.warn(
             "[GuideNH] [MediaWikiTemplate] Could not copy a {} node for a template call, rendering it as text: {}",
@@ -52,10 +46,6 @@ public class MediaWikiTemplateDiagnostics {
             failure.toString());
     }
 
-    /**
-     * Warns about a page that still uses the old brace syntax. Braces are ordinary text now, so a leftover
-     * call renders literally instead of failing, and this is the only signal an author would get.
-     */
     public static void reportLegacySyntax(@Nullable ResourceLocation pageId, List<String> samples) {
         if (samples.isEmpty()) {
             return;
@@ -67,10 +57,6 @@ public class MediaWikiTemplateDiagnostics {
             samples);
     }
 
-    /**
-     * The brace-syntax fragments a page's source still contains, capped so a page that documents the old
-     * syntax in a code block does not produce an unbounded log line.
-     */
     public static List<String> findLegacySyntax(String source, int limit) {
         if (source == null || source.isEmpty()) {
             return List.of();

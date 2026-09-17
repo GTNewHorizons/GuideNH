@@ -400,7 +400,7 @@ public class GuideSourceWatcher implements AutoCloseable {
             return;
         }
         Set<ResourceLocation> dependents = MediaWikiTemplateInvalidator.collectAffected(templatePages);
-        dependents.removeAll(templatePages);
+        templatePages.forEach(dependents::remove);
         queuePagesForRecompile(dependents, pages);
     }
 

@@ -1,9 +1,9 @@
 package com.hfstudio.guidenh.guide.mediawiki.template;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,13 +27,14 @@ public record MediaWikiTemplateParameters(List<String> named, List<Integer> posi
         if (body == null || body.isEmpty()) {
             return EMPTY;
         }
-        List<String> named = new ArrayList<>();
-        List<Integer> positions = new ArrayList<>();
+        Set<String> named = new LinkedHashSet<>();
+        Set<Integer> positions = new LinkedHashSet<>();
         collect(body, named, positions);
         return new MediaWikiTemplateParameters(List.copyOf(named), List.copyOf(positions));
     }
 
-    private static void collect(List<? extends MdAstAnyContent> nodes, List<String> named, List<Integer> positions) {
+    private static void collect(List<? extends MdAstAnyContent> nodes, Collection<String> named,
+        Collection<Integer> positions) {
         for (MdAstAnyContent node : nodes) {
             if (!(node instanceof MdxJsxElementFields element)) {
                 continue;
@@ -42,40 +43,32 @@ public record MediaWikiTemplateParameters(List<String> named, List<Integer> posi
                 addNamed(element, named);
                 addPositional(positionOf(element), positions);
             } else {
-                // A <Param> may also be written as an attribute value, where the parser keeps it as raw
-                // expression text rather than as a node, so that form is read from the text.
                 collectFromAttributeExpressions(element, named, positions);
             }
-            // A parameter may sit inside a conditional or any other wrapper, so the walk descends.
             collect(element.children(), named, positions);
         }
     }
 
-    private static void addNamed(MdxJsxElementFields element, List<String> named) {
+    private static void addNamed(MdxJsxElementFields element, Collection<String> named) {
         addName(attributeText(element, TemplateTags.NAME_ATTRIBUTE), named);
     }
 
-    private static void addName(String name, List<String> named) {
+    private static void addName(String name, Collection<String> named) {
         if (name == null || name.isBlank()) {
             return;
         }
-        // Kept exactly as written. A template title is normalized, but a parameter is matched
-        // case-insensitively at expansion time, so preserving the declaration keeps completion in step with
-        // the template that declares it.
         String trimmed = name.trim();
-        if (!named.contains(trimmed)) {
-            named.add(trimmed);
-        }
+        named.add(trimmed);
     }
 
-    private static void addPositional(Integer position, List<Integer> positions) {
-        if (position != null && !positions.contains(position)) {
+    private static void addPositional(Integer position, Collection<Integer> positions) {
+        if (position != null) {
             positions.add(position);
         }
     }
 
-    private static void collectFromAttributeExpressions(MdxJsxElementFields element, List<String> named,
-        List<Integer> positions) {
+    private static void collectFromAttributeExpressions(MdxJsxElementFields element, Collection<String> named,
+        Collection<Integer> positions) {
         for (MdxJsxAttributeNode attributeNode : element.attributes()) {
             if (!(attributeNode instanceof MdxJsxAttribute attribute) || !attribute.hasExpressionValue()) {
                 continue;
@@ -120,20 +113,21 @@ public record MediaWikiTemplateParameters(List<String> named, List<Integer> posi
         return attribute.hasExpressionValue() ? attribute.getExpressionValue() : null;
     }
 
-    /** Reads an attribute out of raw tag text, for a {@code <Param>} the parser kept as an expression. */
     private static String attributeText(String tagText, String name) {
-        Matcher matcher = ATTRIBUTE_PATTERN_CACHE
-            .computeIfAbsent(
-                name,
-                key -> Pattern.compile("\\b" + Pattern.quote(key) + "\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')"))
-            .matcher(tagText);
+        Pattern pattern = TemplateTags.NAME_ATTRIBUTE.equals(name) ? NAME_ATTRIBUTE_PATTERN : POS_ATTRIBUTE_PATTERN;
+        Matcher matcher = pattern.matcher(tagText);
         if (!matcher.find()) {
             return null;
         }
         return matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
     }
 
-    private static final Map<String, Pattern> ATTRIBUTE_PATTERN_CACHE = new HashMap<>();
+    private static Pattern attributePattern(String name) {
+        return Pattern.compile("\\b" + Pattern.quote(name) + "\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')");
+    }
+
+    private static final Pattern NAME_ATTRIBUTE_PATTERN = attributePattern(TemplateTags.NAME_ATTRIBUTE);
+    private static final Pattern POS_ATTRIBUTE_PATTERN = attributePattern(TemplateTags.POS_ATTRIBUTE);
 
     public boolean hasNamed() {
         return !named.isEmpty();

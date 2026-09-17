@@ -23,29 +23,36 @@ public class TemplateArguments {
         return collect(element, null);
     }
 
-    /**
-     * Reads the call's arguments, resolving any {@code <Param>} inside them against {@code outer}. A wrapper
-     * template forwards a value it was given as {@code <Arg name="v"><Param name="v" /></Arg>}, so the
-     * forwarding tag has to be expanded here or the inner call would receive nothing.
-     */
     public static MediaWikiTemplateArguments collect(MdxJsxElementFields element,
         @Nullable MediaWikiTemplateArguments outer) {
         MediaWikiTemplateArguments arguments = new MediaWikiTemplateArguments();
         int position = 0;
         boolean nameAttributeSeen = false;
-        for (MdAstAnyContent child : argumentChildren(element)) {
-            if (!(child instanceof MdxJsxElementFields arg) || !TemplateTags.isArgument(arg.name())) {
-                continue;
+        for (MdAstAnyContent child : element.children()) {
+            if (child instanceof MdxJsxElementFields direct && TemplateTags.isArgument(direct.name())) {
+                position++;
+                put(
+                    arguments,
+                    attributeOf(direct, TemplateTags.NAME_ATTRIBUTE),
+                    position,
+                    valueOf(direct.children(), outer));
+            } else if (child instanceof MdxJsxElementFields wrapper && TemplateTags.isArgumentWrapper(wrapper.name())) {
+                for (MdAstAnyContent nested : wrapper.children()) {
+                    if (nested instanceof MdxJsxElementFields arg && TemplateTags.isArgument(arg.name())) {
+                        position++;
+                        put(
+                            arguments,
+                            attributeOf(arg, TemplateTags.NAME_ATTRIBUTE),
+                            position,
+                            valueOf(arg.children(), outer));
+                    }
+                }
             }
-            position++;
-            put(arguments, attributeOf(arg, TemplateTags.NAME_ATTRIBUTE), position, valueOf(arg.children(), outer));
         }
         for (MdxJsxAttributeNode attributeNode : element.attributes()) {
             if (!(attributeNode instanceof MdxJsxAttribute attribute)) {
                 continue;
             }
-            // The first `name` selects the template. A later one is an argument, which is how
-            // <Template name="InfoBox" name="Gold Ingot" /> passes the template's own `name` parameter.
             if (TemplateTags.NAME_ATTRIBUTE.equals(attribute.name)) {
                 if (!nameAttributeSeen) {
                     nameAttributeSeen = true;
@@ -56,7 +63,6 @@ public class TemplateArguments {
             }
             position++;
             String raw = attributeValue(attribute);
-            // An attribute may also name an outer parameter, so the same forwarding applies to shorthand.
             MediaWikiTemplateValue forwarded = outer == null ? null : outer.get(raw);
             put(
                 arguments,
@@ -65,30 +71,6 @@ public class TemplateArguments {
                 forwarded != null ? forwarded.copy() : MediaWikiTemplateValue.ofText(raw));
         }
         return arguments;
-    }
-
-    /**
-     * The child nodes that hold arguments. A multi-line call written as
-     * {@code <Template name="x">\n  <Arg .../>\n</Template>} has its {@code <Arg>} tags wrapped in a
-     * paragraph by the parser, so a call only reaches its arguments by descending through the wrappers the
-     * parser inserts. Wrappers themselves contribute nothing, so the walk stays at that one level.
-     */
-    private static List<MdAstAnyContent> argumentChildren(MdxJsxElementFields element) {
-        List<MdAstAnyContent> found = new ArrayList<>();
-        for (MdAstAnyContent child : element.children()) {
-            if (child instanceof MdxJsxElementFields direct && TemplateTags.isArgument(direct.name())) {
-                found.add(child);
-                continue;
-            }
-            if (child instanceof MdxJsxElementFields wrapper && TemplateTags.isArgumentWrapper(wrapper.name())) {
-                for (MdAstAnyContent nested : wrapper.children()) {
-                    if (nested instanceof MdxJsxElementFields arg && TemplateTags.isArgument(arg.name())) {
-                        found.add(nested);
-                    }
-                }
-            }
-        }
-        return found;
     }
 
     private static MediaWikiTemplateValue valueOf(List<? extends MdAstAnyContent> nodes,

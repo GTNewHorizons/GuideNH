@@ -3,7 +3,10 @@ package com.hfstudio.guidenh.guide.mediawiki.template;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -16,63 +19,80 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
-/**
- * Copies template AST nodes so each call site gets its own tree. The JSON form written by
- * {@link MdAstNode#toJson} is the only complete representation of every node field, and
- * {@link MdAstNode#fromJson} reconstructs every node type, which makes a round-trip the reliable clone.
- */
-public class MediaWikiTemplateAst {
+/** Copies template AST nodes so each call site can safely substitute its own arguments. */
+public final class MediaWikiTemplateAst {
+
+    private static final Map<MdAstNode, JsonObject> SHELL_CACHE = Collections.synchronizedMap(new WeakHashMap<>());
 
     private MediaWikiTemplateAst() {}
 
-    /**
-     * A copy of a node, or a text node holding its text when it cannot be copied.
-     *
-     * <p>
-     * A shared node is never returned. The copy is what keeps a template's body pristine while each call
-     * site substitutes its own arguments, so returning the original would let the first call rewrite the
-     * template for every later one; degrading to text keeps a node the copier does not understand from
-     * corrupting the others.
-     */
     public static MdAstAnyContent copy(MdAstAnyContent node) {
-        if (!(node instanceof MdAstNode astNode)) {
+        MdAstAnyContent content = copyShell(node);
+        if (content == null) {
             return text(flatten(node));
         }
+        List<? extends MdAstAnyContent> sourceChildren = childrenOf(node);
+        if (!sourceChildren.isEmpty()) {
+            List<MdAstAnyContent> copies = new ArrayList<>(sourceChildren.size());
+            for (MdAstAnyContent child : sourceChildren) {
+                copies.add(copy(child));
+            }
+            replaceChildren(content, copies);
+        }
+        return content;
+    }
+
+    /**
+     * Creates a node without children, for callers which provide a filtered child list themselves. Source
+     * positions intentionally remain absent: they point at the template file, not its expanded call site.
+     */
+    static @Nullable MdAstAnyContent copyShell(MdAstAnyContent node) {
+        if (!(node instanceof MdAstNode astNode)) {
+            return null;
+        }
         try {
-            // A parent's addChild rejects children that do not match its declared element type, and an MDX
-            // element declares a narrower type than the phrasing content it actually holds, so children are
-            // rebuilt separately instead of being handed to readJson.
-            JsonObject json = toJsonObject(astNode);
-            List<? extends MdAstAnyContent> sourceChildren = childrenOf(node);
-            json.add("children", new JsonArray());
-            MdAstNode shell = MdAstNode.fromJson(json);
-            if (!(shell instanceof MdAstAnyContent content)) {
-                return text(flatten(node));
-            }
-            // Positions are deliberately not carried over. They point into the template page's own text, and a
-            // tag that reads its body from source would then slice unsubstituted text and lose the parameter
-            // expansion; leaving them unset makes such a tag use its already-expanded parsed children instead.
-            if (!sourceChildren.isEmpty()) {
-                List<MdAstAnyContent> copies = new ArrayList<>(sourceChildren.size());
-                for (MdAstAnyContent child : sourceChildren) {
-                    copies.add(copy(child));
-                }
-                replaceChildren(content, copies);
-            }
-            return content;
+            MdAstNode shell = MdAstNode.fromJson(shellJson(astNode));
+            return shell instanceof MdAstAnyContent content ? content : null;
         } catch (IOException | RuntimeException failed) {
             MediaWikiTemplateDiagnostics.reportCopyFailure(node.type(), failed);
-            return text(flatten(node));
+            return null;
         }
     }
 
-    private static JsonObject toJsonObject(MdAstNode node) throws IOException {
-        StringWriter buffer = new StringWriter();
-        try (JsonWriter jsonWriter = new JsonWriter(buffer)) {
-            node.toJson(jsonWriter);
+    private static JsonObject shellJson(MdAstNode node) throws IOException {
+        synchronized (SHELL_CACHE) {
+            JsonObject cached = SHELL_CACHE.get(node);
+            if (cached != null) {
+                return cached;
+            }
+            StringWriter buffer = new StringWriter();
+            try (JsonWriter jsonWriter = new JsonWriter(buffer)) {
+                node.toJson(jsonWriter);
+            }
+            JsonObject tree = new JsonParser().parse(buffer.toString())
+                .getAsJsonObject();
+            indexShells(node, tree);
+            return SHELL_CACHE.get(node);
         }
-        return new JsonParser().parse(buffer.toString())
-            .getAsJsonObject();
+    }
+
+    private static void indexShells(MdAstNode node, JsonObject tree) {
+        JsonArray childJson = tree.has("children") ? tree.getAsJsonArray("children") : null;
+        List<? extends MdAstAnyContent> children = childrenOf((MdAstAnyContent) node);
+        if (childJson != null && childJson.size() == children.size()) {
+            for (int index = 0; index < children.size(); index++) {
+                if (children.get(index) instanceof MdAstNode child && childJson.get(index)
+                    .isJsonObject()) {
+                    indexShells(
+                        child,
+                        childJson.get(index)
+                            .getAsJsonObject());
+                }
+            }
+        }
+        tree.remove("position");
+        tree.add("children", new JsonArray());
+        SHELL_CACHE.put(node, tree);
     }
 
     public static MdAstText text(String value) {
@@ -100,10 +120,6 @@ public class MediaWikiTemplateAst {
         return node instanceof MdAstParent<?>parent ? parent.children() : List.of();
     }
 
-    /**
-     * Replaces a node's children in place. A parent's declared element type is narrower than the nodes a
-     * template may place there, so the list is reached through its own mutable view.
-     */
     @SuppressWarnings("unchecked")
     public static void replaceChildren(MdAstAnyContent node, List<MdAstAnyContent> children) {
         if (!(node instanceof MdAstParent<?>parent)) {

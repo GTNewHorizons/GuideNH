@@ -1,88 +1,103 @@
 package com.hfstudio.guidenh.guide.mediawiki.template;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
-/**
- * The arguments of one {@code <Template>} call. Positional arguments are numbered from 1 in the order
- * written; named arguments are keyed by their normalized name.
- */
-public class MediaWikiTemplateArguments {
+/** The arguments of one {@code <Template>} call. */
+public final class MediaWikiTemplateArguments {
 
-    private final List<String> positionalKeys = new ArrayList<>();
-    private final List<MediaWikiTemplateValue> positionalValues = new ArrayList<>();
-    private final List<String> namedKeys = new ArrayList<>();
-    private final List<MediaWikiTemplateValue> namedValues = new ArrayList<>();
+    private Map<String, MediaWikiTemplateValue> positional;
+    private Map<String, MediaWikiTemplateValue> named;
+    private String signature;
 
     public void putPositional(int position, MediaWikiTemplateValue value) {
-        positionalKeys.add(String.valueOf(position));
-        positionalValues.add(value);
+        String key = String.valueOf(position);
+        if (positional == null) {
+            positional = new LinkedHashMap<>();
+        }
+        positional.putIfAbsent(key, value);
+        signature = null;
     }
 
     public void putNamed(String name, MediaWikiTemplateValue value) {
-        namedKeys.add(MediaWikiTemplateName.normalize(name));
-        namedValues.add(value);
+        String key = MediaWikiTemplateName.normalize(name);
+        if (named == null) {
+            named = new LinkedHashMap<>();
+        }
+        named.putIfAbsent(key, value);
+        signature = null;
     }
 
     public @Nullable MediaWikiTemplateValue get(String key) {
         if (key == null || key.isEmpty()) {
             return null;
         }
-        int positionalIndex = positionalKeys.indexOf(key);
-        if (positionalIndex >= 0) {
-            return positionalValues.get(positionalIndex);
+        MediaWikiTemplateValue positionalValue = positional == null ? null : positional.get(key);
+        if (positionalValue != null) {
+            return positionalValue;
         }
-        // Named keys are stored normalized, so a lookup has to be normalized the same way or a parameter
-        // whose declaration differs only in case would never resolve.
-        int namedIndex = namedKeys.indexOf(MediaWikiTemplateName.normalize(key));
-        return namedIndex >= 0 ? namedValues.get(namedIndex) : null;
+        if (named == null) {
+            return null;
+        }
+        MediaWikiTemplateValue namedValue = named.get(key);
+        return namedValue != null ? namedValue : named.get(MediaWikiTemplateName.normalize(key));
     }
 
     public boolean isEmpty() {
-        return positionalValues.isEmpty() && namedValues.isEmpty();
+        return positional == null && named == null;
     }
 
     public List<String> namedKeys() {
-        return List.copyOf(namedKeys);
+        return named == null ? List.of() : List.copyOf(named.keySet());
     }
 
     public String signature() {
+        if (signature != null) {
+            return signature;
+        }
         StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < positionalValues.size(); i++) {
-            builder.append(positionalKeys.get(i))
-                .append('=')
-                .append(
-                    positionalValues.get(i)
-                        .text())
-                .append('\u0001');
-        }
-        for (int i = 0; i < namedValues.size(); i++) {
-            builder.append(namedKeys.get(i))
-                .append('=')
-                .append(
-                    namedValues.get(i)
-                        .text())
-                .append('\u0001');
-        }
-        return builder.toString();
+        appendSignature(builder, positional);
+        appendSignature(builder, named);
+        signature = builder.toString();
+        return signature;
     }
 
     public MediaWikiTemplateArguments copy() {
         MediaWikiTemplateArguments copy = new MediaWikiTemplateArguments();
-        for (int i = 0; i < positionalValues.size(); i++) {
-            copy.putPositional(
-                Integer.parseInt(positionalKeys.get(i)),
-                positionalValues.get(i)
-                    .copy());
+        if (positional != null) {
+            for (Map.Entry<String, MediaWikiTemplateValue> entry : positional.entrySet()) {
+                copy.putPositional(
+                    Integer.parseInt(entry.getKey()),
+                    entry.getValue()
+                        .copy());
+            }
         }
-        for (int i = 0; i < namedValues.size(); i++) {
-            copy.putNamed(
-                namedKeys.get(i),
-                namedValues.get(i)
-                    .copy());
+        if (named != null) {
+            for (Map.Entry<String, MediaWikiTemplateValue> entry : named.entrySet()) {
+                copy.putNamed(
+                    entry.getKey(),
+                    entry.getValue()
+                        .copy());
+            }
         }
         return copy;
     }
+
+    private static void appendSignature(StringBuilder target, Map<String, MediaWikiTemplateValue> entries) {
+        if (entries == null) {
+            return;
+        }
+        for (Map.Entry<String, MediaWikiTemplateValue> entry : entries.entrySet()) {
+            target.append(entry.getKey())
+                .append('=')
+                .append(
+                    entry.getValue()
+                        .text())
+                .append('\u0001');
+        }
+    }
+
 }

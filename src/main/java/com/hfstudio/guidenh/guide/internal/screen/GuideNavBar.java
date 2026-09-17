@@ -967,7 +967,7 @@ public class GuideNavBar {
     }
 
     public void scroll(int dwheel) {
-        scrollY = Math.clamp(scrollY - Integer.signum(dwheel) * ROW_H * 2, 0, getMaxScrollY());
+        scrollY = Math.clamp(scrollY - Integer.signum(dwheel) * ROW_H * 2L, 0, getMaxScrollY());
     }
 
     private void clampScrollToRows() {
@@ -1003,7 +1003,7 @@ public class GuideNavBar {
             return null;
         }
         int rowIndex = relativeY / ROW_H;
-        if (rowIndex < 0 || rowIndex >= rows.size()) {
+        if (rowIndex >= rows.size()) {
             return null;
         }
         if (stickyStack.containsRowIndex(rowIndex)) {

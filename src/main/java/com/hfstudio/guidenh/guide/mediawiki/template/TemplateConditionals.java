@@ -24,7 +24,6 @@ public class TemplateConditionals {
         String tag = element.name();
         boolean takeThen;
         if (TemplateTags.IF.equals(tag)) {
-            // Presence test: the attribute names a parameter, so an absent argument makes the test false.
             String value = TemplateValues.readParameterName(element, TemplateTags.TEST_ATTRIBUTE, arguments, context);
             takeThen = value != null && !value.trim()
                 .isEmpty();
@@ -34,7 +33,6 @@ public class TemplateConditionals {
                 TemplateValues.readComparable(element, TemplateTags.B_ATTRIBUTE, arguments, context));
         } else if (TemplateTags.IF_EXIST.equals(tag)) {
             String page = TemplateValues.read(element, TemplateTags.PAGE_ATTRIBUTE, arguments, context);
-            // Existence comes from the collection being compiled against, which is what the reader will see.
             takeThen = page != null && MediaWikiPageExistence.pageExists(
                 page.trim(),
                 context,
@@ -44,7 +42,7 @@ public class TemplateConditionals {
         } else if (TemplateTags.SWITCH.equals(tag)) {
             return selectSwitch(element, arguments, context);
         } else {
-            return new ArrayList<>();
+            return List.of();
         }
         return takeThen ? branch(element, true) : branch(element, false);
     }
@@ -59,7 +57,6 @@ public class TemplateConditionals {
                     break;
                 }
                 passedElse = true;
-                // A non-empty <Else> holds its fallback inline, which is the whole fallback branch.
                 List<MdAstAnyContent> inline = MediaWikiTemplateValue
                     .copyNodes(((MdxJsxElementFields) child).children());
                 if (!inline.isEmpty()) {
@@ -74,11 +71,6 @@ public class TemplateConditionals {
         return selected;
     }
 
-    /**
-     * A branch tag's children with any paragraph wrapper removed. Written across several lines, the parser
-     * wraps the contents in a paragraph, which would otherwise hide the {@code <Else>}, {@code <Case>}, and
-     * {@code <Default>} tags this class looks for.
-     */
     private static List<MdAstAnyContent> significantChildren(MdxJsxElementFields element) {
         List<MdAstAnyContent> flattened = new ArrayList<>();
         for (MdAstAnyContent child : element.children()) {
