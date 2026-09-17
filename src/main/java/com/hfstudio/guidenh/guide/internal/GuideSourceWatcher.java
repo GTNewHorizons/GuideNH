@@ -45,6 +45,7 @@ import io.methvin.watcher.DirectoryWatcher;
 
 public class GuideSourceWatcher implements AutoCloseable {
 
+    private final ResourceLocation guideId;
     private final String defaultLanguage;
 
     /**
@@ -197,7 +198,9 @@ public class GuideSourceWatcher implements AutoCloseable {
 
     private final ExecutorService watchExecutor;
 
-    public GuideSourceWatcher(String namespace, String contentRootFolder, String defaultLanguage, Path sourceFolder) {
+    public GuideSourceWatcher(ResourceLocation guideId, String namespace, String contentRootFolder,
+        String defaultLanguage, Path sourceFolder) {
+        this.guideId = guideId;
         this.namespace = namespace;
         this.contentRootFolder = contentRootFolder;
         this.defaultLanguage = LangUtil.normalizeLanguage(defaultLanguage);
@@ -383,6 +386,7 @@ public class GuideSourceWatcher implements AutoCloseable {
             }
             sources.add(
                 new MediaWikiTemplateRepository.TemplatePageSource(
+                    guideId,
                     page.getSourcePack(),
                     page.getLanguage(),
                     page.getId(),

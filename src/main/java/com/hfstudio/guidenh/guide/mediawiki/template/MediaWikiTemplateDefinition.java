@@ -2,5 +2,7 @@ package com.hfstudio.guidenh.guide.mediawiki.template;
 
 import net.minecraft.util.ResourceLocation;
 
-public record MediaWikiTemplateDefinition(MediaWikiTemplateName name, ResourceLocation pageId, String sourcePack,
-    String language, MediaWikiTemplateParameters parameters) {}
+import org.jetbrains.annotations.Nullable;
+
+public record MediaWikiTemplateDefinition(MediaWikiTemplateName name, ResourceLocation pageId,
+    @Nullable ResourceLocation guideId, String sourcePack, String language, MediaWikiTemplateParameters parameters) {}

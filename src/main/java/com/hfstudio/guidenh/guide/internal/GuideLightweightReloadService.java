@@ -121,13 +121,16 @@ public class GuideLightweightReloadService {
     private static void rebuildTemplateRepository(
         Map<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>> guidePages) {
         List<MediaWikiTemplateRepository.TemplatePageSource> sources = new ArrayList<>();
-        for (Map<ResourceLocation, ParsedGuidePage> pages : guidePages.values()) {
+        for (var guideEntry : guidePages.entrySet()) {
+            ResourceLocation guideId = guideEntry.getKey();
+            Map<ResourceLocation, ParsedGuidePage> pages = guideEntry.getValue();
             for (ParsedGuidePage page : pages.values()) {
                 if (page == null || !MediaWikiTemplatePageIds.isTemplatePage(page.getId())) {
                     continue;
                 }
                 sources.add(
                     new MediaWikiTemplateRepository.TemplatePageSource(
+                        guideId,
                         page.getSourcePack(),
                         page.getLanguage(),
                         page.getId(),

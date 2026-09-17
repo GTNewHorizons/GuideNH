@@ -1156,7 +1156,6 @@ public class GuideScreen extends GuiContainer
         navBar.setTemplateRows(rows, resolveNavigationTree(), bookmarkState);
     }
 
-    /** No guide id on these rows, so a template opens inside the guide already open. */
     private List<GuideNavProjection.DisplayRow> buildNavigationTemplateRows() {
         List<GuideNavProjection.DisplayRow> rows = new ArrayList<>();
         for (MediaWikiTemplateDefinition template : MediaWikiTemplateRepository.all()) {
@@ -1167,7 +1166,7 @@ public class GuideScreen extends GuiContainer
                     template.name()
                         .value(),
                     null,
-                    null,
+                    template.guideId(),
                     template.pageId(),
                     false,
                     true));
@@ -1603,8 +1602,10 @@ public class GuideScreen extends GuiContainer
                 currentAnchor.pageId(),
                 guideEditorDraftSource);
             updateGuideEditorSyntaxWarning(parsedDraft);
-            GuidePage compiledPreview = PageCompiler
-                .compile(buildGuideEditorPreviewGuide(parsedDraft), guide.getExtensions(), parsedDraft);
+            GuidePage compiledPreview = PageCompiler.compileTemplateEditorPreview(
+                buildGuideEditorPreviewGuide(parsedDraft),
+                guide.getExtensions(),
+                parsedDraft);
             if (guideEditorPreviewPage != null && guideEditorPreviewPage != compiledPreview) {
                 guideEditorPreviewPage.releaseRuntimeScenes();
             }
@@ -6709,10 +6710,14 @@ public class GuideScreen extends GuiContainer
             return;
         }
         if (anchor == null || anchor.equals(currentAnchor) && hasContentRoute()) return;
+        ResourceLocation guideId = currentRoute != null && currentRoute.isContent() ? currentRoute.guideId() : null;
+        if (guideId == null) {
+            return;
+        }
         confirmGuideEditorDirtyBefore(() -> {
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
             rememberCurrentContentStateIfEligible();
-            restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guide.getId(), anchor), 0));
+            restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guideId, anchor), 0));
         });
     }
 

@@ -65,7 +65,9 @@ import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateContext;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDependencyGraph;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDiagnostics;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateEditorPreview;
 import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateName;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
@@ -363,14 +365,26 @@ public class PageCompiler {
     }
 
     public static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage) {
+        return compile(pages, extensions, parsedPage, false);
+    }
+
+    public static GuidePage compileTemplateEditorPreview(PageCollection pages, ExtensionCollection extensions,
+        ParsedGuidePage parsedPage) {
+        return compile(pages, extensions, parsedPage, true);
+    }
+
+    private static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage,
+        boolean templateEditorPreview) {
         // Translate page tree over to layout pages
-        var document = new PageCompiler(
+        var compiler = new PageCompiler(
             pages,
             extensions,
             parsedPage.getSourcePack(),
             parsedPage.getLanguage(),
             parsedPage.getId(),
-            parsedPage.getSource()).compile(parsedPage.getAstRoot());
+            parsedPage.getSource());
+        var document = templateEditorPreview && MediaWikiTemplatePageIds.isTemplatePage(parsedPage.getId())
+            ? compiler.compileTemplateEditorPreview(parsedPage.getAstRoot()) : compiler.compile(parsedPage.getAstRoot());
         var titleHeading = extractPageTitleHeading(document);
         FrontmatterPageMeta pageMeta = parsedPage.getFrontmatter() != null ? parsedPage.getFrontmatter()
             .parseMeta() : null;
@@ -422,6 +436,13 @@ public class PageCompiler {
             // reach this page; a stale edge would silently stop a page from updating.
             MediaWikiTemplateDependencyGraph.recordPage(pageId, templateDependencies);
         }
+        return document;
+    }
+
+    private LytDocument compileTemplateEditorPreview(MdAstRoot root) {
+        var document = new LytDocument();
+        document.setSourceNode(root);
+        compileBlockContext(MediaWikiTemplateEditorPreview.prepare(root.children()), document);
         return document;
     }
 

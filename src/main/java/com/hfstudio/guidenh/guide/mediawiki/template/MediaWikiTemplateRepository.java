@@ -46,6 +46,7 @@ public class MediaWikiTemplateRepository {
                 new MediaWikiTemplateDefinition(
                     name,
                     page.pageId(),
+                    page.guideId(),
                     page.sourcePack(),
                     page.language(),
                     page.parameters()));
@@ -82,11 +83,16 @@ public class MediaWikiTemplateRepository {
         return sortedTemplates;
     }
 
-    public record TemplatePageSource(String sourcePack, String language, ResourceLocation pageId,
-        MediaWikiTemplateParameters parameters) {
+    public record TemplatePageSource(@Nullable ResourceLocation guideId, String sourcePack, String language,
+        ResourceLocation pageId, MediaWikiTemplateParameters parameters) {
+
+        public TemplatePageSource(String sourcePack, String language, ResourceLocation pageId,
+            MediaWikiTemplateParameters parameters) {
+            this(null, sourcePack, language, pageId, parameters);
+        }
 
         public TemplatePageSource(String sourcePack, String language, ResourceLocation pageId) {
-            this(sourcePack, language, pageId, MediaWikiTemplateParameters.EMPTY);
+            this(null, sourcePack, language, pageId, MediaWikiTemplateParameters.EMPTY);
         }
     }
 }
