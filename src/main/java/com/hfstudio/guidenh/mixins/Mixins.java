@@ -25,7 +25,7 @@ public enum Mixins implements IMixins {
         "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox"),
 
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder",
-        "compat.gregtech.MixinHatchElementBuilderPreview"),
+        "compat.gregtech.MixinHatchElementBuilderPreview", "compat.gregtech.MixinHatchElementPlacementPreview"),
 
     STRUCTURELIB_MINIMUM_HATCHES(Side.CLIENT, Phase.LATE, Mods.StructureLib,
         "compat.structurelib.MixinSurvivalBuildStructureWalker"),
@@ -34,8 +34,7 @@ public enum Mixins implements IMixins {
         "compat.buildcraft.AccessorTileGenericPipe"),
 
     BLOCK_RENDERER_6343(Side.CLIENT, Phase.LATE, Mods.BlockRenderer6343,
-        "compat.blockrenderer6343.AccessorConstructableData",
-        "compat.blockrenderer6343.MixinStructureHacksMinimumHatch"),
+        "compat.blockrenderer6343.AccessorConstructableData"),
 
     NEI_CUSTOM_DIAGRAM(Side.CLIENT, Phase.LATE, Mods.NeiCustomDiagram,
         "compat.neicustomdiagram.AccessorCustomInteractable"),
