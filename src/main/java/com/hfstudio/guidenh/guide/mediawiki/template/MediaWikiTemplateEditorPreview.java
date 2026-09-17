@@ -28,8 +28,7 @@ public final class MediaWikiTemplateEditorPreview {
                 continue;
             }
             String tag = element.name();
-            if (MediaWikiIncludeControl.NO_INCLUDE.equals(tag)
-                || MediaWikiIncludeControl.INCLUDE_ONLY.equals(tag)
+            if (MediaWikiIncludeControl.NO_INCLUDE.equals(tag) || MediaWikiIncludeControl.INCLUDE_ONLY.equals(tag)
                 || MediaWikiIncludeControl.ONLY_INCLUDE.equals(tag)
                 || TemplateTags.isConditional(tag)
                 || TemplateTags.isStringFunction(tag)
@@ -48,10 +47,9 @@ public final class MediaWikiTemplateEditorPreview {
             if (copy instanceof MdxJsxElementFields copiedElement) {
                 if (hasDynamicAttribute(copiedElement)) {
                     copiedElement.setName(copy instanceof MdxJsxTextElement ? "span" : "div");
-                    copiedElement.attributes().clear();
-                    MediaWikiTemplateAst.replaceChildren(
-                        copy,
-                        List.of(MediaWikiTemplateAst.text("<" + tag + " …>")));
+                    copiedElement.attributes()
+                        .clear();
+                    MediaWikiTemplateAst.replaceChildren(copy, List.of(MediaWikiTemplateAst.text("<" + tag + " …>")));
                 } else {
                     MediaWikiTemplateAst.replaceChildren(copy, prepare(element.children()));
                 }
@@ -65,7 +63,8 @@ public final class MediaWikiTemplateEditorPreview {
         for (MdxJsxAttributeNode attributeNode : element.attributes()) {
             if (attributeNode instanceof MdxJsxAttribute attribute && attribute.hasExpressionValue()
                 && attribute.getExpressionValue() != null
-                && attribute.getExpressionValue().contains(DYNAMIC_ATTRIBUTE_MARKER)) {
+                && attribute.getExpressionValue()
+                    .contains(DYNAMIC_ATTRIBUTE_MARKER)) {
                 return true;
             }
         }
@@ -87,7 +86,8 @@ public final class MediaWikiTemplateEditorPreview {
         if (fallback != null) {
             return List.of(MediaWikiTemplateAst.text(fallback));
         }
-        if (!element.children().isEmpty()) {
+        if (!element.children()
+            .isEmpty()) {
             return prepare(element.children());
         }
         return List.of(MediaWikiTemplateAst.text(parameterPlaceholder(element)));

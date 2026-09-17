@@ -384,7 +384,8 @@ public class PageCompiler {
             parsedPage.getId(),
             parsedPage.getSource());
         var document = templateEditorPreview && MediaWikiTemplatePageIds.isTemplatePage(parsedPage.getId())
-            ? compiler.compileTemplateEditorPreview(parsedPage.getAstRoot()) : compiler.compile(parsedPage.getAstRoot());
+            ? compiler.compileTemplateEditorPreview(parsedPage.getAstRoot())
+            : compiler.compile(parsedPage.getAstRoot());
         var titleHeading = extractPageTitleHeading(document);
         FrontmatterPageMeta pageMeta = parsedPage.getFrontmatter() != null ? parsedPage.getFrontmatter()
             .parseMeta() : null;
