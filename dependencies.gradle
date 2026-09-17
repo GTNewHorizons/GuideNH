@@ -53,7 +53,7 @@ dependencies {
     compileOnlyApi("com.github.GTNewHorizons:OpenComputers:1.12.61-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.DarkShadow44:DistantHorizonsStandalone:9.9.9:dev") { transitive = false }
     compileOnlyApi("com.github.slprime:ChromaticTooltips:1.0.28-GTNH:dev") { transitive = false }
-    compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.2.21-GTNH-daily") { transitive = false }
+    compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.59-GTNH") { transitive = false }
 
     // jvmDowngrader
     compileOnly("javax.xml.bind:jaxb-api:2.3.1")
@@ -66,6 +66,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.12.2")
     testImplementation("com.github.GTNewHorizons:StructureLib:1.4.43:dev")
+    testImplementation("org.joml:joml:1.10.8")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.12.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
 }

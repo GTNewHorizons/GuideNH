@@ -174,6 +174,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "Special",
             AttributeSyntax.of("name", SyntaxValueKind.STRING),
             AttributeSyntax.of("rows", SyntaxValueKind.INT));
+        registerTemplateSyntax(sink);
         sink.attributes(
             "Structure",
             AttributeSyntax.of("width", SyntaxValueKind.INT),
@@ -977,6 +978,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         registerMediaWikiSpecialAttributes(sink);
         registerQuestVisibilityAttributes(sink);
         contributeTagShape(sink);
+        contributeIncludeControlTags(sink);
         contributeValueKinds(sink);
         contributeMarkdown(sink);
         contributeFences(sink);
@@ -1079,6 +1081,60 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes("Category", SPECIAL_PAGE, SPECIAL_PREFIX, SPECIAL_LANGUAGE, SPECIAL_QUERY);
     }
 
+    private static void registerTemplateSyntax(SyntaxSink sink) {
+        AttributeSyntax name = AttributeSyntax.of("name", SyntaxValueKind.STRING);
+        AttributeSyntax pos = AttributeSyntax.of("pos", SyntaxValueKind.INT);
+        AttributeSyntax defaultValue = AttributeSyntax.of("default", SyntaxValueKind.STRING);
+        AttributeSyntax value = AttributeSyntax.of("value", SyntaxValueKind.STRING);
+
+        sink.attributes("Template", name);
+        sink.attributes("Arg", name);
+        // Every other attribute on a call is an argument, so the accepted set cannot be enumerated.
+        sink.forwardsAttributes("Template", "Arg");
+        sink.attributes("Param", name, pos, defaultValue);
+        sink.attributes("If", AttributeSyntax.of("test", SyntaxValueKind.STRING));
+        sink.attributes(
+            "IfEq",
+            AttributeSyntax.of("a", SyntaxValueKind.STRING),
+            AttributeSyntax.of("b", SyntaxValueKind.STRING));
+        sink.attributes("IfExist", AttributeSyntax.of("page", SyntaxValueKind.PAGE_PATH));
+        sink.attributes("Switch", AttributeSyntax.of("test", SyntaxValueKind.STRING));
+        sink.attributes("Case", value);
+        sink.attributes("Expr", AttributeSyntax.of("value", SyntaxValueKind.EXPRESSION));
+        AttributeSyntax start = AttributeSyntax.of("start", SyntaxValueKind.INT);
+        AttributeSyntax length = AttributeSyntax.of("length", SyntaxValueKind.INT);
+        AttributeSyntax from = AttributeSyntax.of("from", SyntaxValueKind.STRING);
+        AttributeSyntax to = AttributeSyntax.of("to", SyntaxValueKind.STRING);
+        AttributeSyntax index = AttributeSyntax.of("index", SyntaxValueKind.INT);
+        AttributeSyntax width = AttributeSyntax.of("width", SyntaxValueKind.INT);
+        AttributeSyntax pad = AttributeSyntax.of("pad", SyntaxValueKind.STRING);
+        AttributeSyntax needle = AttributeSyntax.of("needle", SyntaxValueKind.STRING);
+        AttributeSyntax delimiter = AttributeSyntax.of("delimiter", SyntaxValueKind.STRING);
+        for (String function : new String[] { "Lower", "Upper", "Trim", "Len", "Sub", "Replace", "Explode", "PadLeft",
+            "PadRight", "UrlEncode", "Pos" }) {
+            sink.attributes(function, value, start, length, from, to, index, width, pad, needle, delimiter);
+        }
+
+        // A template body, an <If> branch and a <Switch> branch are all ordinary block content, so these lists
+        // rank completion rather than restricting it: a template may emit any tag, and the control tags only
+        // take their own branch markers.
+        sink.preferredChildren("Template", "Arg", "Param");
+        sink.preferredChildren("If", "Else");
+        sink.preferredChildren("IfEq", "Else");
+        sink.preferredChildren("IfExist", "Else");
+        sink.preferredChildren("Switch", "Case", "Default");
+    }
+
+    private static void contributeIncludeControlTags(SyntaxSink sink) {
+        // Written as literals rather than the MediaWikiIncludeControl constants so the schema generator, which
+        // reads this source as text, sees the tag names directly.
+        sink.containerTags("NoInclude", "IncludeOnly", "OnlyInclude");
+        // Each of these wraps a body a template can fill with anything, so they rank rather than restrict.
+        sink.preferredChildren("NoInclude");
+        sink.preferredChildren("IncludeOnly");
+        sink.preferredChildren("OnlyInclude");
+    }
+
     private static void registerQuestVisibilityAttributes(SyntaxSink sink) {
         sink.attributes("QuestLink", QUEST_SHOW_TOOLTIP, QUEST_SHOW_TOOLTIP_SNAKE);
         sink.attributes("QuestCard", QUEST_SHOW_TOOLTIP, QUEST_SHOW_TOOLTIP_SNAKE);
@@ -1087,6 +1143,28 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
     private static void contributeTagShape(SyntaxSink sink) {
         sink.containerTags(
             "a",
+            "Template",
+            "Arg",
+            "Param",
+            "If",
+            "Else",
+            "IfEq",
+            "IfExist",
+            "Switch",
+            "Case",
+            "Default",
+            "Expr",
+            "Lower",
+            "Upper",
+            "Trim",
+            "Len",
+            "Sub",
+            "Replace",
+            "Explode",
+            "PadLeft",
+            "PadRight",
+            "UrlEncode",
+            "Pos",
             "Tooltip",
             "Color",
             "CommandLink",

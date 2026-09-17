@@ -121,6 +121,7 @@ navigation:
 - 若你要一起测试混合运行时特性，包括 StructureLib tooltip、舱口高亮和清理逻辑，用 `index.md`
 - 若你只需要静态方块布局预览，用 `structure.md`
 - 若你需要可复用的导入结构资源，用 `example_structure.snbt`
+- 若要测试模板转译、条件判断与包含控制，用 `templates-demo.md` 配合 `templates/` 目录。参见[模板](Templates-zh-CN)
 
 ## 推荐学习顺序
 

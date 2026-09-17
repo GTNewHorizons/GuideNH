@@ -87,6 +87,23 @@ Authoring rules:
 
 GuideNH does not synthesize pages from `.lang` alone. A real page file must still exist.
 
+## Templates And Language
+
+Template pages under a `templates/` folder follow the same language lookup order as any other page, so a
+template can have one file per language:
+
+```text
+_en_us/templates/InfoBox.md
+_zh_cn/templates/InfoBox.md
+```
+
+A template page can also be replaced by a `.lang` key like any other page. The key format appends the
+template path:
+
+```text
+guidenh.page.<namespace>.<folder>.templates.<name>
+```
+
 ## Key Length
 
 GuideNH does not impose an extra character limit on these page keys. On Minecraft 1.7.10 / Forge, the backing language
@@ -139,4 +156,5 @@ wiki/resourcepack/assets/guidenh/guidenh/_zh_cn/test1.png
 ## Related Pages
 
 - [Guide Page Format](Guide-Page-Format)
+- [Templates](Templates)
 - [Images And Assets](Images-And-Assets)

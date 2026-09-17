@@ -176,6 +176,9 @@ public class GuideNavBar {
     private int expandedStateVersion;
     private int lastExpandedStateVersion;
     private boolean bookmarkGroupExpanded = true;
+    private boolean templateGroupExpanded = true;
+    /** Template rows to append below the tree, set by the guide editor and empty otherwise. */
+    private List<GuideNavProjection.DisplayRow> templateRows = List.of();
     @Nullable
     private GuideExpansionListener onExpansionChanged;
 
@@ -358,6 +361,23 @@ public class GuideNavBar {
         updateExpansionState(collectExpandableNodes(tree), false, bookmarkState, true);
     }
 
+    /**
+     * Sets the template rows shown in the section below the tree. The guide editor calls this with every
+     * template page; anything else passes an empty list, which removes the section entirely.
+     */
+    public void setTemplateRows(List<GuideNavProjection.DisplayRow> rows, @Nullable NavigationTree tree,
+        GuideBookmarkState bookmarkState) {
+        if (templateRows.equals(rows)) {
+            return;
+        }
+        templateRows = List.copyOf(rows);
+        rebuildRows(tree, bookmarkState);
+    }
+
+    public boolean isTemplateGroupExpanded() {
+        return templateGroupExpanded;
+    }
+
     private boolean shouldRebuildRows(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
         return tree != lastTree || lastBookmarkStateVersion != bookmarkState.version()
             || lastExpandedStateVersion != expandedStateVersion;
@@ -375,6 +395,7 @@ public class GuideNavBar {
         }
         GuideNavProjection.ProjectionResult projected = projection
             .project(tree, bookmarkState, expandedPageIds, bookmarkGroupExpanded);
+        projected = projection.withTemplates(projected, templateRows, templateGroupExpanded);
         for (GuideNavProjection.ProjectedRow projectedRow : projected.rows()) {
             rows.add(new Row(projectedRow));
         }
@@ -722,6 +743,12 @@ public class GuideNavBar {
             return ClickResult.none();
         }
 
+        if (displayRow.kind() == GuideNavProjection.RowKind.TEMPLATE_GROUP) {
+            templateGroupExpanded = !templateGroupExpanded;
+            rebuildRows(lastTree, bookmarkState);
+            return ClickResult.none();
+        }
+
         if (row.hasChildren() && displayRow.kind() == GuideNavProjection.RowKind.TREE_PAGE) {
             boolean alreadyExpanded = isExpanded(row);
             if (!alreadyExpanded) {
@@ -825,6 +852,9 @@ public class GuideNavBar {
         if (row.kind() == GuideNavProjection.RowKind.BOOKMARK_GROUP) {
             return !bookmarkGroupExpanded;
         }
+        if (row.kind() == GuideNavProjection.RowKind.TEMPLATE_GROUP) {
+            return !templateGroupExpanded;
+        }
         return !isExpanded(row);
     }
 
@@ -835,6 +865,11 @@ public class GuideNavBar {
     private void toggleExpand(Row row, GuideBookmarkState bookmarkState) {
         if (row.kind() == GuideNavProjection.RowKind.BOOKMARK_GROUP) {
             bookmarkGroupExpanded = !bookmarkGroupExpanded;
+            rebuildRows(lastTree, bookmarkState);
+            return;
+        }
+        if (row.kind() == GuideNavProjection.RowKind.TEMPLATE_GROUP) {
+            templateGroupExpanded = !templateGroupExpanded;
             rebuildRows(lastTree, bookmarkState);
             return;
         }
@@ -932,7 +967,7 @@ public class GuideNavBar {
     }
 
     public void scroll(int dwheel) {
-        scrollY = Math.clamp(scrollY - Integer.signum(dwheel) * ROW_H * 2, 0, getMaxScrollY());
+        scrollY = Math.clamp(scrollY - Integer.signum(dwheel) * ROW_H * 2L, 0, getMaxScrollY());
     }
 
     private void clampScrollToRows() {
@@ -968,7 +1003,7 @@ public class GuideNavBar {
             return null;
         }
         int rowIndex = relativeY / ROW_H;
-        if (rowIndex < 0 || rowIndex >= rows.size()) {
+        if (rowIndex >= rows.size()) {
             return null;
         }
         if (stickyStack.containsRowIndex(rowIndex)) {

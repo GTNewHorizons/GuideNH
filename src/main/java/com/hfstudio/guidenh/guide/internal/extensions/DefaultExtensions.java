@@ -60,6 +60,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionGraphTagCo
 import com.hfstudio.guidenh.guide.compiler.tags.functiongraph.FunctionTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.CategoryCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.SpecialCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.mediawiki.TemplateCompiler;
 import com.hfstudio.guidenh.guide.extensions.Extension;
 import com.hfstudio.guidenh.guide.extensions.ExtensionCollection;
 import com.hfstudio.guidenh.guide.extensions.ExtensionPoint;
@@ -141,6 +142,7 @@ public class DefaultExtensions {
                 new ItemGridCompiler(),
                 new CategoryCompiler(),
                 new SpecialCompiler(),
+                new TemplateCompiler(),
                 new BlockImageCompiler(),
                 new ItemImageCompiler(),
                 new BoxTagCompiler(BoxFlowDirection.ROW),

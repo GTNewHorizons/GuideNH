@@ -348,7 +348,12 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
             return;
         }
 
-        watcher = new GuideSourceWatcher(developmentSourceNamespace, folder, defaultLanguage, developmentSourceFolder);
+        watcher = new GuideSourceWatcher(
+            id,
+            developmentSourceNamespace,
+            folder,
+            defaultLanguage,
+            developmentSourceFolder);
         Runtime.getRuntime()
             .addShutdownHook(new Thread(watcher::close));
     }

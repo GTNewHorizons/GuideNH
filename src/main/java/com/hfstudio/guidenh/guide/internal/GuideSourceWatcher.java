@@ -32,6 +32,11 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.localization.GuideLocalizedPageSourceResolver;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDependencyGraph;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateInvalidator;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateParameters;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateRepository;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 import io.methvin.watcher.DirectoryChangeEvent;
@@ -40,6 +45,7 @@ import io.methvin.watcher.DirectoryWatcher;
 
 public class GuideSourceWatcher implements AutoCloseable {
 
+    private final ResourceLocation guideId;
     private final String defaultLanguage;
 
     /**
@@ -192,7 +198,9 @@ public class GuideSourceWatcher implements AutoCloseable {
 
     private final ExecutorService watchExecutor;
 
-    public GuideSourceWatcher(String namespace, String contentRootFolder, String defaultLanguage, Path sourceFolder) {
+    public GuideSourceWatcher(ResourceLocation guideId, String namespace, String contentRootFolder,
+        String defaultLanguage, Path sourceFolder) {
+        this.guideId = guideId;
         this.namespace = namespace;
         this.contentRootFolder = contentRootFolder;
         this.defaultLanguage = LangUtil.normalizeLanguage(defaultLanguage);
@@ -353,15 +361,64 @@ public class GuideSourceWatcher implements AutoCloseable {
             }
             if (shouldClearLanguageCache) {
                 GuideLanguageIndex.clear();
+                MediaWikiTemplateRepository.clear();
+                // Language resolution changed, so the recorded edges may no longer describe this page set.
+                MediaWikiTemplateDependencyGraph.clear();
             }
             for (PageReloadRequest request : requests) {
                 queueReloadedPages(loadAll(request.namespace()));
             }
+            rebuildTemplateRepositoryAndDependents();
         }
 
         synchronized (this) {
             return takeQueuedChanges();
         }
+    }
+
+    private void rebuildTemplateRepositoryAndDependents() {
+        List<ParsedGuidePage> pages = loadAll();
+        List<MediaWikiTemplateRepository.TemplatePageSource> sources = new ArrayList<>();
+        List<ResourceLocation> templatePages = new ArrayList<>();
+        for (ParsedGuidePage page : pages) {
+            if (page == null || !MediaWikiTemplatePageIds.isTemplatePage(page.getId())) {
+                continue;
+            }
+            sources.add(
+                new MediaWikiTemplateRepository.TemplatePageSource(
+                    guideId,
+                    page.getSourcePack(),
+                    page.getLanguage(),
+                    page.getId(),
+                    MediaWikiTemplateParameters.of(
+                        page.getAstRoot() != null ? page.getAstRoot()
+                            .children() : null)));
+            templatePages.add(page.getId());
+        }
+        if (templatePages.isEmpty()) {
+            return;
+        }
+        MediaWikiTemplateRepository.rebuild(sources);
+        if (MediaWikiTemplateDependencyGraph.pageCount() == 0) {
+            // Nothing has compiled against a template yet, so there is no graph to walk.
+            return;
+        }
+        Set<ResourceLocation> dependents = MediaWikiTemplateInvalidator.collectAffected(templatePages);
+        templatePages.forEach(dependents::remove);
+        queuePagesForRecompile(dependents, pages);
+    }
+
+    private void queuePagesForRecompile(Set<ResourceLocation> pageIds, List<ParsedGuidePage> pages) {
+        if (pageIds.isEmpty()) {
+            return;
+        }
+        List<ParsedGuidePage> affected = new ArrayList<>();
+        for (ParsedGuidePage page : pages) {
+            if (page != null && pageIds.contains(page.getId())) {
+                affected.add(page);
+            }
+        }
+        queueReloadedPages(affected);
     }
 
     private synchronized Set<PageReloadRequest> takeReloadRequests() {
