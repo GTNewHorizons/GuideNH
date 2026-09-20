@@ -51,7 +51,6 @@ dependencies {
     compileOnlyApi("com.github.GTNewHorizons:Translocators:1.4.5:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:SimpleSkinBackport:1.0.3-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.GTNewHorizons:OpenComputers:1.12.61-GTNH:dev") { transitive = false }
-    compileOnlyApi("com.github.DarkShadow44:DistantHorizonsStandalone:9.9.9:dev") { transitive = false }
     compileOnlyApi("com.github.slprime:ChromaticTooltips:1.0.28-GTNH:dev") { transitive = false }
     compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.59-GTNH") { transitive = false }
 

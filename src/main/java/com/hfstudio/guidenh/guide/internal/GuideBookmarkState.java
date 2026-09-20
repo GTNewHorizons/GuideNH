@@ -5,9 +5,9 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import net.minecraft.util.ResourceLocation;
+import javax.annotation.Nonnull;
 
-import org.jspecify.annotations.NonNull;
+import net.minecraft.util.ResourceLocation;
 
 public class GuideBookmarkState {
 
@@ -25,7 +25,7 @@ public class GuideBookmarkState {
     private final Set<ResourceLocation> bookmarkView = new AbstractSet<>() {
 
         @Override
-        public @NonNull Iterator<ResourceLocation> iterator() {
+        public @Nonnull Iterator<ResourceLocation> iterator() {
             return Set.copyOf(bookmarks)
                 .iterator();
         }

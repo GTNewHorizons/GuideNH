@@ -20,11 +20,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.StringTranslate;
 
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.hfstudio.guidenh.guide.GuidePageChange;
@@ -255,12 +256,12 @@ public class GuideSourceWatcher implements AutoCloseable {
             Files.walkFileTree(sourceFolder, new FileVisitor<>() {
 
                 @Override
-                public @NonNull FileVisitResult preVisitDirectory(Path dir, @NonNull BasicFileAttributes attrs) {
+                public @Nonnull FileVisitResult preVisitDirectory(Path dir, @Nonnull BasicFileAttributes attrs) {
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
-                public @NonNull FileVisitResult visitFile(Path file, @NonNull BasicFileAttributes attrs) {
+                public @Nonnull FileVisitResult visitFile(Path file, @Nonnull BasicFileAttributes attrs) {
                     var pageKey = getPageLangKey(file);
                     if (pageKey != null && (namespaceFilter == null || namespaceFilter.equals(
                         pageKey.pageId()
@@ -272,13 +273,13 @@ public class GuideSourceWatcher implements AutoCloseable {
                 }
 
                 @Override
-                public @NonNull FileVisitResult visitFileFailed(Path file, @NonNull IOException exc) {
+                public @Nonnull FileVisitResult visitFileFailed(Path file, @Nonnull IOException exc) {
                     GuideDebugLog.error("[GuideNH] [GuideSourceWatcher] Failed to list page {}", file, exc);
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
-                public @NonNull FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+                public @Nonnull FileVisitResult postVisitDirectory(Path dir, IOException exc) {
                     if (exc != null) {
                         GuideDebugLog.error("[GuideNH] [GuideSourceWatcher] Failed to list all pages in {}", dir, exc);
                     }

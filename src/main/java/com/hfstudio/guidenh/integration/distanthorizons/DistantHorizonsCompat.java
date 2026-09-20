@@ -11,10 +11,8 @@ import net.minecraftforge.common.MinecraftForge;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.integration.Mods;
-import com.seibel.distanthorizons.forge.ForgeClientProxy;
 
 import cpw.mods.fml.common.ModContainer;
-import cpw.mods.fml.common.Optional;
 import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.EventBus;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -22,8 +20,8 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 /**
  * Shields guide preview worlds from Distant Horizons world-load hooks. Callers MUST
  * route through {@link #suppressClientWorldLoadHooks()} which short-circuits to a
- * no-op token when DH is absent so the JVM never resolves the {@link ForgeClientProxy}
- * reference outside the {@link Optional.Method}-guarded body.
+ * no-op token when DH is absent. Targets are identified through FML's registered mod owner instead of
+ * Distant Horizons' implementation-only client proxy, so this layer has no hard dependency on DH classes.
  */
 public class DistantHorizonsCompat {
 
@@ -67,11 +65,6 @@ public class DistantHorizonsCompat {
         return new EventBusSuppressionToken(eventBus);
     }
 
-    @Optional.Method(modid = "distanthorizons")
-    public static boolean isDistantHorizonsForgeClientProxy(@Nullable Object target) {
-        return target instanceof ForgeClientProxy;
-    }
-
     private static List<SuspendedTarget> suspendTargets(EventBus eventBus) {
         Map<Object, ?> listeners = getListenersMap(eventBus);
         if (listeners == null || listeners.isEmpty()) {
@@ -83,10 +76,11 @@ public class DistantHorizonsCompat {
             .toArray();
         List<SuspendedTarget> removedTargets = new ArrayList<>();
         for (Object target : targets) {
-            if (!isDistantHorizonsForgeClientProxy(target)) {
+            ModContainer owner = listenerOwners != null ? listenerOwners.get(target) : null;
+            if (owner == null || !"distanthorizons".equals(owner.getModId())) {
                 continue;
             }
-            removedTargets.add(new SuspendedTarget(target, listenerOwners != null ? listenerOwners.get(target) : null));
+            removedTargets.add(new SuspendedTarget(target, owner));
             eventBus.unregister(target);
         }
         return removedTargets;
