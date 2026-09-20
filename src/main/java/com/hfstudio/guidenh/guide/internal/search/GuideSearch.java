@@ -27,6 +27,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.util.ResourceLocation;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -53,7 +55,6 @@ import org.apache.lucene.search.highlight.QueryScorer;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.compiler.IndexingSink;
@@ -300,7 +301,7 @@ public class GuideSearch implements AutoCloseable {
         }
     }
 
-    @NonNull
+    @Nonnull
     private PageIndexDocument createPageIndexDocument(Guide guide, ParsedGuidePage page, long generation) {
         try {
             Document document = createPageDocument(guide, page);

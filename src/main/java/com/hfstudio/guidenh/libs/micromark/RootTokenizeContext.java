@@ -190,12 +190,12 @@ public class RootTokenizeContext implements TokenizeContext {
      * Constructs that are not <code>partial</code> are set here.
      */
     @Override
-    public @org.jspecify.annotations.Nullable Construct getCurrentConstruct() {
+    public @Nullable Construct getCurrentConstruct() {
         return currentConstruct;
     }
 
     @Override
-    public void setCurrentConstruct(@org.jspecify.annotations.Nullable Construct currentConstruct) {
+    public void setCurrentConstruct(@Nullable Construct currentConstruct) {
         this.currentConstruct = currentConstruct;
     }
 

@@ -1,11 +1,12 @@
 package com.hfstudio.guidenh.guide.scene.ponder;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
-import org.jspecify.annotations.NonNull;
 
 import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerPose;
 import com.hfstudio.guidenh.guide.scene.element.GuidebookPlayerPoseControllable;
@@ -330,7 +331,7 @@ public class PonderEntityAnimationRuntimeSupport {
         };
     }
 
-    private static @NonNull Vector3f offset(@Nullable Vector3f base, float x, float y, float z) {
+    private static @Nonnull Vector3f offset(@Nullable Vector3f base, float x, float y, float z) {
         Vector3f result = base != null ? new Vector3f(base) : new Vector3f();
         result.x += x;
         result.y += y;
