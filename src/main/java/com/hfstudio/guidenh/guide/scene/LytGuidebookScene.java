@@ -1322,7 +1322,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
      */
     public boolean refreshStructureLibControlMetadata() {
         StructureLibDefinitionCache definitions = StructureLibDefinitionCache.getInstance();
-        if (!definitions.areScansComplete()) {
+        if (!definitions.isScansComplete()) {
             return false;
         }
         long generation = definitions.getScanGeneration();
