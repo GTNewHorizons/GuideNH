@@ -35,8 +35,8 @@ dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Baubles-Expanded:2.2.23-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.36-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botanic-horizons:1.12.10-GTNH:dev")
-    compileOnlyApi("com.github.GTNewHorizons:BlockRenderer6343:1.4.21:dev") { transitive = false }
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.21:dev") { transitive = false }
+    compileOnlyApi("com.github.GTNewHorizons:BlockRenderer6343:1.4.23:dev") { transitive = false }
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.23:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:EnderCore:0.5.15:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:ServerUtilities:2.4.10:dev")
     runtimeOnlyNonPublishable("it.unimi.dsi:fastutil:8.5.18")

@@ -105,9 +105,9 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
                 flip);
             int maxTier = Math.max(1, data.getMaxTotalTier());
             metadata = metadata.withTierData(1, maxTier, tier, tier);
-            var channelData = data.getChannelData();
-            if (channelData != null) {
-                for (var entry : channelData.object2IntEntrySet()) {
+            var channelMaxTierMap = data.getChannelMaxTierMap();
+            if (channelMaxTierMap != null) {
+                for (var entry : channelMaxTierMap.object2IntEntrySet()) {
                     String ch = StructureLibPreviewSelection.normalizeChannelId(entry.getKey());
                     if (ch != null) {
                         int cv = selection.getChannelOverrides()
