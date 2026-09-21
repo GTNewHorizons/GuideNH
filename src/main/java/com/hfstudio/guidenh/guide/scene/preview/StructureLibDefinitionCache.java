@@ -194,9 +194,9 @@ public class StructureLibDefinitionCache {
         if (candidate == null || !candidate.hasData()) return current;
         ConstructableData merged = current != null ? current : new ConstructableData();
         merged.setMaxTier(candidate.getMaxTotalTier(), "");
-        if (candidate.getChannelMaxTierMap() != null) {
-            for (var channel : candidate.getChannelMaxTierMap()
-                .object2IntEntrySet()) {
+        var channelMaxTierMap = candidate.getChannelMaxTierMap();
+        if (channelMaxTierMap != null) {
+            for (var channel : channelMaxTierMap.object2IntEntrySet()) {
                 if (channel.getKey() != null && !channel.getKey()
                     .trim()
                     .isEmpty()) {
