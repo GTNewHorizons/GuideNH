@@ -92,7 +92,7 @@ public class StructureLibSemanticProvider implements SemanticProvider {
             if (maxTier <= 0) return List.of();
 
             List<Map<String, String>> entries = new ArrayList<>();
-            String detail = describeTierRange(resolved, maxTier, data.getChannelData());
+            String detail = describeTierRange(resolved, maxTier, data.getChannelMaxTierMap());
             for (int value = 1; value <= maxTier; value++) {
                 entries.add(createEntry(Integer.toString(value), "StructureLib preview tier", detail));
             }

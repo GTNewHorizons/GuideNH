@@ -15,12 +15,12 @@ import com.gtnewhorizon.structurelib.alignment.constructable.IConstructable;
 import com.gtnewhorizon.structurelib.alignment.constructable.IMultiblockInfoContainer;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
-import com.hfstudio.guidenh.mixins.late.compat.blockrenderer6343.AccessorConstructableData;
 
 import blockrenderer6343.client.utils.ConstructableData;
 import blockrenderer6343.integration.gregtech.GTConstructableScan;
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
+import lombok.Getter;
 
 /**
  * Resolves the tier and channel ranges BlockRenderer6343 found for a controller.
@@ -37,7 +37,9 @@ public class StructureLibDefinitionCache {
     private final Map<String, IConstructable> resolvedControllers = new ConcurrentHashMap<>();
     private final Map<String, ConstructableData> resolvedData = new ConcurrentHashMap<>();
     private volatile boolean scanRequested;
+    @Getter
     private volatile boolean scansComplete;
+    @Getter
     private volatile long scanGeneration;
 
     private StructureLibDefinitionCache() {}
@@ -71,16 +73,6 @@ public class StructureLibDefinitionCache {
                 }
             }
         }, "GuideNH-StructureLibScan").start();
-    }
-
-    /** Returns true after both asynchronous definition scans have published their results. */
-    public boolean areScansComplete() {
-        return scansComplete;
-    }
-
-    /** Monotonically increases whenever a complete scan result becomes available. */
-    public long getScanGeneration() {
-        return scanGeneration;
     }
 
     private void scanStructureLibContainersSafely() {
@@ -173,7 +165,7 @@ public class StructureLibDefinitionCache {
     public ConstructableData getConstructableData(IConstructable c) {
         ConstructableData merged = null;
         try {
-            var map = AccessorConstructableData.getConstructableDataMap();
+            var map = ConstructableData.getConstructableData();
             synchronized (map) {
                 merged = mergeData(merged, map.get(c));
                 ItemId controllerItem = resolveControllerItem(c);
@@ -202,9 +194,9 @@ public class StructureLibDefinitionCache {
         if (candidate == null || !candidate.hasData()) return current;
         ConstructableData merged = current != null ? current : new ConstructableData();
         merged.setMaxTier(candidate.getMaxTotalTier(), "");
-        if (candidate.getChannelData() != null) {
-            for (var channel : candidate.getChannelData()
-                .object2IntEntrySet()) {
+        var channelMaxTierMap = candidate.getChannelMaxTierMap();
+        if (channelMaxTierMap != null) {
+            for (var channel : channelMaxTierMap.object2IntEntrySet()) {
                 if (channel.getKey() != null && !channel.getKey()
                     .trim()
                     .isEmpty()) {
@@ -230,7 +222,7 @@ public class StructureLibDefinitionCache {
         // Non-GregTech StructureLib controllers are not present in METATILEENTITIES; resolve them directly
         // from the published map by controller item id.
         try {
-            var map = AccessorConstructableData.getConstructableDataMap();
+            var map = ConstructableData.getConstructableData();
             synchronized (map) {
                 ConstructableData merged = null;
                 IConstructable matched = null;

@@ -85,13 +85,9 @@ public class StructureLibExportPlanner {
             if (data == null) {
                 return new AutoTierPlan(1, Map.of());
             }
-            Map<String, Integer> channelMaxTierMap = new LinkedHashMap<>();
-            if (data.getChannelData() != null) {
-                for (var entry : data.getChannelData()
-                    .object2IntEntrySet()) {
-                    channelMaxTierMap.put(entry.getKey(), entry.getIntValue());
-                }
-            }
+            var source = data.getChannelMaxTierMap();
+            Map<String, Integer> channelMaxTierMap = source == null ? new LinkedHashMap<>()
+                : new LinkedHashMap<>(source);
             return new AutoTierPlan(resolveUnifiedMaxTier(data), channelMaxTierMap);
         } catch (Throwable t) {
             warnings.add(
@@ -103,9 +99,9 @@ public class StructureLibExportPlanner {
 
     private int resolveUnifiedMaxTier(ConstructableData data) {
         int maxTier = Math.max(1, data.getMaxTotalTier());
-        if (data.getChannelData() != null) {
-            for (var entry : data.getChannelData()
-                .object2IntEntrySet()) {
+        var channelMaxTierMap = data.getChannelMaxTierMap();
+        if (channelMaxTierMap != null) {
+            for (var entry : channelMaxTierMap.object2IntEntrySet()) {
                 maxTier = Math.max(maxTier, entry.getIntValue());
             }
         }
