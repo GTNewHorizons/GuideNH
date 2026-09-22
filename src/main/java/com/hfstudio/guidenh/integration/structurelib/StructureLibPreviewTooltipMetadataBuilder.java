@@ -119,11 +119,12 @@ public final class StructureLibPreviewTooltipMetadataBuilder {
         }
         int maxTier = Math.max(1, data.getMaxTotalTier());
         List<StructureLibSceneMetadata.ChannelData> channels = new ArrayList<>();
-        if (data.getChannelData() == null) {
+        var channelMaxTierMap = data.getChannelMaxTierMap();
+        if (channelMaxTierMap == null) {
             return metadata.withTierAndChannelData(1, maxTier, request.tier(), request.tier(), channels);
         }
-        for (var entry : data.getChannelData()
-            .object2IntEntrySet()) {
+
+        for (var entry : channelMaxTierMap.object2IntEntrySet()) {
             String channel = StructureLibPreviewSelection.normalizeChannelId(entry.getKey());
             if (channel != null) {
                 channels.add(

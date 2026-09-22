@@ -19,7 +19,7 @@ dependencies {
     shadowImplementation("org.eclipse.xtext:org.eclipse.xtext.xbase.lib:2.36.0")
 
     devOnlyNonPublishable("com.github.GTNewHorizons:StructureLib:1.4.43:dev")
-    devOnlyNonPublishable("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.152:dev")
+    devOnlyNonPublishable("com.github.GTNewHorizons:GT5-Unofficial:5.09.54.158:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:NotEnoughItems:2.8.140-GTNH:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:Applied-Energistics-2-Unofficial:rv3-beta-1061-GTNH:dev")
     devOnlyNonPublishable("com.github.GTNewHorizons:CarpentersBlocks:3.7.3-GTNH:dev")
@@ -35,8 +35,8 @@ dependencies {
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Baubles-Expanded:2.2.23-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botania:1.13.36-GTNH:dev")
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:Botanic-horizons:1.12.10-GTNH:dev")
-    compileOnlyApi("com.github.GTNewHorizons:BlockRenderer6343:1.4.21:dev") { transitive = false }
-    runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.21:dev") { transitive = false }
+    compileOnlyApi("com.github.GTNewHorizons:BlockRenderer6343:1.4.23:dev") { transitive = false }
+    runtimeOnlyNonPublishable("com.github.GTNewHorizons:BlockRenderer6343:1.4.23:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:EnderCore:0.5.15:dev") { transitive = false }
     runtimeOnlyNonPublishable("com.github.GTNewHorizons:ServerUtilities:2.4.10:dev")
     runtimeOnlyNonPublishable("it.unimi.dsi:fastutil:8.5.18")
