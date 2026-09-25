@@ -2214,7 +2214,7 @@ public class SceneEditorScreen extends GuiScreen {
         appendBlockImageAttribute(builder, "perspective", model.getPerspectivePreset(), false);
         if (model.hasExplicitZoom()) {
             builder.append(" scale={")
-                .append(Float.toString(model.getZoom()))
+                .append(model.getZoom())
                 .append('}');
         }
         return builder.append(" />")

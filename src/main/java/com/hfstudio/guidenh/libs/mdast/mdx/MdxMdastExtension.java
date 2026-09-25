@@ -29,21 +29,8 @@ public class MdxMdastExtension {
     public static final MdastContextProperty<Tag> TAG = new MdastContextProperty<>();
 
     // https://html.spec.whatwg.org/multipage/syntax.html#void-elements
-    private static final Set<String> HTML_VOID_ELEMENTS = Set.of(
-        "area",
-        "base",
-        "br",
-        "col",
-        "embed",
-        "hr",
-        "img",
-        "input",
-        "link",
-        "meta",
-        "param",
-        "source",
-        "track",
-        "wbr");
+    private static final Set<String> HTML_VOID_ELEMENTS = Set
+        .of("area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr");
 
     public static final MdastExtension INSTANCE = MdastExtension.builder()
         .canContainEol("mdxJsxTextElement")

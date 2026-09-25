@@ -20,6 +20,15 @@ public interface SyntaxSink {
 
     SyntaxSink attributes(String tagName, AttributeSyntax... attributes);
 
+    /**
+     * Declares that a tag forwards every attribute it is given, so an attribute not named by
+     * {@link #attributes} is still valid. A {@code <Template>} call is the case this exists for: any
+     * attribute other than the first {@code name} becomes an argument, so the accepted set cannot be
+     * enumerated. Known attributes remain typed and are still checked; this only stops the rest being
+     * reported as unknown.
+     */
+    SyntaxSink forwardsAttributes(String... tagNames);
+
     SyntaxSink insertTemplates(InsertTemplate... templates);
 
     SyntaxSink markdown(MarkdownSnippet... snippets);

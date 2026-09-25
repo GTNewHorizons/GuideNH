@@ -1,8 +1,10 @@
 package com.hfstudio.guidenh.guide.internal;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -27,6 +29,10 @@ import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.latex.GuideLatexTextureCache;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiTranslationStats;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDependencyGraph;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateParameters;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateRepository;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCache;
 import com.hfstudio.guidenh.guide.scene.element.SnbtPreParseCache;
@@ -56,6 +62,10 @@ public class GuideLightweightReloadService {
         GuidePageTexture.clear();
         GuideResourceAccess.clearCache();
         GuideLanguageIndex.clear();
+        MediaWikiTemplateRepository.clear();
+        // The pages are about to be compiled again and will re-record their own edges, so keeping the old
+        // ones would leave a page pointing at a template it no longer uses.
+        MediaWikiTemplateDependencyGraph.clear();
         GuideLatexTextureCache.INSTANCE.clearAll();
         GuideSceneStructureCache.global()
             .clear();
@@ -90,6 +100,7 @@ public class GuideLightweightReloadService {
         for (var entry : guidePages.entrySet()) {
             GuideRegistry.updatePages(entry.getKey(), entry.getValue(), false);
         }
+        rebuildTemplateRepository(guidePages);
         GuideRegistry.invalidateMergedNavigationTree();
         // Page ASTs are lazy. Clearing the old compiled results is enough here; queuing every
         // page would immediately defeat lazy parsing and make every resource reload pay the full
@@ -105,6 +116,30 @@ public class GuideLightweightReloadService {
         } catch (Throwable t) {
             GuideDebugLog.warn("[GuideNH] [GuideLightweightReloadService] Failed to reindex search after reload", t);
         }
+    }
+
+    private static void rebuildTemplateRepository(
+        Map<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>> guidePages) {
+        List<MediaWikiTemplateRepository.TemplatePageSource> sources = new ArrayList<>();
+        for (var guideEntry : guidePages.entrySet()) {
+            ResourceLocation guideId = guideEntry.getKey();
+            Map<ResourceLocation, ParsedGuidePage> pages = guideEntry.getValue();
+            for (ParsedGuidePage page : pages.values()) {
+                if (page == null || !MediaWikiTemplatePageIds.isTemplatePage(page.getId())) {
+                    continue;
+                }
+                sources.add(
+                    new MediaWikiTemplateRepository.TemplatePageSource(
+                        guideId,
+                        page.getSourcePack(),
+                        page.getLanguage(),
+                        page.getId(),
+                        MediaWikiTemplateParameters.of(
+                            page.getAstRoot() != null ? page.getAstRoot()
+                                .children() : null)));
+            }
+        }
+        MediaWikiTemplateRepository.rebuild(sources);
     }
 
     public static Map<ResourceLocation, ParsedGuidePage> loadPages(IResourceManager resourceManager,

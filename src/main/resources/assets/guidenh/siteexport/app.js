@@ -1129,7 +1129,7 @@ function installMermaidPanZoom(root) {
 }
 
 function installChartHoverTooltips(root) {
-  const svgs = root.querySelectorAll("svg.guide-chart, svg.guide-function-graph");
+  const svgs = root.querySelectorAll("svg.guide-chart, svg.guide-chart-svg, svg.guide-function-graph");
   for (const svg of svgs) {
     const isFunctionGraph = svg.classList.contains("guide-function-graph");
     const owner = `chart-${Math.random().toString(36).slice(2, 9)}`;
@@ -1162,6 +1162,7 @@ function installChartHoverTooltips(root) {
       svg.querySelectorAll("polyline.guide-chart-shape").forEach((poly) => {
         const titleEl = poly.querySelector("title");
         const label = titleEl?.textContent ?? "";
+        titleEl?.remove();
         const raw = poly.getAttribute("points") || "";
         const pts = [];
         for (const tok of raw.trim().split(/\s+/)) {
@@ -1187,7 +1188,7 @@ function installChartHoverTooltips(root) {
     svg.querySelectorAll(".guide-chart-shape").forEach((shape) => {
       const titleEl = shape.querySelector("title");
       const text = titleEl?.textContent ?? "";
-      if (titleEl) titleEl.remove();
+      if (titleEl && !(isFunctionGraph && shape.matches("polyline.guide-chart-shape"))) titleEl.remove();
       shape.addEventListener("mouseenter", (ev) => showText(text, ev));
       shape.addEventListener("mousemove", (ev) => positionPopup(popupEl, ev));
       shape.addEventListener("mouseleave", hide);

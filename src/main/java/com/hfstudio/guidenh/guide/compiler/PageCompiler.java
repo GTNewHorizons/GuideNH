@@ -9,10 +9,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,6 +62,12 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownLiteralAutolink;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateContext;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDependencyGraph;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDiagnostics;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateEditorPreview;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateName;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
@@ -126,6 +134,23 @@ public class PageCompiler {
     private final Map<State<?>, Object> compilerState = new IdentityHashMap<>();
     private final Map<MdxJsxElementFields, BlockTagChildrenCacheEntry> blockTagChildrenCache = new IdentityHashMap<>();
     private final Map<String, ParsedGuidePage> inlineMarkdownParseCache = new HashMap<>();
+    private final Set<MediaWikiTemplateName> templateDependencies = new LinkedHashSet<>();
+    // One per page compile, so the documented per-page inclusion budget is a real page-wide limit.
+    private MediaWikiTemplateContext templateContext;
+
+    /** The template state for this page, created on first use. */
+    public MediaWikiTemplateContext templateContext() {
+        if (templateContext == null) {
+            templateContext = new MediaWikiTemplateContext(sourcePack, language, pageId);
+        }
+        return templateContext;
+    }
+
+    public void recordTemplateDependency(MediaWikiTemplateName name) {
+        if (name != null && !name.isEmpty()) {
+            templateDependencies.add(name);
+        }
+    }
 
     public PageCompiler(PageCollection pages, ExtensionCollection extensions, String sourcePack,
         ResourceLocation pageId, String pageContent) {
@@ -206,7 +231,10 @@ public class PageCompiler {
         pageContent = FootnotePreprocessor.preprocess(pageContent);
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
         MarkdownLatexShorthand.MaskResult latexMask = MarkdownLatexShorthand.mask(pageContent);
-        String parseContent = MdxCommentMasker.mask(latexMask.source());
+        // Masked before parsing, because `&[label](uri)` otherwise reads as an ordinary Markdown link and the
+        // URI is consumed by the parser before the compiler can turn it into an action.
+        MarkdownActionLink.MaskResult actionMask = MarkdownActionLink.mask(latexMask.source());
+        String parseContent = MdxCommentMasker.mask(actionMask.source());
 
         MdAstRoot astRoot;
         String parseFailureMessage = null;
@@ -216,6 +244,7 @@ public class PageCompiler {
         try {
             astRoot = MdAst.fromMarkdown(parseContent, PARSE_OPTIONS);
             MarkdownLatexShorthand.restore(astRoot, latexMask);
+            MarkdownActionLink.restore(astRoot, actionMask);
             MarkdownHtmlRuntimeNormalizer.normalize(astRoot);
 
             Map<String, MdAstDefinition> definitions = GuideMarkdownDefinitions.collect(astRoot);
@@ -336,14 +365,27 @@ public class PageCompiler {
     }
 
     public static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage) {
+        return compile(pages, extensions, parsedPage, false);
+    }
+
+    public static GuidePage compileTemplateEditorPreview(PageCollection pages, ExtensionCollection extensions,
+        ParsedGuidePage parsedPage) {
+        return compile(pages, extensions, parsedPage, true);
+    }
+
+    private static GuidePage compile(PageCollection pages, ExtensionCollection extensions, ParsedGuidePage parsedPage,
+        boolean templateEditorPreview) {
         // Translate page tree over to layout pages
-        var document = new PageCompiler(
+        var compiler = new PageCompiler(
             pages,
             extensions,
             parsedPage.getSourcePack(),
             parsedPage.getLanguage(),
             parsedPage.getId(),
-            parsedPage.getSource()).compile(parsedPage.getAstRoot());
+            parsedPage.getSource());
+        var document = templateEditorPreview && MediaWikiTemplatePageIds.isTemplatePage(parsedPage.getId())
+            ? compiler.compileTemplateEditorPreview(parsedPage.getAstRoot())
+            : compiler.compile(parsedPage.getAstRoot());
         var titleHeading = extractPageTitleHeading(document);
         FrontmatterPageMeta pageMeta = parsedPage.getFrontmatter() != null ? parsedPage.getFrontmatter()
             .parseMeta() : null;
@@ -387,8 +429,33 @@ public class PageCompiler {
         definitions.putAll(GuideMarkdownDefinitions.collect(root));
         var document = new LytDocument();
         document.setSourceNode(root);
-        compileBlockContext(root, document);
+        warnAboutLegacyTemplateSyntax();
+        try {
+            compileBlockContext(root, document);
+        } finally {
+            // Published even when compilation fails partway, because the next template edit still has to
+            // reach this page; a stale edge would silently stop a page from updating.
+            MediaWikiTemplateDependencyGraph.recordPage(pageId, templateDependencies);
+        }
         return document;
+    }
+
+    private LytDocument compileTemplateEditorPreview(MdAstRoot root) {
+        var document = new LytDocument();
+        document.setSourceNode(root);
+        compileBlockContext(MediaWikiTemplateEditorPreview.prepare(root.children()), document);
+        return document;
+    }
+
+    /**
+     * Warns once per page that still writes the old brace syntax. Braces are ordinary text now, so a
+     * leftover call renders literally rather than failing, and this is the only signal an author would get.
+     */
+    private void warnAboutLegacyTemplateSyntax() {
+        List<String> samples = MediaWikiTemplateDiagnostics.findLegacySyntax(pageContent, 3);
+        if (!samples.isEmpty()) {
+            MediaWikiTemplateDiagnostics.reportLegacySyntax(pageId, samples);
+        }
     }
 
     public static Frontmatter parseFrontmatter(ResourceLocation pageId, MdAstRoot root) {
@@ -615,7 +682,7 @@ public class PageCompiler {
         LytBlockContainer layoutParent) {
         LytBlock previousLayoutChild = null;
         for (MdAstAnyContent child : children) {
-            LytBlock layoutChild = null;
+            LytBlock layoutChild;
 
             if (child instanceof MdxJsxFlowElement el) {
                 // Definition elements are metadata, not rendered
@@ -805,7 +872,7 @@ public class PageCompiler {
     }
 
     private void compileFlowContent(LytFlowParent layoutParent, MdAstAnyContent content) {
-        LytFlowContent layoutChild = null;
+        LytFlowContent layoutChild;
 
         if (content instanceof MdAstText astText) {
             if (compileActionLinks(layoutParent, astText.value)) {
