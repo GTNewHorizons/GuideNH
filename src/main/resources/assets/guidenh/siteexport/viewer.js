@@ -41,7 +41,7 @@ async function disposeNode(node) {
     activeScenes.splice(idx, 1);
   }
   if (loadedModelViewerModule?.disposeHydratedScenes) {
-    loadedModelViewerModule.disposeHydratedScenes(node);
+    loadedModelViewerModule.disposeHydratedScenes(node.__guidenhHydratedRoot || node);
   }
 }
 
@@ -56,9 +56,20 @@ async function hydrateNode(node, module) {
       await disposeNode(oldest);
     }
   }
-  node.dataset.sceneHydrated = "true";
-  markActive(node);
-  module.setupGameScene(node);
+  try {
+    const runtime = await module.setupGameScene(node);
+    if (!runtime) {
+      node.dataset.sceneHydrated = "fallback";
+      return;
+    }
+    node.__guidenhHydratedRoot = runtime.wrapper || node;
+    node.dataset.sceneHydrated = "true";
+    markActive(node);
+  } catch (error) {
+    node.dataset.sceneHydrated = "fallback";
+    node.classList.add("scene-hydration-fallback");
+    console.warn("GuideNH game scene hydration failed; keeping the exported placeholder", error);
+  }
 }
 
 function disconnectObserverEntry(root) {
