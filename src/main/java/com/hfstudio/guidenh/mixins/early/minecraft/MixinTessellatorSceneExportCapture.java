@@ -42,7 +42,7 @@ public abstract class MixinTessellatorSceneExportCapture {
         try {
             capture.startDrawing(drawMode);
         } catch (Throwable e) {
-            GuideDebugLog.warnAlways("Scene capture startDrawing(mode={}) failed", drawMode, e);
+            GuideDebugLog.warn("Scene capture startDrawing(mode={}) failed", drawMode, e);
         }
     }
 
@@ -56,7 +56,7 @@ public abstract class MixinTessellatorSceneExportCapture {
             capture.captureRawBuffer(rawBuffer, vertexCount, hasTexture, hasColor, hasBrightness, hasNormals);
             capture.draw();
         } catch (Throwable e) {
-            GuideDebugLog.warnAlways("Scene capture draw failed", e);
+            GuideDebugLog.warn("Scene capture draw failed", e);
         }
     }
 }
