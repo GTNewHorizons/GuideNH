@@ -10,35 +10,35 @@
   <body>
     <div id="app" class="app-shell">
       <header class="topbar">
-        <div class="brand"><span class="brand-mark">G</span><span>GuideNH Studio</span><small>ExportSite editor</small></div>
+        <div class="brand"><span class="brand-mark">G</span><span>GuideNH Studio</span><small data-i18n="brandSubtitle">Guide editor</small></div>
         <div class="topbar-actions">
-          <button data-action="new" title="Create a new project">New</button>
-          <button data-action="import-folder" title="Import an ExportSite folder">Import folder</button>
+          <button data-action="new" data-i18n-title="newProjectTitle">New</button>
+          <button data-action="import-folder" data-i18n-title="importFolderTitle">Import folder</button>
           <button data-action="import-bundle">Import bundle</button>
           <button class="primary" data-action="export-bundle">Export bundle</button>
-          <label class="language-control"><span id="site-language-label">Site</span><select id="language-select" aria-label="Site language"></select></label>
-          <label class="language-control"><span id="ui-language-label">UI</span><select id="ui-language-select" aria-label="Editor language"></select></label>
-          <button class="reference-button" data-action="reference" aria-haspopup="dialog" title="Syntax reference">⌘ <span id="reference-button-label">Syntax</span></button>
-          <button data-action="theme" aria-label="Toggle theme">☼</button>
+          <label class="language-control"><span id="site-language-label">Site</span><select id="language-select" data-i18n-aria-label="siteLanguage"></select></label>
+          <label class="language-control"><span id="ui-language-label">UI</span><select id="ui-language-select" data-i18n-aria-label="uiLanguage"></select></label>
+          <button class="reference-button" data-action="reference" aria-haspopup="dialog" data-i18n-title="syntaxTitle">⌘ <span id="reference-button-label">Syntax</span></button>
+          <button data-action="theme" data-i18n-aria-label="toggleTheme">☼</button>
         </div>
         <input id="folder-input" type="file" webkitdirectory directory multiple hidden>
         <input id="bundle-input" type="file" accept=".json,.guidenh.json,.zip,application/zip,application/json" hidden>
       </header>
       <main class="workspace">
         <aside class="sidebar panel">
-          <div class="panel-heading"><span>Project</span><button class="icon-button" data-action="add-page" title="Add page">＋</button></div>
-          <label class="project-name"><span>Project name</span><input id="project-name" type="text"></label>
-          <div class="tree-toolbar"><input id="file-filter" type="search" placeholder="Filter files"><span id="file-count"></span></div>
-          <nav id="file-tree" class="file-tree" aria-label="Project files"></nav>
+          <div class="panel-heading"><span data-i18n="project">Project</span><div class="tree-actions"><button class="icon-button" data-action="add-file" data-i18n-title="addFile">＋</button><button class="icon-button" data-action="add-folder" data-i18n-title="addFolder">▰</button><button class="icon-button" data-action="rename-selected" data-i18n-title="renameSelected">✎</button></div></div>
+          <label class="project-name"><span data-i18n="projectName">Project name</span><input id="project-name" type="text"></label>
+          <div class="tree-toolbar"><input id="file-filter" type="search" data-i18n-placeholder="filterFiles"><span id="file-count"></span></div>
+          <nav id="file-tree" class="file-tree" data-i18n-aria-label="projectFiles"></nav>
           <div class="storage-note"><span class="status-dot"></span><span id="save-status">Saved in this browser</span></div>
         </aside>
         <section class="editor-pane panel">
-          <div class="panel-heading editor-heading"><div><span id="editor-label">index.md</span><small id="editor-meta">Markdown source</small></div><div class="editor-actions"><button data-action="format">Format</button><button data-action="download-file">Download</button></div></div>
-          <textarea id="editor" spellcheck="false" aria-label="Document editor"></textarea>
+          <div class="panel-heading editor-heading"><div><span id="editor-label">index.md</span><small id="editor-meta">Markdown source</small></div><div class="editor-actions"><button data-action="format" data-i18n="format" data-i18n-title="formatTitle">Format</button><button data-action="download-file" data-i18n="download">Download</button></div></div>
+          <textarea id="editor" spellcheck="false" data-i18n-aria-label="documentEditor"></textarea>
           <div class="editor-footer"><span id="cursor-position">Ln 1, Col 1</span><span>UTF-8</span><span id="dirty-indicator"></span></div>
         </section>
         <section class="preview-pane panel">
-          <div class="panel-heading preview-heading"><div><span>Preview</span><small id="preview-label">GuideNH site</small></div><div class="preview-actions"><label class="scroll-sync-control" title="Synchronize editor and preview scrolling"><input id="scroll-sync-toggle" type="checkbox"><span id="scroll-sync-label">Sync scroll</span></label><button data-view="desktop" class="active">Desktop</button><button data-view="mobile">Mobile</button><button data-action="refresh">Refresh</button></div></div>
+          <div class="panel-heading preview-heading"><div><span>Preview</span><small id="preview-label" data-i18n="previewSite">GuideNH site</small></div><div class="preview-actions"><label class="scroll-sync-control" data-i18n-title="syncScrollTitle"><input id="scroll-sync-toggle" type="checkbox"><span id="scroll-sync-label">Sync scroll</span></label><button data-view="desktop" data-i18n="desktop" class="active">Desktop</button><button data-view="mobile" data-i18n="mobile">Mobile</button><button data-action="refresh" data-i18n="refresh">Refresh</button></div></div>
           <div id="preview-frame" class="preview-frame desktop"><div id="preview-site" class="guide-site-preview"></div></div>
         </section>
       </main>
@@ -47,8 +47,8 @@
       <div class="reference-header">
         <div><h2 id="reference-title">Syntax &amp; examples</h2><span id="reference-subtitle"></span></div>
         <div class="reference-header-actions">
-          <div class="reference-language" role="group" aria-label="Reference language"><button type="button" data-reference-language="en" aria-pressed="true">EN</button><button type="button" data-reference-language="zh" aria-pressed="false">中文</button></div>
-          <button type="button" class="reference-close" data-reference-close aria-label="Close syntax reference" title="Close">×</button>
+          <select id="reference-language-select" class="reference-language" data-i18n-aria-label="referenceLanguage"></select>
+          <button type="button" class="reference-close" data-reference-close data-i18n-aria-label="closeReference" data-i18n-title="closeReference">×</button>
         </div>
       </div>
       <div class="reference-toolbar"><input id="reference-search" type="search" autocomplete="off" placeholder="Search syntax, tags, examples" aria-label="Search syntax reference"><span id="reference-count"></span></div>

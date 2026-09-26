@@ -6,6 +6,9 @@ on:
     paths:
       - .github/workflows/deploy-web-editor-pages.yml
       - web-editor/public/**
+      - web-editor/scripts/sync-locales.mjs
+      - web-editor/package.json
+      - web-editor/package-lock.json
   workflow_dispatch:
 
 permissions:
@@ -27,8 +30,16 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Verify site files
         run: test -f web-editor/public/index.html
+
+      - name: Discover UI locales
+        run: node web-editor/scripts/sync-locales.mjs
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

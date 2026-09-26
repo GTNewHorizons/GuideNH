@@ -1,12 +1,15 @@
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { syncLocaleIndex } from "./scripts/sync-locales.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(root, "public");
 const app = express();
 const port = Number.parseInt(process.env.PORT || "8787", 10);
 const host = process.env.HOST || "0.0.0.0";
+
+await syncLocaleIndex();
 
 app.disable("x-powered-by");
 app.get("/api/health", (_request, response) => {

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "node --watch server.mjs",
-    "sync:reference": "node scripts/sync-reference.mjs"
+    "sync:locales": "node scripts/sync-locales.mjs"
   },
   "engines": {
     "node": ">=20"
