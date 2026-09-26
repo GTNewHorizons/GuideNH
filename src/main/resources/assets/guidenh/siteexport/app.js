@@ -638,6 +638,23 @@ function installTooltips(root) {
     hideAll();
   });
 
+  root.addEventListener("pointerup", (event) => {
+    if (event.pointerType !== "touch") return;
+    const trigger = closestGuideTooltip(event.target);
+    if (!trigger || trigger.closest("a[href], input, select, textarea")) return;
+    if (activeState?.sourceType === "trigger" && activeState.sourceRef === trigger) {
+      hideAll();
+    } else {
+      showTrigger(trigger, event);
+    }
+  });
+
+  root.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch" && !closestGuideTooltip(event.target) && !isInsideTooltipRoot(event.target)) {
+      hideAll();
+    }
+  });
+
   window.GuideNHTooltips = {
     containsTooltip(target) {
       return isInsideTooltipRoot(target);
@@ -689,6 +706,31 @@ function navigationState(sidebar) {
   };
 }
 
+function navigationStorageKey() {
+  const siteRoot = document.querySelector("base")?.href || `${window.location.origin}/`;
+  return `guidenh-site-navigation:${siteRoot}`;
+}
+
+function saveNavigationState(sidebar) {
+  try {
+    const state = navigationState(sidebar);
+    window.localStorage.setItem(navigationStorageKey(), JSON.stringify(Object.fromEntries(state.expanded)));
+  } catch (error) {
+    console.warn("GuideNH could not save the navigation state.", error);
+  }
+}
+
+function readSavedNavigationState() {
+  try {
+    const serialized = window.localStorage.getItem(navigationStorageKey());
+    const parsed = serialized ? JSON.parse(serialized) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch (error) {
+    console.warn("GuideNH could not restore the navigation state.", error);
+    return {};
+  }
+}
+
 function setNavigationNodeExpanded(node, expanded) {
   if (!(node instanceof HTMLElement) || !node.hasAttribute("data-guide-nav-expanded")) {
     return;
@@ -702,8 +744,10 @@ function setNavigationNodeExpanded(node, expanded) {
 
 function restoreNavigationState(sidebar, state, currentUrl) {
   const nodes = sidebar.querySelectorAll("[data-guide-nav-node]");
+  const savedState = readSavedNavigationState();
   for (const node of nodes) {
-    const saved = state.expanded.get(node.dataset.guideNavNode);
+    const nodeId = node.dataset.guideNavNode;
+    const saved = savedState[nodeId] ?? state.expanded.get(nodeId);
     if (saved !== undefined) {
       setNavigationNodeExpanded(node, saved);
     }
@@ -739,17 +783,91 @@ function installNavigationUi(root) {
   }
   root.dataset.guideNavigationUiInstalled = "true";
   root.addEventListener("click", (event) => {
-    const toggle = event.target instanceof Element ? event.target.closest("[data-guide-nav-toggle]") : null;
-    if (!(toggle instanceof HTMLButtonElement)) {
+    const target = event.target instanceof Element ? event.target : null;
+    const toggle = target?.closest("[data-guide-nav-toggle]");
+    const label = target?.closest("[data-guide-nav-label]");
+    const link = target?.closest("a[href]");
+    if (
+      !(toggle instanceof HTMLButtonElement)
+      && !(label instanceof HTMLElement)
+      && !(link instanceof HTMLAnchorElement)
+    ) {
       return;
     }
-    const node = toggle.closest("[data-guide-nav-node]");
+    const node = (toggle || label || link)?.closest("[data-guide-nav-node]");
     if (!(node instanceof HTMLElement)) {
+      return;
+    }
+    if (link instanceof HTMLAnchorElement) {
+      if (node.dataset.guideNavExpanded !== "false") {
+        return;
+      }
+      setNavigationNodeExpanded(node, true);
+      saveNavigationState(root);
       return;
     }
     event.preventDefault();
     setNavigationNodeExpanded(node, node.dataset.guideNavExpanded === "false");
+    saveNavigationState(root);
   });
+}
+
+const MOBILE_NAV_LABELS = {
+  en: ["Navigation", "Close navigation"],
+  zh: ["导航", "关闭导航"],
+  "zh-tw": ["導覽", "關閉導覽"],
+  ja: ["ナビゲーション", "ナビゲーションを閉じる"],
+  ru: ["Навигация", "Закрыть навигацию"],
+  fr: ["Navigation", "Fermer la navigation"],
+  de: ["Navigation", "Navigation schließen"],
+  pl: ["Nawigacja", "Zamknij nawigację"],
+  nl: ["Navigatie", "Navigatie sluiten"],
+  es: ["Navegación", "Cerrar navegación"],
+  pt: ["Navegação", "Fechar navegação"],
+  uk: ["Навігація", "Закрити навігацію"],
+};
+
+function updateMobileNavigationLabels() {
+  const language = (document.documentElement.lang || "en").toLowerCase().replaceAll("_", "-");
+  const labels = MOBILE_NAV_LABELS[language] || MOBILE_NAV_LABELS[language.split("-")[0]] || MOBILE_NAV_LABELS.en;
+  const toggle = document.querySelector("[data-guide-mobile-nav-toggle]");
+  const backdrop = document.querySelector("[data-guide-mobile-nav-backdrop]");
+  toggle?.setAttribute("aria-label", toggle.getAttribute("aria-expanded") === "true" ? labels[1] : labels[0]);
+  backdrop?.setAttribute("aria-label", labels[1]);
+}
+
+function setMobileNavigationOpen(open) {
+  const toggle = document.querySelector("[data-guide-mobile-nav-toggle]");
+  const backdrop = document.querySelector("[data-guide-mobile-nav-backdrop]");
+  const sidebar = document.querySelector(".guide-sidebar");
+  const content = document.querySelector(".guide-content");
+  const narrow = window.matchMedia("(max-width: 900px)").matches;
+  const expanded = open && narrow;
+  document.body.dataset.guideMobileNavOpen = String(expanded);
+  toggle?.setAttribute("aria-expanded", String(expanded));
+  if (backdrop) backdrop.hidden = !expanded;
+  if (sidebar) sidebar.inert = narrow && !expanded;
+  if (content) content.inert = expanded;
+  updateMobileNavigationLabels();
+}
+
+function installMobileNavigation() {
+  const toggle = document.querySelector("[data-guide-mobile-nav-toggle]");
+  const backdrop = document.querySelector("[data-guide-mobile-nav-backdrop]");
+  toggle?.addEventListener("click", () => {
+    const open = toggle.getAttribute("aria-expanded") !== "true";
+    setMobileNavigationOpen(open);
+    if (open) document.querySelector("[data-guide-navigation] a[aria-current='page']")?.focus({ preventScroll: true });
+  });
+  backdrop?.addEventListener("click", () => setMobileNavigationOpen(false));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && document.body.dataset.guideMobileNavOpen === "true") {
+      setMobileNavigationOpen(false);
+      toggle?.focus();
+    }
+  });
+  window.matchMedia("(max-width: 900px)").addEventListener("change", () => setMobileNavigationOpen(false));
+  setMobileNavigationOpen(false);
 }
 
 function installLanguageMenus(root) {
@@ -839,6 +957,7 @@ function installSiteRouter() {
       currentContent.className = nextContent.className;
       document.title = parsed.title;
       document.documentElement.lang = nextLanguage || currentLanguage;
+      setMobileNavigationOpen(false);
 
       currentSidebar.replaceChildren(...Array.from(nextSidebar.childNodes, (node) => document.importNode(node, true)));
       const headerLanguage = document.querySelector(".guide-header-lang");
@@ -871,6 +990,7 @@ function installSiteRouter() {
     event.preventDefault();
     const target = new URL(link.href, window.location.href);
     if (target.pathname === window.location.pathname && target.search === window.location.search) {
+      setMobileNavigationOpen(false);
       return;
     }
     navigate(link.href, true);
@@ -887,6 +1007,7 @@ document.addEventListener("DOMContentLoaded", () => {
     restoreNavigationState(sidebar, navigationState(sidebar), window.location.href);
   }
   installLanguageMenus(document);
+  installMobileNavigation();
   installTooltips(document);
   if (content instanceof HTMLElement) {
     installPageBehaviors(content);
@@ -899,9 +1020,9 @@ function installMermaidLayout(root) {
   if (!stages.length) {
     return;
   }
-  const PADDING = 12;
-  const GAP_X = 32;
-  const GAP_Y = 18;
+  const PADDING = 20;
+  const GAP_X = 56;
+  const GAP_Y = 28;
   let rafId = 0;
   const scheduleLayout = () => {
     if (rafId) {
@@ -1073,6 +1194,17 @@ function installMermaidPanZoom(root) {
     const stage = container.querySelector(".guide-mermaid-stage") || container.querySelector("svg");
     if (!stage) continue;
     const state = { tx: 0, ty: 0, scale: 1, dragging: false, startX: 0, startY: 0, startTx: 0, startTy: 0 };
+    const pointers = new Map();
+    let pinch = null;
+    const pinchGeometry = () => {
+      const [first, second] = [...pointers.values()];
+      const rect = container.getBoundingClientRect();
+      return {
+        distance: Math.max(1, Math.hypot(second.x - first.x, second.y - first.y)),
+        x: (first.x + second.x) / 2 - rect.left,
+        y: (first.y + second.y) / 2 - rect.top,
+      };
+    };
     const apply = () => {
       stage.style.transform = `translate(${state.tx}px, ${state.ty}px) scale(${state.scale})`;
     };
@@ -1084,24 +1216,48 @@ function installMermaidPanZoom(root) {
         return;
       }
       state.dragging = true;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       state.startX = event.clientX;
       state.startY = event.clientY;
       state.startTx = state.tx;
       state.startTy = state.ty;
       container.classList.add("is-grabbing");
-      container.setPointerCapture?.(event.pointerId);
+      if (event.isTrusted) container.setPointerCapture?.(event.pointerId);
+      if (pointers.size === 2) {
+        pinch = { ...pinchGeometry(), scale: state.scale, tx: state.tx, ty: state.ty };
+      }
       event.preventDefault();
     });
     container.addEventListener("pointermove", (event) => {
       if (!state.dragging) return;
+      if (!pointers.has(event.pointerId)) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pointers.size === 2 && pinch) {
+        const geometry = pinchGeometry();
+        state.scale = Math.max(0.2, Math.min(8, pinch.scale * geometry.distance / pinch.distance));
+        const ratio = state.scale / pinch.scale;
+        state.tx = geometry.x - (pinch.x - pinch.tx) * ratio;
+        state.ty = geometry.y - (pinch.y - pinch.ty) * ratio;
+        apply();
+        return;
+      }
       state.tx = state.startTx + (event.clientX - state.startX);
       state.ty = state.startTy + (event.clientY - state.startY);
       apply();
     });
     const stopDrag = (event) => {
       if (!state.dragging) return;
-      state.dragging = false;
-      container.classList.remove("is-grabbing");
+      pointers.delete(event.pointerId);
+      pinch = null;
+      state.dragging = pointers.size > 0;
+      container.classList.toggle("is-grabbing", state.dragging);
+      if (state.dragging) {
+        const remaining = pointers.values().next().value;
+        state.startX = remaining.x;
+        state.startY = remaining.y;
+        state.startTx = state.tx;
+        state.startTy = state.ty;
+      }
       try { container.releasePointerCapture?.(event.pointerId); } catch (_) {}
     };
     container.addEventListener("pointerup", stopDrag);

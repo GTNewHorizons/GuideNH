@@ -3538,7 +3538,7 @@ Ya=async function(...s){
 async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
   let f=new Ki({alpha:!0,premultipliedAlpha:!1});
   f.useLegacyLights=!0;
-  f.outputColorSpace=Un;
+  f.outputColorSpace=Wt;
   let d=new _s(s),{cameraProps:p,group:g,animatedTextureParts:_}=await Ya(d,e,l),m=new kt;
   m.expandByObject(g);
   let u=m.getCenter(new C);
@@ -3558,7 +3558,7 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
   S.far=3e4;
   let P=(A,q)=>{
     f.setSize(A,q);
-    f.setPixelRatio(window.devicePixelRatio);
+    f.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
     let F=Math.min(1,A/(h*3));
     S.zoom=1/.625*16*p.zoom*F;
     S.left=-A/2;
@@ -3578,6 +3578,18 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     w.add(A);
   }
   n?(M=new as(S,t),M.enableZoom=!1,M.update()):S.lookAt(new C);
+  let touchPointers=new Set;
+  t.addEventListener("pointerdown",A=>{
+    if(A.pointerType!=="touch"||!M)return;
+    touchPointers.add(A.pointerId);
+    M.enableZoom=!0;
+  },{capture:!0});
+  let stopTouch=A=>{
+    touchPointers.delete(A.pointerId);
+    if(M&&!touchPointers.size)M.enableZoom=!1;
+  };
+  t.addEventListener("pointerup",stopTouch);
+  t.addEventListener("pointercancel",stopTouch);
   let R;
   typeof ResizeObserver<"u"&&(R=new ResizeObserver(A=>{
     for(let q of A)if(q.contentBoxSize){
@@ -3610,7 +3622,7 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     W(F?.hoverRuntimeTarget);
     c(F?.templateId);
   };
-  return f.setAnimationLoop(J),t.append(f.domElement),{dispose(){D||(console.debug("Disposing model viewer for %s",e),D=!0,W(void 0),R&&R.disconnect(),f.setAnimationLoop(null),t.removeChild(f.domElement),f.dispose(),M?.dispose(),c(void 0))},async replaceScene(A,q=[],F=[],oe=[]){let{group:fe,animatedTextureParts:pe}=await Ya(d,A,l),he=new kt;he.expandByObject(fe);let de=he.getCenter(new C);fe.position.copy(de.clone().negate());for(let we of q)fe.add(jl(we));for(let we of F)fe.add(await $a(d,we));for(let we of oe){let ye=guidenhCreateHoverRuntimeTarget(we);ye&&(fe.add(ye.highlightObject),fe.add(ye.pickMesh))}w.add(fe),w.remove(g),guidenhDisposeSceneGroup(g),g=fe,_=pe},resetView(){M?.reset()},zoomIn(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:-120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},zoomOut(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},projectWorldPosition(A){if(!A||A.length<3||!f.domElement)return null;let q=new C(A[0],A[1],A[2]);g.localToWorld(q),q.project(S);if(!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isFinite(q.z))return null;let F=f.domElement.getBoundingClientRect();return{x:(q.x*.5+.5)*F.width,y:(-q.y*.5+.5)*F.height,z:q.z,visible:q.z>=-1&&q.z<=1}}};
+  return f.setAnimationLoop(J),t.append(f.domElement),{dispose(){D||(console.debug("Disposing model viewer for %s",e),D=!0,W(void 0),R&&R.disconnect(),f.setAnimationLoop(null),t.removeChild(f.domElement),f.dispose(),f.forceContextLoss(),M?.dispose(),c(void 0))},async replaceScene(A,q=[],F=[],oe=[]){let{group:fe,animatedTextureParts:pe}=await Ya(d,A,l),he=new kt;he.expandByObject(fe);let de=he.getCenter(new C);fe.position.copy(de.clone().negate());for(let we of q)fe.add(jl(we));for(let we of F)fe.add(await $a(d,we));for(let we of oe){let ye=guidenhCreateHoverRuntimeTarget(we);ye&&(fe.add(ye.highlightObject),fe.add(ye.pickMesh))}w.add(fe),w.remove(g),guidenhDisposeSceneGroup(g),g=fe,_=pe},resetView(){M?.reset()},zoomIn(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:-120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},zoomOut(){if(M){M.enableZoom=!0;try{for(let A=0;A<5;A++){let q=new WheelEvent("wheel",{deltaY:120});M.domElement.dispatchEvent(q)}}finally{M.enableZoom=!1}}},projectWorldPosition(A){if(!A||A.length<3||!f.domElement)return null;let q=new C(A[0],A[1],A[2]);g.localToWorld(q),q.project(S);if(!Number.isFinite(q.x)||!Number.isFinite(q.y)||!Number.isFinite(q.z))return null;let F=f.domElement.getBoundingClientRect();return{x:(q.x*.5+.5)*F.width,y:(-q.y*.5+.5)*F.height,z:q.z,visible:q.z>=-1&&q.z<=1}}};
 }
 
 function guidenhParseSceneArray(s,e){
@@ -3761,24 +3773,20 @@ async function D0(s){
     v.className="controls";
     h.append(v);
     let M=l.createElement("button");
-    M.className="minecraft-tooltip";
-    M.dataset.tooltipText="Zoom in";
+    M.className="scene-icon-button";
     M.append("+");
     M.addEventListener("click",P=>{
       P.preventDefault();
       T.zoomIn();
     });
-    ys(M,{content:"Zoom in"});
     v.append(M);
     let S=l.createElement("button");
-    S.className="minecraft-tooltip";
-    S.dataset.tooltipText="Zoom out";
+    S.className="scene-icon-button";
     S.append("-");
     S.addEventListener("click",P=>{
       P.preventDefault();
       T.zoomOut();
     });
-    ys(S,{content:"Zoom out"});
     v.append(S);
     let P=l.createElement("button");
     P.append("R");
@@ -3787,7 +3795,6 @@ async function D0(s){
       T.resetView();
     });
     v.append(P);
-    ys(P,{content:"Reset view"});
   }
   s.insertAdjacentElement("afterend",h);
   s.remove();

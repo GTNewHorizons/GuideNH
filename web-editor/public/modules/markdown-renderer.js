@@ -1,5 +1,8 @@
 import { attr, booleanAttr, colorValue, cssLength, escapeHtml, numberAttr, parseAttributes, parseCsv, splitComma } from "./html-utils.js";
 import { renderChart, renderFunctionGraph, renderMermaidDiagram } from "./visual-renderers.js";
+import { translatedString } from "./language.js";
+
+function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
 
 const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "code", "del", "em", "i", "img", "kbd", "mark", "small", "span", "strong", "sub", "sup", "u", "Color", "Spoiler", "Tooltip", "SoundLink", "PlayerName", "KeyBind", "ItemImage", "ItemIcon", "ItemLink", "CommandLink", "Latex", "QuestLink", "FloatingImage"]);
 const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
@@ -437,7 +440,7 @@ function renderTag(name, attributes, body, selfClosing, context, inline) {
     return wrap !== "inline" ? applyWrap(renderItemPlaceholder(name, attributes, context, false, body), attributes) : renderItemPlaceholder(name, attributes, context, inline, body);
   }
   if (name === "BlockImage" || name === "Structure" || name === "Recipe" || name === "RecipeFor" || name === "RecipesFor" || name === "QuestCard" || name === "ImportPonder" || name === "Ponder") return renderRuntimePlaceholder(name, attributes, inline, context, body);
-  if (name === "GameScene" || name === "Scene") return renderScenePlaceholder(name, attributes);
+  if (name === "GameScene" || name === "Scene") return renderScenePlaceholder(name, attributes, context);
   if (name === "FloatingImage") return renderFloatingImage(attributes, body, context, inline);
   if (name === "Latex") return renderLatex(String(attr(attributes, "formula") || body || ""), attributes, inline, body && body.trim() ? renderMarkdown(normalizeNestedMarkdown(body), { ...context, suppressFootnotes: true }) : "", true, context);
   if (name === "Color") return `<span class="guide-color" style="color:${colorValue(attr(attributes, "color", "id"), "var(--accent)")}">${renderInline(body, context)}</span>`;
@@ -456,12 +459,12 @@ function renderTag(name, attributes, body, selfClosing, context, inline) {
   if (BLOCK_TAGS.has(lowerName)) return renderBlockTag(lowerName, attributes, body, context);
   if (INLINE_TAGS.has(name) || INLINE_TAGS.has(lowerName)) return `<span>${renderInline(body, context)}</span>`;
   if (name[0] === name[0]?.toLowerCase()) return renderSafeHtmlTag(lowerName, attributes, body, context);
-  return `<span class="guide-tag-card unknown guide-inline-unknown"><span class="guide-tag-name">&lt;${escapeHtml(name)}&gt;</span><em>Preview adapter pending</em></span>`;
+  return `<span class="guide-tag-card unknown guide-inline-unknown"><span class="guide-tag-name">&lt;${escapeHtml(name)}&gt;</span><em>${copy(context, "previewPending")}</em></span>`;
 }
 
 function renderBlockTag(name, attributes, body, context) {
   if (name === "Comment") return "";
-  if (name === "GameScene" || name === "Scene") return applyWrap(renderScenePlaceholder(name, attributes), attributes);
+  if (name === "GameScene" || name === "Scene") return applyWrap(renderScenePlaceholder(name, attributes, context), attributes);
   if (name === "Tooltip") return renderRichTooltip(attributes, body, context);
   if (name === "Spoiler") return `<span class="guide-spoiler" tabindex="0"><span class="guide-spoiler-content">${renderInline(body, context)}</span></span>`;
   if (name === "Latex") return renderLatex(String(attr(attributes, "formula") || body || ""), attributes, false, body && body.trim() ? renderMarkdown(normalizeNestedMarkdown(body), { ...context, suppressFootnotes: true }) : "", true, context);
@@ -486,7 +489,7 @@ function renderBlockTag(name, attributes, body, context) {
     const content = summaryMatch ? body.replace(summaryMatch[0], "") : body;
     const height = cssLength(attr(attributes, "height"), "");
     const width = cssLength(attr(attributes, "width"), "");
-    const details = `<details class="guide-details"${booleanAttr(attributes, "open") === false ? "" : " open"} style="${width ? `width:${escapeHtml(width)};` : ""}${height ? `--guide-details-height:${escapeHtml(height)};` : ""}"><summary>${renderInline(summaryMatch?.[1] || "Details", context)}</summary><div class="guide-details-body">${renderBlocks(content, { ...context, suppressFootnotes: true })}</div></details>`;
+    const details = `<details class="guide-details"${booleanAttr(attributes, "open") === false ? "" : " open"} style="${width ? `width:${escapeHtml(width)};` : ""}${height ? `--guide-details-height:${escapeHtml(height)};` : ""}"><summary>${summaryMatch ? renderInline(summaryMatch[1], context) : copy(context, "details")}</summary><div class="guide-details-body">${renderBlocks(content, { ...context, suppressFootnotes: true })}</div></details>`;
     return applyWrap(details, attributes);
   }
   if (name === "ContentTabs") return renderContentTabs(attributes, body, context);
@@ -510,10 +513,10 @@ function renderBlockTag(name, attributes, body, context) {
   if (name === "FunctionGraph") return renderFunctionGraph(attributesToText(attributes), body);
   if (name === "Function") return renderFunctionGraph(attributesToText(attributes), body, attr(attributes, "expr"));
   if (name === "ItemGrid") return applyWrap(`<div class="guide-item-grid">${renderInline(body, context)}</div>`, attributes);
-  if (name === "SubPages" || name === "Category" || name === "Special") return `<div class="guide-runtime-panel"><strong>${escapeHtml(name)}</strong><span>Navigation data is available in ExportSite.</span></div>`;
+  if (name === "SubPages" || name === "Category" || name === "Special") return `<div class="guide-runtime-panel"><strong>${escapeHtml(name)}</strong><span>${copy(context, "navigationRuntime")}</span></div>`;
   if (name === "ImageAnnotation") return renderStandaloneImageAnnotation(attributes, body, context);
   if (name[0] === name[0]?.toLowerCase()) return renderSafeHtmlTag(name.toLowerCase(), attributes, body, context);
-  return `<div class="guide-tag-card unknown"><span class="guide-tag-name">&lt;${escapeHtml(name)}&gt;</span>${body ? renderBlocks(body, context) : "<em>Preview adapter pending</em>"}</div>`;
+  return `<div class="guide-tag-card unknown"><span class="guide-tag-name">&lt;${escapeHtml(name)}&gt;</span>${body ? renderBlocks(body, context) : `<em>${copy(context, "previewPending")}</em>`}</div>`;
 }
 
 function renderMedia(name, attributes, body, context) {
@@ -571,7 +574,7 @@ function renderTooltipParts(name, attributes, body, context, fallbackDetails = "
   const source = String(body || explicit || "").trim();
   const content = source
     ? renderMarkdown(normalizeNestedMarkdown(source), { ...context, suppressFootnotes: true, depth: (context.depth || 0) + 1 })
-    : `<div class="guide-runtime-tooltip"><strong>${escapeHtml(name)}</strong>${fallbackDetails ? `<code>${escapeHtml(fallbackDetails)}</code>` : ""}<p>Preview data is available at runtime.</p></div>`;
+    : `<div class="guide-runtime-tooltip"><strong>${escapeHtml(name)}</strong>${fallbackDetails ? `<code>${escapeHtml(fallbackDetails)}</code>` : ""}<p>${copy(context, "tooltipRuntime")}</p></div>`;
   return {
     attributes: ` data-guide-tooltip-rich="true" data-guide-tooltip-kind="${escapeHtml(name.toLowerCase())}" tabindex="0"`,
     template: `<template data-guide-tooltip-content>${content}</template>`,
@@ -601,17 +604,17 @@ function renderRuntimePlaceholder(name, attributes, inline, context = {}, body =
   const details = id ? `<span class="runtime-id">${escapeHtml(id)}</span>` : "";
   const icon = name === "BlockImage" ? "▣" : "◇";
   const tooltip = renderTooltipParts(name, attributes, body || attr(attributes, "tooltip"), context, id ? String(id) : "");
-  const element = `<span class="guide-runtime-placeholder"${tooltip.attributes}><span class="runtime-icon">${icon}</span><strong>${escapeHtml(name)}</strong>${details}<em>runtime data</em>${tooltip.template}</span>`;
-  return inline ? element : `<div class="guide-runtime-frame"><div class="guide-runtime-frame-title">${escapeHtml(name)} · runtime preview</div>${element}</div>`;
+  const element = `<span class="guide-runtime-placeholder"${tooltip.attributes}><span class="runtime-icon">${icon}</span><strong>${escapeHtml(name)}</strong>${details}<em>${copy(context, "runtimeData")}</em>${tooltip.template}</span>`;
+  return inline ? element : `<div class="guide-runtime-frame"><div class="guide-runtime-frame-title">${escapeHtml(name)} · ${copy(context, "runtimePreview")}</div>${element}</div>`;
 }
 
-function renderScenePlaceholder(name, attributes) {
+function renderScenePlaceholder(name, attributes, context) {
   const width = cssLength(attr(attributes, "width"), "256px");
   const height = cssLength(attr(attributes, "height"), "192px");
   const perspective = attr(attributes, "perspective") || "isometric-north-east";
   const zoom = attr(attributes, "zoom");
-  const details = [perspective, zoom !== undefined ? `zoom ${zoom}` : "", booleanAttr(attributes, "interactive") === false ? "static" : "interactive"].filter(Boolean).join(" · ");
-  return `<div class="guide-scene-placeholder" style="width:${escapeHtml(width)};height:${escapeHtml(height)}"><div class="scene-grid"></div><div class="scene-label">${escapeHtml(name)}<small>3D scene is available at runtime</small><small>${escapeHtml(details)}</small></div></div>`;
+  const details = [perspective, zoom !== undefined ? `${translatedString(context?.locale, "zoom")} ${zoom}` : "", booleanAttr(attributes, "interactive") === false ? translatedString(context?.locale, "static") : translatedString(context?.locale, "interactive")].filter(Boolean).join(" · ");
+  return `<div class="guide-scene-placeholder" style="width:${escapeHtml(width)};height:${escapeHtml(height)}"><div class="scene-grid"></div><div class="scene-label">${escapeHtml(name)}<small>${copy(context, "sceneRuntime")}</small><small>${escapeHtml(details)}</small></div></div>`;
 }
 
 function renderContentTabs(attributes, body, context) {
@@ -620,7 +623,7 @@ function renderContentTabs(attributes, body, context) {
   let match;
   while ((match = pattern.exec(body || ""))) {
     const tabAttributes = parseAttributes(match[1]);
-    tabs.push({ title: String(attr(tabAttributes, "title") || `Tab ${tabs.length + 1}`), body: match[2] });
+    tabs.push({ title: String(attr(tabAttributes, "title") || `${translatedString(context?.locale, "tab")} ${tabs.length + 1}`), body: match[2] });
   }
   if (!tabs.length) return renderBlocks(body, context);
   const requestedIndex = attr(attributes, "defaultIndex");

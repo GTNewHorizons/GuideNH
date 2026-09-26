@@ -1,4 +1,5 @@
 import { renderMarkdown } from "./markdown-renderer.js";
+import { translatedString, UI_LANGUAGES } from "./language.js";
 
 const DOCUMENTS = [
   { id: "Guide-Page-Format", label: { en: "Markdown & page format", zh: "Markdown 与页面格式" } },
@@ -15,11 +16,6 @@ const DOCUMENTS = [
   { id: "Structure-Export", label: { en: "Structure export", zh: "结构导出" } },
   { id: "Examples", label: { en: "Examples", zh: "示例" } },
 ];
-
-const COPY = {
-  en: { title: "Syntax & examples", subtitle: "GuideNH Markdown and runtime tags", search: "Search syntax, tags, examples", results: "topics", empty: "No matching syntax found.", loading: "Loading reference…", failed: "Reference could not be loaded." },
-  zh: { title: "全部语法与示例", subtitle: "GuideNH Markdown 与运行时标签", search: "搜索语法、标签和示例", results: "个主题", empty: "未找到匹配的语法。", loading: "正在加载参考资料…", failed: "参考资料加载失败。" },
-};
 
 function splitSections(source, documentId) {
   const sections = [];
@@ -42,26 +38,32 @@ export function createSyntaxReference(dialog, initialLocale) {
   const results = dialog.querySelector("#reference-results");
   const content = dialog.querySelector("#reference-content");
   const count = dialog.querySelector("#reference-count");
+  const languageSelect = dialog.querySelector("#reference-language-select");
   const cache = new Map();
-  let language = initialLocale === "zh_cn" || initialLocale === "zh_tw" ? "zh" : "en";
+  languageSelect.replaceChildren(...Object.entries(UI_LANGUAGES).map(([locale, details]) => {
+    const option = document.createElement("option");
+    option.value = locale;
+    option.textContent = details.label;
+    return option;
+  }));
+  let language = initialLocale;
   let sections = [];
   let selectedId = "";
   let loadRequest = 0;
 
   function updateLabels() {
-    const copy = COPY[language];
-    dialog.querySelector("#reference-title").textContent = copy.title;
-    dialog.querySelector("#reference-subtitle").textContent = copy.subtitle;
-    search.placeholder = copy.search;
-    search.setAttribute("aria-label", copy.search);
-    dialog.querySelectorAll("[data-reference-language]").forEach((button) => {
-      button.setAttribute("aria-pressed", String(button.dataset.referenceLanguage === language));
-    });
+    dialog.querySelector("#reference-title").textContent = translatedString(language, "referenceTitle");
+    dialog.querySelector("#reference-subtitle").textContent = translatedString(language, "referenceSubtitle");
+    search.placeholder = translatedString(language, "referenceSearch");
+    search.setAttribute("aria-label", search.placeholder);
+    languageSelect.value = language;
+    languageSelect.setAttribute("aria-label", translatedString(language, "referenceLanguage"));
+    dialog.querySelector("[data-reference-close]").setAttribute("aria-label", translatedString(language, "closeReference"));
   }
 
   function showSection(section) {
     selectedId = section.id;
-    content.innerHTML = renderMarkdown(section.markdown);
+    content.innerHTML = renderMarkdown(section.markdown, { locale: language });
     content.scrollTop = 0;
     results.querySelectorAll("[data-reference-section]").forEach((button) => {
       button.classList.toggle("active", button.dataset.referenceSection === selectedId);
@@ -72,11 +74,11 @@ export function createSyntaxReference(dialog, initialLocale) {
     const query = search.value.trim().toLocaleLowerCase();
     const matches = sections.filter((section) => section.markdown.toLocaleLowerCase().includes(query));
     results.replaceChildren();
-    count.textContent = `${matches.length} ${COPY[language].results}`;
+    count.textContent = `${matches.length} ${translatedString(language, "referenceTopics")}`;
     if (!matches.length) {
       const empty = document.createElement("p");
       empty.className = "reference-empty";
-      empty.textContent = COPY[language].empty;
+      empty.textContent = translatedString(language, "referenceEmpty");
       results.append(empty);
       content.replaceChildren();
       return;
@@ -86,7 +88,7 @@ export function createSyntaxReference(dialog, initialLocale) {
       if (section.documentId !== lastDocument) {
         lastDocument = section.documentId;
         const group = document.createElement("h3");
-        group.textContent = DOCUMENTS.find((item) => item.id === lastDocument).label[language];
+        group.textContent = sections.find((item) => item.documentId === lastDocument && item.depth === 1)?.title || DOCUMENTS.find((item) => item.id === lastDocument).label.en;
         results.append(group);
       }
       const button = document.createElement("button");
@@ -106,10 +108,13 @@ export function createSyntaxReference(dialog, initialLocale) {
     language = nextLanguage;
     updateLabels();
     if (!cache.has(nextLanguage)) {
-      content.textContent = COPY[nextLanguage].loading;
-      const suffix = nextLanguage === "zh" ? "-zh-CN" : "";
+      content.textContent = translatedString(nextLanguage, "referenceLoading");
       const sources = await Promise.all(DOCUMENTS.map(async (item) => {
-        const response = await fetch(`./reference/${item.id}${suffix}.md`);
+        const details = UI_LANGUAGES[nextLanguage] || UI_LANGUAGES.en_us;
+        const referencePath = details.referenceDocuments?.includes(item.id) && details.referencePath
+          ? details.referencePath
+          : UI_LANGUAGES.en_us.referencePath || "en/_us";
+        const response = await fetch(`./reference/${referencePath}/${item.id}.md`);
         if (!response.ok) throw new Error(`Unable to load ${item.id}`);
         return { documentId: item.id, source: await response.text() };
       }));
@@ -123,16 +128,14 @@ export function createSyntaxReference(dialog, initialLocale) {
 
   dialog.querySelector("[data-reference-close]").addEventListener("click", () => dialog.close());
   dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
-  dialog.querySelectorAll("[data-reference-language]").forEach((button) => button.addEventListener("click", () => {
-    if (button.dataset.referenceLanguage !== language) loadLanguage(button.dataset.referenceLanguage).catch(() => { content.textContent = COPY[language].failed; });
-  }));
+  languageSelect.addEventListener("change", () => loadLanguage(languageSelect.value).catch(() => { content.textContent = translatedString(language, "referenceFailed"); }));
   search.addEventListener("input", renderResults);
   content.addEventListener("click", (event) => {
     const link = event.target.closest("a[href]");
     if (!link) return;
     const href = link.getAttribute("href") || "";
     if (/^https?:/i.test(href)) { link.target = "_blank"; link.rel = "noopener noreferrer"; return; }
-    const documentId = href.split("#")[0].replace(/^\.\//, "").replace(/(?:-zh-CN)?(?:\.md)?$/, "");
+    const documentId = href.split("#")[0].replace(/^\.\//, "").replace(/^.*\//, "").replace(/\.md$/i, "");
     const section = sections.find((item) => item.documentId === documentId);
     if (!section) return;
     event.preventDefault();
@@ -145,13 +148,12 @@ export function createSyntaxReference(dialog, initialLocale) {
   return {
     open() {
       dialog.showModal();
-      loadLanguage(language).catch(() => { content.textContent = COPY[language].failed; });
+      loadLanguage(language).catch(() => { content.textContent = translatedString(language, "referenceFailed"); });
       search.focus();
     },
     setLocale(locale) {
-      const nextLanguage = locale === "zh_cn" || locale === "zh_tw" ? "zh" : "en";
-      if (dialog.open && nextLanguage !== language) loadLanguage(nextLanguage).catch(() => { content.textContent = COPY[language].failed; });
-      else if (!dialog.open) language = nextLanguage;
+      if (dialog.open && locale !== language) loadLanguage(locale).catch(() => { content.textContent = translatedString(language, "referenceFailed"); });
+      else if (!dialog.open) language = locale;
     },
   };
 }

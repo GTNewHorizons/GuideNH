@@ -1005,7 +1005,7 @@ public class GuideSiteExportTask {
             html.append("<div class=\"guide-scene-block-stat\" data-block-stat-key=\"")
                 .append(escapeAttribute(entry.getKey()))
                 .append("\">");
-            GuideSiteItemHtml.appendIcon(html, item, "guide-scene-block-stat-icon", 0.75f, true);
+            GuideSiteItemHtml.appendIcon(html, item, "guide-scene-block-stat-icon", 1.0f, true);
             html.append("<span class=\"guide-scene-block-stat-label\">")
                 .append(escapeHtml(entry.getLabel()))
                 .append("</span><span class=\"guide-scene-block-stat-count\">x")

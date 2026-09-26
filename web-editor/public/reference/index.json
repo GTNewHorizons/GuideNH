@@ -1,0 +1,56 @@
+{
+  "documents": [
+    {
+      "id": "Annotations",
+      "label": "Annotations"
+    },
+    {
+      "id": "Examples",
+      "label": "Examples"
+    },
+    {
+      "id": "GameScene",
+      "label": "GameScene"
+    },
+    {
+      "id": "Guide-Page-Format",
+      "label": "Guide Page Format"
+    },
+    {
+      "id": "Images-And-Assets",
+      "label": "Images And Assets"
+    },
+    {
+      "id": "Localization",
+      "label": "Localization"
+    },
+    {
+      "id": "Mod-Compatibility",
+      "label": "Mod Compatibility"
+    },
+    {
+      "id": "Navigation",
+      "label": "Navigation"
+    },
+    {
+      "id": "Ponder",
+      "label": "Ponder Animation Timeline"
+    },
+    {
+      "id": "Recipes",
+      "label": "Recipes"
+    },
+    {
+      "id": "Structure-Export",
+      "label": "Structure Export"
+    },
+    {
+      "id": "Syntax-Completion",
+      "label": "Syntax Completion"
+    },
+    {
+      "id": "Tags-Reference",
+      "label": "Tags Reference"
+    }
+  ]
+}

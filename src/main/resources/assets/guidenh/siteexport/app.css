@@ -76,6 +76,7 @@ html, body {
 .guide-site-body {
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 }
 
@@ -221,6 +222,9 @@ pre code {
     background: #0d1117;
     border: 1px solid #30363d;
     overflow: hidden;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .guide-code-block-toolbar {
@@ -250,6 +254,9 @@ pre code {
     padding: 12px;
     color: #e6edf3;
     overflow-x: auto;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .guide-code-block code {
@@ -259,7 +266,12 @@ pre code {
 }
 
 .guide-code-block-scroll {
+    display: block;
+    width: 100%;
     max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: auto;
 }
 
 .gh-plain {
@@ -323,6 +335,12 @@ blockquote {
     margin: 0.6em 0;
     color: rgba(220, 220, 220, 0.9);
 }
+
+.guide-quote.guide-alert-note { --guide-quote-accent: rgba(99, 142, 241, 1); }
+.guide-quote.guide-alert-tip { --guide-quote-accent: rgba(97, 183, 93, 1); }
+.guide-quote.guide-alert-important { --guide-quote-accent: rgba(135, 85, 221, 1); }
+.guide-quote.guide-alert-warning { --guide-quote-accent: rgba(199, 157, 62, 1); }
+.guide-quote.guide-alert-caution { --guide-quote-accent: rgba(228, 97, 80, 1); }
 
 .guide-quote-title {
     display: flex;
@@ -394,7 +412,7 @@ blockquote {
 .guide-spoiler {
     background: #000000;
     color: #000000;
-    border-radius: 2px;
+    border-radius: 0;
     padding: 0 0.2em;
     transition: color 120ms ease, background-color 120ms ease;
 }
@@ -450,6 +468,13 @@ blockquote {
     border-bottom-color: currentColor !important;
 }
 
+.guide-runtime-placeholder {
+    display: inline-block;
+    color: var(--guide-muted, #8f98a3);
+    font-style: italic;
+    opacity: 0.85;
+}
+
 p {
     margin: 0 0 0.8em;
 }
@@ -466,6 +491,7 @@ p {
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
     grid-template-rows: var(--header-height) minmax(0, 1fr);
     height: 100vh;
+    height: 100dvh;
     min-height: 0;
     overflow: hidden;
 }
@@ -487,7 +513,7 @@ p {
     font-size: 1.1rem;
     color: white;
     text-decoration: none;
-    letter-spacing: 0.04em;
+    letter-spacing: 0;
 }
 
 .guide-logo:hover {
@@ -512,6 +538,7 @@ p {
 }
 
 .guide-sidebar-tools {
+    position: relative;
     padding: calc(4px * var(--gui-scale)) calc(4px * var(--gui-scale)) calc(2px * var(--gui-scale));
     border-bottom: 1px solid rgba(255,255,255,0.07);
     flex-shrink: 0;
@@ -629,6 +656,10 @@ p {
     text-decoration: none;
     font-size: 0.85rem;
     grid-column: 2;
+}
+
+.guide-nav li > span[data-guide-nav-label] {
+    cursor: pointer;
 }
 
 .guide-nav a:hover {
@@ -794,10 +825,17 @@ p {
     min-width: 0;
     min-height: 0;
     padding: calc(6px * var(--gui-scale));
+    overscroll-behavior-y: contain;
 }
 
 .guide-page {
-    max-width: 900px;
+    width: 100%;
+    display: flow-root;
+}
+
+.guide-mobile-nav-toggle,
+.guide-mobile-nav-backdrop {
+    display: none;
 }
 
 .guide-page > :first-child {
@@ -921,7 +959,21 @@ p {
     display: inline-block;
     max-width: 100%;
     vertical-align: top;
+    overflow: visible;
+}
+
+.guide-floating-image-crop {
+    position: relative;
+    width: 100%;
     overflow: hidden;
+}
+
+.guide-floating-image-crop .guide-floating-image {
+    max-width: none;
+}
+
+.guide-floating-image-wrap .guide-floating-image-title {
+    clear: none;
 }
 
 .guide-floating-image-wrap .guide-floating-image {
@@ -933,6 +985,21 @@ p {
 .guide-floating-image-wrap.guide-floating-image-inline {
     display: inline-block;
     vertical-align: middle;
+}
+
+.guide-floating-image-title {
+    display: block;
+    max-width: 100%;
+    margin-top: calc(2px * var(--gui-scale));
+    color: var(--guide-text-muted, rgba(190, 190, 190, 0.9));
+    font-size: 0.85em;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    text-align: center;
+}
+
+.guide-floating-image-float .guide-floating-image-title {
+    clear: both;
 }
 
 .guide-image-annotation {
@@ -994,15 +1061,13 @@ p {
 }
 
 .guide-inline-item,
-.guide-block-item,
-.guide-command-link,
 .guide-item-link {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 1px calc(2px * var(--gui-scale));
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(124, 124, 124, 0.45);
+    padding: 0;
+    background: transparent;
+    border: 0;
     color: var(--color-body-text);
     text-decoration: none;
     vertical-align: middle;
@@ -1021,6 +1086,20 @@ p {
 .guide-item-link-muted:hover {
     color: #aaa;
     font-style: italic;
+}
+
+.guide-block-item,
+.guide-command-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px calc(2px * var(--gui-scale));
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(124, 124, 124, 0.45);
+    color: var(--color-body-text);
+    text-decoration: none;
+    vertical-align: middle;
+    font-size: 0.9em;
 }
 
 .guide-item-summary-text,
@@ -1062,7 +1141,7 @@ p {
     padding: calc(1px * var(--gui-scale)) calc(2px * var(--gui-scale));
     color: var(--color-body-text);
     text-decoration: none;
-    border: 1px solid rgba(124, 124, 124, 0.3);
+    border: 0;
 }
 
 .guide-generated-links a:hover {
@@ -1114,14 +1193,14 @@ p {
 
 .guide-mediawiki-row {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 4px;
     min-width: 0;
     max-width: 100%;
     padding: calc(1px * var(--gui-scale)) calc(2px * var(--gui-scale));
     color: var(--color-body-text);
     text-decoration: none;
-    border: 1px solid rgba(124, 124, 124, 0.25);
+    border: 0;
 }
 
 .guide-mediawiki-row:hover {
@@ -1145,9 +1224,8 @@ p {
 
 .guide-mediawiki-row .guide-generated-link-text {
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
 }
 
 .guide-mediawiki-row:hover .guide-generated-link-text {
@@ -1240,10 +1318,9 @@ p {
 .guide-mediawiki-special-text {
     color: var(--color-link);
     text-decoration: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: inline-block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    display: inline;
     max-width: 100%;
 }
 
@@ -1398,6 +1475,28 @@ p {
     --guide-scene-block-stats-gap: calc(4px * var(--guide-scene-display-scale));
 }
 
+.guide-scene-layout {
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: top;
+}
+
+.guide-scene-layout--left {
+    float: left;
+    margin: 0 1em 0.5em 0;
+}
+
+.guide-scene-layout--right {
+    float: right;
+    margin: 0 0 0.5em 1em;
+}
+
+.guide-scene-layout--center {
+    display: block;
+    width: fit-content;
+    margin: 0 auto 0.8em;
+}
+
 .guide-scene-block-stats {
     display: flex;
     flex-direction: column;
@@ -1433,7 +1532,8 @@ p {
 .guide-scene-export-frame--block-stats-inside.guide-scene-export-frame--block-stats-corner-top-right
     .guide-scene-block-stats {
     top: var(--guide-scene-block-stats-gap);
-    right: var(--guide-scene-block-stats-gap);
+    right: calc(var(--guide-scene-block-stats-gap)
+        + var(--guide-scene-button-reserve) * var(--guide-scene-display-scale));
 }
 
 .guide-scene-export-frame--block-stats-inside.guide-scene-export-frame--block-stats-corner-top-left
@@ -1444,7 +1544,8 @@ p {
 
 .guide-scene-export-frame--block-stats-inside.guide-scene-export-frame--block-stats-corner-bottom-right
     .guide-scene-block-stats {
-    right: var(--guide-scene-block-stats-gap);
+    right: calc(var(--guide-scene-block-stats-gap)
+        + var(--guide-scene-button-reserve) * var(--guide-scene-display-scale));
     bottom: var(--guide-scene-block-stats-gap);
 }
 
@@ -1499,26 +1600,26 @@ p {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr) max-content;
     align-items: center;
-    gap: 4px;
-    min-width: calc(32px * var(--gui-scale));
+    gap: calc(4px * var(--guide-scene-display-scale));
+    min-width: calc(32px * var(--guide-scene-display-scale));
     color: var(--color-body-text);
     font-family: var(--minecraft-font);
-    font-size: 0.75em;
+    font-size: calc(3px * var(--guide-scene-display-scale));
     white-space: nowrap;
 }
 
 .guide-scene-export-frame--block-stats-icons .guide-scene-block-stat {
-    grid-template-columns: max-content;
+    grid-template-columns: max-content max-content;
 }
 
-.guide-scene-export-frame--block-stats-icons .guide-scene-block-stat-label,
-.guide-scene-export-frame--block-stats-icons .guide-scene-block-stat-count {
+.guide-scene-export-frame--block-stats-icons .guide-scene-block-stat-label {
     display: none;
 }
 
 .guide-scene-block-stat-icon {
-    width: calc(12px * var(--gui-scale));
-    height: calc(12px * var(--gui-scale));
+    width: calc(10px * var(--guide-scene-display-scale));
+    height: calc(10px * var(--guide-scene-display-scale));
+    object-fit: contain;
 }
 
 .guide-scene-block-stat-label {
@@ -1541,6 +1642,12 @@ p {
     align-items: center;
     padding: 2px;
     margin-bottom: 0.8em;
+    background: rgba(0, 0, 0, 0.28);
+    border: calc(4px * var(--gui-scale)) solid;
+    border-image-source: url('textures/background.png');
+    border-image-slice: 4 fill;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .recipe-grid[data-render-mode="shaped"],
@@ -1976,7 +2083,7 @@ p {
     margin: 0.75rem 0;
     padding: 0.65rem 0.8rem;
     border: 1px solid #8f3030;
-    border-radius: 10px;
+    border-radius: 0;
     background: #331818;
     color: #ffd4d4;
 }
@@ -2120,6 +2227,15 @@ p {
     position: relative;
     min-width: 100px;
     min-height: 40px;
+    isolation: isolate;
+}
+
+.guide-diagram-empty {
+    margin: 0;
+    padding: 12px;
+    color: #aeb8c6;
+    font-family: var(--minecraft-font);
+    font-size: 0.8rem;
 }
 
 .guide-mermaid-canvas {
@@ -2146,6 +2262,32 @@ p {
     color: #d7dee7;
     box-sizing: border-box;
     pointer-events: auto;
+    overflow: visible;
+}
+
+.guide-mermaid-node-body,
+.guide-flowchart-html-content {
+    min-width: 0;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.guide-mermaid-node-body > * {
+    max-width: 100%;
+}
+
+.guide-mermaid-node-body img,
+.guide-flowchart-html-content img {
+    max-width: 100%;
+    height: auto;
+}
+
+.guide-mermaid-node-body pre,
+.guide-flowchart-html-content pre {
+    max-width: 100%;
+    overflow: auto;
+    white-space: pre-wrap;
 }
 
 .guide-mermaid-node-root {
@@ -2199,5 +2341,225 @@ p {
 
 .guide-mermaid-shape-bang {
     border-width: 2px;
+}
+
+@media (max-width: 900px) {
+    .guide-site {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .guide-header {
+        gap: 8px;
+        position: relative;
+        z-index: 140;
+        padding: 0 12px;
+    }
+
+    .guide-header-lang {
+        min-width: 0;
+        margin-left: auto;
+    }
+
+    .guide-mobile-nav-toggle {
+        display: grid;
+        place-items: center;
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid rgba(124, 124, 124, 0.45);
+        background: transparent;
+        color: var(--color-body-text);
+        font-size: 24px;
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+
+    .guide-sidebar {
+        position: fixed;
+        z-index: 135;
+        top: var(--header-height);
+        bottom: 0;
+        left: 0;
+        width: min(350px, calc(100vw - 44px));
+        background: rgba(12, 12, 14, 0.98);
+        visibility: hidden;
+        transform: translateX(-100%);
+        overscroll-behavior: contain;
+    }
+
+    .guide-site-body[data-guide-mobile-nav-open="true"] .guide-sidebar {
+        visibility: visible;
+        transform: none;
+    }
+
+    .guide-mobile-nav-backdrop:not([hidden]) {
+        display: block;
+        position: fixed;
+        inset: var(--header-height) 0 0;
+        z-index: 130;
+        border: 0;
+        background: rgba(0, 0, 0, 0.6);
+    }
+
+    .guide-content {
+        grid-column: 1;
+    }
+
+    .guide-nav li {
+        grid-template-columns: 44px minmax(0, 1fr);
+    }
+
+    .guide-nav a,
+    .guide-nav li > span[data-guide-nav-label],
+    .guide-nav-toggle,
+    .guide-language-menu-trigger,
+    .guide-language-menu-option,
+    .guide-search-result {
+        min-height: 44px;
+        height: auto;
+        touch-action: manipulation;
+    }
+
+    .guide-nav-toggle {
+        width: 44px;
+    }
+
+    .guide-nav .guide-generated-link-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .guide-search-input {
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    .guide-search-results {
+        width: calc(100% - 24px);
+        max-height: 50dvh;
+    }
+
+    .guide-scene-layout--left,
+    .guide-scene-layout--right,
+    .guide-scene-layout--center {
+        float: none;
+        display: block;
+        width: 100%;
+        margin: 0 0 1em;
+    }
+
+    .guide-mediawiki-columns,
+    .guide-mediawiki-special-grid,
+    .guide-mediawiki-special-multi-column-flat {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --gui-scale: 2;
+        --header-height: 56px;
+        font-size: 16px;
+    }
+
+    .guide-content {
+        padding: 12px;
+    }
+
+    .guide-logo {
+        flex-shrink: 0;
+        font-size: 1rem;
+    }
+
+    .guide-language-menu-trigger {
+        min-width: 0;
+        max-width: 160px;
+        font-size: 0.8rem;
+    }
+
+    .guide-language-menu-options {
+        max-width: calc(100vw - 24px);
+        max-height: 65dvh;
+    }
+
+    .guide-language-menu-option {
+        white-space: normal;
+    }
+
+    .guide-page p,
+    .guide-page li,
+    .guide-layout > * {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .guide-layout-row {
+        flex-direction: column;
+    }
+
+    .guide-mediawiki-columns,
+    .guide-mediawiki-special-grid,
+    .guide-mediawiki-special-multi-column-flat {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .guide-mediawiki-row {
+        min-height: 44px;
+    }
+
+    .guide-mediawiki-row::before {
+        margin-top: 10px;
+    }
+
+    .guide-scene-layout--left,
+    .guide-scene-layout--right,
+    .guide-scene-layout--center {
+        float: none;
+        display: block;
+        width: 100%;
+        margin: 0 0 1em;
+    }
+
+    .guide-floating-image-wrap:not(.guide-floating-image-inline) {
+        float: none !important;
+        margin: 0 0 12px !important;
+    }
+
+    .guide-image {
+        height: auto;
+    }
+
+    .guide-table-wrap,
+    .guide-csv-table-wrap,
+    .guide-code-block pre,
+    .guide-svg-wrap {
+        overscroll-behavior-x: contain;
+    }
+
+    .guide-recipe-gallery {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .guide-tooltip-popup,
+    .guide-tooltip-content {
+        max-width: calc(100vw - 28px);
+        max-height: calc(100dvh - 100px);
+        overflow: auto;
+        line-height: 1.35;
+    }
+}
+
+@media (max-width: 480px) {
+    .guide-mediawiki-columns,
+    .guide-mediawiki-special-grid,
+    .guide-mediawiki-special-multi-column-flat {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .guide-language-menu-trigger {
+        max-width: 130px;
+    }
 }
 

@@ -36,6 +36,7 @@ import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderer;
 import com.hfstudio.guidenh.guide.compiler.tags.CodeFenceRenderers;
 import com.hfstudio.guidenh.guide.compiler.tags.CommandLinkCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.CsvTableCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor;
 import com.hfstudio.guidenh.guide.compiler.tags.DetailsContentExtractor.DetailsContent;
 import com.hfstudio.guidenh.guide.compiler.tags.ItemImageCompiler;
@@ -202,6 +203,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         String name = element.name();
         if ("ItemImage".equals(name)) {
             return renderItemImage(element, defaultNamespace, currentPageId, templates, true);
+        }
+        if ("ItemIcon".equals(name)) {
+            return renderItemIcon(element, defaultNamespace, currentPageId, templates);
         }
         if ("BlockImage".equals(name)) {
             return renderBlockImage(element, defaultNamespace, currentPageId, templates, sceneResolver);
@@ -621,6 +625,34 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             formatRaw);
     }
 
+    private String renderItemIcon(MdxJsxElementFields element, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates) {
+        String rawId = readOptional(element, "id");
+        String rawOre = readOptional(element, "ore");
+        GuideItemReferenceResolver.ResolvedItemReference item = GuideItemReferenceResolver
+            .resolveItemReference(defaultNamespace, rawId, rawOre);
+        String itemId = resolveItemLabelKey(defaultNamespace, rawId, rawOre, item);
+        boolean noTooltip = readBoolean(element, "noTooltip", false);
+        boolean includeTooltip = element.getAttribute("showTooltip") != null ? readBoolean(element, "showTooltip", true)
+            : !noTooltip;
+        boolean showIcon = readBoolean(element, "showIcon", true);
+        Float scale = readFloat(element, "scale");
+        if (item == null || item.stack() == null) {
+            return renderFallbackItemLabel(itemId, currentPageId, templates, true, scale);
+        }
+        return renderItemStack(
+            item.registryId(),
+            item.stack(),
+            currentPageId,
+            templates,
+            true,
+            scale,
+            includeTooltip,
+            showIcon,
+            null,
+            null);
+    }
+
     private String renderItemStack(ResourceLocation registryId, ItemStack stack,
         @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates, boolean inline,
         @Nullable Float scale, boolean includeTooltip) {
@@ -821,7 +853,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 resolveItemLabelKey(defaultNamespace, rawId, rawOre, null),
                 currentPageId,
                 templates,
-                false,
+                true,
                 readBlockImageScale(element));
         }
 
@@ -830,18 +862,21 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             int logicalWidth = exportedScene.logicalWidth() > 0 ? exportedScene.logicalWidth() : 256;
             int logicalHeight = exportedScene.logicalHeight() > 0 ? exportedScene.logicalHeight() : 192;
             String sceneHtml = GuideSiteSceneTagRenderer
-                .renderSceneHtml(logicalWidth, logicalHeight, false, defaultNamespace, null, exportedScene) + ">";
+                .renderSceneHtml(logicalWidth, logicalHeight, false, defaultNamespace, null, exportedScene)
+                + " data-scene-kind=\"block-image\">";
             return wrapBlockImageFloat(element, sceneHtml);
         }
 
-        return renderItemStack(
-            block.registryId(),
-            block.stack(),
-            currentPageId,
-            templates,
-            false,
-            readBlockImageScale(element),
-            true);
+        return wrapBlockImageFloat(
+            element,
+            renderItemStack(
+                block.registryId(),
+                block.stack(),
+                currentPageId,
+                templates,
+                true,
+                readBlockImageScale(element),
+                true));
     }
 
     private String wrapBlockImageFloat(MdxJsxElementFields element, String html) {
@@ -1741,6 +1776,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
 
     private String renderCsvTable(MdxJsxElementFields element, @Nullable ResourceLocation currentPageId) {
         boolean hasHeader = !"false".equalsIgnoreCase(readOptional(element, "header"));
+        List<Integer> widths = CsvTableCompiler.parseWidthHints(readOptional(element, "widths"));
         String src = readOptional(element, "src");
         String csvText = null;
         if (src != null && !src.isEmpty() && currentPageId != null) {
@@ -1761,7 +1797,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         if (csvText.isEmpty()) {
             return "<div class=\"guide-csv-table-wrap\"><table class=\"guide-csv-table\"></table></div>";
         }
-        return GuideSiteGraphRenderer.renderCsvTable(csvText, hasHeader);
+        return GuideSiteGraphRenderer.renderCsvTable(csvText, hasHeader, widths);
     }
 
     /**

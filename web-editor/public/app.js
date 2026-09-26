@@ -1,12 +1,13 @@
-import { addPage, createSampleProject, filesToProject, findFile, normalizeProject, serializeProject, stripCommonRoot, updateFile } from "./modules/exportsite-adapter.js";
+import { addPage, createDirectory, createFile, createSampleProject, filesToProject, findFile, isExportSiteFiles, movePath, normalizeProject, renamePath, serializeProject, stripCommonRoot, updateFile } from "./modules/exportsite-adapter.js";
 import { renderMarkdown } from "./modules/markdown-renderer.js";
 import { loadProject, saveProject, clearProject } from "./modules/project-store.js";
 import { zipToFiles } from "./modules/zip-reader.js";
-import { collectProjectLanguages, detectLanguage, languageLabel, localizedPagePath, normalizeLanguage, translatedString, UI_LANGUAGES } from "./modules/language.js";
+import { browserLanguages, collectProjectLanguages, detectLanguage, languageLabel, localizedPagePath, normalizeLanguage, preferredUiLanguage, projectLanguageFor, translatedString, uiLanguageFor, UI_LANGUAGES } from "./modules/language.js";
 import { createSyntaxReference } from "./modules/syntax-reference.js";
 import { createScrollSync } from "./modules/scroll-sync.js";
 
-const state = { project: null, filter: "", dirty: false, saveTimer: null, collapsedTreePaths: new Set(), theme: localStorage.getItem("guidenh-theme") || "dark", syncScroll: localStorage.getItem("guidenh-sync-scroll") === "true", locale: normalizeLanguage(localStorage.getItem("guidenh-locale") || navigator.language), siteLanguage: normalizeLanguage(localStorage.getItem("guidenh-site-language") || navigator.language) };
+const savedSiteLanguage = localStorage.getItem("guidenh-site-language");
+const state = { project: null, filter: "", dirty: false, saveTimer: null, collapsedTreePaths: new Set(), selectedDirectory: "", theme: localStorage.getItem("guidenh-theme") || "dark", syncScroll: localStorage.getItem("guidenh-sync-scroll") === "true", locale: localStorage.getItem("guidenh-locale") ? uiLanguageFor(localStorage.getItem("guidenh-locale")) : preferredUiLanguage(browserLanguages()), siteLanguage: normalizeLanguage(savedSiteLanguage || browserLanguages()[0]) };
 const elements = {
   name: document.querySelector("#project-name"), tree: document.querySelector("#file-tree"), filter: document.querySelector("#file-filter"), count: document.querySelector("#file-count"), editor: document.querySelector("#editor"), editorLabel: document.querySelector("#editor-label"), editorMeta: document.querySelector("#editor-meta"), preview: document.querySelector("#preview-site"), frame: document.querySelector("#preview-frame"), scrollToggle: document.querySelector("#scroll-sync-toggle"), saveStatus: document.querySelector("#save-status"), dirty: document.querySelector("#dirty-indicator"), cursor: document.querySelector("#cursor-position"), toast: document.querySelector("#toast"), folderInput: document.querySelector("#folder-input"), bundleInput: document.querySelector("#bundle-input"), language: document.querySelector("#language-select"), uiLanguage: document.querySelector("#ui-language-select"), languageLabel: document.querySelector("#site-language-label"), uiLanguageLabel: document.querySelector("#ui-language-label")
 };
@@ -51,11 +52,21 @@ function showToast(message) {
   showToast.timer = window.setTimeout(() => elements.toast.classList.remove("visible"), 2400);
 }
 
-function setProject(project, { restoreFromUrl = false, historyMode = "replace" } = {}) {
+function message(key, values = {}) {
+  return translatedString(state.locale, key).replace(/\{(\w+)\}/g, (match, name) => values[name] ?? match);
+}
+
+function setProject(project, { restoreFromUrl = false, historyMode = "replace", preferLanguage = false } = {}) {
   state.project = normalizeProject(project);
   const requestedPath = restoreFromUrl ? pathFromUrl() : null;
   if (requestedPath && findFile(state.project, requestedPath)) state.project.selectedPath = requestedPath;
+  else if (preferLanguage) {
+    const preferredLanguage = localStorage.getItem("guidenh-site-language");
+    const language = projectLanguageFor(collectProjectLanguages(state.project), preferredLanguage ? [preferredLanguage] : browserLanguages());
+    state.project.selectedPath = localizedPagePath(state.project, state.project.selectedPath, language);
+  }
   state.collapsedTreePaths.clear();
+  state.selectedDirectory = "";
   state.siteLanguage = normalizeLanguage(detectLanguage(state.project.selectedPath) || state.siteLanguage);
   state.dirty = false;
   elements.name.value = state.project.name;
@@ -75,6 +86,14 @@ function renderTree() {
   elements.count.textContent = `${visibleFiles.length} ${translatedString(state.locale, "pages")}`;
   elements.tree.replaceChildren();
   const root = { directories: new Map(), files: [] };
+  for (const directory of state.project.directories || []) {
+    const parts = directory.split("/");
+    let node = root;
+    for (const part of parts) {
+      if (!node.directories.has(part)) node.directories.set(part, { directories: new Map(), files: [] });
+      node = node.directories.get(part);
+    }
+  }
   for (const file of visibleFiles) {
     const parts = file.path.split("/");
     let node = root;
@@ -85,6 +104,22 @@ function renderTree() {
     node.files.push(file);
   }
   renderDirectoryTree(root, elements.tree, "", 0);
+  if (elements.tree.dataset.dropInstalled !== "true") {
+    elements.tree.dataset.dropInstalled = "true";
+    elements.tree.addEventListener("dragover", (event) => { event.preventDefault(); elements.tree.classList.add("drop-target"); });
+    elements.tree.addEventListener("dragleave", () => elements.tree.classList.remove("drop-target"));
+    elements.tree.addEventListener("drop", async (event) => {
+      event.preventDefault(); elements.tree.classList.remove("drop-target");
+      const internal = event.dataTransfer?.getData("application/x-guidenh-path");
+      if (internal) {
+        const source = JSON.parse(internal);
+        state.project = movePath(state.project, source.path, "");
+        renderTree(); renderEditor(); renderPreview(); scheduleSave(); syncPageUrl("replace");
+      } else if (event.dataTransfer?.files?.length) {
+        try { await importFiles(event.dataTransfer.files, ""); } catch (error) { showToast(error.message || message("actionFailed")); }
+      }
+    });
+  }
   if (!visibleFiles.length) elements.tree.innerHTML = `<div class="empty-state">${translatedString(state.locale, "noPages")}</div>`;
 }
 
@@ -93,36 +128,81 @@ function renderDirectoryTree(node, container, prefix, depth) {
     const wrapper = document.createElement("div"); wrapper.className = "tree-directory";
     const path = `${prefix}${name}/`;
     const collapsed = state.collapsedTreePaths.has(path);
-    const toggle = document.createElement("button"); toggle.className = "tree-folder"; toggle.innerHTML = `<span class="tree-folder-chevron">${collapsed ? "▸" : "▾"}</span><span class="file-icon">▰</span><span></span>`; toggle.lastElementChild.textContent = name; toggle.title = path;
+    const toggle = document.createElement("button"); toggle.className = `tree-folder${state.selectedDirectory === path ? " selected" : ""}`; toggle.draggable = true; toggle.innerHTML = `<span class="tree-folder-chevron">${collapsed ? "▸" : "▾"}</span><span class="file-icon">▰</span><span></span>`; toggle.lastElementChild.textContent = name; toggle.title = path;
     const children = document.createElement("div"); children.className = "tree-children"; children.hidden = collapsed;
     toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
     toggle.addEventListener("click", () => {
+      state.selectedDirectory = path;
       const nextCollapsed = !children.hidden;
       children.hidden = nextCollapsed;
       toggle.querySelector(".tree-folder-chevron").textContent = nextCollapsed ? "▸" : "▾";
       toggle.setAttribute("aria-expanded", nextCollapsed ? "false" : "true");
       if (nextCollapsed) state.collapsedTreePaths.add(path); else state.collapsedTreePaths.delete(path);
     });
+    toggle.addEventListener("dblclick", (event) => { event.preventDefault(); renameTreePath(path); });
+    installTreeDragHandlers(toggle, path, true, path);
     wrapper.append(toggle, children); container.append(wrapper);
     renderDirectoryTree(child, children, `${prefix}${name}/`, depth + 1);
   }
   for (const file of node.files.sort((left, right) => left.path.localeCompare(right.path))) {
     const page = state.project.pages.find((candidate) => candidate.path === file.path);
-    const button = document.createElement("button"); button.className = `tree-item${file.path === state.project.selectedPath ? " selected" : ""}`; button.title = file.path;
+    const button = document.createElement("button"); button.className = `tree-item${file.path === state.project.selectedPath ? " selected" : ""}`; button.title = file.path; button.draggable = true;
     const icon = file.kind === "markdown" ? "#" : file.kind === "html" ? "◇" : file.encoding === "data-url" ? "▧" : "·";
     button.innerHTML = `<span class="file-icon">${icon}</span><span></span>`; button.lastElementChild.textContent = page?.title || file.path.split("/").at(-1);
     button.addEventListener("click", () => selectFile(file.path));
+    button.addEventListener("dblclick", (event) => { event.preventDefault(); renameTreePath(file.path); });
+    installTreeDragHandlers(button, file.path, false, prefix);
     container.append(button);
   }
 }
 
+function directoryForSelection() {
+  if (state.selectedDirectory) return state.selectedDirectory;
+  return state.project.selectedPath.split("/").slice(0, -1).join("/");
+}
+
+function renameTreePath(path) {
+  const normalizedPath = path.replace(/\/+$/, "");
+  const current = normalizedPath.split("/").pop() || normalizedPath;
+  const requested = window.prompt(message("renamePrompt"), current);
+  if (!requested || requested.trim() === current) return;
+  const parent = normalizedPath.split("/").slice(0, -1).join("/");
+  state.project = renamePath(state.project, normalizedPath, requested);
+  if (state.selectedDirectory === path || state.selectedDirectory.startsWith(`${path}/`)) state.selectedDirectory = `${parent}/${requested}`.replace(/^\//, "");
+  renderTree(); renderEditor(); renderPreview(); scheduleSave(); syncPageUrl("replace");
+}
+
+function installTreeDragHandlers(element, sourcePath, sourceIsDirectory, targetDirectory) {
+  element.addEventListener("dragstart", (event) => {
+    event.dataTransfer?.setData("application/x-guidenh-path", JSON.stringify({ path: sourcePath, directory: sourceIsDirectory }));
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+    element.classList.add("dragging");
+  });
+  element.addEventListener("dragend", () => element.classList.remove("dragging"));
+  element.addEventListener("dragover", (event) => { event.preventDefault(); element.classList.add("drop-target"); });
+  element.addEventListener("dragleave", () => element.classList.remove("drop-target"));
+  element.addEventListener("drop", async (event) => {
+    event.preventDefault(); element.classList.remove("drop-target");
+    event.stopPropagation();
+    const internal = event.dataTransfer?.getData("application/x-guidenh-path");
+    if (internal) {
+      const source = JSON.parse(internal);
+      if (source.path !== targetDirectory) { state.project = movePath(state.project, source.path, targetDirectory); renderTree(); renderEditor(); renderPreview(); scheduleSave(); syncPageUrl("replace"); }
+      return;
+    }
+    if (event.dataTransfer?.files?.length) {
+      try { await importFiles(event.dataTransfer.files, targetDirectory); } catch (error) { showToast(error.message || message("actionFailed")); }
+    }
+  });
+}
+
 function renderEditor() {
   const file = currentFile();
-  if (!file) { elements.editor.value = ""; elements.editor.disabled = true; elements.editorLabel.textContent = "No file selected"; return; }
+  if (!file) { elements.editor.value = ""; elements.editor.disabled = true; elements.editorLabel.textContent = message("noFileSelected"); return; }
   elements.editor.disabled = file.encoding === "data-url";
   elements.editor.value = file.content;
   elements.editorLabel.textContent = file.path.split("/").pop();
-  elements.editorMeta.textContent = `${file.kind === "markdown" ? "Markdown source" : file.kind === "html" ? "ExportSite HTML" : "Asset"} · ${file.path}`;
+  elements.editorMeta.textContent = `${message(file.kind === "markdown" ? "markdownSource" : file.kind === "html" ? "htmlSource" : "asset")} · ${file.path}`;
   updateCursor();
 }
 
@@ -131,8 +211,9 @@ function renderPreview() {
   const file = currentFile();
   if (!file) { elements.preview.innerHTML = `<div class="empty-state">${translatedString(state.locale, "emptyPreview")}</div>`; scrollSync.refresh("", false); return; }
   if (file.kind === "html") {
-    elements.preview.innerHTML = `<iframe class="html-preview" sandbox="allow-scripts" title="ExportSite HTML preview"></iframe>`;
+    elements.preview.innerHTML = `<iframe class="html-preview" sandbox="allow-scripts"></iframe>`;
     const iframe = elements.preview.querySelector("iframe");
+    iframe.title = message("htmlPreview");
     scrollSync.refresh(file.content, false, iframe);
     iframe.srcdoc = buildHtmlPreview(file.content, file.path);
     return;
@@ -160,7 +241,7 @@ function renderPreview() {
     scrollSync.refresh(file.content, false);
     return;
   }
-  elements.preview.innerHTML = `<article class="guide-page">${renderMarkdown(file.content, { pagePath: file.path, resolveAsset: resolvePreviewAsset, resolveText: resolvePreviewText })}</article>`;
+  elements.preview.innerHTML = `<article class="guide-page">${renderMarkdown(file.content, { pagePath: file.path, resolveAsset: resolvePreviewAsset, resolveText: resolvePreviewText, locale: state.locale })}</article>`;
   installPreviewInteractions();
   scrollSync.refresh(file.content, true);
 }
@@ -351,7 +432,6 @@ function renderLanguageOptions() {
   if (!languages.includes(state.siteLanguage)) state.siteLanguage = languages[0];
   elements.language.value = state.siteLanguage;
   const uiOptions = Object.entries(UI_LANGUAGES).map(([language, details]) => { const option = document.createElement("option"); option.value = language; option.textContent = details.label; option.selected = language === state.locale; return option; });
-  if (!UI_LANGUAGES[state.locale]) { const option = document.createElement("option"); option.value = state.locale; option.textContent = languageLabel(state.locale); option.selected = true; uiOptions.push(option); }
   elements.uiLanguage.replaceChildren(...uiOptions);
   elements.uiLanguage.value = state.locale;
 }
@@ -359,19 +439,25 @@ function renderLanguageOptions() {
 function applyUiLocale() {
   const locale = state.locale;
   document.documentElement.lang = locale.replace("_", "-");
+  for (const element of document.querySelectorAll("[data-i18n]")) element.textContent = message(element.dataset.i18n);
+  for (const element of document.querySelectorAll("[data-i18n-title]")) element.title = message(element.dataset.i18nTitle);
+  for (const element of document.querySelectorAll("[data-i18n-placeholder]")) element.placeholder = message(element.dataset.i18nPlaceholder);
+  for (const element of document.querySelectorAll("[data-i18n-aria-label]")) element.setAttribute("aria-label", message(element.dataset.i18nAriaLabel));
   elements.languageLabel.textContent = translatedString(locale, "siteLanguage");
   elements.uiLanguageLabel.textContent = translatedString(locale, "uiLanguage");
   document.querySelector('[data-action="new"]').textContent = translatedString(locale, "new");
   document.querySelector('[data-action="import-folder"]').textContent = translatedString(locale, "importFolder");
   document.querySelector('[data-action="import-bundle"]').textContent = translatedString(locale, "importBundle");
   document.querySelector('[data-action="export-bundle"]').textContent = translatedString(locale, "exportBundle");
-  document.querySelector(".sidebar .panel-heading span").textContent = translatedString(locale, "project");
+  document.querySelector(".sidebar .panel-heading > span").textContent = translatedString(locale, "project");
+  document.querySelector('[data-action="add-file"]').title = message("addFile");
+  document.querySelector('[data-action="add-folder"]').title = message("addFolder");
+  document.querySelector('[data-action="rename-selected"]').title = message("renameSelected");
   document.querySelector(".preview-heading > div > span")?.replaceChildren(translatedString(locale, "preview"));
   elements.saveStatus.textContent = translatedString(locale, state.dirty ? "unsaved" : "saved");
   document.querySelector("#scroll-sync-label").textContent = translatedString(locale, "syncScroll");
   elements.scrollToggle.setAttribute("aria-label", translatedString(locale, "syncScroll"));
-  document.querySelector("#reference-button-label").textContent = locale === "zh_cn" || locale === "zh_tw" ? "语法" : "Syntax";
-  document.querySelector('[data-action="reference"]').title = locale === "zh_cn" || locale === "zh_tw" ? "全部语法与示例" : "Syntax and examples";
+  document.querySelector("#reference-button-label").textContent = message("referenceButton");
   syntaxReference.setLocale(locale);
 }
 
@@ -585,17 +671,17 @@ function normalizeWorkspacePath(value) {
 }
 
 function scheduleSave() {
-  state.dirty = true; elements.dirty.textContent = "Unsaved changes"; elements.saveStatus.textContent = "Saving…";
+  state.dirty = true; elements.dirty.textContent = message("unsaved"); elements.saveStatus.textContent = message("saving");
   window.clearTimeout(state.saveTimer);
   state.saveTimer = window.setTimeout(async () => {
     state.project = await saveProject(state.project);
-    state.dirty = false; elements.dirty.textContent = ""; elements.saveStatus.textContent = "Saved in this browser";
+    state.dirty = false; elements.dirty.textContent = ""; elements.saveStatus.textContent = message("saved");
   }, 450);
 }
 
 function updateCursor() {
   const before = elements.editor.value.slice(0, elements.editor.selectionStart || 0).split("\n");
-  elements.cursor.textContent = `Ln ${before.length}, Col ${before.at(-1).length + 1}`;
+  elements.cursor.textContent = `${message("line")} ${before.length}, ${message("column")} ${before.at(-1).length + 1}`;
 }
 
 function download(name, content, type = "application/json") {
@@ -603,33 +689,37 @@ function download(name, content, type = "application/json") {
   const link = document.createElement("a"); link.href = href; link.download = name; link.click(); URL.revokeObjectURL(href);
 }
 
-async function importFiles(fileList, name = "Imported ExportSite") {
-  const imported = await filesToProject(fileList);
-  imported.name = name;
-  if (!imported.files.length) throw new Error("No supported files found");
-  setProject(imported); await saveProject(state.project); showToast(`Imported ${imported.files.length} files`);
+async function importFiles(fileList, targetDirectory = "") {
+  const imported = await filesToProject(fileList, targetDirectory);
+  if (!imported.files.length) throw new Error(message("noSupportedFiles"));
+  state.project = normalizeProject({ ...state.project, files: [...state.project.files, ...imported.files], directories: [...state.project.directories, ...imported.directories], selectedPath: imported.files[0]?.path || state.project.selectedPath });
+  renderLanguageOptions(); renderTree(); renderEditor(); renderPreview(); await saveProject(state.project); showToast(message("savedFiles", { count: imported.files.length }));
 }
 
 async function importZip(file) {
   const files = await zipToFiles(file);
+  if (isExportSiteFiles(files)) throw new Error("ExportSite output archives are not supported. Import the GuideNH source archive instead.");
   const imported = normalizeProject({ name: file.name.replace(/\.zip$/i, ""), files: stripCommonRoot(files) });
-  if (!imported.files.length) throw new Error("No supported files found in ZIP");
-  setProject(imported); await saveProject(state.project); showToast(`Imported ${imported.files.length} files from ZIP`);
+  if (!imported.files.length) throw new Error(message("noSupportedZipFiles"));
+  setProject(imported, { preferLanguage: true }); await saveProject(state.project); showToast(message("savedZipFiles", { count: imported.files.length }));
 }
 
 async function handleAction(action) {
   try {
-    if (action === "new") { await clearProject(); setProject(createSampleProject()); await saveProject(state.project); showToast("New project created"); }
+    if (action === "new") { await clearProject(); setProject(createSampleProject(), { preferLanguage: true }); await saveProject(state.project); showToast(message("newProjectCreated")); }
     if (action === "import-folder") elements.folderInput.click();
     if (action === "import-bundle") elements.bundleInput.click();
     if (action === "export-bundle") download(`${state.project.name.replace(/\s+/g, "-").toLowerCase()}.guidenh.json`, serializeProject(state.project));
     if (action === "download-file") { const file = currentFile(); if (file) download(file.path.split("/").pop(), file.content, "text/plain;charset=utf-8"); }
     if (action === "add-page") { setProject(addPage(state.project), { historyMode: "push" }); scheduleSave(); }
+    if (action === "add-file") { const name = window.prompt(message("newFilePrompt"), "new-page.md"); if (name) { setProject(createFile(state.project, directoryForSelection(), name), { historyMode: "push" }); scheduleSave(); } }
+    if (action === "add-folder") { const name = window.prompt(message("newFolderPrompt"), "new-folder"); if (name) { state.project = createDirectory(state.project, directoryForSelection(), name); renderTree(); scheduleSave(); } }
+    if (action === "rename-selected") { const path = state.project.selectedPath || state.selectedDirectory; if (path) renameTreePath(path); }
     if (action === "refresh") renderPreview();
     if (action === "reference") syntaxReference.open();
     if (action === "format") { elements.editor.value = elements.editor.value.replaceAll("\r\n", "\n"); elements.editor.dispatchEvent(new Event("input")); }
     if (action === "theme") { state.theme = state.theme === "dark" ? "light" : "dark"; localStorage.setItem("guidenh-theme", state.theme); document.documentElement.dataset.theme = state.theme; }
-  } catch (error) { showToast(error.message || "Action failed"); }
+  } catch (error) { showToast(error.message || message("actionFailed")); }
 }
 
 document.documentElement.dataset.theme = state.theme;
@@ -642,10 +732,12 @@ elements.language.addEventListener("change", () => {
   if (target !== state.project.selectedPath) selectFile(target);
 });
 elements.uiLanguage.addEventListener("change", () => {
-  state.locale = normalizeLanguage(elements.uiLanguage.value);
+  state.locale = uiLanguageFor(elements.uiLanguage.value);
   localStorage.setItem("guidenh-locale", state.locale);
   applyUiLocale();
   renderTree();
+  renderEditor();
+  renderPreview();
 });
 elements.scrollToggle.addEventListener("change", () => {
   state.syncScroll = elements.scrollToggle.checked;
@@ -656,18 +748,19 @@ elements.name.addEventListener("input", () => { state.project.name = elements.na
 elements.editor.addEventListener("input", () => { state.project = updateFile(state.project, state.project.selectedPath, elements.editor.value); renderPreview(); scheduleSave(); });
 elements.editor.addEventListener("keyup", updateCursor); elements.editor.addEventListener("click", updateCursor); elements.editor.addEventListener("select", updateCursor);
 document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => { document.querySelectorAll("[data-view]").forEach((item) => item.classList.remove("active")); button.classList.add("active"); elements.frame.classList.toggle("mobile", button.dataset.view === "mobile"); elements.frame.classList.toggle("desktop", button.dataset.view !== "mobile"); scrollSync.refresh(elements.editor.value, currentFile()?.kind === "markdown"); }));
-elements.folderInput.addEventListener("change", () => importFiles(elements.folderInput.files).catch((error) => showToast(error.message)));
+elements.folderInput.addEventListener("change", () => importFiles(elements.folderInput.files, directoryForSelection()).catch((error) => showToast(error.message)));
 elements.bundleInput.addEventListener("change", async () => {
   const file = elements.bundleInput.files[0]; if (!file) return;
   try {
     if (file.name.toLowerCase().endsWith(".zip")) await importZip(file);
     else {
       const parsed = JSON.parse(await file.text());
-      setProject(parsed.project || parsed);
+      const imported = parsed.project || parsed;
+      setProject(imported, { preferLanguage: !imported.selectedPath });
       await saveProject(state.project);
-      showToast("Bundle restored");
+      showToast(message("bundleRestored"));
     }
-  } catch (error) { showToast(error.message || "Invalid bundle"); }
+  } catch (error) { showToast(error.message || message("invalidBundle")); }
 });
 window.addEventListener("beforeunload", (event) => { if (state.dirty) { event.preventDefault(); event.returnValue = ""; } });
 window.addEventListener("popstate", () => {
@@ -676,4 +769,4 @@ window.addEventListener("popstate", () => {
 });
 
 const restored = await loadProject();
-setProject(restored ? normalizeProject(restored) : createSampleProject(), { restoreFromUrl: true });
+setProject(restored ? normalizeProject(restored) : createSampleProject(), { restoreFromUrl: true, preferLanguage: !restored });

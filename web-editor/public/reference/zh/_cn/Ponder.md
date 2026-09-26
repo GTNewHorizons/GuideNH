@@ -1,0 +1,852 @@
+# 思索动画时间轴
+
+GuideNH 在游戏场景（`<GameScene>`）块中支持思索风格的动画时间轴。你只需提供一个外部 JSON 文件来定义关键帧、摄像机运动和世界内注释，GuideNH 就会在 3D 场景下方渲染一个带播放/暂停控件的交互式进度条。
+
+## 快速上手
+
+1. 创建一个思索 JSON 文件，并将其放入资源包（参见[文件位置](#文件位置)）。
+2. 在 guide 页面的游戏场景（`<GameScene>`）块中，与 `<ImportStructure>` 并列添加 `<ImportPonder src="..."/>`。
+
+```mdx
+<GameScene zoom="4">
+  <ImportStructure src="scenes/my_machine.snbt" />
+  <ImportPonder src="scenes/my_machine_ponder.json" />
+</GameScene>
+```
+
+> **注意：** `<ImportPonder>` 必须位于游戏场景（`<GameScene>`）块内，`src` 属性为必填项。结构数据仍由 `<ImportStructure>` 或 `<ImportStructureLib>` 提供。
+
+## 文件位置
+
+思索 JSON 文件遵循与 SNBT 结构文件相同的资源包路径规则：
+
+```
+assets/<modid>/guidebooks/
+  pages/machines/my_machine.mdx       ← guide 页面
+  pages/machines/my_machine.snbt      ← 结构数据
+  pages/machines/my_machine.json      ← 思索 JSON
+```
+
+`src` 属性支持相对路径和绝对 ID：
+
+| 示例 | 解析方式 |
+|------|----------|
+| `src="my_machine.json"` | 相对于当前页面目录 |
+| `src="mymod:guidebooks/pages/machines/my_machine.json"` | 绝对路径（`mymod` 命名空间） |
+
+## JSON 格式
+
+根对象包含两个必填字段：
+
+```json
+{
+  "totalTime": 120,
+  "keyframes": []
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `totalTime` | 整数 | 是 | 动画总时长（20 刻 = 1 秒），最小为 1。 |
+| `keyframes` | 数组 | 是 | 关键帧对象列表。可为空数组。 |
+
+### 关键帧字段
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `time` | 整数 | 是 | 该关键帧所在刻（0 ≤ time ≤ totalTime）。 |
+| `hidden` | 布尔值 | 否 | 为 `true` 时，该关键帧仍会在对应 `time` 应用相机/NBT/实体/注释状态，但进度条不会绘制可见节点，上一关键帧这类可见节点导航也会跳过它。 |
+| `label` | 字符串 | 否 | 悬停在进度条节点上时显示的标签及方向箭头。 |
+| `labelKey` | 字符串 | 否 | 关键帧标签的翻译键。解析成功时会覆盖 `label`。 |
+| `camera` | 对象 | 否 | 该关键帧的摄像机状态，缺省字段从前一关键帧继承。 |
+| `cameraEaseTicks` | 整数 或 null | 否 | 摄像机从**上一个**关键帧的位置缓动到当前关键帧的时间（刻数）。`null`（默认）= 在整个片段内缓动；`0` = 立即跳转；`N > 0` = 在 N 刻内缓动，之后保持目标位置。 |
+| `layer` | 整数 或 null | 否 | 可见层覆盖。`null` 显示所有层；从 1 开始的整数限制到指定层。 |
+| `annotations` | 数组 | 否 | 该关键帧激活时显示的注释列表。 |
+| `sounds` | 数组 | 否 | 正向播放时，关键帧变为激活状态后播放一次的音效列表。 |
+| `particles` | 数组 | 否 | 在正向播放进入该关键帧时触发的运行时粒子突发或预设列表。 |
+| `blockChanges` | 数组 | 否 | 该关键帧激活时执行的方块替换列表。 |
+| `mergeTileNBT` | 数组 | 否 | 将 SNBT 复合标签合并到指定坐标的方块实体。 |
+| `modifyTileNBT` | 数组 | 否 | 将某个方块实体 NBT 路径设置为指定 SNBT 值。 |
+| `removeTileNBT` | 数组 | 否 | 删除某个方块实体 NBT 路径。 |
+| `createEntities` | 数组 | 否 | 创建可被后续实体 NBT 操作引用的思索专用实体。 |
+| `setEntityNBT` | 数组 | 否 | 用提供的 SNBT 复合标签替换引用实体的 NBT。 |
+| `mergeEntityNBT` | 数组 | 否 | 将 SNBT 复合标签合并到引用实体。 |
+| `modifyEntityNBT` | 数组 | 否 | 将引用实体的某个 NBT 路径设置为指定 SNBT 值。 |
+| `removeEntityNBT` | 数组 | 否 | 删除引用实体的某个 NBT 路径。 |
+| `removeEntities` | 数组 | 否 | 通过稳定场景实体注册表，按 `ref` 删除一个或多个思索时间轴实体。 |
+
+隐藏关键帧适合做“中间状态但不加节点”的场景。例如你可以把多次 `modifyTileNBT` 分散到不同 tick，
+并把中间关键帧标记为隐藏，这样进度条上仍只保留主要节奏点。
+
+### 摄像机字段（均为可选）
+
+| 字段 | 说明 |
+|------|------|
+| `zoom` | 摄像机缩放（0.1 – 10.0）。 |
+| `rotX` | X 轴旋转角度（度）。 |
+| `rotY` | Y 轴旋转角度（度）。 |
+| `rotZ` | Z 轴旋转角度（度）。 |
+| `offX` | 水平平移偏移（屏幕像素）。 |
+| `offY` | 垂直平移偏移（屏幕像素）。 |
+
+相邻关键帧之间的摄像机使用**缓入/缓出**曲线平滑插值。使用目标关键帧的 `cameraEaseTicks` 字段可以控制缓动时长：
+
+```json
+{ "time": 60,  "cameraEaseTicks": 0,  "camera": { "rotY": 90 } }   ← 立即跳转
+{ "time": 120, "cameraEaseTicks": 20, "camera": { "rotY": 180 } }  ← 在 20 刻内缓动后保持
+{ "time": 180, "camera": { "rotY": 270 } }                         ← 在整个片段内缓动（默认）
+```
+
+## 方块变化（blockChanges）
+
+关键帧的 `blockChanges` 数组可在该关键帧激活时替换结构中的方块。这让动画可以呈现前/后对比、添加或移除方块，或演示机器开机效果。
+
+```json
+{
+  "time": 60,
+  "blockChanges": [
+    { "x": 1, "y": 1, "z": 1, "block": "minecraft:lit_furnace", "meta": 4, "particles": true },
+    { "x": 1, "y": 2, "z": 1, "block": "minecraft:air", "particles": false },
+    {
+      "x": 2, "y": 1, "z": 2, "block": "minecraft:chest", "meta": 2,
+      "nbt": "{Items:[{Slot:0b,id:\"minecraft:iron_ingot\",Count:8b,Damage:0s}]}"
+    }
+  ]
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `x`, `y`, `z` | 整数 | — | **必填。** 要修改的方块坐标（结构坐标系）。 |
+| `block` | 字符串 | — | **必填。** 注册名，如 `"minecraft:furnace"`。使用 `"minecraft:air"` 表示移除方块。 |
+| `meta` | 整数 | `0` | 方块元数据（伤害值）。 |
+| `particles` | 布尔值 | `true` | 在正向播放中触发该方块变化时，是否生成基于方块自身贴图的粒子效果。设为 `false` 可抑制视觉效果（例如静默移除方块）。 |
+| `nbt` | 字符串 | `null` | 方块实体的 SNBT 标签字符串，用于箱子、熔炉等。通过 `JsonToNBT` 解析。键名必须使用**不带引号**的标准 SNBT 格式；字符串值仍需引号。若方块没有方块实体则忽略该字段。 |
+
+**支持倒放定位：** 向前或向后拖动进度条时，运行时会先将所有改动过的位置恢复为原始状态，再从第 0 帧重新应用到当前帧。无论如何定位，显示的结构始终正确。
+
+> **关于粒子效果：** 粒子效果只在正向播放、关键帧第一次激活时触发，粒子使用被替换方块的自身贴图。定位（倒带/快进）、重置或初始加载时粒子**不会**触发，已有粒子会被清除。
+
+---
+
+## 关键帧音效
+
+在关键帧中添加 `sounds` 数组，可以让一个或多个指南音效在该关键帧正向播放并变为激活状态时播放。
+定位和初始加载不会播放关键帧音效；重新开始播放会清除播放记录，使音效可以再次触发。
+
+```json
+{
+  "time": 130,
+  "label": "熔炉点燃",
+  "sounds": [
+    { "sound": "guidenh:machine.start", "volume": 0.8 },
+    { "src": "guidenh:sounds/machine/hum.ogg", "volume": 0.4, "x": 1.5, "y": 1.5, "z": 1.5 }
+  ]
+}
+```
+
+音效字段：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `sound` | 字符串 | — | 音效事件 id，例如 `guidenh:machine.start`。 |
+| `src` | 字符串 | — | 音效文件 id 或路径；`guidenh:sounds/machine/start.ogg` 会转换为 `guidenh:machine.start`。 |
+| `volume` | 浮点数 | `1.0` | 衰减前的播放音量。 |
+| `pitch` | 浮点数 | `1.0` | 播放音高。 |
+| `cooldown` | 整数 | `250` | 同一音效再次播放前的最小间隔毫秒数。 |
+| `x`, `y`, `z` | 浮点数 | 无 | 可选场景空间音源位置，用于屏幕空间衰减。 |
+| `radius` | 浮点数 | 场景较短边 * 0.75 | 屏幕像素中的衰减半径。 |
+| `minVolume` | 浮点数 | `0.15` | 最小衰减系数。 |
+
+---
+
+## 关键帧粒子
+
+在关键帧中添加 `particles` 数组，可以让关键帧在正向播放时生成一次性粒子突发，或生成仅在该时间轴内生效的天气覆盖效果。
+这些粒子在倒着拖动时间轴时不会重新补播；定位或重新开始播放时，会先清除已有粒子，再恢复到当前状态。
+
+普通粒子：
+
+```json
+{
+  "time": 110,
+  "particles": [
+    {
+      "name": "smoke",
+      "x": 1.5,
+      "y": 1.85,
+      "z": 1.5,
+      "vx": 0.0,
+      "vy": 0.01,
+      "vz": 0.0,
+      "size": 0.18,
+      "time": 16,
+      "amount": 3
+    }
+  ]
+}
+```
+
+爆炸预设：
+
+```json
+{
+  "time": 160,
+  "particles": [
+    {
+      "preset": "explosion",
+      "x": 1.5,
+      "y": 1.45,
+      "z": 1.5,
+      "time": 8,
+      "power": 2.4
+    }
+  ]
+}
+```
+
+天气预设：
+
+```json
+{
+  "time": 220,
+  "particles": [
+    {
+      "preset": "rain",
+      "weather": "snow",
+      "x": [0, 2],
+      "z": [0, 2],
+      "time": 100,
+      "amount": 8
+    }
+  ]
+}
+```
+
+粒子字段：
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|---------|------|
+| `preset` | 字符串 | 无 | 特殊预设。`explosion` 会生成接近原版的闪光与烟雾爆发。`rain` 用于天气预设入口。 |
+| `weather` | 字符串 | `rain` | 仅用于 `preset: "rain"`。支持 `rain` 和 `snow`。 |
+| `name` | 字符串 | 无 | 普通粒子外观。支持 `billboard`、`smoke`、`largesmoke`、`explode`、`flash`、`largeexplode`、`hugeexplosion`。 |
+| `particle` / `kind` | 字符串 | 无 | `name` 的兼容别名。 |
+| `x`、`z` | 浮点数或数组 | 场景边界 | 粒子的世界坐标或天气覆盖范围。普通粒子使用单值坐标。对 `preset: "rain"`，单值表示单个降水列，数组按端点对定义矩形覆盖区域。 |
+| `vx`、`vy`、`vz` | 浮点数 | `0.0` | 初速度向量。`motionX/Y/Z` 也可作为别名。 |
+| `time` / `lifetime` | 整数 | 依预设而定 | 粒子生命周期，单位为 tick。对 `preset: "rain"` 而言，这里表示包含开始和结束过渡在内的总天气时长。 |
+| `size` | 浮点数 | 依预设而定 | 普通粒子的半尺寸，单位为方块。 |
+| `amount` | 整数 | 依预设而定 | 普通粒子的生成数量。对 `explosion`，省略时会根据 `power` 自动缩放；对 `preset: "rain"`，这里表示平均每 tick 的天气密度。 |
+| `power` | 浮点数 | `2.0` | `explosion` 预设的爆炸强度。 |
+
+天气预设说明：
+
+- `preset: "rain"` 是雨雪共用的天气预设入口。
+- 使用 `weather: "rain"` 生成接近原版正常世界的下雨效果，并带有少量落地水花。
+- 使用 `weather: "snow"` 生成更慢、更轻的飘雪效果。
+- 该预设归时间轴管理，会和 Ponder 的播放、暂停、跳转、快进一起回放。
+- 如果需要不依赖 Ponder 时间轴、始终循环的场景天气，请改用 `<GameScene>` 内的 `<Weather>` 标签。
+- 天气预设不使用 `y`；垂直生成范围始终由当前场景边界自动推导。
+- `x: 5, z: 8` 表示单个降水列。数组按连续两项组成端点对：
+  `x: [1, 5, 10, 12], z: [2, 6, 20, 24]` 表示两个矩形覆盖区域。
+- 如果某一轴数组末尾有多出来但无法完整配对的值，这部分会被忽略。
+- 运行时会自动补上短暂的开始过渡、稳定段和结束过渡。
+- 天气覆盖区域会根据当前 `GameScene` 的结构边界自动推导，而不是写死一个固定盒子。
+- 同一个 `x/z` 列在同一时段不会叠加多种天气；前面声明的重叠天气会优先占用共享列。
+
+---
+
+## 方块实体 NBT 操作
+
+当方块本身不变，只需要改变方块实体数据时，可以使用 `mergeTileNBT`、`modifyTileNBT`
+和 `removeTileNBT`。这些操作支持进度条定位：运行时会先恢复初始方块实体 NBT，再从第
+0 帧重放到当前关键帧。
+
+```json
+{
+  "time": 80,
+  "mergeTileNBT": [
+    {
+      "x": 2, "y": 1, "z": 2,
+      "nbt": "{InputTanks:[{Level:{Speed:0.25,Target:0.25,Value:0.0},TankContent:{Amount:250,FluidName:\"minecraft:lava\"}}]}"
+    }
+  ],
+  "modifyTileNBT": [
+    {
+      "x": 2, "y": 1, "z": 2,
+      "path": "InputTanks[0].TankContent.Amount",
+      "value": "500"
+    }
+  ],
+  "removeTileNBT": [
+    { "x": 2, "y": 1, "z": 2, "path": "InputTanks[0].Level.Target" }
+  ]
+}
+```
+
+| 字段 | 适用于 | 说明 |
+|------|--------|------|
+| `x`, `y`, `z` | 全部 | 方块实体所在的结构坐标。 |
+| `nbt` | `mergeTileNBT` | 要合并到方块实体的 SNBT 复合标签。复合标签会递归合并，其他值会覆盖旧值。 |
+| `path` | `modifyTileNBT`、`removeTileNBT` | 带列表索引的点分 NBT 路径，例如 `Items[0].Count` 或 `InputTanks[0].TankContent.Amount`。 |
+| `value` | `modifyTileNBT` | 写入 `path` 的 SNBT 值，例如 `3b`、`500`、`"\"text\""`、`{Count:1b,id:"minecraft:stone"}`。 |
+
+路径写法与 Minecraft `/data` 的思路相同：用 `.` 进入复合标签，用 `[index]` 进入列表。
+列表遍历目前面向常见的“列表内是复合标签”的结构，例如物品栏、流体罐和配方槽。
+
+---
+
+## 实体操作
+
+游戏场景（GameScene）本身已经支持普通 `<Entity>` 标签。思索时间轴现在也可以通过
+`createEntities` 创建由时间轴管理的实体，并在后续关键帧中通过 `ref` 引用它们。
+
+```json
+{
+  "time": 0,
+  "createEntities": [
+    {
+      "ref": "marker",
+      "sceneEntityId": "marker",
+      "id": "minecraft:pig",
+      "x": 1.5, "y": 1.0, "z": 2.5,
+      "yaw": 180,
+      "nbt": "{CustomName:\"Before\",CustomNameVisible:1b}"
+    }
+  ]
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `ref` | 必填，本思索 JSON 内用于后续操作的引用名。 |
+| `sceneEntityId` | 可选，稳定的场景内实体 id，用于骑乘关系、可重放替换、导入导出恢复，以及后续删除同一个逻辑实体。默认会基于 `ref` 生成内部稳定 id。 |
+| `id` | 实体 ID，例如 `minecraft:pig`、`Pig` 或场景实体加载器支持的模组实体 ID。 |
+| `x`, `y`, `z` | 可选生成位置。未填写且 `nbt` 没有 `Pos` 时默认为 `0, 0, 0`。 |
+| `yaw`, `pitch` | 可选生成旋转。未填写且 `nbt` 没有 `Rotation` 时默认为 `0, 0`。 |
+| `bodyYaw`, `headYaw` | 可选的生物身体 / 头部 yaw 覆盖；若只写 `yaw`，未写这两个字段时会默认跟随 `yaw`。 |
+| `nbt` | 可选，实体创建时应用的 SNBT 复合标签。 |
+| `name`, `uuid` | 可选，创建预览玩家实体时使用的玩家档案字段。 |
+| `mount` | 可选，该实体创建后或后续重放时要骑乘的目标载具稳定 `sceneEntityId`。 |
+| `unmount` | 可选，布尔值；在后续新的 `mount` 应用前，先清除该实体当前稳定骑乘关系。 |
+
+实体创建后，可以使用实体 NBT 操作：
+
+```json
+{
+  "time": 60,
+  "mergeEntityNBT": [
+    { "ref": "marker", "nbt": "{Saddle:1b}" }
+  ],
+  "modifyEntityNBT": [
+    { "ref": "marker", "path": "CustomName", "value": "\"After\"" }
+  ],
+  "removeEntityNBT": [
+    { "ref": "marker", "path": "CustomNameVisible" }
+  ]
+}
+```
+
+如果需要替换实体 NBT，而不是合并，可以使用 `setEntityNBT`：
+
+```json
+{
+  "time": 100,
+  "setEntityNBT": [
+    { "ref": "marker", "nbt": "{Pos:[0.0d,0.0d,0.0d],Rotation:[0.0f,0.0f],CustomName:\"Reset\"}" }
+  ]
+}
+```
+
+实体动作也可以在不改 NBT 的情况下直接调整位置、预览玩家姿态和稳定骑乘关系：
+
+```json
+{
+  "time": 80,
+  "createEntities": [
+    { "ref": "cart", "sceneEntityId": "cart", "id": "minecraft:minecart", "x": 1.5, "y": 1.0, "z": 1.5 },
+    { "ref": "rider", "sceneEntityId": "rider", "id": "player", "name": "GuideNH", "x": 1.5, "y": 1.0, "z": 1.5, "mount": "cart" }
+  ],
+  "modifyEntityNBT": [
+    { "ref": "rider", "headYaw": 270.0, "leftArmRotation": "-40 0 0" }
+  ]
+}
+```
+
+若需要取消骑乘或删除时间轴实体，可以使用 `unmount` 或 `removeEntities`：
+
+```json
+{
+  "time": 120,
+  "modifyEntityNBT": [
+    { "ref": "rider", "unmount": true, "x": 2.5, "y": 1.0, "z": 1.5 }
+  ],
+  "removeEntities": [
+    { "ref": "cart" }
+  ]
+}
+```
+
+与方块实体操作一样，实体操作会在关键帧变化时从头重放；向后拖动进度条时，
+思索时间轴创建的实体会被移除并重新创建到目标时刻的正确状态。
+
+说明：
+
+- `ref` 用来定位当前要修改或删除的思索时间轴实体。
+- `sceneEntityId` 和 `mount` 用来描述稳定的跨实体关系；`mount` 指向的始终是稳定场景 id，而不是另一个 `ref`。
+- 不建议只依赖原始乘客 NBT 来表达跨实体场景关系。真正保证回放、重建、导入导出和编辑器预览刷新后仍然稳定一致的是这套稳定注册表。
+
+---
+
+## 注释淡入动画
+
+当播放过程中活跃关键帧切换时，叠加类注释（`text`、`input`）会在 **5 个游戏刻**（250 ms）内平滑淡入。暂停或拖动定位时，注释始终以完全不透明度立即显示。
+
+---
+
+## 注释类型
+
+每个注释条目需要一个 `type` 字段，共支持七种类型。
+
+---
+
+### `diamond` — 菱形标记
+
+在世界坐标渲染一个 3D 菱形标记。
+
+```json
+{
+  "type": "diamond",
+  "x": 1.5,
+  "y": 2.0,
+  "z": 1.5,
+  "color": "0xFFFF8800",
+  "tooltip": "点击此处",
+  "alwaysOnTop": false
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `x`, `y`, `z` | float | `0.0` | 菱形尖端的世界坐标。 |
+| `color` | 字符串 | `"0xFF00E000"` | ARGB 颜色，格式为 `"0xAARRGGBB"`。 |
+| `tooltip` | 字符串 | `""` | 悬停时显示的回退文本。 |
+| `tooltipKey` | 字符串 | `""` | 悬停提示的翻译键。解析成功时会覆盖 `tooltip`。 |
+| `alwaysOnTop` | 布尔值 | `false` | 为 true 时穿透方块渲染。 |
+
+---
+
+### `box` — 线框盒子
+
+从 `min` 到 `max` 渲染一个轴对齐线框盒子。
+
+```json
+{
+  "type": "box",
+  "minX": 0.0, "minY": 0.0, "minZ": 0.0,
+  "maxX": 3.0, "maxY": 2.0, "maxZ": 3.0,
+  "color": "0x8800FFFF",
+  "lineWidth": 1.5,
+  "alwaysOnTop": false
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `minX/Y/Z` | float | `0.0` | 最小角坐标。 |
+| `maxX/Y/Z` | float | `1.0` | 最大角坐标。 |
+| `color` | 字符串 | `"0xFFFFFFFF"` | ARGB 线条颜色。 |
+| `lineWidth` | float | 默认值 | GL 线宽。 |
+| `alwaysOnTop` | 布尔值 | `false` | 穿透方块渲染。 |
+
+---
+
+### `block` - 整方块线框
+
+当你想在 Ponder JSON 中使用和普通 `<BlockAnnotation pos="x y z">` 一样的整方块标注时，使用 `block`。
+
+```json
+{
+  "type": "block",
+  "pos": [1, 0, 1],
+  "color": "0xFFFF8800",
+  "lineWidth": 1.5,
+  "alwaysOnTop": true
+}
+```
+
+`blockBox` 和 `block_box` 也可以作为别名。坐标可以写成 `pos: [x, y, z]`，也可以写成
+`x/y/z`，或兼容旧风格的 `blockX/blockY/blockZ`。
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `pos` | number[3] 或字符串 | `[0, 0, 0]` | 方块坐标，格式为 `[x, y, z]` 或 `"x y z"`。 |
+| `x`, `y`, `z` | number | `0` | 另一种方块坐标写法，会向下取整。 |
+| `blockX/Y/Z` | 整数 | `0` | 旧风格方块坐标字段。 |
+| `color` | 字符串 | `"0xFFFFFFFF"` | ARGB 线框颜色。 |
+| `lineWidth` | float | 默认值 | GL 线宽。 |
+| `alwaysOnTop` | 布尔值 | `false` | 穿透方块渲染。 |
+
+---
+
+### `line` — 线段或折线
+
+在两个世界坐标之间渲染一条线段，也可以通过 `points` 渲染多段折线。`points` 至少包含两个有效点时，会优先于 `fromX/Y/Z` 和 `toX/Y/Z`。
+
+```json
+{
+  "type": "line",
+  "fromX": 0.5, "fromY": 0.5, "fromZ": 0.5,
+  "toX": 2.5,   "toY": 0.5,   "toZ": 0.5,
+  "color": "0xFFFFFF00",
+  "arrow": "end",
+  "lineWidth": 2.0,
+  "alwaysOnTop": true
+}
+```
+
+折线点可以写成字符串，也可以写成数组：
+
+```json
+{
+  "type": "line",
+  "points": [[0.5, 1.2, 0.5], [1.5, 1.8, 1.5], [2.5, 1.2, 2.5]],
+  "color": "0xFFFFCC44",
+  "arrow": "end"
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `fromX/Y/Z` | float | `0.0` | 起点坐标。 |
+| `toX/Y/Z` | float | `1.0` | 终点坐标。 |
+| `points` | 字符串或数组 | `null` | 折线点。可写 `"x y z; x y z; ..."` 或 `[[x,y,z], ...]`。 |
+| `color` | 字符串 | `"0xFFFFFFFF"` | ARGB 线条颜色。 |
+| `arrow` | 字符串 | `null` | `start` 或 `end`；省略或无法识别时不绘制箭头。 |
+| `lineWidth` | float | 默认值 | GL 线宽。 |
+| `alwaysOnTop` | 布尔值 | `false` | 穿透方块渲染。 |
+
+---
+
+### `blockface` — 方块面叠层
+
+用半透明颜色叠层高亮显示某个方块的所有面。
+
+```json
+{
+  "type": "blockface",
+  "pos": [1, 0, 1],
+  "color": "0x8833FF33",
+  "alwaysOnTop": false
+}
+```
+
+`blockFace` 和 `block_face` 也可以作为别名。
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `pos` | number[3] 或字符串 | `[0, 0, 0]` | 方块坐标，格式为 `[x, y, z]` 或 `"x y z"`。 |
+| `x`, `y`, `z` | number | `0` | 另一种方块坐标写法，会向下取整。 |
+| `blockX/Y/Z` | 整数 | `0` | 旧风格方块坐标字段。 |
+| `color` | 字符串 | `"0x80FFFFFF"` | ARGB 叠层颜色。 |
+| `alwaysOnTop` | 布尔值 | `false` | 穿透方块渲染。 |
+
+---
+
+### `text` — 文字气泡
+
+在世界坐标附近渲染一个带连接线的文字气泡框，默认锚定到指定坐标正上方。文字内容由关键帧驱动：如果想随时间改变文字，在后续关键帧声明新的 `text` 注释即可。
+
+```json
+{
+  "type": "text",
+  "x": 1.5,
+  "y": 2.5,
+  "z": 1.5,
+  "textKey": "guidenh.sample.scene.insert_items",
+  "color": "0xFF44AAFF",
+  "connectorSide": "right",
+  "connectorOffset": 8,
+  "connectorLength": 12
+}
+```
+
+使用**独立模式（independent）**可以在固定屏幕坐标处显示气泡框（不跟随世界坐标投影）：
+
+```json
+{
+  "type": "text",
+  "text": "独立标签",
+  "color": "0xFFFFCC00",
+  "backgroundAlpha": 160,
+  "independent": true,
+  "yOffset": 40
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `x`, `y`, `z` | float | `0.0` | 锚点的世界坐标（独立模式下忽略）。 |
+| `text` | 字符串 | — | 回退显示文本。 |
+| `textKey` | 字符串 | — | 优先从资源包 `lang` 文件解析的翻译键；解析失败时回退到 `text`。 |
+| `color` | 字符串 | `"0xFFAAAAAA"` | ARGB 边框颜色。 |
+| `backgroundAlpha` | 整数 | `204` | 背景透明度，`0` 为完全透明，`255` 为完全不透明。 |
+| `maxWidth` | 整数 | `0` | 若 &gt; 0，按此像素宽度自动换行；`0` 表示单行。 |
+| `independent` | 布尔值 | `false` | 若为 `true`，位置以场景中心为基准（屏幕坐标），而非世界坐标投影。 |
+| `yOffset` | 整数 | `0` | 相对于场景垂直中心的像素偏移（正值向下）。与 `independent: true` 配合使用。 |
+| `connectorSide` | 字符串 | `"bottom"` | `bottom`、`top`、`left`、`right` 或 `none`。独立模式下忽略。 |
+| `connectorOffset` | 整数 | `0` | 沿选定气泡边缘偏移连接点；top/bottom 正值向右，left/right 正值向下。 |
+| `connectorLength` | 整数 | `6` | 连接线像素长度；`0` 会隐藏连接线但保留按边定位。 |
+| `hlMinX/Y/Z` | float | `0.0` | 可选的伴生高亮框最小角坐标。 |
+| `hlMaxX/Y/Z` | float | `1.0` | 可选的伴生高亮框最大角坐标。 |
+| `highlightColor` | 字符串 | `"0x8000FFAA"` | 高亮框颜色（存在 `hlMin/Max` 时自动创建一个 `InWorldBoxAnnotation`）。 |
+
+当任意 `hlMin/Max` 坐标存在时，会为该关键帧额外创建一个 `InWorldBoxAnnotation`，颜色由 `highlightColor` 指定。适合在讲解区域时高亮指定的方块范围。
+
+气泡框背景默认是深色半透明（`#CC0E0E20`），可用 `backgroundAlpha` 调整透明度。世界锚定模式下有连接线；独立模式下没有。文本支持完整的 GuideNH 行内富文本语法（Markdown 格式化与 MDX 行内标签），并带阴影渲染。
+
+> **富文本支持：** `text` 字段支持 GuideNH 页面中所有行内富文本语法：
+> `**粗体**`、`*斜体*`、`~~删除线~~`、`<Color id="RED">颜色文本</Color>`、
+> `<ItemLink id="minecraft:iron_ingot" />` 以及其他所有行内 MDX 标签。
+> **不支持** Minecraft 原版的 `§` 格式代码，请改用上述 MDX 语法。
+
+> 缺少 `text` 字段或值为空的 `text` 注释将被静默忽略。
+
+---
+
+### `input` — 鼠标操作提示
+
+在世界坐标附近渲染一个鼠标操作图标（左键、右键或滚轮），用于提示玩家执行特定交互。
+
+```json
+{
+  "type": "input",
+  "x": 0.5,
+  "y": 1.5,
+  "z": 0.5,
+  "inputType": "lmb"
+}
+```
+
+带修饰键前缀和物品图标的示例：
+
+```json
+{
+  "type": "input",
+  "x": 0.5,
+  "y": 1.5,
+  "z": 0.5,
+  "inputType": "lmb",
+  "modifier": "sneak",
+  "item": "minecraft:iron_ingot"
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `x`, `y`, `z` | float | `0.0` | 锚点的世界坐标。 |
+| `inputType` | 字符串 | `"lmb"` | `"lmb"`（左键）、`"rmb"`（右键）或 `"scroll"`（滚轮），不区分大小写。 |
+| `modifier` | 字符串 | `null` | 可选修饰键：`"sneak"` 或 `"ctrl"`。在图标上方显示前缀文字。 |
+| `item` | 字符串 | `null` | 可选物品注册 ID（如 `"minecraft:iron_ingot"`）。在鼠标图标左侧显示物品图标。支持 `"modid:item:meta"` 格式指定元数据。 |
+
+图标为从 `ponder_widgets.png` 绘制的 16×16 精灵图。背景为深色半透明（`#CC0E0E20`），边框为浅蓝色（`#80AAAADD`）。指定 `item` 时气泡框会横向扩展以容纳两个图标。
+
+---
+
+## 颜色格式
+
+颜色为 ARGB 十六进制字符串。支持 `"0xFFFFFF00"`（带 `0x` 前缀）和 `"FFFF00"`（不带前缀）两种写法。
+
+- `FF` alpha = 完全不透明
+- `80` alpha = 50% 半透明
+- `00` alpha = 完全透明
+- `"0xFF00E000"` — 不透明绿色（菱形默认颜色）
+- `"0x8022CCFF"` — 半透明蓝色
+- `"0xFFAAAAAA"` — 浅灰色（文字气泡边框默认颜色）
+
+## 播放行为
+
+### 控件说明
+
+| 控件 | 功能 |
+|------|------|
+| **◄（上一关键帧）** | 跳转到上一个可见关键帧片段的起始位置。隐藏关键帧会被跳过。 |
+| **▶/⏸（播放/暂停）** | 切换播放状态；若已播完则重新从头开始。 |
+| **↺（从头开始）** | 返回第 0 刻并重新播放。 |
+| 进度条 | 点击或拖拽可跳转到任意位置（始终暂停）。 |
+| 关键帧节点 | 进度条上仅为可见关键帧绘制的小刻度标记，悬停时显示标签文本。 |
+
+### 初始状态
+
+当包含 `<ImportPonder>` 的页面首次打开时，场景默认**暂停在第 0 刻**。按播放键（▶）开始播放。
+
+### 摄像机锁定
+
+播放**进行中**（未暂停）时：
+- 摄像机跟随关键帧插值路径；拖拽和缩放**被禁用**。
+- 层滑条和 StructureLib 滑条**被隐藏**。
+
+播放**暂停**或**结束**时，所有交互完全恢复。
+
+### 关键帧节点标签
+
+悬停在进度条的关键帧节点上时：
+- 节点稍微放大以表示悬停。
+- 若该关键帧有 `label`，则在节点旁显示标签文本。
+- 隐藏关键帧不会生成可悬停节点，但当播放或拖动时间轴经过它们时，仍会照常应用对应的时间轴状态。
+
+### 层控制
+
+活跃关键帧的 `layer` 字段在播放期间覆盖可见层过滤：
+- `null`（或省略）→ 显示所有层。
+- `1`、`2`、`3`……→ 限制到该 1-based 层索引。
+
+## 完整示例
+
+以下示例展示了所有七种注释类型，跨四个关键帧。
+
+### 目录结构
+
+```
+assets/mymod/guidebooks/
+  pages/machines/grinder.mdx
+  pages/machines/grinder.snbt
+  pages/machines/grinder.json
+```
+
+### `grinder.json`
+
+```json
+{
+  "totalTime": 240,
+  "keyframes": [
+    {
+      "time": 0,
+      "label": "总览",
+      "camera": { "zoom": 1.5, "rotX": 20, "rotY": 225 },
+      "layer": null,
+      "annotations": []
+    },
+    {
+      "time": 60,
+      "label": "输入仓",
+      "camera": { "rotY": 180 },
+      "layer": null,
+      "annotations": [
+        {
+          "type": "diamond",
+          "x": 0.5, "y": 1.5, "z": 1.5,
+          "color": "0xFF44FF44",
+          "tooltip": "EV 输入总线",
+          "alwaysOnTop": true
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 3.0, "z": 1.5,
+          "text": "在此处放入矿石",
+          "color": "0xFF44FF44"
+        },
+        {
+          "type": "input",
+          "x": 0.5, "y": 2.0, "z": 1.5,
+          "inputType": "rmb"
+        }
+      ]
+    },
+    {
+      "time": 140,
+      "label": "输出侧",
+      "camera": { "rotY": 90 },
+      "layer": null,
+      "annotations": [
+        {
+          "type": "box",
+          "minX": 2.0, "minY": 0.0, "minZ": 0.0,
+          "maxX": 3.0, "maxY": 2.0, "maxZ": 3.0,
+          "color": "0x8800AAFF",
+          "lineWidth": 1.5
+        },
+        {
+          "type": "line",
+          "fromX": 2.0, "fromY": 1.0, "fromZ": 1.5,
+          "toX": 2.5, "toY": 1.0, "toZ": 1.5,
+          "color": "0xFFFFAA00",
+          "lineWidth": 2.0,
+          "alwaysOnTop": true
+        },
+        {
+          "type": "blockface",
+          "pos": [2, 1, 1],
+          "color": "0x8833FF33"
+        },
+        {
+          "type": "text",
+          "x": 2.5, "y": 3.0, "z": 1.5,
+          "text": "在此处收取矿粉",
+          "color": "0xFF00AAFF"
+        },
+        {
+          "type": "input",
+          "x": 2.5, "y": 2.0, "z": 1.5,
+          "inputType": "lmb"
+        }
+      ]
+    },
+    {
+      "time": 220,
+      "label": "滚轮翻层",
+      "camera": { "rotY": 225 },
+      "layer": null,
+      "annotations": [
+        {
+          "type": "input",
+          "x": 1.5, "y": 2.5, "z": 1.5,
+          "inputType": "scroll"
+        },
+        {
+          "type": "text",
+          "x": 1.5, "y": 3.5, "z": 1.5,
+          "text": "滚动鼠标滚轮查看层",
+          "color": "0xFFFFCC00"
+        }
+      ]
+    },
+    {
+      "time": 240,
+      "camera": { "rotY": 225 }
+    }
+  ]
+}
+```
+
+### `grinder.snbt`
+
+标准 NBT 结构文件（通过 `/structure save` 命令或 Litematica 等工具创建）。完整的 SNBT 格式参考请见 [Getting Started](Guide-Page-Format.md)。
+
+### `grinder.mdx`
+
+```mdx
+# 磨碎机
+
+<GameScene zoom="4">
+  <ImportStructure src="grinder.snbt" />
+  <ImportPonder src="grinder.json" />
+</GameScene>
+
+磨碎机将矿石加工成双倍矿粉。按**播放**键查看动态演示。
+```
+
+## 注意事项
+
+- 思索进度条绘制在层/StructureLib 滑条上方。播放期间结构滑条被隐藏，暂停后重新出现。
+- 即使某些关键帧仅更改部分摄像机轴，摄像机插值始终平滑（缓入/缓出）。使用 `cameraEaseTicks` 可以让摄像机立即跳转（`0`）或在指定刻数内完成缓动后保持目标位置。
+- 注释属于单个关键帧，仅在该关键帧激活期间（从其 `time` 刻到下一关键帧的 `time` 刻之前）显示。正向播放时叠加文字注释会平滑淡出后切换。
+- Ponder `line` 注释使用普通 `LineAnnotation` 的同一套运行时渲染器，支持折线和起点/终点箭头。点立方体标记目前仍是 MDX `LineAnnotation` 专用能力。
+- Ponder `text` 注释使用普通 `TextAnnotation` 的同一套运行时渲染器，支持连接线方向、偏移和长度。动态文字是基于关键帧切换的，不会在单个关键帧内逐 tick 插值。
+- 每个游戏场景（`<GameScene>`）只有一个 `<ImportPonder>` 标签生效，多个标签时后者覆盖前者。
+- `text` 字段缺失或为空的 `text` 注释将被静默跳过。
+- `inputType` 字段缺失或无法识别时默认为 `"lmb"`。
+- `blockChanges` 按从第 0 帧到当前帧的顺序应用；在多个关键帧中修改同一位置的方块完全正常。
+- 方块实体和实体 NBT 操作也使用同样的重放模型；向前或向后拖动进度条都能恢复正确状态。
+- `maxWidth` &gt; 0 的 `text` 注释使用原版字体渲染器自动换行；气泡框高度会随多行文本自动调整。
+- `nbt` 字符串中键名必须为**不带引号**的标准 SNBT 格式（MC 1.7.10 `JsonToNBT` 要求）。字符串值仍需引号，例如 `{id:"minecraft:iron_ingot",Count:8b}`。
+- `modifyTileNBT` 和 `modifyEntityNBT` 的 `value` 是 SNBT 值，不是 JSON 值。字符串值需要在 JSON 内转义 SNBT 引号：`"value": "\"hello\""`。

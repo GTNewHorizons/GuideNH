@@ -21,6 +21,29 @@ img.game-scene.guide-scene {
     background: transparent;
 }
 
+.scene-hydration-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    color: #b42318;
+    font: 12px/1.4 sans-serif;
+}
+
+.scene-hydration-error button {
+    padding: 2px 6px;
+    border: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+}
+
+.scene-hydration-error button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
 .game-scene-wrapper {
     position: relative;
     display: inline-block;
@@ -44,6 +67,14 @@ img.game-scene.guide-scene {
     height: auto !important;
     aspect-ratio: var(--modelviewer-aspect-ratio);
     overflow: hidden;
+}
+
+.guide-scene[data-scene-kind="block-image"],
+.game-scene-wrapper[data-scene-kind="block-image"] {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    margin-right: 0;
 }
 
 .game-scene-wrapper .root {
@@ -195,13 +226,63 @@ img.game-scene.guide-scene {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: calc(12px * var(--gui-scale));
-    min-height: calc(8px * var(--gui-scale));
-    padding: 0 calc(2px * var(--gui-scale));
+    width: calc(11px * var(--gui-scale));
+    height: calc(10px * var(--gui-scale));
+    position: relative;
     background: rgba(255, 255, 255, 0.12);
     font-size: calc(4px * var(--gui-scale));
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-sizing: border-box;
+}
+
+.scene-input-annotation-key--lmb::before,
+.scene-input-annotation-key--rmb::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 48%, rgba(255,255,255,.65) 48% 52%, transparent 52%);
+}
+
+.scene-input-annotation-key--lmb::after,
+.scene-input-annotation-key--rmb::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 50%;
+    height: 45%;
+    background: rgba(255,255,255,.7);
+}
+
+.scene-input-annotation-key--rmb::after {
+    left: 50%;
+}
+
+.scene-input-annotation-key--scroll {
+    border-radius: calc(3px * var(--gui-scale));
+}
+
+.scene-input-annotation-key--scroll::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 15%;
+    width: 2px;
+    height: 70%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,.75);
+}
+
+.scene-input-annotation-key--scroll::after {
+    content: "↕";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: rgba(255,255,255,.9);
+    font-size: calc(5px * var(--gui-scale));
 }
 
 .game-scene-wrapper .controls {
@@ -331,7 +412,7 @@ img.game-scene.guide-scene {
     position: relative;
     overflow: hidden;
     background: transparent;
-    filter: opacity(0.75);
+    filter: none;
     image-rendering: pixelated;
 }
 
@@ -347,6 +428,8 @@ img.game-scene.guide-scene {
     background-repeat: no-repeat;
     background-size: calc(256px * var(--gui-scale)) calc(256px * var(--gui-scale));
     image-rendering: pixelated;
+    opacity: 0.75;
+    transition: opacity 120ms ease;
 }
 
 .scene-ponder-button.scene-icon-button::before {
@@ -356,7 +439,14 @@ img.game-scene.guide-scene {
 
 .scene-icon-button:hover,
 .scene-icon-button:focus-visible {
-    filter: opacity(1) brightness(0) saturate(100%) invert(67%) sepia(93%) saturate(2009%) hue-rotate(143deg) brightness(101%) contrast(104%);
+    filter: none;
+}
+
+.scene-icon-button:hover::before,
+.scene-icon-button:focus-visible::before,
+.scene-icon-button[aria-pressed="true"]::before {
+    opacity: 1;
+    background-image: var(--scene-icon-tinted-sprite, url('textures/guide/buttons.png'));
 }
 
 .scene-state-slider-visual {
@@ -424,4 +514,101 @@ img.game-scene.guide-scene {
     color: rgba(210, 210, 210, 0.6);
     font-size: 0.85rem;
     line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+    .guide-scene,
+    .game-scene-wrapper {
+        --gui-scale: 2;
+    }
+
+    img.game-scene.guide-scene {
+        height: auto;
+    }
+
+    .game-scene-wrapper {
+        display: block;
+        width: min(100%, calc(var(--modelviewer-width) + 16px));
+        margin-right: 0;
+    }
+
+    .game-scene-wrapper .root,
+    .game-scene-wrapper .viewport {
+        width: 100%;
+    }
+
+    .game-scene-wrapper .controls {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px;
+        margin: 4px 0;
+    }
+
+    .game-scene-wrapper .controls button,
+    .game-scene-wrapper .scene-ponder-button {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    .scene-icon-button::before {
+        left: 6px;
+        top: 6px;
+    }
+
+    .scene-state-controls {
+        width: 100%;
+    }
+
+    .scene-state-control {
+        height: 44px;
+        padding: 0 8px;
+    }
+
+    .scene-state-control-header {
+        inset-inline: 8px;
+    }
+
+    .scene-state-slider-wrap {
+        min-width: 0;
+        height: 32px;
+    }
+
+    .scene-state-slider-visual {
+        top: 12px;
+    }
+
+    .scene-state-range {
+        touch-action: pan-y;
+    }
+
+    .guide-scene-export-frame {
+        display: block;
+        width: 100%;
+        padding: 0;
+        --guide-scene-display-scale: 2;
+    }
+
+    .guide-scene-export-frame .guide-scene-block-stats {
+        position: static;
+        max-width: 100%;
+        max-height: 160px;
+        margin-top: 8px;
+        overflow: auto;
+    }
+
+    .guide-scene-block-stat {
+        min-height: 36px;
+        font-size: 12px;
+    }
+}
+
+@media (pointer: coarse) {
+    .game-scene-wrapper--interactive .viewport {
+        touch-action: none;
+    }
 }

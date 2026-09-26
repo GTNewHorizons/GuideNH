@@ -39,11 +39,10 @@ navigation:
 
 Edit this page in the center pane and see a GuideNH styled preview on the right.
 
-## ExportSite compatibility
+## Guide workspace
 
-- Import an exported site folder from **ExportSite**.
 - Keep Markdown, frontmatter, navigation, and assets together.
-- Use the export button to move the project to another browser.
+- Use the bundle export button to move the project to another browser.
 
 > [!TIP]
 > Your work is saved in this browser automatically.
@@ -52,14 +51,14 @@ Edit this page in the center pane and see a GuideNH styled preview on the right.
 mindmap
   root((GuideNH))
     Markdown
-    ExportSite
+    Runtime tags
     Preview
 \`\`\`
 `;
   return normalizeProject({ name: "GuideNH project", files: [{ path: "guides/guidenh/guidenh/en_us/index.md", content, kind: "markdown" }] });
 }
 
-export async function filesToProject(fileList) {
+export async function filesToProject(fileList, targetDirectory = "") {
   const files = [];
   for (const file of Array.from(fileList || [])) {
     const path = normalizePath(file.webkitRelativePath || file.name);
@@ -78,7 +77,22 @@ export async function filesToProject(fileList) {
     }
     files.push({ path, content, encoding, kind: sourceKind(path) });
   }
-  return normalizeProject({ name: "Imported ExportSite", files: stripCommonRoot(files) });
+  if (isExportSiteFiles(files)) throw new Error("ExportSite output folders are not supported. Import the GuideNH source folder instead.");
+  const importedFiles = stripCommonRoot(files).map((file) => ({
+    ...file,
+    path: normalizePath(targetDirectory ? `${targetDirectory}/${file.path}` : file.path),
+  }));
+  return normalizeProject({ name: "Imported GuideNH project", files: importedFiles });
+}
+
+export function isExportSiteFiles(files) {
+  const paths = new Set(Array.from(files || []).map((file) => normalizePath(file?.path || "").toLowerCase()));
+  if ([...paths].some((path) => path === "export-report.json" || path.endsWith("/export-report.json") || path === "_site/app.js" || path.endsWith("/_site/app.js"))) return true;
+  for (const file of files || []) {
+    if (normalizePath(file?.path || "").toLowerCase().endsWith("/package.json")
+      && /guidenh-exportsite/i.test(String(file?.content || ""))) return true;
+  }
+  return false;
 }
 
 function assetMimeType(extension) {
@@ -106,6 +120,13 @@ export function normalizeProject(input) {
     encoding: file.encoding || "text",
     kind: file.kind || sourceKind(file.path),
   })).filter((file) => file.path);
+  const directories = Array.from(new Set([
+    ...(input?.directories || []),
+    ...files.flatMap((file) => {
+      const segments = file.path.split("/");
+      return segments.slice(0, -1).map((_segment, index) => segments.slice(0, index + 1).join("/"));
+    }),
+  ].map(normalizePath).filter(Boolean))).sort((left, right) => left.localeCompare(right));
   const pages = files.filter((file) => file.kind === "markdown" || file.kind === "html").map((file) => ({
     path: file.path,
     title: pageTitle(file.path, file.content),
@@ -115,6 +136,7 @@ export function normalizeProject(input) {
     id: input?.id || globalThis.crypto?.randomUUID?.() || `project-${Date.now()}`,
     name: input?.name || "GuideNH project",
     files,
+    directories,
     pages,
     selectedPath: input?.selectedPath && files.some((file) => file.path === input.selectedPath) ? input.selectedPath : pages[0]?.path || files[0]?.path || "",
     updatedAt: input?.updatedAt || new Date().toISOString(),
@@ -138,13 +160,66 @@ export function updateFile(project, path, content) {
   return normalizeProject({ ...project, files, selectedPath: path });
 }
 
-export function addPage(project) {
-  const base = "guides/guidenh/guidenh/en_us/new-page.md";
+export function createFile(project, directory = "", requestedName = "new-page.md") {
+  const safeDirectory = normalizePath(directory);
+  const cleanName = sanitizeName(requestedName, "new-page.md");
+  const base = normalizePath(`${safeDirectory}/${cleanName}`);
   let path = base;
   let index = 2;
-  while (project.files.some((file) => file.path === path)) path = base.replace("new-page", `new-page-${index++}`);
+  while (project.files.some((file) => file.path === path)) {
+    const dot = cleanName.lastIndexOf(".");
+    const stem = dot > 0 ? cleanName.slice(0, dot) : cleanName;
+    const suffix = dot > 0 ? cleanName.slice(dot) : "";
+    path = normalizePath(`${safeDirectory}/${stem}-${index++}${suffix}`);
+  }
   const file = { path, content: "---\nnavigation:\n  title: New page\n---\n\n# New page\n\nStart writing here.\n", kind: "markdown", encoding: "text" };
   return normalizeProject({ ...project, files: [...project.files, file], selectedPath: path });
+}
+
+export function createDirectory(project, parentDirectory = "", requestedName = "new-folder") {
+  const parent = normalizePath(parentDirectory);
+  const name = sanitizeName(requestedName, "new-folder");
+  let path = normalizePath(`${parent}/${name}`);
+  let index = 2;
+  while (project.directories.includes(path) || project.files.some((file) => file.path.startsWith(`${path}/`))) path = normalizePath(`${parent}/${name}-${index++}`);
+  return normalizeProject({ ...project, directories: [...project.directories, path] });
+}
+
+export function renamePath(project, sourcePath, requestedName) {
+  const source = normalizePath(sourcePath);
+  const isDirectory = project.directories.includes(source);
+  const parent = source.split("/").slice(0, -1).join("/");
+  const name = sanitizeName(requestedName, source.split("/").pop() || "untitled");
+  const target = normalizePath(`${parent}/${name}`);
+  if (!source || source === target || project.files.some((file) => file.path === target) || project.directories.includes(target)) return project;
+  if (isDirectory && project.files.some((file) => file.path.startsWith(`${target}/`))) return project;
+  const replace = (value) => value === source || value.startsWith(`${source}/`) ? `${target}${value.slice(source.length)}` : value;
+  return normalizeProject({
+    ...project,
+    files: project.files.map((file) => ({ ...file, path: replace(file.path) })),
+    directories: project.directories.map(replace),
+    selectedPath: replace(project.selectedPath),
+  });
+}
+
+export function movePath(project, sourcePath, targetDirectory) {
+  const source = normalizePath(sourcePath);
+  const target = normalizePath(targetDirectory);
+  if (!source || source === target || target.startsWith(`${source}/`)) return project;
+  const name = source.split("/").pop();
+  const destination = normalizePath(`${target}/${name}`);
+  if (project.files.some((file) => file.path === destination) || project.directories.includes(destination)) return project;
+  const replace = (value) => value === source || value.startsWith(`${source}/`) ? `${destination}${value.slice(source.length)}` : value;
+  return normalizeProject({ ...project, files: project.files.map((file) => ({ ...file, path: replace(file.path) })), directories: project.directories.map(replace), selectedPath: replace(project.selectedPath) });
+}
+
+function sanitizeName(value, fallback) {
+  const name = String(value || "").trim().replaceAll("\\", "/").split("/").pop().replace(/[\u0000-\u001f]/g, "");
+  return name || fallback;
+}
+
+export function addPage(project) {
+  return createFile(project, "guides/guidenh/guidenh/en_us", "new-page.md");
 }
 
 export function serializeProject(project) {
