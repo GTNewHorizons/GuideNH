@@ -79,12 +79,16 @@ final class GuideResourcePackScanner {
                 if (languageEnd <= languageStart) continue;
 
                 String language = path.substring(languageStart, languageEnd);
-                if (!isLanguageFolder(language)) continue;
-
                 String namespace = path.substring(namespaceStart, namespaceEnd);
                 String resourcePath = path.substring(resourcePathStart);
 
                 if (!resourceExists(resourcePack, new ResourceLocation(namespace, resourcePath))) {
+                    continue;
+                }
+
+                if (!isLanguageFolder(language)) {
+                    String relativePath = path.substring(languageStart);
+                    entries.add(new PackEntry(namespace, "", relativePath));
                     continue;
                 }
 
@@ -151,6 +155,28 @@ final class GuideResourcePackScanner {
                 GuideDebugLog
                     .warn("[GuideNH] [GuideResourcePackScanner] Failed to scan guide files in {}", languageDir, e);
             }
+        }
+
+        // Assets placed beside the language folders are shared by every locale. They are
+        // addressable through the plain guide asset path and must be indexed for both loose
+        // directories and archive-backed resource packs.
+        try (var paths = Files.walk(guideRoot.toPath())) {
+            paths.forEach(path -> {
+                if (!Files.isRegularFile(path)) return;
+                Path relative = guideRoot.toPath()
+                    .relativize(path);
+                if (relative.getNameCount() == 0) return;
+                String first = relative.getName(0)
+                    .toString();
+                if (isLanguageFolder(first) || relative.toString()
+                    .endsWith(".lang")) return;
+                String relativePath = relative.toString();
+                if (File.separatorChar != '/') relativePath = relativePath.replace(File.separatorChar, '/');
+                entries.add(new PackEntry(namespaceRoot.namespace(), "", relativePath));
+            });
+        } catch (IOException e) {
+            GuideDebugLog
+                .warn("[GuideNH] [GuideResourcePackScanner] Failed to index shared guide assets in {}", guideRoot, e);
         }
     }
 

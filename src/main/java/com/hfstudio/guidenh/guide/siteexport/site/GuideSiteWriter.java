@@ -8,10 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,8 +99,7 @@ public class GuideSiteWriter {
         writeResource(
             outDir.resolve("_site/textures/listitem.svg"),
             "/assets/guidenh/siteexport/textures/listitem.svg");
-        GuideSiteLocalServerJarWriter.writeTo(outDir.resolve("_site/guidenh-site-server.jar"));
-        writeStartScripts(outDir);
+        writeNpmPackageFiles(outDir);
     }
 
     public void cleanupGeneratedOutputs(Path outDir) throws Exception {
@@ -113,6 +110,10 @@ public class GuideSiteWriter {
         deleteRecursively(normalizedOutDir.resolve("_data"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("guides"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("index.html"), normalizedOutDir);
+        deleteRecursively(normalizedOutDir.resolve("package.json"), normalizedOutDir);
+        deleteRecursively(normalizedOutDir.resolve("package-lock.json"), normalizedOutDir);
+        deleteRecursively(normalizedOutDir.resolve("scripts"), normalizedOutDir);
+        deleteRecursively(normalizedOutDir.resolve("dist"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("start.bat"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("start.sh"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("stop.bat"), normalizedOutDir);
@@ -320,197 +321,11 @@ public class GuideSiteWriter {
         return html.toString();
     }
 
-    private void writeStartScripts(Path outDir) throws Exception {
-        Files.writeString(outDir.resolve("start.bat"), windowsStartScript());
-        Files.writeString(outDir.resolve("stop.bat"), windowsStopScript());
-        Path startSh = outDir.resolve("start.sh");
-        Path stopSh = outDir.resolve("stop.sh");
-        Files.writeString(startSh, unixStartScript());
-        Files.writeString(stopSh, unixStopScript());
-        trySetExecutable(startSh);
-        trySetExecutable(stopSh);
-    }
-
-    private String windowsStartScript() {
-        return """
-            @echo off\r
-            setlocal\r
-            set "PORT=8734"\r
-            set "SITE_DIR=%~dp0."\r
-            set "SERVER_JAR=%SITE_DIR%\\_site\\guidenh-site-server.jar"\r
-            set "STATE_FILE=%SITE_DIR%\\.guidenh-site-server.state"\r
-            set "LEGACY_PID_FILE=%SITE_DIR%\\.guidenh-site-server.pid"\r
-            set "LOG_DIR=%SITE_DIR%\\.guidenh-site-server"\r
-            set "STDOUT_LOG=%LOG_DIR%\\stdout.log"\r
-            set "STDERR_LOG=%LOG_DIR%\\stderr.log"\r
-            if not exist "%SERVER_JAR%" (\r
-              echo Missing bundled server jar: "%SERVER_JAR%"\r
-              exit /b 1\r
-            )\r
-            set "JAVA_EXE="\r
-            if defined JAVA_HOME if exist "%JAVA_HOME%\\bin\\java.exe" set "JAVA_EXE=%JAVA_HOME%\\bin\\java.exe"\r
-            if not defined JAVA_EXE for /f "usebackq delims=" %%J in (`where java 2^>nul`) do if not defined JAVA_EXE set "JAVA_EXE=%%J"\r
-            if not defined JAVA_EXE (\r
-              echo Java runtime not found. Install Java and run this script again.\r
-              exit /b 1\r
-            )\r
-            if not exist "%STATE_FILE%" if exist "%LEGACY_PID_FILE%" set "STATE_FILE=%LEGACY_PID_FILE%"\r
-            "%JAVA_EXE%" -jar "%SERVER_JAR%" status "%STATE_FILE%" >nul 2>nul\r
-            if not errorlevel 1 (\r
-              start "" "http://127.0.0.1:%PORT%/index.html"\r
-              exit /b 0\r
-            )\r
-            if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"\r
-            powershell -NoProfile -ExecutionPolicy Bypass -Command ^\r
-              "$javaExe = $env:JAVA_EXE; $jar = $env:SERVER_JAR; $dir = $env:SITE_DIR; $stateFile = $env:STATE_FILE; $stdoutLog = $env:STDOUT_LOG; $stderrLog = $env:STDERR_LOG; " ^\r
-              "Start-Process -FilePath $javaExe -ArgumentList @('-jar', $jar, 'serve', $dir, $env:PORT, '127.0.0.1', $stateFile) -WorkingDirectory $dir -WindowStyle Hidden -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog | Out-Null"\r
-            if errorlevel 1 (\r
-              echo Failed to start bundled Java site server.\r
-              exit /b 1\r
-            )\r
-            set /a WAIT_COUNT=0\r
-            :wait_for_server\r
-            "%JAVA_EXE%" -jar "%SERVER_JAR%" status "%STATE_FILE%" >nul 2>nul\r
-            if not errorlevel 1 goto server_ready\r
-            if %WAIT_COUNT% GEQ 10 goto server_failed\r
-            set /a WAIT_COUNT+=1\r
-            timeout /t 1 /nobreak >nul\r
-            goto wait_for_server\r
-            :server_ready\r
-            start "" "http://127.0.0.1:%PORT%/index.html"\r
-            exit /b 0\r
-            :server_failed\r
-            echo Failed to confirm bundled Java site server startup.\r
-            echo Check logs under "%LOG_DIR%".\r
-            exit /b 1\r
-            """;
-    }
-
-    private String windowsStopScript() {
-        return """
-            @echo off\r
-            setlocal\r
-            set "SITE_DIR=%~dp0."\r
-            set "SERVER_JAR=%SITE_DIR%\\_site\\guidenh-site-server.jar"\r
-            set "STATE_FILE=%SITE_DIR%\\.guidenh-site-server.state"\r
-            set "LEGACY_PID_FILE=%SITE_DIR%\\.guidenh-site-server.pid"\r
-            if not exist "%SERVER_JAR%" (\r
-              echo Missing bundled server jar: "%SERVER_JAR%"\r
-              exit /b 1\r
-            )\r
-            set "JAVA_EXE="\r
-            if defined JAVA_HOME if exist "%JAVA_HOME%\\bin\\java.exe" set "JAVA_EXE=%JAVA_HOME%\\bin\\java.exe"\r
-            if not defined JAVA_EXE for /f "usebackq delims=" %%J in (`where java 2^>nul`) do if not defined JAVA_EXE set "JAVA_EXE=%%J"\r
-            if not defined JAVA_EXE (\r
-              echo Java runtime not found. Install Java and run this script again.\r
-              exit /b 1\r
-            )\r
-            if not exist "%STATE_FILE%" if exist "%LEGACY_PID_FILE%" set "STATE_FILE=%LEGACY_PID_FILE%"\r
-            if not exist "%STATE_FILE%" (\r
-              echo GuideNH static site server is not running.\r
-              exit /b 0\r
-            )\r
-            "%JAVA_EXE%" -jar "%SERVER_JAR%" stop "%STATE_FILE%"\r
-            """;
-    }
-
-    private String unixStartScript() {
-        return """
-            #!/usr/bin/env sh
-            DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-            PORT=8734
-            SERVER_JAR="$DIR/_site/guidenh-site-server.jar"
-            STATE_FILE="$DIR/.guidenh-site-server.state"
-            LEGACY_PID_FILE="$DIR/.guidenh-site-server.pid"
-            LOG_DIR="$DIR/.guidenh-site-server"
-            STDOUT_LOG="$LOG_DIR/stdout.log"
-            STDERR_LOG="$LOG_DIR/stderr.log"
-
-            open_browser() {
-              URL="http://127.0.0.1:$PORT/index.html"
-              if command -v xdg-open >/dev/null 2>&1; then
-                xdg-open "$URL" >/dev/null 2>&1
-              elif command -v open >/dev/null 2>&1; then
-                open "$URL" >/dev/null 2>&1
-              fi
-            }
-
-            if [ ! -f "$SERVER_JAR" ]; then
-              echo "Missing bundled server jar: $SERVER_JAR"
-              exit 1
-            fi
-            if ! command -v java >/dev/null 2>&1; then
-              echo "Java runtime not found. Install Java and run this script again."
-              exit 1
-            fi
-            if [ ! -f "$STATE_FILE" ] && [ -f "$LEGACY_PID_FILE" ]; then
-              STATE_FILE="$LEGACY_PID_FILE"
-            fi
-            if java -jar "$SERVER_JAR" status "$STATE_FILE" >/dev/null 2>&1; then
-              open_browser
-              exit 0
-            fi
-            mkdir -p "$LOG_DIR"
-            if command -v nohup >/dev/null 2>&1; then
-              (cd "$DIR" && nohup java -jar "$SERVER_JAR" serve "$DIR" "$PORT" "127.0.0.1" "$STATE_FILE" >"$STDOUT_LOG" 2>"$STDERR_LOG" </dev/null &)
-            else
-              (cd "$DIR" && java -jar "$SERVER_JAR" serve "$DIR" "$PORT" "127.0.0.1" "$STATE_FILE" >"$STDOUT_LOG" 2>"$STDERR_LOG" </dev/null &)
-            fi
-            attempt=0
-            while ! java -jar "$SERVER_JAR" status "$STATE_FILE" >/dev/null 2>&1; do
-              attempt=$((attempt + 1))
-              if [ "$attempt" -ge 10 ]; then
-                echo "Failed to confirm bundled Java site server startup."
-                echo "Check logs under $LOG_DIR"
-                exit 1
-              fi
-              sleep 1
-            done
-            open_browser
-            """;
-    }
-
-    private String unixStopScript() {
-        return """
-            #!/usr/bin/env sh
-            DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-            SERVER_JAR="$DIR/_site/guidenh-site-server.jar"
-            STATE_FILE="$DIR/.guidenh-site-server.state"
-            LEGACY_PID_FILE="$DIR/.guidenh-site-server.pid"
-            if [ ! -f "$SERVER_JAR" ]; then
-              echo "Missing bundled server jar: $SERVER_JAR"
-              exit 1
-            fi
-            if ! command -v java >/dev/null 2>&1; then
-              echo "Java runtime not found. Install Java and run this script again."
-              exit 1
-            fi
-            if [ ! -f "$STATE_FILE" ] && [ -f "$LEGACY_PID_FILE" ]; then
-              STATE_FILE="$LEGACY_PID_FILE"
-            fi
-            if [ ! -f "$STATE_FILE" ]; then
-              echo "GuideNH static site server is not running."
-              exit 0
-            fi
-            java -jar "$SERVER_JAR" stop "$STATE_FILE"
-            """;
-    }
-
-    private void trySetExecutable(Path script) {
-        try {
-            Files.setPosixFilePermissions(
-                script,
-                EnumSet.of(
-                    PosixFilePermission.OWNER_READ,
-                    PosixFilePermission.OWNER_WRITE,
-                    PosixFilePermission.OWNER_EXECUTE,
-                    PosixFilePermission.GROUP_READ,
-                    PosixFilePermission.GROUP_EXECUTE,
-                    PosixFilePermission.OTHERS_READ,
-                    PosixFilePermission.OTHERS_EXECUTE));
-        } catch (UnsupportedOperationException ignored) {
-            // Non-POSIX file systems such as Windows ignore executable bits.
-        } catch (Exception ignored) {}
+    private void writeNpmPackageFiles(Path outDir) throws Exception {
+        writeResource(outDir.resolve("package.json"), "/assets/guidenh/siteexport/package.json");
+        writeResource(outDir.resolve("package-lock.json"), "/assets/guidenh/siteexport/package-lock.json");
+        writeResource(outDir.resolve("scripts/build.mjs"), "/assets/guidenh/siteexport/scripts/build.mjs");
+        writeResource(outDir.resolve("scripts/preview.mjs"), "/assets/guidenh/siteexport/scripts/preview.mjs");
     }
 
     private void appendLanguageSwitcher(StringBuilder html, String currentLanguage,
@@ -603,18 +418,22 @@ public class GuideSiteWriter {
         @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
         boolean hasChildren = !node.children()
             .isEmpty();
+        boolean expanded = hasChildren && navigationContainsPage(node, currentPageId);
         String nodeId = navigationNodeId(node);
         html.append("<li data-guide-nav-node=\"")
             .append(escapeHtml(nodeId))
             .append("\"");
         if (hasChildren) {
-            html.append(" data-guide-nav-expanded=\"true\"");
+            html.append(" data-guide-nav-expanded=\"")
+                .append(expanded ? "true" : "false")
+                .append("\"");
         }
         html.append(">");
         if (hasChildren) {
             html.append(
-                "<button type=\"button\" class=\"guide-nav-toggle\" data-guide-nav-toggle "
-                    + "aria-expanded=\"true\"><span aria-hidden=\"true\"></span></button>");
+                "<button type=\"button\" class=\"guide-nav-toggle\" data-guide-nav-toggle " + "aria-expanded=\""
+                    + (expanded ? "true" : "false")
+                    + "\"><span aria-hidden=\"true\"></span></button>");
         } else {
             html.append("<span class=\"guide-nav-toggle-spacer\" aria-hidden=\"true\"></span>");
         }
@@ -638,15 +457,19 @@ public class GuideSiteWriter {
                         assetExportersByGuideId))
                 .append("</a>");
         } else {
-            html.append("<span>")
-                .append(
-                    renderNavigationLinkContent(
-                        node.title(),
-                        node.icon(),
-                        node.guideId(),
-                        assetExporter,
-                        itemIconResolver,
-                        assetExportersByGuideId))
+            html.append("<span");
+            if (hasChildren) {
+                html.append(" data-guide-nav-label");
+            }
+            html.append(">");
+            html.append(
+                renderNavigationLinkContent(
+                    node.title(),
+                    node.icon(),
+                    node.guideId(),
+                    assetExporter,
+                    itemIconResolver,
+                    assetExportersByGuideId))
                 .append("</span>");
         }
         if (hasChildren) {
@@ -664,6 +487,21 @@ public class GuideSiteWriter {
             html.append("</ul>");
         }
         html.append("</li>");
+    }
+
+    private boolean navigationContainsPage(NavigationNode node, @Nullable ResourceLocation currentPageId) {
+        if (currentPageId == null) {
+            return false;
+        }
+        if (currentPageId.equals(node.pageId())) {
+            return true;
+        }
+        for (NavigationNode child : node.children()) {
+            if (navigationContainsPage(child, currentPageId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String navigationNodeId(NavigationNode node) {
