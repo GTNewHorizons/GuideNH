@@ -71,7 +71,8 @@ public record GuideSiteLocalizedText(String searchLabel, String searchPlaceholde
         int separator = language.indexOf('_');
         if (separator > 0 && separator + 1 < language.length()) {
             String languagePart = language.substring(0, separator);
-            String regionPart = language.substring(separator + 1).toUpperCase(Locale.ROOT);
+            String regionPart = language.substring(separator + 1)
+                .toUpperCase(Locale.ROOT);
             return languagePart + " (" + regionPart + ")";
         }
         return language;
