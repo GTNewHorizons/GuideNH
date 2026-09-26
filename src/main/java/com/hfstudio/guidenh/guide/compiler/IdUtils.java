@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.compiler;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -273,6 +274,24 @@ public class IdUtils {
             depth++;
         }
         return true;
+    }
+
+    @Nullable
+    public static String normalizeAssetPath(String path) {
+        if (path == null || path.isEmpty() || path.indexOf('\\') >= 0 || path.indexOf('\0') >= 0) {
+            return null;
+        }
+        ArrayList<String> segments = new ArrayList<>();
+        for (String segment : path.split("/")) {
+            if (segment.isEmpty() || ".".equals(segment)) continue;
+            if ("..".equals(segment)) {
+                if (segments.isEmpty()) return null;
+                segments.remove(segments.size() - 1);
+                continue;
+            }
+            segments.add(segment);
+        }
+        return segments.isEmpty() ? null : String.join("/", segments);
     }
 
     private static String anchorParentPath(String anchorPath) {

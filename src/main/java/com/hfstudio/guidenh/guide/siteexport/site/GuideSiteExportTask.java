@@ -34,6 +34,7 @@ import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageCollection;
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
@@ -739,6 +740,11 @@ public class GuideSiteExportTask {
 
     private byte[] loadGuideAssetVariant(MutableGuide guide, IResourceManager resourceManager, ResourceLocation assetId)
         throws IOException {
+        String normalizedPath = IdUtils.normalizeAssetPath(assetId.getResourcePath());
+        if (normalizedPath == null) {
+            return null;
+        }
+        assetId = new ResourceLocation(assetId.getResourceDomain(), normalizedPath);
         Path developmentPath = guide.getDevelopmentSourcePath(assetId);
         if (developmentPath != null && Files.exists(developmentPath)) {
             return Files.readAllBytes(developmentPath);

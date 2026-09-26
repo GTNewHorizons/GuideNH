@@ -346,7 +346,7 @@ public class NeiRecipeLookup {
             }
             return out;
         } catch (Throwable t) {
-            GuideDebugLog.warnAlways("[GuideNH] [NeiRecipeLookup] NEI handler {} read failed", handler.getClass(), t);
+            GuideDebugLog.warn("[GuideNH] [NeiRecipeLookup] NEI handler {} read failed", handler.getClass(), t);
             return null;
         }
     }
