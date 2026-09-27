@@ -13,10 +13,14 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -52,6 +56,7 @@ import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiListContext;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialDataIndexer;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
@@ -73,11 +78,16 @@ public class GuideSiteExportTask {
         .create();
     private static final int MAX_SCENE_STRUCTURE_TIER = 8;
     private static final int MAX_SCENE_STRUCTURE_CHANNEL_VALUE = 8;
-    private static final int MAX_SCENE_STATE_VARIANTS = 4096;
     private static final long SCENE_MATERIALIZATION_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long SCENE_MATERIALIZATION_STEP_NANOS = TimeUnit.MILLISECONDS.toNanos(2);
     private static final long SCENE_MATERIALIZATION_WAIT_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static final long SCENE_MATERIALIZATION_NO_PROGRESS_NANOS = TimeUnit.SECONDS.toNanos(3);
+    private static final int CONTEXT_WORKER_COUNT = Math.max(
+        1,
+        Math.min(
+            4,
+            Runtime.getRuntime()
+                .availableProcessors() - 1));
 
     private final Path outDir;
     private final GuideSiteExportOptions options;
@@ -109,11 +119,17 @@ public class GuideSiteExportTask {
         GuideSiteWriter writer = new GuideSiteWriter();
         writer.cleanupGeneratedOutputs(outDir);
         GuideSiteSearchTextExtractor searchExtractor = new GuideSiteSearchTextExtractor();
+        MediaWikiSpecialDataIndexer mediaWikiIndexer = new MediaWikiSpecialDataIndexer();
         GuideSiteAssetRegistry assets = new GuideSiteAssetRegistry(outDir);
         GuideSiteItemIconExporter itemIconExporter = new GuideSiteItemIconExporter(assets);
         GuideSiteNeiPhase1BackgroundExporter neiPhase1Exporter = new GuideSiteNeiPhase1BackgroundExporter(assets);
         writer.writeBootstrapFiles(outDir);
         GuideSiteSceneRuntimeExporter sceneExporter = new GuideSiteSceneRuntimeExporter(assets);
+        ExecutorService contextExecutor = Executors.newFixedThreadPool(CONTEXT_WORKER_COUNT, runnable -> {
+            Thread thread = new Thread(runnable, "guidenh-site-context");
+            thread.setDaemon(true);
+            return thread;
+        });
 
         int guidesExported = 0;
         int pagesExported = 0;
@@ -173,43 +189,67 @@ public class GuideSiteExportTask {
             }
 
             Map<String, LanguageExportContext> contextsByLanguage = new LinkedHashMap<>();
+            Map<String, CompletableFuture<LanguageExportContext>> contextFutures = new LinkedHashMap<>();
+            IResourceManager contextResourceManager = resourceManager;
             for (Map.Entry<String, List<GuideSitePageVariant>> entry : allVariantsByLanguage.entrySet()) {
                 String language = entry.getKey();
                 List<GuideSitePageVariant> languageVariants = entry.getValue();
                 switchMinecraftLanguage(language);
                 writer.writeExternalLinkPage(outDir, language);
-                contextsByLanguage.put(
+                contextFutures.put(
                     language,
-                    buildLanguageExportContext(guidesById, languageVariants, resourceManager, language, assets));
+                    CompletableFuture.supplyAsync(
+                        () -> buildLanguageExportContext(
+                            guidesById,
+                            languageVariants,
+                            contextResourceManager,
+                            language,
+                            assets,
+                            mediaWikiIndexer),
+                        contextExecutor));
+            }
+            for (Map.Entry<String, CompletableFuture<LanguageExportContext>> entry : contextFutures.entrySet()) {
+                contextsByLanguage.put(
+                    entry.getKey(),
+                    entry.getValue()
+                        .join());
             }
 
+            Map<ResourceLocation, Map<ResourceLocation, List<GuideSiteLanguageLink>>> languageLinksByGuideId = new LinkedHashMap<>();
             for (Map.Entry<ResourceLocation, MutableGuide> guideEntry : guidesById.entrySet()) {
                 MutableGuide guide = guideEntry.getValue();
                 List<GuideSitePageVariant> variants = variantsByGuideId.getOrDefault(guideEntry.getKey(), List.of());
                 guidesExported++;
 
-                Map<String, List<GuideSitePageVariant>> variantsByLanguage = new LinkedHashMap<>();
+                LinkedHashSet<String> languageOrder = new LinkedHashSet<>();
                 for (GuideSitePageVariant variant : variants) {
-                    variantsByLanguage.computeIfAbsent(variant.language(), ignored -> new ArrayList<>())
+                    languageOrder.add(variant.language());
+                }
+
+                languageLinksByGuideId.put(
+                    guideEntry.getKey(),
+                    buildLanguageLinks(writer, guide, variants, new ArrayList<>(languageOrder)));
+            }
+
+            for (Map.Entry<String, List<GuideSitePageVariant>> languageEntry : allVariantsByLanguage.entrySet()) {
+                String language = languageEntry.getKey();
+                LanguageExportContext context = contextsByLanguage.getOrDefault(language, LanguageExportContext.EMPTY);
+                Map<ResourceLocation, List<GuideSitePageVariant>> languageVariantsByGuideId = new LinkedHashMap<>();
+                for (GuideSitePageVariant variant : languageEntry.getValue()) {
+                    languageVariantsByGuideId.computeIfAbsent(variant.guideId(), ignored -> new ArrayList<>())
                         .add(variant);
                 }
 
-                List<String> languageOrder = new ArrayList<>(variantsByLanguage.keySet());
-                Map<ResourceLocation, List<GuideSiteLanguageLink>> languageLinksByPageId = buildLanguageLinks(
-                    writer,
-                    guide,
-                    variants,
-                    languageOrder);
-
-                for (Map.Entry<String, List<GuideSitePageVariant>> languageEntry : variantsByLanguage.entrySet()) {
-                    String language = languageEntry.getKey();
-                    List<GuideSitePageVariant> languageVariants = languageEntry.getValue();
-                    LanguageExportContext context = contextsByLanguage
-                        .getOrDefault(language, LanguageExportContext.EMPTY);
-
-                    // Switch the active Minecraft locale so localized item display names and tooltips
-                    // resolve to this language while we render this language's pages.
-                    switchMinecraftLanguage(language);
+                // Item names and tooltips use Minecraft's active locale while each language's pages render.
+                switchMinecraftLanguage(language);
+                for (Map.Entry<ResourceLocation, MutableGuide> guideEntry : guidesById.entrySet()) {
+                    MutableGuide guide = guideEntry.getValue();
+                    List<GuideSitePageVariant> languageVariants = languageVariantsByGuideId.get(guideEntry.getKey());
+                    if (languageVariants == null || languageVariants.isEmpty()) {
+                        continue;
+                    }
+                    Map<ResourceLocation, List<GuideSiteLanguageLink>> languageLinksByPageId = languageLinksByGuideId
+                        .get(guideEntry.getKey());
                     GuideSitePageAssetExporter assetExporter = context.assetExportersByGuideId()
                         .get(guide.getId());
                     if (assetExporter == null) {
@@ -231,6 +271,7 @@ public class GuideSiteExportTask {
                                 .get(guide.getId())),
                         itemIconExporter);
 
+                    String sidebarHtml = null;
                     for (GuideSitePageVariant variant : languageVariants) {
                         try (GuideDebugLog.ContextScope logContext = GuideDebugLog
                             .pushContext(language, variant.sourceLanguage(), sourcePath(guide, variant))) {
@@ -260,15 +301,23 @@ public class GuideSiteExportTask {
                                     .compileBody(variant.parsedPage(), templates, createSceneResolver(exportedScenes));
                                 List<GuideSiteLanguageLink> langLinks = languageLinksByPageId.get(variant.pageId());
                                 String langSwitcherHtml = writer.renderLanguageSwitcher(language, langLinks);
-                                String sidebarHtml = writer.renderSidebar(
-                                    guide,
-                                    language,
-                                    context.navigationTree(),
-                                    variant.pageId(),
-                                    assetExporter,
-                                    itemIconExporter,
-                                    langLinks,
-                                    context.assetExportersByGuideId());
+                                if (sidebarHtml == null) {
+                                    String sharedSidebar = writer.renderSidebar(
+                                        guide,
+                                        language,
+                                        context.navigationTree(),
+                                        null,
+                                        assetExporter,
+                                        itemIconExporter,
+                                        langLinks,
+                                        context.assetExportersByGuideId());
+                                    String sidebarPath = assets.writeSharedCompressed(
+                                        "navigation",
+                                        ".html",
+                                        sharedSidebar.replace(GuideSitePageAssetExporter.ROOT_PREFIX, "./")
+                                            .getBytes(StandardCharsets.UTF_8));
+                                    sidebarHtml = "<div data-guide-sidebar-src=\"" + sidebarPath + "\"></div>";
+                                }
                                 String pageFile = toOutputPageFile(variant.parsedPage());
                                 String pageUrl = writer.pageUrl(
                                     guide.getId()
@@ -290,7 +339,7 @@ public class GuideSiteExportTask {
                                     langSwitcherHtml,
                                     sidebarHtml,
                                     body,
-                                    templates.renderAll(),
+                                    exportTemplates(templates, assets),
                                     pageTitle);
 
                                 if (!MediaWikiPageIds.isSpecialPage(variant.pageId())) {
@@ -343,7 +392,11 @@ public class GuideSiteExportTask {
             }
         } finally {
             restoreMinecraftLanguage(originalMcLanguage);
+            neiPhase1Exporter.close();
+            itemIconExporter.close();
             sceneExporter.close();
+            contextExecutor.shutdownNow();
+            assets.close();
         }
         for (Map.Entry<String, List<Map<String, Object>>> entry : searchEntriesByLanguage.entrySet()) {
             writer.writeSearchIndex(outDir, entry.getKey(), GSON.toJson(entry.getValue()));
@@ -358,6 +411,18 @@ public class GuideSiteExportTask {
             diagnostics.warningCount(),
             diagnostics.errorCount(),
             outDir);
+    }
+
+    private List<String> exportTemplates(GuideSiteTemplateRegistry templates, GuideSiteAssetRegistry assets)
+        throws Exception {
+        if (templates.renderAll()
+            .isEmpty()) {
+            return List.of();
+        }
+        String html = String.join("", templates.renderAll())
+            .replace(GuideSitePageAssetExporter.ROOT_PREFIX, "./");
+        String path = assets.writeSharedCompressed("templates", ".html", html.getBytes(StandardCharsets.UTF_8));
+        return List.of("<div hidden data-guide-templates-src=\"" + path + "\"></div>");
     }
 
     private static void switchMinecraftLanguage(String requested) {
@@ -469,12 +534,13 @@ public class GuideSiteExportTask {
 
     private LanguageExportContext buildLanguageExportContext(Map<ResourceLocation, MutableGuide> guidesById,
         List<GuideSitePageVariant> languageVariants, IResourceManager resourceManager, String language,
-        GuideSiteAssetRegistry assets) {
+        GuideSiteAssetRegistry assets, MediaWikiSpecialDataIndexer mediaWikiIndexer) {
         Map<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>> scopedPagesByGuideId = buildScopedPagesByGuideId(
             languageVariants);
         Map<ResourceLocation, MediaWikiListContext> mediaWikiContextsByGuideId = buildMediaWikiContextsByGuideId(
             guidesById,
-            languageVariants);
+            languageVariants,
+            mediaWikiIndexer);
         return new LanguageExportContext(
             buildParsedPagesById(languageVariants),
             buildMergedNavigationTree(guidesById, languageVariants),
@@ -557,7 +623,8 @@ public class GuideSiteExportTask {
     }
 
     private Map<ResourceLocation, MediaWikiListContext> buildMediaWikiContextsByGuideId(
-        Map<ResourceLocation, MutableGuide> availableGuides, List<GuideSitePageVariant> variants) {
+        Map<ResourceLocation, MutableGuide> availableGuides, List<GuideSitePageVariant> variants,
+        MediaWikiSpecialDataIndexer mediaWikiIndexer) {
         Map<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>> pagesByGuideId = new LinkedHashMap<>();
         for (GuideSitePageVariant variant : variants) {
             if (variant == null || variant.guideId() == null
@@ -598,7 +665,8 @@ public class GuideSiteExportTask {
                     guide,
                     pages,
                     NavigationTree.buildMergedPages(pageCollectionsByPageId, pages),
-                    categoryIndex));
+                    categoryIndex,
+                    mediaWikiIndexer.build(guide, pages, categoryIndex)));
         }
         return contextsByGuideId;
     }
@@ -953,7 +1021,8 @@ public class GuideSiteExportTask {
             scene.isGridVisible(),
             buildGridAnnotationJson(scene),
             scene.shouldExportBlockStats() && blockStatsButtonEnabled(scene),
-            scene.isBlockStatsVisible());
+            scene.isBlockStatsVisible(),
+            GuideSiteSceneHoverAssets.export(baseScene.hoverTargetsJson(), assets));
     }
 
     private GuideSiteExportedScene exportSceneState(ParsedGuidePage parsedPage, LytGuidebookScene scene,
@@ -1118,31 +1187,19 @@ public class GuideSiteExportTask {
         }
         int[] bounds = scene.getLevel()
             .getBounds();
-        ArrayList<Map<String, Object>> annotations = new ArrayList<>(bounds[3] - bounds[0] + bounds[5] - bounds[2] + 8);
-        float half = 0.02f;
-        float y = 0.002f;
-        int minX = bounds[0] - 1;
-        int minZ = bounds[2] - 1;
-        int maxX = bounds[3] + 2;
-        int maxZ = bounds[5] + 2;
-        for (int x = minX; x <= maxX; x++) {
-            annotations.add(buildGridLine(x - half, y, minZ, x + half, y, maxZ));
-        }
-        for (int z = minZ; z <= maxZ; z++) {
-            annotations.add(buildGridLine(minX, y, z - half, maxX, y, z + half));
-        }
-        return GSON.toJson(annotations);
-    }
-
-    private Map<String, Object> buildGridLine(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-        LinkedHashMap<String, Object> data = new LinkedHashMap<>();
-        data.put("type", "box");
-        data.put("minCorner", new float[] { Math.min(minX, maxX), Math.min(minY, maxY), Math.min(minZ, maxZ) });
-        data.put("maxCorner", new float[] { Math.max(minX, maxX), Math.max(minY, maxY), Math.max(minZ, maxZ) });
-        data.put("color", "rgba(255,255,255,0.33333334)");
-        data.put("thickness", 0.00390625f);
-        data.put("alwaysOnTop", false);
-        return data;
+        LinkedHashMap<String, Object> grid = new LinkedHashMap<>();
+        grid.put("version", 1);
+        grid.put("type", "grid");
+        grid.put("minX", bounds[0] - 1);
+        grid.put("minZ", bounds[2] - 1);
+        grid.put("maxX", bounds[3] + 2);
+        grid.put("maxZ", bounds[5] + 2);
+        grid.put("y", 0.002f);
+        grid.put("halfWidth", 0.02f);
+        grid.put("color", "rgba(255,255,255,0.33333334)");
+        grid.put("thickness", 0.00390625f);
+        grid.put("alwaysOnTop", false);
+        return GSON.toJson(grid);
     }
 
     private String escapeAttribute(String text) {
@@ -1218,6 +1275,7 @@ public class GuideSiteExportTask {
 
         LinkedHashMap<String, Object> manifest = new LinkedHashMap<>();
         manifest.put("initialState", initialState.toMap());
+        manifest.put("independentControls", true);
         manifest.put("controls", plan.controls);
         Map<String, Object> variantDefaults = extractSharedVariantFields(serializedVariants);
         if (!variantDefaults.isEmpty()) {
@@ -1225,7 +1283,7 @@ public class GuideSiteExportTask {
         }
         manifest.put("states", serializedStates);
         manifest.put("variants", serializedVariants);
-        return assets.writeShared(
+        return assets.writeSharedCompressed(
             "scene-manifests",
             ".json",
             GSON.toJson(manifest)
@@ -1243,24 +1301,8 @@ public class GuideSiteExportTask {
             : List.of();
         List<StructureStatePlan> structurePlans = buildStructureStatePlans(scene);
 
-        long staticVariantCount = visibleLayers.size();
-        for (StructureStatePlan structurePlan : structurePlans) {
-            staticVariantCount = multiplySceneVariantCounts(staticVariantCount, structurePlan.stateCount());
-            if (staticVariantCount > MAX_SCENE_STATE_VARIANTS) {
-                warnSceneStateVariantLimit(staticVariantCount, visibleLayers, structurePlans, -1);
-                return null;
-            }
-        }
-        int ponderStateBudget = (int) Math.max(1L, MAX_SCENE_STATE_VARIANTS / staticVariantCount);
-        List<Integer> ponderTicks = buildPonderTickStates(scene, ponderKeyframes, ponderStateBudget);
-        long variantCount = multiplySceneVariantCounts(staticVariantCount, ponderTicks.size());
-        if (variantCount > MAX_SCENE_STATE_VARIANTS) {
-            warnSceneStateVariantLimit(variantCount, visibleLayers, structurePlans, ponderTicks.size());
-            return null;
-        }
-        for (StructureStatePlan structurePlan : structurePlans) {
-            structurePlan.materializeStates();
-        }
+        List<Integer> ponderTicks = buildPonderTickStates(scene, ponderKeyframes);
+        SceneVariantState initialState = SceneVariantState.capture(scene, structurePlans);
 
         LinkedHashMap<String, Object> controls = new LinkedHashMap<>();
         LinkedHashMap<String, Object> visibleLayerControl = new LinkedHashMap<>();
@@ -1300,35 +1342,51 @@ public class GuideSiteExportTask {
             controls.put("structures", structureControls);
         }
 
-        ArrayList<SceneVariantState> states = new ArrayList<>((int) variantCount);
-        appendSceneVariantStates(states, visibleLayers, ponderTicks, structurePlans, 0, new LinkedHashMap<>());
-        return new SceneStateManifestPlan(states, structurePlans, controls);
-    }
-
-    private void appendSceneVariantStates(List<SceneVariantState> states, List<Integer> visibleLayers,
-        List<Integer> ponderTicks, List<StructureStatePlan> structurePlans, int structureIndex,
-        LinkedHashMap<String, StructureVariantState> currentStructures) {
-        if (structureIndex >= structurePlans.size()) {
-            for (Integer visibleLayer : visibleLayers) {
-                for (Integer ponderTick : ponderTicks) {
-                    states.add(new SceneVariantState(visibleLayer, ponderTick, currentStructures));
+        LinkedHashMap<String, SceneVariantState> states = new LinkedHashMap<>();
+        states.put(initialState.key(), initialState);
+        for (Integer tick : ponderTicks) {
+            addSceneVariant(states, new SceneVariantState(initialState.visibleLayer, tick, initialState.structures));
+        }
+        for (Integer layer : visibleLayers) {
+            addSceneVariant(states, new SceneVariantState(layer, initialState.ponderTick, initialState.structures));
+        }
+        for (StructureStatePlan structurePlan : structurePlans) {
+            StructureVariantState selected = initialState.structures.get(structurePlan.bindingKey);
+            if (selected == null) {
+                continue;
+            }
+            for (Integer tier : structurePlan.tiers) {
+                addStructureSceneVariant(
+                    states,
+                    initialState,
+                    structurePlan.bindingKey,
+                    new StructureVariantState(tier, selected.channels));
+            }
+            for (int channelIndex = 0; channelIndex < structurePlan.channelIds.size(); channelIndex++) {
+                String channelId = structurePlan.channelIds.get(channelIndex);
+                for (Integer value : structurePlan.channelValues.get(channelIndex)) {
+                    LinkedHashMap<String, Integer> channels = new LinkedHashMap<>(selected.channels);
+                    channels.put(channelId, value);
+                    addStructureSceneVariant(
+                        states,
+                        initialState,
+                        structurePlan.bindingKey,
+                        new StructureVariantState(selected.tier, channels));
                 }
             }
-            return;
         }
+        return new SceneStateManifestPlan(new ArrayList<>(states.values()), structurePlans, controls);
+    }
 
-        StructureStatePlan structurePlan = structurePlans.get(structureIndex);
-        for (StructureVariantState structureState : structurePlan.states) {
-            currentStructures.put(structurePlan.bindingKey, structureState);
-            appendSceneVariantStates(
-                states,
-                visibleLayers,
-                ponderTicks,
-                structurePlans,
-                structureIndex + 1,
-                currentStructures);
-            currentStructures.remove(structurePlan.bindingKey);
-        }
+    private void addStructureSceneVariant(Map<String, SceneVariantState> states, SceneVariantState initialState,
+        String bindingKey, StructureVariantState selection) {
+        LinkedHashMap<String, StructureVariantState> structures = new LinkedHashMap<>(initialState.structures);
+        structures.put(bindingKey, selection);
+        addSceneVariant(states, new SceneVariantState(initialState.visibleLayer, initialState.ponderTick, structures));
+    }
+
+    private void addSceneVariant(Map<String, SceneVariantState> states, SceneVariantState state) {
+        states.putIfAbsent(state.key(), state);
     }
 
     private void applySceneVariantState(LytGuidebookScene scene, SceneVariantState state,
@@ -1377,11 +1435,10 @@ public class GuideSiteExportTask {
             .put("overlayAnnotationsJson", exportedScene.overlayJson() != null ? exportedScene.overlayJson() : "[]");
         serialized
             .put("sceneSoundsJson", exportedScene.sceneSoundsJson() != null ? exportedScene.sceneSoundsJson() : "[]");
-        String hoverTargetsJson = exportedScene.hoverTargetsJson() != null ? exportedScene.hoverTargetsJson() : "[]";
         serialized.put(
             "hoverTargetsSrc",
-            GuideSitePageAssetExporter.toRootRelativePath(
-                assets.writeShared("scene-hover-targets", ".json", hoverTargetsJson.getBytes(StandardCharsets.UTF_8))));
+            GuideSitePageAssetExporter
+                .toRootRelativePath(GuideSiteSceneHoverAssets.export(exportedScene.hoverTargetsJson(), assets)));
         return serialized;
     }
 
@@ -1424,48 +1481,30 @@ public class GuideSiteExportTask {
         return layers;
     }
 
-    private List<Integer> buildPonderTickStates(LytGuidebookScene scene, List<PonderTimelineKeyframe> ponderKeyframes,
-        int stateBudget) {
+    private List<Integer> buildPonderTickStates(LytGuidebookScene scene, List<PonderTimelineKeyframe> ponderKeyframes) {
         if (scene == null || !scene.hasPonderData()) {
             return List.of(0);
         }
         int totalTime = Math.max(0, scene.getPonderTotalTimeForExport());
-        int maxStates = Math.max(1, stateBudget);
-        if (options.exportPonderEveryTick() && totalTime + 1 <= maxStates) {
-            ArrayList<Integer> states = new ArrayList<>(totalTime + 1);
-            for (int tick = 0; tick <= totalTime; tick++) {
+        if (options.exportPonderEveryTick()) {
+            ArrayList<Integer> states = new ArrayList<>(Math.min(totalTime, 4095) + 1);
+            for (int tick = 0; tick < totalTime; tick++) {
                 states.add(tick);
             }
-            return states.isEmpty() ? List.of(0) : states;
+            states.add(totalTime);
+            return states;
         }
-        ArrayList<Integer> states = new ArrayList<>(maxStates);
+        ArrayList<Integer> states = new ArrayList<>(ponderKeyframes.size() + 3);
         addUniquePonderTickState(states, scene.getPonderCurrentTickForExport());
-        if (states.size() < maxStates) {
-            addUniquePonderTickState(states, 0);
-        }
-        if (states.size() < maxStates) {
-            addUniquePonderTickState(states, totalTime);
-        }
-        if (!options.exportPonderEveryTick()) {
-            for (PonderTimelineKeyframe keyframe : ponderKeyframes) {
-                if (!keyframe.isHidden() && states.size() < maxStates) {
-                    addUniquePonderTickState(states, keyframe.getTime());
-                }
-            }
-            return states.isEmpty() ? List.of(0) : states;
-        }
-
+        addUniquePonderTickState(states, 0);
+        addUniquePonderTickState(states, totalTime);
         for (PonderTimelineKeyframe keyframe : ponderKeyframes) {
-            if (!keyframe.isHidden() && states.size() < maxStates) {
+            if (!keyframe.isHidden()) {
                 addUniquePonderTickState(states, keyframe.getTime());
             }
         }
-        int sampledTickCount = Math.max(0, maxStates - states.size());
-        for (int sample = 1; sample <= sampledTickCount; sample++) {
-            addUniquePonderTickState(states, Math.round((float) sample * totalTime / (sampledTickCount + 1)));
-        }
         states.sort(Integer::compareTo);
-        return states.isEmpty() ? List.of(0) : states;
+        return states;
     }
 
     private List<StructureStatePlan> buildStructureStatePlans(LytGuidebookScene scene) {
@@ -1524,66 +1563,6 @@ public class GuideSiteExportTask {
         }
     }
 
-    private void warnSceneStateVariantLimit(long variantCount, List<Integer> visibleLayers,
-        List<StructureStatePlan> structurePlans, int ponderStateCount) {
-        GuideDebugLog.warnAlways(
-            "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export: variantCount={} exceeds limit={}; dimensions={}",
-            variantCount,
-            MAX_SCENE_STATE_VARIANTS,
-            describeSceneVariantDimensions(visibleLayers, structurePlans, ponderStateCount));
-    }
-
-    private String describeSceneVariantDimensions(List<Integer> visibleLayers, List<StructureStatePlan> structurePlans,
-        int ponderStateCount) {
-        StringBuilder details = new StringBuilder();
-        details.append("visibleLayers=")
-            .append(visibleLayers != null ? visibleLayers.size() : 0);
-        if (ponderStateCount >= 0) {
-            details.append(",ponderTicks=")
-                .append(ponderStateCount);
-        }
-        if (structurePlans == null || structurePlans.isEmpty()) {
-            return details.toString();
-        }
-        long cumulative = visibleLayers != null ? visibleLayers.size() : 0L;
-        if (cumulative <= 0) {
-            cumulative = 1L;
-        }
-        for (StructureStatePlan structurePlan : structurePlans) {
-            cumulative = multiplySceneVariantCounts(cumulative, structurePlan.stateCount());
-            details.append(";")
-                .append(structurePlan.bindingKey)
-                .append("[label=")
-                .append(structurePlan.label)
-                .append(",tiers=")
-                .append(structurePlan.tiers.size())
-                .append(",channels=");
-            if (structurePlan.channelIds.isEmpty()) {
-                details.append("none");
-            } else {
-                for (int i = 0; i < structurePlan.channelIds.size(); i++) {
-                    if (i > 0) {
-                        details.append('|');
-                    }
-                    List<Integer> values = structurePlan.channelValues.get(i);
-                    details.append(structurePlan.channelIds.get(i))
-                        .append(':')
-                        .append(values != null ? values.size() : 0);
-                }
-            }
-            details.append(",states=")
-                .append(structurePlan.stateCount())
-                .append(",cumulative=")
-                .append(cumulative)
-                .append(']');
-        }
-        if (ponderStateCount >= 0) {
-            details.append(";total=")
-                .append(multiplySceneVariantCounts(cumulative, ponderStateCount));
-        }
-        return details.toString();
-    }
-
     private List<Integer> buildTierStates(StructureLibSceneBinding binding, StructureLibSceneMetadata metadata) {
         if (binding == null || metadata == null
             || metadata.getTierData() == null
@@ -1627,16 +1606,6 @@ public class GuideSiteExportTask {
             states.add(value);
         }
         return states;
-    }
-
-    private long multiplySceneVariantCounts(long left, long right) {
-        if (left <= 0 || right <= 0) {
-            return 0;
-        }
-        if (left > Long.MAX_VALUE / right) {
-            return Long.MAX_VALUE;
-        }
-        return left * right;
     }
 
     private String sourcePath(MutableGuide guide, GuideSitePageVariant variant) {
@@ -1798,7 +1767,6 @@ public class GuideSiteExportTask {
         private final List<StructureLibSceneMetadata.ChannelData> selectableChannels;
         private final List<String> channelIds;
         private final List<List<Integer>> channelValues;
-        private List<StructureVariantState> states = List.of();
 
         private StructureStatePlan(String bindingKey, @Nullable String structureName, String label, List<Integer> tiers,
             List<StructureLibSceneMetadata.ChannelData> selectableChannels, List<String> channelIds,
@@ -1810,44 +1778,6 @@ public class GuideSiteExportTask {
             this.selectableChannels = selectableChannels != null ? new ArrayList<>(selectableChannels) : List.of();
             this.channelIds = channelIds != null ? new ArrayList<>(channelIds) : List.of();
             this.channelValues = channelValues != null ? new ArrayList<>(channelValues) : List.of();
-        }
-
-        private long stateCount() {
-            long count = Math.max(1, tiers.size());
-            for (List<Integer> values : channelValues) {
-                int valueCount = values != null ? values.size() : 0;
-                if (valueCount <= 0 || count > Long.MAX_VALUE / valueCount) {
-                    return Long.MAX_VALUE;
-                }
-                count *= valueCount;
-            }
-            return count;
-        }
-
-        private void materializeStates() {
-            ArrayList<StructureVariantState> materialized = new ArrayList<>((int) stateCount());
-            appendStates(materialized, 0, new ArrayList<>());
-            states = materialized.isEmpty()
-                ? List.of(new StructureVariantState(StructureLibPreviewSelection.DEFAULT_MASTER_TIER, null))
-                : materialized;
-        }
-
-        private void appendStates(List<StructureVariantState> out, int channelIndex, List<Integer> currentChannels) {
-            if (channelIndex >= channelValues.size()) {
-                for (Integer tier : tiers) {
-                    LinkedHashMap<String, Integer> channelState = new LinkedHashMap<>(channelIds.size());
-                    for (int i = 0; i < channelIds.size(); i++) {
-                        channelState.put(channelIds.get(i), currentChannels.get(i));
-                    }
-                    out.add(new StructureVariantState(tier, channelState));
-                }
-                return;
-            }
-            for (Integer value : channelValues.get(channelIndex)) {
-                currentChannels.add(value);
-                appendStates(out, channelIndex + 1, currentChannels);
-                currentChannels.removeLast();
-            }
         }
 
         private boolean hasControls() {

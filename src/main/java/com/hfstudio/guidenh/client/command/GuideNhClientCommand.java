@@ -288,7 +288,7 @@ public class GuideNhClientCommand extends CommandBase {
 
     private ExportSiteCommandOptions parseExportSiteCommandOptions(String[] args) {
         String outDirArgument = null;
-        boolean exportPonderEveryTick = false;
+        boolean exportPonderEveryTick = true;
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
             if ("--ponder-frames".equalsIgnoreCase(arg) || "--ponder-every-tick".equalsIgnoreCase(arg)) {

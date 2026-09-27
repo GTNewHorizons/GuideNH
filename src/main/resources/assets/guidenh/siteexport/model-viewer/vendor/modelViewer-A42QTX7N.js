@@ -3461,6 +3461,12 @@ function Tm(s,e,t){
   return r;
 }
 
+const guidenhCreateBaseAnnotation=jl;
+jl=function(annotation){
+  if(annotation?.siteControl==="floorGrid")return guidenhCreateHoverHighlightObject(annotation);
+  return guidenhCreateBaseAnnotation(annotation);
+};
+
 function guidenhParseColorSpec(s,e=1){
   let t=Math.max(0,Math.min(1,Number(e)||0)),n=s??"#ffffff";
   if(typeof n=="string"){

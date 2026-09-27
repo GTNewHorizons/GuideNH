@@ -1,5 +1,25 @@
 import { installSearchUi } from "./search.js";
 import { disposeHydratedScenes, hydrateVisibleScenes } from "./viewer.js";
+import { loadSharedText } from "./sharedAssets.js";
+
+async function loadSidebar(sidebar) {
+  const source = sidebar.querySelector("[data-guide-sidebar-src]")?.dataset.guideSidebarSrc;
+  if (!source) return;
+  const html = await loadSharedText(source);
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  sidebar.replaceChildren(template.content.cloneNode(true));
+  sidebar.dataset.guideSidebarSource = new URL(source, document.baseURI).href;
+}
+
+async function loadPageTemplates(content) {
+  await Promise.all(Array.from(content.querySelectorAll("[data-guide-templates-src]"), async (placeholder) => {
+    const html = await loadSharedText(placeholder.dataset.guideTemplatesSrc);
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    placeholder.replaceWith(template.content.cloneNode(true));
+  }));
+}
 
 function installMediaWikiSpecialFilters(root) {
   const pages = root.querySelectorAll("[data-guide-special-page]");
@@ -743,6 +763,9 @@ function setNavigationNodeExpanded(node, expanded) {
 }
 
 function restoreNavigationState(sidebar, state, currentUrl) {
+  for (const link of sidebar.querySelectorAll('[aria-current="page"]')) {
+    link.removeAttribute("aria-current");
+  }
   const nodes = sidebar.querySelectorAll("[data-guide-nav-node]");
   const savedState = readSavedNavigationState();
   for (const node of nodes) {
@@ -769,7 +792,7 @@ function restoreNavigationState(sidebar, state, currentUrl) {
 function findCurrentNavigationLink(root, url) {
   const target = new URL(url, window.location.href);
   for (const link of root.querySelectorAll("[data-guide-navigation] a[href]")) {
-    const candidate = new URL(link.getAttribute("href"), target);
+    const candidate = new URL(link.getAttribute("href"), document.baseURI);
     if (candidate.origin === target.origin && candidate.pathname === target.pathname && candidate.search === target.search) {
       return link;
     }
@@ -949,6 +972,15 @@ function installSiteRouter() {
         return;
       }
 
+      const nextSidebarSource = nextSidebar.querySelector("[data-guide-sidebar-src]")?.dataset.guideSidebarSrc;
+      const reuseSidebar = nextLanguage === currentLanguage && nextSidebarSource
+        && currentSidebar.dataset.guideSidebarSource === new URL(nextSidebarSource, document.baseURI).href;
+      await Promise.all([
+        reuseSidebar ? Promise.resolve() : loadSidebar(nextSidebar),
+        loadPageTemplates(nextContent),
+      ]);
+      if (activeRequest !== requestId) return;
+
       const state = navigationState(currentSidebar);
       stopGuideSounds(currentContent);
       stopIngredientCycling(currentContent);
@@ -959,13 +991,20 @@ function installSiteRouter() {
       document.documentElement.lang = nextLanguage || currentLanguage;
       setMobileNavigationOpen(false);
 
-      currentSidebar.replaceChildren(...Array.from(nextSidebar.childNodes, (node) => document.importNode(node, true)));
+      if (!reuseSidebar) {
+        currentSidebar.replaceChildren(...Array.from(nextSidebar.childNodes, (node) => document.importNode(node, true)));
+        if (nextSidebar.dataset.guideSidebarSource) {
+          currentSidebar.dataset.guideSidebarSource = nextSidebar.dataset.guideSidebarSource;
+        } else {
+          delete currentSidebar.dataset.guideSidebarSource;
+        }
+        installSearchUi(currentSidebar);
+        installNavigationUi(currentSidebar);
+      }
       const headerLanguage = document.querySelector(".guide-header-lang");
       if (headerLanguage && nextLanguageSwitcher) {
         headerLanguage.replaceChildren(...Array.from(nextLanguageSwitcher.childNodes, (node) => document.importNode(node, true)));
       }
-      installSearchUi(currentSidebar);
-      installNavigationUi(currentSidebar);
       installLanguageMenus(document);
       restoreNavigationState(currentSidebar, state, target);
       installPageBehaviors(currentContent);
@@ -977,6 +1016,7 @@ function installSiteRouter() {
         history.pushState({}, "", target);
       }
     } catch (error) {
+      if (activeRequest !== requestId) return;
       console.warn("GuideNH site navigation failed; using a full-page load instead.", error);
       window.location.assign(target);
     }
@@ -998,19 +1038,29 @@ function installSiteRouter() {
   window.addEventListener("popstate", () => navigate(window.location.href, false));
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  const base = document.querySelector("base");
+  // Keep the site root stable when history navigation changes the page depth.
+  if (base) base.href = base.href;
   const sidebar = document.querySelector(".guide-sidebar");
   const content = document.getElementById("page-content");
+  installLanguageMenus(document);
+  installMobileNavigation();
+  installTooltips(document);
+  const loaded = await Promise.allSettled([
+    content instanceof HTMLElement ? loadPageTemplates(content) : Promise.resolve(),
+    sidebar instanceof HTMLElement ? loadSidebar(sidebar) : Promise.resolve(),
+  ]);
+  for (const result of loaded) {
+    if (result.status === "rejected") console.error("GuideNH page resources could not be loaded.", result.reason);
+  }
+  if (content instanceof HTMLElement) {
+    installPageBehaviors(content);
+  }
   if (sidebar instanceof HTMLElement) {
     installSearchUi(sidebar);
     installNavigationUi(sidebar);
     restoreNavigationState(sidebar, navigationState(sidebar), window.location.href);
-  }
-  installLanguageMenus(document);
-  installMobileNavigation();
-  installTooltips(document);
-  if (content instanceof HTMLElement) {
-    installPageBehaviors(content);
   }
   installSiteRouter();
 });

@@ -176,6 +176,7 @@ public class GuideNavBar {
     private int expandedStateVersion;
     private int lastExpandedStateVersion;
     private boolean bookmarkGroupExpanded = true;
+    @Getter
     private boolean templateGroupExpanded = true;
     /** Template rows to append below the tree, set by the guide editor and empty otherwise. */
     private List<GuideNavProjection.DisplayRow> templateRows = List.of();
@@ -372,10 +373,6 @@ public class GuideNavBar {
         }
         templateRows = List.copyOf(rows);
         rebuildRows(tree, bookmarkState);
-    }
-
-    public boolean isTemplateGroupExpanded() {
-        return templateGroupExpanded;
     }
 
     private boolean shouldRebuildRows(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {

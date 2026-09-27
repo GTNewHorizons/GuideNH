@@ -14,6 +14,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+import java.util.zip.Deflater;
+import java.util.zip.GZIPOutputStream;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -36,6 +38,7 @@ public class GuideSiteWriter {
     public void writeBootstrapFiles(Path outDir) throws Exception {
         writeResource(outDir.resolve("_site/app.css"), "/assets/guidenh/siteexport/app.css");
         writeResource(outDir.resolve("_site/app.js"), "/assets/guidenh/siteexport/app.js");
+        writeResource(outDir.resolve("_site/sharedAssets.js"), "/assets/guidenh/siteexport/sharedAssets.js");
         writeResource(outDir.resolve("_site/search.js"), "/assets/guidenh/siteexport/search.js");
         writeResource(outDir.resolve("_site/decompress.js"), "/assets/guidenh/siteexport/decompress.js");
         writeResource(
@@ -46,6 +49,12 @@ public class GuideSiteWriter {
         writeResource(
             outDir.resolve("_site/model-viewer/modelViewer.js"),
             "/assets/guidenh/siteexport/model-viewer/modelViewer.js");
+        writeResource(
+            outDir.resolve("_site/model-viewer/sceneHoverTargets.js"),
+            "/assets/guidenh/siteexport/model-viewer/sceneHoverTargets.js");
+        writeResource(
+            outDir.resolve("_site/model-viewer/sceneGrid.js"),
+            "/assets/guidenh/siteexport/model-viewer/sceneGrid.js");
         writeResource(
             outDir.resolve("_site/model-viewer/vendor/modelViewer-A42QTX7N.js"),
             "/assets/guidenh/siteexport/model-viewer/vendor/modelViewer-A42QTX7N.js");
@@ -136,7 +145,8 @@ public class GuideSiteWriter {
             .replace("{{lang_switcher}}", langSwitcherHtml)
             .replace("{{sidebar}}", sidebarHtml)
             .replace("{{content}}", contentHtml + String.join("", templateHtml))
-            .replace("{{root}}", relativeRoot(outDir, pagePath));
+            .replace(GuideSitePageAssetExporter.ROOT_PREFIX, "./");
+        layout = layout.replace("{{base}}", relativeRoot(outDir, pagePath) + "/");
         Files.writeString(pagePath, layout);
     }
 
@@ -161,9 +171,16 @@ public class GuideSiteWriter {
     }
 
     public void writeSearchIndex(Path outDir, String language, String json) throws Exception {
-        Path path = outDir.resolve(Paths.get("_data", "search", language + ".json"));
+        Path path = outDir.resolve(Paths.get("_data", "search", language + ".json.gz"));
         Files.createDirectories(path.getParent());
-        Files.writeString(path, json);
+        try (GZIPOutputStream gzip = new GZIPOutputStream(Files.newOutputStream(path)) {
+
+            {
+                def.setLevel(Deflater.BEST_SPEED);
+            }
+        }) {
+            gzip.write(json.getBytes(StandardCharsets.UTF_8));
+        }
     }
 
     public void writeReport(Path outDir, String json) throws Exception {
@@ -299,7 +316,9 @@ public class GuideSiteWriter {
         html.append("<span class=\"guide-search-label\">")
             .append(escapeHtml(uiText.searchLabel()))
             .append("</span>");
-        html.append("<input type=\"search\" class=\"guide-search-input\" data-guide-search-input " + "placeholder=\"")
+        html.append(
+            "<input type=\"search\" class=\"guide-search-input\" data-guide-search-input "
+                + "data-guide-search-compressed placeholder=\"")
             .append(escapeHtml(uiText.searchPlaceholder()))
             .append("\" autocomplete=\"off\" spellcheck=\"false\">");
         html.append("</label>");
@@ -432,9 +451,9 @@ public class GuideSiteWriter {
         html.append(">");
         if (hasChildren) {
             html.append(
-                "<button type=\"button\" class=\"guide-nav-toggle\" data-guide-nav-toggle " + "aria-expanded=\""
-                    + (expanded ? "true" : "false")
-                    + "\"><span aria-hidden=\"true\"></span></button>");
+                "<button type=\"button\" class=\"guide-nav-toggle\" data-guide-nav-toggle " + "aria-expanded=\"")
+                .append(expanded ? "true" : "false")
+                .append("\"><span aria-hidden=\"true\"></span></button>");
         } else {
             html.append("<span class=\"guide-nav-toggle-spacer\" aria-hidden=\"true\"></span>");
         }

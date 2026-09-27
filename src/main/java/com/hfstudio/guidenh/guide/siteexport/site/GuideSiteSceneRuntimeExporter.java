@@ -70,6 +70,10 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
     private Framebuffer captureFramebuffer;
     private int captureWidth;
     private int captureHeight;
+    @Nullable
+    private SceneEditorOffscreenFramebuffer placeholderFramebuffer;
+    private int placeholderWidth;
+    private int placeholderHeight;
     private final ExecutorService encodingExecutor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "guidenh-site-scene-encode");
         thread.setDaemon(true);
@@ -114,12 +118,16 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
                 captureFramebuffer.deleteFramebuffer();
                 captureFramebuffer = null;
             }
+            if (placeholderFramebuffer != null) {
+                placeholderFramebuffer.close();
+                placeholderFramebuffer = null;
+            }
         } finally {
             encodingExecutor.shutdownNow();
         }
     }
 
-    private BufferedImage renderPlaceholderImage(LytGuidebookScene scene) throws Exception {
+    private BufferedImage renderPlaceholderImage(LytGuidebookScene scene) {
         int originalBackground = scene.getSceneBackgroundColor();
         int originalBorder = scene.getSceneBorderColor();
         int originalWidth = scene.getSceneWidth();
@@ -142,14 +150,7 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
             scene.setSceneSize(renderWidth, renderHeight);
             scene.setCameraViewportOverride(logicalWidth, logicalHeight);
 
-            BufferedImage image;
-            try (SceneEditorOffscreenFramebuffer framebuffer = new SceneEditorOffscreenFramebuffer(
-                renderWidth,
-                renderHeight)) {
-                image = framebuffer.render(scene);
-            }
-
-            return image;
+            return placeholderFramebuffer(renderWidth, renderHeight).render(scene);
         } finally {
             scene.setSceneBackgroundColor(originalBackground);
             scene.setSceneBorderColor(originalBorder);
@@ -159,6 +160,20 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
             scene.setSceneSize(originalWidth, originalHeight);
             scene.clearCameraViewportOverride();
         }
+    }
+
+    private SceneEditorOffscreenFramebuffer placeholderFramebuffer(int width, int height) {
+        if (placeholderFramebuffer == null || placeholderWidth != width || placeholderHeight != height) {
+            SceneEditorOffscreenFramebuffer replacement = new SceneEditorOffscreenFramebuffer(width, height);
+            SceneEditorOffscreenFramebuffer previous = placeholderFramebuffer;
+            placeholderFramebuffer = replacement;
+            placeholderWidth = width;
+            placeholderHeight = height;
+            if (previous != null) {
+                previous.close();
+            }
+        }
+        return placeholderFramebuffer;
     }
 
     private byte[] encodePng(BufferedImage image) throws Exception {

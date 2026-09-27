@@ -1,6 +1,8 @@
 import { setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-A42QTX7N.js";
+import { loadSharedText } from "../sharedAssets.js";
+import { loadSceneHoverTargetsJson } from "./sceneHoverTargets.js";
+import { expandSceneGrid } from "./sceneGrid.js";
 
-const sceneStateManifestCache = new Map();
 const ROOT_PREFIX_TOKEN = "{{root}}/";
 const SCENE_CONTEXT_KEY = Symbol("guidenhSceneContext");
 const SCENE_BUTTON_ICONS = {
@@ -226,6 +228,7 @@ function createSceneNode(documentRef, descriptor, variant) {
     setOrRemoveAttribute(node, "data-scene-overlay-annotations", variant.overlayAnnotationsJson);
     setOrRemoveAttribute(node, "data-guide-scene-sounds", variant.sceneSoundsJson);
     setOrRemoveAttribute(node, "data-scene-hover-targets", variant.hoverTargetsJson);
+    setOrRemoveAttribute(node, "data-scene-hover-targets-src", variant.hoverTargetsSrc);
   }
   applySceneGridDescriptor(node, descriptor);
   return node;
@@ -663,7 +666,7 @@ function mergedGridAnnotations(descriptor, baseAnnotationsJson) {
   if (!descriptor.gridVisible) {
     return baseAnnotations;
   }
-  const gridAnnotations = parseSceneJsonAttribute(descriptor.attributes["data-scene-grid-annotations"], []).map(
+  const gridAnnotations = expandSceneGrid(JSON.parse(descriptor.attributes["data-scene-grid-annotations"] || "[]")).map(
     (annotation) => ({
       ...annotation,
       siteControl: "floorGrid",
@@ -724,27 +727,16 @@ function normalizeStateStructures(state) {
   return normalized;
 }
 
-function loadSceneStateManifest(src) {
+async function loadSceneStateManifest(src) {
   if (!src) {
-    return Promise.resolve(null);
+    return null;
   }
-  if (!sceneStateManifestCache.has(src)) {
-    sceneStateManifestCache.set(
-      src,
-      fetch(src, { credentials: "same-origin" })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Failed to load scene manifest: ${response.status} ${response.statusText}`);
-          }
-          return response.json();
-        })
-        .catch((error) => {
-          console.error(error);
-          return null;
-        }),
-    );
+  try {
+    return JSON.parse(await loadSharedText(src));
+  } catch (error) {
+    console.error(error);
+    return null;
   }
-  return sceneStateManifestCache.get(src);
 }
 
 function resolveSceneVariant(manifest, state) {
@@ -771,23 +763,13 @@ async function resolveSceneVariantAssets(sceneContext, variant) {
     return variant;
   }
   const source = normalizeSceneAssetUrl(sceneContext.descriptor, variant.hoverTargetsSrc);
-  if (!sceneContext.manifest.hoverTargetsCache) {
-    sceneContext.manifest.hoverTargetsCache = new Map();
-  }
-  const cache = sceneContext.manifest.hoverTargetsCache;
-  if (!cache.has(source)) {
-    cache.set(source, fetch(source, { credentials: "same-origin" }).then((response) => {
-      if (!response.ok) {
-        throw new Error(`Failed to load scene hover targets: ${response.status} ${response.statusText}`);
-      }
-      return response.text();
-    }));
-  }
-  try {
-    return { ...variant, hoverTargetsJson: await cache.get(source) };
-  } catch (error) {
-    console.error(error);
-    return { ...variant, hoverTargetsJson: "[]" };
+  return { ...variant, hoverTargetsJson: await loadSceneHoverTargetsJson(source) };
+}
+
+async function loadSceneHoverTargets(node, descriptor) {
+  if (node.dataset.sceneHoverTargetsSrc && !node.hasAttribute("data-scene-hover-targets")) {
+    const source = normalizeSceneAssetUrl(descriptor, node.dataset.sceneHoverTargetsSrc);
+    node.setAttribute("data-scene-hover-targets", await loadSceneHoverTargetsJson(source));
   }
 }
 
@@ -1016,12 +998,29 @@ function createRangeControl(documentRef, labelText, min, max, currentValue, form
   range.addEventListener("input", syncValue);
   range.addEventListener("change", () => onChange(nearestValue(range.value)));
   syncValue();
+  wrapper.sceneSetValue = (value) => {
+    range.value = String(nearestValue(value));
+    syncValue();
+    range.dispatchEvent(new Event("input"));
+  };
   const sliderWrap = documentRef.createElement("span");
   sliderWrap.className = "scene-state-slider-wrap";
   sliderWrap.append(createSliderVisual(documentRef, range));
   sliderWrap.append(range);
   wrapper.append(sliderWrap);
   return wrapper;
+}
+
+function appendSceneRangeControl(sceneContext, host, valueOfState, ...controlArgs) {
+  const control = createRangeControl(...controlArgs);
+  sceneContext.rangeControls.push({ control, valueOfState });
+  host.append(control);
+}
+
+function syncSceneRangeControls(sceneContext) {
+  for (const { control, valueOfState } of sceneContext.rangeControls || []) {
+    control.sceneSetValue?.(valueOfState(sceneContext.currentState));
+  }
 }
 
 function createPonderControl(documentRef, control, currentTick, onChange, abortSignal) {
@@ -1102,16 +1101,19 @@ function createPonderControl(documentRef, control, currentTick, onChange, abortS
   };
 
   const nearestExportedTick = (tick) => {
-    let nearest = uniqueTicks[0] ?? 0;
-    let nearestDistance = Math.abs(nearest - tick);
-    for (const candidate of uniqueTicks) {
-      const distance = Math.abs(candidate - tick);
-      if (distance < nearestDistance || (distance === nearestDistance && candidate < nearest)) {
-        nearest = candidate;
-        nearestDistance = distance;
+    let low = 0;
+    let high = uniqueTicks.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (uniqueTicks[middle] < tick) {
+        low = middle + 1;
+      } else {
+        high = middle;
       }
     }
-    return nearest;
+    const upper = uniqueTicks[Math.min(low, uniqueTicks.length - 1)] ?? 0;
+    const lower = uniqueTicks[Math.max(0, low - 1)] ?? upper;
+    return Math.abs(tick - lower) <= Math.abs(upper - tick) ? lower : upper;
   };
 
   const setDisplayedTick = (tick) => {
@@ -1239,6 +1241,7 @@ async function mountSceneStateControls(sceneContext) {
 
   const documentRef = sceneContext.runtime.wrapper.ownerDocument;
   const controls = manifest.controls;
+  sceneContext.rangeControls = [];
 
   if (controls.ponder) {
     host.append(
@@ -1255,8 +1258,7 @@ async function mountSceneStateControls(sceneContext) {
   if (controls.tier && Number.isFinite(Number(controls.tier.min)) && Number.isFinite(Number(controls.tier.max))) {
     const min = Math.max(1, Number(controls.tier.min) || 1);
     const max = Math.max(min, Number(controls.tier.max) || min);
-    host.append(
-      createRangeControl(
+    appendSceneRangeControl(sceneContext, host, (state) => state.tier,
         documentRef,
         controls.tier.label || "Tier",
         min,
@@ -1264,14 +1266,12 @@ async function mountSceneStateControls(sceneContext) {
         sceneContext.currentState.tier,
         (value) => String(value),
         (value) => updateSceneState(sceneContext, { tier: value }),
-      ),
     );
   }
 
   if (controls.visibleLayer && Number.isFinite(Number(controls.visibleLayer.max))) {
     const maxLayer = Math.max(0, Number(controls.visibleLayer.max) || 0);
-    host.append(
-      createRangeControl(
+    appendSceneRangeControl(sceneContext, host, (state) => state.visibleLayer,
         documentRef,
         controls.visibleLayer.label || "Layer",
         0,
@@ -1279,7 +1279,6 @@ async function mountSceneStateControls(sceneContext) {
         sceneContext.currentState.visibleLayer,
         (value) => (value === 0 ? controls.visibleLayer.allLabel || "All" : String(value)),
         (value) => updateSceneState(sceneContext, { visibleLayer: value }),
-      ),
     );
   }
 
@@ -1287,8 +1286,7 @@ async function mountSceneStateControls(sceneContext) {
     for (const channel of controls.channels) {
       const min = Math.max(0, Number(channel?.min) || 0);
       const max = Math.max(0, Number(channel?.max) || 0);
-      host.append(
-        createRangeControl(
+      appendSceneRangeControl(sceneContext, host, (state) => state.channels?.[channel.id] ?? min,
           documentRef,
           channel.label || channel.id || "Channel",
           min,
@@ -1302,7 +1300,6 @@ async function mountSceneStateControls(sceneContext) {
             },
           }),
           channel.values,
-        ),
       );
     }
   }
@@ -1317,8 +1314,8 @@ async function mountSceneStateControls(sceneContext) {
       if (structure.tier && Number.isFinite(Number(structure.tier.min)) && Number.isFinite(Number(structure.tier.max))) {
         const min = Math.max(1, Number(structure.tier.min) || 1);
         const max = Math.max(min, Number(structure.tier.max) || min);
-        host.append(
-          createRangeControl(
+        appendSceneRangeControl(sceneContext, host,
+          (state) => state.structures?.[structureId]?.tier ?? min,
             documentRef,
             structure.tier.label || "Tier",
             min,
@@ -1333,15 +1330,14 @@ async function mountSceneStateControls(sceneContext) {
                   },
                 },
               }),
-          ),
         );
       }
       if (Array.isArray(structure.channels)) {
         for (const channel of structure.channels) {
           const min = Math.max(0, Number(channel?.min) || 0);
           const max = Math.max(0, Number(channel?.max) || 0);
-          host.append(
-            createRangeControl(
+          appendSceneRangeControl(sceneContext, host,
+            (state) => state.structures?.[structureId]?.channels?.[channel.id] ?? min,
               documentRef,
               channel.label || channel.id || "Channel",
               min,
@@ -1359,7 +1355,6 @@ async function mountSceneStateControls(sceneContext) {
                   },
                 }),
               channel.values,
-            ),
           );
         }
       }
@@ -1372,7 +1367,9 @@ async function updateSceneState(sceneContext, patch) {
     return;
   }
 
-  const sourceState = sceneContext.pendingState || sceneContext.currentState || sceneContext.manifest.initialState;
+  const sourceState = sceneContext.manifest.independentControls
+    ? sceneContext.manifest.initialState
+    : sceneContext.pendingState || sceneContext.currentState || sceneContext.manifest.initialState;
   const currentStructures = sourceState?.structures || {};
   const patchedStructures = patch?.structures || {};
   const mergedStructures = { ...currentStructures };
@@ -1413,7 +1410,9 @@ async function updateSceneState(sceneContext, patch) {
         continue;
       }
       const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
-      await recreateSceneRuntime(sceneContext, variantAssets, requestedState);
+      if (await recreateSceneRuntime(sceneContext, variantAssets, requestedState)) {
+        syncSceneRangeControls(sceneContext);
+      }
     }
   } finally {
     sceneContext.transitioning = false;
@@ -1427,6 +1426,7 @@ async function recreateSceneRuntime(sceneContext, variant, nextState) {
   }
 
   const replacement = createSceneNode(parent.ownerDocument, sceneContext.descriptor, variant);
+  await loadSceneHoverTargets(replacement, sceneContext.descriptor);
   const nextDescriptor = captureSceneDescriptor(replacement);
   const split = splitOverlayAnnotations(
     parseSceneJsonAttribute(replacement.getAttribute("data-scene-overlay-annotations"), []),
@@ -1497,6 +1497,7 @@ async function initializeScene(node) {
   ensureDetachedSceneSizeCompat();
 
   const descriptor = captureSceneDescriptor(node);
+  await loadSceneHoverTargets(node, descriptor);
   applySceneGridDescriptor(node, descriptor);
   const split = splitOverlayAnnotations(parseSceneJsonAttribute(node.getAttribute("data-scene-overlay-annotations"), []));
   node.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(split.vendorAnnotations));
@@ -1527,8 +1528,9 @@ async function initializeScene(node) {
   return sceneContext;
 }
 
-export function setupGameScene(node) {
-  return initializeScene(node);
+export async function setupGameScene(node) {
+  const context = await initializeScene(node);
+  return context?.runtime || null;
 }
 
 export function disposeHydratedScenes(root) {

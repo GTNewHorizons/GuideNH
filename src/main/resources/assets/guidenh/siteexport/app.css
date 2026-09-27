@@ -642,7 +642,7 @@ p {
 .guide-nav li {
     position: relative;
     display: grid;
-    grid-template-columns: calc(14px * var(--gui-scale)) minmax(0, 1fr);
+    grid-template-columns: calc(12px * var(--gui-scale)) minmax(0, 1fr);
 }
 
 .guide-nav a,
@@ -652,6 +652,7 @@ p {
     gap: 4px;
     min-height: calc(10px * var(--gui-scale));
     padding: calc(1px * var(--gui-scale)) calc(4px * var(--gui-scale));
+    padding-left: calc(2px * var(--gui-scale));
     color: var(--color-body-text);
     text-decoration: none;
     font-size: 0.85rem;

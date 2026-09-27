@@ -369,13 +369,18 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                 .append(escapeAttributeStatic(overlayJson))
                 .append("\"");
         }
-        if (exportedScene != null && exportedScene.hoverTargetsJson() != null
+        if (exportedScene != null && exportedScene.hoverTargetsPath() != null) {
+            html.append(" data-scene-hover-targets-src=\"")
+                .append(
+                    escapeAttributeStatic(GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.hoverTargetsPath()))
+                .append("\"");
+        } else if (exportedScene != null && exportedScene.hoverTargetsJson() != null
             && !exportedScene.hoverTargetsJson()
                 .isEmpty()) {
-            html.append(" data-scene-hover-targets=\"")
-                .append(escapeAttributeStatic(exportedScene.hoverTargetsJson()))
-                .append("\"");
-        }
+                    html.append(" data-scene-hover-targets=\"")
+                        .append(escapeAttributeStatic(exportedScene.hoverTargetsJson()))
+                        .append("\"");
+                }
         if (exportedScene != null && exportedScene.stateManifestPath() != null
             && !exportedScene.stateManifestPath()
                 .isEmpty()) {

@@ -2,7 +2,6 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
@@ -11,8 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.imageio.ImageIO;
 
 import net.minecraft.client.renderer.OpenGlHelper;
 
@@ -47,6 +44,8 @@ public class GuideSiteSceneTessellatorCapture {
     private final Matrix3f currentNormalMatrix = new Matrix3f();
     private final VertexDecodeScratch decodeScratch = new VertexDecodeScratch();
     private final FloatBuffer modelViewBuffer = BufferUtils.createFloatBuffer(16);
+    @Nullable
+    private ByteBuffer texturePixelBuffer;
     private final List<CapturedMesh> meshes = new ArrayList<>();
     private final Map<Integer, TextureExport> textures = new LinkedHashMap<>();
     private static final int RAW_VERTEX_STRIDE = 8;
@@ -303,7 +302,12 @@ public class GuideSiteSceneTessellatorCapture {
                     exportHeight);
             }
 
-            ByteBuffer pixels = BufferUtils.createByteBuffer(exportWidth * exportHeight * 4);
+            int requiredBytes = exportWidth * exportHeight * 4;
+            if (texturePixelBuffer == null || texturePixelBuffer.capacity() < requiredBytes) {
+                texturePixelBuffer = BufferUtils.createByteBuffer(requiredBytes);
+            }
+            ByteBuffer pixels = texturePixelBuffer;
+            pixels.clear();
             GL11.glGetTexImage(GL11.GL_TEXTURE_2D, exportMipLevel, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixels);
 
             BufferedImage image = new BufferedImage(exportWidth, exportHeight, BufferedImage.TYPE_INT_ARGB);
@@ -317,10 +321,7 @@ public class GuideSiteSceneTessellatorCapture {
                 argbPixels[pixelIndex] = a << 24 | r << 16 | g << 8 | b;
             }
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ImageIO.write(image, "png", out);
-
-            String texturePath = assets.writeShared("scene-textures", ".png", out.toByteArray());
+            String texturePath = assets.writePngAsync("scene-textures", image);
 
             TextureExport export = new TextureExport(
                 "gltex-" + textureId,

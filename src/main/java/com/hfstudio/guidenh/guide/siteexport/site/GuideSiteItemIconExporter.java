@@ -1,12 +1,10 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
+import java.awt.image.DataBufferInt;
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderHelper;
@@ -21,16 +19,20 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
-public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
+public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, AutoCloseable {
 
     /**
      * Raster size for exported `item-icons/*.png` (vanilla item GUI draws a
-     * 16鑴?6 logical tile, scaled to this).
+     * 16 x 16 logical tile, scaled to this).
      */
     private static final int ICON_SIZE = 128;
 
     private final GuideSiteAssetRegistry assets;
     private final Map<String, String> exportedIcons = new LinkedHashMap<>();
+    @Nullable
+    private Framebuffer framebuffer;
+    @Nullable
+    private ByteBuffer pixelBuffer;
 
     public GuideSiteItemIconExporter(GuideSiteAssetRegistry assets) {
         this.assets = assets;
@@ -50,7 +52,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
 
         try {
             String exportedPath = GuideSitePageAssetExporter.ROOT_PREFIX
-                + assets.writeShared("item-icons", ".png", renderPng(stack.copy()));
+                + assets.writePngAsync("item-icons", renderImage(stack.copy()));
             exportedIcons.put(cacheKey, exportedPath);
             return exportedPath;
         } catch (Throwable t) {
@@ -77,14 +79,13 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
         return key.toString();
     }
 
-    private byte[] renderPng(ItemStack stack) throws Exception {
+    private BufferedImage renderImage(ItemStack stack) {
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft == null || minecraft.gameSettings == null || minecraft.fontRenderer == null) {
             throw new IllegalStateException("Minecraft client is not ready for item icon export.");
         }
 
-        Framebuffer framebuffer = new Framebuffer(ICON_SIZE, ICON_SIZE, true);
-        framebuffer.setFramebufferColor(0f, 0f, 0f, 0f);
+        Framebuffer framebuffer = framebuffer();
 
         int previousDisplayWidth = minecraft.displayWidth;
         int previousDisplayHeight = minecraft.displayHeight;
@@ -145,9 +146,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
                 RenderHelper.disableStandardItemLighting();
             }
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ImageIO.write(readPixels(), "png", out);
-            return out.toByteArray();
+            return readPixels();
         } finally {
             if (modelViewPushed) {
                 GL11.glMatrixMode(GL11.GL_MODELVIEW);
@@ -160,7 +159,6 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
             }
 
             framebuffer.unbindFramebuffer();
-            framebuffer.deleteFramebuffer();
             minecraft.displayWidth = previousDisplayWidth;
             minecraft.displayHeight = previousDisplayHeight;
             minecraft.gameSettings.guiScale = previousGuiScale;
@@ -174,11 +172,25 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
         }
     }
 
+    private Framebuffer framebuffer() {
+        if (framebuffer == null) {
+            framebuffer = new Framebuffer(ICON_SIZE, ICON_SIZE, true);
+            framebuffer.setFramebufferColor(0f, 0f, 0f, 0f);
+        }
+        return framebuffer;
+    }
+
     private BufferedImage readPixels() {
-        ByteBuffer buffer = BufferUtils.createByteBuffer(ICON_SIZE * ICON_SIZE * 4);
+        if (pixelBuffer == null) {
+            pixelBuffer = BufferUtils.createByteBuffer(ICON_SIZE * ICON_SIZE * 4);
+        }
+        ByteBuffer buffer = pixelBuffer;
+        buffer.clear();
         GL11.glReadPixels(0, 0, ICON_SIZE, ICON_SIZE, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
 
         BufferedImage image = new BufferedImage(ICON_SIZE, ICON_SIZE, BufferedImage.TYPE_INT_ARGB);
+        int[] pixels = ((DataBufferInt) image.getRaster()
+            .getDataBuffer()).getData();
         for (int y = 0; y < ICON_SIZE; y++) {
             int flippedY = ICON_SIZE - 1 - y;
             for (int x = 0; x < ICON_SIZE; x++) {
@@ -187,9 +199,18 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver {
                 int green = buffer.get(index + 1) & 0xFF;
                 int blue = buffer.get(index + 2) & 0xFF;
                 int alpha = buffer.get(index + 3) & 0xFF;
-                image.setRGB(x, flippedY, (alpha << 24) | (red << 16) | (green << 8) | blue);
+                pixels[x + flippedY * ICON_SIZE] = (alpha << 24) | (red << 16) | (green << 8) | blue;
             }
         }
         return image;
+    }
+
+    @Override
+    public synchronized void close() {
+        if (framebuffer != null) {
+            framebuffer.deleteFramebuffer();
+            framebuffer = null;
+        }
+        pixelBuffer = null;
     }
 }
