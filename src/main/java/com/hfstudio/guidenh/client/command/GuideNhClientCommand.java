@@ -255,6 +255,8 @@ public class GuideNhClientCommand extends CommandBase {
                 result.guidesExported(),
                 result.pagesExported(),
                 result.pagesFailed(),
+                result.warnings(),
+                result.errors(),
                 result.outDir(),
                 formatElapsed(System.nanoTime() - startedAt));
         } catch (Throwable t) {

@@ -34,6 +34,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteI
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -310,6 +311,13 @@ public class GuideSiteHtmlCompiler {
 
     private String compileNode(MdAstAnyContent node, GuideSiteTemplateRegistry templates, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        try (GuideDebugLog.ContextScope ignored = GuideDebugLog.pushNode(node)) {
+            return compileNodeWithContext(node, templates, defaultNamespace, currentPageId, sceneResolver);
+        }
+    }
+
+    private String compileNodeWithContext(MdAstAnyContent node, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         if (node instanceof MdAstText) {
             return compileText(((MdAstText) node).value(), templates, defaultNamespace, currentPageId);
         }
@@ -1473,18 +1481,20 @@ public class GuideSiteHtmlCompiler {
         String valign = element.getAttributeString("valign", null);
         int offsetX = readInt(element, "offsetX", 0);
         int offsetY = readInt(element, "offsetY", 0);
-        return renderLatex(
-            formula,
-            color,
-            scale,
-            sourceScale,
-            showTooltip,
-            tooltipHtml,
-            valign,
-            offsetX,
-            offsetY,
-            display,
-            templates);
+        try (GuideDebugLog.ContextScope ignored = GuideDebugLog.pushNode(element)) {
+            return renderLatex(
+                formula,
+                color,
+                scale,
+                sourceScale,
+                showTooltip,
+                tooltipHtml,
+                valign,
+                offsetX,
+                offsetY,
+                display,
+                templates);
+        }
     }
 
     private String renderLatex(String formula, @Nullable String color, float scale, float sourceScale,

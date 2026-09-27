@@ -72,7 +72,7 @@ public class GuideSiteExportTask {
         .create();
     private static final int MAX_SCENE_STRUCTURE_TIER = 4;
     private static final int MAX_SCENE_STRUCTURE_CHANNEL_VALUE = 4;
-    private static final int MAX_SCENE_STATE_VARIANTS = 125;
+    private static final int MAX_SCENE_STATE_VARIANTS = 1024;
     private static final long SCENE_MATERIALIZATION_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long SCENE_MATERIALIZATION_STEP_NANOS = TimeUnit.MILLISECONDS.toNanos(2);
     private static final long SCENE_MATERIALIZATION_WAIT_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
@@ -91,16 +91,26 @@ public class GuideSiteExportTask {
     }
 
     public Result run() throws Exception {
-        Files.createDirectories(outDir);
+        try (GuideDebugLog.DiagnosticScope diagnostics = GuideDebugLog.pushDiagnostics()) {
+            try {
+                Files.createDirectories(outDir);
+                return runExport(diagnostics);
+            } catch (Exception | Error failure) {
+                GuideDebugLog.error("[GuideNH] [GuideSiteExportTask] Site export aborted: {}", failure, failure);
+                throw failure;
+            }
+        }
+    }
 
+    private Result runExport(GuideDebugLog.DiagnosticScope diagnostics) throws Exception {
         GuideSiteWriter writer = new GuideSiteWriter();
         writer.cleanupGeneratedOutputs(outDir);
         GuideSiteSearchTextExtractor searchExtractor = new GuideSiteSearchTextExtractor();
         GuideSiteAssetRegistry assets = new GuideSiteAssetRegistry(outDir);
         GuideSiteItemIconExporter itemIconExporter = new GuideSiteItemIconExporter(assets);
         GuideSiteNeiPhase1BackgroundExporter neiPhase1Exporter = new GuideSiteNeiPhase1BackgroundExporter(assets);
-        GuideSiteSceneRuntimeExporter sceneExporter = new GuideSiteSceneRuntimeExporter(assets);
         writer.writeBootstrapFiles(outDir);
+        GuideSiteSceneRuntimeExporter sceneExporter = new GuideSiteSceneRuntimeExporter(assets);
 
         int guidesExported = 0;
         int pagesExported = 0;
@@ -139,10 +149,13 @@ public class GuideSiteExportTask {
                 try {
                     variants = collector.collect(guide, discoveredLanguages);
                 } catch (Throwable t) {
-                    GuideDebugLog.warnAlways(
-                        "[GuideNH] [GuideSiteExportTask] Failed to collect page variants for guide {}",
-                        guide.getId(),
-                        t);
+                    try (GuideDebugLog.ContextScope logContext = GuideDebugLog
+                        .pushContext("all", "", guide.getContentRootFolder())) {
+                        GuideDebugLog.error(
+                            "[GuideNH] [GuideSiteExportTask] Failed to collect page variants for guide {}",
+                            guide.getId(),
+                            t);
+                    }
                     recordFailure(outDir, "collect " + guide.getId(), t);
                     pagesFailed++;
                     continue;
@@ -216,7 +229,8 @@ public class GuideSiteExportTask {
                         itemIconExporter);
 
                     for (GuideSitePageVariant variant : languageVariants) {
-                        try {
+                        try (GuideDebugLog.ContextScope logContext = GuideDebugLog
+                            .pushContext(language, variant.sourceLanguage(), sourcePath(guide, variant))) {
                             try (GuideSiteHrefResolver.ContextScope ignored = GuideSiteHrefResolver.exportContext(
                                 guide.getId()
                                     .getResourceDomain(),
@@ -311,11 +325,13 @@ public class GuideSiteExportTask {
                             }
                             pagesExported++;
                         } catch (Throwable t) {
-                            GuideDebugLog.warnAlways(
-                                "[GuideNH] [GuideSiteExportTask] Failed to export page {} for language {}",
-                                variant.pageId(),
-                                language,
-                                t);
+                            try (GuideDebugLog.ContextScope logContext = GuideDebugLog
+                                .pushContext(language, variant.sourceLanguage(), sourcePath(guide, variant))) {
+                                GuideDebugLog.error(
+                                    "[GuideNH] [GuideSiteExportTask] Failed to export page {}",
+                                    variant.pageId(),
+                                    t);
+                            }
                             recordFailure(outDir, "page " + variant.pageId() + " (" + language + ")", t);
                             pagesFailed++;
                         }
@@ -326,15 +342,19 @@ public class GuideSiteExportTask {
             restoreMinecraftLanguage(originalMcLanguage);
             sceneExporter.close();
         }
-
         for (Map.Entry<String, List<Map<String, Object>>> entry : searchEntriesByLanguage.entrySet()) {
             writer.writeSearchIndex(outDir, entry.getKey(), GSON.toJson(entry.getValue()));
         }
 
         GuideSiteLocalizedText landingPageText = GuideSiteLocalizedText.resolve();
         writer.writeLandingPage(outDir, firstPageUrl, "GuideNH Static Export", landingPageText);
-
-        return new Result(guidesExported, pagesExported, pagesFailed, outDir);
+        return new Result(
+            guidesExported,
+            pagesExported,
+            pagesFailed,
+            diagnostics.warningCount(),
+            diagnostics.errorCount(),
+            outDir);
     }
 
     private static void switchMinecraftLanguage(String requested) {
@@ -425,6 +445,7 @@ public class GuideSiteExportTask {
             Files.writeString(
                 outDir.resolve("export-failures.log"),
                 sw.toString(),
+                StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND);
         } catch (IOException ioException) {
@@ -781,27 +802,29 @@ public class GuideSiteExportTask {
         Collections.reverse(exportOrder);
 
         for (LytGuidebookScene scene : exportOrder) {
-            reportSceneLoadFailure(scene, parsedPage);
-            try (
-                GuideSiteSceneAnnotationSerializer.ExportedSceneLookupScope ignored = GuideSiteSceneAnnotationSerializer
-                    .pushExportedSceneLookup(exportedScenesByScene)) {
-                GuideSiteExportedScene exportedScene = exportScene(
-                    parsedPage,
-                    scene,
-                    templates,
-                    assets,
-                    exporter,
-                    assetExporter,
-                    itemIconResolver);
-                if (exportedScene != null) {
-                    exportedScenesByScene.put(scene, exportedScene);
+            try (GuideDebugLog.ContextScope sceneContext = GuideDebugLog.pushNode(scene.getSourceNode())) {
+                reportSceneLoadFailure(scene, parsedPage);
+                try (
+                    GuideSiteSceneAnnotationSerializer.ExportedSceneLookupScope ignored = GuideSiteSceneAnnotationSerializer
+                        .pushExportedSceneLookup(exportedScenesByScene)) {
+                    GuideSiteExportedScene exportedScene = exportScene(
+                        parsedPage,
+                        scene,
+                        templates,
+                        assets,
+                        exporter,
+                        assetExporter,
+                        itemIconResolver);
+                    if (exportedScene != null) {
+                        exportedScenesByScene.put(scene, exportedScene);
+                    }
+                } catch (Throwable t) {
+                    GuideDebugLog.error(
+                        "[GuideNH] [GuideSiteExportTask] Failed to export scene for page {} in guide {}",
+                        parsedPage.getId(),
+                        guide.getId(),
+                        t);
                 }
-            } catch (Throwable t) {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH] [GuideSiteExportTask] Failed to export scene for page {} in guide {}",
-                    parsedPage.getId(),
-                    guide.getId(),
-                    t);
             }
         }
 
@@ -1464,7 +1487,7 @@ public class GuideSiteExportTask {
 
     private void warnSceneStateVariantLimit(long variantCount) {
         GuideDebugLog.warnAlways(
-            "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export because {} variants exceed limit {}.",
+            "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export: variantCount={} exceeds limit={}.",
             variantCount,
             MAX_SCENE_STATE_VARIANTS);
     }
@@ -1523,6 +1546,16 @@ public class GuideSiteExportTask {
             return MAX_SCENE_STATE_VARIANTS + 1L;
         }
         return left * right;
+    }
+
+    private String sourcePath(MutableGuide guide, GuideSitePageVariant variant) {
+        String sourceLanguage = variant.sourceLanguage();
+        String pagePath = variant.pageId()
+            .getResourcePath();
+        if (sourceLanguage == null || sourceLanguage.isEmpty()) {
+            return guide.getContentRootFolder() + "/" + pagePath;
+        }
+        return guide.getContentRootFolder() + "/_" + sourceLanguage + "/" + pagePath;
     }
 
     private GuideSiteHtmlCompiler.SceneResolver createSceneResolver(List<GuideSiteExportedScene> exportedScenes) {
@@ -1800,17 +1833,25 @@ public class GuideSiteExportTask {
         }
     }
 
-    public static final class Result {
+    public static class Result {
 
         private final int guidesExported;
         private final int pagesExported;
         private final int pagesFailed;
+        private final int warnings;
+        private final int errors;
         private final Path outDir;
 
         public Result(int guidesExported, int pagesExported, int pagesFailed, Path outDir) {
+            this(guidesExported, pagesExported, pagesFailed, 0, 0, outDir);
+        }
+
+        public Result(int guidesExported, int pagesExported, int pagesFailed, int warnings, int errors, Path outDir) {
             this.guidesExported = guidesExported;
             this.pagesExported = pagesExported;
             this.pagesFailed = pagesFailed;
+            this.warnings = warnings;
+            this.errors = errors;
             this.outDir = outDir;
         }
 
@@ -1824,6 +1865,14 @@ public class GuideSiteExportTask {
 
         public int pagesFailed() {
             return pagesFailed;
+        }
+
+        public int warnings() {
+            return warnings;
+        }
+
+        public int errors() {
+            return errors;
         }
 
         public Path outDir() {

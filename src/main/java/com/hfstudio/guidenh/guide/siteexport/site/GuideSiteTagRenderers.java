@@ -41,10 +41,10 @@ public class GuideSiteTagRenderers {
             return null;
         }
         for (GuideSiteTagRenderer renderer : renderers) {
-            if (!answers(renderer, tagName)) {
-                continue;
-            }
-            try {
+            try (GuideDebugLog.ContextScope ignored = GuideDebugLog.pushNode(element)) {
+                if (!answers(renderer, tagName)) {
+                    continue;
+                }
                 String markup = renderer.render(context, element);
                 if (markup != null) {
                     return markup;

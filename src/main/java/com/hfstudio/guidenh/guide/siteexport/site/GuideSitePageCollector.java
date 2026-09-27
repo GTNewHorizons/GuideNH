@@ -211,36 +211,65 @@ public class GuideSitePageCollector {
         Map<String, Map<ResourceLocation, Optional<LoadedPage>>> pageCacheByLanguage, String language,
         ResourceLocation pageId) {
         return pageCacheByLanguage.computeIfAbsent(language, ignored -> new LinkedHashMap<>())
-            .computeIfAbsent(pageId, ignored -> pageLoader.load(language, pageId));
+            .computeIfAbsent(pageId, ignored -> {
+                try (GuideDebugLog.ContextScope logContext = GuideDebugLog
+                    .pushContext(language, language, pageId.getResourcePath())) {
+                    return pageLoader.load(language, pageId);
+                }
+            });
     }
 
     private static Optional<LoadedPage> tryLoadPage(MutableGuide guide, IResourceManager resourceManager,
         String language, ResourceLocation pageId) {
         String sourceLanguage = language;
-        ParsedGuidePage localized = GuideLightweightReloadService
-            .loadPageForLanguage(guide.getId(), guide.getContentRootFolder(), language, sourceLanguage, pageId);
+        ParsedGuidePage localized;
+        try (GuideDebugLog.ContextScope ignored = GuideDebugLog
+            .pushContext(language, sourceLanguage, sourcePath(guide, sourceLanguage, pageId))) {
+            localized = GuideLightweightReloadService
+                .loadPageForLanguage(guide.getId(), guide.getContentRootFolder(), language, sourceLanguage, pageId);
+        }
         if (localized != null) {
             return Optional.of(new LoadedPage(sourceLanguage, false, localized));
         }
 
         String defaultLanguage = guide.getDefaultLanguage();
         if (!defaultLanguage.equals(language)) {
-            ParsedGuidePage fallback = GuideLightweightReloadService
-                .loadPageForLanguage(guide.getId(), guide.getContentRootFolder(), language, defaultLanguage, pageId);
+            ParsedGuidePage fallback;
+            try (GuideDebugLog.ContextScope ignored = GuideDebugLog
+                .pushContext(language, defaultLanguage, sourcePath(guide, defaultLanguage, pageId))) {
+                fallback = GuideLightweightReloadService.loadPageForLanguage(
+                    guide.getId(),
+                    guide.getContentRootFolder(),
+                    language,
+                    defaultLanguage,
+                    pageId);
+            }
             if (fallback != null) {
                 return Optional.of(new LoadedPage(defaultLanguage, true, fallback));
             }
         }
 
         String namespace = pageId.getResourceDomain();
-        ParsedGuidePage neutral = GuideLightweightReloadService.tryLoadNeutralPageForExport(
-            resourceManager,
-            "resources:" + namespace,
-            language,
-            guide.getContentRootFolder(),
-            pageId,
-            new ResourceLocation(namespace, guide.getContentRootFolder() + "/" + pageId.getResourcePath()));
+        ParsedGuidePage neutral;
+        try (GuideDebugLog.ContextScope ignored = GuideDebugLog
+            .pushContext(language, "", sourcePath(guide, null, pageId))) {
+            neutral = GuideLightweightReloadService.tryLoadNeutralPageForExport(
+                resourceManager,
+                "resources:" + namespace,
+                language,
+                guide.getContentRootFolder(),
+                pageId,
+                new ResourceLocation(namespace, guide.getContentRootFolder() + "/" + pageId.getResourcePath()));
+        }
         return neutral != null ? Optional.of(new LoadedPage(null, true, neutral)) : Optional.empty();
+    }
+
+    private static String sourcePath(MutableGuide guide, @Nullable String sourceLanguage, ResourceLocation pageId) {
+        String prefix = guide.getContentRootFolder() + "/";
+        if (sourceLanguage != null && !sourceLanguage.isEmpty()) {
+            prefix += "_" + sourceLanguage + "/";
+        }
+        return prefix + pageId.getResourcePath();
     }
 
     public record LoadedPage(@Nullable String sourceLanguage, boolean fallbackUsed, ParsedGuidePage page) {}

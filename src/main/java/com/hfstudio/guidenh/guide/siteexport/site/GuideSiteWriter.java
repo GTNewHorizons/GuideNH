@@ -122,6 +122,7 @@ public class GuideSiteWriter {
         deleteRecursively(normalizedOutDir.resolve(".guidenh-site-server.state"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve(".guidenh-site-server"), normalizedOutDir);
         deleteRecursively(normalizedOutDir.resolve("export-report.json"), normalizedOutDir);
+        deleteRecursively(normalizedOutDir.resolve("export-failures.log"), normalizedOutDir);
     }
 
     public void writePage(Path outDir, String namespace, String guidePath, String language, String pageRelativeFile,

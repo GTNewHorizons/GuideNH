@@ -58,17 +58,24 @@ public class GuideSiteLatexExporter {
         } catch (ParseException e) {
             GuideDebugLog.error(
                 "[GuideNH] [GuideSiteLatexExporter] Failed to parse LaTeX formula '{}': {}",
-                formula,
+                formatFormulaForLog(formula),
                 e.getMessage());
             return null;
         } catch (Exception e) {
             GuideDebugLog.warn(
                 "[GuideNH] [GuideSiteLatexExporter] Failed to export LaTeX formula '{}': {}",
-                formula,
+                formatFormulaForLog(formula),
                 e.getMessage(),
                 e);
             return null;
         }
+    }
+
+    private String formatFormulaForLog(String formula) {
+        return formula.replace("\\", "\\\\")
+            .replace("\r", "\\r")
+            .replace("\n", "\\n")
+            .replace("\t", "\\t");
     }
 
     private int referenceHeight(float sourceScale) throws ParseException {
