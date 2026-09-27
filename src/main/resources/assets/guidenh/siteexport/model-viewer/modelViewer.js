@@ -747,6 +747,50 @@ function loadSceneStateManifest(src) {
   return sceneStateManifestCache.get(src);
 }
 
+function resolveSceneVariant(manifest, state) {
+  if (!manifest || !state) {
+    return null;
+  }
+  const stateKey = buildStateKey(state);
+  const stateEntry = manifest.states?.[stateKey];
+  if (Number.isInteger(stateEntry) && Array.isArray(manifest.variants)) {
+    const variant = manifest.variants[stateEntry];
+    if (!variant) {
+      return null;
+    }
+    return manifest.variantDefaults ? { ...manifest.variantDefaults, ...variant } : variant;
+  }
+  if (stateEntry && typeof stateEntry === "object") {
+    return stateEntry;
+  }
+  return null;
+}
+
+async function resolveSceneVariantAssets(sceneContext, variant) {
+  if (!variant || !variant.hoverTargetsSrc || variant.hoverTargetsJson) {
+    return variant;
+  }
+  const source = normalizeSceneAssetUrl(sceneContext.descriptor, variant.hoverTargetsSrc);
+  if (!sceneContext.manifest.hoverTargetsCache) {
+    sceneContext.manifest.hoverTargetsCache = new Map();
+  }
+  const cache = sceneContext.manifest.hoverTargetsCache;
+  if (!cache.has(source)) {
+    cache.set(source, fetch(source, { credentials: "same-origin" }).then((response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to load scene hover targets: ${response.status} ${response.statusText}`);
+      }
+      return response.text();
+    }));
+  }
+  try {
+    return { ...variant, hoverTargetsJson: await cache.get(source) };
+  } catch (error) {
+    console.error(error);
+    return { ...variant, hoverTargetsJson: "[]" };
+  }
+}
+
 function ensureStateControlsHost(wrapper) {
   if (!(wrapper instanceof HTMLElement)) {
     return null;
@@ -880,9 +924,9 @@ async function toggleSceneGrid(sceneContext) {
   }
   sceneContext.descriptor.gridVisible = !sceneContext.descriptor.gridVisible;
   const currentState = sceneContext.currentState ? cloneState(sceneContext.currentState) : null;
-  const variant = currentState && sceneContext.manifest?.states ? sceneContext.manifest.states[buildStateKey(currentState)]
-    : null;
-  const recreated = await recreateSceneRuntime(sceneContext, variant, currentState);
+  const variant = resolveSceneVariant(sceneContext.manifest, currentState);
+  const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
+  const recreated = await recreateSceneRuntime(sceneContext, variantAssets, currentState);
   if (!recreated) {
     sceneContext.descriptor.gridVisible = !sceneContext.descriptor.gridVisible;
   }
@@ -1363,12 +1407,13 @@ async function updateSceneState(sceneContext, patch) {
       const requestedState = sceneContext.pendingState;
       sceneContext.pendingState = null;
       const key = buildStateKey(requestedState);
-      const variant = sceneContext.manifest.states[key];
+      const variant = resolveSceneVariant(sceneContext.manifest, requestedState);
       if (!variant) {
         console.warn("Missing exported scene variant for key %s", key);
         continue;
       }
-      await recreateSceneRuntime(sceneContext, variant, requestedState);
+      const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
+      await recreateSceneRuntime(sceneContext, variantAssets, requestedState);
     }
   } finally {
     sceneContext.transitioning = false;

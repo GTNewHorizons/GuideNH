@@ -4,6 +4,9 @@ import static com.hfstudio.guidenh.guide.internal.util.LangUtil.normalizeLanguag
 
 import java.util.Locale;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.Language;
+import net.minecraft.client.resources.LanguageManager;
 import net.minecraft.util.StatCollector;
 
 import org.jetbrains.annotations.Nullable;
@@ -12,9 +15,6 @@ public record GuideSiteLocalizedText(String searchLabel, String searchPlaceholde
     String languagesLabel, String fallbackBadge, String fallbackPrefix, String sharedPageLabel,
     String siteExportNoPages, String siteExportOpenGuide, String externalLinkTitle, String externalLinkMessage,
     String externalLinkOpen, String externalLinkBack) {
-
-    private static final String SITE_EXPORT_KEY_PREFIX = "guidenh.siteexport.";
-    private static final String LANGUAGE_KEY_PREFIX = SITE_EXPORT_KEY_PREFIX + "language.";
 
     public static GuideSiteLocalizedText resolve() {
         return new GuideSiteLocalizedText(
@@ -44,10 +44,6 @@ public record GuideSiteLocalizedText(String searchLabel, String searchPlaceholde
             return "";
         }
         String normalized = normalizeLanguage(language).replace('-', '_');
-        String translated = translate(LANGUAGE_KEY_PREFIX + normalized);
-        if (!translated.equals(LANGUAGE_KEY_PREFIX + normalized)) {
-            return translated;
-        }
         return displayLanguageLabel(normalized);
     }
 
@@ -61,9 +57,20 @@ public record GuideSiteLocalizedText(String searchLabel, String searchPlaceholde
     }
 
     private static String displayLanguageLabel(String language) {
+        Minecraft client = Minecraft.getMinecraft();
+        LanguageManager manager = client == null ? null : client.getLanguageManager();
+        if (manager != null) {
+            for (Language candidate : manager.getLanguages()) {
+                String code = candidate.getLanguageCode();
+                if (code != null && language.equals(normalizeLanguage(code).replace('-', '_'))) {
+                    return candidate.toString();
+                }
+            }
+        }
+
         String languageTag = language.replace('_', '-');
         Locale locale = Locale.forLanguageTag(languageTag);
-        String displayName = locale.getDisplayName(Locale.ENGLISH);
+        String displayName = locale.getDisplayName(locale);
         if (!displayName.isEmpty() && !displayName.equals(languageTag)) {
             return displayName;
         }

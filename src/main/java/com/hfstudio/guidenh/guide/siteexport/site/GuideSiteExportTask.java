@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -72,7 +73,7 @@ public class GuideSiteExportTask {
         .create();
     private static final int MAX_SCENE_STRUCTURE_TIER = 4;
     private static final int MAX_SCENE_STRUCTURE_CHANNEL_VALUE = 4;
-    private static final int MAX_SCENE_STATE_VARIANTS = 1024;
+    private static final int MAX_SCENE_STATE_VARIANTS = 4096;
     private static final long SCENE_MATERIALIZATION_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long SCENE_MATERIALIZATION_STEP_NANOS = TimeUnit.MILLISECONDS.toNanos(2);
     private static final long SCENE_MATERIALIZATION_WAIT_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
@@ -91,10 +92,12 @@ public class GuideSiteExportTask {
     }
 
     public Result run() throws Exception {
+        long startedAt = System.nanoTime();
         try (GuideDebugLog.DiagnosticScope diagnostics = GuideDebugLog.pushDiagnostics()) {
             try {
                 Files.createDirectories(outDir);
-                return runExport(diagnostics);
+                return runExport(diagnostics)
+                    .withDurationMillis(TimeUnit.NANOSECONDS.toMillis(Math.max(0L, System.nanoTime() - startedAt)));
             } catch (Exception | Error failure) {
                 GuideDebugLog.error("[GuideNH] [GuideSiteExportTask] Site export aborted: {}", failure, failure);
                 throw failure;
@@ -1166,7 +1169,9 @@ public class GuideSiteExportTask {
         }
 
         SceneVariantState initialState = SceneVariantState.capture(scene, plan.structurePlans);
-        LinkedHashMap<String, Object> serializedStates = new LinkedHashMap<>(plan.states.size());
+        LinkedHashMap<String, Integer> serializedStates = new LinkedHashMap<>(plan.states.size());
+        ArrayList<Map<String, Object>> serializedVariants = new ArrayList<>();
+        LinkedHashMap<String, Integer> variantIndexes = new LinkedHashMap<>();
 
         try {
             for (SceneVariantState state : plan.states) {
@@ -1200,7 +1205,15 @@ public class GuideSiteExportTask {
                 if (exportedVariant == null) {
                     return null;
                 }
-                serializedStates.put(state.key(), serializeSceneVariant(exportedVariant));
+                Map<String, Object> serializedVariant = serializeSceneVariant(exportedVariant, assets);
+                String variantJson = GSON.toJson(serializedVariant);
+                Integer variantIndex = variantIndexes.get(variantJson);
+                if (variantIndex == null) {
+                    variantIndex = serializedVariants.size();
+                    variantIndexes.put(variantJson, variantIndex);
+                    serializedVariants.add(serializedVariant);
+                }
+                serializedStates.put(state.key(), variantIndex);
             }
         } finally {
             applySceneVariantState(scene, initialState, plan.structurePlans);
@@ -1209,7 +1222,12 @@ public class GuideSiteExportTask {
         LinkedHashMap<String, Object> manifest = new LinkedHashMap<>();
         manifest.put("initialState", initialState.toMap());
         manifest.put("controls", plan.controls);
+        Map<String, Object> variantDefaults = extractSharedVariantFields(serializedVariants);
+        if (!variantDefaults.isEmpty()) {
+            manifest.put("variantDefaults", variantDefaults);
+        }
         manifest.put("states", serializedStates);
+        manifest.put("variants", serializedVariants);
         return assets.writeShared(
             "scene-manifests",
             ".json",
@@ -1232,7 +1250,7 @@ public class GuideSiteExportTask {
         for (StructureStatePlan structurePlan : structurePlans) {
             staticVariantCount = multiplySceneVariantCounts(staticVariantCount, structurePlan.stateCount());
             if (staticVariantCount > MAX_SCENE_STATE_VARIANTS) {
-                warnSceneStateVariantLimit(staticVariantCount);
+                warnSceneStateVariantLimit(staticVariantCount, visibleLayers, structurePlans, -1);
                 return null;
             }
         }
@@ -1240,7 +1258,7 @@ public class GuideSiteExportTask {
         List<Integer> ponderTicks = buildPonderTickStates(scene, ponderKeyframes, ponderStateBudget);
         long variantCount = multiplySceneVariantCounts(staticVariantCount, ponderTicks.size());
         if (variantCount > MAX_SCENE_STATE_VARIANTS) {
-            warnSceneStateVariantLimit(variantCount);
+            warnSceneStateVariantLimit(variantCount, visibleLayers, structurePlans, ponderTicks.size());
             return null;
         }
         for (StructureStatePlan structurePlan : structurePlans) {
@@ -1350,7 +1368,8 @@ public class GuideSiteExportTask {
         scene.setVisibleLayer(state.visibleLayer);
     }
 
-    private Map<String, Object> serializeSceneVariant(GuideSiteExportedScene exportedScene) {
+    private Map<String, Object> serializeSceneVariant(GuideSiteExportedScene exportedScene,
+        GuideSiteAssetRegistry assets) throws Exception {
         LinkedHashMap<String, Object> serialized = new LinkedHashMap<>();
         serialized
             .put("placeholderSrc", GuideSitePageAssetExporter.toRootRelativePath(exportedScene.placeholderPath()));
@@ -1361,10 +1380,33 @@ public class GuideSiteExportTask {
             .put("overlayAnnotationsJson", exportedScene.overlayJson() != null ? exportedScene.overlayJson() : "[]");
         serialized
             .put("sceneSoundsJson", exportedScene.sceneSoundsJson() != null ? exportedScene.sceneSoundsJson() : "[]");
+        String hoverTargetsJson = exportedScene.hoverTargetsJson() != null ? exportedScene.hoverTargetsJson() : "[]";
         serialized.put(
-            "hoverTargetsJson",
-            exportedScene.hoverTargetsJson() != null ? exportedScene.hoverTargetsJson() : "[]");
+            "hoverTargetsSrc",
+            GuideSitePageAssetExporter.toRootRelativePath(
+                assets.writeShared("scene-hover-targets", ".json", hoverTargetsJson.getBytes(StandardCharsets.UTF_8))));
         return serialized;
+    }
+
+    private Map<String, Object> extractSharedVariantFields(List<Map<String, Object>> variants) {
+        if (variants == null || variants.isEmpty()) {
+            return Map.of();
+        }
+        LinkedHashMap<String, Object> shared = new LinkedHashMap<>(variants.getFirst());
+        for (int i = 1; i < variants.size() && !shared.isEmpty(); i++) {
+            Map<String, Object> variant = variants.get(i);
+            shared.entrySet()
+                .removeIf(entry -> !Objects.equals(entry.getValue(), variant.get(entry.getKey())));
+        }
+        if (shared.isEmpty()) {
+            return Map.of();
+        }
+        for (Map<String, Object> variant : variants) {
+            for (String key : shared.keySet()) {
+                variant.remove(key);
+            }
+        }
+        return shared;
     }
 
     private List<Integer> buildVisibleLayerStates(LytGuidebookScene scene) {
@@ -1485,11 +1527,64 @@ public class GuideSiteExportTask {
         }
     }
 
-    private void warnSceneStateVariantLimit(long variantCount) {
+    private void warnSceneStateVariantLimit(long variantCount, List<Integer> visibleLayers,
+        List<StructureStatePlan> structurePlans, int ponderStateCount) {
         GuideDebugLog.warnAlways(
-            "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export: variantCount={} exceeds limit={}.",
+            "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export: variantCount={} exceeds limit={}; dimensions={}",
             variantCount,
-            MAX_SCENE_STATE_VARIANTS);
+            MAX_SCENE_STATE_VARIANTS,
+            describeSceneVariantDimensions(visibleLayers, structurePlans, ponderStateCount));
+    }
+
+    private String describeSceneVariantDimensions(List<Integer> visibleLayers, List<StructureStatePlan> structurePlans,
+        int ponderStateCount) {
+        StringBuilder details = new StringBuilder();
+        details.append("visibleLayers=")
+            .append(visibleLayers != null ? visibleLayers.size() : 0);
+        if (ponderStateCount >= 0) {
+            details.append(",ponderTicks=")
+                .append(ponderStateCount);
+        }
+        if (structurePlans == null || structurePlans.isEmpty()) {
+            return details.toString();
+        }
+        long cumulative = visibleLayers != null ? visibleLayers.size() : 0L;
+        if (cumulative <= 0) {
+            cumulative = 1L;
+        }
+        for (StructureStatePlan structurePlan : structurePlans) {
+            cumulative = multiplySceneVariantCounts(cumulative, structurePlan.stateCount());
+            details.append(";")
+                .append(structurePlan.bindingKey)
+                .append("[label=")
+                .append(structurePlan.label)
+                .append(",tiers=")
+                .append(structurePlan.tiers.size())
+                .append(",channels=");
+            if (structurePlan.channelIds.isEmpty()) {
+                details.append("none");
+            } else {
+                for (int i = 0; i < structurePlan.channelIds.size(); i++) {
+                    if (i > 0) {
+                        details.append('|');
+                    }
+                    List<Integer> values = structurePlan.channelValues.get(i);
+                    details.append(structurePlan.channelIds.get(i))
+                        .append(':')
+                        .append(values != null ? values.size() : 0);
+                }
+            }
+            details.append(",states=")
+                .append(structurePlan.stateCount())
+                .append(",cumulative=")
+                .append(cumulative)
+                .append(']');
+        }
+        if (ponderStateCount >= 0) {
+            details.append(";total=")
+                .append(multiplySceneVariantCounts(cumulative, ponderStateCount));
+        }
+        return details.toString();
     }
 
     private List<Integer> buildTierStates(StructureLibSceneBinding binding, StructureLibSceneMetadata metadata) {
@@ -1541,9 +1636,8 @@ public class GuideSiteExportTask {
         if (left <= 0 || right <= 0) {
             return 0;
         }
-        if (left > MAX_SCENE_STATE_VARIANTS || right > MAX_SCENE_STATE_VARIANTS
-            || left > MAX_SCENE_STATE_VARIANTS / right) {
-            return MAX_SCENE_STATE_VARIANTS + 1L;
+        if (left > Long.MAX_VALUE / right) {
+            return Long.MAX_VALUE;
         }
         return left * right;
     }
@@ -1725,8 +1819,8 @@ public class GuideSiteExportTask {
             long count = Math.max(1, tiers.size());
             for (List<Integer> values : channelValues) {
                 int valueCount = values != null ? values.size() : 0;
-                if (valueCount <= 0 || count > MAX_SCENE_STATE_VARIANTS / valueCount) {
-                    return MAX_SCENE_STATE_VARIANTS + 1L;
+                if (valueCount <= 0 || count > Long.MAX_VALUE / valueCount) {
+                    return Long.MAX_VALUE;
                 }
                 count *= valueCount;
             }
@@ -1841,18 +1935,29 @@ public class GuideSiteExportTask {
         private final int warnings;
         private final int errors;
         private final Path outDir;
+        private final long durationMillis;
 
         public Result(int guidesExported, int pagesExported, int pagesFailed, Path outDir) {
             this(guidesExported, pagesExported, pagesFailed, 0, 0, outDir);
         }
 
         public Result(int guidesExported, int pagesExported, int pagesFailed, int warnings, int errors, Path outDir) {
+            this(guidesExported, pagesExported, pagesFailed, warnings, errors, outDir, 0L);
+        }
+
+        private Result(int guidesExported, int pagesExported, int pagesFailed, int warnings, int errors, Path outDir,
+            long durationMillis) {
             this.guidesExported = guidesExported;
             this.pagesExported = pagesExported;
             this.pagesFailed = pagesFailed;
             this.warnings = warnings;
             this.errors = errors;
             this.outDir = outDir;
+            this.durationMillis = Math.max(0L, durationMillis);
+        }
+
+        private Result withDurationMillis(long durationMillis) {
+            return new Result(guidesExported, pagesExported, pagesFailed, warnings, errors, outDir, durationMillis);
         }
 
         public int guidesExported() {
@@ -1877,6 +1982,10 @@ public class GuideSiteExportTask {
 
         public Path outDir() {
             return outDir;
+        }
+
+        public long durationMillis() {
+            return durationMillis;
         }
     }
 

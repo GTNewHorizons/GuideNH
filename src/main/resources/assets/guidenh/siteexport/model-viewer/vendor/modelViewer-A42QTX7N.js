@@ -3439,6 +3439,16 @@ $a=async function(s,e){
 
 function Tm(s,e,t){
   tc.setFromCamera(s,e);
+  // Orthographic scenes also render behind the camera plane when near is negative.
+  // Start at the near clipping plane so every visible block can be picked.
+  if(e.isOrthographicCamera){
+    tc.ray.origin.set(s.x,s.y,-1).unproject(e);
+    tc.near=0;
+    tc.far=e.far-e.near;
+  }else{
+    tc.near=0;
+    tc.far=Infinity;
+  }
   let n=tc.intersectObjects(t.children,!0),i,r,o=.0625;
   for(let a of n){
     let c=a.object.userData.annotation,l=c&&c.contentTemplateId?{templateId:c.contentTemplateId}:null,h=a.object.userData.hoverRuntimeTarget;
@@ -3553,14 +3563,21 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     let q=guidenhCreateHoverRuntimeTarget(A);
     q&&(v.push(q),g.add(q.highlightObject),g.add(q.pickMesh));
   }
-  let M,S=new Ei;
+  let M,S=new Ei,baseZoom;
   S.near=-1000;
   S.far=3e4;
   let P=(A,q)=>{
+    if(A<=0||q<=0)return;
     f.setSize(A,q);
     f.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
     let F=Math.min(1,A/(h*3));
-    S.zoom=1/.625*16*p.zoom*F;
+    let nextBaseZoom=1/.625*16*p.zoom*F;
+    S.zoom=baseZoom?S.zoom*nextBaseZoom/baseZoom:nextBaseZoom;
+    baseZoom=nextBaseZoom;
+    if(M){
+      M.zoom0=baseZoom;
+      M.rotateSpeed=q/720;
+    }
     S.left=-A/2;
     S.right=A/2;
     S.top=q/2;
@@ -3577,7 +3594,15 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     A.material=new yn({vertexColors:!0,toneMapped:!1,depthTest:!1,depthWrite:!1});
     w.add(A);
   }
-  n?(M=new as(S,t),M.enableZoom=!1,M.update()):S.lookAt(new C);
+  if(n){
+    M=new as(S,t);
+    M.mouseButtons.LEFT=zn.PAN;
+    M.mouseButtons.RIGHT=zn.ROTATE;
+    // OrbitControls scales by viewport height; the game uses 0.5 degrees per pixel.
+    M.rotateSpeed=t.offsetHeight/720;
+    M.enableZoom=!1;
+    M.update();
+  }else S.lookAt(new C);
   let touchPointers=new Set;
   t.addEventListener("pointerdown",A=>{
     if(A.pointerType!=="touch"||!M)return;
@@ -3595,7 +3620,7 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     for(let q of A)if(q.contentBoxSize){
       let{inlineSize:F,blockSize:oe}=q.contentBoxSize[0];
       P(F,oe);
-      n?(M?.dispose(),M=new as(S,t),M.enableZoom=!1,M.update()):S.lookAt(new C);
+      M?.update();
     }
   }),R.observe(t,{box:"content-box"}));
   let D=!1,x=0,T;
