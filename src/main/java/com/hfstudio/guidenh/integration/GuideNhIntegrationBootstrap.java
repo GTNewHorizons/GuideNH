@@ -5,7 +5,6 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.IntegrationModDescriptor;
 import com.hfstudio.guidenh.integration.betterquesting.BqCompat;
 import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartBlockExportIdProvider;
-import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 public class GuideNhIntegrationBootstrap {
 
@@ -13,8 +12,6 @@ public class GuideNhIntegrationBootstrap {
 
     public static void preInitCommon() {
         registerKnownModDescriptors();
-        GuideNhIntegrationRegistry.global()
-            .registerItemStackNormalizationProvider(GregTechHelpers::applyOreDictUnification);
         GuideNhIntegrationRegistry.global()
             .registerBlockExportIdProvider(new ForgeMultipartBlockExportIdProvider());
         registerGuideHooks();

@@ -35,7 +35,6 @@ import gregtech.api.metatileentity.MetaPipeEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.structure.error.StructureError;
-import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.HatchElementBuilder;
 import gregtech.common.blocks.ItemMachines;
 import gregtech.common.misc.GTStructureChannels;
@@ -152,22 +151,6 @@ public class GregTechHelpers {
             return tagMetaTileId > 0 ? tagMetaTileId : null;
         }
         return requestedMeta > 15 ? requestedMeta : null;
-    }
-
-    public static ItemStack applyOreDictUnification(ItemStack stack) {
-        if (stack == null || !Mods.GregTech.isModLoaded()) {
-            return stack;
-        }
-        try {
-            return applyOreDictUnificationImpl(stack);
-        } catch (Throwable ignored) {
-            return stack;
-        }
-    }
-
-    @Optional.Method(modid = "gregtech_nh")
-    private static ItemStack applyOreDictUnificationImpl(ItemStack stack) {
-        return GTOreDictUnificator.setStack(stack.copy());
     }
 
     public static boolean registerDummyWorld(Class<?> worldClass) {
