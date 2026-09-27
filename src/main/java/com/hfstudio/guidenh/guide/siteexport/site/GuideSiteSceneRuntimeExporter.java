@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
 import javax.imageio.ImageIO;
@@ -63,6 +66,10 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
 
     private final GuideSiteAssetRegistry assets;
     private final TextureExportCache textureCache = new TextureExportCache();
+    @Nullable
+    private Framebuffer captureFramebuffer;
+    private int captureWidth;
+    private int captureHeight;
     private final ExecutorService encodingExecutor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "guidenh-site-scene-encode");
         thread.setDaemon(true);
@@ -102,7 +109,14 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
 
     @Override
     public void close() {
-        encodingExecutor.shutdownNow();
+        try {
+            if (captureFramebuffer != null) {
+                captureFramebuffer.deleteFramebuffer();
+                captureFramebuffer = null;
+            }
+        } finally {
+            encodingExecutor.shutdownNow();
+        }
     }
 
     private BufferedImage renderPlaceholderImage(LytGuidebookScene scene) throws Exception {
@@ -187,8 +201,7 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
             throw new IllegalStateException("Minecraft client is not ready for scene export.");
         }
 
-        Framebuffer framebuffer = new Framebuffer(width, height, true);
-        framebuffer.setFramebufferColor(0f, 0f, 0f, 0f);
+        Framebuffer framebuffer = captureFramebuffer(width, height);
 
         int previousDisplayWidth = minecraft.displayWidth;
         int previousDisplayHeight = minecraft.displayHeight;
@@ -226,12 +239,26 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
                     scene.getSceneAnimationTickForRender());
         } finally {
             framebuffer.unbindFramebuffer();
-            framebuffer.deleteFramebuffer();
             minecraft.displayWidth = previousDisplayWidth;
             minecraft.displayHeight = previousDisplayHeight;
             minecraft.gameSettings.guiScale = previousGuiScale;
             GL11.glViewport(0, 0, previousDisplayWidth, previousDisplayHeight);
         }
+    }
+
+    private Framebuffer captureFramebuffer(int width, int height) {
+        if (captureFramebuffer == null || captureWidth != width || captureHeight != height) {
+            if (captureFramebuffer != null) {
+                captureFramebuffer.deleteFramebuffer();
+            }
+            captureFramebuffer = null;
+            Framebuffer created = new Framebuffer(width, height, true);
+            created.setFramebufferColor(0f, 0f, 0f, 0f);
+            captureFramebuffer = created;
+            captureWidth = width;
+            captureHeight = height;
+        }
+        return captureFramebuffer;
     }
 
     private void preparePlayerSkins(LytGuidebookScene scene) {
@@ -250,8 +277,9 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
                 continue;
             }
             try {
-                GuidebookPreviewPlayerSkinResolver.ResolvedPreviewPlayerSkin resolved = GuidebookPreviewPlayerSkinResolver
-                    .resolvePreviewPlayerSkin(name, player.getGameProfile());
+                String cacheKey = GuidebookPreviewPlayerSkinResolver.normalizeCacheKey(name);
+                GuidebookPreviewPlayerSkinResolver.ResolvedPreviewPlayerSkin resolved = cacheKey == null ? null
+                    : GuidebookPreviewPlayerSkinResolver.RESOLVED_SKINS.get(cacheKey);
                 if (resolved != null) {
                     GuidebookPreviewPlayerSkinResolver.applyResolvedSkin(player, resolved);
                 }
@@ -318,11 +346,22 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
         ExpScene.finishExpSceneBuffer(builder, ExpScene.endExpScene(builder));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        GZIPOutputStream gzip = new GZIPOutputStream(out);
-        gzip.write(builder.sizedByteArray());
-        gzip.finish();
-        gzip.close();
+        Deflater deflater = new Deflater(Deflater.BEST_SPEED, true);
+        try (FastGzipOutputStream gzip = new FastGzipOutputStream(out, deflater)) {
+            gzip.write(builder.sizedByteArray());
+        } finally {
+            deflater.end();
+        }
         return out.toByteArray();
+    }
+
+    private static class FastGzipOutputStream extends GZIPOutputStream {
+
+        private FastGzipOutputStream(OutputStream output, Deflater deflater) throws IOException {
+            super(output, 64 * 1024);
+            this.def.end();
+            this.def = deflater;
+        }
     }
 
     private int[] writeAnimatedTextures(FlatBufferBuilder builder,

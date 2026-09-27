@@ -71,8 +71,8 @@ public class GuideSiteExportTask {
     public static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
         .serializeNulls()
         .create();
-    private static final int MAX_SCENE_STRUCTURE_TIER = 4;
-    private static final int MAX_SCENE_STRUCTURE_CHANNEL_VALUE = 4;
+    private static final int MAX_SCENE_STRUCTURE_TIER = 8;
+    private static final int MAX_SCENE_STRUCTURE_CHANNEL_VALUE = 8;
     private static final int MAX_SCENE_STATE_VARIANTS = 4096;
     private static final long SCENE_MATERIALIZATION_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long SCENE_MATERIALIZATION_STEP_NANOS = TimeUnit.MILLISECONDS.toNanos(2);
@@ -1179,9 +1179,6 @@ public class GuideSiteExportTask {
                 if (state.equals(initialState)) {
                     exportedVariant = baseScene;
                 } else {
-                    if (scene.hasPonderData()) {
-                        applySceneVariantState(scene, initialState, plan.structurePlans);
-                    }
                     applySceneVariantState(scene, state, plan.structurePlans);
                     exportedVariant = exportSceneState(
                         parsedPage,

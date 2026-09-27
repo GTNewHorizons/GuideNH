@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.imageio.ImageIO;
 
@@ -74,6 +75,7 @@ public class GuidebookPreviewPlayerSkinResolver {
         true);
     public static final Map<String, List<WeakReference<GuidebookScenePreviewPlayerEntity>>> PENDING_ENTITIES = new ConcurrentHashMap<>();
     public static final Set<String> INFLIGHT_LOOKUPS = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final AtomicBoolean NETWORK_LOOKUPS_DISABLED = new AtomicBoolean();
 
     protected GuidebookPreviewPlayerSkinResolver() {}
 
@@ -98,7 +100,7 @@ public class GuidebookPreviewPlayerSkinResolver {
         GameProfile cachedProfile = GuidebookSceneEntityLoader.findCachedPreviewPlayerProfile(playerName);
         GameProfile lookupProfile = selectLookupProfile(currentProfile, cachedProfile, playerName);
         if (hasUsableTextures(lookupProfile, playerName)) {
-            ResolvedPreviewPlayerSkin resolvedSkin = resolveTexturesForProfile(lookupProfile);
+            ResolvedPreviewPlayerSkin resolvedSkin = resolveTexturesFromCachedProfile(lookupProfile);
             if (resolvedSkin != null && resolvedSkin.hasAnyTexture()) {
                 RESOLVED_SKINS.put(cacheKey, resolvedSkin);
                 applyResolvedSkin(entity, resolvedSkin);
@@ -106,7 +108,7 @@ public class GuidebookPreviewPlayerSkinResolver {
             }
         }
 
-        if (!needsBackgroundLookup(lookupProfile, playerName)) {
+        if (NETWORK_LOOKUPS_DISABLED.get() || !needsBackgroundLookup(lookupProfile, playerName)) {
             return;
         }
 
@@ -115,23 +117,28 @@ public class GuidebookPreviewPlayerSkinResolver {
             return;
         }
 
-        LOOKUP_EXECUTOR.submit(() -> resolveSkinInBackground(cacheKey, playerName, lookupProfile));
+        try {
+            LOOKUP_EXECUTOR.submit(() -> resolveSkinInBackground(cacheKey, playerName, lookupProfile));
+        } catch (RuntimeException ignored) {
+            INFLIGHT_LOOKUPS.remove(cacheKey);
+            PENDING_ENTITIES.remove(cacheKey);
+            NETWORK_LOOKUPS_DISABLED.set(true);
+        }
     }
 
     public static void resolveSkinInBackground(String cacheKey, String playerName, GameProfile lookupProfile) {
-        ResolvedPreviewPlayerSkin resolvedSkin = resolvePreviewPlayerSkinSafely(playerName, lookupProfile);
+        ResolvedPreviewPlayerSkin resolvedSkin = NETWORK_LOOKUPS_DISABLED.get() ? null
+            : resolvePreviewPlayerSkinSafely(playerName, lookupProfile);
         GuideNhClientTaskScheduler.execute(() -> applyResolvedSkinOnMainThread(cacheKey, playerName, resolvedSkin));
     }
 
     public static void applyResolvedSkinOnMainThread(String cacheKey, String playerName,
         ResolvedPreviewPlayerSkin resolvedSkin) {
         INFLIGHT_LOOKUPS.remove(cacheKey);
-        if (resolvedSkin != null) {
+        if (resolvedSkin != null && resolvedSkin.hasAnyTexture()) {
             prepareResolvedSkinTextures(resolvedSkin);
             GuidebookSceneEntityLoader.cacheResolvedPreviewPlayerProfile(playerName, resolvedSkin.profile);
-            if (resolvedSkin.hasAnyTexture()) {
-                RESOLVED_SKINS.put(cacheKey, resolvedSkin);
-            }
+            RESOLVED_SKINS.put(cacheKey, resolvedSkin);
         }
 
         List<WeakReference<GuidebookScenePreviewPlayerEntity>> pendingEntities = PENDING_ENTITIES.remove(cacheKey);
@@ -145,7 +152,7 @@ public class GuidebookPreviewPlayerSkinResolver {
                 if (entity == null) {
                     continue;
                 }
-                if (resolvedSkin != null) {
+                if (resolvedSkin != null && resolvedSkin.hasAnyTexture()) {
                     applyResolvedSkin(entity, resolvedSkin);
                 }
             }
@@ -153,13 +160,77 @@ public class GuidebookPreviewPlayerSkinResolver {
     }
 
     public static ResolvedPreviewPlayerSkin resolvePreviewPlayerSkin(String playerName, GameProfile lookupProfile) {
+        if (NETWORK_LOOKUPS_DISABLED.get()) {
+            return null;
+        }
         ResolvedPreviewPlayerSkin resolvedFromProfile = resolveTexturesForProfile(lookupProfile);
         if (resolvedFromProfile != null && resolvedFromProfile.hasAnyTexture()) {
             return resolvedFromProfile;
         }
 
         GameProfile resolvedProfile = GuidebookSceneEntityLoader.lookupProfileFromRepository(playerName);
-        return resolveTexturesForProfile(resolvedProfile);
+        if (resolvedProfile == null) {
+            NETWORK_LOOKUPS_DISABLED.set(true);
+            return null;
+        }
+        ResolvedPreviewPlayerSkin resolvedSkin = resolveTexturesForProfile(resolvedProfile);
+        if (resolvedSkin == null || !resolvedSkin.hasAnyTexture()) {
+            NETWORK_LOOKUPS_DISABLED.set(true);
+        }
+        return resolvedSkin;
+    }
+
+    /**
+     * Resolves only data already present in the client caches or profile properties.
+     * Export must never block on the Mojang profile repository.
+     */
+    @Nullable
+    public static ResolvedPreviewPlayerSkin resolveCachedPreviewPlayerSkin(String playerName,
+        @Nullable GameProfile currentProfile) {
+        String cacheKey = normalizeCacheKey(playerName);
+        if (cacheKey == null) {
+            return null;
+        }
+        ResolvedPreviewPlayerSkin resolved = RESOLVED_SKINS.get(cacheKey);
+        if (resolved != null) {
+            return resolved;
+        }
+        GameProfile cachedProfile = GuidebookSceneEntityLoader.findCachedPreviewPlayerProfile(playerName);
+        for (GameProfile candidate : new GameProfile[] { currentProfile, cachedProfile }) {
+            if (candidate == null || candidate.getId() == null || !hasTextures(candidate)) {
+                continue;
+            }
+            ResolvedPreviewPlayerSkin candidateSkin = resolveTexturesFromCachedProfile(candidate);
+            if (candidateSkin != null && candidateSkin.hasAnyTexture()) {
+                RESOLVED_SKINS.put(cacheKey, candidateSkin);
+                return candidateSkin;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static ResolvedPreviewPlayerSkin resolveTexturesFromCachedProfile(GameProfile profile) {
+        if (profile == null || profile.getId() == null || !hasTextures(profile)) {
+            return null;
+        }
+
+        Map<Type, MinecraftProfileTexture> textures = new EnumMap<>(Type.class);
+        try {
+            textures.putAll(
+                Minecraft.getMinecraft()
+                    .func_152347_ac()
+                    .getTextures(profile, false));
+        } catch (Throwable ignored) {
+            return null;
+        }
+
+        MinecraftProfileTexture skinTexture = textures.get(Type.SKIN);
+        return new ResolvedPreviewPlayerSkin(
+            profile,
+            skinTexture,
+            textures.get(Type.CAPE),
+            GuidebookPreviewPlayerCompat.resolveSlimSkinModel(profile, skinTexture));
     }
 
     @Nullable
@@ -168,6 +239,7 @@ public class GuidebookPreviewPlayerSkinResolver {
         try {
             return resolvePreviewPlayerSkin(playerName, lookupProfile);
         } catch (Throwable ignored) {
+            NETWORK_LOOKUPS_DISABLED.set(true);
             return null;
         }
     }
@@ -186,16 +258,25 @@ public class GuidebookPreviewPlayerSkinResolver {
             textures.putAll(sessionService.getTextures(resolvedProfile, true));
         } catch (InsecureTextureException ignored) {
             // Secure texture validation can reject unsigned cache entries. Fallback below.
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+            NETWORK_LOOKUPS_DISABLED.set(true);
+            return null;
+        }
 
-        if (textures.isEmpty() || !hasTextures(resolvedProfile)) {
+        if (!NETWORK_LOOKUPS_DISABLED.get() && (textures.isEmpty() || !hasTextures(resolvedProfile))) {
             try {
                 GameProfile filledProfile = sessionService.fillProfileProperties(resolvedProfile, false);
                 if (filledProfile != null) {
                     resolvedProfile = filledProfile;
                 }
                 textures.putAll(sessionService.getTextures(resolvedProfile, false));
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+                NETWORK_LOOKUPS_DISABLED.set(true);
+            }
+        }
+
+        if (textures.isEmpty() && NETWORK_LOOKUPS_DISABLED.get()) {
+            return null;
         }
 
         MinecraftProfileTexture skinTexture = textures.get(Type.SKIN);
