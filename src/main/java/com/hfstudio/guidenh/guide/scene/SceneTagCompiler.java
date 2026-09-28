@@ -24,10 +24,14 @@ import com.hfstudio.guidenh.guide.scene.element.SceneElementTagCompiler;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstPosition;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstRoot;
+import com.hfstudio.guidenh.libs.micromark.Point;
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 import com.hfstudio.guidenh.libs.unist.UnistParent;
+import com.hfstudio.guidenh.libs.unist.UnistPosition;
 
 public class SceneTagCompiler extends BlockTagCompiler {
 
@@ -123,7 +127,10 @@ public class SceneTagCompiler extends BlockTagCompiler {
         boolean showGrid = MdxAttrs.getBoolean(compiler, parent, el, "showGrid", false);
 
         // Raw source text of children (preserves BlockStats and all scene element markup)
-        String childrenSource = normalizeSceneSource(compiler.getBlockTagChildrenSource(el));
+        NormalizedSceneSource normalizedSource = normalizeSceneSource(
+            compiler.getBlockTagChildrenRawSource(el),
+            el.position());
+        String childrenSource = normalizedSource.source();
 
         // Pre-parse children source at compile time (pure function -- no I/O, no registry).
         // SceneScript uses the pre-parsed AST instead of re-running MdAst.fromMarkdown().
@@ -137,8 +144,12 @@ public class SceneTagCompiler extends BlockTagCompiler {
                 parseError = e.getMessage() != null ? e.getMessage()
                     : e.getClass()
                         .getSimpleName();
-                GuideDebugLog
-                    .error("[GuideNH] [SceneTagCompiler] Failed to parse scene children during pre-processing", e);
+                try (GuideDebugLog.ContextScope ignored = GuideDebugLog.pushNode(el)) {
+                    GuideDebugLog.error(
+                        "[GuideNH] [SceneTagCompiler] Failed to parse scene children during pre-processing: {}",
+                        parseError,
+                        e);
+                }
             }
         }
 
@@ -181,9 +192,14 @@ public class SceneTagCompiler extends BlockTagCompiler {
             compiler.getLanguage(),
             preParsedAst,
             parseError,
-            sceneElementCompilers);
+            sceneElementCompilers,
+            normalizedSource.lineMap(),
+            normalizedSource.columnMap());
         placeholder.setStyleClass(styleClass);
         placeholder.setStyle(LytParagraph.PLACEHOLDER_STYLE);
+        if (el instanceof MdxJsxFlowElement flowElement) {
+            placeholder.setSourceNode(flowElement);
+        }
         placeholder.appendText("[" + styleClass + "]");
         parent.append(placeholder);
     }
@@ -197,19 +213,39 @@ public class SceneTagCompiler extends BlockTagCompiler {
      * presentation whitespace before opening and closing tags so a page can use
      * normal readable indentation without changing which scene elements parse.
      */
-    private static @Nullable String normalizeSceneSource(@Nullable String source) {
+    private static NormalizedSceneSource normalizeSceneSource(@Nullable String source,
+        @Nullable UnistPosition elementPosition) {
         if (source == null || source.isEmpty()) {
-            return source;
+            return new NormalizedSceneSource(source, new int[0], new int[0]);
         }
         String dedented = DetailsContentExtractor.dedent(source);
         StringBuilder normalized = new StringBuilder(dedented.length());
         String[] lines = dedented.split("\\n", -1);
+        String[] rawLines = source.replace("\r\n", "\n")
+            .replace('\r', '\n')
+            .split("\\n", -1);
+        int firstContentLine = 0;
+        while (firstContentLine < rawLines.length && rawLines[firstContentLine].trim()
+            .isEmpty()) {
+            firstContentLine++;
+        }
+        int baseLine = elementPosition != null && elementPosition.start() != null ? elementPosition.start()
+            .line() : 1;
+        int[] lineMap = new int[lines.length];
+        int[] columnMap = new int[lines.length];
         for (int i = 0; i < lines.length; i++) {
             if (i > 0) normalized.append('\n');
-            normalized.append(lines[i].replaceFirst("^[ \\t]+(?=<\\/?[A-Za-z])", ""));
+            String normalizedLine = lines[i].replaceFirst("^[ \\t]+(?=<\\/?[A-Za-z])", "");
+            normalized.append(normalizedLine);
+            lineMap[i] = baseLine + firstContentLine + i;
+            String rawLine = firstContentLine + i < rawLines.length ? rawLines[firstContentLine + i] : "";
+            int contentIndex = rawLine.indexOf(normalizedLine);
+            columnMap[i] = contentIndex >= 0 ? contentIndex + 1 : 1;
         }
-        return normalized.toString();
+        return new NormalizedSceneSource(normalized.toString(), lineMap, columnMap);
     }
+
+    private record NormalizedSceneSource(@Nullable String source, int[] lineMap, int[] columnMap) {}
 
     /**
      * Placeholder block that stores all extracted scene configuration for deferred scene creation
@@ -254,6 +290,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
         @Nullable
         public final List<SceneElementTagCompiler> sceneElementCompilers;
         public final String language;
+        private final int[] sourceLineMap;
+        private final int[] sourceColumnMap;
 
         public ScenePlaceholder(int width, int height, boolean explicitWidth, boolean explicitHeight, float zoom,
             boolean explicitZoom, @Nullable String perspective, float rotateX, float rotateY, float rotateZ,
@@ -261,7 +299,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
             float centerY, float centerZ, boolean explicitCenter, boolean interactive, boolean showBackground,
             boolean allowLayerSlider, boolean gridButtonEnabled, boolean showGrid, @Nullable String childrenSource,
             String pageDomain, String pagePath, String sourcePack, String language, @Nullable MdAstRoot childrenAst,
-            @Nullable String childrenParseError, @Nullable List<SceneElementTagCompiler> sceneElementCompilers) {
+            @Nullable String childrenParseError, @Nullable List<SceneElementTagCompiler> sceneElementCompilers,
+            int[] sourceLineMap, int[] sourceColumnMap) {
             this.width = width;
             this.height = height;
             this.explicitWidth = explicitWidth;
@@ -293,11 +332,81 @@ public class SceneTagCompiler extends BlockTagCompiler {
             this.childrenAst = childrenAst;
             this.childrenParseError = childrenParseError;
             this.sceneElementCompilers = sceneElementCompilers;
+            this.sourceLineMap = sourceLineMap != null ? sourceLineMap.clone() : new int[0];
+            this.sourceColumnMap = sourceColumnMap != null ? sourceColumnMap.clone() : new int[0];
+        }
+
+        public @Nullable UnistPosition mapSourcePosition(@Nullable UnistPosition relativePosition) {
+            if (relativePosition == null || relativePosition.start() == null || sourceLineMap.length == 0) {
+                return relativePosition;
+            }
+            return new MdAstPosition(
+                new Point(
+                    mapLine(
+                        relativePosition.start()
+                            .line()),
+                    mapColumn(
+                        relativePosition.start()
+                            .line(),
+                        relativePosition.start()
+                            .column()),
+                    -1,
+                    -1,
+                    -1),
+                relativePosition.end() == null ? new Point(
+                    mapLine(
+                        relativePosition.start()
+                            .line()),
+                    mapColumn(
+                        relativePosition.start()
+                            .line(),
+                        relativePosition.start()
+                            .column()),
+                    -1,
+                    -1,
+                    -1)
+                    : new Point(
+                        mapLine(
+                            relativePosition.end()
+                                .line()),
+                        mapColumn(
+                            relativePosition.end()
+                                .line(),
+                            relativePosition.end()
+                                .column()),
+                        -1,
+                        -1,
+                        -1));
+        }
+
+        private int mapLine(int relativeLine) {
+            int index = Math.max(1, relativeLine) - 1;
+            return index < sourceLineMap.length ? sourceLineMap[index] : sourceLineMap[sourceLineMap.length - 1];
+        }
+
+        private int mapColumn(int relativeLine, int relativeColumn) {
+            int index = Math.max(1, relativeLine) - 1;
+            int base = index < sourceColumnMap.length ? sourceColumnMap[index] : 1;
+            return base + Math.max(0, relativeColumn - 1);
         }
     }
 
     public static MdxJsxElementFields unwrapSceneElement(UnistNode node) {
         if (node instanceof MdxJsxElementFields elementFields) {
+            if ("p".equals(elementFields.name()) && node instanceof UnistParent parent) {
+                MdxJsxElementFields nested = null;
+                for (UnistNode child : parent.children()) {
+                    if (isIgnorableNode(child)) {
+                        continue;
+                    }
+                    MdxJsxElementFields candidate = unwrapSceneElement(child);
+                    if (candidate == null || nested != null) {
+                        return null;
+                    }
+                    nested = candidate;
+                }
+                return nested;
+            }
             return elementFields;
         }
         if (!(node instanceof UnistParent parent)) {

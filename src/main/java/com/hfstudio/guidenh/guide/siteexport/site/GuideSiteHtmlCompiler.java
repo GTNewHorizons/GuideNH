@@ -34,6 +34,7 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteI
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
@@ -84,6 +85,13 @@ public class GuideSiteHtmlCompiler {
             GuideSiteTemplateRegistry templates, SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler);
 
         @Nullable
+        default String renderBlockTagContent(MdxJsxElementFields element, String defaultNamespace,
+            @Nullable ResourceLocation currentPageId, GuideSiteTemplateRegistry templates, SceneResolver sceneResolver,
+            GuideSiteHtmlCompiler compiler) {
+            return null;
+        }
+
+        @Nullable
         default String renderFileTree(String source, String defaultNamespace, @Nullable ResourceLocation currentPageId,
             GuideSiteTemplateRegistry templates, SceneResolver sceneResolver, GuideSiteHtmlCompiler compiler) {
             return null;
@@ -105,6 +113,11 @@ public class GuideSiteHtmlCompiler {
 
         @Nullable
         GuideSiteExportedScene nextScene();
+
+        @Nullable
+        default GuideSiteExportedScene resolveScene(MdxJsxElementFields element) {
+            return nextScene();
+        }
     }
 
     private final RecipeTagRenderer recipeTagRenderer;
@@ -310,6 +323,13 @@ public class GuideSiteHtmlCompiler {
 
     private String compileNode(MdAstAnyContent node, GuideSiteTemplateRegistry templates, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        try (GuideDebugLog.ContextScope ignored = GuideDebugLog.pushNode(node)) {
+            return compileNodeWithContext(node, templates, defaultNamespace, currentPageId, sceneResolver);
+        }
+    }
+
+    private String compileNodeWithContext(MdAstAnyContent node, GuideSiteTemplateRegistry templates,
+        String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         if (node instanceof MdAstText) {
             return compileText(((MdAstText) node).value(), templates, defaultNamespace, currentPageId);
         }
@@ -938,7 +958,7 @@ public class GuideSiteHtmlCompiler {
         String alt = el.getAttributeString("alt", "");
         String title = el.getAttributeString("title", "");
         String resolvedSrc = resolveImageSource(src, currentPageId);
-        StringBuilder html = new StringBuilder("<img src=\"");
+        StringBuilder html = new StringBuilder("<img class=\"guide-image\" src=\"");
         html.append(escapeAttribute(resolvedSrc))
             .append("\"");
         if (!alt.isEmpty()) html.append(" alt=\"")
@@ -1113,7 +1133,8 @@ public class GuideSiteHtmlCompiler {
 
     private String compileScene(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
-        return sceneTagRenderer.render(element, defaultNamespace, currentPageId, templates, sceneResolver.nextScene());
+        return sceneTagRenderer
+            .render(element, defaultNamespace, currentPageId, templates, sceneResolver.resolveScene(element));
     }
 
     private String compileFloatingImage(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
@@ -1180,10 +1201,6 @@ public class GuideSiteHtmlCompiler {
                     .append(explicitDisplayWidth)
                     .append("px;");
             }
-            String imageStyle = explicitDisplayWidth != null && explicitDisplayHeight != null
-                ? "width:100%;height:" + explicitDisplayHeight + "px;"
-                : explicitDisplayWidth != null ? "width:100%;height:auto;"
-                    : "width:auto;height:" + explicitDisplayHeight + "px;";
             List<ImageAnnotationExport> annotations = collectImageAnnotations(
                 element,
                 templates,
@@ -1197,7 +1214,8 @@ public class GuideSiteHtmlCompiler {
                 alt,
                 title,
                 wrapperStyle.toString(),
-                imageStyle,
+                explicitDisplayWidth,
+                explicitDisplayHeight,
                 false,
                 0,
                 0,
@@ -1223,8 +1241,6 @@ public class GuideSiteHtmlCompiler {
         double effectiveScaleY = displayHeight / cropHeight;
         wrapperStyle.append("width:")
             .append(toCssNumber(displayWidth))
-            .append("px;height:")
-            .append(toCssNumber(displayHeight))
             .append("px;");
 
         List<ImageAnnotationExport> annotations = collectImageAnnotations(
@@ -1240,7 +1256,8 @@ public class GuideSiteHtmlCompiler {
             alt,
             title,
             wrapperStyle.toString(),
-            "",
+            null,
+            null,
             true,
             cropX,
             cropY,
@@ -1277,9 +1294,24 @@ public class GuideSiteHtmlCompiler {
                 || (!"ImageAnnotation".equals(childElement.name()) && !"SoundArea".equals(childElement.name()))) {
                 continue;
             }
-            String tooltipHtml = "ImageAnnotation".equals(childElement.name())
-                ? compileChildren(childElement.children(), templates, defaultNamespace, currentPageId, sceneResolver)
-                : "";
+            String tooltipHtml = "";
+            if ("ImageAnnotation".equals(childElement.name())) {
+                tooltipHtml = mdxTagRenderer.renderBlockTagContent(
+                    childElement,
+                    defaultNamespace,
+                    currentPageId,
+                    templates,
+                    sceneResolver,
+                    this);
+                if (tooltipHtml == null) {
+                    tooltipHtml = compileChildren(
+                        childElement.children(),
+                        templates,
+                        defaultNamespace,
+                        currentPageId,
+                        sceneResolver);
+                }
+            }
             String templateId = tooltipHtml.trim()
                 .isEmpty() ? null : templates.create(tooltipHtml);
             annotations
@@ -1365,8 +1397,9 @@ public class GuideSiteHtmlCompiler {
     }
 
     private String buildFloatingImageHtml(String src, String alt, @Nullable String title, String wrapperStyle,
-        String imageStyle, boolean cropped, int cropX, int cropY, int cropWidth, int cropHeight, double scaleX,
-        double scaleY, boolean inlineWrap, List<ImageAnnotationExport> annotations) {
+        @Nullable Integer displayWidth, @Nullable Integer displayHeight, boolean cropped, int cropX, int cropY,
+        int cropWidth, int cropHeight, double scaleX, double scaleY, boolean inlineWrap,
+        List<ImageAnnotationExport> annotations) {
         StringBuilder html = new StringBuilder();
         html.append("<span class=\"guide-floating-image-wrap");
         if (inlineWrap) {
@@ -1383,9 +1416,11 @@ public class GuideSiteHtmlCompiler {
         }
         html.append("\"");
         if (cropped) {
-            html.append(" style=\"height:")
+            html.append(" style=\"aspect-ratio:")
+                .append(toCssNumber(cropWidth * scaleX))
+                .append(" / ")
                 .append(toCssNumber(cropHeight * scaleY))
-                .append("px;\"");
+                .append(";\"");
         }
         html.append(">");
         html.append("<img class=\"guide-image guide-floating-image\" src=\"")
@@ -1398,10 +1433,21 @@ public class GuideSiteHtmlCompiler {
                 .append(escapeAttribute(title))
                 .append("\"");
         }
-        if (!imageStyle.isEmpty()) {
-            html.append(" style=\"")
-                .append(escapeAttribute(imageStyle))
-                .append("\"");
+        if (!cropped) {
+            html.append(" style=\"width:100%;height:auto;");
+            if (displayWidth != null && displayHeight != null) {
+                html.append("aspect-ratio:")
+                    .append(displayWidth)
+                    .append(" / ")
+                    .append(displayHeight)
+                    .append(";");
+            }
+            html.append("\"");
+            if (displayWidth == null && displayHeight != null) {
+                html.append(" data-display-height=\"")
+                    .append(displayHeight)
+                    .append("\"");
+            }
         }
         if (cropped) {
             html.append(" data-crop-x=\"")
@@ -1473,18 +1519,20 @@ public class GuideSiteHtmlCompiler {
         String valign = element.getAttributeString("valign", null);
         int offsetX = readInt(element, "offsetX", 0);
         int offsetY = readInt(element, "offsetY", 0);
-        return renderLatex(
-            formula,
-            color,
-            scale,
-            sourceScale,
-            showTooltip,
-            tooltipHtml,
-            valign,
-            offsetX,
-            offsetY,
-            display,
-            templates);
+        try (GuideDebugLog.ContextScope ignored = GuideDebugLog.pushNode(element)) {
+            return renderLatex(
+                formula,
+                color,
+                scale,
+                sourceScale,
+                showTooltip,
+                tooltipHtml,
+                valign,
+                offsetX,
+                offsetY,
+                display,
+                templates);
+        }
     }
 
     private String renderLatex(String formula, @Nullable String color, float scale, float sourceScale,

@@ -7,6 +7,8 @@ import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstText;
 
+import lombok.Getter;
+
 /**
  * One argument value. Rich values keep their MDX nodes so an argument may itself be a tag, and a plain
  * value keeps its text so it can be substituted into an attribute, which cannot hold block content.
@@ -15,6 +17,7 @@ public final class MediaWikiTemplateValue {
 
     private final List<MdAstAnyContent> nodes;
     private final String text;
+    @Getter
     private final boolean rich;
 
     private MediaWikiTemplateValue(List<MdAstAnyContent> nodes, String text, boolean rich) {
@@ -48,10 +51,6 @@ public final class MediaWikiTemplateValue {
 
     public String text() {
         return text;
-    }
-
-    public boolean isRich() {
-        return rich;
     }
 
     public boolean isBlank() {

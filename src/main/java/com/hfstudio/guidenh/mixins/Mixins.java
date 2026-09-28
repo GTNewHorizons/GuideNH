@@ -15,11 +15,15 @@ public enum Mixins implements IMixins {
     EARLY(Side.CLIENT, "forge.AccessorForgeHooksClient", "forge.AccessorGuiIngameForge", "fml.AccessorFMLClientHandler",
         "minecraft.AccessorAbstractResourcePack", "minecraft.AccessorFallbackResourceManager",
         "minecraft.AccessorSimpleReloadableResourceManager", "forge.AccessorShapedOreRecipe",
-        "forge.AccessorShapelessOreRecipe", "minecraft.AccessorTextureManager",
-        "minecraft.MixinTessellatorSceneExportCapture", "minecraft.MixinModelRendererSceneExportCapture"),
+        "forge.AccessorShapelessOreRecipe", "minecraft.AccessorTextureManager", "minecraft.AccessorTextureMap",
+        "minecraft.AccessorTextureAtlasSprite", "minecraft.MixinTessellatorSceneExportCapture",
+        "minecraft.MixinModelRendererSceneExportCapture"),
 
     AE2_EXTERNAL_CABLE_PARTS(Side.CLIENT, Phase.LATE, Mods.AE2, "compat.ae2.MixinPartQuartzFiber",
         "compat.ae2.MixinPartP2PTunnelME", "compat.ae2.MixinPartToggleBus"),
+
+    ANGELICA_SCENE_EXPORT(Side.CLIENT, Phase.LATE, Mods.Angelica,
+        "compat.angelica.MixinVanillaModelMeshesSceneExportCapture"),
 
     BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.MixinPanelButtonQuest",
         "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox"),

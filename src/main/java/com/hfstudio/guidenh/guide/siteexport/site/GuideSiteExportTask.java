@@ -11,11 +11,18 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
@@ -37,20 +44,30 @@ import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
+import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler.BlockImagePlaceholder;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytNode;
+import com.hfstudio.guidenh.guide.document.block.LytParagraph;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
+import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
+import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.AsyncWorker;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
+import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.SceneScript;
+import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
+import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiListContext;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
+import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialDataIndexer;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
@@ -64,22 +81,52 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
 
 public class GuideSiteExportTask {
 
     public static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
         .serializeNulls()
         .create();
-    private static final int MAX_SCENE_STRUCTURE_TIER = 4;
-    private static final int MAX_SCENE_STRUCTURE_CHANNEL_VALUE = 4;
-    private static final int MAX_SCENE_STATE_VARIANTS = 125;
+    private static final int MAX_SCENE_STRUCTURE_TIER = 8;
+    private static final int MAX_SCENE_STRUCTURE_CHANNEL_VALUE = 8;
     private static final long SCENE_MATERIALIZATION_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long SCENE_MATERIALIZATION_STEP_NANOS = TimeUnit.MILLISECONDS.toNanos(2);
     private static final long SCENE_MATERIALIZATION_WAIT_NANOS = TimeUnit.MILLISECONDS.toNanos(1);
     private static final long SCENE_MATERIALIZATION_NO_PROGRESS_NANOS = TimeUnit.SECONDS.toNanos(3);
+    private static final int CONTEXT_WORKER_COUNT = Math.max(
+        1,
+        Math.min(
+            4,
+            Runtime.getRuntime()
+                .availableProcessors() - 1));
 
     private final Path outDir;
     private final GuideSiteExportOptions options;
+
+    private static class ExportTiming {
+
+        private long collectionNanos;
+        private long pageCompileNanos;
+        private long sceneMaterializationNanos;
+        private long sceneExportNanos;
+        private long htmlCompileNanos;
+        private long pageWriteNanos;
+
+        private void log() {
+            GuideDebugLog.infoAlways(
+                "[GuideNH] [GuideSiteExportTask] Stage timing ms: collection={}, pageCompile={}, sceneMaterialization={}, sceneExport={}, htmlCompile={}, pageWrite={}",
+                TimeUnit.NANOSECONDS.toMillis(collectionNanos),
+                TimeUnit.NANOSECONDS.toMillis(pageCompileNanos),
+                TimeUnit.NANOSECONDS.toMillis(sceneMaterializationNanos),
+                TimeUnit.NANOSECONDS.toMillis(sceneExportNanos),
+                TimeUnit.NANOSECONDS.toMillis(htmlCompileNanos),
+                TimeUnit.NANOSECONDS.toMillis(pageWriteNanos));
+        }
+    }
 
     public GuideSiteExportTask(Path outDir) {
         this(outDir, GuideSiteExportOptions.DEFAULT);
@@ -91,26 +138,47 @@ public class GuideSiteExportTask {
     }
 
     public Result run() throws Exception {
-        Files.createDirectories(outDir);
+        long startedAt = System.nanoTime();
+        try (GuideDebugLog.DiagnosticScope diagnostics = GuideDebugLog.pushDiagnostics()) {
+            try {
+                Files.createDirectories(outDir);
+                return runExport(diagnostics)
+                    .withDurationMillis(TimeUnit.NANOSECONDS.toMillis(Math.max(0L, System.nanoTime() - startedAt)));
+            } catch (Exception | Error failure) {
+                GuideDebugLog.error("[GuideNH] [GuideSiteExportTask] Site export aborted: {}", failure, failure);
+                throw failure;
+            }
+        }
+    }
 
+    private Result runExport(GuideDebugLog.DiagnosticScope diagnostics) throws Exception {
         GuideSiteWriter writer = new GuideSiteWriter();
         writer.cleanupGeneratedOutputs(outDir);
         GuideSiteSearchTextExtractor searchExtractor = new GuideSiteSearchTextExtractor();
+        MediaWikiSpecialDataIndexer mediaWikiIndexer = new MediaWikiSpecialDataIndexer();
         GuideSiteAssetRegistry assets = new GuideSiteAssetRegistry(outDir);
-        GuideSiteItemIconExporter itemIconExporter = new GuideSiteItemIconExporter(assets);
+        GuideSiteTextureAnimations textureAnimations = new GuideSiteTextureAnimations(assets);
+        GuideSiteItemIconExporter itemIconExporter = new GuideSiteItemIconExporter(assets, textureAnimations);
         GuideSiteNeiPhase1BackgroundExporter neiPhase1Exporter = new GuideSiteNeiPhase1BackgroundExporter(assets);
-        GuideSiteSceneRuntimeExporter sceneExporter = new GuideSiteSceneRuntimeExporter(assets);
         writer.writeBootstrapFiles(outDir);
+        GuideSiteSceneRuntimeExporter sceneExporter = new GuideSiteSceneRuntimeExporter(assets, textureAnimations);
+        GuideSiteLatexExporter latexExporter = new GuideSiteLatexExporter(assets);
+        ExecutorService contextExecutor = Executors.newFixedThreadPool(CONTEXT_WORKER_COUNT, runnable -> {
+            Thread thread = new Thread(runnable, "guidenh-site-context");
+            thread.setDaemon(true);
+            return thread;
+        });
 
         int guidesExported = 0;
         int pagesExported = 0;
         int pagesFailed = 0;
-        String firstPageUrl = null;
+        Map<String, String> landingPagesByLanguage = new TreeMap<>();
         Map<String, List<Map<String, Object>>> searchEntriesByLanguage = new LinkedHashMap<>();
         Map<ResourceLocation, MutableGuide> guidesById = new LinkedHashMap<>();
         Map<ResourceLocation, List<GuideSitePageVariant>> variantsByGuideId = new LinkedHashMap<>();
         Map<String, List<GuideSitePageVariant>> allVariantsByLanguage = new LinkedHashMap<>();
         IResourceManager resourceManager = null;
+        ExportTiming timing = new ExportTiming();
 
         // Capture the user's current Minecraft language so we can restore it after export.
         // We switch the Minecraft locale per-language during export so that item display names,
@@ -137,12 +205,17 @@ public class GuideSiteExportTask {
                 GuideSitePageCollector collector = new GuideSitePageCollector(guide, resourceManager);
                 List<GuideSitePageVariant> variants;
                 try {
+                    long startedAt = System.nanoTime();
                     variants = collector.collect(guide, discoveredLanguages);
+                    timing.collectionNanos += System.nanoTime() - startedAt;
                 } catch (Throwable t) {
-                    GuideDebugLog.warnAlways(
-                        "[GuideNH] [GuideSiteExportTask] Failed to collect page variants for guide {}",
-                        guide.getId(),
-                        t);
+                    try (GuideDebugLog.ContextScope logContext = GuideDebugLog
+                        .pushContext("all", "", guide.getContentRootFolder())) {
+                        GuideDebugLog.error(
+                            "[GuideNH] [GuideSiteExportTask] Failed to collect page variants for guide {}",
+                            guide.getId(),
+                            t);
+                    }
                     recordFailure(outDir, "collect " + guide.getId(), t);
                     pagesFailed++;
                     continue;
@@ -157,66 +230,95 @@ public class GuideSiteExportTask {
             }
 
             Map<String, LanguageExportContext> contextsByLanguage = new LinkedHashMap<>();
+            Map<String, CompletableFuture<LanguageExportContext>> contextFutures = new LinkedHashMap<>();
+            IResourceManager contextResourceManager = resourceManager;
             for (Map.Entry<String, List<GuideSitePageVariant>> entry : allVariantsByLanguage.entrySet()) {
                 String language = entry.getKey();
                 List<GuideSitePageVariant> languageVariants = entry.getValue();
                 switchMinecraftLanguage(language);
                 writer.writeExternalLinkPage(outDir, language);
-                contextsByLanguage.put(
+                contextFutures.put(
                     language,
-                    buildLanguageExportContext(guidesById, languageVariants, resourceManager, language, assets));
+                    CompletableFuture.supplyAsync(
+                        () -> buildLanguageExportContext(
+                            guidesById,
+                            languageVariants,
+                            contextResourceManager,
+                            language,
+                            assets,
+                            mediaWikiIndexer),
+                        contextExecutor));
+            }
+            for (Map.Entry<String, CompletableFuture<LanguageExportContext>> entry : contextFutures.entrySet()) {
+                contextsByLanguage.put(
+                    entry.getKey(),
+                    entry.getValue()
+                        .join());
             }
 
+            Map<ResourceLocation, Map<ResourceLocation, List<GuideSiteLanguageLink>>> languageLinksByGuideId = new LinkedHashMap<>();
             for (Map.Entry<ResourceLocation, MutableGuide> guideEntry : guidesById.entrySet()) {
                 MutableGuide guide = guideEntry.getValue();
                 List<GuideSitePageVariant> variants = variantsByGuideId.getOrDefault(guideEntry.getKey(), List.of());
                 guidesExported++;
 
-                Map<String, List<GuideSitePageVariant>> variantsByLanguage = new LinkedHashMap<>();
+                LinkedHashSet<String> languageOrder = new LinkedHashSet<>();
                 for (GuideSitePageVariant variant : variants) {
-                    variantsByLanguage.computeIfAbsent(variant.language(), ignored -> new ArrayList<>())
+                    languageOrder.add(variant.language());
+                }
+
+                List<String> sortedLanguages = new ArrayList<>(languageOrder);
+                sortedLanguages.sort(String::compareTo);
+                languageLinksByGuideId
+                    .put(guideEntry.getKey(), buildLanguageLinks(writer, guide, variants, sortedLanguages));
+            }
+
+            for (Map.Entry<String, List<GuideSitePageVariant>> languageEntry : allVariantsByLanguage.entrySet()) {
+                String language = languageEntry.getKey();
+                LanguageExportContext context = contextsByLanguage.getOrDefault(language, LanguageExportContext.EMPTY);
+                Map<String, String> renderedTooltipCache = new HashMap<>();
+                Map<ResourceLocation, List<GuideSitePageVariant>> languageVariantsByGuideId = new LinkedHashMap<>();
+                for (GuideSitePageVariant variant : languageEntry.getValue()) {
+                    languageVariantsByGuideId.computeIfAbsent(variant.guideId(), ignored -> new ArrayList<>())
                         .add(variant);
                 }
 
-                List<String> languageOrder = new ArrayList<>(variantsByLanguage.keySet());
-                Map<ResourceLocation, List<GuideSiteLanguageLink>> languageLinksByPageId = buildLanguageLinks(
-                    writer,
-                    guide,
-                    variants,
-                    languageOrder);
-
-                for (Map.Entry<String, List<GuideSitePageVariant>> languageEntry : variantsByLanguage.entrySet()) {
-                    String language = languageEntry.getKey();
-                    List<GuideSitePageVariant> languageVariants = languageEntry.getValue();
-                    LanguageExportContext context = contextsByLanguage
-                        .getOrDefault(language, LanguageExportContext.EMPTY);
-
-                    // Switch the active Minecraft locale so localized item display names and tooltips
-                    // resolve to this language while we render this language's pages.
-                    switchMinecraftLanguage(language);
+                // Item names and tooltips use Minecraft's active locale while each language's pages render.
+                switchMinecraftLanguage(language);
+                for (Map.Entry<ResourceLocation, MutableGuide> guideEntry : guidesById.entrySet()) {
+                    MutableGuide guide = guideEntry.getValue();
+                    List<GuideSitePageVariant> languageVariants = languageVariantsByGuideId.get(guideEntry.getKey());
+                    if (languageVariants == null || languageVariants.isEmpty()) {
+                        continue;
+                    }
+                    Map<ResourceLocation, List<GuideSiteLanguageLink>> languageLinksByPageId = languageLinksByGuideId
+                        .get(guideEntry.getKey());
                     GuideSitePageAssetExporter assetExporter = context.assetExportersByGuideId()
                         .get(guide.getId());
                     if (assetExporter == null) {
                         assetExporter = createPageAssetExporter(guide, resourceManager, language, assets);
                     }
+                    GuideSiteMdxTagRenderer mdxRenderer = new GuideSiteMdxTagRenderer(
+                        context.scopedGuidesByGuideId()
+                            .getOrDefault(guide.getId(), guide),
+                        context.parsedPagesById(),
+                        context.navigationTree(),
+                        assetExporter,
+                        itemIconExporter,
+                        context.assetExportersByGuideId(),
+                        context.mediaWikiContextsByGuideId()
+                            .get(guide.getId()));
                     GuideSiteHtmlCompiler compiler = createHtmlCompiler(
-                        assets,
+                        latexExporter,
                         assetExporter,
                         new GuideSiteRecipeTagRenderer(itemIconExporter, neiPhase1Exporter),
-                        new GuideSiteMdxTagRenderer(
-                            context.scopedGuidesByGuideId()
-                                .getOrDefault(guide.getId(), guide),
-                            context.parsedPagesById(),
-                            context.navigationTree(),
-                            assetExporter,
-                            itemIconExporter,
-                            context.assetExportersByGuideId(),
-                            context.mediaWikiContextsByGuideId()
-                                .get(guide.getId())),
+                        mdxRenderer,
                         itemIconExporter);
 
+                    String sidebarHtml = null;
                     for (GuideSitePageVariant variant : languageVariants) {
-                        try {
+                        try (GuideDebugLog.ContextScope logContext = GuideDebugLog
+                            .pushContext(language, variant.sourceLanguage(), sourcePath(guide, variant))) {
                             try (GuideSiteHrefResolver.ContextScope ignored = GuideSiteHrefResolver.exportContext(
                                 guide.getId()
                                     .getResourceDomain(),
@@ -226,11 +328,18 @@ public class GuideSiteExportTask {
                                 context.guideIdsByPageId())) {
                                 Guide scopedGuide = context.scopedGuidesByGuideId()
                                     .getOrDefault(guide.getId(), guide);
-                                GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry();
+                                GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry(
+                                    renderedTooltipCache,
+                                    stack -> mdxRenderer.resolveItemHref(stack, variant.pageId()));
+                                long compileStartedAt = System.nanoTime();
                                 GuidePage compiledPage = PageCompiler
                                     .compile(scopedGuide, scopedGuide.getExtensions(), variant.parsedPage());
+                                timing.pageCompileNanos += System.nanoTime() - compileStartedAt;
+                                long materializationStartedAt = System.nanoTime();
                                 materializeScenes(scopedGuide, compiledPage);
-                                List<GuideSiteExportedScene> exportedScenes = exportScenes(
+                                timing.sceneMaterializationNanos += System.nanoTime() - materializationStartedAt;
+                                long sceneExportStartedAt = System.nanoTime();
+                                GuideSiteHtmlCompiler.SceneResolver exportedScenes = exportScenes(
                                     guide,
                                     variant.parsedPage(),
                                     compiledPage,
@@ -239,19 +348,31 @@ public class GuideSiteExportTask {
                                     sceneExporter,
                                     assetExporter,
                                     itemIconExporter);
-                                String body = compiler
-                                    .compileBody(variant.parsedPage(), templates, createSceneResolver(exportedScenes));
+                                timing.sceneExportNanos += System.nanoTime() - sceneExportStartedAt;
+                                long htmlCompileStartedAt = System.nanoTime();
+                                String body = compiler.compileBody(variant.parsedPage(), templates, exportedScenes);
+                                timing.htmlCompileNanos += System.nanoTime() - htmlCompileStartedAt;
                                 List<GuideSiteLanguageLink> langLinks = languageLinksByPageId.get(variant.pageId());
-                                String langSwitcherHtml = writer.renderLanguageSwitcher(language, langLinks);
-                                String sidebarHtml = writer.renderSidebar(
-                                    guide,
-                                    language,
-                                    context.navigationTree(),
-                                    variant.pageId(),
-                                    assetExporter,
-                                    itemIconExporter,
-                                    langLinks,
-                                    context.assetExportersByGuideId());
+                                String langSwitcherHtml = exportLanguageSwitcher(
+                                    writer.renderLanguageSwitcher(language, langLinks),
+                                    assets);
+                                if (sidebarHtml == null) {
+                                    String sharedSidebar = writer.renderSidebar(
+                                        guide,
+                                        language,
+                                        context.navigationTree(),
+                                        null,
+                                        assetExporter,
+                                        itemIconExporter,
+                                        langLinks,
+                                        context.assetExportersByGuideId());
+                                    String sidebarPath = assets.writeSharedCompressed(
+                                        "navigation",
+                                        ".html",
+                                        sharedSidebar.replace(GuideSitePageAssetExporter.ROOT_PREFIX, "./")
+                                            .getBytes(StandardCharsets.UTF_8));
+                                    sidebarHtml = "<div data-guide-sidebar-src=\"" + sidebarPath + "\"></div>";
+                                }
                                 String pageFile = toOutputPageFile(variant.parsedPage());
                                 String pageUrl = writer.pageUrl(
                                     guide.getId()
@@ -262,6 +383,7 @@ public class GuideSiteExportTask {
                                     pageFile);
                                 String pageTitle = searchExtractor.title(scopedGuide, variant.parsedPage());
 
+                                long pageWriteStartedAt = System.nanoTime();
                                 writer.writePage(
                                     outDir,
                                     guide.getId()
@@ -273,8 +395,9 @@ public class GuideSiteExportTask {
                                     langSwitcherHtml,
                                     sidebarHtml,
                                     body,
-                                    templates.renderAll(),
+                                    exportTemplates(templates, assets),
                                     pageTitle);
+                                timing.pageWriteNanos += System.nanoTime() - pageWriteStartedAt;
 
                                 if (!MediaWikiPageIds.isSpecialPage(variant.pageId())) {
                                     Map<String, Object> searchEntry = new LinkedHashMap<>();
@@ -305,17 +428,17 @@ public class GuideSiteExportTask {
                                         .add(searchEntry);
                                 }
 
-                                if (firstPageUrl == null) {
-                                    firstPageUrl = pageUrl;
-                                }
+                                landingPagesByLanguage.merge(language, pageUrl, GuideSiteExportTask::preferLandingPage);
                             }
                             pagesExported++;
                         } catch (Throwable t) {
-                            GuideDebugLog.warnAlways(
-                                "[GuideNH] [GuideSiteExportTask] Failed to export page {} for language {}",
-                                variant.pageId(),
-                                language,
-                                t);
+                            try (GuideDebugLog.ContextScope logContext = GuideDebugLog
+                                .pushContext(language, variant.sourceLanguage(), sourcePath(guide, variant))) {
+                                GuideDebugLog.error(
+                                    "[GuideNH] [GuideSiteExportTask] Failed to export page {}",
+                                    variant.pageId(),
+                                    t);
+                            }
                             recordFailure(outDir, "page " + variant.pageId() + " (" + language + ")", t);
                             pagesFailed++;
                         }
@@ -324,17 +447,47 @@ public class GuideSiteExportTask {
             }
         } finally {
             restoreMinecraftLanguage(originalMcLanguage);
+            neiPhase1Exporter.close();
+            itemIconExporter.close();
             sceneExporter.close();
+            textureAnimations.close();
+            contextExecutor.shutdownNow();
+            assets.close();
+            timing.log();
         }
-
         for (Map.Entry<String, List<Map<String, Object>>> entry : searchEntriesByLanguage.entrySet()) {
             writer.writeSearchIndex(outDir, entry.getKey(), GSON.toJson(entry.getValue()));
         }
 
         GuideSiteLocalizedText landingPageText = GuideSiteLocalizedText.resolve();
-        writer.writeLandingPage(outDir, firstPageUrl, "GuideNH Static Export", landingPageText);
+        writer.writeLandingPage(outDir, landingPagesByLanguage, "GuideNH Static Export", landingPageText);
+        return new Result(
+            guidesExported,
+            pagesExported,
+            pagesFailed,
+            diagnostics.warningCount(),
+            diagnostics.errorCount(),
+            outDir);
+    }
 
-        return new Result(guidesExported, pagesExported, pagesFailed, outDir);
+    private List<String> exportTemplates(GuideSiteTemplateRegistry templates, GuideSiteAssetRegistry assets)
+        throws Exception {
+        if (templates.renderAll()
+            .isEmpty()) {
+            return List.of();
+        }
+        String html = String.join("", templates.renderAll())
+            .replace(GuideSitePageAssetExporter.ROOT_PREFIX, "./");
+        String path = assets.writeSharedCompressed("templates", ".html", html.getBytes(StandardCharsets.UTF_8));
+        return List.of("<div hidden data-guide-templates-src=\"" + path + "\"></div>");
+    }
+
+    private String exportLanguageSwitcher(String html, GuideSiteAssetRegistry assets) throws Exception {
+        if (html == null || html.isEmpty()) {
+            return "";
+        }
+        String path = assets.writeSharedCompressed("language-menus", ".html", html.getBytes(StandardCharsets.UTF_8));
+        return "<div data-guide-language-menu-src=\"" + path + "\"></div>";
     }
 
     private static void switchMinecraftLanguage(String requested) {
@@ -377,9 +530,14 @@ public class GuideSiteExportTask {
                 return;
             }
             manager.setCurrentLanguage(target);
+            RecipeCache.clear();
             IResourceManager rm = mc.getResourceManager();
             if (rm != null) {
                 manager.onResourceManagerReload(rm);
+            }
+            if (mc.fontRenderer != null && mc.gameSettings != null) {
+                mc.fontRenderer.setUnicodeFlag(manager.isCurrentLocaleUnicode() || mc.gameSettings.forceUnicodeFont);
+                mc.fontRenderer.setBidiFlag(manager.isCurrentLanguageBidirectional());
             }
         } catch (Throwable t) {
             GuideDebugLog
@@ -401,9 +559,14 @@ public class GuideSiteExportTask {
                 return;
             }
             manager.setCurrentLanguage(original);
+            RecipeCache.clear();
             IResourceManager rm = mc.getResourceManager();
             if (rm != null) {
                 manager.onResourceManagerReload(rm);
+            }
+            if (mc.fontRenderer != null && mc.gameSettings != null) {
+                mc.fontRenderer.setUnicodeFlag(manager.isCurrentLocaleUnicode() || mc.gameSettings.forceUnicodeFont);
+                mc.fontRenderer.setBidiFlag(manager.isCurrentLanguageBidirectional());
             }
         } catch (Throwable t) {
             GuideDebugLog.warnAlways("[GuideNH] [GuideSiteExportTask] Failed to restore original Minecraft locale", t);
@@ -425,6 +588,7 @@ public class GuideSiteExportTask {
             Files.writeString(
                 outDir.resolve("export-failures.log"),
                 sw.toString(),
+                StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND);
         } catch (IOException ioException) {
@@ -445,12 +609,13 @@ public class GuideSiteExportTask {
 
     private LanguageExportContext buildLanguageExportContext(Map<ResourceLocation, MutableGuide> guidesById,
         List<GuideSitePageVariant> languageVariants, IResourceManager resourceManager, String language,
-        GuideSiteAssetRegistry assets) {
+        GuideSiteAssetRegistry assets, MediaWikiSpecialDataIndexer mediaWikiIndexer) {
         Map<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>> scopedPagesByGuideId = buildScopedPagesByGuideId(
             languageVariants);
         Map<ResourceLocation, MediaWikiListContext> mediaWikiContextsByGuideId = buildMediaWikiContextsByGuideId(
             guidesById,
-            languageVariants);
+            languageVariants,
+            mediaWikiIndexer);
         return new LanguageExportContext(
             buildParsedPagesById(languageVariants),
             buildMergedNavigationTree(guidesById, languageVariants),
@@ -533,7 +698,8 @@ public class GuideSiteExportTask {
     }
 
     private Map<ResourceLocation, MediaWikiListContext> buildMediaWikiContextsByGuideId(
-        Map<ResourceLocation, MutableGuide> availableGuides, List<GuideSitePageVariant> variants) {
+        Map<ResourceLocation, MutableGuide> availableGuides, List<GuideSitePageVariant> variants,
+        MediaWikiSpecialDataIndexer mediaWikiIndexer) {
         Map<ResourceLocation, Map<ResourceLocation, ParsedGuidePage>> pagesByGuideId = new LinkedHashMap<>();
         for (GuideSitePageVariant variant : variants) {
             if (variant == null || variant.guideId() == null
@@ -574,7 +740,8 @@ public class GuideSiteExportTask {
                     guide,
                     pages,
                     NavigationTree.buildMergedPages(pageCollectionsByPageId, pages),
-                    categoryIndex));
+                    categoryIndex,
+                    mediaWikiIndexer.build(guide, pages, categoryIndex)));
         }
         return contextsByGuideId;
     }
@@ -592,6 +759,15 @@ public class GuideSiteExportTask {
             }
 
             Map<Class<?>, PageIndex> indexOverrides = new LinkedHashMap<>();
+            List<ParsedGuidePage> scopedPages = new ArrayList<>(
+                entry.getValue()
+                    .values());
+            ItemIndex itemIndex = new ItemIndex();
+            itemIndex.rebuild(scopedPages);
+            indexOverrides.put(ItemIndex.class, itemIndex);
+            OreIndex oreIndex = new OreIndex();
+            oreIndex.rebuild(scopedPages);
+            indexOverrides.put(OreIndex.class, oreIndex);
             MediaWikiListContext mediaWikiContext = mediaWikiContextsByGuideId.get(guideId);
             if (mediaWikiContext != null) {
                 indexOverrides.put(CategoryIndex.class, mediaWikiContext.categoryIndex());
@@ -647,6 +823,26 @@ public class GuideSiteExportTask {
         return linksByPageId;
     }
 
+    private static String preferLandingPage(String current, String candidate) {
+        boolean currentIndex = current.endsWith("/index.html");
+        boolean candidateIndex = candidate.endsWith("/index.html");
+        if (currentIndex != candidateIndex) {
+            return candidateIndex ? candidate : current;
+        }
+        if (currentIndex) {
+            long currentDepth = current.chars()
+                .filter(character -> character == '/')
+                .count();
+            long candidateDepth = candidate.chars()
+                .filter(character -> character == '/')
+                .count();
+            if (currentDepth != candidateDepth) {
+                return candidateDepth < currentDepth ? candidate : current;
+            }
+        }
+        return current.compareTo(candidate) <= 0 ? current : candidate;
+    }
+
     private void appendSearchIconData(Map<String, Object> searchEntry, NavigationNode node,
         GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
         @Nullable Map<ResourceLocation, GuideSitePageAssetExporter> assetExportersByGuideId) {
@@ -700,14 +896,14 @@ public class GuideSiteExportTask {
             assetId -> loadGuideAsset(guide, resourceManager, language, assetId));
     }
 
-    private GuideSiteHtmlCompiler createHtmlCompiler(GuideSiteAssetRegistry assets,
+    private GuideSiteHtmlCompiler createHtmlCompiler(GuideSiteLatexExporter latexExporter,
         GuideSitePageAssetExporter assetExporter, GuideSiteHtmlCompiler.RecipeTagRenderer recipeTagRenderer,
         GuideSiteHtmlCompiler.MdxTagRenderer mdxTagRenderer, GuideSiteItemIconResolver itemIconResolver) {
         return new GuideSiteHtmlCompiler(
             recipeTagRenderer,
             assetExporter::resolveImageSrc,
             mdxTagRenderer,
-            new GuideSiteLatexExporter(assets),
+            latexExporter,
             assetExporter,
             itemIconResolver);
     }
@@ -771,37 +967,43 @@ public class GuideSiteExportTask {
         return path + ".html";
     }
 
-    private List<GuideSiteExportedScene> exportScenes(MutableGuide guide, ParsedGuidePage parsedPage,
+    private GuideSiteHtmlCompiler.SceneResolver exportScenes(MutableGuide guide, ParsedGuidePage parsedPage,
         GuidePage compiledPage, GuideSiteTemplateRegistry templates, GuideSiteAssetRegistry assets,
         GuideSiteSceneRuntimeExporter exporter, GuideSitePageAssetExporter assetExporter,
         GuideSiteItemIconResolver itemIconResolver) {
         GuideSiteCollectedScenes collectedScenes = GuideSiteSceneCollector.collect(compiledPage);
         IdentityHashMap<LytGuidebookScene, GuideSiteExportedScene> exportedScenesByScene = new IdentityHashMap<>();
+        IdentityHashMap<MdAstNode, GuideSiteExportedScene> exportedScenesBySource = new IdentityHashMap<>();
         ArrayList<LytGuidebookScene> exportOrder = new ArrayList<>(collectedScenes.uniqueScenes());
         Collections.reverse(exportOrder);
 
         for (LytGuidebookScene scene : exportOrder) {
-            reportSceneLoadFailure(scene, parsedPage);
-            try (
-                GuideSiteSceneAnnotationSerializer.ExportedSceneLookupScope ignored = GuideSiteSceneAnnotationSerializer
-                    .pushExportedSceneLookup(exportedScenesByScene)) {
-                GuideSiteExportedScene exportedScene = exportScene(
-                    parsedPage,
-                    scene,
-                    templates,
-                    assets,
-                    exporter,
-                    assetExporter,
-                    itemIconResolver);
-                if (exportedScene != null) {
-                    exportedScenesByScene.put(scene, exportedScene);
+            try (GuideDebugLog.ContextScope sceneContext = GuideDebugLog.pushNode(scene.getSourceNode())) {
+                reportSceneLoadFailure(scene, parsedPage);
+                try (
+                    GuideSiteSceneAnnotationSerializer.ExportedSceneLookupScope ignored = GuideSiteSceneAnnotationSerializer
+                        .pushExportedSceneLookup(exportedScenesByScene)) {
+                    GuideSiteExportedScene exportedScene = exportScene(
+                        parsedPage,
+                        scene,
+                        templates,
+                        assets,
+                        exporter,
+                        assetExporter,
+                        itemIconResolver);
+                    if (exportedScene != null) {
+                        exportedScenesByScene.put(scene, exportedScene);
+                        if (scene.getSourceNode() != null) {
+                            exportedScenesBySource.put(scene.getSourceNode(), exportedScene);
+                        }
+                    }
+                } catch (Throwable t) {
+                    GuideDebugLog.error(
+                        "[GuideNH] [GuideSiteExportTask] Failed to export scene for page {} in guide {}",
+                        parsedPage.getId(),
+                        guide.getId(),
+                        t);
                 }
-            } catch (Throwable t) {
-                GuideDebugLog.warnAlways(
-                    "[GuideNH] [GuideSiteExportTask] Failed to export scene for page {} in guide {}",
-                    parsedPage.getId(),
-                    guide.getId(),
-                    t);
             }
         }
 
@@ -811,7 +1013,7 @@ public class GuideSiteExportTask {
         for (LytGuidebookScene scene : collectedScenes.htmlSceneSequence()) {
             htmlScenes.add(exportedScenesByScene.get(scene));
         }
-        return htmlScenes;
+        return createSceneResolver(htmlScenes, exportedScenesBySource);
     }
 
     private void materializeScenes(Guide guide, GuidePage compiledPage) {
@@ -828,6 +1030,7 @@ public class GuideSiteExportTask {
                 .toString());
         host.registerScript("Scene", sceneScript);
         host.registerScript("GameScene", sceneScript);
+        host.registerScript("BlockImage", new BlockImageScript());
         host.mountDocument(document);
 
         long timeoutAt = System.nanoTime() + SCENE_MATERIALIZATION_TIMEOUT_NANOS;
@@ -859,17 +1062,30 @@ public class GuideSiteExportTask {
     }
 
     private boolean containsScenePlaceholder(LytNode node) {
-        Deque<LytNode> pending = new ArrayDeque<>();
+        Deque<Object> pending = new ArrayDeque<>();
         pending.add(node);
         while (!pending.isEmpty()) {
-            LytNode current = pending.poll();
-            if (current instanceof ScenePlaceholder) {
+            Object current = pending.poll();
+            if (current instanceof ScenePlaceholder || current instanceof BlockImagePlaceholder) {
                 return true;
             }
-            for (LytNode child : current.getChildren()) {
-                if (child != null) {
-                    pending.add(child);
+            if (current instanceof LytNode block) {
+                for (LytNode child : block.getChildren()) {
+                    if (child != null) {
+                        pending.add(child);
+                    }
                 }
+            }
+            if (current instanceof LytParagraph paragraph) {
+                for (var content : paragraph.getContent()) {
+                    pending.add(content);
+                }
+            }
+            if (current instanceof LytFlowInlineBlock inlineBlock && inlineBlock.getBlock() != null) {
+                pending.add(inlineBlock.getBlock());
+            }
+            if (current instanceof LytFlowSpan span) {
+                pending.addAll(span.getChildren());
             }
         }
         return false;
@@ -889,6 +1105,9 @@ public class GuideSiteExportTask {
     private GuideSiteExportedScene exportScene(ParsedGuidePage parsedPage, LytGuidebookScene scene,
         GuideSiteTemplateRegistry templates, GuideSiteAssetRegistry assets, GuideSiteSceneRuntimeExporter exporter,
         GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) throws Exception {
+        if (scene.getSourceNode() instanceof MdxJsxElementFields element && "BlockImage".equals(element.name())) {
+            return exporter.exportBlockImage(scene);
+        }
         GuideSiteExportedScene baseScene = exportSceneState(
             parsedPage,
             scene,
@@ -897,9 +1116,6 @@ public class GuideSiteExportTask {
             assetExporter,
             itemIconResolver,
             true);
-        if (baseScene == null) {
-            return null;
-        }
 
         String manifestPath = exportSceneStateManifest(
             parsedPage,
@@ -920,14 +1136,17 @@ public class GuideSiteExportTask {
             baseScene.hoverTargetsJson(),
             baseScene.sceneSoundsJson(),
             manifestPath,
-            renderBlockStatsHtml(scene, itemIconResolver),
+            renderBlockStatsHtml(scene, templates, parsedPage.getId(), itemIconResolver),
             blockStatsLayoutClass(scene),
             blockStatsLayoutStyle(scene),
             scene.isGridButtonEnabled(),
             scene.isGridVisible(),
             buildGridAnnotationJson(scene),
             scene.shouldExportBlockStats() && blockStatsButtonEnabled(scene),
-            scene.isBlockStatsVisible());
+            scene.isBlockStatsVisible(),
+            GuideSiteSceneHoverAssets.export(baseScene.hoverTargetsJson(), assets),
+            scene.hasStructureLibHatchData(),
+            scene.isStructureLibHatchHighlightEnabled());
     }
 
     private GuideSiteExportedScene exportSceneState(ParsedGuidePage parsedPage, LytGuidebookScene scene,
@@ -996,7 +1215,8 @@ public class GuideSiteExportTask {
         return GSON.toJson(sounds);
     }
 
-    private String renderBlockStatsHtml(LytGuidebookScene scene, GuideSiteItemIconResolver itemIconResolver) {
+    private String renderBlockStatsHtml(LytGuidebookScene scene, GuideSiteTemplateRegistry templates,
+        ResourceLocation currentPageId, GuideSiteItemIconResolver itemIconResolver) {
         if (scene == null || !scene.shouldExportBlockStats()) {
             return null;
         }
@@ -1008,10 +1228,33 @@ public class GuideSiteExportTask {
                 continue;
             }
             GuideSiteExportedItem item = GuideSiteItemSupport.export(displayStack, itemIconResolver);
-            html.append("<div class=\"guide-scene-block-stat\" data-block-stat-key=\"")
+            String tooltipHtml = GuideSiteSceneAnnotationSerializer.renderTooltipHtml(
+                new AppendedItemTooltip(
+                    displayStack,
+                    List.of(GuidebookText.SceneBlockStatsTooltipCount.text(Integer.toString(entry.getCount())))),
+                currentPageId,
+                null,
+                itemIconResolver,
+                templates);
+            String templateId = tooltipHtml != null && !tooltipHtml.isBlank() ? templates.create(tooltipHtml) : null;
+            String itemHref = templates.resolveItemHref(displayStack);
+            html.append("<div class=\"guide-scene-block-stat")
+                .append(templateId != null ? " guide-tooltip" : "")
+                .append("\" data-block-stat-key=\"")
                 .append(escapeAttribute(entry.getKey()))
-                .append("\">");
-            GuideSiteItemHtml.appendIcon(html, item, "guide-scene-block-stat-icon", 1.0f, true);
+                .append("\"");
+            if (templateId != null) {
+                html.append(" data-template=\"")
+                    .append(escapeAttribute(templateId))
+                    .append("\" tabindex=\"0\"");
+            }
+            if (!itemHref.isEmpty()) {
+                html.append(" data-guide-item-href=\"")
+                    .append(escapeAttribute(itemHref))
+                    .append("\"");
+            }
+            html.append(">");
+            GuideSiteItemHtml.appendIcon(html, item, "guide-scene-block-stat-icon", 1.0f, false);
             html.append("<span class=\"guide-scene-block-stat-label\">")
                 .append(escapeHtml(entry.getLabel()))
                 .append("</span><span class=\"guide-scene-block-stat-count\">x")
@@ -1092,31 +1335,19 @@ public class GuideSiteExportTask {
         }
         int[] bounds = scene.getLevel()
             .getBounds();
-        ArrayList<Map<String, Object>> annotations = new ArrayList<>(bounds[3] - bounds[0] + bounds[5] - bounds[2] + 8);
-        float half = 0.02f;
-        float y = 0.002f;
-        int minX = bounds[0] - 1;
-        int minZ = bounds[2] - 1;
-        int maxX = bounds[3] + 2;
-        int maxZ = bounds[5] + 2;
-        for (int x = minX; x <= maxX; x++) {
-            annotations.add(buildGridLine(x - half, y, minZ, x + half, y, maxZ));
-        }
-        for (int z = minZ; z <= maxZ; z++) {
-            annotations.add(buildGridLine(minX, y, z - half, maxX, y, z + half));
-        }
-        return GSON.toJson(annotations);
-    }
-
-    private Map<String, Object> buildGridLine(float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-        LinkedHashMap<String, Object> data = new LinkedHashMap<>();
-        data.put("type", "box");
-        data.put("minCorner", new float[] { Math.min(minX, maxX), Math.min(minY, maxY), Math.min(minZ, maxZ) });
-        data.put("maxCorner", new float[] { Math.max(minX, maxX), Math.max(minY, maxY), Math.max(minZ, maxZ) });
-        data.put("color", "rgba(255,255,255,0.33333334)");
-        data.put("thickness", 0.00390625f);
-        data.put("alwaysOnTop", false);
-        return data;
+        LinkedHashMap<String, Object> grid = new LinkedHashMap<>();
+        grid.put("version", 1);
+        grid.put("type", "grid");
+        grid.put("minX", bounds[0] - 1);
+        grid.put("minZ", bounds[2] - 1);
+        grid.put("maxX", bounds[3] + 2);
+        grid.put("maxZ", bounds[5] + 2);
+        grid.put("y", 0.002f);
+        grid.put("halfWidth", 0.02f);
+        grid.put("color", "rgba(255,255,255,0.33333334)");
+        grid.put("thickness", 0.00390625f);
+        grid.put("alwaysOnTop", false);
+        return GSON.toJson(grid);
     }
 
     private String escapeAttribute(String text) {
@@ -1143,7 +1374,9 @@ public class GuideSiteExportTask {
         }
 
         SceneVariantState initialState = SceneVariantState.capture(scene, plan.structurePlans);
-        LinkedHashMap<String, Object> serializedStates = new LinkedHashMap<>(plan.states.size());
+        LinkedHashMap<String, Integer> serializedStates = new LinkedHashMap<>(plan.states.size());
+        ArrayList<Map<String, Object>> serializedVariants = new ArrayList<>();
+        LinkedHashMap<String, Integer> variantIndexes = new LinkedHashMap<>();
 
         try {
             for (SceneVariantState state : plan.states) {
@@ -1151,9 +1384,6 @@ public class GuideSiteExportTask {
                 if (state.equals(initialState)) {
                     exportedVariant = baseScene;
                 } else {
-                    if (scene.hasPonderData()) {
-                        applySceneVariantState(scene, initialState, plan.structurePlans);
-                    }
                     applySceneVariantState(scene, state, plan.structurePlans);
                     exportedVariant = exportSceneState(
                         parsedPage,
@@ -1177,7 +1407,15 @@ public class GuideSiteExportTask {
                 if (exportedVariant == null) {
                     return null;
                 }
-                serializedStates.put(state.key(), serializeSceneVariant(exportedVariant));
+                Map<String, Object> serializedVariant = serializeSceneVariant(exportedVariant, assets);
+                String variantJson = GSON.toJson(serializedVariant);
+                Integer variantIndex = variantIndexes.get(variantJson);
+                if (variantIndex == null) {
+                    variantIndex = serializedVariants.size();
+                    variantIndexes.put(variantJson, variantIndex);
+                    serializedVariants.add(serializedVariant);
+                }
+                serializedStates.put(state.key(), variantIndex);
             }
         } finally {
             applySceneVariantState(scene, initialState, plan.structurePlans);
@@ -1185,9 +1423,15 @@ public class GuideSiteExportTask {
 
         LinkedHashMap<String, Object> manifest = new LinkedHashMap<>();
         manifest.put("initialState", initialState.toMap());
+        manifest.put("independentControls", true);
         manifest.put("controls", plan.controls);
+        Map<String, Object> variantDefaults = extractSharedVariantFields(serializedVariants);
+        if (!variantDefaults.isEmpty()) {
+            manifest.put("variantDefaults", variantDefaults);
+        }
         manifest.put("states", serializedStates);
-        return assets.writeShared(
+        manifest.put("variants", serializedVariants);
+        return assets.writeSharedCompressed(
             "scene-manifests",
             ".json",
             GSON.toJson(manifest)
@@ -1205,24 +1449,8 @@ public class GuideSiteExportTask {
             : List.of();
         List<StructureStatePlan> structurePlans = buildStructureStatePlans(scene);
 
-        long staticVariantCount = visibleLayers.size();
-        for (StructureStatePlan structurePlan : structurePlans) {
-            staticVariantCount = multiplySceneVariantCounts(staticVariantCount, structurePlan.stateCount());
-            if (staticVariantCount > MAX_SCENE_STATE_VARIANTS) {
-                warnSceneStateVariantLimit(staticVariantCount);
-                return null;
-            }
-        }
-        int ponderStateBudget = (int) Math.max(1L, MAX_SCENE_STATE_VARIANTS / staticVariantCount);
-        List<Integer> ponderTicks = buildPonderTickStates(scene, ponderKeyframes, ponderStateBudget);
-        long variantCount = multiplySceneVariantCounts(staticVariantCount, ponderTicks.size());
-        if (variantCount > MAX_SCENE_STATE_VARIANTS) {
-            warnSceneStateVariantLimit(variantCount);
-            return null;
-        }
-        for (StructureStatePlan structurePlan : structurePlans) {
-            structurePlan.materializeStates();
-        }
+        List<Integer> ponderTicks = buildPonderTickStates(scene, ponderKeyframes);
+        SceneVariantState initialState = SceneVariantState.capture(scene, structurePlans);
 
         LinkedHashMap<String, Object> controls = new LinkedHashMap<>();
         LinkedHashMap<String, Object> visibleLayerControl = new LinkedHashMap<>();
@@ -1262,35 +1490,51 @@ public class GuideSiteExportTask {
             controls.put("structures", structureControls);
         }
 
-        ArrayList<SceneVariantState> states = new ArrayList<>((int) variantCount);
-        appendSceneVariantStates(states, visibleLayers, ponderTicks, structurePlans, 0, new LinkedHashMap<>());
-        return new SceneStateManifestPlan(states, structurePlans, controls);
-    }
-
-    private void appendSceneVariantStates(List<SceneVariantState> states, List<Integer> visibleLayers,
-        List<Integer> ponderTicks, List<StructureStatePlan> structurePlans, int structureIndex,
-        LinkedHashMap<String, StructureVariantState> currentStructures) {
-        if (structureIndex >= structurePlans.size()) {
-            for (Integer visibleLayer : visibleLayers) {
-                for (Integer ponderTick : ponderTicks) {
-                    states.add(new SceneVariantState(visibleLayer, ponderTick, currentStructures));
+        LinkedHashMap<String, SceneVariantState> states = new LinkedHashMap<>();
+        states.put(initialState.key(), initialState);
+        for (Integer tick : ponderTicks) {
+            addSceneVariant(states, new SceneVariantState(initialState.visibleLayer, tick, initialState.structures));
+        }
+        for (Integer layer : visibleLayers) {
+            addSceneVariant(states, new SceneVariantState(layer, initialState.ponderTick, initialState.structures));
+        }
+        for (StructureStatePlan structurePlan : structurePlans) {
+            StructureVariantState selected = initialState.structures.get(structurePlan.bindingKey);
+            if (selected == null) {
+                continue;
+            }
+            for (Integer tier : structurePlan.tiers) {
+                addStructureSceneVariant(
+                    states,
+                    initialState,
+                    structurePlan.bindingKey,
+                    new StructureVariantState(tier, selected.channels));
+            }
+            for (int channelIndex = 0; channelIndex < structurePlan.channelIds.size(); channelIndex++) {
+                String channelId = structurePlan.channelIds.get(channelIndex);
+                for (Integer value : structurePlan.channelValues.get(channelIndex)) {
+                    LinkedHashMap<String, Integer> channels = new LinkedHashMap<>(selected.channels);
+                    channels.put(channelId, value);
+                    addStructureSceneVariant(
+                        states,
+                        initialState,
+                        structurePlan.bindingKey,
+                        new StructureVariantState(selected.tier, channels));
                 }
             }
-            return;
         }
+        return new SceneStateManifestPlan(new ArrayList<>(states.values()), structurePlans, controls);
+    }
 
-        StructureStatePlan structurePlan = structurePlans.get(structureIndex);
-        for (StructureVariantState structureState : structurePlan.states) {
-            currentStructures.put(structurePlan.bindingKey, structureState);
-            appendSceneVariantStates(
-                states,
-                visibleLayers,
-                ponderTicks,
-                structurePlans,
-                structureIndex + 1,
-                currentStructures);
-            currentStructures.remove(structurePlan.bindingKey);
-        }
+    private void addStructureSceneVariant(Map<String, SceneVariantState> states, SceneVariantState initialState,
+        String bindingKey, StructureVariantState selection) {
+        LinkedHashMap<String, StructureVariantState> structures = new LinkedHashMap<>(initialState.structures);
+        structures.put(bindingKey, selection);
+        addSceneVariant(states, new SceneVariantState(initialState.visibleLayer, initialState.ponderTick, structures));
+    }
+
+    private void addSceneVariant(Map<String, SceneVariantState> states, SceneVariantState state) {
+        states.putIfAbsent(state.key(), state);
     }
 
     private void applySceneVariantState(LytGuidebookScene scene, SceneVariantState state,
@@ -1327,7 +1571,8 @@ public class GuideSiteExportTask {
         scene.setVisibleLayer(state.visibleLayer);
     }
 
-    private Map<String, Object> serializeSceneVariant(GuideSiteExportedScene exportedScene) {
+    private Map<String, Object> serializeSceneVariant(GuideSiteExportedScene exportedScene,
+        GuideSiteAssetRegistry assets) throws Exception {
         LinkedHashMap<String, Object> serialized = new LinkedHashMap<>();
         serialized
             .put("placeholderSrc", GuideSitePageAssetExporter.toRootRelativePath(exportedScene.placeholderPath()));
@@ -1339,9 +1584,31 @@ public class GuideSiteExportTask {
         serialized
             .put("sceneSoundsJson", exportedScene.sceneSoundsJson() != null ? exportedScene.sceneSoundsJson() : "[]");
         serialized.put(
-            "hoverTargetsJson",
-            exportedScene.hoverTargetsJson() != null ? exportedScene.hoverTargetsJson() : "[]");
+            "hoverTargetsSrc",
+            GuideSitePageAssetExporter
+                .toRootRelativePath(GuideSiteSceneHoverAssets.export(exportedScene.hoverTargetsJson(), assets)));
         return serialized;
+    }
+
+    private Map<String, Object> extractSharedVariantFields(List<Map<String, Object>> variants) {
+        if (variants == null || variants.isEmpty()) {
+            return Map.of();
+        }
+        LinkedHashMap<String, Object> shared = new LinkedHashMap<>(variants.getFirst());
+        for (int i = 1; i < variants.size() && !shared.isEmpty(); i++) {
+            Map<String, Object> variant = variants.get(i);
+            shared.entrySet()
+                .removeIf(entry -> !Objects.equals(entry.getValue(), variant.get(entry.getKey())));
+        }
+        if (shared.isEmpty()) {
+            return Map.of();
+        }
+        for (Map<String, Object> variant : variants) {
+            for (String key : shared.keySet()) {
+                variant.remove(key);
+            }
+        }
+        return shared;
     }
 
     private List<Integer> buildVisibleLayerStates(LytGuidebookScene scene) {
@@ -1362,48 +1629,30 @@ public class GuideSiteExportTask {
         return layers;
     }
 
-    private List<Integer> buildPonderTickStates(LytGuidebookScene scene, List<PonderTimelineKeyframe> ponderKeyframes,
-        int stateBudget) {
+    private List<Integer> buildPonderTickStates(LytGuidebookScene scene, List<PonderTimelineKeyframe> ponderKeyframes) {
         if (scene == null || !scene.hasPonderData()) {
             return List.of(0);
         }
         int totalTime = Math.max(0, scene.getPonderTotalTimeForExport());
-        int maxStates = Math.max(1, stateBudget);
-        if (options.exportPonderEveryTick() && totalTime + 1 <= maxStates) {
-            ArrayList<Integer> states = new ArrayList<>(totalTime + 1);
-            for (int tick = 0; tick <= totalTime; tick++) {
+        if (options.exportPonderEveryTick()) {
+            ArrayList<Integer> states = new ArrayList<>(Math.min(totalTime, 4095) + 1);
+            for (int tick = 0; tick < totalTime; tick++) {
                 states.add(tick);
             }
-            return states.isEmpty() ? List.of(0) : states;
+            states.add(totalTime);
+            return states;
         }
-        ArrayList<Integer> states = new ArrayList<>(maxStates);
+        ArrayList<Integer> states = new ArrayList<>(ponderKeyframes.size() + 3);
         addUniquePonderTickState(states, scene.getPonderCurrentTickForExport());
-        if (states.size() < maxStates) {
-            addUniquePonderTickState(states, 0);
-        }
-        if (states.size() < maxStates) {
-            addUniquePonderTickState(states, totalTime);
-        }
-        if (!options.exportPonderEveryTick()) {
-            for (PonderTimelineKeyframe keyframe : ponderKeyframes) {
-                if (!keyframe.isHidden() && states.size() < maxStates) {
-                    addUniquePonderTickState(states, keyframe.getTime());
-                }
-            }
-            return states.isEmpty() ? List.of(0) : states;
-        }
-
+        addUniquePonderTickState(states, 0);
+        addUniquePonderTickState(states, totalTime);
         for (PonderTimelineKeyframe keyframe : ponderKeyframes) {
-            if (!keyframe.isHidden() && states.size() < maxStates) {
+            if (!keyframe.isHidden()) {
                 addUniquePonderTickState(states, keyframe.getTime());
             }
         }
-        int sampledTickCount = Math.max(0, maxStates - states.size());
-        for (int sample = 1; sample <= sampledTickCount; sample++) {
-            addUniquePonderTickState(states, Math.round((float) sample * totalTime / (sampledTickCount + 1)));
-        }
         states.sort(Integer::compareTo);
-        return states.isEmpty() ? List.of(0) : states;
+        return states;
     }
 
     private List<StructureStatePlan> buildStructureStatePlans(LytGuidebookScene scene) {
@@ -1462,13 +1711,6 @@ public class GuideSiteExportTask {
         }
     }
 
-    private void warnSceneStateVariantLimit(long variantCount) {
-        GuideDebugLog.warnAlways(
-            "[GuideNH] [GuideSiteExportTask] Skipping scene state manifest export because {} variants exceed limit {}.",
-            variantCount,
-            MAX_SCENE_STATE_VARIANTS);
-    }
-
     private List<Integer> buildTierStates(StructureLibSceneBinding binding, StructureLibSceneMetadata metadata) {
         if (binding == null || metadata == null
             || metadata.getTierData() == null
@@ -1514,18 +1756,24 @@ public class GuideSiteExportTask {
         return states;
     }
 
-    private long multiplySceneVariantCounts(long left, long right) {
-        if (left <= 0 || right <= 0) {
-            return 0;
+    private String sourcePath(MutableGuide guide, GuideSitePageVariant variant) {
+        String sourceLanguage = variant.sourceLanguage();
+        String pagePath = variant.pageId()
+            .getResourcePath();
+        if (sourceLanguage == null || sourceLanguage.isEmpty()) {
+            return guide.getContentRootFolder() + "/" + pagePath;
         }
-        if (left > MAX_SCENE_STATE_VARIANTS || right > MAX_SCENE_STATE_VARIANTS
-            || left > MAX_SCENE_STATE_VARIANTS / right) {
-            return MAX_SCENE_STATE_VARIANTS + 1L;
-        }
-        return left * right;
+        return guide.getContentRootFolder() + "/_" + sourceLanguage + "/" + pagePath;
     }
 
-    private GuideSiteHtmlCompiler.SceneResolver createSceneResolver(List<GuideSiteExportedScene> exportedScenes) {
+    private GuideSiteHtmlCompiler.SceneResolver createSceneResolver(List<GuideSiteExportedScene> exportedScenes,
+        Map<MdAstNode, GuideSiteExportedScene> exportedScenesBySource) {
+        Map<String, GuideSiteExportedScene> exportedScenesByTag = new LinkedHashMap<>();
+        for (var entry : exportedScenesBySource.entrySet()) {
+            if (entry.getKey() instanceof MdxJsxElementFields element) {
+                exportedScenesByTag.putIfAbsent(sceneSourceKey(element), entry.getValue());
+            }
+        }
         return new GuideSiteHtmlCompiler.SceneResolver() {
 
             private int index;
@@ -1537,7 +1785,58 @@ public class GuideSiteExportTask {
                 }
                 return exportedScenes.get(index++);
             }
+
+            @Override
+            public GuideSiteExportedScene resolveScene(MdxJsxElementFields element) {
+                GuideSiteExportedScene scene = exportedScenesBySource.get(element);
+                // Row, Column and rich content reparse their bodies into new AST instances.
+                if (scene == null) {
+                    scene = exportedScenesByTag.get(sceneSourceKey(element));
+                }
+                if (scene == null) {
+                    GuideDebugLog.warnAlways(
+                        "[GuideNH] [GuideSiteExportTask] No exported preview matches <{}>; a different tag's scene will not be used.",
+                        element.name());
+                }
+                return scene;
+            }
         };
+    }
+
+    private String sceneSourceKey(MdxJsxElementFields element) {
+        Map<String, String> attributes = new TreeMap<>();
+        for (var attribute : element.attributes()) {
+            if (attribute instanceof MdxJsxAttribute named) {
+                attributes.put(named.name, element.getAttributeString(named.name, null));
+            }
+        }
+        List<String> children = new ArrayList<>();
+        for (var child : element.children()) {
+            appendSceneSourceKey(child, children);
+        }
+        return GSON.toJson(List.of(Objects.toString(element.name(), ""), attributes, children));
+    }
+
+    private void appendSceneSourceKey(Object node, List<String> keys) {
+        if (node instanceof MdxJsxElementFields element && !"p".equals(element.name())) {
+            keys.add(sceneSourceKey(element));
+        } else if (node instanceof MdxJsxElementFields element) {
+            for (var child : element.children()) {
+                appendSceneSourceKey(child, keys);
+            }
+        } else if (node instanceof MdAstParent<?>parent) {
+            List<String> children = new ArrayList<>();
+            for (var child : parent.children()) {
+                appendSceneSourceKey(child, children);
+            }
+            keys.add(GSON.toJson(List.of(parent.type(), children)));
+        } else if (node instanceof MdAstNode astNode) {
+            String text = astNode.toText()
+                .trim();
+            if (!text.isEmpty()) {
+                keys.add(GSON.toJson(List.of(astNode.type(), text)));
+            }
+        }
     }
 
     private static final class SceneStateManifestPlan {
@@ -1674,7 +1973,6 @@ public class GuideSiteExportTask {
         private final List<StructureLibSceneMetadata.ChannelData> selectableChannels;
         private final List<String> channelIds;
         private final List<List<Integer>> channelValues;
-        private List<StructureVariantState> states = List.of();
 
         private StructureStatePlan(String bindingKey, @Nullable String structureName, String label, List<Integer> tiers,
             List<StructureLibSceneMetadata.ChannelData> selectableChannels, List<String> channelIds,
@@ -1686,44 +1984,6 @@ public class GuideSiteExportTask {
             this.selectableChannels = selectableChannels != null ? new ArrayList<>(selectableChannels) : List.of();
             this.channelIds = channelIds != null ? new ArrayList<>(channelIds) : List.of();
             this.channelValues = channelValues != null ? new ArrayList<>(channelValues) : List.of();
-        }
-
-        private long stateCount() {
-            long count = Math.max(1, tiers.size());
-            for (List<Integer> values : channelValues) {
-                int valueCount = values != null ? values.size() : 0;
-                if (valueCount <= 0 || count > MAX_SCENE_STATE_VARIANTS / valueCount) {
-                    return MAX_SCENE_STATE_VARIANTS + 1L;
-                }
-                count *= valueCount;
-            }
-            return count;
-        }
-
-        private void materializeStates() {
-            ArrayList<StructureVariantState> materialized = new ArrayList<>((int) stateCount());
-            appendStates(materialized, 0, new ArrayList<>());
-            states = materialized.isEmpty()
-                ? List.of(new StructureVariantState(StructureLibPreviewSelection.DEFAULT_MASTER_TIER, null))
-                : materialized;
-        }
-
-        private void appendStates(List<StructureVariantState> out, int channelIndex, List<Integer> currentChannels) {
-            if (channelIndex >= channelValues.size()) {
-                for (Integer tier : tiers) {
-                    LinkedHashMap<String, Integer> channelState = new LinkedHashMap<>(channelIds.size());
-                    for (int i = 0; i < channelIds.size(); i++) {
-                        channelState.put(channelIds.get(i), currentChannels.get(i));
-                    }
-                    out.add(new StructureVariantState(tier, channelState));
-                }
-                return;
-            }
-            for (Integer value : channelValues.get(channelIndex)) {
-                currentChannels.add(value);
-                appendStates(out, channelIndex + 1, currentChannels);
-                currentChannels.removeLast();
-            }
         }
 
         private boolean hasControls() {
@@ -1800,18 +2060,37 @@ public class GuideSiteExportTask {
         }
     }
 
-    public static final class Result {
+    public static class Result {
 
         private final int guidesExported;
         private final int pagesExported;
         private final int pagesFailed;
+        private final int warnings;
+        private final int errors;
         private final Path outDir;
+        private final long durationMillis;
 
         public Result(int guidesExported, int pagesExported, int pagesFailed, Path outDir) {
+            this(guidesExported, pagesExported, pagesFailed, 0, 0, outDir);
+        }
+
+        public Result(int guidesExported, int pagesExported, int pagesFailed, int warnings, int errors, Path outDir) {
+            this(guidesExported, pagesExported, pagesFailed, warnings, errors, outDir, 0L);
+        }
+
+        private Result(int guidesExported, int pagesExported, int pagesFailed, int warnings, int errors, Path outDir,
+            long durationMillis) {
             this.guidesExported = guidesExported;
             this.pagesExported = pagesExported;
             this.pagesFailed = pagesFailed;
+            this.warnings = warnings;
+            this.errors = errors;
             this.outDir = outDir;
+            this.durationMillis = Math.max(0L, durationMillis);
+        }
+
+        private Result withDurationMillis(long durationMillis) {
+            return new Result(guidesExported, pagesExported, pagesFailed, warnings, errors, outDir, durationMillis);
         }
 
         public int guidesExported() {
@@ -1826,8 +2105,20 @@ public class GuideSiteExportTask {
             return pagesFailed;
         }
 
+        public int warnings() {
+            return warnings;
+        }
+
+        public int errors() {
+            return errors;
+        }
+
         public Path outDir() {
             return outDir;
+        }
+
+        public long durationMillis() {
+            return durationMillis;
         }
     }
 

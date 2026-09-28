@@ -1,3 +1,5 @@
+import { loadSharedText } from "./sharedAssets.js";
+
 export function installSearchUi(root) {
   const input = root.querySelector("[data-guide-search-input]");
   const results = root.querySelector("[data-guide-search-results]");
@@ -7,18 +9,14 @@ export function installSearchUi(root) {
 
   const lang = (document.documentElement.lang || "en_us").toLowerCase().replace(/-/g, "_");
   const siteRoot = document.querySelector("base")?.href || document.baseURI;
-  const searchIndexUrl = new URL(`_data/search/${lang}.json`, siteRoot);
+  const suffix = input.hasAttribute("data-guide-search-compressed") ? ".json.gz" : ".json";
+  const searchIndexUrl = new URL(`_data/search/${lang}${suffix}`, siteRoot);
   let entriesPromise = null;
   let debounceHandle = 0;
 
   const ensureEntries = () => {
     if (!entriesPromise) {
-      entriesPromise = fetch(searchIndexUrl.toString()).then((response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to load search index: ${response.status}`);
-        }
-        return response.json();
-      }).then((payload) => {
+      entriesPromise = loadSharedText(searchIndexUrl.toString()).then(JSON.parse).then((payload) => {
         if (!Array.isArray(payload)) {
           return [];
         }
@@ -28,7 +26,10 @@ export function installSearchUi(root) {
           entry._searchBlob = `${title}\n${text}`.toLowerCase();
         });
         return payload;
-      }).catch(() => []);
+      }).catch(() => {
+        entriesPromise = null;
+        return [];
+      });
     }
     return entriesPromise;
   };

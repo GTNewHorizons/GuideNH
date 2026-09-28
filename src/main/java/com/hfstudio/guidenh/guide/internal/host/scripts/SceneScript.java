@@ -95,13 +95,15 @@ public class SceneScript implements LytScript {
         if (event.type() != EventType.MOUNT) return;
         if (!(node instanceof ScenePlaceholder ph)) return;
 
-        var state = (String) ctx.data()
-            .getOrDefault(KEY_STATE, STATE_INIT);
-        switch (state) {
-            case STATE_INIT -> doInit(ph, ctx);
-            case STATE_AWAIT_SNBT -> doAwaitSnbt(ph, ctx);
-            case STATE_BUILD -> doBuild(ph, ctx);
-            default -> ctx.replace(LytParagraph.error("[Scene] Unknown async state: " + state));
+        try (GuideDebugLog.ContextScope ignored = GuideDebugLog.pushNode(ph.getSourceNode())) {
+            var state = (String) ctx.data()
+                .getOrDefault(KEY_STATE, STATE_INIT);
+            switch (state) {
+                case STATE_INIT -> doInit(ph, ctx);
+                case STATE_AWAIT_SNBT -> doAwaitSnbt(ph, ctx);
+                case STATE_BUILD -> doBuild(ph, ctx);
+                default -> ctx.replace(LytParagraph.error("[Scene] Unknown async state: " + state));
+            }
         }
     }
 
@@ -133,7 +135,9 @@ public class SceneScript implements LytScript {
             }
 
             if ("ImportStructure".equals(el.name())) {
-                queueSnbtPreparse(ph, ctx.getPageCollection(), el, tickets);
+                try (GuideDebugLog.ContextScope ignored = GuideDebugLog.pushNode(el)) {
+                    queueSnbtPreparse(ph, ctx.getPageCollection(), el, tickets);
+                }
             }
             // ImportStructureLib / BlockStats — handled in BUILD phase by their compilers
         }
@@ -262,7 +266,11 @@ public class SceneScript implements LytScript {
 
                     SceneElementTagCompiler compiler = elementCompilers.get(el.name());
                     if (compiler == null) {
-                        skippedElements.add("<" + el.name() + "> (no registered scene compiler)");
+                        skippedElements.add(
+                            "<" + el.name()
+                                + "> at "
+                                + GuideDebugLog.position(ph.mapSourcePosition(el.position()))
+                                + " (no registered scene compiler)");
                         continue;
                     }
                     compiledElements.add(
@@ -270,7 +278,10 @@ public class SceneScript implements LytScript {
                             + "> via "
                             + compiler.getClass()
                                 .getSimpleName());
-                    compiler.compile(compileLevel, compileCamera, runtimeCompiler, errorSink, el);
+                    try (GuideDebugLog.ContextScope ignored = GuideDebugLog
+                        .pushPosition(ph.mapSourcePosition(el.position()))) {
+                        compiler.compile(compileLevel, compileCamera, runtimeCompiler, errorSink, el);
+                    }
                 }
             });
         } finally {
@@ -366,6 +377,7 @@ public class SceneScript implements LytScript {
 
     public LytGuidebookScene createSceneShell(ScenePlaceholder ph) {
         LytGuidebookScene scene = new LytGuidebookScene();
+        scene.setSourceNode(ph.getSourceNode());
         scene.setSceneSize(ph.width > 0 ? ph.width : 320, ph.height > 0 ? ph.height : 180);
         scene.setInteractive(ph.interactive);
         scene.setShowBackground(ph.showBackground);
@@ -392,13 +404,13 @@ public class SceneScript implements LytScript {
             return;
         }
         String ticket = "snbt:" + absoluteSrc;
-        AsyncWorker.submit(ticket, () -> {
+        AsyncWorker.submit(ticket, GuideDebugLog.withCurrentContext(() -> {
             try {
                 SnbtPreParseCache.put(absoluteSrc, ImportStructureElementCompiler.readStructureNbt(data));
             } catch (Exception exception) {
-                GuideDebugLog.warn("[SceneScript] SNBT pre-parse failed: {}", absoluteSrc, exception);
+                GuideDebugLog.warn("[SceneScript] SNBT pre-parse failed for asset {}", absoluteSrc, exception);
             }
-        });
+        }));
         tickets.add(ticket);
     }
 
@@ -719,7 +731,9 @@ public class SceneScript implements LytScript {
             MdxJsxElementFields element = SceneTagCompiler.unwrapSceneElement(node);
             String contextualText = element != null ? "<" + element.name() + ">: " + text : text;
             errors.add(contextualText);
-            GuideDebugLog.warn("[GuideNH] [SceneScript] {}", contextualText);
+            try (GuideDebugLog.ContextScope ignored = GuideDebugLog.pushNode(node)) {
+                GuideDebugLog.warn("[GuideNH] [SceneScript] {}", contextualText);
+            }
         }
 
         List<String> errors() {

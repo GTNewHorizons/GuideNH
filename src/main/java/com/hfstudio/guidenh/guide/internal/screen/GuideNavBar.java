@@ -156,6 +156,9 @@ public class GuideNavBar {
     private static final int TITLE_BUTTON_GAP = 1;
     private static final int TITLE_SCROLL_INTERVAL_MILLIS = 80;
     private static final String TITLE_SCROLL_GAP = "     ";
+    private static final int SCROLLBAR_WIDTH = 4;
+    private static final int SCROLLBAR_GUTTER = SCROLLBAR_WIDTH + 3;
+    private static final int MIN_SCROLLBAR_THUMB_HEIGHT = 16;
 
     public interface GuideExpansionListener {
 
@@ -176,6 +179,7 @@ public class GuideNavBar {
     private int expandedStateVersion;
     private int lastExpandedStateVersion;
     private boolean bookmarkGroupExpanded = true;
+    @Getter
     private boolean templateGroupExpanded = true;
     /** Template rows to append below the tree, set by the guide editor and empty otherwise. */
     private List<GuideNavProjection.DisplayRow> templateRows = List.of();
@@ -193,11 +197,16 @@ public class GuideNavBar {
     private int openWidth = WIDTH_OPEN;
     private int scrollY;
     private final SmoothFloatState visualScrollY = new SmoothFloatState();
+    private boolean draggingScrollbar;
+    private int scrollbarGrabOffsetY;
     @Nullable
     private Row hoveredScrollingRow;
     private long hoveredScrollingStartedAtMillis;
 
     public void setBounds(int x, int y, int height) {
+        if (this.x != x || this.y != y || this.height != height) {
+            releaseScrollbar(0);
+        }
         this.x = x;
         this.y = y;
         this.height = height;
@@ -205,7 +214,11 @@ public class GuideNavBar {
     }
 
     public void setOpenWidth(int openWidth) {
-        this.openWidth = Math.max(WIDTH_CLOSED, openWidth);
+        int newWidth = Math.max(WIDTH_CLOSED, openWidth);
+        if (this.openWidth != newWidth) {
+            releaseScrollbar(0);
+        }
+        this.openWidth = newWidth;
     }
 
     public int currentWidth() {
@@ -244,7 +257,7 @@ public class GuideNavBar {
         if (shouldRebuildRows(tree, bookmarkState)) {
             rebuildRows(tree, bookmarkState);
         }
-        if (pinned || contextMenuOpen) {
+        if (pinned || contextMenuOpen || draggingScrollbar) {
             open = true;
             return;
         }
@@ -261,6 +274,7 @@ public class GuideNavBar {
     }
 
     public void restoreState(GuideNavBarState state, GuideBookmarkState bookmarkState) {
+        releaseScrollbar(0);
         GuideNavBarState effectiveState = state != null ? state : GuideNavBarState.defaultState();
         bookmarkGroupExpanded = effectiveState.bookmarkGroupExpanded();
         expandedPageIds.clear();
@@ -374,10 +388,6 @@ public class GuideNavBar {
         rebuildRows(tree, bookmarkState);
     }
 
-    public boolean isTemplateGroupExpanded() {
-        return templateGroupExpanded;
-    }
-
     private boolean shouldRebuildRows(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState) {
         return tree != lastTree || lastBookmarkStateVersion != bookmarkState.version()
             || lastExpandedStateVersion != expandedStateVersion;
@@ -411,14 +421,14 @@ public class GuideNavBar {
         GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
         try {
             int w = currentWidth();
-            int rowRight = x + w - 1;
-            int textRightBase = x + w - 2;
+            int rowRight = getRowRight();
+            int textRightBase = rowRight - 1;
             int bookmarkActionLeft = getBookmarkActionLeft(w);
             int bookmarkIconX = bookmarkActionLeft + ACTION_PADDING_RIGHT;
             int bgTop = ColorUtils.ARGB_E0151515.getColor();
             int bgBot = ColorUtils.ARGB_E0101010.getColor();
             drawVGradient(x, y, w, height, bgTop, bgBot);
-            Gui.drawRect(rowRight, y, x + w, y + height, ColorUtils.ARGB_FF2A2A2A.getColor());
+            Gui.drawRect(x + w - 1, y, x + w, y + height, ColorUtils.ARGB_FF2A2A2A.getColor());
 
             if (!isOpen()) {
                 resetTitleScroll();
@@ -497,6 +507,8 @@ public class GuideNavBar {
             if (!titleScrollActive) {
                 resetTitleScroll();
             }
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            renderScrollbar(mouseX, mouseY);
         } finally {
             GL11.glPopAttrib();
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
@@ -512,7 +524,10 @@ public class GuideNavBar {
         GuideNavProjection.DisplayRow displayRow = row.displayRow();
         int indent = row.indent();
         int rowX = x + 2 + indent;
-        boolean hovered = mouseX >= x && mouseX < rowRight && mouseY >= rowY && mouseY < rowY + ROW_H;
+        boolean hovered = !draggingScrollbar && mouseX >= x
+            && mouseX < rowRight
+            && mouseY >= Math.max(rowY, getBodyY())
+            && mouseY < Math.min(rowY + ROW_H, getBodyBottom());
         boolean current = isCurrentRow(row, currentGuideId, currentPageId);
         boolean bookmarkable = row.bookmarkable();
 
@@ -552,7 +567,8 @@ public class GuideNavBar {
             titleScrollActive = renderRowTitle(mc, fr, row, textX, rowY, maxTw, color, hovered, scaleFactor);
         }
 
-        boolean bookmarkHovered = isInsideBookmarkAction(mouseX, mouseY, rowY, bookmarkable, bookmarkActionLeft);
+        boolean bookmarkHovered = hovered
+            && isInsideBookmarkAction(mouseX, mouseY, rowY, bookmarkable, bookmarkActionLeft);
         renderBookmarkIcon(mc, row, rowY, hovered, bookmarkHovered, bookmarkState, bookmarkIconX);
         return titleScrollActive;
     }
@@ -714,7 +730,23 @@ public class GuideNavBar {
             }
             return ClickResult.none();
         }
-        StickyStack stickyStack = computeStickyStack(y + TITLE_H + CONTENT_PADDING);
+        if (mouseX >= getRowRight()) {
+            if (hasScrollbar()) {
+                int thumbHeight = getScrollbarThumbHeight();
+                int thumbY = getScrollbarThumbY(thumbHeight);
+                boolean insideThumb = mouseY >= thumbY && mouseY < thumbY + thumbHeight;
+                scrollbarGrabOffsetY = insideThumb ? mouseY - thumbY : thumbHeight / 2;
+                draggingScrollbar = true;
+                open = true;
+                if (insideThumb) {
+                    scrollY = Math.clamp(visualScrollY.rounded(), 0, getMaxScrollY());
+                } else {
+                    dragScrollbar(mouseY, 0);
+                }
+            }
+            return ClickResult.none();
+        }
+        StickyStack stickyStack = computeStickyStack(getBodyY());
         RowHit rowHit = pickRowAt(mouseY, stickyStack);
         if (rowHit == null) {
             return null;
@@ -769,11 +801,10 @@ public class GuideNavBar {
         if (!isOpen()) {
             return null;
         }
-        int w = currentWidth();
-        if (mouseX < x || mouseX >= x + w || mouseY < y + TITLE_H || mouseY >= y + height) {
+        if (mouseX < x || mouseX >= getRowRight() || mouseY < y + TITLE_H || mouseY >= y + height) {
             return null;
         }
-        StickyStack stickyStack = computeStickyStack(y + TITLE_H + CONTENT_PADDING);
+        StickyStack stickyStack = computeStickyStack(getBodyY());
         RowHit rowHit = pickRowAt(mouseY, stickyStack);
         if (rowHit == null) {
             return null;
@@ -827,7 +858,7 @@ public class GuideNavBar {
     }
 
     private int getBookmarkActionLeft(int width) {
-        return x + width - ACTION_SLOT_W;
+        return x + width - ACTION_SLOT_W - getScrollbarGutter();
     }
 
     private int getBookmarkIconY(int rowY) {
@@ -972,6 +1003,9 @@ public class GuideNavBar {
 
     private void clampScrollToRows() {
         int maxScrollY = getMaxScrollY();
+        if (maxScrollY == 0 || getBodyHeight() <= 0) {
+            releaseScrollbar(0);
+        }
         int clampedScrollY = Math.clamp(scrollY, 0, maxScrollY);
         if (clampedScrollY != scrollY || visualScrollY.rounded() > maxScrollY) {
             scrollY = clampedScrollY;
@@ -1037,7 +1071,77 @@ public class GuideNavBar {
     }
 
     private void updateVisualScroll() {
-        visualScrollY.updateTowards(scrollY, 28f, 0.25f, 0.01f, Math.max(128f, getBodyHeight() * 2f));
+        visualScrollY.updateTowards(scrollY, 28f, 0.25f, 0.01f, Float.POSITIVE_INFINITY);
+    }
+
+    private boolean hasScrollbar() {
+        return isOpen() && getBodyHeight() > 0 && getMaxScrollY() > 0;
+    }
+
+    private int getScrollbarGutter() {
+        return hasScrollbar() ? SCROLLBAR_GUTTER : 0;
+    }
+
+    private int getRowRight() {
+        return x + currentWidth() - 1 - getScrollbarGutter();
+    }
+
+    private int getScrollbarThumbHeight() {
+        int trackHeight = getBodyHeight();
+        int contentHeight = trackHeight + getMaxScrollY();
+        return Math.min(
+            Math.max(1, trackHeight - 1),
+            Math.max(
+                MIN_SCROLLBAR_THUMB_HEIGHT,
+                (int) ((long) trackHeight * trackHeight / Math.max(1, contentHeight))));
+    }
+
+    private int getScrollbarThumbY(int thumbHeight) {
+        return getBodyY()
+            + (int) ((long) (getBodyHeight() - thumbHeight) * Math.clamp(visualScrollY.rounded(), 0, getMaxScrollY())
+                / Math.max(1, getMaxScrollY()));
+    }
+
+    private void renderScrollbar(int mouseX, int mouseY) {
+        if (!hasScrollbar()) {
+            return;
+        }
+        int barX = x + currentWidth() - 1 - SCROLLBAR_WIDTH;
+        int thumbHeight = getScrollbarThumbHeight();
+        int thumbY = getScrollbarThumbY(thumbHeight);
+        Gui.drawRect(barX, getBodyY(), barX + SCROLLBAR_WIDTH, getBodyBottom(), ColorUtils.ARGB_40FFFFFF.getColor());
+        boolean hovered = mouseX >= getRowRight() && mouseX < x + currentWidth()
+            && mouseY >= thumbY
+            && mouseY < thumbY + thumbHeight;
+        Gui.drawRect(
+            barX,
+            thumbY,
+            barX + SCROLLBAR_WIDTH,
+            thumbY + thumbHeight,
+            draggingScrollbar || hovered ? ColorUtils.WHITE.getColor() : ColorUtils.ARGB_FFCCCCCC.getColor());
+    }
+
+    /** Continues a captured scrollbar drag even outside the navigation panel. */
+    public boolean dragScrollbar(int mouseY, int button) {
+        if (!draggingScrollbar || button != 0) {
+            return false;
+        }
+        int travel = getBodyHeight() - getScrollbarThumbHeight();
+        if (travel > 0) {
+            int thumbOffset = Math.clamp(mouseY - scrollbarGrabOffsetY - getBodyY(), 0, travel);
+            scrollY = (int) ((long) thumbOffset * getMaxScrollY() / travel);
+        }
+        return true;
+    }
+
+    /** Releases the left-button capture without affecting other navigation state. */
+    public boolean releaseScrollbar(int button) {
+        if (!draggingScrollbar || button != 0) {
+            return false;
+        }
+        draggingScrollbar = false;
+        scrollbarGrabOffsetY = 0;
+        return true;
     }
 
     private int getBodyBottom() {
@@ -1052,7 +1156,7 @@ public class GuideNavBar {
     }
 
     private void setBodyScissor(Minecraft mc, int scaleFactor) {
-        setScissor(mc, x, getBodyY(), currentWidth(), getBodyHeight(), scaleFactor);
+        setScissor(mc, x, getBodyY(), Math.max(0, getRowRight() - x), getBodyHeight(), scaleFactor);
     }
 
     private static void setScissor(Minecraft mc, int x, int y, int w, int h, int scaleFactor) {

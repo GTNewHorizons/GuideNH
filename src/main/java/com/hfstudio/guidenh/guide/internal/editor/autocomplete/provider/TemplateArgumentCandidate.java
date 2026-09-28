@@ -85,6 +85,6 @@ public class TemplateArgumentCandidate implements AutocompleteCandidate {
     }
 
     private String label() {
-        return "arg \u00b7 " + templateName.toLowerCase(Locale.ROOT);
+        return "arg · " + templateName.toLowerCase(Locale.ROOT);
     }
 }

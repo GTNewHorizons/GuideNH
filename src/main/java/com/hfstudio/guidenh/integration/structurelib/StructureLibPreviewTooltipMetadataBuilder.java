@@ -24,6 +24,7 @@ import com.gtnewhorizon.structurelib.structure.IStructureElementChain;
 import com.hfstudio.guidenh.guide.scene.preview.StructureLibDefinitionCache;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata.BlockTooltipData;
 
 import blockrenderer6343.client.utils.ConstructableData;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -33,7 +34,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
  * The candidates are resolved through {@link IStructureElement#getBlocksToPlace}, the same
  * API StructureLib uses for survival construction; no element implementation is inspected.
  */
-public final class StructureLibPreviewTooltipMetadataBuilder {
+public class StructureLibPreviewTooltipMetadataBuilder {
 
     public static final String STRUCTURELIB_DESCRIPTION = "StructureLib";
     public static final IItemSource EMPTY_ITEM_SOURCE = (predicate, simulate, count) -> Map.of();
@@ -187,6 +188,12 @@ public final class StructureLibPreviewTooltipMetadataBuilder {
                 List.of());
         }
 
+        BlockTooltipData prepared = resolution.preparedCandidates()
+            .get(element);
+        if (prepared != null) {
+            return prepared;
+        }
+
         // Both candidate lists come from the element's own placement rule, which does not vary between the
         // positions that element occupies, so each is resolved and detached once per element.
         List<ItemStack> blockCandidates = new ArrayList<>(
@@ -204,12 +211,15 @@ public final class StructureLibPreviewTooltipMetadataBuilder {
         List<StructureLibHatchDescriptionLine> hatchLines = hatchCandidates.isEmpty() ? List.of()
             : resolution.descriptions()
                 .computeIfAbsent(element, key -> describe(key, context));
-        return new StructureLibSceneMetadata.BlockTooltipData(
+        BlockTooltipData data = new BlockTooltipData(
             STRUCTURELIB_DESCRIPTION,
             blockCandidates,
             hatchLines,
             hatchCandidates,
             true);
+        resolution.preparedCandidates()
+            .put(element, data);
+        return data;
     }
 
     /**
@@ -218,7 +228,16 @@ public final class StructureLibPreviewTooltipMetadataBuilder {
      */
     public record Resolution(Set<Class<?>> failedElements,
         Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions,
-        Map<IStructureElement<?>, List<ItemStack>> hatchCache, Map<IStructureElement<?>, List<ItemStack>> blockCache) {
+        Map<IStructureElement<?>, List<ItemStack>> hatchCache, Map<IStructureElement<?>, List<ItemStack>> blockCache,
+        Map<IStructureElement<?>, BlockTooltipData> preparedCandidates,
+        Map<List<BlockTooltipData>, BlockTooltipData> combinedCandidates) {
+
+        public Resolution(Set<Class<?>> failedElements,
+            Map<IStructureElement<?>, List<StructureLibHatchDescriptionLine>> descriptions,
+            Map<IStructureElement<?>, List<ItemStack>> hatchCache,
+            Map<IStructureElement<?>, List<ItemStack>> blockCache) {
+            this(failedElements, descriptions, hatchCache, blockCache, new IdentityHashMap<>(), new LinkedHashMap<>());
+        }
 
         static Resolution create() {
             return new Resolution(
@@ -294,9 +313,7 @@ public final class StructureLibPreviewTooltipMetadataBuilder {
                 List.of());
         }
 
-        List<ItemStack> blockCandidates = new ArrayList<>();
-        List<StructureLibHatchDescriptionLine> hatchLines = new ArrayList<>();
-        List<ItemStack> hatchCandidates = new ArrayList<>();
+        List<BlockTooltipData> branches = new ArrayList<>(fallbacks.length);
         for (IStructureElement<?> fallback : fallbacks) {
             if (fallback == null) {
                 continue;
@@ -315,6 +332,20 @@ public final class StructureLibPreviewTooltipMetadataBuilder {
             if (data == null) {
                 continue;
             }
+            branches.add(data);
+        }
+
+        // Query every branch at its position, but combine unchanged candidate sets only once.
+        List<BlockTooltipData> combinationKey = List.copyOf(branches);
+        BlockTooltipData cached = resolution.combinedCandidates()
+            .get(combinationKey);
+        if (cached != null) {
+            return cached;
+        }
+        List<ItemStack> blockCandidates = new ArrayList<>();
+        List<StructureLibHatchDescriptionLine> hatchLines = new ArrayList<>();
+        List<ItemStack> hatchCandidates = new ArrayList<>();
+        for (BlockTooltipData data : branches) {
             blockCandidates.addAll(data.getBlockCandidates());
             hatchLines.addAll(data.getHatchDescriptionLines());
             hatchCandidates.addAll(data.getHatchCandidates());
@@ -326,12 +357,15 @@ public final class StructureLibPreviewTooltipMetadataBuilder {
         if (!normalizedHatches.isEmpty()) {
             blockCandidates.removeIf(stack -> containsStack(normalizedHatches, stack));
         }
-        return new StructureLibSceneMetadata.BlockTooltipData(
+        BlockTooltipData combined = new BlockTooltipData(
             STRUCTURELIB_DESCRIPTION,
             deduplicate(blockCandidates),
             hatchLines,
             normalizedHatches,
             true);
+        resolution.combinedCandidates()
+            .put(combinationKey, combined);
+        return combined;
     }
 
     private static List<ItemStack> resolveHatches(Predicate<ItemStack> predicate, List<ItemStack> machineStacks) {

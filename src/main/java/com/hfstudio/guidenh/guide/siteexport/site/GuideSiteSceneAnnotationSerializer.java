@@ -16,6 +16,7 @@ import org.joml.Vector3f;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
@@ -47,6 +48,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
@@ -106,13 +108,29 @@ public class GuideSiteSceneAnnotationSerializer {
         if (scene != null) {
             GuidebookSceneLayerSelection layerSelection = GuidebookSceneLayerSelection
                 .fromVisibleLayer(scene.getVisibleLayerYForExport());
-            for (InWorldAnnotation annotation : scene.collectInWorldAnnotationsForExport(true, false, layerSelection)) {
+            for (InWorldAnnotation annotation : scene.collectInWorldAnnotationsForExport(
+                true,
+                false,
+                layerSelection,
+                false)) {
                 switch (annotation) {
                     case InWorldBoxAnnotation box -> inWorld.add(serializeBox(box, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldLineAnnotation line -> inWorld.add(serializeLine(line, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldBlockFaceOverlayAnnotation blockOverlay -> inWorld.add(
                             serializeBlockOverlay(blockOverlay, templates, currentPageId, assetExporter, itemIconResolver));
                     default -> addContributedPayload(inWorld, annotation);
+                }
+            }
+            for (InWorldAnnotation annotation : scene.collectStructureLibHatchOverlaysForExport(layerSelection)) {
+                if (annotation instanceof InWorldBlockFaceOverlayAnnotation blockOverlay) {
+                    Map<String, Object> payload = serializeBlockOverlay(
+                        blockOverlay,
+                        templates,
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver);
+                    payload.put("siteControl", "structureLibHatches");
+                    inWorld.add(payload);
                 }
             }
             for (OverlayAnnotation annotation : scene.collectOverlayAnnotationsForExport(layerSelection)) {
@@ -508,7 +526,10 @@ public class GuideSiteSceneAnnotationSerializer {
             @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
             return switch (tooltip) {
                 case TextTooltip textTooltip -> renderPlainTextTooltip(textTooltip.getText());
-                case ItemTooltip itemTooltip -> renderItemTooltip(itemTooltip, itemIconResolver);
+                case ItemTooltip itemTooltip -> renderItemTooltip(
+                    itemTooltip,
+                    itemIconResolver,
+                    templates);
                 case ContentTooltip contentTooltip -> renderBlock(
                         contentTooltip.getContent(),
                         currentPageId,
@@ -535,7 +556,23 @@ public class GuideSiteSceneAnnotationSerializer {
             return html.toString();
         }
 
-        private static String renderItemTooltip(ItemTooltip tooltip, GuideSiteItemIconResolver itemIconResolver) {
+        private static String renderItemTooltip(ItemTooltip tooltip, GuideSiteItemIconResolver itemIconResolver,
+            @Nullable GuideSiteTemplateRegistry templates) {
+            String semanticKey = semanticCacheKey(tooltip);
+            String html;
+            if (templates != null && semanticKey != null) {
+                html = templates
+                    .getOrComputeRendered(semanticKey, () -> renderItemTooltipUncached(tooltip, itemIconResolver));
+            } else {
+                html = renderItemTooltipUncached(tooltip, itemIconResolver);
+            }
+            String href = templates != null ? templates.resolveItemHref(tooltip.getStack()) : "";
+            return href.isEmpty() ? html
+                : "<div data-guide-item-href=\"" + escapeAttribute(href) + "\">" + html + "</div>";
+        }
+
+        private static String renderItemTooltipUncached(ItemTooltip tooltip,
+            GuideSiteItemIconResolver itemIconResolver) {
             ItemStack stack = tooltip.getStack();
             GuideSiteExportedItem item = GuideSiteItemSupport.export(stack, itemIconResolver);
 
@@ -543,7 +580,8 @@ public class GuideSiteSceneAnnotationSerializer {
             try {
                 Minecraft minecraft = Minecraft.getMinecraft();
                 if (minecraft != null) {
-                    lines.addAll(GuideItemTooltipLines.build(tooltip, minecraft));
+                    lines.addAll(
+                        OpenGuideHotkey.withoutTooltipHints(() -> GuideItemTooltipLines.build(tooltip, minecraft)));
                 }
             } catch (Throwable ignored) {}
 
@@ -565,6 +603,14 @@ public class GuideSiteSceneAnnotationSerializer {
                     .append("</p>");
             }
             return html.toString();
+        }
+
+        @Nullable
+        private static String semanticCacheKey(@Nullable GuideTooltip tooltip) {
+            if (!(tooltip instanceof ItemTooltip itemTooltip) || tooltip instanceof ItemTooltipAppender) {
+                return null;
+            }
+            return GuideSiteItemSupport.tooltipCacheKey(itemTooltip.getStack());
         }
 
         private static String renderBlock(@Nullable LytBlock block, @Nullable ResourceLocation currentPageId,
@@ -1093,15 +1139,19 @@ public class GuideSiteSceneAnnotationSerializer {
             GuideSiteItemIconResolver itemIconResolver, @Nullable ResourceLocation currentPageId,
             @Nullable GuideSitePageAssetExporter assetExporter, @Nullable GuideSiteTemplateRegistry templates,
             boolean allowNestedItemTooltips) {
-            html.append("<div class=\"guide-tooltip-item-grid\">");
+            html.append("<div class=\"guide-tooltip-item-grid\" style=\"--guide-tooltip-columns:")
+                .append(Math.max(1, grid.getWidth()))
+                .append("\">");
             for (int row = 0; row < grid.getHeight(); row++) {
                 for (int col = 0; col < grid.getWidth(); col++) {
                     LytSlot slot = grid.getSlot(col, row);
-                    if (slot == null) {
+                    if (slot == null && !grid.isRenderEmptySlots()) {
                         continue;
                     }
-                    html.append("<div class=\"ingredient-box\">");
-                    appendSlot(
+                    html.append(
+                        grid.isRenderSlotBackground() ? "<div class=\"ingredient-box\">"
+                            : "<div class=\"ingredient-box ingredient-box--plain\">");
+                    if (slot != null) appendSlot(
                         html,
                         slot,
                         itemIconResolver,
@@ -1145,11 +1195,9 @@ public class GuideSiteSceneAnnotationSerializer {
             if (tooltip.isPresent() && tooltip.get() instanceof ItemTooltip itemTooltip) {
                 ItemStack stack = itemTooltip.getStack();
                 if (stack != null) {
-                    List<ItemStack> stacks = new ArrayList<>(1);
-                    stacks.add(stack);
                     appendItemStacks(
                         html,
-                        stacks,
+                        List.of(stack),
                         itemIconResolver,
                         currentPageId,
                         assetExporter,
@@ -1167,19 +1215,59 @@ public class GuideSiteSceneAnnotationSerializer {
                 return;
             }
             for (ItemStack stack : stacks) {
-                GuideSiteExportedItem item = GuideSiteItemSupport.export(stack, itemIconResolver);
-                if (item.isEmpty()) {
+                String itemKey = templates != null ? GuideSiteItemSupport.tooltipCacheKey(stack) : null;
+                if (itemKey != null) {
+                    String fragmentKey = (allowNestedItemTooltips ? "nested-icon:" : "plain-icon:") + itemKey;
+                    html.append(templates.getOrComputeLocalRendered(fragmentKey, () -> {
+                        StringBuilder fragment = new StringBuilder();
+                        appendExportedItemIcon(
+                            fragment,
+                            stack,
+                            itemIconResolver,
+                            currentPageId,
+                            assetExporter,
+                            templates,
+                            allowNestedItemTooltips);
+                        return fragment.toString();
+                    }));
                     continue;
                 }
-                appendTooltipCapableItemIcon(
+                appendExportedItemIcon(
                     html,
                     stack,
-                    item,
+                    itemIconResolver,
                     currentPageId,
                     assetExporter,
-                    itemIconResolver,
                     templates,
                     allowNestedItemTooltips);
+            }
+        }
+
+        private static void appendExportedItemIcon(StringBuilder html, ItemStack stack,
+            GuideSiteItemIconResolver itemIconResolver, @Nullable ResourceLocation currentPageId,
+            @Nullable GuideSitePageAssetExporter assetExporter, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
+            GuideSiteExportedItem item = GuideSiteItemSupport.export(stack, itemIconResolver);
+            if (item.isEmpty()) {
+                return;
+            }
+            String href = templates != null ? templates.resolveItemHref(stack) : "";
+            if (!href.isEmpty()) {
+                html.append("<span data-guide-item-href=\"")
+                    .append(escapeAttribute(href))
+                    .append("\">");
+            }
+            appendTooltipCapableItemIcon(
+                html,
+                stack,
+                item,
+                currentPageId,
+                assetExporter,
+                itemIconResolver,
+                templates,
+                allowNestedItemTooltips);
+            if (!href.isEmpty()) {
+                html.append("</span>");
             }
         }
 
@@ -1214,18 +1302,16 @@ public class GuideSiteSceneAnnotationSerializer {
         private static String createNestedItemTemplateId(ItemStack stack, @Nullable ResourceLocation currentPageId,
             @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
             GuideSiteTemplateRegistry templates) {
-            String html = render(
-                new ItemTooltip(stack.copy()),
-                currentPageId,
-                assetExporter,
-                itemIconResolver,
-                templates,
-                false);
-            if (html == null || html.trim()
-                .isEmpty()) {
-                return null;
-            }
-            return templates.create(html);
+            String semanticKey = GuideSiteItemSupport.tooltipCacheKey(stack);
+            return templates.getOrCreate(
+                semanticKey,
+                () -> render(
+                    new ItemTooltip(stack.copy()),
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    false));
         }
 
         private static int clampHeadingDepth(int depth) {
@@ -1261,9 +1347,6 @@ public class GuideSiteSceneAnnotationSerializer {
             if (segment.isEmpty()) {
                 return;
             }
-            String text = escapeHtml(segment.toString());
-            segment.setLength(0);
-
             StringBuilder css = new StringBuilder();
             if (style.color != null) {
                 css.append("color:")
@@ -1291,22 +1374,52 @@ public class GuideSiteSceneAnnotationSerializer {
             }
 
             if (css.isEmpty()) {
-                html.append(text);
+                appendEscapedHtml(html, segment);
+                segment.setLength(0);
                 return;
             }
 
             html.append("<span style=\"")
                 .append(escapeAttribute(css.toString()))
-                .append("\">")
-                .append(text)
-                .append("</span>");
+                .append("\">");
+            appendEscapedHtml(html, segment);
+            html.append("</span>");
+            segment.setLength(0);
+        }
+
+        private static void appendEscapedHtml(StringBuilder target, CharSequence text) {
+            if (target == null || text == null || text.isEmpty()) {
+                return;
+            }
+            for (int i = 0; i < text.length(); i++) {
+                switch (text.charAt(i)) {
+                    case '&' -> target.append("&amp;");
+                    case '<' -> target.append("&lt;");
+                    case '>' -> target.append("&gt;");
+                    case '"' -> target.append("&quot;");
+                    default -> target.append(text.charAt(i));
+                }
+            }
         }
 
         private static String escapeHtml(String text) {
-            return text.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
+            if (text == null || text.isEmpty()) {
+                return text != null ? text : "";
+            }
+            boolean requiresEscaping = false;
+            for (int i = 0; i < text.length(); i++) {
+                char ch = text.charAt(i);
+                if (ch == '&' || ch == '<' || ch == '>' || ch == '"') {
+                    requiresEscaping = true;
+                    break;
+                }
+            }
+            if (!requiresEscaping) {
+                return text;
+            }
+            StringBuilder escaped = new StringBuilder(text.length() + 16);
+            appendEscapedHtml(escaped, text);
+            return escaped.toString();
         }
 
         private static String escapeAttribute(String text) {

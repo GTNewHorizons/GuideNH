@@ -1,13 +1,11 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
+import java.awt.image.DataBufferInt;
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.imageio.ImageIO;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.shader.Framebuffer;
@@ -30,7 +28,7 @@ import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
  *
  * @see NeiHandlerRenderer
  */
-public class GuideSiteNeiPhase1BackgroundExporter {
+public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
 
     /**
      * Extra transparent border around the NEI body rectangle. GregTech (and similar) ModularUI / nine-patch chrome
@@ -38,14 +36,21 @@ public class GuideSiteNeiPhase1BackgroundExporter {
      * {@link NeiRecipeLookup#lookupHandlerWidth}/{@link NeiRecipeLookup#lookupHandlerHeight};
      * a flush viewport clips top/right bezel lines and truncates footer text unless we pad here. Site overlays use the
      * same
-     * inset 闁?see {@link GuideSiteRecipeExporter#renderNeiPositionedSlots}.
+     * inset; see {@link GuideSiteRecipeExporter#renderNeiPositionedSlots}.
      */
     public static final int VIEWPORT_MARGIN_PX = 6;
 
     /** Upper bound avoids extreme handler sizes blowing memory during export. */
     private static final int MAX_EXPORT_EDGE = 1024;
+    private static final int RASTER_SCALE = 2;
 
     private final GuideSiteAssetRegistry assets;
+    @Nullable
+    private Framebuffer framebuffer;
+    private int framebufferWidth;
+    private int framebufferHeight;
+    @Nullable
+    private ByteBuffer pixelBuffer;
     private final Map<String, Result> cache = new LinkedHashMap<>(64, 0.75f, true) {
 
         @Override
@@ -94,8 +99,8 @@ public class GuideSiteNeiPhase1BackgroundExporter {
 
         try {
             int bodyYShiftPx = NeiRecipeLookup.lookupHandlerYShift(handler);
-            byte[] png = renderPng(handler, recipeIndex, vw, vh);
-            String rel = GuideSitePageAssetExporter.ROOT_PREFIX + assets.writeShared("nei-phase1-bg", ".png", png);
+            BufferedImage image = renderImage(handler, recipeIndex, vw, vh);
+            String rel = GuideSitePageAssetExporter.ROOT_PREFIX + assets.writePngAsync("nei-phase1-bg", image);
             Result res = new Result(rel, vw, vh, bodyYShiftPx);
             cache.put(cacheKey, res);
             return res;
@@ -115,10 +120,25 @@ public class GuideSiteNeiPhase1BackgroundExporter {
             overlay = handler.getClass()
                 .getName();
         }
-        return overlay + '|' + System.identityHashCode(handler) + '|' + recipeIndex + '|' + bodyW + 'x' + bodyH;
+        Minecraft minecraft = Minecraft.getMinecraft();
+        String language = minecraft != null && minecraft.getLanguageManager() != null
+            && minecraft.getLanguageManager()
+                .getCurrentLanguage() != null ? minecraft.getLanguageManager()
+                    .getCurrentLanguage()
+                    .getLanguageCode() : "";
+        return language + '|'
+            + overlay
+            + '|'
+            + System.identityHashCode(handler)
+            + '|'
+            + recipeIndex
+            + '|'
+            + bodyW
+            + 'x'
+            + bodyH;
     }
 
-    private static byte[] renderPng(Object handler, int recipeIndex, int viewportW, int viewportH) throws Exception {
+    private BufferedImage renderImage(Object handler, int recipeIndex, int viewportW, int viewportH) {
         Minecraft minecraft = Minecraft.getMinecraft();
         if (minecraft == null || minecraft.gameSettings == null) {
             throw new IllegalStateException("Minecraft client is not ready for NEI Phase1 export.");
@@ -128,8 +148,9 @@ public class GuideSiteNeiPhase1BackgroundExporter {
         int yShift = NeiRecipeLookup.lookupHandlerYShift(handler);
         int m = VIEWPORT_MARGIN_PX;
 
-        Framebuffer framebuffer = new Framebuffer(viewportW, viewportH, true);
-        framebuffer.setFramebufferColor(0f, 0f, 0f, 0f);
+        int rasterWidth = viewportW * RASTER_SCALE;
+        int rasterHeight = viewportH * RASTER_SCALE;
+        Framebuffer framebuffer = framebuffer(rasterWidth, rasterHeight);
 
         int previousDisplayWidth = minecraft.displayWidth;
         int previousDisplayHeight = minecraft.displayHeight;
@@ -144,7 +165,7 @@ public class GuideSiteNeiPhase1BackgroundExporter {
             minecraft.gameSettings.guiScale = 1;
 
             framebuffer.bindFramebuffer(true);
-            GL11.glViewport(0, 0, viewportW, viewportH);
+            GL11.glViewport(0, 0, rasterWidth, rasterHeight);
             GL11.glClearColor(0f, 0f, 0f, 0f);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
@@ -179,9 +200,7 @@ public class GuideSiteNeiPhase1BackgroundExporter {
                 GL11.glPopMatrix();
             }
 
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ImageIO.write(readPixels(viewportW, viewportH), "png", out);
-            return out.toByteArray();
+            return readPixels(rasterWidth, rasterHeight);
         } finally {
             if (modelViewPushed) {
                 GL11.glMatrixMode(GL11.GL_MODELVIEW);
@@ -194,7 +213,6 @@ public class GuideSiteNeiPhase1BackgroundExporter {
             }
 
             framebuffer.unbindFramebuffer();
-            framebuffer.deleteFramebuffer();
             minecraft.displayWidth = previousDisplayWidth;
             minecraft.displayHeight = previousDisplayHeight;
             minecraft.gameSettings.guiScale = previousGuiScale;
@@ -208,11 +226,34 @@ public class GuideSiteNeiPhase1BackgroundExporter {
         }
     }
 
-    private static BufferedImage readPixels(int width, int height) {
-        ByteBuffer buffer = BufferUtils.createByteBuffer(width * height * 4);
+    private Framebuffer framebuffer(int width, int height) {
+        if (framebuffer == null || width > framebufferWidth || height > framebufferHeight) {
+            int expandedWidth = Math.max(width, framebufferWidth);
+            int expandedHeight = Math.max(height, framebufferHeight);
+            Framebuffer replacement = new Framebuffer(expandedWidth, expandedHeight, true);
+            replacement.setFramebufferColor(0f, 0f, 0f, 0f);
+            if (framebuffer != null) {
+                framebuffer.deleteFramebuffer();
+            }
+            framebuffer = replacement;
+            framebufferWidth = expandedWidth;
+            framebufferHeight = expandedHeight;
+        }
+        return framebuffer;
+    }
+
+    private BufferedImage readPixels(int width, int height) {
+        int requiredBytes = width * height * 4;
+        if (pixelBuffer == null || pixelBuffer.capacity() < requiredBytes) {
+            pixelBuffer = BufferUtils.createByteBuffer(requiredBytes);
+        }
+        ByteBuffer buffer = pixelBuffer;
+        buffer.clear();
         GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
 
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int[] pixels = ((DataBufferInt) image.getRaster()
+            .getDataBuffer()).getData();
         for (int y = 0; y < height; y++) {
             int flippedY = height - 1 - y;
             for (int x = 0; x < width; x++) {
@@ -221,14 +262,23 @@ public class GuideSiteNeiPhase1BackgroundExporter {
                 int green = buffer.get(index + 1) & 0xFF;
                 int blue = buffer.get(index + 2) & 0xFF;
                 int alpha = buffer.get(index + 3) & 0xFF;
-                image.setRGB(x, flippedY, (alpha << 24) | (red << 16) | (green << 8) | blue);
+                pixels[x + flippedY * width] = (alpha << 24) | (red << 16) | (green << 8) | blue;
             }
         }
         return image;
     }
 
+    @Override
+    public synchronized void close() {
+        if (framebuffer != null) {
+            framebuffer.deleteFramebuffer();
+            framebuffer = null;
+        }
+        pixelBuffer = null;
+    }
+
     /** Non-null fields when capture succeeds; use {@link #relativeUrl} in HTML/CSS. */
-    public static final class Result {
+    public static class Result {
 
         public final String relativeUrl;
         /**

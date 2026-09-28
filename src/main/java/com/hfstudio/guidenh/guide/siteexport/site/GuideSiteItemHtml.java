@@ -99,10 +99,25 @@ public class GuideSiteItemHtml {
     }
 
     public static String escapeHtml(String text) {
-        return text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;");
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (ch != '&' && ch != '<' && ch != '>' && ch != '"') {
+                continue;
+            }
+            StringBuilder escaped = new StringBuilder(text.length() + 16);
+            escaped.append(text, 0, i);
+            for (int j = i; j < text.length(); j++) {
+                switch (text.charAt(j)) {
+                    case '&' -> escaped.append("&amp;");
+                    case '<' -> escaped.append("&lt;");
+                    case '>' -> escaped.append("&gt;");
+                    case '"' -> escaped.append("&quot;");
+                    default -> escaped.append(text.charAt(j));
+                }
+            }
+            return escaped.toString();
+        }
+        return text;
     }
 
     private static String classes(String baseClass, @Nullable String extraClass) {

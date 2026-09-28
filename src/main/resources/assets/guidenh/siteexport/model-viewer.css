@@ -8,17 +8,20 @@ img.game-scene,
     display: inline-block;
     max-width: 100%;
     padding: calc(4px * var(--gui-scale));
-    border: calc(4px * var(--gui-scale)) solid;
-    border-image-source: url('textures/background.png');
-    border-image-slice: 4 fill;
+    border: calc(1px * var(--gui-scale)) solid var(--color-scene-border, rgb(48, 48, 64));
     image-rendering: pixelated;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--color-scene-background, rgb(10, 10, 16));
 }
 
 img.game-scene.guide-scene {
     padding: 0;
     border: 0;
     background: transparent;
+}
+
+img.game-scene.guide-scene[data-scene-interactive="true"] {
+    max-width: calc(100% - 19px * var(--gui-scale));
+    margin-right: calc(19px * var(--gui-scale));
 }
 
 .scene-hydration-error {
@@ -48,16 +51,19 @@ img.game-scene.guide-scene {
     position: relative;
     display: inline-block;
     max-width: 100%;
-    margin-right: calc(19px * var(--gui-scale));
-    border: calc(4px * var(--gui-scale)) solid;
-    border-image-source: url('textures/background.png');
-    border-image-slice: 4 fill;
+    margin-right: 0;
+    border: calc(1px * var(--gui-scale)) solid var(--color-scene-border, rgb(48, 48, 64));
     image-rendering: pixelated;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--color-scene-background, rgb(10, 10, 16));
 
     --modelviewer-width: auto;
     --modelviewer-height: auto;
     --modelviewer-aspect-ratio: auto;
+}
+
+.game-scene-wrapper--interactive {
+    max-width: calc(100% - 19px * var(--gui-scale));
+    margin-right: calc(19px * var(--gui-scale));
 }
 
 .game-scene-wrapper .root,
@@ -526,9 +532,15 @@ img.game-scene.guide-scene {
         height: auto;
     }
 
+    img.game-scene.guide-scene[data-scene-interactive="true"],
+    .game-scene-wrapper--interactive {
+        max-width: 100%;
+        margin-right: 0;
+    }
+
     .game-scene-wrapper {
         display: block;
-        width: min(100%, calc(var(--modelviewer-width) + 16px));
+        width: min(100%, calc(var(--modelviewer-width) + 2px * var(--gui-scale)));
         margin-right: 0;
     }
 
