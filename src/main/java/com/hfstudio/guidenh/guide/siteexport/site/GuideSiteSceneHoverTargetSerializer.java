@@ -29,6 +29,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -94,6 +95,13 @@ public class GuideSiteSceneHoverTargetSerializer {
                         AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d),
                         HATCH_HOVER_COLOR,
                         resolveSceneBlockTooltip(scene, structureLibMetadataList, x, y, z, null),
+                        resolveStructureLibTooltip(
+                            structureLibMetadataList,
+                            x,
+                            y,
+                            z,
+                            resolveSceneBlockName(scene, x, y, z, null),
+                            true),
                         templates,
                         templateIdsByHtml,
                         templateIdsByItem,
@@ -148,6 +156,13 @@ public class GuideSiteSceneHoverTargetSerializer {
                             entry.getY(),
                             entry.getZ(),
                             null),
+                        resolveStructureLibTooltip(
+                            structureLibMetadataList,
+                            entry.getX(),
+                            entry.getY(),
+                            entry.getZ(),
+                            resolveSceneBlockName(scene, entry.getX(), entry.getY(), entry.getZ(), null),
+                            true),
                         templates,
                         templateIdsByHtml,
                         templateIdsByItem,
@@ -216,6 +231,13 @@ public class GuideSiteSceneHoverTargetSerializer {
                     bounds,
                     BLOCK_HOVER_COLOR,
                     resolveSceneBlockTooltip(scene, structureLibMetadataList, x, y, z, target),
+                    resolveStructureLibTooltip(
+                        structureLibMetadataList,
+                        x,
+                        y,
+                        z,
+                        resolveSceneBlockName(scene, x, y, z, target),
+                        true),
                     templates,
                     templateIdsByHtml,
                     templateIdsByItem,
@@ -227,10 +249,10 @@ public class GuideSiteSceneHoverTargetSerializer {
     }
 
     private static Map<String, Object> buildBlockTarget(String targetType, int x, int y, int z, AxisAlignedBB bounds,
-        String color, @Nullable GuideTooltip tooltip, GuideSiteTemplateRegistry templates,
-        Map<String, String> templateIdsByHtml, Map<String, String> templateIdsByItem,
-        @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-        GuideSiteItemIconResolver itemIconResolver) {
+        String color, @Nullable GuideTooltip tooltip, @Nullable GuideTooltip shiftTooltip,
+        GuideSiteTemplateRegistry templates, Map<String, String> templateIdsByHtml,
+        Map<String, String> templateIdsByItem, @Nullable ResourceLocation currentPageId,
+        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
         Map<String, Object> target = createBaseTarget(targetType, bounds, color);
         target.put("blockPos", new int[] { x, y, z });
         String templateId = createTemplateId(
@@ -243,6 +265,17 @@ public class GuideSiteSceneHoverTargetSerializer {
             itemIconResolver);
         if (templateId != null) {
             target.put("contentTemplateId", templateId);
+        }
+        String shiftTemplateId = createTemplateId(
+            shiftTooltip,
+            templates,
+            templateIdsByHtml,
+            templateIdsByItem,
+            currentPageId,
+            assetExporter,
+            itemIconResolver);
+        if (shiftTemplateId != null && !shiftTemplateId.equals(templateId)) {
+            target.put("shiftContentTemplateId", shiftTemplateId);
         }
         return target;
     }
@@ -295,7 +328,7 @@ public class GuideSiteSceneHoverTargetSerializer {
         }
 
         String name = resolveSceneBlockName(scene, x, y, z, target);
-        GuideTooltip structureLibTooltip = resolveStructureLibTooltip(structureLibMetadataList, x, y, z, name);
+        GuideTooltip structureLibTooltip = resolveStructureLibTooltip(structureLibMetadataList, x, y, z, name, false);
         if (structureLibTooltip != null) {
             return structureLibTooltip;
         }
@@ -305,9 +338,28 @@ public class GuideSiteSceneHoverTargetSerializer {
 
     @Nullable
     private static GuideTooltip resolveStructureLibTooltip(List<StructureLibSceneMetadata> structureLibMetadataList,
-        int x, int y, int z, @Nullable String blockName) {
-        // Tooltip data (block candidates, hatch descriptions) is no longer provided.
-        // Structure blocks fall through to the default block name tooltip.
+        int x, int y, int z, @Nullable String blockName, boolean shiftDown) {
+        if (structureLibMetadataList == null || structureLibMetadataList.isEmpty()) {
+            return null;
+        }
+        for (StructureLibSceneMetadata metadata : structureLibMetadataList) {
+            if (metadata == null) {
+                continue;
+            }
+            StructureLibSceneMetadata.BlockTooltipData data = metadata.getBlockTooltipData(x, y, z);
+            if (data == null || !data.hasAdditionalTooltipContent()) {
+                continue;
+            }
+            String resolvedName = blockName != null && !blockName.trim()
+                .isEmpty() ? blockName : metadata.getController();
+            return StructureLibTooltipContentBuilder.build(
+                resolvedName,
+                data.getStructureLibDescription(),
+                shiftDown,
+                data.getBlockCandidates(),
+                data.getHatchDescriptionLines(),
+                data.getHatchCandidates());
+        }
         return null;
     }
 

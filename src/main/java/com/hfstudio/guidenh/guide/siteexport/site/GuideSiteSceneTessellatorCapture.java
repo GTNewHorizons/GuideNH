@@ -99,7 +99,8 @@ public class GuideSiteSceneTessellatorCapture {
                     texture.texturePath,
                     texture.sourceTextureId,
                     texture.linearFiltering,
-                    texture.useMipmaps));
+                    texture.useMipmaps,
+                    texture.mipLevel));
         }
         return new RecordingResult(new ArrayList<>(meshes), exportedTextures);
     }
@@ -328,7 +329,8 @@ public class GuideSiteSceneTessellatorCapture {
                 texturePath,
                 currentSourceTextureId,
                 linearFiltering,
-                useMipmaps);
+                useMipmaps,
+                exportMipLevel);
             textures.put(textureId, export);
             textureCache.put(cacheKey, export);
             return export;
@@ -634,14 +636,21 @@ public class GuideSiteSceneTessellatorCapture {
         public final String sourceTextureId;
         public final boolean linearFiltering;
         public final boolean useMipmaps;
+        public final int mipLevel;
 
-        ExportedTexture(String textureId, String texturePath, @Nullable String sourceTextureId, boolean linearFiltering,
-            boolean useMipmaps) {
+        public ExportedTexture(String textureId, String texturePath, @Nullable String sourceTextureId,
+            boolean linearFiltering, boolean useMipmaps) {
+            this(textureId, texturePath, sourceTextureId, linearFiltering, useMipmaps, 0);
+        }
+
+        public ExportedTexture(String textureId, String texturePath, @Nullable String sourceTextureId,
+            boolean linearFiltering, boolean useMipmaps, int mipLevel) {
             this.textureId = textureId;
             this.texturePath = texturePath;
             this.sourceTextureId = sourceTextureId;
             this.linearFiltering = linearFiltering;
             this.useMipmaps = useMipmaps;
+            this.mipLevel = mipLevel;
         }
     }
 
@@ -784,14 +793,16 @@ public class GuideSiteSceneTessellatorCapture {
         final String sourceTextureId;
         final boolean linearFiltering;
         final boolean useMipmaps;
+        final int mipLevel;
 
         TextureExport(String textureId, String texturePath, @Nullable String sourceTextureId, boolean linearFiltering,
-            boolean useMipmaps) {
+            boolean useMipmaps, int mipLevel) {
             this.textureId = textureId;
             this.texturePath = texturePath;
             this.sourceTextureId = sourceTextureId;
             this.linearFiltering = linearFiltering;
             this.useMipmaps = useMipmaps;
+            this.mipLevel = mipLevel;
         }
     }
 

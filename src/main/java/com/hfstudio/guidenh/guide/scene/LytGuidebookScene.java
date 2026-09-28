@@ -2114,6 +2114,11 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     public List<InWorldAnnotation> collectInWorldAnnotationsForExport(boolean includeSceneAnnotations,
         boolean includeGrid, GuidebookSceneLayerSelection layerSelection) {
+        return collectInWorldAnnotationsForExport(includeSceneAnnotations, includeGrid, layerSelection, true);
+    }
+
+    public List<InWorldAnnotation> collectInWorldAnnotationsForExport(boolean includeSceneAnnotations,
+        boolean includeGrid, GuidebookSceneLayerSelection layerSelection, boolean includeStructureLibHighlights) {
         ArrayList<InWorldAnnotation> inWorld = new ArrayList<>();
         GuidebookSceneLayerSelection effectiveLayers = layerSelection != null ? layerSelection
             : GuidebookSceneLayerSelection.all();
@@ -2125,7 +2130,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     inWorld.add(inWorldAnnotation);
                 }
             }
-            appendStructureLibHatchOverlays(inWorld);
+            if (includeStructureLibHighlights) {
+                appendStructureLibHatchOverlays(inWorld);
+            }
             appendOriginAxesAnnotations(inWorld);
             appendBlockStatsHighlightAnnotations(inWorld);
             for (SceneAnnotation annotation : ponderActiveAnnotations) {
@@ -2143,6 +2150,22 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             inWorld.add(grid);
         }
         return inWorld;
+    }
+
+    public List<InWorldAnnotation> collectStructureLibHatchOverlaysForExport(
+        GuidebookSceneLayerSelection layerSelection) {
+        if (structureLibHatchOverlayAnnotations.isEmpty()) {
+            return List.of();
+        }
+        GuidebookSceneLayerSelection effectiveLayers = layerSelection != null ? layerSelection
+            : GuidebookSceneLayerSelection.all();
+        ArrayList<InWorldAnnotation> overlays = new ArrayList<>(structureLibHatchOverlayAnnotations.size());
+        for (InWorldBlockFaceOverlayAnnotation overlay : structureLibHatchOverlayAnnotations) {
+            if (overlay != null && effectiveLayers.isLayerVisible(overlay.getBlockY())) {
+                overlays.add(overlay);
+            }
+        }
+        return overlays.isEmpty() ? List.of() : List.copyOf(overlays);
     }
 
     public List<OverlayAnnotation> collectOverlayAnnotationsForExport(GuidebookSceneLayerSelection layerSelection) {

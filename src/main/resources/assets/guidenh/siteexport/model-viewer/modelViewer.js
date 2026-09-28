@@ -1,4 +1,4 @@
-import { setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-A42QTX7N.js";
+import { prepareGameScene, setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-A42QTX7N.js";
 import { loadSharedText } from "../sharedAssets.js";
 import { loadSceneHoverTargetsJson } from "./sceneHoverTargets.js";
 import { expandSceneGrid } from "./sceneGrid.js";
@@ -14,6 +14,7 @@ const SCENE_BUTTON_ICONS = {
   resetView: [0, 32],
   toggleGrid: [16, 64],
   toggleBlockStats: [16, 48],
+  toggleStructureLibHatches: [32, 48],
 };
 const PONDER_INPUT_LABELS = {
   lmb: "LMB",
@@ -22,23 +23,26 @@ const PONDER_INPUT_LABELS = {
 };
 
 const SCENE_LABELS = {
-  en: { grid: "Toggle Floor Grid", stats: "Toggle Block Stats", zoomIn: "Zoom in", zoomOut: "Zoom out", reset: "Reset view", previous: "Previous Keyframe", playPause: "Play / Pause", restart: "Restart" },
-  zh: { grid: "切换地面网格", stats: "切换方块统计", zoomIn: "放大", zoomOut: "缩小", reset: "重置视角", previous: "上一个关键帧", playPause: "播放/暂停", restart: "重新开始" },
-  "zh-tw": { grid: "切換地面網格", stats: "切換方塊統計", zoomIn: "放大", zoomOut: "縮小", reset: "重設視角", previous: "上一個關鍵影格", playPause: "播放／暫停", restart: "重新開始" },
-  ja: { grid: "床面グリッドを切り替え", stats: "ブロック統計を切り替え", zoomIn: "拡大", zoomOut: "縮小", reset: "視点をリセット", previous: "前のキーフレーム", playPause: "再生/一時停止", restart: "最初から再生" },
-  ru: { grid: "Переключить сетку пола", stats: "Переключить статистику блоков", zoomIn: "Увеличить", zoomOut: "Уменьшить", reset: "Сбросить вид", previous: "Предыдущий ключевой кадр", playPause: "Воспроизведение/пауза", restart: "Начать заново" },
-  fr: { grid: "Afficher la grille au sol", stats: "Afficher les statistiques des blocs", zoomIn: "Zoom avant", zoomOut: "Zoom arrière", reset: "Réinitialiser la vue", previous: "Image clé précédente", playPause: "Lecture/Pause", restart: "Recommencer" },
-  de: { grid: "Bodengitter umschalten", stats: "Blockstatistik umschalten", zoomIn: "Vergrößern", zoomOut: "Verkleinern", reset: "Ansicht zurücksetzen", previous: "Vorheriger Keyframe", playPause: "Wiedergabe/Pause", restart: "Neu starten" },
-  pl: { grid: "Przełącz siatkę podłoża", stats: "Przełącz statystyki bloków", zoomIn: "Powiększ", zoomOut: "Pomniejsz", reset: "Resetuj widok", previous: "Poprzednia klatka kluczowa", playPause: "Odtwórz/Wstrzymaj", restart: "Uruchom ponownie" },
-  nl: { grid: "Vloerrooster wisselen", stats: "Blokstatistieken wisselen", zoomIn: "Inzoomen", zoomOut: "Uitzoomen", reset: "Weergave herstellen", previous: "Vorig keyframe", playPause: "Afspelen/Pauzeren", restart: "Opnieuw starten" },
-  es: { grid: "Alternar cuadrícula del suelo", stats: "Alternar estadísticas de bloques", zoomIn: "Acercar", zoomOut: "Alejar", reset: "Restablecer vista", previous: "Fotograma clave anterior", playPause: "Reproducir/Pausar", restart: "Reiniciar" },
-  pt: { grid: "Alternar grade do chão", stats: "Alternar estatísticas de blocos", zoomIn: "Ampliar", zoomOut: "Reduzir", reset: "Redefinir vista", previous: "Quadro-chave anterior", playPause: "Reproduzir/Pausar", restart: "Reiniciar" },
-  uk: { grid: "Перемкнути сітку підлоги", stats: "Перемкнути статистику блоків", zoomIn: "Збільшити", zoomOut: "Зменшити", reset: "Скинути вигляд", previous: "Попередній ключовий кадр", playPause: "Відтворення/пауза", restart: "Почати спочатку" },
+  en: { grid: "Toggle Floor Grid", stats: "Toggle Block Stats", structureLibHatches: "Highlight StructureLib hatches", zoomIn: "Zoom in", zoomOut: "Zoom out", reset: "Reset view", previous: "Previous Keyframe", playPause: "Play / Pause", restart: "Restart" },
+  zh: { grid: "切换地面网格", stats: "切换方块统计", structureLibHatches: "高亮 StructureLib 仓室", zoomIn: "放大", zoomOut: "缩小", reset: "重置视角", previous: "上一个关键帧", playPause: "播放/暂停", restart: "重新开始" },
+  "zh-tw": { grid: "切換地面網格", stats: "切換方塊統計", structureLibHatches: "高亮 StructureLib 倉室", zoomIn: "放大", zoomOut: "縮小", reset: "重設視角", previous: "上一個關鍵影格", playPause: "播放／暫停", restart: "重新開始" },
+  ja: { grid: "床面グリッドを切り替え", stats: "ブロック統計を切り替え", structureLibHatches: "StructureLib ハッチを強調", zoomIn: "拡大", zoomOut: "縮小", reset: "視点をリセット", previous: "前のキーフレーム", playPause: "再生/一時停止", restart: "最初から再生" },
+  ru: { grid: "Переключить сетку пола", stats: "Переключить статистику блоков", structureLibHatches: "Подсветить люки StructureLib", zoomIn: "Увеличить", zoomOut: "Уменьшить", reset: "Сбросить вид", previous: "Предыдущий ключевой кадр", playPause: "Воспроизведение/пауза", restart: "Начать заново" },
+  fr: { grid: "Afficher la grille au sol", stats: "Afficher les statistiques des blocs", structureLibHatches: "Surligner les trappes StructureLib", zoomIn: "Zoom avant", zoomOut: "Zoom arrière", reset: "Réinitialiser la vue", previous: "Image clé précédente", playPause: "Lecture/Pause", restart: "Recommencer" },
+  de: { grid: "Bodengitter umschalten", stats: "Blockstatistik umschalten", structureLibHatches: "StructureLib-Schächte hervorheben", zoomIn: "Vergrößern", zoomOut: "Verkleinern", reset: "Ansicht zurücksetzen", previous: "Vorheriger Keyframe", playPause: "Wiedergabe/Pause", restart: "Neu starten" },
+  pl: { grid: "Przełącz siatkę podłoża", stats: "Przełącz statystyki bloków", structureLibHatches: "Podświetl włazy StructureLib", zoomIn: "Powiększ", zoomOut: "Pomniejsz", reset: "Resetuj widok", previous: "Poprzednia klatka kluczowa", playPause: "Odtwórz/Wstrzymaj", restart: "Uruchom ponownie" },
+  nl: { grid: "Vloerrooster wisselen", stats: "Blokstatistieken wisselen", structureLibHatches: "StructureLib-luiken markeren", zoomIn: "Inzoomen", zoomOut: "Uitzoomen", reset: "Weergave herstellen", previous: "Vorig keyframe", playPause: "Afspelen/Pauzeren", restart: "Opnieuw starten" },
+  es: { grid: "Alternar cuadrícula del suelo", stats: "Alternar estadísticas de bloques", structureLibHatches: "Resaltar compuertas de StructureLib", zoomIn: "Acercar", zoomOut: "Alejar", reset: "Restablecer vista", previous: "Fotograma clave anterior", playPause: "Reproducir/Pausar", restart: "Reiniciar" },
+  pt: { grid: "Alternar grade do chão", stats: "Alternar estatísticas de blocos", structureLibHatches: "Destacar comportas do StructureLib", zoomIn: "Ampliar", zoomOut: "Reduzir", reset: "Redefinir vista", previous: "Quadro-chave anterior", playPause: "Reproduzir/Pausar", restart: "Reiniciar" },
+  uk: { grid: "Перемкнути сітку підлоги", stats: "Перемкнути статистику блоків", structureLibHatches: "Підсвітити люки StructureLib", zoomIn: "Збільшити", zoomOut: "Зменшити", reset: "Скинути вигляд", previous: "Попередній ключовий кадр", playPause: "Відтворення/пауза", restart: "Почати спочатку" },
 };
 
 function sceneLabels() {
   const language = `${document.documentElement?.lang || "en"}`.toLowerCase().replaceAll("_", "-");
-  return SCENE_LABELS[language] || SCENE_LABELS[language.split("-")[0]] || SCENE_LABELS.en;
+  return {
+    ...SCENE_LABELS.en,
+    ...(SCENE_LABELS[language] || SCENE_LABELS[language.split("-")[0]] || {}),
+  };
 }
 
 const sceneTooltipTemplates = new Map();
@@ -171,6 +175,7 @@ function ensureDetachedSceneSizeCompat() {
 function captureSceneDescriptor(node) {
   const attributes = {};
   for (const attribute of node.attributes) {
+    if (attribute.name === "data-scene-hydrated") continue;
     attributes[attribute.name] = attribute.value;
   }
   return {
@@ -182,6 +187,8 @@ function captureSceneDescriptor(node) {
     gridVisible: node.dataset.sceneGridVisible === "true",
     blockStatsToggle: node.dataset.sceneBlockStatsToggle === "true",
     blockStatsVisible: node.dataset.sceneBlockStatsVisible === "true",
+    structureLibHatchToggle: node.dataset.sceneStructurelibHatchToggle === "true",
+    structureLibHatchVisible: node.dataset.sceneStructurelibHatchVisible === "true",
   };
 }
 
@@ -661,7 +668,15 @@ function expandSceneAnnotations(annotations) {
 
 function mergedGridAnnotations(descriptor, baseAnnotationsJson) {
   const baseAnnotations = expandSceneAnnotations(
-    parseSceneJsonAttribute(baseAnnotationsJson, []).filter((annotation) => annotation?.siteControl !== "floorGrid"),
+    parseSceneJsonAttribute(baseAnnotationsJson, []).filter((annotation) => {
+      if (annotation?.siteControl === "floorGrid") {
+        return false;
+      }
+      if (annotation?.siteControl === "structureLibHatches") {
+        return descriptor.structureLibHatchVisible;
+      }
+      return true;
+    }),
   );
   if (!descriptor.gridVisible) {
     return baseAnnotations;
@@ -675,11 +690,22 @@ function mergedGridAnnotations(descriptor, baseAnnotationsJson) {
   return [...baseAnnotations, ...gridAnnotations];
 }
 
+function applySceneAnnotationVisibility(descriptor, annotations) {
+  return expandSceneAnnotations(Array.isArray(annotations) ? annotations : []).filter((annotation) => {
+    if (annotation?.siteControl === "structureLibHatches") {
+      return descriptor.structureLibHatchVisible;
+    }
+    return true;
+  });
+}
+
 function applySceneGridDescriptor(node, descriptor) {
-  if (!(node instanceof HTMLElement) || !descriptor.gridToggle) {
+  if (!(node instanceof HTMLElement)) {
     return;
   }
-  node.setAttribute("data-scene-grid-visible", descriptor.gridVisible ? "true" : "false");
+  if (descriptor.gridToggle) {
+    node.setAttribute("data-scene-grid-visible", descriptor.gridVisible ? "true" : "false");
+  }
   const annotations = mergedGridAnnotations(descriptor, node.getAttribute("data-scene-in-world-annotations"));
   node.setAttribute("data-scene-in-world-annotations", serializeSceneJsonAttribute(annotations));
 }
@@ -857,7 +883,7 @@ function mountSceneActionControls(sceneContext) {
     return;
   }
   const descriptor = sceneContext.descriptor;
-  if (!descriptor?.gridToggle && !descriptor?.blockStatsToggle) {
+  if (!descriptor?.gridToggle && !descriptor?.blockStatsToggle && !descriptor?.structureLibHatchToggle) {
     return;
   }
 
@@ -897,6 +923,34 @@ function mountSceneActionControls(sceneContext) {
     blockStatsButton.dataset.siteSceneAction = "block-stats";
     host.append(blockStatsButton);
     syncBlockStatsVisibility(wrapper, descriptor.blockStatsVisible);
+  }
+
+  if (descriptor.structureLibHatchToggle) {
+    const button = createSceneActionButton(
+      documentRef,
+      SCENE_BUTTON_ICONS.toggleStructureLibHatches,
+      sceneLabels().structureLibHatches,
+      descriptor.structureLibHatchVisible,
+      async (actionButton) => {
+        descriptor.structureLibHatchVisible = !descriptor.structureLibHatchVisible;
+        actionButton.setAttribute("aria-pressed", descriptor.structureLibHatchVisible ? "true" : "false");
+        const currentState = sceneContext.currentState ? cloneState(sceneContext.currentState) : null;
+        const variant = resolveSceneVariant(sceneContext.manifest, currentState) || {
+          sceneSrc: sceneContext.descriptor.attributes["data-scene-src"],
+          inWorldAnnotationsJson: sceneContext.baseWorldAnnotationsJson
+            || sceneContext.descriptor.attributes["data-scene-in-world-annotations"],
+          overlayAnnotationsJson: sceneContext.descriptor.attributes["data-scene-overlay-annotations"],
+          hoverTargetsJson: sceneContext.descriptor.attributes["data-scene-hover-targets"],
+        };
+        const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
+        if (!(await recreateSceneRuntime(sceneContext, variantAssets, currentState))) {
+          descriptor.structureLibHatchVisible = !descriptor.structureLibHatchVisible;
+          actionButton.setAttribute("aria-pressed", descriptor.structureLibHatchVisible ? "true" : "false");
+        }
+      },
+    );
+    button.dataset.siteSceneAction = "structurelib-hatches";
+    host.append(button);
   }
 }
 
@@ -1221,12 +1275,13 @@ function createPonderControl(documentRef, control, currentTick, onChange, abortS
   return wrapper;
 }
 
-async function mountSceneStateControls(sceneContext) {
+async function mountSceneStateControls(sceneContext, manifestPromise) {
   if (!sceneContext.runtime?.wrapper || !sceneContext.descriptor.stateControls) {
     return;
   }
 
-  const manifest = await loadSceneStateManifest(sceneContext.descriptor.stateManifestSrc);
+  const manifest = await (manifestPromise || loadSceneStateManifest(sceneContext.descriptor.stateManifestSrc));
+  if (!sceneContext.runtime?.wrapper?.isConnected) return;
   if (!manifest?.states || !manifest?.controls) {
     return;
   }
@@ -1426,20 +1481,32 @@ async function recreateSceneRuntime(sceneContext, variant, nextState) {
   }
 
   const replacement = createSceneNode(parent.ownerDocument, sceneContext.descriptor, variant);
+  if (sceneContext.descriptor.structureLibHatchToggle) {
+    replacement.setAttribute(
+      "data-scene-structurelib-hatch-visible",
+      sceneContext.descriptor.structureLibHatchVisible ? "true" : "false",
+    );
+  }
   await loadSceneHoverTargets(replacement, sceneContext.descriptor);
   const nextDescriptor = captureSceneDescriptor(replacement);
   const split = splitOverlayAnnotations(
     parseSceneJsonAttribute(replacement.getAttribute("data-scene-overlay-annotations"), []),
   );
+  const worldAnnotations = applySceneAnnotationVisibility(
+    nextDescriptor,
+    parseSceneJsonAttribute(replacement.getAttribute("data-scene-in-world-annotations"), []),
+  );
+  replacement.setAttribute("data-scene-in-world-annotations", serializeSceneJsonAttribute(worldAnnotations));
   replacement.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(split.vendorAnnotations));
   const currentRuntime = sceneContext.runtime;
   if (typeof currentRuntime?.controller?.replaceScene === "function") {
     try {
       await currentRuntime.controller.replaceScene(
         replacement.dataset.sceneSrc,
-        parseSceneJsonAttribute(replacement.getAttribute("data-scene-in-world-annotations"), []),
+        worldAnnotations,
         split.vendorAnnotations,
         parseSceneJsonAttribute(replacement.getAttribute("data-scene-hover-targets"), []),
+        { resetCamera: Boolean(sceneContext.manifest?.controls?.ponder) },
       );
     } catch (error) {
       console.warn("Failed to replace scene meshes in the existing renderer", error);
@@ -1497,7 +1564,9 @@ async function initializeScene(node) {
   ensureDetachedSceneSizeCompat();
 
   const descriptor = captureSceneDescriptor(node);
-  await loadSceneHoverTargets(node, descriptor);
+  const baseWorldAnnotationsJson = node.getAttribute("data-scene-in-world-annotations") || "[]";
+  const manifestPromise = descriptor.stateControls ? loadSceneStateManifest(descriptor.stateManifestSrc) : null;
+  await Promise.all([loadSceneHoverTargets(node, descriptor), prepareGameScene(node)]);
   applySceneGridDescriptor(node, descriptor);
   const split = splitOverlayAnnotations(parseSceneJsonAttribute(node.getAttribute("data-scene-overlay-annotations"), []));
   node.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(split.vendorAnnotations));
@@ -1509,6 +1578,7 @@ async function initializeScene(node) {
   const sceneContext = {
     descriptor,
     sourceNode: node,
+    baseWorldAnnotationsJson,
     htmlOverlayAnnotations: split.htmlAnnotations,
     overlayRuntime: null,
     runtime,
@@ -1524,7 +1594,7 @@ async function initializeScene(node) {
   }
 
   attachSceneContext(sceneContext);
-  await mountSceneStateControls(sceneContext);
+  await mountSceneStateControls(sceneContext, manifestPromise);
   return sceneContext;
 }
 

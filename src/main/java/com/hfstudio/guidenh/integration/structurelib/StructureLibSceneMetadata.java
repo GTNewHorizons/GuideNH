@@ -14,8 +14,8 @@ import org.jetbrains.annotations.Nullable;
 import lombok.Getter;
 
 /**
- * Metadata about a StructureLib preview — controller identity, tier/channel ranges, per-block tooltip data.
- * Tooltip data (hatch info, block candidates) is no longer produced; fields remain for backward compat.
+ * Metadata about a StructureLib preview, including controller identity, tier/channel ranges, and per-block tooltip
+ * data.
  */
 public class StructureLibSceneMetadata {
 

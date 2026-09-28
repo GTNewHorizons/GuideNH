@@ -5,11 +5,8 @@ import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.imageio.ImageIO;
 
 import org.scilab.forge.jlatexmath.ParseException;
 import org.scilab.forge.jlatexmath.TeXConstants;
@@ -25,7 +22,7 @@ public class GuideSiteLatexExporter {
 
     private final GuideSiteAssetRegistry assets;
     private final Map<String, ExportedLatex> exports = new HashMap<>();
-    private final Map<String, Integer> referenceHeights = new HashMap<>();
+    private final Map<Float, Integer> referenceHeights = new HashMap<>();
 
     public GuideSiteLatexExporter(GuideSiteAssetRegistry assets) {
         this.assets = assets;
@@ -45,8 +42,8 @@ public class GuideSiteLatexExporter {
 
         try {
             TeXIcon icon = createIcon(formula, fillColorArgb, safeSourceScale);
-            byte[] png = renderPng(icon);
-            String src = GuideSitePageAssetExporter.ROOT_PREFIX + assets.writeShared("latex", ".png", png);
+            BufferedImage image = renderImage(icon);
+            String src = GuideSitePageAssetExporter.ROOT_PREFIX + assets.writePngAsync("latex", image);
             ExportedLatex exported = new ExportedLatex(
                 src,
                 icon.getIconWidth(),
@@ -79,14 +76,13 @@ public class GuideSiteLatexExporter {
     }
 
     private int referenceHeight(float sourceScale) throws ParseException {
-        String key = String.format("%.2f", sourceScale);
-        Integer cached = referenceHeights.get(key);
+        Integer cached = referenceHeights.get(sourceScale);
         if (cached != null) {
             return cached;
         }
         TeXIcon icon = createIcon(CALIBRATION_FORMULA, ColorUtils.WHITE.getColor(), sourceScale);
         int height = Math.max(1, icon.getIconHeight());
-        referenceHeights.put(key, height);
+        referenceHeights.put(sourceScale, height);
         return height;
     }
 
@@ -101,7 +97,7 @@ public class GuideSiteLatexExporter {
         return icon;
     }
 
-    private byte[] renderPng(TeXIcon icon) throws Exception {
+    private BufferedImage renderImage(TeXIcon icon) {
         BufferedImage image = new BufferedImage(icon.getIconWidth(), icon.getIconHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = image.createGraphics();
         try {
@@ -120,9 +116,7 @@ public class GuideSiteLatexExporter {
             graphics.dispose();
         }
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ImageIO.write(image, "png", out);
-        return out.toByteArray();
+        return image;
     }
 
     public static class ExportedLatex {

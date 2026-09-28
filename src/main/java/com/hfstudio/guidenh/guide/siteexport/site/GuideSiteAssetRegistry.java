@@ -5,10 +5,14 @@ import java.awt.image.DataBufferInt;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,27 +21,47 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
+
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
 public class GuideSiteAssetRegistry implements AutoCloseable {
 
-    private static final int ASYNC_WRITE_LIMIT = 8;
+    private static final int ASYNC_WRITE_LIMIT = 32;
     private static final int PATH_LOCK_COUNT = 256;
     private final Path outDir;
     private final Object[] pathLocks = new Object[PATH_LOCK_COUNT];
     private final Set<Path> pendingPaths = ConcurrentHashMap.newKeySet();
+    private final Set<Path> completedPaths = ConcurrentHashMap.newKeySet();
+    private final Set<Path> initializedDirectories = ConcurrentHashMap.newKeySet();
     private final Semaphore pendingWrites = new Semaphore(ASYNC_WRITE_LIMIT);
     private final AtomicReference<Throwable> writeFailure = new AtomicReference<>();
-    private final ExecutorService writeExecutor = Executors.newFixedThreadPool(2, runnable -> {
-        Thread thread = new Thread(runnable, "guidenh-site-asset-write");
-        thread.setDaemon(true);
-        return thread;
-    });
+    private final ExecutorService writeExecutor = Executors.newFixedThreadPool(
+        Math.max(
+            2,
+            Math.min(
+                4,
+                Runtime.getRuntime()
+                    .availableProcessors())),
+        runnable -> {
+            Thread thread = new Thread(runnable, "guidenh-site-asset-write");
+            thread.setDaemon(true);
+            return thread;
+        });
+    private final AtomicLong scheduledWrites = new AtomicLong();
+    private final AtomicLong completedWrites = new AtomicLong();
+    private final AtomicLong encodedBytes = new AtomicLong();
+    private final AtomicLong producerNanos = new AtomicLong();
+    private final AtomicLong fileWriteNanos = new AtomicLong();
 
     public GuideSiteAssetRegistry(Path outDir) {
         this.outDir = outDir;
@@ -47,13 +71,19 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
     }
 
     public String writeShared(String bucket, String extension, byte[] content) throws Exception {
+        checkWriteFailure();
         Path relative = sharedPath(bucket, extension, sha256(content));
+        if (completedPaths.contains(relative)) {
+            return relative.toString()
+                .replace('\\', '/');
+        }
         Path absolute = outDir.resolve(relative);
+        ensureDirectory(absolute.getParent());
         synchronized (pathLock(relative)) {
-            Files.createDirectories(absolute.getParent());
-            if (!Files.exists(absolute)) {
+            if (!completedPaths.contains(relative) && !Files.exists(absolute)) {
                 Files.write(absolute, content);
             }
+            completedPaths.add(relative);
         }
         return relative.toString()
             .replace('\\', '/');
@@ -73,6 +103,26 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
             .replace('\\', '/');
     }
 
+    public String writeAnimatedPngAsync(String bucket, List<GuideSiteAnimatedPng.Frame> frames) throws Exception {
+        List<GuideSiteAnimatedPng.Frame> snapshot = List.copyOf(frames);
+        if (snapshot.size() == 1) return writePngAsync(
+            bucket,
+            snapshot.getFirst()
+                .image());
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        for (GuideSiteAnimatedPng.Frame frame : snapshot) {
+            digest.update(sha256Image(frame.image()).getBytes(StandardCharsets.US_ASCII));
+            digest.update(
+                ByteBuffer.allocate(Integer.BYTES)
+                    .putInt(frame.ticks())
+                    .array());
+        }
+        Path relative = sharedPath(bucket, ".png", hex(digest.digest()));
+        scheduleWrite(relative, () -> GuideSiteAnimatedPng.encode(snapshot));
+        return relative.toString()
+            .replace('\\', '/');
+    }
+
     private Path sharedPath(String bucket, String extension, String hash) {
         return Paths.get("_res", bucket, hash + extension);
     }
@@ -81,27 +131,56 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
         return pathLocks[relative.hashCode() & (PATH_LOCK_COUNT - 1)];
     }
 
+    private void ensureDirectory(Path directory) throws IOException {
+        if (initializedDirectories.contains(directory)) {
+            return;
+        }
+        synchronized (pathLock(directory)) {
+            if (!initializedDirectories.contains(directory)) {
+                Files.createDirectories(directory);
+                initializedDirectories.add(directory);
+            }
+        }
+    }
+
     private void scheduleWrite(Path relative, Callable<byte[]> producer) throws Exception {
         checkWriteFailure();
         Path absolute = outDir.resolve(relative);
-        if (Files.exists(absolute) || pendingPaths.contains(relative)) {
+        if (completedPaths.contains(relative) || pendingPaths.contains(relative)) {
+            return;
+        }
+        if (Files.exists(absolute)) {
+            completedPaths.add(relative);
             return;
         }
         pendingWrites.acquire();
-        if (Files.exists(absolute) || !pendingPaths.add(relative)) {
+        try {
+            checkWriteFailure();
+        } catch (Exception failure) {
+            pendingWrites.release();
+            throw failure;
+        }
+        if (completedPaths.contains(relative) || !pendingPaths.add(relative)) {
             pendingWrites.release();
             return;
         }
         try {
             writeExecutor.execute(() -> {
+                long startedAt = System.nanoTime();
                 try {
                     byte[] content = producer.call();
+                    producerNanos.addAndGet(System.nanoTime() - startedAt);
+                    encodedBytes.addAndGet(content.length);
+                    long writeStartedAt = System.nanoTime();
+                    ensureDirectory(absolute.getParent());
                     synchronized (pathLock(relative)) {
-                        Files.createDirectories(absolute.getParent());
-                        if (!Files.exists(absolute)) {
+                        if (!completedPaths.contains(relative) && !Files.exists(absolute)) {
                             Files.write(absolute, content);
                         }
+                        completedPaths.add(relative);
                     }
+                    fileWriteNanos.addAndGet(System.nanoTime() - writeStartedAt);
+                    completedWrites.incrementAndGet();
                 } catch (Throwable failure) {
                     writeFailure
                         .compareAndSet(null, new IOException("Failed to write site asset " + relative, failure));
@@ -110,6 +189,7 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
                     pendingWrites.release();
                 }
             });
+            scheduledWrites.incrementAndGet();
         } catch (RejectedExecutionException failure) {
             pendingPaths.remove(relative);
             pendingWrites.release();
@@ -131,11 +211,23 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
     }
 
     private byte[] encodePng(BufferedImage image) throws IOException {
+        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("png");
+        if (!writers.hasNext()) {
+            throw new IOException("No PNG writer is available for site assets");
+        }
+        ImageWriter writer = writers.next();
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try (MemoryCacheImageOutputStream imageOutput = new MemoryCacheImageOutputStream(output)) {
-            if (!ImageIO.write(image, "png", imageOutput)) {
-                throw new IOException("No PNG writer is available for site assets");
+            writer.setOutput(imageOutput);
+            ImageWriteParam parameters = writer.getDefaultWriteParam();
+            if (parameters.canWriteCompressed()) {
+                parameters.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                // PNG quality selects compression effort; the pixels remain lossless.
+                parameters.setCompressionQuality(0f);
             }
+            writer.write(null, new IIOImage(image, null, null), parameters);
+        } finally {
+            writer.dispose();
         }
         return output.toByteArray();
     }
@@ -146,17 +238,20 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
             throw new IllegalArgumentException("Site image must use TYPE_INT_ARGB");
         }
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        ByteBuffer bytes = ByteBuffer.allocate(4096);
+        ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
         bytes.putInt(image.getWidth());
         bytes.putInt(image.getHeight());
-        for (int pixel : data.getData()) {
-            if (bytes.remaining() < Integer.BYTES) {
-                digest.update(bytes.array(), 0, bytes.position());
-                bytes.clear();
-            }
-            bytes.putInt(pixel);
-        }
         digest.update(bytes.array(), 0, bytes.position());
+        bytes.clear();
+        IntBuffer integers = bytes.asIntBuffer();
+        int[] pixels = data.getData();
+        for (int offset = 0; offset < pixels.length;) {
+            int count = Math.min(integers.capacity(), pixels.length - offset);
+            integers.clear();
+            integers.put(pixels, offset, count);
+            digest.update(bytes.array(), 0, count * Integer.BYTES);
+            offset += count;
+        }
         return hex(digest.digest());
     }
 
@@ -179,6 +274,13 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
             throw failure;
         }
         checkWriteFailure();
+        GuideDebugLog.infoAlways(
+            "[GuideNH] [GuideSiteAssetRegistry] writes scheduled={}, completed={}, encodedBytes={}, producerTimeMs={}, fileWriteTimeMs={}",
+            scheduledWrites.get(),
+            completedWrites.get(),
+            encodedBytes.get(),
+            TimeUnit.NANOSECONDS.toMillis(producerNanos.get()),
+            TimeUnit.NANOSECONDS.toMillis(fileWriteNanos.get()));
     }
 
     private String sha256(byte[] content) throws Exception {

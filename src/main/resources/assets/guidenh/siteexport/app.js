@@ -21,6 +21,15 @@ async function loadPageTemplates(content) {
   }));
 }
 
+async function loadLanguageMenu(header) {
+  const placeholder = header?.querySelector("[data-guide-language-menu-src]");
+  if (!placeholder) return;
+  const html = await loadSharedText(placeholder.dataset.guideLanguageMenuSrc);
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  placeholder.replaceWith(template.content.cloneNode(true));
+}
+
 function installMediaWikiSpecialFilters(root) {
   const pages = root.querySelectorAll("[data-guide-special-page]");
   for (const page of pages) {
@@ -429,6 +438,7 @@ function installTooltips(root) {
   let activeState = null;
   let lastPointer = null;
   let restoreStack = [];
+  let eventShiftKey = false;
 
   function resolveTemplateHtml(templateId) {
     if (!templateId) {
@@ -483,6 +493,7 @@ function installTooltips(root) {
     stopIngredientCycling(tooltipRoot);
     delete tooltipRoot.dataset.externalTooltipOwner;
     delete tooltipRoot.dataset.externalTooltipTemplate;
+    delete tooltipRoot.dataset.externalTooltipShiftTemplate;
   }
 
   function applyState(nextState, pointer, resetStack) {
@@ -504,6 +515,7 @@ function installTooltips(root) {
     if (nextState.sourceType === "external") {
       tooltipRoot.dataset.externalTooltipOwner = String(nextState.sourceRef ?? "");
       tooltipRoot.dataset.externalTooltipTemplate = nextState.templateId ?? "";
+      tooltipRoot.dataset.externalTooltipShiftTemplate = nextState.shiftTemplateId ?? "";
     } else {
       delete tooltipRoot.dataset.externalTooltipOwner;
       delete tooltipRoot.dataset.externalTooltipTemplate;
@@ -520,6 +532,8 @@ function installTooltips(root) {
       sourceType: activeState.sourceType,
       sourceRef: activeState.sourceRef,
       templateId: activeState.templateId,
+      shiftTemplateId: activeState.shiftTemplateId,
+      baseTemplateId: activeState.baseTemplateId,
       html: activeState.html,
     };
   }
@@ -533,7 +547,8 @@ function installTooltips(root) {
     applyState(previous, pointer, false);
   }
 
-  function showTemplate(templateId, sourceType, sourceRef, pointer, preserveCurrent) {
+  function showTemplate(templateId, sourceType, sourceRef, pointer, preserveCurrent, shiftTemplateId = null,
+    baseTemplateId = null) {
     const html = resolveTemplateHtml(templateId);
     if (!html) {
       if (preserveCurrent && restoreStack.length) {
@@ -556,6 +571,8 @@ function installTooltips(root) {
         sourceType,
         sourceRef,
         templateId,
+        shiftTemplateId,
+        baseTemplateId: baseTemplateId || templateId,
         html,
       },
       pointer,
@@ -661,7 +678,7 @@ function installTooltips(root) {
   root.addEventListener("pointerup", (event) => {
     if (event.pointerType !== "touch") return;
     const trigger = closestGuideTooltip(event.target);
-    if (!trigger || trigger.closest("a[href], input, select, textarea")) return;
+    if (!trigger || trigger.closest("input, select, textarea")) return;
     if (activeState?.sourceType === "trigger" && activeState.sourceRef === trigger) {
       hideAll();
     } else {
@@ -685,8 +702,19 @@ function installTooltips(root) {
         position(pointer);
       }
     },
-    showExternalTemplate(templateId, owner, pointer) {
-      showTemplate(templateId, "external", owner, pointer || lastPointer, false);
+    showExternalTemplate(templateSpec, owner, pointer) {
+      const templateId = typeof templateSpec === "string" ? templateSpec : templateSpec?.templateId;
+      const shiftTemplateId = typeof templateSpec === "string" ? null : templateSpec?.shiftTemplateId || null;
+      const selectedTemplateId = eventShiftKey && shiftTemplateId ? shiftTemplateId : templateId;
+      showTemplate(
+        selectedTemplateId,
+        "external",
+        owner,
+        pointer || lastPointer,
+        false,
+        shiftTemplateId,
+        templateId,
+      );
     },
     hideExternal(owner) {
       if (!activeState || activeState.sourceType !== "external" || activeState.sourceRef !== owner) {
@@ -697,14 +725,38 @@ function installTooltips(root) {
   };
 
   document.addEventListener("scroll", hideAll, { capture: true, passive: true });
+  const refreshExternalTooltip = () => {
+    if (!activeState || activeState.sourceType !== "external") {
+      return;
+    }
+    const baseTemplateId = activeState.baseTemplateId || activeState.templateId;
+    const selectedTemplateId = eventShiftKey && activeState.shiftTemplateId
+      ? activeState.shiftTemplateId
+      : baseTemplateId;
+    const html = resolveTemplateHtml(selectedTemplateId);
+    if (!html || selectedTemplateId === activeState.templateId) {
+      return;
+    }
+    applyState({ ...activeState, templateId: selectedTemplateId, html }, lastPointer, false);
+  };
   window.addEventListener("keydown", (event) => {
+    if (event.key === "Shift" && !event.repeat) {
+      eventShiftKey = true;
+      refreshExternalTooltip();
+    }
     if (event.key === "Escape") {
       hideAll();
     }
   });
+  window.addEventListener("keyup", (event) => {
+    if (event.key === "Shift") {
+      eventShiftKey = false;
+      refreshExternalTooltip();
+    }
+  });
 }
 
-function installPageBehaviors(root) {
+function installPageBehaviors(root, hydrateScenes = true) {
   installMediaWikiSpecialFilters(root);
   installIngredientCycling(root);
   installImageAnnotations(root);
@@ -712,7 +764,60 @@ function installPageBehaviors(root) {
   installMermaidLayout(root);
   installMermaidPanZoom(root);
   installChartHoverTooltips(root);
-  hydrateVisibleScenes(root);
+  installGuideItemNavigation(root);
+  if (hydrateScenes) hydrateVisibleScenes(root);
+}
+
+function installGuideItemNavigation(root) {
+  if (!(root instanceof HTMLElement) || root.dataset.guideItemNavigationInstalled === "true") {
+    return;
+  }
+  root.dataset.guideItemNavigationInstalled = "true";
+  let hoveredItem = null;
+  const resolveItemElement = (target) => {
+    const element = target instanceof Element ? target.closest("[data-guide-item-id], [data-item-id]") : null;
+    return element instanceof HTMLElement ? element : null;
+  };
+  root.addEventListener("pointerover", (event) => {
+    hoveredItem = resolveItemElement(event.target);
+  });
+  root.addEventListener("pointerout", (event) => {
+    const next = resolveItemElement(event.relatedTarget);
+    if (!next) {
+      hoveredItem = null;
+    }
+  });
+  root.addEventListener("keydown", (event) => {
+    if (event.key?.toLowerCase() !== "g" || event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) {
+      return;
+    }
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement
+      || event.target instanceof HTMLSelectElement || event.target?.isContentEditable) {
+      return;
+    }
+    const item = hoveredItem || resolveItemElement(document.activeElement);
+    if (!(item instanceof HTMLElement)) {
+      return;
+    }
+    const itemId = item.dataset.guideItemId || item.dataset.itemId;
+    if (!itemId) {
+      return;
+    }
+    let href = item.dataset.guideItemHref || item.closest("a[href]")?.getAttribute("href");
+    if (!href) {
+      for (const candidate of root.querySelectorAll("[data-guide-item-id][data-guide-item-href]")) {
+        if (candidate.dataset.guideItemId === itemId) {
+          href = candidate.dataset.guideItemHref;
+          break;
+        }
+      }
+    }
+    if (!href) {
+      return;
+    }
+    event.preventDefault();
+    window.location.assign(new URL(href, document.baseURI).href);
+  });
 }
 
 function navigationState(sidebar) {
@@ -978,6 +1083,7 @@ function installSiteRouter() {
       await Promise.all([
         reuseSidebar ? Promise.resolve() : loadSidebar(nextSidebar),
         loadPageTemplates(nextContent),
+        loadLanguageMenu(nextLanguageSwitcher),
       ]);
       if (activeRequest !== requestId) return;
 
@@ -1044,18 +1150,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (base) base.href = base.href;
   const sidebar = document.querySelector(".guide-sidebar");
   const content = document.getElementById("page-content");
-  installLanguageMenus(document);
   installMobileNavigation();
   installTooltips(document);
+  if (content instanceof HTMLElement) hydrateVisibleScenes(content);
   const loaded = await Promise.allSettled([
     content instanceof HTMLElement ? loadPageTemplates(content) : Promise.resolve(),
     sidebar instanceof HTMLElement ? loadSidebar(sidebar) : Promise.resolve(),
+    loadLanguageMenu(document.querySelector(".guide-header-lang")),
   ]);
   for (const result of loaded) {
     if (result.status === "rejected") console.error("GuideNH page resources could not be loaded.", result.reason);
   }
+  installLanguageMenus(document);
   if (content instanceof HTMLElement) {
-    installPageBehaviors(content);
+    installPageBehaviors(content, false);
   }
   if (sidebar instanceof HTMLElement) {
     installSearchUi(sidebar);

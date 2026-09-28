@@ -689,6 +689,16 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             classes.append(" guide-tooltip");
         }
 
+        String itemHref = null;
+        if (currentPageId != null) {
+            PageAnchor itemTarget = resolveItemLinkTarget(null, currentPageId, null, exportedItem.itemId());
+            if (itemTarget != null) {
+                NavigationNode targetNode = navigationTree.getNodeById(itemTarget.pageId());
+                ResourceLocation targetGuideId = targetNode != null ? targetNode.guideId() : null;
+                itemHref = GuideSiteHrefResolver.resolvePageAnchor(currentPageId, targetGuideId, itemTarget);
+            }
+        }
+
         // The wrapper still receives a font-size hint so descendants that derive sizing from `em`
         // continue to scale, but the actual icon size is now baked into the <img> width/height by
         // GuideSiteItemHtml.appendIcon (see scale parameter below) so the resulting image really
@@ -711,7 +721,14 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             .append(escapeAttribute(classes.toString()))
             .append("\" data-item-id=\"")
             .append(escapeAttribute(exportedItem.itemId()))
+            .append("\" data-guide-item-id=\"")
+            .append(escapeAttribute(exportedItem.itemId()))
             .append("\"");
+        if (itemHref != null && !itemHref.isEmpty()) {
+            html.append(" data-guide-item-href=\"")
+                .append(escapeAttribute(itemHref))
+                .append("\"");
+        }
         if (templateId != null) {
             html.append(" data-template=\"")
                 .append(escapeAttribute(templateId))
@@ -857,14 +874,44 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
                 readBlockImageScale(element));
         }
 
-        GuideSiteExportedScene exportedScene = sceneResolver.nextScene();
-        if (exportedScene != null) {
-            int logicalWidth = exportedScene.logicalWidth() > 0 ? exportedScene.logicalWidth() : 256;
-            int logicalHeight = exportedScene.logicalHeight() > 0 ? exportedScene.logicalHeight() : 192;
-            String sceneHtml = GuideSiteSceneTagRenderer
-                .renderSceneHtml(logicalWidth, logicalHeight, false, defaultNamespace, null, exportedScene)
-                + " data-scene-kind=\"block-image\">";
-            return wrapBlockImageFloat(element, sceneHtml);
+        GuideSiteExportedScene exportedScene = sceneResolver.resolveScene(element);
+        if (exportedScene != null && exportedScene.placeholderPath() != null) {
+            int width = Math.max(16, exportedScene.logicalWidth());
+            int height = Math.max(16, exportedScene.logicalHeight());
+            String image = "<img class=\"guide-image\" src=\""
+                + escapeAttribute(GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.placeholderPath())
+                + "\" alt=\""
+                + escapeAttribute(
+                    block.registryId()
+                        .toString())
+                + "\" width=\""
+                + width * GuideSiteSceneTagRenderer.DEFAULT_WEB_SCENE_SCALE
+                + "\" height=\""
+                + height * GuideSiteSceneTagRenderer.DEFAULT_WEB_SCENE_SCALE
+                + "\" loading=\"lazy\" decoding=\"async\">";
+            boolean includeTooltip = readBoolean(element, "showTooltip", !readBoolean(element, "noTooltip", false));
+            String templateId = includeTooltip
+                ? createTooltipTemplate(new ItemTooltip(block.stack()), templates, currentPageId)
+                : null;
+            StringBuilder sceneImage = new StringBuilder("<span class=\"guide-block-image");
+            if (templateId != null) {
+                sceneImage.append(" guide-tooltip");
+            }
+            sceneImage.append("\" data-guide-item-id=\"")
+                .append(
+                    escapeAttribute(
+                        block.registryId()
+                            .toString()))
+                .append("\"");
+            if (templateId != null) {
+                sceneImage.append(" data-template=\"")
+                    .append(escapeAttribute(templateId))
+                    .append("\"");
+            }
+            sceneImage.append(">")
+                .append(image)
+                .append("</span>");
+            return wrapBlockImageFloat(element, sceneImage.toString());
         }
 
         return wrapBlockImageFloat(

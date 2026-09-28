@@ -36,7 +36,7 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         .create();
     public static final int DEFAULT_WEB_SCENE_SCALE = 4;
     public static final int TOOLTIP_WEB_SCENE_SCALE = 3;
-    private static final String TRANSPARENT_PIXEL = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+    private static final String TRANSPARENT_PIXEL = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
     private static final String[] FORWARDED_ATTRIBUTES = { "zoom", "perspective", "rotateX", "rotateY", "rotateZ",
         "offsetX", "offsetY", "centerX", "centerY", "centerZ", "allowLayerSlider" };
 
@@ -264,6 +264,11 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                 .append(exportedScene.blockStatsVisible())
                 .append("\"");
         }
+        if (exportedScene.structureLibHatchButtonEnabled()) {
+            html.append(" data-scene-structurelib-hatch-toggle=\"true\" data-scene-structurelib-hatch-visible=\"")
+                .append(exportedScene.structureLibHatchVisible())
+                .append("\"");
+        }
     }
 
     public static String renderSceneHtml(int logicalWidth, int logicalHeight, boolean interactive,
@@ -320,9 +325,11 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         int displayWidth = normalizedWidth * normalizedDisplayScale;
         int displayHeight = normalizedHeight * normalizedDisplayScale;
 
-        String src = exportedScene != null ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.placeholderPath()
+        String src = exportedScene != null && exportedScene.placeholderPath() != null
+            ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.placeholderPath()
             : TRANSPARENT_PIXEL;
-        String sceneSrc = exportedScene != null ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.scenePath()
+        String sceneSrc = exportedScene != null && exportedScene.scenePath() != null
+            ? GuideSitePageAssetExporter.ROOT_PREFIX + exportedScene.scenePath()
             : null;
         String cssClass = sceneSrc != null ? "game-scene guide-scene" : "guide-scene";
 

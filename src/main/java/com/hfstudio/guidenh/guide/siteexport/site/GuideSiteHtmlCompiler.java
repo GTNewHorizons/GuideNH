@@ -106,6 +106,11 @@ public class GuideSiteHtmlCompiler {
 
         @Nullable
         GuideSiteExportedScene nextScene();
+
+        @Nullable
+        default GuideSiteExportedScene resolveScene(MdxJsxElementFields element) {
+            return nextScene();
+        }
     }
 
     private final RecipeTagRenderer recipeTagRenderer;
@@ -1121,7 +1126,8 @@ public class GuideSiteHtmlCompiler {
 
     private String compileScene(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
-        return sceneTagRenderer.render(element, defaultNamespace, currentPageId, templates, sceneResolver.nextScene());
+        return sceneTagRenderer
+            .render(element, defaultNamespace, currentPageId, templates, sceneResolver.resolveScene(element));
     }
 
     private String compileFloatingImage(MdxJsxElementFields element, GuideSiteTemplateRegistry templates,

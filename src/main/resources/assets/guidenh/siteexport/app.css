@@ -44,7 +44,8 @@
     --color-navbar-row-hover: rgb(33, 33, 33);
     --color-navbar-expand-arrow: rgb(238, 238, 238);
     --color-table-border: rgb(124, 124, 124);
-    --color-scene-background: rgba(0, 0, 0, 0.2);
+    --color-scene-background: rgb(10, 10, 16);
+    --color-scene-border: rgb(48, 48, 64);
 
     --gui-scale: 3;
     --sidebar-width: 350px;
@@ -81,6 +82,7 @@ html, body {
 }
 
 h1, h2, h3, h4, h5, h6 {
+    clear: both;
     font-size: 1rem;
     margin: 1em 0 0.5em;
 }
@@ -1112,6 +1114,19 @@ p {
     margin-bottom: 0.8em;
 }
 
+.guide-block-image {
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: middle;
+    line-height: 0;
+}
+
+.guide-block-image > img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
 .guide-item-grid,
 .guide-generated-links {
     margin-bottom: 0.8em;
@@ -1611,6 +1626,10 @@ p {
 
 .guide-scene-export-frame--block-stats-icons .guide-scene-block-stat {
     grid-template-columns: max-content max-content;
+}
+
+.guide-scene-block-stat.guide-tooltip {
+    border-bottom: 0;
 }
 
 .guide-scene-export-frame--block-stats-icons .guide-scene-block-stat-label {

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
@@ -47,6 +48,7 @@ import com.hfstudio.guidenh.guide.document.flow.LytSpoilerSpan;
 import com.hfstudio.guidenh.guide.document.interaction.ContentTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
@@ -106,13 +108,29 @@ public class GuideSiteSceneAnnotationSerializer {
         if (scene != null) {
             GuidebookSceneLayerSelection layerSelection = GuidebookSceneLayerSelection
                 .fromVisibleLayer(scene.getVisibleLayerYForExport());
-            for (InWorldAnnotation annotation : scene.collectInWorldAnnotationsForExport(true, false, layerSelection)) {
+            for (InWorldAnnotation annotation : scene.collectInWorldAnnotationsForExport(
+                true,
+                false,
+                layerSelection,
+                false)) {
                 switch (annotation) {
                     case InWorldBoxAnnotation box -> inWorld.add(serializeBox(box, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldLineAnnotation line -> inWorld.add(serializeLine(line, templates, currentPageId, assetExporter, itemIconResolver));
                     case InWorldBlockFaceOverlayAnnotation blockOverlay -> inWorld.add(
                             serializeBlockOverlay(blockOverlay, templates, currentPageId, assetExporter, itemIconResolver));
                     default -> addContributedPayload(inWorld, annotation);
+                }
+            }
+            for (InWorldAnnotation annotation : scene.collectStructureLibHatchOverlaysForExport(layerSelection)) {
+                if (annotation instanceof InWorldBlockFaceOverlayAnnotation blockOverlay) {
+                    Map<String, Object> payload = serializeBlockOverlay(
+                        blockOverlay,
+                        templates,
+                        currentPageId,
+                        assetExporter,
+                        itemIconResolver);
+                    payload.put("siteControl", "structureLibHatches");
+                    inWorld.add(payload);
                 }
             }
             for (OverlayAnnotation annotation : scene.collectOverlayAnnotationsForExport(layerSelection)) {
@@ -508,7 +526,10 @@ public class GuideSiteSceneAnnotationSerializer {
             @Nullable GuideSiteTemplateRegistry templates, boolean allowNestedItemTooltips) {
             return switch (tooltip) {
                 case TextTooltip textTooltip -> renderPlainTextTooltip(textTooltip.getText());
-                case ItemTooltip itemTooltip -> renderItemTooltip(itemTooltip, itemIconResolver);
+                case ItemTooltip itemTooltip -> renderItemTooltip(
+                    itemTooltip,
+                    itemIconResolver,
+                    templates);
                 case ContentTooltip contentTooltip -> renderBlock(
                         contentTooltip.getContent(),
                         currentPageId,
@@ -535,7 +556,18 @@ public class GuideSiteSceneAnnotationSerializer {
             return html.toString();
         }
 
-        private static String renderItemTooltip(ItemTooltip tooltip, GuideSiteItemIconResolver itemIconResolver) {
+        private static String renderItemTooltip(ItemTooltip tooltip, GuideSiteItemIconResolver itemIconResolver,
+            @Nullable GuideSiteTemplateRegistry templates) {
+            String semanticKey = semanticCacheKey(tooltip);
+            if (templates != null && semanticKey != null) {
+                return templates
+                    .getOrComputeRendered(semanticKey, () -> renderItemTooltipUncached(tooltip, itemIconResolver));
+            }
+            return renderItemTooltipUncached(tooltip, itemIconResolver);
+        }
+
+        private static String renderItemTooltipUncached(ItemTooltip tooltip,
+            GuideSiteItemIconResolver itemIconResolver) {
             ItemStack stack = tooltip.getStack();
             GuideSiteExportedItem item = GuideSiteItemSupport.export(stack, itemIconResolver);
 
@@ -565,6 +597,32 @@ public class GuideSiteSceneAnnotationSerializer {
                     .append("</p>");
             }
             return html.toString();
+        }
+
+        @Nullable
+        private static String semanticCacheKey(@Nullable GuideTooltip tooltip) {
+            if (!(tooltip instanceof ItemTooltip itemTooltip) || tooltip instanceof ItemTooltipAppender) {
+                return null;
+            }
+            ItemStack stack = itemTooltip.getStack();
+            if (stack == null || stack.getItem() == null) {
+                return null;
+            }
+            Object registryName = Item.itemRegistry.getNameForObject(stack.getItem());
+            if (registryName == null) {
+                return null;
+            }
+            StringBuilder key = new StringBuilder("item-tooltip:");
+            key.append(registryName)
+                .append('#')
+                .append(stack.getItemDamage())
+                .append('#')
+                .append(stack.stackSize);
+            if (stack.stackTagCompound != null) {
+                key.append('#')
+                    .append(stack.stackTagCompound);
+            }
+            return key.toString();
         }
 
         private static String renderBlock(@Nullable LytBlock block, @Nullable ResourceLocation currentPageId,
@@ -1261,9 +1319,6 @@ public class GuideSiteSceneAnnotationSerializer {
             if (segment.isEmpty()) {
                 return;
             }
-            String text = escapeHtml(segment.toString());
-            segment.setLength(0);
-
             StringBuilder css = new StringBuilder();
             if (style.color != null) {
                 css.append("color:")
@@ -1291,22 +1346,52 @@ public class GuideSiteSceneAnnotationSerializer {
             }
 
             if (css.isEmpty()) {
-                html.append(text);
+                appendEscapedHtml(html, segment);
+                segment.setLength(0);
                 return;
             }
 
             html.append("<span style=\"")
                 .append(escapeAttribute(css.toString()))
-                .append("\">")
-                .append(text)
-                .append("</span>");
+                .append("\">");
+            appendEscapedHtml(html, segment);
+            html.append("</span>");
+            segment.setLength(0);
+        }
+
+        private static void appendEscapedHtml(StringBuilder target, CharSequence text) {
+            if (target == null || text == null || text.isEmpty()) {
+                return;
+            }
+            for (int i = 0; i < text.length(); i++) {
+                switch (text.charAt(i)) {
+                    case '&' -> target.append("&amp;");
+                    case '<' -> target.append("&lt;");
+                    case '>' -> target.append("&gt;");
+                    case '"' -> target.append("&quot;");
+                    default -> target.append(text.charAt(i));
+                }
+            }
         }
 
         private static String escapeHtml(String text) {
-            return text.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
+            if (text == null || text.isEmpty()) {
+                return text != null ? text : "";
+            }
+            boolean requiresEscaping = false;
+            for (int i = 0; i < text.length(); i++) {
+                char ch = text.charAt(i);
+                if (ch == '&' || ch == '<' || ch == '>' || ch == '"') {
+                    requiresEscaping = true;
+                    break;
+                }
+            }
+            if (!requiresEscaping) {
+                return text;
+            }
+            StringBuilder escaped = new StringBuilder(text.length() + 16);
+            appendEscapedHtml(escaped, text);
+            return escaped.toString();
         }
 
         private static String escapeAttribute(String text) {

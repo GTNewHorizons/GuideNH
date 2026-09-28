@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteSceneTessellatorCapture;
+import com.hfstudio.guidenh.guide.siteexport.site.GuideSiteTextureAnimations;
 
 @Mixin(Tessellator.class)
 public abstract class MixinTessellatorSceneExportCapture {
@@ -48,6 +49,7 @@ public abstract class MixinTessellatorSceneExportCapture {
 
     @Inject(method = "draw", at = @At("HEAD"))
     private void guidenh$captureDraw(CallbackInfoReturnable<Integer> cir) {
+        GuideSiteTextureAnimations.captureVertices(rawBuffer, vertexCount, hasTexture);
         GuideSiteSceneTessellatorCapture capture = GuideSiteSceneTessellatorCapture.getActive();
         if (capture == null) {
             return;

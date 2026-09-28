@@ -20,6 +20,8 @@ public class GuideSiteExportedScene {
     private final String gridAnnotationJson;
     private final boolean blockStatsButtonEnabled;
     private final boolean blockStatsVisible;
+    private final boolean structureLibHatchButtonEnabled;
+    private final boolean structureLibHatchVisible;
 
     public GuideSiteExportedScene(String placeholderPath, String scenePath) {
         this(placeholderPath, scenePath, -1, -1, null, null, null, null, null);
@@ -128,7 +130,9 @@ public class GuideSiteExportedScene {
             gridAnnotationJson,
             blockStatsButtonEnabled,
             blockStatsVisible,
-            null);
+            null,
+            false,
+            false);
     }
 
     public GuideSiteExportedScene(String placeholderPath, String scenePath, int logicalWidth, int logicalHeight,
@@ -136,6 +140,35 @@ public class GuideSiteExportedScene {
         String stateManifestPath, String blockStatsHtml, String blockStatsLayoutClass, String blockStatsLayoutStyle,
         boolean gridButtonEnabled, boolean gridVisible, String gridAnnotationJson, boolean blockStatsButtonEnabled,
         boolean blockStatsVisible, String hoverTargetsPath) {
+        this(
+            placeholderPath,
+            scenePath,
+            logicalWidth,
+            logicalHeight,
+            inWorldJson,
+            overlayJson,
+            hoverTargetsJson,
+            sceneSoundsJson,
+            stateManifestPath,
+            blockStatsHtml,
+            blockStatsLayoutClass,
+            blockStatsLayoutStyle,
+            gridButtonEnabled,
+            gridVisible,
+            gridAnnotationJson,
+            blockStatsButtonEnabled,
+            blockStatsVisible,
+            hoverTargetsPath,
+            false,
+            false);
+    }
+
+    public GuideSiteExportedScene(String placeholderPath, String scenePath, int logicalWidth, int logicalHeight,
+        String inWorldJson, String overlayJson, String hoverTargetsJson, String sceneSoundsJson,
+        String stateManifestPath, String blockStatsHtml, String blockStatsLayoutClass, String blockStatsLayoutStyle,
+        boolean gridButtonEnabled, boolean gridVisible, String gridAnnotationJson, boolean blockStatsButtonEnabled,
+        boolean blockStatsVisible, String hoverTargetsPath, boolean structureLibHatchButtonEnabled,
+        boolean structureLibHatchVisible) {
         this.placeholderPath = placeholderPath;
         this.scenePath = scenePath;
         this.logicalWidth = logicalWidth;
@@ -154,6 +187,8 @@ public class GuideSiteExportedScene {
         this.gridAnnotationJson = gridAnnotationJson;
         this.blockStatsButtonEnabled = blockStatsButtonEnabled;
         this.blockStatsVisible = blockStatsVisible;
+        this.structureLibHatchButtonEnabled = structureLibHatchButtonEnabled;
+        this.structureLibHatchVisible = structureLibHatchVisible;
     }
 
     public String placeholderPath() {
@@ -226,5 +261,13 @@ public class GuideSiteExportedScene {
 
     public boolean blockStatsVisible() {
         return blockStatsVisible;
+    }
+
+    public boolean structureLibHatchButtonEnabled() {
+        return structureLibHatchButtonEnabled;
+    }
+
+    public boolean structureLibHatchVisible() {
+        return structureLibHatchVisible;
     }
 }

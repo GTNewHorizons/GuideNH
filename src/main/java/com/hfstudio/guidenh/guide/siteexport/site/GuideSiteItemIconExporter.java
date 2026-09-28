@@ -27,7 +27,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
      */
     private static final int ICON_SIZE = 128;
 
-    private final GuideSiteAssetRegistry assets;
+    private final GuideSiteTextureAnimations animations;
     private final Map<String, String> exportedIcons = new LinkedHashMap<>();
     @Nullable
     private Framebuffer framebuffer;
@@ -35,7 +35,11 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
     private ByteBuffer pixelBuffer;
 
     public GuideSiteItemIconExporter(GuideSiteAssetRegistry assets) {
-        this.assets = assets;
+        this(assets, new GuideSiteTextureAnimations(assets));
+    }
+
+    public GuideSiteItemIconExporter(GuideSiteAssetRegistry assets, GuideSiteTextureAnimations animations) {
+        this.animations = animations;
     }
 
     @Override
@@ -52,7 +56,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
 
         try {
             String exportedPath = GuideSitePageAssetExporter.ROOT_PREFIX
-                + assets.writePngAsync("item-icons", renderImage(stack.copy()));
+                + animations.exportRendered("item-icons", () -> renderImage(stack.copy()));
             exportedIcons.put(cacheKey, exportedPath);
             return exportedPath;
         } catch (Throwable t) {

@@ -331,6 +331,8 @@ export function disposeHydratedScenes(root) {
       pendingScenes.delete(sourceNode);
       sceneObservers.get(sourceNode)?.unobserve(wrapper);
       observerSources.delete(wrapper);
+      delete sourceNode.__guidenhHydratedRoot;
+      delete sourceNode.dataset.sceneHydrated;
     }
   }
   const detachedRuntimes = [];
