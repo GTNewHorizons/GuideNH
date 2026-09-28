@@ -344,6 +344,9 @@ updated: 2024-06-01
 可以使用 `<Category name="examples" rows="3" />` 渲染分类列表块，
 并使用 `<Special name="SpecialPages" rows="3" />` 嵌入自动生成的 MediaWiki 风格特殊页索引。
 
+语言目录下的 `templates/` 目录是模板页的保留位置。模板页的写法与普通页面相同，但不会出现在列表
+与导航树中。参见[模板](Templates-zh-CN)。
+
 对于 BetterQuesting 集成，`quest_ids` 支持两种格式：
 
 - 标准 UUID 字符串，例如 `01234567-89ab-cdef-0123-456789abcdef`

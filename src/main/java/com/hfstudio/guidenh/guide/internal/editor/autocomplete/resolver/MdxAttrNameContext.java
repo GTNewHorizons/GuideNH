@@ -11,12 +11,24 @@ public class MdxAttrNameContext implements AutocompleteContext {
     private final int replaceStart;
     private final int replaceEnd;
     private final String partialText;
+    @Getter
+    private final String templateName;
 
     public MdxAttrNameContext(String tagName, int replaceStart, int replaceEnd, String partialText) {
+        this(tagName, replaceStart, replaceEnd, partialText, null);
+    }
+
+    public MdxAttrNameContext(String tagName, int replaceStart, int replaceEnd, String partialText,
+        String templateName) {
         this.tagName = tagName;
         this.replaceStart = replaceStart;
         this.replaceEnd = replaceEnd;
         this.partialText = partialText;
+        this.templateName = templateName;
+    }
+
+    public boolean hasTemplate() {
+        return templateName != null && !templateName.isBlank();
     }
 
     @Override

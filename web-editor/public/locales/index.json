@@ -1,0 +1,256 @@
+{
+  "languages": [
+    {
+      "code": "de_de",
+      "label": "Deutsch",
+      "referencePath": "de/_de",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "en_us",
+      "label": "English",
+      "referencePath": "en/_us",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "es_es",
+      "label": "Español",
+      "referencePath": "es/_es",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "fr_fr",
+      "label": "Français",
+      "referencePath": "fr/_fr",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "ja_jp",
+      "label": "日本語",
+      "referencePath": "ja/_jp",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "nl_nl",
+      "label": "Nederlands",
+      "referencePath": "nl/_nl",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "pl_pl",
+      "label": "Polski",
+      "referencePath": "pl/_pl",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "pt_br",
+      "label": "Português",
+      "referencePath": "pt/_br",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "ru_ru",
+      "label": "Русский",
+      "referencePath": "ru/_ru",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "uk_ua",
+      "label": "Українська",
+      "referencePath": "uk/_ua",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "zh_cn",
+      "label": "简体中文",
+      "referencePath": "zh/_cn",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    },
+    {
+      "code": "zh_tw",
+      "label": "繁體中文",
+      "referencePath": "zh/_tw",
+      "referenceDocuments": [
+        "Annotations",
+        "Examples",
+        "GameScene",
+        "Guide-Page-Format",
+        "Images-And-Assets",
+        "Localization",
+        "Mod-Compatibility",
+        "Navigation",
+        "Ponder",
+        "Recipes",
+        "Structure-Export",
+        "Syntax-Completion",
+        "Tags-Reference"
+      ],
+      "fallbackDocuments": []
+    }
+  ]
+}

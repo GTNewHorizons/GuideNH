@@ -62,3 +62,4 @@ layout.json
 .claude/
 CLAUDE.md
 .profileconfig.json
+/web-editor/node_modules

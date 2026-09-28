@@ -3,7 +3,6 @@ import { setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-A42
 const sceneStateManifestCache = new Map();
 const ROOT_PREFIX_TOKEN = "{{root}}/";
 const SCENE_CONTEXT_KEY = Symbol("guidenhSceneContext");
-const SITE_SCENE_CONTROL_SCALE = 3;
 const SCENE_BUTTON_ICONS = {
   previousKeyframe: [0, 0],
   playPause: [0, 64],
@@ -12,13 +11,76 @@ const SCENE_BUTTON_ICONS = {
   zoomOut: [32, 16],
   resetView: [0, 32],
   toggleGrid: [16, 64],
-  toggleBlockStats: [0, 0],
+  toggleBlockStats: [16, 48],
 };
 const PONDER_INPUT_LABELS = {
   lmb: "LMB",
   rmb: "RMB",
   scroll: "Scroll",
 };
+
+const SCENE_LABELS = {
+  en: { grid: "Toggle Floor Grid", stats: "Toggle Block Stats", zoomIn: "Zoom in", zoomOut: "Zoom out", reset: "Reset view", previous: "Previous Keyframe", playPause: "Play / Pause", restart: "Restart" },
+  zh: { grid: "切换地面网格", stats: "切换方块统计", zoomIn: "放大", zoomOut: "缩小", reset: "重置视角", previous: "上一个关键帧", playPause: "播放/暂停", restart: "重新开始" },
+  "zh-tw": { grid: "切換地面網格", stats: "切換方塊統計", zoomIn: "放大", zoomOut: "縮小", reset: "重設視角", previous: "上一個關鍵影格", playPause: "播放／暫停", restart: "重新開始" },
+  ja: { grid: "床面グリッドを切り替え", stats: "ブロック統計を切り替え", zoomIn: "拡大", zoomOut: "縮小", reset: "視点をリセット", previous: "前のキーフレーム", playPause: "再生/一時停止", restart: "最初から再生" },
+  ru: { grid: "Переключить сетку пола", stats: "Переключить статистику блоков", zoomIn: "Увеличить", zoomOut: "Уменьшить", reset: "Сбросить вид", previous: "Предыдущий ключевой кадр", playPause: "Воспроизведение/пауза", restart: "Начать заново" },
+  fr: { grid: "Afficher la grille au sol", stats: "Afficher les statistiques des blocs", zoomIn: "Zoom avant", zoomOut: "Zoom arrière", reset: "Réinitialiser la vue", previous: "Image clé précédente", playPause: "Lecture/Pause", restart: "Recommencer" },
+  de: { grid: "Bodengitter umschalten", stats: "Blockstatistik umschalten", zoomIn: "Vergrößern", zoomOut: "Verkleinern", reset: "Ansicht zurücksetzen", previous: "Vorheriger Keyframe", playPause: "Wiedergabe/Pause", restart: "Neu starten" },
+  pl: { grid: "Przełącz siatkę podłoża", stats: "Przełącz statystyki bloków", zoomIn: "Powiększ", zoomOut: "Pomniejsz", reset: "Resetuj widok", previous: "Poprzednia klatka kluczowa", playPause: "Odtwórz/Wstrzymaj", restart: "Uruchom ponownie" },
+  nl: { grid: "Vloerrooster wisselen", stats: "Blokstatistieken wisselen", zoomIn: "Inzoomen", zoomOut: "Uitzoomen", reset: "Weergave herstellen", previous: "Vorig keyframe", playPause: "Afspelen/Pauzeren", restart: "Opnieuw starten" },
+  es: { grid: "Alternar cuadrícula del suelo", stats: "Alternar estadísticas de bloques", zoomIn: "Acercar", zoomOut: "Alejar", reset: "Restablecer vista", previous: "Fotograma clave anterior", playPause: "Reproducir/Pausar", restart: "Reiniciar" },
+  pt: { grid: "Alternar grade do chão", stats: "Alternar estatísticas de blocos", zoomIn: "Ampliar", zoomOut: "Reduzir", reset: "Redefinir vista", previous: "Quadro-chave anterior", playPause: "Reproduzir/Pausar", restart: "Reiniciar" },
+  uk: { grid: "Перемкнути сітку підлоги", stats: "Перемкнути статистику блоків", zoomIn: "Збільшити", zoomOut: "Зменшити", reset: "Скинути вигляд", previous: "Попередній ключовий кадр", playPause: "Відтворення/пауза", restart: "Почати спочатку" },
+};
+
+function sceneLabels() {
+  const language = `${document.documentElement?.lang || "en"}`.toLowerCase().replaceAll("_", "-");
+  return SCENE_LABELS[language] || SCENE_LABELS[language.split("-")[0]] || SCENE_LABELS.en;
+}
+
+const sceneTooltipTemplates = new Map();
+let tintedIconSpritePromise;
+
+function sceneTooltipTemplate(documentRef, label) {
+  if (!sceneTooltipTemplates.has(label)) {
+    const template = documentRef.createElement("template");
+    template.id = `guide-scene-tooltip-${sceneTooltipTemplates.size}`;
+    const content = documentRef.createElement("span");
+    content.textContent = label;
+    template.content.append(content);
+    documentRef.body.append(template);
+    sceneTooltipTemplates.set(label, template.id);
+  }
+  return sceneTooltipTemplates.get(label);
+}
+
+function ensureTintedIconSprite(documentRef) {
+  tintedIconSpritePromise ||= new Promise((resolve) => {
+    const sprite = new Image();
+    sprite.onload = () => {
+      const canvas = documentRef.createElement("canvas");
+      canvas.width = sprite.naturalWidth;
+      canvas.height = sprite.naturalHeight;
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.drawImage(sprite, 0, 0);
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+        for (let index = 0; index < pixels.data.length; index += 4) {
+          pixels.data[index] = 0;
+          pixels.data[index + 1] = Math.round(pixels.data[index + 1] * 202 / 255);
+          pixels.data[index + 2] = Math.round(pixels.data[index + 2] * 242 / 255);
+        }
+        context.putImageData(pixels, 0, 0);
+        documentRef.documentElement.style.setProperty("--scene-icon-tinted-sprite", `url("${canvas.toDataURL()}")`);
+      }
+      resolve();
+    };
+    sprite.onerror = resolve;
+    sprite.src = new URL("../textures/guide/buttons.png", import.meta.url).href;
+  });
+  return tintedIconSpritePromise;
+}
 
 function findDescriptor(target, property) {
   let current = target;
@@ -191,6 +253,11 @@ function attachSceneContext(sceneContext) {
   const wrapper = sceneContext?.runtime?.wrapper;
   if (wrapper instanceof HTMLElement) {
     wrapper[SCENE_CONTEXT_KEY] = sceneContext;
+    wrapper.classList.toggle("game-scene-wrapper--interactive", sceneContext.descriptor.interactive);
+    const sceneKind = sceneContext.descriptor?.attributes?.["data-scene-kind"];
+    if (sceneKind) {
+      wrapper.dataset.sceneKind = sceneKind;
+    }
     const sceneSounds = sceneContext.descriptor?.attributes?.["data-guide-scene-sounds"];
     if (sceneSounds) {
       wrapper.dataset.guideSceneSounds = sceneSounds;
@@ -220,9 +287,27 @@ function disposeSceneContext(sceneContext, removeWrapper = true) {
   sceneContext.overlayRuntime?.dispose?.();
   sceneContext.overlayRuntime = null;
   if (removeWrapper && wrapper?.isConnected) {
-    wrapper.remove();
+    const sourceNode = sceneContext.sourceNode;
+    if (sourceNode instanceof HTMLImageElement) {
+      restoreSceneNode(sourceNode, sceneContext.descriptor);
+      wrapper.replaceWith(sourceNode);
+    } else {
+      wrapper.remove();
+    }
   }
   sceneContext.runtime = null;
+}
+
+function restoreSceneNode(node, descriptor) {
+  const attributes = descriptor?.attributes || {};
+  for (const attribute of Array.from(node.attributes)) {
+    if (!(attribute.name in attributes)) {
+      node.removeAttribute(attribute.name);
+    }
+  }
+  for (const [name, value] of Object.entries(attributes)) {
+    node.setAttribute(name, value);
+  }
 }
 
 function setOrRemoveAttribute(node, name, value) {
@@ -349,8 +434,10 @@ function createInputAnnotationNode(documentRef, annotation) {
   }
 
   const input = documentRef.createElement("span");
-  input.className = "scene-input-annotation-key";
-  input.textContent = PONDER_INPUT_LABELS[`${annotation?.inputType || ""}`.toLowerCase()] || "LMB";
+  const inputType = `${annotation?.inputType || "lmb"}`.toLowerCase();
+  input.className = `scene-input-annotation-key scene-input-annotation-key--${inputType}`;
+  input.setAttribute("aria-label", PONDER_INPUT_LABELS[inputType] || "LMB");
+  input.textContent = inputType === "scroll" ? "↕" : "";
   body.append(input);
 
   return wrapper;
@@ -679,12 +766,16 @@ function applyIconButton(button, icon, labelText) {
     return button;
   }
   button.classList.add("scene-icon-button");
-  button.style.setProperty("--scene-icon-x", `${-icon[0] * SITE_SCENE_CONTROL_SCALE}px`);
-  button.style.setProperty("--scene-icon-y", `${-icon[1] * SITE_SCENE_CONTROL_SCALE}px`);
+  button.classList.remove("minecraft-tooltip");
+  button.removeAttribute("data-tooltip-text");
+  button.removeAttribute("title");
+  button.style.setProperty("--scene-icon-x", `calc(${-icon[0]}px * var(--gui-scale))`);
+  button.style.setProperty("--scene-icon-y", `calc(${-icon[1]}px * var(--gui-scale))`);
   if (labelText) {
     button.setAttribute("aria-label", labelText);
-    button.title = labelText;
+    button.dataset.template = sceneTooltipTemplate(button.ownerDocument, labelText);
   }
+  ensureTintedIconSprite(button.ownerDocument);
   return button;
 }
 
@@ -696,13 +787,13 @@ function normalizeVendorSceneControls(wrapper) {
   for (const button of controls.querySelectorAll("button")) {
     const text = button.textContent?.trim();
     if (text === "+") {
-      applyIconButton(button, SCENE_BUTTON_ICONS.zoomIn, button.dataset.tooltipText || "Zoom in");
+      applyIconButton(button, SCENE_BUTTON_ICONS.zoomIn, sceneLabels().zoomIn);
       button.textContent = "";
     } else if (text === "-") {
-      applyIconButton(button, SCENE_BUTTON_ICONS.zoomOut, button.dataset.tooltipText || "Zoom out");
+      applyIconButton(button, SCENE_BUTTON_ICONS.zoomOut, sceneLabels().zoomOut);
       button.textContent = "";
     } else if (text === "R") {
-      applyIconButton(button, SCENE_BUTTON_ICONS.resetView, button.dataset.tooltipText || "Reset view");
+      applyIconButton(button, SCENE_BUTTON_ICONS.resetView, sceneLabels().reset);
       button.textContent = "";
     }
   }
@@ -724,7 +815,7 @@ function ensureSceneActionControlsHost(wrapper) {
 function createSceneActionButton(documentRef, icon, labelText, active, onClick) {
   const button = documentRef.createElement("button");
   button.type = "button";
-  button.className = "minecraft-tooltip";
+  button.className = "scene-icon-button";
   applyIconButton(button, icon, labelText);
   button.setAttribute("aria-pressed", active ? "true" : "false");
   button.addEventListener("click", (event) => {
@@ -755,7 +846,7 @@ function mountSceneActionControls(sceneContext) {
     const gridButton = createSceneActionButton(
       documentRef,
       SCENE_BUTTON_ICONS.toggleGrid,
-      "Toggle Floor Grid",
+      sceneLabels().grid,
       descriptor.gridVisible,
       () => {
         toggleSceneGrid(sceneContext);
@@ -769,7 +860,7 @@ function mountSceneActionControls(sceneContext) {
     const blockStatsButton = createSceneActionButton(
       documentRef,
       SCENE_BUTTON_ICONS.toggleBlockStats,
-      "Toggle Block Stats",
+      sceneLabels().stats,
       descriptor.blockStatsVisible,
       (button) => {
         descriptor.blockStatsVisible = !descriptor.blockStatsVisible;
@@ -913,19 +1004,19 @@ function createPonderControl(documentRef, control, currentTick, onChange, abortS
   const previousButton = documentRef.createElement("button");
   previousButton.type = "button";
   previousButton.className = "scene-ponder-button scene-icon-button";
-  applyIconButton(previousButton, SCENE_BUTTON_ICONS.previousKeyframe, control.previousLabel || "Previous Keyframe");
+  applyIconButton(previousButton, SCENE_BUTTON_ICONS.previousKeyframe, sceneLabels().previous);
   buttons.append(previousButton);
 
   const playButton = documentRef.createElement("button");
   playButton.type = "button";
   playButton.className = "scene-ponder-button scene-icon-button";
-  applyIconButton(playButton, SCENE_BUTTON_ICONS.playPause, control.playPauseLabel || "Play / Pause");
+  applyIconButton(playButton, SCENE_BUTTON_ICONS.playPause, sceneLabels().playPause);
   buttons.append(playButton);
 
   const restartButton = documentRef.createElement("button");
   restartButton.type = "button";
   restartButton.className = "scene-ponder-button scene-icon-button";
-  applyIconButton(restartButton, SCENE_BUTTON_ICONS.restart, control.restartLabel || "Restart");
+  applyIconButton(restartButton, SCENE_BUTTON_ICONS.restart, sceneLabels().restart);
   buttons.append(restartButton);
 
   const range = documentRef.createElement("input");
@@ -1371,6 +1462,7 @@ async function initializeScene(node) {
 
   const sceneContext = {
     descriptor,
+    sourceNode: node,
     htmlOverlayAnnotations: split.htmlAnnotations,
     overlayRuntime: null,
     runtime,

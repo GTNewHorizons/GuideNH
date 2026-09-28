@@ -34,6 +34,7 @@ import com.hfstudio.guidenh.guide.Guide;
 import com.hfstudio.guidenh.guide.GuidePage;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageCollection;
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
@@ -739,6 +740,11 @@ public class GuideSiteExportTask {
 
     private byte[] loadGuideAssetVariant(MutableGuide guide, IResourceManager resourceManager, ResourceLocation assetId)
         throws IOException {
+        String normalizedPath = IdUtils.normalizeAssetPath(assetId.getResourcePath());
+        if (normalizedPath == null) {
+            return null;
+        }
+        assetId = new ResourceLocation(assetId.getResourceDomain(), normalizedPath);
         Path developmentPath = guide.getDevelopmentSourcePath(assetId);
         if (developmentPath != null && Files.exists(developmentPath)) {
             return Files.readAllBytes(developmentPath);
@@ -1005,7 +1011,7 @@ public class GuideSiteExportTask {
             html.append("<div class=\"guide-scene-block-stat\" data-block-stat-key=\"")
                 .append(escapeAttribute(entry.getKey()))
                 .append("\">");
-            GuideSiteItemHtml.appendIcon(html, item, "guide-scene-block-stat-icon", 0.75f, true);
+            GuideSiteItemHtml.appendIcon(html, item, "guide-scene-block-stat-icon", 1.0f, true);
             html.append("<span class=\"guide-scene-block-stat-label\">")
                 .append(escapeHtml(entry.getLabel()))
                 .append("</span><span class=\"guide-scene-block-stat-count\">x")

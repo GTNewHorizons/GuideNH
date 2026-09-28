@@ -198,18 +198,22 @@ public class DataDrivenGuideLoader {
     private static void addPackCandidates(Map<ResourceLocation, List<PackCandidate>> index, IResourcePack resourcePack,
         String folder, PackEntry entry) {
 
-        var resourceLocation = new ResourceLocation(
-            entry.namespace(),
-            folder + "/" + entry.language() + "/" + entry.relativePath());
+        String localizedPath = entry.language()
+            .isEmpty() ? folder + "/" + entry.relativePath()
+                : folder + "/" + entry.language() + "/" + entry.relativePath();
+        var resourceLocation = new ResourceLocation(entry.namespace(), localizedPath);
 
         index.computeIfAbsent(resourceLocation, k -> new ArrayList<>())
             .add(new PackCandidate(resourcePack, resourceLocation, pagePackOrder.getAndIncrement()));
 
-        index
-            .computeIfAbsent(
-                new ResourceLocation(entry.namespace(), folder + "/" + entry.relativePath()),
-                k -> new ArrayList<>())
-            .add(new PackCandidate(resourcePack, resourceLocation, pagePackOrder.getAndIncrement()));
+        if (!entry.language()
+            .isEmpty()) {
+            index
+                .computeIfAbsent(
+                    new ResourceLocation(entry.namespace(), folder + "/" + entry.relativePath()),
+                    k -> new ArrayList<>())
+                .add(new PackCandidate(resourcePack, resourceLocation, pagePackOrder.getAndIncrement()));
+        }
     }
 
     public static List<String> getLangFilePaths(IResourcePack resourcePack) {

@@ -355,6 +355,10 @@ updated: 2024-06-01
 Use `<Category name="examples" rows="3" />` to render a category listing block, and
 `<Special name="SpecialPages" rows="3" />` to embed the generated MediaWiki-style special-page index.
 
+The `templates/` folder under a language folder is reserved for template pages. Templates are written
+like any other page but are excluded from listings and the navigation tree. See
+[Templates](Templates).
+
 For BetterQuesting integration, `quest_ids` accepts either of these formats:
 
 - canonical UUID strings such as `01234567-89ab-cdef-0123-456789abcdef`

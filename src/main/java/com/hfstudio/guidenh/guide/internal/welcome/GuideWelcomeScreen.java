@@ -390,7 +390,7 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
     @Nullable
     private GuidePage compilePage(GuideWelcomeContent.LoadedContent loadedContent) {
         if (pageCollection == null) {
-            GuideDebugLog.warnAlways("[GuideNH] Failed to compile welcome popup: no guide collection is available");
+            GuideDebugLog.warn("[GuideNH] Failed to compile welcome popup: no guide collection is available");
             return null;
         }
         try {

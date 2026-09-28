@@ -11,10 +11,12 @@
   <body class="guide-site-body">
     <main class="guide-site">
       <header class="guide-header">
+        <button class="guide-mobile-nav-toggle" type="button" data-guide-mobile-nav-toggle aria-controls="guide-site-navigation" aria-expanded="false" aria-label=""><span aria-hidden="true">&#9776;</span></button>
         <a class="guide-logo" href="{{root}}/index.html">GuideNH</a>
         <div class="guide-header-lang">{{lang_switcher}}</div>
       </header>
-      <aside class="guide-sidebar">{{sidebar}}</aside>
+      <aside class="guide-sidebar" id="guide-site-navigation">{{sidebar}}</aside>
+      <button class="guide-mobile-nav-backdrop" type="button" data-guide-mobile-nav-backdrop aria-label="" tabindex="-1" hidden></button>
       <section class="guide-content">
         <article id="page-content" class="guide-page">{{content}}</article>
       </section>

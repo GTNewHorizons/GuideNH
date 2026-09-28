@@ -34,7 +34,7 @@ public class GuideWelcomeContent {
             return content;
         }
 
-        GuideDebugLog.warnAlways("[GuideNH] Failed to load any welcome popup content");
+        GuideDebugLog.warn("[GuideNH] Failed to load any welcome popup content");
         return new LoadedContent(GuideNH.MODID, LangUtil.ENGLISH_LANGUAGE, "");
     }
 

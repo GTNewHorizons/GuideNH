@@ -24,6 +24,9 @@ import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.internal.util.NavigationUtil;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDefinition;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateParameters;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateRepository;
 
 public class MediaWikiSpecialPageResolver {
 
@@ -121,6 +124,8 @@ public class MediaWikiSpecialPageResolver {
                 .grouped(definition, buildLanguageSearchGroups(context, effectiveQuery), effectiveQuery);
             case MediaWikiSpecialPageIds.CONTRIBUTE -> MediaWikiSpecialPageModels
                 .flat(definition, buildContributorEntries(context), effectiveQuery);
+            case MediaWikiSpecialPageIds.TEMPLATES -> MediaWikiSpecialPageModels
+                .grid(definition, buildTemplateEntries(context), effectiveQuery);
             default -> MediaWikiSpecialPageModels
                 .info(definition, GuidebookText.MediaWikiSpecialPageNotImplemented.text());
         };
@@ -901,6 +906,49 @@ public class MediaWikiSpecialPageResolver {
             builder.append(joiner);
         }
         return builder.toString();
+    }
+
+    /**
+     * Every template the guide currently defines, taken from the template repository so the list matches what
+     * a {@code <Template>} call can actually reach.
+     */
+    private List<MediaWikiSpecialListEntry> buildTemplateEntries(MediaWikiListContext context) {
+        ArrayList<MediaWikiSpecialListEntry> entries = new ArrayList<>();
+        for (MediaWikiTemplateDefinition template : MediaWikiTemplateRepository.all()) {
+            ParsedGuidePage page = context.specialDataIndex()
+                .normalPagesById()
+                .get(template.pageId());
+            String title = page != null ? resolvePageTitle(context, page)
+                : MediaWikiPageIds.toCategoryTitle(
+                    template.name()
+                        .value());
+            String parameters = buildTemplateParameterSummary(template.parameters());
+            entries.add(
+                new MediaWikiSpecialListEntry(
+                    title,
+                    parameters,
+                    title + " "
+                        + template.name()
+                            .value()
+                        + " "
+                        + parameters,
+                    template.pageId(),
+                    null,
+                    page != null ? pageIcon(page) : null));
+        }
+        entries.sort(this::compareEntries);
+        return entries;
+    }
+
+    private String buildTemplateParameterSummary(MediaWikiTemplateParameters parameters) {
+        if (parameters == null) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>(parameters.named());
+        for (Integer position : parameters.positions()) {
+            parts.add(String.valueOf(position));
+        }
+        return String.join(", ", parts);
     }
 
     private List<MediaWikiSpecialListEntry> buildContributorEntries(MediaWikiListContext context) {

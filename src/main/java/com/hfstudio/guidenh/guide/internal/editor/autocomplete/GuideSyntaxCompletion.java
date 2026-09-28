@@ -14,6 +14,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.Autocomp
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.MarkdownSyntaxCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.SyntaxValueCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.TagCandidate;
+import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.TemplateArgumentCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.provider.TextCandidate;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FenceLanguageContext;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver.FrontmatterContext;
@@ -110,13 +111,40 @@ public class GuideSyntaxCompletion {
     private static List<AutocompleteCandidate> attributeCandidates(GuideSyntaxModel model, MdxAttrNameContext context,
         int limit) {
         List<AutocompleteCandidate> results = new ArrayList<>();
+        // A <Template> call takes its arguments as attributes, so once the target is named its own parameters
+        // are offered ahead of the generic attribute list.
+        Set<String> declared = new HashSet<>();
         for (AttributeSyntax attribute : model.attributes(context.getTagName(), context.getPartialText())) {
             if (results.size() >= limit) {
                 break;
             }
+            declared.add(
+                attribute.name()
+                    .toLowerCase(Locale.ROOT));
             results.add(new AttributeNameCandidate(attribute));
         }
+        if (context.hasTemplate()) {
+            for (AttributeSyntax argument : TemplateArgumentCandidate.argumentsOf(context.getTemplateName())) {
+                if (results.size() >= limit) {
+                    break;
+                }
+                if (!declared.add(
+                    argument.name()
+                        .toLowerCase(Locale.ROOT))) {
+                    continue;
+                }
+                if (matchesPartial(argument.name(), context.getPartialText())) {
+                    results.add(new TemplateArgumentCandidate(argument, context.getTemplateName()));
+                }
+            }
+        }
         return results;
+    }
+
+    private static boolean matchesPartial(String name, String partial) {
+        return partial == null || partial.isEmpty()
+            || name.toLowerCase(Locale.ROOT)
+                .startsWith(partial.toLowerCase(Locale.ROOT));
     }
 
     private static List<AutocompleteCandidate> markdownCandidates(GuideSyntaxModel model, MarkdownSyntaxContext context,

@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.internal.editor.autocomplete.resolver;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -12,6 +14,7 @@ import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxElementType
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.SyntaxUtils;
 import com.hfstudio.guidenh.guide.internal.editor.autocomplete.TextSyntaxContext;
 import com.hfstudio.guidenh.guide.internal.markdown.MdAstToMdxConverter;
+import com.hfstudio.guidenh.guide.mediawiki.template.TemplateTags;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
 import com.hfstudio.guidenh.libs.mdast.MdastOptions;
@@ -784,8 +787,27 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
             SyntaxElementType.ATTRIBUTE_NAME,
             nameStart,
             nameEnd,
-            new MdxAttrNameContext(tagName, nameStart, nameEnd, partial));
+            new MdxAttrNameContext(
+                tagName,
+                nameStart,
+                nameEnd,
+                partial,
+                resolveTemplateName(text, tagName, scanStart, tagEnd)));
     }
+
+    private static @Nullable String resolveTemplateName(String text, String tagName, int scanStart, int tagEnd) {
+        if (!TemplateTags.TEMPLATE.equals(tagName) || tagEnd <= scanStart) {
+            return null;
+        }
+        Matcher matcher = TEMPLATE_NAME_PATTERN.matcher(text.substring(scanStart, Math.min(tagEnd, text.length())));
+        if (!matcher.find()) {
+            return null;
+        }
+        String doubled = matcher.group(2);
+        return doubled != null ? doubled : matcher.group(3);
+    }
+
+    private static final Pattern TEMPLATE_NAME_PATTERN = Pattern.compile("\\bname\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)')");
 
     public static int findOpeningTagEnd(String text, int tagStart) {
         boolean inSingle = false;

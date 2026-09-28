@@ -121,6 +121,7 @@ import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar.ContextTarget;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar.ExpansionChange;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
+import com.hfstudio.guidenh.guide.internal.screen.GuideNavProjection;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchResultDocumentBuilder;
@@ -139,6 +140,8 @@ import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialCatalog;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialGeneratedBlock;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialPageIds;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateDefinition;
+import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateRepository;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuideFontCompat;
@@ -549,6 +552,9 @@ public class GuideScreen extends GuiContainer
             bookmarkState,
             route.isContent() && currentAnchor != null ? currentAnchor.pageId() : null,
             null);
+        // The editor may already be enabled when the screen opens, so the template section is populated here
+        // as well as when the toggle changes.
+        refreshNavigationTemplateRows();
         navBar.setOnExpansionChanged((changes, allCollapsed) -> {
             ResourceLocation currentGuideId = guide != null ? guide.getId() : null;
             updateSavedExpansionStates(changes, currentGuideId);
@@ -1083,7 +1089,10 @@ public class GuideScreen extends GuiContainer
     }
 
     private boolean hasEditableContentRoute() {
-        return hasContentRoute() && !isSearchPage() && !isItemLinksPage();
+        // A special page is generated from the guide's own data and has no source file, so there is nothing to
+        // edit: the editor pane stays out of the way rather than offering to change a page that cannot be
+        // written. The same applies to the two built-in synthetic views.
+        return hasContentRoute() && !isSearchPage() && !isItemLinksPage() && !isSpecialPage();
     }
 
     private void syncGuideEditorStateFromConfig() {
@@ -1110,6 +1119,7 @@ public class GuideScreen extends GuiContainer
             syncGuideEditorStateFromConfig();
             refreshGuideEditorDraft(true);
             rebuildToolbar();
+            refreshNavigationTemplateRows();
             ensureLayout();
             clampScroll();
             return true;
@@ -1130,8 +1140,38 @@ public class GuideScreen extends GuiContainer
         }
         reloadPage();
         rebuildToolbar();
+        refreshNavigationTemplateRows();
         ensureLayout();
         clampScroll();
+    }
+
+    /**
+     * Feeds the navigation bar the template section. Templates are listed only while the guide editor is on,
+     * because the section exists so a template can be opened and edited in game; ordinary reading keeps the
+     * sidebar as the pack's navigation defines it.
+     */
+    private void refreshNavigationTemplateRows() {
+        List<GuideNavProjection.DisplayRow> rows = GuideScreenEditorState.isEnabled() ? buildNavigationTemplateRows()
+            : List.of();
+        navBar.setTemplateRows(rows, resolveNavigationTree(), bookmarkState);
+    }
+
+    private List<GuideNavProjection.DisplayRow> buildNavigationTemplateRows() {
+        List<GuideNavProjection.DisplayRow> rows = new ArrayList<>();
+        for (MediaWikiTemplateDefinition template : MediaWikiTemplateRepository.all()) {
+            rows.add(
+                new GuideNavProjection.DisplayRow(
+                    GuideNavProjection.RowKind.TEMPLATE_PAGE,
+                    1,
+                    template.name()
+                        .value(),
+                    null,
+                    template.guideId(),
+                    template.pageId(),
+                    false,
+                    true));
+        }
+        return rows;
     }
 
     private void toggleGuideEditorAdvancedButtons() {
@@ -1376,7 +1416,7 @@ public class GuideScreen extends GuiContainer
     private void ensureGuideEditorTextArea() {
         if (guideEditorTextArea == null) {
             guideEditorTextArea = new SceneEditorMultilineTextArea(fontRendererObj);
-            guideEditorTextArea.setDoubleClickHandler(cursorIndex -> applyGuideEditorDoubleClickSelection(cursorIndex));
+            guideEditorTextArea.setDoubleClickHandler(this::applyGuideEditorDoubleClickSelection);
         }
         guideEditorTextArea.setWrapEnabled(GuideScreenEditorState.isWrapEnabled());
     }
@@ -1562,8 +1602,10 @@ public class GuideScreen extends GuiContainer
                 currentAnchor.pageId(),
                 guideEditorDraftSource);
             updateGuideEditorSyntaxWarning(parsedDraft);
-            GuidePage compiledPreview = PageCompiler
-                .compile(buildGuideEditorPreviewGuide(parsedDraft), guide.getExtensions(), parsedDraft);
+            GuidePage compiledPreview = PageCompiler.compileTemplateEditorPreview(
+                buildGuideEditorPreviewGuide(parsedDraft),
+                guide.getExtensions(),
+                parsedDraft);
             if (guideEditorPreviewPage != null && guideEditorPreviewPage != compiledPreview) {
                 guideEditorPreviewPage.releaseRuntimeScenes();
             }
@@ -1961,6 +2003,9 @@ public class GuideScreen extends GuiContainer
         guideEditorNavigationRefreshPending = false;
         try {
             guide.rebuildEditorNavigationStateWithoutValidation();
+            // The template repository is rebuilt as part of the same pass, so the section is refreshed here
+            // rather than only when the editor is toggled.
+            refreshNavigationTemplateRows();
             GuideME.getSearch()
                 .index(guide);
         } catch (Throwable t) {
@@ -6665,10 +6710,14 @@ public class GuideScreen extends GuiContainer
             return;
         }
         if (anchor == null || anchor.equals(currentAnchor) && hasContentRoute()) return;
+        ResourceLocation guideId = currentRoute != null && currentRoute.isContent() ? currentRoute.guideId() : null;
+        if (guideId == null) {
+            return;
+        }
         confirmGuideEditorDirtyBefore(() -> {
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
             rememberCurrentContentStateIfEligible();
-            restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guide.getId(), anchor), 0));
+            restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guideId, anchor), 0));
         });
     }
 

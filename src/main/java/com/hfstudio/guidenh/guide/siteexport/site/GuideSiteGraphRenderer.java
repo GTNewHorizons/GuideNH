@@ -260,7 +260,9 @@ public class GuideSiteGraphRenderer {
             return "<div class=\"guide-mermaid-pan\" data-guide-pannable>"
                 + "<div class=\"guide-mermaid-stage\" data-guide-mermaid-stage>"
                 + "<svg class=\"guide-mermaid-canvas\" width=\"100\" height=\"40\"></svg>"
-                + "<div class=\"guide-mermaid-node-layer\"></div></div></div>";
+                + "<div class=\"guide-mermaid-node-layer\"></div>"
+                + "<p class=\"guide-diagram-empty\">No Mermaid nodes were found.</p>"
+                + "</div></div>";
         }
         MmLayoutNode root = buildMmLayout(
             doc.getRoot(),
@@ -288,6 +290,7 @@ public class GuideSiteGraphRenderer {
             return "<div class=\"guide-mermaid-pan\" data-guide-pannable>"
                 + "<div class=\"guide-mermaid-stage\" data-guide-mermaid-stage>"
                 + "<svg class=\"guide-mermaid-canvas\" width=\"100\" height=\"40\"></svg>"
+                + "<p class=\"guide-diagram-empty\">No Mermaid nodes were found.</p>"
                 + "</div></div>";
         }
         String rootNodeId = doc.getNodeOrder()
@@ -436,7 +439,7 @@ public class GuideSiteGraphRenderer {
             .append(w)
             .append("\" height=\"")
             .append(h)
-            .append("\" rx=\"6\" ry=\"6\"")
+            .append("\" rx=\"0\" ry=\"0\"")
             .append(" fill=\"")
             .append(bg)
             .append("\"")
@@ -665,7 +668,7 @@ public class GuideSiteGraphRenderer {
                     .append(labelW)
                     .append("\" height=\"")
                     .append(labelH)
-                    .append("\" rx=\"3\"")
+                    .append("\" rx=\"0\"")
                     .append(" fill=\"")
                     .append(argbToRgba(ColorUtils.ARGB_CC0C1117.getColor()))
                     .append("\" stroke=\"rgba(180,180,200,0.3)\"")
@@ -828,7 +831,7 @@ public class GuideSiteGraphRenderer {
                     .append(rectH)
                     .append("\" fill=\"")
                     .append(argbToRgba(accent))
-                    .append("\" rx=\"1\"/>\n");
+                    .append("\" rx=\"0\"/>\n");
             }
 
             int padX = isRoot ? 15 : 10;
@@ -856,7 +859,7 @@ public class GuideSiteGraphRenderer {
                         .append(badgeWidth)
                         .append("\" height=\"")
                         .append(badgeHeight)
-                        .append("\" rx=\"3\" ry=\"3\"")
+                        .append("\" rx=\"0\" ry=\"0\"")
                         .append(" fill=\"")
                         .append(argbToRgba(MermaidNodeRenderer.BADGE_BACKGROUND))
                         .append("\" stroke=\"")
@@ -1059,15 +1062,42 @@ public class GuideSiteGraphRenderer {
 
     public static String renderCsvTable(String csvSource, boolean hasHeader) {
         List<List<String>> rows = CsvTableParser.parse(csvSource);
-        return renderCsvTable(rows, hasHeader);
+        return renderCsvTable(rows, hasHeader, List.of());
     }
 
     public static String renderCsvTable(List<List<String>> rows, boolean hasHeader) {
+        return renderCsvTable(rows, hasHeader, List.of());
+    }
+
+    public static String renderCsvTable(String csvSource, boolean hasHeader, List<Integer> widths) {
+        List<List<String>> rows = CsvTableParser.parse(csvSource);
+        return renderCsvTable(rows, hasHeader, widths);
+    }
+
+    public static String renderCsvTable(List<List<String>> rows, boolean hasHeader, List<Integer> widths) {
         if (rows.isEmpty()) {
             return "<div class=\"guide-csv-table-wrap\"><table class=\"guide-csv-table\"></table></div>";
         }
         StringBuilder html = new StringBuilder();
         html.append("<div class=\"guide-csv-table-wrap\"><table class=\"guide-csv-table\">");
+        if (widths != null && !widths.isEmpty()) {
+            int columnCount = rows.stream()
+                .mapToInt(List::size)
+                .max()
+                .orElse(0);
+            html.append("<colgroup>");
+            for (int index = 0; index < columnCount; index++) {
+                Integer width = index < widths.size() ? widths.get(index) : null;
+                html.append("<col");
+                if (width != null && width > 0) {
+                    html.append(" style=\"width:")
+                        .append(width)
+                        .append("px\"");
+                }
+                html.append(">");
+            }
+            html.append("</colgroup>");
+        }
         int start = 0;
         if (hasHeader) {
             html.append("<thead><tr>");
@@ -1099,7 +1129,7 @@ public class GuideSiteGraphRenderer {
     // Chart data holder classes.
 
     /** Chart series data (name, ARGB color, parallel xs/ys arrays). */
-    public static final class SeriesData {
+    public static class SeriesData {
 
         /** Series rendered as vertical bars (default). */
         public static final String TYPE_COLUMN = "column";
@@ -1127,7 +1157,7 @@ public class GuideSiteGraphRenderer {
     }
 
     /** Inset pie chart that overlays a corner of a column chart. */
-    public static final class PieInsetData {
+    public static class PieInsetData {
 
         public final List<SliceData> slices;
         /** Diameter of the inset pie in SVG user-space units. */
@@ -1145,7 +1175,7 @@ public class GuideSiteGraphRenderer {
     }
 
     /** Pie-chart slice (label, value, ARGB color). */
-    public static final class SliceData {
+    public static class SliceData {
 
         public final String label;
         public final double value;

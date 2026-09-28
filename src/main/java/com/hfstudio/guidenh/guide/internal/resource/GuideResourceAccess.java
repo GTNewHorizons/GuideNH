@@ -38,7 +38,7 @@ public class GuideResourceAccess {
         var candidates = DataDrivenGuideLoader.getAssetCandidatesFor(id);
         if (candidates != null) {
             for (var candidate : candidates) {
-                byte[] bytes = DataDrivenGuideLoader.readBytes(candidate.pack(), id);
+                byte[] bytes = DataDrivenGuideLoader.readBytes(candidate.pack(), candidate.resourceLocation());
                 if (bytes != null) {
                     return bytes;
                 }

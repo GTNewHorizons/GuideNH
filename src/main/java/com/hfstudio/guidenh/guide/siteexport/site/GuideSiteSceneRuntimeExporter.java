@@ -17,6 +17,7 @@ import javax.imageio.ImageIO;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.shader.Framebuffer;
+import net.minecraft.entity.Entity;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -27,6 +28,8 @@ import com.google.flatbuffers.FlatBufferBuilder;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.internal.editor.io.SceneEditorOffscreenFramebuffer;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookPreviewPlayerSkinResolver;
+import com.hfstudio.guidenh.guide.internal.scene.GuidebookScenePreviewPlayerEntity;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.GuidebookSceneLayerSelection;
@@ -192,6 +195,7 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
         int previousGuiScale = minecraft.gameSettings.guiScale;
 
         try {
+            preparePlayerSkins(scene);
             minecraft.displayWidth = width;
             minecraft.displayHeight = height;
             minecraft.gameSettings.guiScale = 1;
@@ -227,6 +231,33 @@ public class GuideSiteSceneRuntimeExporter implements AutoCloseable {
             minecraft.displayHeight = previousDisplayHeight;
             minecraft.gameSettings.guiScale = previousGuiScale;
             GL11.glViewport(0, 0, previousDisplayWidth, previousDisplayHeight);
+        }
+    }
+
+    private void preparePlayerSkins(LytGuidebookScene scene) {
+        if (scene == null || scene.getLevel() == null) {
+            return;
+        }
+        for (Entity entity : scene.getLevel()
+            .getEntities()) {
+            if (!(entity instanceof GuidebookScenePreviewPlayerEntity player)) {
+                continue;
+            }
+            String name = player.getGameProfile() != null ? player.getGameProfile()
+                .getName() : null;
+            if (name == null || name.trim()
+                .isEmpty()) {
+                continue;
+            }
+            try {
+                GuidebookPreviewPlayerSkinResolver.ResolvedPreviewPlayerSkin resolved = GuidebookPreviewPlayerSkinResolver
+                    .resolvePreviewPlayerSkin(name, player.getGameProfile());
+                if (resolved != null) {
+                    GuidebookPreviewPlayerSkinResolver.applyResolvedSkin(player, resolved);
+                }
+            } catch (Throwable ignored) {
+                // The default skin remains a valid fallback when profile services are unavailable.
+            }
         }
     }
 

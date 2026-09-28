@@ -5,6 +5,8 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
@@ -241,6 +243,7 @@ public class GuideNhClientCommand extends CommandBase {
         ExportSiteCommandOptions commandOptions = parseExportSiteCommandOptions(args);
         Path outDir = GuideSiteOutputPaths
             .resolveRequestedOrDefault(commandOptions.outDirArgument, Paths.get(""), LocalDateTime.now());
+        long startedAt = System.nanoTime();
         send(sender, GuidebookText.CommandExportSiteStart, outDir);
         try {
             GuideSiteExportTask.Result result = new GuideSiteExportTask(
@@ -252,10 +255,28 @@ public class GuideNhClientCommand extends CommandBase {
                 result.guidesExported(),
                 result.pagesExported(),
                 result.pagesFailed(),
-                result.outDir());
+                result.outDir(),
+                formatElapsed(System.nanoTime() - startedAt));
         } catch (Throwable t) {
-            send(sender, GuidebookText.CommandExportSiteFailure, getErrorMessage(t));
+            send(
+                sender,
+                GuidebookText.CommandExportSiteFailure,
+                formatElapsed(System.nanoTime() - startedAt),
+                getErrorMessage(t));
         }
+    }
+
+    private String formatElapsed(long elapsedNanos) {
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(Math.max(0L, elapsedNanos));
+        if (elapsedMillis < 1_000L) {
+            return String.format(Locale.ROOT, "%d ms", elapsedMillis);
+        }
+        if (elapsedMillis < 60_000L) {
+            return String.format(Locale.ROOT, "%.1f s", elapsedMillis / 1_000.0D);
+        }
+        long minutes = elapsedMillis / 60_000L;
+        double seconds = (elapsedMillis % 60_000L) / 1_000.0D;
+        return String.format(Locale.ROOT, "%d min %.1f s", minutes, seconds);
     }
 
     private ExportSiteCommandOptions parseExportSiteCommandOptions(String[] args) {

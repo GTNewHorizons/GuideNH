@@ -289,23 +289,10 @@ public class SceneScript implements LytScript {
         // Set metadata on scene from binding results
         for (StructureLibSceneBinding binding : scene.getStructureLibBindings()) {
             StructureLibSceneMetadata metadata = binding.getMetadata();
-            GuideDebugLog.warnAlways(
-                "[GuideNH] [StructureLib] Binding {} metadata before apply: {}",
-                binding.getName(),
-                metadata == null ? "null"
-                    : "tierSelectable=" + (metadata.getTierData() != null && metadata.getTierData()
-                        .isSelectable())
-                        + ", channels="
-                        + metadata.getChannelDataList()
-                            .size());
             if (metadata != null) {
                 scene.setStructureLibSceneMetadata(binding.getName(), metadata);
             }
         }
-        GuideDebugLog.warnAlways(
-            "[GuideNH] [StructureLib] Scene sliders after build: tier={}, channels={}",
-            scene.hasStructureLibTierData(),
-            scene.hasStructureLibChannelData());
 
         boolean hasUnsupportedElements = skippedElements.stream()
             .anyMatch(element -> !element.contains("(configuration only)"));
@@ -600,7 +587,7 @@ public class SceneScript implements LytScript {
         int manualRows = applyManualBlockStatsEntries(scene, el);
         if (manualRows > 0) {
             if (mode != null && mode != BlockStatsMode.MANUAL) {
-                GuideDebugLog.warnAlways(
+                GuideDebugLog.warn(
                     "[GuideNH] [SceneScript] <BlockStats mode=\"{}\"> is overridden to manual by its {} listed <BlockStat> rows",
                     mode,
                     manualRows);
@@ -626,8 +613,7 @@ public class SceneScript implements LytScript {
             String id = entry.getAttributeString("item", entry.getAttributeString("id", null));
             ItemStack stack = resolveBlockStatStack(id);
             if (stack == null) {
-                GuideDebugLog
-                    .warnAlways("[GuideNH] [SceneScript] <BlockStat> without a resolvable item or id: '{}'", id);
+                GuideDebugLog.warn("[GuideNH] [SceneScript] <BlockStat> without a resolvable item or id: '{}'", id);
                 continue;
             }
             int declaredCount = parseOptionalInt(entry.getAttributeString("count", null), "count");
@@ -653,9 +639,8 @@ public class SceneScript implements LytScript {
         if (description.isEmpty()) {
             return;
         }
-        GuideDebugLog.warnAlways(
-            "[GuideNH] [SceneScript] <BlockStats> ignores {}: only <BlockStat> rows are listed",
-            description);
+        GuideDebugLog
+            .warn("[GuideNH] [SceneScript] <BlockStats> ignores {}: only <BlockStat> rows are listed", description);
     }
 
     private static String describeSceneChild(@Nullable UnistNode child) {
@@ -673,7 +658,7 @@ public class SceneScript implements LytScript {
         try {
             return GuideDisplayItemStacks.resolveItemStack(ref, "minecraft");
         } catch (IllegalArgumentException e) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [SceneScript] <BlockStat item=\"{}\"> is not a valid item id: {}",
                 ref,
                 e.getMessage());
@@ -700,7 +685,7 @@ public class SceneScript implements LytScript {
         try {
             return Integer.parseInt(raw.trim());
         } catch (NumberFormatException ignored) {
-            GuideDebugLog.warnAlways(
+            GuideDebugLog.warn(
                 "[GuideNH] [SceneScript] <BlockStats {}=\"{}\"> is not a whole number, so its default is used",
                 attributeName,
                 raw);

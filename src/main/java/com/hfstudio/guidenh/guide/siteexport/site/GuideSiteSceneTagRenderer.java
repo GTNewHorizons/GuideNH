@@ -101,6 +101,13 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         int height = readDimension(element, "height", 192);
         boolean interactive = readBooleanValue(element, "interactive", true);
         String background = readBooleanValue(element, "showBackground", true) ? null : "transparent";
+        String wrap = readOptional(element, "wrap");
+        String align = readOptional(element, "align");
+        boolean wrapsText = "square".equalsIgnoreCase(wrap) || "tight".equalsIgnoreCase(wrap)
+            || "through".equalsIgnoreCase(wrap);
+        String layout = wrapsText ? "right".equalsIgnoreCase(align) ? "right" : "left"
+            : "center".equalsIgnoreCase(align) ? "center" : null;
+        int displayScale = wrapsText ? 2 : DEFAULT_WEB_SCENE_SCALE;
         AnnotationPayload payload = resolveAnnotationPayload(
             element,
             defaultNamespace,
@@ -109,6 +116,13 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
             exportedScene);
 
         StringBuilder html = new StringBuilder();
+        if (layout != null) {
+            html.append("<div class=\"guide-scene-layout guide-scene-layout--")
+                .append(layout)
+                .append("\" style=\"--guide-scene-display-scale:")
+                .append(displayScale)
+                .append("\">");
+        }
         boolean hasBlockStats = exportedScene != null && exportedScene.blockStatsHtml() != null
             && !exportedScene.blockStatsHtml()
                 .isEmpty();
@@ -137,7 +151,8 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
                 background,
                 exportedScene,
                 payload.inWorldJson(),
-                payload.overlayJson()));
+                payload.overlayJson(),
+                displayScale));
 
         for (String attributeName : FORWARDED_ATTRIBUTES) {
             String attributeValue = readOptional(element, attributeName);
@@ -156,6 +171,9 @@ public class GuideSiteSceneTagRenderer implements GuideSiteHtmlCompiler.SceneTag
         if (hasBlockStats) {
             html.append(exportedScene.blockStatsHtml())
                 .append("</div>");
+        }
+        if (layout != null) {
+            html.append("</div>");
         }
         return html.toString();
     }
