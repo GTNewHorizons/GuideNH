@@ -51,6 +51,8 @@ import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowSpan;
 import com.hfstudio.guidenh.guide.indices.CategoryIndex;
+import com.hfstudio.guidenh.guide.indices.ItemIndex;
+import com.hfstudio.guidenh.guide.indices.OreIndex;
 import com.hfstudio.guidenh.guide.indices.PageIndex;
 import com.hfstudio.guidenh.guide.internal.AsyncWorker;
 import com.hfstudio.guidenh.guide.internal.GuideRegistry;
@@ -59,6 +61,7 @@ import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
 import com.hfstudio.guidenh.guide.internal.host.scripts.SceneScript;
+import com.hfstudio.guidenh.guide.internal.recipe.RecipeCache;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
 import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
@@ -169,7 +172,7 @@ public class GuideSiteExportTask {
         int guidesExported = 0;
         int pagesExported = 0;
         int pagesFailed = 0;
-        String firstPageUrl = null;
+        Map<String, String> landingPagesByLanguage = new TreeMap<>();
         Map<String, List<Map<String, Object>>> searchEntriesByLanguage = new LinkedHashMap<>();
         Map<ResourceLocation, MutableGuide> guidesById = new LinkedHashMap<>();
         Map<ResourceLocation, List<GuideSitePageVariant>> variantsByGuideId = new LinkedHashMap<>();
@@ -264,9 +267,10 @@ public class GuideSiteExportTask {
                     languageOrder.add(variant.language());
                 }
 
-                languageLinksByGuideId.put(
-                    guideEntry.getKey(),
-                    buildLanguageLinks(writer, guide, variants, new ArrayList<>(languageOrder)));
+                List<String> sortedLanguages = new ArrayList<>(languageOrder);
+                sortedLanguages.sort(String::compareTo);
+                languageLinksByGuideId
+                    .put(guideEntry.getKey(), buildLanguageLinks(writer, guide, variants, sortedLanguages));
             }
 
             for (Map.Entry<String, List<GuideSitePageVariant>> languageEntry : allVariantsByLanguage.entrySet()) {
@@ -294,20 +298,21 @@ public class GuideSiteExportTask {
                     if (assetExporter == null) {
                         assetExporter = createPageAssetExporter(guide, resourceManager, language, assets);
                     }
+                    GuideSiteMdxTagRenderer mdxRenderer = new GuideSiteMdxTagRenderer(
+                        context.scopedGuidesByGuideId()
+                            .getOrDefault(guide.getId(), guide),
+                        context.parsedPagesById(),
+                        context.navigationTree(),
+                        assetExporter,
+                        itemIconExporter,
+                        context.assetExportersByGuideId(),
+                        context.mediaWikiContextsByGuideId()
+                            .get(guide.getId()));
                     GuideSiteHtmlCompiler compiler = createHtmlCompiler(
                         latexExporter,
                         assetExporter,
                         new GuideSiteRecipeTagRenderer(itemIconExporter, neiPhase1Exporter),
-                        new GuideSiteMdxTagRenderer(
-                            context.scopedGuidesByGuideId()
-                                .getOrDefault(guide.getId(), guide),
-                            context.parsedPagesById(),
-                            context.navigationTree(),
-                            assetExporter,
-                            itemIconExporter,
-                            context.assetExportersByGuideId(),
-                            context.mediaWikiContextsByGuideId()
-                                .get(guide.getId())),
+                        mdxRenderer,
                         itemIconExporter);
 
                     String sidebarHtml = null;
@@ -324,7 +329,8 @@ public class GuideSiteExportTask {
                                 Guide scopedGuide = context.scopedGuidesByGuideId()
                                     .getOrDefault(guide.getId(), guide);
                                 GuideSiteTemplateRegistry templates = new GuideSiteTemplateRegistry(
-                                    renderedTooltipCache);
+                                    renderedTooltipCache,
+                                    stack -> mdxRenderer.resolveItemHref(stack, variant.pageId()));
                                 long compileStartedAt = System.nanoTime();
                                 GuidePage compiledPage = PageCompiler
                                     .compile(scopedGuide, scopedGuide.getExtensions(), variant.parsedPage());
@@ -422,9 +428,7 @@ public class GuideSiteExportTask {
                                         .add(searchEntry);
                                 }
 
-                                if (firstPageUrl == null) {
-                                    firstPageUrl = pageUrl;
-                                }
+                                landingPagesByLanguage.merge(language, pageUrl, GuideSiteExportTask::preferLandingPage);
                             }
                             pagesExported++;
                         } catch (Throwable t) {
@@ -456,7 +460,7 @@ public class GuideSiteExportTask {
         }
 
         GuideSiteLocalizedText landingPageText = GuideSiteLocalizedText.resolve();
-        writer.writeLandingPage(outDir, firstPageUrl, "GuideNH Static Export", landingPageText);
+        writer.writeLandingPage(outDir, landingPagesByLanguage, "GuideNH Static Export", landingPageText);
         return new Result(
             guidesExported,
             pagesExported,
@@ -526,9 +530,14 @@ public class GuideSiteExportTask {
                 return;
             }
             manager.setCurrentLanguage(target);
+            RecipeCache.clear();
             IResourceManager rm = mc.getResourceManager();
             if (rm != null) {
                 manager.onResourceManagerReload(rm);
+            }
+            if (mc.fontRenderer != null && mc.gameSettings != null) {
+                mc.fontRenderer.setUnicodeFlag(manager.isCurrentLocaleUnicode() || mc.gameSettings.forceUnicodeFont);
+                mc.fontRenderer.setBidiFlag(manager.isCurrentLanguageBidirectional());
             }
         } catch (Throwable t) {
             GuideDebugLog
@@ -550,9 +559,14 @@ public class GuideSiteExportTask {
                 return;
             }
             manager.setCurrentLanguage(original);
+            RecipeCache.clear();
             IResourceManager rm = mc.getResourceManager();
             if (rm != null) {
                 manager.onResourceManagerReload(rm);
+            }
+            if (mc.fontRenderer != null && mc.gameSettings != null) {
+                mc.fontRenderer.setUnicodeFlag(manager.isCurrentLocaleUnicode() || mc.gameSettings.forceUnicodeFont);
+                mc.fontRenderer.setBidiFlag(manager.isCurrentLanguageBidirectional());
             }
         } catch (Throwable t) {
             GuideDebugLog.warnAlways("[GuideNH] [GuideSiteExportTask] Failed to restore original Minecraft locale", t);
@@ -745,6 +759,15 @@ public class GuideSiteExportTask {
             }
 
             Map<Class<?>, PageIndex> indexOverrides = new LinkedHashMap<>();
+            List<ParsedGuidePage> scopedPages = new ArrayList<>(
+                entry.getValue()
+                    .values());
+            ItemIndex itemIndex = new ItemIndex();
+            itemIndex.rebuild(scopedPages);
+            indexOverrides.put(ItemIndex.class, itemIndex);
+            OreIndex oreIndex = new OreIndex();
+            oreIndex.rebuild(scopedPages);
+            indexOverrides.put(OreIndex.class, oreIndex);
             MediaWikiListContext mediaWikiContext = mediaWikiContextsByGuideId.get(guideId);
             if (mediaWikiContext != null) {
                 indexOverrides.put(CategoryIndex.class, mediaWikiContext.categoryIndex());
@@ -798,6 +821,26 @@ public class GuideSiteExportTask {
             linksByPageId.put(entry.getKey(), links);
         }
         return linksByPageId;
+    }
+
+    private static String preferLandingPage(String current, String candidate) {
+        boolean currentIndex = current.endsWith("/index.html");
+        boolean candidateIndex = candidate.endsWith("/index.html");
+        if (currentIndex != candidateIndex) {
+            return candidateIndex ? candidate : current;
+        }
+        if (currentIndex) {
+            long currentDepth = current.chars()
+                .filter(character -> character == '/')
+                .count();
+            long candidateDepth = candidate.chars()
+                .filter(character -> character == '/')
+                .count();
+            if (currentDepth != candidateDepth) {
+                return candidateDepth < currentDepth ? candidate : current;
+            }
+        }
+        return current.compareTo(candidate) <= 0 ? current : candidate;
     }
 
     private void appendSearchIconData(Map<String, Object> searchEntry, NavigationNode node,
@@ -1194,6 +1237,7 @@ public class GuideSiteExportTask {
                 itemIconResolver,
                 templates);
             String templateId = tooltipHtml != null && !tooltipHtml.isBlank() ? templates.create(tooltipHtml) : null;
+            String itemHref = templates.resolveItemHref(displayStack);
             html.append("<div class=\"guide-scene-block-stat")
                 .append(templateId != null ? " guide-tooltip" : "")
                 .append("\" data-block-stat-key=\"")
@@ -1203,6 +1247,11 @@ public class GuideSiteExportTask {
                 html.append(" data-template=\"")
                     .append(escapeAttribute(templateId))
                     .append("\" tabindex=\"0\"");
+            }
+            if (!itemHref.isEmpty()) {
+                html.append(" data-guide-item-href=\"")
+                    .append(escapeAttribute(itemHref))
+                    .append("\"");
             }
             html.append(">");
             GuideSiteItemHtml.appendIcon(html, item, "guide-scene-block-stat-icon", 1.0f, false);

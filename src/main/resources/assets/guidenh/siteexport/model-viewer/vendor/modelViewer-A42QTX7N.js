@@ -3610,7 +3610,7 @@ Ya=async function(loader, source, signal){
       const value = animation.frames(frame);
       if (value) timeline.push({ index: value.index(), time: value.time() });
     }
-    animations.push({ frameSheet: image, frameTextures, targetTextures: targets, frames: timeline,
+    animations.push({ frameTextures, targetTextures: targets, frames: timeline,
       x: animation.x(), y: animation.y(), mipLevel, lastUploadedFrame: -1,
       cycleTicks: timeline.reduce((total, frame) => total + Math.max(1, frame.time), 0) });
   }
@@ -3655,9 +3655,8 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     let q=guidenhCreateHoverRuntimeTarget(A);
     q&&(v.push(q),g.add(q.highlightObject),g.add(q.pickMesh));
   }
-  let M,S=new Ei,baseZoom,logicalCamera,dragging=false;
+  let M,S=new Ei,baseZoom,logicalCamera;
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  let lastCameraTime = performance.now();
   S.near=-1000;
   S.far=3e4;
   let P=(A,q)=>{
@@ -3667,7 +3666,8 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     let F=Math.min(1,A/(h*3));
     let nextBaseZoom=1/.625*16*p.zoom*F;
     S.zoom=baseZoom?S.zoom*nextBaseZoom/baseZoom:nextBaseZoom;
-    if(logicalCamera)logicalCamera.zoom=logicalCamera.zoom*nextBaseZoom/baseZoom;
+    if(logicalCamera)logicalCamera.zoom=Number.isFinite(baseZoom)&&baseZoom>0
+      ?logicalCamera.zoom*nextBaseZoom/baseZoom:nextBaseZoom;
     baseZoom=nextBaseZoom;
     if(M){
       M.zoom0=baseZoom;
@@ -3686,7 +3686,8 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
       logicalCamera.updateProjectionMatrix();
     }
   };
-  P(t.offsetWidth,t.offsetHeight);
+  // The wrapper is mounted after initialization, so its initial layout may be zero-sized.
+  P(t.offsetWidth||h,t.offsetHeight||h);
   S.position.set(0,0,15);
   S.position.applyEuler(new Mi(dr.degToRad(-p.pitch),dr.degToRad(-p.yaw),dr.degToRad(-p.roll),"YXZ"));
   S.updateProjectionMatrix();
@@ -3701,6 +3702,8 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     M=new as(logicalCamera,t);
     M.mouseButtons.LEFT=zn.PAN;
     M.mouseButtons.RIGHT=zn.ROTATE;
+    M.enableDamping=!reducedMotion;
+    M.dampingFactor=.18;
     // OrbitControls scales by viewport height; the game uses 0.5 degrees per pixel.
     M.rotateSpeed=t.offsetHeight/720;
     M.enableZoom=!0;
@@ -3709,19 +3712,39 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     M.update();
     S.copy(logicalCamera);
   }else S.lookAt(new C);
-  let touchPointers=new Set;
-  t.addEventListener("pointerdown",A=>{
-    if(M)dragging=true;
+  let touchPointers=new Set,rightPointer=null,rightDragMoved=false,suppressContextMenu=false,menuTimer;
+  const onPointerDown=A=>{
+    if(A.button===2&&M){rightPointer={id:A.pointerId,x:A.clientX,y:A.clientY};rightDragMoved=false;}
     if(A.pointerType!=="touch"||!M)return;
     touchPointers.add(A.pointerId);
     M.enableZoom=!0;
-  },{capture:!0});
+  };
+  const onPointerMove=A=>{
+    if(rightPointer?.id===A.pointerId&&Math.hypot(A.clientX-rightPointer.x,A.clientY-rightPointer.y)>3)
+      rightDragMoved=true;
+  };
   let stopTouch=A=>{
     touchPointers.delete(A.pointerId);
-    dragging=touchPointers.size>0;
+    if(rightPointer?.id===A.pointerId){
+      rightPointer=null;
+      if(rightDragMoved){
+        suppressContextMenu=true;
+        clearTimeout(menuTimer);
+        menuTimer=setTimeout(()=>{suppressContextMenu=false;},500);
+      }
+    }
   };
-  t.addEventListener("pointerup",stopTouch);
-  t.addEventListener("pointercancel",stopTouch);
+  const onContextMenu=A=>{
+    if(t.contains(A.target)||rightPointer||suppressContextMenu){
+      A.preventDefault();
+      suppressContextMenu=false;
+    }
+  };
+  t.addEventListener("pointerdown",onPointerDown,{capture:!0});
+  window.addEventListener("pointermove",onPointerMove,{capture:!0});
+  window.addEventListener("pointerup",stopTouch,{capture:!0});
+  window.addEventListener("pointercancel",stopTouch,{capture:!0});
+  window.addEventListener("contextmenu",onContextMenu,{capture:!0});
   let R;
   typeof ResizeObserver<"u"&&(R=new ResizeObserver(A=>{
     for(let q of A)if(q.contentBoxSize){
@@ -3743,17 +3766,8 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
     if(D)return;
     M?.update();
     if(logicalCamera){
-      const delta=Math.max(0,Math.min(.05,(A-lastCameraTime)/1000));
-      const blend=reducedMotion?1:-Math.expm1(-(dragging?48:22)*delta);
-      S.position.lerp(logicalCamera.position,reducedMotion?1:-Math.expm1(-(dragging?54:26)*delta));
-      S.quaternion.slerp(logicalCamera.quaternion,blend);
-      if(S.position.distanceToSquared(logicalCamera.position)<1e-8)S.position.copy(logicalCamera.position);
-      if(S.quaternion.angleTo(logicalCamera.quaternion)<1e-5)S.quaternion.copy(logicalCamera.quaternion);
-      let zoom=S.zoom+(logicalCamera.zoom-S.zoom)*blend;
-      if(Math.abs(zoom-logicalCamera.zoom)<1e-5)zoom=logicalCamera.zoom;
-      if(Math.abs(zoom-S.zoom)>1e-8){S.zoom=zoom;S.updateProjectionMatrix();}
+      S.copy(logicalCamera);
     }
-    lastCameraTime=A;
     animationStart??=A;
     const tick=Math.floor((A-animationStart)/50);
     for(const animation of _){
@@ -3788,13 +3802,13 @@ async function Am(s,e,t,n,i=[],r=[],o=[],a,c,l,h){
       lastPickRotation.copy(S.quaternion);
     }
   };
-function disposeAnimations(animations) {
+  function disposeAnimations(animations) {
+    // Frame sheets belong to the shared image cache; only scene-owned crops are released.
     for (const animation of animations) {
       for (const texture of animation.frameTextures) {
         texture?.dispose();
         texture?.image?.close?.();
       }
-      animation.frameSheet?.close?.();
     }
 }
   function zoomBy(factor) {
@@ -3811,6 +3825,12 @@ function disposeAnimations(animations) {
       D=true;
       W(void 0);
       R?.disconnect();
+      clearTimeout(menuTimer);
+      t.removeEventListener("pointerdown",onPointerDown,{capture:!0});
+      window.removeEventListener("pointermove",onPointerMove,{capture:!0});
+      window.removeEventListener("pointerup",stopTouch,{capture:!0});
+      window.removeEventListener("pointercancel",stopTouch,{capture:!0});
+      window.removeEventListener("contextmenu",onContextMenu,{capture:!0});
       f.setAnimationLoop(null);
       f.domElement.remove();
       guidenhDisposeSceneGroup(g);

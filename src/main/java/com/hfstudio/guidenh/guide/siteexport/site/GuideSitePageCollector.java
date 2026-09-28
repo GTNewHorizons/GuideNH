@@ -204,7 +204,9 @@ public class GuideSitePageCollector {
                 merged.addAll(langs);
             }
         }
-        return new ArrayList<>(merged);
+        List<String> languages = new ArrayList<>(merged);
+        languages.sort(String::compareTo);
+        return languages;
     }
 
     private Optional<LoadedPage> loadPageCached(

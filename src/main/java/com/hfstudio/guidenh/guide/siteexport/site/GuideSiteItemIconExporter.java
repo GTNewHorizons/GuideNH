@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.client.shader.Framebuffer;
@@ -15,6 +16,8 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL13;
+import org.lwjgl.opengl.GL30;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
@@ -71,6 +74,16 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
 
     private String cacheKey(ItemStack stack) {
         StringBuilder key = new StringBuilder();
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft != null && minecraft.getLanguageManager() != null
+            && minecraft.getLanguageManager()
+                .getCurrentLanguage() != null) {
+            key.append(
+                minecraft.getLanguageManager()
+                    .getCurrentLanguage()
+                    .getLanguageCode())
+                .append('|');
+        }
         key.append(GuideSiteItemSupport.itemId(stack))
             .append('#')
             .append(stack.getItemDamage())
@@ -89,22 +102,33 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
             throw new IllegalStateException("Minecraft client is not ready for item icon export.");
         }
 
-        Framebuffer framebuffer = framebuffer();
-
         int previousDisplayWidth = minecraft.displayWidth;
         int previousDisplayHeight = minecraft.displayHeight;
         int previousGuiScale = minecraft.gameSettings.guiScale;
+        int previousFramebuffer = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+        int previousTextureUnit = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
+        OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+        boolean previousLightmapTexture = GL11.glIsEnabled(GL11.GL_TEXTURE_2D);
+        OpenGlHelper.setActiveTexture(previousTextureUnit);
+        int previousMatrixMode = GL11.glGetInteger(GL11.GL_MATRIX_MODE);
+        RenderItem itemRenderer = RenderItem.getInstance();
+        float previousZLevel = itemRenderer.zLevel;
 
         boolean projectionPushed = false;
         boolean modelViewPushed = false;
 
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         try {
+            Framebuffer framebuffer = framebuffer();
             minecraft.displayWidth = ICON_SIZE;
             minecraft.displayHeight = ICON_SIZE;
             minecraft.gameSettings.guiScale = 1;
 
             framebuffer.bindFramebuffer(true);
             GL11.glViewport(0, 0, ICON_SIZE, ICON_SIZE);
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            GL11.glColorMask(true, true, true, true);
+            GL11.glDepthMask(true);
             GL11.glClearColor(0f, 0f, 0f, 0f);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
@@ -120,6 +144,9 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
             GL11.glLoadIdentity();
             GL11.glTranslatef(0.0F, 0.0F, -2000.0F);
 
+            OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+            GL11.glDisable(GL11.GL_TEXTURE_2D);
+            OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glEnable(GL11.GL_ALPHA_TEST);
             GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
@@ -127,6 +154,12 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
             GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
+            // Set GUI lights before raster scaling so item normals receive standard GUI lighting.
+            RenderHelper.enableGUIStandardItemLighting();
+            GL11.glEnable(GL11.GL_LIGHTING);
+            GL11.glEnable(GL11.GL_NORMALIZE);
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glDepthFunc(GL11.GL_LEQUAL);
             float scale = (ICON_SIZE - 2f) / 16f;
             float origin = (ICON_SIZE - 16f * scale) / 2f;
             GL11.glPushMatrix();
@@ -134,17 +167,11 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
                 GL11.glTranslatef(origin, origin, 0f);
                 GL11.glScalef(scale, scale, 1f);
 
-                RenderHelper.enableGUIStandardItemLighting();
-                GL11.glEnable(GL11.GL_NORMALIZE);
-                GL11.glEnable(GL11.GL_DEPTH_TEST);
-
-                RenderItem itemRenderer = RenderItem.getInstance();
                 itemRenderer.zLevel = 100f;
                 itemRenderer
                     .renderItemAndEffectIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), stack, 0, 0);
                 itemRenderer
                     .renderItemOverlayIntoGUI(minecraft.fontRenderer, minecraft.getTextureManager(), stack, 0, 0);
-                itemRenderer.zLevel = 0f;
             } finally {
                 GL11.glPopMatrix();
                 RenderHelper.disableStandardItemLighting();
@@ -162,17 +189,20 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
                 GL11.glMatrixMode(GL11.GL_MODELVIEW);
             }
 
-            framebuffer.unbindFramebuffer();
+            itemRenderer.zLevel = previousZLevel;
             minecraft.displayWidth = previousDisplayWidth;
             minecraft.displayHeight = previousDisplayHeight;
             minecraft.gameSettings.guiScale = previousGuiScale;
-            GL11.glViewport(0, 0, previousDisplayWidth, previousDisplayHeight);
-
-            GL11.glDisable(GL11.GL_LIGHTING);
-            GL11.glDisable(GL11.GL_DEPTH_TEST);
-            GL11.glEnable(GL11.GL_BLEND);
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
+            OpenGlHelper.func_153171_g(GL30.GL_FRAMEBUFFER, previousFramebuffer);
+            GL11.glPopAttrib();
+            OpenGlHelper.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+            if (previousLightmapTexture) {
+                GL11.glEnable(GL11.GL_TEXTURE_2D);
+            } else {
+                GL11.glDisable(GL11.GL_TEXTURE_2D);
+            }
+            OpenGlHelper.setActiveTexture(previousTextureUnit);
+            GL11.glMatrixMode(previousMatrixMode);
         }
     }
 

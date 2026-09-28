@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 
@@ -17,6 +16,7 @@ import org.joml.Vector3f;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.hfstudio.guidenh.client.hotkey.OpenGuideHotkey;
 import com.hfstudio.guidenh.guide.GuideAnchor;
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
@@ -559,11 +559,16 @@ public class GuideSiteSceneAnnotationSerializer {
         private static String renderItemTooltip(ItemTooltip tooltip, GuideSiteItemIconResolver itemIconResolver,
             @Nullable GuideSiteTemplateRegistry templates) {
             String semanticKey = semanticCacheKey(tooltip);
+            String html;
             if (templates != null && semanticKey != null) {
-                return templates
+                html = templates
                     .getOrComputeRendered(semanticKey, () -> renderItemTooltipUncached(tooltip, itemIconResolver));
+            } else {
+                html = renderItemTooltipUncached(tooltip, itemIconResolver);
             }
-            return renderItemTooltipUncached(tooltip, itemIconResolver);
+            String href = templates != null ? templates.resolveItemHref(tooltip.getStack()) : "";
+            return href.isEmpty() ? html
+                : "<div data-guide-item-href=\"" + escapeAttribute(href) + "\">" + html + "</div>";
         }
 
         private static String renderItemTooltipUncached(ItemTooltip tooltip,
@@ -575,7 +580,8 @@ public class GuideSiteSceneAnnotationSerializer {
             try {
                 Minecraft minecraft = Minecraft.getMinecraft();
                 if (minecraft != null) {
-                    lines.addAll(GuideItemTooltipLines.build(tooltip, minecraft));
+                    lines.addAll(
+                        OpenGuideHotkey.withoutTooltipHints(() -> GuideItemTooltipLines.build(tooltip, minecraft)));
                 }
             } catch (Throwable ignored) {}
 
@@ -604,25 +610,7 @@ public class GuideSiteSceneAnnotationSerializer {
             if (!(tooltip instanceof ItemTooltip itemTooltip) || tooltip instanceof ItemTooltipAppender) {
                 return null;
             }
-            ItemStack stack = itemTooltip.getStack();
-            if (stack == null || stack.getItem() == null) {
-                return null;
-            }
-            Object registryName = Item.itemRegistry.getNameForObject(stack.getItem());
-            if (registryName == null) {
-                return null;
-            }
-            StringBuilder key = new StringBuilder("item-tooltip:");
-            key.append(registryName)
-                .append('#')
-                .append(stack.getItemDamage())
-                .append('#')
-                .append(stack.stackSize);
-            if (stack.stackTagCompound != null) {
-                key.append('#')
-                    .append(stack.stackTagCompound);
-            }
-            return key.toString();
+            return GuideSiteItemSupport.tooltipCacheKey(itemTooltip.getStack());
         }
 
         private static String renderBlock(@Nullable LytBlock block, @Nullable ResourceLocation currentPageId,
@@ -1151,15 +1139,19 @@ public class GuideSiteSceneAnnotationSerializer {
             GuideSiteItemIconResolver itemIconResolver, @Nullable ResourceLocation currentPageId,
             @Nullable GuideSitePageAssetExporter assetExporter, @Nullable GuideSiteTemplateRegistry templates,
             boolean allowNestedItemTooltips) {
-            html.append("<div class=\"guide-tooltip-item-grid\">");
+            html.append("<div class=\"guide-tooltip-item-grid\" style=\"--guide-tooltip-columns:")
+                .append(Math.max(1, grid.getWidth()))
+                .append("\">");
             for (int row = 0; row < grid.getHeight(); row++) {
                 for (int col = 0; col < grid.getWidth(); col++) {
                     LytSlot slot = grid.getSlot(col, row);
-                    if (slot == null) {
+                    if (slot == null && !grid.isRenderEmptySlots()) {
                         continue;
                     }
-                    html.append("<div class=\"ingredient-box\">");
-                    appendSlot(
+                    html.append(
+                        grid.isRenderSlotBackground() ? "<div class=\"ingredient-box\">"
+                            : "<div class=\"ingredient-box ingredient-box--plain\">");
+                    if (slot != null) appendSlot(
                         html,
                         slot,
                         itemIconResolver,
@@ -1203,11 +1195,9 @@ public class GuideSiteSceneAnnotationSerializer {
             if (tooltip.isPresent() && tooltip.get() instanceof ItemTooltip itemTooltip) {
                 ItemStack stack = itemTooltip.getStack();
                 if (stack != null) {
-                    List<ItemStack> stacks = new ArrayList<>(1);
-                    stacks.add(stack);
                     appendItemStacks(
                         html,
-                        stacks,
+                        List.of(stack),
                         itemIconResolver,
                         currentPageId,
                         assetExporter,
@@ -1225,19 +1215,59 @@ public class GuideSiteSceneAnnotationSerializer {
                 return;
             }
             for (ItemStack stack : stacks) {
-                GuideSiteExportedItem item = GuideSiteItemSupport.export(stack, itemIconResolver);
-                if (item.isEmpty()) {
+                String itemKey = templates != null ? GuideSiteItemSupport.tooltipCacheKey(stack) : null;
+                if (itemKey != null) {
+                    String fragmentKey = (allowNestedItemTooltips ? "nested-icon:" : "plain-icon:") + itemKey;
+                    html.append(templates.getOrComputeLocalRendered(fragmentKey, () -> {
+                        StringBuilder fragment = new StringBuilder();
+                        appendExportedItemIcon(
+                            fragment,
+                            stack,
+                            itemIconResolver,
+                            currentPageId,
+                            assetExporter,
+                            templates,
+                            allowNestedItemTooltips);
+                        return fragment.toString();
+                    }));
                     continue;
                 }
-                appendTooltipCapableItemIcon(
+                appendExportedItemIcon(
                     html,
                     stack,
-                    item,
+                    itemIconResolver,
                     currentPageId,
                     assetExporter,
-                    itemIconResolver,
                     templates,
                     allowNestedItemTooltips);
+            }
+        }
+
+        private static void appendExportedItemIcon(StringBuilder html, ItemStack stack,
+            GuideSiteItemIconResolver itemIconResolver, @Nullable ResourceLocation currentPageId,
+            @Nullable GuideSitePageAssetExporter assetExporter, @Nullable GuideSiteTemplateRegistry templates,
+            boolean allowNestedItemTooltips) {
+            GuideSiteExportedItem item = GuideSiteItemSupport.export(stack, itemIconResolver);
+            if (item.isEmpty()) {
+                return;
+            }
+            String href = templates != null ? templates.resolveItemHref(stack) : "";
+            if (!href.isEmpty()) {
+                html.append("<span data-guide-item-href=\"")
+                    .append(escapeAttribute(href))
+                    .append("\">");
+            }
+            appendTooltipCapableItemIcon(
+                html,
+                stack,
+                item,
+                currentPageId,
+                assetExporter,
+                itemIconResolver,
+                templates,
+                allowNestedItemTooltips);
+            if (!href.isEmpty()) {
+                html.append("</span>");
             }
         }
 
@@ -1272,18 +1302,16 @@ public class GuideSiteSceneAnnotationSerializer {
         private static String createNestedItemTemplateId(ItemStack stack, @Nullable ResourceLocation currentPageId,
             @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver,
             GuideSiteTemplateRegistry templates) {
-            String html = render(
-                new ItemTooltip(stack.copy()),
-                currentPageId,
-                assetExporter,
-                itemIconResolver,
-                templates,
-                false);
-            if (html == null || html.trim()
-                .isEmpty()) {
-                return null;
-            }
-            return templates.create(html);
+            String semanticKey = GuideSiteItemSupport.tooltipCacheKey(stack);
+            return templates.getOrCreate(
+                semanticKey,
+                () -> render(
+                    new ItemTooltip(stack.copy()),
+                    currentPageId,
+                    assetExporter,
+                    itemIconResolver,
+                    templates,
+                    false));
         }
 
         private static int clampHeadingDepth(int depth) {

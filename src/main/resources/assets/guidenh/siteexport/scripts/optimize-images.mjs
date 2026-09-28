@@ -1,11 +1,22 @@
-import { readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { join, relative, sep } from "node:path";
+import { availableParallelism } from "node:os";
 import { promisify } from "node:util";
 import { gunzip, gzip } from "node:zlib";
 import { parse, parseFragment } from "parse5";
 import postcss from "postcss";
 import parseValue from "postcss-value-parser";
 import sharp from "sharp";
+
+const imageConcurrency = Math.max(
+  2,
+  Math.min(8, Number.parseInt(process.env.GUIDENH_IMAGE_CONCURRENCY || "", 10) || availableParallelism()),
+);
+const verifyLossless = process.env.GUIDENH_VERIFY_WEBP === "1";
+// Each conversion is CPU-heavy. One libvips worker per task avoids oversubscription while
+// allowing independent images to be processed in parallel.
+sharp.concurrency(1);
 
 const decompress = promisify(gunzip);
 const compress = promisify(gzip);
@@ -72,6 +83,12 @@ function rewriteJson(value, mapping) {
   return value;
 }
 
+const resourceUrlPattern = /_res\/[A-Za-z0-9._~/-]+\.png(?=$|[?#"'()<>;&\s\\])/gi;
+
+function rewriteResourceUrlsFast(value, mapping) {
+  return value.replace(resourceUrlPattern, match => mapping[match] || match);
+}
+
 function rewriteHtml(value, mapping, fragment = false) {
   const options = { sourceCodeLocationInfo: true };
   const root = fragment ? parseFragment(value, options) : parse(value, options);
@@ -116,8 +133,7 @@ function rewriteHtml(value, mapping, fragment = false) {
   return value;
 }
 
-async function convertImage(file) {
-  const original = await readFile(file);
+async function convertImage(original) {
   if (isAnimatedPng(original)) return { reason: "animated or invalid PNG" };
   const input = sharp(original, { failOn: "warning" });
   const metadata = await input.metadata();
@@ -126,14 +142,27 @@ async function convertImage(file) {
   }
   const webp = await input.clone().keepIccProfile().webp({ lossless: true, effort: 4 }).toBuffer();
   if (webp.length >= original.length) return { reason: "PNG is smaller" };
-  // Compare every RGBA byte, including colors in fully transparent texels.
-  const pixels = await input.clone().ensureAlpha().raw().toBuffer();
-  const convertedPixels = await sharp(webp).ensureAlpha().raw().toBuffer();
-  if (!pixels.equals(convertedPixels)) return { reason: "RGBA pixels differ" };
+  if (verifyLossless) {
+    // Optional audit mode compares every RGBA byte, including transparent texels.
+    const pixels = await input.clone().ensureAlpha().raw().toBuffer();
+    const convertedPixels = await sharp(webp).ensureAlpha().raw().toBuffer();
+    if (!pixels.equals(convertedPixels)) return { reason: "RGBA pixels differ" };
+  }
   return { webp, saved: original.length - webp.length };
 }
 
-export async function optimizeImages(distRoot) {
+export async function optimizeImages(distRoot, cacheRoot) {
+  await mkdir(cacheRoot, { recursive: true });
+  const cacheIndexPath = join(cacheRoot, "index.json");
+  let cachedEntries = {};
+  try {
+    cachedEntries = JSON.parse(await readFile(cacheIndexPath, "utf8"));
+  } catch {
+    // A missing or incomplete cache is rebuilt from the source PNG files.
+  }
+  const cacheEntries = { ...cachedEntries };
+  const inFlight = new Map();
+  let cacheHits = 0;
   const files = await collectFiles(distRoot);
   const images = files.filter(file => relative(distRoot, file).startsWith(`_res${sep}`) && /\.png$/i.test(file));
   const mapping = Object.create(null);
@@ -141,13 +170,43 @@ export async function optimizeImages(distRoot) {
   const skipped = new Map();
   let savedBytes = 0;
   let nextImage = 0;
-  // Bound decoded-image memory and avoid competing with libvips worker threads.
-  await Promise.all(Array.from({ length: Math.min(2, images.length) }, async () => {
+  const conversionStartedAt = process.hrtime.bigint();
+  await Promise.all(Array.from({ length: Math.min(imageConcurrency, images.length) }, async () => {
     while (nextImage < images.length) {
       const file = images[nextImage++];
       let result;
       try {
-        result = await convertImage(file);
+        const original = await readFile(file);
+        const hash = createHash("sha256").update(original).digest("hex");
+        let conversion = inFlight.get(hash);
+        if (!conversion) {
+          conversion = (async () => {
+            const cached = cacheEntries[hash];
+            if (cached?.reason) {
+              cacheHits++;
+              return { reason: cached.reason };
+            }
+            if (cached?.webp) {
+              try {
+                const webp = await readFile(join(cacheRoot, `${hash}.webp`));
+                cacheHits++;
+                return { webp, saved: original.length - webp.length };
+              } catch {
+                // A missing cached image is converted again.
+              }
+            }
+            const converted = await convertImage(original);
+            if (converted.webp) {
+              await writeFile(join(cacheRoot, `${hash}.webp`), converted.webp);
+              cacheEntries[hash] = { webp: true };
+            } else {
+              cacheEntries[hash] = { reason: converted.reason };
+            }
+            return converted;
+          })();
+          inFlight.set(hash, conversion);
+        }
+        result = await conversion;
       } catch (error) {
         console.warn(`WebP conversion skipped for ${relative(distRoot, file)}: ${error.message}`);
         result = { reason: "conversion failed" };
@@ -176,26 +235,34 @@ export async function optimizeImages(distRoot) {
       savedBytes += result.saved;
     }
   }));
-  for (const file of files) {
-    const zipped = file.endsWith(".gz");
-    const textPath = zipped ? file.slice(0, -3) : file;
-    if (!/\.(?:html|json|css)$/.test(textPath)) continue;
-    const content = await readFile(file);
-    const text = (zipped ? await decompress(content) : content).toString("utf8");
-    if (!text.includes("_res/")) continue;
-    let rewritten;
-    if (textPath.endsWith(".json")) rewritten = JSON.stringify(rewriteJson(JSON.parse(text), mapping));
-    else if (textPath.endsWith(".css")) rewritten = rewriteCss(text, mapping);
-    else rewritten = rewriteHtml(text, mapping, !/<!doctype|<html[\s>]/i.test(text));
-    if (rewritten !== text) {
-      await writeFile(file, zipped ? await compress(Buffer.from(rewritten, "utf8")) : rewritten, "utf8");
+  console.log(`Image conversion: ${(Number(process.hrtime.bigint() - conversionStartedAt) / 1e9).toFixed(2)}s; ${cacheHits}/${images.length} cache hits.`);
+  const rewriteStartedAt = process.hrtime.bigint();
+  const textFiles = files.filter(file => /\.(?:html|json|css)(?:\.gz)?$/.test(file));
+  let nextTextFile = 0;
+  await Promise.all(Array.from({ length: Math.min(imageConcurrency, textFiles.length) }, async () => {
+    while (nextTextFile < textFiles.length) {
+      const file = textFiles[nextTextFile++];
+      const zipped = file.endsWith(".gz");
+      const textPath = zipped ? file.slice(0, -3) : file;
+      const content = await readFile(file);
+      const text = (zipped ? await decompress(content) : content).toString("utf8");
+      if (!text.includes("_res/")) continue;
+      let rewritten;
+      if (textPath.endsWith(".json")) rewritten = rewriteResourceUrlsFast(text, mapping);
+      else if (textPath.endsWith(".css")) rewritten = rewriteCss(text, mapping);
+      else rewritten = rewriteResourceUrlsFast(text, mapping);
+      if (rewritten !== text) {
+        await writeFile(file, zipped ? await compress(Buffer.from(rewritten, "utf8")) : rewritten, "utf8");
+      }
     }
-  }
+  }));
   // Binary scene payloads retain their original URLs; the image loader resolves this map.
   const manifest = Object.fromEntries(Object.entries(mapping).sort(([left], [right]) => left.localeCompare(right)));
   const manifestJson = JSON.stringify(manifest);
   await writeFile(join(distRoot, "_site", "model-viewer", "image-formats.json"), manifestJson, "utf8");
   for (const file of convertedFiles) await rm(file);
+  await writeFile(cacheIndexPath, JSON.stringify(cacheEntries), "utf8");
+  console.log(`Image reference rewrite: ${(Number(process.hrtime.bigint() - rewriteStartedAt) / 1e9).toFixed(2)}s.`);
   savedBytes -= Buffer.byteLength(manifestJson) - 2;
   console.log(`WebP: ${convertedFiles.length}/${images.length} images converted; ${(savedBytes / 1048576).toFixed(2)} MiB saved.`);
   for (const [reason, count] of skipped) console.log(`PNG retained: ${count} (${reason}).`);

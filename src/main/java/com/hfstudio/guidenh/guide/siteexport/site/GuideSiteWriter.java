@@ -41,6 +41,11 @@ public class GuideSiteWriter {
         writeResource(outDir.resolve("_site/gtnh-favicon.svg"), "/assets/guidenh/siteexport/gtnh-favicon.svg");
         writeResource(outDir.resolve("_site/app.css"), "/assets/guidenh/siteexport/app.css");
         writeResource(outDir.resolve("_site/app.js"), "/assets/guidenh/siteexport/app.js");
+        writeResource(outDir.resolve("_site/itemNavigation.js"), "/assets/guidenh/siteexport/itemNavigation.js");
+        writeResource(outDir.resolve("_site/landing.js"), "/assets/guidenh/siteexport/landing.js");
+        writeResource(
+            outDir.resolve("_site/languagePreference.js"),
+            "/assets/guidenh/siteexport/languagePreference.js");
         writeResource(outDir.resolve("_site/sharedAssets.js"), "/assets/guidenh/siteexport/sharedAssets.js");
         writeResource(outDir.resolve("_site/search.js"), "/assets/guidenh/siteexport/search.js");
         writeResource(outDir.resolve("_site/decompress.js"), "/assets/guidenh/siteexport/decompress.js");
@@ -199,10 +204,10 @@ public class GuideSiteWriter {
         Files.writeString(outDir.resolve("export-report.json"), json);
     }
 
-    public void writeLandingPage(Path outDir, @Nullable String firstPageUrl, String title,
+    public void writeLandingPage(Path outDir, Map<String, String> landingPagesByLanguage, String title,
         GuideSiteLocalizedText uiText) throws Exception {
         String html;
-        if (firstPageUrl == null || firstPageUrl.isEmpty()) {
+        if (landingPagesByLanguage.isEmpty()) {
             html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>" + escapeHtml(title)
                 + "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"./_site/gtnh-favicon.svg\"></head><body><main><h1>"
                 + escapeHtml(title)
@@ -210,15 +215,20 @@ public class GuideSiteWriter {
                 + escapeHtml(uiText.siteExportNoPages())
                 + "</p></main></body></html>";
         } else {
-            String escapedUrl = escapeHtml(firstPageUrl);
+            String fallbackUrl = landingPagesByLanguage.getOrDefault(
+                LangUtil.ENGLISH_LANGUAGE,
+                landingPagesByLanguage.values()
+                    .iterator()
+                    .next());
+            String escapedUrl = escapeHtml(fallbackUrl);
             html = "<!doctype html><html><head><meta charset=\"utf-8\"><title>" + escapeHtml(title)
-                + "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"./_site/gtnh-favicon.svg\"><meta http-equiv=\"refresh\" content=\"0; url="
-                + escapedUrl
-                + "\"></head><body><p><a href=\""
+                + "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"./_site/gtnh-favicon.svg\"></head><body data-guide-language-pages=\""
+                + escapeHtml(GSON.toJson(landingPagesByLanguage))
+                + "\"><p><a href=\""
                 + escapedUrl
                 + "\">"
                 + escapeHtml(uiText.siteExportOpenGuide())
-                + "</a></p></body></html>";
+                + "</a></p><script type=\"module\" src=\"./_site/landing.js\"></script></body></html>";
         }
         Files.writeString(outDir.resolve("index.html"), html);
     }
@@ -390,7 +400,9 @@ public class GuideSiteWriter {
             .append("</button>");
         html.append(
             "<div class=\"guide-language-menu-options\" data-guide-language-menu-options role=\"listbox\" hidden>");
-        for (GuideSiteLanguageLink link : languageLinks) {
+        List<GuideSiteLanguageLink> sortedLinks = new ArrayList<>(languageLinks);
+        sortedLinks.sort(Comparator.comparing(link -> normalizeLanguage(link.language())));
+        for (GuideSiteLanguageLink link : sortedLinks) {
             String normalizedLinkLanguage = normalizeLanguage(link.language());
             boolean current = normalizedCurrentLanguage.equals(normalizedLinkLanguage);
             html.append("<a class=\"guide-language-menu-option");
@@ -402,6 +414,8 @@ public class GuideSiteWriter {
             }
             html.append("\" href=\"")
                 .append(escapeHtml(link.url()))
+                .append("\" data-guide-language-code=\"")
+                .append(escapeHtml(normalizedLinkLanguage))
                 .append("\"");
             if (current) {
                 html.append(" aria-current=\"page\"");
@@ -608,7 +622,7 @@ public class GuideSiteWriter {
         }
         String src = resolvedAssetExporter.exportResource(resolvedTextureId);
         if (!src.isEmpty()) {
-            html.append("<img class=\"item-icon guide-nav-item-icon\" src=\"")
+            html.append("<img class=\"item-icon guide-nav-item-icon guide-nav-texture-icon\" src=\"")
                 .append(escapeHtml(src))
                 .append("\" alt=\"\" width=\"32\" height=\"32\" decoding=\"async\">");
         }

@@ -75,6 +75,7 @@ public class StructureLibBuildService {
      */
     private static GuidebookLevel scratchLevel;
     private static Thread scratchLevelOwner;
+    private static PreviewFakePlayer scratchPlayer;
 
     private static GuidebookLevel acquireScratchLevel() {
         Thread current = Thread.currentThread();
@@ -91,6 +92,15 @@ public class StructureLibBuildService {
         }
         level.clear();
         return level;
+    }
+
+    private static PreviewFakePlayer acquireScratchPlayer(World world) {
+        if (scratchPlayer == null || scratchPlayer.worldObj != world || scratchPlayer.isDead) {
+            scratchPlayer = new PreviewFakePlayer(world);
+        } else {
+            scratchPlayer.resetForBuild();
+        }
+        return scratchPlayer;
     }
 
     /**
@@ -122,7 +132,6 @@ public class StructureLibBuildService {
 
         GuidebookLevel level = acquireScratchLevel();
         World world = level.getOrCreateFakeWorld();
-        PreviewFakePlayer fakePlayer = new PreviewFakePlayer(world);
 
         TileEntity controllerTile = placeController(level, world, controller);
         if (controllerTile == null) {
@@ -136,9 +145,6 @@ public class StructureLibBuildService {
         StructureLibOrientationHelper
             .applyRequestedAlignment(controllerTile, request.facing(), request.rotation(), request.flip());
 
-        ForgeDirection controllerFacing = StructureLibOrientationHelper.resolveControllerFacing(controllerTile);
-        fakePlayer.configureForControllerFacing(controllerFacing);
-
         IConstructable constructable = resolveConstructable(controllerTile);
         if (constructable == null) {
             return new StructureLibBuildResult(
@@ -146,6 +152,10 @@ public class StructureLibBuildService {
                 false,
                 "Controller not constructable: " + request.controllerId());
         }
+
+        PreviewFakePlayer fakePlayer = acquireScratchPlayer(world);
+        ForgeDirection controllerFacing = StructureLibOrientationHelper.resolveControllerFacing(controllerTile);
+        fakePlayer.configureForControllerFacing(controllerFacing);
 
         ItemStack trigger = createTrigger(request);
         Long2ObjectMap<IStructureElement<?>> visitedElements = Long2ObjectMaps.emptyMap();

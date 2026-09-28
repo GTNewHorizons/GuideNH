@@ -42,6 +42,7 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
 
     /** Upper bound avoids extreme handler sizes blowing memory during export. */
     private static final int MAX_EXPORT_EDGE = 1024;
+    private static final int RASTER_SCALE = 2;
 
     private final GuideSiteAssetRegistry assets;
     @Nullable
@@ -119,7 +120,22 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
             overlay = handler.getClass()
                 .getName();
         }
-        return overlay + '|' + System.identityHashCode(handler) + '|' + recipeIndex + '|' + bodyW + 'x' + bodyH;
+        Minecraft minecraft = Minecraft.getMinecraft();
+        String language = minecraft != null && minecraft.getLanguageManager() != null
+            && minecraft.getLanguageManager()
+                .getCurrentLanguage() != null ? minecraft.getLanguageManager()
+                    .getCurrentLanguage()
+                    .getLanguageCode() : "";
+        return language + '|'
+            + overlay
+            + '|'
+            + System.identityHashCode(handler)
+            + '|'
+            + recipeIndex
+            + '|'
+            + bodyW
+            + 'x'
+            + bodyH;
     }
 
     private BufferedImage renderImage(Object handler, int recipeIndex, int viewportW, int viewportH) {
@@ -132,7 +148,9 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
         int yShift = NeiRecipeLookup.lookupHandlerYShift(handler);
         int m = VIEWPORT_MARGIN_PX;
 
-        Framebuffer framebuffer = framebuffer(viewportW, viewportH);
+        int rasterWidth = viewportW * RASTER_SCALE;
+        int rasterHeight = viewportH * RASTER_SCALE;
+        Framebuffer framebuffer = framebuffer(rasterWidth, rasterHeight);
 
         int previousDisplayWidth = minecraft.displayWidth;
         int previousDisplayHeight = minecraft.displayHeight;
@@ -147,7 +165,7 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
             minecraft.gameSettings.guiScale = 1;
 
             framebuffer.bindFramebuffer(true);
-            GL11.glViewport(0, 0, viewportW, viewportH);
+            GL11.glViewport(0, 0, rasterWidth, rasterHeight);
             GL11.glClearColor(0f, 0f, 0f, 0f);
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
@@ -182,7 +200,7 @@ public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
                 GL11.glPopMatrix();
             }
 
-            return readPixels(viewportW, viewportH);
+            return readPixels(rasterWidth, rasterHeight);
         } finally {
             if (modelViewPushed) {
                 GL11.glMatrixMode(GL11.GL_MODELVIEW);

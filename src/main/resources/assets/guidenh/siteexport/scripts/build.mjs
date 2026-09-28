@@ -5,7 +5,16 @@ import { spawnSync } from "node:child_process";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = join(packageRoot, "dist");
+const imageCacheRoot = join(packageRoot, "node_modules", ".cache", "guidenh-webp-v2");
 const excludedNames = new Set(["dist", "node_modules", "package.json", "package-lock.json", "scripts"]);
+const buildStartedAt = process.hrtime.bigint();
+
+function formatBuildDuration() {
+  const elapsedSeconds = Number(process.hrtime.bigint() - buildStartedAt) / 1e9;
+  const minutes = Math.floor(elapsedSeconds / 60);
+  const seconds = (elapsedSeconds % 60).toFixed(2).padStart(5, "0");
+  return `${minutes}m ${seconds}s`;
+}
 
 async function ensureBuildDependencies() {
   const packages = ["parse5", "postcss", "postcss-value-parser", "sharp"];
@@ -34,24 +43,28 @@ async function listEntries(directory) {
 
 async function copySourceTree(source, target) {
   await mkdir(target, { recursive: true });
-  for (const entry of await listEntries(source)) {
-    if (excludedNames.has(entry.name)) {
-      continue;
-    }
-    const sourcePath = join(source, entry.name);
-    const targetPath = join(target, entry.name);
-    if (entry.isDirectory()) {
-      await copySourceTree(sourcePath, targetPath);
-    } else if (entry.isFile()) {
-      await cp(sourcePath, targetPath, { force: true });
-    }
-  }
+  const entries = (await listEntries(source)).filter(entry => !excludedNames.has(entry.name));
+  await Promise.all(entries.map(entry => cp(
+    join(source, entry.name),
+    join(target, entry.name),
+    { force: true, recursive: entry.isDirectory() },
+  )));
 }
 
-await ensureBuildDependencies();
-const { optimizeImages } = await import("./optimize-images.mjs");
-await rm(distRoot, { recursive: true, force: true });
-await copySourceTree(packageRoot, distRoot);
-await optimizeImages(distRoot);
-await writeFile(join(distRoot, ".nojekyll"), "", "utf8");
-console.log(`ExportSite built at ${relative(process.cwd(), distRoot) || "."}${sep}`);
+try {
+  let phaseStartedAt = process.hrtime.bigint();
+  await ensureBuildDependencies();
+  console.log(`Dependency check: ${(Number(process.hrtime.bigint() - phaseStartedAt) / 1e9).toFixed(2)}s.`);
+  const { optimizeImages } = await import("./optimize-images.mjs");
+  phaseStartedAt = process.hrtime.bigint();
+  await rm(distRoot, { recursive: true, force: true });
+  await copySourceTree(packageRoot, distRoot);
+  console.log(`Source copy: ${(Number(process.hrtime.bigint() - phaseStartedAt) / 1e9).toFixed(2)}s.`);
+  await optimizeImages(distRoot, imageCacheRoot);
+  await writeFile(join(distRoot, ".nojekyll"), "", "utf8");
+  console.log(`ExportSite built at ${relative(process.cwd(), distRoot) || "."}${sep}`);
+  console.log(`ExportSite build completed in ${formatBuildDuration()}.`);
+} catch (error) {
+  console.error(`ExportSite build failed after ${formatBuildDuration()}.`);
+  throw error;
+}

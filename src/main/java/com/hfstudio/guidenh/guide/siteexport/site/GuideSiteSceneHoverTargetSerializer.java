@@ -1,6 +1,8 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +10,6 @@ import java.util.Map;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MovingObjectPosition;
@@ -21,6 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.ItemTooltip;
+import com.hfstudio.guidenh.guide.document.interaction.ItemTooltipAppender;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.StructureLibSceneBinding;
@@ -29,6 +31,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideBlockBoundsResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockDisplayResolver;
 import com.hfstudio.guidenh.guide.scene.support.GuideEntityDisplayResolver;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata.BlockTooltipData;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -65,8 +68,7 @@ public class GuideSiteSceneHoverTargetSerializer {
         level.prepareForPreview();
 
         List<Map<String, Object>> targets = new ArrayList<>();
-        Map<String, String> templateIdsByHtml = new LinkedHashMap<>();
-        Map<String, String> templateIdsByItem = new LinkedHashMap<>();
+        SerializationCache cache = new SerializationCache();
         Integer visibleLayerY = resolveVisibleLayerY(scene);
         List<StructureLibSceneMetadata> structureLibMetadataList = collectStructureLibMetadata(scene);
         LongSet hatchPositions = new LongOpenHashSet();
@@ -94,17 +96,17 @@ public class GuideSiteSceneHoverTargetSerializer {
                         z,
                         AxisAlignedBB.getBoundingBox(x, y, z, x + 1d, y + 1d, z + 1d),
                         HATCH_HOVER_COLOR,
-                        resolveSceneBlockTooltip(scene, structureLibMetadataList, x, y, z, null),
+                        resolveSceneBlockTooltip(scene, structureLibMetadataList, x, y, z, null, cache),
                         resolveStructureLibTooltip(
                             structureLibMetadataList,
                             x,
                             y,
                             z,
                             resolveSceneBlockName(scene, x, y, z, null),
-                            true),
+                            true,
+                            cache),
                         templates,
-                        templateIdsByHtml,
-                        templateIdsByItem,
+                        cache,
                         currentPageId,
                         assetExporter,
                         itemIconResolver));
@@ -119,8 +121,7 @@ public class GuideSiteSceneHoverTargetSerializer {
                     z,
                     structureLibMetadataList,
                     templates,
-                    templateIdsByHtml,
-                    templateIdsByItem,
+                    cache,
                     currentPageId,
                     assetExporter,
                     itemIconResolver));
@@ -155,17 +156,18 @@ public class GuideSiteSceneHoverTargetSerializer {
                             entry.getX(),
                             entry.getY(),
                             entry.getZ(),
-                            null),
+                            null,
+                            cache),
                         resolveStructureLibTooltip(
                             structureLibMetadataList,
                             entry.getX(),
                             entry.getY(),
                             entry.getZ(),
                             resolveSceneBlockName(scene, entry.getX(), entry.getY(), entry.getZ(), null),
-                            true),
+                            true,
+                            cache),
                         templates,
-                        templateIdsByHtml,
-                        templateIdsByItem,
+                        cache,
                         currentPageId,
                         assetExporter,
                         itemIconResolver));
@@ -182,8 +184,7 @@ public class GuideSiteSceneHoverTargetSerializer {
                     entity.boundingBox,
                     resolveEntityTooltip(entity),
                     templates,
-                    templateIdsByHtml,
-                    templateIdsByItem,
+                    cache,
                     currentPageId,
                     assetExporter,
                     itemIconResolver));
@@ -211,9 +212,8 @@ public class GuideSiteSceneHoverTargetSerializer {
 
     private static List<Map<String, Object>> buildBlockTargets(LytGuidebookScene scene, int x, int y, int z,
         List<StructureLibSceneMetadata> structureLibMetadataList, GuideSiteTemplateRegistry templates,
-        Map<String, String> templateIdsByHtml, Map<String, String> templateIdsByItem,
-        @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-        GuideSiteItemIconResolver itemIconResolver) {
+        SerializationCache cache, @Nullable ResourceLocation currentPageId,
+        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
         BlockHoverGeometry geometry = resolveBlockHoverGeometry(scene.getLevel(), x, y, z);
         if (geometry == null || geometry.bounds.isEmpty()) {
             return List.of();
@@ -230,17 +230,17 @@ public class GuideSiteSceneHoverTargetSerializer {
                     z,
                     bounds,
                     BLOCK_HOVER_COLOR,
-                    resolveSceneBlockTooltip(scene, structureLibMetadataList, x, y, z, target),
+                    resolveSceneBlockTooltip(scene, structureLibMetadataList, x, y, z, target, cache),
                     resolveStructureLibTooltip(
                         structureLibMetadataList,
                         x,
                         y,
                         z,
                         resolveSceneBlockName(scene, x, y, z, target),
-                        true),
+                        true,
+                        cache),
                     templates,
-                    templateIdsByHtml,
-                    templateIdsByItem,
+                    cache,
                     currentPageId,
                     assetExporter,
                     itemIconResolver));
@@ -250,27 +250,18 @@ public class GuideSiteSceneHoverTargetSerializer {
 
     private static Map<String, Object> buildBlockTarget(String targetType, int x, int y, int z, AxisAlignedBB bounds,
         String color, @Nullable GuideTooltip tooltip, @Nullable GuideTooltip shiftTooltip,
-        GuideSiteTemplateRegistry templates, Map<String, String> templateIdsByHtml,
-        Map<String, String> templateIdsByItem, @Nullable ResourceLocation currentPageId,
+        GuideSiteTemplateRegistry templates, SerializationCache cache, @Nullable ResourceLocation currentPageId,
         @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
         Map<String, Object> target = createBaseTarget(targetType, bounds, color);
         target.put("blockPos", new int[] { x, y, z });
-        String templateId = createTemplateId(
-            tooltip,
-            templates,
-            templateIdsByHtml,
-            templateIdsByItem,
-            currentPageId,
-            assetExporter,
-            itemIconResolver);
+        String templateId = createTemplateId(tooltip, templates, cache, currentPageId, assetExporter, itemIconResolver);
         if (templateId != null) {
             target.put("contentTemplateId", templateId);
         }
         String shiftTemplateId = createTemplateId(
             shiftTooltip,
             templates,
-            templateIdsByHtml,
-            templateIdsByItem,
+            cache,
             currentPageId,
             assetExporter,
             itemIconResolver);
@@ -281,18 +272,10 @@ public class GuideSiteSceneHoverTargetSerializer {
     }
 
     private static Map<String, Object> buildEntityTarget(AxisAlignedBB bounds, @Nullable GuideTooltip tooltip,
-        GuideSiteTemplateRegistry templates, Map<String, String> templateIdsByHtml,
-        Map<String, String> templateIdsByItem, @Nullable ResourceLocation currentPageId,
+        GuideSiteTemplateRegistry templates, SerializationCache cache, @Nullable ResourceLocation currentPageId,
         @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
         Map<String, Object> target = createBaseTarget("entity", bounds, ENTITY_HOVER_COLOR);
-        String templateId = createTemplateId(
-            tooltip,
-            templates,
-            templateIdsByHtml,
-            templateIdsByItem,
-            currentPageId,
-            assetExporter,
-            itemIconResolver);
+        String templateId = createTemplateId(tooltip, templates, cache, currentPageId, assetExporter, itemIconResolver);
         if (templateId != null) {
             target.put("contentTemplateId", templateId);
         }
@@ -321,14 +304,25 @@ public class GuideSiteSceneHoverTargetSerializer {
     @Nullable
     private static GuideTooltip resolveSceneBlockTooltip(LytGuidebookScene scene,
         List<StructureLibSceneMetadata> structureLibMetadataList, int x, int y, int z,
-        @Nullable MovingObjectPosition target) {
+        @Nullable MovingObjectPosition target, SerializationCache cache) {
         ItemStack stack = resolveSceneBlockStack(scene, x, y, z, target);
         if (stack != null && stack.stackSize > 0) {
+            String key = GuideSiteItemSupport.tooltipCacheKey(stack);
+            if (key != null) {
+                return cache.itemTooltips.computeIfAbsent(key, ignored -> new ItemTooltip(stack.copy()));
+            }
             return new ItemTooltip(stack.copy());
         }
 
         String name = resolveSceneBlockName(scene, x, y, z, target);
-        GuideTooltip structureLibTooltip = resolveStructureLibTooltip(structureLibMetadataList, x, y, z, name, false);
+        GuideTooltip structureLibTooltip = resolveStructureLibTooltip(
+            structureLibMetadataList,
+            x,
+            y,
+            z,
+            name,
+            false,
+            cache);
         if (structureLibTooltip != null) {
             return structureLibTooltip;
         }
@@ -338,7 +332,7 @@ public class GuideSiteSceneHoverTargetSerializer {
 
     @Nullable
     private static GuideTooltip resolveStructureLibTooltip(List<StructureLibSceneMetadata> structureLibMetadataList,
-        int x, int y, int z, @Nullable String blockName, boolean shiftDown) {
+        int x, int y, int z, @Nullable String blockName, boolean shiftDown, SerializationCache cache) {
         if (structureLibMetadataList == null || structureLibMetadataList.isEmpty()) {
             return null;
         }
@@ -352,13 +346,16 @@ public class GuideSiteSceneHoverTargetSerializer {
             }
             String resolvedName = blockName != null && !blockName.trim()
                 .isEmpty() ? blockName : metadata.getController();
-            return StructureLibTooltipContentBuilder.build(
-                resolvedName,
-                data.getStructureLibDescription(),
-                shiftDown,
-                data.getBlockCandidates(),
-                data.getHatchDescriptionLines(),
-                data.getHatchCandidates());
+            StructureTooltipKey key = new StructureTooltipKey(data, resolvedName, shiftDown);
+            return cache.structureTooltips.computeIfAbsent(
+                key,
+                ignored -> StructureLibTooltipContentBuilder.build(
+                    resolvedName,
+                    data.getStructureLibDescription(),
+                    shiftDown,
+                    data.getBlockCandidates(),
+                    data.getHatchDescriptionLines(),
+                    data.getHatchCandidates()));
         }
         return null;
     }
@@ -632,60 +629,34 @@ public class GuideSiteSceneHoverTargetSerializer {
 
     @Nullable
     private static String createTemplateId(@Nullable GuideTooltip tooltip, GuideSiteTemplateRegistry templates,
-        Map<String, String> templateIdsByHtml, Map<String, String> templateIdsByItem,
-        @Nullable ResourceLocation currentPageId, @Nullable GuideSitePageAssetExporter assetExporter,
-        GuideSiteItemIconResolver itemIconResolver) {
+        SerializationCache cache, @Nullable ResourceLocation currentPageId,
+        @Nullable GuideSitePageAssetExporter assetExporter, GuideSiteItemIconResolver itemIconResolver) {
         if (tooltip == null) {
             return null;
         }
 
-        String itemKey = itemTooltipKey(tooltip);
-        if (itemKey != null) {
-            String existing = templateIdsByItem.get(itemKey);
-            if (existing != null) {
-                return existing;
-            }
-        }
-
-        String html = GuideSiteSceneAnnotationSerializer
-            .renderTooltipHtml(tooltip, currentPageId, assetExporter, itemIconResolver, templates);
-        if (html == null || html.trim()
-            .isEmpty()) {
-            return null;
-        }
-
-        String existing = templateIdsByHtml.get(html);
+        String existing = cache.templateIdsByTooltip.get(tooltip);
         if (existing != null) {
-            if (itemKey != null) {
-                templateIdsByItem.put(itemKey, existing);
-            }
-            return existing;
+            return existing.isEmpty() ? null : existing;
         }
-
-        String templateId = templates.create(html);
-        templateIdsByHtml.put(html, templateId);
-        if (itemKey != null) {
-            templateIdsByItem.put(itemKey, templateId);
-        }
-        return templateId;
+        String itemKey = tooltip instanceof ItemTooltip itemTooltip && !(tooltip instanceof ItemTooltipAppender)
+            ? GuideSiteItemSupport.tooltipCacheKey(itemTooltip.getStack())
+            : null;
+        String templateId = templates.getOrCreate(
+            itemKey,
+            () -> GuideSiteSceneAnnotationSerializer
+                .renderTooltipHtml(tooltip, currentPageId, assetExporter, itemIconResolver, templates));
+        cache.templateIdsByTooltip.put(tooltip, templateId);
+        return templateId.isEmpty() ? null : templateId;
     }
 
-    @Nullable
-    private static String itemTooltipKey(GuideTooltip tooltip) {
-        if (!(tooltip instanceof ItemTooltip itemTooltip)) {
-            return null;
-        }
-        ItemStack stack = itemTooltip.getStack();
-        if (stack == null || stack.getItem() == null) {
-            return null;
-        }
-        Object registryName = Item.itemRegistry.getNameForObject(stack.getItem());
-        return String.valueOf(registryName) + ':'
-            + stack.getItemDamage()
-            + ':'
-            + stack.stackSize
-            + ':'
-            + (stack.stackTagCompound == null ? "" : stack.stackTagCompound.toString());
+    private record StructureTooltipKey(BlockTooltipData data, String blockName, boolean shiftDown) {}
+
+    private static class SerializationCache {
+
+        private final Map<StructureTooltipKey, GuideTooltip> structureTooltips = new HashMap<>();
+        private final Map<String, GuideTooltip> itemTooltips = new HashMap<>();
+        private final Map<GuideTooltip, String> templateIdsByTooltip = new IdentityHashMap<>();
     }
 
     private static class BlockHoverGeometry {
