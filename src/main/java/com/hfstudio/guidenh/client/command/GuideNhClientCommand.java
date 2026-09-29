@@ -252,7 +252,8 @@ public class GuideNhClientCommand extends CommandBase {
             send(
                 sender,
                 GuidebookText.CommandExportSiteSuccess,
-                result.guidesExported(),
+                result.modIdsExported(),
+                result.languagesExported(),
                 result.pagesExported(),
                 result.pagesFailed(),
                 result.warnings(),

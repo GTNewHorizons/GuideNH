@@ -1218,7 +1218,7 @@ function installSiteRouter() {
   window.addEventListener("guide-item-navigate", event => navigate(event.detail.href, true));
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function initializeSite() {
   const base = document.querySelector("base");
   // Keep the site root stable when history navigation changes the page depth.
   if (base) base.href = base.href;
@@ -1246,7 +1246,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     restoreNavigationState(sidebar, navigationState(sidebar), window.location.href);
   }
   installSiteRouter();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeSite, { once: true });
+} else {
+  initializeSite();
+}
 
 function installMermaidLayout(root) {
   const stages = root.querySelectorAll(".guide-mermaid-stage[data-guide-mermaid-stage]");

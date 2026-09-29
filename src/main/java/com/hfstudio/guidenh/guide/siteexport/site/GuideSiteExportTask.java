@@ -172,6 +172,7 @@ public class GuideSiteExportTask {
         int guidesExported = 0;
         int pagesExported = 0;
         int pagesFailed = 0;
+        LinkedHashSet<String> exportedModIds = new LinkedHashSet<>();
         Map<String, String> landingPagesByLanguage = new TreeMap<>();
         Map<String, List<Map<String, Object>>> searchEntriesByLanguage = new LinkedHashMap<>();
         Map<ResourceLocation, MutableGuide> guidesById = new LinkedHashMap<>();
@@ -397,6 +398,8 @@ public class GuideSiteExportTask {
                                     body,
                                     exportTemplates(templates, assets),
                                     pageTitle);
+                                exportedModIds.add(guide.getId()
+                                    .getResourceDomain());
                                 timing.pageWriteNanos += System.nanoTime() - pageWriteStartedAt;
 
                                 if (!MediaWikiPageIds.isSpecialPage(variant.pageId())) {
@@ -463,11 +466,14 @@ public class GuideSiteExportTask {
         writer.writeLandingPage(outDir, landingPagesByLanguage, "GuideNH Static Export", landingPageText);
         return new Result(
             guidesExported,
+            exportedModIds.size(),
+            landingPagesByLanguage.size(),
             pagesExported,
             pagesFailed,
             diagnostics.warningCount(),
             diagnostics.errorCount(),
-            outDir);
+            outDir,
+            0L);
     }
 
     private List<String> exportTemplates(GuideSiteTemplateRegistry templates, GuideSiteAssetRegistry assets)
@@ -2063,6 +2069,8 @@ public class GuideSiteExportTask {
     public static class Result {
 
         private final int guidesExported;
+        private final int modIdsExported;
+        private final int languagesExported;
         private final int pagesExported;
         private final int pagesFailed;
         private final int warnings;
@@ -2075,12 +2083,14 @@ public class GuideSiteExportTask {
         }
 
         public Result(int guidesExported, int pagesExported, int pagesFailed, int warnings, int errors, Path outDir) {
-            this(guidesExported, pagesExported, pagesFailed, warnings, errors, outDir, 0L);
+            this(guidesExported, 0, 0, pagesExported, pagesFailed, warnings, errors, outDir, 0L);
         }
 
-        private Result(int guidesExported, int pagesExported, int pagesFailed, int warnings, int errors, Path outDir,
-            long durationMillis) {
+        private Result(int guidesExported, int modIdsExported, int languagesExported, int pagesExported,
+            int pagesFailed, int warnings, int errors, Path outDir, long durationMillis) {
             this.guidesExported = guidesExported;
+            this.modIdsExported = modIdsExported;
+            this.languagesExported = languagesExported;
             this.pagesExported = pagesExported;
             this.pagesFailed = pagesFailed;
             this.warnings = warnings;
@@ -2090,11 +2100,28 @@ public class GuideSiteExportTask {
         }
 
         private Result withDurationMillis(long durationMillis) {
-            return new Result(guidesExported, pagesExported, pagesFailed, warnings, errors, outDir, durationMillis);
+            return new Result(
+                guidesExported,
+                modIdsExported,
+                languagesExported,
+                pagesExported,
+                pagesFailed,
+                warnings,
+                errors,
+                outDir,
+                durationMillis);
         }
 
         public int guidesExported() {
             return guidesExported;
+        }
+
+        public int modIdsExported() {
+            return modIdsExported;
+        }
+
+        public int languagesExported() {
+            return languagesExported;
         }
 
         public int pagesExported() {
