@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.siteexport.site;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.JarURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,9 +12,12 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.stream.Stream;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
@@ -38,9 +43,24 @@ public class GuideSiteWriter {
         .create();
 
     public void writeBootstrapFiles(Path outDir) throws Exception {
+        Path siteConfig = outDir.resolve("site-config.json");
+        if (Files.notExists(siteConfig)) {
+            Files.writeString(siteConfig, "{\n  \"headerLink\": \"\"\n}\n", StandardCharsets.UTF_8);
+        }
+        writeResource(outDir.resolve("SITE-CONFIG.md"), "/assets/guidenh/siteexport/SITE-CONFIG.md");
         writeResource(outDir.resolve("_site/gtnh-favicon.svg"), "/assets/guidenh/siteexport/gtnh-favicon.svg");
         writeResource(outDir.resolve("_site/app.css"), "/assets/guidenh/siteexport/app.css");
         writeResource(outDir.resolve("_site/app.js"), "/assets/guidenh/siteexport/app.js");
+        writeResource(outDir.resolve("_site/locale.js"), "/assets/guidenh/siteexport/locale.js");
+        writeResource(outDir.resolve("_site/languageMatching.js"), "/assets/guidenh/siteexport/languageMatching.js");
+        String localeRoot = "/assets/guidenh/siteexport/lang/";
+        List<String> localeCodes = availableSiteLocales(localeRoot);
+        Path localeIndex = outDir.resolve("_site/lang/index.json");
+        Files.createDirectories(localeIndex.getParent());
+        Files.writeString(localeIndex, GSON.toJson(localeCodes), StandardCharsets.UTF_8);
+        for (String localeCode : localeCodes) {
+            writeResource(outDir.resolve("_site/lang/" + localeCode + ".json"), localeRoot + localeCode + ".json");
+        }
         writeResource(outDir.resolve("_site/itemNavigation.js"), "/assets/guidenh/siteexport/itemNavigation.js");
         writeResource(outDir.resolve("_site/landing.js"), "/assets/guidenh/siteexport/landing.js");
         writeResource(
@@ -624,7 +644,7 @@ public class GuideSiteWriter {
         if (!src.isEmpty()) {
             html.append("<img class=\"item-icon guide-nav-item-icon guide-nav-texture-icon\" src=\"")
                 .append(escapeHtml(src))
-                .append("\" alt=\"\" width=\"32\" height=\"32\" decoding=\"async\">");
+                .append("\" alt=\"\" width=\"32\" height=\"32\" loading=\"lazy\" decoding=\"async\">");
         }
     }
 
@@ -661,6 +681,52 @@ public class GuideSiteWriter {
                 out.write(buffer, 0, read);
             }
             return out.toString(StandardCharsets.UTF_8);
+        }
+    }
+
+    private List<String> availableSiteLocales(String resourceRoot) throws Exception {
+        URL englishResource = GuideSiteWriter.class.getResource(resourceRoot + "en_us.json");
+        if (englishResource == null) {
+            throw new IllegalStateException("Missing ExportSite English locale");
+        }
+        List<String> locales = new ArrayList<>();
+        if ("jar".equals(englishResource.getProtocol())) {
+            JarURLConnection connection = (JarURLConnection) englishResource.openConnection();
+            try (JarFile jar = new JarFile(
+                Paths.get(
+                    connection.getJarFileURL()
+                        .toURI())
+                    .toFile())) {
+                String prefix = resourceRoot.substring(1);
+                Enumeration<JarEntry> entries = jar.entries();
+                while (entries.hasMoreElements()) {
+                    JarEntry entry = entries.nextElement();
+                    String name = entry.getName();
+                    if (name.startsWith(prefix)) {
+                        addSiteLocale(locales, name.substring(prefix.length()));
+                    }
+                }
+            }
+        } else if ("file".equals(englishResource.getProtocol())) {
+            try (Stream<Path> paths = Files.list(
+                Paths.get(englishResource.toURI())
+                    .getParent())) {
+                paths.filter(Files::isRegularFile)
+                    .map(
+                        path -> path.getFileName()
+                            .toString())
+                    .forEach(name -> addSiteLocale(locales, name));
+            }
+        } else {
+            throw new IllegalStateException("Unsupported ExportSite locale source: " + englishResource);
+        }
+        locales.sort(String::compareTo);
+        return locales;
+    }
+
+    private void addSiteLocale(List<String> locales, String filename) {
+        if (filename.matches("[a-z]{2,3}_[a-z0-9_]+\\.json")) {
+            locales.add(filename.substring(0, filename.length() - ".json".length()));
         }
     }
 

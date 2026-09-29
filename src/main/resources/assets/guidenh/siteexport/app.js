@@ -3,6 +3,28 @@ import { disposeHydratedScenes, hydrateVisibleScenes } from "./viewer.js";
 import { loadSharedText } from "./sharedAssets.js";
 import { rememberSiteLanguage } from "./languagePreference.js";
 import { installGuideItemNavigation } from "./itemNavigation.js";
+import { ensureSiteLanguage, siteText } from "./locale.js";
+
+async function loadCustomSiteLink() {
+  const link = document.querySelector("[data-guide-custom-link]");
+  if (!(link instanceof HTMLAnchorElement)) return;
+  try {
+    const response = await fetch(new URL("../site-config.json", import.meta.url), { credentials: "same-origin" });
+    if (!response.ok) return;
+    const config = await response.json();
+    if (typeof config?.headerLink !== "string" || !config.headerLink.trim()) return;
+    const url = new URL(config.headerLink.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return;
+    link.href = url.href;
+    const label = typeof config.headerLinkLabel === "string" && config.headerLinkLabel.trim()
+      ? config.headerLinkLabel.trim() : url.hostname;
+    link.setAttribute("aria-label", label);
+    link.title = label;
+    link.hidden = false;
+  } catch (error) {
+    console.warn("GuideNH custom site link could not be loaded.", error);
+  }
+}
 
 async function loadSidebar(sidebar) {
   const source = sidebar.querySelector("[data-guide-sidebar-src]")?.dataset.guideSidebarSrc;
@@ -998,28 +1020,11 @@ function installNavigationUi(root) {
   });
 }
 
-const MOBILE_NAV_LABELS = {
-  en: ["Navigation", "Close navigation"],
-  zh: ["导航", "关闭导航"],
-  "zh-tw": ["導覽", "關閉導覽"],
-  ja: ["ナビゲーション", "ナビゲーションを閉じる"],
-  ru: ["Навигация", "Закрыть навигацию"],
-  fr: ["Navigation", "Fermer la navigation"],
-  de: ["Navigation", "Navigation schließen"],
-  pl: ["Nawigacja", "Zamknij nawigację"],
-  nl: ["Navigatie", "Navigatie sluiten"],
-  es: ["Navegación", "Cerrar navegación"],
-  pt: ["Navegação", "Fechar navegação"],
-  uk: ["Навігація", "Закрити навігацію"],
-};
-
 function updateMobileNavigationLabels() {
-  const language = (document.documentElement.lang || "en").toLowerCase().replaceAll("_", "-");
-  const labels = MOBILE_NAV_LABELS[language] || MOBILE_NAV_LABELS[language.split("-")[0]] || MOBILE_NAV_LABELS.en;
   const toggle = document.querySelector("[data-guide-mobile-nav-toggle]");
   const backdrop = document.querySelector("[data-guide-mobile-nav-backdrop]");
-  toggle?.setAttribute("aria-label", toggle.getAttribute("aria-expanded") === "true" ? labels[1] : labels[0]);
-  backdrop?.setAttribute("aria-label", labels[1]);
+  toggle?.setAttribute("aria-label", siteText("navigation", toggle.getAttribute("aria-expanded") === "true" ? "close" : "open"));
+  backdrop?.setAttribute("aria-label", siteText("navigation", "close"));
 }
 
 function setMobileNavigationOpen(open) {
@@ -1150,6 +1155,7 @@ function installSiteRouter() {
         reuseSidebar ? Promise.resolve() : loadSidebar(nextSidebar),
         loadPageTemplates(nextContent),
         loadLanguageMenu(nextLanguageSwitcher),
+        ensureSiteLanguage(nextLanguage || currentLanguage),
       ]);
       if (activeRequest !== requestId) return;
 
@@ -1212,12 +1218,13 @@ function installSiteRouter() {
   window.addEventListener("guide-item-navigate", event => navigate(event.detail.href, true));
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+async function initializeSite() {
   const base = document.querySelector("base");
   // Keep the site root stable when history navigation changes the page depth.
   if (base) base.href = base.href;
   const sidebar = document.querySelector(".guide-sidebar");
   const content = document.getElementById("page-content");
+  loadCustomSiteLink();
   installMobileNavigation();
   installTooltips(document);
   if (content instanceof HTMLElement) hydrateVisibleScenes(content);
@@ -1239,7 +1246,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     restoreNavigationState(sidebar, navigationState(sidebar), window.location.href);
   }
   installSiteRouter();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeSite, { once: true });
+} else {
+  initializeSite();
+}
 
 function installMermaidLayout(root) {
   const stages = root.querySelectorAll(".guide-mermaid-stage[data-guide-mermaid-stage]");

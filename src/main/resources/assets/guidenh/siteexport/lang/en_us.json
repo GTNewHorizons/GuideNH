@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "Hide annotations",
+    "showAnnotations": "Show annotations",
+    "grid": "Toggle Floor Grid",
+    "stats": "Toggle Block Stats",
+    "structureLibHatches": "Highlight StructureLib hatches",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "reset": "Reset view",
+    "previous": "Previous Keyframe",
+    "playPause": "Play / Pause",
+    "restart": "Restart"
+  },
+  "ponder": { "lmb": "LMB", "rmb": "RMB", "scroll": "Scroll" },
+  "navigation": {
+    "open": "Navigation",
+    "close": "Close navigation",
+    "holdToOpenGuide": "Hold G to open guide"
+  },
+  "sceneLoading": {
+    "error": "The 3D scene could not be loaded.",
+    "retry": "Retry",
+    "loading": "Loading 3D scene…"
+  }
+}

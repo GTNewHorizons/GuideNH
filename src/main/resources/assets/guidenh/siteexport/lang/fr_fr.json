@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "Masquer les annotations",
+    "showAnnotations": "Afficher les annotations",
+    "grid": "Afficher la grille au sol",
+    "stats": "Afficher les statistiques des blocs",
+    "structureLibHatches": "Surligner les trappes StructureLib",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "reset": "Réinitialiser la vue",
+    "previous": "Image clé précédente",
+    "playPause": "Lecture/Pause",
+    "restart": "Recommencer"
+  },
+  "ponder": { "lmb": "Clic gauche", "rmb": "Clic droit", "scroll": "Molette" },
+  "navigation": {
+    "open": "Navigation",
+    "close": "Fermer la navigation",
+    "holdToOpenGuide": "Maintenez G pour ouvrir le guide"
+  },
+  "sceneLoading": {
+    "error": "La scène 3D n’a pas pu être chargée.",
+    "retry": "Réessayer",
+    "loading": "Chargement de la scène 3D…"
+  }
+}

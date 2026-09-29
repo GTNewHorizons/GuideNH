@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "주석 숨기기",
+    "showAnnotations": "주석 표시",
+    "grid": "바닥 격자 전환",
+    "stats": "블록 통계 전환",
+    "structureLibHatches": "StructureLib 해치 강조",
+    "zoomIn": "확대",
+    "zoomOut": "축소",
+    "reset": "시점 초기화",
+    "previous": "이전 키프레임",
+    "playPause": "재생 / 일시정지",
+    "restart": "다시 시작"
+  },
+  "ponder": { "lmb": "마우스 왼쪽 버튼", "rmb": "마우스 오른쪽 버튼", "scroll": "스크롤" },
+  "navigation": {
+    "open": "탐색 메뉴",
+    "close": "탐색 메뉴 닫기",
+    "holdToOpenGuide": "G를 길게 눌러 가이드 열기"
+  },
+  "sceneLoading": {
+    "error": "3D 장면을 불러올 수 없습니다.",
+    "retry": "다시 시도",
+    "loading": "3D 장면을 불러오는 중…"
+  }
+}

@@ -488,6 +488,8 @@ p {
 .item-icon {
     width: calc(16px * var(--gui-scale));
     height: calc(16px * var(--gui-scale));
+    flex: none;
+    object-fit: contain;
     image-rendering: pixelated;
     vertical-align: middle;
 }
@@ -513,6 +515,13 @@ p {
     border-bottom: calc(1px * var(--gui-scale)) solid rgba(255,255,255,0.08);
 }
 
+.guide-brand {
+    display: flex;
+    align-items: center;
+    gap: calc(4px * var(--gui-scale));
+    min-width: 0;
+}
+
 .guide-logo {
     font-family: var(--minecraft-font);
     font-weight: bold;
@@ -525,6 +534,25 @@ p {
 .guide-logo:hover {
     text-decoration: none;
     color: var(--color-link);
+}
+
+.guide-custom-link:not([hidden]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(10px * var(--gui-scale));
+    height: calc(10px * var(--gui-scale));
+    color: var(--color-body-text);
+}
+
+.guide-custom-link:hover {
+    color: var(--color-link);
+}
+
+.guide-custom-link svg {
+    width: calc(8px * var(--gui-scale));
+    height: calc(8px * var(--gui-scale));
+    fill: currentColor;
 }
 
 .guide-header-lang {
@@ -734,8 +762,13 @@ p {
 .guide-nav-item-icon {
     width: calc(8px * var(--gui-scale));
     height: calc(8px * var(--gui-scale));
+    min-width: calc(8px * var(--gui-scale));
+    min-height: calc(8px * var(--gui-scale));
+    max-width: calc(8px * var(--gui-scale));
+    max-height: calc(8px * var(--gui-scale));
     image-rendering: pixelated;
-    flex-shrink: 0;
+    flex: none;
+    object-fit: contain;
     filter: brightness(0.84) contrast(1.06);
 }
 
@@ -1790,6 +1823,8 @@ p {
     position: absolute;
     left: 50%;
     top: 50%;
+    width: calc(16px * var(--gui-scale));
+    height: calc(16px * var(--gui-scale));
     transform: translate(-50%, -50%);
 }
 
@@ -1878,6 +1913,8 @@ p {
     display: none;
     position: absolute;
     inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .ingredient-box[data-ingredient-cycling] > .current {

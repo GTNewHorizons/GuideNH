@@ -1,28 +1,6 @@
-const HOLD_DURATION_MS = 500;
-const HOLD_LABELS = {
-  en: "Hold G to open guide",
-  zh_cn: "长按 G 打开指南",
-  zh_tw: "長按 G 開啟指南",
-  ru: "Удерживайте G, чтобы открыть руководство",
-  ja: "G を長押ししてガイドを開く",
-  fr: "Maintenez G pour ouvrir le guide",
-  de: "G gedrückt halten, um den Guide zu öffnen",
-  pl: "Przytrzymaj G, aby otworzyć poradnik",
-  nl: "Houd G ingedrukt om de gids te openen",
-  es: "Mantén G para abrir la guía",
-  pt: "Mantenha G pressionado para abrir o guia",
-  uk: "Утримуйте G, щоб відкрити посібник",
-  ko: "G를 길게 눌러 가이드 열기",
-  tr: "Rehberi açmak için G tuşunu basılı tutun",
-};
+import { siteText } from "./locale.js";
 
-function holdLabel() {
-  const language = document.documentElement.lang.toLowerCase().replaceAll("-", "_");
-  if (language.startsWith("zh")) {
-    return HOLD_LABELS[/^(zh_(tw|hk|mo|hant))/.test(language) ? "zh_tw" : "zh_cn"];
-  }
-  return HOLD_LABELS[language.split("_")[0]] || HOLD_LABELS.en;
-}
+const HOLD_DURATION_MS = 500;
 
 function domTarget(element) {
   const source = element instanceof Element ? element.closest("[data-guide-item-href]") : null;
@@ -77,7 +55,7 @@ export function installGuideItemNavigation(tooltipRoot, resolveTooltipTarget, en
       footer.remove();
       return;
     }
-    const text = holdLabel();
+    const text = siteText("navigation", "holdToOpenGuide");
     label.textContent = text;
     progress.setAttribute("aria-label", text);
     if (footer.parentNode !== tooltipRoot) tooltipRoot.append(footer);

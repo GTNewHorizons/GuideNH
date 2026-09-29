@@ -450,7 +450,7 @@ img.game-scene.guide-scene[data-scene-interactive="true"] {
 
 .scene-icon-button:hover::before,
 .scene-icon-button:focus-visible::before,
-.scene-icon-button[aria-pressed="true"]::before {
+.scene-icon-button[aria-pressed="true"]:not([data-site-scene-action="annotations"])::before {
     opacity: 1;
     background-image: var(--scene-icon-tinted-sprite, url('textures/guide/buttons.png'));
 }

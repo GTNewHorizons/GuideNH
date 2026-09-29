@@ -2,6 +2,7 @@ import { prepareGameScene, setupGameScene as setupVendorGameScene } from "./vend
 import { loadSharedText } from "../sharedAssets.js";
 import { loadSceneHoverTargetsJson } from "./sceneHoverTargets.js";
 import { expandSceneGrid } from "./sceneGrid.js";
+import { siteSection, siteText } from "../locale.js";
 
 const ROOT_PREFIX_TOKEN = "{{root}}/";
 const SCENE_CONTEXT_KEY = Symbol("guidenhSceneContext");
@@ -9,6 +10,8 @@ const SCENE_BUTTON_ICONS = {
   previousKeyframe: [0, 0],
   playPause: [0, 64],
   restart: [0, 32],
+  hideAnnotations: [0, 16],
+  showAnnotations: [16, 16],
   zoomIn: [48, 16],
   zoomOut: [32, 16],
   resetView: [0, 32],
@@ -16,33 +19,8 @@ const SCENE_BUTTON_ICONS = {
   toggleBlockStats: [16, 48],
   toggleStructureLibHatches: [32, 48],
 };
-const PONDER_INPUT_LABELS = {
-  lmb: "LMB",
-  rmb: "RMB",
-  scroll: "Scroll",
-};
-
-const SCENE_LABELS = {
-  en: { grid: "Toggle Floor Grid", stats: "Toggle Block Stats", structureLibHatches: "Highlight StructureLib hatches", zoomIn: "Zoom in", zoomOut: "Zoom out", reset: "Reset view", previous: "Previous Keyframe", playPause: "Play / Pause", restart: "Restart" },
-  zh: { grid: "切换地面网格", stats: "切换方块统计", structureLibHatches: "高亮 StructureLib 仓室", zoomIn: "放大", zoomOut: "缩小", reset: "重置视角", previous: "上一个关键帧", playPause: "播放/暂停", restart: "重新开始" },
-  "zh-tw": { grid: "切換地面網格", stats: "切換方塊統計", structureLibHatches: "高亮 StructureLib 倉室", zoomIn: "放大", zoomOut: "縮小", reset: "重設視角", previous: "上一個關鍵影格", playPause: "播放／暫停", restart: "重新開始" },
-  ja: { grid: "床面グリッドを切り替え", stats: "ブロック統計を切り替え", structureLibHatches: "StructureLib ハッチを強調", zoomIn: "拡大", zoomOut: "縮小", reset: "視点をリセット", previous: "前のキーフレーム", playPause: "再生/一時停止", restart: "最初から再生" },
-  ru: { grid: "Переключить сетку пола", stats: "Переключить статистику блоков", structureLibHatches: "Подсветить люки StructureLib", zoomIn: "Увеличить", zoomOut: "Уменьшить", reset: "Сбросить вид", previous: "Предыдущий ключевой кадр", playPause: "Воспроизведение/пауза", restart: "Начать заново" },
-  fr: { grid: "Afficher la grille au sol", stats: "Afficher les statistiques des blocs", structureLibHatches: "Surligner les trappes StructureLib", zoomIn: "Zoom avant", zoomOut: "Zoom arrière", reset: "Réinitialiser la vue", previous: "Image clé précédente", playPause: "Lecture/Pause", restart: "Recommencer" },
-  de: { grid: "Bodengitter umschalten", stats: "Blockstatistik umschalten", structureLibHatches: "StructureLib-Schächte hervorheben", zoomIn: "Vergrößern", zoomOut: "Verkleinern", reset: "Ansicht zurücksetzen", previous: "Vorheriger Keyframe", playPause: "Wiedergabe/Pause", restart: "Neu starten" },
-  pl: { grid: "Przełącz siatkę podłoża", stats: "Przełącz statystyki bloków", structureLibHatches: "Podświetl włazy StructureLib", zoomIn: "Powiększ", zoomOut: "Pomniejsz", reset: "Resetuj widok", previous: "Poprzednia klatka kluczowa", playPause: "Odtwórz/Wstrzymaj", restart: "Uruchom ponownie" },
-  nl: { grid: "Vloerrooster wisselen", stats: "Blokstatistieken wisselen", structureLibHatches: "StructureLib-luiken markeren", zoomIn: "Inzoomen", zoomOut: "Uitzoomen", reset: "Weergave herstellen", previous: "Vorig keyframe", playPause: "Afspelen/Pauzeren", restart: "Opnieuw starten" },
-  es: { grid: "Alternar cuadrícula del suelo", stats: "Alternar estadísticas de bloques", structureLibHatches: "Resaltar compuertas de StructureLib", zoomIn: "Acercar", zoomOut: "Alejar", reset: "Restablecer vista", previous: "Fotograma clave anterior", playPause: "Reproducir/Pausar", restart: "Reiniciar" },
-  pt: { grid: "Alternar grade do chão", stats: "Alternar estatísticas de blocos", structureLibHatches: "Destacar comportas do StructureLib", zoomIn: "Ampliar", zoomOut: "Reduzir", reset: "Redefinir vista", previous: "Quadro-chave anterior", playPause: "Reproduzir/Pausar", restart: "Reiniciar" },
-  uk: { grid: "Перемкнути сітку підлоги", stats: "Перемкнути статистику блоків", structureLibHatches: "Підсвітити люки StructureLib", zoomIn: "Збільшити", zoomOut: "Зменшити", reset: "Скинути вигляд", previous: "Попередній ключовий кадр", playPause: "Відтворення/пауза", restart: "Почати спочатку" },
-};
-
 function sceneLabels() {
-  const language = `${document.documentElement?.lang || "en"}`.toLowerCase().replaceAll("_", "-");
-  return {
-    ...SCENE_LABELS.en,
-    ...(SCENE_LABELS[language] || SCENE_LABELS[language.split("-")[0]] || {}),
-  };
+  return siteSection("scene");
 }
 
 const sceneTooltipTemplates = new Map();
@@ -189,6 +167,11 @@ function captureSceneDescriptor(node) {
     blockStatsVisible: node.dataset.sceneBlockStatsVisible === "true",
     structureLibHatchToggle: node.dataset.sceneStructurelibHatchToggle === "true",
     structureLibHatchVisible: node.dataset.sceneStructurelibHatchVisible === "true",
+    annotationToggle: hasSceneAnnotations(
+      node.getAttribute("data-scene-in-world-annotations"),
+      node.getAttribute("data-scene-overlay-annotations"),
+    ),
+    annotationsVisible: true,
   };
 }
 
@@ -341,6 +324,18 @@ function parseSceneJsonAttribute(value, fallback) {
   }
 }
 
+function hasSceneAnnotations(worldJson, overlayJson) {
+  return parseSceneJsonAttribute(worldJson, []).some((annotation) => !annotation?.siteControl)
+    || parseSceneJsonAttribute(overlayJson, []).some((annotation) => !annotation?.siteControl);
+}
+
+function filterSceneOverlayAnnotations(annotations, descriptor) {
+  const values = Array.isArray(annotations) ? annotations : [];
+  return descriptor?.annotationsVisible === false
+    ? values.filter((annotation) => annotation?.siteControl)
+    : values;
+}
+
 function serializeSceneJsonAttribute(value) {
   return JSON.stringify(Array.isArray(value) ? value : []);
 }
@@ -446,7 +441,7 @@ function createInputAnnotationNode(documentRef, annotation) {
   const input = documentRef.createElement("span");
   const inputType = `${annotation?.inputType || "lmb"}`.toLowerCase();
   input.className = `scene-input-annotation-key scene-input-annotation-key--${inputType}`;
-  input.setAttribute("aria-label", PONDER_INPUT_LABELS[inputType] || "LMB");
+  input.setAttribute("aria-label", siteText("ponder", inputType));
   input.textContent = inputType === "scroll" ? "↕" : "";
   body.append(input);
 
@@ -692,6 +687,9 @@ function mergedGridAnnotations(descriptor, baseAnnotationsJson) {
 
 function applySceneAnnotationVisibility(descriptor, annotations) {
   return expandSceneAnnotations(Array.isArray(annotations) ? annotations : []).filter((annotation) => {
+    if (descriptor?.annotationsVisible === false && !annotation?.siteControl) {
+      return false;
+    }
     if (annotation?.siteControl === "structureLibHatches") {
       return descriptor.structureLibHatchVisible;
     }
@@ -877,22 +875,70 @@ function createSceneActionButton(documentRef, icon, labelText, active, onClick) 
   return button;
 }
 
+function syncSceneAnnotationActionButton(sceneContext) {
+  const wrapper = sceneContext?.runtime?.wrapper;
+  const button = wrapper?.querySelector?.(':scope > .controls [data-site-scene-action="annotations"]');
+  if (!(button instanceof HTMLElement)) {
+    return;
+  }
+  const visible = sceneContext.descriptor?.annotationsVisible !== false;
+  const labels = sceneLabels();
+  applyIconButton(
+    button,
+    visible ? SCENE_BUTTON_ICONS.hideAnnotations : SCENE_BUTTON_ICONS.showAnnotations,
+    visible ? labels.hideAnnotations : labels.showAnnotations,
+  );
+  button.setAttribute("aria-pressed", visible ? "true" : "false");
+}
+
+function appendSceneAnnotationActionButton(sceneContext, host) {
+  const descriptor = sceneContext.descriptor;
+  if (!descriptor.annotationToggle || host.querySelector('[data-site-scene-action="annotations"]')) {
+    return;
+  }
+  const visible = descriptor.annotationsVisible !== false;
+  const labels = sceneLabels();
+  const button = createSceneActionButton(
+    host.ownerDocument,
+    visible ? SCENE_BUTTON_ICONS.hideAnnotations : SCENE_BUTTON_ICONS.showAnnotations,
+    visible ? labels.hideAnnotations : labels.showAnnotations,
+    visible,
+    (actionButton) => {
+      actionButton.disabled = true;
+      toggleSceneAnnotations(sceneContext).finally(() => {
+        if (actionButton.isConnected) {
+          actionButton.disabled = false;
+        }
+      });
+    },
+  );
+  button.dataset.siteSceneAction = "annotations";
+  host.prepend(button);
+}
+
 function mountSceneActionControls(sceneContext) {
   const wrapper = sceneContext?.runtime?.wrapper;
   if (!(wrapper instanceof HTMLElement)) {
     return;
   }
   const descriptor = sceneContext.descriptor;
-  if (!descriptor?.gridToggle && !descriptor?.blockStatsToggle && !descriptor?.structureLibHatchToggle) {
+  if (!descriptor?.annotationToggle && !descriptor?.gridToggle && !descriptor?.blockStatsToggle
+    && !descriptor?.structureLibHatchToggle) {
     return;
   }
 
   const host = ensureSceneActionControlsHost(wrapper);
-  if (!host || host.dataset.siteActionsMounted === "true") {
+  if (!host) {
+    return;
+  }
+  if (host.dataset.siteActionsMounted === "true") {
+    appendSceneAnnotationActionButton(sceneContext, host);
+    syncSceneAnnotationActionButton(sceneContext);
     return;
   }
   host.dataset.siteActionsMounted = "true";
   const documentRef = wrapper.ownerDocument;
+  appendSceneAnnotationActionButton(sceneContext, host);
 
   if (descriptor.gridToggle) {
     const gridButton = createSceneActionButton(
@@ -939,7 +985,8 @@ function mountSceneActionControls(sceneContext) {
           sceneSrc: sceneContext.descriptor.attributes["data-scene-src"],
           inWorldAnnotationsJson: sceneContext.baseWorldAnnotationsJson
             || sceneContext.descriptor.attributes["data-scene-in-world-annotations"],
-          overlayAnnotationsJson: sceneContext.descriptor.attributes["data-scene-overlay-annotations"],
+          overlayAnnotationsJson: sceneContext.baseOverlayAnnotationsJson
+            || sceneContext.descriptor.attributes["data-scene-overlay-annotations"],
           hoverTargetsJson: sceneContext.descriptor.attributes["data-scene-hover-targets"],
         };
         const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
@@ -951,6 +998,37 @@ function mountSceneActionControls(sceneContext) {
     );
     button.dataset.siteSceneAction = "structurelib-hatches";
     host.append(button);
+  }
+}
+
+async function toggleSceneAnnotations(sceneContext) {
+  if (!sceneContext?.descriptor || sceneContext.transitioning) {
+    return;
+  }
+  const previous = sceneContext.annotationsVisible !== false;
+  sceneContext.annotationsVisible = !previous;
+  sceneContext.descriptor.annotationsVisible = sceneContext.annotationsVisible;
+  syncSceneAnnotationActionButton(sceneContext);
+  const currentState = sceneContext.currentState ? cloneState(sceneContext.currentState) : null;
+  const variant = resolveSceneVariant(sceneContext.manifest, currentState) || {
+    sceneSrc: sceneContext.descriptor.attributes["data-scene-src"],
+    inWorldAnnotationsJson: sceneContext.baseWorldAnnotationsJson
+      || sceneContext.descriptor.attributes["data-scene-in-world-annotations"],
+    overlayAnnotationsJson: sceneContext.baseOverlayAnnotationsJson
+      || sceneContext.descriptor.attributes["data-scene-overlay-annotations"],
+    hoverTargetsJson: sceneContext.descriptor.attributes["data-scene-hover-targets"],
+  };
+  let recreated = false;
+  try {
+    const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
+    recreated = await recreateSceneRuntime(sceneContext, variantAssets, currentState, { resetCamera: false });
+  } catch (error) {
+    console.warn("Failed to toggle scene annotations", error);
+  }
+  if (!recreated) {
+    sceneContext.annotationsVisible = previous;
+    sceneContext.descriptor.annotationsVisible = previous;
+    syncSceneAnnotationActionButton(sceneContext);
   }
 }
 
@@ -1474,7 +1552,7 @@ async function updateSceneState(sceneContext, patch) {
   }
 }
 
-async function recreateSceneRuntime(sceneContext, variant, nextState) {
+async function recreateSceneRuntime(sceneContext, variant, nextState, options = {}) {
   const parent = sceneContext.runtime?.wrapper?.parentNode;
   if (!parent) {
     return;
@@ -1489,6 +1567,8 @@ async function recreateSceneRuntime(sceneContext, variant, nextState) {
   }
   await loadSceneHoverTargets(replacement, sceneContext.descriptor);
   const nextDescriptor = captureSceneDescriptor(replacement);
+  nextDescriptor.annotationToggle ||= sceneContext.descriptor.annotationToggle;
+  nextDescriptor.annotationsVisible = sceneContext.annotationsVisible !== false;
   const split = splitOverlayAnnotations(
     parseSceneJsonAttribute(replacement.getAttribute("data-scene-overlay-annotations"), []),
   );
@@ -1496,17 +1576,18 @@ async function recreateSceneRuntime(sceneContext, variant, nextState) {
     nextDescriptor,
     parseSceneJsonAttribute(replacement.getAttribute("data-scene-in-world-annotations"), []),
   );
+  const visibleVendorAnnotations = filterSceneOverlayAnnotations(split.vendorAnnotations, nextDescriptor);
   replacement.setAttribute("data-scene-in-world-annotations", serializeSceneJsonAttribute(worldAnnotations));
-  replacement.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(split.vendorAnnotations));
+  replacement.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(visibleVendorAnnotations));
   const currentRuntime = sceneContext.runtime;
   if (typeof currentRuntime?.controller?.replaceScene === "function") {
     try {
       await currentRuntime.controller.replaceScene(
         replacement.dataset.sceneSrc,
         worldAnnotations,
-        split.vendorAnnotations,
+        visibleVendorAnnotations,
         parseSceneJsonAttribute(replacement.getAttribute("data-scene-hover-targets"), []),
-        { resetCamera: Boolean(sceneContext.manifest?.controls?.ponder) },
+        { resetCamera: options.resetCamera ?? Boolean(sceneContext.manifest?.controls?.ponder) },
       );
     } catch (error) {
       console.warn("Failed to replace scene meshes in the existing renderer", error);
@@ -1515,7 +1596,7 @@ async function recreateSceneRuntime(sceneContext, variant, nextState) {
     sceneContext.overlayRuntime?.dispose?.();
     sceneContext.overlayRuntime = null;
     sceneContext.descriptor = nextDescriptor;
-    sceneContext.htmlOverlayAnnotations = split.htmlAnnotations;
+    sceneContext.htmlOverlayAnnotations = filterSceneOverlayAnnotations(split.htmlAnnotations, nextDescriptor);
     sceneContext.currentState = nextState;
     attachSceneContext(sceneContext);
     return true;
@@ -1544,7 +1625,7 @@ async function recreateSceneRuntime(sceneContext, variant, nextState) {
   nextRuntime.wrapper.style.removeProperty("position");
   sceneContext.runtime = nextRuntime;
   sceneContext.descriptor = nextDescriptor;
-  sceneContext.htmlOverlayAnnotations = split.htmlAnnotations;
+  sceneContext.htmlOverlayAnnotations = filterSceneOverlayAnnotations(split.htmlAnnotations, nextDescriptor);
   if (!sceneContext.runtime?.wrapper?.isConnected) {
     disposeSceneContext(sceneContext, false);
     return false;
@@ -1565,6 +1646,7 @@ async function initializeScene(node) {
 
   const descriptor = captureSceneDescriptor(node);
   const baseWorldAnnotationsJson = node.getAttribute("data-scene-in-world-annotations") || "[]";
+  const baseOverlayAnnotationsJson = node.getAttribute("data-scene-overlay-annotations") || "[]";
   const manifestPromise = descriptor.stateControls ? loadSceneStateManifest(descriptor.stateManifestSrc) : null;
   await Promise.all([loadSceneHoverTargets(node, descriptor), prepareGameScene(node)]);
   applySceneGridDescriptor(node, descriptor);
@@ -1579,11 +1661,13 @@ async function initializeScene(node) {
     descriptor,
     sourceNode: node,
     baseWorldAnnotationsJson,
+    baseOverlayAnnotationsJson,
     htmlOverlayAnnotations: split.htmlAnnotations,
     overlayRuntime: null,
     runtime,
     manifest: null,
     currentState: null,
+    annotationsVisible: descriptor.annotationsVisible,
     transitioning: false,
     pendingState: null,
   };

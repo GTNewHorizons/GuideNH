@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "Annotaties verbergen",
+    "showAnnotations": "Annotaties tonen",
+    "grid": "Vloerrooster wisselen",
+    "stats": "Blokstatistieken wisselen",
+    "structureLibHatches": "StructureLib-luiken markeren",
+    "zoomIn": "Inzoomen",
+    "zoomOut": "Uitzoomen",
+    "reset": "Weergave herstellen",
+    "previous": "Vorig sleutelframe",
+    "playPause": "Afspelen/Pauzeren",
+    "restart": "Opnieuw starten"
+  },
+  "ponder": { "lmb": "Linkermuisknop", "rmb": "Rechtermuisknop", "scroll": "Muiswiel" },
+  "navigation": {
+    "open": "Navigatie",
+    "close": "Navigatie sluiten",
+    "holdToOpenGuide": "Houd G ingedrukt om de gids te openen"
+  },
+  "sceneLoading": {
+    "error": "De 3D-scène kon niet worden geladen.",
+    "retry": "Opnieuw proberen",
+    "loading": "3D-scène laden…"
+  }
+}

@@ -1,3 +1,5 @@
+import { siteSection } from "./locale.js";
+
 let modelViewerModulePromise;
 let loadedModelViewerModule;
 
@@ -114,41 +116,7 @@ function clearHydrationFailure(node) {
 }
 
 function sceneUiText() {
-  const language = (document.documentElement.lang || navigator.language || "en").toLowerCase();
-  if (language.startsWith("zh-tw") || language.startsWith("zh-hk")) {
-    return { error: "3D 場景載入失敗。", retry: "重試", loading: "正在載入 3D 場景…" };
-  }
-  if (language.startsWith("zh")) {
-    return { error: "3D 场景加载失败。", retry: "重试", loading: "正在加载 3D 场景…" };
-  }
-  if (language.startsWith("ja")) {
-    return { error: "3D シーンを読み込めません。", retry: "再試行", loading: "3D シーンを読み込み中…" };
-  }
-  if (language.startsWith("de")) {
-    return { error: "3D-Szene konnte nicht geladen werden.", retry: "Erneut versuchen", loading: "3D-Szene wird geladen…" };
-  }
-  if (language.startsWith("fr")) {
-    return { error: "La scène 3D n’a pas pu être chargée.", retry: "Réessayer", loading: "Chargement de la scène 3D…" };
-  }
-  if (language.startsWith("es")) {
-    return { error: "No se pudo cargar la escena 3D.", retry: "Reintentar", loading: "Cargando la escena 3D…" };
-  }
-  if (language.startsWith("pt")) {
-    return { error: "Não foi possível carregar a cena 3D.", retry: "Tentar novamente", loading: "Carregando a cena 3D…" };
-  }
-  if (language.startsWith("ru")) {
-    return { error: "Не удалось загрузить 3D-сцену.", retry: "Повторить", loading: "Загрузка 3D-сцены…" };
-  }
-  if (language.startsWith("uk")) {
-    return { error: "Не вдалося завантажити 3D-сцену.", retry: "Повторити", loading: "Завантаження 3D-сцени…" };
-  }
-  if (language.startsWith("pl")) {
-    return { error: "Nie można załadować sceny 3D.", retry: "Spróbuj ponownie", loading: "Ładowanie sceny 3D…" };
-  }
-  if (language.startsWith("nl")) {
-    return { error: "De 3D-scène kon niet worden geladen.", retry: "Opnieuw proberen", loading: "3D-scène laden…" };
-  }
-  return { error: "The 3D scene could not be loaded.", retry: "Retry", loading: "Loading 3D scene…" };
+  return siteSection("sceneLoading");
 }
 
 function markHydrationFailure(node, error) {

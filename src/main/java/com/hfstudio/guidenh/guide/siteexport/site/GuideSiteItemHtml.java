@@ -56,8 +56,11 @@ public class GuideSiteItemHtml {
                     .append(size)
                     .append("px;\"");
             }
-            html.append(titleAttr)
-                .append(" decoding=\"async\">");
+            html.append(titleAttr);
+            if (extraClass != null && extraClass.contains("guide-nav-item-icon")) {
+                html.append(" loading=\"lazy\"");
+            }
+            html.append(" decoding=\"async\">");
             return;
         }
 
