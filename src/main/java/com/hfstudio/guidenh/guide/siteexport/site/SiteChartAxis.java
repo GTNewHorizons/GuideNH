@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
+import com.hfstudio.guidenh.guide.document.block.chart.ChartAxisOptions;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 
 public class SiteChartAxis {
@@ -58,6 +59,21 @@ public class SiteChartAxis {
 
     public static SiteChartAxis automatic(int defaultGridColor) {
         return new SiteChartAxis(null, null, null, null, null, null, true, defaultGridColor);
+    }
+
+    public static SiteChartAxis from(ChartAxisOptions axis, int defaultGridColor) {
+        if (axis == null) {
+            return automatic(defaultGridColor);
+        }
+        return new SiteChartAxis(
+            axis.getLabel(),
+            axis.getMin(),
+            axis.getMax(),
+            axis.getStep(),
+            axis.getTickFormat(),
+            axis.getUnit(),
+            axis.isGridVisible(),
+            axis.getGridColor());
     }
 
     @Nullable

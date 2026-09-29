@@ -70,6 +70,14 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     @Setter
     private int cornerLegendBackgroundColor = CornerLegendRenderer.DEFAULT_BACKGROUND;
 
+    public int getExplicitWidth() {
+        return explicitWidth;
+    }
+
+    public int getExplicitHeight() {
+        return explicitHeight;
+    }
+
     /** Currently hovered hit key; {@code -1} means none. The exact semantics is decided by each subclass. */
     protected int hoveredKey = -1;
 

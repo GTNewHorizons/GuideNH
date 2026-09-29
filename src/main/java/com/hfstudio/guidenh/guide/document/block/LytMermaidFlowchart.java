@@ -24,6 +24,8 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
     @Getter
     private final LytCodeBlockToolbar toolbar = new LytCodeBlockToolbar();
     private final LytMermaidFlowchartCanvas canvas;
+    @Getter
+    private final Map<String, LytBlock> nodeContent;
 
     public LytMermaidFlowchart(FlowchartDocument flowchart, String sourceText) {
         this(flowchart, sourceText, Collections.emptyMap());
@@ -32,6 +34,7 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
     public LytMermaidFlowchart(FlowchartDocument flowchart, String sourceText, Map<String, LytBlock> nodeContent) {
         this.flowchart = flowchart;
         this.sourceText = sourceText != null ? sourceText : "";
+        this.nodeContent = nodeContent != null ? Map.copyOf(nodeContent) : Collections.emptyMap();
         this.canvas = new LytMermaidFlowchartCanvas(
             flowchart,
             nodeContent != null ? nodeContent : Collections.emptyMap());

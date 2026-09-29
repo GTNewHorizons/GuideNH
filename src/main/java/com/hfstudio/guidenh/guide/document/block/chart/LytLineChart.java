@@ -35,6 +35,26 @@ public class LytLineChart extends LytChartBase {
     @Setter
     private boolean showPoints = true;
 
+    public String[] getCategories() {
+        return categories.clone();
+    }
+
+    public ChartAxisOptions getXAxis() {
+        return xAxis;
+    }
+
+    public ChartAxisOptions getYAxis() {
+        return yAxis;
+    }
+
+    public boolean isNumericX() {
+        return numericX;
+    }
+
+    public boolean isShowPoints() {
+        return showPoints;
+    }
+
     private LytRect plotCache = LytRect.empty();
     private AxisRange xRangeCache;
     private AxisRange yRangeCache;
