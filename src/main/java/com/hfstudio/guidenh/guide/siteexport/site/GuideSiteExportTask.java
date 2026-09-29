@@ -398,8 +398,9 @@ public class GuideSiteExportTask {
                                     body,
                                     exportTemplates(templates, assets),
                                     pageTitle);
-                                exportedModIds.add(guide.getId()
-                                    .getResourceDomain());
+                                exportedModIds.add(
+                                    guide.getId()
+                                        .getResourceDomain());
                                 timing.pageWriteNanos += System.nanoTime() - pageWriteStartedAt;
 
                                 if (!MediaWikiPageIds.isSpecialPage(variant.pageId())) {
