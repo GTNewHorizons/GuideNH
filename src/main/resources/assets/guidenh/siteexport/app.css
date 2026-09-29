@@ -896,9 +896,42 @@ p {
     border-width: calc(1px * var(--gui-scale));
     border-image-slice: 1;
     background: rgba(16, 0, 16, 0.94);
+    box-sizing: border-box;
     padding: calc(2px * var(--gui-scale));
     line-height: 1;
     max-width: calc(220px * var(--gui-scale));
+}
+
+.guide-tooltip-popup:has(.guide-tooltip-layout) {
+    width: max-content;
+    max-width: min(calc(320px * var(--gui-scale)), calc(100vw - 24px));
+}
+
+.guide-tooltip-layout {
+    max-width: 100%;
+}
+
+.guide-tooltip-layout > * {
+    min-width: 0;
+}
+
+.guide-gui-sprite-placeholder {
+    display: inline-block;
+    min-width: 16px;
+    min-height: 16px;
+    background: rgba(128, 128, 128, 0.18);
+    border: 1px solid rgba(128, 128, 128, 0.5);
+    vertical-align: middle;
+}
+
+.guide-gui-sprite {
+    vertical-align: middle;
+    image-rendering: pixelated;
+}
+
+.guide-export-placeholder {
+    color: var(--guide-text-muted, rgba(190, 190, 190, 0.9));
+    font-style: italic;
 }
 
 .guide-tooltip-popup::before {
@@ -950,6 +983,7 @@ p {
     border-width: calc(1px * var(--gui-scale));
     border-image-slice: 1;
     background: rgba(16, 0, 16, 0.94);
+    box-sizing: border-box;
     padding: calc(2px * var(--gui-scale));
     line-height: 1;
     max-width: calc(120px * var(--gui-scale));

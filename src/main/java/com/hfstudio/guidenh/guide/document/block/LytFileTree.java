@@ -64,6 +64,10 @@ public class LytFileTree extends LytBlock {
         return rows.isEmpty();
     }
 
+    public List<Row> getRows() {
+        return List.copyOf(rows);
+    }
+
     @Override
     public List<? extends LytNode> getChildren() {
         return childNodes;
@@ -228,19 +232,32 @@ public class LytFileTree extends LytBlock {
         context.fillRect(new LytRect(left, y, width, CONNECTOR_THICKNESS), color);
     }
 
-    private static class Row {
+    public static class Row {
 
-        final List<SlotKind> slots;
+        private final List<SlotKind> slots;
         @Nullable
-        final LytBlock iconBlock;
-        final LytParagraph payload;
-        int rowY;
-        int rowHeight;
+        private final LytBlock iconBlock;
+        private final LytParagraph payload;
+        private int rowY;
+        private int rowHeight;
 
         Row(List<SlotKind> slots, @Nullable LytBlock iconBlock, LytParagraph payload) {
             this.slots = slots;
             this.iconBlock = iconBlock;
             this.payload = payload;
+        }
+
+        public List<SlotKind> getSlots() {
+            return slots;
+        }
+
+        @Nullable
+        public LytBlock getIconBlock() {
+            return iconBlock;
+        }
+
+        public LytParagraph getPayload() {
+            return payload;
         }
     }
 }

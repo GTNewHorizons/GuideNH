@@ -22,12 +22,18 @@ public class GuideSitePageAssetExporter {
 
     private final GuideSiteAssetRegistry assets;
     private final AssetLoader assetLoader;
+    private final GuideSiteLatexExporter latexExporter;
     private final Map<ResourceLocation, String> exportedResourcePaths = new HashMap<>();
     private final Map<ResourceLocation, String> exportedSoundPaths = new HashMap<>();
 
     public GuideSitePageAssetExporter(GuideSiteAssetRegistry assets, AssetLoader assetLoader) {
         this.assets = assets;
         this.assetLoader = assetLoader;
+        this.latexExporter = new GuideSiteLatexExporter(assets);
+    }
+
+    public GuideSiteLatexExporter latexExporter() {
+        return latexExporter;
     }
 
     public String resolveImageSrc(String rawUrl, @Nullable ResourceLocation currentPageId) {
