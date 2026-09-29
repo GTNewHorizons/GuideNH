@@ -28,7 +28,7 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
      * Raster size for exported `item-icons/*.png` (vanilla item GUI draws a
      * 16 x 16 logical tile, scaled to this).
      */
-    private static final int ICON_SIZE = 128;
+    private static final int ICON_SIZE = 96;
 
     private final GuideSiteTextureAnimations animations;
     private final Map<String, String> exportedIcons = new LinkedHashMap<>();
@@ -160,8 +160,8 @@ public class GuideSiteItemIconExporter implements GuideSiteItemIconResolver, Aut
             GL11.glEnable(GL11.GL_NORMALIZE);
             GL11.glEnable(GL11.GL_DEPTH_TEST);
             GL11.glDepthFunc(GL11.GL_LEQUAL);
-            float scale = (ICON_SIZE - 2f) / 16f;
-            float origin = (ICON_SIZE - 16f * scale) / 2f;
+            float scale = ICON_SIZE / 16f;
+            float origin = 0f;
             GL11.glPushMatrix();
             try {
                 GL11.glTranslatef(origin, origin, 0f);

@@ -38,6 +38,11 @@ public class GuideSiteWriter {
         .create();
 
     public void writeBootstrapFiles(Path outDir) throws Exception {
+        Path siteConfig = outDir.resolve("site-config.json");
+        if (Files.notExists(siteConfig)) {
+            Files.writeString(siteConfig, "{\n  \"headerLink\": \"\"\n}\n", StandardCharsets.UTF_8);
+        }
+        writeResource(outDir.resolve("SITE-CONFIG.md"), "/assets/guidenh/siteexport/SITE-CONFIG.md");
         writeResource(outDir.resolve("_site/gtnh-favicon.svg"), "/assets/guidenh/siteexport/gtnh-favicon.svg");
         writeResource(outDir.resolve("_site/app.css"), "/assets/guidenh/siteexport/app.css");
         writeResource(outDir.resolve("_site/app.js"), "/assets/guidenh/siteexport/app.js");
@@ -624,7 +629,7 @@ public class GuideSiteWriter {
         if (!src.isEmpty()) {
             html.append("<img class=\"item-icon guide-nav-item-icon guide-nav-texture-icon\" src=\"")
                 .append(escapeHtml(src))
-                .append("\" alt=\"\" width=\"32\" height=\"32\" decoding=\"async\">");
+                .append("\" alt=\"\" width=\"32\" height=\"32\" loading=\"lazy\" decoding=\"async\">");
         }
     }
 

@@ -4,6 +4,27 @@ import { loadSharedText } from "./sharedAssets.js";
 import { rememberSiteLanguage } from "./languagePreference.js";
 import { installGuideItemNavigation } from "./itemNavigation.js";
 
+async function loadCustomSiteLink() {
+  const link = document.querySelector("[data-guide-custom-link]");
+  if (!(link instanceof HTMLAnchorElement)) return;
+  try {
+    const response = await fetch(new URL("../site-config.json", import.meta.url), { credentials: "same-origin" });
+    if (!response.ok) return;
+    const config = await response.json();
+    if (typeof config?.headerLink !== "string" || !config.headerLink.trim()) return;
+    const url = new URL(config.headerLink.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return;
+    link.href = url.href;
+    const label = typeof config.headerLinkLabel === "string" && config.headerLinkLabel.trim()
+      ? config.headerLinkLabel.trim() : url.hostname;
+    link.setAttribute("aria-label", label);
+    link.title = label;
+    link.hidden = false;
+  } catch (error) {
+    console.warn("GuideNH custom site link could not be loaded.", error);
+  }
+}
+
 async function loadSidebar(sidebar) {
   const source = sidebar.querySelector("[data-guide-sidebar-src]")?.dataset.guideSidebarSrc;
   if (!source) return;
@@ -1218,6 +1239,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (base) base.href = base.href;
   const sidebar = document.querySelector(".guide-sidebar");
   const content = document.getElementById("page-content");
+  loadCustomSiteLink();
   installMobileNavigation();
   installTooltips(document);
   if (content instanceof HTMLElement) hydrateVisibleScenes(content);
