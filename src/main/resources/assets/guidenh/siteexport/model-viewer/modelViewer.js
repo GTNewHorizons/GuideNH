@@ -2,6 +2,7 @@ import { prepareGameScene, setupGameScene as setupVendorGameScene } from "./vend
 import { loadSharedText } from "../sharedAssets.js";
 import { loadSceneHoverTargetsJson } from "./sceneHoverTargets.js";
 import { expandSceneGrid } from "./sceneGrid.js";
+import { siteSection, siteText } from "../locale.js";
 
 const ROOT_PREFIX_TOKEN = "{{root}}/";
 const SCENE_CONTEXT_KEY = Symbol("guidenhSceneContext");
@@ -18,33 +19,8 @@ const SCENE_BUTTON_ICONS = {
   toggleBlockStats: [16, 48],
   toggleStructureLibHatches: [32, 48],
 };
-const PONDER_INPUT_LABELS = {
-  lmb: "LMB",
-  rmb: "RMB",
-  scroll: "Scroll",
-};
-
-const SCENE_LABELS = {
-  en: { hideAnnotations: "Hide annotations", showAnnotations: "Show annotations", grid: "Toggle Floor Grid", stats: "Toggle Block Stats", structureLibHatches: "Highlight StructureLib hatches", zoomIn: "Zoom in", zoomOut: "Zoom out", reset: "Reset view", previous: "Previous Keyframe", playPause: "Play / Pause", restart: "Restart" },
-  zh: { hideAnnotations: "隐藏注解", showAnnotations: "显示注解", grid: "切换地面网格", stats: "切换方块统计", structureLibHatches: "高亮 StructureLib 仓室", zoomIn: "放大", zoomOut: "缩小", reset: "重置视角", previous: "上一个关键帧", playPause: "播放/暂停", restart: "重新开始" },
-  "zh-tw": { hideAnnotations: "隱藏註解", showAnnotations: "顯示註解", grid: "切換地面網格", stats: "切換方塊統計", structureLibHatches: "高亮 StructureLib 倉室", zoomIn: "放大", zoomOut: "縮小", reset: "重設視角", previous: "上一個關鍵影格", playPause: "播放／暫停", restart: "重新開始" },
-  ja: { hideAnnotations: "注釈を非表示", showAnnotations: "注釈を表示", grid: "床面グリッドを切り替え", stats: "ブロック統計を切り替え", structureLibHatches: "StructureLib ハッチを強調", zoomIn: "拡大", zoomOut: "縮小", reset: "視点をリセット", previous: "前のキーフレーム", playPause: "再生/一時停止", restart: "最初から再生" },
-  ru: { hideAnnotations: "Скрыть аннотации", showAnnotations: "Показать аннотации", grid: "Переключить сетку пола", stats: "Переключить статистику блоков", structureLibHatches: "Подсветить люки StructureLib", zoomIn: "Увеличить", zoomOut: "Уменьшить", reset: "Сбросить вид", previous: "Предыдущий ключевой кадр", playPause: "Воспроизведение/пауза", restart: "Начать заново" },
-  fr: { hideAnnotations: "Masquer les annotations", showAnnotations: "Afficher les annotations", grid: "Afficher la grille au sol", stats: "Afficher les statistiques des blocs", structureLibHatches: "Surligner les trappes StructureLib", zoomIn: "Zoom avant", zoomOut: "Zoom arrière", reset: "Réinitialiser la vue", previous: "Image clé précédente", playPause: "Lecture/Pause", restart: "Recommencer" },
-  de: { hideAnnotations: "Anmerkungen ausblenden", showAnnotations: "Anmerkungen anzeigen", grid: "Bodengitter umschalten", stats: "Blockstatistik umschalten", structureLibHatches: "StructureLib-Schächte hervorheben", zoomIn: "Vergrößern", zoomOut: "Verkleinern", reset: "Ansicht zurücksetzen", previous: "Vorheriger Keyframe", playPause: "Wiedergabe/Pause", restart: "Neu starten" },
-  pl: { hideAnnotations: "Ukryj adnotacje", showAnnotations: "Pokaż adnotacje", grid: "Przełącz siatkę podłoża", stats: "Przełącz statystyki bloków", structureLibHatches: "Podświetl włazy StructureLib", zoomIn: "Powiększ", zoomOut: "Pomniejsz", reset: "Resetuj widok", previous: "Poprzednia klatka kluczowa", playPause: "Odtwórz/Wstrzymaj", restart: "Uruchom ponownie" },
-  nl: { hideAnnotations: "Annotaties verbergen", showAnnotations: "Annotaties tonen", grid: "Vloerrooster wisselen", stats: "Blokstatistieken wisselen", structureLibHatches: "StructureLib-luiken markeren", zoomIn: "Inzoomen", zoomOut: "Uitzoomen", reset: "Weergave herstellen", previous: "Vorig keyframe", playPause: "Afspelen/Pauzeren", restart: "Opnieuw starten" },
-  es: { hideAnnotations: "Ocultar anotaciones", showAnnotations: "Mostrar anotaciones", grid: "Alternar cuadrícula del suelo", stats: "Alternar estadísticas de bloques", structureLibHatches: "Resaltar compuertas de StructureLib", zoomIn: "Acercar", zoomOut: "Alejar", reset: "Restablecer vista", previous: "Fotograma clave anterior", playPause: "Reproducir/Pausar", restart: "Reiniciar" },
-  pt: { hideAnnotations: "Ocultar anotações", showAnnotations: "Mostrar anotações", grid: "Alternar grade do chão", stats: "Alternar estatísticas de blocos", structureLibHatches: "Destacar comportas do StructureLib", zoomIn: "Ampliar", zoomOut: "Reduzir", reset: "Redefinir vista", previous: "Quadro-chave anterior", playPause: "Reproduzir/Pausar", restart: "Reiniciar" },
-  uk: { hideAnnotations: "Сховати анотації", showAnnotations: "Показати анотації", grid: "Перемкнути сітку підлоги", stats: "Перемкнути статистику блоків", structureLibHatches: "Підсвітити люки StructureLib", zoomIn: "Збільшити", zoomOut: "Зменшити", reset: "Скинути вигляд", previous: "Попередній ключовий кадр", playPause: "Відтворення/пауза", restart: "Почати спочатку" },
-};
-
 function sceneLabels() {
-  const language = `${document.documentElement?.lang || "en"}`.toLowerCase().replaceAll("_", "-");
-  return {
-    ...SCENE_LABELS.en,
-    ...(SCENE_LABELS[language] || SCENE_LABELS[language.split("-")[0]] || {}),
-  };
+  return siteSection("scene");
 }
 
 const sceneTooltipTemplates = new Map();
@@ -465,7 +441,7 @@ function createInputAnnotationNode(documentRef, annotation) {
   const input = documentRef.createElement("span");
   const inputType = `${annotation?.inputType || "lmb"}`.toLowerCase();
   input.className = `scene-input-annotation-key scene-input-annotation-key--${inputType}`;
-  input.setAttribute("aria-label", PONDER_INPUT_LABELS[inputType] || "LMB");
+  input.setAttribute("aria-label", siteText("ponder", inputType));
   input.textContent = inputType === "scroll" ? "↕" : "";
   body.append(input);
 
