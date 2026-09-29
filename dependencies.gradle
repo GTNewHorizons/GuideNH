@@ -53,7 +53,7 @@ dependencies {
     compileOnlyApi("com.github.GTNewHorizons:OpenComputers:1.12.61-GTNH:dev") { transitive = false }
     compileOnlyApi("com.github.slprime:ChromaticTooltips:1.0.28-GTNH:dev") { transitive = false }
     compileOnlyApi("ganymedes01.etfuturum:Et-Futurum-Requiem:2.6.59-GTNH") { transitive = false }
-    compileOnly("com.ruling_0:MaterialLib:0.12.0-mu:dev") { transitive = false }
+    compileOnly("com.ruling_0:MaterialLib:0.13.0-mu:dev") { transitive = false }
 
     // jvmDowngrader
     compileOnly("javax.xml.bind:jaxb-api:2.3.1")
