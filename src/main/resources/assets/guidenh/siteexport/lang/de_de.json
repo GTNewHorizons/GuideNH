@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "Anmerkungen ausblenden",
+    "showAnnotations": "Anmerkungen anzeigen",
+    "grid": "Bodengitter umschalten",
+    "stats": "Blockstatistik umschalten",
+    "structureLibHatches": "StructureLib-Schächte hervorheben",
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "reset": "Ansicht zurücksetzen",
+    "previous": "Vorheriges Schlüsselbild",
+    "playPause": "Wiedergabe/Pause",
+    "restart": "Neu starten"
+  },
+  "ponder": { "lmb": "Linksklick", "rmb": "Rechtsklick", "scroll": "Mausrad" },
+  "navigation": {
+    "open": "Navigation",
+    "close": "Navigation schließen",
+    "holdToOpenGuide": "G gedrückt halten, um den Leitfaden zu öffnen"
+  },
+  "sceneLoading": {
+    "error": "3D-Szene konnte nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "loading": "3D-Szene wird geladen…"
+  }
+}

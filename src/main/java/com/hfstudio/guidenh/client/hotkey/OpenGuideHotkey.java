@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
@@ -37,6 +38,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 @SideOnly(Side.CLIENT)
 public class OpenGuideHotkey {
+
+    private static final ThreadLocal<Boolean> TOOLTIP_HINTS_SUPPRESSED = ThreadLocal.withInitial(() -> false);
 
     public static final int TICKS_TO_OPEN = 10;
 
@@ -98,6 +101,9 @@ public class OpenGuideHotkey {
     }
 
     public static void handleTooltip(ItemStack itemStack, List<String> lines) {
+        if (TOOLTIP_HINTS_SUPPRESSED.get()) {
+            return;
+        }
         if (newTick) {
             newTick = false;
             update(itemStack);
@@ -128,7 +134,7 @@ public class OpenGuideHotkey {
     }
 
     public static boolean appendQuestTooltip(UUID questId, List<String> lines) {
-        if (questId == null || lines == null) {
+        if (TOOLTIP_HINTS_SUPPRESSED.get() || questId == null || lines == null) {
             return false;
         }
         List<FoundPage> pages = findQuestPages(questId);
@@ -154,6 +160,21 @@ public class OpenGuideHotkey {
             lines.add(1, hint);
         }
         return true;
+    }
+
+    /** Builds tooltip content without live hotkey hints or changes to the hovered-item state. */
+    public static <T> T withoutTooltipHints(Supplier<T> tooltipBuilder) {
+        boolean previous = TOOLTIP_HINTS_SUPPRESSED.get();
+        TOOLTIP_HINTS_SUPPRESSED.set(true);
+        try {
+            return tooltipBuilder.get();
+        } finally {
+            if (previous) {
+                TOOLTIP_HINTS_SUPPRESSED.set(true);
+            } else {
+                TOOLTIP_HINTS_SUPPRESSED.remove();
+            }
+        }
     }
 
     public static String renderHint(float progress) {

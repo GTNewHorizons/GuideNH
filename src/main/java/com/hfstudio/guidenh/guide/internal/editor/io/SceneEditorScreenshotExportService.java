@@ -180,7 +180,7 @@ public class SceneEditorScreenshotExportService {
     @FunctionalInterface
     interface Renderer {
 
-        BufferedImage render(LytGuidebookScene scene, int width, int height) throws Exception;
+        BufferedImage render(LytGuidebookScene scene, int width, int height);
     }
 
     public interface Encoder {
@@ -199,7 +199,7 @@ public class SceneEditorScreenshotExportService {
     public static final class OffscreenRenderer implements Renderer {
 
         @Override
-        public BufferedImage render(LytGuidebookScene scene, int width, int height) throws Exception {
+        public BufferedImage render(LytGuidebookScene scene, int width, int height) {
             int maxFboSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
             if (maxFboSize <= 0) {
                 maxFboSize = 8192;

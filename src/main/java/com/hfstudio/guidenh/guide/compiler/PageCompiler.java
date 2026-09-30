@@ -568,6 +568,19 @@ public class PageCompiler {
     }
 
     /**
+     * Returns the source text between a block tag's opening and closing tags before dedentation.
+     * This is used by parsers that need to preserve the original source line mapping.
+     */
+    public @Nullable String getBlockTagChildrenRawSource(MdxJsxElementFields element) {
+        String sourceText = getCurrentSourceText();
+        String body = MdxBlockTagSourceExtractor.extractRawBody(element, sourceText);
+        if (body == null && !Objects.equals(sourceText, pageContent)) {
+            body = MdxBlockTagSourceExtractor.extractRawBody(element, pageContent);
+        }
+        return body;
+    }
+
+    /**
      * Parses {@code source} as a standalone markdown fragment and appends the resulting inline
      * (phrasing-level) content of its first paragraph into {@code layoutParent}. Block-level nodes
      * other than the leading paragraph are flattened to their inline content. Used by tag
@@ -1077,9 +1090,12 @@ public class PageCompiler {
         var indentationWarning = DetailsContentExtractor.findResidualIndentation(body);
         if (indentationWarning != null) {
             int sourceLine = element.position() != null && element.position()
-                .start() != null ? element.position()
-                    .start()
-                    .line() + indentationWarning.relativeLine() : indentationWarning.relativeLine();
+                .start() != null
+                    ? element.position()
+                        .start()
+                        .line() + indentationWarning.relativeLine()
+                        - 1
+                    : indentationWarning.relativeLine();
             GuideDebugLog.warnAlways(
                 "[GuideNH] [PageCompiler] Mixed indentation in <{}> body at {}:{} ({} residual spaces after dedent); "
                     + "Markdown may parse this line as an indented code block",

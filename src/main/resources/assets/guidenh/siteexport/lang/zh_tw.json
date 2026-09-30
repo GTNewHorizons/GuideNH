@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "隱藏註解",
+    "showAnnotations": "顯示註解",
+    "grid": "切換地面網格",
+    "stats": "切換方塊統計",
+    "structureLibHatches": "高亮 StructureLib 倉室",
+    "zoomIn": "放大",
+    "zoomOut": "縮小",
+    "reset": "重設視角",
+    "previous": "上一個關鍵影格",
+    "playPause": "播放／暫停",
+    "restart": "重新開始"
+  },
+  "ponder": { "lmb": "左鍵", "rmb": "右鍵", "scroll": "滾輪" },
+  "navigation": {
+    "open": "導覽",
+    "close": "關閉導覽",
+    "holdToOpenGuide": "長按 G 開啟指南"
+  },
+  "sceneLoading": {
+    "error": "3D 場景載入失敗。",
+    "retry": "重試",
+    "loading": "正在載入 3D 場景…"
+  }
+}

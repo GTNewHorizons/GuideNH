@@ -119,6 +119,7 @@ public class BlockImageScript implements LytScript {
         camera.setViewportSize(width, height);
 
         var scene = new LytGuidebookScene();
+        scene.setSourceNode(ph.getSourceNode());
         scene.setLevel(level);
         scene.setCamera(camera);
         scene.setSceneSize(width, height);

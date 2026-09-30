@@ -1,42 +1,26 @@
-import { setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-A42QTX7N.js";
+import { prepareGameScene, setupGameScene as setupVendorGameScene } from "./vendor/modelViewer-A42QTX7N.js";
+import { loadSharedText } from "../sharedAssets.js";
+import { loadSceneHoverTargetsJson } from "./sceneHoverTargets.js";
+import { expandSceneGrid } from "./sceneGrid.js";
+import { siteSection, siteText } from "../locale.js";
 
-const sceneStateManifestCache = new Map();
 const ROOT_PREFIX_TOKEN = "{{root}}/";
 const SCENE_CONTEXT_KEY = Symbol("guidenhSceneContext");
 const SCENE_BUTTON_ICONS = {
   previousKeyframe: [0, 0],
   playPause: [0, 64],
   restart: [0, 32],
+  hideAnnotations: [0, 16],
+  showAnnotations: [16, 16],
   zoomIn: [48, 16],
   zoomOut: [32, 16],
   resetView: [0, 32],
   toggleGrid: [16, 64],
   toggleBlockStats: [16, 48],
+  toggleStructureLibHatches: [32, 48],
 };
-const PONDER_INPUT_LABELS = {
-  lmb: "LMB",
-  rmb: "RMB",
-  scroll: "Scroll",
-};
-
-const SCENE_LABELS = {
-  en: { grid: "Toggle Floor Grid", stats: "Toggle Block Stats", zoomIn: "Zoom in", zoomOut: "Zoom out", reset: "Reset view", previous: "Previous Keyframe", playPause: "Play / Pause", restart: "Restart" },
-  zh: { grid: "切换地面网格", stats: "切换方块统计", zoomIn: "放大", zoomOut: "缩小", reset: "重置视角", previous: "上一个关键帧", playPause: "播放/暂停", restart: "重新开始" },
-  "zh-tw": { grid: "切換地面網格", stats: "切換方塊統計", zoomIn: "放大", zoomOut: "縮小", reset: "重設視角", previous: "上一個關鍵影格", playPause: "播放／暫停", restart: "重新開始" },
-  ja: { grid: "床面グリッドを切り替え", stats: "ブロック統計を切り替え", zoomIn: "拡大", zoomOut: "縮小", reset: "視点をリセット", previous: "前のキーフレーム", playPause: "再生/一時停止", restart: "最初から再生" },
-  ru: { grid: "Переключить сетку пола", stats: "Переключить статистику блоков", zoomIn: "Увеличить", zoomOut: "Уменьшить", reset: "Сбросить вид", previous: "Предыдущий ключевой кадр", playPause: "Воспроизведение/пауза", restart: "Начать заново" },
-  fr: { grid: "Afficher la grille au sol", stats: "Afficher les statistiques des blocs", zoomIn: "Zoom avant", zoomOut: "Zoom arrière", reset: "Réinitialiser la vue", previous: "Image clé précédente", playPause: "Lecture/Pause", restart: "Recommencer" },
-  de: { grid: "Bodengitter umschalten", stats: "Blockstatistik umschalten", zoomIn: "Vergrößern", zoomOut: "Verkleinern", reset: "Ansicht zurücksetzen", previous: "Vorheriger Keyframe", playPause: "Wiedergabe/Pause", restart: "Neu starten" },
-  pl: { grid: "Przełącz siatkę podłoża", stats: "Przełącz statystyki bloków", zoomIn: "Powiększ", zoomOut: "Pomniejsz", reset: "Resetuj widok", previous: "Poprzednia klatka kluczowa", playPause: "Odtwórz/Wstrzymaj", restart: "Uruchom ponownie" },
-  nl: { grid: "Vloerrooster wisselen", stats: "Blokstatistieken wisselen", zoomIn: "Inzoomen", zoomOut: "Uitzoomen", reset: "Weergave herstellen", previous: "Vorig keyframe", playPause: "Afspelen/Pauzeren", restart: "Opnieuw starten" },
-  es: { grid: "Alternar cuadrícula del suelo", stats: "Alternar estadísticas de bloques", zoomIn: "Acercar", zoomOut: "Alejar", reset: "Restablecer vista", previous: "Fotograma clave anterior", playPause: "Reproducir/Pausar", restart: "Reiniciar" },
-  pt: { grid: "Alternar grade do chão", stats: "Alternar estatísticas de blocos", zoomIn: "Ampliar", zoomOut: "Reduzir", reset: "Redefinir vista", previous: "Quadro-chave anterior", playPause: "Reproduzir/Pausar", restart: "Reiniciar" },
-  uk: { grid: "Перемкнути сітку підлоги", stats: "Перемкнути статистику блоків", zoomIn: "Збільшити", zoomOut: "Зменшити", reset: "Скинути вигляд", previous: "Попередній ключовий кадр", playPause: "Відтворення/пауза", restart: "Почати спочатку" },
-};
-
 function sceneLabels() {
-  const language = `${document.documentElement?.lang || "en"}`.toLowerCase().replaceAll("_", "-");
-  return SCENE_LABELS[language] || SCENE_LABELS[language.split("-")[0]] || SCENE_LABELS.en;
+  return siteSection("scene");
 }
 
 const sceneTooltipTemplates = new Map();
@@ -169,6 +153,7 @@ function ensureDetachedSceneSizeCompat() {
 function captureSceneDescriptor(node) {
   const attributes = {};
   for (const attribute of node.attributes) {
+    if (attribute.name === "data-scene-hydrated") continue;
     attributes[attribute.name] = attribute.value;
   }
   return {
@@ -180,6 +165,13 @@ function captureSceneDescriptor(node) {
     gridVisible: node.dataset.sceneGridVisible === "true",
     blockStatsToggle: node.dataset.sceneBlockStatsToggle === "true",
     blockStatsVisible: node.dataset.sceneBlockStatsVisible === "true",
+    structureLibHatchToggle: node.dataset.sceneStructurelibHatchToggle === "true",
+    structureLibHatchVisible: node.dataset.sceneStructurelibHatchVisible === "true",
+    annotationToggle: hasSceneAnnotations(
+      node.getAttribute("data-scene-in-world-annotations"),
+      node.getAttribute("data-scene-overlay-annotations"),
+    ),
+    annotationsVisible: true,
   };
 }
 
@@ -226,6 +218,7 @@ function createSceneNode(documentRef, descriptor, variant) {
     setOrRemoveAttribute(node, "data-scene-overlay-annotations", variant.overlayAnnotationsJson);
     setOrRemoveAttribute(node, "data-guide-scene-sounds", variant.sceneSoundsJson);
     setOrRemoveAttribute(node, "data-scene-hover-targets", variant.hoverTargetsJson);
+    setOrRemoveAttribute(node, "data-scene-hover-targets-src", variant.hoverTargetsSrc);
   }
   applySceneGridDescriptor(node, descriptor);
   return node;
@@ -329,6 +322,18 @@ function parseSceneJsonAttribute(value, fallback) {
     console.warn("Failed to parse scene JSON attribute", error);
     return fallback;
   }
+}
+
+function hasSceneAnnotations(worldJson, overlayJson) {
+  return parseSceneJsonAttribute(worldJson, []).some((annotation) => !annotation?.siteControl)
+    || parseSceneJsonAttribute(overlayJson, []).some((annotation) => !annotation?.siteControl);
+}
+
+function filterSceneOverlayAnnotations(annotations, descriptor) {
+  const values = Array.isArray(annotations) ? annotations : [];
+  return descriptor?.annotationsVisible === false
+    ? values.filter((annotation) => annotation?.siteControl)
+    : values;
 }
 
 function serializeSceneJsonAttribute(value) {
@@ -436,7 +441,7 @@ function createInputAnnotationNode(documentRef, annotation) {
   const input = documentRef.createElement("span");
   const inputType = `${annotation?.inputType || "lmb"}`.toLowerCase();
   input.className = `scene-input-annotation-key scene-input-annotation-key--${inputType}`;
-  input.setAttribute("aria-label", PONDER_INPUT_LABELS[inputType] || "LMB");
+  input.setAttribute("aria-label", siteText("ponder", inputType));
   input.textContent = inputType === "scroll" ? "↕" : "";
   body.append(input);
 
@@ -658,12 +663,20 @@ function expandSceneAnnotations(annotations) {
 
 function mergedGridAnnotations(descriptor, baseAnnotationsJson) {
   const baseAnnotations = expandSceneAnnotations(
-    parseSceneJsonAttribute(baseAnnotationsJson, []).filter((annotation) => annotation?.siteControl !== "floorGrid"),
+    parseSceneJsonAttribute(baseAnnotationsJson, []).filter((annotation) => {
+      if (annotation?.siteControl === "floorGrid") {
+        return false;
+      }
+      if (annotation?.siteControl === "structureLibHatches") {
+        return descriptor.structureLibHatchVisible;
+      }
+      return true;
+    }),
   );
   if (!descriptor.gridVisible) {
     return baseAnnotations;
   }
-  const gridAnnotations = parseSceneJsonAttribute(descriptor.attributes["data-scene-grid-annotations"], []).map(
+  const gridAnnotations = expandSceneGrid(JSON.parse(descriptor.attributes["data-scene-grid-annotations"] || "[]")).map(
     (annotation) => ({
       ...annotation,
       siteControl: "floorGrid",
@@ -672,11 +685,25 @@ function mergedGridAnnotations(descriptor, baseAnnotationsJson) {
   return [...baseAnnotations, ...gridAnnotations];
 }
 
+function applySceneAnnotationVisibility(descriptor, annotations) {
+  return expandSceneAnnotations(Array.isArray(annotations) ? annotations : []).filter((annotation) => {
+    if (descriptor?.annotationsVisible === false && !annotation?.siteControl) {
+      return false;
+    }
+    if (annotation?.siteControl === "structureLibHatches") {
+      return descriptor.structureLibHatchVisible;
+    }
+    return true;
+  });
+}
+
 function applySceneGridDescriptor(node, descriptor) {
-  if (!(node instanceof HTMLElement) || !descriptor.gridToggle) {
+  if (!(node instanceof HTMLElement)) {
     return;
   }
-  node.setAttribute("data-scene-grid-visible", descriptor.gridVisible ? "true" : "false");
+  if (descriptor.gridToggle) {
+    node.setAttribute("data-scene-grid-visible", descriptor.gridVisible ? "true" : "false");
+  }
   const annotations = mergedGridAnnotations(descriptor, node.getAttribute("data-scene-in-world-annotations"));
   node.setAttribute("data-scene-in-world-annotations", serializeSceneJsonAttribute(annotations));
 }
@@ -724,27 +751,50 @@ function normalizeStateStructures(state) {
   return normalized;
 }
 
-function loadSceneStateManifest(src) {
+async function loadSceneStateManifest(src) {
   if (!src) {
-    return Promise.resolve(null);
+    return null;
   }
-  if (!sceneStateManifestCache.has(src)) {
-    sceneStateManifestCache.set(
-      src,
-      fetch(src, { credentials: "same-origin" })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Failed to load scene manifest: ${response.status} ${response.statusText}`);
-          }
-          return response.json();
-        })
-        .catch((error) => {
-          console.error(error);
-          return null;
-        }),
-    );
+  try {
+    return JSON.parse(await loadSharedText(src));
+  } catch (error) {
+    console.error(error);
+    return null;
   }
-  return sceneStateManifestCache.get(src);
+}
+
+function resolveSceneVariant(manifest, state) {
+  if (!manifest || !state) {
+    return null;
+  }
+  const stateKey = buildStateKey(state);
+  const stateEntry = manifest.states?.[stateKey];
+  if (Number.isInteger(stateEntry) && Array.isArray(manifest.variants)) {
+    const variant = manifest.variants[stateEntry];
+    if (!variant) {
+      return null;
+    }
+    return manifest.variantDefaults ? { ...manifest.variantDefaults, ...variant } : variant;
+  }
+  if (stateEntry && typeof stateEntry === "object") {
+    return stateEntry;
+  }
+  return null;
+}
+
+async function resolveSceneVariantAssets(sceneContext, variant) {
+  if (!variant || !variant.hoverTargetsSrc || variant.hoverTargetsJson) {
+    return variant;
+  }
+  const source = normalizeSceneAssetUrl(sceneContext.descriptor, variant.hoverTargetsSrc);
+  return { ...variant, hoverTargetsJson: await loadSceneHoverTargetsJson(source) };
+}
+
+async function loadSceneHoverTargets(node, descriptor) {
+  if (node.dataset.sceneHoverTargetsSrc && !node.hasAttribute("data-scene-hover-targets")) {
+    const source = normalizeSceneAssetUrl(descriptor, node.dataset.sceneHoverTargetsSrc);
+    node.setAttribute("data-scene-hover-targets", await loadSceneHoverTargetsJson(source));
+  }
 }
 
 function ensureStateControlsHost(wrapper) {
@@ -825,22 +875,70 @@ function createSceneActionButton(documentRef, icon, labelText, active, onClick) 
   return button;
 }
 
+function syncSceneAnnotationActionButton(sceneContext) {
+  const wrapper = sceneContext?.runtime?.wrapper;
+  const button = wrapper?.querySelector?.(':scope > .controls [data-site-scene-action="annotations"]');
+  if (!(button instanceof HTMLElement)) {
+    return;
+  }
+  const visible = sceneContext.descriptor?.annotationsVisible !== false;
+  const labels = sceneLabels();
+  applyIconButton(
+    button,
+    visible ? SCENE_BUTTON_ICONS.hideAnnotations : SCENE_BUTTON_ICONS.showAnnotations,
+    visible ? labels.hideAnnotations : labels.showAnnotations,
+  );
+  button.setAttribute("aria-pressed", visible ? "true" : "false");
+}
+
+function appendSceneAnnotationActionButton(sceneContext, host) {
+  const descriptor = sceneContext.descriptor;
+  if (!descriptor.annotationToggle || host.querySelector('[data-site-scene-action="annotations"]')) {
+    return;
+  }
+  const visible = descriptor.annotationsVisible !== false;
+  const labels = sceneLabels();
+  const button = createSceneActionButton(
+    host.ownerDocument,
+    visible ? SCENE_BUTTON_ICONS.hideAnnotations : SCENE_BUTTON_ICONS.showAnnotations,
+    visible ? labels.hideAnnotations : labels.showAnnotations,
+    visible,
+    (actionButton) => {
+      actionButton.disabled = true;
+      toggleSceneAnnotations(sceneContext).finally(() => {
+        if (actionButton.isConnected) {
+          actionButton.disabled = false;
+        }
+      });
+    },
+  );
+  button.dataset.siteSceneAction = "annotations";
+  host.prepend(button);
+}
+
 function mountSceneActionControls(sceneContext) {
   const wrapper = sceneContext?.runtime?.wrapper;
   if (!(wrapper instanceof HTMLElement)) {
     return;
   }
   const descriptor = sceneContext.descriptor;
-  if (!descriptor?.gridToggle && !descriptor?.blockStatsToggle) {
+  if (!descriptor?.annotationToggle && !descriptor?.gridToggle && !descriptor?.blockStatsToggle
+    && !descriptor?.structureLibHatchToggle) {
     return;
   }
 
   const host = ensureSceneActionControlsHost(wrapper);
-  if (!host || host.dataset.siteActionsMounted === "true") {
+  if (!host) {
+    return;
+  }
+  if (host.dataset.siteActionsMounted === "true") {
+    appendSceneAnnotationActionButton(sceneContext, host);
+    syncSceneAnnotationActionButton(sceneContext);
     return;
   }
   host.dataset.siteActionsMounted = "true";
   const documentRef = wrapper.ownerDocument;
+  appendSceneAnnotationActionButton(sceneContext, host);
 
   if (descriptor.gridToggle) {
     const gridButton = createSceneActionButton(
@@ -872,6 +970,66 @@ function mountSceneActionControls(sceneContext) {
     host.append(blockStatsButton);
     syncBlockStatsVisibility(wrapper, descriptor.blockStatsVisible);
   }
+
+  if (descriptor.structureLibHatchToggle) {
+    const button = createSceneActionButton(
+      documentRef,
+      SCENE_BUTTON_ICONS.toggleStructureLibHatches,
+      sceneLabels().structureLibHatches,
+      descriptor.structureLibHatchVisible,
+      async (actionButton) => {
+        descriptor.structureLibHatchVisible = !descriptor.structureLibHatchVisible;
+        actionButton.setAttribute("aria-pressed", descriptor.structureLibHatchVisible ? "true" : "false");
+        const currentState = sceneContext.currentState ? cloneState(sceneContext.currentState) : null;
+        const variant = resolveSceneVariant(sceneContext.manifest, currentState) || {
+          sceneSrc: sceneContext.descriptor.attributes["data-scene-src"],
+          inWorldAnnotationsJson: sceneContext.baseWorldAnnotationsJson
+            || sceneContext.descriptor.attributes["data-scene-in-world-annotations"],
+          overlayAnnotationsJson: sceneContext.baseOverlayAnnotationsJson
+            || sceneContext.descriptor.attributes["data-scene-overlay-annotations"],
+          hoverTargetsJson: sceneContext.descriptor.attributes["data-scene-hover-targets"],
+        };
+        const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
+        if (!(await recreateSceneRuntime(sceneContext, variantAssets, currentState))) {
+          descriptor.structureLibHatchVisible = !descriptor.structureLibHatchVisible;
+          actionButton.setAttribute("aria-pressed", descriptor.structureLibHatchVisible ? "true" : "false");
+        }
+      },
+    );
+    button.dataset.siteSceneAction = "structurelib-hatches";
+    host.append(button);
+  }
+}
+
+async function toggleSceneAnnotations(sceneContext) {
+  if (!sceneContext?.descriptor || sceneContext.transitioning) {
+    return;
+  }
+  const previous = sceneContext.annotationsVisible !== false;
+  sceneContext.annotationsVisible = !previous;
+  sceneContext.descriptor.annotationsVisible = sceneContext.annotationsVisible;
+  syncSceneAnnotationActionButton(sceneContext);
+  const currentState = sceneContext.currentState ? cloneState(sceneContext.currentState) : null;
+  const variant = resolveSceneVariant(sceneContext.manifest, currentState) || {
+    sceneSrc: sceneContext.descriptor.attributes["data-scene-src"],
+    inWorldAnnotationsJson: sceneContext.baseWorldAnnotationsJson
+      || sceneContext.descriptor.attributes["data-scene-in-world-annotations"],
+    overlayAnnotationsJson: sceneContext.baseOverlayAnnotationsJson
+      || sceneContext.descriptor.attributes["data-scene-overlay-annotations"],
+    hoverTargetsJson: sceneContext.descriptor.attributes["data-scene-hover-targets"],
+  };
+  let recreated = false;
+  try {
+    const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
+    recreated = await recreateSceneRuntime(sceneContext, variantAssets, currentState, { resetCamera: false });
+  } catch (error) {
+    console.warn("Failed to toggle scene annotations", error);
+  }
+  if (!recreated) {
+    sceneContext.annotationsVisible = previous;
+    sceneContext.descriptor.annotationsVisible = previous;
+    syncSceneAnnotationActionButton(sceneContext);
+  }
 }
 
 async function toggleSceneGrid(sceneContext) {
@@ -880,9 +1038,9 @@ async function toggleSceneGrid(sceneContext) {
   }
   sceneContext.descriptor.gridVisible = !sceneContext.descriptor.gridVisible;
   const currentState = sceneContext.currentState ? cloneState(sceneContext.currentState) : null;
-  const variant = currentState && sceneContext.manifest?.states ? sceneContext.manifest.states[buildStateKey(currentState)]
-    : null;
-  const recreated = await recreateSceneRuntime(sceneContext, variant, currentState);
+  const variant = resolveSceneVariant(sceneContext.manifest, currentState);
+  const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
+  const recreated = await recreateSceneRuntime(sceneContext, variantAssets, currentState);
   if (!recreated) {
     sceneContext.descriptor.gridVisible = !sceneContext.descriptor.gridVisible;
   }
@@ -972,12 +1130,29 @@ function createRangeControl(documentRef, labelText, min, max, currentValue, form
   range.addEventListener("input", syncValue);
   range.addEventListener("change", () => onChange(nearestValue(range.value)));
   syncValue();
+  wrapper.sceneSetValue = (value) => {
+    range.value = String(nearestValue(value));
+    syncValue();
+    range.dispatchEvent(new Event("input"));
+  };
   const sliderWrap = documentRef.createElement("span");
   sliderWrap.className = "scene-state-slider-wrap";
   sliderWrap.append(createSliderVisual(documentRef, range));
   sliderWrap.append(range);
   wrapper.append(sliderWrap);
   return wrapper;
+}
+
+function appendSceneRangeControl(sceneContext, host, valueOfState, ...controlArgs) {
+  const control = createRangeControl(...controlArgs);
+  sceneContext.rangeControls.push({ control, valueOfState });
+  host.append(control);
+}
+
+function syncSceneRangeControls(sceneContext) {
+  for (const { control, valueOfState } of sceneContext.rangeControls || []) {
+    control.sceneSetValue?.(valueOfState(sceneContext.currentState));
+  }
 }
 
 function createPonderControl(documentRef, control, currentTick, onChange, abortSignal) {
@@ -1058,16 +1233,19 @@ function createPonderControl(documentRef, control, currentTick, onChange, abortS
   };
 
   const nearestExportedTick = (tick) => {
-    let nearest = uniqueTicks[0] ?? 0;
-    let nearestDistance = Math.abs(nearest - tick);
-    for (const candidate of uniqueTicks) {
-      const distance = Math.abs(candidate - tick);
-      if (distance < nearestDistance || (distance === nearestDistance && candidate < nearest)) {
-        nearest = candidate;
-        nearestDistance = distance;
+    let low = 0;
+    let high = uniqueTicks.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (uniqueTicks[middle] < tick) {
+        low = middle + 1;
+      } else {
+        high = middle;
       }
     }
-    return nearest;
+    const upper = uniqueTicks[Math.min(low, uniqueTicks.length - 1)] ?? 0;
+    const lower = uniqueTicks[Math.max(0, low - 1)] ?? upper;
+    return Math.abs(tick - lower) <= Math.abs(upper - tick) ? lower : upper;
   };
 
   const setDisplayedTick = (tick) => {
@@ -1175,12 +1353,13 @@ function createPonderControl(documentRef, control, currentTick, onChange, abortS
   return wrapper;
 }
 
-async function mountSceneStateControls(sceneContext) {
+async function mountSceneStateControls(sceneContext, manifestPromise) {
   if (!sceneContext.runtime?.wrapper || !sceneContext.descriptor.stateControls) {
     return;
   }
 
-  const manifest = await loadSceneStateManifest(sceneContext.descriptor.stateManifestSrc);
+  const manifest = await (manifestPromise || loadSceneStateManifest(sceneContext.descriptor.stateManifestSrc));
+  if (!sceneContext.runtime?.wrapper?.isConnected) return;
   if (!manifest?.states || !manifest?.controls) {
     return;
   }
@@ -1195,6 +1374,7 @@ async function mountSceneStateControls(sceneContext) {
 
   const documentRef = sceneContext.runtime.wrapper.ownerDocument;
   const controls = manifest.controls;
+  sceneContext.rangeControls = [];
 
   if (controls.ponder) {
     host.append(
@@ -1211,8 +1391,7 @@ async function mountSceneStateControls(sceneContext) {
   if (controls.tier && Number.isFinite(Number(controls.tier.min)) && Number.isFinite(Number(controls.tier.max))) {
     const min = Math.max(1, Number(controls.tier.min) || 1);
     const max = Math.max(min, Number(controls.tier.max) || min);
-    host.append(
-      createRangeControl(
+    appendSceneRangeControl(sceneContext, host, (state) => state.tier,
         documentRef,
         controls.tier.label || "Tier",
         min,
@@ -1220,14 +1399,12 @@ async function mountSceneStateControls(sceneContext) {
         sceneContext.currentState.tier,
         (value) => String(value),
         (value) => updateSceneState(sceneContext, { tier: value }),
-      ),
     );
   }
 
   if (controls.visibleLayer && Number.isFinite(Number(controls.visibleLayer.max))) {
     const maxLayer = Math.max(0, Number(controls.visibleLayer.max) || 0);
-    host.append(
-      createRangeControl(
+    appendSceneRangeControl(sceneContext, host, (state) => state.visibleLayer,
         documentRef,
         controls.visibleLayer.label || "Layer",
         0,
@@ -1235,7 +1412,6 @@ async function mountSceneStateControls(sceneContext) {
         sceneContext.currentState.visibleLayer,
         (value) => (value === 0 ? controls.visibleLayer.allLabel || "All" : String(value)),
         (value) => updateSceneState(sceneContext, { visibleLayer: value }),
-      ),
     );
   }
 
@@ -1243,8 +1419,7 @@ async function mountSceneStateControls(sceneContext) {
     for (const channel of controls.channels) {
       const min = Math.max(0, Number(channel?.min) || 0);
       const max = Math.max(0, Number(channel?.max) || 0);
-      host.append(
-        createRangeControl(
+      appendSceneRangeControl(sceneContext, host, (state) => state.channels?.[channel.id] ?? min,
           documentRef,
           channel.label || channel.id || "Channel",
           min,
@@ -1258,7 +1433,6 @@ async function mountSceneStateControls(sceneContext) {
             },
           }),
           channel.values,
-        ),
       );
     }
   }
@@ -1273,8 +1447,8 @@ async function mountSceneStateControls(sceneContext) {
       if (structure.tier && Number.isFinite(Number(structure.tier.min)) && Number.isFinite(Number(structure.tier.max))) {
         const min = Math.max(1, Number(structure.tier.min) || 1);
         const max = Math.max(min, Number(structure.tier.max) || min);
-        host.append(
-          createRangeControl(
+        appendSceneRangeControl(sceneContext, host,
+          (state) => state.structures?.[structureId]?.tier ?? min,
             documentRef,
             structure.tier.label || "Tier",
             min,
@@ -1289,15 +1463,14 @@ async function mountSceneStateControls(sceneContext) {
                   },
                 },
               }),
-          ),
         );
       }
       if (Array.isArray(structure.channels)) {
         for (const channel of structure.channels) {
           const min = Math.max(0, Number(channel?.min) || 0);
           const max = Math.max(0, Number(channel?.max) || 0);
-          host.append(
-            createRangeControl(
+          appendSceneRangeControl(sceneContext, host,
+            (state) => state.structures?.[structureId]?.channels?.[channel.id] ?? min,
               documentRef,
               channel.label || channel.id || "Channel",
               min,
@@ -1315,7 +1488,6 @@ async function mountSceneStateControls(sceneContext) {
                   },
                 }),
               channel.values,
-            ),
           );
         }
       }
@@ -1328,7 +1500,9 @@ async function updateSceneState(sceneContext, patch) {
     return;
   }
 
-  const sourceState = sceneContext.pendingState || sceneContext.currentState || sceneContext.manifest.initialState;
+  const sourceState = sceneContext.manifest.independentControls
+    ? sceneContext.manifest.initialState
+    : sceneContext.pendingState || sceneContext.currentState || sceneContext.manifest.initialState;
   const currentStructures = sourceState?.structures || {};
   const patchedStructures = patch?.structures || {};
   const mergedStructures = { ...currentStructures };
@@ -1363,38 +1537,57 @@ async function updateSceneState(sceneContext, patch) {
       const requestedState = sceneContext.pendingState;
       sceneContext.pendingState = null;
       const key = buildStateKey(requestedState);
-      const variant = sceneContext.manifest.states[key];
+      const variant = resolveSceneVariant(sceneContext.manifest, requestedState);
       if (!variant) {
         console.warn("Missing exported scene variant for key %s", key);
         continue;
       }
-      await recreateSceneRuntime(sceneContext, variant, requestedState);
+      const variantAssets = await resolveSceneVariantAssets(sceneContext, variant);
+      if (await recreateSceneRuntime(sceneContext, variantAssets, requestedState)) {
+        syncSceneRangeControls(sceneContext);
+      }
     }
   } finally {
     sceneContext.transitioning = false;
   }
 }
 
-async function recreateSceneRuntime(sceneContext, variant, nextState) {
+async function recreateSceneRuntime(sceneContext, variant, nextState, options = {}) {
   const parent = sceneContext.runtime?.wrapper?.parentNode;
   if (!parent) {
     return;
   }
 
   const replacement = createSceneNode(parent.ownerDocument, sceneContext.descriptor, variant);
+  if (sceneContext.descriptor.structureLibHatchToggle) {
+    replacement.setAttribute(
+      "data-scene-structurelib-hatch-visible",
+      sceneContext.descriptor.structureLibHatchVisible ? "true" : "false",
+    );
+  }
+  await loadSceneHoverTargets(replacement, sceneContext.descriptor);
   const nextDescriptor = captureSceneDescriptor(replacement);
+  nextDescriptor.annotationToggle ||= sceneContext.descriptor.annotationToggle;
+  nextDescriptor.annotationsVisible = sceneContext.annotationsVisible !== false;
   const split = splitOverlayAnnotations(
     parseSceneJsonAttribute(replacement.getAttribute("data-scene-overlay-annotations"), []),
   );
-  replacement.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(split.vendorAnnotations));
+  const worldAnnotations = applySceneAnnotationVisibility(
+    nextDescriptor,
+    parseSceneJsonAttribute(replacement.getAttribute("data-scene-in-world-annotations"), []),
+  );
+  const visibleVendorAnnotations = filterSceneOverlayAnnotations(split.vendorAnnotations, nextDescriptor);
+  replacement.setAttribute("data-scene-in-world-annotations", serializeSceneJsonAttribute(worldAnnotations));
+  replacement.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(visibleVendorAnnotations));
   const currentRuntime = sceneContext.runtime;
   if (typeof currentRuntime?.controller?.replaceScene === "function") {
     try {
       await currentRuntime.controller.replaceScene(
         replacement.dataset.sceneSrc,
-        parseSceneJsonAttribute(replacement.getAttribute("data-scene-in-world-annotations"), []),
-        split.vendorAnnotations,
+        worldAnnotations,
+        visibleVendorAnnotations,
         parseSceneJsonAttribute(replacement.getAttribute("data-scene-hover-targets"), []),
+        { resetCamera: options.resetCamera ?? Boolean(sceneContext.manifest?.controls?.ponder) },
       );
     } catch (error) {
       console.warn("Failed to replace scene meshes in the existing renderer", error);
@@ -1403,7 +1596,7 @@ async function recreateSceneRuntime(sceneContext, variant, nextState) {
     sceneContext.overlayRuntime?.dispose?.();
     sceneContext.overlayRuntime = null;
     sceneContext.descriptor = nextDescriptor;
-    sceneContext.htmlOverlayAnnotations = split.htmlAnnotations;
+    sceneContext.htmlOverlayAnnotations = filterSceneOverlayAnnotations(split.htmlAnnotations, nextDescriptor);
     sceneContext.currentState = nextState;
     attachSceneContext(sceneContext);
     return true;
@@ -1432,7 +1625,7 @@ async function recreateSceneRuntime(sceneContext, variant, nextState) {
   nextRuntime.wrapper.style.removeProperty("position");
   sceneContext.runtime = nextRuntime;
   sceneContext.descriptor = nextDescriptor;
-  sceneContext.htmlOverlayAnnotations = split.htmlAnnotations;
+  sceneContext.htmlOverlayAnnotations = filterSceneOverlayAnnotations(split.htmlAnnotations, nextDescriptor);
   if (!sceneContext.runtime?.wrapper?.isConnected) {
     disposeSceneContext(sceneContext, false);
     return false;
@@ -1452,6 +1645,10 @@ async function initializeScene(node) {
   ensureDetachedSceneSizeCompat();
 
   const descriptor = captureSceneDescriptor(node);
+  const baseWorldAnnotationsJson = node.getAttribute("data-scene-in-world-annotations") || "[]";
+  const baseOverlayAnnotationsJson = node.getAttribute("data-scene-overlay-annotations") || "[]";
+  const manifestPromise = descriptor.stateControls ? loadSceneStateManifest(descriptor.stateManifestSrc) : null;
+  await Promise.all([loadSceneHoverTargets(node, descriptor), prepareGameScene(node)]);
   applySceneGridDescriptor(node, descriptor);
   const split = splitOverlayAnnotations(parseSceneJsonAttribute(node.getAttribute("data-scene-overlay-annotations"), []));
   node.setAttribute("data-scene-overlay-annotations", serializeSceneJsonAttribute(split.vendorAnnotations));
@@ -1463,11 +1660,14 @@ async function initializeScene(node) {
   const sceneContext = {
     descriptor,
     sourceNode: node,
+    baseWorldAnnotationsJson,
+    baseOverlayAnnotationsJson,
     htmlOverlayAnnotations: split.htmlAnnotations,
     overlayRuntime: null,
     runtime,
     manifest: null,
     currentState: null,
+    annotationsVisible: descriptor.annotationsVisible,
     transitioning: false,
     pendingState: null,
   };
@@ -1478,12 +1678,13 @@ async function initializeScene(node) {
   }
 
   attachSceneContext(sceneContext);
-  await mountSceneStateControls(sceneContext);
+  await mountSceneStateControls(sceneContext, manifestPromise);
   return sceneContext;
 }
 
-export function setupGameScene(node) {
-  return initializeScene(node);
+export async function setupGameScene(node) {
+  const context = await initializeScene(node);
+  return context?.runtime || null;
 }
 
 export function disposeHydratedScenes(root) {

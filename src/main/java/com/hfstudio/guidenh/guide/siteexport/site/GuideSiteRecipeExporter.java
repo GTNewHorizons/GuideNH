@@ -1,8 +1,10 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 import net.minecraft.item.ItemStack;
@@ -21,9 +23,11 @@ public class GuideSiteRecipeExporter {
 
     @Nullable
     private GuideSiteTemplateRegistry tooltipTemplates;
+    private final Map<GuideSiteExportedItem, String> itemHrefs = new IdentityHashMap<>();
 
     public void setTooltipTemplates(@Nullable GuideSiteTemplateRegistry tooltipTemplates) {
         this.tooltipTemplates = tooltipTemplates;
+        itemHrefs.clear();
     }
 
     public String renderHtmlGrid(List<List<String>> ingredients, String resultItemId) {
@@ -301,7 +305,14 @@ public class GuideSiteRecipeExporter {
                 + "</p>");
         html.append("<span class=\"guide-tooltip\" data-template=\"")
             .append(GuideSiteItemHtml.escapeHtml(templateId))
-            .append("\">");
+            .append("\"");
+        String href = itemHrefs.get(item);
+        if (href != null && !href.isEmpty()) {
+            html.append(" data-guide-item-href=\"")
+                .append(GuideSiteItemHtml.escapeHtml(href))
+                .append("\"");
+        }
+        html.append(">");
         GuideSiteItemHtml.appendIcon(html, item, null);
         html.append("</span>");
     }
@@ -505,7 +516,11 @@ public class GuideSiteRecipeExporter {
     }
 
     public GuideSiteExportedItem itemInfo(@Nullable ItemStack stack, GuideSiteItemIconResolver itemIconResolver) {
-        return GuideSiteItemSupport.export(stack, itemIconResolver);
+        GuideSiteExportedItem item = GuideSiteItemSupport.export(stack, itemIconResolver);
+        if (tooltipTemplates != null) {
+            itemHrefs.put(item, tooltipTemplates.resolveItemHref(stack));
+        }
+        return item;
     }
 
     public String itemId(ItemStack stack) {

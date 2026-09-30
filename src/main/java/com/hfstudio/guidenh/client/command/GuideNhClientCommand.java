@@ -252,11 +252,15 @@ public class GuideNhClientCommand extends CommandBase {
             send(
                 sender,
                 GuidebookText.CommandExportSiteSuccess,
-                result.guidesExported(),
+                result.modIdsExported(),
+                result.languagesExported(),
                 result.pagesExported(),
                 result.pagesFailed(),
+                result.warnings(),
+                result.errors(),
                 result.outDir(),
-                formatElapsed(System.nanoTime() - startedAt));
+                formatElapsedMillis(result.durationMillis()));
+            send(sender, GuidebookText.CommandExportSiteTiming, formatElapsedMillis(result.durationMillis()));
         } catch (Throwable t) {
             send(
                 sender,
@@ -267,7 +271,11 @@ public class GuideNhClientCommand extends CommandBase {
     }
 
     private String formatElapsed(long elapsedNanos) {
-        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(Math.max(0L, elapsedNanos));
+        return formatElapsedMillis(TimeUnit.NANOSECONDS.toMillis(Math.max(0L, elapsedNanos)));
+    }
+
+    private String formatElapsedMillis(long elapsedMillis) {
+        elapsedMillis = Math.max(0L, elapsedMillis);
         if (elapsedMillis < 1_000L) {
             return String.format(Locale.ROOT, "%d ms", elapsedMillis);
         }
@@ -281,7 +289,7 @@ public class GuideNhClientCommand extends CommandBase {
 
     private ExportSiteCommandOptions parseExportSiteCommandOptions(String[] args) {
         String outDirArgument = null;
-        boolean exportPonderEveryTick = false;
+        boolean exportPonderEveryTick = true;
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
             if ("--ponder-frames".equalsIgnoreCase(arg) || "--ponder-every-tick".equalsIgnoreCase(arg)) {

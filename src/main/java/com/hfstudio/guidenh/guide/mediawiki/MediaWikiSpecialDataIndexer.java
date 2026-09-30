@@ -5,11 +5,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -42,6 +44,7 @@ public class MediaWikiSpecialDataIndexer {
         .compile("!?\\[[^\\]]*\\]\\(([^)#?\\s][^)]*)\\)");
     private static final String[] ASSET_EXTENSIONS = { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".csv",
         ".json", ".mcmeta", ".txt", ".lang", ".ogg", ".mp3", ".wav", ".mermaid" };
+    private final Map<Guide, AssetCatalog> assetsByGuide = new ConcurrentHashMap<>();
 
     public MediaWikiSpecialDataIndex build(Guide guide, Collection<ParsedGuidePage> pages,
         CategoryIndex categoryIndex) {
@@ -56,9 +59,9 @@ public class MediaWikiSpecialDataIndexer {
             }
         }
         long assetStartNanos = System.nanoTime();
-        Map<ResourceLocation, Long> assetSizesById = buildAssetSizes(guide);
-        Map<ResourceLocation, Set<ResourceLocation>> assetVariantsByReference = buildAssetVariantsByReference(
-            assetSizesById.keySet());
+        AssetCatalog assets = assetsByGuide.computeIfAbsent(guide, this::buildAssetCatalog);
+        Map<ResourceLocation, Long> assetSizesById = assets.sizes();
+        Map<ResourceLocation, Set<ResourceLocation>> assetVariantsByReference = assets.variantsByReference();
         long assetElapsedNanos = System.nanoTime() - assetStartNanos;
         long usageStartNanos = System.nanoTime();
         Map<String, List<ResourceLocation>> fileUsageByPath = buildFileUsage(
@@ -203,6 +206,16 @@ public class MediaWikiSpecialDataIndexer {
         }
         return sizes;
     }
+
+    private AssetCatalog buildAssetCatalog(Guide guide) {
+        Map<ResourceLocation, Long> sizes = Collections.unmodifiableMap(new LinkedHashMap<>(buildAssetSizes(guide)));
+        Map<ResourceLocation, Set<ResourceLocation>> variants = buildAssetVariantsByReference(sizes.keySet());
+        variants.replaceAll((reference, matches) -> Collections.unmodifiableSet(new LinkedHashSet<>(matches)));
+        return new AssetCatalog(sizes, Collections.unmodifiableMap(variants));
+    }
+
+    private record AssetCatalog(Map<ResourceLocation, Long> sizes,
+        Map<ResourceLocation, Set<ResourceLocation>> variantsByReference) {}
 
     private void collectAssetSizesFromDirectory(Guide guide, File resourcePackRoot, Map<ResourceLocation, Long> sizes) {
         File guideRoot = new File(
@@ -468,6 +481,13 @@ public class MediaWikiSpecialDataIndexer {
         ArrayList<PageSourceCandidate> candidates = new ArrayList<>();
         int order = 0;
         for (IResourcePack resourcePack : resourcePacks) {
+            try {
+                if (!resourcePack.resourceExists(sourceId)) {
+                    continue;
+                }
+            } catch (RuntimeException ignored) {
+                // Fall back to opening packs that cannot answer existence checks reliably.
+            }
             byte[] bytes = DataDrivenGuideLoader.readBytes(resourcePack, sourceId);
             if (bytes == null) {
                 continue;

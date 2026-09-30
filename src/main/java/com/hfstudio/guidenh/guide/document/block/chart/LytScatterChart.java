@@ -24,6 +24,14 @@ public class LytScatterChart extends LytChartBase {
     private ChartAxisOptions xAxis = new ChartAxisOptions();
     private ChartAxisOptions yAxis = new ChartAxisOptions();
 
+    public ChartAxisOptions getXAxis() {
+        return xAxis;
+    }
+
+    public ChartAxisOptions getYAxis() {
+        return yAxis;
+    }
+
     private LytRect plotCache = LytRect.empty();
     private AxisRange xRangeCache;
     private AxisRange yRangeCache;

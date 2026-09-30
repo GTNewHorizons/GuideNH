@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.shader.Framebuffer;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
@@ -21,6 +22,8 @@ public class SceneEditorOffscreenFramebuffer implements AutoCloseable {
     private final Framebuffer framebuffer;
     private final int width;
     private final int height;
+    @Nullable
+    private ByteBuffer pixelBuffer;
 
     public SceneEditorOffscreenFramebuffer(int width, int height) {
         this.width = Math.max(16, width);
@@ -119,7 +122,11 @@ public class SceneEditorOffscreenFramebuffer implements AutoCloseable {
     }
 
     private BufferedImage readPixels() {
-        ByteBuffer buffer = BufferUtils.createByteBuffer(width * height * 4);
+        if (pixelBuffer == null) {
+            pixelBuffer = BufferUtils.createByteBuffer(width * height * 4);
+        }
+        ByteBuffer buffer = pixelBuffer;
+        buffer.clear();
         GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
 
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -143,5 +150,6 @@ public class SceneEditorOffscreenFramebuffer implements AutoCloseable {
     @Override
     public void close() {
         framebuffer.deleteFramebuffer();
+        pixelBuffer = null;
     }
 }

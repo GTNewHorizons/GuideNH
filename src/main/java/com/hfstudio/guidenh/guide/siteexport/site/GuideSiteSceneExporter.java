@@ -4,7 +4,7 @@ public class GuideSiteSceneExporter {
 
     public interface BytesProducer {
 
-        byte[] produce() throws Exception;
+        byte[] produce();
     }
 
     public static final class SceneFiles {

@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "隐藏注解",
+    "showAnnotations": "显示注解",
+    "grid": "切换地面网格",
+    "stats": "切换方块统计",
+    "structureLibHatches": "高亮 StructureLib 仓室",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "reset": "重置视角",
+    "previous": "上一个关键帧",
+    "playPause": "播放/暂停",
+    "restart": "重新开始"
+  },
+  "ponder": { "lmb": "左键", "rmb": "右键", "scroll": "滚轮" },
+  "navigation": {
+    "open": "导航",
+    "close": "关闭导航",
+    "holdToOpenGuide": "长按 G 打开指南"
+  },
+  "sceneLoading": {
+    "error": "3D 场景加载失败。",
+    "retry": "重试",
+    "loading": "正在加载 3D 场景…"
+  }
+}

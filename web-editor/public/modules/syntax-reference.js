@@ -2,19 +2,19 @@ import { renderMarkdown } from "./markdown-renderer.js";
 import { translatedString, UI_LANGUAGES } from "./language.js";
 
 const DOCUMENTS = [
-  { id: "Guide-Page-Format", label: { en: "Markdown & page format", zh: "Markdown 与页面格式" } },
-  { id: "Syntax-Completion", label: { en: "Syntax completion", zh: "语法补全" } },
-  { id: "Tags-Reference", label: { en: "Tags reference", zh: "标签参考" } },
-  { id: "Images-And-Assets", label: { en: "Images & assets", zh: "图片与资源" } },
-  { id: "Navigation", label: { en: "Navigation", zh: "页面导航" } },
-  { id: "Annotations", label: { en: "Annotations", zh: "标注" } },
-  { id: "Recipes", label: { en: "Recipes", zh: "配方" } },
-  { id: "GameScene", label: { en: "Game scenes", zh: "游戏场景" } },
-  { id: "Ponder", label: { en: "Ponder", zh: "Ponder 演示" } },
-  { id: "Localization", label: { en: "Localization", zh: "本地化" } },
-  { id: "Mod-Compatibility", label: { en: "Mod compatibility", zh: "模组兼容" } },
-  { id: "Structure-Export", label: { en: "Structure export", zh: "结构导出" } },
-  { id: "Examples", label: { en: "Examples", zh: "示例" } },
+  "Guide-Page-Format",
+  "Syntax-Completion",
+  "Tags-Reference",
+  "Images-And-Assets",
+  "Navigation",
+  "Annotations",
+  "Recipes",
+  "GameScene",
+  "Ponder",
+  "Localization",
+  "Mod-Compatibility",
+  "Structure-Export",
+  "Examples",
 ];
 
 function splitSections(source, documentId) {
@@ -88,7 +88,7 @@ export function createSyntaxReference(dialog, initialLocale) {
       if (section.documentId !== lastDocument) {
         lastDocument = section.documentId;
         const group = document.createElement("h3");
-        group.textContent = sections.find((item) => item.documentId === lastDocument && item.depth === 1)?.title || DOCUMENTS.find((item) => item.id === lastDocument).label.en;
+        group.textContent = sections.find((item) => item.documentId === lastDocument && item.depth === 1)?.title || lastDocument;
         results.append(group);
       }
       const button = document.createElement("button");
@@ -109,14 +109,14 @@ export function createSyntaxReference(dialog, initialLocale) {
     updateLabels();
     if (!cache.has(nextLanguage)) {
       content.textContent = translatedString(nextLanguage, "referenceLoading");
-      const sources = await Promise.all(DOCUMENTS.map(async (item) => {
+      const sources = await Promise.all(DOCUMENTS.map(async (documentId) => {
         const details = UI_LANGUAGES[nextLanguage] || UI_LANGUAGES.en_us;
-        const referencePath = details.referenceDocuments?.includes(item.id) && details.referencePath
+        const referencePath = details.referenceDocuments?.includes(documentId) && details.referencePath
           ? details.referencePath
           : UI_LANGUAGES.en_us.referencePath || "en/_us";
-        const response = await fetch(`./reference/${referencePath}/${item.id}.md`);
-        if (!response.ok) throw new Error(`Unable to load ${item.id}`);
-        return { documentId: item.id, source: await response.text() };
+        const response = await fetch(`./reference/${referencePath}/${documentId}.md`);
+        if (!response.ok) throw new Error(`Unable to load ${documentId}`);
+        return { documentId, source: await response.text() };
       }));
       cache.set(nextLanguage, sources.flatMap(({ documentId, source }) => splitSections(source, documentId).map((section) => ({ ...section, documentId }))));
     }

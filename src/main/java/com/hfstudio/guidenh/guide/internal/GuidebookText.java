@@ -360,6 +360,7 @@ public enum GuidebookText implements LocalizationEnum {
     CommandDumpPageLangSuccess,
     CommandExportSiteStart,
     CommandExportSiteSuccess,
+    CommandExportSiteTiming,
     CommandExportSiteFailure,
     CommandStructureSaved,
     CommandStructureInvalidSize,

@@ -28,6 +28,14 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
     @Setter
     private boolean clockwise = true;
 
+    public float getStartAngleDeg() {
+        return startAngleDeg;
+    }
+
+    public boolean isClockwise() {
+        return clockwise;
+    }
+
     private float cxCache;
     private float cyCache;
     private float radiusCache;

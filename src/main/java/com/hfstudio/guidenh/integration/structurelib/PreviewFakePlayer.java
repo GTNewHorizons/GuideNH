@@ -1,8 +1,10 @@
 package com.hfstudio.guidenh.integration.structurelib;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.IChatComponent;
@@ -23,6 +25,21 @@ public class PreviewFakePlayer extends EntityPlayer {
         capabilities.isCreativeMode = true;
         noClip = true;
         configureForControllerFacing(ForgeDirection.SOUTH);
+    }
+
+    public void resetForBuild() {
+        Arrays.fill(inventory.mainInventory, null);
+        Arrays.fill(inventory.armorInventory, null);
+        inventory.currentItem = 0;
+        openContainer = inventoryContainer;
+        if (inventoryContainer instanceof ContainerPlayer playerContainer) {
+            for (int slot = 0; slot < playerContainer.craftMatrix.getSizeInventory(); slot++) {
+                playerContainer.craftMatrix.getStackInSlotOnClosing(slot);
+            }
+            playerContainer.craftResult.setInventorySlotContents(0, null);
+        }
+        capabilities.isCreativeMode = true;
+        noClip = true;
     }
 
     public void configureForControllerFacing(ForgeDirection controllerFacing) {

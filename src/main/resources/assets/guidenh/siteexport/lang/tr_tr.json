@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "Açıklamaları gizle",
+    "showAnnotations": "Açıklamaları göster",
+    "grid": "Zemin ızgarasını aç/kapat",
+    "stats": "Blok istatistiklerini aç/kapat",
+    "structureLibHatches": "StructureLib kapaklarını vurgula",
+    "zoomIn": "Yakınlaştır",
+    "zoomOut": "Uzaklaştır",
+    "reset": "Görünümü sıfırla",
+    "previous": "Önceki anahtar kare",
+    "playPause": "Oynat / Duraklat",
+    "restart": "Yeniden başlat"
+  },
+  "ponder": { "lmb": "Sol tık", "rmb": "Sağ tık", "scroll": "Kaydırma" },
+  "navigation": {
+    "open": "Gezinme",
+    "close": "Gezinmeyi kapat",
+    "holdToOpenGuide": "Rehberi açmak için G tuşunu basılı tutun"
+  },
+  "sceneLoading": {
+    "error": "3D sahne yüklenemedi.",
+    "retry": "Yeniden dene",
+    "loading": "3D sahne yükleniyor…"
+  }
+}

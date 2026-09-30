@@ -9,6 +9,7 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 
 public class BlockImageCompiler extends BlockTagCompiler {
 
@@ -48,6 +49,9 @@ public class BlockImageCompiler extends BlockTagCompiler {
             width,
             height);
         placeholder.setStyleClass("BlockImage");
+        if (el instanceof MdAstNode sourceNode) {
+            placeholder.setSourceNode(sourceNode);
+        }
         placeholder.setStyle(LytParagraph.PLACEHOLDER_STYLE);
         placeholder.appendText("[BlockImage]");
         parent.append(placeholder);

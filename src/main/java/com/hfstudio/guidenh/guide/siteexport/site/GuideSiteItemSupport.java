@@ -47,6 +47,25 @@ public class GuideSiteItemSupport {
         return registryName != null ? registryName : "";
     }
 
+    @Nullable
+    public static String tooltipCacheKey(@Nullable ItemStack stack) {
+        String registryName = itemId(stack);
+        if (registryName.isEmpty()) {
+            return null;
+        }
+        StringBuilder key = new StringBuilder("item-tooltip:");
+        key.append(registryName)
+            .append('#')
+            .append(stack.getItemDamage())
+            .append('#')
+            .append(stack.stackSize);
+        if (stack.stackTagCompound != null) {
+            key.append('#')
+                .append(stack.stackTagCompound);
+        }
+        return key.toString();
+    }
+
     public static String displayName(@Nullable ItemStack stack) {
         if (stack == null) {
             return "";

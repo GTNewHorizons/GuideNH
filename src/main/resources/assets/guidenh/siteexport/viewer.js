@@ -1,3 +1,5 @@
+import { siteSection } from "./locale.js";
+
 let modelViewerModulePromise;
 let loadedModelViewerModule;
 
@@ -14,16 +16,10 @@ async function getModelViewerModule() {
   return modelViewerModulePromise;
 }
 
-// Maximum number of game scenes that may be live (hydrated) at the same time.
-// Each scene allocates its own WebGL context; browsers cap that at ~16 globally,
-// and stacking too many causes severe lag and the early scenes to crash.
-const MAX_ACTIVE_SCENES = 2;
-// Tracks the order in which scenes were activated so we can evict the oldest
-// when the live set exceeds the cap.
 const activeScenes = [];
-// Nodes whose viewport status entry is "intersecting" but that have been
-// throttled because the live set is full. They will be promoted as slots free.
-const pendingScenes = new Set();
+// Keep hydrated scenes alive until the current page is replaced. The cap protects
+// browsers that limit the number of simultaneous WebGL contexts.
+const MAX_ACTIVE_SCENES = 16;
 // Tracks one observer per hydration root so repeated tooltip/document hydration
 // does not stack duplicate IntersectionObservers over the same scene nodes.
 const observerEntries = new Map();
@@ -73,14 +69,10 @@ async function hydrateNode(node, module, isCurrent = () => true) {
   if (!node.isConnected || !isCurrent()) {
     return;
   }
-  clearHydrationFailure(node);
-  // Evict the oldest live scene while the cap is reached so newcomers can run.
-  while (activeScenes.length >= MAX_ACTIVE_SCENES) {
-    const oldest = activeScenes.shift();
-    if (oldest && oldest !== node) {
-      await disposeNode(oldest);
-    }
+  if (activeScenes.length >= MAX_ACTIVE_SCENES) {
+    return;
   }
+  clearHydrationFailure(node);
   try {
     node.dataset.sceneHydrated = "loading";
     const runtime = await module.setupGameScene(node);
@@ -124,41 +116,7 @@ function clearHydrationFailure(node) {
 }
 
 function sceneUiText() {
-  const language = (document.documentElement.lang || navigator.language || "en").toLowerCase();
-  if (language.startsWith("zh-tw") || language.startsWith("zh-hk")) {
-    return { error: "3D 場景載入失敗。", retry: "重試", loading: "正在載入 3D 場景…" };
-  }
-  if (language.startsWith("zh")) {
-    return { error: "3D 场景加载失败。", retry: "重试", loading: "正在加载 3D 场景…" };
-  }
-  if (language.startsWith("ja")) {
-    return { error: "3D シーンを読み込めません。", retry: "再試行", loading: "3D シーンを読み込み中…" };
-  }
-  if (language.startsWith("de")) {
-    return { error: "3D-Szene konnte nicht geladen werden.", retry: "Erneut versuchen", loading: "3D-Szene wird geladen…" };
-  }
-  if (language.startsWith("fr")) {
-    return { error: "La scène 3D n’a pas pu être chargée.", retry: "Réessayer", loading: "Chargement de la scène 3D…" };
-  }
-  if (language.startsWith("es")) {
-    return { error: "No se pudo cargar la escena 3D.", retry: "Reintentar", loading: "Cargando la escena 3D…" };
-  }
-  if (language.startsWith("pt")) {
-    return { error: "Não foi possível carregar a cena 3D.", retry: "Tentar novamente", loading: "Carregando a cena 3D…" };
-  }
-  if (language.startsWith("ru")) {
-    return { error: "Не удалось загрузить 3D-сцену.", retry: "Повторить", loading: "Загрузка 3D-сцены…" };
-  }
-  if (language.startsWith("uk")) {
-    return { error: "Не вдалося завантажити 3D-сцену.", retry: "Повторити", loading: "Завантаження 3D-сцени…" };
-  }
-  if (language.startsWith("pl")) {
-    return { error: "Nie można załadować sceny 3D.", retry: "Spróbuj ponownie", loading: "Ładowanie sceny 3D…" };
-  }
-  if (language.startsWith("nl")) {
-    return { error: "De 3D-scène kon niet worden geladen.", retry: "Opnieuw proberen", loading: "3D-scène laden…" };
-  }
-  return { error: "The 3D scene could not be loaded.", retry: "Retry", loading: "Loading 3D scene…" };
+  return siteSection("sceneLoading");
 }
 
 function markHydrationFailure(node, error) {
@@ -207,9 +165,6 @@ function disconnectObserverEntry(root) {
   }
   entry.observer.disconnect();
   entry.invalid = true;
-  for (const node of entry.nodes) {
-    pendingScenes.delete(node);
-  }
   observerEntries.delete(root);
 }
 
@@ -251,7 +206,6 @@ export function hydrateVisibleScenes(root) {
       const node = observerSources.get(observedNode) || observedNode;
       if (!observedNode.isConnected) {
         observer.unobserve(observedNode);
-        pendingScenes.delete(node);
         await disposeNode(node);
         continue;
       }
@@ -259,7 +213,6 @@ export function hydrateVisibleScenes(root) {
         const runtimeConnected = node.__guidenhHydratedRoot instanceof HTMLElement
           && node.__guidenhHydratedRoot.isConnected;
         if (!node.isConnected && !runtimeConnected) {
-          pendingScenes.delete(node);
           continue;
         }
         if (node.dataset.sceneHydrated === "true") {
@@ -267,27 +220,9 @@ export function hydrateVisibleScenes(root) {
           continue;
         }
         if (activeScenes.length >= MAX_ACTIVE_SCENES) {
-          // Defer hydration until a scene leaves the viewport. The observer keeps
-          // watching so the next scroll update triggers another evaluation.
-          pendingScenes.add(node);
           continue;
         }
-        pendingScenes.delete(node);
         await hydrateNode(node, module, () => !observerEntry.invalid);
-      } else {
-        // Scene scrolled out of view: dispose it so its WebGL context is freed
-        // (this is what previously made repeated scrolls crash early scenes).
-        pendingScenes.delete(node);
-        if (node.dataset.sceneHydrated === "true") {
-          await disposeNode(node);
-        }
-        // Promote one queued scene now that we may have a free slot.
-        if (pendingScenes.size && activeScenes.length < MAX_ACTIVE_SCENES) {
-          const next = pendingScenes.values()
-            .next().value;
-          pendingScenes.delete(next);
-          await hydrateNode(next, module, () => !observerEntry.invalid);
-        }
       }
     }
   }), { rootMargin: "128px 0px" });
@@ -313,7 +248,6 @@ export function disposeHydratedScenes(root) {
       if (idx >= 0) {
         activeScenes.splice(idx, 1);
       }
-      pendingScenes.delete(node);
     }
   }
   const wrappers = [];
@@ -328,9 +262,10 @@ export function disposeHydratedScenes(root) {
       if (index >= 0) {
         activeScenes.splice(index, 1);
       }
-      pendingScenes.delete(sourceNode);
       sceneObservers.get(sourceNode)?.unobserve(wrapper);
       observerSources.delete(wrapper);
+      delete sourceNode.__guidenhHydratedRoot;
+      delete sourceNode.dataset.sceneHydrated;
     }
   }
   const detachedRuntimes = [];

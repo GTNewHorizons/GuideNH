@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "注釈を非表示",
+    "showAnnotations": "注釈を表示",
+    "grid": "床面グリッドを切り替え",
+    "stats": "ブロック統計を切り替え",
+    "structureLibHatches": "StructureLib ハッチを強調",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "reset": "視点をリセット",
+    "previous": "前のキーフレーム",
+    "playPause": "再生/一時停止",
+    "restart": "最初から再生"
+  },
+  "ponder": { "lmb": "左クリック", "rmb": "右クリック", "scroll": "スクロール" },
+  "navigation": {
+    "open": "ナビゲーション",
+    "close": "ナビゲーションを閉じる",
+    "holdToOpenGuide": "G を長押ししてガイドを開く"
+  },
+  "sceneLoading": {
+    "error": "3D シーンを読み込めません。",
+    "retry": "再試行",
+    "loading": "3D シーンを読み込み中…"
+  }
+}

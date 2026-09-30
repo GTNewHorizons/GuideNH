@@ -4,9 +4,33 @@ export { UI_LANGUAGES };
 
 export function normalizeLanguage(value) {
   const normalized = String(value || "").trim().replaceAll("-", "_").toLowerCase();
-  const aliases = { en: "en_us", zh: "zh_cn", ja: "ja_jp" };
-  if (aliases[normalized]) return aliases[normalized];
   return /^[a-z]{2,3}(?:_[a-z0-9]{2,8}){0,2}$/.test(normalized) ? normalized : "en_us";
+}
+
+function matchingLanguage(value, available) {
+  const key = normalizeLanguage(value);
+  if (available.includes(key)) return key;
+  let locale;
+  try {
+    locale = new Intl.Locale(key.replaceAll("_", "-"));
+  } catch {
+    return null;
+  }
+  const family = locale.language.toLowerCase();
+  const region = locale.region?.toLowerCase();
+  const script = locale.script?.toLowerCase();
+  const candidates = [
+    [family, script, region].filter(Boolean).join("_"),
+    [family, region].filter(Boolean).join("_"),
+    [family, script].filter(Boolean).join("_"),
+  ];
+  for (const candidate of candidates) if (available.includes(candidate)) return candidate;
+  if (family === "zh") {
+    const traditional = script === "hant" || ["tw", "hk", "mo"].includes(region);
+    const preferred = traditional ? "zh_tw" : "zh_cn";
+    if (available.includes(preferred)) return preferred;
+  }
+  return available.find((language) => language === family || language.startsWith(`${family}_`)) || null;
 }
 
 export function languageLabel(value) {
@@ -27,31 +51,21 @@ export function browserLanguages() {
 }
 
 export function uiLanguageFor(value) {
-  const key = normalizeLanguage(value);
-  if (UI_LANGUAGES[key]) return key;
-  const parts = key.split("_");
-  if (parts[0] === "zh") return parts.includes("tw") || parts.includes("hk") || parts.includes("mo") || parts.includes("hant") ? "zh_tw" : "zh_cn";
-  return Object.keys(UI_LANGUAGES).find((language) => language.split("_")[0] === parts[0]) || "en_us";
+  return matchingLanguage(value, Object.keys(UI_LANGUAGES)) || "en_us";
 }
 
 export function preferredUiLanguage(preferences) {
   for (const preference of preferences) {
-    const key = normalizeLanguage(preference);
-    const family = key.split("_")[0];
-    if (UI_LANGUAGES[key] || Object.keys(UI_LANGUAGES).some((language) => language.split("_")[0] === family)) return uiLanguageFor(key);
+    const matched = matchingLanguage(preference, Object.keys(UI_LANGUAGES));
+    if (matched) return matched;
   }
   return "en_us";
 }
 
 export function projectLanguageFor(available, preferences) {
   for (const preference of preferences) {
-    const key = normalizeLanguage(preference);
-    if (available.includes(key)) return key;
-    const family = key.split("_")[0];
-    const regionalFallback = family === "zh" ? uiLanguageFor(key) : family === "en" ? "en_us" : family === "ja" ? "ja_jp" : null;
-    if (regionalFallback && available.includes(regionalFallback)) return regionalFallback;
-    const related = available.find((language) => language.split("_")[0] === family);
-    if (related) return related;
+    const matched = matchingLanguage(preference, available);
+    if (matched) return matched;
   }
   return available.includes("en_us") ? "en_us" : available[0] || "en_us";
 }
@@ -93,6 +107,6 @@ export function localizedPagePath(project, path, language) {
 }
 
 export function translatedString(language, key) {
-  const normalized = normalizeLanguage(language);
+  const normalized = uiLanguageFor(language);
   return UI_LANGUAGES[normalized]?.strings[key] || UI_LANGUAGES.en_us.strings[key] || key;
 }

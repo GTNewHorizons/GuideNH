@@ -1,0 +1,26 @@
+{
+  "scene": {
+    "hideAnnotations": "Ukryj adnotacje",
+    "showAnnotations": "Pokaż adnotacje",
+    "grid": "Przełącz siatkę podłoża",
+    "stats": "Przełącz statystyki bloków",
+    "structureLibHatches": "Podświetl włazy StructureLib",
+    "zoomIn": "Powiększ",
+    "zoomOut": "Pomniejsz",
+    "reset": "Resetuj widok",
+    "previous": "Poprzednia klatka kluczowa",
+    "playPause": "Odtwórz/Wstrzymaj",
+    "restart": "Uruchom ponownie"
+  },
+  "ponder": { "lmb": "Lewy przycisk", "rmb": "Prawy przycisk", "scroll": "Kółko myszy" },
+  "navigation": {
+    "open": "Nawigacja",
+    "close": "Zamknij nawigację",
+    "holdToOpenGuide": "Przytrzymaj G, aby otworzyć poradnik"
+  },
+  "sceneLoading": {
+    "error": "Nie można załadować sceny 3D.",
+    "retry": "Spróbuj ponownie",
+    "loading": "Ładowanie sceny 3D…"
+  }
+}

@@ -35,6 +35,7 @@
 }
 
 :root {
+    color-scheme: dark;
     --color-body-text: rgb(210, 210, 210);
     --color-link: rgb(0, 213, 255);
     --color-error-text: rgb(255, 0, 0);
@@ -44,7 +45,11 @@
     --color-navbar-row-hover: rgb(33, 33, 33);
     --color-navbar-expand-arrow: rgb(238, 238, 238);
     --color-table-border: rgb(124, 124, 124);
-    --color-scene-background: rgba(0, 0, 0, 0.2);
+    --color-scene-background: rgb(10, 10, 16);
+    --color-scene-border: rgb(48, 48, 64);
+    --color-scrollbar-track: rgb(25, 27, 32);
+    --color-scrollbar-thumb: rgb(89, 96, 106);
+    --color-scrollbar-thumb-hover: rgb(119, 129, 140);
 
     --gui-scale: 3;
     --sidebar-width: 350px;
@@ -81,6 +86,7 @@ html, body {
 }
 
 h1, h2, h3, h4, h5, h6 {
+    clear: both;
     font-size: 1rem;
     margin: 1em 0 0.5em;
 }
@@ -482,6 +488,8 @@ p {
 .item-icon {
     width: calc(16px * var(--gui-scale));
     height: calc(16px * var(--gui-scale));
+    flex: none;
+    object-fit: contain;
     image-rendering: pixelated;
     vertical-align: middle;
 }
@@ -507,6 +515,13 @@ p {
     border-bottom: calc(1px * var(--gui-scale)) solid rgba(255,255,255,0.08);
 }
 
+.guide-brand {
+    display: flex;
+    align-items: center;
+    gap: calc(4px * var(--gui-scale));
+    min-width: 0;
+}
+
 .guide-logo {
     font-family: var(--minecraft-font);
     font-weight: bold;
@@ -519,6 +534,25 @@ p {
 .guide-logo:hover {
     text-decoration: none;
     color: var(--color-link);
+}
+
+.guide-custom-link:not([hidden]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(10px * var(--gui-scale));
+    height: calc(10px * var(--gui-scale));
+    color: var(--color-body-text);
+}
+
+.guide-custom-link:hover {
+    color: var(--color-link);
+}
+
+.guide-custom-link svg {
+    width: calc(8px * var(--gui-scale));
+    height: calc(8px * var(--gui-scale));
+    fill: currentColor;
 }
 
 .guide-header-lang {
@@ -642,7 +676,7 @@ p {
 .guide-nav li {
     position: relative;
     display: grid;
-    grid-template-columns: calc(14px * var(--gui-scale)) minmax(0, 1fr);
+    grid-template-columns: calc(12px * var(--gui-scale)) minmax(0, 1fr);
 }
 
 .guide-nav a,
@@ -652,6 +686,7 @@ p {
     gap: 4px;
     min-height: calc(10px * var(--gui-scale));
     padding: calc(1px * var(--gui-scale)) calc(4px * var(--gui-scale));
+    padding-left: calc(2px * var(--gui-scale));
     color: var(--color-body-text);
     text-decoration: none;
     font-size: 0.85rem;
@@ -727,8 +762,18 @@ p {
 .guide-nav-item-icon {
     width: calc(8px * var(--gui-scale));
     height: calc(8px * var(--gui-scale));
+    min-width: calc(8px * var(--gui-scale));
+    min-height: calc(8px * var(--gui-scale));
+    max-width: calc(8px * var(--gui-scale));
+    max-height: calc(8px * var(--gui-scale));
     image-rendering: pixelated;
-    flex-shrink: 0;
+    flex: none;
+    object-fit: contain;
+    filter: brightness(0.84) contrast(1.06);
+}
+
+.guide-nav-texture-icon {
+    filter: brightness(0.84) contrast(1.06);
 }
 
 .guide-generated-link-text {
@@ -845,15 +890,48 @@ p {
 .guide-tooltip-popup {
     position: fixed;
     z-index: 200;
-    pointer-events: none;
+    pointer-events: auto;
     border-image-source: linear-gradient(rgba(80, 0, 255, 0.31), rgba(40, 0, 127, 0.31));
     border-style: solid;
     border-width: calc(1px * var(--gui-scale));
     border-image-slice: 1;
     background: rgba(16, 0, 16, 0.94);
+    box-sizing: border-box;
     padding: calc(2px * var(--gui-scale));
     line-height: 1;
     max-width: calc(220px * var(--gui-scale));
+}
+
+.guide-tooltip-popup:has(.guide-tooltip-layout) {
+    width: max-content;
+    max-width: min(calc(320px * var(--gui-scale)), calc(100vw - 24px));
+}
+
+.guide-tooltip-layout {
+    max-width: 100%;
+}
+
+.guide-tooltip-layout > * {
+    min-width: 0;
+}
+
+.guide-gui-sprite-placeholder {
+    display: inline-block;
+    min-width: 16px;
+    min-height: 16px;
+    background: rgba(128, 128, 128, 0.18);
+    border: 1px solid rgba(128, 128, 128, 0.5);
+    vertical-align: middle;
+}
+
+.guide-gui-sprite {
+    vertical-align: middle;
+    image-rendering: pixelated;
+}
+
+.guide-export-placeholder {
+    color: var(--guide-text-muted, rgba(190, 190, 190, 0.9));
+    font-style: italic;
 }
 
 .guide-tooltip-popup::before {
@@ -905,6 +983,7 @@ p {
     border-width: calc(1px * var(--gui-scale));
     border-image-slice: 1;
     background: rgba(16, 0, 16, 0.94);
+    box-sizing: border-box;
     padding: calc(2px * var(--gui-scale));
     line-height: 1;
     max-width: calc(120px * var(--gui-scale));
@@ -945,12 +1024,67 @@ p {
 
 .guide-tooltip-item-grid {
     display: inline-grid;
+    grid-template-columns: repeat(var(--guide-tooltip-columns, 6), calc(18px * var(--gui-scale)));
+    max-width: 100%;
+    overflow-x: auto;
     gap: 0;
+}
+
+.guide-item-navigation {
+    margin-top: 8px;
+    color: #aaaaaa;
+    font-size: 0.85em;
+    line-height: 1.35;
+}
+
+.guide-item-navigation-progress {
+    height: 4px;
+    margin-top: 4px;
+    background: #333333;
+    overflow: hidden;
+}
+
+.guide-site-body,
+.guide-site-body * {
+    scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
+    scrollbar-width: thin;
+}
+
+.guide-site-body ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.guide-site-body ::-webkit-scrollbar-track {
+    background: var(--color-scrollbar-track);
+}
+
+.guide-site-body ::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar-thumb);
+}
+
+.guide-site-body ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-scrollbar-thumb-hover);
+}
+
+.guide-item-navigation-progress > div {
+    width: 100%;
+    height: 100%;
+    background: #55ff55;
+    transform: scaleX(0);
+    transform-origin: left;
+}
+
+.guide-tooltip-item-grid .ingredient-box--plain,
+.guide-tooltip-item-grid .ingredient-box--plain:hover {
+    border: 0;
+    background: transparent;
 }
 
 .guide-image {
     display: block;
     max-width: 100%;
+    height: auto;
     image-rendering: pixelated;
 }
 
@@ -960,6 +1094,12 @@ p {
     max-width: 100%;
     vertical-align: top;
     overflow: visible;
+}
+
+.guide-floating-image-stage {
+    position: relative;
+    display: block;
+    width: 100%;
 }
 
 .guide-floating-image-crop {
@@ -979,7 +1119,10 @@ p {
 .guide-floating-image-wrap .guide-floating-image {
     float: none;
     display: block;
-    max-width: none;
+}
+
+.guide-floating-image-wrap .guide-floating-image-stage:not(.guide-floating-image-crop) .guide-floating-image {
+    max-width: 100%;
 }
 
 .guide-floating-image-wrap.guide-floating-image-inline {
@@ -1109,6 +1252,21 @@ p {
 
 .guide-block-item-row {
     margin-bottom: 0.8em;
+}
+
+.guide-block-image {
+    display: inline-block;
+    flex: 0 0 auto;
+    max-width: 100%;
+    vertical-align: middle;
+    line-height: 0;
+}
+
+.guide-block-image > img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
 }
 
 .guide-item-grid,
@@ -1430,14 +1588,7 @@ p {
 }
 
 .guide-quest-link {
-    display: inline-flex;
-    align-items: center;
-    padding: 1px calc(2px * var(--gui-scale));
-    border: 1px solid rgba(124, 124, 124, 0.45);
-    background: rgba(0, 0, 0, 0.35);
     color: var(--color-link);
-    font-family: var(--minecraft-font);
-    font-size: 0.9em;
 }
 
 .guide-quest-card {
@@ -1612,6 +1763,10 @@ p {
     grid-template-columns: max-content max-content;
 }
 
+.guide-scene-block-stat.guide-tooltip {
+    border-bottom: 0;
+}
+
 .guide-scene-export-frame--block-stats-icons .guide-scene-block-stat-label {
     display: none;
 }
@@ -1702,6 +1857,8 @@ p {
     position: absolute;
     left: 50%;
     top: 50%;
+    width: calc(16px * var(--gui-scale));
+    height: calc(16px * var(--gui-scale));
     transform: translate(-50%, -50%);
 }
 
@@ -1711,6 +1868,7 @@ p {
 
 .recipe-positioned-canvas--phase1-bg {
     background-position: 0 0;
+    image-rendering: pixelated;
     /* PNG alpha beneath GT drawDescription / similar extras: MC-style light grey backing for black raster text */
     background-color: #c6c6c6;
 }
@@ -1789,6 +1947,8 @@ p {
     display: none;
     position: absolute;
     inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .ingredient-box[data-ingredient-cycling] > .current {
@@ -2496,6 +2656,15 @@ p {
 
     .guide-layout-row {
         flex-direction: column;
+    }
+
+    .guide-layout-row:has(> .guide-block-image) {
+        flex-direction: row;
+    }
+
+    .guide-tooltip-item-grid {
+        grid-template-columns: repeat(auto-fit, calc(18px * var(--gui-scale)));
+        width: min(100%, calc(var(--guide-tooltip-columns, 6) * 18px * var(--gui-scale)));
     }
 
     .guide-mediawiki-columns,

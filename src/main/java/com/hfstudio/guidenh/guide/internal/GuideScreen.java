@@ -6314,6 +6314,9 @@ public class GuideScreen extends GuiContainer
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
+        if (navBar.dragScrollbar(mouseY, clickedMouseButton)) {
+            return;
+        }
         if (GuideScreenNeiBridge.mouseDragged(this, mouseX, mouseY, clickedMouseButton, timeSinceLastClick)) {
             return;
         }
@@ -6364,6 +6367,9 @@ public class GuideScreen extends GuiContainer
     protected void mouseMovedOrUp(int mouseX, int mouseY, int state) {
         lastMouseX = mouseX;
         lastMouseY = mouseY;
+        if (navBar.releaseScrollbar(state)) {
+            return;
+        }
         if (state != -1 && GuideScreenNeiBridge.handleItemDrop(this, mouseX, mouseY)) {
             return;
         }
@@ -6790,6 +6796,7 @@ public class GuideScreen extends GuiContainer
 
     @Override
     public void onGuiClosed() {
+        navBar.releaseScrollbar(0);
         GuideSoundPlayback.stopAll();
         if (guideEditorCloseConfirmed && GuideScreenEditorState.isAutosaveEnabled() && guideEditorDirty) {
             saveGuideEditorDraft();

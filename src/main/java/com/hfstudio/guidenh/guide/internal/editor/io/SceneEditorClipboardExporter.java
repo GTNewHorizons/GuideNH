@@ -16,7 +16,7 @@ public class SceneEditorClipboardExporter {
     @FunctionalInterface
     public interface ClipboardSink {
 
-        void copy(String text) throws Exception;
+        void copy(String text);
     }
 
     @FunctionalInterface

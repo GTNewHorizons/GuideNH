@@ -43,6 +43,22 @@ public class LytBarChart extends LytChartBase implements DebugComponent {
     private ChartAxisOptions yAxis = new ChartAxisOptions();
     private float barWidthRatio = 0.7f;
 
+    public String[] getCategories() {
+        return categories.clone();
+    }
+
+    public ChartAxisOptions getXAxis() {
+        return xAxis;
+    }
+
+    public ChartAxisOptions getYAxis() {
+        return yAxis;
+    }
+
+    public float getBarWidthRatio() {
+        return barWidthRatio;
+    }
+
     private LytRect plotCache = LytRect.empty();
     private AxisRange xRangeCache;
 
