@@ -28,17 +28,11 @@ public enum Mixins implements IMixins {
     BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.MixinPanelButtonQuest",
         "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox"),
 
-    GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.AccessorHatchElementBuilder",
-        "compat.gregtech.MixinHatchElementBuilderPreview", "compat.gregtech.MixinHatchElementPlacementPreview"),
+    GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.MixinHatchElementBuilderPreview",
+        "compat.gregtech.MixinHatchElementPlacementPreview"),
 
     STRUCTURELIB_MINIMUM_HATCHES(Side.CLIENT, Phase.LATE, Mods.StructureLib,
         "compat.structurelib.MixinSurvivalBuildStructureWalker"),
-
-    BC_TILE_GENERIC_PIPE(Side.CLIENT, Phase.LATE, Mods.BuildCraftTransport,
-        "compat.buildcraft.AccessorTileGenericPipe"),
-
-    NEI_CUSTOM_DIAGRAM(Side.CLIENT, Phase.LATE, Mods.NeiCustomDiagram,
-        "compat.neicustomdiagram.AccessorCustomInteractable"),
 
     ;
 
