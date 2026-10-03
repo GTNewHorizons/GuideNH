@@ -21,7 +21,6 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookFakeWorld;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
-import com.hfstudio.guidenh.mixins.late.compat.gregtech.AccessorHatchElementBuilder;
 
 import bartworks.system.material.BWMetaGeneratedBlocks;
 import bartworks.system.material.TileEntityMetaGeneratedBlock;
@@ -36,7 +35,6 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.util.GTOreDictUnificator;
-import gregtech.api.util.HatchElementBuilder;
 import gregtech.common.blocks.ItemMachines;
 import gregtech.common.misc.GTStructureChannels;
 
@@ -914,49 +912,6 @@ public class GregTechHelpers {
     @Optional.Method(modid = "gregtech_nh")
     private static boolean isMTEHatchImpl(Object metaTileEntity) {
         return metaTileEntity instanceof MTEHatch;
-    }
-
-    public static boolean isHatchElementBuilder(@Nullable Object candidate) {
-        return Mods.GregTech.isModLoaded() && isHatchElementBuilderImpl(candidate);
-    }
-
-    @Optional.Method(modid = "gregtech_nh")
-    private static boolean isHatchElementBuilderImpl(Object candidate) {
-        return candidate instanceof HatchElementBuilder;
-    }
-
-    public static int getHatchBuilderHint(@Nullable Object hatchBuilder) {
-        if (!isHatchElementBuilder(hatchBuilder)) {
-            return -1;
-        }
-        try {
-            return getHatchBuilderHintImpl(hatchBuilder);
-        } catch (Throwable ignored) {
-            return -1;
-        }
-    }
-
-    @Optional.Method(modid = "gregtech_nh")
-    private static int getHatchBuilderHintImpl(Object hatchBuilder) {
-        return ((AccessorHatchElementBuilder) hatchBuilder).guidenh$getHint();
-    }
-
-    @Nullable
-    public static ItemStack getStackFormFromMetaTile(@Nullable Object metaTileEntity) {
-        if (metaTileEntity == null || !Mods.GregTech.isModLoaded()) {
-            return null;
-        }
-        try {
-            return getStackFormFromMetaTileImpl(metaTileEntity);
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Optional.Method(modid = "gregtech_nh")
-    @Nullable
-    private static ItemStack getStackFormFromMetaTileImpl(Object metaTileEntity) {
-        return ((IMetaTileEntity) metaTileEntity).getStackForm(1L);
     }
 
     public static void logInfoOnce(String key, String message, Object... args) {
