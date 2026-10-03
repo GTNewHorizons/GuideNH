@@ -33,14 +33,14 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 | 属性 | 必需 | 含义 |
 | --- | --- | --- |
 | `src` | 是 | 图片路径 |
-| `x` | 是 | 原图裁剪起始 X，单位为源图像像素 |
-| `y` | 是 | 原图裁剪起始 Y，单位为源图像像素 |
-| `width` / `w` | 是 | 原图裁剪宽度，单位为源图像像素；两种写法只能二选一 |
-| `height` / `h` | 是 | 原图裁剪高度，单位为源图像像素；两种写法只能二选一 |
+| `x` | 否 | 原图裁剪起始 X，单位为源图像像素；缺省 `0` |
+| `y` | 否 | 原图裁剪起始 Y，单位为源图像像素；缺省 `0` |
+| `width` / `w` | `width` / `height` 至少给一维 | 源图像像素宽度（与 `height` 同时给出时为裁剪宽度，只给一维时为整图显示宽度）；两种写法只能二选一 |
+| `height` / `h` | `width` / `height` 至少给一维 | 源图像像素高度（与 `width` 同时给出时为裁剪高度，只给一维时为整图显示高度）；两种写法只能二选一 |
 | `scaleX` | 否 | 水平显示缩放倍率，默认 `1.0` |
 | `scaleY` | 否 | 垂直显示缩放倍率，默认 `1.0` |
-| `displayWidth` | 否 | 最终显示宽度，单位为像素；单独使用时按裁剪区域比例计算高度 |
-| `displayHeight` | 否 | 最终显示高度，单位为像素；单独使用时按裁剪区域比例计算宽度 |
+| `displayWidth` | 否 | 直接以像素指定最终显示宽度，替代 `scaleX`；另一维按裁剪区域比例推断，未裁剪时按图片自然比例推断 |
+| `displayHeight` | 否 | 直接以像素指定最终显示高度，替代 `scaleY`；另一维按裁剪区域比例推断，未裁剪时按图片自然比例推断 |
 | `wrap` | 否 | `inline` 表示真正行内放置，其他值使用常规环绕模式 |
 | `align` | 否 | 浮动时使用 `left` 或 `right`；`wrap="inline"` 时会被忽略 |
 | `title` | 否 | tooltip/title 文本 |
@@ -50,13 +50,13 @@ GuideNH 会解析路径，并从指南内容根目录加载对应的二进制资
 
 ### 说明
 
-- 裁剪时必须同时提供 `x`、`y`、`width` / `w` 与 `height` / `h`
-- 全部省略裁剪属性时，可使用 `displayWidth` 或 `displayHeight` 显示整张源图
-- `width` 和 `height` 现在表示裁剪区域，不再表示最终显示尺寸
-- `scaleX` 与 `scaleY` 会将最终显示尺寸计算为 `cropWidth * scaleX` 与 `cropHeight * scaleY`
-- `displayWidth` 或 `displayHeight` 以像素指定最终显示尺寸；只提供其中一个时，另一个尺寸按裁剪区域宽高比自动计算
-- 同时提供 `displayWidth` 与 `displayHeight` 时，可按指定尺寸进行非等比拉伸
-- `displayWidth` / `displayHeight` 不能与 `scaleX` / `scaleY` 同时使用
+- `x` 和 `y` 为可选裁剪偏移，缺省为 `0`
+- `width` / `w` 与 `height` / `h` 至少要提供一维，除非改用 `displayWidth` / `displayHeight` 指定尺寸；两者都不提供会渲染可见错误
+- 同时给出两维时，`width` 和 `height` 描述裁剪区域，不再表示最终显示尺寸；最终显示尺寸为 `cropWidth * scaleX` 与 `cropHeight * scaleY`
+- 只给出其中一维时，图片按该尺寸显示，另一维根据图片自然宽高比推断——运行时与站点导出行为一致（导出端由浏览器按 intrinsic ratio 处理）
+- `displayWidth` / `displayHeight` 直接以像素指定最终显示尺寸，不再对裁剪区域做缩放，因此不能与 `scaleX` / `scaleY` 同时使用
+- `displayWidth` / `displayHeight` 需要完全不写裁剪属性（此时显示整张源图），或写全裁剪矩形；只给一个显示尺寸时，另一维按裁剪区域推断，未裁剪时按图片自然比例推断
+- 同时给出 `displayWidth` 与 `displayHeight` 时，可按指定尺寸进行非等比拉伸
 - 支持单轴拉伸，只修改一个缩放值即可
 - 同时写 `width` 和 `w`，或同时写 `height` 和 `h`，都会渲染可见错误
 - 旧版把 `width` / `height` 当作显示尺寸的 `<FloatingImage>` 内容会发生破坏性变更，需要手动迁移

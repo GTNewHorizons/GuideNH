@@ -46,8 +46,15 @@ Viewport size variants, camera presets, and pan/offset tests.
 
 * `perspective="isometric_north_east"` / `"isometric_north_west"` / `"up"` — pick a yaw/pitch/roll preset;
 * `rotateX` / `rotateY` / `rotateZ` — explicit per-axis overrides applied on top of the preset;
-* `offsetX` / `offsetY` — screen-space pan (units: blocks);
+* `offsetX` / `offsetY` — screen-space camera pan, in **pixels** (see [Pan Offset](#pan-offset));
 * `centerX` / `centerY` / `centerZ` — explicit world-space rotation center (overrides auto-center).
+
+> **Migration note (2026-08)**: Older versions of this page described `offsetX` / `offsetY` as
+> "units: blocks". That wording is outdated — offsets are **screen-space pixels** and are
+> independent of the scene zoom (the camera converts them internally by dividing by the
+> projection scale `10 × zoom`). If you previously used offset values written for the old
+> blocks semantics, re-tune them to the pixel displacement you want on screen; a given pixel
+> offset now produces the same visual shift at every zoom level.
 
 NE vs NW preset:
 
@@ -75,7 +82,7 @@ Top-down view (`up`):
 
 ## Pan Offset
 
-`offsetX` / `offsetY` pan — right scene offset by +2 / +1 blocks:
+`offsetX` / `offsetY` pan — right scene offset by +2 / +1 pixels (screen-space):
 
 <Row>
   <GameScene width="160" height="128" zoom={4} interactive={true}>

@@ -517,10 +517,10 @@ See [Images And Assets](Images-And-Assets) for the full behavior.
 Quick rules:
 
 - `src` supports relative paths, rooted paths, and explicit `modid:path` texture ids
-- `x`, `y`, `width` / `w`, and `height` / `h` define the crop rectangle on the original image and must all be present
+- `x` and `y` are optional crop offsets (default `0`); at least one of `width` / `w` or `height` / `h` is required, unless `displayWidth` / `displayHeight` sizes the image instead, and a single dimension infers the other axis from the image's natural aspect ratio
 - `scaleX` and `scaleY` resize the cropped result and support independent horizontal / vertical stretching
-- `displayWidth` and `displayHeight` set final dimensions in pixels; one value preserves the crop aspect ratio, while two values allow stretching
-- `displayWidth` / `displayHeight` cannot be combined with `scaleX` / `scaleY`
+- `displayWidth` and `displayHeight` set the final dimensions in pixels and cannot be combined with `scaleX` / `scaleY`
+- `displayWidth` / `displayHeight` need either no crop attribute at all, which displays the whole source image, or the full crop rectangle; one value keeps the crop or natural aspect ratio, while two values allow stretching
 - `wrap="inline"` places the image truly inline inside text flow; in that mode `align` is ignored
 - old content that used `width` / `height` as final display size must be migrated manually
 

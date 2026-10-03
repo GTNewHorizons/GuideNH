@@ -316,8 +316,10 @@ GuideNH reads the first YAML frontmatter block and parses these known keys:
 ```yaml
 item_id: minecraft:potion 16384-16462,!16386
 item_ids:
+  - minecraft:book
   - ae2:white_paint_ball:*
   - "<minecraft:wool:14>"
+
 navigation:
   title: Root
   parent: index.md

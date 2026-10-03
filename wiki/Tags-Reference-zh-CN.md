@@ -488,10 +488,10 @@ GuideNH 会在运行时 Markdown 脚注展开后内部使用这个块标签。�
 快速规则：
 
 - `src` 支持相对路径、根路径，以及显式 `modid:path` 纹理 id
-- `x`、`y`、`width` / `w`、`height` / `h` 用于描述原图上的裁剪区域，且必须全部提供
+- `x` 和 `y` 为可选裁剪偏移（缺省 `0`）；`width` / `w` 与 `height` / `h` 至少提供一维（除非改用 `displayWidth` / `displayHeight` 指定尺寸），只给一维时另一维按图片自然宽高比推断
 - `scaleX` 与 `scaleY` 用于缩放裁剪结果，并支持横向 / 纵向独立拉伸
-- `displayWidth` 与 `displayHeight` 以像素指定最终尺寸；只提供一个值时保持裁剪区域比例，两个值都提供时可拉伸
-- `displayWidth` / `displayHeight` 不能与 `scaleX` / `scaleY` 同时使用
+- `displayWidth` 与 `displayHeight` 以像素指定最终尺寸，不能与 `scaleX` / `scaleY` 同时使用
+- `displayWidth` / `displayHeight` 需要完全不写裁剪属性（此时显示整张源图）或写全裁剪矩形；只给一个值时按裁剪区域比例推断，未裁剪时按图片自然比例推断，两个值都提供时可拉伸
 - `wrap="inline"` 会让图片真正作为行内内容插入文本流；此时 `align` 会被忽略
 - 旧内容如果把 `width` / `height` 当成最终显示尺寸，需要手动迁移
 

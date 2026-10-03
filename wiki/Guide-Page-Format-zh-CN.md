@@ -305,6 +305,7 @@ GuideNH 会读取第一个 YAML frontmatter 块，并解析这些已知键：
 ```yaml
 item_id: minecraft:potion 16384-16462,!16386
 item_ids:
+  - minecraft:book
   - ae2:white_paint_ball:*
   - "<minecraft:wool:14>"
 navigation:
