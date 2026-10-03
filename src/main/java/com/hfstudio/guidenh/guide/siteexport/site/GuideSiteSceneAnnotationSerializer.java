@@ -1757,8 +1757,10 @@ public class GuideSiteSceneAnnotationSerializer {
             }
 
             boolean cropped = image.getCropWidth() > 0 && image.getCropHeight() > 0;
-            int displayWidth = image.getDisplayWidth();
-            int displayHeight = image.getDisplayHeight();
+            // The displayWidth/displayHeight tag attributes map onto the explicit-size
+            // mechanism (single-dimension = display-size; see the image measure chain).
+            int displayWidth = image.getExplicitWidth();
+            int displayHeight = image.getExplicitHeight();
             if (cropped) {
                 if (displayWidth <= 0 && displayHeight > 0) {
                     displayWidth = Math.max(

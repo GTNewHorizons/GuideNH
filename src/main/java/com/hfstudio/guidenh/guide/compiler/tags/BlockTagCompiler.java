@@ -23,9 +23,9 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
  * Word-style content embedding behaviour:
  *
  * <ul>
- * <li>{@code wrap} — one of {@code inline}, {@code square}, {@code tight}, {@code through},
+ * <li>{@code wrap} - one of {@code inline}, {@code square}, {@code tight}, {@code through},
  * {@code top-bottom}, {@code behind}, {@code front}. Defaults to {@code inline}.
- * <li>{@code align} — one of {@code left}, {@code center}, {@code right}. Defaults to
+ * <li>{@code align} - one of {@code left}, {@code center}, {@code right}. Defaults to
  * {@code left}.
  * </ul>
  *
@@ -98,7 +98,7 @@ public abstract class BlockTagCompiler implements TagCompiler {
         }
     }
 
-    private static LytBlock applyBlockEmbed(LytBlock node, ContentWrapMode wrapMode, ContentAlign align) {
+    public static LytBlock embedBlock(LytBlock node, ContentWrapMode wrapMode, ContentAlign align) {
         if (wrapMode.isDocumentFloat()) {
             return new LytDocumentFloat(node, align == ContentAlign.RIGHT);
         }
@@ -106,5 +106,9 @@ public abstract class BlockTagCompiler implements TagCompiler {
             node = new LytAlignedBlock(node, align);
         }
         return PageCompiler.wrapFloatAwareIfNeeded(node);
+    }
+
+    private static LytBlock applyBlockEmbed(LytBlock node, ContentWrapMode wrapMode, ContentAlign align) {
+        return embedBlock(node, wrapMode, align);
     }
 }

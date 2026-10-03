@@ -63,7 +63,7 @@ public class CompileWorker {
     };
 
     /**
-     * Main thread sets this to force a page to compile next (priority).
+     * Main thread sets this to force a page to compile next, jumping the queue.
      * Worker clears it after processing.
      */
     private volatile ResourceLocation priorityId;
@@ -250,7 +250,7 @@ public class CompileWorker {
                 }
             }
 
-            // 3. Nothing to do — sleep briefly, then check again
+            // 3. Nothing to do, so sleep briefly and check again
             if (target == null) {
                 try {
                     Thread.sleep(50);
@@ -295,7 +295,7 @@ public class CompileWorker {
         }
 
         long t0 = System.nanoTime();
-        // Parse (no-op if already parsed — getAstRoot is lazy + cached)
+        // Parse (no-op if already parsed: getAstRoot is lazy and cached)
         parsed.getAstRoot();
         long tParsed = System.nanoTime();
 

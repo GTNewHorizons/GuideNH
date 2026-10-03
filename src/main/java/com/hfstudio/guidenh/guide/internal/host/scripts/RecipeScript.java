@@ -15,8 +15,8 @@ import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.HandlerMetadataReader;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.HandlerRecipeAccess;
 import com.hfstudio.guidenh.guide.compiler.tags.RecipeCompiler.RecipePlaceholder;
-import com.hfstudio.guidenh.guide.document.block.LytBalancedColumns;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.block.LytHBox;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.recipes.LytStandardRecipeBox;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
@@ -121,6 +121,7 @@ public class RecipeScript implements LytScript {
                 return NeiRecipeLookup.readResultSlot(h, ri);
             }
         };
+        boolean handlerFilterEliminatedAll = false;
         List<Object> handlers = RecipeCompiler.filterHandlers(
             rawHandlers,
             ph.handlerName,
@@ -153,6 +154,9 @@ public class RecipeScript implements LytScript {
                 return;
             }
         } else if (hasHandlerFilter) {
+            // The handler filter matched no candidate at all, so no recipe content is rendered
+            // further down and the placeholder text is shown instead.
+            handlerFilterEliminatedAll = true;
             if (ph.fallbackText != null && !ph.fallbackText.isEmpty()) {
                 String handlerPart = "";
                 if (ph.handlerName != null || ph.handlerId != null) {
@@ -162,54 +166,72 @@ public class RecipeScript implements LytScript {
             } else {
                 GuideDebugLog.debug("Recipe handler filter eliminated all candidates for {}", ph.idStr);
             }
-            return;
         }
 
-        // Integration recipe entries
-        List<RecipeEntry> recipeEntries = usageQuery ? Collections.emptyList()
-            : GuideNhIntegrationRegistry.global()
-                .findCraftingRecipeEntries(targetStack);
-        if (!recipeEntries.isEmpty()) {
-            List<LytStandardRecipeBox> boxes = new ArrayList<>();
-            int entryStart = Math.max(ph.recipeIndex, 0);
-            int entryEnd = ph.recipeIndex >= 0 ? Math.min(recipeEntries.size(), ph.recipeIndex + 1)
-                : recipeEntries.size();
-            for (int i = entryStart; i < entryEnd && boxes.size() < limit; i++) {
-                var e = recipeEntries.get(i);
-                if (e.result() == null || e.ingredients()
-                    .isEmpty()) continue;
-                if (hasRecipeFilter && !RecipeCompiler.entryMatches(e, ph.inputExpr, ph.outputExpr)) continue;
-                List<ItemStack> flat = new ArrayList<>(9);
-                for (int s = 0; s < 9; s++) flat.add(null);
-                int idx = 0;
-                for (RecipeSlot slot : e.ingredients()) {
-                    if (idx >= 9) break;
-                    if (slot.stacks() != null && !slot.stacks()
-                        .isEmpty()) flat.set(
-                            idx,
-                            slot.stacks()
-                                .getFirst());
-                    idx++;
-                }
-                ItemStack resultStack = e.result()
-                    .stacks() != null
-                    && !e.result()
-                        .stacks()
-                        .isEmpty() ? e.result()
+        // Integration recipe entries, skipped when the handler filter eliminated all candidates
+        // (user explicitly filtered to a non-existent handler, so no recipe content should render)
+        if (!handlerFilterEliminatedAll) {
+            List<RecipeEntry> recipeEntries = usageQuery ? Collections.emptyList()
+                : GuideNhIntegrationRegistry.global()
+                    .findCraftingRecipeEntries(targetStack);
+            if (!recipeEntries.isEmpty()) {
+                List<LytStandardRecipeBox> boxes = new ArrayList<>();
+                int entryStart = Math.max(ph.recipeIndex, 0);
+                int entryEnd = ph.recipeIndex >= 0 ? Math.min(recipeEntries.size(), ph.recipeIndex + 1)
+                    : recipeEntries.size();
+                for (int i = entryStart; i < entryEnd && boxes.size() < limit; i++) {
+                    var e = recipeEntries.get(i);
+                    if (e.result() == null || e.ingredients()
+                        .isEmpty()) continue;
+                    if (hasRecipeFilter && !RecipeCompiler.entryMatches(e, ph.inputExpr, ph.outputExpr)) continue;
+                    List<ItemStack> flat = new ArrayList<>(9);
+                    for (int s = 0; s < 9; s++) flat.add(null);
+                    int idx = 0;
+                    for (RecipeSlot slot : e.ingredients()) {
+                        if (idx >= 9) break;
+                        if (slot.stacks() != null && !slot.stacks()
+                            .isEmpty()) flat.set(
+                                idx,
+                                slot.stacks()
+                                    .getFirst());
+                        idx++;
+                    }
+                    ItemStack resultStack = e.result()
+                        .stacks() != null
+                        && !e.result()
                             .stacks()
-                            .getFirst() : null;
-                if (resultStack != null) boxes.add(LytStandardRecipeBox.shapeless(flat, resultStack));
-            }
-            if (!boxes.isEmpty()) {
-                ctx.replace(buildResult(boxes));
-                return;
+                            .isEmpty() ? e.result()
+                                .stacks()
+                                .getFirst() : null;
+                    if (resultStack != null) boxes.add(LytStandardRecipeBox.shapeless(flat, resultStack));
+                }
+                if (!boxes.isEmpty()) {
+                    ctx.replace(buildResult(boxes));
+                    return;
+                }
             }
         }
 
         // Vanilla recipe fallback
+        String fallbackMsg;
+        if (handlerFilterEliminatedAll) {
+            String filterInfo = "";
+            if (ph.handlerName != null || ph.handlerId != null) {
+                filterInfo = " with handler " + (ph.handlerName != null ? ph.handlerName : ph.handlerId);
+            } else if (ph.handlerOrder >= 0) {
+                filterInfo = " (handler order=" + ph.handlerOrder + ")";
+            }
+            fallbackMsg = "No recipe found for " + ph.idStr + filterInfo;
+            // All handlers were eliminated by the filter, so show fallbackText directly and
+            // skip vanilla recipe fallback entirely.
+            showFallback(ctx, ph, fallbackMsg);
+            return;
+        } else {
+            fallbackMsg = "No recipe found for " + ph.idStr;
+        }
         List<RecipeLookup.Entry> entries = usageQuery ? Collections.emptyList() : RecipeLookup.findByOutput(item);
         if (entries.isEmpty()) {
-            showFallback(ctx, ph, "No recipe found for " + ph.idStr);
+            showFallback(ctx, ph, fallbackMsg);
             return;
         }
 
@@ -227,7 +249,7 @@ public class RecipeScript implements LytScript {
             ctx.replace(buildResult(boxes));
             return;
         }
-        showFallback(ctx, ph, "No recipe found for " + ph.idStr);
+        showFallback(ctx, ph, fallbackMsg);
     }
 
     @SuppressWarnings("unchecked")
@@ -237,10 +259,12 @@ public class RecipeScript implements LytScript {
 
     private static LytBlock buildResultTyped(List<LytBlock> boxes) {
         if (boxes.size() == 1) return boxes.getFirst();
-        var columns = new LytBalancedColumns();
-        columns.setGap(RecipeCompiler.MULTI_GAP);
-        for (var b : boxes) columns.append(b);
-        return columns;
+        var row = new LytHBox();
+        row.setGap(RecipeCompiler.MULTI_GAP);
+        // Full width so the Rust flex row wraps at the parent's content edge.
+        row.setFullWidth(true);
+        for (var b : boxes) row.append(b);
+        return row;
     }
 
     private void showFallback(ScriptContext ctx, RecipePlaceholder ph, String autoMessage) {

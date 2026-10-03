@@ -57,7 +57,7 @@ public class NeiCustomDiagramBridge {
      * <p>
      * {@code renderX}/{@code renderY} remain parent-local GUI coordinates (matching {@code Gui});
      * {@code guiScissorAbs*} are absolute GUI coords (viewport space), same convention as {@code VanillaRenderContext}
-     * scissor 闁?required because {@code GL_SCISSOR} ignores {@code GL_MODELVIEW}.
+     * scissor is required because {@code GL_SCISSOR} ignores {@code GL_MODELVIEW}.
      *
      * <p>
      * For wide diagrams, {@code guiScissorAbsW} may be smaller than intrinsic layout (NEI {@code HandlerInfo}

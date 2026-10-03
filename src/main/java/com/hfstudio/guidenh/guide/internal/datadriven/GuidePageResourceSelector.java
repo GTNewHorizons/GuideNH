@@ -62,12 +62,12 @@ public class GuidePageResourceSelector {
             return new SelectedPack(sourceId, best.pack());
         }
 
-        // Index says it doesn't exist — fast null
+        // The index says it does not exist, so return null without scanning
         if (DataDrivenGuideLoader.isIndexPopulated()) {
             return null;
         }
 
-        // Index not built yet — emergency full scan
+        // The index is not built yet, so fall back to a full scan
         return selectFullScan(sourceId, resourcePacks);
     }
 

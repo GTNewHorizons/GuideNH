@@ -62,9 +62,9 @@ public class PonderKeyframe {
      * Maximum number of ticks over which the camera eases from the previous keyframe's position
      * to this keyframe's position.
      * <ul>
-     * <li>{@code null} (absent in JSON) — ease over the full duration of the segment (default behaviour).</li>
-     * <li>{@code 0} — instant snap to this keyframe's camera with no interpolation.</li>
-     * <li>{@code N > 0} — ease completes in {@code N} ticks; camera holds at the target for the
+     * <li>{@code null} (absent in JSON) - ease over the full duration of the segment (default behaviour).</li>
+     * <li>{@code 0} - instant snap to this keyframe's camera with no interpolation.</li>
+     * <li>{@code N > 0} - ease completes in {@code N} ticks; camera holds at the target for the
      * rest of the segment.</li>
      * </ul>
      */

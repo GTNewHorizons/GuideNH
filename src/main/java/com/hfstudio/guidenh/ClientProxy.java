@@ -24,6 +24,8 @@ import com.hfstudio.guidenh.guide.internal.GuideME;
 import com.hfstudio.guidenh.guide.internal.GuideOnStartup;
 import com.hfstudio.guidenh.guide.internal.GuideReloadListener;
 import com.hfstudio.guidenh.guide.internal.compile.CompileWorker;
+import com.hfstudio.guidenh.guide.internal.headless.GuideNhHeadlessRenderDriver;
+import com.hfstudio.guidenh.guide.internal.headless.GuideNhHeadlessWindow;
 import com.hfstudio.guidenh.guide.internal.host.LytHost;
 import com.hfstudio.guidenh.guide.internal.host.LytHostWorkItem;
 import com.hfstudio.guidenh.guide.internal.host.scripts.BlockImageScript;
@@ -69,6 +71,7 @@ import com.hfstudio.guidenh.network.GuideNhRegionExportClientHandler;
 import com.hfstudio.guidenh.network.GuideNhRegionExportReplyMessage;
 import com.hfstudio.structurelibexport.StructureExportBootstrap;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
@@ -93,6 +96,7 @@ public class ClientProxy extends CommonProxy {
     @Override
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
+        GuideNhHeadlessWindow.installEarly();
         GuideNhClientTaskScheduler.initialize();
         GuidebookLevel.setPreviewWorldFactory(GuidebookFakeWorld::new);
         GuidebookLevel.setDefaultBuildHeightProvider(() -> {
@@ -142,7 +146,7 @@ public class ClientProxy extends CommonProxy {
         MasterScheduler.getInstance()
             .submit(new ElkWarmupWorkItem());
 
-        // Phase 3: LytScript registrations
+        // LytScript registrations
         lytHost.registerScript("CommandLink", new CommandLinkScript());
         lytHost.registerScript("Img", new ImageScript());
         lytHost.registerScript("FloatingImage", new FloatingImageScript());
@@ -162,11 +166,11 @@ public class ClientProxy extends CommonProxy {
         lytHost.registerScript("Mermaid", new MermaidScript());
         lytHost.registerScript("QuestLink", new QuestLinkScript());
         lytHost.registerScript("QuestCard", new QuestCardScript());
-        // Phase 3: SceneScript handles Scene and GameScene
+        // SceneScript handles Scene and GameScene
         SceneScript sceneScript = new SceneScript();
         lytHost.registerScript("Scene", sceneScript);
         lytHost.registerScript("GameScene", sceneScript);
-        // Phase 3: RecipeScript handles Recipe, Usage, RecipeFor, RecipeUsage, RecipesFor, RecipesUsage
+        // RecipeScript handles Recipe, Usage, RecipeFor, RecipeUsage, RecipesFor, RecipesUsage
         RecipeScript recipeScript = new RecipeScript();
         lytHost.registerScript("Recipe", recipeScript);
         lytHost.registerScript("Usage", recipeScript);
@@ -195,6 +199,7 @@ public class ClientProxy extends CommonProxy {
                     ModConfig.runtimeBridge.maxConnections,
                     ModConfig.runtimeBridge.maxDeltaEntries));
         }
+        GuideNhHeadlessWindow.hideNow();
     }
 
     @Override
@@ -215,6 +220,20 @@ public class ClientProxy extends CommonProxy {
         MasterScheduler.getInstance()
             .submit(new DevWatchWorkItem());
         GuideOnStartup.init();
+
+        if (Boolean.getBoolean("guidenh.headlessRender")) {
+            GuideNhHeadlessRenderDriver.HeadlessRenderConfig config = GuideNhHeadlessRenderDriver.parseConfig();
+            if (config == null) {
+                GuideDebugLog.error("[GuideNH] [HeadlessRender] Invalid headless render configuration, exiting");
+                FMLCommonHandler.instance()
+                    .exitJava(1, false);
+                return;
+            }
+            GuideDebugLog.infoAlways("[GuideNH] [HeadlessRender] Registering headless render driver");
+            FMLCommonHandler.instance()
+                .bus()
+                .register(new GuideNhHeadlessRenderDriver(config));
+        }
     }
 
     @SubscribeEvent

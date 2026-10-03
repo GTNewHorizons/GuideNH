@@ -523,6 +523,7 @@ guideme.guidebook.SceneVisibleLayerLabel=层数
 guideme.guidebook.SceneLoading=加载中
 guideme.guidebook.Search=搜索
 guideme.guidebook.HomePage=首页
+guideme.guidebook.Settings=设置
 guideme.guidebook.HomePageSpecialPages=特殊页面
 guideme.guidebook.NavBarSpecialPages=特殊页面
 guideme.guidebook.NavBarExpandAll=全部展开
@@ -681,6 +682,7 @@ guidenh.debug.menu.display_options=显示选项
 guidenh.debug.menu.display_options.show_fps=显示 FPS
 guidenh.debug.menu.display_options.show_memory=显示内存
 guidenh.debug.menu.display_options.show_mouse=显示鼠标位置
+guidenh.debug.menu.display_options.layout_overlay=布局诊断浮层 (Java/Rust 矩形)
 guidenh.debug.menu.recompile_page=重新编译当前页面
 guidenh.debug.menu.export_debug_data=导出调试数据
 

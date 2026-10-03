@@ -273,6 +273,7 @@ public enum GuidebookText implements LocalizationEnum {
     ResetView,
     Search,
     HomePage,
+    Settings,
     HomePageSpecialPages,
     NavBarSpecialPages,
     NavBarExpandAll,

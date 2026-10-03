@@ -81,45 +81,6 @@ public class Layouts {
         return new LytRect(x, y, contentWidth + paddingRight, contentHeight + paddingBottom);
     }
 
-    @Deprecated
-    public static LytRect horizontalLayout(LayoutContext context, List<LytBlock> children, int x, int y,
-        int availableWidth, int paddingLeft, int paddingTop, int paddingRight, int paddingBottom, int gap,
-        AlignItems alignItems) {
-        return horizontalLayout(
-            context,
-            children,
-            x,
-            y,
-            availableWidth,
-            false,
-            paddingLeft,
-            paddingTop,
-            paddingRight,
-            paddingBottom,
-            gap,
-            alignItems);
-    }
-
-    @Deprecated
-    public static LytRect horizontalLayout(LayoutContext context, List<LytBlock> children, int x, int y,
-        int availableWidth, boolean fullWidth, int paddingLeft, int paddingTop, int paddingRight, int paddingBottom,
-        int gap, AlignItems alignItems) {
-        return horizontalLayout(
-            context,
-            children,
-            x,
-            y,
-            availableWidth,
-            fullWidth,
-            paddingLeft,
-            paddingTop,
-            paddingRight,
-            paddingBottom,
-            gap,
-            alignItems,
-            true);
-    }
-
     /**
      * Lays out all children along the horizontal axis, and returns the bounding box of the content area.
      */

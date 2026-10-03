@@ -1,24 +1,25 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 public class StadiumShape implements ShapeRenderer {
 
     @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
         int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
         int r = h / 2;
         float cy = y + h / 2f;
 
-        context.fillRect(x + r, y, w - r * 2, h, borderColor);
-        context.fillCircle(x + r, cy, r, borderColor);
-        context.fillCircle(x + w - r, cy, r, borderColor);
+        c.emit(new GuideRenderPrimitive.FillRect(x + r, y, w - r * 2, h, borderColor));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + r, cy, r, borderColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + w - r, cy, r, borderColor, true));
 
         int ir = Math.max(r - 1, 0);
-        context.fillRect(x + r, y + 1, w - r * 2, h - 2, backgroundColor);
-        context.fillCircle(x + r, cy, ir, backgroundColor);
-        context.fillCircle(x + w - r, cy, ir, backgroundColor);
+        c.emit(new GuideRenderPrimitive.FillRect(x + r, y + 1, w - r * 2, h - 2, backgroundColor));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + r, cy, ir, backgroundColor, true));
+        c.emit(new GuideRenderPrimitive.DrawCircle(x + w - r, cy, ir, backgroundColor, true));
     }
 
     @Override
@@ -37,7 +38,7 @@ public class StadiumShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         return nodeRect.shrink(padX, padY, padX, padY);
     }
 

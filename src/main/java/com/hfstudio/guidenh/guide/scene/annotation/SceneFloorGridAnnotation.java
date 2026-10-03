@@ -11,7 +11,7 @@ import lombok.Setter;
  * Grid lines are drawn at every integer X and Z coordinate within the annotation's bounds.
  * When {@link #showDebugLabels} is {@code true}, coordinate numbers (X and Z axis) and
  * cardinal direction initials (N/S/E/W) are additionally rendered in 3D world space, flat
- * on the ground plane — exactly like the Ponder editor mode overlay.
+ * on the ground plane - exactly like the Ponder editor mode overlay.
  */
 @Getter
 public class SceneFloorGridAnnotation extends InWorldAnnotation {

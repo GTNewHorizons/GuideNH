@@ -7,6 +7,6 @@ public enum SceneEditorSceneNodeType {
     REMOVE_BLOCKS,
     BLOCK_ANNOTATION_TEMPLATE,
     ANNOTATION,
-    /** Raw MDX text preserved verbatim — for tags the editor doesn't recognise but GameScene does. */
+    /** Raw MDX text preserved verbatim for tags the editor does not recognise but GameScene does. */
     OPAQUE
 }

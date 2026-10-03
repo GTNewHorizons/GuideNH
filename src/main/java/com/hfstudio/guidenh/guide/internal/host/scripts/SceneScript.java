@@ -139,7 +139,7 @@ public class SceneScript implements LytScript {
                     queueSnbtPreparse(ph, ctx.getPageCollection(), el, tickets);
                 }
             }
-            // ImportStructureLib / BlockStats — handled in BUILD phase by their compilers
+            // ImportStructureLib / BlockStats are handled in BUILD phase by their compilers
         }
 
         ctx.data()
@@ -174,7 +174,7 @@ public class SceneScript implements LytScript {
             return;
         }
 
-        // All tickets complete — proceed to BUILD
+        // All tickets complete, so proceed to BUILD
         ctx.data()
             .put(KEY_STATE, STATE_BUILD);
         doBuild(ph, ctx);
@@ -231,7 +231,7 @@ public class SceneScript implements LytScript {
             }
         }
 
-        // Setup element compilers — ALL of them, including ImportStructureLib
+        // Setup element compilers, ALL of them, including ImportStructureLib
         Map<String, SceneElementTagCompiler> elementCompilers = new HashMap<>();
         if (ph.sceneElementCompilers != null) {
             for (SceneElementTagCompiler compiler : ph.sceneElementCompilers) {
@@ -294,7 +294,7 @@ public class SceneScript implements LytScript {
 
         dispatchSceneSubtrees(scene, ctx);
 
-        // Unified build — places both SNBT and StructureLib blocks
+        // Unified build that places both SNBT and StructureLib blocks
         scene.build();
 
         // Set metadata on scene from binding results
@@ -305,38 +305,56 @@ public class SceneScript implements LytScript {
             }
         }
 
+        if (!scene.hasMountableSceneContent()) {
+            // Only a truly empty level produces the block/child diagnostic; scenes that carry
+            // sounds, particles, weather effects or annotations but no blocks are reported plainly.
+            String message = "[Scene] Scene has no supported elements";
+            if (level.isEmpty()) {
+                List<String> registeredTagNames = new ArrayList<>(elementCompilers.keySet());
+                String diagnostic = describeEmptyScene(
+                    ph.pageDomain + ":" + ph.pagePath,
+                    ast.children()
+                        .size(),
+                    compiledElements,
+                    skippedElements,
+                    errorSink.errors(),
+                    registeredTagNames);
+                if (nonSceneChildren[0] > 0) {
+                    diagnostic += ", nonSceneChildren=" + nonSceneChildren[0];
+                }
+                GuideDebugLog.warn("[GuideNH] [SceneScript] {}", diagnostic);
+                message = "[Scene] Scene has no supported elements. Enable GuideNH debug mode for parsed element details.";
+            }
+            ctx.replace(LytParagraph.error(message));
+            return;
+        }
+
         boolean hasUnsupportedElements = skippedElements.stream()
             .anyMatch(element -> !element.contains("(configuration only)"));
-        boolean hasSceneErrors = !errorSink.errors()
-            .isEmpty() || hasUnsupportedElements || ph.childrenParseError != null;
-        if (level.isEmpty()) {
-            List<String> registeredTagNames = new ArrayList<>(elementCompilers.keySet());
-            String diagnostic = describeEmptyScene(
-                ph.pageDomain + ":" + ph.pagePath,
-                ast.children()
-                    .size(),
-                compiledElements,
-                skippedElements,
-                errorSink.errors(),
-                registeredTagNames);
-            if (nonSceneChildren[0] > 0) {
-                diagnostic += ", nonSceneChildren=" + nonSceneChildren[0];
-            }
-            GuideDebugLog.warn("[GuideNH] [SceneScript] {}", diagnostic);
-            hasSceneErrors = true;
-        }
 
         finalizeSceneGeometry(ph, scene, level, camera);
         scene.applyDefaultBlockStatsMaxSizeFromScene();
         scene.setInitialLevelSnapshot(GuideSceneStructureSnapshot.capture(level));
         scene.clearLoadState();
-        if (hasSceneErrors) {
-            String diagnostic = !errorSink.errors()
-                .isEmpty() ? String.join("; ", errorSink.errors())
-                    : hasUnsupportedElements ? String.join("; ", skippedElements)
-                        : ph.childrenParseError != null ? ph.childrenParseError : "Scene has no supported elements";
-            scene.setLoadFailure("[Scene] " + diagnostic);
-        }
+        // Surface build failures instead of silently mounting an empty level: a structure whose
+        // format was unsupported or that placed zero blocks must show a visible error, and a scene
+        // that still ends up empty after a build attempt gets the same feedback through the scene's
+        // build-error channel (LytGuidebookScene#setBuildError).
+        if (level.isEmpty()) {
+            String message = scene.getBuildError() != null ? scene.getBuildError()
+                : "Scene has no structure content (empty level)";
+            scene.setBuildError(message);
+        } else if (!errorSink.errors()
+            .isEmpty() || hasUnsupportedElements || ph.childrenParseError != null) {
+                // A scene that mounts but compiled with element errors, skipped element tags or a child
+                // parse failure must not fail silently: report the collected diagnostics through the same
+                // build-error channel, which renders them as visible red text.
+                String diagnostic = !errorSink.errors()
+                    .isEmpty() ? String.join("; ", errorSink.errors())
+                        : hasUnsupportedElements ? String.join("; ", skippedElements)
+                            : ph.childrenParseError != null ? ph.childrenParseError : "Scene has no supported elements";
+                scene.setBuildError("[Scene] " + diagnostic);
+            }
         attachSelectionListeners(scene);
         // Capture the auto-fit camera + orbit pivot AFTER geometry finalization but BEFORE the
         // ponder baseline (whose updatePonderState restores this pivot). Snapshotting first means
@@ -447,13 +465,11 @@ public class SceneScript implements LytScript {
 
     public void finalizeSceneGeometry(ScenePlaceholder ph, LytGuidebookScene scene, GuidebookLevel level,
         CameraSettings camera) {
-        float[] center;
+        // Rotation center for the explicit-center case is set in applyCameraAndViewport;
+        // only the auto-center case (level bounds centre) is finalized here.
         if (!ph.explicitCenter) {
-            center = level.getCenter();
+            float[] center = level.getCenter();
             camera.setRotationCenter(center[0], center[1], center[2]);
-        } else {
-            center = new float[] { Float.isNaN(ph.centerX) ? 0f : ph.centerX, Float.isNaN(ph.centerY) ? 0f : ph.centerY,
-                Float.isNaN(ph.centerZ) ? 0f : ph.centerZ };
         }
 
         boolean explicitOffX = !Float.isNaN(ph.offsetX);
@@ -478,8 +494,6 @@ public class SceneScript implements LytScript {
                     camera.setZoom(autoZoom);
                 }
             }
-            if (explicitOffX) camera.setOffsetX(ph.offsetX);
-            if (explicitOffY) camera.setOffsetY(ph.offsetY);
         }
 
         if (!ph.explicitWidth || !ph.explicitHeight) {
@@ -503,12 +517,25 @@ public class SceneScript implements LytScript {
             camera.setOffsetY(savedOffY);
         }
 
-        if (!ph.explicitCenter && !explicitOffX && !explicitOffY) {
+        // Pan so the structure (level bounds centre) is inside the viewport. This runs even when an
+        // explicit rotation centre was requested: a rotation centre far from the structure (e.g.
+        // subnetworks centreY=-15) otherwise leaves the level entirely off-camera and the scene
+        // silently black. offsetX/offsetY are screen-space pan values (see SceneTagCompiler); the
+        // camera view matrix applies them in world units, so convert with the projection scale
+        // s = 0.625 * 16 * zoom = 10 * zoom.
+        float panScale = 10f * camera.getZoom();
+        if (!explicitOffX && !explicitOffY) {
             camera.setOffsetX(0f);
             camera.setOffsetY(0f);
-            var screenCenter = camera.worldToScreen(center[0], center[1], center[2]);
-            camera.setOffsetX(-screenCenter.x);
-            camera.setOffsetY(screenCenter.y);
+            if (!level.isEmpty()) {
+                float[] levelCenter = level.getCenter();
+                var screenCenter = camera.worldToScreen(levelCenter[0], levelCenter[1], levelCenter[2]);
+                camera.setOffsetX(-screenCenter.x / panScale);
+                camera.setOffsetY(screenCenter.y / panScale);
+            }
+        } else {
+            if (explicitOffX) camera.setOffsetX(ph.offsetX / panScale);
+            if (explicitOffY) camera.setOffsetY(ph.offsetY / panScale);
         }
 
     }

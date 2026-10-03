@@ -18,6 +18,9 @@ public class CodeBlockLanguageDetector {
 
         String text = codeText != null ? codeText : "";
         String lower = text.toLowerCase(Locale.ROOT);
+        if (looksLikePython(lower)) {
+            return require("python");
+        }
         if (looksLikeLua(lower)) {
             return require("lua");
         }
@@ -63,6 +66,34 @@ public class CodeBlockLanguageDetector {
     private static CodeBlockLanguage require(String fenceName) {
         CodeBlockLanguage language = CodeBlockLanguageRegistry.findById(fenceName);
         return language != null ? language : PLAIN_TEXT;
+    }
+
+    private static boolean looksLikePython(String lower) {
+        // def and elif are definitive Python indicators not found in Lua
+        if (lower.contains("def ") || lower.contains("elif ")) {
+            return true;
+        }
+        // from X import Y pattern
+        if (lower.contains("from ") && lower.contains(" import ")) {
+            return true;
+        }
+        // class definition (Python style with colon)
+        if (lower.contains("class ") && (lower.contains(":\n") || lower.endsWith(":"))) {
+            return true;
+        }
+        // Python exception handling keywords not in Lua
+        if (lower.contains("raise ") || lower.contains("except ")) {
+            return true;
+        }
+        // Python-only keywords
+        if (lower.contains("lambda ") || lower.contains("yield ")) {
+            return true;
+        }
+        // Python f-strings: print(f"...")
+        if (lower.contains("print(f\"") || lower.contains("print(f'")) {
+            return true;
+        }
+        return false;
     }
 
     private static boolean looksLikeLua(String lower) {

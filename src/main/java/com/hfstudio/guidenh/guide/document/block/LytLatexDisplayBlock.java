@@ -3,13 +3,22 @@ package com.hfstudio.guidenh.guide.document.block;
 import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
+import org.scilab.forge.jlatexmath.TeXConstants;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
+import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.latex.GuideLatexRenderer;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.style.token.DimensionValue;
+import com.hfstudio.guidenh.guide.style.token.GuideThemeManager;
+import com.hfstudio.guidenh.guide.style.token.TokenKey;
+import com.hfstudio.guidenh.guide.style.token.TokenType;
 
 import lombok.Getter;
 
@@ -18,20 +27,43 @@ import lombok.Getter;
  * horizontally, with a small vertical margin above and below.
  *
  * <p>
+ * <b>Typeset-at-target-size.</b> The formula is typeset by jlatexmath directly at
+ * {@code fontSize = GuideText.BASE_FONT_SIZE × userScale} pixels; the display width/height ARE
+ * the TeXIcon pixel dimensions: no line-height calibration formula and no legacy padding patch.
+ *
+ * <p>
  * {@code offsetX} and {@code offsetY} are pixel offsets applied on top of the default centered position.
  */
 public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement {
 
-    private static final int VERTICAL_MARGIN = 4;
+    /** Theme token: vertical margin above and below a display formula. */
+    private static final TokenKey<DimensionValue> VERTICAL_MARGIN = TokenKey
+        .define("--lyt-latex-display-vertical-margin", TokenType.DIMENSION, DimensionValue.px(4));
+
+    private static int verticalMargin() {
+        return GuideThemeManager.instance()
+            .active()
+            .dim(VERTICAL_MARGIN)
+            .pxInt();
+    }
 
     @Getter
     private final String formula;
     @Getter
     private final int fillColorArgb;
+    /**
+     * DEPRECATED: legacy jlatexmath render size, parsed for backward compatibility and ignored.
+     * Retained so the flatbuffer passthrough keeps compiling. The active render size is
+     * {@link #getFontSize()}.
+     */
     @Getter
     private final float sourceScale;
     @Getter
     private final float userScale;
+    /** Target typeset font size in pixels: {@link GuideText#BASE_FONT_SIZE} × {@code userScale}. */
+    @Getter
+    private final float fontSize;
+    private final int style;
     @Nullable
     private final GuideTooltip tooltip;
     @Getter
@@ -43,12 +75,15 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
     private int formulaDisplayW;
     /** Cached formula display height (pixels in GUI units), set during layout. */
     private int formulaDisplayH;
+    /** True when lazy computation has been attempted (even if result is 0). */
+    private boolean formulaDisplayComputed;
 
     public LytLatexDisplayBlock(String formula, int fillColorArgb, float sourceScale, float userScale,
         @Nullable GuideTooltip tooltip, int offsetX, int offsetY) {
         this(
             formula,
             new LatexRenderOptions(
+                TeXConstants.STYLE_DISPLAY,
                 fillColorArgb,
                 sourceScale,
                 userScale,
@@ -63,31 +98,90 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
         this.fillColorArgb = options.fillColorArgb();
         this.sourceScale = options.sourceScale();
         this.userScale = options.userScale();
+        this.fontSize = options.fontSize();
+        this.style = options.style();
         this.tooltip = options.tooltip();
         this.offsetX = options.offsetX();
         this.offsetY = options.offsetY();
     }
 
-    @Override
-    protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, sourceScale);
+    /**
+     * Returns the formula display width, computing it lazily if no layout pass has been run.
+     * Uses static font metrics via {@link GuideText} so it works without a {@link LayoutContext}.
+     */
+    public int getFormulaDisplayW() {
+        if (!formulaDisplayComputed) {
+            computeFormulaDisplay();
+        }
+        return formulaDisplayW;
+    }
+
+    /**
+     * Returns the formula display height, computing it lazily if no layout pass has been run.
+     * Uses static font metrics via {@link GuideText} so it works without a {@link LayoutContext}.
+     */
+    public int getFormulaDisplayH() {
+        if (!formulaDisplayComputed) {
+            computeFormulaDisplay();
+        }
+        return formulaDisplayH;
+    }
+
+    /** Lazy-compute formula display dimensions using static font metrics. */
+    private void computeFormulaDisplay() {
+        formulaDisplayComputed = true;
+        // Typeset-at-target-size: the icon pixel dimensions ARE the display dimensions
+        // (no line-height calibration, no legacy padding patch, no texture scaling).
+        int[] size = GuideLatexRenderer.INSTANCE.measureSize(formula, fillColorArgb, fontSize, style);
         if (size == null) {
             formulaDisplayW = 0;
             formulaDisplayH = 0;
-            return new LytRect(x, y, availableWidth, 0);
+            return;
         }
+        formulaDisplayW = Math.max(1, size[0]);
+        formulaDisplayH = Math.max(1, size[1]);
+    }
 
-        int lineHeight = context.getLineHeight(null);
-        int refH = GuideLatexRenderer.INSTANCE.calibrateRefHeight(sourceScale);
-
-        formulaDisplayH = (int) Math.max(1, Math.ceil((double) size[1] * lineHeight * userScale / refH));
-        formulaDisplayW = (int) Math.max(1, Math.ceil((double) size[0] * lineHeight * userScale / refH));
-
-        return new LytRect(x, y, availableWidth, formulaDisplayH + 2 * VERTICAL_MARGIN);
+    @Override
+    protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        computeFormulaDisplay();
+        return new LytRect(x, y, availableWidth, formulaDisplayH + 2 * verticalMargin());
     }
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {}
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        if (formulaDisplayW <= 0 || formulaDisplayH <= 0) {
+            return;
+        }
+
+        // Deferred rasterization: emit a stable latex blit token; the render
+        // engine resolves the real texture at draw time at the exact device
+        // output scale (texture rasterized at fontSize × rasterScale, blit
+        // quad stays at the document formulaDisplayW/H, 1:1 device pixels).
+        int token = GuideLatexRenderer.INSTANCE.registerLatexBlit(formula, fillColorArgb, fontSize, style);
+
+        int centeredX = bounds.x() + (bounds.width() - formulaDisplayW) / 2;
+        int formulaY = bounds.y() + verticalMargin();
+        c.emit(
+            new GuideRenderPrimitive.BlitTexture(
+                token,
+                centeredX + offsetX,
+                formulaY + offsetY,
+                formulaDisplayW,
+                formulaDisplayH,
+                0f,
+                0f,
+                1f,
+                1f));
+    }
 
     @Override
     public void render(RenderContext context) {
@@ -95,13 +189,16 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
             return;
         }
 
-        int[] tex = GuideLatexRenderer.INSTANCE.getOrCreateTexture(formula, fillColorArgb, sourceScale);
+        int token = GuideLatexRenderer.INSTANCE.registerLatexBlit(formula, fillColorArgb, fontSize, style);
+        // Legacy (non-primitive) render path: no transform stack is available,
+        // so fall back to the in-game display scale.
+        int[] tex = GuideLatexRenderer.INSTANCE.resolveLatexTexture(token, DisplayScale.scaleFactor());
         if (tex == null) {
             return;
         }
 
         int centeredX = bounds.x() + (bounds.width() - formulaDisplayW) / 2;
-        int formulaY = bounds.y() + VERTICAL_MARGIN;
+        int formulaY = bounds.y() + verticalMargin();
         GuideLatexRenderer.INSTANCE
             .renderLatex(centeredX + offsetX, formulaY + offsetY, formulaDisplayW, formulaDisplayH, tex[0]);
     }
@@ -130,7 +227,7 @@ public class LytLatexDisplayBlock extends LytBlock implements InteractiveElement
             return bounds != null ? bounds : LytRect.empty();
         }
         int centeredX = bounds.x() + (bounds.width() - formulaDisplayW) / 2;
-        int formulaY = bounds.y() + VERTICAL_MARGIN;
+        int formulaY = bounds.y() + verticalMargin();
         return new LytRect(centeredX + offsetX, formulaY + offsetY, formulaDisplayW, formulaDisplayH);
     }
 

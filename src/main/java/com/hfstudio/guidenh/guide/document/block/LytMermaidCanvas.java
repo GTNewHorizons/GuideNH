@@ -1,48 +1,67 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
-import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.debug.DebugFlowContainer;
-import com.hfstudio.guidenh.guide.internal.recipe.LytNeiRecipeBox;
+import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
-import com.hfstudio.guidenh.guide.render.GuiSprite;
+import com.hfstudio.guidenh.guide.layout.LayoutBridge;
+import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.layout.LayoutTreeSerializer;
+import com.hfstudio.guidenh.guide.layout.Layouts;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutResult;
+import com.hfstudio.guidenh.guide.render.GlyphRunData;
+import com.hfstudio.guidenh.guide.render.GlyphRunGroup;
+import com.hfstudio.guidenh.guide.render.GlyphRunHolder;
+import com.hfstudio.guidenh.guide.render.GuideGlyphAtlas;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
 
-import lombok.Getter;
 import lombok.Setter;
 
 public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends LytBlock
     implements DocumentDragTarget, InteractiveElement {
 
+    private static final boolean HEADLESS = Boolean.getBoolean("guidenh.headlessRender");
+
     private static final float ZOOM_STEP = 1.1f;
     private static final float MIN_ZOOM = 0.5f;
-    private static final float MAX_ZOOM = 2.5f;
+    private static final float MAX_ZOOM = 5.0f;
     static final ConstantColor PANEL_BACKGROUND = new ConstantColor(ColorUtils.ARGB_1A0C1117.getColor());
     static final ConstantColor PANEL_BORDER = new ConstantColor(ColorUtils.ARGB_66434C57.getColor());
+
+    /**
+     * Rust layout engine's document content-box padding (layout-engine
+     * {@code CONTENT_PAD}, layout.rs:17). The engine insets every serialized
+     * tree by this amount on all sides. A standalone NodeContent subtree
+     * serialized through {@link #layoutNodeContentWithRust} must therefore
+     * inflate its requested available width by 2×PAD so the inner content
+     * width equals {@code contentWidth}, keeping node sizing identical to the
+     * pre-Rust Java path (LytParagraph used to claim the full availableWidth).
+     */
+    private static final int RUST_CONTENT_PAD = 14;
 
     private int contentOffsetX;
     private int contentOffsetY;
@@ -66,17 +85,21 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     private float debugComponentZoom;
     private List<DebugComponent.ComponentEntry> cachedDebugComponents = List.of();
 
+    /**
+     * Headless render injection, applied by RenderPageService from
+     * {@code -Dguidenh.renderpage.mermaidzoom} / {@code -Dguidenh.renderpage.mermaidoffset}
+     * (mirroring the navscroll injection pattern). Zero zoom and zero offsets
+     * mean "no injection": the {@code HEADLESS} branch then keeps the
+     * historical fit-to-view + centre behaviour byte-identical.
+     */
+    private float headlessZoomInjection;
+    private int headlessOffsetXInjection;
+    private int headlessOffsetYInjection;
+
     // Common interaction state
     protected Map<String, LytBlock> nodeContentBlocks;
     protected int preferredWidth;
     protected int preferredHeight;
-    protected int lastPickDocX;
-    protected int lastPickDocY;
-    protected boolean lastPickValid;
-    @Nullable
-    protected LytParagraph lastFlowHoverParagraph;
-    @Nullable
-    protected LytFlowContent lastFlowHoverContent;
 
     protected void initNodeContentBlocks(@Nullable Map<String, LytBlock> blocks) {
         this.nodeContentBlocks = blocks == null ? Collections.emptyMap() : new LinkedHashMap<>(blocks);
@@ -87,7 +110,29 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     @Override
     public List<? extends LytNode> getChildren() {
-        return new ArrayList<>(nodeContentBlocks.values());
+        return List.of();
+    }
+
+    @Override
+    protected LytVisitor.Result visitChildren(LytVisitor visitor, boolean includeOutOfTreeContent) {
+        if (includeOutOfTreeContent && nodeContentBlocks != null) {
+            for (LytBlock block : nodeContentBlocks.values()) {
+                if (block.visit(visitor, true) == LytVisitor.Result.STOP) {
+                    return LytVisitor.Result.STOP;
+                }
+            }
+        }
+        return LytVisitor.Result.CONTINUE;
+    }
+
+    @Override
+    public int getExplicitWidth() {
+        return preferredWidth > 0 ? preferredWidth : -1;
+    }
+
+    @Override
+    public int getExplicitHeight() {
+        return preferredHeight > 0 ? preferredHeight : -1;
     }
 
     protected abstract int canvasPadding();
@@ -102,15 +147,14 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     protected abstract boolean diagramReady();
 
-    protected abstract void renderDiagram(RenderContext context, int baseX, int baseY, float activeZoom);
-
     protected void renderPanel(RenderContext context) {
         context.fillRect(bounds, PANEL_BACKGROUND);
         context.drawBorder(bounds, context.resolveColor(PANEL_BORDER), 1);
     }
 
-    protected void onPreRender() {
-        refreshFlowHover();
+    @Override
+    public void render(RenderContext context) {
+        // Unused: subclasses use the primitives path (usePrimitives() == true).
     }
 
     @Nullable
@@ -124,9 +168,6 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     @Override
     public LytNode pickNode(int x, int y) {
         if (!getBounds().contains(x, y)) return null;
-        lastPickDocX = x;
-        lastPickDocY = y;
-        lastPickValid = true;
         NodeHit hit = pickNodeHit(x, y);
         return hit != null ? hit.node() : this;
     }
@@ -174,46 +215,68 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         return Optional.empty();
     }
 
-    protected void refreshFlowHover() {
-        if (!lastPickValid || !diagramReady()) return;
-        NodeHit hit = pickNodeHit(lastPickDocX, lastPickDocY);
-        LytFlowContent hoveredFlow = null;
-        LytParagraph hoveredParagraph = null;
-        if (hit != null) {
-            for (var content : hit.flowPath()
-                .targets()) {
-                if (content instanceof InteractiveElement) {
-                    hoveredFlow = content;
-                    break;
-                }
+    /**
+     * Active zoom used for rendering.
+     * <p>
+     * <b>Upper ceiling:</b> every path (interactive scroll, direct-write
+     * {@code snapTo}, and the headless injection branch) is bounded by
+     * {@link #MAX_ZOOM} on every read. The ceiling guards glyph rasterization:
+     * an unclamped huge zoom would push fontScale to enormous sizes and
+     * overflow the glyph atlas pages.
+     * <p>
+     * <b>Lower floor:</b> interactive zoom and headless zoom injection are
+     * floored at {@link #MIN_ZOOM}. The headless <em>fit-to-view</em> zoom
+     * (no injection) is exempt from the floor: it must stay at its exact
+     * computed value so a diagram larger than the viewport always fits
+     * (byte-identical no-injection regression). It is always {@code <= 1.0}
+     * by construction, so only the defensive upper bound applies.
+     * <p>
+     * <b>Tier quantization:</b> the interactive and headless-injection paths
+     * snap their value to the nearest {@link #ZOOM_STEP}^n tier (scroll steps
+     * are themselves powers of {@link #ZOOM_STEP}, so targets are natively
+     * near-tier). Quantizing the easing intermediate values keeps the fontScale
+     * and therefore the GuideText shape cache key, stable during a zoom
+     * animation instead of changing every frame (the per-frame re-rasterize /
+     * per-glyph re-upload churn that collapsed the frame rate). The
+     * no-injection fit path is exempt: fitZoom is always {@code <= 1.0} and is
+     * returned unquantized (byte-identical no-injection regression).
+     */
+    public float getActiveZoom() {
+        if (HEADLESS) {
+            if (headlessZoomInjection > 0f) {
+                return quantizeZoom(Math.clamp(zoom, MIN_ZOOM, MAX_ZOOM));
             }
-            if (hoveredFlow != null) {
-                for (LytNode node = hit.node(); node != null; node = node.getParent()) {
-                    if (node instanceof LytParagraph p) {
-                        hoveredParagraph = p;
-                        break;
-                    }
-                }
-            }
+            // No-injection fit-to-view: exact value, never quantized.
+            return Math.min(MAX_ZOOM, zoom);
         }
-        if (hoveredParagraph != lastFlowHoverParagraph || hoveredFlow != lastFlowHoverContent) {
-            if (lastFlowHoverParagraph != null) lastFlowHoverParagraph.onMouseLeave();
-            if (hoveredParagraph != null) hoveredParagraph.onMouseEnter(hoveredFlow);
-            lastFlowHoverParagraph = hoveredParagraph;
-            lastFlowHoverContent = hoveredFlow;
-        }
+        float v = visualZoom.value();
+        return quantizeZoom(Math.clamp(v > 0f ? v : zoom, MIN_ZOOM, MAX_ZOOM));
     }
 
-    public float getActiveZoom() {
-        return visualZoom.value();
+    /**
+     * Quantize a zoom value to the nearest {@code ZOOM_STEP^n} tier (n an
+     * integer), then clamp the tier back into {@code [MIN_ZOOM, MAX_ZOOM]}.
+     * <p>
+     * Order is semantically: clamp input, quantize, clamp tier. The final
+     * clamp guarantees the {@link #MAX_ZOOM} ceiling that guards glyph
+     * rasterization is never exceeded even when the nearest tier above
+     * {@code MAX_ZOOM} (1.1^17 ≈ 5.0545) would overshoot it; the returned
+     * value is always a 1.1^n tier except exactly at the [MIN, MAX] bounds.
+     */
+    private static float quantizeZoom(float value) {
+        if (value <= 0f) {
+            return value;
+        }
+        double tier = Math.pow(ZOOM_STEP, Math.round(Math.log(value) / Math.log(ZOOM_STEP)));
+        return (float) Math.clamp(tier, MIN_ZOOM, MAX_ZOOM);
     }
 
     public int getVisualOffsetX() {
-        return visualContentOffsetX.rounded();
+        return HEADLESS ? contentOffsetX : visualContentOffsetX.rounded();
     }
 
     public int getVisualOffsetY() {
-        return visualContentOffsetY.rounded();
+        return HEADLESS ? contentOffsetY : visualContentOffsetY.rounded();
     }
 
     public int getScaledOriginX() {
@@ -327,6 +390,16 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         contentOffsetY = y;
     }
 
+    /**
+     * Apply headless zoom/offset injection. Zero zoom and zero offsets leave
+     * the {@code HEADLESS} branch on its historical fit-to-view + centre path.
+     */
+    public void setHeadlessInjection(float zoomInjection, int offsetX, int offsetY) {
+        this.headlessZoomInjection = zoomInjection;
+        this.headlessOffsetXInjection = offsetX;
+        this.headlessOffsetYInjection = offsetY;
+    }
+
     public int getRawOffsetX() {
         return contentOffsetX;
     }
@@ -347,32 +420,101 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
     }
 
     @Override
-    public void render(RenderContext context) {
-        if (!diagramReady()) return;
-        onPreRender();
+    public void computePrimitives(PrimitiveCollector c) {
+        // Drive the raw→visual easing chain at the entry of our own primitive
+        // collection (same pattern as LytCodeBlock driving updateVisualScroll in
+        // its computePrimitives): wheel-zoom (scroll) and drags write raw zoom /
+        // contentOffset, and getActiveZoom/getVisualOffsetX/Y read the visual
+        // side; without a per-frame driver the two stay permanently detached
+        // and the interaction never reaches the render. HEADLESS mode reads the
+        // raw values directly and the HEADLESS branch below overrides zoom /
+        // offset anyway, so this call is a no-op for headless rendering.
         updateVisualState();
+        boolean ready = diagramReady();
+        GuideDebugLog.debugAlways("[GuideNH-Mermaid] computePrimitives diagramReady={} bounds={}", ready, bounds);
+        if (!ready) return;
+        LytRect b = getBounds();
+        if (b == null) return;
+
+        // Panel background and border
+        c.emit(new GuideRenderPrimitive.FillRect(b.x(), b.y(), b.width(), b.height(), PANEL_BACKGROUND.resolve()));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                b.x(),
+                b.y(),
+                b.width(),
+                b.height(),
+                1,
+                1,
+                1,
+                1,
+                PANEL_BORDER.resolve()));
 
         float activeZoom = getActiveZoom();
-        if (Float.compare(lastScaledStyleZoom, activeZoom) != 0) {
-            scaledStyleCache.clear();
-            lastScaledStyleZoom = activeZoom;
-        }
-
-        renderPanel(context);
-
         LytRect inner = getInnerViewport();
-        int baseX = inner.x() + getVisualOffsetX() - getScaledOriginX();
-        int baseY = inner.y() + getVisualOffsetY() - getScaledOriginY();
-
-        context.pushLocalScissor(inner);
-        try {
-            renderDiagram(context, baseX, baseY, activeZoom);
-        } finally {
-            context.popScissor();
+        int offsetX = getVisualOffsetX();
+        int offsetY = getVisualOffsetY();
+        if (HEADLESS) {
+            // Headless: fit diagram in viewport with fit-to-view zoom, unless
+            // a -Dguidenh.renderpage.mermaidzoom / mermaidoffset injection was
+            // applied via setHeadlessInjection. Without injection the
+            // historical fit-to-view + centre behaviour is preserved
+            // byte-identically.
+            int contentW = contentWidth();
+            int contentH = contentHeight();
+            if (contentW > 0 && contentH > 0) {
+                float fitZoom = Math
+                    .min(1f, Math.min((float) inner.width() / contentW, (float) inner.height() / contentH));
+                zoom = headlessZoomInjection > 0f ? headlessZoomInjection : fitZoom;
+                // Route the injected zoom through getActiveZoom so it shares the
+                // [MIN_ZOOM, MAX_ZOOM] clamp (an over-ceiling -D injection is
+                // clamped to MAX_ZOOM instead of overflowing the atlas pages).
+                // The no-injection fit-to-view value is preserved exactly (the
+                // diagram must always fit; byte-identical regression).
+                activeZoom = getActiveZoom();
+                if (headlessZoomInjection > 0f) {
+                    GuideDebugLog.infoAlways(
+                        "[GuideNH-Mermaid] headless zoom injection: requested={} quantized={}",
+                        zoom,
+                        activeZoom);
+                }
+            }
+            int scaledContentW = Math.round(contentWidth() * activeZoom);
+            int scaledContentH = Math.round(contentHeight() * activeZoom);
+            if (headlessOffsetXInjection != 0 || headlessOffsetYInjection != 0) {
+                offsetX = headlessOffsetXInjection;
+                offsetY = headlessOffsetYInjection;
+            } else {
+                offsetX = (inner.width() - scaledContentW) / 2;
+                offsetY = (inner.height() - scaledContentH) / 2;
+            }
         }
+        int baseX = inner.x() + offsetX - getScaledOriginX();
+        int baseY = inner.y() + offsetY - getScaledOriginY();
+
+        // Clip diagram primitives to the inner viewport (prevent overflow to
+        // subsequent page content).
+        c.pushScissor(inner.x(), inner.y(), inner.width(), inner.height());
+        emitDiagramPrimitives(c, baseX, baseY, activeZoom);
+        c.popScissor();
     }
 
+    /**
+     * Subclasses override to emit diagram-specific primitives (edges, nodes,
+     * content blocks) after the panel has been emitted.
+     */
+    protected void emitDiagramPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {}
+
     protected ResolvedTextStyle getOrScaleStyle(ResolvedTextStyle base, float zoom) {
+        // The scaled-style cache is keyed by the base style only (not by zoom),
+        // so it must be invalidated whenever the zoom changes; otherwise the
+        // text fontScale would keep the stale zoom and text would stop scaling
+        // in sync with the node boxes. Clearing on zoom change rebuilds the
+        // cache for the current zoom (cheap: at most a handful of base styles).
+        if (Float.compare(zoom, lastScaledStyleZoom) != 0) {
+            lastScaledStyleZoom = zoom;
+            scaledStyleCache.clear();
+        }
         return MermaidNodeRenderer.getOrScaleStyle(scaledStyleCache, base, zoom);
     }
 
@@ -411,44 +553,6 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
 
     public static int scaled(int base, int value, float activeZoom) {
         return base + Math.round(value * activeZoom);
-    }
-
-    protected static boolean usesRawGl(LytBlock block) {
-        return block instanceof LytLatexBlock || block instanceof LytLatexDisplayBlock
-            || block instanceof LytItemImage
-            || block instanceof LytNeiRecipeBox;
-    }
-
-    protected static void renderContainerDecoration(LytNode container, RenderContext context) {
-        if (!(container instanceof LytBox box)) return;
-        LytRect b = container.getBounds();
-        if (box.getBackgroundColor() != null) {
-            context.fillRect(b, box.getBackgroundColor());
-        }
-        int topW = box.getBorderTop()
-            .width();
-        int bottomW = box.getBorderBottom()
-            .width();
-        if (topW > 0) {
-            context.fillRect(
-                b.x(),
-                b.y(),
-                b.width(),
-                topW,
-                context.resolveColor(
-                    box.getBorderTop()
-                        .color()));
-        }
-        if (bottomW > 0) {
-            context.fillRect(
-                b.x(),
-                b.bottom() - bottomW,
-                b.width(),
-                bottomW,
-                context.resolveColor(
-                    box.getBorderBottom()
-                        .color()));
-        }
     }
 
     protected static LytRect resolveBlockVisualBounds(LytBlock block) {
@@ -500,55 +604,294 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         return Math.max(1, Math.round((9 + 1) * style.fontScale()));
     }
 
-    protected void renderNodeContentBlock(LytBlock block, NodeContentRenderContext nodeContext) {
-        if (block instanceof LytNode container && !container.getChildren()
-            .isEmpty()) {
-            for (var child : new ArrayList<>(container.getChildren())) {
-                if (child instanceof LytBlock childBlock) {
-                    renderNodeContentBlock(childBlock, nodeContext);
-                }
-            }
-            renderContainerDecoration(container, nodeContext);
-        } else if (usesRawGl(block)) {
-            GL11.glPushMatrix();
-            GL11.glTranslatef(nodeContext.getDocumentOriginX(), nodeContext.getDocumentOriginY(), 0f);
-            GL11.glScalef(nodeContext.getScale(), nodeContext.getScale(), 1f);
+    protected static LytRect resolveNodeContentRect(NodeContentLayout contentLayout, LytRect nodeRect, int paddingX,
+        int contentY, float activeZoom) {
+        int availW = Math.max(1, nodeRect.width() - paddingX * 2);
+        int availH = Math.max(1, nodeRect.y() + nodeRect.height() - contentY);
+        return new LytRect(
+            nodeRect.x() + paddingX,
+            contentY,
+            Math.min(
+                Math.max(
+                    1,
+                    Math.round(
+                        contentLayout.visualBounds()
+                            .width() * activeZoom)),
+                availW),
+            Math.min(
+                Math.max(
+                    1,
+                    Math.round(
+                        contentLayout.visualBounds()
+                            .height() * activeZoom)),
+                availH));
+    }
+
+    // Primitives-path helpers for node content blocks.
+
+    /**
+     * Lay out a Mermaid NodeContent root block through the Rust layout engine
+     * using the same serialize → measureLayout → writeback pipeline the main
+     * document uses ({@code LytDocument.createLayout}). This is required
+     * because NodeContent subtrees live off the document tree
+     * ({@code nodeContentBlocks}; {@link #getChildren()} is empty), so they
+     * never reach the document's Rust pass and their inline blocks keep a zero
+     * x-position (LytItemImage draws at {@code bounds.x()} → line start). A
+     * dedicated {@link LayoutTreeSerializer} + {@link LayoutBridge#measureLayout}
+     * pass runs Rust's inline post-pass on the subtree, which anchors each
+     * inline block at its paragraph marker's pen position and writes the real x
+     * back into its bounds.
+     * <p>
+     * <b>Coordinate system:</b> the FlatLayout/glyph coordinates come back
+     * <b>relative to the subtree's serialized root</b> (the root sits at the
+     * engine's {@code CONTENT_PAD} inset, i.e. (14,14) for this subtree). Both
+     * {@link #resolveBlockVisualBounds} and {@link #emitNodeContentPrimitives}
+     * consume that same shifted space (the viewport origin subtracts
+     * {@code visualBounds.x()/y()} while the block/glyph coordinates include
+     * the identical inset), so the existing viewport translation stays valid
+     * without any extra offset math.
+     * <p>
+     * Falls back to the Java manual layout ({@link #layoutContentSubtree}) when
+     * the native bridge is unavailable (font handle 0) or the measure pass
+     * fails, so NodeContent stays visible in environments without a loaded
+     * layout engine. Paragraph glyph runs are wiped before the pass so a failed
+     * pass never renders stale runs at outdated coordinates.
+     *
+     * @param context      layout context (font metrics + visual scale)
+     * @param block        the NodeContent root block (usually the LytVBox
+     *                     produced by {@code compileNodeContentBlock})
+     * @param contentWidth the content width used to lay the block out
+     */
+    protected void layoutNodeContentWithRust(LayoutContext context, LytBlock block, int contentWidth) {
+        LayoutContext localContext = new LayoutContext(context).withVisualScale(context.getVisualScale());
+        // Root's own Java bounds are meaningless (LytVBox.computeBoxLayout is a
+        // stub), but keep the call so the Java fallback sees the same
+        // preconditions as before.
+        block.layout(localContext, 0, 0, contentWidth);
+        clearGlyphRuns(block);
+        long fontHandle = LayoutBridge.getFontHandle();
+        if (fontHandle != 0) {
             try {
-                block.render(nodeContext);
-            } finally {
-                GL11.glPopMatrix();
+                var serializer = new LayoutTreeSerializer();
+                byte[] input = serializer.serialize(
+                    block,
+                    contentWidth + 2 * RUST_CONTENT_PAD,
+                    localContext.getVisualScale(),
+                    DisplayScale.scaleFactor());
+                byte[] result = LayoutBridge.measureLayout(fontHandle, input);
+                if (result.length > 0) {
+                    var flatResult = LayoutResult.getRootAsLayoutResult(ByteBuffer.wrap(result));
+                    // Upload unique glyph bitmaps to the shared atlas (keys are
+                    // content-stable, so repeated uploads are no-ops).
+                    var atlas = GuideGlyphAtlas.instance();
+                    int numBitmaps = flatResult.bitmapsLength();
+                    for (int bi = 0; bi < numBitmaps; bi++) {
+                        var bmp = flatResult.bitmaps(bi);
+                        if (bmp == null) continue;
+                        int w = (int) bmp.w();
+                        int h = (int) bmp.h();
+                        if (w <= 0 || h <= 0) continue;
+                        ByteBuffer rgbaBuf = bmp.rgbaAsByteBuffer();
+                        byte[] rgba = new byte[rgbaBuf.remaining()];
+                        rgbaBuf.get(rgba);
+                        if (w > 200 || h > 200) {
+                            GuideDebugLog.warnAlways(
+                                "[GuideNH] OVERSIZE glyph upload source=LytMermaidCanvas key={} w={} h={}",
+                                bmp.key(),
+                                w,
+                                h);
+                        }
+                        atlas.upload(bmp.key(), rgba, w, h);
+                    }
+                    // Writeback: every serialized subtree block gets its
+                    // Rust-computed bounds (glyph runs and inline blocks
+                    // included). The vector is index-aligned with the
+                    // serializer's flat nodes.
+                    int numLayouts = flatResult.nodesLength();
+                    for (int i = 0; i < numLayouts; i++) {
+                        var fl = flatResult.nodes(i);
+                        if (fl == null) continue;
+                        LytNode node = serializer.getNodeByFlatIndex(i);
+                        if (!(node instanceof LytBlock lb)) continue;
+                        lb.applyExternalLayout(
+                            new LytRect(
+                                Math.round(fl.x()),
+                                Math.round(fl.y()),
+                                Math.max(0, Math.round(fl.w())),
+                                Math.max(0, Math.round(fl.h()))));
+                    }
+                    // Inject glyph runs (final subtree-space quads) and span
+                    // decoration rects into the paragraphs so they render rich
+                    // text exactly like the main document pipeline.
+                    Map<Integer, List<GlyphRunGroup>> runsByNode = new HashMap<>();
+                    int numRuns = flatResult.glyphRunsLength();
+                    for (int ri = 0; ri < numRuns; ri++) {
+                        var fbRun = flatResult.glyphRuns(ri);
+                        if (fbRun == null) continue;
+                        int numGlyphs = fbRun.glyphsLength();
+                        var placed = new ArrayList<GuideRenderPrimitive.PlacedGlyph>(numGlyphs);
+                        for (int gi = 0; gi < numGlyphs; gi++) {
+                            var fbg = fbRun.glyphs(gi);
+                            if (fbg != null) {
+                                placed.add(
+                                    new GuideRenderPrimitive.PlacedGlyph(
+                                        fbg.bitmapKey(),
+                                        fbg.x(),
+                                        fbg.y(),
+                                        fbg.w(),
+                                        fbg.h(),
+                                        (int) fbg.lineIndex(),
+                                        fbg.baseline()));
+                            }
+                        }
+                        runsByNode.computeIfAbsent((int) fbRun.nodeIndex(), k -> new ArrayList<>())
+                            .add(new GlyphRunGroup(placed, (int) fbRun.argb(), fbRun.shear()));
+                    }
+                    Map<Integer, List<GuideRenderPrimitive.FillRect>> backgroundsByNode = new HashMap<>();
+                    Map<Integer, List<GuideRenderPrimitive.FillRect>> linesByNode = new HashMap<>();
+                    Map<Integer, List<GuideRenderPrimitive.FillRect>> separatorsByNode = new HashMap<>();
+                    int numDecorations = flatResult.decorationsLength();
+                    for (int di = 0; di < numDecorations; di++) {
+                        var d = flatResult.decorations(di);
+                        if (d == null) continue;
+                        var rect = new GuideRenderPrimitive.FillRect(
+                            Math.round(d.x()),
+                            Math.round(d.y()),
+                            Math.round(d.w()),
+                            Math.round(d.h()),
+                            (int) d.argb());
+                        if (d.kind() == 3) {
+                            separatorsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                                .add(rect);
+                        } else if (d.kind() == 0) {
+                            backgroundsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                                .add(rect);
+                        } else {
+                            linesByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                                .add(rect);
+                        }
+                    }
+                    for (var entry : runsByNode.entrySet()) {
+                        LytNode node = serializer.getNodeByFlatIndex(entry.getKey());
+                        if (node instanceof GlyphRunHolder holder) {
+                            holder.setGlyphData(
+                                new GlyphRunData(
+                                    entry.getValue(),
+                                    backgroundsByNode.getOrDefault(entry.getKey(), List.of()),
+                                    linesByNode.getOrDefault(entry.getKey(), List.of()),
+                                    separatorsByNode.getOrDefault(entry.getKey(), List.of())));
+                        }
+                    }
+                    // Post pass: blocks that derive state from children's final
+                    // bounds (e.g. ordered-list numbers) re-apply it now.
+                    for (int i = 0; i < numLayouts; i++) {
+                        LytNode node = serializer.getNodeByFlatIndex(i);
+                        if (node instanceof LytBlock lb) {
+                            lb.afterExternalLayout();
+                        }
+                    }
+                    return;
+                }
+            } catch (Exception e) {
+                GuideDebugLog
+                    .warnAlways("[GuideNH-Mermaid] NodeContent Rust layout failed; falling back to Java layout", e);
             }
-        } else {
-            block.render(nodeContext);
+        }
+        // Fallback: Java manual layout (the LytVBox stub is not a real pass).
+        layoutContentSubtree(localContext, block, contentWidth);
+    }
+
+    /**
+     * Recursively lay out all LytVBox containers inside {@code block},
+     * including nested ones (LytList / LytListItem / LytVBox), so every block
+     * in the subtree obtains non-empty bounds visible to
+     * {@link #resolveBlockVisualBounds} and the primitive collector. This is
+     * the Java fallback used when the Rust layout engine is unavailable; the
+     * normal document pipeline and the NodeContent Rust pass never reach it.
+     * <p>
+     * Uses <b>post-order</b> traversal: subtrees are laid out first, then
+     * siblings are positioned via {@link Layouts#verticalLayout}. This ordering
+     * is required because {@link LytList} and {@link LytListItem} have real
+     * {@code computeBoxLayout} that recursively lay out children; a pre-order
+     * pass would re-layout those children a second time at incorrect
+     * coordinates (offset relative to 0 instead of the parent's actual Y
+     * position).
+     */
+    protected static void layoutContentSubtree(LayoutContext context, LytBlock block, int contentWidth) {
+        if (!(block instanceof LytVBox vbox)) return;
+        List<LytBlock> blockChildren = new ArrayList<>();
+        for (LytNode child : vbox.getChildren()) {
+            if (child instanceof LytBlock b) blockChildren.add(b);
+        }
+        if (blockChildren.isEmpty()) return;
+        // Post-order: lay out child subtrees before positioning siblings.
+        for (LytBlock child : blockChildren) {
+            layoutContentSubtree(context, child, contentWidth);
+        }
+        // Content VBox created by compileNodeContentBlock has default
+        // padding (0), gap (0), and alignItems (START).
+        Layouts.verticalLayout(
+            context,
+            blockChildren,
+            0,
+            0,
+            contentWidth,
+            0,
+            0,
+            0,
+            0,
+            vbox.getGap(),
+            vbox.getAlignItems());
+    }
+
+    /**
+     * Recursively wipe glyph runs in the subtree so a failed Rust pass never
+     * leaves stale runs rendering at outdated coordinates (mirrors
+     * {@code LytDocument.clearGlyphRuns}).
+     */
+    private static void clearGlyphRuns(LytBlock block) {
+        if (block instanceof GlyphRunHolder holder) {
+            holder.setGlyphData(null);
+        }
+        for (LytNode child : block.getChildren()) {
+            if (child instanceof LytBlock childBlock) {
+                clearGlyphRuns(childBlock);
+            }
         }
     }
 
-    protected final void renderNodeContent(RenderContext context, LytBlock block, LytRect contentViewport,
+    /**
+     * Emit primitives for a node content block using the collector, replacing
+     * the legacy NodeContentRenderContext path. The block is rendered inside
+     * a PushTransform/PopTransform frame so its local coordinates map to the
+     * correct screen position.
+     */
+    protected void emitNodeContentPrimitives(PrimitiveCollector c, LytBlock block, LytRect contentViewport,
         LytRect visualBounds, float activeZoom) {
         LytRect innerViewport = getInnerViewport();
         LytRect clip = intersect(innerViewport, contentViewport);
         if (clip == null) return;
-        context.pushLocalScissor(clip);
-        try {
-            int originX = contentViewport.x() - Math.round(visualBounds.x() * activeZoom);
-            int originY = contentViewport.y() - Math.round(visualBounds.y() * activeZoom);
-            NodeContentRenderContext nodeContext = new NodeContentRenderContext(
-                context,
-                clip,
-                originX,
-                originY,
-                activeZoom);
-            renderNodeContentBlock(block, nodeContext);
-        } finally {
-            context.popScissor();
-        }
+        int originX = contentViewport.x() - Math.round(visualBounds.x() * activeZoom);
+        int originY = contentViewport.y() - Math.round(visualBounds.y() * activeZoom);
+        c.pushScissor(clip.x(), clip.y(), clip.width(), clip.height());
+        c.pushTransform(originX, originY, activeZoom);
+        c.collectFrom(block);
+        c.popTransform();
+        c.popScissor();
     }
 
-    protected static LytRect resolveNodeContentRect(NodeContentLayout contentLayout, LytRect nodeRect, int paddingX,
-        int contentY, float activeZoom) {
-        return new LytRect(
-            nodeRect.x() + paddingX,
-            contentY,
+    /**
+     * Overload that prepares the content viewport from a NodeContentLayout
+     * and a screen-space content area, then renders the block clipped to
+     * {@code innerViewport ∩ contentArea} (the node's inner content boundary,
+     * NOT the centered contentViewport) to prevent text overflow beyond the
+     * node bounds.
+     */
+    protected void emitNodeContentPrimitives(PrimitiveCollector c, NodeContentLayout contentLayout, LytRect contentArea,
+        float activeZoom) {
+        LytRect rawViewport = new LytRect(
+            contentArea.x(),
+            contentArea.y(),
             Math.max(
                 1,
                 Math.round(
@@ -559,6 +902,31 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
                 Math.round(
                     contentLayout.visualBounds()
                         .height() * activeZoom)));
+        int cvpX = rawViewport.x();
+        int cvpY = rawViewport.y();
+        if (rawViewport.width() < contentArea.width()) {
+            cvpX = contentArea.x() + (contentArea.width() - rawViewport.width()) / 2;
+        }
+        if (rawViewport.height() < contentArea.height()) {
+            cvpY = contentArea.y() + (contentArea.height() - rawViewport.height()) / 2;
+        }
+        LytRect contentViewport = new LytRect(cvpX, cvpY, rawViewport.width(), rawViewport.height());
+        // Scissor uses node contentArea (not centered contentViewport) to
+        // prevent text overflow beyond the node's inner boundary.
+        LytRect innerViewport = getInnerViewport();
+        LytRect clip = intersect(innerViewport, contentArea);
+        if (clip == null) return;
+        int originX = contentViewport.x() - Math.round(
+            contentLayout.visualBounds()
+                .x() * activeZoom);
+        int originY = contentViewport.y() - Math.round(
+            contentLayout.visualBounds()
+                .y() * activeZoom);
+        c.pushScissor(clip.x(), clip.y(), clip.width(), clip.height());
+        c.pushTransform(originX, originY, activeZoom);
+        c.collectFrom(contentLayout.block());
+        c.popTransform();
+        c.popScissor();
     }
 
     protected void collectNodeContentDebugComponents(NodeContentLayout contentLayout, LytRect contentViewport,
@@ -654,297 +1022,4 @@ public abstract class LytMermaidCanvas<T extends LytMermaidCanvas<T>> extends Ly
         }
     }
 
-    public static class NodeContentRenderContext implements RenderContext {
-
-        private final RenderContext delegate;
-        private final LytRect viewport;
-        private final int originX;
-        private final int originY;
-        @Getter
-        private final float scale;
-        private final Map<ResolvedTextStyle, ResolvedTextStyle> scaledStyleCache = new IdentityHashMap<>();
-
-        public NodeContentRenderContext(RenderContext delegate, LytRect viewport, int originX, int originY,
-            float scale) {
-            this.delegate = delegate;
-            this.viewport = new LytRect(
-                0,
-                0,
-                Math.max(1, Math.round(viewport.width() / scale)),
-                Math.max(1, Math.round(viewport.height() / scale)));
-            this.originX = originX;
-            this.originY = originY;
-            this.scale = Math.max(0.0001f, scale);
-        }
-
-        @Override
-        public LytRect viewport() {
-            return viewport;
-        }
-
-        @Override
-        public int getDocumentOriginX() {
-            return originX;
-        }
-
-        @Override
-        public int getDocumentOriginY() {
-            return originY;
-        }
-
-        @Override
-        public LytRect toScreenRect(LytRect rect) {
-            LytRect s = scaleRect(rect);
-            return new LytRect(
-                s.x() + delegate.getDocumentOriginX(),
-                s.y() + delegate.getDocumentOriginY() - delegate.getScrollOffsetY(),
-                s.width(),
-                s.height());
-        }
-
-        @Override
-        public int resolveColor(ColorValue ref) {
-            return delegate.resolveColor(ref);
-        }
-
-        @Override
-        public void fillRect(LytRect rect, int argbColor) {
-            delegate.fillRect(scaleRect(rect), argbColor);
-        }
-
-        @Override
-        public void fillRect(int x, int y, int width, int height, int argbColor) {
-            delegate.fillRect(scaleX(x), scaleY(y), scaleLength(width), scaleLength(height), argbColor);
-        }
-
-        @Override
-        public void drawBorder(LytRect rect, int argbColor, int thickness) {
-            delegate.drawBorder(scaleRect(rect), argbColor, Math.max(1, scaleLength(thickness)));
-        }
-
-        @Override
-        public void drawBorder(int x, int y, int width, int height, int argbColor, int thickness) {
-            delegate.drawBorder(
-                scaleX(x),
-                scaleY(y),
-                scaleLength(width),
-                scaleLength(height),
-                argbColor,
-                Math.max(1, scaleLength(thickness)));
-        }
-
-        @Override
-        public void drawText(String text, int x, int y, ResolvedTextStyle style) {
-            delegate.drawText(text, scaleX(x), scaleY(y), scaleStyle(style));
-        }
-
-        @Override
-        public int getStringWidth(String text, ResolvedTextStyle style) {
-            return scaleLength(delegate.getStringWidth(text, style));
-        }
-
-        @Override
-        public int getLineHeight(ResolvedTextStyle style) {
-            return scaleLength(delegate.getLineHeight(style));
-        }
-
-        @Override
-        public void renderItem(ItemStack stack, int x, int y) {
-            renderScaledItem(stack, x, y, true);
-        }
-
-        @Override
-        public void renderItemIcon(ItemStack stack, int x, int y) {
-            renderScaledItem(stack, x, y, false);
-        }
-
-        private void renderScaledItem(ItemStack stack, int x, int y, boolean overlay) {
-            int screenX = scaleX(x);
-            int screenY = scaleY(y);
-            GL11.glPushMatrix();
-            try {
-                GL11.glTranslatef(screenX, screenY, 0f);
-                GL11.glScalef(scale, scale, 1f);
-                if (overlay) {
-                    delegate.renderItem(stack, 0, 0);
-                } else {
-                    delegate.renderItemIcon(stack, 0, 0);
-                }
-            } finally {
-                GL11.glPopMatrix();
-            }
-        }
-
-        @Override
-        public void blitGuiSprite(LytRect rect, GuiSprite sprite) {
-            if (sprite == null) return;
-            int sx = scaleX(rect.x());
-            int sy = scaleY(rect.y());
-            GL11.glPushMatrix();
-            GL11.glTranslatef(sx, sy, 0f);
-            GL11.glScalef(scale, scale, 1f);
-            try {
-                delegate.blitTexture(
-                    sprite.getTexture(),
-                    0,
-                    0,
-                    sprite.getU(),
-                    sprite.getV(),
-                    sprite.getWidth(),
-                    sprite.getHeight());
-            } finally {
-                GL11.glPopMatrix();
-            }
-        }
-
-        @Override
-        public void fillIcon(LytRect rect, GuiSprite sprite, ColorValue color) {
-            delegate.fillIcon(scaleRect(rect), sprite, color);
-        }
-
-        @Override
-        public void blitTexture(ResourceLocation texture, int x, int y, int u, int v, int width, int height) {
-            delegate.blitTexture(texture, scaleX(x), scaleY(y), u, v, scaleLength(width), scaleLength(height));
-        }
-
-        @Override
-        public void drawLine(float x1, float y1, float x2, float y2, float thickness, int argbColor) {
-            delegate.drawLine(
-                scaleFloatX(x1),
-                scaleFloatY(y1),
-                scaleFloatX(x2),
-                scaleFloatY(y2),
-                Math.max(1f, thickness * scale),
-                argbColor);
-        }
-
-        @Override
-        public void fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3, int argbColor) {
-            delegate.fillTriangle(
-                scaleFloatX(x1),
-                scaleFloatY(y1),
-                scaleFloatX(x2),
-                scaleFloatY(y2),
-                scaleFloatX(x3),
-                scaleFloatY(y3),
-                argbColor);
-        }
-
-        @Override
-        public void fillPolygon(float[] xs, float[] ys, int argbColor) {
-            float[] scaledXs = new float[xs.length];
-            float[] scaledYs = new float[ys.length];
-            for (int i = 0; i < xs.length; i++) {
-                scaledXs[i] = scaleFloatX(xs[i]);
-                scaledYs[i] = scaleFloatY(ys[i]);
-            }
-            delegate.fillPolygon(scaledXs, scaledYs, argbColor);
-        }
-
-        @Override
-        public void fillCircle(float cx, float cy, float radius, int argbColor) {
-            delegate.fillCircle(scaleFloatX(cx), scaleFloatY(cy), radius * scale, argbColor);
-        }
-
-        @Override
-        public void fillEllipse(float cx, float cy, float rx, float ry, int argbColor) {
-            delegate.fillEllipse(scaleFloatX(cx), scaleFloatY(cy), rx * scale, ry * scale, argbColor);
-        }
-
-        @Override
-        public void drawCircleOutline(float cx, float cy, float radius, float thickness, int argbColor) {
-            delegate.drawCircleOutline(
-                scaleFloatX(cx),
-                scaleFloatY(cy),
-                radius * scale,
-                Math.max(1f, thickness * scale),
-                argbColor);
-        }
-
-        @Override
-        public void pushScissor(LytRect rect) {
-            delegate.pushScissor(scaleRect(rect));
-        }
-
-        @Override
-        public void pushLocalScissor(LytRect rect) {
-            delegate.pushLocalScissor(scaleRect(rect));
-        }
-
-        @Override
-        public LytRect currentScissor() {
-            return delegate.currentScissor();
-        }
-
-        @Override
-        public void popScissor() {
-            delegate.popScissor();
-        }
-
-        @Override
-        public void restoreExternalRenderState() {
-            delegate.restoreExternalRenderState();
-        }
-
-        @Override
-        public void beginLocalView() {
-            GL11.glPushMatrix();
-            GL11.glTranslatef(originX, originY, 0f);
-            GL11.glScalef(scale, scale, 1f);
-        }
-
-        @Override
-        public void endLocalView() {
-            GL11.glPopMatrix();
-        }
-
-        private ResolvedTextStyle scaleStyle(ResolvedTextStyle style) {
-            return scaledStyleCache.computeIfAbsent(
-                style,
-                key -> new ResolvedTextStyle(
-                    key.fontScale() * scale,
-                    key.bold(),
-                    key.italic(),
-                    key.underlined(),
-                    key.wavyUnderline(),
-                    key.dottedUnderline(),
-                    key.strikethrough(),
-                    key.obfuscated(),
-                    key.font(),
-                    key.color(),
-                    key.whiteSpace(),
-                    key.alignment(),
-                    key.dropShadow(),
-                    key.backgroundColor(),
-                    key.inlineCode()));
-        }
-
-        private LytRect scaleRect(LytRect rect) {
-            return new LytRect(
-                scaleX(rect.x()),
-                scaleY(rect.y()),
-                scaleLength(rect.width()),
-                scaleLength(rect.height()));
-        }
-
-        private int scaleX(int x) {
-            return originX + Math.round(x * scale);
-        }
-
-        private int scaleY(int y) {
-            return originY + Math.round(y * scale);
-        }
-
-        private int scaleLength(int value) {
-            return Math.max(1, Math.round(value * scale));
-        }
-
-        private float scaleFloatX(float x) {
-            return originX + x * scale;
-        }
-
-        private float scaleFloatY(float y) {
-            return originY + y * scale;
-        }
-    }
 }

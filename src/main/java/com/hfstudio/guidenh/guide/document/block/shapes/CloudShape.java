@@ -4,27 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 public class CloudShape implements ShapeRenderer {
 
     @Override
-    public boolean isClipped() {
-        return true;
-    }
-
-    @Override
-    public Point edgeIntersect(LytRect nodeRect, int ex, int ey) {
-        int w = nodeRect.width(), h = nodeRect.height();
-        float[][] arcs = getCloudArcs(w, h);
-        float[] raw = buildCloudPolygon(w, h);
-        float[] bounds = ShapeUtils.computeBounds(raw);
-        return FlowchartShapes.intersectArcs(nodeRect, bounds, arcs, ex, ey);
-    }
-
-    @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
         int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
         float[] raw = buildCloudPolygon(w, h);
         int n = raw.length / 2;
@@ -57,8 +42,8 @@ public class CloudShape implements ShapeRenderer {
             }
         }
 
-        ShapeUtils.fillPolygonCentered(context, xs, ys, borderColor);
-        ShapeUtils.fillPolygonCentered(context, ixs, iys, backgroundColor);
+        ShapeUtils.emitPolygonCentered(c, xs, ys, borderColor);
+        ShapeUtils.emitPolygonCentered(c, ixs, iys, backgroundColor);
     }
 
     private static float[][] getCloudArcs(float w, float h) {
@@ -133,11 +118,14 @@ public class CloudShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;
-        int r = Math.min(nodeRect.width(), nodeRect.height()) / 3;
-        int insSide = (int) (r * Math.sqrt(2));
+        // Compute the inscribed-side inset in float and round UP so the
+        // content rect never shrinks below the scaled text width through
+        // truncation ((int) casts were losing ~1px on the zoomed path).
+        double r = Math.min(nodeRect.width(), nodeRect.height()) / 3.0;
+        int insSide = (int) Math.ceil(r * Math.sqrt(2));
         int availW = Math.max(insSide - 2 * padX, 1);
         int availH = Math.max(insSide - 2 * padY, 1);
         int contentW = Math.min(availW, cw);

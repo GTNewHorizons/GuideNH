@@ -1,9 +1,10 @@
 package com.hfstudio.guidenh.guide.document.block;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
-import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -12,14 +13,26 @@ public class LytHeading extends LytParagraph {
 
     @Getter
     private int depth = 1;
-    // Horizontal offset from bounds.x() to the float-adjusted text start position
-    private int separatorXOffset = 0;
-    private int separatorWidth = 0;
 
     public LytHeading() {
         setMarginTop(5);
         setMarginBottom(5);
     }
+
+    /**
+     * Per-depth vertical margins: the space before a heading grows with its
+     * level (H1 20 / H2 18 / H3 14 / H4 12 / H5-H6 10) while the space after
+     * stays small (H1-H2 6 / H3-H6 7; the top two were trimmed 8→6 so the
+     * separator-to-body gap lands ≈10-12px combined with
+     * {@link #HEADING_SEPARATOR_GAP}). The strong top/bottom ratio makes a
+     * heading "breathe" above while binding it to its own content below
+     * (taffy adds margins, no collapsing), so parent-child and sibling heading
+     * gaps stay distinguishable. Consecutive headings collapse instead of
+     * summing; see {@link #collapseBottomForAdjacent()}. Index 0 is the
+     * depth-agnostic fallback used when no valid depth is assigned.
+     */
+    private static final int[] HEADING_MARGIN_TOP = { 5, 20, 18, 14, 12, 10, 10 };
+    private static final int[] HEADING_MARGIN_BOTTOM = { 5, 6, 6, 7, 7, 7, 7 };
 
     public void setDepth(int depth) {
         this.depth = depth;
@@ -33,19 +46,52 @@ public class LytHeading extends LytParagraph {
             default -> DefaultStyles.BODY_TEXT;
         };
         setStyle(style);
+        int idx = (depth >= 1 && depth <= 6) ? depth : 0;
+        setMarginTop(HEADING_MARGIN_TOP[idx]);
+        setMarginBottom(HEADING_MARGIN_BOTTOM[idx]);
+    }
+
+    /**
+     * CSS-style margin collapse for consecutive headings. Taffy sums adjacent
+     * margins without collapsing, so two headings with no body between them
+     * would keep both the first's bottom and the second's top margin (H3 7 +
+     * H4 12 = 19px, the "hole" between consecutive headings). When this
+     * heading is directly followed by another heading (detected at compile time
+     * in {@code HeadingCompiler}), its bottom margin is zeroed so the pair
+     * keeps only the following heading's top margin. Because every depth's top
+     * margin in {@link #HEADING_MARGIN_TOP} is ≥ every shallower heading's
+     * bottom margin in {@link #HEADING_MARGIN_BOTTOM}, this equals the CSS
+     * {@code max()} collapse rule. Heading→body spacing is unaffected.
+     */
+    public void collapseBottomForAdjacent() {
+        setMarginBottom(0);
     }
 
     @Override
-    public LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
-        // Capture the active inline window so the separator follows the same wrapped line width
-        // that the heading text uses and never paints under floating content on either side.
-        int leftEdge = context.getLeftFloatRightEdgeOr(x);
-        int rightEdge = context.getRightFloatLeftEdgeOr(x + availableWidth);
-        int clampedLeftEdge = Math.max(x, leftEdge);
-        int clampedRightEdge = Math.min(x + availableWidth, rightEdge);
-        separatorXOffset = Math.max(0, clampedLeftEdge - x);
-        separatorWidth = Math.max(0, clampedRightEdge - clampedLeftEdge);
-        return super.computeLayout(context, x, y, availableWidth);
+    public void computePrimitives(PrimitiveCollector c) {
+        super.computePrimitives(c);
+
+        // Separators stay reserved for the top two levels: the monotonic size
+        // ladder + bold white now distinguish H3-H6 from body text without a
+        // rule line (H3 deliberately gets no fainter line).
+        if (depth == 1) {
+            emitSeparator(c, ColorUtils.HEADER1_SEPARATOR.resolve());
+        } else if (depth == 2) {
+            emitSeparator(c, ColorUtils.HEADER2_SEPARATOR.resolve());
+        }
+    }
+
+    /**
+     * Fixed gap between the lowest glyph bottom and the separator line, so the
+     * rule never grazes descender tails (g/p/y) regardless of how far they
+     * hang below the baseline.
+     */
+    private static final int HEADING_SEPARATOR_GAP = 5;
+
+    private void emitSeparator(PrimitiveCollector c, int argb) {
+        int sepY = separatorY();
+        int[] ext = separatorExtent();
+        c.emit(new GuideRenderPrimitive.FillRect(ext[0], sepY, ext[1], 1, argb));
     }
 
     @Override
@@ -53,15 +99,58 @@ public class LytHeading extends LytParagraph {
         super.render(context);
 
         if (depth == 1) {
-            var bounds = getBounds();
-            int sepX = bounds.x() + separatorXOffset;
-            int sepW = Math.max(0, separatorWidth);
-            context.fillRect(sepX, bounds.bottom() - 1, sepW, 1, ColorUtils.HEADER1_SEPARATOR);
+            emitSeparatorLegacy(context, ColorUtils.HEADER1_SEPARATOR);
         } else if (depth == 2) {
-            var bounds = getBounds();
-            int sepX = bounds.x() + separatorXOffset;
-            int sepW = Math.max(0, separatorWidth);
-            context.fillRect(sepX, bounds.bottom() - 1, sepW, 1, ColorUtils.HEADER2_SEPARATOR);
+            emitSeparatorLegacy(context, ColorUtils.HEADER2_SEPARATOR);
         }
+    }
+
+    private void emitSeparatorLegacy(RenderContext context, ColorValue color) {
+        int sepY = separatorY();
+        int[] ext = separatorExtent();
+        context.fillRect(ext[0], sepY, ext[1], 1, color);
+    }
+
+    /**
+     * The separator's vertical position: a fixed gap below the actual lowest
+     * glyph bottom (baseline + real descender extent), decoupled from the
+     * block bounds bottom whose distance to the text depends on the font's
+     * ascent/descent allocation. Falls back to the block bottom when no glyph
+     * run is available (legacy/no-Rust path).
+     */
+    private int separatorY() {
+        var data = getGlyphData();
+        if (data != null) {
+            float maxBottom = Float.NEGATIVE_INFINITY;
+            boolean found = false;
+            for (var run : data.runs()) {
+                for (var g : run.glyphs()) {
+                    maxBottom = Math.max(maxBottom, g.y() + g.h());
+                    found = true;
+                }
+            }
+            if (found) {
+                return Math.round(maxBottom) + HEADING_SEPARATOR_GAP;
+            }
+        }
+        return getBounds().bottom() - 1;
+    }
+
+    /**
+     * Returns {@code [x, width]} for the separator, computed from the Rust-
+     * emitted kind=3 DecorationRect (the full float-compressed line window).
+     * Falls back to the block bounds when no separator rect is available
+     * (legacy/no-Rust path).
+     */
+    private int[] separatorExtent() {
+        var bounds = getBounds();
+        var data = getGlyphData();
+        if (data != null && !data.separators()
+            .isEmpty()) {
+            var r = data.separators()
+                .get(0);
+            return new int[] { r.x(), Math.max(0, r.w()) };
+        }
+        return new int[] { bounds.x(), bounds.width() };
     }
 }

@@ -71,6 +71,7 @@ import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplatePageIds;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundParsers;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
+import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 import com.hfstudio.guidenh.libs.mdast.MdAst;
 import com.hfstudio.guidenh.libs.mdast.MdAstYamlFrontmatter;
@@ -82,6 +83,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstDefinition;
+import com.hfstudio.guidenh.libs.mdast.model.MdAstFlowContent;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstNode;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParagraph;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstParent;
@@ -284,21 +286,36 @@ public class PageCompiler {
      * {@link ParsedGuidePage#getAstRoot()}.
      *
      * <p>
-     * F3+T reload uses this path so that index/navigation rebuilds —
-     * which only need frontmatter — complete without paying Micromark cost.
+     * F3+T reload uses this path so that index/navigation rebuilds, which
+     * only need frontmatter, complete without paying the Micromark cost.
      * </p>
      */
     public static ParsedGuidePage parseFrontmatterOnly(String sourcePack, String language, ResourceLocation id,
         String pageContent) {
+        return parseFrontmatterOnly(sourcePack, null, language, id, pageContent);
+    }
+
+    /**
+     * Frontmatter-only parse that also records the exact resource pack the page was read from. The
+     * namespace inside {@code sourcePack} cannot tell several packs apart, so a page read from a resource
+     * pack has to carry its provenance explicitly for the compiled page to name the real source.
+     *
+     * @param sourcePack identifies the page for compiler purposes and is used when no pack is known.
+     * @param sourceResourcePack the pack the page bytes were read from, or {@code null} when the page did
+     *        not originate from a resource pack selection.
+     */
+    public static ParsedGuidePage parseFrontmatterOnly(String sourcePack, @Nullable IResourcePack sourceResourcePack,
+        String language, ResourceLocation id, String pageContent) {
         pageContent = pageContent != null ? pageContent : "";
         pageContent = normalizeLineEndings(pageContent);
         var sourceFrontmatter = parseFrontmatterFromSource(id, pageContent);
 
         return new ParsedGuidePage(
             sourcePack,
+            sourceResourcePack,
             id,
             pageContent,
-            null, // astRoot — triggers lazy parse on first getAstRoot()
+            null, // astRoot - triggers lazy parse on first getAstRoot()
             sourceFrontmatter,
             language,
             null,
@@ -332,22 +349,48 @@ public class PageCompiler {
     public static MdAstRoot buildErrorPage(String headingText, String errorText) {
         var root = new MdAstRoot();
 
+        // <h1><Color id="error_text">headingText</Color></h1>
         var heading = new MdxJsxFlowElement();
         heading.setName("h1");
         heading.addAttribute("depth", 1);
         root.addChild(heading);
+        var headingColor = new MdxJsxTextElement("Color", new ArrayList<>());
+        headingColor.addAttribute("id", "error_text");
         var headingTextNode = new MdAstText();
         headingTextNode.setValue(headingText);
-        heading.addChild(headingTextNode);
+        headingColor.addChild(headingTextNode);
+        safeAddChild(heading, headingColor);
 
+        // <p><Color id="error_text">errorText</Color></p>
         var errorParagraph = new MdxJsxFlowElement();
         errorParagraph.setName("p");
         root.addChild(errorParagraph);
+        var errorColor = new MdxJsxTextElement("Color", new ArrayList<>());
+        errorColor.addAttribute("id", "error_text");
         var errorTextNode = new MdAstText();
         errorTextNode.setValue(errorText);
-        errorParagraph.addChild(errorTextNode);
+        errorColor.addChild(errorTextNode);
+        safeAddChild(errorParagraph, errorColor);
 
         return root;
+    }
+
+    /**
+     * Adds a child node to an {@link MdxJsxFlowElement} with type validation.
+     * If the node is a valid {@link MdAstFlowContent} (the expected child type),
+     * it is added via the normal {@code addChild} path. Otherwise, raw-type
+     * access is used as a safe fallback to bypass the type constraint - this
+     * prevents the error page builder itself from crashing when attempting to
+     * add phrasing content (e.g. {@link MdAstText}) that is semantically valid
+     * inside flow elements like {@code <h1>} or {@code <p>}.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void safeAddChild(MdxJsxFlowElement element, MdAstNode node) {
+        if (node instanceof MdAstFlowContent) {
+            element.addChild(node);
+        } else {
+            ((List) element.children()).add(node);
+        }
     }
 
     public static GuidePage buildErrorGuidePage(PageCollection pages, ExtensionCollection extensions, String sourcePack,
@@ -711,7 +754,7 @@ public class PageCompiler {
                     }
                 }
             } else if (child instanceof MdxJsxTextElement el) {
-                // Inline element at block level — merge into previous paragraph when possible
+                // Inline element at block level - merge into previous paragraph when possible
                 if (previousLayoutChild instanceof LytParagraph paragraph) {
                     var flowCompiler = tagCompilers.get(el.name());
                     if (flowCompiler != null) {
@@ -726,7 +769,7 @@ public class PageCompiler {
                 }
                 layoutChild = paragraph;
             } else if (child instanceof MdAstText text) {
-                // Orphan text — merge into previous paragraph when possible
+                // Orphan text - merge into previous paragraph when possible
                 if (previousLayoutChild instanceof LytParagraph paragraph) {
                     var flowText = new LytFlowText();
                     flowText.setText(text.value);
@@ -784,63 +827,6 @@ public class PageCompiler {
         parent.append(wrapFloatAwareIfNeeded(paragraph));
     }
 
-    private LytBlock compileTable(GfmTable astTable, List<Integer> widthHints) {
-        var table = new LytTable();
-        table.setMarginBottom(DEFAULT_ELEMENT_SPACING);
-
-        var astRows = astTable.children();
-        // The GFM table parser swallows a trailing kramdown attribute line such as
-        // `{: widths="..." }` as an extra row; drop it during rendering so it does
-        // not appear as the last visible row of the table.
-        int rowCount = astRows.size();
-        if (rowCount > 0) {
-            var lastRow = astRows.get(rowCount - 1);
-            String lastRowText = getTableRowText(lastRow);
-            if (lastRowText != null && TABLE_ATTRIBUTE_LINE.matcher(lastRowText.trim())
-                .matches()) {
-                if (widthHints == null || widthHints.isEmpty()) {
-                    Matcher matcher = TABLE_ATTRIBUTE_LINE.matcher(lastRowText.trim());
-                    if (matcher.matches()) {
-                        widthHints = parseWidthHintsFromMetaExpression(matcher.group(1));
-                    }
-                }
-                rowCount--;
-            }
-        }
-
-        boolean firstRow = true;
-        int rowIndex = 0;
-        for (int rowI = 0; rowI < rowCount; rowI++) {
-            var astRow = astRows.get(rowI);
-            var row = table.appendRow();
-            if (firstRow) {
-                row.modifyStyle(style -> style.bold(true));
-                firstRow = false;
-            }
-
-            var astCells = astRow.children();
-            for (int i = 0; i < astCells.size(); i++) {
-                if (rowIndex == 0 && i < widthHints.size() && widthHints.get(i) > 0) {
-                    table.getOrCreateColumn(i)
-                        .setPreferredWidth(widthHints.get(i));
-                }
-                var cell = row.appendCell();
-                // Apply alignment
-                if (astTable.align != null && i < astTable.align.size()) {
-                    switch (astTable.align.get(i)) {
-                        case CENTER -> cell.modifyStyle(style -> style.alignment(TextAlignment.CENTER));
-                        case RIGHT -> cell.modifyStyle(style -> style.alignment(TextAlignment.RIGHT));
-                    }
-                }
-
-                compileTableCellContent(astCells.get(i), cell);
-            }
-            rowIndex++;
-        }
-
-        return wrapFloatAwareIfNeeded(table);
-    }
-
     public static LytBlock wrapFloatAwareIfNeeded(LytBlock block) {
         if (block instanceof LytParagraph || block instanceof LytDocumentFloat
             || block instanceof LytFloatAwareBlock
@@ -848,18 +834,6 @@ public class PageCompiler {
             return block;
         }
         return new LytFloatAwareBlock(block);
-    }
-
-    private @Nullable String getTableRowText(GfmTableRow row) {
-        StringBuilder sb = new StringBuilder();
-        for (var cell : row.children()) {
-            if (!sb.isEmpty()) {
-                sb.append(' ');
-            }
-            sb.append(cell.toText());
-        }
-        String text = sb.toString();
-        return text.isEmpty() ? null : text;
     }
 
     public void compileFlowContext(MdAstParent<?> markdownParent, LytFlowParent layoutParent) {
@@ -895,9 +869,18 @@ public class PageCompiler {
             } else if (compileInlineDollarLatex(layoutParent, astText.value)) {
                 layoutChild = null;
             } else {
-                var text = new LytFlowText();
-                text.setText(astText.value);
-                layoutChild = text;
+                String value = astText.value;
+                if (value.indexOf('§') >= 0) {
+                    List<LytFlowContent> fragments = parseSectionFormatting(value);
+                    for (var fragment : fragments) {
+                        layoutParent.append(fragment);
+                    }
+                    layoutChild = null;
+                } else {
+                    var text = new LytFlowText();
+                    text.setText(value);
+                    layoutChild = text;
+                }
             }
         } else if (content instanceof MdxJsxTextElement el) {
             if ("Spoiler".equals(el.name())) {
@@ -1006,6 +989,7 @@ public class PageCompiler {
                 var block = new LytLatexBlock(
                     segment.getValue(),
                     LatexRenderOptions.builder()
+                        .style(org.scilab.forge.jlatexmath.TeXConstants.STYLE_TEXT)
                         .valign(LatexVerticalAlign.BASELINE)
                         .build());
                 layoutParent.append(LytFlowInlineBlock.of(block));
@@ -1323,4 +1307,146 @@ public class PageCompiler {
     private record SourceSlice(String source) {}
 
     public record State<T> (String name, Class<T> dataClass, T defaultValue) {}
+
+    // Minecraft section-sign colour and format code parsing.
+
+    /**
+     * Parses Minecraft § color/format codes in {@code text} and returns a list of
+     * styled flow content fragments (plain {@link LytFlowText} or {@link LytFlowSpan}
+     * wrapping a text node).
+     */
+    static List<LytFlowContent> parseSectionFormatting(String text) {
+        if (text.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<LytFlowContent> result = new ArrayList<>();
+        StringBuilder segment = new StringBuilder();
+
+        // Current style state.  Boolean null = inherit/not set.
+        ConstantColor color = null;
+        Boolean bold = null;
+        Boolean italic = null;
+        Boolean underlined = null;
+        Boolean strikethrough = null;
+        Boolean obfuscated = null;
+
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (ch == '§' && i + 1 < text.length()) {
+                char code = text.charAt(i + 1);
+                int mappedColor = mapSectionColor(code);
+                if (mappedColor != 0 || isSectionFormatCode(code)) {
+                    // Valid section-sign code: flush the current segment and apply it.
+                    flushSectionSegment(result, segment, color, bold, italic, underlined, strikethrough, obfuscated);
+
+                    if (mappedColor != 0) {
+                        // Colour codes 0-f: reset all formatting and set the colour.
+                        color = new ConstantColor(mappedColor);
+                        bold = false;
+                        italic = false;
+                        underlined = false;
+                        strikethrough = false;
+                        obfuscated = false;
+                    } else {
+                        // §k-§o, §r: format code
+                        switch (Character.toLowerCase(code)) {
+                            case 'l' -> bold = true;
+                            case 'o' -> italic = true;
+                            case 'm' -> strikethrough = true;
+                            case 'n' -> underlined = true;
+                            case 'k' -> obfuscated = true;
+                            case 'r' -> {
+                                color = null;
+                                bold = null;
+                                italic = null;
+                                underlined = null;
+                                strikethrough = null;
+                                obfuscated = null;
+                            }
+                            default -> { /* unreachable: isSectionFormatCode already validated */ }
+                        }
+                    }
+                    i++; // skip the format-code character
+                    continue;
+                }
+            }
+            segment.append(ch);
+        }
+
+        flushSectionSegment(result, segment, color, bold, italic, underlined, strikethrough, obfuscated);
+        return result;
+    }
+
+    /** Appends the accumulated {@code segment} text as either plain or styled flow content. */
+    private static void flushSectionSegment(List<LytFlowContent> result, StringBuilder segment,
+            ConstantColor color, Boolean bold, Boolean italic, Boolean underlined,
+            Boolean strikethrough, Boolean obfuscated) {
+        if (segment.isEmpty()) {
+            return;
+        }
+        String text = segment.toString();
+        segment.setLength(0);
+
+        if (color == null && bold == null && italic == null && underlined == null
+            && strikethrough == null && obfuscated == null) {
+            result.add(LytFlowText.of(text));
+            return;
+        }
+
+        var span = new LytFlowSpan();
+        var builder = TextStyle.builder();
+        if (color != null) {
+            builder = builder.color(color);
+        }
+        if (bold != null) {
+            builder = builder.bold(bold);
+        }
+        if (italic != null) {
+            builder = builder.italic(italic);
+        }
+        if (underlined != null) {
+            builder = builder.underlined(underlined);
+        }
+        if (strikethrough != null) {
+            builder = builder.strikethrough(strikethrough);
+        }
+        if (obfuscated != null) {
+            builder = builder.obfuscated(obfuscated);
+        }
+        span.setStyle(builder.build());
+        span.appendText(text);
+        result.add(span);
+    }
+
+    /** Returns the ARGB colour for colour codes 0-f, or 0 if {@code code} is not a colour code. */
+    static int mapSectionColor(char code) {
+        return switch (Character.toLowerCase(code)) {
+            case '0' -> 0xFF000000; // Black
+            case '1' -> 0xFF0000AA; // Dark Blue
+            case '2' -> 0xFF00AA00; // Dark Green
+            case '3' -> 0xFF00AAAA; // Dark Aqua
+            case '4' -> 0xFFAA0000; // Dark Red
+            case '5' -> 0xFFAA00AA; // Dark Purple
+            case '6' -> 0xFFFFAA00; // Gold
+            case '7' -> 0xFFAAAAAA; // Gray
+            case '8' -> 0xFF555555; // Dark Gray
+            case '9' -> 0xFF5555FF; // Blue
+            case 'a' -> 0xFF55FF55; // Green
+            case 'b' -> 0xFF55FFFF; // Aqua
+            case 'c' -> 0xFFFF5555; // Red
+            case 'd' -> 0xFFFF55FF; // Light Purple
+            case 'e' -> 0xFFFFFF55; // Yellow
+            case 'f' -> 0xFFFFFFFF; // White
+            default -> 0;
+        };
+    }
+
+    /** Returns true for §k/l/m/n/o/r (format codes, not colour codes). */
+    private static boolean isSectionFormatCode(char code) {
+        return switch (Character.toLowerCase(code)) {
+            case 'k', 'l', 'm', 'n', 'o', 'r' -> true;
+            default -> false;
+        };
+    }
 }

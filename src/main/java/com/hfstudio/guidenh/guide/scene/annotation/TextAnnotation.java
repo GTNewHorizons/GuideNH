@@ -196,10 +196,17 @@ public class TextAnnotation extends OverlayAnnotation {
         if (text == null || text.isEmpty()) return;
 
         int docOx = 0, docOy = 0, scroll = 0;
+        float zoom = 1.0f;
         if (context instanceof VanillaRenderContext vrc) {
             docOx = vrc.getDocumentOriginX();
             docOy = vrc.getDocumentOriginY();
             scroll = vrc.getScrollOffsetY();
+            zoom = vrc.getZoom();
+        }
+        if (zoom != 1.0f) {
+            docOx = Math.round(docOx / zoom);
+            docOy = Math.round(docOy / zoom);
+            scroll = Math.round(scroll / zoom);
         }
 
         int cx, cy;
@@ -227,7 +234,6 @@ public class TextAnnotation extends OverlayAnnotation {
                 localViewport);
             int bx = bubble.x();
             int by = bubble.y();
-            LayoutContext layoutContext = getRichContentLayoutContext();
 
             GL11.glDisable(GL11.GL_DEPTH_TEST);
             GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -248,9 +254,14 @@ public class TextAnnotation extends OverlayAnnotation {
                 applyFade(getBackgroundArgb(), fade));
             drawConnector(cx, cy, bubble, applyFade(borderArgb, fade));
 
-            richContent.layout(layoutContext, bx + PADDING_X, by + PADDING_Y, measure.availableWidth());
-            GL11.glEnable(GL11.GL_TEXTURE_2D);
-            richContent.render(context);
+            if (measure.availableWidth() > 0 && measure.boxHeight() > 0) {
+                LayoutContext layoutContext = getRichContentLayoutContext();
+                richContent.layout(layoutContext, bx + PADDING_X, by + PADDING_Y, measure.availableWidth());
+                GL11.glEnable(GL11.GL_TEXTURE_2D);
+                richContent.render(context);
+            } else {
+                GL11.glEnable(GL11.GL_TEXTURE_2D);
+            }
             ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
             GL11.glDisable(GL11.GL_BLEND);
             return;

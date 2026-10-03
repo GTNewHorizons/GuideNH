@@ -25,7 +25,7 @@ public class ItemLinkCompiler extends FlowTagCompiler {
             return;
         }
 
-        // showTooltip — default true for ItemLink
+        // showTooltip - default true for ItemLink
         Boolean noTooltipAttr = MdxAttrs.getOptionalBoolean(el, "noTooltip");
         boolean noTooltip = MdxAttrs.getBoolean(noTooltipAttr, false);
         Boolean showTooltipAttr = MdxAttrs.getOptionalBoolean(el, "showTooltip");
@@ -34,7 +34,7 @@ public class ItemLinkCompiler extends FlowTagCompiler {
         boolean showText = showTextAttr == null || showTextAttr;
         float scale = MdxAttrs.getFloat(compiler, parent, el, "scale", 1f);
 
-        // showIcon — null/falsy = no icon; "left", "right", or any truthy = icon at that side
+        // showIcon - null/falsy = no icon; "left", "right", or any truthy = icon at that side
         String showIconRaw = el.getAttributeString("showIcon", null);
         String iconPosition = ItemImageCompiler.resolveLabelPosition(showIconRaw);
 

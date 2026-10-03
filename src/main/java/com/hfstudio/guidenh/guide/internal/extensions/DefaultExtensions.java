@@ -39,6 +39,7 @@ import com.hfstudio.guidenh.guide.compiler.tags.ListCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ListItemCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MarkTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MermaidCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.NodeContentTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ParagraphCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PlayerNameTagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.PreCompiler;
@@ -159,6 +160,7 @@ public class DefaultExtensions {
                 new FootnoteListCompiler(),
                 new StructureViewCompiler(),
                 new MermaidCompiler(),
+                new NodeContentTagCompiler(),
                 new CsvTableCompiler(),
                 new ColumnChartCompiler(),
                 new BarChartCompiler(),
@@ -168,7 +170,7 @@ public class DefaultExtensions {
                 new FunctionGraphTagCompiler(),
                 new FunctionTagCompiler(),
                 new LatexTagCompiler(),
-                // Phase 2A: block-level compilers
+                // Block-level compilers
                 new ParagraphCompiler(),
                 new HeadingCompiler(),
                 new ListCompiler(),
@@ -177,7 +179,7 @@ public class DefaultExtensions {
                 new BlockquoteCompiler(),
                 new TableCompiler(),
                 new HrCompiler(),
-                // Phase 2A: inline compilers
+                // Inline compilers
                 new StrongCompiler(),
                 new EmphasisCompiler(),
                 new DelUWaveMarkCompiler(),

@@ -42,7 +42,7 @@ public class Ae2BaseTileNetworkStructureSupport {
         TileEntity getTile(int x, int y, int z);
     }
 
-    /** Per-export: dim:x:y:z 鈫?raw {@code X} description bytes. */
+    /** Per-export: dim:x:y:z -> raw {@code X} description bytes. */
     public static class Ae2BaseTileNetworkMpSnapshot {
 
         private final Map<String, byte[]> xpByKey;

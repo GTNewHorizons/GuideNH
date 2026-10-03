@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.ITextureObject;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +19,6 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.document.block.BorderRenderer;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
@@ -25,8 +26,14 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.util.GuideStringLines;
+import com.hfstudio.guidenh.guide.layout.FontMetrics;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
@@ -36,6 +43,262 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     private static final int SPECIAL_PAGES_GROUP_COLUMNS = 2;
     private static final int TOP_PADDING = 6;
     private static final int BOTTOM_PADDING = 6;
+
+    /** Precomputed max column content height for Rust MeasureFunc. Set during computeLayout. */
+    private int maxPrecomputedContentHeight = 0;
+
+    /** Font facts collected during computeLayout, consumed by Rust measure via serialization. */
+    @Nullable
+    private FontFacts collectedFontFacts;
+
+    /**
+     * Returns the font facts, collecting them on demand if no prior layout has
+     * cached them. Called by the serializer (which runs after computeLayout and
+     * does NOT have a LayoutContext). Uses {@link GuideText} static methods so
+     * no {@link LayoutContext} is required.
+     */
+    public FontFacts getCollectedFontFacts() {
+        if (collectedFontFacts == null) {
+            collectedFontFacts = collectFontFacts();
+        }
+        return collectedFontFacts;
+    }
+
+    // ── Serialization helpers for Rust-side measurement ────────────────────
+
+    /**
+     * Populates a FontFactsCollector with width-independent font-measurement
+     * data consumed by the Rust measure function.
+     */
+    public FontFacts collectFontFacts() {
+        return new FontFacts(collectFontFactsImpl());
+    }
+
+    /**
+     * Contains all per-entry font facts plus column-planning data for Rust.
+     * Exposed as a single object so the serializer calls one method.
+     */
+    public record FontFacts(FontFactsImpl impl) {
+
+        public record FontFactsImpl(int columnCount, boolean hasMore, int groupCount, float[] groupTitleWidths,
+            int[] groupEntryCounts, float[] groupEstimatedHeights, int totalEntryCount, float[] entryTitleWidths,
+            byte[] entryHasIcon, float[] entryEstimatedHeights, int[] entrySubtitleLineCounts,
+            int[] subtitleLineWordCounts, float[] subtitleWordWidths, float subtitleSpaceWidth, float linkLineHeight,
+            float subtitleLineHeight) {}
+    }
+
+    private FontFacts.FontFactsImpl collectFontFactsImpl() {
+        MediaWikiSpecialPageResult visibleResult = applyVisibility(result, searchQuery);
+        int columnCount = resolveColumnCount(visibleResult);
+        boolean hasMoreFlag = visibleResult != null && visibleResult.hasMore();
+        boolean isGrouped = visibleResult != null && (visibleResult.kind() == MediaWikiSpecialPageKind.GROUPED
+            || visibleResult.kind() == MediaWikiSpecialPageKind.GROUP_INDEX);
+
+        if (isEmpty(visibleResult)) {
+            return new FontFacts.FontFactsImpl(
+                columnCount,
+                false,
+                0,
+                new float[0],
+                new int[0],
+                new float[0],
+                0,
+                new float[0],
+                new byte[0],
+                new float[0],
+                new int[0],
+                new int[0],
+                new float[0],
+                0f,
+                GuideText.lineHeight(LINK_STYLE),
+                GuideText.lineHeight(SUBTITLE_STYLE));
+        }
+
+        if (!isGrouped) {
+            // ── Flat entries: distribute evenly ──
+            List<MediaWikiSpecialListEntry> entries = visibleResult.flatEntries() != null ? visibleResult.flatEntries()
+                : List.of();
+            int totalEntryCount = entries.size();
+            int perColumn = Math.max(1, (totalEntryCount + columnCount - 1) / columnCount);
+            // Build per-column groups (one group per column, no title).
+            int actualGroupCount = 0;
+            for (int ci = 0; ci < columnCount; ci++) {
+                int start = ci * perColumn;
+                if (start >= totalEntryCount) break;
+                actualGroupCount++;
+            }
+            int[] groupEntryCounts = new int[actualGroupCount];
+            float[] groupTitleWidths = new float[actualGroupCount];
+            float[] groupEstimatedHeights = new float[actualGroupCount];
+            int entryIdx = 0;
+            for (int gi = 0; gi < actualGroupCount; gi++) {
+                int start = gi * perColumn;
+                int end = Math.min(entries.size(), start + perColumn);
+                int cnt = end - start;
+                groupEntryCounts[gi] = cnt;
+                groupTitleWidths[gi] = 0f; // no title
+                // Estimate height for this group's entries.
+                float estH = 0f;
+                for (int ei = start; ei < end; ei++) {
+                    estH += estimateEntryHeight(entries.get(ei)) + ENTRY_GAP;
+                }
+                estH += GROUP_MARGIN;
+                groupEstimatedHeights[gi] = estH;
+            }
+
+            float[] entryTitleWidths = new float[totalEntryCount];
+            byte[] entryHasIcon = new byte[totalEntryCount];
+            float[] entryEstimatedHeights = new float[totalEntryCount];
+            int[] entrySubtitleLineCounts = new int[totalEntryCount];
+            java.util.ArrayList<Integer> lineWordCounts = new java.util.ArrayList<>();
+            java.util.ArrayList<Float> wordWidths = new java.util.ArrayList<>();
+            float spaceWidth = 0f;
+
+            for (int ei = 0; ei < totalEntryCount; ei++) {
+                MediaWikiSpecialListEntry e = entries.get(ei);
+                entryTitleWidths[ei] = GuideText.measureWidth(e.title() != null ? e.title() : "", LINK_STYLE);
+                entryHasIcon[ei] = (byte) (e.icon() != null ? 1 : 0);
+                entryEstimatedHeights[ei] = estimateEntryHeight(e);
+                // Subtitle word data
+                String sub = e.subtitle();
+                if (sub == null || sub.isEmpty()) {
+                    entrySubtitleLineCounts[ei] = 0;
+                } else {
+                    java.util.List<String> rawLines = GuideStringLines.splitLines(sub);
+                    entrySubtitleLineCounts[ei] = rawLines.size();
+                    for (String rawLine : rawLines) {
+                        String trimmed = rawLine.trim();
+                        if (trimmed.isEmpty()) {
+                            continue;
+                        }
+                        String[] words = trimmed.split("\\s+");
+                        lineWordCounts.add(words.length);
+                        for (String word : words) {
+                            if (word.isEmpty()) continue;
+                            float w = GuideText.measureWidth(word, SUBTITLE_STYLE);
+                            wordWidths.add(w);
+                        }
+                    }
+                }
+            }
+            // Measure space width from the first subtitle word if available, else default.
+            spaceWidth = GuideText.measureWidth(" ", SUBTITLE_STYLE);
+            if (spaceWidth <= 0f) spaceWidth = 4f; // fallback
+
+            int[] lwc = new int[lineWordCounts.size()];
+            for (int i = 0; i < lwc.length; i++) lwc[i] = lineWordCounts.get(i);
+            float[] ww = new float[wordWidths.size()];
+            for (int i = 0; i < ww.length; i++) ww[i] = wordWidths.get(i);
+
+            return new FontFacts.FontFactsImpl(
+                columnCount,
+                hasMoreFlag,
+                actualGroupCount,
+                groupTitleWidths,
+                groupEntryCounts,
+                groupEstimatedHeights,
+                totalEntryCount,
+                entryTitleWidths,
+                entryHasIcon,
+                entryEstimatedHeights,
+                entrySubtitleLineCounts,
+                lwc,
+                ww,
+                spaceWidth,
+                GuideText.lineHeight(LINK_STYLE),
+                GuideText.lineHeight(SUBTITLE_STYLE));
+        } else {
+            // ── Grouped entries: one group per result group ──
+            java.util.List<GroupLayout> groups = buildGroups(visibleResult);
+            int groupCount = groups.size();
+
+            float[] groupTitleWidths = new float[groupCount];
+            int[] groupEntryCounts = new int[groupCount];
+            float[] groupEstimatedHeights = new float[groupCount];
+
+            // First pass: compute per-group metadata and total entry count.
+            int totalEntryCount = 0;
+            for (int gi = 0; gi < groupCount; gi++) {
+                GroupLayout g = groups.get(gi);
+                float tw = 0f;
+                if (g.title() != null && !g.title()
+                    .isEmpty()) {
+                    tw = GuideText.measureWidth(g.title(), HEADER_STYLE);
+                }
+                groupTitleWidths[gi] = tw;
+                groupEntryCounts[gi] = g.entries()
+                    .size();
+                totalEntryCount += g.entries()
+                    .size();
+                groupEstimatedHeights[gi] = estimateHeight(g);
+            }
+
+            float[] entryTitleWidths = new float[totalEntryCount];
+            byte[] entryHasIcon = new byte[totalEntryCount];
+            float[] entryEstimatedHeights = new float[totalEntryCount];
+            int[] entrySubtitleLineCounts = new int[totalEntryCount];
+            java.util.ArrayList<Integer> lineWordCounts = new java.util.ArrayList<>();
+            java.util.ArrayList<Float> wordWidths = new java.util.ArrayList<>();
+            float spaceWidth = 0f;
+            int entryIdx = 0;
+
+            for (int gi = 0; gi < groupCount; gi++) {
+                GroupLayout g = groups.get(gi);
+                for (MediaWikiSpecialListEntry e : g.entries()) {
+                    entryTitleWidths[entryIdx] = GuideText.measureWidth(e.title() != null ? e.title() : "", LINK_STYLE);
+                    entryHasIcon[entryIdx] = (byte) (e.icon() != null ? 1 : 0);
+                    entryEstimatedHeights[entryIdx] = estimateEntryHeight(e);
+
+                    String sub = e.subtitle();
+                    if (sub == null || sub.isEmpty()) {
+                        entrySubtitleLineCounts[entryIdx] = 0;
+                    } else {
+                        java.util.List<String> rawLines = GuideStringLines.splitLines(sub);
+                        entrySubtitleLineCounts[entryIdx] = rawLines.size();
+                        for (String rawLine : rawLines) {
+                            String trimmed = rawLine.trim();
+                            if (trimmed.isEmpty()) continue;
+                            String[] words = trimmed.split("\\s+");
+                            lineWordCounts.add(words.length);
+                            for (String word : words) {
+                                if (word.isEmpty()) continue;
+                                float w = GuideText.measureWidth(word, SUBTITLE_STYLE);
+                                wordWidths.add(w);
+                            }
+                        }
+                    }
+                    entryIdx++;
+                }
+            }
+
+            spaceWidth = GuideText.measureWidth(" ", SUBTITLE_STYLE);
+            if (spaceWidth <= 0f) spaceWidth = 4f;
+
+            int[] lwc = new int[lineWordCounts.size()];
+            for (int i = 0; i < lwc.length; i++) lwc[i] = lineWordCounts.get(i);
+            float[] ww = new float[wordWidths.size()];
+            for (int i = 0; i < ww.length; i++) ww[i] = wordWidths.get(i);
+
+            return new FontFacts.FontFactsImpl(
+                columnCount,
+                hasMoreFlag,
+                groupCount,
+                groupTitleWidths,
+                groupEntryCounts,
+                groupEstimatedHeights,
+                totalEntryCount,
+                entryTitleWidths,
+                entryHasIcon,
+                entryEstimatedHeights,
+                entrySubtitleLineCounts,
+                lwc,
+                ww,
+                spaceWidth,
+                GuideText.lineHeight(LINK_STYLE),
+                GuideText.lineHeight(SUBTITLE_STYLE));
+        }
+    }
+
     private static final int SIDE_PADDING = 2;
     private static final int COLUMN_GAP = 10;
     private static final int GROUP_MARGIN = 6;
@@ -53,7 +316,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     private static final int HEADER_MARGIN_BOTTOM = 5;
     private static final int LOAD_MORE_HEIGHT = 18;
     private static final int LOAD_MORE_MARGIN_TOP = 2;
-    private static final String ELLIPSIS = "...";
     private static final ConstantColor LIST_MARKER_COLOR = ConstantColor.WHITE;
     private static final ResolvedTextStyle LINK_STYLE = TextStyle.builder()
         .apply(DefaultStyles.BODY_TEXT)
@@ -76,7 +338,6 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
     private static final ResolvedTextStyle EMPTY_STYLE = DefaultStyles.BODY_TEXT.mergeWith(DefaultStyles.BASE_STYLE);
-    private static final BorderRenderer BORDER_RENDERER = new BorderRenderer();
 
     private final List<RowLayout> rowLayouts = new ArrayList<>();
     private MediaWikiSpecialPageResult result = MediaWikiSpecialPageModels.info(
@@ -113,6 +374,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             definition = result.definition();
             visibilityCache = null;
             currentVisibleCount = resolveDefaultVisibleCount(result);
+            maxPrecomputedContentHeight = 0;
+            collectedFontFacts = null;
         }
     }
 
@@ -128,10 +391,64 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
 
     public void setRows(int rows) {
         this.rows = Math.max(1, rows);
+        maxPrecomputedContentHeight = 0;
+        collectedFontFacts = null;
     }
 
     public void setEmptyText(String emptyText) {
         this.emptyText = emptyText != null && !emptyText.isEmpty() ? emptyText : GuidebookText.MediaWikiNoPages.text();
+    }
+
+    /**
+     * Returns the precomputed max column content height (tallest column's content,
+     * excluding TOP_PADDING and BOTTOM_PADDING). Used by the Rust MeasureFunc.
+     * Equals ENTRY_HEIGHT when the visible result is empty.
+     * <p>
+     * Computed lazily when the cached value is zero (no layout pre-pass has run,
+     * or state was invalidated). Uses {@link #estimateEntryHeight} so no
+     * {@link LayoutContext} is needed.
+     */
+    public int getMaxPrecomputedContentHeight() {
+        if (maxPrecomputedContentHeight <= 0) {
+            maxPrecomputedContentHeight = computeMaxPrecomputedContentHeight();
+        }
+        return maxPrecomputedContentHeight;
+    }
+
+    /**
+     * Computes max column content height from block state alone, without
+     * requiring a {@link LayoutContext}. Falls back to {@link #estimateEntryHeight}
+     * for entry heights (which does not need text-width measurement).
+     */
+    private int computeMaxPrecomputedContentHeight() {
+        MediaWikiSpecialPageResult visibleResult = applyVisibility(result, searchQuery);
+        int columnCount = resolveColumnCount(visibleResult);
+        int innerWidth = 0; // not used for height calculation with estimateEntryHeight
+
+        if (isEmpty(visibleResult)) {
+            return ENTRY_HEIGHT;
+        }
+
+        List<List<GroupLayout>> columns = layoutColumns(visibleResult);
+        int maxColumnHeight = 0;
+        for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
+            int columnY = 0;
+            for (GroupLayout group : columns.get(columnIndex)) {
+                if (group.title() != null) {
+                    columnY += HEADER_MARGIN_TOP + HEADER_HEIGHT + HEADER_MARGIN_BOTTOM;
+                }
+                for (MediaWikiSpecialListEntry entry : group.entries()) {
+                    columnY += estimateEntryHeight(entry);
+                    columnY += ENTRY_GAP;
+                }
+                columnY += GROUP_MARGIN;
+            }
+            maxColumnHeight = Math.max(maxColumnHeight, columnY);
+        }
+        if (visibleResult.hasMore()) {
+            maxColumnHeight += LOAD_MORE_MARGIN_TOP + LOAD_MORE_HEIGHT;
+        }
+        return maxColumnHeight;
     }
 
     public void setSearchQuery(String searchQuery) {
@@ -148,6 +465,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             currentVisibleCount = resolveDefaultVisibleCount(result);
         }
         visibilityCache = null;
+        maxPrecomputedContentHeight = 0;
+        collectedFontFacts = null;
         invalidateLayout();
     }
 
@@ -177,23 +496,28 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     }
 
     @Override
-    protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+    protected void afterExternalLayout() {
+        // Recompute row layouts from Rust-computed bounds (the Java pre-pass
+        // no longer calls computeLayout). Uses computeEntryHeight with a
+        // GuideText fallback LayoutContext (no real FontMetrics available).
+        if (bounds.isEmpty()) return;
+        recomputeRowLayouts(bounds.x(), bounds.y(), bounds.width());
+    }
+
+    /** Shared row-layout computation for both the pre-pass and afterExternalLayout. */
+    private void recomputeRowLayouts(int x, int y, int availableWidth) {
         rowLayouts.clear();
         hoveredRow = null;
-
         MediaWikiSpecialPageResult visibleResult = applyVisibility(result, searchQuery);
         int columnCount = resolveColumnCount(visibleResult);
         int innerWidth = Math.max(0, availableWidth - SIDE_PADDING * 2);
         int columnWidth = Math.max(1, (innerWidth - COLUMN_GAP * (columnCount - 1)) / columnCount);
-
         if (isEmpty(visibleResult)) {
             rowLayouts
                 .add(new RowLayout(new LytRect(x + SIDE_PADDING, y + TOP_PADDING, innerWidth, ENTRY_HEIGHT), null));
-            return new LytRect(x, y, availableWidth, TOP_PADDING + ENTRY_HEIGHT + BOTTOM_PADDING);
+            return;
         }
-
         List<List<GroupLayout>> columns = layoutColumns(visibleResult);
-        int maxColumnHeight = 0;
         for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
             int columnX = x + SIDE_PADDING + columnIndex * (columnWidth + COLUMN_GAP);
             int columnY = y + TOP_PADDING;
@@ -206,7 +530,18 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     columnY += HEADER_MARGIN_TOP + HEADER_HEIGHT + HEADER_MARGIN_BOTTOM;
                 }
                 for (MediaWikiSpecialListEntry entry : group.entries()) {
-                    int entryHeight = computeEntryHeight(context, entry, columnWidth);
+                    int entryHeight = computeEntryHeight(new LayoutContext(new FontMetrics() {
+
+                        @Override
+                        public float getAdvance(int cp, ResolvedTextStyle s) {
+                            return GuideText.measureWidth(new String(Character.toChars(cp)), s);
+                        }
+
+                        @Override
+                        public int getLineHeight(ResolvedTextStyle s) {
+                            return GuideText.lineHeight(s);
+                        }
+                    }), entry, columnWidth);
                     rowLayouts.add(
                         new RowLayout(
                             new LytRect(columnX, columnY, columnWidth, entryHeight),
@@ -223,9 +558,14 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 }
                 columnY += GROUP_MARGIN;
             }
-            maxColumnHeight = Math.max(maxColumnHeight, columnY - y - TOP_PADDING);
         }
         if (visibleResult.hasMore()) {
+            int maxColumnHeight = rowLayouts.stream()
+                .mapToInt(
+                    rl -> rl.bounds()
+                        .bottom() - y)
+                .max()
+                .orElse(0);
             rowLayouts.add(
                 new RowLayout(
                     new LytRect(
@@ -234,9 +574,15 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                         innerWidth,
                         LOAD_MORE_HEIGHT),
                     RenderRow.loadMore()));
-            maxColumnHeight += LOAD_MORE_MARGIN_TOP + LOAD_MORE_HEIGHT;
         }
-        return new LytRect(x, y, availableWidth, TOP_PADDING + maxColumnHeight + BOTTOM_PADDING);
+    }
+
+    @Override
+    protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        recomputeRowLayouts(x, y, availableWidth);
+        // maxPrecomputedContentHeight has a lazy getter, so it will be
+        // computed on demand if not set here.
+        return new LytRect(x, y, availableWidth, TOP_PADDING + getMaxPrecomputedContentHeight() + BOTTOM_PADDING);
     }
 
     @Override
@@ -245,10 +591,15 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
     }
 
     @Override
-    public void render(RenderContext context) {
-        renderBorders(context);
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        emitBorders(c);
         for (RowLayout rowLayout : rowLayouts) {
-            if (!context.intersectsViewport(rowLayout.bounds())) {
+            if (c.isCulled(rowLayout.bounds())) {
                 continue;
             }
 
@@ -258,11 +609,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 int emptyTextY = rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         EMPTY_STYLE,
                         rowLayout.bounds()
                             .height());
-                context.drawText(
+                emitText(
+                    c,
                     emptyText,
                     rowLayout.bounds()
                         .x(),
@@ -273,20 +624,20 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
 
             if (row.header()) {
                 rowLayout.setClickableBounds(LytRect.empty());
-                String renderedHeader = clipToWidth(
-                    context,
+                String renderedHeader = GuideText.clipToWidth(
                     row.title(),
                     rowLayout.bounds()
                         .width(),
-                    HEADER_STYLE);
+                    HEADER_STYLE,
+                    GuideText.ClipSuffix.DOTS3);
                 int headerTextY = rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         HEADER_STYLE,
                         rowLayout.bounds()
                             .height());
-                context.drawText(
+                emitText(
+                    c,
                     renderedHeader,
                     rowLayout.bounds()
                         .x(),
@@ -301,11 +652,11 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 int loadMoreY = rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         rowStyle,
                         rowLayout.bounds()
                             .height());
-                context.drawText(
+                emitText(
+                    c,
                     GuidebookText.SpecialPageShowMore.text(),
                     rowLayout.bounds()
                         .x(),
@@ -325,28 +676,34 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     - LIST_MARKER_SIZE
                     - LIST_MARKER_GAP
                     - (row.icon() != null ? ICON_SIZE + ICON_GAP : 0));
-            List<String> subtitleLines = wrapLines(context, row.subtitle(), textMaxWidth, SUBTITLE_STYLE);
+            List<String> subtitleLines = GuideText.wrap(row.subtitle(), textMaxWidth, SUBTITLE_STYLE);
             int markerX = rowLayout.bounds()
                 .x();
             int contentTop = rowLayout.bounds()
-                .y() + rowContentTop(context, rowStyle, subtitleLines);
-            int contentHeight = rowContentHeight(context, rowStyle, subtitleLines);
+                .y() + rowContentTop(rowStyle, subtitleLines);
+            int contentHeight = rowContentHeight(rowStyle, subtitleLines);
             int markerY = contentTop + Math.max(0, (contentHeight - LIST_MARKER_SIZE) / 2);
-            context.fillRect(markerX, markerY, LIST_MARKER_SIZE, LIST_MARKER_SIZE, LIST_MARKER_COLOR);
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    markerX,
+                    markerY,
+                    LIST_MARKER_SIZE,
+                    LIST_MARKER_SIZE,
+                    LIST_MARKER_COLOR.resolve()));
 
             int textX = markerX + LIST_MARKER_SIZE + LIST_MARKER_GAP;
             if (row.icon() != null) {
-                renderIcon(context, row.icon(), textX, contentTop + Math.max(0, (contentHeight - ICON_SIZE) / 2));
+                emitIcon(c, row.icon(), textX, contentTop + Math.max(0, (contentHeight - ICON_SIZE) / 2));
                 textX += ICON_SIZE + ICON_GAP;
             }
-            String renderedTitle = clipToWidth(
-                context,
+            String renderedTitle = GuideText.clipToWidth(
                 row.title(),
                 Math.max(
                     1,
                     rowLayout.bounds()
                         .right() - textX),
-                rowStyle);
+                rowStyle,
+                GuideText.ClipSuffix.DOTS3);
             String fullTitle = row.title() != null ? row.title() : "";
             boolean titleClipped = isClipped(renderedTitle, fullTitle);
             String fullSubtitle = row.subtitle() != null ? row.subtitle() : "";
@@ -355,36 +712,35 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                 : rowLayout.bounds()
                     .y()
                     + verticalCenterOffset(
-                        context,
                         rowStyle,
                         rowLayout.bounds()
                             .height());
-            context.drawText(renderedTitle, textX, titleY, rowStyle);
+            emitText(c, renderedTitle, textX, titleY, rowStyle);
 
             int clickableWidth = textX - rowLayout.bounds()
                 .x();
             if (renderedTitle != null && !renderedTitle.isEmpty()) {
-                clickableWidth += context.getStringWidth(renderedTitle, rowStyle);
+                clickableWidth += GuideText.measureWidth(renderedTitle, rowStyle);
             }
-            int clickableHeight = context.getLineHeight(rowStyle);
+            int clickableHeight = GuideText.lineHeight(rowStyle);
 
             if (row.subtitle() != null && !row.subtitle()
                 .isEmpty()) {
                 boolean subtitleClipped = areLinesClipped(subtitleLines, fullSubtitle);
-                int subtitleY = contentTop + context.getLineHeight(rowStyle) + TITLE_SUBTITLE_GAP;
+                int subtitleY = contentTop + GuideText.lineHeight(rowStyle) + TITLE_SUBTITLE_GAP;
                 for (String subtitleLine : subtitleLines) {
-                    context.drawText(subtitleLine, textX, subtitleY, SUBTITLE_STYLE);
+                    emitText(c, subtitleLine, textX, subtitleY, SUBTITLE_STYLE);
                     clickableWidth = Math.max(
                         clickableWidth,
                         textX - rowLayout.bounds()
-                            .x() + context.getStringWidth(subtitleLine, SUBTITLE_STYLE));
-                    subtitleY += context.getLineHeight(SUBTITLE_STYLE);
+                            .x() + GuideText.measureWidth(subtitleLine, SUBTITLE_STYLE));
+                    subtitleY += GuideText.lineHeight(SUBTITLE_STYLE);
                 }
                 clickableWidth = Math.max(
                     clickableWidth,
                     textX - rowLayout.bounds()
                         .x());
-                clickableHeight = rowContentHeight(context, rowStyle, subtitleLines);
+                clickableHeight = rowContentHeight(rowStyle, subtitleLines);
                 rowLayout.setTooltip(
                     titleClipped || subtitleClipped ? new TextTooltip(fullTitle + "\n" + fullSubtitle)
                         : titleClipped ? new TextTooltip(fullTitle)
@@ -407,6 +763,13 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
                     Math.max(ICON_SIZE, clickableHeight)) : LytRect.empty());
         }
     }
+
+    /**
+     * Migrated to {@link #computePrimitives}; the legacy path is unreachable
+     * (the collector only invokes it when {@link #usePrimitives()} is false).
+     */
+    @Override
+    public void render(RenderContext context) {}
 
     @Override
     public boolean mouseClicked(GuideUiHost screen, int x, int y, int button, boolean doubleClick) {
@@ -670,6 +1033,8 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             Integer.MAX_VALUE - MediaWikiSpecialPageQuery.PAGE_SIZE,
             currentVisibleCount + MediaWikiSpecialPageQuery.PAGE_SIZE);
         visibilityCache = null;
+        maxPrecomputedContentHeight = 0;
+        collectedFontFacts = null;
         invalidateLayout();
     }
 
@@ -707,30 +1072,30 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         return findClickableRow(x, y);
     }
 
-    private int verticalCenterOffset(RenderContext context, ResolvedTextStyle style, int boxHeight) {
-        return Math.max(0, (boxHeight - context.getLineHeight(style)) / 2);
+    private int verticalCenterOffset(ResolvedTextStyle style, int boxHeight) {
+        return Math.max(0, (boxHeight - GuideText.lineHeight(style)) / 2);
     }
 
-    private int rowContentTop(RenderContext context, ResolvedTextStyle style, List<String> subtitleLines) {
+    private int rowContentTop(ResolvedTextStyle style, List<String> subtitleLines) {
         if (subtitleLines.isEmpty()) {
             return 0;
         }
         return ENTRY_VERTICAL_PADDING_TOP;
     }
 
-    private int rowContentHeight(RenderContext context, ResolvedTextStyle style, List<String> subtitleLines) {
+    private int rowContentHeight(ResolvedTextStyle style, List<String> subtitleLines) {
         if (subtitleLines.isEmpty()) {
-            return Math.max(context.getLineHeight(style), ICON_SIZE);
+            return Math.max(GuideText.lineHeight(style), ICON_SIZE);
         }
         return Math.max(
             ICON_SIZE,
-            context.getLineHeight(style) + TITLE_SUBTITLE_GAP
-                + context.getLineHeight(SUBTITLE_STYLE) * subtitleLines.size());
+            GuideText.lineHeight(style) + TITLE_SUBTITLE_GAP
+                + GuideText.lineHeight(SUBTITLE_STYLE) * subtitleLines.size());
     }
 
     private int computeEntryHeight(LayoutContext context, MediaWikiSpecialListEntry entry, int columnWidth) {
         int textMaxWidth = computeTextMaxWidth(columnWidth, entry.icon() != null);
-        List<String> subtitleLines = wrapLines(context, entry.subtitle(), textMaxWidth, SUBTITLE_STYLE);
+        List<String> subtitleLines = GuideText.wrap(entry.subtitle(), textMaxWidth, SUBTITLE_STYLE);
         if (subtitleLines.isEmpty()) {
             return ENTRY_HEIGHT;
         }
@@ -750,140 +1115,15 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
             1,
             GuideStringLines.splitLines(entry.subtitle())
                 .size());
+        int lineHeight = GuideText.lineHeight(SUBTITLE_STYLE);
         return Math.max(
             ENTRY_HEIGHT,
-            ENTRY_VERTICAL_PADDING_TOP + Math.max(ICON_SIZE, 9 + TITLE_SUBTITLE_GAP + 9 * lineCount)
+            ENTRY_VERTICAL_PADDING_TOP + Math.max(ICON_SIZE, lineHeight + TITLE_SUBTITLE_GAP + lineHeight * lineCount)
                 + ENTRY_VERTICAL_PADDING_BOTTOM);
     }
 
     private int computeTextMaxWidth(int columnWidth, boolean hasIcon) {
         return Math.max(1, columnWidth - LIST_MARKER_SIZE - LIST_MARKER_GAP - (hasIcon ? ICON_SIZE + ICON_GAP : 0));
-    }
-
-    private List<String> wrapLines(LayoutContext context, @Nullable String text, int maxWidth,
-        ResolvedTextStyle style) {
-        if (text == null || text.isEmpty()) {
-            return List.of();
-        }
-        ArrayList<String> lines = new ArrayList<>();
-        for (String rawLine : GuideStringLines.splitLines(text)) {
-            appendWrappedLine(context, rawLine, maxWidth, style, lines);
-        }
-        return lines;
-    }
-
-    private List<String> wrapLines(RenderContext context, @Nullable String text, int maxWidth,
-        ResolvedTextStyle style) {
-        if (text == null || text.isEmpty()) {
-            return List.of();
-        }
-        ArrayList<String> lines = new ArrayList<>();
-        for (String rawLine : GuideStringLines.splitLines(text)) {
-            appendWrappedLine(context, rawLine, maxWidth, style, lines);
-        }
-        return lines;
-    }
-
-    private void appendWrappedLine(LayoutContext context, String rawLine, int maxWidth, ResolvedTextStyle style,
-        List<String> output) {
-        String line = rawLine != null ? rawLine.trim() : "";
-        if (line.isEmpty()) {
-            return;
-        }
-        if (measureTextWidth(context, style, line) <= maxWidth) {
-            output.add(line);
-            return;
-        }
-        String[] words = line.split("\\s+");
-        StringBuilder current = new StringBuilder();
-        for (String word : words) {
-            if (word == null || word.isEmpty()) {
-                continue;
-            }
-            String candidate = current.isEmpty() ? word : current + " " + word;
-            if (measureTextWidth(context, style, candidate) <= maxWidth) {
-                current.setLength(0);
-                current.append(candidate);
-                continue;
-            }
-            if (!current.isEmpty()) {
-                output.add(current.toString());
-                current.setLength(0);
-            }
-            appendBrokenWord(context, word, maxWidth, style, output);
-        }
-        if (!current.isEmpty()) {
-            output.add(current.toString());
-        }
-    }
-
-    private void appendWrappedLine(RenderContext context, String rawLine, int maxWidth, ResolvedTextStyle style,
-        List<String> output) {
-        String line = rawLine != null ? rawLine.trim() : "";
-        if (line.isEmpty()) {
-            return;
-        }
-        if (context.getStringWidth(line, style) <= maxWidth) {
-            output.add(line);
-            return;
-        }
-        String[] words = line.split("\\s+");
-        StringBuilder current = new StringBuilder();
-        for (String word : words) {
-            if (word == null || word.isEmpty()) {
-                continue;
-            }
-            String candidate = current.isEmpty() ? word : current + " " + word;
-            if (context.getStringWidth(candidate, style) <= maxWidth) {
-                current.setLength(0);
-                current.append(candidate);
-                continue;
-            }
-            if (!current.isEmpty()) {
-                output.add(current.toString());
-                current.setLength(0);
-            }
-            appendBrokenWord(context, word, maxWidth, style, output);
-        }
-        if (!current.isEmpty()) {
-            output.add(current.toString());
-        }
-    }
-
-    private void appendBrokenWord(LayoutContext context, String word, int maxWidth, ResolvedTextStyle style,
-        List<String> output) {
-        if (measureTextWidth(context, style, word) <= maxWidth) {
-            output.add(word);
-            return;
-        }
-        int start = 0;
-        while (start < word.length()) {
-            int end = start + 1;
-            while (end <= word.length() && measureTextWidth(context, style, word.substring(start, end)) <= maxWidth) {
-                end++;
-            }
-            int safeEnd = Math.max(start + 1, end - 1);
-            output.add(word.substring(start, safeEnd));
-            start = safeEnd;
-        }
-    }
-
-    private void appendBrokenWord(RenderContext context, String word, int maxWidth, ResolvedTextStyle style,
-        List<String> output) {
-        if (context.getStringWidth(word, style) <= maxWidth) {
-            output.add(word);
-            return;
-        }
-        int start = 0;
-        while (start < word.length()) {
-            int end = start + 1;
-            while (end <= word.length() && context.getStringWidth(word.substring(start, end), style) <= maxWidth) {
-                end++;
-            }
-            int safeEnd = Math.max(start + 1, end - 1);
-            output.add(word.substring(start, safeEnd));
-            start = safeEnd;
-        }
     }
 
     private boolean areLinesClipped(List<String> renderedLines, String originalText) {
@@ -903,61 +1143,91 @@ public class MediaWikiSpecialGeneratedBlock extends LytBlock implements Interact
         return false;
     }
 
-    private int measureTextWidth(LayoutContext context, ResolvedTextStyle style, String text) {
-        if (text == null || text.isEmpty()) {
-            return 0;
-        }
-        float width = 0f;
-        int offset = 0;
-        while (offset < text.length()) {
-            int codePoint = text.codePointAt(offset);
-            width += context.getAdvance(codePoint, style);
-            offset += Character.charCount(codePoint);
-        }
-        return Math.round(width);
-    }
-
-    private void renderIcon(RenderContext context, GuidePageIcon icon, int x, int y) {
+    private void emitIcon(PrimitiveCollector c, GuidePageIcon icon, int x, int y) {
         if (icon.isItemIcon() && icon.resolveCurrentItemStack() != null) {
-            context.renderItemIcon(icon.resolveCurrentItemStack(), x, y);
+            c.emit(new GuideRenderPrimitive.RenderItem(icon.resolveCurrentItemStack(), x, y));
             return;
         }
-        if (icon.resolveCurrentTexture() != null) {
-            context.fillTexturedRect(new LytRect(x, y, ICON_SIZE, ICON_SIZE), icon.resolveCurrentTexture());
+        GuidePageTexture texture = icon.resolveCurrentTexture();
+        if (texture == null || texture.isMissing()) {
+            return;
+        }
+        ResourceLocation resolvedTexture = texture.getTexture();
+        int texId = resolvedTexture != null ? getGlTextureId(resolvedTexture) : -1;
+        if (texId >= 0) {
+            c.emit(new GuideRenderPrimitive.BlitTexture(texId, x, y, ICON_SIZE, ICON_SIZE, 0f, 0f, 1f, 1f));
         }
     }
 
-    private void renderBorders(RenderContext context) {
+    private void emitBorders(PrimitiveCollector c) {
         if (getBorderTop().width() <= 0 && getBorderLeft().width() <= 0
             && getBorderRight().width() <= 0
             && getBorderBottom().width() <= 0) {
             return;
         }
-        BORDER_RENDERER.render(context, bounds, getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom());
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                getBorderTop().width(),
+                getBorderLeft().width(),
+                getBorderBottom().width(),
+                getBorderRight().width(),
+                resolveBorderArgb()));
     }
 
-    private String clipToWidth(RenderContext context, String text, int maxWidth, ResolvedTextStyle style) {
-        if (text == null || text.isEmpty() || context.getStringWidth(text, style) <= maxWidth) {
-            return text == null ? "" : text;
+    private int resolveBorderArgb() {
+        // DrawBorder is single-color; use the first side that declares one.
+        // This block's callers set top+bottom with the same color
+        // (ColorUtils.TABLE_BORDER), so the single color is exact here.
+        BorderStyle[] sides = { getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom() };
+        for (BorderStyle side : sides) {
+            var color = side.color();
+            if (color != null) {
+                return color.resolve();
+            }
         }
-
-        int ellipsisWidth = context.getStringWidth("...", style);
-        if (ellipsisWidth >= maxWidth) {
-            return ELLIPSIS;
-        }
-
-        int end = text.length();
-        while (end > 0 && context.getStringWidth(text.substring(0, end), style) + ellipsisWidth > maxWidth) {
-            end--;
-        }
-        return end <= 0 ? ELLIPSIS : text.substring(0, end) + ELLIPSIS;
+        return 0xFF000000;
     }
 
     private boolean isClipped(String rendered, String original) {
         if (original == null || original.isEmpty()) {
             return false;
         }
-        return rendered != null && rendered.endsWith("...") && !rendered.equals(original);
+        return rendered != null && !rendered.equals(original);
+    }
+
+    /**
+     * Emits {@code text} through the unified {@link GuideText} glyph pipeline
+     * at document position {@code (x, lineTop)}; {@code lineTop} is the line
+     * top (baseline = lineTop + ascent × fontScale), not the MC baseline.
+     * <p>
+     * GuideText does not paint decorations; the underline of
+     * {@link #HOVER_LINK_STYLE} is therefore drawn manually as a 1px
+     * {@link GuideRenderPrimitive.FillRect} 1px below the baseline, spanning
+     * the measured text width (same width the glyph run occupies).
+     */
+    private static void emitText(PrimitiveCollector c, String text, int x, int lineTop, ResolvedTextStyle style) {
+        GuideText.emitText(c, text, x, lineTop, style);
+        if (style != null && style.underlined() && text != null && !text.isEmpty()) {
+            int width = GuideText.measureWidth(text, style);
+            int underlineY = Math.round(GuideText.baselineOf(lineTop, style)) + 1;
+            c.emit(new GuideRenderPrimitive.FillRect(x, underlineY, width, 1, GuideText.resolveColor(style)));
+        }
+    }
+
+    private static int getGlTextureId(ResourceLocation res) {
+        try {
+            ITextureObject tex = Minecraft.getMinecraft()
+                .getTextureManager()
+                .getTexture(res);
+            return tex != null ? tex.getGlTextureId() : -1;
+        } catch (Throwable t) {
+            // Headless (unit tests) or texture unavailable: skip drawing.
+            return -1;
+        }
     }
 
     private record GroupLayout(@Nullable String title, List<MediaWikiSpecialListEntry> entries) {}

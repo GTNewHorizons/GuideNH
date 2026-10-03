@@ -59,7 +59,7 @@ class ScriptContextImpl implements ScriptContext {
         // so the block can participate in inline flow layout. At MOUNT time the
         // dispatch passes the wrapper as "this.node", not the inner placeholder.
         //
-        // The wrapper IS the correct replacement target — swapping its inner block
+        // The wrapper IS the correct replacement target: swapping its inner block
         // via setBlock() preserves the flow-layout context (alignment, line-breaking,
         // float registration) that the compiler set up.
         //
@@ -67,6 +67,7 @@ class ScriptContextImpl implements ScriptContext {
         // discussion of why Flow and Block trees are separate and how this bridge works.
         //
         if (node instanceof LytFlowInlineBlock wrapper && newNode instanceof LytBlock newBlock) {
+            inheritUid(wrapper, newBlock);
             wrapper.setBlock(newBlock);
             recordResult(newBlock);
             return;

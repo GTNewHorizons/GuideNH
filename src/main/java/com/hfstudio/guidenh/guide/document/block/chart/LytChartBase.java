@@ -16,6 +16,9 @@ import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
 import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
@@ -30,8 +33,8 @@ import lombok.Setter;
  */
 public abstract class LytChartBase extends LytBlock implements InteractiveElement {
 
-    protected static final int DEFAULT_WIDTH = 320;
-    protected static final int DEFAULT_HEIGHT = 200;
+    public static final int DEFAULT_WIDTH = 320;
+    public static final int DEFAULT_HEIGHT = 200;
     protected static final int PADDING = 8;
     protected static final int TITLE_GAP = 4;
     protected static final int LEGEND_GAP = 6;
@@ -70,20 +73,115 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     @Setter
     private int cornerLegendBackgroundColor = CornerLegendRenderer.DEFAULT_BACKGROUND;
 
-    public int getExplicitWidth() {
-        return explicitWidth;
-    }
-
-    public int getExplicitHeight() {
-        return explicitHeight;
-    }
-
     /** Currently hovered hit key; {@code -1} means none. The exact semantics is decided by each subclass. */
     protected int hoveredKey = -1;
+
+    /**
+     * Chrome height (title + legend + padding), cached during {@link #computeLayout}
+     * for serialization into PieChartData.
+     * Computed lazily when accessed and still zero (no pre-pass), using static
+     * font metrics via {@link GuideText} instead of {@link LayoutContext}.
+     */
+    private int chromeHeight;
+
+    /**
+     * Returns the chrome height, computing it lazily if no layout pass has been run.
+     * Uses {@link GuideText} static font metrics so it works without a {@link LayoutContext}.
+     * <p>
+     * NOTE: This is only used by the Java render path (computeLayout for scaling).
+     * The Rust measure path now computes chrome internally from the final width,
+     * using legend wrapping transplanted from {@link ChartLegendRenderer}.
+     * See measure.rs for the Rust-side computation.
+     */
+    public int getChromeHeight() {
+        if (chromeHeight <= 0) {
+            chromeHeight = computeChromeHeightForWidth(preferredWidth());
+        }
+        return chromeHeight;
+    }
+
+    /**
+     * Computes chrome height purely from block fields and static font metrics.
+     * Does NOT require a {@link LayoutContext}, so it works even without the
+     * Java layout pre-pass having been run.
+     */
+    private int computeChromeHeightForWidth(int width) {
+        int chrome = PADDING * 2;
+        if (title != null && !title.isEmpty()) {
+            chrome += GuideText.lineHeight(textStyle(titleColor)) + TITLE_GAP;
+        }
+        int contentWidth = Math.max(1, width - PADDING * 2);
+        chrome += ChartLegendRenderer.measureHeightStatic(collectLegendEntries(), legendPosition, contentWidth);
+        if (legendPosition == ChartLegendPosition.TOP || legendPosition == ChartLegendPosition.BOTTOM) {
+            chrome += legendPosition == ChartLegendPosition.NONE ? 0 : LEGEND_GAP;
+        }
+        return chrome;
+    }
+
+    /**
+     * Returns the title chrome (lineHeight + TITLE_GAP), width-independent,
+     * for Rust-side chrome computation. 0 if no title is set.
+     */
+    public float getTitleChromeForRust() {
+        if (title != null && !title.isEmpty()) {
+            return GuideText.lineHeight(textStyle(titleColor)) + TITLE_GAP;
+        }
+        return 0f;
+    }
+
+    /**
+     * Returns the legend position as a byte matching the schema:
+     * 0=NONE, 1=TOP, 2=BOTTOM, 3=LEFT, 4=RIGHT.
+     */
+    public byte getLegendPositionForRust() {
+        return switch (legendPosition) {
+            case TOP -> (byte) 1;
+            case BOTTOM -> (byte) 2;
+            case LEFT -> (byte) 3;
+            case RIGHT -> (byte) 4;
+            default -> (byte) 0;
+        };
+    }
+
+    /**
+     * Returns the legend row height (max of swatch size and line height)
+     * for Rust-side chrome computation.
+     */
+    public float getLegendRowHeightForRust() {
+        ResolvedTextStyle legendStyle = textStyle(ColorUtils.ARGB_FFCCCCCC.getColor());
+        int lineHeight = GuideText.lineHeight(legendStyle);
+        return Math.max(LEGEND_SWATCH_SIZE, lineHeight);
+    }
+
+    /**
+     * Returns per-legend-entry label widths for Rust-side chrome computation.
+     * Each entry's width = LEGEND_SWATCH_SIZE + SWATCH_TEXT_GAP + measureWidth(label, legendStyle).
+     */
+    public float[] getLegendLabelWidthsForRust() {
+        List<ChartLegendRenderer.LegendEntry> entries = collectLegendEntries();
+        ResolvedTextStyle legendStyle = textStyle(ColorUtils.ARGB_FFCCCCCC.getColor());
+        float[] widths = new float[entries.size()];
+        for (int i = 0; i < entries.size(); i++) {
+            ChartLegendRenderer.LegendEntry entry = entries.get(i);
+            int labelW = GuideText.measureWidth(entry.name, legendStyle);
+            widths[i] = LEGEND_SWATCH_SIZE + ChartLegendRenderer.getSwatchTextGap() + labelW;
+        }
+        return widths;
+    }
 
     public void setExplicitSize(int width, int height) {
         this.explicitWidth = width > 0 ? width : -1;
         this.explicitHeight = height > 0 ? height : -1;
+    }
+
+    @Override
+    public int getExplicitWidth() {
+        return explicitWidth;
+    }
+
+    @Override
+    public int getExplicitHeight() {
+        return explicitHeight;
     }
 
     public void setLegendPosition(ChartLegendPosition legendPosition) {
@@ -109,12 +207,10 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         width = ResponsiveVisualSizing.scaleWidth(width, context.getVisualScale(), 64);
         int height = explicitHeight > 0 ? explicitHeight : DEFAULT_HEIGHT;
         width = Math.max(1, Math.min(width, availableWidth));
-        height = ResponsiveVisualSizing.scaleBodyHeightForWidth(
-            preferredWidth(),
-            height,
-            width,
-            estimateFixedChromeHeight(context, width),
-            MIN_PLOT_HEIGHT);
+        int estimatedChrome = estimateFixedChromeHeight(context, width);
+        this.chromeHeight = estimatedChrome;
+        height = ResponsiveVisualSizing
+            .scaleBodyHeightForWidth(preferredWidth(), height, width, estimatedChrome, MIN_PLOT_HEIGHT);
         return new LytRect(x, y, width, height);
     }
 
@@ -140,7 +236,7 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
      * Subclasses override to request additional horizontal space (for example, a side-mounted pie inset).
      * Default 0.
      */
-    protected int getExtraPlotWidth() {
+    public int getExtraPlotWidth() {
         return 0;
     }
 
@@ -148,9 +244,30 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
     protected void onLayoutMoved(int deltaX, int deltaY) {}
 
     @Override
-    public final void render(RenderContext context) {
-        context.fillRect(bounds, backgroundColor);
-        context.drawBorder(bounds, borderColor, 1);
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public final void computePrimitives(PrimitiveCollector c) {
+        c.emit(
+            new GuideRenderPrimitive.FillRect(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                backgroundColor));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                1,
+                1,
+                1,
+                1,
+                borderColor));
 
         ResolvedTextStyle textStyle = textStyle(ColorUtils.WHITE.getColor());
         int contentTop = bounds.y() + PADDING;
@@ -160,16 +277,16 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
 
         if (title != null && !title.isEmpty()) {
             ResolvedTextStyle titleStyle = textStyle(titleColor);
-            int titleWidth = context.getStringWidth(title, titleStyle);
+            int titleWidth = GuideText.measureWidth(title, titleStyle);
             int titleX = bounds.x() + (bounds.width() - titleWidth) / 2;
-            context.drawText(title, titleX, contentTop, titleStyle);
-            contentTop += context.getLineHeight(titleStyle) + TITLE_GAP;
+            GuideText.emitText(c, title, titleX, contentTop, titleStyle);
+            contentTop += GuideText.lineHeight(titleStyle) + TITLE_GAP;
         }
 
         // Compute legend area.
         List<ChartLegendRenderer.LegendEntry> legend = collectLegendEntries();
         ChartLegendRenderer.Layout legendLayout = ChartLegendRenderer
-            .computeLayout(context, legend, legendPosition, contentLeft, contentTop, contentRight, contentBottom);
+            .computeLayout(legend, legendPosition, contentLeft, contentTop, contentRight, contentBottom);
 
         int plotLeft = legendLayout.plotLeft;
         int plotTop = legendLayout.plotTop;
@@ -180,23 +297,30 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
         }
         LytRect plotRect = new LytRect(plotLeft, plotTop, plotRight - plotLeft, plotBottom - plotTop);
 
-        renderChart(context, plotRect);
-        CornerLegendRenderer.render(
-            context,
-            plotRect,
+        LytRect innerPlotRect = renderChart(c, plotRect);
+        if (innerPlotRect == null || innerPlotRect.isEmpty()) {
+            innerPlotRect = plotRect;
+        }
+        CornerLegendRenderer.emit(
+            c,
+            innerPlotRect,
             collectCornerLegendEntries(),
             cornerLegendPosition,
             cornerLegendWidth,
             cornerLegendHeight,
             cornerLegendBackgroundColor);
-        ChartLegendRenderer.render(context, legendLayout, textStyle);
+        ChartLegendRenderer.emit(c, legendLayout, textStyle);
     }
+
+    @Override
+    public final void render(RenderContext context) {}
 
     /**
      * Subclasses implement the chart-specific drawing; {@code plotRect} has already excluded the space
      * occupied by the title and legend.
      */
-    protected abstract void renderChart(RenderContext context, LytRect plotRect);
+    /** @return the inner rectangle actually used for data plotting (may be {@code plotRect} itself) */
+    protected abstract LytRect renderChart(PrimitiveCollector c, LytRect plotRect);
 
     /**
      * Collect legend entries; empty by default. Subclasses override as needed.
@@ -292,7 +416,8 @@ public abstract class LytChartBase extends LytBlock implements InteractiveElemen
             TextAlignment.LEFT,
             false,
             null,
-            false);
+            false,
+            0.0f);
     }
 
     public static String formatPercent(double ratio) {

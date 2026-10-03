@@ -9,7 +9,7 @@ import com.hfstudio.guidenh.integration.api.RecipeEntry;
 import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 /**
- * Preserves the historical site layout: 3脳3 flow grid + optional supporting column + result slot.
+ * Preserves the historical site layout: 3 x 3 flow grid + optional supporting column + result slot.
  */
 public class DefaultSiteRecipeLayoutStrategy implements SiteRecipeLayoutStrategy {
 

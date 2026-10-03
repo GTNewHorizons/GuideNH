@@ -27,13 +27,16 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.Guide;
+import com.hfstudio.guidenh.guide.internal.AsyncWorker;
 import com.hfstudio.guidenh.guide.internal.DirectoryResourcePack;
 import com.hfstudio.guidenh.guide.internal.GuideDevelopmentResourcePacks;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuideResourcePackScanner.GuideLanguage;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuideResourcePackScanner.PackEntry;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuideResourcePackScanner.PackScan;
+import com.hfstudio.guidenh.guide.internal.localization.GuideLanguageIndex;
 import com.hfstudio.guidenh.guide.internal.resource.GuideResourceAccess;
+import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.mixins.early.fml.AccessorFMLClientHandler;
 import com.hfstudio.guidenh.mixins.early.minecraft.AccessorAbstractResourcePack;
@@ -52,6 +55,11 @@ public class DataDrivenGuideLoader {
     public record ScanResult(Map<ResourceLocation, MutableGuide> guides, Map<String, LinkedHashSet<String>> pagePaths,
         Map<ResourceLocation, Set<String>> discoveredLanguages) {}
 
+    /**
+     * Identity of a scanned archive. A value key is required because every reload builds new
+     * resource-pack instances, and the pack view matters as well: one archive can expose several
+     * packs rooted below different folders of the same file.
+     */
     private record ZipCacheKey(String folder, ResourcePackViewKey view) {}
 
     private record CachedZipScan(long size, long lastModified, PackScan scan) {
@@ -131,7 +139,35 @@ public class DataDrivenGuideLoader {
         lastZipScanCache = nextZipCache;
         indexReady = true;
 
+        scheduleLanguageIndexWarmup();
+
         return new ScanResult(guides, pagePaths, freezeDiscoveredLanguages(discoveredLanguages));
+    }
+
+    /**
+     * Submits a background warm-up of the guide resource language index once the active resource
+     * packs are known, so the first (and only) full {@code .lang} scan happens off the client
+     * thread instead of blocking the first Ponder scene's localization on page open.
+     */
+    private static void scheduleLanguageIndexWarmup() {
+        List<IResourcePack> packs = getLastActiveResourcePacks();
+        if (packs.isEmpty()) {
+            return;
+        }
+        LinkedHashSet<String> languages = new LinkedHashSet<>();
+        String current = LangUtil.getCurrentLanguage();
+        if (current != null && !current.isEmpty()) {
+            languages.add(LangUtil.normalizeLanguage(current));
+        }
+        languages.add(DEFAULT_LANGUAGE);
+        if (languages.isEmpty()) {
+            return;
+        }
+        AsyncWorker.submit("guidenh:resourceLangIndexWarmup", () -> {
+            for (String language : languages) {
+                GuideLanguageIndex.indexLanguage(language);
+            }
+        });
     }
 
     public static @Nullable List<PackCandidate> getCandidatesFor(ResourceLocation pageLocation) {
@@ -166,6 +202,13 @@ public class DataDrivenGuideLoader {
         indexReady = false;
         pagePackOrder.set(0);
         // Keep immutable ZIP scans; archive size + timestamp cheaply validates them next time.
+    }
+
+    private static File normalizePackRoot(File resourcePackRoot) {
+        return resourcePackRoot.toPath()
+            .toAbsolutePath()
+            .normalize()
+            .toFile();
     }
 
     private static void applyPackScan(IResourcePack resourcePack, String folder, PackScan scan,
@@ -229,13 +272,6 @@ public class DataDrivenGuideLoader {
             root != null ? normalizePackRoot(root) : null,
             resourcePack.getClass(),
             resourcePack.getPackName());
-    }
-
-    private static File normalizePackRoot(File resourcePackFile) {
-        return resourcePackFile.toPath()
-            .toAbsolutePath()
-            .normalize()
-            .toFile();
     }
 
     public static Set<String> discoverPagePaths(ResourceLocation guideId, String folder) {

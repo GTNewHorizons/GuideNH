@@ -48,7 +48,9 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.config.ModConfig;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.document.DefaultStyles;
+import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
@@ -66,7 +68,10 @@ import com.hfstudio.guidenh.guide.internal.ui.GuideSliderRenderer;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldAnnotation;
 import com.hfstudio.guidenh.guide.scene.annotation.InWorldBlockFaceOverlayAnnotation;
@@ -119,6 +124,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibTooltipContentBuilder;
+import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -159,9 +165,27 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public static final int ORIGIN_Z_AXIS_COLOR = ColorUtils.Z_AXIS.getColor();
     public static final ResolvedTextStyle VISIBLE_LAYER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
-    public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
+    /**
+     * GuideText glyph-pipeline styles for the 3 bottom-control slider labels
+     * Dedicated constants - {@link #VISIBLE_LAYER_SLIDER_TEXT_STYLE}
+     * is still shared with the legacy loading-status text and must not change.
+     * fontScale 0.8 → line height round(17 × 0.8) = 14 = {@link #SCENE_SLIDER_AREA_HEIGHT},
+     * so the emitted text fits its row exactly (cap height ≈ 9px, matching the
+     * legacy MC pixel font's footprint).
+     */
+    public static final ResolvedTextStyle VISIBLE_LAYER_SLIDER_LABEL_TEXT_STYLE = DefaultStyles.BODY_TEXT.toBuilder()
+        .fontScale(0.8f)
+        .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
-    public static final ResolvedTextStyle STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE = DefaultStyles.BODY_TEXT
+    public static final ResolvedTextStyle STRUCTURELIB_TIER_SLIDER_LABEL_TEXT_STYLE = DefaultStyles.BODY_TEXT
+        .toBuilder()
+        .fontScale(0.8f)
+        .build()
+        .mergeWith(DefaultStyles.BASE_STYLE);
+    public static final ResolvedTextStyle STRUCTURELIB_CHANNEL_SLIDER_LABEL_TEXT_STYLE = DefaultStyles.BODY_TEXT
+        .toBuilder()
+        .fontScale(0.8f)
+        .build()
         .mergeWith(DefaultStyles.BASE_STYLE);
     public static final ResolvedTextStyle BLOCK_STATS_TEXT_STYLE = DefaultStyles.BODY_TEXT
         .mergeWith(DefaultStyles.BASE_STYLE);
@@ -293,6 +317,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private float loadProgress;
     private String loadStatusText = "";
     private int loadStatusColor = ColorUtils.WHITE.getColor();
+    /**
+     * Scene-level error message surfaced from the block-build pipeline (structure format
+     * unsupported, zero placeable blocks, etc.). Unlike {@link #loadStatusText} this renders
+     * unconditionally (no loading-state debounce) so a failed build can never silently show a
+     * blank background. Cleared by {@link #clearBuildError()}.
+     */
+    @Nullable
+    private String sceneBuildError;
     @Getter
     @Setter
     private boolean reserveBottomControlArea = true;
@@ -455,6 +487,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     private long structureLibControlMetadataRefreshGeneration = -1L;
     private final LinkedHashMap<String, LongSet> bindingFootprints = new LinkedHashMap<>();
     private final List<SnbtPlacement> snbtPlacements = new ArrayList<>();
+    private final List<Runnable> deferredBlockMutations = new ArrayList<>();
     @Nullable
     private GuideSceneStructureSnapshot initialLevelSnapshot;
     private final List<StructureLibSceneMetadata.ChannelData> selectableStructureLibChannels = new ArrayList<>();
@@ -1322,7 +1355,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
      */
     public boolean refreshStructureLibControlMetadata() {
         StructureLibDefinitionCache definitions = StructureLibDefinitionCache.getInstance();
-        if (!definitions.isScansComplete()) {
+        if (!definitions.areScansComplete()) {
             return false;
         }
         long generation = definitions.getScanGeneration();
@@ -1404,8 +1437,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return binding != null ? binding.getLastSuccessfulImportResult() : null;
     }
 
+    // SNBT placements registered by the ImportStructure element compiler.
+
     public void addSnbtPlacement(SnbtPlacement placement) {
         snbtPlacements.add(placement);
+    }
+
+    public void addDeferredBlockMutation(Runnable mutation) {
+        deferredBlockMutations.add(mutation);
     }
 
     public void setSnbtPlacements(List<SnbtPlacement> placements) {
@@ -1421,6 +1460,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         snbtPlacements.clear();
     }
 
+    // Unified build, clear and rebuild entry points.
+
     /**
      * Build all blocks in the scene from registered SNBT placements and StructureLib bindings.
      * Called after element compilers have registered their configs,
@@ -1429,6 +1470,18 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     public void build() {
         GuidebookLevel sceneLevel = getLevel();
         if (sceneLevel == null) return;
+
+        clearBuildError();
+        LytErrorSink buildErrorSink = new LytErrorSink() {
+
+            @Override
+            public void appendError(PageCompiler compiler, String text, UnistNode node) {
+                if (sceneBuildError == null) {
+                    setBuildError(text);
+                }
+                GuideDebugLog.warnAlways("[GuideNH] [Scene] Structure build: {}", text);
+            }
+        };
 
         // Phase 1: SNBT static placements (ImportStructure)
         for (SnbtPlacement p : snbtPlacements) {
@@ -1450,7 +1503,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                 p.getOffsetZ(),
                 p.isFormed(),
                 null,
-                null,
+                buildErrorSink,
                 p.getSrc());
         }
 
@@ -1490,6 +1543,12 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     metadata.offsetBlockTooltips(offsetX, offsetY, offsetZ));
             }
         }
+
+        // Phase 3: deferred block mutations (ReplaceBlock / RemoveBlocks)
+        for (Runnable mutation : deferredBlockMutations) {
+            mutation.run();
+        }
+        deferredBlockMutations.clear();
     }
 
     /**
@@ -1773,6 +1832,19 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         soundCues.clear();
     }
 
+    /**
+     * Whether the scene carries any content mountable by {@code SceneScript}: a non-empty level,
+     * sound cues (PlaySound), static particles, static weather effects, or annotations.
+     * Aligned with the render ({@code LytGuidebookScene} render path) and export
+     * ({@code GameSceneExportRunner}) treatment of "empty" scenes.
+     */
+    public boolean hasMountableSceneContent() {
+        return !level.isEmpty() || !soundCues.isEmpty()
+            || !staticSceneParticles.isEmpty()
+            || !staticWeatherEffects.isEmpty()
+            || !annotations.isEmpty();
+    }
+
     public boolean isLoading() {
         return isLoading && (System.nanoTime() - loadingRequestedAt) / 1_000_000L >= LOADING_DEBOUNCE_MS;
     }
@@ -1822,6 +1894,24 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         this.loadProgress = 0f;
         this.loadStatusText = "";
         this.loadStatusColor = ColorUtils.WHITE.getColor();
+    }
+
+    /**
+     * Records a build-time error on the scene (structure format unsupported, zero placeable
+     * blocks, etc.). The scene renders it as visible red text instead of a silent background.
+     */
+    public void setBuildError(@Nullable String message) {
+        this.sceneBuildError = message != null && !message.trim()
+            .isEmpty() ? message.trim() : null;
+    }
+
+    @Nullable
+    public String getBuildError() {
+        return sceneBuildError;
+    }
+
+    public void clearBuildError() {
+        this.sceneBuildError = null;
     }
 
     public void setBottomControlsVisible(boolean bottomControlsVisible) {
@@ -2336,6 +2426,34 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return buttonColumnReserve();
     }
 
+    public int getButtonsTotalHeightForExport() {
+        if (!interactive || !sceneButtonsVisible) {
+            return 0;
+        }
+        int buttonCount = cachedSceneButtonRoles().length;
+        return BTN_SIZE * buttonCount + BTN_GAP * Math.max(0, buttonCount - 1);
+    }
+
+    /** Pre-clamping left dock size including BLOCK_STATS_DOCK_GAP, or 0. */
+    public int getLeftDockForExport() {
+        return blockStatsDock == BlockStatsDock.LEFT ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP : 0;
+    }
+
+    /** Pre-clamping right dock size including BLOCK_STATS_DOCK_GAP, or 0. */
+    public int getRightDockForExport() {
+        return blockStatsDock == BlockStatsDock.RIGHT ? blockStatsDockLengthForLayout(false) + BLOCK_STATS_DOCK_GAP : 0;
+    }
+
+    /** Pre-clamping top dock size including BLOCK_STATS_DOCK_GAP, or 0. */
+    public int getTopDockForExport() {
+        return blockStatsDock == BlockStatsDock.TOP ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP : 0;
+    }
+
+    /** Pre-clamping bottom dock size including BLOCK_STATS_DOCK_GAP, or 0. */
+    public int getBottomDockForExport() {
+        return blockStatsDock == BlockStatsDock.BOTTOM ? blockStatsDockHeightForLayout() + BLOCK_STATS_DOCK_GAP : 0;
+    }
+
     private int blockStatsDockLengthForLayout(boolean horizontal) {
         if (!blockStatsEnabled || !blockStatsVisible
             || blockStatsMode == BlockStatsMode.MANUAL
@@ -2484,19 +2602,22 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     @Override
     public void render(RenderContext context) {
-        int sceneW = layoutSceneWidth > 0 ? layoutSceneWidth
-            : getBounds().width() - buttonColumnReserve() - layoutSceneOffsetX;
-        if (sceneW < 16) sceneW = 16;
-        int sliderAreaHeight = getBottomControlAreaHeight();
-        int sceneH = layoutSceneHeight > 0 ? layoutSceneHeight : Math.max(16, getBounds().height() - sliderAreaHeight);
-        int totalH = reserveBottomControlArea ? Math.max(sceneH + sliderAreaHeight, getBounds().height())
-            : Math.max(sceneH, getBounds().height());
-        LytRect outerRect = cachedOuterRect = updateCachedRect(
-            cachedOuterRect,
-            getBounds().x() + layoutSceneOffsetX,
-            getBounds().y() + layoutSceneOffsetY,
-            sceneW,
-            sceneH + (reserveBottomControlArea ? sliderAreaHeight : 0));
+        // Hybrid mode: when this frame's collection claimed the slider labels /
+        // Block Stats name+count / load-state status text for the GuideText
+        // pipeline (computePrimitives emitted them after the HostDraw), suppress
+        // the legacy drawText for them. Consume immediately so a direct render()
+        // (scene editor / legacy subtree) never inherits a stale claim from an
+        // earlier pipeline frame.
+        boolean suppressLegacyText = this.suppressLegacyText;
+        this.suppressLegacyText = false;
+        boolean suppressBlockStatsText = this.suppressBlockStatsText;
+        this.suppressBlockStatsText = false;
+        boolean suppressLoadStateText = this.suppressLoadStateText;
+        this.suppressLoadStateText = false;
+        LytRect outerRect = resolveSceneOuterRect();
+        // Scene content height = outerRect minus the bottom-control band (when reserved).
+        int sceneH = outerRect.height() - (reserveBottomControlArea ? getBottomControlAreaHeight() : 0);
+        int sceneW = outerRect.width();
         LytRect sceneRect = cachedSceneRect = updateCachedRect(
             cachedSceneRect,
             outerRect.x(),
@@ -2545,9 +2666,10 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             this.lastOuterH = outerH;
             this.cachedScreenRect = updateCachedRect(cachedScreenRect, absX, absY, w, h);
             renderSceneBackground(context, sceneRect);
-            drawLoadProgressOverlay(context, sceneRect);
-            drawBottomControls(context, outerRect);
-            drawBlockStatsOverlay(context, sceneRect, outerRect);
+            drawLoadProgressOverlay(context, sceneRect, suppressLoadStateText);
+            drawSceneBuildError(context, sceneRect);
+            drawBottomControls(context, outerRect, suppressLegacyText);
+            drawBlockStatsOverlay(context, sceneRect, outerRect, suppressBlockStatsText);
             renderSceneBorder(context, sceneRect);
             if (interactive && sceneButtonsVisible) {
                 drawSceneButtons(context, sceneRect, screenRect);
@@ -2556,7 +2678,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
 
         renderSceneBackground(context, sceneRect);
-        drawLoadProgressOverlay(context, sceneRect);
+        drawLoadProgressOverlay(context, sceneRect, suppressLoadStateText);
+        drawSceneBuildError(context, sceneRect);
         this.renderedContentClip = updateCachedRect(this.renderedContentClip, clipX, clipY, clipW, clipH);
 
         LytSize camOverride = cameraViewportOverride;
@@ -2695,11 +2818,29 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
                     resolveWeatherAnimationTick());
 
             context.restoreExternalRenderState();
-            drawBlockStatsOverlay(context, sceneRect, outerRect);
+            drawBlockStatsOverlay(context, sceneRect, outerRect, suppressBlockStatsText);
             context.restoreExternalRenderState();
 
             if (!overlays.isEmpty()) {
-                LytRect viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
+                float zoom = 1.0f;
+                if (context instanceof VanillaRenderContext vrc) {
+                    zoom = vrc.getZoom();
+                }
+                LytRect viewport;
+                if (zoom != 1.0f) {
+                    int docAbsX = Math.round(absX / zoom);
+                    int docAbsY = Math.round(absY / zoom);
+                    int docW = Math.max(1, Math.round(w / zoom));
+                    int docH = Math.max(1, Math.round(h / zoom));
+                    viewport = cachedOverlayViewport = updateCachedRect(
+                        cachedOverlayViewport,
+                        docAbsX,
+                        docAbsY,
+                        docW,
+                        docH);
+                } else {
+                    viewport = cachedOverlayViewport = updateCachedRect(cachedOverlayViewport, absX, absY, w, h);
+                }
                 context.pushLocalScissor(sceneRect);
                 try {
                     for (var o : overlays) {
@@ -2713,7 +2854,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             applyCapturedCameraState(savedCameraState);
         }
 
-        drawBottomControls(context, outerRect);
+        drawBottomControls(context, outerRect, suppressLegacyText);
 
         // Draw border AFTER the 3D content so border pixels always sit on top.
         renderSceneBorder(context, sceneRect);
@@ -2721,6 +2862,175 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         if (interactive && sceneButtonsVisible) {
             drawSceneButtons(context, sceneRect, screenRect);
         }
+    }
+
+    // Primitive pipeline opt-in (hybrid rendering mode).
+
+    /**
+     * The scene is a leaf block (no {@link #getChildren()}), so there is no
+     * double-traversal risk from opting into {@code computePrimitives}.
+     */
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    /**
+     * Hybrid mode: the entire legacy 3D scene rendering (background,
+     * border, buttons, slider tracks, Block Stats box, scrollbars) is kept as a
+     * single {@code HostDraw} emitted by {@link PrimitiveCollector#emitLegacy};
+     * the 3 bottom-control slider labels, the Block Stats name/count
+     * runs and the load-state status line are emitted as
+     * GuideText glyph runs <em>after</em> it (painter order: text sits on
+     * top of the scene).
+     * <p>
+     * Hard constraint: text must be emitted during the <em>collection</em> phase,
+     * because {@code render()} runs later, inside the HostDraw at <em>execute</em>
+     * time, where emitText would be dropped by the snapshot-then-execute pipeline
+     * (LytDocument takes {@code pc.result()} before {@code engine.execute}).
+     * <p>
+     * {@code suppressLegacyText} / {@code suppressBlockStatsText} /
+     * {@code suppressLoadStateText} are claimed here and consumed at the top of
+     * {@link #render}, so the legacy path skips the migrated text while the
+     * direct render path (scene editor / legacy subtree) still draws it with the
+     * MC font.
+     */
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        suppressLegacyText = true;
+        suppressBlockStatsText = true;
+        suppressLoadStateText = true;
+        c.emitLegacy(this);
+
+        if (hasBottomControls() && !isPonderPlaying()) {
+            LytRect outerRect = resolveSceneOuterRect();
+            if (hasStructureLibTierSlider()) {
+                emitSliderLabel(
+                    c,
+                    getStructureLibTierSliderLabel(),
+                    STRUCTURELIB_TIER_SLIDER_LABEL_TEXT_STYLE,
+                    outerRect,
+                    resolveStructureLibTierRowIndex());
+            }
+            if (hasVisibleLayerSlider()) {
+                emitSliderLabel(
+                    c,
+                    getVisibleLayerSliderLabel(),
+                    VISIBLE_LAYER_SLIDER_LABEL_TEXT_STYLE,
+                    outerRect,
+                    resolveVisibleLayerRowIndex());
+            }
+            for (StructureLibSceneMetadata.ChannelData channelData : getBottomControlStructureLibChannels()) {
+                emitSliderLabel(
+                    c,
+                    getStructureLibChannelSliderLabel(channelData),
+                    STRUCTURELIB_CHANNEL_SLIDER_LABEL_TEXT_STYLE,
+                    outerRect,
+                    resolveStructureLibChannelRowIndex(channelData.getChannelId()));
+            }
+        }
+        emitBlockStatsText(c);
+        emitLoadStateText(c);
+    }
+
+    /**
+     * Emit one slider label as a GuideText glyph run at its document position.
+     * Mirrors the legacy render gate: the label is only emitted when the slider
+     * track actually renders (non-empty layout-space track rect).
+     */
+    private void emitSliderLabel(PrimitiveCollector c, String label, ResolvedTextStyle style, LytRect outerRect,
+        int rowIndex) {
+        if (label == null || label.isEmpty()) {
+            return;
+        }
+        LytRect renderTrackRect = resolveSliderTrackLayoutRect(
+            outerRect.x(),
+            outerRect.y(),
+            outerRect.width(),
+            outerRect.height(),
+            rowIndex);
+        if (renderTrackRect.isEmpty()) {
+            return;
+        }
+        SliderLabelGeometry g = computeSliderLabelGeometry(label, style, outerRect, rowIndex);
+        GuideText.emitText(c, label, g.textX(), g.textY(), style);
+    }
+
+    /**
+     * Emit the Block Stats name/count runs as GuideText glyph runs at
+     * collect time (collection phase - see {@link #computePrimitives}). The
+     * overlay box, item icons and scrollbars stay in the HostDraw legacy
+     * render; only the text moves to the engine vector font. Geometry comes
+     * from the same context-free layout the render uses
+     * ({@link #layoutBlockStatsOverlay}), so the emitted text sits exactly
+     * where the legacy MC-font text would have been drawn.
+     */
+    private void emitBlockStatsText(PrimitiveCollector c) {
+        if (!blockStatsEnabled || !blockStatsVisible) {
+            return;
+        }
+        LytRect outerRect = resolveSceneOuterRect();
+        LytRect sceneRect = resolveSceneContentRect(outerRect);
+        if (sceneRect == null || sceneRect.isEmpty()) {
+            return;
+        }
+        BlockStatsOverlayLayout layout = layoutBlockStatsOverlay(sceneRect, outerRect);
+        if (layout == null) {
+            return;
+        }
+        // Mirror the legacy render's scissor (pushLocalScissor(viewport)) so
+        // partially-visible rows and long names are clipped to the box exactly
+        // as the MC-font text was.
+        LytRect viewport = layout.viewport();
+        c.pushScissor(viewport.x(), viewport.y(), viewport.width(), viewport.height());
+        try {
+            forEachBlockStatsRow(
+                layout,
+                (entry, itemX, rowY, textX, rowHeight, textOffsetY, itemOffsetY) -> forEachBlockStatsEntryText(
+                    entry,
+                    itemX,
+                    rowY,
+                    textX,
+                    rowHeight,
+                    textOffsetY,
+                    itemOffsetY,
+                    (text, x, y, style) -> GuideText.emitText(c, text, x, y, style)));
+        } finally {
+            c.popScissor();
+        }
+    }
+
+    /**
+     * Document-space rect for the scene plus its bottom-control band. Mirrors
+     * the computation previously inlined at the top of {@link #render}; extracted
+     * so {@link #computePrimitives} (collection phase) derives exactly the same
+     * outerRect the legacy render path uses. Frame-invariant: it only reads
+     * layout fields and {@link #getBounds()}, so the returned record is reused
+     * while the geometry is unchanged.
+     */
+    private LytRect resolveSceneOuterRect() {
+        int sceneW = layoutSceneWidth > 0 ? layoutSceneWidth
+            : getBounds().width() - buttonColumnReserve() - layoutSceneOffsetX;
+        if (sceneW < 16) sceneW = 16;
+        int sliderAreaHeight = getBottomControlAreaHeight();
+        int sceneH = layoutSceneHeight > 0 ? layoutSceneHeight : Math.max(16, getBounds().height() - sliderAreaHeight);
+        return cachedOuterRect = updateCachedRect(
+            cachedOuterRect,
+            getBounds().x() + layoutSceneOffsetX,
+            getBounds().y() + layoutSceneOffsetY,
+            sceneW,
+            sceneH + (reserveBottomControlArea ? sliderAreaHeight : 0));
+    }
+
+    /**
+     * Document-space rect for the scene content area (outerRect minus the
+     * bottom-control band), mirroring the computation at the top of
+     * {@link #render}. Frame-invariant (reads only layout fields), so the
+     * collect phase ({@link #computePrimitives}) and the legacy render agree.
+     */
+    private LytRect resolveSceneContentRect(LytRect outerRect) {
+        int sceneH = outerRect.height() - (reserveBottomControlArea ? getBottomControlAreaHeight() : 0);
+        return new LytRect(outerRect.x(), outerRect.y(), outerRect.width(), sceneH);
     }
 
     private void renderSceneBackground(RenderContext context, LytRect sceneRect) {
@@ -2761,6 +3071,37 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     private int lastAbsX, lastAbsY, lastW, lastH;
     private float lastDocZoom = 1.0f;
+    /**
+     * Hybrid claim flag: set by {@link #computePrimitives} (collection
+     * phase) when the 3 bottom-control slider labels are emitted as GuideText
+     * primitives right after the legacy HostDraw. {@link #render} runs later,
+     * inside the HostDraw at execute time, and must then skip its own legacy
+     * drawText for those labels. The flag is read and consumed at the top of
+     * {@link #render} so a direct render() call (scene editor preview / legacy
+     * subtree fallback, where computePrimitives never ran) still draws the
+     * labels with the MC font as before.
+     */
+    private boolean suppressLegacyText;
+    /**
+     * Block Stats hybrid claim flag, same lifecycle as {@link #suppressLegacyText}:
+     * set by {@link #computePrimitives} (collection phase) when the Block Stats
+     * name/count text is emitted as GuideText primitives right after the legacy
+     * HostDraw. {@link #render} runs later, inside the HostDraw at execute
+     * time, and must then skip its own legacy drawText for that text. The flag
+     * is read and consumed at the top of {@link #render} so a direct render()
+     * call (scene editor preview / legacy subtree fallback, where
+     * computePrimitives never ran) still draws the text with the MC font as
+     * before.
+     */
+    private boolean suppressBlockStatsText;
+    /**
+     * Load-state hybrid claim flag, same lifecycle as {@link #suppressLegacyText}:
+     * set by {@link #computePrimitives} when the load-state status line is
+     * emitted as a GuideText primitive; consumed at the top of {@link #render}
+     * so the legacy HostDraw skips it while the direct render path still draws
+     * it with the MC font.
+     */
+    private boolean suppressLoadStateText;
     private int lastOuterAbsX, lastOuterAbsY, lastOuterW, lastOuterH;
     /** Width reserved for the inner 3D scene (bounds.width minus the button column). */
     private int layoutSceneWidth;
@@ -2847,7 +3188,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return blockStatsHighlightAnnotations.get(index);
     }
 
-    private List<SceneBlockStatsEntry> getCachedBlockStatsEntries(RenderContext context) {
+    /**
+     * Cached Block Stats entries plus their display-width caches. Context-free
+     * widths come from {@link GuideText#measureWidth} (engine
+     * vector font, single metric authority) so the collect phase
+     * ({@link #layoutBlockStatsOverlay}, no RenderContext) and the HostDraw
+     * render compute identical box/row geometry.
+     */
+    private List<SceneBlockStatsEntry> getCachedBlockStatsEntries() {
         if (blockStatsDirty) {
             rebuildBlockStatsEntries();
         }
@@ -2857,11 +3205,11 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             for (SceneBlockStatsEntry entry : cachedBlockStatsEntries) {
                 if (entry.getCount() > 1) {
                     String countText = formatBlockStatsDisplayCount(entry.getCount());
-                    int countWidth = context.getStringWidth(countText, BLOCK_STATS_COUNT_TEXT_STYLE);
+                    int countWidth = GuideText.measureWidth(countText, BLOCK_STATS_COUNT_TEXT_STYLE);
                     cachedBlockStatsItemWidth = Math.max(cachedBlockStatsItemWidth, countWidth + 4);
                 }
                 String text = blockStatsEntryText(entry);
-                int width = context.getStringWidth(text, BLOCK_STATS_TEXT_STYLE);
+                int width = GuideText.measureWidth(text, BLOCK_STATS_TEXT_STYLE);
                 entry.setCachedTextWidth(width);
                 if (width > cachedBlockStatsContentWidth) {
                     cachedBlockStatsContentWidth = width;
@@ -3084,22 +3432,76 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return !forceHideOriginAxes && (forceOriginAxesVisible || ModConfig.debug.enableDebugMode);
     }
 
-    private void drawBlockStatsOverlay(RenderContext context, LytRect sceneRect, LytRect outerRect) {
+    /**
+     * Shared document-space geometry for the Block Stats overlay box and
+     * its visible rows, produced by {@link #layoutBlockStatsOverlay}
+     * (context-free, GuideText metrics) and consumed by both the HostDraw
+     * render and the collect-phase GuideText emission.
+     */
+    private record BlockStatsOverlayLayout(List<SceneBlockStatsEntry> entries, LytRect box, LytRect viewport,
+        int rowHeight, int rowStride, int lineHeight, boolean wrapped, int entryWidth, int alongSlots,
+        boolean verticalDock) {}
+
+    private void drawBlockStatsOverlay(RenderContext context, LytRect sceneRect, LytRect outerRect,
+        boolean suppressText) {
+        BlockStatsOverlayLayout layout = layoutBlockStatsOverlay(sceneRect, outerRect);
+        if (layout == null) {
+            return;
+        }
+        context.fillRect(layout.box(), BLOCK_STATS_BACKGROUND_COLOR);
+        context.drawBorder(layout.box(), BLOCK_STATS_BORDER_COLOR, 1);
+        context.pushLocalScissor(layout.viewport());
+        try {
+            forEachBlockStatsRow(
+                layout,
+                (entry, itemX, rowY, textX, rowHeight, textOffsetY, itemOffsetY) -> drawBlockStatsEntry(
+                    context,
+                    entry,
+                    layout.viewport(),
+                    itemX,
+                    rowY,
+                    textX,
+                    rowHeight,
+                    textOffsetY,
+                    itemOffsetY,
+                    suppressText));
+        } finally {
+            context.popScissor();
+        }
+        drawBlockStatsScrollbars(context);
+    }
+
+    /**
+     * Computes (and caches) the Block Stats overlay box/viewport/scroll
+     * geometry - the exact geometry the legacy render drew - without a
+     * RenderContext, so the collect phase ({@link #emitBlockStatsText}) and the
+     * HostDraw render agree. Returns {@code null} when the overlay must not
+     * render (the cached geometry is cleared, mirroring the legacy gates).
+     * Frame-invariant inputs only: layout fields, per-scene state and cached
+     * entries, all identical between collection and execution within a frame.
+     */
+    @Nullable
+    private BlockStatsOverlayLayout layoutBlockStatsOverlay(LytRect sceneRect, LytRect outerRect) {
         cachedBlockStatsHitRegionCount = 0;
         if (!blockStatsEnabled || !blockStatsVisible || sceneRect == null || sceneRect.isEmpty()) {
             clearBlockStatsGeometry();
-            return;
+            return null;
         }
-        List<SceneBlockStatsEntry> entries = getCachedBlockStatsEntries(context);
+        List<SceneBlockStatsEntry> entries = getCachedBlockStatsEntries();
         if (entries.isEmpty()) {
             clearBlockStatsGeometry();
-            return;
+            return null;
         }
         if (blockStatsDock.isOutside() && blockStatsMode != BlockStatsMode.MANUAL) {
-            drawDockedBlockStatsOverlay(context, sceneRect, outerRect, entries);
-            return;
+            return computeDockedBlockStatsLayout(entries, sceneRect, outerRect);
         }
-        int lineHeight = context.getLineHeight(BLOCK_STATS_TEXT_STYLE);
+        return computeInsideBlockStatsLayout(entries, sceneRect, outerRect);
+    }
+
+    @Nullable
+    private BlockStatsOverlayLayout computeInsideBlockStatsLayout(List<SceneBlockStatsEntry> entries, LytRect sceneRect,
+        LytRect outerRect) {
+        int lineHeight = GuideText.lineHeight(BLOCK_STATS_TEXT_STYLE);
         int rowHeight = Math.max(BLOCK_STATS_ITEM_SIZE, lineHeight);
         int rowStride = rowHeight + BLOCK_STATS_ROW_GAP;
         int rowContentWidth = blockStatsEntryWidth();
@@ -3113,7 +3515,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             || rowContentWidth <= 0
             || blockStatsContentHeight <= 0) {
             clearBlockStatsGeometry();
-            return;
+            return null;
         }
         boolean reserveVerticalScrollbar = blockStatsContentHeight + BLOCK_STATS_PADDING_Y * 2 > maxHeight;
         int preferredWidth = rowContentWidth + BLOCK_STATS_PADDING_X * 2
@@ -3161,37 +3563,23 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             innerWidth,
             innerHeight);
         layoutBlockStatsScrollbars(box, viewport, horizontalNeeded, verticalNeeded);
-
-        context.fillRect(box, BLOCK_STATS_BACKGROUND_COLOR);
-        context.drawBorder(box, BLOCK_STATS_BORDER_COLOR, 1);
-        context.pushLocalScissor(viewport);
-        try {
-            drawLinearBlockStatsRows(context, entries, viewport, rowHeight, rowStride, lineHeight);
-        } finally {
-            context.popScissor();
-        }
-        drawBlockStatsScrollbars(context);
+        return new BlockStatsOverlayLayout(
+            entries,
+            box,
+            viewport,
+            rowHeight,
+            rowStride,
+            lineHeight,
+            false,
+            0,
+            0,
+            false);
     }
 
-    private int resolveInsideBlockStatsMaxWidth(LytRect sceneRect, int entryCount, int rowContentWidth) {
-        int maxWidth = blockStatsMaxWidth;
-        if (entryCount == 1) {
-            maxWidth = Math.max(maxWidth, rowContentWidth + BLOCK_STATS_PADDING_X * 2);
-        }
-        return Math.min(maxWidth, sceneRect.width());
-    }
-
-    private int resolveInsideBlockStatsMaxHeight(LytRect sceneRect, int entryCount, int rowHeight) {
-        int maxHeight = blockStatsMaxHeight;
-        if (entryCount == 1) {
-            maxHeight = Math.max(maxHeight, rowHeight + BLOCK_STATS_PADDING_Y * 2);
-        }
-        return Math.min(maxHeight, sceneRect.height());
-    }
-
-    private void drawDockedBlockStatsOverlay(RenderContext context, LytRect sceneRect, LytRect outerRect,
-        List<SceneBlockStatsEntry> entries) {
-        int lineHeight = context.getLineHeight(BLOCK_STATS_TEXT_STYLE);
+    @Nullable
+    private BlockStatsOverlayLayout computeDockedBlockStatsLayout(List<SceneBlockStatsEntry> entries, LytRect sceneRect,
+        LytRect outerRect) {
+        int lineHeight = GuideText.lineHeight(BLOCK_STATS_TEXT_STYLE);
         int rowHeight = Math.max(BLOCK_STATS_ITEM_SIZE, lineHeight);
         int rowStride = rowHeight + BLOCK_STATS_ROW_GAP;
         int entryWidth = blockStatsEntryWidth();
@@ -3211,7 +3599,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         if (maxWidth < BLOCK_STATS_MIN_WIDTH || maxHeight < BLOCK_STATS_MIN_HEIGHT) {
             clearBlockStatsGeometry();
-            return;
+            return null;
         }
         int maxAlong = Math.max(rowStride, verticalDock ? sceneRect.height() : sceneRect.width());
         int alongUnit = Math.max(1, verticalDock ? rowStride : entryWidth);
@@ -3275,24 +3663,33 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             innerWidth,
             innerHeight);
         layoutBlockStatsScrollbars(box, viewport, horizontalNeeded, verticalNeeded);
-        context.fillRect(box, BLOCK_STATS_BACKGROUND_COLOR);
-        context.drawBorder(box, BLOCK_STATS_BORDER_COLOR, 1);
-        context.pushLocalScissor(viewport);
-        try {
-            drawWrappedBlockStatsRows(
-                context,
-                entries,
-                viewport,
-                rowHeight,
-                rowStride,
-                lineHeight,
-                entryWidth,
-                alongSlots,
-                verticalDock);
-        } finally {
-            context.popScissor();
+        return new BlockStatsOverlayLayout(
+            entries,
+            box,
+            viewport,
+            rowHeight,
+            rowStride,
+            lineHeight,
+            true,
+            entryWidth,
+            alongSlots,
+            verticalDock);
+    }
+
+    private int resolveInsideBlockStatsMaxWidth(LytRect sceneRect, int entryCount, int rowContentWidth) {
+        int maxWidth = blockStatsMaxWidth;
+        if (entryCount == 1) {
+            maxWidth = Math.max(maxWidth, rowContentWidth + BLOCK_STATS_PADDING_X * 2);
         }
-        drawBlockStatsScrollbars(context);
+        return Math.min(maxWidth, sceneRect.width());
+    }
+
+    private int resolveInsideBlockStatsMaxHeight(LytRect sceneRect, int entryCount, int rowHeight) {
+        int maxHeight = blockStatsMaxHeight;
+        if (entryCount == 1) {
+            maxHeight = Math.max(maxHeight, rowHeight + BLOCK_STATS_PADDING_Y * 2);
+        }
+        return Math.min(maxHeight, sceneRect.height());
     }
 
     private int blockStatsEntryWidth() {
@@ -3306,60 +3703,114 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         return Math.max(BLOCK_STATS_ITEM_SIZE, cachedBlockStatsItemWidth);
     }
 
-    private void drawLinearBlockStatsRows(RenderContext context, List<SceneBlockStatsEntry> entries, LytRect viewport,
-        int rowHeight, int rowStride, int lineHeight) {
-        int firstRow = Math.max(0, blockStatsScrollY / Math.max(1, rowStride));
-        int rowY = viewport.y() - blockStatsScrollY + firstRow * rowStride;
-        int itemX = viewport.x() - blockStatsScrollX;
-        int textX = itemX + blockStatsItemWidth() + BLOCK_STATS_GAP;
-        int textOffsetY = Math.max(0, (rowHeight - lineHeight) / 2);
-        int itemOffsetY = Math.max(0, (rowHeight - BLOCK_STATS_ITEM_SIZE) / 2);
-        for (int i = firstRow; i < entries.size() && rowY < viewport.bottom(); i++) {
-            drawBlockStatsEntry(
-                context,
-                entries.get(i),
-                viewport,
-                itemX,
-                rowY,
-                textX,
-                rowHeight,
-                textOffsetY,
-                itemOffsetY);
-            rowY += rowStride;
+    /**
+     * Shared row iteration for the Block Stats overlay: yields the visible
+     * rows in document space with exactly the geometry of the former
+     * drawLinearBlockStatsRows / drawWrappedBlockStatsRows. Both the HostDraw
+     * render (draws icons + suppressed text) and the collect phase (emits
+     * GuideText runs) consume this - identical positions by construction.
+     */
+    private void forEachBlockStatsRow(BlockStatsOverlayLayout layout, BlockStatsRowConsumer consumer) {
+        if (!layout.wrapped()) {
+            int firstRow = Math.max(0, blockStatsScrollY / Math.max(1, layout.rowStride()));
+            int rowY = layout.viewport()
+                .y() - blockStatsScrollY
+                + firstRow * layout.rowStride();
+            int itemX = layout.viewport()
+                .x() - blockStatsScrollX;
+            int textX = itemX + blockStatsItemWidth() + BLOCK_STATS_GAP;
+            int textOffsetY = Math.max(0, (layout.rowHeight() - layout.lineHeight()) / 2);
+            int itemOffsetY = Math.max(0, (layout.rowHeight() - BLOCK_STATS_ITEM_SIZE) / 2);
+            for (int i = firstRow; i < layout.entries()
+                .size() && rowY
+                    < layout.viewport()
+                        .bottom(); i++) {
+                consumer.accept(
+                    layout.entries()
+                        .get(i),
+                    itemX,
+                    rowY,
+                    textX,
+                    layout.rowHeight(),
+                    textOffsetY,
+                    itemOffsetY);
+                rowY += layout.rowStride();
+            }
+            return;
         }
-    }
-
-    private void drawWrappedBlockStatsRows(RenderContext context, List<SceneBlockStatsEntry> entries, LytRect viewport,
-        int rowHeight, int rowStride, int lineHeight, int entryWidth, int alongSlots, boolean verticalDock) {
-        int textOffsetY = Math.max(0, (rowHeight - lineHeight) / 2);
-        int itemOffsetY = Math.max(0, (rowHeight - BLOCK_STATS_ITEM_SIZE) / 2);
-        int baseX = viewport.x() - blockStatsScrollX;
-        int baseY = viewport.y() - blockStatsScrollY;
-        for (int i = 0; i < entries.size(); i++) {
-            int along = i % alongSlots;
-            int cross = i / alongSlots;
-            int itemX = verticalDock ? baseX + cross * entryWidth : baseX + along * entryWidth;
-            int rowY = verticalDock ? baseY + along * rowStride : baseY + cross * rowStride;
-            if (rowY + rowHeight < viewport.y() || rowY >= viewport.bottom()
-                || itemX + entryWidth < viewport.x()
-                || itemX >= viewport.right()) {
+        int textOffsetY = Math.max(0, (layout.rowHeight() - layout.lineHeight()) / 2);
+        int itemOffsetY = Math.max(0, (layout.rowHeight() - BLOCK_STATS_ITEM_SIZE) / 2);
+        int baseX = layout.viewport()
+            .x() - blockStatsScrollX;
+        int baseY = layout.viewport()
+            .y() - blockStatsScrollY;
+        for (int i = 0; i < layout.entries()
+            .size(); i++) {
+            int along = i % layout.alongSlots();
+            int cross = i / layout.alongSlots();
+            int itemX = layout.verticalDock() ? baseX + cross * layout.entryWidth()
+                : baseX + along * layout.entryWidth();
+            int rowY = layout.verticalDock() ? baseY + along * layout.rowStride() : baseY + cross * layout.rowStride();
+            if (rowY + layout.rowHeight() < layout.viewport()
+                .y() || rowY
+                    >= layout.viewport()
+                        .bottom()
+                || itemX + layout.entryWidth() < layout.viewport()
+                    .x()
+                || itemX >= layout.viewport()
+                    .right()) {
                 continue;
             }
-            drawBlockStatsEntry(
-                context,
-                entries.get(i),
-                viewport,
+            consumer.accept(
+                layout.entries()
+                    .get(i),
                 itemX,
                 rowY,
                 itemX + blockStatsItemWidth() + BLOCK_STATS_GAP,
-                rowHeight,
+                layout.rowHeight(),
                 textOffsetY,
                 itemOffsetY);
         }
     }
 
+    @FunctionalInterface
+    private interface BlockStatsRowConsumer {
+
+        void accept(SceneBlockStatsEntry entry, int itemX, int rowY, int textX, int rowHeight, int textOffsetY,
+            int itemOffsetY);
+    }
+
+    /**
+     * The text runs (name + count) for one Block Stats row, in document
+     * space with line-top origin and GuideText metrics. Single source of truth
+     * shared by the collect-phase emission (GuideText.emitText) and the legacy
+     * render path (context.drawText, when not suppressed) - identical positions
+     * by construction.
+     */
+    private void forEachBlockStatsEntryText(SceneBlockStatsEntry entry, int itemX, int rowY, int textX, int rowHeight,
+        int textOffsetY, int itemOffsetY, BlockStatsTextEmitter emitter) {
+        if (blockStatsShowNames) {
+            String text = blockStatsEntryText(entry);
+            emitter.text(text, textX, rowY + textOffsetY, BLOCK_STATS_TEXT_STYLE);
+        }
+        if (entry.getCount() > 1) {
+            String countText = formatBlockStatsDisplayCount(entry.getCount());
+            int textWidth = GuideText.measureWidth(countText, BLOCK_STATS_COUNT_TEXT_STYLE);
+            int textHeight = GuideText.lineHeight(BLOCK_STATS_COUNT_TEXT_STYLE);
+            int countX = itemX + blockStatsItemWidth() - textWidth;
+            int countY = rowY + itemOffsetY + BLOCK_STATS_ITEM_SIZE - textHeight + 1;
+            emitter.text(countText, countX, countY, BLOCK_STATS_COUNT_TEXT_STYLE);
+        }
+    }
+
+    @FunctionalInterface
+    private interface BlockStatsTextEmitter {
+
+        void text(String text, int x, int y, ResolvedTextStyle style);
+    }
+
     private void drawBlockStatsEntry(RenderContext context, SceneBlockStatsEntry entry, LytRect viewport, int itemX,
-        int rowY, int textX, int rowHeight, int textOffsetY, int itemOffsetY) {
+        int rowY, int textX, int rowHeight, int textOffsetY, int itemOffsetY, boolean suppressText) {
         boolean selected = selectedBlockStatsKey != null && selectedBlockStatsKey.equals(entry.getKey());
         int rowWidth = blockStatsShowNames ? blockStatsEntryWidth() : blockStatsItemWidth();
         if (selected) {
@@ -3367,24 +3818,25 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         int itemY = rowY + itemOffsetY;
         context.renderItemIcon(entry.getDisplayStack(), itemX, itemY);
-        drawBlockStatsItemCount(context, entry, itemX, itemY);
         addBlockStatsHitRegion(entry, itemX, rowY, rowWidth, rowHeight, viewport);
-        if (blockStatsShowNames) {
-            String text = blockStatsEntryText(entry);
-            context.drawText(text, textX, rowY + textOffsetY, BLOCK_STATS_TEXT_STYLE);
-        }
-    }
-
-    private void drawBlockStatsItemCount(RenderContext context, SceneBlockStatsEntry entry, int itemX, int itemY) {
-        if (entry.getCount() <= 1) {
-            return;
-        }
-        String countText = formatBlockStatsDisplayCount(entry.getCount());
-        int textWidth = context.getStringWidth(countText, BLOCK_STATS_COUNT_TEXT_STYLE);
-        int textHeight = context.getLineHeight(BLOCK_STATS_COUNT_TEXT_STYLE);
-        int countX = itemX + blockStatsItemWidth() - textWidth;
-        int countY = itemY + BLOCK_STATS_ITEM_SIZE - textHeight + 1;
-        context.drawText(countText, countX, countY, BLOCK_STATS_COUNT_TEXT_STYLE);
+        // In the primitive pipeline the name/count text is
+        // emitted as GuideText glyph runs at collect time (see
+        // emitBlockStatsText), so the legacy drawText here only runs on the
+        // direct render path (scene editor / legacy subtree fallback), where
+        // computePrimitives never claimed the text.
+        forEachBlockStatsEntryText(
+            entry,
+            itemX,
+            rowY,
+            textX,
+            rowHeight,
+            textOffsetY,
+            itemOffsetY,
+            (text, x, y, style) -> {
+                if (!suppressText) {
+                    context.drawText(text, x, y, style);
+                }
+            });
     }
 
     private void addBlockStatsHitRegion(SceneBlockStatsEntry entry, int x, int y, int width, int height,
@@ -4593,11 +5045,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private float getLogicalCameraOffsetX() {
-        return ponderSceneData != null ? ponderCamOffX : camera.getOffsetX();
+        // Ponder keyframe offsets and the ponder drag accumulate screen-space pixels
+        // (see applyCameraDrag's ponder branch); the camera view matrix applies them in world
+        // units, so convert with the projection scale s = 0.625 * 16 * zoom = 10 * zoom.
+        return ponderSceneData != null ? ponderCamOffX / (10f * ponderCamZoom) : camera.getOffsetX();
     }
 
     private float getLogicalCameraOffsetY() {
-        return ponderSceneData != null ? ponderCamOffY : camera.getOffsetY();
+        return ponderSceneData != null ? ponderCamOffY / (10f * ponderCamZoom) : camera.getOffsetY();
     }
 
     private float[] captureCameraState() {
@@ -4950,8 +5405,14 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         ponderCameraDefaults[1] = camera.getRotationX();
         ponderCameraDefaults[2] = camera.getRotationY();
         ponderCameraDefaults[3] = camera.getRotationZ();
-        ponderCameraDefaults[4] = ponderBaseCamOffX;
-        ponderCameraDefaults[5] = ponderBaseCamOffY;
+        // Ponder keyframe offsets are screen-space pixels, while this scene's authored camera
+        // offset, and therefore ponderBaseCamOffX, is stored in world units. Store the base already
+        // scaled to the screen-space form the resolved keyframe states use; getLogicalCameraOffsetX/Y
+        // convert back at the camera application point. Both the scale and the base come from this
+        // snapshot because the live camera state already holds the previous timeline's values.
+        float baseZoom = ponderCameraDefaults[0];
+        ponderCameraDefaults[4] = ponderBaseCamOffX * (10f * baseZoom);
+        ponderCameraDefaults[5] = ponderBaseCamOffY * (10f * baseZoom);
         this.ponderSceneData = data;
         rebuildPonderResolvedCameraStates();
         rebuildPonderTimedEntityAnimations();
@@ -5446,6 +5907,13 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
     }
 
+    /**
+     * Resolves the effective camera state of every keyframe into reusable arrays. A keyframe that
+     * omits a camera field inherits the nearest authored value before it, which is what the running
+     * values below accumulate; {@link #ponderCameraDefaults} supplies the state before the first
+     * authored value. Ponder playback then costs one array copy per keyframe instead of a backward
+     * scan with fresh scratch arrays.
+     */
     private void rebuildPonderResolvedCameraStates() {
         ponderResolvedCameraStates.clear();
         if (ponderSceneData == null) {
@@ -6900,7 +7368,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
     }
 
-    private void drawBottomControls(RenderContext context, LytRect outerRect) {
+    private void drawBottomControls(RenderContext context, LytRect outerRect, boolean suppressLegacyText) {
         clearCachedVisibleLayerSliderRects();
         clearCachedTierSliderRects();
         clearCachedChannelSliderRects();
@@ -6918,13 +7386,13 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         if (!isPonderPlaying()) {
             if (hasStructureLibTierSlider()) {
-                drawStructureLibTierSlider(context, outerRect);
+                drawStructureLibTierSlider(context, outerRect, suppressLegacyText);
             }
             if (hasVisibleLayerSlider()) {
-                drawVisibleLayerSlider(context, outerRect);
+                drawVisibleLayerSlider(context, outerRect, suppressLegacyText);
             }
             for (StructureLibSceneMetadata.ChannelData channelData : getBottomControlStructureLibChannels()) {
-                drawStructureLibChannelSlider(context, outerRect, channelData);
+                drawStructureLibChannelSlider(context, outerRect, channelData, suppressLegacyText);
             }
         }
     }
@@ -7053,7 +7521,64 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             .hitRect();
     }
 
-    private void drawLoadProgressOverlay(RenderContext context, LytRect sceneRect) {
+    /**
+     * Emit the load-state status line as a GuideText glyph run at
+     * collect time (collection phase - see {@link #computePrimitives}). The
+     * progress bar stays HostDraw; only the status text moves to the engine
+     * vector font. Geometry uses GuideText metrics in document space - no
+     * {@code /zoom} (the legacy getStringWidth→/z screen→doc division no longer
+     * applies).
+     */
+    private void emitLoadStateText(PrimitiveCollector c) {
+        if (!isLoading()) {
+            return;
+        }
+        LytRect outerRect = resolveSceneOuterRect();
+        LytRect sceneRect = resolveSceneContentRect(outerRect);
+        if (sceneRect.isEmpty()) {
+            return;
+        }
+        if (loadStatusText == null || loadStatusText.isEmpty()) {
+            return;
+        }
+        ResolvedTextStyle style = resolveLoadStatusTextStyle();
+        int barWidth = Math.max(24, sceneRect.width() * 3 / 5);
+        int barX = sceneRect.x() + (sceneRect.width() - barWidth) / 2;
+        int barY = sceneRect.y() + sceneRect.height() / 2 - 2;
+        int textW = GuideText.measureWidth(loadStatusText, style);
+        int textH = GuideText.lineHeight(style);
+        int textX = barX + (barWidth - textW) / 2;
+        int textY = barY - textH - 4;
+        GuideText.emitText(c, loadStatusText, textX, textY, style);
+    }
+
+    /**
+     * Status style for the load-state overlay: {@link #VISIBLE_LAYER_SLIDER_TEXT_STYLE}
+     * with the current {@link #loadStatusColor}. Shared by the collect-phase
+     * emission and the legacy render so both tint identically.
+     */
+    private ResolvedTextStyle resolveLoadStatusTextStyle() {
+        var style = VISIBLE_LAYER_SLIDER_TEXT_STYLE;
+        return new ResolvedTextStyle(
+            style.fontScale(),
+            style.bold(),
+            style.italic(),
+            style.underlined(),
+            style.wavyUnderline(),
+            style.dottedUnderline(),
+            style.strikethrough(),
+            style.obfuscated(),
+            style.font(),
+            new ConstantColor(loadStatusColor),
+            style.whiteSpace(),
+            style.alignment(),
+            style.dropShadow(),
+            style.backgroundColor(),
+            style.inlineCode(),
+            style.baselineShift());
+    }
+
+    private void drawLoadProgressOverlay(RenderContext context, LytRect sceneRect, boolean suppressText) {
         if (!isLoading() || sceneRect.isEmpty()) return;
 
         int barWidth = Math.max(24, sceneRect.width() * 3 / 5);
@@ -7074,33 +7599,59 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         // Status text
         if (loadStatusText != null && !loadStatusText.isEmpty()) {
-            var style = VISIBLE_LAYER_SLIDER_TEXT_STYLE;
-            var coloredStyle = new ResolvedTextStyle(
-                style.fontScale(),
-                style.bold(),
-                style.italic(),
-                style.underlined(),
-                style.wavyUnderline(),
-                style.dottedUnderline(),
-                style.strikethrough(),
-                style.obfuscated(),
-                style.font(),
-                new ConstantColor(loadStatusColor),
-                style.whiteSpace(),
-                style.alignment(),
-                style.dropShadow(),
-                style.backgroundColor(),
-                style.inlineCode());
+            var coloredStyle = resolveLoadStatusTextStyle();
             float z = Math.max(0.0001f, lastDocZoom);
             int textW = Math.round(context.getStringWidth(loadStatusText, coloredStyle) / z);
             int textH = Math.round(context.getLineHeight(coloredStyle) / z);
             int textX = barX + (barWidth - textW) / 2;
             int textY = barY - textH - 4;
-            context.drawText(loadStatusText, textX, textY, coloredStyle);
+            // In the primitive pipeline the status text is emitted
+            // as a GuideText glyph run at collect time (see emitLoadStateText),
+            // so the legacy drawText here only runs on the direct render path
+            // (scene editor / legacy subtree fallback), where computePrimitives
+            // never claimed the text.
+            if (!suppressText) {
+                context.drawText(loadStatusText, textX, textY, coloredStyle);
+            }
         }
     }
 
-    private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect) {
+    /**
+     * Draws the scene-level build error as red text centered in the scene. Renders whenever a
+     * build error was recorded (unconditional - unlike the loading overlay it is not gated on
+     * {@link #isLoading()}), so a failed structure build can never silently show a blank background.
+     */
+    private void drawSceneBuildError(RenderContext context, LytRect sceneRect) {
+        if (sceneBuildError == null || sceneRect.isEmpty()) {
+            return;
+        }
+        var style = VISIBLE_LAYER_SLIDER_TEXT_STYLE;
+        var coloredStyle = new ResolvedTextStyle(
+            style.fontScale(),
+            style.bold(),
+            style.italic(),
+            style.underlined(),
+            style.wavyUnderline(),
+            style.dottedUnderline(),
+            style.strikethrough(),
+            style.obfuscated(),
+            style.font(),
+            new ConstantColor(0xFFFF5555),
+            style.whiteSpace(),
+            style.alignment(),
+            true,
+            style.backgroundColor(),
+            style.inlineCode(),
+            style.baselineShift());
+        float z = Math.max(0.0001f, lastDocZoom);
+        int textW = Math.round(context.getStringWidth(sceneBuildError, coloredStyle) / z);
+        int textH = Math.round(context.getLineHeight(coloredStyle) / z);
+        int textX = sceneRect.x() + (sceneRect.width() - textW) / 2;
+        int textY = sceneRect.y() + sceneRect.height() / 2 - textH;
+        context.drawText(sceneBuildError, textX, textY, coloredStyle);
+    }
+
+    private void drawVisibleLayerSlider(RenderContext context, LytRect outerRect, boolean suppressLegacyText) {
         int rowIndex = resolveVisibleLayerRowIndex();
         LytRect screenTrackRect = resolveVisibleLayerSliderTrackRect();
         LytRect renderTrackRect = resolveSliderTrackLayoutRect(
@@ -7127,7 +7678,15 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         }
         String label = getVisibleLayerSliderLabel();
         logSliderGeometry("visible-layer", screenGeometry, rowIndex, label, outerRect);
-        drawSlider(context, renderGeometry, highlighted, outerRect, rowIndex, label, VISIBLE_LAYER_SLIDER_TEXT_STYLE);
+        drawSlider(
+            context,
+            renderGeometry,
+            highlighted,
+            outerRect,
+            rowIndex,
+            label,
+            VISIBLE_LAYER_SLIDER_LABEL_TEXT_STYLE,
+            suppressLegacyText);
     }
 
     private void applyVisibleLayerSliderAt(int mouseX) {
@@ -7170,7 +7729,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             .hitRect();
     }
 
-    private void drawStructureLibTierSlider(RenderContext context, LytRect outerRect) {
+    private void drawStructureLibTierSlider(RenderContext context, LytRect outerRect, boolean suppressLegacyText) {
         int rowIndex = resolveStructureLibTierRowIndex();
         LytRect screenTrackRect = resolveStructureLibTierSliderTrackRect();
         LytRect renderTrackRect = resolveSliderTrackLayoutRect(
@@ -7204,7 +7763,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             outerRect,
             rowIndex,
             label,
-            STRUCTURELIB_TIER_SLIDER_TEXT_STYLE);
+            STRUCTURELIB_TIER_SLIDER_LABEL_TEXT_STYLE,
+            suppressLegacyText);
     }
 
     private void applyStructureLibTierSliderAt(int mouseX) {
@@ -7276,7 +7836,7 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private void drawStructureLibChannelSlider(RenderContext context, LytRect outerRect,
-        StructureLibSceneMetadata.ChannelData channelData) {
+        StructureLibSceneMetadata.ChannelData channelData, boolean suppressLegacyText) {
         int rowIndex = resolveStructureLibChannelRowIndex(channelData.getChannelId());
         LytRect screenTrackRect = resolveStructureLibChannelSliderTrackRect(channelData.getChannelId());
         LytRect renderTrackRect = resolveSliderTrackLayoutRect(
@@ -7319,7 +7879,8 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
             outerRect,
             rowIndex,
             label,
-            STRUCTURELIB_CHANNEL_SLIDER_TEXT_STYLE);
+            STRUCTURELIB_CHANNEL_SLIDER_LABEL_TEXT_STYLE,
+            suppressLegacyText);
     }
 
     private void applyStructureLibChannelSliderAt(String channelId, int mouseX) {
@@ -7364,19 +7925,43 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
     }
 
     private void drawSlider(RenderContext context, GuideSliderRenderer.SliderGeometry geometry, boolean highlighted,
-        LytRect outerRect, int rowIndex, String label, ResolvedTextStyle style) {
+        LytRect outerRect, int rowIndex, String label, ResolvedTextStyle style, boolean suppressLegacyText) {
         context.beginLocalView();
         GuideSliderRenderer.render(Gui::drawRect, geometry, highlighted);
         context.endLocalView();
 
-        float z = Math.max(0.0001f, lastDocZoom);
-        int textWidth = Math.round(context.getStringWidth(label, style) / z);
-        int textHeight = Math.round(context.getLineHeight(style) / z);
+        // In the primitive pipeline the label is emitted as a
+        // GuideText glyph run right after the legacy HostDraw (see
+        // computePrimitives), so the legacy drawText here only runs on the direct
+        // render path (scene editor / legacy subtree fallback), where
+        // computePrimitives never claimed the label.
+        if (!suppressLegacyText) {
+            SliderLabelGeometry labelGeometry = computeSliderLabelGeometry(label, style, outerRect, rowIndex);
+            context.drawText(label, labelGeometry.textX(), labelGeometry.textY(), style);
+        }
+    }
+
+    /**
+     * Document-space position for a bottom-control slider label row: horizontally
+     * centered within {@code outerRect}, vertically centered inside the 14px
+     * {@link #SCENE_SLIDER_AREA_HEIGHT} row at {@code rowIndex}. Single source of
+     * truth for the label geometry shared by the legacy drawText path and the
+     * GuideText {@code emitText} path. Metrics are GuideText doc
+     * units - no {@code /zoom} conversion (the legacy getStringWidth→/z
+     * screen→doc division no longer applies).
+     */
+    private SliderLabelGeometry computeSliderLabelGeometry(String label, ResolvedTextStyle style, LytRect outerRect,
+        int rowIndex) {
+        int textWidth = GuideText.measureWidth(label, style);
+        int textHeight = GuideText.lineHeight(style);
         int textX = outerRect.x() + (outerRect.width() - textWidth) / 2;
         int rowTop = bottomControlAreaTop(outerRect.bottom()) + rowIndex * SCENE_SLIDER_AREA_HEIGHT;
         int textY = rowTop + (SCENE_SLIDER_AREA_HEIGHT - textHeight) / 2;
-        context.drawText(label, textX, textY, style);
+        return new SliderLabelGeometry(textX, textY);
     }
+
+    /** Document-space (textX, textY) for a slider label (line-top origin). */
+    private record SliderLabelGeometry(int textX, int textY) {}
 
     private void logBottomControlState(String phase, LytRect outerRect, int bottomControlAreaHeight) {
         // Skip the per-frame string construction (key + describeRect + varargs boxing) entirely

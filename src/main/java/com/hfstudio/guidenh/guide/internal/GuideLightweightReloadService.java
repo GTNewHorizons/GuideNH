@@ -7,7 +7,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.IResourceManager;
@@ -17,7 +16,6 @@ import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.ClientProxy;
-import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
 import com.hfstudio.guidenh.guide.internal.datadriven.DataDrivenGuideLoader;
 import com.hfstudio.guidenh.guide.internal.datadriven.GuidePageResourceSelector;
@@ -53,7 +51,6 @@ public class GuideLightweightReloadService {
 
     public static void reloadGuides(IResourceManager resourceManager) {
         var activeResourcePacks = DataDrivenGuideLoader.getActiveResourcePacks(resourceManager);
-        LazyParsedGuidePage.clearResidentPages();
         DataDrivenGuideLoader.clearCaches();
         RecipeCache.clear();
         SnbtPreParseCache.clear();
@@ -248,37 +245,15 @@ public class GuideLightweightReloadService {
         if (selected == null) return null;
         byte[] bytes = DataDrivenGuideLoader.readBytes(selected.pack(), sourceId);
         if (bytes == null) return null;
-        return parsePageBytes(sourcePack, language, contentRootFolder, pageId, sourceId, bytes, selected);
+        return parsePageBytes(sourcePack, selected.pack(), language, contentRootFolder, pageId, sourceId, bytes);
     }
 
     @Nullable
-    private static ParsedGuidePage parsePageBytes(String sourcePack, String language, String contentRootFolder,
-        ResourceLocation pageId, ResourceLocation sourceId, byte[] bytes,
-        GuidePageResourceSelector.SelectedPack selected) {
+    private static ParsedGuidePage parsePageBytes(String sourcePack, IResourcePack sourceResourcePack, String language,
+        String contentRootFolder, ResourceLocation pageId, ResourceLocation sourceId, byte[] bytes) {
         try {
-            GuideLocalizedPageSourceResolver.ResolvedGuidePageSource resolved = GuideLocalizedPageSourceResolver
-                .resolveFrontmatterOnly(language, contentRootFolder, pageId, bytes);
-            ParsedGuidePage frontmatter = PageCompiler
-                .parseFrontmatterOnly(sourcePack, language, pageId, resolved.source());
-            Supplier<String> sourceLoader = () -> {
-                byte[] currentBytes = DataDrivenGuideLoader.readBytes(selected.pack(), sourceId);
-                if (currentBytes == null) {
-                    return "";
-                }
-                return GuideLocalizedPageSourceResolver.resolve(language, contentRootFolder, pageId, currentBytes)
-                    .source();
-            };
-            return new LazyParsedGuidePage(
-                sourcePack,
-                selected.pack(),
-                pageId,
-                frontmatter.getFrontmatter(),
-                frontmatter.getLanguage(),
-                frontmatter.getParseFailureMessage(),
-                frontmatter.getParseFailureFrom(),
-                frontmatter.getParseFailureTo(),
-                sourceLoader,
-                resolved.contentFingerprint());
+            return GuideLocalizedPageSourceResolver
+                .parseFrontmatterOnly(sourcePack, sourceResourcePack, language, contentRootFolder, pageId, bytes);
         } catch (Exception ex) {
             GuideDebugLog
                 .warn("[GuideNH] [GuideLightweightReloadService] Error parsing page {} from {}", pageId, sourceId, ex);
@@ -335,7 +310,7 @@ public class GuideLightweightReloadService {
         if (selected == null) return null;
         byte[] bytes = DataDrivenGuideLoader.readBytes(selected.pack(), sourceId);
         if (bytes == null) return null;
-        return parsePageBytes(sourcePack, language, contentRootFolder, pageId, sourceId, bytes, selected);
+        return parsePageBytes(sourcePack, selected.pack(), language, contentRootFolder, pageId, sourceId, bytes);
     }
 
     static byte @Nullable [] selectPageCandidate(ResourceLocation sourceId) {

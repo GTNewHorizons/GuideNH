@@ -12,7 +12,7 @@ public class GuideNhAe2CableBatchRequestMessage implements IMessage {
 
     private long corrId;
     private int dim;
-    /** Flat xyzxyz… length divisible by 3. */
+    /** Flat xyzxyz... length divisible by 3. */
     private int[] xyz;
 
     public GuideNhAe2CableBatchRequestMessage() {

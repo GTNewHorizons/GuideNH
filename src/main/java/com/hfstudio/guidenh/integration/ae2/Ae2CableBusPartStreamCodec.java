@@ -14,7 +14,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /**
- * Packs AE2 cable-bus {@link IPart#writeToStream} bytes per facing ({@code 0}鈥搟@code 5}) for preview wire and MP batch.
+ * Packs AE2 cable-bus {@link IPart#writeToStream} bytes per facing ({@code 0} to {@code 5}) for preview wire and MP
+ * batch.
  */
 public class Ae2CableBusPartStreamCodec {
 

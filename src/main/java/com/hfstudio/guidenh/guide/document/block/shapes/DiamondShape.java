@@ -1,26 +1,13 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 public class DiamondShape implements ShapeRenderer {
 
     @Override
-    public boolean isClipped() {
-        return true;
-    }
-
-    @Override
-    public Point edgeIntersect(LytRect nodeRect, int ex, int ey) {
-        int x = nodeRect.x(), y = nodeRect.y(), w = nodeRect.width(), h = nodeRect.height();
-        int cx = x + w / 2, cy = y + h / 2;
-        return FlowchartShapes
-            .intersectPolygon(nodeRect, new int[][] { { cx, y }, { x + w, cy }, { cx, y + h }, { x, cy } }, ex, ey);
-    }
-
-    @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
         int cx = rect.x() + rect.width() / 2;
         int cy = rect.y() + rect.height() / 2;
         int r = rect.right();
@@ -32,8 +19,8 @@ public class DiamondShape implements ShapeRenderer {
         float[] shrunkXs = new float[4];
         float[] shrunkYs = new float[4];
         shrinkPoly(xs, ys, shrunkXs, shrunkYs, cx, cy);
-        context.fillPolygon(xs, ys, borderColor);
-        context.fillPolygon(shrunkXs, shrunkYs, backgroundColor);
+        c.emit(new GuideRenderPrimitive.DrawPolygon(xs, ys, borderColor));
+        c.emit(new GuideRenderPrimitive.DrawPolygon(shrunkXs, shrunkYs, backgroundColor));
     }
 
     @Override
@@ -54,7 +41,7 @@ public class DiamondShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;
         int insW = nodeRect.width() / 2;

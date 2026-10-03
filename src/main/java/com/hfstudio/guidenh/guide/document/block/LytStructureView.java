@@ -9,6 +9,8 @@ import net.minecraft.item.ItemStack;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -45,6 +47,14 @@ public class LytStructureView extends LytBlock {
     // Invalidated whenever addBlock mutates the underlying list.
     private List<BlockEntry> sortedCache;
 
+    public int getViewWidth() {
+        return viewWidth;
+    }
+
+    public int getViewHeight() {
+        return viewHeight;
+    }
+
     public void setViewSize(int width, int height) {
         this.viewWidth = Math.max(32, width);
         this.viewHeight = Math.max(32, height);
@@ -69,10 +79,31 @@ public class LytStructureView extends LytBlock {
     protected void onLayoutMoved(int deltaX, int deltaY) {}
 
     @Override
-    public void render(RenderContext context) {
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
         var bounds = getBounds();
-        context.fillRect(bounds, ColorUtils.ARGB_FF1E1E1E.getColor());
-        context.drawBorder(bounds, ColorUtils.ARGB_FF555555.getColor(), 1);
+        c.emit(
+            new GuideRenderPrimitive.FillRect(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                ColorUtils.ARGB_FF1E1E1E.getColor()));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                1,
+                1,
+                1,
+                1,
+                ColorUtils.ARGB_FF555555.getColor()));
 
         if (blocks.isEmpty()) {
             return;
@@ -105,17 +136,17 @@ public class LytStructureView extends LytBlock {
             sortedCache = sorted;
         }
 
-        context.pushLocalScissor(bounds);
-        try {
-            for (BlockEntry b : sorted) {
-                int px = projectX(b.x, b.z) + offsetX;
-                int py = projectY(b.x, b.y, b.z) + offsetY;
-                context.renderItem(b.stack, px, py);
-            }
-        } finally {
-            context.popScissor();
+        c.pushScissor(bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        for (BlockEntry b : sorted) {
+            int px = projectX(b.x, b.z) + offsetX;
+            int py = projectY(b.x, b.y, b.z) + offsetY;
+            c.emit(new GuideRenderPrimitive.RenderItem(b.stack, px, py));
         }
+        c.popScissor();
     }
+
+    @Override
+    public void render(RenderContext context) {}
 
     public static int projectX(int x, int z) {
         return (x - z) * TILE_W;

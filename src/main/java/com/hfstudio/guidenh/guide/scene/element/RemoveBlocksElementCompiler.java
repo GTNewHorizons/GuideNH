@@ -7,6 +7,8 @@ import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.MdxAttrs;
 import com.hfstudio.guidenh.guide.document.LytErrorSink;
 import com.hfstudio.guidenh.guide.scene.CameraSettings;
+import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
+import com.hfstudio.guidenh.guide.scene.annotation.compiler.AnnotationTagCompiler;
 import com.hfstudio.guidenh.guide.scene.cache.GuideSceneStructureCompileScope;
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideBlockMatcher;
@@ -41,6 +43,11 @@ public class RemoveBlocksElementCompiler implements SceneElementTagCompiler {
             return;
         }
 
-        RemoveBlocksExecutor.execute(level, matcher);
+        LytGuidebookScene scene = AnnotationTagCompiler.CURRENT_SCENE.get();
+        if (scene != null) {
+            scene.addDeferredBlockMutation(() -> RemoveBlocksExecutor.execute(level, matcher));
+        } else {
+            RemoveBlocksExecutor.execute(level, matcher);
+        }
     }
 }

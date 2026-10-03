@@ -30,6 +30,14 @@ public class LytCyclingItemImage extends LytItemImage {
     }
 
     @Override
+    public void computePrimitives(com.hfstudio.guidenh.guide.render.PrimitiveCollector c) {
+        // Swap in the currently displayed stack before collecting (per-second
+        // cycling, evaluated fresh each frame).
+        this.stack = currentStack();
+        super.computePrimitives(c);
+    }
+
+    @Override
     public void render(RenderContext context) {
         this.stack = currentStack();
         super.render(context);

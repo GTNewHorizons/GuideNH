@@ -50,7 +50,7 @@ public class CategoryCompiler extends BlockTagCompiler {
         if (categoryName == null || categoryName.trim()
             .isEmpty()) return;
 
-        // Restore Phase 2: index resolved category member titles for full-text search
+        // Index resolved category member titles for full-text search
         var guide = MediaWikiTagCompilerSupport.resolveGuide(indexer);
         if (guide != null) {
             CategoryIndex catIndex = indexer.getIndex(CategoryIndex.class);

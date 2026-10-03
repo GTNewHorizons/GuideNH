@@ -16,40 +16,46 @@ import org.scilab.forge.jlatexmath.TeXIcon;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
+/**
+ * Exports LaTeX formulas as PNG assets for the static site.
+ *
+ * <p>
+ * <b>Typeset-at-target-size.</b> Formulas are typeset directly at
+ * {@code fontSize = GuideText.BASE_FONT_SIZE × userScale} pixels
+ * ({@code setSize(fontSize)}), so the exported {@code widthPx}/{@code heightPx}/
+ * {@code depthPx} ARE the target display pixel dimensions; the site HTML uses
+ * them verbatim. No reference-string calibration, no scaling conversion.
+ */
 public class GuideSiteLatexExporter {
-
-    private static final String CALIBRATION_FORMULA = "x";
 
     private final GuideSiteAssetRegistry assets;
     private final Map<String, ExportedLatex> exports = new HashMap<>();
-    private final Map<Float, Integer> referenceHeights = new HashMap<>();
 
     public GuideSiteLatexExporter(GuideSiteAssetRegistry assets) {
         this.assets = assets;
     }
 
-    public ExportedLatex export(String formula, int fillColorArgb, float sourceScale) {
+    public ExportedLatex export(String formula, int fillColorArgb, float fontSize) {
         if (formula == null || formula.trim()
             .isEmpty()) {
             return null;
         }
-        float safeSourceScale = Math.max(16f, sourceScale);
-        String key = fillColorArgb + ":" + safeSourceScale + ":" + formula;
+        float safeFontSize = Math.max(1f, fontSize);
+        String key = fillColorArgb + ":" + safeFontSize + ":" + formula;
         ExportedLatex cached = exports.get(key);
         if (cached != null) {
             return cached;
         }
 
         try {
-            TeXIcon icon = createIcon(formula, fillColorArgb, safeSourceScale);
+            TeXIcon icon = createIcon(formula, fillColorArgb, safeFontSize);
             BufferedImage image = renderImage(icon);
             String src = GuideSitePageAssetExporter.ROOT_PREFIX + assets.writePngAsync("latex", image);
             ExportedLatex exported = new ExportedLatex(
                 src,
                 icon.getIconWidth(),
                 icon.getIconHeight(),
-                Math.max(0, (int) Math.ceil(icon.getTrueIconDepth())),
-                referenceHeight(safeSourceScale));
+                Math.max(0, (int) Math.ceil(icon.getTrueIconDepth())));
             exports.put(key, exported);
             return exported;
         } catch (ParseException e) {
@@ -68,6 +74,7 @@ public class GuideSiteLatexExporter {
         }
     }
 
+    /** Escapes control characters so one export warning stays on one log line. */
     private String formatFormulaForLog(String formula) {
         return formula.replace("\\", "\\\\")
             .replace("\r", "\\r")
@@ -75,24 +82,17 @@ public class GuideSiteLatexExporter {
             .replace("\t", "\\t");
     }
 
-    private int referenceHeight(float sourceScale) throws ParseException {
-        Integer cached = referenceHeights.get(sourceScale);
-        if (cached != null) {
-            return cached;
-        }
-        TeXIcon icon = createIcon(CALIBRATION_FORMULA, ColorUtils.WHITE.getColor(), sourceScale);
-        int height = Math.max(1, icon.getIconHeight());
-        referenceHeights.put(sourceScale, height);
-        return height;
-    }
-
-    private TeXIcon createIcon(String formula, int fillColorArgb, float sourceScale) throws ParseException {
+    private TeXIcon createIcon(String formula, int fillColorArgb, float fontSize) throws ParseException {
         TeXFormula texFormula = new TeXFormula(formula);
         TeXIcon icon = texFormula.new TeXIconBuilder().setStyle(TeXConstants.STYLE_DISPLAY)
-            .setSize(sourceScale)
+            .setSize(fontSize)
             .setFGColor(new Color(fillColorArgb, true))
             .build();
-        icon.setInsets(new Insets(2, 2, 2, 2));
+        // Two-arg form (trueValues): keep the intended 2px/side insets. The
+        // single-arg setInsets(Insets) delegates to setInsets(insets, false)
+        // and silently inflates every side by (int)(0.18f*size). Same
+        // pitfall/fix as GuideLatexRenderer.
+        icon.setInsets(new Insets(2, 2, 2, 2), true);
         icon.setForeground(new Color(fillColorArgb, true));
         return icon;
     }
@@ -125,14 +125,12 @@ public class GuideSiteLatexExporter {
         private final int widthPx;
         private final int heightPx;
         private final int depthPx;
-        private final int referenceHeightPx;
 
-        public ExportedLatex(String src, int widthPx, int heightPx, int depthPx, int referenceHeightPx) {
+        public ExportedLatex(String src, int widthPx, int heightPx, int depthPx) {
             this.src = src;
             this.widthPx = widthPx;
             this.heightPx = heightPx;
             this.depthPx = depthPx;
-            this.referenceHeightPx = referenceHeightPx;
         }
 
         public String src() {
@@ -149,10 +147,6 @@ public class GuideSiteLatexExporter {
 
         public int depthPx() {
             return depthPx;
-        }
-
-        public int referenceHeightPx() {
-            return referenceHeightPx;
         }
     }
 }

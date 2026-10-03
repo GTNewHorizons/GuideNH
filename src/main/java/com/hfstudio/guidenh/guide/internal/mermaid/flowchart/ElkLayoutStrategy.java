@@ -107,7 +107,7 @@ public class ElkLayoutStrategy implements FlowchartLayoutStrategy {
             elkNodeMap.put(node.getId(), elkNode);
         }
 
-        // Create edges — for cross-hierarchy edges we build a chain of ports
+        // Create edges: for cross-hierarchy edges we build a chain of ports
         // through every compound ancestor so ELK can route each segment within
         // a single layout run. The chain is later stitched back into one path.
         List<SplitChain> splitChains = new ArrayList<>();

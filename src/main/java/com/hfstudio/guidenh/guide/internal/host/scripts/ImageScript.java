@@ -66,6 +66,9 @@ public class ImageScript implements LytScript {
             image.addAnnotation(ann);
         }
 
+        // Block-level alignment (LytAlignedBlock) is handled at compile time
+        // by ImageCompiler.compileBlockContext. At script time, just replace the
+        // placeholder with the loaded image in the appropriate wrapper.
         if (isWrapped) {
             LytFlowInlineBlock newWrapper = new LytFlowInlineBlock();
             newWrapper.setBlock(image);

@@ -35,9 +35,9 @@ public class ParsedGuidePage {
     private final Frontmatter frontmatter;
     @Getter
     private final String language;
-    private volatile @Nullable String parseFailureMessage;
-    private volatile @Nullable UnistPoint parseFailureFrom;
-    private volatile @Nullable UnistPoint parseFailureTo;
+    private final @Nullable String parseFailureMessage;
+    private final @Nullable UnistPoint parseFailureFrom;
+    private final @Nullable UnistPoint parseFailureTo;
 
     @Deprecated
     public ParsedGuidePage(String sourcePack, ResourceLocation id, String source, MdAstRoot astRoot,
@@ -122,16 +122,6 @@ public class ParsedGuidePage {
 
     public boolean hasParseFailure() {
         return parseFailureMessage != null && !parseFailureMessage.isEmpty();
-    }
-
-    /** Copies deferred body-parse diagnostics into a lazy page shell. */
-    protected final void adoptParseFailure(ParsedGuidePage parsed) {
-        if (parsed == null || !parsed.hasParseFailure()) {
-            return;
-        }
-        parseFailureMessage = parsed.getParseFailureMessage();
-        parseFailureFrom = parsed.getParseFailureFrom();
-        parseFailureTo = parsed.getParseFailureTo();
     }
 
     @Override

@@ -28,20 +28,21 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
  * <p>
  * Supported attributes:
  * <ul>
- * <li>{@code formula} (String, required) — the LaTeX source string</li>
- * <li>{@code color} (String, optional, default {@code "#FFFFFF"}) — formula glyph colour as {@code #RRGGBB}
+ * <li>{@code formula} (String, required) - the LaTeX source string</li>
+ * <li>{@code color} (String, optional, default {@code "#FFFFFF"}) - formula glyph colour as {@code #RRGGBB}
  * or {@code #AARRGGBB}</li>
- * <li>{@code scale} (float, optional, default {@code 1.0}) — multiplier applied to the automatic display size</li>
- * <li>{@code sourceScale} (float, optional, default {@code 100.0}) — jlatexmath internal render quality;
- * higher values produce crisper output at the cost of more memory</li>
- * <li>{@code showTooltip} (boolean, optional, default {@code false}) — when {@code true}, hovering over
+ * <li>{@code scale} (float, optional, default {@code 1.0}) - multiplier applied to the automatic display size</li>
+ * <li>{@code sourceScale} (float, optional) - DEPRECATED: legacy jlatexmath render quality attribute;
+ * parsed for backward compatibility with old documents but ignored - formulas are typeset directly at
+ * {@code BASE_FONT_SIZE × scale} (typeset-at-target-size)</li>
+ * <li>{@code showTooltip} (boolean, optional, default {@code false}) - when {@code true}, hovering over
  * the formula shows the raw LaTeX source in a tooltip</li>
- * <li>{@code tooltip} (String, optional) — plain tooltip text. Child Markdown content takes precedence
+ * <li>{@code tooltip} (String, optional) - plain tooltip text. Child Markdown content takes precedence
  * and is compiled as a rich tooltip.</li>
- * <li>{@code valign} (String, optional, default {@code "baseline"}) — inline-only; vertical alignment of
+ * <li>{@code valign} (String, optional, default {@code "baseline"}) - inline-only; vertical alignment of
  * the formula within the text line: {@code baseline}, {@code top}, {@code center}, or {@code bottom}</li>
- * <li>{@code offsetX} (int, optional, default {@code 0}) — horizontal pixel offset applied after alignment</li>
- * <li>{@code offsetY} (int, optional, default {@code 0}) — vertical pixel offset applied after alignment</li>
+ * <li>{@code offsetX} (int, optional, default {@code 0}) - horizontal pixel offset applied after alignment</li>
+ * <li>{@code offsetY} (int, optional, default {@code 0}) - vertical pixel offset applied after alignment</li>
  * </ul>
  *
  * <p>
@@ -84,6 +85,7 @@ public class LatexTagCompiler implements TagCompiler {
 
         int fillColor = parseColor(compiler, parent, el);
         float userScale = MdxAttrs.getFloat(compiler, parent, el, "scale", LatexRenderOptions.DEFAULT_USER_SCALE);
+        // sourceScale is DEPRECATED (parsed for backward compatibility, ignored by rendering).
         float sourceScale = MdxAttrs
             .getFloat(compiler, parent, el, "sourceScale", LatexRenderOptions.DEFAULT_SOURCE_SCALE);
         GuideTooltip tooltip = buildInlineTooltip(compiler, parent, el, formula);
@@ -94,6 +96,7 @@ public class LatexTagCompiler implements TagCompiler {
         return new LytLatexBlock(
             formula,
             LatexRenderOptions.builder()
+                .style(org.scilab.forge.jlatexmath.TeXConstants.STYLE_TEXT)
                 .fillColorArgb(fillColor)
                 .sourceScale(sourceScale)
                 .userScale(userScale)
@@ -114,6 +117,7 @@ public class LatexTagCompiler implements TagCompiler {
 
         int fillColor = parseColor(compiler, parent, el);
         float userScale = MdxAttrs.getFloat(compiler, parent, el, "scale", LatexRenderOptions.DEFAULT_USER_SCALE);
+        // sourceScale is DEPRECATED (parsed for backward compatibility, ignored by rendering).
         float sourceScale = MdxAttrs
             .getFloat(compiler, parent, el, "sourceScale", LatexRenderOptions.DEFAULT_SOURCE_SCALE);
         GuideTooltip tooltip = buildBlockTooltip(compiler, parent, el, formula);

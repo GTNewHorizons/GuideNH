@@ -452,22 +452,17 @@ public class GuideWelcomeScreen extends GuiScreen implements GuideUiHost, GuiYes
 
         int viewportTop = Math.max(0, Math.round(scrollY));
         renderContext.setViewport(new LytRect(0, viewportTop, docW, docH));
+        renderContext.setScreenViewport(new LytRect(docX, docY, docW, docH));
         renderContext.setScreenHeight(height);
         renderContext.setDocumentOrigin(docX, docY);
         renderContext.setPreciseScrollOffsetY(scrollY);
         renderContext.setZoom(1.0f);
-        renderContext.pushScissor(new LytRect(docX, docY, docW, docH));
-        GL11.glPushMatrix();
-        GL11.glTranslatef(docX, docY, 0f);
-        GL11.glTranslatef(0f, -scrollY, 0f);
+        // No GL matrix or context scissor here: the primitive pipeline's render
+        // engine owns the document->screen transform and the viewport clip.
         try {
             document.render(renderContext);
         } catch (Throwable t) {
             GuideDebugLog.error("[GuideNH] Error rendering welcome popup", t);
-        } finally {
-            GL11.glPopMatrix();
-            renderContext.restoreExternalRenderState();
-            renderContext.popScissor();
         }
     }
 

@@ -17,6 +17,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.highlight.CodeHighlightTheme
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuiSprite;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 import com.hfstudio.guidenh.guide.ui.GuideUiHost;
@@ -74,6 +76,9 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
 
         languageLabel.setMarginTop(0);
         languageLabel.setMarginBottom(0);
+        // The label takes the remaining toolbar width, declared on the block
+        // itself, read directly by the layout compiler (no special case).
+        languageLabel.setFlexGrow(1f);
         languageLabel.modifyStyle(
             style -> style.bold(true)
                 .color(toolbarText));
@@ -174,6 +179,18 @@ public class LytCodeBlockToolbar extends LytBox implements InteractiveElement {
             return copySourceButton.getTooltip(x, y);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        super.computePrimitives(c);
+        c.emit(
+            new GuideRenderPrimitive.FillRect(
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                toolbarBackground.resolve()));
     }
 
     @Override

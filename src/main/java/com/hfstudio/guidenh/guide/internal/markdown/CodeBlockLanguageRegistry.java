@@ -68,6 +68,7 @@ public class CodeBlockLanguageRegistry {
         register(result, new CodeBlockLanguage("mermaid", "Mermaid"));
         register(result, new CodeBlockLanguage("javascript", "JavaScript"));
         register(result, new CodeBlockLanguage("typescript", "TypeScript"));
+        register(result, new CodeBlockLanguage("python", "Python"));
         return Map.copyOf(result);
     }
 
@@ -90,6 +91,7 @@ public class CodeBlockLanguageRegistry {
         registerAlias(result, "mermaid", "mermaid");
         registerAlias(result, "javascript", "javascript", "js");
         registerAlias(result, "typescript", "typescript", "ts");
+        registerAlias(result, "python", "python", "py");
         return Map.copyOf(result);
     }
 

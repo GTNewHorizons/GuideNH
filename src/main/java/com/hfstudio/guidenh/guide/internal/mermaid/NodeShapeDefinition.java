@@ -13,7 +13,7 @@ public enum NodeShapeDefinition {
 
     ELLIPSE("(-", "-)", MermaidNodeShape.ELLIPSE),
 
-    // [ variants — all before SQUARE (which is a single '[')
+    // [ variants, all before SQUARE (which is a single '[')
     STADIUM("([", "])", MermaidNodeShape.STADIUM),
     SUBROUTINE("[[", "]]", MermaidNodeShape.SUBPROCESS),
     CYLINDER("[(", ")]", MermaidNodeShape.CYLINDER),
@@ -23,7 +23,7 @@ public enum NodeShapeDefinition {
     LEAN_LEFT("[\\", "\\]", MermaidNodeShape.ASYMMETRIC),
     SQUARE('[', ']', MermaidNodeShape.SQUARE),
 
-    // ( variants — all before ROUND (which is a single '(')
+    // ( variants, all before ROUND (which is a single '(')
     DOUBLE_CIRCLE("(((", ")))", MermaidNodeShape.DOUBLE_CIRCLE),
     CIRCLE("((", "))", MermaidNodeShape.CIRCLE),
     ROUND('(', ')', MermaidNodeShape.ROUNDED),
@@ -34,7 +34,7 @@ public enum NodeShapeDefinition {
 
     ASYMMETRIC('>', ']', MermaidNodeShape.ASYMMETRIC),
 
-    // ) variants — BANG before CLOUD (both start with ))
+    // ) variants: BANG before CLOUD (both start with ))
     BANG("))", "((", MermaidNodeShape.BANG),
     CLOUD(')', '(', MermaidNodeShape.CLOUD);
 
@@ -80,7 +80,7 @@ public enum NodeShapeDefinition {
             if (text.startsWith(def.open) && text.endsWith(def.close)) {
                 String inner = text.substring(def.open.length(), text.length() - def.close.length())
                     .trim();
-                // double-circle with ((())) — inner wrapped in extra parens
+                // double-circle with ((())): inner wrapped in extra parens
                 if (def == DOUBLE_CIRCLE && inner.startsWith("(") && inner.endsWith(")")) {
                     return new MatchResult(
                         DOUBLE_CIRCLE,
@@ -91,7 +91,7 @@ public enum NodeShapeDefinition {
             }
         }
         // If a trailing ] is present, the text might end with "[/...\]" where
-        // the close is literally backslash+bracket — the above already handles
+        // the close is literally backslash+bracket; the above already handles
         // this via the "\\]" close string.
         return null;
     }

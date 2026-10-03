@@ -4,27 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 public class BangShape implements ShapeRenderer {
 
     @Override
-    public boolean isClipped() {
-        return true;
-    }
-
-    @Override
-    public Point edgeIntersect(LytRect nodeRect, int ex, int ey) {
-        int w = nodeRect.width(), h = nodeRect.height();
-        float[][] arcs = getBangArcs(w, h);
-        float[] raw = buildBangPolygon(w, h);
-        float[] bounds = ShapeUtils.computeBounds(raw);
-        return FlowchartShapes.intersectArcs(nodeRect, bounds, arcs, ex, ey);
-    }
-
-    @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
         int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
         float[] raw = buildBangPolygon(w, h);
         int n = raw.length / 2;
@@ -57,8 +42,8 @@ public class BangShape implements ShapeRenderer {
             }
         }
 
-        ShapeUtils.fillPolygonCentered(context, xs, ys, borderColor);
-        ShapeUtils.fillPolygonCentered(context, ixs, iys, backgroundColor);
+        ShapeUtils.emitPolygonCentered(c, xs, ys, borderColor);
+        ShapeUtils.emitPolygonCentered(c, ixs, iys, backgroundColor);
     }
 
     private static float[][] getBangArcs(float w, float h) {
@@ -131,7 +116,7 @@ public class BangShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int w = nodeRect.width();
         int h = nodeRect.height();
         int cx = nodeRect.x() + w / 2;

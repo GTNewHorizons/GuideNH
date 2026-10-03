@@ -20,7 +20,6 @@ import blockrenderer6343.client.utils.ConstructableData;
 import blockrenderer6343.integration.gregtech.GTConstructableScan;
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
-import lombok.Getter;
 
 /**
  * Resolves the tier and channel ranges BlockRenderer6343 found for a controller.
@@ -37,9 +36,7 @@ public class StructureLibDefinitionCache {
     private final Map<String, IConstructable> resolvedControllers = new ConcurrentHashMap<>();
     private final Map<String, ConstructableData> resolvedData = new ConcurrentHashMap<>();
     private volatile boolean scanRequested;
-    @Getter
     private volatile boolean scansComplete;
-    @Getter
     private volatile long scanGeneration;
 
     private StructureLibDefinitionCache() {}
@@ -75,6 +72,16 @@ public class StructureLibDefinitionCache {
         }, "GuideNH-StructureLibScan").start();
     }
 
+    /** Returns true after both asynchronous definition scans have published their results. */
+    public boolean areScansComplete() {
+        return scansComplete;
+    }
+
+    /** Monotonically increases whenever a complete scan result becomes available. */
+    public long getScanGeneration() {
+        return scanGeneration;
+    }
+
     private void scanStructureLibContainersSafely() {
         new GuideStructureLibContainerScan(ignored -> {}, stacks -> {
             indexScannedControllers(stacks);
@@ -107,6 +114,8 @@ public class StructureLibDefinitionCache {
             resolvedControllers.put(itemId + ":" + stack.getItemDamage(), entry.getKey());
         }
     }
+
+    // Machine discovery.
 
     /**
      * Finds the {@code IConstructable} a controller id refers to.
@@ -159,8 +168,12 @@ public class StructureLibDefinitionCache {
         return false;
     }
 
+    // Tier and channel metadata.
+
     /**
-     * The tier and channel ranges of a machine, or an empty default when it exposes none.
+     * Get tier/channel metadata for a machine. If the machine has no tiered elements,
+     * falls back to ConstructableData.getTierData() which returns an empty default (maxTotalTier=1).
+     * Only determines whether tier/channel sliders appear - does NOT affect rendering.
      */
     public ConstructableData getConstructableData(IConstructable c) {
         ConstructableData merged = null;
@@ -181,7 +194,8 @@ public class StructureLibDefinitionCache {
                 }
             }
         } catch (Throwable ignored) {
-            // The accessor is only available when BlockRenderer6343's compatibility mixin is applied.
+            // The published map may be unavailable while BlockRenderer6343's own scans are still running.
+            // Its single-entry lookup still answers for the controllers registered at this point.
             ConstructableData direct = ConstructableData.getTierData(c);
             merged = direct.hasData() ? direct : null;
         }
@@ -194,9 +208,9 @@ public class StructureLibDefinitionCache {
         if (candidate == null || !candidate.hasData()) return current;
         ConstructableData merged = current != null ? current : new ConstructableData();
         merged.setMaxTier(candidate.getMaxTotalTier(), "");
-        var channelMaxTierMap = candidate.getChannelMaxTierMap();
-        if (channelMaxTierMap != null) {
-            for (var channel : channelMaxTierMap.object2IntEntrySet()) {
+        if (candidate.getChannelMaxTierMap() != null) {
+            for (var channel : candidate.getChannelMaxTierMap()
+                .object2IntEntrySet()) {
                 if (channel.getKey() != null && !channel.getKey()
                     .trim()
                     .isEmpty()) {

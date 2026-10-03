@@ -2,12 +2,13 @@ package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 public class CylinderShape implements ShapeRenderer {
 
     @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
         int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
         int cx = x + w / 2;
         int rx = w / 2;
@@ -54,27 +55,24 @@ public class CylinderShape implements ShapeRenderer {
             }
         }
 
-        ShapeUtils.fillPolygonCentered(context, oxs, oys, borderColor);
-        ShapeUtils.fillPolygonCentered(context, ixs, iys, backgroundColor);
+        ShapeUtils.emitPolygonCentered(c, oxs, oys, borderColor);
+        ShapeUtils.emitPolygonCentered(c, ixs, iys, backgroundColor);
 
-        drawEllipseFrontArc(context, cx, bodyTop, rx, ry, borderColor);
-    }
-
-    private static void drawEllipseFrontArc(RenderContext context, float cx, float cy, float rx, float ry, int color) {
-        int segments = 20;
-        for (int i = 0; i < segments; i++) {
-            double a1 = Math.PI * i / segments;
-            double a2 = Math.PI * (i + 1) / segments;
+        // Emit the 20 line segments for the ellipse front arc
+        int arcSegments = 20;
+        for (int i = 0; i < arcSegments; i++) {
+            double a1 = Math.PI * i / arcSegments;
+            double a2 = Math.PI * (i + 1) / arcSegments;
             float x1 = cx + (float) (Math.cos(a1) * rx);
-            float y1 = cy + (float) (Math.sin(a1) * ry);
+            float y1 = bodyTop + (float) (Math.sin(a1) * ry);
             float x2 = cx + (float) (Math.cos(a2) * rx);
-            float y2 = cy + (float) (Math.sin(a2) * ry);
-            context.drawLine(x1, y1, x2, y2, 1, color);
+            float y2 = bodyTop + (float) (Math.sin(a2) * ry);
+            c.emit(new GuideRenderPrimitive.DrawLine(x1, y1, x2, y2, 1, borderColor));
         }
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int rx = nodeRect.width() / 2;
         int ry = Math.max(1, rx / 3);
         int extraV = Math.max(2, ry / 3);
@@ -88,12 +86,11 @@ public class CylinderShape implements ShapeRenderer {
         int cx = x + w / 2, rx = w / 2, r = Math.max(3, h / 4);
         int top = y + r, bot = y + h - r;
         return String.format(
-            """
-                <path d="M %d,%d A %d,%d 0 0,1 %d,%d L %d,%d A %d,%d 0 0,1 %d,%d Z" fill="%s"/>
-                <ellipse cx="%d" cy="%d" rx="%d" ry="%d" fill="%s" stroke="%s" stroke-width="1.5"/>
-                <path d="M %d,%d A %d,%d 0 0,1 %d,%d" fill="none" stroke="%s" stroke-width="1.5"/>
-                <line x1="%d" y1="%d" x2="%d" y2="%d" stroke="%s" stroke-width="1.5"/>
-                <line x1="%d" y1="%d" x2="%d" y2="%d" stroke="%s" stroke-width="1.5"/>""",
+            "<path d=\"M %d,%d A %d,%d 0 0,1 %d,%d L %d,%d A %d,%d 0 0,1 %d,%d Z\" fill=\"%s\"/>\n"
+                + "<ellipse cx=\"%d\" cy=\"%d\" rx=\"%d\" ry=\"%d\" fill=\"%s\" stroke=\"%s\" stroke-width=\"1.5\"/>\n"
+                + "<path d=\"M %d,%d A %d,%d 0 0,1 %d,%d\" fill=\"none\" stroke=\"%s\" stroke-width=\"1.5\"/>\n"
+                + "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"1.5\"/>\n"
+                + "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" stroke=\"%s\" stroke-width=\"1.5\"/>",
             x,
             top,
             rx,

@@ -26,7 +26,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
  * {@code ingotIron}). When an item stack is registered against any of those ore names the page
  * is considered a match.
  * <p/>
- * At rebuild time a precomputed {@code ItemId 閳?PageAnchor} map is built by expanding each
+ * At rebuild time a precomputed {@code ItemId -> PageAnchor} map is built by expanding each
  * indexed ore name through {@link OreDictionary#getOres(String)}. This makes
  * {@link #findByStack(ItemStack)} an O(1) hash lookup instead of requiring a per-call scan of all
  * ore-dictionary IDs assigned to the hovered item, which can be expensive in large modpacks.
@@ -34,7 +34,7 @@ import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 public class OreIndex extends UniqueIndex<String, PageAnchor> {
 
     /**
-     * Precomputed item (item + damage) 閳?page anchor map built during {@link #rebuild} /
+     * Precomputed item (item + damage) to page anchor map built during {@link #rebuild} /
      * {@link #update}. Keyed by exact damage value and also by {@link OreDictionary#WILDCARD_VALUE}
      * for stacks registered with wildcard meta, matching the two-step lookup used by
      * {@link ItemIndex#findByItem}.
@@ -72,7 +72,7 @@ public class OreIndex extends UniqueIndex<String, PageAnchor> {
                 String oreName = entry.getKey();
                 PageAnchor anchor = get(oreName);
                 if (anchor == null) {
-                    // ore name was rejected (e.g. duplicate) 閳?skip
+                    // ore name was rejected (e.g. duplicate), so skip it
                     continue;
                 }
                 for (ItemStack stack : OreDictionary.getOres(oreName)) {

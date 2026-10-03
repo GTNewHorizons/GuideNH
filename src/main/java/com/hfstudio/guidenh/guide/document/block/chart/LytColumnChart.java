@@ -8,7 +8,9 @@ import net.minecraft.item.ItemStack;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 import lombok.Getter;
@@ -87,7 +89,7 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected int getExtraPlotWidth() {
+    public int getExtraPlotWidth() {
         if (pieInset != null && pieInset.getPosition() == PieInsetSpec.Position.RIGHT_OUTSIDE) {
             return pieInset.getSize() + PIE_OUTSIDE_GAP;
         }
@@ -107,10 +109,10 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected void renderChart(RenderContext context, LytRect plotRect) {
+    protected LytRect renderChart(PrimitiveCollector c, LytRect plotRect) {
         int categoryCount = Math.max(categories.length, maxSeriesLength());
         if (categoryCount == 0 || (series.isEmpty() && lineOverlays.isEmpty())) {
-            return;
+            return plotRect;
         }
         // If the pie inset uses RIGHT_OUTSIDE, peel off a dedicated right-hand area for it so the
         // columns/lines do not have to share space with the pie.
@@ -146,23 +148,15 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
         yRangeCache = yRange;
 
         // Reserve space along the left/bottom for axis labels and tick text.
-        int[] insets = CartesianChartRenderer.computeAxisInsets(
-            context,
-            xAxis,
-            yAxis,
-            null,
-            yRange,
-            categories.length > 0 ? categories : null,
-            true,
-            true);
+        int[] insets = CartesianChartRenderer
+            .computeAxisInsets(xAxis, yAxis, null, yRange, categories.length > 0 ? categories : null, true, true);
         LytRect inner = plotRect.shrink(insets[0], insets[1], insets[2], insets[3]);
         plotCache = inner;
         if (inner.width() <= 4 || inner.height() <= 4) {
-            return;
+            return inner;
         }
 
-        CartesianChartRenderer
-            .drawAxes(context, inner, xAxis, yAxis, null, yRange, ensureCategories(categoryCount), false);
+        CartesianChartRenderer.drawAxes(c, inner, xAxis, yAxis, null, yRange, ensureCategories(categoryCount), false);
 
         float categoryWidth = (float) inner.width() / categoryCount;
         int seriesCount = series.size();
@@ -193,11 +187,22 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
                         (int) yTop,
                         Math.max(1, (int) (x1 - x0)),
                         Math.max(1, (int) (yBot - yTop)));
-                    context.fillRect(bar, s.getColor());
+                    c.emit(
+                        new GuideRenderPrimitive.FillRect(bar.x(), bar.y(), bar.width(), bar.height(), s.getColor()));
                     if (hovered) {
-                        context.drawBorder(bar, ColorUtils.BLACK.getColor(), 1);
+                        c.emit(
+                            new GuideRenderPrimitive.DrawBorder(
+                                bar.x(),
+                                bar.y(),
+                                bar.width(),
+                                bar.height(),
+                                1,
+                                1,
+                                1,
+                                1,
+                                ColorUtils.BLACK.getColor()));
                     }
-                    drawValueLabel(context, valueStyle, v, bar, baselineY, topY);
+                    drawValueLabel(c, valueStyle, v, bar, baselineY, topY);
                 }
             }
         }
@@ -222,14 +227,20 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
                     if (hoveredLineSeries == li && (hoveredLinePoint == i || hoveredLinePoint == i + 1)) {
                         thick += 1f;
                     }
-                    context.drawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor());
+                    c.emit(new GuideRenderPrimitive.DrawLine(px[i], py[i], px[i + 1], py[i + 1], thick, s.getColor()));
                 }
                 for (int i = 0; i < n; i++) {
                     boolean ph = hoveredLineSeries == li && hoveredLinePoint == i;
                     float r = ph ? LINE_POINT_RADIUS + 2f : LINE_POINT_RADIUS;
-                    context.fillCircle(px[i], py[i], r, s.getColor());
+                    c.emit(new GuideRenderPrimitive.DrawCircle(px[i], py[i], r, s.getColor(), true));
                     if (ph) {
-                        context.drawCircleOutline(px[i], py[i], r, 1f, ColorUtils.BLACK.getColor());
+                        c.emit(
+                            new GuideRenderPrimitive.DrawCircleOutline(
+                                px[i],
+                                py[i],
+                                r,
+                                1f,
+                                ColorUtils.BLACK.getColor()));
                     }
                 }
             }
@@ -237,18 +248,19 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
 
         // Pie inset (if configured) goes after columns + lines so it sits on top.
         if (pieArea != null) {
-            PieInsetRenderer.drawAt(context, pieArea, pieInset);
+            PieInsetRenderer.drawAt(c, pieArea, pieInset);
         } else {
-            PieInsetRenderer.draw(context, inner, pieInset);
+            PieInsetRenderer.draw(c, inner, pieInset);
         }
+        return inner;
     }
 
-    private void drawValueLabel(RenderContext context, ResolvedTextStyle style, double value, LytRect bar,
+    private void drawValueLabel(PrimitiveCollector c, ResolvedTextStyle style, double value, LytRect bar,
         float baselineY, float topY) {
         if (getLabelPosition() == ChartLabelPosition.NONE) return;
         String text = formatValue(value);
-        int tw = context.getStringWidth(text, style);
-        int lh = context.getLineHeight(style);
+        int tw = GuideText.measureWidth(text, style);
+        int lh = GuideText.lineHeight(style);
         int textX = bar.x() + (bar.width() - tw) / 2;
         int textY;
         switch (getLabelPosition()) {
@@ -268,7 +280,7 @@ public class LytColumnChart extends LytChartBase implements DebugComponent {
             default:
                 return;
         }
-        context.drawText(text, textX, textY, style);
+        GuideText.emitText(c, text, textX, textY, style);
     }
 
     private String[] ensureCategories(int count) {

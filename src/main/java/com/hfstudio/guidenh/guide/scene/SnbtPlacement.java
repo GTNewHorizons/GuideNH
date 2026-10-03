@@ -7,7 +7,7 @@ import lombok.Getter;
 
 /**
  * Records the placement configuration for a single {@code <ImportStructure>} element.
- * Symmetric to {@link StructureLibSceneBinding} — the compiler registers placement configs,
+ * Symmetric to {@link StructureLibSceneBinding} - the compiler registers placement configs,
  * and {@link LytGuidebookScene#build()} uses them to place blocks.
  *
  * <p>

@@ -41,6 +41,7 @@ public class FileTreeCompiler {
             LytBlock iconBlock = entry.icon() != null ? buildIconBlock(compiler, entry.icon()) : null;
             tree.appendRow(entry.slots(), iconBlock, payload);
         }
+        tree.finalizeRowGaps();
         return tree;
     }
 
