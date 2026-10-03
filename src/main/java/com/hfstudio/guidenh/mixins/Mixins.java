@@ -25,9 +25,6 @@ public enum Mixins implements IMixins {
     ANGELICA_SCENE_EXPORT(Side.CLIENT, Phase.LATE, Mods.Angelica,
         "compat.angelica.MixinVanillaModelMeshesSceneExportCapture"),
 
-    BQ_COMPAT(Side.CLIENT, Phase.LATE, Mods.BetterQuesting, "compat.betterquesting.MixinPanelButtonQuest",
-        "compat.betterquesting.MixinPanelTextBox", "compat.betterquesting.AccessorPanelTextBox"),
-
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.MixinHatchElementBuilderPreview",
         "compat.gregtech.MixinHatchElementPlacementPreview"),
 
