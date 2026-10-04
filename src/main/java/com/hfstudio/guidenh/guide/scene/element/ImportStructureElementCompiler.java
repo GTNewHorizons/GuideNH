@@ -102,14 +102,11 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             }
         }
 
-        int offsetX = MdxAttrs.getString(compiler, errorSink, el, "offsetX", null) != null
-            ? MdxAttrs.getInt(compiler, errorSink, el, "offsetX", 0)
+        int offsetX = el.getAttribute("offsetX") != null ? MdxAttrs.getInt(compiler, errorSink, el, "offsetX", 0)
             : MdxAttrs.getInt(compiler, errorSink, el, "x", 0);
-        int offsetY = MdxAttrs.getString(compiler, errorSink, el, "offsetY", null) != null
-            ? MdxAttrs.getInt(compiler, errorSink, el, "offsetY", 0)
+        int offsetY = el.getAttribute("offsetY") != null ? MdxAttrs.getInt(compiler, errorSink, el, "offsetY", 0)
             : MdxAttrs.getInt(compiler, errorSink, el, "y", 0);
-        int offsetZ = MdxAttrs.getString(compiler, errorSink, el, "offsetZ", null) != null
-            ? MdxAttrs.getInt(compiler, errorSink, el, "offsetZ", 0)
+        int offsetZ = el.getAttribute("offsetZ") != null ? MdxAttrs.getInt(compiler, errorSink, el, "offsetZ", 0)
             : MdxAttrs.getInt(compiler, errorSink, el, "z", 0);
         boolean formed = SceneStructureOptions.isFormed(compiler, errorSink, el);
 

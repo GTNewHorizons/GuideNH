@@ -15,7 +15,7 @@ public class StructureLibSceneConditionParser {
     public static StructureLibSceneCondition parse(PageCompiler compiler, LytErrorSink errorSink,
         MdxJsxElementFields element) {
         String structureName = MdxAttrs.getString(compiler, errorSink, element, "showWhenStructure", null);
-        String tierExpression = MdxAttrs.getString(compiler, errorSink, element, "showWhenTier", null);
+        String tierExpression = element.getAttributeString("showWhenTier", null);
         String channelExpression = MdxAttrs.getString(compiler, errorSink, element, "showWhenChannels", null);
         try {
             return StructureLibSceneCondition.parse(structureName, tierExpression, channelExpression);

@@ -87,10 +87,8 @@ public class SceneTagCompiler extends BlockTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         // Width and height
-        String rawWidth = MdxAttrs.getString(compiler, parent, el, "width", null);
-        String rawHeight = MdxAttrs.getString(compiler, parent, el, "height", null);
-        boolean explicitWidth = rawWidth != null;
-        boolean explicitHeight = rawHeight != null;
+        boolean explicitWidth = el.getAttribute("width") != null;
+        boolean explicitHeight = el.getAttribute("height") != null;
         int w = MdxAttrs.getInt(compiler, parent, el, "width", DEFAULT_WIDTH);
         int h = MdxAttrs.getInt(compiler, parent, el, "height", DEFAULT_HEIGHT);
 
