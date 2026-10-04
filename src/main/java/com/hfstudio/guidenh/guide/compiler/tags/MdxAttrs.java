@@ -148,14 +148,22 @@ public class MdxAttrs {
 
     public static int getInt(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields el, String name,
         int defaultValue) {
-        var attrValue = getString(compiler, errorSink, el, name, null);
-        if (attrValue == null) {
+        var attribute = el.getAttribute(name);
+        if (attribute == null) {
+            return defaultValue;
+        }
+        String attrValue;
+        if (attribute.hasExpressionValue()) {
+            attrValue = attribute.getExpressionValue();
+        } else if (attribute.hasStringValue()) {
+            attrValue = attribute.getStringValue();
+        } else {
             return defaultValue;
         }
         try {
-            return Integer.parseInt(attrValue);
+            return Integer.parseInt(attrValue.trim());
         } catch (NumberFormatException e) {
-            errorSink.appendError(compiler, "Malformed integer value: '" + attrValue + "'", el);
+            errorSink.appendError(compiler, "Malformed integer for '" + name + "': '" + attrValue + "'", el);
             return defaultValue;
         }
     }
