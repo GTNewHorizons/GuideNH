@@ -123,10 +123,10 @@ public class BqGuidePageLinks {
 
     public static List<String> getTooltip(PageAnchor anchor) {
         GuidePageLinkTarget target = GuidePageLinkTarget.resolve(anchor);
-        List<String> tooltip = List.of(
+        return List.of(
             EnumChatFormatting.AQUA + I18n.format("guidenh.compat.bq.open_guide_page"),
-            EnumChatFormatting.GRAY + target.title());
-        return tooltip;
+            EnumChatFormatting.GRAY + target.title(),
+            EnumChatFormatting.GRAY + I18n.format("betterquesting.tooltip.quest_link.click"));
     }
 
     private static String replaceGuideTagsUncached(String text,

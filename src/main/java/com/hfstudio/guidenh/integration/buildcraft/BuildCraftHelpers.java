@@ -8,7 +8,6 @@ import net.minecraft.util.MovingObjectPosition;
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
-import com.hfstudio.guidenh.mixins.late.compat.buildcraft.AccessorTileGenericPipe;
 
 import buildcraft.transport.BlockGenericPipe;
 import buildcraft.transport.Pipe;
@@ -36,15 +35,14 @@ public class BuildCraftHelpers {
             return null;
         }
         TileEntity tile = level.getTileEntity(x, y, z);
-        if (!isTileGenericPipe(tile)) {
+        if (!(tile instanceof TileGenericPipe genericPipe)) {
             return null;
         }
-        AccessorTileGenericPipe accessor = (AccessorTileGenericPipe) tile;
-        Pipe<?> pipe = accessor.getPipe();
+        Pipe<?> pipe = genericPipe.pipe;
         if (pipe == null || pipe.item == null) {
             return null;
         }
-        return new ItemStack(pipe.item, 1, accessor.invokeGetItemMetadata());
+        return new ItemStack(pipe.item, 1, genericPipe.getItemMetadata());
     }
 
     /**
@@ -55,17 +53,16 @@ public class BuildCraftHelpers {
      */
     @Optional.Method(modid = "BuildCraft|Transport")
     public static void initializePipeRenderState(TileEntity tile) {
-        if (!isTileGenericPipe(tile)) {
+        if (!(tile instanceof TileGenericPipe genericPipe)) {
             return;
         }
-        AccessorTileGenericPipe accessor = (AccessorTileGenericPipe) tile;
-        if (accessor.getPipe() == null) {
+        if (genericPipe.pipe == null) {
             return;
         }
         // Recompute pipeConnectionsBuffer from the current fake-world neighbors, then
         // copy the buffer into the PipeRenderState connection matrix.
-        accessor.invokeComputeConnections();
-        accessor.invokeRefreshRenderState();
+        genericPipe.computeConnections();
+        genericPipe.refreshRenderState();
     }
 
     /**
@@ -78,10 +75,4 @@ public class BuildCraftHelpers {
             initializePipeRenderState(tile);
         }
     }
-
-    @Optional.Method(modid = "BuildCraft|Transport")
-    public static boolean isTileGenericPipe(@Nullable TileEntity tile) {
-        return tile instanceof TileGenericPipe;
-    }
-
 }

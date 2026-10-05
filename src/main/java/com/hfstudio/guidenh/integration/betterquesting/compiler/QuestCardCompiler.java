@@ -39,7 +39,7 @@ public class QuestCardCompiler extends BlockTagCompiler {
             parent.appendError(compiler, "QuestCard id is not a valid BetterQuesting quest id: " + idAttr, el);
             return;
         }
-        boolean showDesc = !"false".equalsIgnoreCase(MdxAttrs.getString(compiler, parent, el, "show_desc", "true"));
+        boolean showDesc = MdxAttrs.getBoolean(compiler, parent, el, "show_desc", true);
         boolean showTooltip = QuestTagSupport.resolveShowTooltip(compiler, parent, el);
 
         QuestCardPlaceholder ph = new QuestCardPlaceholder(questId, showDesc, showTooltip);

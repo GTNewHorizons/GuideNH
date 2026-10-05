@@ -199,7 +199,7 @@ public class ChartAttrParser {
      * Parse a boxed {@link Double}; null means "auto".
      */
     public static Double parseBoxedDouble(MdxJsxElementFields el, String name) {
-        String s = MdxAttrs.getString(el, name, null);
+        String s = el.getAttributeString(name, null);
         if (s == null) {
             return null;
         }

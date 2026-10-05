@@ -72,7 +72,7 @@ public class RecipeCompiler extends BlockTagCompiler {
             MdxAttrs.getString(compiler, parent, el, "handlerWhitelist", null));
         List<String> handlerBlacklist = parseNameList(
             MdxAttrs.getString(compiler, parent, el, "handlerBlacklist", null));
-        String handlerOrderStr = MdxAttrs.getString(compiler, parent, el, "handlerOrder", null);
+        String handlerOrderStr = el.getAttributeString("handlerOrder", null);
         int handlerOrder = -1;
         if (handlerOrderStr != null && !handlerOrderStr.isEmpty()) {
             try {
@@ -82,7 +82,7 @@ public class RecipeCompiler extends BlockTagCompiler {
                 return;
             }
         }
-        String recipeIndexStr = MdxAttrs.getString(compiler, parent, el, "recipeIndex", null);
+        String recipeIndexStr = el.getAttributeString("recipeIndex", null);
         int exactRecipeIndex = -1;
         if (recipeIndexStr != null && !recipeIndexStr.isEmpty()) {
             try {
@@ -100,7 +100,7 @@ public class RecipeCompiler extends BlockTagCompiler {
         FilterExpr inputExpr = parseFilterExpr(compiler, parent, el, "input", defaultNs);
         FilterExpr outputExpr = parseFilterExpr(compiler, parent, el, "output", defaultNs);
 
-        String limitStr = MdxAttrs.getString(compiler, parent, el, "limit", null);
+        String limitStr = el.getAttributeString("limit", null);
         int limit = multi ? Integer.MAX_VALUE : 1;
         if (limitStr != null && !limitStr.isEmpty()) {
             try {

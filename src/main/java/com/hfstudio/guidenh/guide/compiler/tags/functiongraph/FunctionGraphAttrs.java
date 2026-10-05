@@ -84,8 +84,8 @@ public class FunctionGraphAttrs {
         } else {
             String domain = MdxAttrs.getString(compiler, sink, el, "domain", null);
             double[] domainRange = domain != null ? parseRange(domain) : null;
-            double xMin = parseDouble(MdxAttrs.getString(compiler, sink, el, "xMin", null), Double.NaN);
-            double xMax = parseDouble(MdxAttrs.getString(compiler, sink, el, "xMax", null), Double.NaN);
+            double xMin = parseDouble(el.getAttributeString("xMin", null), Double.NaN);
+            double xMax = parseDouble(el.getAttributeString("xMax", null), Double.NaN);
             if (domainRange != null && Double.isNaN(xMin) && Double.isNaN(xMax)) {
                 xMin = domainRange[0];
                 xMax = domainRange[1];
@@ -99,17 +99,17 @@ public class FunctionGraphAttrs {
             double[] r = parseRange(yRange);
             graph.setExplicitYRange(r[0], r[1]);
         } else {
-            double yMin = parseDouble(MdxAttrs.getString(compiler, sink, el, "yMin", null), Double.NaN);
-            double yMax = parseDouble(MdxAttrs.getString(compiler, sink, el, "yMax", null), Double.NaN);
+            double yMin = parseDouble(el.getAttributeString("yMin", null), Double.NaN);
+            double yMax = parseDouble(el.getAttributeString("yMax", null), Double.NaN);
             if (!Double.isNaN(yMin) || !Double.isNaN(yMax)) {
                 graph.setExplicitYRange(yMin, yMax);
             }
         }
-        double xStep = parseDouble(MdxAttrs.getString(compiler, sink, el, "xStep", null), Double.NaN);
+        double xStep = parseDouble(el.getAttributeString("xStep", null), Double.NaN);
         if (!Double.isNaN(xStep)) {
             graph.setExplicitXStep(xStep);
         }
-        double yStep = parseDouble(MdxAttrs.getString(compiler, sink, el, "yStep", null), Double.NaN);
+        double yStep = parseDouble(el.getAttributeString("yStep", null), Double.NaN);
         if (!Double.isNaN(yStep)) {
             graph.setExplicitYStep(yStep);
         }
@@ -136,8 +136,8 @@ public class FunctionGraphAttrs {
         boolean showFunction = MdxAttrs.getBoolean(compiler, sink, el, "showFunction", true);
         boolean showValues = MdxAttrs.getBoolean(compiler, sink, el, "showValues", true);
         AutoPointSpec autoPointSpec = parseAutoPointSpec(
-            MdxAttrs.getString(compiler, sink, el, "pointEveryX", null),
-            MdxAttrs.getString(compiler, sink, el, "pointEveryY", null),
+            el.getAttributeString("pointEveryX", null),
+            el.getAttributeString("pointEveryY", null),
             MdxAttrs.getString(compiler, sink, el, "autoPointLabel", null),
             MdxAttrs.getString(compiler, sink, el, "autoPointColor", null),
             color);
@@ -162,16 +162,16 @@ public class FunctionGraphAttrs {
             : ColorUtils.WHITE.getColor();
         String label = MdxAttrs.getString(compiler, sink, el, "label", null);
 
-        double xValue = parseDouble(MdxAttrs.getString(compiler, sink, el, "x", null), Double.NaN);
-        double yValue = parseDouble(MdxAttrs.getString(compiler, sink, el, "y", null), Double.NaN);
+        double xValue = parseDouble(el.getAttributeString("x", null), Double.NaN);
+        double yValue = parseDouble(el.getAttributeString("y", null), Double.NaN);
         if (!Double.isNaN(xValue) && !Double.isNaN(yValue)) {
             return new MarkedPoint(MarkedPoint.MODE_EXPLICIT, -1, xValue, yValue, color, false, label);
         }
 
         int plotIndex = MdxAttrs.getInt(compiler, sink, el, "plot", -1);
         if (plotIndex >= 0) {
-            double atX = parseDouble(MdxAttrs.getString(compiler, sink, el, "atX", null), Double.NaN);
-            double atY = parseDouble(MdxAttrs.getString(compiler, sink, el, "atY", null), Double.NaN);
+            double atX = parseDouble(el.getAttributeString("atX", null), Double.NaN);
+            double atY = parseDouble(el.getAttributeString("atY", null), Double.NaN);
             if (!Double.isNaN(atX)) {
                 return new MarkedPoint(MarkedPoint.MODE_PLOT_AT_X, plotIndex, atX, 0d, color, colorInherit, label);
             }

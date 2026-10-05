@@ -36,7 +36,6 @@ import com.hfstudio.guidenh.guide.internal.tooltip.AppendedItemTooltip;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
-import com.hfstudio.guidenh.mixins.late.compat.neicustomdiagram.AccessorCustomInteractable;
 
 import cpw.mods.fml.common.Optional;
 
@@ -198,10 +197,10 @@ public class NeiCustomDiagramBridge {
         int clipY, int clipWidth, int clipHeight) {
         if (interactable.drawable() instanceof ComponentLabel componentLabel) {
             Point position = interactable.position();
-            ((AccessorCustomInteractable) interactable).getDrawBackground()
+            interactable.drawBackground()
                 .accept(position);
             renderComponent(componentLabel.component(), position, clipX, clipY, clipWidth, clipHeight);
-            ((AccessorCustomInteractable) interactable).getDrawForeground()
+            interactable.drawForeground()
                 .accept(position);
             return;
         }

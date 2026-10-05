@@ -37,10 +37,8 @@ public class WeatherElementCompiler implements SceneElementTagCompiler {
             weatherName = MdxAttrs.getString(compiler, errorSink, el, "type", "rain");
         }
         GuidebookSceneWeatherType weatherType = GuidebookSceneWeatherType.fromSerializedName(weatherName);
-        int[] xValues = GuidebookSceneWeatherSupport
-            .parseAxisValues(MdxAttrs.getString(compiler, errorSink, el, "x", null));
-        int[] zValues = GuidebookSceneWeatherSupport
-            .parseAxisValues(MdxAttrs.getString(compiler, errorSink, el, "z", null));
+        int[] xValues = GuidebookSceneWeatherSupport.parseAxisValues(el.getAttributeString("x", null));
+        int[] zValues = GuidebookSceneWeatherSupport.parseAxisValues(el.getAttributeString("z", null));
         int density = Math.max(
             1,
             MdxAttrs

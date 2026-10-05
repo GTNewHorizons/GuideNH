@@ -23,6 +23,12 @@ import gregtech.api.util.HatchElementBuilder;
 public abstract class MixinHatchElementBuilderPreview<T> {
 
     @Shadow
+    private int mCasingIndex;
+
+    @Shadow
+    private Predicate<? super T> mReject;
+
+    @Shadow
     private BiFunction<? super T, ItemStack, ? extends Predicate<ItemStack>> mHatchItemFilter;
 
     @Inject(method = "atLeast(Ljava/util/Map;)Lgregtech/api/util/HatchElementBuilder;", at = @At("RETURN"))
@@ -38,8 +44,6 @@ public abstract class MixinHatchElementBuilderPreview<T> {
         if (element == null) {
             return;
         }
-        boolean hasMinimumRequirement = ((AccessorHatchElementBuilder) this).guidenh$getReject() != null;
-        int casingIndex = ((AccessorHatchElementBuilder) this).guidenh$getCasingIndex();
-        StructureLibMinimumHatchPlacement.register(element, hasMinimumRequirement, casingIndex);
+        StructureLibMinimumHatchPlacement.register(element, mReject != null, mCasingIndex);
     }
 }
