@@ -22,8 +22,6 @@ import com.hfstudio.guidenh.guide.scene.level.GuidebookLevel;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.Mods;
 
-import bartworks.system.material.BWMetaGeneratedBlocks;
-import bartworks.system.material.TileEntityMetaGeneratedBlock;
 import cpw.mods.fml.common.Optional;
 import gregtech.api.GregTechAPI;
 import gregtech.api.interfaces.INEIPreviewModifier;
@@ -40,89 +38,6 @@ import gregtech.common.misc.GTStructureChannels;
 public class GregTechHelpers {
 
     public static final Set<String> LOGGED_KEYS = Collections.synchronizedSet(new HashSet<>());
-
-    @Nullable
-    public static Integer resolveBartWorksMetadata(@Nullable TileEntity tileEntity) {
-        if (tileEntity == null || !Mods.BartWorks.isModLoaded()) {
-            return null;
-        }
-        try {
-            return resolveBartWorksMetadataImpl(tileEntity);
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Optional.Method(modid = "bartworks")
-    @Nullable
-    private static Integer resolveBartWorksMetadataImpl(TileEntity tileEntity) {
-        if (!(tileEntity instanceof TileEntityMetaGeneratedBlock generatedBlock)) {
-            return null;
-        }
-        return Math.max(0, generatedBlock.mMetaData);
-    }
-
-    public static boolean isBartWorksGeneratedBlock(@Nullable Block block) {
-        return Mods.BartWorks.isModLoaded() && isBartWorksGeneratedBlockImpl(block);
-    }
-
-    @Optional.Method(modid = "bartworks")
-    private static boolean isBartWorksGeneratedBlockImpl(Block block) {
-        return block instanceof BWMetaGeneratedBlocks;
-    }
-
-    public static boolean isBartWorksGeneratedTile(@Nullable TileEntity tileEntity) {
-        return Mods.BartWorks.isModLoaded() && isBartWorksGeneratedTileImpl(tileEntity);
-    }
-
-    @Optional.Method(modid = "bartworks")
-    private static boolean isBartWorksGeneratedTileImpl(TileEntity tileEntity) {
-        return tileEntity instanceof TileEntityMetaGeneratedBlock;
-    }
-
-    @Nullable
-    public static Integer resolveBartWorksBlockMeta(@Nullable Block block, int requestedMeta,
-        @Nullable NBTTagCompound tileTag) {
-        if (!isBartWorksGeneratedBlock(block)) {
-            return null;
-        }
-        try {
-            return resolveBartWorksBlockMetaImpl(requestedMeta, tileTag);
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
-    @Optional.Method(modid = "bartworks")
-    private static int resolveBartWorksBlockMetaImpl(int requestedMeta, @Nullable NBTTagCompound tileTag) {
-        if (tileTag != null && tileTag.hasKey("m")) {
-            int metaFromTag = tileTag.getShort("m");
-            if (metaFromTag <= 0) {
-                metaFromTag = tileTag.getInteger("m");
-            }
-            if (metaFromTag > 0) {
-                return metaFromTag;
-            }
-        }
-        return Math.max(0, requestedMeta);
-    }
-
-    public static void applyBartWorksGeneratedBlockMeta(@Nullable TileEntity tileEntity, @Nullable Block block,
-        int blockMeta) {
-        if (blockMeta <= 0 || !isBartWorksGeneratedBlock(block) || !isBartWorksGeneratedTile(tileEntity)) {
-            return;
-        }
-        try {
-            applyBartWorksGeneratedBlockMetaImpl(tileEntity, blockMeta);
-        } catch (Throwable t) {
-            GuideDebugLog.warn("Failed to apply BartWorks preview meta {}", blockMeta, t);
-        }
-    }
-
-    @Optional.Method(modid = "bartworks")
-    private static void applyBartWorksGeneratedBlockMetaImpl(TileEntity tileEntity, int blockMeta) {
-        ((TileEntityMetaGeneratedBlock) tileEntity).mMetaData = (short) blockMeta;
-    }
 
     @Nullable
     public static Integer resolveMetaTileIdFromBlock(@Nullable Block block, int requestedMeta,

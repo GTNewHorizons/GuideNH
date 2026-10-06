@@ -79,7 +79,6 @@ public class GuidebookPreviewBlockPlacer {
             initializeGregTechMetaTile(tileEntity, placementData.metaTileId, previewTileTag);
             logLoadedTile("gregtech-init", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
             applyGregTechDefaultFacing(tileEntity, previewTileTag);
-            GregTechHelpers.applyBartWorksGeneratedBlockMeta(tileEntity, block, placementData.blockMeta);
             logLoadedTile("post-facing-meta", x, y, z, tileEntity, placementData.metaTileId, previewTileTag);
             TileEntity residentTile = preferPreparedTileEntity(
                 tileEntity,
@@ -138,8 +137,7 @@ public class GuidebookPreviewBlockPlacer {
     public static PlacementData resolvePlacementData(Block block, int requestedMeta, @Nullable NBTTagCompound tileTag) {
         Integer metaTileId = GregTechHelpers.resolveMetaTileIdFromBlock(block, requestedMeta, tileTag);
         if (metaTileId == null) {
-            Integer bartWorksMeta = GregTechHelpers.resolveBartWorksBlockMeta(block, requestedMeta, tileTag);
-            return new PlacementData(bartWorksMeta != null ? bartWorksMeta : requestedMeta, null);
+            return new PlacementData(requestedMeta, null);
         }
 
         Integer blockMeta = resolveGregTechBaseMeta(metaTileId);
@@ -568,7 +566,6 @@ public class GuidebookPreviewBlockPlacer {
 
         initializeGregTechMetaTile(restoredTile, placementData.metaTileId, restoreTag);
         applyGregTechDefaultFacing(restoredTile, restoreTag);
-        GregTechHelpers.applyBartWorksGeneratedBlockMeta(restoredTile, block, placementData.blockMeta);
         level.setTileEntity(x, y, z, restoredTile);
         restoredTile = finalizeSpecialPreviewTile(level, x, y, z, restoredTile);
         return resolveWorldResidentTile(world, x, y, z, restoredTile);
@@ -654,8 +651,7 @@ public class GuidebookPreviewBlockPlacer {
         if (!GuideDebugLog.isEnabled()) {
             return;
         }
-        if (!GregTechHelpers.isGregTechTileEntity(tileEntity)
-            && !GregTechHelpers.isBartWorksGeneratedTile(tileEntity)) {
+        if (!GregTechHelpers.isGregTechTileEntity(tileEntity)) {
             return;
         }
         GregTechHelpers.logInfoOnce(
@@ -678,8 +674,7 @@ public class GuidebookPreviewBlockPlacer {
     }
 
     public static boolean shouldLogPlacement(Block block, PlacementData placementData) {
-        return GuideDebugLog.isEnabled()
-            && (placementData.metaTileId != null || GregTechHelpers.isBartWorksGeneratedBlock(block));
+        return GuideDebugLog.isEnabled() && placementData.metaTileId != null;
     }
 
     public static String describePosition(int x, int y, int z) {
