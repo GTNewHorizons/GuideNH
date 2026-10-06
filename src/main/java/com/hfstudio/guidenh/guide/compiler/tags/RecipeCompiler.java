@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
+import net.minecraftforge.oredict.OreDictionary;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -404,7 +405,8 @@ public class RecipeCompiler extends BlockTagCompiler {
         if (stack == null) return false;
         Item refItem = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (refItem == null || stack.getItem() != refItem) return false;
-        if (!ref.isWildcardMeta() && stack.getItemDamage() != ref.meta()) return false;
+        if (!ref.isWildcardMeta() && stack.getItemDamage() != ref.meta()
+            && stack.getItemDamage() != OreDictionary.WILDCARD_VALUE) return false;
         if (ref.nbt() != null) {
             if (stack.stackTagCompound == null) return false;
             if (!ref.nbt()

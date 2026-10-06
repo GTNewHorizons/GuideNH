@@ -507,6 +507,12 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             int recipeEnd = request.recipeIndex >= 0 ? Math.min(recipeCount, request.recipeIndex + 1) : recipeCount;
             for (int recipeIndex = recipeStart; recipeIndex < recipeEnd
                 && renderedRecipes.size() < request.limit; recipeIndex++) {
+                if (!request.usageQuery && !resultMatchesTarget(
+                    handlerRuntime.readResultSlot(handler, recipeIndex),
+                    request.recipeId,
+                    request.defaultNamespace)) {
+                    continue;
+                }
                 if (hasRecipeFilter && !RecipeCompiler
                     .recipeMatches(handler, recipeIndex, request.inputExpr, request.outputExpr, handlerRuntime)) {
                     continue;
@@ -538,6 +544,9 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             }
             NeiRecipeLookup.Entry entry = ref != null ? ref.entry : null;
             if (entry == null || !neiEntryHasAnySlots(entry)) {
+                continue;
+            }
+            if (!resultMatchesTarget(entry.result, request.recipeId, request.defaultNamespace)) {
                 continue;
             }
             if (hasRecipeFilter && !RecipeCompiler.entryMatches(entry, request.inputExpr, request.outputExpr)) {
@@ -663,6 +672,16 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             return true;
         }
         return entry.result != null;
+    }
+
+    private static boolean resultMatchesTarget(@Nullable NeiRecipeLookup.Slot result, String recipeId,
+        String defaultNamespace) {
+        try {
+            IdUtils.ParsedItemRef target = IdUtils.parseItemRef(recipeId, defaultNamespace);
+            return target != null && RecipeCompiler.resultSlotContains(result, target);
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
 
     private static SiteRecipeRawHandlerAccess rawHandlerSlots(final HandlerRuntime hr) {

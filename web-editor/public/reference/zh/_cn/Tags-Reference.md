@@ -76,7 +76,7 @@
 | `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` 是 `<GameScene>` 的子标签。它支持 `controller`、`piece`、`facing`、
-`rotation`、`flip`、`channel` 属性，也支持用于设置 StructureLib 默认值的子标签：
+`rotation`、`flip`、`tier`、`channel`、`channelName`、`value`、`locked` 属性，也支持用于设置 StructureLib 默认值的子标签：
 `<Tier>`、`<Channel>`、`<Facing>`、`<Rotation>`、`<Flip>`、`<Orientation>`、
 `<GregTechActiveController>`、`<GregTechPlaceHatches>`。
 
@@ -673,7 +673,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | 标签 | 用途 | 关键属性 |
 | --- | --- | --- |
 | `<ImportStructure>` | 导入外部 SNBT/NBT 结构资源 | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | 通过控制器 id 导入 StructureLib 多方块 | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | 通过控制器 id 导入 StructureLib 多方块 | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | 移除已放置且匹配指定方块匹配器的方块 | `id` |
 | `<BlockAnnotationTemplate>` | 把同一组子注解扩展到场景中所有匹配方块上 | `id` |
 

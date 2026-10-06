@@ -138,6 +138,10 @@ public class RecipeScript implements LytScript {
                 int recipeStart = Math.max(ph.recipeIndex, 0);
                 int recipeEnd = ph.recipeIndex >= 0 ? Math.min(num, ph.recipeIndex + 1) : num;
                 for (int ri = recipeStart; ri < recipeEnd && boxes.size() < limit; ri++) {
+                    if (!usageQuery
+                        && !RecipeCompiler.resultSlotContains(recipeAccess.readResultSlot(handler, ri), ph.ref)) {
+                        continue;
+                    }
                     if (hasRecipeFilter
                         && !RecipeCompiler.recipeMatches(handler, ri, ph.inputExpr, ph.outputExpr, recipeAccess))
                         continue;

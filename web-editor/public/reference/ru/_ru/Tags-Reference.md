@@ -74,7 +74,7 @@
 | `<QuestCard>` | сводная карточка квеста BetterQuesting на уровне блока (тег совместимости, регистрируется только при загрузке BetterQuesting) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` — это дочерний тег `<GameScene>`. Он принимает `controller`, `piece`, `facing`,
-атрибуты `rotation`, `flip` и `channel`, а также поддерживают дочерние теги StructureLib по умолчанию:
+атрибуты `rotation`, `flip` и `tier`, `channel`, `channelName`, `value`, `locked`, а также поддерживают дочерние теги StructureLib по умолчанию:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>` и `<GregTechPlaceHatches>`.
 
@@ -676,7 +676,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | Тег | Цель | Ключевые атрибуты |
 | --- | --- | --- |
 | `<ImportStructure>` | импорт внешнего актива структуры SNBT/NBT. | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | импортируйте мультиблок StructureLib по идентификатору контроллера. | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | импортируйте мультиблок StructureLib по идентификатору контроллера. | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | удалить уже размещенные блоки, соответствующие сопоставителю блоков. | `id` |
 | `<BlockAnnotationTemplate>` | наносить одни и те же дочерние аннотации на каждый соответствующий размещенный блок. | `id` |
 

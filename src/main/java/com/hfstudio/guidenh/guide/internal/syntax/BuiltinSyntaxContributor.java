@@ -590,17 +590,20 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("flip", SyntaxValueKind.STRING),
             AttributeSyntax.of("offsetX", SyntaxValueKind.INT),
             AttributeSyntax.of("offsetY", SyntaxValueKind.INT),
-            AttributeSyntax.of("offsetZ", SyntaxValueKind.INT));
+            AttributeSyntax.of("offsetZ", SyntaxValueKind.INT),
+            AttributeSyntax.of("locked", SyntaxValueKind.BOOLEAN));
         sink.attributes(
             "Tier",
             AttributeSyntax.of("value", SyntaxValueKind.INT),
-            AttributeSyntax.of("expr", SyntaxValueKind.INT));
+            AttributeSyntax.of("expr", SyntaxValueKind.INT),
+            AttributeSyntax.of("locked", SyntaxValueKind.BOOLEAN));
         sink.attributes(
             "Channel",
             AttributeSyntax.of("name", SyntaxValueKind.STRING),
             AttributeSyntax.of("id", SyntaxValueKind.STRING),
             AttributeSyntax.of("value", SyntaxValueKind.INT),
-            AttributeSyntax.of("expr", SyntaxValueKind.INT));
+            AttributeSyntax.of("expr", SyntaxValueKind.INT),
+            AttributeSyntax.of("locked", SyntaxValueKind.BOOLEAN));
         sink.attributes("Facing", AttributeSyntax.of("value", SyntaxValueKind.STRING));
         sink.attributes("Rotation", AttributeSyntax.of("value", SyntaxValueKind.STRING));
         sink.attributes("Flip", AttributeSyntax.of("value", SyntaxValueKind.STRING));
@@ -1027,6 +1030,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("facing", SyntaxValueKind.STRING),
             AttributeSyntax.of("rotation", SyntaxValueKind.STRING),
             AttributeSyntax.of("flip", SyntaxValueKind.STRING),
+            AttributeSyntax.of("locked", SyntaxValueKind.BOOLEAN),
             AttributeSyntax.of("gtActiveController", SyntaxValueKind.BOOLEAN),
             AttributeSyntax.of("gtPlaceHatches", SyntaxValueKind.BOOLEAN),
             AttributeSyntax.of("channelName", SyntaxValueKind.STRING),
@@ -1041,12 +1045,14 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "Tier",
             AttributeSyntax.of("value", SyntaxValueKind.STRING),
             AttributeSyntax.of("expr", SyntaxValueKind.STRING),
-            AttributeSyntax.of("tier", SyntaxValueKind.INT));
+            AttributeSyntax.of("tier", SyntaxValueKind.INT),
+            AttributeSyntax.of("locked", SyntaxValueKind.BOOLEAN));
         sink.attributes(
             "Channel",
             AttributeSyntax.of("value", SyntaxValueKind.STRING),
             AttributeSyntax.of("expr", SyntaxValueKind.STRING),
-            AttributeSyntax.of("name", SyntaxValueKind.STRING));
+            AttributeSyntax.of("name", SyntaxValueKind.STRING),
+            AttributeSyntax.of("locked", SyntaxValueKind.BOOLEAN));
     }
 
     private static void registerAttributeCorrections(SyntaxSink sink) {

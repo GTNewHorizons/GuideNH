@@ -105,7 +105,7 @@ h2 {
 }
 
 h3 {
-    font-size: 1rem;
+    font-size: 1.17rem;
     font-family: var(--minecraft-font);
 }
 
@@ -1584,7 +1584,15 @@ p {
 }
 
 .guide-recipe-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.8em;
     margin-bottom: 0.8em;
+}
+
+.guide-recipe-gallery > .recipe-grid {
+    margin-bottom: 0;
 }
 
 .guide-quest-link {

@@ -77,7 +77,7 @@ Inline markdown también admite action enlaces para sound playback:
 | `<QuestCard>` | bloque-level BetterQuesting quest summary card (compat etiqueta, solo registrado cuando BetterQuesting es cargado) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` es un `<GameScene>` hijo etiqueta. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, y `channel` atributos, y también admite StructureLib predeterminado hijo etiquetas:
+`rotation`, `flip`, y `tier`, `channel`, `channelName`, `value`, `locked` atributos, y también admite StructureLib predeterminado hijo etiquetas:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, y `<GregTechPlaceHatches>`.
 
@@ -679,7 +679,7 @@ These etiquetas solo funcionan dentro de `<GameScene>` / `<Scene>`:
 | etiqueta | Purpose | clave atributos |
 | --- | --- | --- |
 | `<ImportStructure>` | import Un externo SNBT/NBT estructura recurso | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import Un StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import Un StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | eliminar ya-colocado bloques que coincidir Un bloque matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp El mismo hijo anotaciones onto cada coincidente colocado bloque | `id` |
 

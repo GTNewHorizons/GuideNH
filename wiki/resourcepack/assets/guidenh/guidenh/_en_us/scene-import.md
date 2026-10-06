@@ -27,8 +27,8 @@ correctly:
 
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <GregTechActiveController />
     <GregTechPlaceHatches />
@@ -50,6 +50,10 @@ Default unformed controller preview:
   <ImportStructureLib controller="gregtech:gt.blockmachines:2741" />
 </GameScene>
 ```
+
+Use `locked={true}` on a `<Tier>` or `<Channel>` child to lock that default value. The same
+attribute can be placed on `<ImportStructureLib>` with `tier`, or with `channelName` and
+`channel`/`value`, to lock a root override. The public syntax uses `locked` consistently.
 
 Explicit formed controller preview:
 

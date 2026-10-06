@@ -77,7 +77,7 @@ Inline Markdown також підтримує action links для sound playback
 | `<QuestCard>` | блок-level BetterQuesting quest summary card (compat тег, лише зареєстрований коли BetterQuesting is завантажений) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` is a `<GameScene>` дочірній елемент тег. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, і `channel` атрибути, і також підтримує StructureLib Типове дочірній елемент теги:
+`rotation`, `flip`, і `tier`, `channel`, `channelName`, `value`, `locked` атрибути, і також підтримує StructureLib Типове дочірній елемент теги:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, і `<GregTechPlaceHatches>`.
 
@@ -679,7 +679,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | тег | Purpose | ключ атрибути |
 | --- | --- | --- |
 | `<ImportStructure>` | import зовнішній SNBT/NBT структура ресурс | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | видалити вже-розміщений блоки який відповідати a блок matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp  той самий дочірній елемент Анотації onto кожен відповідний розміщений блок | `id` |
 

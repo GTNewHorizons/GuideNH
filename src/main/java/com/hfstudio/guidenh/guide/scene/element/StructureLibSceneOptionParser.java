@@ -38,6 +38,9 @@ public class StructureLibSceneOptionParser {
         MdxJsxElementFields element) {
         StructureLibSceneOptions.Builder builder = StructureLibSceneOptions.builder();
         applyIntAttribute(compiler, errorSink, element, builder, "tier");
+        if (element.getAttribute("tier") != null && readLockFlag(compiler, errorSink, element)) {
+            builder.tierLocked(true);
+        }
         applyStringAttribute(compiler, errorSink, element, builder, "facing");
         applyStringAttribute(compiler, errorSink, element, builder, "rotation");
         applyStringAttribute(compiler, errorSink, element, builder, "flip");
@@ -58,6 +61,9 @@ public class StructureLibSceneOptionParser {
             }
             if (value > 0) {
                 builder.channel(channelName, value);
+                if (readLockFlag(compiler, errorSink, element)) {
+                    builder.channelLocked(channelName, true);
+                }
             }
         }
         return builder.build();
@@ -68,7 +74,13 @@ public class StructureLibSceneOptionParser {
         String name = childElement.name();
         switch (name) {
             case "Tier":
-                builder.tier(resolveIntValue(compiler, errorSink, childElement));
+                Integer tier = resolveIntValue(compiler, errorSink, childElement);
+                if (tier != null) {
+                    builder.tier(tier);
+                    if (readLockFlag(compiler, errorSink, childElement)) {
+                        builder.tierLocked(true);
+                    }
+                }
                 break;
             case "Channel":
                 applyChannel(compiler, errorSink, builder, childElement);
@@ -107,6 +119,9 @@ public class StructureLibSceneOptionParser {
         Integer value = resolveIntValue(compiler, errorSink, childElement);
         if (name != null && value != null) {
             builder.channel(name, value);
+            if (readLockFlag(compiler, errorSink, childElement)) {
+                builder.channelLocked(name, true);
+            }
         }
     }
 
@@ -211,5 +226,9 @@ public class StructureLibSceneOptionParser {
     private static int readInt(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields element,
         String attribute, int defaultValue) {
         return MdxAttrs.getInt(compiler, errorSink, element, attribute, defaultValue);
+    }
+
+    private static boolean readLockFlag(PageCompiler compiler, LytErrorSink errorSink, MdxJsxElementFields element) {
+        return MdxAttrs.getBoolean(compiler, errorSink, element, "locked", false);
     }
 }

@@ -383,6 +383,10 @@ GuideNH 目前註冊了以下場景子標籤：
 | `rotation` | 否 | 傳給導入器的旋轉覆蓋值 |
 | `flip` | 否 | 傳給導入器的鏡像覆蓋值 |
 | `channel` | 否 | 支援頻道結構的頻道整數覆蓋值 |
+| `tier` | 否 | 支援 tier 的結構初始 tier 值 |
+| `channelName` | 否 | 與根標籤 `channel` 或 `value` 覆蓋值搭配的頻道名稱 |
+| `value` | 否 | 與 `channelName` 搭配使用的頻道值 |
+| `locked` | 否 | 鎖定明確提供的 tier 或頻道值 |
 | `offsetX` | 否 | 所有放置方塊的 X 偏移，整數，預設 `0` |
 | `offsetY` | 否 | 所有放置方塊的 Y 偏移，整數，會被限制在 `[0, 世界高度-1]`，預設 `0` |
 | `offsetZ` | 否 | 所有放置方塊的 Z 偏移，整數，預設 `0` |
@@ -403,6 +407,8 @@ GuideNH 目前註冊了以下場景子標籤：
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" tier="4" locked={true} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channelName="voltage" value="4" locked={true} />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
@@ -439,7 +445,9 @@ StructureLib 預設值也可以寫成子標籤。這些預設值會成為場景�
 | 子標籤 | 意義 |
 | --- | --- |
 | `<Tier value="1" />` | 主 tier 值。 |
+| `<Tier value="4" locked={true} />` | 鎖定明確提供的 tier 或頻道值. |
 | `<Channel name="channelName" value="1" />` | 具名 StructureLib channel 覆蓋值；可重複。 |
+| `<Channel name="channelName" value="1" locked={true} />` | 鎖定明確提供的 tier 或頻道值. |
 | `<Facing value="north" />` | 預設朝向。 |
 | `<Rotation value="normal" />` | 默认旋转。 |
 | `<Flip value="none" />` | 默认翻转 / 镜像。 |
@@ -453,8 +461,8 @@ StructureLib 預設值也可以寫成子標籤。這些預設值會成為場景�
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />
