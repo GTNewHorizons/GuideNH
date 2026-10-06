@@ -47,6 +47,9 @@ public class GuideSiteTextureAnimations implements AutoCloseable {
     private final AtomicLong captureCallCount = new AtomicLong();
     private final AtomicLong capturedVertexCount = new AtomicLong();
     private final AtomicLong matchedSpriteCount = new AtomicLong();
+    private final AtomicLong animationCacheHitCount = new AtomicLong();
+    private final Map<AnimationCacheKey, String> renderedAnimationCache = new HashMap<>();
+    private boolean hasAnimatedSprites;
     private boolean indexed;
 
     public GuideSiteTextureAnimations(GuideSiteAssetRegistry assets) {
@@ -87,6 +90,7 @@ public class GuideSiteTextureAnimations implements AutoCloseable {
 
     public class Capture implements AutoCloseable {
 
+        private final GuideSiteTextureAnimations owner = GuideSiteTextureAnimations.this;
         private final Capture previous;
         private final Map<Sprite, Boolean> seen = new IdentityHashMap<>();
         private final List<Sprite> used = new ArrayList<>();
@@ -155,7 +159,7 @@ public class GuideSiteTextureAnimations implements AutoCloseable {
     }
 
     public static void captureVertices(int[] vertices, int vertexCount, boolean textured) {
-        if (active != null && textured && vertices != null && vertexCount > 0) {
+        if (active != null && active.owner.hasAnimatedSprites && textured && vertices != null && vertexCount > 0) {
             active.collect(vertices, vertexCount);
         }
     }
@@ -219,6 +223,9 @@ public class GuideSiteTextureAnimations implements AutoCloseable {
                 }
             }
             atlasCells.put(atlas.getGlTextureId(), cells);
+            if (!cells.isEmpty()) {
+                hasAnimatedSprites = true;
+            }
         } finally {
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, binding);
             OpenGlHelper.setActiveTexture(unit);
@@ -234,6 +241,12 @@ public class GuideSiteTextureAnimations implements AutoCloseable {
             sprites = capture.sprites();
         }
         if (sprites.isEmpty()) return assets.writePngAsync(bucket, first);
+        AnimationCacheKey cacheKey = new AnimationCacheKey(bucket, assets.imageHash(first), List.copyOf(sprites));
+        String cachedPath = renderedAnimationCache.get(cacheKey);
+        if (cachedPath != null) {
+            animationCacheHitCount.incrementAndGet();
+            return cachedPath;
+        }
         animatedExportCount.incrementAndGet();
         long period = 1;
         for (Sprite sprite : sprites) {
@@ -314,7 +327,9 @@ public class GuideSiteTextureAnimations implements AutoCloseable {
                         .tickCounter());
             }
         }
-        return assets.writeAnimatedPngAsync(bucket, frames);
+        String exportedPath = assets.writeAnimatedPngAsync(bucket, frames);
+        renderedAnimationCache.put(cacheKey, exportedPath);
+        return exportedPath;
     }
 
     private int estimateFrameCount(long period, List<Sprite> sprites) {
@@ -333,7 +348,7 @@ public class GuideSiteTextureAnimations implements AutoCloseable {
     @Override
     public void close() {
         GuideDebugLog.infoAlways(
-            "[GuideNH] [GuideSiteTextureAnimations] exports={}, animated={}, renderedFrames={}, fallbacks={}, renderTimeMs={}, captureCalls={}, capturedVertices={}, matchedSprites={}",
+            "[GuideNH] [GuideSiteTextureAnimations] exports={}, animated={}, renderedFrames={}, fallbacks={}, renderTimeMs={}, captureCalls={}, capturedVertices={}, matchedSprites={}, cacheHits={}",
             exportCount.get(),
             animatedExportCount.get(),
             renderedFrameCount.get(),
@@ -341,10 +356,13 @@ public class GuideSiteTextureAnimations implements AutoCloseable {
             TimeUnit.NANOSECONDS.toMillis(renderNanos.get()),
             captureCallCount.get(),
             capturedVertexCount.get(),
-            matchedSpriteCount.get());
+            matchedSpriteCount.get(),
+            animationCacheHitCount.get());
     }
 
     private record FrameState(int textureFrame, int frameCounter, int tickCounter) {}
+
+    private record AnimationCacheKey(String bucket, String firstImageHash, List<Sprite> sprites) {}
 
     private static long gcd(long a, long b) {
         while (b != 0) {

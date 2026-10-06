@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
+import net.minecraftforge.oredict.OreDictionary;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -347,6 +348,14 @@ public class RecipeCompiler extends BlockTagCompiler {
 
         List<NeiRecipeLookup.Slot> readIngredientSlots(Object handler, int recipeIndex);
 
+        /**
+         * Reads catalyst or auxiliary slots exposed by a handler. Older integrations may not
+         * provide these slots, so the default keeps the access contract source-compatible.
+         */
+        default List<NeiRecipeLookup.Slot> readOtherSlots(Object handler, int recipeIndex) {
+            return List.of();
+        }
+
         @Nullable
         NeiRecipeLookup.Slot readResultSlot(Object handler, int recipeIndex);
     }
@@ -404,7 +413,8 @@ public class RecipeCompiler extends BlockTagCompiler {
         if (stack == null) return false;
         Item refItem = (Item) Item.itemRegistry.getObject(ref.rawKey());
         if (refItem == null || stack.getItem() != refItem) return false;
-        if (!ref.isWildcardMeta() && stack.getItemDamage() != ref.meta()) return false;
+        if (!ref.isWildcardMeta() && stack.getItemDamage() != ref.meta()
+            && stack.getItemDamage() != OreDictionary.WILDCARD_VALUE) return false;
         if (ref.nbt() != null) {
             if (stack.stackTagCompound == null) return false;
             if (!ref.nbt()
@@ -429,6 +439,57 @@ public class RecipeCompiler extends BlockTagCompiler {
         if (result == null || result.stacks == null) return false;
         for (int i = 0, n = result.stacks.size(); i < n; i++) {
             if (stackMatches(result.stacks.get(i), ref)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Matches a tag target against one handler recipe. Normal recipe tags are output queries. An
+     * explicitly named handler may instead expose the requested stack as an ingredient or
+     * catalyst, as Fuel and Brewing do in NEI, so those slots are checked when requested.
+     */
+    public static boolean handlerTargetMatches(Object handler, int recipeIndex, IdUtils.ParsedItemRef ref,
+        HandlerRecipeAccess recipeAccess, boolean includeInputSlots) {
+        if (resultSlotContains(recipeAccess.readResultSlot(handler, recipeIndex), ref)) {
+            return true;
+        }
+        if (!includeInputSlots) {
+            return false;
+        }
+        if (slotsContain(recipeAccess.readIngredientSlots(handler, recipeIndex), ref)) {
+            return true;
+        }
+        if (slotsContain(recipeAccess.readOtherSlots(handler, recipeIndex), ref)) {
+            return true;
+        }
+        return ref.nbt() == null
+            && damageableItemVariantPresent(recipeAccess.readIngredientSlots(handler, recipeIndex), ref);
+    }
+
+    public static boolean handlerTargetMatches(NeiRecipeLookup.Entry entry, IdUtils.ParsedItemRef ref,
+        boolean includeInputSlots) {
+        if (entry == null) return false;
+        if (resultSlotContains(entry.result, ref)) return true;
+        if (!includeInputSlots) return false;
+        if (slotsContain(entry.ingredients, ref)) return true;
+        if (slotsContain(entry.others, ref)) return true;
+        return ref.nbt() == null && damageableItemVariantPresent(entry.ingredients, ref);
+    }
+
+    private static boolean damageableItemVariantPresent(@Nullable List<NeiRecipeLookup.Slot> slots,
+        IdUtils.ParsedItemRef ref) {
+        if (slots == null) return false;
+        Item refItem = (Item) Item.itemRegistry.getObject(ref.rawKey());
+        if (refItem == null) return false;
+        for (NeiRecipeLookup.Slot slot : slots) {
+            if (slot == null || slot.stacks == null) continue;
+            for (ItemStack stack : slot.stacks) {
+                if (stack != null && stack.getItem() == refItem
+                    && stack.isItemStackDamageable()
+                    && stack.getItemDamage() > 0) {
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -579,6 +640,10 @@ public class RecipeCompiler extends BlockTagCompiler {
             if (!evalSlots(recipeAccess.readIngredientSlots(handler, recipeIndex), inputExpr)) return false;
         }
         return true;
+    }
+
+    public static boolean recipeMatches(NeiRecipeLookup.Entry entry, FilterExpr inputExpr, FilterExpr outputExpr) {
+        return entry != null && entryMatches(entry, inputExpr, outputExpr);
     }
 
     public static boolean entryMatches(NeiRecipeLookup.Entry e, FilterExpr inputExpr, FilterExpr outputExpr) {

@@ -33,18 +33,21 @@ import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.GuiYesNoCallback;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.resources.IResourcePack;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
 
 import com.hfstudio.guidenh.ClientProxy;
 import com.hfstudio.guidenh.client.command.GuideNhClientBridgeController;
@@ -116,6 +119,7 @@ import com.hfstudio.guidenh.guide.internal.host.NavigationState;
 import com.hfstudio.guidenh.guide.internal.input.GuideKeyBindingSupport;
 import com.hfstudio.guidenh.guide.internal.item.RegionWandExporter;
 import com.hfstudio.guidenh.guide.internal.markdown.CodeBlockClipboardService;
+import com.hfstudio.guidenh.guide.internal.recipe.NeiItemTooltip;
 import com.hfstudio.guidenh.guide.internal.screen.GuideIconButton;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBar.ContextTarget;
@@ -4777,9 +4781,105 @@ public class GuideScreen extends GuiContainer
             return;
         }
 
+        if (tooltip instanceof NeiItemTooltip neiTooltip && neiTooltip.getPermutations()
+            .size() > 1) {
+            renderNeiItemTooltip(neiTooltip, mouseX, mouseY, interaction);
+            return;
+        }
+
         List<String> lines = GuideItemTooltipLines.build(tooltip, mc);
         FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
         drawHoveringTextAtAdjustedPosition(lines, mouseX, mouseY, font, resolveTooltipBounds(interaction));
+    }
+
+    private void renderNeiItemTooltip(NeiItemTooltip tooltip, int mouseX, int mouseY,
+        @Nullable DocumentInteractionState interaction) {
+        ItemStack stack = tooltip.getStack();
+        FontRenderer font = GuideItemTooltipRenderSupport.resolveFont(stack, mc.fontRenderer);
+        List<String> lines = new ArrayList<>(GuideItemTooltipLines.build(tooltip, mc));
+        List<ItemStack> permutations = tooltip.getPermutations();
+        int maxColumns = 11;
+        int maxRows = 4;
+        int visibleCount = Math.min(permutations.size(), maxColumns * maxRows);
+        int columns = Math.min(maxColumns, visibleCount);
+        int rows = Math.max(1, (visibleCount + columns - 1) / columns);
+        String spacer = tooltipSpacer(font, columns * 18);
+        int labelLine = Math.max(0, lines.size() - 1);
+        for (int row = 0; row < rows; row++) {
+            lines.add(spacer);
+            lines.add(spacer);
+        }
+
+        LytRect bounds = resolveTooltipBounds(interaction);
+        TooltipLayout layout = computeHoveringTextLayout(lines, mouseX, mouseY, font, bounds);
+        drawHoveringText(lines, layout.mouseAnchorX(), layout.mouseAnchorY(), font);
+
+        int firstItemY = layout.top() + (labelLine + 1) * 10;
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_LIGHTING_BIT);
+        GL11.glEnable(GL12.GL_RESCALE_NORMAL);
+        this.zLevel = 300.0F;
+        itemRender.zLevel = 300.0F;
+        try {
+            int activeIndex = tooltip.getActivePermutationIndex();
+            GL11.glDisable(GL11.GL_LIGHTING);
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glEnable(GL11.GL_ALPHA_TEST);
+            GL11.glColor4f(1F, 1F, 1F, 1F);
+            for (int index = 0; index < visibleCount; index++) {
+                if (index == activeIndex) {
+                    int x = layout.textX() + (index % columns) * 18;
+                    int y = firstItemY + (index / columns) * 20;
+                    drawRect(x, y, x + 18, y + 18, 0x66555555);
+                }
+            }
+            GL11.glColor4f(1F, 1F, 1F, 1F);
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
+            RenderHelper.enableGUIStandardItemLighting();
+            this.zLevel = 400.0F;
+            itemRender.zLevel = 400.0F;
+            for (int index = 0; index < visibleCount; index++) {
+                ItemStack candidate = permutations.get(index);
+                if (candidate == null) continue;
+                int x = layout.textX() + (index % columns) * 18 + 1;
+                int y = firstItemY + (index / columns) * 20 + 1;
+                itemRender.renderItemAndEffectIntoGUI(mc.fontRenderer, mc.getTextureManager(), candidate, x, y);
+            }
+            if (visibleCount < permutations.size()) {
+                String hidden = "+" + (permutations.size() - visibleCount);
+                int x = layout.textX() + columns * 18 - font.getStringWidth(hidden) - 2;
+                int y = firstItemY + (rows - 1) * 20 + 3;
+                font.drawStringWithShadow(EnumChatFormatting.GRAY + hidden, x, y, 0xFFFFFF);
+            }
+        } finally {
+            itemRender.zLevel = 0.0F;
+            this.zLevel = 0.0F;
+            RenderHelper.disableStandardItemLighting();
+            GL11.glPopAttrib();
+        }
+
+        for (int index = 0; index < visibleCount; index++) {
+            int x = layout.textX() + (index % columns) * 18 + 1;
+            int y = firstItemY + (index / columns) * 20 + 1;
+            if (isOver(x, y, 16, 16, mouseX, mouseY)) {
+                List<String> candidateLines = GuideItemTooltipLines.build(
+                    new NeiItemTooltip(permutations.get(index), tooltip.getHandler(), tooltip.getRecipeIndex()),
+                    mc);
+                drawHoveringTextAtAdjustedPosition(candidateLines, mouseX, mouseY, font, bounds);
+                break;
+            }
+        }
+    }
+
+    private static String tooltipSpacer(FontRenderer font, int width) {
+        int spaceWidth = Math.max(1, font.getCharWidth(' '));
+        int count = Math.max(1, (width + spaceWidth - 1) / spaceWidth);
+        StringBuilder value = new StringBuilder(count);
+        value.append(" ".repeat(count));
+        return value.toString();
+    }
+
+    private static boolean isOver(int x, int y, int width, int height, int mouseX, int mouseY) {
+        return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
     @Nullable

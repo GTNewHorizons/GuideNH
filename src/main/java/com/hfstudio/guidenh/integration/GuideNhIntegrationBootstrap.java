@@ -9,8 +9,6 @@ import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 public class GuideNhIntegrationBootstrap {
 
-    private GuideNhIntegrationBootstrap() {}
-
     public static void preInitCommon() {
         registerKnownModDescriptors();
         GuideNhIntegrationRegistry.global()

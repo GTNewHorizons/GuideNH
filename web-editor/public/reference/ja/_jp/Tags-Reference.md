@@ -77,7 +77,7 @@ Inline Markdown も 対応します action リンク 用 sound playback:
 | `<QuestCard>` | ブロック-level BetterQuesting quest summary card (compat タグ, のみ 登録済み 場合 BetterQuesting です 読み込み済み) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` は `<GameScene>` 子 タグ. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, と `channel` 属性, と も 対応します StructureLib 既定値 子 タグ:
+`rotation`, `flip`, と `tier`, `channel`, `channelName`, `value`, `locked` 属性, と も 対応します StructureLib 既定値 子 タグ:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, と `<GregTechPlaceHatches>`.
 
@@ -679,7 +679,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | タグ | Purpose | キー 属性 |
 | --- | --- | --- |
 | `<ImportStructure>` | import 外部 SNBT/NBT structure アセット | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | 削除 すでに-placed ブロック that 一致 a ブロック matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp  同じ 子 注釈 onto すべての 一致する placed ブロック | `id` |
 

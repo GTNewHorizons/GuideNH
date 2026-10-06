@@ -58,7 +58,7 @@ public class DefaultStyles {
         .font(null)
         .build();
     public static final TextStyle HEADING3 = TextStyle.builder()
-        .fontScale(1f)
+        .fontScale(1.17f)
         .font(null)
         .build();
     public static final TextStyle HEADING4 = TextStyle.builder()

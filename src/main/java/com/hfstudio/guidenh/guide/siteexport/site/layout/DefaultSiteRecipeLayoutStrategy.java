@@ -58,6 +58,13 @@ public class DefaultSiteRecipeLayoutStrategy implements SiteRecipeLayoutStrategy
                     return "";
                 }
                 int idx = ctx.rawRecipeIndex();
+                NeiRecipeLookup.Entry snapshot = ctx.rawHandlerEntry();
+                if (snapshot != null) {
+                    return exporter.renderNeiOverlayGridItems(
+                        exporter.ingredientItemsFromNeiEntry(snapshot, resolver),
+                        exporter.resultItem(snapshot.result, ctx.targetStack(), resolver),
+                        exporter.supportingSlotItemsFromNeiEntry(snapshot, resolver));
+                }
                 List<List<GuideSiteExportedItem>> ingredients = exporter
                     .ingredientItemsFromNeiSlots(access.readIngredientSlots(handler, idx), resolver);
                 List<List<GuideSiteExportedItem>> supporting = exporter

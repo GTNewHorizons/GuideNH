@@ -3,6 +3,7 @@ package com.hfstudio.guidenh.guide.internal.recipe;
 import java.util.WeakHashMap;
 
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
+import com.hfstudio.guidenh.integration.nei.NeiRecipePermutationController;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -21,16 +22,25 @@ public class NeiAnimationTicker {
 
     private NeiAnimationTicker() {}
 
+    private static final WeakHashMap<Object, Boolean> UPDATE_CAPABILITY = new WeakHashMap<>();
+
     public static void ensureUpdating(Object handler) {
-        if (!GuideNhIntegrationRegistry.global()
-            .canUpdateRecipeAnimation(handler)) return;
+        if (handler == null) return;
         synchronized (TRACKED) {
-            TRACKED.put(handler, Boolean.TRUE);
+            Boolean cachedCapability = UPDATE_CAPABILITY.get(handler);
+            if (cachedCapability == null) {
+                cachedCapability = GuideNhIntegrationRegistry.global()
+                    .canUpdateRecipeAnimation(handler);
+                UPDATE_CAPABILITY.put(handler, cachedCapability);
+            }
             if (!registered) {
                 registered = true;
                 FMLCommonHandler.instance()
                     .bus()
                     .register(new NeiAnimationTicker());
+            }
+            if (cachedCapability) {
+                TRACKED.put(handler, Boolean.TRUE);
             }
         }
     }
@@ -38,20 +48,24 @@ public class NeiAnimationTicker {
     public static void clear() {
         synchronized (TRACKED) {
             TRACKED.clear();
+            UPDATE_CAPABILITY.clear();
         }
+        NeiRecipePermutationController.clear();
     }
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        NeiRecipePermutationController.tick();
         Object[] snapshot;
         synchronized (TRACKED) {
+            if (TRACKED.isEmpty()) return;
             snapshot = TRACKED.keySet()
                 .toArray();
         }
+        GuideNhIntegrationRegistry registry = GuideNhIntegrationRegistry.global();
         for (Object o : snapshot) {
-            GuideNhIntegrationRegistry.global()
-                .updateRecipeAnimation(o);
+            registry.updateRecipeAnimation(o);
         }
     }
 }

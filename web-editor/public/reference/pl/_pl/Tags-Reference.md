@@ -77,7 +77,7 @@ Inline Markdown także obsługuje action links dla sound playback:
 | `<QuestCard>` | blok-level BetterQuesting quest summary card (compat tag, tylko zarejestrowany gdy BetterQuesting is załadowany) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` is a `<GameScene>` element podrzędny tag. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, i `channel` atrybuty, i także obsługuje StructureLib Domyślne element podrzędny tagi:
+`rotation`, `flip`, i `tier`, `channel`, `channelName`, `value`, `locked` atrybuty, i także obsługuje StructureLib Domyślne element podrzędny tagi:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, i `<GregTechPlaceHatches>`.
 
@@ -679,7 +679,7 @@ Te tagi tylko działa wewnątrz `<GameScene>` / `<Scene>`:
 | tag | Purpose | klucz atrybuty |
 | --- | --- | --- |
 | `<ImportStructure>` | import zewnętrzny SNBT/NBT struktura zasób | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | usuwać już-umieszczony bloki który pasować blok matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp  ten sam element podrzędny Adnotacje onto każdy pasujący umieszczony blok | `id` |
 

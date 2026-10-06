@@ -550,7 +550,17 @@ public class GuideNavBar {
         GuidePageIcon icon = displayRow.icon();
         if (icon != null) {
             int iconY = rowY + (ROW_H - ICON_SIZE) / 2;
-            drawMiniIcon(mc, icon, textX, iconY);
+            if (sticky) {
+                GL11.glPushAttrib(GL11.GL_DEPTH_BUFFER_BIT);
+                try {
+                    GL11.glDepthFunc(GL11.GL_ALWAYS);
+                    drawMiniIcon(mc, icon, textX, iconY);
+                } finally {
+                    GL11.glPopAttrib();
+                }
+            } else {
+                drawMiniIcon(mc, icon, textX, iconY);
+            }
             textX += ICON_SIZE + 2;
         }
 

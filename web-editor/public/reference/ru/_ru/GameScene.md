@@ -405,6 +405,10 @@ GuideNH в настоящее время регистрирует следующ
 | `rotation` | нет | переопределение поворота передано импортеру |
 | `flip` | нет | переопределение переворота/зеркала передано импортеру |
 | `channel` | нет | переопределение целочисленного канала для структур, поддерживающих канал. |
+| `tier` | нет | начальное значение tier для структур с уровнями |
+| `channelName` | нет | имя канала для корневого переопределения `channel` или `value` |
+| `value` | нет | значение канала вместе с `channelName` |
+| `locked` | нет | блокирует явно заданное значение tier или канала |
 | `offsetX` | нет | целочисленное смещение по оси X, применяемое ко всем размещенным блокам (по умолчанию `0`). |
 | `offsetY` | нет | целочисленное смещение по оси Y, применяемое ко всем размещенным блокам, ограниченное значением `[0, worldHeight-1]` (по умолчанию `0`). |
 | `offsetZ` | нет | целочисленное смещение по оси Z, применяемое ко всем размещенным блокам (по умолчанию `0`). |
@@ -425,6 +429,8 @@ GuideNH в настоящее время регистрирует следующ
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" tier="4" locked={true} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channelName="voltage" value="4" locked={true} />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
@@ -462,7 +468,9 @@ GuideNH в настоящее время регистрирует следующ
 | Дочерний тег | Значение |
 | --- | --- |
 | `<Tier value="1" />` | Значение уровня «Мастер». |
+| `<Tier value="4" locked={true} />` | блокирует явно заданное значение tier или канала. |
 | `<Channel name="channelName" value="1" />` | переопределение именованного канала StructureLib. Повторите для нескольких каналов. |
+| `<Channel name="channelName" value="1" locked={true} />` | блокирует явно заданное значение tier или канала. |
 | `<Facing value="north" />` | Облицовка по умолчанию. |
 | `<Rotation value="normal" />` | вращение по умолчанию. |
 | `<Flip value="none" />` | Переворот/зеркало по умолчанию. |
@@ -477,8 +485,8 @@ GuideNH в настоящее время регистрирует следующ
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />

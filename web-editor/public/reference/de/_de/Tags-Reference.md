@@ -77,7 +77,7 @@ Inline markdown auch unterstützt action Links für sound playback:
 | `<QuestCard>` | Block-level BetterQuesting quest summary card (compat Tag, nur registriert wenn BetterQuesting ist geladen) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` ist ein `<GameScene>` untergeordnetes Element Tag. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, und `channel` Attribut, und auch unterstützt StructureLib Standard untergeordnetes Element Tags:
+`rotation`, `flip`, und `tier`, `channel`, `channelName`, `value`, `locked` Attribut, und auch unterstützt StructureLib Standard untergeordnetes Element Tags:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, und `<GregTechPlaceHatches>`.
 
@@ -679,7 +679,7 @@ diese Tags nur funktionieren innerhalb `<GameScene>` / `<Scene>`:
 | Tag | Zweck | Schlüssel Attribut |
 | --- | --- | --- |
 | `<ImportStructure>` | import Eine extern SNBT/NBT structure Ressource | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import Eine StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import Eine StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | entfernen bereits-placed Blöcke dass übereinstimmen Eine Block matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp Die gleich untergeordnetes Element Annotationen onto jede passend placed Block | `id` |
 

@@ -52,6 +52,14 @@ public class GuideNhIntegrationRegistry {
     private final List<RecipeHandlerSlotProvider> recipeHandlerSlotProviders = new ArrayList<>();
     private final List<RecipeDrawableRenderProvider> recipeDrawableRenderProviders = new ArrayList<>();
     private final List<RecipeHandlerRenderProvider> recipeHandlerRenderProviders = new ArrayList<>();
+    private volatile List<RawRecipeHandlerProvider> rawRecipeHandlerProviderSnapshot = List.of();
+    private volatile List<RecipeEntryProvider> recipeEntryProviderSnapshot = List.of();
+    private volatile List<RecipeItemTooltipProvider> recipeItemTooltipProviderSnapshot = List.of();
+    private volatile List<RecipeAnimationUpdateProvider> recipeAnimationUpdateProviderSnapshot = List.of();
+    private volatile List<RecipeHandlerMetadataProvider> recipeHandlerMetadataProviderSnapshot = List.of();
+    private volatile List<RecipeHandlerSlotProvider> recipeHandlerSlotProviderSnapshot = List.of();
+    private volatile List<RecipeDrawableRenderProvider> recipeDrawableRenderProviderSnapshot = List.of();
+    private volatile List<RecipeHandlerRenderProvider> recipeHandlerRenderProviderSnapshot = List.of();
     private final List<BlockStatsProvider> blockStatsProviders = new ArrayList<>();
     /**
      * Published for the compile worker, which reads it while this thread may still be registering a provider.
@@ -321,11 +329,12 @@ public class GuideNhIntegrationRegistry {
         }
         if (!rawRecipeHandlerProviders.contains(provider)) {
             rawRecipeHandlerProviders.add(provider);
+            rawRecipeHandlerProviderSnapshot = List.copyOf(rawRecipeHandlerProviders);
         }
     }
 
-    public synchronized List<RawRecipeHandlerProvider> rawRecipeHandlerProviders() {
-        return List.copyOf(rawRecipeHandlerProviders);
+    public List<RawRecipeHandlerProvider> rawRecipeHandlerProviders() {
+        return rawRecipeHandlerProviderSnapshot;
     }
 
     public synchronized void registerRecipeEntryProvider(RecipeEntryProvider provider) {
@@ -334,11 +343,12 @@ public class GuideNhIntegrationRegistry {
         }
         if (!recipeEntryProviders.contains(provider)) {
             recipeEntryProviders.add(provider);
+            recipeEntryProviderSnapshot = List.copyOf(recipeEntryProviders);
         }
     }
 
-    public synchronized List<RecipeEntryProvider> recipeEntryProviders() {
-        return List.copyOf(recipeEntryProviders);
+    public List<RecipeEntryProvider> recipeEntryProviders() {
+        return recipeEntryProviderSnapshot;
     }
 
     public synchronized void registerRecipeItemTooltipProvider(RecipeItemTooltipProvider provider) {
@@ -347,11 +357,12 @@ public class GuideNhIntegrationRegistry {
         }
         if (!recipeItemTooltipProviders.contains(provider)) {
             recipeItemTooltipProviders.add(provider);
+            recipeItemTooltipProviderSnapshot = List.copyOf(recipeItemTooltipProviders);
         }
     }
 
-    public synchronized List<RecipeItemTooltipProvider> recipeItemTooltipProviders() {
-        return List.copyOf(recipeItemTooltipProviders);
+    public List<RecipeItemTooltipProvider> recipeItemTooltipProviders() {
+        return recipeItemTooltipProviderSnapshot;
     }
 
     public synchronized void registerRecipeAnimationUpdateProvider(RecipeAnimationUpdateProvider provider) {
@@ -360,11 +371,12 @@ public class GuideNhIntegrationRegistry {
         }
         if (!recipeAnimationUpdateProviders.contains(provider)) {
             recipeAnimationUpdateProviders.add(provider);
+            recipeAnimationUpdateProviderSnapshot = List.copyOf(recipeAnimationUpdateProviders);
         }
     }
 
-    public synchronized List<RecipeAnimationUpdateProvider> recipeAnimationUpdateProviders() {
-        return List.copyOf(recipeAnimationUpdateProviders);
+    public List<RecipeAnimationUpdateProvider> recipeAnimationUpdateProviders() {
+        return recipeAnimationUpdateProviderSnapshot;
     }
 
     public synchronized void registerRecipeHandlerMetadataProvider(RecipeHandlerMetadataProvider provider) {
@@ -373,11 +385,12 @@ public class GuideNhIntegrationRegistry {
         }
         if (!recipeHandlerMetadataProviders.contains(provider)) {
             recipeHandlerMetadataProviders.add(provider);
+            recipeHandlerMetadataProviderSnapshot = List.copyOf(recipeHandlerMetadataProviders);
         }
     }
 
-    public synchronized List<RecipeHandlerMetadataProvider> recipeHandlerMetadataProviders() {
-        return List.copyOf(recipeHandlerMetadataProviders);
+    public List<RecipeHandlerMetadataProvider> recipeHandlerMetadataProviders() {
+        return recipeHandlerMetadataProviderSnapshot;
     }
 
     public synchronized void registerRecipeHandlerSlotProvider(RecipeHandlerSlotProvider provider) {
@@ -386,11 +399,12 @@ public class GuideNhIntegrationRegistry {
         }
         if (!recipeHandlerSlotProviders.contains(provider)) {
             recipeHandlerSlotProviders.add(provider);
+            recipeHandlerSlotProviderSnapshot = List.copyOf(recipeHandlerSlotProviders);
         }
     }
 
-    public synchronized List<RecipeHandlerSlotProvider> recipeHandlerSlotProviders() {
-        return List.copyOf(recipeHandlerSlotProviders);
+    public List<RecipeHandlerSlotProvider> recipeHandlerSlotProviders() {
+        return recipeHandlerSlotProviderSnapshot;
     }
 
     public synchronized void registerRecipeDrawableRenderProvider(RecipeDrawableRenderProvider provider) {
@@ -399,11 +413,12 @@ public class GuideNhIntegrationRegistry {
         }
         if (!recipeDrawableRenderProviders.contains(provider)) {
             recipeDrawableRenderProviders.add(provider);
+            recipeDrawableRenderProviderSnapshot = List.copyOf(recipeDrawableRenderProviders);
         }
     }
 
-    public synchronized List<RecipeDrawableRenderProvider> recipeDrawableRenderProviders() {
-        return List.copyOf(recipeDrawableRenderProviders);
+    public List<RecipeDrawableRenderProvider> recipeDrawableRenderProviders() {
+        return recipeDrawableRenderProviderSnapshot;
     }
 
     public synchronized void registerRecipeHandlerRenderProvider(RecipeHandlerRenderProvider provider) {
@@ -412,11 +427,12 @@ public class GuideNhIntegrationRegistry {
         }
         if (!recipeHandlerRenderProviders.contains(provider)) {
             recipeHandlerRenderProviders.add(provider);
+            recipeHandlerRenderProviderSnapshot = List.copyOf(recipeHandlerRenderProviders);
         }
     }
 
-    public synchronized List<RecipeHandlerRenderProvider> recipeHandlerRenderProviders() {
-        return List.copyOf(recipeHandlerRenderProviders);
+    public List<RecipeHandlerRenderProvider> recipeHandlerRenderProviders() {
+        return recipeHandlerRenderProviderSnapshot;
     }
 
     public List<Object> queryRawCraftingHandlers(@Nullable ItemStack target) {

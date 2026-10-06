@@ -77,7 +77,7 @@ Inline Markdown ook ondersteunt action links voor sound playback:
 | `<QuestCard>` | blok-level BetterQuesting quest summary card (compat tag, alleen registered wanneer BetterQuesting is loaded) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` is a `<GameScene>` kind tag. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, en `channel` attributen, en ook ondersteunt StructureLib Standaard kind tags:
+`rotation`, `flip`, en `tier`, `channel`, `channelName`, `value`, `locked` attributen, en ook ondersteunt StructureLib Standaard kind tags:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, en `<GregTechPlaceHatches>`.
 
@@ -679,7 +679,7 @@ Deze tags alleen work binnen `<GameScene>` / `<Scene>`:
 | tag | Purpose | Key attributen |
 | --- | --- | --- |
 | `<ImportStructure>` | import Een external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import Een StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import Een StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | verwijderen al-placed blokken that match Een blok matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp De zelfde kind Annotaties onto iedere matching placed blok | `id` |
 
