@@ -41,6 +41,7 @@ import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartSubgraph;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapNode;
+import com.hfstudio.guidenh.guide.render.GuideText;
 
 /**
  * Generates static HTML and SVG markup for chart, function-graph, file-tree,
@@ -839,7 +840,7 @@ public class GuideSiteGraphRenderer {
             int contentW = rectW - padX * 2;
             int contentH = rectH - padY * 2;
             LytRect contentArea = FlowchartShapes
-                .contentBounds(new LytRect(rectX, rectY, rectW, rectH), shape, contentW, contentH, padX, padY);
+                .contentBounds(new LytRect(rectX, rectY, rectW, rectH), shape, contentW, contentH, padX, padY, 1f);
             int textY = contentArea.y();
 
             String textColor = isRoot ? "#F1F6FB" : "#D7DEE7";
@@ -2916,17 +2917,18 @@ public class GuideSiteGraphRenderer {
         }
         List<FunctionGraphLabelSegment> segments = new ArrayList<>();
         int totalWidth = 0;
+        // Labels are exported at a 100px font size for PNG quality; bounds are normalized
+        // back to the 10px graph unit scale (typeset-at-target-size exporter, so a plain
+        // ratio, no reference-height calibration).
+        final float exportToGraphScale = 10f / 100f;
         for (MarkdownLatexShorthand.Segment segment : MarkdownLatexShorthand.split(text)) {
             GuideSiteLatexExporter.ExportedLatex exported = segment.isFormula() && latexExporter != null
                 ? latexExporter.export(segment.getValue(), color, 100f)
                 : null;
             String fallback = segment.isFormula() ? "$$" + segment.getValue() + "$$" : segment.getValue();
-            int width = exported != null
-                ? Math.max(1, Math.round((float) exported.widthPx() * 10f / exported.referenceHeightPx()))
+            int width = exported != null ? Math.max(1, Math.round(exported.widthPx() * exportToGraphScale))
                 : estimateFunctionGraphLabelWidth(fallback);
-            int height = exported != null
-                ? Math.max(1, Math.round((float) exported.heightPx() * 10f / exported.referenceHeightPx()))
-                : 0;
+            int height = exported != null ? Math.max(1, Math.round(exported.heightPx() * exportToGraphScale)) : 0;
             segments.add(new FunctionGraphLabelSegment(fallback, exported, width, height));
             totalWidth += width;
         }
@@ -3335,7 +3337,7 @@ public class GuideSiteGraphRenderer {
                 .append("\" y=\"")
                 .append(rowY)
                 .append("\" font-size=\"9\" fill=\"#FFFFFF\" font-family=\"inherit\">")
-                .append(esc(ellipsize(plot.getLabel(), maxChars)))
+                .append(esc(GuideText.clipToChars(plot.getLabel(), maxChars, GuideText.ClipSuffix.DOTS3)))
                 .append("</text>");
             rowY += CORNER_LEGEND_ROW_H;
         }
@@ -3428,7 +3430,7 @@ public class GuideSiteGraphRenderer {
                 .append("\" y=\"")
                 .append(rowY)
                 .append("\" font-size=\"9\" fill=\"#FFFFFF\" font-family=\"inherit\">")
-                .append(esc(ellipsize(item.name, maxChars)))
+                .append(esc(GuideText.clipToChars(item.name, maxChars, GuideText.ClipSuffix.DOTS3)))
                 .append("</text>");
             rowY += CORNER_LEGEND_ROW_H;
         }
@@ -3831,7 +3833,11 @@ public class GuideSiteGraphRenderer {
                 .append(CHART_TEXT_SIZE)
                 .append("\" fill=\"#D7DEE7\" font-family=\"inherit\">")
                 .append(
-                    esc(ellipsize(s.name, Math.max(1, (itemW - LEGEND_SWATCH - 2 * LEGEND_GAP) / CHART_CHAR_WIDTH))))
+                    esc(
+                        GuideText.clipToChars(
+                            s.name,
+                            Math.max(1, (itemW - LEGEND_SWATCH - 2 * LEGEND_GAP) / CHART_CHAR_WIDTH),
+                            GuideText.ClipSuffix.DOTS3)))
                 .append("</text>");
             curX += itemW;
             col++;
@@ -3884,19 +3890,6 @@ public class GuideSiteGraphRenderer {
     private static int cornerLegendMaxChars(int boxX, int boxWidth, int textX) {
         int room = boxX + boxWidth - CORNER_LEGEND_PADDING_X - textX;
         return Math.max(0, room / CHART_CHAR_WIDTH);
-    }
-
-    private static String ellipsize(String text, int maxChars) {
-        if (text == null || text.isEmpty() || maxChars <= 0) {
-            return "";
-        }
-        if (text.length() <= maxChars) {
-            return text;
-        }
-        if (maxChars <= 3) {
-            return text.substring(0, maxChars);
-        }
-        return text.substring(0, maxChars - 3) + "...";
     }
 
     private static int clamp(int value, int min, int max) {

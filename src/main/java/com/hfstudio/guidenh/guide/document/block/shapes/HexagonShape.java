@@ -1,31 +1,13 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 public class HexagonShape implements ShapeRenderer {
 
     @Override
-    public boolean isClipped() {
-        return true;
-    }
-
-    @Override
-    public Point edgeIntersect(LytRect nodeRect, int ex, int ey) {
-        int x = nodeRect.x(), y = nodeRect.y(), w = nodeRect.width(), h = nodeRect.height();
-        int r = x + w, b = y + h, cy = y + h / 2;
-        int inset = Math.max(1, h / 4);
-        return FlowchartShapes.intersectPolygon(
-            nodeRect,
-            new int[][] { { x + inset, y }, { r - inset, y }, { r, cy }, { r - inset, b }, { x + inset, b },
-                { x, cy } },
-            ex,
-            ey);
-    }
-
-    @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
         int x = rect.x(), y = rect.y(), w = rect.width(), h = rect.height();
         int r = rect.right(), b = rect.bottom(), cy = y + h / 2;
         int inset = Math.max(1, h / 4);
@@ -49,8 +31,8 @@ public class HexagonShape implements ShapeRenderer {
                 shrunkYs[i] = ys[i];
             }
         }
-        context.fillPolygon(xs, ys, borderColor);
-        context.fillPolygon(shrunkXs, shrunkYs, backgroundColor);
+        c.emit(new GuideRenderPrimitive.DrawPolygon(xs, ys, borderColor));
+        c.emit(new GuideRenderPrimitive.DrawPolygon(shrunkXs, shrunkYs, backgroundColor));
     }
 
     @Override
@@ -76,7 +58,7 @@ public class HexagonShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int w = nodeRect.width();
         int h = nodeRect.height();
         int cx = nodeRect.x() + w / 2;

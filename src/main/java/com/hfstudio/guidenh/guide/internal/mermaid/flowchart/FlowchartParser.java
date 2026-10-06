@@ -478,7 +478,7 @@ public class FlowchartParser {
                 label = stripIconFromLabel(label);
                 if (label.isEmpty()) label = id;
                 LOGGER.warn(
-                    "Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
+                    "Node '{}' uses icon '{}': TrueType font icon rendering is not implemented; rendering as text badge",
                     id,
                     icon);
             }
@@ -500,7 +500,7 @@ public class FlowchartParser {
                     label = inner;
                     markdownLabel = true;
                     LOGGER.warn(
-                        "Node '{}' has markdownLabel=true — markdown text rendering is not implemented; falling back to plain text",
+                        "Node '{}' has markdownLabel=true: markdown text rendering is not implemented; falling back to plain text",
                         id);
                 }
             }
@@ -546,7 +546,7 @@ public class FlowchartParser {
                     icon = value.isEmpty() ? null : value;
                     if (icon != null) {
                         LOGGER.warn(
-                            "Node '{}' uses icon '{}' — TrueType font icon rendering is not implemented; rendering as text badge",
+                            "Node '{}' uses icon '{}': TrueType font icon rendering is not implemented; rendering as text badge",
                             id,
                             icon);
                     }

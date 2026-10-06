@@ -7,6 +7,8 @@ import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -17,6 +19,13 @@ public class LytTable extends LytBlock {
      * Width of border around cells.
      */
     public static final int CELL_BORDER = 1;
+
+    /**
+     * Thickness of the horizontal separator drawn below the header row.
+     * Deliberately thicker than the 1px data-row separators so the header row
+     * is visually distinct.
+     */
+    public static final int HEADER_SEPARATOR_THICKNESS = 2;
     private final List<LytTableRow> rows = new ArrayList<>();
 
     @Getter
@@ -30,18 +39,11 @@ public class LytTable extends LytBlock {
 
         layoutColumns(x, availableWidth);
 
-        // Layout each row
+        // Layout each row (rows lay out their own cells against the column model)
         var currentY = y + CELL_BORDER;
         for (var row : rows) {
-            var rowTop = currentY;
-            var rowBottom = currentY;
-            for (var cell : row.getChildren()) {
-                var column = cell.column;
-                var cellBounds = cell.layout(context, column.x, currentY, column.width);
-                rowBottom = Math.max(rowBottom, cellBounds.bottom());
-            }
-            row.bounds = new LytRect(x, rowTop, availableWidth, rowBottom - rowTop);
-            currentY = rowBottom + CELL_BORDER;
+            var rowBounds = row.layout(context, x, currentY, availableWidth);
+            currentY = rowBounds.bottom() + CELL_BORDER;
         }
 
         return new LytRect(x, y, availableWidth, currentY - y);
@@ -53,37 +55,139 @@ public class LytTable extends LytBlock {
             col.x += deltaX;
         }
         for (var row : rows) {
-            row.bounds = row.bounds.move(deltaX, deltaY);
-            for (var cell : row.getChildren()) {
-                cell.moveLayoutPos(deltaX, deltaY);
-            }
+            row.moveLayoutPos(deltaX, deltaY);
         }
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        var bounds = getBounds();
+        // Column border lines (vertical lines between columns). X comes from the
+        // Rust-written cell bounds of the row with the most cells (Java
+        // must not compute geometry). column.x/column.width are x=0
+        // serialization-time declarations and must not drive drawing.
+        var sourceRow = widestRow();
+        for (int i = 0; i < columns.size() - 1; i++) {
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    columnSeparatorX(sourceRow, i),
+                    bounds.y(),
+                    1,
+                    bounds.height(),
+                    ColorUtils.TABLE_BORDER.resolve()));
+        }
+        // Row border lines (horizontal lines between rows)
+        for (int i = 0; i < rows.size() - 1; i++) {
+            var row = rows.get(i);
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    bounds.x(),
+                    row.getBounds()
+                        .bottom(),
+                    bounds.width(),
+                    row.isHeader() ? HEADER_SEPARATOR_THICKNESS : 1,
+                    ColorUtils.TABLE_BORDER.resolve()));
+        }
+        // Cells are children - collectFrom traversal handles them
     }
 
     @Override
     public void render(RenderContext context) {
         // Render the table cell borders
         var bounds = getBounds();
+        var sourceRow = widestRow();
         for (int i = 0; i < columns.size() - 1; i++) {
-            var column = columns.get(i);
-            var colRight = column.x + column.width;
-            context.fillRect(colRight, bounds.y(), 1, bounds.height(), ColorUtils.TABLE_BORDER);
+            context.fillRect(columnSeparatorX(sourceRow, i), bounds.y(), 1, bounds.height(), ColorUtils.TABLE_BORDER);
         }
 
         for (int i = 0; i < rows.size() - 1; i++) {
             var row = rows.get(i);
-            context.fillRect(bounds.x(), row.bounds.bottom(), bounds.width(), 1, ColorUtils.TABLE_BORDER);
+            context.fillRect(
+                bounds.x(),
+                row.getBounds()
+                    .bottom(),
+                bounds.width(),
+                row.isHeader() ? HEADER_SEPARATOR_THICKNESS : 1,
+                ColorUtils.TABLE_BORDER);
         }
 
         for (var row : rows) {
-            for (var cell : row.getChildren()) {
-                cell.render(context);
+            row.render(context);
+        }
+    }
+
+    /**
+     * The row with the most cells (first row wins ties). Its Rust-written cell
+     * bounds are the source for vertical separator positions; all rows share
+     * the table's column x-structure, so one row's cell boundaries stand in
+     * for every row. {@code null} when the table has no rows (then no
+     * vertical separators can be derived; column model is the fallback).
+     */
+    private LytTableRow widestRow() {
+        LytTableRow widest = null;
+        for (var row : rows) {
+            if (widest == null || row.getChildren()
+                .size()
+                > widest.getChildren()
+                    .size()) {
+                widest = row;
             }
         }
+        return widest;
+    }
+
+    /**
+     * Document-space x of the vertical separator between column {@code i} and
+     * {@code i + 1}, derived from the Rust-written cell bounds of
+     * {@code sourceRow} (the line positions must come from Rust layout
+     * data, never from Java-computed column geometry).
+     * <p>
+     * Primary reference: {@code cell[i].getBounds().right()}, the left edge of
+     * the 1px CELL_BORDER gutter between adjacent cells. This mirrors the
+     * horizontal separators, which are drawn at {@code row.getBounds().bottom()}
+     * (the top edge of the row gutter), so vertical and horizontal lines meet at
+     * the cell corners. The alternative {@code cell[i+1].getBounds().x()} is the
+     * gutter's right edge, exactly 1px right of {@code right()} while the gutter
+     * is CELL_BORDER wide, and their integer midpoint degenerates to the left
+     * edge, so {@code right()} is the stable choice. When cell {@code i}'s
+     * bounds are missing, the boundary is recovered from the right neighbour's
+     * {@code cell[i+1].x() - CELL_BORDER}.
+     * <p>
+     * Fallback: when the widest row has no usable Rust bounds for this boundary
+     * (no rows, fewer cells than columns, or bounds not written back), the
+     * legacy column-model position {@code column.x + column.width} is used. This
+     * only guards degenerate or pre-layout paths; after a Rust layout pass every
+     * flat node (cells included) receives a written-back rect.
+     */
+    private int columnSeparatorX(LytTableRow sourceRow, int i) {
+        if (sourceRow != null && i + 1 < sourceRow.getChildren()
+            .size()) {
+            var cells = sourceRow.getChildren();
+            LytRect left = cells.get(i)
+                .getBounds();
+            LytRect right = cells.get(i + 1)
+                .getBounds();
+            if (!left.isEmpty()) {
+                return left.right();
+            }
+            if (!right.isEmpty()) {
+                return right.x() - CELL_BORDER;
+            }
+        }
+        return columns.get(i).x + columns.get(i).width;
     }
 
     public LytTableRow appendRow() {
         var row = new LytTableRow(this);
+        if (rows.isEmpty()) {
+            row.setMarginTop(CELL_BORDER);
+        }
+        row.setMarginBottom(CELL_BORDER);
         rows.add(row);
         return row;
     }
@@ -95,7 +199,13 @@ public class LytTable extends LytBlock {
         return columns.get(index);
     }
 
-    private void layoutColumns(int x, int availableWidth) {
+    /**
+     * Distribute available width among columns. Called by the serializer
+     * (no longer by the Java pre-pass) so column widths are set before
+     * serialization. {@code x} is the table's left edge in document coords.
+     */
+    public void layoutColumns(int x, int availableWidth) {
+        if (columns.isEmpty()) return;
         int innerWidth = Math.max(0, availableWidth - (columns.size() + 1) * CELL_BORDER);
         int totalPreferredWidth = 0;
         int flexibleColumns = 0;
@@ -119,9 +229,16 @@ public class LytTable extends LytBlock {
                 colX += column.width + CELL_BORDER;
             }
 
-            if (assignedWidth < innerWidth) {
+            // Only distribute remainder to flexible (undeclared) columns.
+            // When all columns have declared widths, the table stays at the
+            // sum of declared widths (natural width), and the last column must
+            // NOT absorb the leftover space.
+            if (flexibleColumns > 0 && assignedWidth < innerWidth) {
+                int leftover = innerWidth - assignedWidth;
                 var lastCol = columns.getLast();
-                lastCol.width += innerWidth - assignedWidth;
+                if (lastCol.preferredWidth == 0) {
+                    lastCol.width += leftover;
+                }
             }
             return;
         }

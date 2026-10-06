@@ -1,0 +1,52 @@
+---
+navigation:
+  title: Mermaid NodeContent Rich Blocks
+  position: 8160
+---
+
+TEST GOAL: `<NodeContent id>` rich-content nodes (formatted text / lists embedded inside a node)
+
+INVARIANTS: rich content is laid out correctly inside the node box
+
+Expected: A mindmap where the "runtime" node contains formatted text with an item image, and the "preview" node contains a list.
+
+<Mermaid width="400" height="300">
+mindmap
+  root["GuideNH Features"]
+    runtime["Runtime Blocks"]
+    preview["Scene Preview"]
+
+<NodeContent id="runtime">
+Runtime nodes support **bold text**, *italic text*, and inline <ItemImage id="minecraft:diamond" />.
+
+Here is a second paragraph inside a runtime node.
+</NodeContent>
+
+<NodeContent id="preview">
+Preview content can contain lists:
+
+- Block images
+- Entity views
+- Annotations
+
+And also **formatted** text.
+</NodeContent>
+</Mermaid>
+
+## NodeContent in Flowchart
+
+Expected: A flowchart node with NodeContent renders a crafting recipe block inside it.
+
+<Mermaid width="600" height="400">
+flowchart LR
+  subgraph Craft["Crafting"]
+    Ingredients[Ingredients]
+    Result[Result]
+  end
+
+  Ingredients --> Result
+
+<NodeContent id="Result">
+<RecipeFor id="minecraft:crafting_table" />
+</NodeContent>
+</Mermaid>

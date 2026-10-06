@@ -41,6 +41,7 @@ public class BlockAnnotationTemplateExpander {
                 diamondAnnotation.getColor());
             translated.setAlwaysOnTop(diamondAnnotation.isAlwaysOnTop());
             translated.setTooltip(templateAnnotation.getTooltip());
+            translated.setStructureLibCondition(templateAnnotation.getStructureLibCondition());
             return translated;
         }
 

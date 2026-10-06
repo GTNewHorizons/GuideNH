@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -27,6 +28,7 @@ public class LytFloatAwareBlock extends LytBlock {
     public LytFloatAwareBlock(LytBlock inner) {
         this.inner = inner;
         inner.parent = this;
+        setFullWidth(inner.isFullWidth());
     }
 
     @Override
@@ -63,6 +65,16 @@ public class LytFloatAwareBlock extends LytBlock {
     @Override
     public @Nullable LytNode pickNode(int x, int y) {
         return inner.pickNode(x, y);
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        // No-op: inner child is picked up by PrimitiveCollector.collectFrom traversal.
     }
 
     @Override

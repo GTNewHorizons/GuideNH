@@ -238,7 +238,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         var language = LangUtil.getCurrentLanguage();
 
         // Candidate order: current-language variant, default-language variant, plain path.
-        // The first one that resolves wins. Intermediate probes must NOT log — the language
+        // The first one that resolves wins. Intermediate probes must NOT log - the language
         // variants are expected to miss for locale-independent assets (kept under the guide
         // content root rather than under a `_<lang>/` folder), so we only report a failure
         // once every candidate has been tried.
@@ -259,7 +259,7 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
 
     /**
      * Reads the bytes for one concrete asset id. Performs no language fallback and does not log
-     * a "miss" — callers own the policy (which candidates to try and when to report failure).
+     * a "miss" - callers own the policy (which candidates to try and when to report failure).
      */
     private byte @Nullable [] readAssetPath(ResourceLocation id) {
         String normalizedPath = IdUtils.normalizeAssetPath(id.getResourcePath());

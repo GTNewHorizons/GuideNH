@@ -32,7 +32,7 @@ public class StructureLibSceneBinding {
     @Nullable
     private Consumer<StructureLibPreviewSelection> selectionChangeListener;
 
-    // Rebuild recipe — set once during compile
+    // Rebuild recipe - set once during compile
     private StructureLibBuildRequest rebuildRequestTemplate;
     @Getter
     private int rebuildOffsetX;
@@ -116,6 +116,8 @@ public class StructureLibSceneBinding {
         return channelOverrides;
     }
 
+    // Pending selection: UI state that survives page reloads.
+
     @Nullable
     private StructureLibPreviewSelection pendingSelection;
 
@@ -128,6 +130,8 @@ public class StructureLibSceneBinding {
         this.pendingSelection = pendingSelection;
     }
 
+    // Restores scene state from a stored selection.
+
     public void applyPreviewSelection(StructureLibPreviewSelection selection) {
         if (selection == null) return;
         setCurrentTier(selection.getMasterTier());
@@ -137,6 +141,8 @@ public class StructureLibSceneBinding {
             setChannelValue(entry.getKey(), entry.getValue());
         }
     }
+
+    // Rebuild recipe captured at compile time.
 
     public void setRebuildRecipe(StructureLibBuildRequest request, int offsetX, int offsetY, int offsetZ,
         boolean formed) {
@@ -177,6 +183,8 @@ public class StructureLibSceneBinding {
         return hasRebuildRecipe ? rebuildRequestTemplate : null;
     }
 
+    // Selection change listener.
+
     @Nullable
     public Consumer<StructureLibPreviewSelection> getSelectionChangeListener() {
         return selectionChangeListener;
@@ -185,6 +193,8 @@ public class StructureLibSceneBinding {
     public void setSelectionChangeListener(@Nullable Consumer<StructureLibPreviewSelection> listener) {
         this.selectionChangeListener = listener;
     }
+
+    // Import result cache. Deprecated: prefer the build pipeline result.
 
     @Nullable
     public StructureLibImportResult getLastSuccessfulImportResult() {

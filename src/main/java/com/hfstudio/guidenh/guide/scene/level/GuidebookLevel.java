@@ -198,7 +198,7 @@ public class GuidebookLevel implements IBlockAccess, GuidebookChunkSource {
         }
         previewStateDirty = false;
         rebindAllTileEntities();
-        // Tick first so tile entities (e.g. BC pipes) call initialize() 鈫?computeConnections()
+        // Tick first so tile entities (e.g. BC pipes) call initialize() -> computeConnections()
         // before compat helpers read their state.
         tickPreviewWorld();
         GuidePreviewStateSupport.prepare(this);

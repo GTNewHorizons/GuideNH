@@ -24,14 +24,24 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.PageCollection;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.color.ConstantColor;
+import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.internal.GuideBookmarkState;
 import com.hfstudio.guidenh.guide.internal.GuidebookText;
 import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.SmoothFloatState;
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
-import com.hfstudio.guidenh.guide.render.GuideFontCompat;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
+import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+import com.hfstudio.guidenh.guide.style.TextAlignment;
+import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
 
 import lombok.Getter;
 
@@ -160,6 +170,47 @@ public class GuideNavBar {
     private static final int SCROLLBAR_GUTTER = SCROLLBAR_WIDTH + 3;
     private static final int MIN_SCROLLBAR_THUMB_HEIGHT = 16;
 
+    // GuideText (Rust) text styles.
+    /**
+     * Row text scale: 0.70 → lineHeight = round(17×0.70) = 12 == ROW_H, so the
+     * line box exactly fills the row. Measured against msyh.ttc (see assumption
+     * log): GuideText.ascent()=12.0 (scale 1) → row baseline = lineTop + 8.4;
+     * CJK ink spans y=[2.0, 9.0] within the 12px row: no poke-through, so no
+     * downgrade to 0.65 was needed. Title text scale: 0.80 → lineHeight =
+     * round(17×0.80) = 14 < TITLE_H 16; title baseline = lineTop + 9.6. No drop
+     * shadow on either (mirrors legacy drawString(..., false)).
+     */
+    private static final float ROW_FONT_SCALE = 0.70f;
+    private static final float TITLE_FONT_SCALE = 0.80f;
+    private static final int TITLE_TEXT_COLOR = ColorUtils.ARGB_FFE8E8E8.getColor();
+    private static final ResolvedTextStyle ROW_TEXT_STYLE = navBarTextStyle(ROW_FONT_SCALE, 0xFFBBBBBB);
+    private static final ResolvedTextStyle TITLE_TEXT_STYLE = navBarTextStyle(TITLE_FONT_SCALE, TITLE_TEXT_COLOR);
+
+    private static ResolvedTextStyle navBarTextStyle(float fontScale, int argb) {
+        return new ResolvedTextStyle(
+            fontScale,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            new ConstantColor(argb),
+            WhiteSpaceMode.NORMAL,
+            TextAlignment.LEFT,
+            false,
+            null,
+            false,
+            0.0f);
+    }
+
+    /** Row style carrying the dynamic row tint (current/hover/normal/failed). */
+    private static ResolvedTextStyle rowTextStyle(int color) {
+        return navBarTextStyle(ROW_FONT_SCALE, color);
+    }
+
     public interface GuideExpansionListener {
 
         void onExpansionChanged(List<ExpansionChange> changes, boolean allCollapsed);
@@ -202,6 +253,12 @@ public class GuideNavBar {
     @Nullable
     private Row hoveredScrollingRow;
     private long hoveredScrollingStartedAtMillis;
+    /**
+     * Lazily-created legacy RenderContext holder for the text PrimitiveCollector
+     * (only constructed once the Rust font system is available in-game).
+     */
+    @Nullable
+    private VanillaRenderContext textRenderContext;
 
     public void setBounds(int x, int y, int height) {
         if (this.x != x || this.y != y || this.height != height) {
@@ -436,12 +493,21 @@ public class GuideNavBar {
                 return;
             }
 
-            renderTitle(mc, w, mouseX, mouseY, showNewPageButton);
+            // Text pipeline: all bar text (title + rows) is collected as
+            // GuideText glyph primitives and executed in one pass at the end,
+            // after every legacy rect/icon draw (execute() restores GL state and
+            // closes the scissor test, so it must be last). When the Rust font
+            // system is not ready (init exception, handle=0) the collector stays
+            // null and the legacy FontRenderer fallback keeps the bar legible.
+            PrimitiveCollector textCollector = GuideText.isAvailable() ? newTextCollector(mc, w) : null;
+
+            renderTitle(mc, textCollector, w, mouseX, mouseY, showNewPageButton);
 
             int bodyY = getBodyY();
             int bodyHeight = getBodyHeight();
             if (bodyHeight <= 0) {
                 resetTitleScroll();
+                executeNavText(textCollector);
                 return;
             }
 
@@ -449,7 +515,13 @@ public class GuideNavBar {
             GL11.glEnable(GL11.GL_SCISSOR_TEST);
             setBodyScissor(mc, scaleFactor);
 
-            FontRenderer fontRenderer = mc.fontRenderer;
+            // Clip row text to the body via a screen-space scissor primitive: the
+            // legacy GL scissor above clips only the legacy rects/icons, while
+            // the engine owns text clipping inside the single execute pass.
+            if (textCollector != null) {
+                textCollector.pushScreenScissor(x, getBodyY(), currentWidth(), getBodyHeight());
+            }
+
             StickyStack stickyRows = computeStickyStack(bodyY);
             int firstVisibleRow = getFirstVisibleRowIndex();
             int stickyPointer = 0;
@@ -467,9 +539,16 @@ public class GuideNavBar {
                         : Integer.MAX_VALUE;
                     continue;
                 }
+                if (overlapsStickyRow(rowY, stickyRows)) {
+                    // Screen-level avoidance: this scrolling row's text band
+                    // intersects a sticky row's fixed screen band, so drawing it
+                    // would double-print the same pixels (user report ②
+                    // ghosted/overlapping rows). The sticky row owns that band.
+                    continue;
+                }
                 titleScrollActive |= renderRow(
                     mc,
-                    fontRenderer,
+                    textCollector,
                     row,
                     rowY,
                     mouseX,
@@ -488,7 +567,7 @@ public class GuideNavBar {
             for (int stackIndex = 0; stackIndex < stickyRows.size(); stackIndex++) {
                 titleScrollActive |= renderRow(
                     mc,
-                    fontRenderer,
+                    textCollector,
                     stickyRows.rowAt(stackIndex),
                     stickyRows.rowYAt(stackIndex),
                     mouseX,
@@ -507,6 +586,12 @@ public class GuideNavBar {
             if (!titleScrollActive) {
                 resetTitleScroll();
             }
+            if (textCollector != null) {
+                textCollector.popScreenScissor();
+            }
+            executeNavText(textCollector);
+            // The body scissor stops at the row edge, so it would clip the
+            // scrollbar drawn in the gutter to the right of it.
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
             renderScrollbar(mouseX, mouseY);
         } finally {
@@ -517,10 +602,10 @@ public class GuideNavBar {
         }
     }
 
-    private boolean renderRow(Minecraft mc, FontRenderer fr, Row row, int rowY, int mouseX, int mouseY, int rowRight,
-        int textRightBase, @Nullable ResourceLocation currentGuideId, @Nullable ResourceLocation currentPageId,
-        @Nullable PageCollection pageCollection, GuideBookmarkState bookmarkState, int bookmarkActionLeft,
-        int bookmarkIconX, int scaleFactor, boolean sticky) {
+    private boolean renderRow(Minecraft mc, @Nullable PrimitiveCollector textCollector, Row row, int rowY, int mouseX,
+        int mouseY, int rowRight, int textRightBase, @Nullable ResourceLocation currentGuideId,
+        @Nullable ResourceLocation currentPageId, @Nullable PageCollection pageCollection,
+        GuideBookmarkState bookmarkState, int bookmarkActionLeft, int bookmarkIconX, int scaleFactor, boolean sticky) {
         GuideNavProjection.DisplayRow displayRow = row.displayRow();
         int indent = row.indent();
         int rowX = x + 2 + indent;
@@ -564,7 +649,7 @@ public class GuideNavBar {
             ResourceLocation pageId = row.pageId();
             boolean failed = pageId != null && pageCollection != null && pageCollection.isPageFailed(pageId);
             int color = getRowTextColor(current, hovered, failed);
-            titleScrollActive = renderRowTitle(mc, fr, row, textX, rowY, maxTw, color, hovered, scaleFactor);
+            titleScrollActive = renderRowTitle(mc, textCollector, row, textX, rowY, maxTw, color, hovered, scaleFactor);
         }
 
         boolean bookmarkHovered = hovered
@@ -599,11 +684,33 @@ public class GuideNavBar {
             int defaultRowY = bodyY + index * ROW_H;
             int subtreeBoundaryY = getRowY(row.subtreeEndRowIndexExclusive());
             int rowBottomLimit = Math.min(nextRowY, subtreeBoundaryY);
-            int stickyRowY = Math.min(defaultRowY, rowBottomLimit - ROW_H);
+            // Screen-level lower bound at bodyY: a sticky row must never float
+            // up into the title band, so clamp it to the body
+            // top instead of letting it cross into the title area.
+            int stickyRowY = Math.max(bodyY, Math.min(defaultRowY, rowBottomLimit - ROW_H));
             stickyStack.setRowYAt(index, stickyRowY);
             nextRowY = stickyRowY;
         }
         return stickyStack;
+    }
+
+    /**
+     * Screen-level avoidance predicate: true when the given scrolling row's
+     * screen band {@code [rowY, rowY + ROW_H)} intersects any sticky row's
+     * fixed screen band {@code [rowYAt, rowYAt + ROW_H)}. The two y sources
+     * (getRowY vs computeStickyStack) are independent; without this guard a
+     * scrolling row passing through a sticky row's fixed screen band draws on
+     * the same pixels as the sticky row, which is the user report ②
+     * ghosted/overlapped rows root cause.
+     */
+    private static boolean overlapsStickyRow(int rowY, StickyStack stickyStack) {
+        for (int index = 0; index < stickyStack.size(); index++) {
+            int stickyY = stickyStack.rowYAt(index);
+            if (rowY < stickyY + ROW_H && rowY + ROW_H > stickyY) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void collectStickyAncestors(Row anchorRow) {
@@ -626,8 +733,8 @@ public class GuideNavBar {
         hoveredScrollingStartedAtMillis = 0L;
     }
 
-    private void renderTitle(Minecraft mc, int width, int mouseX, int mouseY, boolean showNewPageButton) {
-        FontRenderer fr = mc.fontRenderer;
+    private void renderTitle(Minecraft mc, @Nullable PrimitiveCollector textCollector, int width, int mouseX,
+        int mouseY, boolean showNewPageButton) {
         Gui.drawRect(x, y, x + width - 1, y + TITLE_H, ColorUtils.ARGB_D0202020.getColor());
         Gui.drawRect(x, y + TITLE_H - 1, x + width - 1, y + TITLE_H, ColorUtils.ARGB_FF2A2A2A.getColor());
         int pinX = getPinButtonX();
@@ -662,26 +769,78 @@ public class GuideNavBar {
         int titleW = Math.max(0, titleRight - titleX);
         if (titleW > 0) {
             String title = GuidebookText.NavigationTitle.text();
-            String renderedTitle = fr.getStringWidth(title) > titleW
-                ? fr.trimStringToWidth(title, Math.max(0, titleW - 4)) + "…"
-                : title;
-            fr.drawString(
-                renderedTitle,
-                titleX,
-                y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1,
-                ColorUtils.ARGB_FFE8E8E8.getColor(),
-                false);
+            if (textCollector == null) {
+                // Fallback: the Rust font system is not ready, so keep the title legible
+                // through the legacy FontRenderer.
+                FontRenderer fr = mc.fontRenderer;
+                String renderedTitle = fr.getStringWidth(title) > titleW
+                    ? fr.trimStringToWidth(title, Math.max(0, titleW - 4)) + "…"
+                    : title;
+                fr.drawString(renderedTitle, titleX, y + (TITLE_H - fr.FONT_HEIGHT) / 2 + 1, TITLE_TEXT_COLOR, false);
+            } else {
+                String renderedTitle = GuideText.measureWidth(title, TITLE_TEXT_STYLE) > titleW
+                    ? GuideText.clipToWidth(title, titleW, TITLE_TEXT_STYLE, GuideText.ClipSuffix.UNICODE_ELLIPSIS)
+                    : title;
+                GuideText.emitText(textCollector, renderedTitle, titleX, titleLineTop(), TITLE_TEXT_STYLE);
+            }
         }
     }
 
-    private boolean renderRowTitle(Minecraft mc, FontRenderer fr, Row row, int textX, int rowY, int maxTw, int color,
-        boolean hovered, int scaleFactor) {
-        if (!hovered || row.getTitleWidth(fr) <= maxTw) {
-            fr.drawString(row.getTitle(fr, maxTw), textX, rowY + 2, color, false);
+    private boolean renderRowTitle(Minecraft mc, @Nullable PrimitiveCollector textCollector, Row row, int textX,
+        int rowY, int maxTw, int color, boolean hovered, int scaleFactor) {
+        if (textCollector == null) {
+            return renderRowTitleFallback(mc, row, textX, rowY, maxTw, color, hovered, scaleFactor);
+        }
+        if (!hovered || row.getTitleWidth() <= maxTw) {
+            GuideText.emitText(textCollector, row.getTitle(maxTw), textX, rowLineTop(rowY), rowTextStyle(color));
             return false;
         }
 
-        int cycleWidth = row.getScrollCycleWidth(fr);
+        int cycleWidth = row.getScrollCycleWidth();
+        if (cycleWidth <= 0) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        if (hoveredScrollingRow != row) {
+            hoveredScrollingRow = row;
+            hoveredScrollingStartedAtMillis = now;
+        }
+        long elapsed = Math.max(0L, now - hoveredScrollingStartedAtMillis);
+        int offset = (int) ((elapsed / TITLE_SCROLL_INTERVAL_MILLIS) % cycleWidth);
+        int clipLeft = Math.max(textX, x);
+        int clipRight = Math.min(textX + maxTw, x + currentWidth());
+        int clipTop = Math.max(rowY, getBodyY());
+        int clipBottom = Math.min(rowY + ROW_H, getBodyBottom());
+        int clipWidth = clipRight - clipLeft;
+        int clipHeight = clipBottom - clipTop;
+        if (clipWidth <= 0 || clipHeight <= 0) {
+            return false;
+        }
+        // Scroll clip as a screen-space scissor primitive (PrimitiveCollector
+        // supports PushScreenScissor): the whole bar stays a single execute pass
+        // with smooth scrolling and no per-row GL scissor churn.
+        textCollector.pushScreenScissor(clipLeft, clipTop, clipWidth, clipHeight);
+        GuideText
+            .emitText(textCollector, row.getScrollingTitle(), textX - offset, rowLineTop(rowY), rowTextStyle(color));
+        textCollector.popScreenScissor();
+        return true;
+    }
+
+    /** Legacy FontRenderer path, used only while GuideText is unavailable. */
+    private boolean renderRowTitleFallback(Minecraft mc, Row row, int textX, int rowY, int maxTw, int color,
+        boolean hovered, int scaleFactor) {
+        FontRenderer fr = mc.fontRenderer;
+        String title = row.displayRow()
+            .title();
+        if (!hovered || fr.getStringWidth(title) <= maxTw) {
+            if (fr.getStringWidth(title) > maxTw) {
+                title = fr.trimStringToWidth(title, Math.max(0, maxTw - 4)) + "…";
+            }
+            fr.drawString(title, textX, rowY + 2, color, false);
+            return false;
+        }
+
+        int cycleWidth = fr.getStringWidth(title + TITLE_SCROLL_GAP);
         if (cycleWidth <= 0) {
             return false;
         }
@@ -1013,6 +1172,18 @@ public class GuideNavBar {
         }
     }
 
+    /**
+     * Headless render-injection hook: snap the scroll state to an arbitrary
+     * offset (mirrors {@link #restoreState}, without touching expansion state).
+     * Lets the headless chrome pass render a single frame at any scroll
+     * position; used by RenderPageService to reproduce and regression-test the
+     * sticky/scroll overlap (system property {@code guidenh.renderpage.navscroll}).
+     */
+    public void setScrollY(int scrollY) {
+        this.scrollY = scrollY;
+        visualScrollY.snapTo(scrollY);
+    }
+
     private int getMaxScrollY() {
         int contentHeight = rows.size() * ROW_H + CONTENT_PADDING * 2;
         return Math.max(0, contentHeight - getBodyHeight());
@@ -1163,6 +1334,263 @@ public class GuideNavBar {
         GL11.glScissor(x * scaleFactor, mc.displayHeight - (y + h) * scaleFactor, w * scaleFactor, h * scaleFactor);
     }
 
+    // GuideText primitive-pipeline helpers.
+
+    /**
+     * Fresh per-frame text collector. The legacy RenderContext holder is created
+     * once and reused (its scissor stack is never touched by the nav bar; text
+     * clipping goes through screen-space scissor primitives instead).
+     */
+    private PrimitiveCollector newTextCollector(Minecraft mc, int width) {
+        VanillaRenderContext ctx = textRenderContext;
+        if (ctx == null) {
+            ctx = new VanillaRenderContext(LytRect.empty(), mc.displayHeight);
+            textRenderContext = ctx;
+        }
+        return new PrimitiveCollector(new LytRect(x, y, width, height), ctx);
+    }
+
+    /**
+     * Execute the whole bar's collected text in one pass. Must run after every
+     * legacy rect/icon draw: {@code GuideRenderEngine.execute} restores GL state
+     * in its {@code finally} (including closing the GL scissor test), so text is
+     * rendered last. The stale legacy body scissor is cleared first; inside
+     * execute, clipping is owned by the PushScreenScissor primitives, which need
+     * the engine's {@code guiScale} to match the current display scale, hence the
+     * explicit beginFrame.
+     */
+    private static void executeNavText(@Nullable PrimitiveCollector textCollector) {
+        if (textCollector == null) {
+            return;
+        }
+        List<GuideRenderPrimitive> prims = textCollector.result();
+        if (prims.isEmpty()) {
+            return;
+        }
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        var engine = LytDocument.getRenderEngine();
+        engine.beginFrame(LytRect.empty(), DisplayScale.scaleFactor());
+        engine.execute(prims);
+    }
+
+    // Headless chrome-pass collection.
+
+    /**
+     * Headless chrome-pass collection: mirror of {@link #render} that emits the
+     * whole bar (band background, title bar, row geometry and GuideText glyph
+     * runs) as render primitives into {@code collector} instead of drawing to
+     * the GL framebuffer. Text goes through the exact same GuideText pipeline
+     * (GuideText.emitText via {@link #renderRowTitle}); geometry that the live
+     * path draws with Gui.drawRect / drawVGradient / drawArrow is emitted as
+     * FillRect / GradientFill primitives. Texture-blit chrome (pin/new-page
+     * buttons, page mini-icons, bookmark icons) is intentionally not emitted
+     * (declared assumption in RenderPageService); row text x still advances
+     * past the icon slot to match the live bar. The body clip uses a
+     * document-space {@link PrimitiveCollector#pushScissor} (the headless
+     * variant of the live PushScreenScissor) so the clip scales with the
+     * offscreen render density exactly like the glyph runs.
+     */
+    public void collectPrimitives(@Nullable ResourceLocation currentGuideId, @Nullable ResourceLocation currentPageId,
+        @Nullable PageCollection pageCollection, GuideBookmarkState bookmarkState, boolean showNewPageButton,
+        PrimitiveCollector collector) {
+        updateVisualScroll();
+        int w = currentWidth();
+        int rowRight = x + w - 1;
+        int textRightBase = x + w - 2;
+        int bookmarkActionLeft = getBookmarkActionLeft(w);
+        int bookmarkIconX = bookmarkActionLeft + ACTION_PADDING_RIGHT;
+        collector.emit(
+            new GuideRenderPrimitive.GradientFill(
+                x,
+                y,
+                w,
+                height,
+                ColorUtils.ARGB_E0151515.getColor(),
+                ColorUtils.ARGB_E0101010.getColor()));
+        collector.emit(
+            new GuideRenderPrimitive.FillRect(
+                rowRight,
+                y,
+                (x + w) - rowRight,
+                height,
+                ColorUtils.ARGB_FF2A2A2A.getColor()));
+
+        if (!isOpen()) {
+            emitArrowPrimitive(collector, x + w / 2 - 2, y + height / 2 - 3, true, ColorUtils.ARGB_FF888888.getColor());
+            return;
+        }
+
+        collector.emit(new GuideRenderPrimitive.FillRect(x, y, w - 1, TITLE_H, ColorUtils.ARGB_D0202020.getColor()));
+        collector
+            .emit(new GuideRenderPrimitive.FillRect(x, y + TITLE_H - 1, w - 1, 1, ColorUtils.ARGB_FF2A2A2A.getColor()));
+
+        int titleX = x + TITLE_TEXT_LEFT_PADDING;
+        int titleRight = (showNewPageButton ? getNewPageButtonX() : getPinButtonX()) - TITLE_BUTTON_GAP;
+        int titleW = Math.max(0, titleRight - titleX);
+        if (titleW > 0) {
+            String title = GuidebookText.NavigationTitle.text();
+            String renderedTitle = GuideText.measureWidth(title, TITLE_TEXT_STYLE) > titleW
+                ? GuideText.clipToWidth(title, titleW, TITLE_TEXT_STYLE, GuideText.ClipSuffix.UNICODE_ELLIPSIS)
+                : title;
+            GuideText.emitText(collector, renderedTitle, titleX, titleLineTop(), TITLE_TEXT_STYLE);
+        }
+
+        int bodyY = getBodyY();
+        int bodyHeight = getBodyHeight();
+        if (bodyHeight <= 0) {
+            return;
+        }
+
+        collector.pushScissor(x, bodyY, w, bodyHeight);
+
+        StickyStack stickyRows = computeStickyStack(bodyY);
+        int firstVisibleRow = getFirstVisibleRowIndex();
+        int stickyPointer = 0;
+        int nextStickyRowIndex = !stickyRows.isEmpty() ? stickyRows.rowIndexAt(0) : Integer.MAX_VALUE;
+        for (int rowIndex = firstVisibleRow; rowIndex < rows.size(); rowIndex++) {
+            Row row = rows.get(rowIndex);
+            int rowY = getRowY(rowIndex);
+            if (rowY >= getBodyBottom()) {
+                break;
+            }
+            if (rowIndex == nextStickyRowIndex) {
+                stickyPointer++;
+                nextStickyRowIndex = stickyPointer < stickyRows.size() ? stickyRows.rowIndexAt(stickyPointer)
+                    : Integer.MAX_VALUE;
+                continue;
+            }
+            if (overlapsStickyRow(rowY, stickyRows)) {
+                // Screen-level avoidance (mirror of the live path): skip this
+                // scrolling row when its band intersects a sticky row's fixed
+                // screen band, which avoids double-printed ghosted text.
+                continue;
+            }
+            collectRow(
+                collector,
+                row,
+                rowY,
+                rowRight,
+                textRightBase,
+                currentGuideId,
+                currentPageId,
+                pageCollection,
+                bookmarkState,
+                bookmarkActionLeft,
+                bookmarkIconX,
+                false);
+        }
+        for (int stackIndex = 0; stackIndex < stickyRows.size(); stackIndex++) {
+            collectRow(
+                collector,
+                stickyRows.rowAt(stackIndex),
+                stickyRows.rowYAt(stackIndex),
+                rowRight,
+                textRightBase,
+                currentGuideId,
+                currentPageId,
+                pageCollection,
+                bookmarkState,
+                bookmarkActionLeft,
+                bookmarkIconX,
+                true);
+        }
+        collector.popScissor();
+    }
+
+    private void collectRow(PrimitiveCollector collector, Row row, int rowY, int rowRight, int textRightBase,
+        @Nullable ResourceLocation currentGuideId, @Nullable ResourceLocation currentPageId,
+        @Nullable PageCollection pageCollection, GuideBookmarkState bookmarkState, int bookmarkActionLeft,
+        int bookmarkIconX, boolean sticky) {
+        GuideNavProjection.DisplayRow displayRow = row.displayRow();
+        int indent = row.indent();
+        int rowX = x + 2 + indent;
+        boolean current = isCurrentRow(row, currentGuideId, currentPageId);
+        boolean bookmarkable = row.bookmarkable();
+
+        GuideDebugLog.infoAlways(
+            "[chrome] nav row y={} indent={} title={} kind={}",
+            rowY,
+            indent,
+            displayRow.title(),
+            displayRow.kind());
+
+        if (sticky) {
+            collector.emit(
+                new GuideRenderPrimitive.FillRect(x, rowY, rowRight - x, ROW_H, ColorUtils.ARGB_F0181818.getColor()));
+            collector.emit(
+                new GuideRenderPrimitive.FillRect(
+                    x,
+                    rowY + ROW_H - 1,
+                    rowRight - x,
+                    1,
+                    ColorUtils.ARGB_802A2A2A.getColor()));
+        }
+        if (current) {
+            collector.emit(
+                new GuideRenderPrimitive.FillRect(x, rowY, rowRight - x, ROW_H, ColorUtils.ARGB_40FFFFFF.getColor()));
+        }
+
+        if (row.hasChildren()) {
+            emitArrowPrimitive(collector, rowX, rowY + 2, isCollapsed(row), ColorUtils.ARGB_FFCCCCCC.getColor());
+        }
+
+        int textX = rowX + EXPAND_INDENT;
+        GuidePageIcon icon = displayRow.icon();
+        if (icon != null) {
+            // Headless: texture/item mini-icon blits are skipped (GUI texture and
+            // item rendering do not round-trip through the offscreen primitive
+            // pipeline); the text x still advances past the icon slot to match
+            // the live bar geometry.
+            textX += ICON_SIZE + 2;
+        }
+
+        int textRight = textRightBase;
+        if (bookmarkable) {
+            textRight -= ACTION_SLOT_W;
+        }
+        int maxTw = textRight - textX;
+        if (maxTw > 0) {
+            ResourceLocation pageId = row.pageId();
+            boolean failed = pageId != null && pageCollection != null && pageCollection.isPageFailed(pageId);
+            int color = getRowTextColor(current, false, failed);
+            renderRowTitle(
+                Minecraft.getMinecraft(),
+                collector,
+                row,
+                textX,
+                rowY,
+                maxTw,
+                color,
+                false,
+                DisplayScale.scaleFactor());
+        }
+    }
+
+    /** Emit the stepped expander/closed arrow as 1px quads (mirror of {@link #drawArrow}). */
+    private static void emitArrowPrimitive(PrimitiveCollector collector, int x, int y, boolean pointRight, int color) {
+        if (pointRight) {
+            collector.emit(new GuideRenderPrimitive.FillRect(x, y, 1, 7, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 1, y + 1, 1, 5, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 2, y + 2, 1, 3, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 3, y + 3, 1, 1, color));
+        } else {
+            collector.emit(new GuideRenderPrimitive.FillRect(x, y, 7, 1, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 1, y + 1, 5, 1, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 2, y + 2, 3, 1, color));
+            collector.emit(new GuideRenderPrimitive.FillRect(x + 3, y + 3, 1, 1, color));
+        }
+    }
+
+    /** Line top that centers the row text's line box vertically in a ROW_H box. */
+    private static int rowLineTop(int rowY) {
+        return rowY + (ROW_H - GuideText.lineHeight(ROW_TEXT_STYLE)) / 2;
+    }
+
+    /** Line top that centers the title text's line box vertically in the TITLE_H bar. */
+    private int titleLineTop() {
+        return y + (TITLE_H - GuideText.lineHeight(TITLE_TEXT_STYLE)) / 2;
+    }
+
     public static int getRowTextColor(boolean current, boolean hovered, boolean failed) {
         if (failed) {
             return current ? ColorUtils.ARGB_FFFF9999.getColor()
@@ -1302,9 +1730,6 @@ public class GuideNavBar {
         private int cachedMaxTw = -1;
         private int cachedTitleWidth = -1;
         private int cachedScrollCycleWidth = -1;
-        // The width these were measured at, so a font whose metrics change (a custom font from another mod)
-        // re-measures instead of keeping a width the new font no longer matches.
-        private int cachedWidthAtLineHeight = -1;
 
         public Row(GuideNavProjection.ProjectedRow projectedRow) {
             this.projectedRow = projectedRow;
@@ -1372,28 +1797,29 @@ public class GuideNavBar {
             return displayRow.kind();
         }
 
-        public String getTitle(FontRenderer fr, int maxTw) {
+        public String getTitle(int maxTw) {
             if (maxTw == cachedMaxTw && cachedTitle != null) {
                 return cachedTitle;
             }
             String title = displayRow.title();
-            cachedTitle = getTitleWidth(fr) > maxTw ? fr.trimStringToWidth(title, Math.max(0, maxTw - 4)) + "…" : title;
+            cachedTitle = getTitleWidth() > maxTw
+                ? GuideText.clipToWidth(title, maxTw, ROW_TEXT_STYLE, GuideText.ClipSuffix.UNICODE_ELLIPSIS)
+                : title;
             cachedMaxTw = maxTw;
             return cachedTitle;
         }
 
-        public int getTitleWidth(FontRenderer fr) {
-            int lineHeight = GuideFontCompat.getLineHeight(fr);
-            if (cachedTitleWidth < 0 || cachedWidthAtLineHeight != lineHeight) {
-                cachedWidthAtLineHeight = lineHeight;
-                cachedTitleWidth = fr.getStringWidth(displayRow.title());
-                cachedScrollCycleWidth = fr.getStringWidth(displayRow.title() + TITLE_SCROLL_GAP);
+        public int getTitleWidth() {
+            if (cachedTitleWidth < 0) {
+                cachedTitleWidth = GuideText.measureWidth(displayRow.title(), ROW_TEXT_STYLE);
             }
             return cachedTitleWidth;
         }
 
-        public int getScrollCycleWidth(FontRenderer fr) {
-            getTitleWidth(fr);
+        public int getScrollCycleWidth() {
+            if (cachedScrollCycleWidth < 0) {
+                cachedScrollCycleWidth = GuideText.measureWidth(displayRow.title() + TITLE_SCROLL_GAP, ROW_TEXT_STYLE);
+            }
             return cachedScrollCycleWidth;
         }
 

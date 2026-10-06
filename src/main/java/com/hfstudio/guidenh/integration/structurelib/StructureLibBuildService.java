@@ -56,6 +56,8 @@ public class StructureLibBuildService {
     public static final int SURVIVAL_BUDGET = Integer.MAX_VALUE;
     public static final int SURVIVAL_MAX_ROUNDS = 256;
 
+    // Identity of a resolved controller block.
+
     public record ResolvedController(String blockId, Block block, int meta) {}
 
     /**
@@ -117,6 +119,8 @@ public class StructureLibBuildService {
         }
         return StructureLibPreviewTooltipMetadataBuilder.createControlMetadata(request);
     }
+
+    // Build pipeline entry points.
 
     public StructureLibBuildResult build(StructureLibBuildRequest request) {
         try {
@@ -242,6 +246,8 @@ public class StructureLibBuildService {
         return constructable;
     }
 
+    // Resolves a controller block id into a registry block.
+
     public static ResolvedController resolveController(String controllerId) {
         GuideBlockMatcher matcher = GuideBlockMatcher.parse(controllerId);
         Block block = (Block) Block.blockRegistry.getObject(matcher.getBlockId());
@@ -250,6 +256,8 @@ public class StructureLibBuildService {
         }
         return new ResolvedController(matcher.getBlockId(), block, matcher.getMeta() != null ? matcher.getMeta() : 0);
     }
+
+    // Places the controller tile so StructureLib can construct into the level.
 
     @Nullable
     public static TileEntity placeController(GuidebookLevel level, World world, ResolvedController controller) {
@@ -279,6 +287,8 @@ public class StructureLibBuildService {
         return placed;
     }
 
+    // Resolves the constructable behind a controller tile.
+
     @Nullable
     public static IConstructable resolveConstructable(TileEntity controllerTile) {
         if (controllerTile instanceof IConstructableProvider provider) {
@@ -299,6 +309,8 @@ public class StructureLibBuildService {
         return null;
     }
 
+    // Builds the trigger stack carrying tier and channel overrides.
+
     public static ItemStack createTrigger(StructureLibBuildRequest request) {
         ItemStack stack = new ItemStack(StructureLibAPI.getDefaultHologramItem(), Math.max(MIN_TIER, request.tier()));
         for (Map.Entry<String, Integer> entry : request.channels()
@@ -314,6 +326,8 @@ public class StructureLibBuildService {
         }
         return stack;
     }
+
+    // Drives the constructable, preferring the survival path when available.
 
     public static void buildStructure(IConstructable constructable, ItemStack trigger, PreviewFakePlayer fakePlayer,
         StructureLibBuildRequest request, TileEntity controllerTile) {
@@ -473,6 +487,8 @@ public class StructureLibBuildService {
         }
     }
 
+    // Pushes built state to the registered preview synchronizers.
+
     public static void syncPreviewState(TileEntity controllerTile, ItemStack trigger,
         StructureLibBuildRequest request) {
         for (StructureLibPreviewStateSynchronizer synchronizer : StructureLibControllerIntegrationRegistry.global()
@@ -480,6 +496,8 @@ public class StructureLibBuildService {
             synchronizer.synchronizePreviewState(controllerTile, trigger, request);
         }
     }
+
+    // Captures filled blocks as sorted, origin-relative placements.
 
     public static List<StructureLibBuildResult.PlacedBlock> snapshotBlocks(GuidebookLevel level) {
         return snapshotBlocksAndOrigin(level).blocks();
@@ -539,6 +557,8 @@ public class StructureLibBuildService {
 
     private record BlockSnapshot(List<StructureLibBuildResult.PlacedBlock> blocks, int originX, int originY,
         int originZ) {}
+
+    // Serialization helpers.
 
     @Nullable
     public static NBTTagCompound serializeTile(@Nullable TileEntity tile) {

@@ -5,7 +5,7 @@ import java.util.Arrays;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Per-facing {@link appeng.api.parts.IPart#writeToStream} payloads for a cable bus (ordinals 0鈥?).
+ * Per-facing {@link appeng.api.parts.IPart#writeToStream} payloads for a cable bus (ordinals 0-5).
  */
 public class Ae2CableBusSideStreams {
 

@@ -123,15 +123,34 @@ public class GuideLatexTextureCache {
     }
 
     /**
-     * Builds the cache key used for both texture and size lookups.
+     * Builds the cache key used for texture lookups.
+     *
+     * <p>
+     * The key includes {@code rasterScale} (the device output scale the
+     * texture is rasterized at), mirroring the text path's {@code renderScale}
+     * in its {@code ShapeKey} (GuideText.java:52): a GUI-scale / output-scale
+     * change must never reuse a texture rasterized for a different device
+     * resolution (blurry upscale), so different rasterScales get distinct
+     * entries.
      *
      * @param formula       LaTeX source string
      * @param fillColorArgb ARGB fill colour
-     * @param sourceScale   jlatexmath render scale (e.g. 100.0f)
+     * @param sourceScale   jlatexmath render scale (the typeset font size)
+     * @param rasterScale   device output scale the texture is rasterized at
+     *                      (texture pixels = sourceScale × rasterScale)
+     * @param style         jlatexmath style constant (STYLE_DISPLAY or STYLE_TEXT)
      * @return cache key string
      */
-    public static String buildTextureCacheKey(String formula, int fillColorArgb, float sourceScale) {
-        return toHexColor(fillColorArgb) + ':' + buildScaleKey(sourceScale) + ':' + formula;
+    public static String buildTextureCacheKey(String formula, int fillColorArgb, float sourceScale, float rasterScale,
+        int style) {
+        return toHexColor(fillColorArgb) + ':'
+            + buildScaleKey(sourceScale)
+            + ':'
+            + buildScaleKey(rasterScale)
+            + ':'
+            + style
+            + ':'
+            + formula;
     }
 
     /**
@@ -139,10 +158,11 @@ public class GuideLatexTextureCache {
      *
      * @param formula     LaTeX source string
      * @param sourceScale jlatexmath render scale
+     * @param style       jlatexmath style constant (STYLE_DISPLAY or STYLE_TEXT)
      * @return size cache key string
      */
-    public static String buildSizeCacheKey(String formula, float sourceScale) {
-        return buildScaleKey(sourceScale) + ':' + formula;
+    public static String buildSizeCacheKey(String formula, float sourceScale, int style) {
+        return buildScaleKey(sourceScale) + ':' + style + ':' + formula;
     }
 
     public static String buildScaleKey(float sourceScale) {

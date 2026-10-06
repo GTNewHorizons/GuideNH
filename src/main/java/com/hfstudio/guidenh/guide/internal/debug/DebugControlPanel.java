@@ -86,6 +86,10 @@ public class DebugControlPanel {
             new DebugMenuItem("guidenh.debug.menu.display_options.show_memory", DebugMenuAction.TOGGLE_MEMORY));
         displayOptions.addSubmenuItem(
             new DebugMenuItem("guidenh.debug.menu.display_options.show_mouse", DebugMenuAction.TOGGLE_MOUSE_POSITION));
+        displayOptions.addSubmenuItem(
+            new DebugMenuItem(
+                "guidenh.debug.menu.display_options.layout_overlay",
+                DebugMenuAction.TOGGLE_LAYOUT_OVERLAY));
         menuItems.add(displayOptions);
 
         DebugMenuItem recompile = new DebugMenuItem(
@@ -283,6 +287,7 @@ public class DebugControlPanel {
             case TOGGLE_FPS -> ModConfig.debug.showFps = !ModConfig.debug.showFps;
             case TOGGLE_MEMORY -> ModConfig.debug.showMemory = !ModConfig.debug.showMemory;
             case TOGGLE_MOUSE_POSITION -> ModConfig.debug.showMousePosition = !ModConfig.debug.showMousePosition;
+            case TOGGLE_LAYOUT_OVERLAY -> ModConfig.debug.layoutOverlay = !ModConfig.debug.layoutOverlay;
             case RECOMPILE_PAGE -> recompilePage();
             case EXPORT_DEBUG_DATA -> exportDebugData();
         }
@@ -305,6 +310,7 @@ public class DebugControlPanel {
             case TOGGLE_FPS -> ModConfig.debug.showFps;
             case TOGGLE_MEMORY -> ModConfig.debug.showMemory;
             case TOGGLE_MOUSE_POSITION -> ModConfig.debug.showMousePosition;
+            case TOGGLE_LAYOUT_OVERLAY -> ModConfig.debug.layoutOverlay;
             default -> false;
         };
     }

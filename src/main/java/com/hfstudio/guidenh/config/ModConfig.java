@@ -25,6 +25,7 @@ public class ModConfig {
     public static final Ui ui = new Ui();
     public static final Runtime runtime = new Runtime();
     public static final RuntimeBridge runtimeBridge = new RuntimeBridge();
+    public static final Reader reader = new Reader();
 
     @Comment("Debug section")
     public static class Debug {
@@ -93,6 +94,10 @@ public class ModConfig {
         @Comment("Show mouse position in debug overlay")
         @DefaultBoolean(true)
         public boolean showMousePosition = true;
+
+        @Comment("Show layout diagnostic overlay (green=Java bounds, red=Rust rects, blue=glyph quads, yellow=viewport scissor, gray=culled blocks)")
+        @DefaultBoolean(false)
+        public boolean layoutOverlay = false;
 
         @Comment("Debug text scale factor")
         @DefaultFloat(0.8f)
@@ -310,6 +315,26 @@ public class ModConfig {
 
     public static int clampPositiveHomeLimit(int value, int fallback) {
         return value >= 1 ? value : fallback;
+    }
+
+    @Comment("Reader section: guide reader font settings.")
+    public static class Reader {
+
+        @Comment("Base font size for reader text in pixels. "
+            + "Set to 0 to follow the system default (11px, the historic GuideText.BASE_FONT_SIZE). "
+            + "Positive values override the base em size end-to-end. Default: 0.")
+        public int readerFontSize = 0;
+
+        @Comment("Font family for reader body text. \"system\" uses the platform default. "
+            + "Consumed by the reader settings page font steppers. "
+            + "Default: \"system\".")
+        public String readerFontFamily = "system";
+
+        @Comment("Font family for inline code / monospace reader text. "
+            + "\"mono\" uses the platform monospace default. "
+            + "Consumed by the reader settings page font steppers. "
+            + "Default: \"mono\".")
+        public String readerCodeFontFamily = "mono";
     }
 
     @Comment("Runtime section")

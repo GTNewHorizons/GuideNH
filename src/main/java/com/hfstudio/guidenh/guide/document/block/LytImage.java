@@ -4,16 +4,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.ITextureObject;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.LytSize;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
 import com.hfstudio.guidenh.guide.render.GuiAssets;
+import com.hfstudio.guidenh.guide.render.GuiSprite;
 import com.hfstudio.guidenh.guide.render.GuidePageTexture;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.sound.GuideSoundPlayback;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
@@ -38,16 +44,22 @@ public class LytImage extends LytBlock implements InteractiveElement {
     @Setter
     private String alt;
 
+    @Getter
     private int explicitWidth = -1;
+    @Getter
     private int explicitHeight = -1;
+    @Getter
     private int cropX;
+    @Getter
     private int cropY;
+    @Getter
     private int cropWidth = -1;
+    @Getter
     private int cropHeight = -1;
+    @Getter
     private double scaleX = 1.0d;
+    @Getter
     private double scaleY = 1.0d;
-    private int displayWidth = -1;
-    private int displayHeight = -1;
 
     @Getter
     private final List<ImageRegionAnnotation> annotations = new ArrayList<>();
@@ -68,10 +80,23 @@ public class LytImage extends LytBlock implements InteractiveElement {
         this.texture = texture != null ? texture : GuidePageTexture.missing();
     }
 
+    /**
+     * Sets the explicit display width. When only one axis carries an explicit
+     * size, layout infers the other from the source aspect ratio. This is the
+     * display-size mechanism that the FloatingImage displayWidth attribute maps
+     * onto.
+     *
+     * @param width display width in pixels, or a non-positive value to clear it
+     */
     public void setExplicitWidth(int width) {
         this.explicitWidth = width > 0 ? width : -1;
     }
 
+    /**
+     * Sets the explicit display height; see {@link #setExplicitWidth(int)}.
+     *
+     * @param height display height in pixels, or a non-positive value to clear it
+     */
     public void setExplicitHeight(int height) {
         this.explicitHeight = height > 0 ? height : -1;
     }
@@ -88,11 +113,6 @@ public class LytImage extends LytBlock implements InteractiveElement {
         this.scaleY = scaleY > 0.0d ? scaleY : 1.0d;
     }
 
-    public void setDisplaySize(int displayWidth, int displayHeight) {
-        this.displayWidth = displayWidth > 0 ? displayWidth : -1;
-        this.displayHeight = displayHeight > 0 ? displayHeight : -1;
-    }
-
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
         if (texture == null) {
@@ -104,12 +124,29 @@ public class LytImage extends LytBlock implements InteractiveElement {
         int sourceHeight = Math.max(1, cropHeight > 0 ? cropHeight : size.height());
         int width;
         int height;
-        if (displayWidth > 0 || displayHeight > 0) {
-            width = displayWidth > 0 ? displayWidth
-                : Math.max(1, (int) Math.round(displayHeight * sourceWidth / (double) sourceHeight));
-            height = displayHeight > 0 ? displayHeight
-                : Math.max(1, (int) Math.round(displayWidth * sourceHeight / (double) sourceWidth));
+        // Mirrors Rust measure_image (src/rust/layout-engine/src/measure.rs) exactly:
+        // two explicit dimensions win as-is; a single explicit dimension
+        // (whole-image display size) infers the missing axis from the
+        // natural aspect ratio (inferred = explicit × natural_other /
+        // natural_given, no per-axis scale on the inferred axis); otherwise
+        // fall back to natural × DEFAULT_LAYOUT_SCALE × scale. When the
+        // texture is missing the natural size is unreliable, so no inference
+        // happens and the legacy fallback applies.
+        boolean hasNatural = texture != null && !texture.isMissing() && sourceWidth > 0 && sourceHeight > 0;
+        if (explicitWidth > 0 && explicitHeight > 0) {
+            width = explicitWidth;
+            height = explicitHeight;
+        } else if (explicitWidth > 0 && hasNatural) {
+            width = explicitWidth;
+            height = Math.max(1, (int) Math.round(explicitWidth * (sourceHeight / (double) sourceWidth)));
+        } else if (explicitHeight > 0 && hasNatural) {
+            width = Math.max(1, (int) Math.round(explicitHeight * (sourceWidth / (double) sourceHeight)));
+            height = explicitHeight;
         } else if (explicitWidth > 0 || explicitHeight > 0) {
+            // Single explicit dimension but the natural size is unavailable
+            // (missing or placeholder texture), so no aspect-ratio inference is
+            // possible. The legacy behaviour applies: the explicit axis wins and
+            // the missing axis is natural × scale.
             width = explicitWidth > 0 ? explicitWidth : Math.max(1, (int) Math.round(sourceWidth * scaleX));
             height = explicitHeight > 0 ? explicitHeight : Math.max(1, (int) Math.round(sourceHeight * scaleY));
         } else {
@@ -138,6 +175,116 @@ public class LytImage extends LytBlock implements InteractiveElement {
     @Override
     public void onMouseLeave() {
         hoveredSoundAnnotation = null;
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        var bounds = getBounds();
+        if (texture == null || texture.isMissing()) {
+            // Fall back to missing texture sprite
+            emitBlitGuiSprite(c, GuiAssets.MISSING_TEXTURE, bounds.x(), bounds.y(), bounds.width(), bounds.height());
+        } else {
+            ResourceLocation resolvedTex = texture.getTexture();
+            int texId = resolvedTex != null ? getGlTextureId(resolvedTex) : -1;
+            if (texId >= 0) {
+                // Compute UV from crop rect, or full texture when no cropping.
+                LytSize texSize = texture.getSize();
+                float u1, v1, u2, v2;
+                if (cropWidth > 0) {
+                    u1 = (float) cropX / texSize.width();
+                    v1 = (float) cropY / texSize.height();
+                    u2 = (float) (cropX + cropWidth) / texSize.width();
+                    v2 = (float) (cropY + cropHeight) / texSize.height();
+                } else {
+                    u1 = 0f;
+                    v1 = 0f;
+                    u2 = 1f;
+                    v2 = 1f;
+                }
+                c.emit(
+                    new GuideRenderPrimitive.BlitTexture(
+                        texId,
+                        bounds.x(),
+                        bounds.y(),
+                        bounds.width(),
+                        bounds.height(),
+                        u1,
+                        v1,
+                        u2,
+                        v2));
+            } else {
+                // Texture object not (yet) registered with the TextureManager,
+                // so fall back to the missing-texture sprite instead of leaving
+                // an empty box.
+                emitBlitGuiSprite(
+                    c,
+                    GuiAssets.MISSING_TEXTURE,
+                    bounds.x(),
+                    bounds.y(),
+                    bounds.width(),
+                    bounds.height());
+            }
+        }
+    }
+
+    @Override
+    public void emitDecorations(PrimitiveCollector c) {
+        if (annotations.isEmpty()) {
+            return;
+        }
+        var bounds = getBounds();
+        int dispW = bounds.width();
+        int dispH = bounds.height();
+        if (dispW <= 0 || dispH <= 0) {
+            return;
+        }
+        int natW = texture != null && !texture.isMissing() ? getEffectiveSourceWidth() : dispW;
+        int natH = texture != null && !texture.isMissing() ? getEffectiveSourceHeight() : dispH;
+        for (var ann : annotations) {
+            if (!ann.isShowBorder()) {
+                continue;
+            }
+            int bx;
+            int by;
+            int bw;
+            int bh;
+            if (ann.isWholeImage()) {
+                bx = bounds.x();
+                by = bounds.y();
+                bw = bounds.width();
+                bh = bounds.height();
+            } else {
+                int clampedX = Math.clamp(ann.getImgX(), 0, natW);
+                int clampedY = Math.clamp(ann.getImgY(), 0, natH);
+                int clampedW = Math.min(ann.getImgX() + ann.getImgW(), natW) - clampedX;
+                int clampedH = Math.min(ann.getImgY() + ann.getImgH(), natH) - clampedY;
+                if (clampedW <= 0 || clampedH <= 0) {
+                    continue;
+                }
+                bx = bounds.x() + clampedX * dispW / natW;
+                by = bounds.y() + clampedY * dispH / natH;
+                bw = Math.max(1, clampedW * dispW / natW);
+                bh = Math.max(1, clampedH * dispH / natH);
+            }
+            int borderArgb = ann.getBorderColor()
+                .resolve();
+            c.emit(
+                new GuideRenderPrimitive.DrawBorder(
+                    bx,
+                    by,
+                    bw,
+                    bh,
+                    ann.getBorderThickness(),
+                    ann.getBorderThickness(),
+                    ann.getBorderThickness(),
+                    ann.getBorderThickness(),
+                    borderArgb));
+        }
     }
 
     @Override
@@ -330,6 +477,34 @@ public class LytImage extends LytBlock implements InteractiveElement {
             texture.getSize()
                 .height())
             : 1;
+    }
+
+    /**
+     * Convert a Minecraft ResourceLocation to a GL texture ID for use with BlitTexture.
+     */
+    private static int getGlTextureId(ResourceLocation res) {
+        try {
+            ITextureObject tex = Minecraft.getMinecraft()
+                .getTextureManager()
+                .getTexture(res);
+            return tex != null ? tex.getGlTextureId() : -1;
+        } catch (Throwable t) {
+            // Headless (unit tests) or texture unavailable: skip drawing.
+            return -1;
+        }
+    }
+
+    /**
+     * Emit a BlitTexture for a GuiSprite at the given screen coordinates.
+     */
+    private static void emitBlitGuiSprite(PrimitiveCollector c, GuiSprite sprite, int x, int y, int w, int h) {
+        int texId = getGlTextureId(sprite.getTexture());
+        if (texId < 0) return;
+        float u = (float) sprite.getU() / sprite.getTexWidth();
+        float v = (float) sprite.getV() / sprite.getTexHeight();
+        float u2 = (float) (sprite.getU() + sprite.getWidth()) / sprite.getTexWidth();
+        float v2 = (float) (sprite.getV() + sprite.getHeight()) / sprite.getTexHeight();
+        c.emit(new GuideRenderPrimitive.BlitTexture(texId, x, y, w, h, u, v, u2, v2));
     }
 
     public static class ImagePoint {

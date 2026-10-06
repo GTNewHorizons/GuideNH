@@ -32,6 +32,7 @@ src/main/resources/mixins.*([!.]).json
 *.bat
 *.DS_Store
 !gradlew.bat
+!tools/regen_java_flatc.bat
 .factorypath
 addon.local.gradle
 addon.local.gradle.kts
@@ -63,3 +64,19 @@ layout.json
 CLAUDE.md
 .profileconfig.json
 /web-editor/node_modules
+
+### Rust layout-engine ###
+/src/rust/layout-engine/target/
+/src/rust/layout-engine/src/guidenh_layout_generated.rs
+/src/rust/layout-engine/.cargo/
+# Native library is a build-time artifact (copied by the copyRustNative Gradle task)
+/src/main/resources/natives/
+
+### Visual inspection tooling (API keys & python artifacts) ###
+.env
+.env.local
+test/visual/tools/.env
+__pycache__/
+*.pyc
+.venv/
+test/visual/local/

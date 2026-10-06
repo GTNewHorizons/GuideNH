@@ -1,19 +1,36 @@
 package com.hfstudio.guidenh.guide.document.block;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.document.block.recipes.LytRecipeGalleryRow;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContainer;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowInlineBlock;
 import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapshot;
 import com.hfstudio.guidenh.guide.document.interaction.FlowInteractionPath;
+import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
+import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
-import com.hfstudio.guidenh.guide.layout.Layouts;
+import com.hfstudio.guidenh.guide.layout.LayoutTreeSerializer;
+import com.hfstudio.guidenh.guide.layout.flatbuffers.LayoutResult;
+import com.hfstudio.guidenh.guide.render.GlyphRunData;
+import com.hfstudio.guidenh.guide.render.GlyphRunGroup;
+import com.hfstudio.guidenh.guide.render.GlyphRunHolder;
+import com.hfstudio.guidenh.guide.render.GuideGlyphAtlas;
+import com.hfstudio.guidenh.guide.render.GuideRenderEngine;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.GuidebookSceneRenderer;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 
@@ -26,6 +43,21 @@ import lombok.Getter;
 public class LytDocument extends LytNode implements LytBlockContainer {
 
     private static final FlowInteractionPath EMPTY_FLOW_PATH = FlowInteractionPath.empty();
+
+    private static volatile GuideRenderEngine renderEngine;
+
+    public static GuideRenderEngine getRenderEngine() {
+        GuideRenderEngine e = renderEngine;
+        if (e == null) {
+            synchronized (LytDocument.class) {
+                e = renderEngine;
+                if (e == null) {
+                    renderEngine = e = new GuideRenderEngine(GuideGlyphAtlas.instance(), new GuidebookSceneRenderer());
+                }
+            }
+        }
+        return e;
+    }
 
     @Getter
     private final List<LytBlock> blocks = new ArrayList<>();
@@ -40,6 +72,15 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     @Getter
     private long contentRevision;
 
+    /** Cache key state for {@link #updateLayout}: font handle + render scale. */
+    private long layoutFontHandle = -1;
+    private int layoutRenderScale = -1;
+    /** Base font size joins the updateLayout cache key (see {@link #updateLayout}). */
+    private float layoutBaseFontSize = -1f;
+    /** Resolved base/code family join the updateLayout cache key (see {@link #updateLayout}). */
+    private String layoutBaseFamily = null;
+    private String layoutCodeFamily = null;
+
     @Nullable
     private DocumentInteractionSnapshot hoveredElement;
 
@@ -53,6 +94,20 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     private int cachedViewportTop = Integer.MIN_VALUE;
     private int cachedViewportBottom = Integer.MIN_VALUE;
     private boolean visibleCacheValid;
+
+    /**
+     * Diagnostic overlay (JVM flag {@code -Dguidenh.layoutOverlay=true} or the
+     * in-game debug menu option): draws Java bounds (green), Rust FlatLayout
+     * rects (red), glyph quads (blue) and the viewport scissor (yellow) on top
+     * of the document. Resolved per call so the in-game toggle takes effect
+     * immediately.
+     */
+    private static boolean isOverlayEnabled() {
+        return GuideDebugLog.isLayoutOverlayEnabled();
+    }
+
+    private final List<LytBlock> overlayRustBlocks = new ArrayList<>();
+    private final List<LytRect> overlayRustRects = new ArrayList<>();
 
     public int getAvailableWidth() {
         return layout != null ? layout.availableWidth() : 0;
@@ -165,28 +220,297 @@ public class LytDocument extends LytNode implements LytBlockContainer {
     }
 
     public void updateLayout(LayoutContext context, int availableWidth) {
-        if (layout != null && layout.availableWidth == availableWidth) {
+        // Cache key must include the font handle (a 0 to non-zero transition
+        // must not leave the document stuck on the Java fallback) and the
+        // display pixel ratio (glyph bitmaps are rasterized per render scale).
+        // The base font size also joins the key, so a readerFontSize config
+        // change re-lays out automatically with no explicit event, mirroring the
+        // contentZoom precedent in GuideScreen.ensureLayout.
+        // The resolved base and code families join the key as well, so a
+        // readerFontFamily / readerCodeFontFamily config change re-lays out the
+        // same way (null-safe compare; the default "system"/"mono" resolve to
+        // null/"monospace", which adds no extra re-layouts).
+        long fontHandle = com.hfstudio.guidenh.guide.layout.LayoutBridge.getFontHandle();
+        int renderScale = com.hfstudio.guidenh.guide.internal.util.DisplayScale.scaleFactor();
+        float baseFontSize = GuideText.resolveBaseFontSize();
+        String baseFamily = GuideText.resolveBaseFontFamily();
+        String codeFamily = GuideText.resolveCodeFontFamily();
+        if (layout != null && layout.availableWidth == availableWidth
+            && layoutFontHandle == fontHandle
+            && layoutRenderScale == renderScale
+            && layoutBaseFontSize == baseFontSize
+            && Objects.equals(layoutBaseFamily, baseFamily)
+            && Objects.equals(layoutCodeFamily, codeFamily)) {
             return;
         }
+        layoutFontHandle = fontHandle;
+        layoutRenderScale = renderScale;
+        layoutBaseFontSize = baseFontSize;
+        layoutBaseFamily = baseFamily;
+        layoutCodeFamily = codeFamily;
 
+        groupRecipeGalleries();
         layout = createLayout(context, availableWidth);
     }
 
-    private Layout createLayout(LayoutContext context, int availableWidth) {
-        var bounds = Layouts.verticalLayout(context, blocks, 0, 0, availableWidth, 5, 5, 5, 5, 0, AlignItems.START);
-        int contentHeight = bounds.height();
-        // Document-level floats (LytDocumentFloat) report zero height so they do not advance the
-        // vertical cursor in verticalLayout. If a float is taller than the text that wraps beside
-        // it, the float visually extends below the last paragraph but the computed contentHeight
-        // does not reflect this, causing the scroll area to be truncated.
-        // After the full layout pass, any remaining active floats represent exactly this case.
-        // Retrieve their maximum bottom edge and extend contentHeight to cover them.
-        var floatBottom = context.clearFloats(true, true);
-        if (floatBottom.isPresent() && floatBottom.getAsInt() > contentHeight) {
-            contentHeight = floatBottom.getAsInt() + 5;
+    /**
+     * Group runs of &ge; 2 consecutive recipe boxes at the document top level
+     * into wrapping {@link LytRecipeGalleryRow}s, so recipes fill the available
+     * width instead of stacking one per row. Idempotent: an already-grouped
+     * document is left untouched (no mutation, no extra invalidation). Runs
+     * before every layout so asynchronously inserted recipe boxes (placeholders
+     * resolving late) join an adjacent gallery.
+     */
+    private void groupRecipeGalleries() {
+        // Pass 1: existing gallery rows absorb immediately following single
+        // recipe boxes (manual index, since the list shrinks on each absorb).
+        for (int i = 0; i + 1 < blocks.size();) {
+            if (blocks.get(i) instanceof LytRecipeGalleryRow row
+                && LytRecipeGalleryRow.isRecipeBox(blocks.get(i + 1))) {
+                row.append(blocks.get(i + 1)); // re-parents the box off the document
+                invalidateLayout();
+            } else {
+                i++;
+            }
         }
+        // Pass 2: wrap remaining runs of >= 2 consecutive recipe boxes.
+        for (int i = 0; i < blocks.size(); i++) {
+            if (!LytRecipeGalleryRow.isRecipeBox(blocks.get(i))) continue;
+            int j = i + 1;
+            while (j < blocks.size() && LytRecipeGalleryRow.isRecipeBox(blocks.get(j))) j++;
+            if (j - i >= 2) {
+                List<LytBlock> run = new ArrayList<>(blocks.subList(i, j));
+                var row = new LytRecipeGalleryRow();
+                for (LytBlock box : run) {
+                    row.append(box); // re-parents each box off the document
+                }
+                row.parent = this;
+                blocks.add(i, row);
+                invalidateLayout();
+            }
+            i = j; // continue after the run; a single box does NOT stop the scan
+        }
+    }
+
+    private Layout createLayout(LayoutContext context, int availableWidth) {
+        // The Java layout pre-pass is gone from the main document pipeline: the
+        // tree is serialized without a pre-layout step and Rust is the sole
+        // authority for document geometry. The Java pre-pass (Layouts.java) is
+        // still live for the non-document chains (tooltip, annotation, editor,
+        // page title, inline-block Mermaid fallback), which bypass the
+        // collector and lay out via LayoutContext directly.
+
+        // --- Rust layout pipeline (sole authority for geometry) ---
+        int contentHeight = 0;
+        long fontHandle = LayoutBridge.getFontHandle();
+        // Clear glyph runs up front, across the WHOLE tree (not just the
+        // serialized nodes): on any Rust failure/empty result, no stale
+        // run may survive to be drawn at outdated coordinates.
+        for (LytBlock top : blocks) {
+            clearGlyphRuns(top);
+        }
+        try {
+            var serializer = new LayoutTreeSerializer();
+            byte[] input = serializer
+                .serialize(this, availableWidth, context.getVisualScale(), DisplayScale.scaleFactor());
+            long t0 = System.nanoTime();
+            byte[] result = LayoutBridge.measureLayout(fontHandle, input);
+            long elapsed = System.nanoTime() - t0;
+            GuideDebugLog.warnAlways("Layout: measureLayout took {} ms", elapsed / 1_000_000);
+            if (result.length > 0) {
+                var flatResult = LayoutResult.getRootAsLayoutResult(ByteBuffer.wrap(result));
+                String debugInfo = flatResult.debugInfo();
+                if (debugInfo != null && !debugInfo.isEmpty()) {
+                    GuideDebugLog.warnAlways("Layout: Rust debug_info = {}", debugInfo);
+                }
+                contentHeight = (int) flatResult.contentHeight();
+                // Layout landing: overwrite every serialized block's bounds with
+                // the Rust-computed rect so blocks, glyph runs and floats share
+                // one coordinate truth. The FlatLayout vector is index-aligned
+                // with the serializer's flat nodes.
+                overlayRustBlocks.clear();
+                overlayRustRects.clear();
+                int numLayouts = flatResult.nodesLength();
+                for (int i = 0; i < numLayouts; i++) {
+                    var fl = flatResult.nodes(i);
+                    if (fl == null) continue;
+                    LytNode node = serializer.getNodeByFlatIndex(i);
+                    if (!(node instanceof LytBlock lb)) continue;
+                    LytRect rustRect = new LytRect(
+                        Math.round(fl.x()),
+                        Math.round(fl.y()),
+                        Math.max(0, Math.round(fl.w())),
+                        Math.max(0, Math.round(fl.h())));
+                    lb.applyExternalLayout(rustRect);
+                    if (isOverlayEnabled()) {
+                        overlayRustBlocks.add(lb);
+                        overlayRustRects.add(rustRect);
+                    }
+                }
+                // Upload unique glyph bitmaps (hi-res, rasterized by Rust at
+                // render_scale) to the atlas. Placement is already baked into
+                // the per-glyph quads below.
+                var atlas = GuideGlyphAtlas.instance();
+                int numBitmaps = flatResult.bitmapsLength();
+                for (int bi = 0; bi < numBitmaps; bi++) {
+                    var bmp = flatResult.bitmaps(bi);
+                    if (bmp == null) continue;
+                    int w = (int) bmp.w();
+                    int h = (int) bmp.h();
+                    if (w <= 0 || h <= 0) continue;
+                    ByteBuffer rgbaBuf = bmp.rgbaAsByteBuffer();
+                    byte[] rgba = new byte[rgbaBuf.remaining()];
+                    rgbaBuf.get(rgba);
+                    atlas.upload(bmp.key(), rgba, w, h);
+                }
+                // Extract glyph runs (final document-space quads, top-left
+                // origin) and group them per paragraph node; a rich
+                // paragraph yields one run per span, then inject them together
+                // with the span decoration rects.
+                Map<Integer, List<GlyphRunGroup>> runsByNode = new HashMap<>();
+                int numRuns = flatResult.glyphRunsLength();
+                for (int ri = 0; ri < numRuns; ri++) {
+                    var fbRun = flatResult.glyphRuns(ri);
+                    if (fbRun == null) continue;
+                    int numGlyphs = fbRun.glyphsLength();
+                    var placed = new ArrayList<GuideRenderPrimitive.PlacedGlyph>(numGlyphs);
+                    for (int gi = 0; gi < numGlyphs; gi++) {
+                        var fbg = fbRun.glyphs(gi);
+                        if (fbg != null) {
+                            placed.add(
+                                new GuideRenderPrimitive.PlacedGlyph(
+                                    fbg.bitmapKey(),
+                                    fbg.x(),
+                                    fbg.y(),
+                                    fbg.w(),
+                                    fbg.h(),
+                                    (int) fbg.lineIndex(),
+                                    fbg.baseline()));
+                        }
+                    }
+                    runsByNode.computeIfAbsent((int) fbRun.nodeIndex(), k -> new ArrayList<>())
+                        .add(new GlyphRunGroup(placed, (int) fbRun.argb(), fbRun.shear()));
+                }
+                Map<Integer, List<GuideRenderPrimitive.FillRect>> backgroundsByNode = new HashMap<>();
+                Map<Integer, List<GuideRenderPrimitive.FillRect>> linesByNode = new HashMap<>();
+                Map<Integer, List<GuideRenderPrimitive.FillRect>> separatorsByNode = new HashMap<>();
+                Map<Integer, List<GuideRenderPrimitive.DrawDecorationLine>> decorationsByNode = new HashMap<>();
+                int numDecorations = flatResult.decorationsLength();
+                for (int di = 0; di < numDecorations; di++) {
+                    var d = flatResult.decorations(di);
+                    if (d == null) continue;
+                    var rect = new GuideRenderPrimitive.FillRect(
+                        Math.round(d.x()),
+                        Math.round(d.y()),
+                        Math.round(d.w()),
+                        Math.round(d.h()),
+                        (int) d.argb());
+                    if (d.kind() == 3) {
+                        separatorsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                            .add(rect);
+                    } else if (d.kind() == 0) {
+                        backgroundsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                            .add(rect);
+                    } else if (d.kind() == 4 || d.kind() == 5) {
+                        // Wavy (4) / dotted (5) decorations keep their kind so
+                        // the render engine can pick the sine or dot brush, and
+                        // they must NOT fall into the plain-line (lines) bucket.
+                        decorationsByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                            .add(
+                                new GuideRenderPrimitive.DrawDecorationLine(
+                                    d.x(),
+                                    d.y(),
+                                    d.w(),
+                                    d.h(),
+                                    (int) d.argb(),
+                                    d.kind()));
+                    } else {
+                        linesByNode.computeIfAbsent((int) d.node(), k -> new ArrayList<>())
+                            .add(rect);
+                    }
+                }
+                for (var entry : runsByNode.entrySet()) {
+                    LytNode node = serializer.getNodeByFlatIndex(entry.getKey());
+                    if (node instanceof GlyphRunHolder holder) {
+                        holder.setGlyphData(
+                            new GlyphRunData(
+                                entry.getValue(),
+                                backgroundsByNode.getOrDefault(entry.getKey(), List.of()),
+                                linesByNode.getOrDefault(entry.getKey(), List.of()),
+                                separatorsByNode.getOrDefault(entry.getKey(), List.of()),
+                                decorationsByNode.getOrDefault(entry.getKey(), List.of())));
+                        GuideDebugLog.warnAlways(
+                            "Layout: set {} glyph groups on paragraph at flat index {}",
+                            entry.getValue()
+                                .size(),
+                            entry.getKey());
+                    }
+                }
+                // Post pass: let blocks re-apply state that depends on their
+                // children's final bounds (e.g. scroll offsets) BEFORE the
+                // cull-bounds union is recomputed from the moved subtrees.
+                // Runs AFTER glyph-data injection so onLayoutMoved() shifts
+                // existing glyph quads together with the block position.
+                for (int i = 0; i < numLayouts; i++) {
+                    LytNode node = serializer.getNodeByFlatIndex(i);
+                    if (node instanceof LytBlock lb) {
+                        lb.afterExternalLayout();
+                    }
+                }
+                // Post-layout baseline alignment. Consumes the per-glyph
+                // baselines to make alignItems=BASELINE row containers truly
+                // baseline-align their children (taffy 0.12.1 degrades BASELINE
+                // to the bottom edge). Runs after glyph-data injection AND
+                // afterExternalLayout so both bounds and glyph positions are
+                // final; translation goes through moveLayoutPos (onLayoutMoved)
+                // so the baseline-y invariant holds. Pure walk: containers that
+                // are not BASELINE rows are never touched, so their layout
+                // output stays byte-identical to the taffy writeback.
+                RowBaselineAligner.align(this);
+            }
+        } catch (Exception e) {
+            GuideDebugLog.warnAlways("Layout: Rust pipeline failed", e);
+        }
+        // Culling bounds: subtree union, recomputed on EVERY layout, success or
+        // fallback (stale unions cull content that moved into view). A floated
+        // child, or any overflowing content, must keep its ancestors visible,
+        // because Taffy does not extend containers for floats.
+        for (LytBlock top : blocks) {
+            computeCullBounds(top);
+        }
+
         var cachedBounds = new LytRect(0, 0, availableWidth, contentHeight);
         return new Layout(availableWidth, contentHeight, cachedBounds);
+    }
+
+    /**
+     * Recursively clear glyph runs in the subtree (pre-layout wipe so no stale
+     * run survives a failed layout pass).
+     */
+    private static void clearGlyphRuns(LytBlock block) {
+        if (block instanceof GlyphRunHolder holder) {
+            holder.setGlyphData(null);
+        }
+        for (LytNode child : block.getChildren()) {
+            if (child instanceof LytBlock childBlock) {
+                clearGlyphRuns(childBlock);
+            }
+        }
+    }
+
+    /**
+     * Recompute the subtree-union cull bounds for {@code block} (post-order:
+     * children first). Returns the union rect, also stored on the block.
+     */
+    private static LytRect computeCullBounds(LytBlock block) {
+        LytRect union = block.getBounds() != null ? block.getBounds() : LytRect.empty();
+        for (LytNode child : block.getChildren()) {
+            if (child instanceof LytBlock childBlock) {
+                union = LytRect.union(union, computeCullBounds(childBlock));
+            }
+        }
+        block.setCullBounds(union);
+        return union;
     }
 
     public void render(RenderContext context) {
@@ -204,24 +528,119 @@ public class LytDocument extends LytNode implements LytBlockContainer {
             cachedViewportBottom = bottom;
             visibleCacheValid = true;
         }
-        // Render from the cached visible list. Each block's render is a stable function of its
-        // own state; viewport-dependent culling has already been factored out above.
-        for (LytBlock lytBlock : visibleCache) {
-            try {
-                lytBlock.render(context);
-            } catch (Throwable throwable) {
-                // A malformed or not-yet-ready interactive scene must not abort the
-                // whole document render. Continue with later paragraphs and retain
-                // enough context to diagnose the offending block from debug.log.
-                context.restoreExternalRenderState();
-                GuideDebugLog.error(
-                    "[LytDocument] Failed to render block type={} bounds={}",
-                    lytBlock.getClass()
-                        .getName(),
-                    lytBlock.getBounds(),
-                    throwable);
+        // Primitive pipeline. The render engine owns the document->screen
+        // conversion: root transform maps screen = doc * zoom + (tx, ty),
+        // matching VanillaRenderContext.toScreenRect. The screen viewport scissor
+        // is fixed on screen regardless of scroll/zoom, so it is emitted in
+        // screen coordinates (PushScreenScissor) before the root transform.
+        float zoom = context.getZoom();
+        float scrollY = context.getPreciseScrollOffsetY();
+        int originX = context.getDocumentOriginX();
+        int originY = context.getDocumentOriginY();
+        LytRect screenViewport = context.getScreenViewport();
+
+        var engine = getRenderEngine();
+        engine.beginFrame(screenViewport, DisplayScale.scaleFactor());
+        var pc = new PrimitiveCollector(screenViewport, context);
+        pc.pushScreenScissor(screenViewport.x(), screenViewport.y(), screenViewport.width(), screenViewport.height());
+        pc.pushTransform(originX, originY - scrollY * zoom, zoom);
+        try {
+            for (LytBlock lb : visibleCache) {
+                pc.collectFrom(lb);
+            }
+        } finally {
+            pc.popTransform();
+            pc.popScreenScissor();
+        }
+        var prims = pc.result();
+        if (!prims.isEmpty()) {
+            engine.execute(prims);
+        }
+        engine.endFrame();
+        if (isOverlayEnabled()) {
+            renderLayoutOverlay(originX, originY - scrollY * zoom, zoom, screenViewport, pc.getCulledDocRects());
+        }
+    }
+
+    // Diagnostic layout overlay (JVM flag or in-game debug menu option).
+
+    private void renderLayoutOverlay(float tx, float ty, float zoom, LytRect screenViewport,
+        List<LytRect> culledRects) {
+        // Clip all overlay drawing to the viewport: without this, rects of
+        // offscreen/culled blocks bleed into the screen and look like empty panels.
+        var mc = net.minecraft.client.Minecraft.getMinecraft();
+        int s = DisplayScale.scaleFactor();
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        GL11.glScissor(
+            screenViewport.x() * s,
+            Math.max(0, mc.displayHeight - screenViewport.bottom() * s),
+            screenViewport.width() * s,
+            screenViewport.height() * s);
+        try {
+            // Yellow: fixed viewport scissor (screen space)
+            drawScreenOutline(
+                screenViewport.x(),
+                screenViewport.y(),
+                screenViewport.width(),
+                screenViewport.height(),
+                0xFFFFFF00);
+            // Green: Java-side block bounds; Blue: glyph quads
+            overlayWalk(this, tx, ty, zoom);
+            // Red: Rust FlatLayout rects
+            for (LytRect r : overlayRustRects) {
+                drawDocOutline(r.x(), r.y(), r.width(), r.height(), tx, ty, zoom, 0xFFFF0000);
+            }
+            // Gray: blocks culled this frame (correctly not rendered)
+            for (LytRect r : culledRects) {
+                drawDocOutline(r.x(), r.y(), r.width(), r.height(), tx, ty, zoom, 0xFF888888);
+            }
+        } finally {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        }
+    }
+
+    private void overlayWalk(LytNode node, float tx, float ty, float zoom) {
+        if (node instanceof LytBlock block) {
+            LytRect b = block.getBounds();
+            if (b != null) {
+                drawDocOutline(b.x(), b.y(), b.width(), b.height(), tx, ty, zoom, 0xFF00FF00);
+            }
+            if (block instanceof LytParagraph paragraph && paragraph.getGlyphData() != null) {
+                for (var group : paragraph.getGlyphData()
+                    .runs()) {
+                    for (var g : group.glyphs()) {
+                        drawDocOutline(
+                            Math.round(g.x()),
+                            Math.round(g.y()),
+                            Math.round(g.w()),
+                            Math.round(g.h()),
+                            tx,
+                            ty,
+                            zoom,
+                            0xFF0000FF);
+                    }
+                }
             }
         }
+        for (LytNode child : node.getChildren()) {
+            overlayWalk(child, tx, ty, zoom);
+        }
+    }
+
+    private void drawDocOutline(int x, int y, int w, int h, float tx, float ty, float zoom, int argb) {
+        drawScreenOutline(
+            Math.round(x * zoom + tx),
+            Math.round(y * zoom + ty),
+            Math.max(1, Math.round(w * zoom)),
+            Math.max(1, Math.round(h * zoom)),
+            argb);
+    }
+
+    private static void drawScreenOutline(int x, int y, int w, int h, int argb) {
+        net.minecraft.client.gui.Gui.drawRect(x, y, x + w, y + 1, argb);
+        net.minecraft.client.gui.Gui.drawRect(x, y + h - 1, x + w, y + h, argb);
+        net.minecraft.client.gui.Gui.drawRect(x, y + 1, x + 1, y + h - 1, argb);
+        net.minecraft.client.gui.Gui.drawRect(x + w - 1, y + 1, x + w, y + h - 1, argb);
     }
 
     public @Nullable DocumentInteractionSnapshot getHoveredElement() {

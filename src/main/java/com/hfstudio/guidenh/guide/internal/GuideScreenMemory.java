@@ -8,6 +8,7 @@ import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.internal.screen.GuideNavBarState;
 import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
+import com.hfstudio.guidenh.guide.internal.settings.GuideSettingsPage;
 
 public class GuideScreenMemory {
 
@@ -74,7 +75,8 @@ public class GuideScreenMemory {
 
     public static boolean isSupportedContentAnchor(@Nullable PageAnchor anchor) {
         return anchor != null && !GuideSearchPage.isSearchAnchor(anchor)
-            && !GuideItemLinksPage.isItemLinksAnchor(anchor);
+            && !GuideItemLinksPage.isItemLinksAnchor(anchor)
+            && !GuideSettingsPage.isSettingsAnchor(anchor);
     }
 
     public static boolean isValidContentRoute(@Nullable GuideScreenRoute route) {

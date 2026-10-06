@@ -19,7 +19,7 @@ import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
 
 /**
- * {@code <LineAnnotation from="x y z" to="x y z" color="..." thickness="..." alwaysOnTop />}銆?
+ * {@code <LineAnnotation from="x y z" to="x y z" color="..." thickness="..." alwaysOnTop />}.
  */
 public class LineAnnotationElementCompiler extends AnnotationTagCompiler {
 

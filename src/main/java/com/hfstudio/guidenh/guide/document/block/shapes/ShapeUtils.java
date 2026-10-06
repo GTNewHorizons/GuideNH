@@ -3,18 +3,15 @@ package com.hfstudio.guidenh.guide.document.block.shapes;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 final class ShapeUtils {
 
     private ShapeUtils() {}
 
-    /**
-     * Fills a polygon using a triangle fan from the centroid.
-     * This avoids artifacts from using a boundary vertex as the fan origin
-     * (which happens with plain {@link RenderContext#fillPolygon(float[], float[], int)}).
-     */
-    static void fillPolygonCentered(RenderContext context, float[] xs, float[] ys, int color) {
+    /** Same as fillPolygonCentered but emits a DrawPolygon primitive. */
+    static void emitPolygonCentered(PrimitiveCollector c, float[] xs, float[] ys, int color) {
         int n = xs.length;
         if (n < 3) return;
         float cx = 0, cy = 0;
@@ -32,7 +29,7 @@ final class ShapeUtils {
         System.arraycopy(ys, 0, fanYs, 1, n);
         fanXs[n + 1] = xs[0];
         fanYs[n + 1] = ys[0];
-        context.fillPolygon(fanXs, fanYs, color);
+        c.emit(new GuideRenderPrimitive.DrawPolygon(fanXs, fanYs, color));
     }
 
     static List<float[]> arcToPoints(float cx, float cy, float rx, float ry, float startAngle, float endAngle,

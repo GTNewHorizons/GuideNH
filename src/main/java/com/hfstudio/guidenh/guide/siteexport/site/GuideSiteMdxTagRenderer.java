@@ -1040,7 +1040,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             ? GuideSiteItemSupport.export(item.registryId(), item.stack(), itemIconResolver, itemId)
             : GuideSiteItemSupport.unresolved(itemId);
 
-        // showTooltip — default true for ItemLink
+        // showTooltip: default true for ItemLink
         MdxJsxAttribute noTooltipAttribute = element.getAttribute("noTooltip");
         MdxJsxAttribute showTooltipAttribute = element.getAttribute("showTooltip");
         boolean noTooltip = readBoolean(noTooltipAttribute, "noTooltip", false);
@@ -1048,7 +1048,7 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             : !noTooltip;
         boolean showText = readBoolean(element, "showText", true);
 
-        // showIcon — null/falsy = no icon; "left", "right", or any truthy = icon at that side
+        // showIcon: null/falsy = no icon; "left", "right", or any truthy = icon at that side
         String iconPosition = ItemImageCompiler.resolveLabelPosition(readOptional(element.getAttribute("showIcon")));
 
         String templateId = null;

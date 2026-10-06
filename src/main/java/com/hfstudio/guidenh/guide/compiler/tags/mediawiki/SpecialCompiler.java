@@ -54,7 +54,7 @@ public class SpecialCompiler extends BlockTagCompiler {
         if (specialName == null || specialName.trim()
             .isEmpty()) return;
 
-        // Restore Phase 2: index resolved special page result entries for full-text search
+        // Index resolved special page result entries for full-text search
         var guide = MediaWikiTagCompilerSupport.resolveGuide(indexer);
         if (guide != null) {
             CategoryIndex catIndex = indexer.getIndex(CategoryIndex.class);

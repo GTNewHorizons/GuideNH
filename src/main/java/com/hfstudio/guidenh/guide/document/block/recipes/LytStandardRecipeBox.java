@@ -11,6 +11,8 @@ import com.hfstudio.guidenh.guide.document.block.LytBox;
 import com.hfstudio.guidenh.guide.document.block.LytSlot;
 import com.hfstudio.guidenh.guide.document.block.LytSlotGrid;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -36,9 +38,25 @@ public class LytStandardRecipeBox extends LytBox {
         this.inputs = inputs;
         this.output = new LytSlot(resultStack);
         this.output.setLargeSlot(true);
+        // Reserve the crafting-arrow gap as the output slot's own left margin,
+        // so the flex-row layout (Rust) leaves room for the arrow between the
+        // inputs grid and the output, declared by the block rather than the compiler.
+        this.output.setMarginLeft(GAP * 2 + ARROW_W);
         this.shapeless = shapeless;
         append(inputs);
         append(output);
+    }
+
+    private static int getGlTextureId(ResourceLocation res) {
+        try {
+            var tex = net.minecraft.client.Minecraft.getMinecraft()
+                .getTextureManager()
+                .getTexture(res);
+            return tex != null ? tex.getGlTextureId() : -1;
+        } catch (Throwable t) {
+            // Headless (unit tests) or texture unavailable: skip drawing.
+            return -1;
+        }
     }
 
     public static LytStandardRecipeBox shaped3x3(List<ItemStack> stacks, ItemStack result) {
@@ -83,6 +101,32 @@ public class LytStandardRecipeBox extends LytBox {
         int totalW = (outX + outSize) - x;
         int totalH = inH;
         return new LytRect(x, y, totalW, totalH);
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        super.computePrimitives(c);
+
+        int inW = inputs.getWidth() * LytSlot.OUTER_SIZE;
+        int inH = inputs.getHeight() * LytSlot.OUTER_SIZE;
+        int arrowX = bounds.x() + inW + GAP;
+        int arrowY = bounds.y() + (inH - ARROW_H) / 2;
+        int texId = getGlTextureId(CRAFTING_TEXTURE);
+        if (texId >= 0) {
+            // Vanilla container GUI textures are 256x256 (same assumption as
+            // VanillaRenderContext.blitTexture).
+            c.emit(
+                new GuideRenderPrimitive.BlitTexture(
+                    texId,
+                    arrowX,
+                    arrowY,
+                    ARROW_W,
+                    ARROW_H,
+                    ARROW_U / 256f,
+                    ARROW_V / 256f,
+                    (ARROW_U + ARROW_W) / 256f,
+                    (ARROW_V + ARROW_H) / 256f));
+        }
     }
 
     @Override

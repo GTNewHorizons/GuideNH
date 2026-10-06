@@ -4,7 +4,9 @@ import java.util.List;
 
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 public class CornerLegendRenderer {
@@ -25,7 +27,11 @@ public class CornerLegendRenderer {
 
     protected CornerLegendRenderer() {}
 
-    public static void render(RenderContext context, LytRect plotRect, List<CornerLegendEntry> entries,
+    /**
+     * Emits the corner legend as {@link GuideRenderPrimitive}s into {@code c},
+     * measuring text through {@link GuideText}.
+     */
+    public static void emit(PrimitiveCollector c, LytRect plotRect, List<CornerLegendEntry> entries,
         CornerLegendPosition position, int maxWidth, int maxHeight, int backgroundColor) {
         if (position == null || position == CornerLegendPosition.NONE
             || entries == null
@@ -33,7 +39,7 @@ public class CornerLegendRenderer {
             || plotRect.isEmpty()) {
             return;
         }
-        int lineHeight = context.getLineHeight(TEXT_STYLE);
+        int lineHeight = GuideText.lineHeight(TEXT_STYLE);
         if (plotRect.width() < MIN_WIDTH || plotRect.height() < MIN_HEIGHT) {
             return;
         }
@@ -69,9 +75,9 @@ public class CornerLegendRenderer {
         };
         x = clamp(x, plotRect.x(), plotRect.right() - width);
         y = clamp(y, plotRect.y(), plotRect.bottom() - height);
-        LytRect box = new LytRect(x, y, width, height);
-        context.fillRect(box, backgroundColor);
-        context.drawBorder(box, ColorUtils.ARGB_66FFFFFF.getColor(), 1);
+        c.emit(new GuideRenderPrimitive.FillRect(x, y, width, height, backgroundColor));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(x, y, width, height, 1, 1, 1, 1, ColorUtils.ARGB_66FFFFFF.getColor()));
 
         int textX = x + PADDING_X + MARKER_WIDTH + GAP;
         int maxTextWidth = Math.max(0, x + width - PADDING_X - textX);
@@ -88,37 +94,25 @@ public class CornerLegendRenderer {
             int markerY = rowY + Math.max(0, (lineHeight - MARKER_HEIGHT) / 2);
             if (entry.lineMarker()) {
                 float cy = markerY + MARKER_HEIGHT / 2f;
-                context.drawLine(markerX, cy, markerX + MARKER_WIDTH, cy, 1.5f, entry.color());
+                c.emit(new GuideRenderPrimitive.DrawLine(markerX, cy, markerX + MARKER_WIDTH, cy, 1.5f, entry.color()));
             } else {
-                context.fillRect(markerX + 2, markerY, MARKER_HEIGHT, MARKER_HEIGHT, entry.color());
+                c.emit(
+                    new GuideRenderPrimitive.FillRect(
+                        markerX + 2,
+                        markerY,
+                        MARKER_HEIGHT,
+                        MARKER_HEIGHT,
+                        entry.color()));
             }
-            context.drawText(ellipsize(context, entry.name(), maxTextWidth), textX, rowY, TEXT_STYLE);
+            GuideText.emitText(
+                c,
+                GuideText.clipToWidth(entry.name(), maxTextWidth, TEXT_STYLE, GuideText.ClipSuffix.DOTS3),
+                textX,
+                rowY,
+                TEXT_STYLE);
             rowY += lineHeight + ENTRY_GAP;
             drawn++;
         }
-    }
-
-    public static String ellipsize(RenderContext context, String text, int maxWidth) {
-        if (text == null || text.isEmpty() || maxWidth <= 0) {
-            return "";
-        }
-        if (context.getStringWidth(text, TEXT_STYLE) <= maxWidth) {
-            return text;
-        }
-        String suffix = "...";
-        int suffixWidth = context.getStringWidth(suffix, TEXT_STYLE);
-        if (suffixWidth > maxWidth) {
-            return "";
-        }
-        int end = text.length();
-        while (end > 0) {
-            String candidate = text.substring(0, end) + suffix;
-            if (context.getStringWidth(candidate, TEXT_STYLE) <= maxWidth) {
-                return candidate;
-            }
-            end--;
-        }
-        return suffix;
     }
 
     private static int clamp(int value, int min, int max) {

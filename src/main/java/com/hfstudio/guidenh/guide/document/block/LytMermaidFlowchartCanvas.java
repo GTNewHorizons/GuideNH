@@ -15,7 +15,6 @@ import com.hfstudio.guidenh.guide.document.interaction.DocumentInteractionSnapsh
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidArrowHead;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidEdgeStyle;
-import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartEdge;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult;
@@ -25,8 +24,12 @@ import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResu
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutStrategy;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartNode;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartSubgraph;
+import com.hfstudio.guidenh.guide.layout.FontMetrics;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 import com.hfstudio.guidenh.guide.style.TextAlignment;
 import com.hfstudio.guidenh.guide.style.WhiteSpaceMode;
@@ -44,6 +47,24 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     private static final int ICON_GAP_Y = 4;
     private static final int BADGE_PADDING_X = 4;
     private static final int BADGE_PADDING_Y = 2;
+    /**
+     * Minimum clearance between an edge label box and its endpoint node
+     * borders, in rendered-logical px (the coordinate space in which the
+     * label box and node rects are emitted). 1 logical px renders as
+     * {@code guidenh.renderpage.scale} image px, so at the standard scale=2
+     * the box always keeps ≥2 image px from the node border.
+     */
+    private static final int EDGE_LABEL_GAP = 1;
+    /**
+     * Logical-px margin added to every node min-rect so the scaled
+     * render-time content rect never falls below the scaled text width after
+     * integer rounding. The size-time min-rect used to be exact (zero
+     * margin); on the zoomed path the render rect and paddings are rounded
+     * independently, which can lose up to ~1 scaled px of content width and
+     * push the wrap budget under the scaled text width, forcing spurious
+     * word-wrap on labels that fit exactly at zoom=1.
+     */
+    private static final int NODE_SIZE_ROUNDING_MARGIN = 2;
     private static final ConstantColor NODE_TEXT = new ConstantColor(ColorUtils.ARGB_FFD7DEE7.getColor());
     private static final ConstantColor ROOT_TEXT_COLOR = new ConstantColor(ColorUtils.ARGB_FFF1F6FB.getColor());
     private static final ConstantColor ICON_TEXT_COLOR = new ConstantColor(ColorUtils.CHART_LABEL.getColor());
@@ -76,7 +97,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
     private static final ResolvedTextStyle ROOT_TEXT_STYLE = new ResolvedTextStyle(
         1f,
         true,
@@ -92,7 +114,8 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
     private static final ResolvedTextStyle ICON_TEXT_STYLE = new ResolvedTextStyle(
         0.85f,
         false,
@@ -108,11 +131,13 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         TextAlignment.LEFT,
         false,
         null,
-        false);
+        false,
+        0.0f);
 
     private final FlowchartDocument document;
     private final Map<String, NodeContentLayout> nodeContentLayouts = new LinkedHashMap<>();
     private FlowchartLayoutResult layout;
+    private int precomputedLayoutWidth;
 
     public LytMermaidFlowchartCanvas(FlowchartDocument document, Map<String, LytBlock> nodeContentBlocks) {
         this.document = document;
@@ -150,10 +175,16 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
     }
 
     @Override
-    protected void renderDiagram(RenderContext context, int baseX, int baseY, float activeZoom) {
-        renderSubgraphs(context, baseX, baseY, activeZoom);
-        renderEdges(context, baseX, baseY, activeZoom);
-        renderNodes(context, baseX, baseY, activeZoom);
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    protected void emitDiagramPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
+        emitSubgraphsPrimitives(c, baseX, baseY, activeZoom);
+        emitEdgesPrimitives(c, baseX, baseY, activeZoom);
+        emitNodesPrimitives(c, baseX, baseY, activeZoom);
+        emitEdgeLabelsPrimitives(c, baseX, baseY, activeZoom);
     }
 
     @Override
@@ -214,7 +245,13 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
             if (block != null) {
                 LayoutContext localContext = new LayoutContext(context).withVisualScale(context.getVisualScale());
                 int contentWidth = Math.clamp(maxTextWidth + 60, 96, 240);
-                block.layout(localContext, 0, 0, contentWidth);
+                // LytVBox.computeBoxLayout is a stub (Rust is sole layout
+                // authority for the normal document pipeline), so NodeContent
+                // subtrees, which never reach the document's Rust pass, used
+                // to be laid out manually. The Rust engine now lays the subtree
+                // out directly (including the inline post-pass), with a Java
+                // fallback for environments without the native bridge.
+                layoutNodeContentWithRust(localContext, block, contentWidth);
                 LytRect vb = resolveBlockVisualBounds(block);
                 textWidth = vb.width();
                 textHeight = vb.height();
@@ -250,14 +287,17 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
 
             LytRect minRect = FlowchartShapes
                 .minNodeRect(node.getShape(), contentW, contentH, NODE_PADDING_X, NODE_PADDING_Y);
-            int width = minRect.width();
-            int height = minRect.height();
+            int width = minRect.width() + NODE_SIZE_ROUNDING_MARGIN;
+            int height = minRect.height() + NODE_SIZE_ROUNDING_MARGIN;
 
             if (isRoot) {
                 width += 10;
                 height += 4;
             }
 
+            // Clipped shapes (cylinder, diamond, hexagon, circle, ellipse, bang,
+            // cloud, asymmetric, trapezoid) reserve an edge margin in the layout
+            // box so their inset outlines keep clearance from their neighbours.
             if (FlowchartShapes.isShapeClipped(node.getShape())) {
                 width += NODE_EDGE_MARGIN * 2;
                 height += NODE_EDGE_MARGIN * 2;
@@ -284,193 +324,122 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         clampOffsets();
     }
 
-    @Override
-    protected void onLayoutMoved(int deltaX, int deltaY) {}
-
-    private void renderEdges(RenderContext context, int baseX, int baseY, float activeZoom) {
-        int defaultColor = context.resolveColor(EDGE_COLOR);
-        for (EdgePath edgePath : layout.getEdgePaths()) {
-            FlowchartEdge flowEdge = lookupEdge(edgePath.getFromId(), edgePath.getToId(), edgePath.getEdgeId());
-            MermaidEdgeStyle style = flowEdge != null ? flowEdge.getStyle() : MermaidEdgeStyle.SOLID;
-            boolean arrowFwd = flowEdge == null || flowEdge.isArrowFwd();
-            boolean arrowRev = flowEdge != null && flowEdge.isArrowRev();
-            MermaidArrowHead fwdHead = flowEdge != null ? flowEdge.getForwardHead() : MermaidArrowHead.TRIANGLE;
-            MermaidArrowHead revHead = flowEdge != null ? flowEdge.getReverseHead() : MermaidArrowHead.NONE;
-            String label = flowEdge != null ? flowEdge.getLabel() : null;
-
-            if (style == MermaidEdgeStyle.INVISIBLE) continue;
-
-            int edgeColor = defaultColor;
-            int edgeThickness = style == MermaidEdgeStyle.THICK ? CONNECTOR_THICKNESS * 2 : CONNECTOR_THICKNESS;
-            if (flowEdge != null) {
-                String edgeStyles = flowEdge.getStyleOverride();
-                if (edgeStyles != null) {
-                    String stroke = getStyleProperty(edgeStyles, "stroke");
-                    if (stroke != null) {
-                        int parsed = parseHexColor(stroke);
-                        if (parsed != 0) edgeColor = parsed;
-                    }
-                    String width = getStyleProperty(edgeStyles, "stroke-width");
-                    if (width != null) {
-                        try {
-                            edgeThickness = Math.max(
-                                1,
-                                Integer.parseInt(
-                                    width.replace("px", "")
-                                        .trim()));
-                        } catch (NumberFormatException ignored) {}
-                    }
-                }
+    /**
+     * Pre-compute diagram layout before the first Rust layout pass and set
+     * preferredHeight so Rust allocates the correct canvas height immediately.
+     * Caches the layout result for reuse in afterExternalLayout when the
+     * actual bounds width matches the pre-computation width.
+     *
+     * @param ctx            LayoutContext backed by GuideText-based FontMetrics
+     * @param availableWidth estimated canvas content width (page width or
+     *                       placeholder width)
+     */
+    public void precomputeLayout(LayoutContext ctx, int availableWidth) {
+        int safeWidth = preferredWidth > 0 ? Math.clamp(preferredWidth, 1, availableWidth)
+            : Math.max(1, availableWidth);
+        LytRect savedBounds = bounds;
+        bounds = new LytRect(0, 0, safeWidth, 0);
+        try {
+            FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(document.getLayoutMode());
+            var minSizes = computeNodeMinSizes(ctx);
+            FlowchartLayoutResult result = strategy.layout(document, minSizes);
+            if (result != null) {
+                this.layout = result;
+                int desiredHeight = result.getHeight() + CANVAS_PADDING * 2;
+                preferredHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
+                    : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
+                // Constrain the canvas explicit width to the available page
+                // width. The unbounded layout width (ELK output) may exceed the
+                // page 2x for large diagrams; Rust's layout engine then sizes
+                // the canvas to that explicit width and the page-level clamp in
+                // computeLayout never runs on the Rust path, pushing the whole
+                // diagram off-page (fit-to-view centred it inside an oversized
+                // canvas). Clamping here keeps the canvas inside the page and
+                // lets fit-to-view centre the diagram in the visible viewport.
+                int diagramWidth = result.getWidth() + CANVAS_PADDING * 2;
+                preferredWidth = Math.min(diagramWidth, Math.max(1, safeWidth));
+                this.precomputedLayoutWidth = preferredWidth;
+                GuideDebugLog.debugAlways(
+                    "[GuideNH-Mermaid] precomputeLayout OK layoutHeight={} preferredHeight={} diagramWidth={}",
+                    result.getHeight(),
+                    preferredHeight,
+                    diagramWidth);
+                GuideDebugLog.debugAlways(
+                    "[GuideNH-Mermaid] precomputeLayout explicitWidth={} safeWidth={}",
+                    preferredWidth,
+                    safeWidth);
+            } else {
+                GuideDebugLog
+                    .debugAlways("[GuideNH-Mermaid] precomputeLayout FAILED result=null safeWidth={}", safeWidth);
             }
-
-            List<FlowchartLayoutResult.Point> points = edgePath.getPoints();
-            if (points.size() < 2) continue;
-
-            FlowchartLayoutResult.Point srcBoundary = null;
-            FlowchartLayoutResult.Point tgtBoundary = null;
-            NodePosition srcPos = null;
-            NodePosition tgtPos = null;
-
-            if (arrowFwd) {
-                tgtPos = layout.getPosition(edgePath.getToId());
-                if (tgtPos != null) {
-                    FlowchartNode tgtNode = document.getNodes()
-                        .get(edgePath.getToId());
-                    MermaidNodeShape tgtShape = tgtNode != null ? tgtNode.getShape() : null;
-                    if (tgtShape != null && FlowchartShapes.isShapeClipped(tgtShape)) {
-                        FlowchartLayoutResult.Point lastPoint = points.get(points.size() - 1);
-                        LytRect tgtRect = new LytRect(
-                            tgtPos.getX() + NODE_EDGE_MARGIN,
-                            tgtPos.getY() + NODE_EDGE_MARGIN,
-                            tgtPos.getWidth() - NODE_EDGE_MARGIN * 2,
-                            tgtPos.getHeight() - NODE_EDGE_MARGIN * 2);
-                        tgtBoundary = FlowchartShapes
-                            .edgeIntersect(tgtRect, tgtShape, lastPoint.getX(), lastPoint.getY());
-                    }
-                }
-            }
-            if (arrowRev) {
-                srcPos = layout.getPosition(edgePath.getFromId());
-                if (srcPos != null) {
-                    FlowchartNode srcNode = document.getNodes()
-                        .get(edgePath.getFromId());
-                    MermaidNodeShape srcShape = srcNode != null ? srcNode.getShape() : null;
-                    if (srcShape != null && FlowchartShapes.isShapeClipped(srcShape)) {
-                        FlowchartLayoutResult.Point firstPoint = points.get(0);
-                        LytRect srcRect = new LytRect(
-                            srcPos.getX() + NODE_EDGE_MARGIN,
-                            srcPos.getY() + NODE_EDGE_MARGIN,
-                            srcPos.getWidth() - NODE_EDGE_MARGIN * 2,
-                            srcPos.getHeight() - NODE_EDGE_MARGIN * 2);
-                        srcBoundary = FlowchartShapes
-                            .edgeIntersect(srcRect, srcShape, firstPoint.getX(), firstPoint.getY());
-                    }
-                }
-            }
-
-            List<FlowchartLayoutResult.Point> edgePoints = new ArrayList<>(points);
-            if (tgtBoundary != null) {
-                FlowchartLayoutResult.Point lastOrig = points.get(points.size() - 1);
-                if (tgtBoundary.getX() != lastOrig.getX() || tgtBoundary.getY() != lastOrig.getY()) {
-                    edgePoints.add(tgtBoundary);
-                }
-            }
-            if (srcBoundary != null) {
-                FlowchartLayoutResult.Point firstOrig = points.get(0);
-                if (srcBoundary.getX() != firstOrig.getX() || srcBoundary.getY() != firstOrig.getY()) {
-                    edgePoints.add(0, srcBoundary);
-                }
-            }
-
-            drawEdgeLines(
-                context,
-                edgePoints,
-                edgePath.getFromId(),
-                edgePath.getToId(),
-                baseX,
-                baseY,
-                activeZoom,
-                style,
-                edgeThickness,
-                edgeColor,
-                srcBoundary,
-                tgtBoundary);
-
-            if (arrowFwd) {
-                float tipX, tipY, dirX, dirY;
-                if (tgtPos != null) {
-                    FlowchartNode tgtNode = document.getNodes()
-                        .get(edgePath.getToId());
-                    MermaidNodeShape tgtShape = tgtNode != null ? tgtNode.getShape() : null;
-                    if (tgtBoundary != null) {
-                        FlowchartLayoutResult.Point prev = edgePoints.get(edgePoints.size() - 2);
-                        tipX = scaled(baseX, tgtBoundary.getX(), activeZoom);
-                        tipY = scaled(baseY, tgtBoundary.getY(), activeZoom);
-                        dirX = tipX - scaled(baseX, prev.getX(), activeZoom);
-                        dirY = tipY - scaled(baseY, prev.getY(), activeZoom);
-                    } else {
-                        FlowchartLayoutResult.Point lastPoint = points.get(points.size() - 1);
-                        FlowchartLayoutResult.Point prev = points.get(points.size() - 2);
-                        int tx = tgtShape != null ? lastPoint.getX() : tgtPos.getX() + tgtPos.getWidth() / 2;
-                        int ty = tgtShape != null ? lastPoint.getY() : tgtPos.getY() + tgtPos.getHeight() / 2;
-                        tipX = scaled(baseX, tx, activeZoom);
-                        tipY = scaled(baseY, ty, activeZoom);
-                        dirX = tipX - scaled(baseX, prev.getX(), activeZoom);
-                        dirY = tipY - scaled(baseY, prev.getY(), activeZoom);
-                    }
-                } else {
-                    FlowchartLayoutResult.Point prev = points.get(points.size() - 2);
-                    tipX = scaled(baseX, prev.getX(), activeZoom);
-                    tipY = scaled(baseY, prev.getY(), activeZoom);
-                    dirX = 0;
-                    dirY = 0;
-                }
-                float len = (float) Math.sqrt(dirX * dirX + dirY * dirY);
-                if (len > 0.5f) {
-                    drawArrowHeadVariant(context, tipX, tipY, dirX / len, dirY / len, activeZoom, edgeColor, fwdHead);
-                }
-            }
-
-            if (arrowRev) {
-                float tailX, tailY, dirX, dirY;
-                if (srcPos != null) {
-                    FlowchartNode srcNode = document.getNodes()
-                        .get(edgePath.getFromId());
-                    MermaidNodeShape srcShape = srcNode != null ? srcNode.getShape() : null;
-                    if (srcBoundary != null) {
-                        FlowchartLayoutResult.Point next = edgePoints.get(1);
-                        tailX = scaled(baseX, srcBoundary.getX(), activeZoom);
-                        tailY = scaled(baseY, srcBoundary.getY(), activeZoom);
-                        dirX = scaled(baseX, next.getX(), activeZoom) - tailX;
-                        dirY = scaled(baseY, next.getY(), activeZoom) - tailY;
-                    } else {
-                        FlowchartLayoutResult.Point firstPoint = points.get(0);
-                        FlowchartLayoutResult.Point second = points.get(1);
-                        int tx = srcShape != null ? firstPoint.getX() : srcPos.getX() + srcPos.getWidth() / 2;
-                        int ty = srcShape != null ? firstPoint.getY() : srcPos.getY() + srcPos.getHeight() / 2;
-                        tailX = scaled(baseX, tx, activeZoom);
-                        tailY = scaled(baseY, ty, activeZoom);
-                        dirX = scaled(baseX, second.getX(), activeZoom) - tailX;
-                        dirY = scaled(baseY, second.getY(), activeZoom) - tailY;
-                    }
-                } else {
-                    FlowchartLayoutResult.Point second = points.get(1);
-                    tailX = scaled(baseX, second.getX(), activeZoom);
-                    tailY = scaled(baseY, second.getY(), activeZoom);
-                    dirX = 0;
-                    dirY = 0;
-                }
-                float len = (float) Math.sqrt(dirX * dirX + dirY * dirY);
-                if (len > 0.5f) {
-                    drawArrowHeadVariant(context, tailX, tailY, dirX / len, dirY / len, activeZoom, edgeColor, revHead);
-                }
-            }
-
-            if (label != null && !label.isEmpty()) {
-                drawEdgeLabel(context, points, baseX, baseY, activeZoom, label);
-            }
+        } finally {
+            bounds = savedBounds;
         }
     }
+
+    @Override
+    protected void afterExternalLayout() {
+        int safeWidth = preferredWidth > 0 ? Math.clamp(preferredWidth, 1, Math.max(1, bounds.width()))
+            : Math.max(1, bounds.width());
+
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] afterExternalLayout entered layout={} safeWidth={} precomputedLayoutWidth={} bounds.height={}",
+            layout != null,
+            safeWidth,
+            precomputedLayoutWidth,
+            bounds.height());
+
+        // Ensure layout result matches the actual canvas width.
+        // If actual bounds.width() differs from the width used during
+        // precompute, the ELK layout may be suboptimal or clipped, so
+        // recompute at the actual canvas width.
+        int actualWidth = Math.max(1, bounds.width() - CANVAS_PADDING * 2);
+        if (layout == null || precomputedLayoutWidth <= 0 || precomputedLayoutWidth != bounds.width()) {
+            LayoutContext fallbackCtx = new LayoutContext(new FontMetrics() {
+
+                @Override
+                public float getAdvance(int codePoint, com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
+                    return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
+                }
+
+                @Override
+                public int getLineHeight(com.hfstudio.guidenh.guide.style.ResolvedTextStyle s) {
+                    return GuideText.lineHeight(s);
+                }
+            });
+            FlowchartLayoutStrategy strategy = FlowchartLayoutStrategy.forMode(document.getLayoutMode());
+            var minSizes = computeNodeMinSizes(fallbackCtx);
+            layout = strategy.layout(document, minSizes);
+            precomputedLayoutWidth = (int) bounds.width();
+            GuideDebugLog.debugAlways(
+                "[GuideNH-Mermaid] afterExternalLayout recomputed ELK at boundsWidth={} layout={}",
+                bounds.width(),
+                layout != null);
+        }
+
+        // With a valid layout, correct the bounds height when it disagrees. This
+        // is the fallback path for canvases whose height was not fixed up.
+        if (layout != null) {
+            int desiredHeight = layout.getHeight() + CANVAS_PADDING * 2;
+            int expectedHeight = preferredHeight > 0 ? Math.max(48, preferredHeight)
+                : Math.clamp(desiredHeight, MIN_HEIGHT, MAX_HEIGHT);
+            if (bounds.height() != expectedHeight) {
+                GuideDebugLog.debugAlways(
+                    "[GuideNH-Mermaid] afterExternalLayout correcting bounds height {} -> {}",
+                    bounds.height(),
+                    expectedHeight);
+                bounds = new LytRect(bounds.x(), bounds.y(), bounds.width(), expectedHeight);
+            }
+        }
+
+        GuideDebugLog.debugAlways(
+            "[GuideNH-Mermaid] afterExternalLayout exit layout={} bounds.height={}",
+            layout != null,
+            bounds.height());
+    }
+
+    @Override
+    protected void onLayoutMoved(int deltaX, int deltaY) {}
 
     private @Nullable FlowchartEdge lookupEdge(String fromId, String toId, @Nullable String edgeId) {
         if (edgeId != null) {
@@ -486,329 +455,6 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
                 return e;
         }
         return null;
-    }
-
-    private void drawEdgeLines(RenderContext context, List<FlowchartLayoutResult.Point> points, String fromId,
-        String toId, int baseX, int baseY, float activeZoom, MermaidEdgeStyle style, int thickness, int color,
-        @Nullable FlowchartLayoutResult.Point srcBoundary, @Nullable FlowchartLayoutResult.Point tgtBoundary) {
-        NodePosition srcPos = layout.getPosition(fromId);
-        NodePosition tgtPos = layout.getPosition(toId);
-
-        float srcCx = srcPos != null ? scaled(baseX, srcPos.getX() + srcPos.getWidth() / 2, activeZoom) : Float.NaN;
-        float srcCy = srcPos != null ? scaled(baseY, srcPos.getY() + srcPos.getHeight() / 2, activeZoom) : Float.NaN;
-        float tgtCx = tgtPos != null ? scaled(baseX, tgtPos.getX() + tgtPos.getWidth() / 2, activeZoom) : Float.NaN;
-        float tgtCy = tgtPos != null ? scaled(baseY, tgtPos.getY() + tgtPos.getHeight() / 2, activeZoom) : Float.NaN;
-
-        int n = points.size();
-
-        for (int i = 1; i < n; i++) {
-            FlowchartLayoutResult.Point from = points.get(i - 1);
-            FlowchartLayoutResult.Point to = points.get(i);
-            float x1 = scaled(baseX, from.getX(), activeZoom);
-            float y1 = scaled(baseY, from.getY(), activeZoom);
-            float x2 = scaled(baseX, to.getX(), activeZoom);
-            float y2 = scaled(baseY, to.getY(), activeZoom);
-            drawLine(context, x1, y1, x2, y2, style, thickness, color);
-        }
-
-        if (!Float.isNaN(srcCx) && srcBoundary == null) {
-            FlowchartLayoutResult.Point first = points.get(0);
-            float x1 = scaled(baseX, first.getX(), activeZoom);
-            float y1 = scaled(baseY, first.getY(), activeZoom);
-            drawLine(context, srcCx, srcCy, x1, y1, style, thickness, color);
-        }
-        if (!Float.isNaN(tgtCx) && tgtBoundary == null) {
-            FlowchartLayoutResult.Point last = points.get(n - 1);
-            float x1 = scaled(baseX, last.getX(), activeZoom);
-            float y1 = scaled(baseY, last.getY(), activeZoom);
-            drawLine(context, x1, y1, tgtCx, tgtCy, style, thickness, color);
-        }
-    }
-
-    private void drawLine(RenderContext context, float x1, float y1, float x2, float y2, MermaidEdgeStyle style,
-        int thickness, int color) {
-        if (style == MermaidEdgeStyle.DASHED || style == MermaidEdgeStyle.DOTTED) {
-            drawDashedLine(context, x1, y1, x2, y2, thickness, color, style == MermaidEdgeStyle.DOTTED);
-        } else {
-            context.drawLine(x1, y1, x2, y2, thickness, color);
-        }
-    }
-
-    private void drawDashedLine(RenderContext context, float x1, float y1, float x2, float y2, int thickness, int color,
-        boolean dotted) {
-        float dx = x2 - x1;
-        float dy = y2 - y1;
-        float len = (float) Math.sqrt(dx * dx + dy * dy);
-        if (len < 1f) return;
-        float nx = dx / len;
-        float ny = dy / len;
-        float dashLen = dotted ? Math.max(1f, thickness * 0.5f) : Math.max(2f, thickness * 4f);
-        float gapLen = dotted ? Math.max(2f, thickness * 1.5f) : Math.max(1f, thickness);
-        float drawn = 0f;
-        boolean draw = true;
-        while (drawn < len) {
-            float segEnd = Math.min(drawn + dashLen, len);
-            float sx = x1 + nx * drawn;
-            float sy = y1 + ny * drawn;
-            float ex = x1 + nx * segEnd;
-            float ey = y1 + ny * segEnd;
-            if (draw) {
-                context.drawLine(sx, sy, ex, ey, thickness, color);
-            }
-            drawn = segEnd + gapLen;
-            draw = !draw;
-        }
-    }
-
-    private void drawArrowHeadVariant(RenderContext context, float tipX, float tipY, float dirX, float dirY,
-        float activeZoom, int color, MermaidArrowHead headType) {
-        switch (headType) {
-            case CIRCLE -> drawCircleHead(context, tipX, tipY, dirX, dirY, activeZoom, color);
-            case CROSS -> drawCrossHead(context, tipX, tipY, dirX, dirY, activeZoom, color);
-            default -> drawTriangleHead(context, tipX, tipY, dirX, dirY, activeZoom, color);
-        }
-    }
-
-    private void drawTriangleHead(RenderContext context, float tipX, float tipY, float dirX, float dirY,
-        float activeZoom, int color) {
-        float size = Math.max(4f, 8f * activeZoom);
-        float perpX = -dirY;
-        float baseX = tipX - dirX * size;
-        float baseY = tipY - dirY * size;
-        float leftX = baseX + perpX * size * 0.4f;
-        float leftY = baseY + dirX * size * 0.4f;
-        float rightX = baseX - perpX * size * 0.4f;
-        float rightY = baseY - dirX * size * 0.4f;
-        context.fillTriangle(tipX, tipY, leftX, leftY, rightX, rightY, color);
-    }
-
-    private void drawCircleHead(RenderContext context, float tipX, float tipY, float dirX, float dirY, float activeZoom,
-        int color) {
-        float radius = Math.max(3f, 5f * activeZoom);
-        float cx = tipX - dirX * radius;
-        float cy = tipY - dirY * radius;
-        context.fillCircle(cx, cy, radius, color);
-    }
-
-    private void drawCrossHead(RenderContext context, float tipX, float tipY, float dirX, float dirY, float activeZoom,
-        int color) {
-        float size = Math.max(3f, 5f * activeZoom);
-        float perpX = -dirY;
-        float cx = tipX - dirX * size * 0.5f;
-        float cy = tipY - dirY * size * 0.5f;
-        float thickness = Math.max(1f, 1.5f * activeZoom);
-        context.drawLine(
-            cx + perpX * size * 0.7f,
-            cy + dirX * size * 0.7f,
-            cx - perpX * size * 0.7f,
-            cy - dirX * size * 0.7f,
-            thickness,
-            color);
-        context.drawLine(
-            cx + perpX * size * 0.7f,
-            cy - dirX * size * 0.7f,
-            cx - perpX * size * 0.7f,
-            cy + dirX * size * 0.7f,
-            thickness,
-            color);
-    }
-
-    private void drawEdgeLabel(RenderContext context, List<FlowchartLayoutResult.Point> points, int baseX, int baseY,
-        float activeZoom, String label) {
-        float totalLen = 0f;
-        float[] segLens = new float[points.size() - 1];
-        for (int i = 1; i < points.size(); i++) {
-            float dx = points.get(i)
-                .getX()
-                - points.get(i - 1)
-                    .getX();
-            float dy = points.get(i)
-                .getY()
-                - points.get(i - 1)
-                    .getY();
-            segLens[i - 1] = (float) Math.sqrt(dx * dx + dy * dy);
-            totalLen += segLens[i - 1];
-        }
-        if (totalLen < 1f) return;
-        float halfLen = totalLen * 0.5f;
-        float accumulated = 0f;
-        float mx = points.getFirst()
-            .getX();
-        float my = points.getFirst()
-            .getY();
-        for (int i = 0; i < segLens.length; i++) {
-            if (accumulated + segLens[i] >= halfLen) {
-                float frac = (halfLen - accumulated) / Math.max(segLens[i], 0.0001f);
-                mx = points.get(i)
-                    .getX()
-                    + (points.get(i + 1)
-                        .getX()
-                        - points.get(i)
-                            .getX())
-                        * frac;
-                my = points.get(i)
-                    .getY()
-                    + (points.get(i + 1)
-                        .getY()
-                        - points.get(i)
-                            .getY())
-                        * frac;
-                break;
-            }
-            accumulated += segLens[i];
-        }
-        int screenX = Math.round(scaled(baseX, Math.round(mx), activeZoom));
-        int screenY = Math.round(scaled(baseY, Math.round(my), activeZoom));
-        ResolvedTextStyle labelStyle = getOrScaleStyle(NODE_TEXT_STYLE, activeZoom);
-        int textWidth = context.getStringWidth(label, labelStyle);
-        int textHeight = context.getLineHeight(labelStyle);
-        int pad = Math.max(1, Math.round(2 * activeZoom));
-        int bgColor = context.resolveColor(new ConstantColor(ColorUtils.ARGB_CC0C1117.getColor()));
-        LytRect bg = new LytRect(
-            screenX - textWidth / 2 - pad,
-            screenY - textHeight / 2 - pad,
-            textWidth + pad * 2,
-            textHeight + pad * 2);
-        context.fillRect(bg, bgColor);
-        context.drawText(label, screenX - textWidth / 2, screenY - textHeight / 2, labelStyle);
-    }
-
-    private void renderNodes(RenderContext context, int baseX, int baseY, float activeZoom) {
-        ResolvedTextStyle badgeStyle = getOrScaleStyle(ICON_TEXT_STYLE, activeZoom);
-        int paddingX = Math.max(1, Math.round(NODE_PADDING_X * activeZoom));
-        int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * activeZoom));
-        String rootNodeId = document.getNodeOrder()
-            .isEmpty() ? null
-                : document.getNodeOrder()
-                    .get(0);
-
-        for (var entry : layout.getNodePositions()
-            .entrySet()) {
-            String nodeId = entry.getKey();
-            NodePosition pos = entry.getValue();
-            FlowchartNode node = document.getNodes()
-                .get(nodeId);
-            if (node == null) continue;
-
-            boolean isRoot = nodeId.equals(rootNodeId);
-            int pdX = isRoot ? Math.max(1, Math.round(NODE_PADDING_X * 1.5f * activeZoom)) : paddingX;
-            int pdY = isRoot ? Math.max(1, Math.round(NODE_PADDING_Y * 1.5f * activeZoom)) : paddingY;
-            ResolvedTextStyle style = getOrScaleStyle(isRoot ? ROOT_TEXT_STYLE : NODE_TEXT_STYLE, activeZoom);
-
-            int sx = scaled(baseX, pos.getX(), activeZoom);
-            int sy = scaled(baseY, pos.getY(), activeZoom);
-            int sw = Math.max(1, Math.round(pos.getWidth() * activeZoom));
-            int sh = Math.max(1, Math.round(pos.getHeight() * activeZoom));
-            LytRect rect;
-            if (FlowchartShapes.isShapeClipped(node.getShape())) {
-                int margin = Math.round(NODE_EDGE_MARGIN * activeZoom);
-                rect = new LytRect(sx + margin, sy + margin, sw - 2 * margin, sh - 2 * margin);
-            } else {
-                rect = new LytRect(sx, sy, sw, sh);
-            }
-
-            var colors = MermaidNodeRenderer.resolveNodeColors(node.getClasses(), node.getShape(), isRoot);
-            String nodeStyles = node.getStyleOverride();
-            if (nodeStyles != null) {
-                String fill = getStyleProperty(nodeStyles, "fill");
-                String stroke = getStyleProperty(nodeStyles, "stroke");
-                if (fill != null) {
-                    int fillColor = parseHexColor(fill);
-                    if (fillColor != 0)
-                        colors = new MermaidNodeRenderer.NodeColors(fillColor, colors.border(), colors.accent());
-                }
-                if (stroke != null) {
-                    int strokeColor = parseHexColor(stroke);
-                    if (strokeColor != 0)
-                        colors = new MermaidNodeRenderer.NodeColors(colors.background(), strokeColor, colors.accent());
-                }
-            }
-            FlowchartShapes.render(context, rect, node.getShape(), colors.background(), colors.border());
-            if (colors.accent() != MermaidNodeRenderer.DEFAULT_ACCENT
-                && FlowchartShapes.hasAccentBar(node.getShape())) {
-                MermaidNodeRenderer.renderAccentBar(context, rect, colors.accent());
-            }
-
-            int contentW = rect.width() - 2 * pdX;
-            int contentH = rect.height() - 2 * pdY;
-            LytRect contentArea = FlowchartShapes.contentBounds(rect, node.getShape(), contentW, contentH, pdX, pdY);
-            int textY = contentArea.y();
-
-            String icon = node.getIcon();
-            if (icon != null) {
-                String badgeText = MermaidNodeRenderer.simplifyIcon(icon);
-                if (badgeText != null) {
-                    int badgeWidth = Math.max(
-                        1,
-                        context.getStringWidth(badgeText, badgeStyle)
-                            + Math.max(2, Math.round(BADGE_PADDING_X * activeZoom)) * 2);
-                    int badgeHeight = Math.max(
-                        1,
-                        context.getLineHeight(badgeStyle) + Math.max(1, Math.round(BADGE_PADDING_Y * activeZoom)) * 2);
-                    int badgeX = contentArea.x();
-                    LytRect badge = new LytRect(badgeX, textY, badgeWidth, badgeHeight);
-                    context.fillRect(badge, MermaidNodeRenderer.BADGE_BACKGROUND);
-                    context.drawBorder(badge, MermaidNodeRenderer.BADGE_BORDER, 1);
-                    context.drawText(
-                        badgeText,
-                        badge.x() + Math.max(2, Math.round(BADGE_PADDING_X * activeZoom)),
-                        badge.y() + Math.max(1, Math.round(BADGE_PADDING_Y * activeZoom)),
-                        badgeStyle);
-                    textY += badgeHeight + Math.max(1, Math.round(ICON_GAP_Y * activeZoom));
-                }
-            }
-
-            int visibleWidth = contentArea.width();
-            int visibleHeight = contentArea.height();
-
-            NodeContentLayout contentLayout = nodeContentLayouts.get(nodeId);
-            if (contentLayout != null) {
-                renderNodeContent(context, contentLayout, contentArea, activeZoom);
-            } else {
-                String label = node.getLabel();
-                if (label == null || label.isEmpty()) continue;
-
-                List<String> lines = MermaidNodeRenderer.wrapText(context, style, label, visibleWidth);
-                int lineHeight = context.getLineHeight(style);
-                int totalTextHeight = lines.size() * lineHeight;
-                int textAreaHeight = contentArea.y() + visibleHeight - textY;
-                int baseTextY = textY + Math.max(0, (textAreaHeight - totalTextHeight) / 2);
-                for (int i = 0; i < lines.size(); i++) {
-                    int lineWidth = context.getStringWidth(lines.get(i), style);
-                    int textX = contentArea.x() + Math.max(0, (visibleWidth - lineWidth) / 2);
-                    context.drawText(lines.get(i), textX, baseTextY + i * lineHeight, style);
-                }
-            }
-        }
-    }
-
-    private void renderNodeContent(RenderContext context, NodeContentLayout contentLayout, LytRect contentArea,
-        float activeZoom) {
-        LytRect rawViewport = new LytRect(
-            contentArea.x(),
-            contentArea.y(),
-            Math.max(
-                1,
-                Math.round(
-                    contentLayout.visualBounds()
-                        .width() * activeZoom)),
-            Math.max(
-                1,
-                Math.round(
-                    contentLayout.visualBounds()
-                        .height() * activeZoom)));
-
-        int cvpX = rawViewport.x();
-        int cvpY = rawViewport.y();
-        if (rawViewport.width() < contentArea.width()) {
-            cvpX = contentArea.x() + (contentArea.width() - rawViewport.width()) / 2;
-        }
-        if (rawViewport.height() < contentArea.height()) {
-            cvpY = contentArea.y() + (contentArea.height() - rawViewport.height()) / 2;
-        }
-        LytRect contentViewport = new LytRect(cvpX, cvpY, rawViewport.width(), rawViewport.height());
-
-        renderNodeContent(context, contentLayout.block(), contentViewport, contentLayout.visualBounds(), activeZoom);
     }
 
     @Override
@@ -862,14 +508,16 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         return contextLineHeight(badgeStyle) + badgePaddingY * 2 + iconGapY;
     }
 
-    private void renderSubgraphs(RenderContext context, int baseX, int baseY, float activeZoom) {
+    // Primitives pipeline, which replaces render* for the primitives path.
+
+    private void emitSubgraphsPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
         if (layout == null) return;
         for (var subgraph : document.getSubgraphs()) {
-            renderSubgraphRecursive(context, subgraph, layout.getNodePositions(), baseX, baseY, activeZoom, 0);
+            emitSubgraphRecursive(c, subgraph, layout.getNodePositions(), baseX, baseY, activeZoom, 0);
         }
     }
 
-    private void renderSubgraphRecursive(RenderContext context, FlowchartSubgraph subgraph,
+    private void emitSubgraphRecursive(PrimitiveCollector c, FlowchartSubgraph subgraph,
         Map<String, NodePosition> positions, int baseX, int baseY, float activeZoom, int depth) {
         LytRect bounds = computeSubgraphBounds(subgraph, positions);
         if (bounds == null) return;
@@ -881,26 +529,576 @@ public class LytMermaidFlowchartCanvas extends LytMermaidCanvas<LytMermaidFlowch
         int sh = Math.max(1, Math.round((bounds.height() + pad * 2) * activeZoom));
         LytRect sgRect = new LytRect(sx, sy, sw, sh);
 
-        int bg = context.resolveColor(SUBGRAPH_BG[depth % SUBGRAPH_BG.length]);
-        int border = context.resolveColor(SUBGRAPH_BORDER[depth % SUBGRAPH_BORDER.length]);
-        context.fillRect(sgRect, bg);
-        context.drawBorder(sgRect, border, Math.max(1, Math.round(1.5f * activeZoom)));
+        int bg = SUBGRAPH_BG[depth % SUBGRAPH_BG.length].resolve();
+        int border = SUBGRAPH_BORDER[depth % SUBGRAPH_BORDER.length].resolve();
+        c.emit(new GuideRenderPrimitive.FillRect(sgRect.x(), sgRect.y(), sgRect.width(), sgRect.height(), bg));
+        int borderThickness = Math.max(1, Math.round(1.5f * activeZoom));
+        c.emit(
+            new GuideRenderPrimitive.DrawBorder(
+                sgRect.x(),
+                sgRect.y(),
+                sgRect.width(),
+                sgRect.height(),
+                borderThickness,
+                borderThickness,
+                borderThickness,
+                borderThickness,
+                border));
 
         String label = subgraph.getLabel();
         if (label != null && !label.isEmpty()) {
             int labelPadX = Math.max(2, Math.round(4 * activeZoom));
             int labelPadY = Math.max(1, Math.round(2 * activeZoom));
             ResolvedTextStyle labelStyle = getOrScaleStyle(NODE_TEXT_STYLE, activeZoom);
-            LytRect labelRect = new LytRect(
-                sgRect.x() + labelPadX,
-                sgRect.y() + labelPadY,
-                context.getStringWidth(label, labelStyle),
-                context.getLineHeight(labelStyle));
-            context.drawText(label, labelRect.x(), labelRect.y(), labelStyle);
+            GuideText.emitText(c, label, sgRect.x() + labelPadX, sgRect.y() + labelPadY, labelStyle);
         }
 
         for (var child : subgraph.getChildren()) {
-            renderSubgraphRecursive(context, child, positions, baseX, baseY, activeZoom, depth + 1);
+            emitSubgraphRecursive(c, child, positions, baseX, baseY, activeZoom, depth + 1);
+        }
+    }
+
+    private void emitEdgesPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
+        int defaultColor = EDGE_COLOR.resolve();
+        for (EdgePath edgePath : layout.getEdgePaths()) {
+            FlowchartEdge flowEdge = lookupEdge(edgePath.getFromId(), edgePath.getToId(), edgePath.getEdgeId());
+            MermaidEdgeStyle style = flowEdge != null ? flowEdge.getStyle() : MermaidEdgeStyle.SOLID;
+            boolean arrowFwd = flowEdge == null || flowEdge.isArrowFwd();
+            boolean arrowRev = flowEdge != null && flowEdge.isArrowRev();
+            MermaidArrowHead fwdHead = flowEdge != null ? flowEdge.getForwardHead() : MermaidArrowHead.TRIANGLE;
+            MermaidArrowHead revHead = flowEdge != null ? flowEdge.getReverseHead() : MermaidArrowHead.NONE;
+            String label = flowEdge != null ? flowEdge.getLabel() : null;
+
+            if (style == MermaidEdgeStyle.INVISIBLE) continue;
+
+            int edgeColor = defaultColor;
+            int edgeThickness = style == MermaidEdgeStyle.THICK ? CONNECTOR_THICKNESS * 2 : CONNECTOR_THICKNESS;
+            if (flowEdge != null) {
+                String edgeStyles = flowEdge.getStyleOverride();
+                if (edgeStyles != null) {
+                    String stroke = getStyleProperty(edgeStyles, "stroke");
+                    if (stroke != null) {
+                        int parsed = parseHexColor(stroke);
+                        if (parsed != 0) edgeColor = parsed;
+                    }
+                    String width = getStyleProperty(edgeStyles, "stroke-width");
+                    if (width != null) {
+                        try {
+                            edgeThickness = Math.max(
+                                1,
+                                Integer.parseInt(
+                                    width.replace("px", "")
+                                        .trim()));
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+            }
+
+            List<FlowchartLayoutResult.Point> points = edgePath.getPoints();
+            if (points.size() < 2) continue;
+
+            for (int i = 1; i < points.size(); i++) {
+                FlowchartLayoutResult.Point from = points.get(i - 1);
+                FlowchartLayoutResult.Point to = points.get(i);
+                float x1 = scaled(baseX, from.getX(), activeZoom);
+                float y1 = scaled(baseY, from.getY(), activeZoom);
+                float x2 = scaled(baseX, to.getX(), activeZoom);
+                float y2 = scaled(baseY, to.getY(), activeZoom);
+
+                if (style == MermaidEdgeStyle.DASHED || style == MermaidEdgeStyle.DOTTED) {
+                    emitDashedLine(c, x1, y1, x2, y2, edgeThickness, edgeColor, style == MermaidEdgeStyle.DOTTED);
+                } else {
+                    c.emit(new GuideRenderPrimitive.DrawLine(x1, y1, x2, y2, edgeThickness, edgeColor));
+                }
+            }
+
+            if (arrowFwd || arrowRev) {
+                FlowchartLayoutResult.Point last = points.getLast();
+                FlowchartLayoutResult.Point prev = points.size() >= 2 ? points.get(points.size() - 2) : last;
+                float tipX = scaled(baseX, last.getX(), activeZoom);
+                float tipY = scaled(baseY, last.getY(), activeZoom);
+                float dirX = tipX - scaled(baseX, prev.getX(), activeZoom);
+                float dirY = tipY - scaled(baseY, prev.getY(), activeZoom);
+                float len = (float) Math.sqrt(dirX * dirX + dirY * dirY);
+                if (len > 0.5f) {
+                    dirX /= len;
+                    dirY /= len;
+                    if (arrowFwd) {
+                        emitArrowHeadVariant(c, tipX, tipY, dirX, dirY, activeZoom, edgeColor, fwdHead);
+                    }
+                }
+
+                if (arrowRev) {
+                    FlowchartLayoutResult.Point first = points.get(0);
+                    FlowchartLayoutResult.Point second = points.size() >= 2 ? points.get(1) : first;
+                    float tailX = scaled(baseX, first.getX(), activeZoom);
+                    float tailY = scaled(baseY, first.getY(), activeZoom);
+                    float revDirX = tailX - scaled(baseX, second.getX(), activeZoom);
+                    float revDirY = tailY - scaled(baseY, second.getY(), activeZoom);
+                    float revLen = (float) Math.sqrt(revDirX * revDirX + revDirY * revDirY);
+                    if (revLen > 0.5f) {
+                        revDirX /= revLen;
+                        revDirY /= revLen;
+                        emitArrowHeadVariant(c, tailX, tailY, revDirX, revDirY, activeZoom, edgeColor, revHead);
+                    }
+                }
+            }
+
+        }
+    }
+
+    /**
+     * Emit edge labels in a separate pass <em>after</em> nodes have been
+     * drawn, so labels appear on top of node shapes rather than being
+     * obscured by them. Each label is anchored at the edge path's
+     * midpoint but clamped into the free span between its endpoint node
+     * borders.
+     */
+    private void emitEdgeLabelsPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
+        if (layout == null) return;
+        for (EdgePath edgePath : layout.getEdgePaths()) {
+            FlowchartEdge flowEdge = lookupEdge(edgePath.getFromId(), edgePath.getToId(), edgePath.getEdgeId());
+            String label = flowEdge != null ? flowEdge.getLabel() : null;
+            if (label != null && !label.isEmpty()) {
+                emitEdgeLabelPrimitives(
+                    c,
+                    edgePath.getPoints(),
+                    layout.getPosition(edgePath.getFromId()),
+                    layout.getPosition(edgePath.getToId()),
+                    baseX,
+                    baseY,
+                    activeZoom,
+                    label);
+            }
+        }
+    }
+
+    private void emitDashedLine(PrimitiveCollector c, float x1, float y1, float x2, float y2, int thickness, int color,
+        boolean dotted) {
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float len = (float) Math.sqrt(dx * dx + dy * dy);
+        if (len < 1f) return;
+        float nx = dx / len;
+        float ny = dy / len;
+        float dashLen = dotted ? Math.max(1f, thickness * 0.5f) : Math.max(2f, thickness * 4f);
+        float gapLen = dotted ? Math.max(2f, thickness * 1.5f) : Math.max(1f, thickness);
+        float drawn = 0f;
+        boolean draw = true;
+        while (drawn < len) {
+            float segEnd = Math.min(drawn + dashLen, len);
+            float sx = x1 + nx * drawn;
+            float sy = y1 + ny * drawn;
+            float ex = x1 + nx * segEnd;
+            float ey = y1 + ny * segEnd;
+            if (draw) {
+                c.emit(new GuideRenderPrimitive.DrawLine(sx, sy, ex, ey, thickness, color));
+            }
+            drawn = segEnd + gapLen;
+            draw = !draw;
+        }
+    }
+
+    private void emitArrowHeadVariant(PrimitiveCollector c, float tipX, float tipY, float dirX, float dirY,
+        float activeZoom, int color, MermaidArrowHead headType) {
+        switch (headType) {
+            case CIRCLE -> emitCircleHead(c, tipX, tipY, dirX, dirY, activeZoom, color);
+            case CROSS -> emitCrossHead(c, tipX, tipY, dirX, dirY, activeZoom, color);
+            default -> emitTriangleHead(c, tipX, tipY, dirX, dirY, activeZoom, color);
+        }
+    }
+
+    private void emitTriangleHead(PrimitiveCollector c, float tipX, float tipY, float dirX, float dirY,
+        float activeZoom, int color) {
+        float size = Math.max(4f, 8f * activeZoom);
+        float perpX = -dirY;
+        float baseX = tipX - dirX * size;
+        float baseY = tipY - dirY * size;
+        float leftX = baseX + perpX * size * 0.4f;
+        float leftY = baseY + dirX * size * 0.4f;
+        float rightX = baseX - perpX * size * 0.4f;
+        float rightY = baseY - dirX * size * 0.4f;
+        c.emit(new GuideRenderPrimitive.DrawTriangle(tipX, tipY, leftX, leftY, rightX, rightY, color));
+    }
+
+    private void emitCircleHead(PrimitiveCollector c, float tipX, float tipY, float dirX, float dirY, float activeZoom,
+        int color) {
+        float radius = Math.max(3f, 5f * activeZoom);
+        float cx = tipX - dirX * radius;
+        float cy = tipY - dirY * radius;
+        c.emit(new GuideRenderPrimitive.DrawCircle(cx, cy, radius, color, true));
+    }
+
+    private void emitCrossHead(PrimitiveCollector c, float tipX, float tipY, float dirX, float dirY, float activeZoom,
+        int color) {
+        float size = Math.max(3f, 5f * activeZoom);
+        float perpX = -dirY;
+        float cx = tipX - dirX * size * 0.5f;
+        float cy = tipY - dirY * size * 0.5f;
+        float thickness = Math.max(1f, 1.5f * activeZoom);
+        c.emit(
+            new GuideRenderPrimitive.DrawLine(
+                cx + perpX * size * 0.7f,
+                cy + dirX * size * 0.7f,
+                cx - perpX * size * 0.7f,
+                cy - dirX * size * 0.7f,
+                thickness,
+                color));
+        c.emit(
+            new GuideRenderPrimitive.DrawLine(
+                cx + perpX * size * 0.7f,
+                cy - dirX * size * 0.7f,
+                cx - perpX * size * 0.7f,
+                cy + dirX * size * 0.7f,
+                thickness,
+                color));
+    }
+
+    /**
+     * Draw a single edge label. The label is anchored at the edge path's
+     * midpoint (measured by path length), then its background box is clamped
+     * into the free span between the two endpoint node borders so it keeps a
+     * constant {@link #EDGE_LABEL_GAP} clearance from both nodes. Previously
+     * the box was placed purely at the midpoint with no minimum-gap
+     * constraint, so a label that nearly filled the gap pressed against a
+     * node border (right edge 1px at scale2), and integer rounding of the
+     * midpoint / half-width pushed it off-centre. When the gap cannot
+     * hold the box at that clearance, the label is word-wrapped (with
+     * codepoint-level breaking of overlong words) and residual overlong
+     * fragments are ellipsized, so the box never overflows onto either node.
+     */
+    private void emitEdgeLabelPrimitives(PrimitiveCollector c, List<FlowchartLayoutResult.Point> points,
+        @Nullable FlowchartLayoutResult.NodePosition fromPos, @Nullable FlowchartLayoutResult.NodePosition toPos,
+        int baseX, int baseY, float activeZoom, String label) {
+        float totalLen = 0f;
+        float[] segLens = new float[points.size() - 1];
+        for (int i = 1; i < points.size(); i++) {
+            float dx = points.get(i)
+                .getX()
+                - points.get(i - 1)
+                    .getX();
+            float dy = points.get(i)
+                .getY()
+                - points.get(i - 1)
+                    .getY();
+            segLens[i - 1] = (float) Math.sqrt(dx * dx + dy * dy);
+            totalLen += segLens[i - 1];
+        }
+        if (totalLen < 1f) return;
+        float halfLen = totalLen * 0.5f;
+        float accumulated = 0f;
+        float midDocX = points.getFirst()
+            .getX();
+        float midDocY = points.getFirst()
+            .getY();
+        for (int i = 0; i < segLens.length; i++) {
+            if (accumulated + segLens[i] >= halfLen) {
+                float frac = (halfLen - accumulated) / Math.max(segLens[i], 0.0001f);
+                midDocX = points.get(i)
+                    .getX()
+                    + (points.get(i + 1)
+                        .getX()
+                        - points.get(i)
+                            .getX())
+                        * frac;
+                midDocY = points.get(i)
+                    .getY()
+                    + (points.get(i + 1)
+                        .getY()
+                        - points.get(i)
+                            .getY())
+                        * frac;
+                break;
+            }
+            accumulated += segLens[i];
+        }
+
+        ResolvedTextStyle labelStyle = getOrScaleStyle(NODE_TEXT_STYLE, activeZoom);
+        int pad = Math.max(1, Math.round(2 * activeZoom));
+        int bgColor = new ConstantColor(ColorUtils.ARGB_CC0C1117.getColor()).resolve();
+
+        // Free span between the two endpoint node borders along the edge's
+        // dominant axis, expressed in the same scaled space as the label box.
+        // nearBorder = border the box must stay clear of on the source side;
+        // farBorder = border on the target side. When the endpoint nodes are
+        // unavailable (e.g. cross-compound edges) the constraint is skipped.
+        int nearBorder = 0;
+        int farBorder = 0;
+        boolean horizontal = true;
+        boolean constrained = false;
+        if (fromPos != null && toPos != null) {
+            int fromCx = fromPos.getX() + fromPos.getWidth() / 2;
+            int fromCy = fromPos.getY() + fromPos.getHeight() / 2;
+            int toCx = toPos.getX() + toPos.getWidth() / 2;
+            int toCy = toPos.getY() + toPos.getHeight() / 2;
+            horizontal = Math.abs(toCx - fromCx) >= Math.abs(toCy - fromCy);
+            if (horizontal) {
+                if (toCx >= fromCx) {
+                    nearBorder = fromPos.getX() + fromPos.getWidth();
+                    farBorder = toPos.getX();
+                } else {
+                    nearBorder = toPos.getX() + toPos.getWidth();
+                    farBorder = fromPos.getX();
+                }
+            } else {
+                if (toCy >= fromCy) {
+                    nearBorder = fromPos.getY() + fromPos.getHeight();
+                    farBorder = toPos.getY();
+                } else {
+                    nearBorder = toPos.getY() + toPos.getHeight();
+                    farBorder = fromPos.getY();
+                }
+            }
+            int nearScreen = horizontal ? baseX + Math.round(nearBorder * activeZoom)
+                : baseY + Math.round(nearBorder * activeZoom);
+            int farScreen = horizontal ? baseX + Math.round(farBorder * activeZoom)
+                : baseY + Math.round(farBorder * activeZoom);
+            constrained = farScreen > nearScreen;
+            if (constrained) {
+                nearBorder = nearScreen;
+                farBorder = farScreen;
+            }
+        }
+        int span = constrained ? farBorder - nearBorder : 0;
+
+        // Wrap the label so its box provably fits the gap with EDGE_LABEL_GAP
+        // clearance on both sides; a label that fits unchanged stays on a
+        // single line. Word-first wrapping preserves the full text; residual
+        // over-budget lines (e.g. a single glyph wider than the budget) are
+        // clipped so the box stays inside the gap.
+        //
+        // The wrap budget is taken from the edge path's usable length (the
+        // total path length in rendered-logical px), NOT from the straight
+        // gap between the endpoint node borders. ELK routes edges as
+        // polylines; for routed edges the path length is far larger than the
+        // ~nodeSpacing straight gap, and mermaid renders edge labels
+        // horizontally along the path, so the budget must follow the path.
+        // Before this fix the budget wrongly used the node straight gap
+        // (span = nodeSpacing = 20px → budgetPx = 14), forcing every label
+        // wider than 14px ('Critical', or a wide CJK label) into a per-glyph
+        // vertical column.
+        //
+        // Hard bound: the wrapped box must stay inside the straight
+        // node gap (span) so the label never presses against either endpoint
+        // node; the EDGE_LABEL_GAP clearance and the box-clamp below both
+        // assume boxWidth <= span - 2*EDGE_LABEL_GAP. When the path budget
+        // yields a box wider than the gap, the label is re-wrapped at the
+        // (narrower) gap budget so the FULL text is preserved in more lines
+        // instead of being truncated or overflowing onto the nodes.
+        List<String> lines = List.of(label);
+        if (constrained) {
+            int pathBudgetPx = Math.max(0, (int) Math.floor(totalLen * activeZoom)) - 2 * EDGE_LABEL_GAP - 2 * pad;
+            int gapBudgetPx = span - 2 * EDGE_LABEL_GAP - 2 * pad;
+            if (pathBudgetPx >= 1) {
+                List<String> wrapped = GuideText.wrap(label, pathBudgetPx, labelStyle);
+                if (!wrapped.isEmpty()) {
+                    lines = wrapped;
+                    int boxWidth = 0;
+                    for (String line : wrapped) {
+                        boxWidth = Math.max(boxWidth, GuideText.measureWidth(line, labelStyle));
+                    }
+                    // If the path-budget box still cannot fit inside
+                    // the node gap, re-wrap at the gap budget (full text kept).
+                    if (gapBudgetPx >= 1 && boxWidth > gapBudgetPx) {
+                        List<String> gapWrapped = GuideText.wrap(label, gapBudgetPx, labelStyle);
+                        if (!gapWrapped.isEmpty()) {
+                            lines = gapWrapped;
+                        }
+                    }
+                    int hardBudget = Math.max(1, gapBudgetPx);
+                    for (int i = 0; i < lines.size(); i++) {
+                        String line = lines.get(i);
+                        int lineW = GuideText.measureWidth(line, labelStyle);
+                        if (lineW > hardBudget) {
+                            String clipped = GuideText
+                                .clipToWidth(line, hardBudget, labelStyle, GuideText.ClipSuffix.NONE);
+                            if (!clipped.isEmpty()) {
+                                lines.set(i, clipped);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        int lineHeight = GuideText.lineHeight(labelStyle);
+        int textWidth = 0;
+        for (String line : lines) {
+            textWidth = Math.max(textWidth, GuideText.measureWidth(line, labelStyle));
+        }
+        int textHeight = lines.size() * lineHeight;
+        int boxHalfW = textWidth / 2 + pad;
+        int boxHalfH = textHeight / 2 + pad;
+
+        // Label anchor. The old code rounded the doc-space midpoint to an
+        // integer before scaling and divided the half-width by integer
+        // truncation, which shifted the box off-centre by up to 1 logical px
+        // (2 rendered px at scale2) and pressed its near edge against the
+        // node border. Clamp the anchor so the box keeps EDGE_LABEL_GAP from
+        // both endpoint node borders.
+        float centerX = baseX + midDocX * activeZoom;
+        float centerY = baseY + midDocY * activeZoom;
+        if (constrained) {
+            float low = nearBorder + EDGE_LABEL_GAP + (horizontal ? boxHalfW : boxHalfH);
+            float high = farBorder - EDGE_LABEL_GAP - (horizontal ? boxHalfW : boxHalfH);
+            if (low <= high) {
+                if (horizontal) {
+                    centerX = Math.max(low, Math.min(centerX, high));
+                } else {
+                    centerY = Math.max(low, Math.min(centerY, high));
+                }
+            } else {
+                // Gap still too narrow after wrapping (e.g. a single glyph is
+                // wider than the budget): keep the label centred between the
+                // nodes rather than pushing it onto one of them.
+                float mid = (low + high) / 2f;
+                if (horizontal) {
+                    centerX = mid;
+                } else {
+                    centerY = mid;
+                }
+            }
+        }
+
+        int bgX = Math.round(centerX - textWidth / 2f) - pad;
+        int bgY = Math.round(centerY - textHeight / 2f) - pad;
+        c.emit(new GuideRenderPrimitive.FillRect(bgX, bgY, textWidth + pad * 2, textHeight + pad * 2, bgColor));
+        int textTop = Math.round(centerY - textHeight / 2f);
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            int lineWidth = GuideText.measureWidth(line, labelStyle);
+            GuideText.emitText(c, line, Math.round(centerX - lineWidth / 2f), textTop + i * lineHeight, labelStyle);
+        }
+    }
+
+    private void emitNodesPrimitives(PrimitiveCollector c, int baseX, int baseY, float activeZoom) {
+        ResolvedTextStyle badgeStyle = getOrScaleStyle(ICON_TEXT_STYLE, activeZoom);
+        int paddingX = Math.max(1, Math.round(NODE_PADDING_X * activeZoom));
+        int paddingY = Math.max(1, Math.round(NODE_PADDING_Y * activeZoom));
+        String rootNodeId = document.getNodeOrder()
+            .isEmpty() ? null
+                : document.getNodeOrder()
+                    .get(0);
+
+        for (var entry : layout.getNodePositions()
+            .entrySet()) {
+            String nodeId = entry.getKey();
+            NodePosition pos = entry.getValue();
+            FlowchartNode node = document.getNodes()
+                .get(nodeId);
+            if (node == null) continue;
+
+            boolean isRoot = nodeId.equals(rootNodeId);
+            int pdX = isRoot ? Math.max(1, Math.round(NODE_PADDING_X * 1.5f * activeZoom)) : paddingX;
+            int pdY = isRoot ? Math.max(1, Math.round(NODE_PADDING_Y * 1.5f * activeZoom)) : paddingY;
+            ResolvedTextStyle style = getOrScaleStyle(isRoot ? ROOT_TEXT_STYLE : NODE_TEXT_STYLE, activeZoom);
+
+            int sx = scaled(baseX, pos.getX(), activeZoom);
+            int sy = scaled(baseY, pos.getY(), activeZoom);
+            int sw = Math.max(1, Math.round(pos.getWidth() * activeZoom));
+            int sh = Math.max(1, Math.round(pos.getHeight() * activeZoom));
+            LytRect rect = new LytRect(sx, sy, sw, sh);
+
+            var colors = MermaidNodeRenderer.resolveNodeColors(node.getClasses(), node.getShape(), isRoot);
+            String nodeStyles = node.getStyleOverride();
+            if (nodeStyles != null) {
+                String fill = getStyleProperty(nodeStyles, "fill");
+                String stroke = getStyleProperty(nodeStyles, "stroke");
+                if (fill != null) {
+                    int fillColor = parseHexColor(fill);
+                    if (fillColor != 0)
+                        colors = new MermaidNodeRenderer.NodeColors(fillColor, colors.border(), colors.accent());
+                }
+                if (stroke != null) {
+                    int strokeColor = parseHexColor(stroke);
+                    if (strokeColor != 0)
+                        colors = new MermaidNodeRenderer.NodeColors(colors.background(), strokeColor, colors.accent());
+                }
+            }
+            FlowchartShapes.emitShape(c, node.getShape(), rect, colors.background(), colors.border());
+            if (colors.accent() != MermaidNodeRenderer.DEFAULT_ACCENT
+                && FlowchartShapes.hasAccentBar(node.getShape())) {
+                c.emit(new GuideRenderPrimitive.FillRect(rect.x(), rect.y(), 3, rect.height(), colors.accent()));
+            }
+
+            int contentW = rect.width() - 2 * pdX;
+            int contentH = rect.height() - 2 * pdY;
+            LytRect contentArea = FlowchartShapes
+                .contentBounds(rect, node.getShape(), contentW, contentH, pdX, pdY, activeZoom);
+            int textY = contentArea.y();
+
+            String icon = node.getIcon();
+            if (icon != null) {
+                String badgeText = MermaidNodeRenderer.simplifyIcon(icon);
+                if (badgeText != null) {
+                    int badgeWidth = Math.max(
+                        1,
+                        GuideText.measureWidth(badgeText, badgeStyle)
+                            + Math.max(2, Math.round(BADGE_PADDING_X * activeZoom)) * 2);
+                    int badgeHeight = Math.max(
+                        1,
+                        GuideText.lineHeight(badgeStyle) + Math.max(1, Math.round(BADGE_PADDING_Y * activeZoom)) * 2);
+                    int badgeX = contentArea.x();
+                    LytRect badge = new LytRect(badgeX, textY, badgeWidth, badgeHeight);
+                    c.emit(
+                        new GuideRenderPrimitive.FillRect(
+                            badge.x(),
+                            badge.y(),
+                            badge.width(),
+                            badge.height(),
+                            MermaidNodeRenderer.BADGE_BACKGROUND));
+                    c.emit(
+                        new GuideRenderPrimitive.DrawBorder(
+                            badge.x(),
+                            badge.y(),
+                            badge.width(),
+                            badge.height(),
+                            1,
+                            1,
+                            1,
+                            1,
+                            MermaidNodeRenderer.BADGE_BORDER));
+                    GuideText.emitText(
+                        c,
+                        badgeText,
+                        badge.x() + Math.max(2, Math.round(BADGE_PADDING_X * activeZoom)),
+                        badge.y() + Math.max(1, Math.round(BADGE_PADDING_Y * activeZoom)),
+                        badgeStyle);
+                    textY += badgeHeight + Math.max(1, Math.round(ICON_GAP_Y * activeZoom));
+                }
+            }
+
+            int visibleWidth = contentArea.width();
+            int visibleHeight = contentArea.height();
+
+            NodeContentLayout contentLayout = nodeContentLayouts.get(nodeId);
+            if (contentLayout != null) {
+                emitNodeContentPrimitives(c, contentLayout, contentArea, activeZoom);
+            } else {
+                String label = node.getLabel();
+                if (label == null || label.isEmpty()) continue;
+
+                List<String> lines = MermaidNodeRenderer.wrapText(new LayoutContext(new FontMetrics() {
+
+                    @Override
+                    public float getAdvance(int codePoint, ResolvedTextStyle s) {
+                        return GuideText.measureWidth(new String(Character.toChars(codePoint)), s);
+                    }
+
+                    @Override
+                    public int getLineHeight(ResolvedTextStyle s) {
+                        return GuideText.lineHeight(s);
+                    }
+                }), style, label, visibleWidth);
+                int lineHeight = GuideText.lineHeight(style);
+                int totalTextHeight = lines.size() * lineHeight;
+                int textAreaHeight = contentArea.y() + visibleHeight - textY;
+                int baseTextY = textY + Math.max(0, (textAreaHeight - totalTextHeight) / 2);
+                for (int i = 0; i < lines.size(); i++) {
+                    int lineWidth = GuideText.measureWidth(lines.get(i), style);
+                    int textX = contentArea.x() + Math.max(0, (visibleWidth - lineWidth) / 2);
+                    GuideText.emitText(c, lines.get(i), textX, baseTextY + i * lineHeight, style);
+                }
+            }
         }
     }
 

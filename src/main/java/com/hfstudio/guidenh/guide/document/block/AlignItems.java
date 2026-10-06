@@ -11,7 +11,8 @@ public enum AlignItems implements SerializedEnum {
 
     CENTER,
     START,
-    END;
+    END,
+    BASELINE;
 
     private final String serializedName;
 

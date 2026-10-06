@@ -10,6 +10,7 @@ import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.flow.LytFlowContent;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 import com.hfstudio.guidenh.guide.style.BorderStyle;
 
@@ -85,6 +86,16 @@ public class LytQuoteBox extends LytBlock implements LytBlockContainer {
         content.append(block);
     }
 
+    /**
+     * The container holding this quote box's body paragraphs, nested below the
+     * optional title row. The blockquote compiler clears the body's edge
+     * paragraph margins against it so the title row's spacing is carried by the
+     * root's gap instead of the first body paragraph's own top margin.
+     */
+    public LytVBox getBodyContainer() {
+        return content;
+    }
+
     @Override
     public void removeChild(LytNode node) {
         content.removeChild(node);
@@ -108,6 +119,17 @@ public class LytQuoteBox extends LytBlock implements LytBlockContainer {
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {
         root.moveLayoutPos(deltaX, deltaY);
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        // No-op: the internal root (LytVBox) is a child returned by getChildren()
+        // and will be visited by PrimitiveCollector.collectFrom traversal.
     }
 
     @Override

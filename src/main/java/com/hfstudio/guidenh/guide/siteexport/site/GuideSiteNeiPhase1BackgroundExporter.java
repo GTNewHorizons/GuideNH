@@ -31,12 +31,12 @@ import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
 public class GuideSiteNeiPhase1BackgroundExporter implements AutoCloseable {
 
     /**
-     * Extra transparent border around the NEI body rectangle. GregTech (and similar) ModularUI / nine-patch chrome
-     * often draws a few pixels outside
+     * Extra transparent border around the NEI body rectangle. GregTech (and similar)
+     * ModularUI / nine-patch chrome often draws a few pixels outside
      * {@link NeiRecipeLookup#lookupHandlerWidth}/{@link NeiRecipeLookup#lookupHandlerHeight};
-     * a flush viewport clips top/right bezel lines and truncates footer text unless we pad here. Site overlays use the
-     * same
-     * inset; see {@link GuideSiteRecipeExporter#renderNeiPositionedSlots}.
+     * a flush viewport clips top/right bezel lines and truncates footer text unless we pad
+     * here. Site overlays use the same inset; see
+     * {@link GuideSiteRecipeExporter#renderNeiPositionedSlots}.
      */
     public static final int VIEWPORT_MARGIN_PX = 6;
 

@@ -21,6 +21,14 @@ public class GuideDebugLog {
 
     protected GuideDebugLog() {}
 
+    /** Layout diagnostic overlay + tracer flag: -Dguidenh.layoutOverlay=true */
+    private static final boolean LAYOUT_OVERLAY = Boolean.getBoolean("guidenh.layoutOverlay");
+
+    /** Whether the layout diagnostic overlay/tracer is enabled (JVM property or in-game debug option). */
+    public static boolean isLayoutOverlayEnabled() {
+        return LAYOUT_OVERLAY || ModConfig.debug.layoutOverlay;
+    }
+
     public static ContextScope pushContext(String language, String sourceLanguage, String sourcePath) {
         LogContext previous = CONTEXT.get();
         CONTEXT.set(new LogContext(language, sourceLanguage, sourcePath, null, activeDiagnostics));
@@ -138,8 +146,11 @@ public class GuideDebugLog {
             return;
         }
         record(DiagnosticLevel.WARNING, message.toString(), args);
-        FMLLog.getLogger()
-            .warn(withContext(message.toString()), args);
+        var logger = FMLLog.getLogger();
+        if (logger == null) {
+            return; // Test environment without FML initialized
+        }
+        logger.warn(withContext(message.toString()), args);
     }
 
     public static void info(boolean enabled, @Nullable CharSequence message, Object... args) {

@@ -1,0 +1,6 @@
+Name,Count,Note
+Cobblestone,64,Basic building block
+Glowstone Dust,16,Light source material
+Diamond,3,Rare gem
+A very long english item name that should wrap somewhere,999,Wrapping test cell
+中文物品,42,CJK 混合单元格

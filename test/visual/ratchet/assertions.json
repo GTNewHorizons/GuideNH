@@ -1,0 +1,509 @@
+{
+ "_readme": "append-only: add assertions for newly verified geometry, and adjust an existing assertion only when the geometry change is intentional and reviewed",
+ "pages": {
+  "visualtest_lists_tasks.md": [
+   {
+    "count": {
+     "cls": "LytTaskListItem",
+     "eq": 18
+    },
+    "msg": "task list items render as dedicated class (A12/A16 ratchet)"
+   },
+   {
+    "exists": {
+     "cls": "LytList"
+    },
+    "msg": "task list has list container"
+   }
+  ],
+  "visualtest_lists_basic.md": [
+   {
+    "count": {
+     "cls": "LytListItem",
+     "ge": 20
+    },
+    "msg": "basic list items count >= 20 (A12 ratchet)"
+   }
+  ],
+  "visualtest_latex_display.md": [
+   {
+    "exists": {
+     "cls": "LytLatexDisplayBlock"
+    },
+    "msg": "display LaTeX blocks exist (A6 ratchet)"
+   },
+   {
+    "centered": {
+     "cls": "LytLatexDisplayBlock",
+     "tol": 3
+    },
+    "msg": "display LaTeX blocks centered in parent within 3px (A6 ratchet)"
+   }
+  ],
+  "visualtest_mermaid_flowchart.md": [
+   {
+    "exists": {
+     "cls": "LytMermaidFlowchartCanvas"
+    },
+    "msg": "mermaid flowchart canvas exists (A1 ratchet)"
+   }
+  ],
+  "visualtest_mermaid_mindmap.md": [
+   {
+    "exists": {
+     "cls": "LytMermaidMindmapCanvas"
+    },
+    "msg": "mermaid mindmap canvas exists (A1 ratchet)"
+   }
+  ],
+  "visualtest_mermaid_subgraphs.md": [
+   {
+    "exists": {
+     "cls": "LytMermaidFlowchartCanvas"
+    },
+    "msg": "mermaid subgraphs flowchart canvas exists (A1 ratchet)"
+   }
+  ],
+  "visualtest_mermaid_large.md": [
+   {
+    "max_height": {
+     "cls": "LytMermaidFlowchartCanvas",
+     "le": 400
+    },
+    "msg": "large flowchart canvas height capped (A1 no-infinite-stretch ratchet)"
+   },
+   {
+    "max_height": {
+     "cls": "LytMermaidMindmapCanvas",
+     "le": 400
+    },
+    "msg": "large mindmap canvas height capped (A1 no-infinite-stretch ratchet)"
+   }
+  ],
+  "visualtest_mermaid_wrap-long-labels.md": [
+   {
+    "exists": {
+     "cls": "LytMermaidFlowchartCanvas"
+    },
+    "msg": "mermaid wrap long-label canvas exists (T5 wrap-to-node-box ratchet)"
+   },
+   {
+    "max_height": {
+     "cls": "LytMermaidFlowchartCanvas",
+     "le": 400
+    },
+    "msg": "wrapped-label canvas height capped (T5 no-infinite-stretch ratchet)"
+   }
+  ],
+  "visualtest_code_blocks.md": [
+   {
+    "width_ratio": {
+     "cls": "LytCodeBlock",
+     "of": "parent",
+     "ge": 0.95
+    },
+    "msg": "code blocks fill parent width (K4/A11 ratchet)"
+   }
+  ],
+  "visualtest_images_fullwidth.md": [
+   {
+    "width_ratio": {
+     "cls": "LytVBox",
+     "of": "parent",
+     "ge": 0.95
+    },
+    "msg": "full-width image boxes fill parent width (A11 ratchet)"
+   }
+  ],
+  "visualtest_tables_metadata.md": [
+   {
+    "exists": {
+     "cls": "LytTable"
+    },
+    "msg": "metadata table renders (A14 ratchet)"
+   },
+   {
+    "count": {
+     "cls": "LytTableCell",
+     "ge": 6
+    },
+    "msg": "R4-4: metadata tables have cells (column widths respected)"
+   }
+  ],
+  "visualtest_tables_csv.md": [
+   {
+    "count": {
+     "cls": "LytTableCell",
+     "ge": 10
+    },
+    "msg": "R4-4: CSV tables have cells (column widths respected)"
+   }
+  ],
+  "visualtest_code_special-langs.md": [
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 3
+    },
+    "msg": "filetree {:iconItem=} icons exist (R2-3 ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "w",
+     "gt": 0
+    },
+    "msg": "filetree item icons reserve real width (R2-3 ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "h",
+     "gt": 0
+    },
+    "msg": "filetree item icons reserve real height (R2-3 ratchet)"
+   },
+   {
+    "count": {
+     "cls": "LytTableCell",
+     "ge": 4
+    },
+    "msg": "R4-4: special-langs csv has cells (column widths respected)"
+   }
+  ],
+  "visualtest_nei_recipes.md": [
+   {
+    "count": {
+     "cls": "LytNeiRecipeBox",
+     "ge": 6
+    },
+    "msg": "NEI recipe boxes count >= 6 (A10 ratchet)"
+   }
+  ],
+  "visualtest_latex_inline.md": [
+   {
+    "exists": {
+     "cls": "LytLatexBlock"
+    },
+    "msg": "inline LaTeX blocks exist (A7/A8a ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytLatexBlock",
+     "field": "h",
+     "ge": 12
+    },
+    "msg": "inline formula heights stay >= 12px (P1b2 true-inset fix: measured min 12px, was 6-13px pre-fix)"
+   }
+  ],
+  "visualtest_text_inline-game-tags.md": [
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 8
+    },
+    "msg": "inline item images exist (R2-2 ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "w",
+     "gt": 0
+    },
+    "msg": "every LytItemImage reserves real width, w>0 (R2-2/R2-3 ratchet, was 0 before fix)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "h",
+     "gt": 0
+    },
+    "msg": "every LytItemImage reserves real height, h>0 (R2-2/R2-3 ratchet, was 0 before fix)"
+   },
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 15
+    },
+    "msg": "inline-label ItemImage section stays in the ratchet corpus (review note: 7 inline label icons, label baseline anchored to body baseline via align=1 baseline ascent; mechanism gap: assert_bounds cannot express cross-node baseline relations, so this page is locked in by count only)"
+   }
+  ],
+  "visualtest_layout_details.md": [
+   {
+    "inside_parent": {
+     "cls": "LytViewportBox",
+     "pad": 6
+    },
+    "msg": "A2: details content viewport stays inside details block (N-A1 7px right-overflow regression guard, was +7px before fix)"
+   }
+  ],
+  "visualtest_layout_callouts.md": [
+   {
+    "inside_parent": {
+     "cls": "LytAlertBox",
+     "pad": 6
+    },
+    "msg": "A2: callout (alert) box stays inside its parent block (F8 callout overflow guard)"
+   }
+  ],
+  "visualtest_layout_content-tabs.md": [
+   {
+    "inside_parent": {
+     "cls": "LytContentTabsBlock",
+     "pad": 6
+    },
+    "msg": "A2: tab content block stays inside its parent (tab container overflow guard)"
+   }
+  ],
+  "visualtest_layout_row-column.md": [
+   {
+    "inside_parent": {
+     "cls": "LytHBox",
+     "pad": 6
+    },
+    "msg": "A2: row layout box stays inside its parent (row/column container overflow guard)"
+   }
+  ],
+  "visualtest_text_decorations.md": [
+   {
+    "exists": {
+     "cls": "LytParagraph"
+    },
+    "msg": "decorations fixture locked into corpus (T1 underline/wavy/dots/strike ratchet)"
+   }
+  ],
+  "visualtest_latex_inline-xheight.md": [
+   {
+    "exists": {
+     "cls": "LytLatexBlock"
+    },
+    "msg": "inline LaTeX blocks exist on x-height calibration page (T4 x_height ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytLatexBlock",
+     "field": "h",
+     "ge": 8
+    },
+    "msg": "x-height calibration page formula heights stay >= 8px (P1b2 true-inset fix: measured min 8px post-fix, was 6-12px pre-fix)"
+   }
+  ],
+  "visualtest_layout_baseline-align.md": [
+   {
+    "exists": {
+     "cls": "LytHBox"
+    },
+    "msg": "baseline-align fixture locked into corpus to lock the true-baseline placement"
+   },
+   {
+    "attr": {
+     "cls": "LytParagraph",
+     "field": "y",
+     "ge": 111
+    },
+    "msg": "EVERY LytParagraph on the page must satisfy y>=111 (attr = every-node universal). The baseline row's text children sit at y=114 post-layout (measured; first-line baselines 125.9, within tolerance of the BlockImage bottom edge 126, collinear within divided-by-scale plus truncation precision); all Expected/body paragraphs are further down. y>=111 proves the text was shifted DOWN onto the image baseline by the post-layout: pre-fix bottom-degradation leaves text at y=109, center around 85, start around 67, all FAIL. NOTE: adding any LytParagraph above y=111 (e.g. page-top intro) legitimately FAILS this rule, so recalibrate then. EXEMPTION protocol: second-pass geometry intentionally deviates from the raw taffy writeback for this BASELINE container (taffy 0.12.1 first_baselines always NONE); non-BASELINE containers are byte-identical. Tolerance 3px per measured evidence (bug margin 5px)."
+   }
+  ],
+  "visualtest_images_single-param.md": [
+   {
+    "exists": {
+     "cls": "LytImage"
+    },
+    "msg": "F-N1: single-param FloatingImage renders as LytImage (no compile-time red error)"
+   },
+   {
+    "attr": {
+     "cls": "LytImage",
+     "field": "w",
+     "ge": 32
+    },
+    "msg": "F-N1: width-only(128) and height-only(inferred 32) images both reserve width >= 32px"
+   },
+   {
+    "attr": {
+     "cls": "LytImage",
+     "field": "h",
+     "ge": 32
+    },
+    "msg": "F-N1: width-only(inferred 32) and height-only(128) images both reserve height >= 32px"
+   }
+  ],
+  "visualtest_tags_block-stats.md": [
+   {
+    "exists": {
+     "cls": "LytGuidebookScene"
+    },
+    "msg": "P0: BlockStats scenes render as LytGuidebookScene blocks (no compile error)"
+   },
+   {
+    "attr": {
+     "cls": "LytGuidebookScene",
+     "field": "w",
+     "ge": 200
+    },
+    "msg": "P0: BlockStats scenes reserve real width >= 200px"
+   }
+  ],
+  "visualtest_tags_recipes-usage.md": [
+   {
+    "count": {
+     "cls": "LytNeiRecipeBox",
+     "ge": 3
+    },
+    "msg": "P0: RecipesUsage usage-query renders >= 3 LytNeiRecipeBox recipe boxes"
+   },
+   {
+    "attr": {
+     "cls": "LytNeiRecipeBox",
+     "field": "w",
+     "ge": 100
+    },
+    "msg": "P0: RecipesUsage recipe boxes reserve real width >= 100px"
+   }
+  ],
+  "visualtest_tags_quest-link.md": [
+   {
+    "count": {
+     "cls": "LytParagraph",
+     "ge": 8
+    },
+    "msg": "P0: QuestLink page renders >= 8 paragraphs (quest links + prose, no compile error)"
+   }
+  ],
+  "visualtest_mdx_file-tree.md": [
+   {
+    "exists": {
+     "cls": "LytFileTree"
+    },
+    "msg": "P0: MDX <FileTree> renders as LytFileTree block"
+   },
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 2
+    },
+    "msg": "P0: MDX FileTree {:iconItem=} rows render item icons"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "w",
+     "gt": 0
+    },
+    "msg": "P0: MDX FileTree item icons reserve real width (R2-3 family ratchet)"
+   }
+  ],
+  "visualtest_text_mark.md": [
+   {
+    "count": {
+     "cls": "LytParagraph",
+     "ge": 12
+    },
+    "msg": "P0: <mark> page renders its paragraphs (mark highlight spans in flow)"
+   },
+   {
+    "exists": {
+     "cls": "LytListItem"
+    },
+    "msg": "P0: <mark> inside list items renders (list + highlight composition locked)"
+   }
+  ],
+  "visualtest_text_item-link-dense.md": [
+   {
+    "count": {
+     "cls": "LytItemImage",
+     "ge": 20
+    },
+    "msg": "P1: dense ItemLink page renders >= 20 item icons (827-usage density ratchet)"
+   },
+   {
+    "attr": {
+     "cls": "LytItemImage",
+     "field": "w",
+     "gt": 0
+    },
+    "msg": "P1: every dense ItemLink icon reserves real width (R2-2 family ratchet)"
+   }
+  ],
+  "visualtest_text_color-named.md": [
+   {
+    "count": {
+     "cls": "LytParagraph",
+     "ge": 12
+    },
+    "msg": "P1: named <Color id=...> page renders its 16-colour rows"
+   }
+  ],
+  "visualtest_layout_callout-combos.md": [
+   {
+    "count": {
+     "cls": "LytAlertBox",
+     "ge": 5
+    },
+    "msg": "P1: multiple alert types render as LytAlertBox on one page (info/warn/danger combo)"
+   },
+   {
+    "exists": {
+     "cls": "LytVBox"
+    },
+    "msg": "P1: custom quotes / plain blockquotes render as quote boxes on the combos page"
+   }
+  ],
+  "visualtest_text_error-fallback.md": [
+   {
+    "attr": {
+     "cls": "LytParagraph",
+     "field": "w",
+     "ge": 200
+    },
+    "msg": "F-N2: error fallback paragraphs reserve real width >= 200px (no fallback-width collapse)"
+   },
+   {
+    "count": {
+     "cls": "LytParagraph",
+     "ge": 12
+    },
+    "msg": "F-N2: error-fallback page renders all error + trailing-prose paragraphs"
+   }
+  ],
+  "settings": [
+   {
+    "count": {
+     "cls": "TextButton",
+     "ge": 6
+    },
+    "msg": "P4-3b: settings route renders 6 TextButton stepper buttons (3 rows x 2 = font-size, body font-family, code font-family; bounds cls = getSimpleName of the TextButton subclass; a missing family row would drop it to 4)"
+   },
+   {
+    "attr": {
+     "cls": "TextButton",
+     "field": "w",
+     "eq": 18
+    },
+    "msg": "P4-4: every stepper button keeps STEP_BUTTON_WIDTH = 18px"
+   },
+   {
+    "attr": {
+     "cls": "TextButton",
+     "field": "h",
+     "eq": 16
+    },
+    "msg": "P4-4: every stepper button keeps STEP_BUTTON_HEIGHT = 16px"
+   },
+   {
+    "count": {
+     "cls": "LytParagraph",
+     "ge": 7
+    },
+    "msg": "P4-3b: settings route renders sidebar category (1) + 3 rows x (label + value) = 7 LytParagraphs; a missing family row would drop it to 5"
+   },
+   {
+    "count": {
+     "cls": "LytHBox",
+     "ge": 4
+    },
+    "msg": "P4-3b: settings route renders root HBox + one LytHBox per setting row = 4 (rows present ⇒ 4, one missing ⇒ 3; bottom divider is a border, not a block in bounds JSON)"
+   }
+  ]
+ }
+}

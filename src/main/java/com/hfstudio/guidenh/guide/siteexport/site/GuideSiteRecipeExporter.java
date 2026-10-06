@@ -18,7 +18,9 @@ import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
 
 public class GuideSiteRecipeExporter {
 
-    /** NEI slot chrome is commonly {@code 18脳18} pixels; vanilla/GT handlers draw {@code 16脳16} items inset by 1px. */
+    /**
+     * NEI slot chrome is commonly {@code 18 x 18} pixels; vanilla/GT handlers draw {@code 16 x 16} items inset by 1px.
+     */
     public static final int NEI_SLOT_GUI_PIXELS = 18;
 
     @Nullable
@@ -195,10 +197,11 @@ public class GuideSiteRecipeExporter {
             double topPct;
             if (usePhase1Canvas) {
                 /*
-                 * PNG viewport is HandlerInfo WxH plus symmetric VIEWPORT_MARGIN_PX 鈥?same inset as Phase1 translate(m,
-                 * yShift+m).
-                 * GT/ModularUI nine-patch bezel can extend a few px past the nominal body; relying on HandlerInfo alone
-                 * clips edges.
+                 * The PNG viewport is the HandlerInfo width x height plus a symmetric
+                 * VIEWPORT_MARGIN_PX, the same inset the phase 1 canvas applies via
+                 * translate(m, yShift + m).
+                 * GT/ModularUI nine-patch bezel can extend a few px past the nominal body;
+                 * relying on HandlerInfo alone clips edges.
                  */
                 int phase1YShift = phase1BodyYShiftPx != null ? phase1BodyYShiftPx : 0;
                 int m = GuideSiteNeiPhase1BackgroundExporter.VIEWPORT_MARGIN_PX;

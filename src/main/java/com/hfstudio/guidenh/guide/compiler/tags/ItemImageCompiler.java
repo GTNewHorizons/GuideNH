@@ -57,20 +57,20 @@ public class ItemImageCompiler extends FlowTagCompiler {
             }
         }
 
-        // noTooltip (legacy) and showTooltip — noTooltip=true or showTooltip=false both suppress.
+        // noTooltip (legacy) and showTooltip - noTooltip=true or showTooltip=false both suppress.
         Boolean noTooltipAttr = MdxAttrs.getOptionalBoolean(el, "noTooltip");
         boolean noTooltip = MdxAttrs.getBoolean(noTooltipAttr, false);
         Boolean showTooltipAttr = MdxAttrs.getOptionalBoolean(el, "showTooltip");
         showTooltip = showTooltipAttr != null ? showTooltipAttr : !noTooltip;
 
-        // showIcon — whether to render the icon graphic (default true).
+        // showIcon - whether to render the icon graphic (default true).
         showIcon = MdxAttrs.getOptionalBoolean(el, "showIcon");
 
-        // label — "left" or "right" to display the item name next to the icon.
+        // label - "left" or "right" to display the item name next to the icon.
         String labelRaw = el.getAttributeString("label", null);
         labelPosition = resolveLabelPosition(labelRaw);
 
-        // format — Markdown-style format pattern for the label text.
+        // format - Markdown-style format pattern for the label text.
         String formatRaw = el.getAttributeString("format", null);
         labelFormat = (formatRaw != null && !formatRaw.isEmpty()) ? formatRaw : null;
 

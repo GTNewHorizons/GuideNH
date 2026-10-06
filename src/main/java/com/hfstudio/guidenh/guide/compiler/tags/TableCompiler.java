@@ -23,10 +23,12 @@ public class TableCompiler extends BlockTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytBlockContainer parent, MdxJsxElementFields el) {
         LytTable table = new LytTable();
+        table.setMarginTop(PageCompiler.DEFAULT_ELEMENT_SPACING);
         table.setMarginBottom(PageCompiler.DEFAULT_ELEMENT_SPACING);
 
         // Parse align attribute back to list
         String alignStr = el.getAttributeString("align", "");
+        el.removeAttribute("align");
 
         boolean firstRow = true;
         int rowIndex = 0;
@@ -48,6 +50,7 @@ public class TableCompiler extends BlockTagCompiler {
                 LytTableRow row = table.appendRow();
                 if (firstRow) {
                     row.modifyStyle(style -> style.bold(true));
+                    row.setHeader(true);
                     firstRow = false;
                 }
 
@@ -74,16 +77,36 @@ public class TableCompiler extends BlockTagCompiler {
                 rowIndex++;
             }
         }
+        if (table.getChildren()
+            .isEmpty()) {
+            parent.appendError(compiler, "Empty table: no rows found", el);
+            return;
+        }
         parent.append(table);
     }
 
     private static String extractKramdownExpression(String content) {
         int start = content.indexOf('{');
         int end = content.lastIndexOf('}');
+        String stripped;
         if (start >= 0 && end > start) {
-            return content.substring(start + 1, end)
+            stripped = content.substring(start + 1, end)
                 .trim();
+        } else {
+            stripped = content.trim();
         }
-        return "";
+        // Try double quotes first
+        int firstQuote = stripped.indexOf('"');
+        int lastQuote = stripped.lastIndexOf('"');
+        if (firstQuote >= 0 && lastQuote > firstQuote) {
+            return stripped.substring(firstQuote + 1, lastQuote);
+        }
+        // Try single quotes
+        firstQuote = stripped.indexOf('\'');
+        lastQuote = stripped.lastIndexOf('\'');
+        if (firstQuote >= 0 && lastQuote > firstQuote) {
+            return stripped.substring(firstQuote + 1, lastQuote);
+        }
+        return stripped;
     }
 }

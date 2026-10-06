@@ -1,29 +1,19 @@
 package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
-import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 public class CircleShape implements ShapeRenderer {
 
     @Override
-    public boolean isClipped() {
-        return true;
-    }
-
-    @Override
-    public Point edgeIntersect(LytRect nodeRect, int ex, int ey) {
-        return FlowchartShapes.intersectCircle(nodeRect, ex, ey);
-    }
-
-    @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
         int cx = rect.x() + rect.width() / 2;
         int cy = rect.y() + rect.height() / 2;
         int r = Math.min(rect.width(), rect.height()) / 2;
         if (r > 0) {
-            context.fillCircle(cx, cy, r, borderColor);
-            context.fillCircle(cx, cy, Math.max(r - 1, 1), backgroundColor);
+            c.emit(new GuideRenderPrimitive.DrawCircle(cx, cy, r, borderColor, true));
+            c.emit(new GuideRenderPrimitive.DrawCircle(cx, cy, Math.max(r - 1, 1), backgroundColor, true));
         }
     }
 
@@ -41,11 +31,11 @@ public class CircleShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;
-        int r = Math.min(nodeRect.width(), nodeRect.height()) / 2;
-        int insSide = (int) (r * Math.sqrt(2));
+        double r = Math.min(nodeRect.width(), nodeRect.height()) / 2.0;
+        int insSide = (int) Math.ceil(r * Math.sqrt(2));
         return new LytRect(cx - insSide / 2, cy - insSide / 2, insSide, insSide);
     }
 

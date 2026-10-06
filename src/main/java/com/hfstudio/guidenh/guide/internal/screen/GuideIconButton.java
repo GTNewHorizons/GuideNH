@@ -176,6 +176,7 @@ public class GuideIconButton extends GuiButton {
         CLOSE(GuidebookText.Close, 2, 0),
         SCENE_EDITOR_CLOSE(GuidebookText.SceneEditorClose, 2, 0),
         SEARCH(GuidebookText.Search, 3, 0),
+        SETTINGS(GuidebookText.Settings, 13, 1),
         HOMEPAGE(GuidebookText.HomePage, 1, 5),
         BOOKMARK(GuidebookText.Bookmark, 8, 0),
         BOOKMARKED(GuidebookText.Bookmarked, 9, 0),

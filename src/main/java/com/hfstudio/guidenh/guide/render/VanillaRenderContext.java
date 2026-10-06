@@ -36,6 +36,14 @@ public class VanillaRenderContext implements RenderContext {
     @Setter
     private LytRect viewport;
 
+    /**
+     * Fixed on-screen viewport rect (screen GUI coordinates), set by the screen
+     * alongside {@link #viewport}. Used by the primitive pipeline for the outer
+     * scissor clip and culling; falls back to {@link #viewport} when unset.
+     */
+    @Setter
+    private LytRect screenViewport;
+
     private final Deque<LytRect> scissorStack = new ArrayDeque<>();
 
     @Getter
@@ -103,6 +111,16 @@ public class VanillaRenderContext implements RenderContext {
     @Override
     public LytRect viewport() {
         return viewport;
+    }
+
+    @Override
+    public LytRect getScreenViewport() {
+        return screenViewport != null ? screenViewport : viewport;
+    }
+
+    @Override
+    public float getPreciseScrollOffsetY() {
+        return preciseScrollOffsetY;
     }
 
     @Override
@@ -251,38 +269,74 @@ public class VanillaRenderContext implements RenderContext {
         if (hasUnderline) {
             Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
         }
-        if (hasWavyUnderline) {
-            // Draw a 2px-tall sine-like zig-zag using 1x1 rects: pattern of 4 px period.
-            for (int i = 0; i < decoratedWidth; i++) {
-                int phase = i & 3; // 0,1,2,3
-                int dy = (phase == 0 || phase == 2) ? 0 : (phase == 1 ? -1 : 1);
-                Gui.drawRect(x + i, decorationY + dy, x + i + 1, decorationY + dy + 1, color);
-            }
-        }
-        if (hasDottedUnderline) {
-            // Center a single 2x2 dot under each rendered character cell.
-            int cursor = 0;
-            boolean bold = style.bold();
-            boolean visibleGlyphSeen = false;
-            int len = drawn.length();
-            for (int i = 0; i < len; i++) {
-                char c = drawn.charAt(i);
-                if (GuideFontCompat.isFormattingCodeStart(drawn, i)) {
-                    bold = GuideFontCompat.determineBold(bold, drawn.charAt(i + 1));
-                    i++;
-                    continue;
+        // Wavy/dotted coverage-alpha fragments must render even when the caller
+        // left GL_ALPHA_TEST enabled. The legacy tooltip path
+        // (GuideScreen.drawContentTooltip) disables only DEPTH_TEST before
+        // rendering ContentTooltip content, and restoreExternalRenderState()
+        // re-enables ALPHA_TEST as GL_GREATER 0.1; under that alpha function
+        // every fragment with alpha <= 25 is clipped, so dot corner pixels
+        // (alpha ~16) and the wave's weakest rows (alpha < 25) disappear,
+        // breaking exactly the soft edge this rasterizer produces. Scope the
+        // draw like beginShapeDraw does.
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        try {
+            if (hasWavyUnderline) {
+                // The old wavy underline was 1x1px with ±1 amplitude, which the
+                // dark page background swallowed. Use a ±2px, 2px-thick
+                // 8-phase sine, tinted lighter than the body gray, rasterized by
+                // the shared DecorationRasterizer with coverage alpha (sub-pixel
+                // sampling).
+                int waveColor = brightenDecorationColor(color);
+                for (DecorationRasterizer.Fragment f : DecorationRasterizer
+                    .rasterize(x, decorationY, decoratedWidth, 4)) {
+                    Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), waveColor));
                 }
-                float advance = GuideFontCompat.getRenderedAdvance(font(), c, bold, visibleGlyphSeen);
-                int cw = Math.round(advance * scale);
-                if (cw <= 0) {
-                    continue;
-                }
-                int dotX = x + cursor + Math.max(0, (cw - 2) / 2);
-                Gui.drawRect(dotX, decorationY, dotX + 2, decorationY + 2, color);
-                cursor += cw;
-                visibleGlyphSeen = true;
             }
+            if (hasDottedUnderline) {
+                // One 2x2 dot per character was too sparse; draw 3px soft-edged
+                // circular dots on a fixed 4px cadence via the shared
+                // DecorationRasterizer, tinted lighter than the body gray.
+                int dotColor = brightenDecorationColor(color);
+                for (DecorationRasterizer.Fragment f : DecorationRasterizer
+                    .rasterize(x, decorationY, decoratedWidth, 5)) {
+                    Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), dotColor));
+                }
+            }
+        } finally {
+            GL11.glPopAttrib();
         }
+    }
+
+    /**
+     * Wavy/dots decorations are thin; a faint tint is swallowed by the page
+     * background. Blend the text color toward white so the decoration reads
+     * against the body gray.
+     */
+    private int brightenDecorationColor(int color) {
+        int a = color & 0xFF000000;
+        int r = (color >>> 16) & 0xFF;
+        int g = (color >>> 8) & 0xFF;
+        int b = color & 0xFF;
+        r = r + (255 - r) * 3 / 4;
+        g = g + (255 - g) * 3 / 4;
+        b = b + (255 - b) * 3 / 4;
+        return a | (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Composite a rasterizer coverage alpha with the decoration tint's own
+     * alpha byte: final = round(coverage × tintAlpha / 255), round-half-up.
+     * Pure coverage would discard a semi-transparent text color's opacity (the
+     * tint's alpha byte was replaced, not multiplied); multiplying keeps the
+     * text color's transparency semantics while the coverage still shapes the
+     * brush edge. With an opaque tint (alpha 255) the result equals the
+     * coverage exactly.
+     */
+    private static int decorationArgb(int coverage, int tintArgb) {
+        int tintAlpha = (tintArgb >>> 24) & 0xFF;
+        int alpha = (coverage * tintAlpha + 127) / 255;
+        return (alpha << 24) | (tintArgb & 0xFFFFFF);
     }
 
     @Override

@@ -3,6 +3,8 @@ package com.hfstudio.guidenh.guide.document.block;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 public class LytThematicBreak extends LytBlock {
@@ -14,6 +16,19 @@ public class LytThematicBreak extends LytBlock {
 
     @Override
     protected void onLayoutMoved(int deltaX, int deltaY) {}
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        var line = bounds.withHeight(2)
+            .centerVerticallyIn(bounds);
+        int argb = ColorUtils.THEMATIC_BREAK.resolve();
+        c.emit(new GuideRenderPrimitive.FillRect(line.x(), line.y(), line.width(), line.height(), argb));
+    }
 
     @Override
     public void render(RenderContext context) {

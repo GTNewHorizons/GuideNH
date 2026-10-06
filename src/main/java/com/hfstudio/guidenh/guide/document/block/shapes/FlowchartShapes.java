@@ -6,7 +6,7 @@ import java.util.Map;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidNodeShape;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 public final class FlowchartShapes {
 
@@ -32,17 +32,21 @@ public final class FlowchartShapes {
 
     private FlowchartShapes() {}
 
-    public static void render(RenderContext context, LytRect rect, MermaidNodeShape shape, int backgroundColor,
+    public static void emitShape(PrimitiveCollector c, MermaidNodeShape shape, LytRect rect, int backgroundColor,
         int borderColor) {
         ShapeRenderer renderer = RENDERERS.get(shape);
         if (renderer != null) {
-            renderer.render(context, rect, backgroundColor, borderColor);
+            renderer.emitPrimitives(c, rect, backgroundColor, borderColor);
+        } else {
+            RectShape fallback = new RectShape();
+            fallback.emitPrimitives(c, rect, backgroundColor, borderColor);
         }
     }
 
-    public static LytRect contentBounds(LytRect nodeRect, MermaidNodeShape shape, int cw, int ch, int padX, int padY) {
+    public static LytRect contentBounds(LytRect nodeRect, MermaidNodeShape shape, int cw, int ch, int padX, int padY,
+        float zoom) {
         ShapeRenderer renderer = RENDERERS.get(shape);
-        return renderer != null ? renderer.contentBounds(nodeRect, cw, ch, padX, padY) : nodeRect;
+        return renderer != null ? renderer.contentBounds(nodeRect, cw, ch, padX, padY, zoom) : nodeRect;
     }
 
     public static LytRect minNodeRect(MermaidNodeShape shape, int cw, int ch, int padX, int padY) {

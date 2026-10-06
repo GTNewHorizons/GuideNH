@@ -1,0 +1,41 @@
+[package]
+name = "guide-layout-engine"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+default = []
+
+[dependencies]
+# JNI bridge
+jni = "0.21"
+
+# Layout engine
+taffy = { version = "0.12", features = ["flexbox", "grid", "block_layout", "float_layout"] }
+
+# Line-box text layout (per-line geometry control)
+parley = { version = "0.11", features = ["complex-scripts"] }
+
+# Fontique: enable runtime-dlopen of fontconfig on Linux (cross-compile friendly)
+fontique = { version = "0.11", features = ["fontconfig-dlopen"] }
+
+# Rasterization
+swash = "0.2"
+
+# Serialization
+flatbuffers = "24"
+
+[build-dependencies]
+flatc = "0.2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = "symbols"
+
+[dev-dependencies]
+image = "0.25"

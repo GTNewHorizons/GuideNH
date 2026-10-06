@@ -23,6 +23,7 @@ public class LytMermaidFlowchart extends LytVBox implements InteractiveElement {
     private final String sourceText;
     @Getter
     private final LytCodeBlockToolbar toolbar = new LytCodeBlockToolbar();
+    @Getter
     private final LytMermaidFlowchartCanvas canvas;
     @Getter
     private final Map<String, LytBlock> nodeContent;

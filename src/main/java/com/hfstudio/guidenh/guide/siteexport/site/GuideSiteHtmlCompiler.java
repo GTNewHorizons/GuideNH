@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,8 +31,11 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.BlockquoteDirective;
 import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteIconSpec;
 import com.hfstudio.guidenh.guide.internal.mermaid.MermaidDiagramType;
+import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartParser;
+import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapDocument;
 import com.hfstudio.guidenh.guide.internal.mermaid.mindmap.MindmapParser;
+import com.hfstudio.guidenh.guide.render.GuideText;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
@@ -592,7 +594,7 @@ public class GuideSiteHtmlCompiler {
         String defaultNamespace, @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
         String displayFormula = extractSoleDisplayLatexFromElement(el);
         if (displayFormula != null) {
-            return renderLatex(displayFormula, null, 1.0f, 100.0f, false, null, null, 0, 0, true, templates);
+            return renderLatex(displayFormula, null, 1.0f, false, null, null, 0, 0, true, templates);
         }
         return "<p>" + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
             + "</p>";
@@ -777,7 +779,24 @@ public class GuideSiteHtmlCompiler {
             return rendered != null ? rendered : GuideSiteGraphRenderer.renderFileTree(codeText);
         }
         if ("mermaid".equals(lang)) {
-            return renderMermaidCodeBlock(codeText, lang, width, height);
+            try {
+                MermaidDiagramType type = MermaidDiagramType.detect(codeText);
+                switch (type) {
+                    case MINDMAP -> {
+                        MindmapDocument doc = MindmapParser.parse(codeText);
+                        return GuideSiteGraphRenderer.renderMermaidTree(doc);
+                    }
+                    case FLOWCHART -> {
+                        FlowchartDocument doc = FlowchartParser.parse(codeText);
+                        return GuideSiteGraphRenderer.renderFlowchart(doc);
+                    }
+                    case UNKNOWN -> {
+                        return CODE_BLOCK_RENDERER.render("mermaid", codeText, width, height);
+                    }
+                }
+            } catch (Exception ignored) {
+                return CODE_BLOCK_RENDERER.render("mermaid", codeText, width, height);
+            }
         }
         if ("funcgraph".equals(lang) || "functiongraph".equals(lang)) {
             try {
@@ -789,19 +808,6 @@ public class GuideSiteHtmlCompiler {
         }
 
         return CODE_BLOCK_RENDERER.render(lang, codeText, width, height);
-    }
-
-    private String renderMermaidCodeBlock(String codeText, String language, @Nullable Integer width,
-        @Nullable Integer height) {
-        try {
-            return switch (MermaidDiagramType.detect(codeText)) {
-                case FLOWCHART -> GuideSiteGraphRenderer.renderFlowchart(FlowchartParser.parse(codeText), Map.of());
-                case MINDMAP -> GuideSiteGraphRenderer.renderMermaidTree(MindmapParser.parse(codeText), Map.of());
-                case UNKNOWN -> CODE_BLOCK_RENDERER.render(language, codeText, width, height);
-            };
-        } catch (IllegalArgumentException ignored) {
-            return CODE_BLOCK_RENDERER.render(language, codeText, width, height);
-        }
     }
 
     @Nullable
@@ -1155,60 +1161,147 @@ public class GuideSiteHtmlCompiler {
         if (heightValue != null && heightAlias != null) {
             return renderExportError("FloatingImage cannot use both height and h.");
         }
-        Integer cropX = parsePositiveOrZeroInt(element.getAttributeString("x", null));
-        Integer cropY = parsePositiveOrZeroInt(element.getAttributeString("y", null));
-        Integer cropWidth = parseAliasedPositiveInt(element, "width", "w");
-        Integer cropHeight = parseAliasedPositiveInt(element, "height", "h");
+        // Parity with FloatingImageCompiler.parseCropSpec: hasWidth /
+        // hasHeight are decided by raw attribute presence, so a present-but-
+        // malformed or non-positive dimension reports an error instead of
+        // silently falling back to the single-parameter path.
+        boolean hasWidth = hasText(widthValue) || hasText(widthAlias);
+        boolean hasHeight = hasText(heightValue) || hasText(heightAlias);
         String displayWidthValue = element.getAttributeString("displayWidth", null);
         String displayHeightValue = element.getAttributeString("displayHeight", null);
         Integer explicitDisplayWidth = parsePositiveInt(displayWidthValue);
         Integer explicitDisplayHeight = parsePositiveInt(displayHeightValue);
-        Double scaleX = parsePositiveDouble(element.getAttributeString("scaleX", null), 1.0d);
-        Double scaleY = parsePositiveDouble(element.getAttributeString("scaleY", null), 1.0d);
-        if (scaleX == null || scaleY == null) {
-            return renderExportError("FloatingImage scaleX and scaleY must be positive numbers.");
-        }
         if ((displayWidthValue != null && explicitDisplayWidth == null)
             || (displayHeightValue != null && explicitDisplayHeight == null)) {
             return renderExportError("FloatingImage displayWidth and displayHeight must be positive integers.");
         }
         boolean hasExplicitDisplaySize = explicitDisplayWidth != null || explicitDisplayHeight != null;
+        // A single explicit dimension (width-only or height-only) is a valid
+        // whole-image display size, and an explicit pixel display size can stand
+        // in for the whole width / height pair when every crop attribute is
+        // absent; only the "nothing to size the image with" case is an error.
+        if (!hasWidth && !hasHeight && !(hasExplicitDisplaySize && !hasCropAttributes(element))) {
+            return renderExportError("FloatingImage requires width or w, and height or h.");
+        }
+        // Error semantics mirror FloatingImageCompiler.parseAliasedIntAttr /
+        // parseCropSpec: a present non-integer reports "must be an integer", a
+        // present-but-non-positive value reports the non-positive error.
+        Integer width = null;
+        if (hasWidth) {
+            StringBuilder widthError = new StringBuilder();
+            width = parsePresentDimension(widthValue != null ? widthValue : widthAlias, "width", widthError);
+            if (width == null) {
+                return renderExportError(widthError.toString());
+            }
+        }
+        Integer height = null;
+        if (hasHeight) {
+            StringBuilder heightError = new StringBuilder();
+            height = parsePresentDimension(heightValue != null ? heightValue : heightAlias, "height", heightError);
+            if (height == null) {
+                return renderExportError(heightError.toString());
+            }
+        }
+        // x/y are crop offsets and default to 0 when absent (mirrors the
+        // runtime); a present-but-malformed or negative value is still an error.
+        Integer cropX = parseOptionalNonNegativeInt(element.getAttributeString("x", null), 0);
+        Integer cropY = parseOptionalNonNegativeInt(element.getAttributeString("y", null), 0);
+        if (cropX == null || cropY == null) {
+            return renderExportError("FloatingImage x and y must be non-negative integers.");
+        }
+        Double scaleX = parsePositiveDouble(element.getAttributeString("scaleX", null), 1.0d);
+        Double scaleY = parsePositiveDouble(element.getAttributeString("scaleY", null), 1.0d);
+        if (scaleX == null || scaleY == null) {
+            return renderExportError("FloatingImage scaleX and scaleY must be positive numbers.");
+        }
         if (hasExplicitDisplaySize && (element.getAttributeString("scaleX", null) != null
             || element.getAttributeString("scaleY", null) != null)) {
             return renderExportError("FloatingImage displayWidth/displayHeight cannot be used with scaleX/scaleY.");
         }
+        // displayWidth / displayHeight state the final pixel size directly, so a
+        // crop rectangle has to be complete for the single-dimension inference to
+        // have a defined source aspect ratio (mirrors FloatingImageCompiler).
+        if (hasExplicitDisplaySize && hasCropAttributes(element) && !(hasWidth && hasHeight)) {
+            return renderExportError(
+                "FloatingImage displayWidth/displayHeight require either no crop attributes or the full "
+                    + "x, y, width or w, and height or h crop rectangle.");
+        }
         String src = resolveImageSource(rawSrc, currentPageId);
+
         boolean inlineWrap = "inline".equals(element.getAttributeString("wrap", null));
         String align = element.getAttributeString("align", "left");
         if (!inlineWrap && !"left".equals(align) && !"right".equals(align)) {
             return renderExportError("FloatingImage align must be left or right unless wrap=\"inline\".");
         }
-        StringBuilder wrapperStyle = new StringBuilder();
-        if (inlineWrap) {
-            wrapperStyle.append("display:inline-block;vertical-align:middle;");
-        } else if ("right".equals(align)) {
-            wrapperStyle.append("float:right;clear:both;margin:0 0 5px 5px;");
-        } else {
-            wrapperStyle.append("float:left;clear:both;margin:0 5px 5px 0;");
+        List<ImageAnnotationExport> annotations = collectImageAnnotations(
+            element,
+            templates,
+            defaultNamespace,
+            currentPageId,
+            sceneResolver,
+            hasWidth && hasHeight ? width : null,
+            hasWidth && hasHeight ? height : null);
+
+        if (hasWidth && hasHeight) {
+            // displayWidth / displayHeight, when present, replace the crop and
+            // scale display size: the crop is unchanged and the <img> is scaled
+            // by the ratio between the requested display size and the crop
+            // rectangle.
+            double displayWidth = explicitDisplayWidth != null ? explicitDisplayWidth
+                : explicitDisplayHeight != null ? explicitDisplayHeight * width / (double) height : width * scaleX;
+            double displayHeight = explicitDisplayHeight != null ? explicitDisplayHeight
+                : explicitDisplayWidth != null ? explicitDisplayWidth * height / (double) width : height * scaleY;
+            StringBuilder wrapperStyle = new StringBuilder();
+            if (inlineWrap) {
+                wrapperStyle.append("display:inline-block;vertical-align:middle;");
+            } else if ("right".equals(align)) {
+                wrapperStyle.append("float:right;clear:both;margin:0 0 5px 5px;");
+            } else {
+                wrapperStyle.append("float:left;clear:both;margin:0 5px 5px 0;");
+            }
+            // The crop box height comes from the stage span's aspect ratio, so the
+            // wrapper fixes the width only and the browser can size the crop
+            // before the image loads.
+            wrapperStyle.append("width:")
+                .append(toCssNumber(displayWidth))
+                .append("px;");
+            return buildFloatingImageHtml(
+                src,
+                alt,
+                title,
+                wrapperStyle.toString(),
+                null,
+                null,
+                true,
+                cropX,
+                cropY,
+                width,
+                height,
+                displayWidth / width,
+                displayHeight / height,
+                inlineWrap,
+                annotations);
         }
-        if (!hasCropAttributes(element)) {
-            if (!hasExplicitDisplaySize) {
-                return renderExportError(
-                    "FloatingImage requires non-negative x and y, plus positive width or w and height or h.");
+        if (hasExplicitDisplaySize) {
+            // Whole-source-image display at an explicit pixel size: the wrapper
+            // fixes the width when one was requested, and buildFloatingImageHtml
+            // writes the display size onto the <img> (aspect ratio for a full
+            // pair, data-display-height for a height-only request), so the
+            // browser derives the single missing axis from the intrinsic ratio.
+            // No crop data attributes are emitted.
+            StringBuilder wrapperStyle = new StringBuilder();
+            if (inlineWrap) {
+                wrapperStyle.append("display:inline-block;vertical-align:middle;");
+            } else if ("right".equals(align)) {
+                wrapperStyle.append("float:right;clear:both;margin:0 0 5px 5px;");
+            } else {
+                wrapperStyle.append("float:left;clear:both;margin:0 5px 5px 0;");
             }
             if (explicitDisplayWidth != null) {
                 wrapperStyle.append("width:")
-                    .append(explicitDisplayWidth)
+                    .append(toCssNumber(explicitDisplayWidth))
                     .append("px;");
             }
-            List<ImageAnnotationExport> annotations = collectImageAnnotations(
-                element,
-                templates,
-                defaultNamespace,
-                currentPageId,
-                sceneResolver,
-                null,
-                null);
             return buildFloatingImageHtml(
                 src,
                 alt,
@@ -1226,47 +1319,89 @@ public class GuideSiteHtmlCompiler {
                 inlineWrap,
                 annotations);
         }
-        if (cropX == null || cropY == null || cropWidth == null || cropHeight == null) {
-            return renderExportError(
-                "FloatingImage requires non-negative x and y, plus positive width or w and height or h.");
-        }
-
-        double displayWidth = explicitDisplayWidth != null ? explicitDisplayWidth
-            : explicitDisplayHeight != null ? explicitDisplayHeight * cropWidth / (double) cropHeight
-                : cropWidth * scaleX;
-        double displayHeight = explicitDisplayHeight != null ? explicitDisplayHeight
-            : explicitDisplayWidth != null ? explicitDisplayWidth * cropHeight / (double) cropWidth
-                : cropHeight * scaleY;
-        double effectiveScaleX = displayWidth / cropWidth;
-        double effectiveScaleY = displayHeight / cropHeight;
-        wrapperStyle.append("width:")
-            .append(toCssNumber(displayWidth))
-            .append("px;");
-
-        List<ImageAnnotationExport> annotations = collectImageAnnotations(
-            element,
-            templates,
-            defaultNamespace,
-            currentPageId,
-            sceneResolver,
-            cropWidth,
-            cropHeight);
-        return buildFloatingImageHtml(
+        return buildSingleParamFloatingImageHtml(
             src,
             alt,
             title,
-            wrapperStyle.toString(),
-            null,
-            null,
-            true,
-            cropX,
-            cropY,
-            cropWidth,
-            cropHeight,
-            effectiveScaleX,
-            effectiveScaleY,
             inlineWrap,
+            align,
+            hasWidth,
+            hasWidth ? width * scaleX : height * scaleY,
             annotations);
+    }
+
+    /**
+     * Builds the HTML for a single-parameter {@code FloatingImage}
+     * (width-only or height-only): whole-image display at the given dimension ×
+     * its scale, with the missing axis inferred from the image's natural aspect
+     * ratio. The export side has no runtime texture, so the natural ratio
+     * cannot be pre-computed here; instead the wrapper fixes only the given
+     * axis and the {@code <img>} keeps the other axis at {@code auto}, letting
+     * the browser derive it from the intrinsic ratio at render time.
+     *
+     * <p>
+     * The {@code guide-floating-image-wrap}/{@code guide-floating-image}
+     * classes are deliberately omitted: the site's {@code layoutCroppedFloatingImage()}
+     * recomputes wrapper/img sizes from crop {@code data-*} attributes with a
+     * {@code naturalWidth} fallback and would otherwise override the given
+     * dimension with the image's natural size. The inline style replicates the
+     * class-based wrapper behaviour instead.
+     */
+    private String buildSingleParamFloatingImageHtml(String src, String alt, @Nullable String title, boolean inlineWrap,
+        String align, boolean hasWidth, double displayDimension, List<ImageAnnotationExport> annotations) {
+        StringBuilder wrapperStyle = new StringBuilder();
+        if (inlineWrap) {
+            wrapperStyle.append("display:inline-block;vertical-align:middle;");
+        } else if ("right".equals(align)) {
+            wrapperStyle.append("float:right;clear:both;margin:0 0 5px 5px;");
+        } else {
+            wrapperStyle.append("float:left;clear:both;margin:0 5px 5px 0;");
+        }
+        wrapperStyle
+            .append("position:relative;display:inline-block;max-width:100%;vertical-align:top;overflow:hidden;");
+        if (hasWidth) {
+            wrapperStyle.append("width:")
+                .append(toCssNumber(displayDimension))
+                .append("px;");
+        } else {
+            wrapperStyle.append("height:")
+                .append(toCssNumber(displayDimension))
+                .append("px;");
+        }
+        StringBuilder html = new StringBuilder();
+        html.append("<span style=\"")
+            .append(escapeAttribute(wrapperStyle.toString()))
+            .append("\">");
+        html.append("<img class=\"guide-image\" src=\"")
+            .append(escapeAttribute(src))
+            .append("\" alt=\"")
+            .append(escapeAttribute(alt != null ? alt : ""))
+            .append("\"");
+        if (title != null && !title.isEmpty()) {
+            html.append(" title=\"")
+                .append(escapeAttribute(title))
+                .append("\"");
+        }
+        // Render the given display dimension as an intrinsic attribute and
+        // leave the missing axis auto (see the single-parameter javadoc above).
+        if (hasWidth) {
+            html.append(" width=\"")
+                .append(toCssNumber(displayDimension))
+                .append("\"");
+        } else {
+            html.append(" height=\"")
+                .append(toCssNumber(displayDimension))
+                .append("\"");
+        }
+        if (hasWidth) {
+            html.append(" style=\"display:block;width:100%;height:auto;\"");
+        } else {
+            html.append(" style=\"display:block;width:auto;height:100%;\"");
+        }
+        html.append(" loading=\"lazy\" decoding=\"async\">");
+        appendImageAnnotationSpans(html, annotations);
+        html.append("</span>");
+        return html.toString();
     }
 
     private boolean hasCropAttributes(MdxJsxElementFields element) {
@@ -1465,6 +1600,18 @@ public class GuideSiteHtmlCompiler {
                 .append("\"");
         }
         html.append(" loading=\"lazy\" decoding=\"async\">");
+        appendImageAnnotationSpans(html, annotations);
+        html.append("</span>");
+        if (title != null && !title.isEmpty()) {
+            html.append("<span class=\"guide-floating-image-title\">")
+                .append(escapeHtml(title))
+                .append("</span>");
+        }
+        html.append("</span>");
+        return html.toString();
+    }
+
+    private void appendImageAnnotationSpans(StringBuilder html, List<ImageAnnotationExport> annotations) {
         for (ImageAnnotationExport annotation : annotations) {
             html.append("<span class=\"guide-image-annotation");
             if (annotation.templateId != null) {
@@ -1492,14 +1639,6 @@ public class GuideSiteHtmlCompiler {
                 .append(escapeAttribute(annotation.style))
                 .append("\"></span>");
         }
-        html.append("</span>");
-        if (title != null && !title.isEmpty()) {
-            html.append("<span class=\"guide-floating-image-title\">")
-                .append(escapeHtml(title))
-                .append("</span>");
-        }
-        html.append("</span>");
-        return html.toString();
     }
 
     private String compileLatex(MdxJsxElementFields element, boolean display, GuideSiteTemplateRegistry templates,
@@ -1511,7 +1650,9 @@ public class GuideSiteHtmlCompiler {
         }
         String color = element.getAttributeString("color", null);
         float scale = parseFloat(element.getAttributeString("scale", null), 1.0f);
-        float sourceScale = parseFloat(element.getAttributeString("sourceScale", null), 100.0f);
+        // NOTE: sourceScale is DEPRECATED (legacy attribute, parsed for backward
+        // compatibility and ignored): formulas are typeset at
+        // BASE_FONT_SIZE × scale directly; there is no separate render size.
         String tooltipHtml = compileLatexTooltip(element, templates, defaultNamespace, currentPageId, sceneResolver);
         boolean tooltipDisabled = readBoolean(element, "noTooltip", false)
             || (element.getAttribute("showTooltip") != null && !readBoolean(element, "showTooltip", true));
@@ -1524,7 +1665,6 @@ public class GuideSiteHtmlCompiler {
                 formula,
                 color,
                 scale,
-                sourceScale,
                 showTooltip,
                 tooltipHtml,
                 valign,
@@ -1535,9 +1675,9 @@ public class GuideSiteHtmlCompiler {
         }
     }
 
-    private String renderLatex(String formula, @Nullable String color, float scale, float sourceScale,
-        boolean showTooltip, @Nullable String tooltipHtml, @Nullable String valign, int offsetX, int offsetY,
-        boolean display, GuideSiteTemplateRegistry templates) {
+    private String renderLatex(String formula, @Nullable String color, float scale, boolean showTooltip,
+        @Nullable String tooltipHtml, @Nullable String valign, int offsetX, int offsetY, boolean display,
+        GuideSiteTemplateRegistry templates) {
         String tag = display ? "div" : "span";
         StringBuilder classes = new StringBuilder(
             display ? "guide-latex guide-latex-display" : "guide-latex guide-latex-inline");
@@ -1554,11 +1694,11 @@ public class GuideSiteHtmlCompiler {
         float safeScale = Math.max(0.1f, scale);
         int fillColorArgb = parseLatexColorArgb(color);
         GuideSiteLatexExporter.ExportedLatex exported = latexExporter != null
-            ? latexExporter.export(formula, fillColorArgb, Math.max(16f, sourceScale))
+            ? latexExporter.export(formula, fillColorArgb, GuideText.BASE_FONT_SIZE * safeScale)
             : null;
         if (exported != null) {
-            appendCssPx(style, "width", displayWidth(exported, safeScale));
-            appendCssPx(style, "height", displayHeight(exported, safeScale));
+            appendCssPx(style, "width", displayWidth(exported));
+            appendCssPx(style, "height", displayHeight(exported));
             if (!display && isLatexBaselineAlign(valign)) {
                 style.append("vertical-align:bottom;");
             }
@@ -1572,7 +1712,7 @@ public class GuideSiteHtmlCompiler {
         }
         int visualOffsetY = offsetY;
         if (exported != null && !display && isLatexBaselineAlign(valign)) {
-            visualOffsetY += displayDepth(exported, safeScale);
+            visualOffsetY += displayDepth(exported);
         }
         if (offsetX != 0 || visualOffsetY != 0) {
             style.append("transform:translate(")
@@ -1647,17 +1787,20 @@ public class GuideSiteHtmlCompiler {
                 : null;
     }
 
-    private int displayWidth(GuideSiteLatexExporter.ExportedLatex exported, float scale) {
-        return Math.max(1, (int) Math.ceil((double) exported.widthPx() * 20.0d * scale / exported.referenceHeightPx()));
+    /**
+     * The exporter typesets at {@code BASE_FONT_SIZE × scale}, so the exported pixel dimensions
+     * ARE the target display pixels, used verbatim, with no reference-height scaling conversion.
+     */
+    private int displayWidth(GuideSiteLatexExporter.ExportedLatex exported) {
+        return Math.max(1, exported.widthPx());
     }
 
-    private int displayHeight(GuideSiteLatexExporter.ExportedLatex exported, float scale) {
-        return Math
-            .max(1, (int) Math.ceil((double) exported.heightPx() * 20.0d * scale / exported.referenceHeightPx()));
+    private int displayHeight(GuideSiteLatexExporter.ExportedLatex exported) {
+        return Math.max(1, exported.heightPx());
     }
 
-    private int displayDepth(GuideSiteLatexExporter.ExportedLatex exported, float scale) {
-        return Math.max(0, (int) Math.ceil((double) exported.depthPx() * 20.0d * scale / exported.referenceHeightPx()));
+    private int displayDepth(GuideSiteLatexExporter.ExportedLatex exported) {
+        return Math.max(0, exported.depthPx());
     }
 
     private boolean isLatexBaselineAlign(@Nullable String valign) {
@@ -1700,8 +1843,7 @@ public class GuideSiteHtmlCompiler {
         StringBuilder html = new StringBuilder();
         for (MarkdownLatexShorthand.Segment segment : MarkdownLatexShorthand.split(text)) {
             if (segment.isFormula()) {
-                html.append(
-                    renderLatex(segment.getValue(), null, 1.0f, 100.0f, false, null, null, 0, 0, false, templates));
+                html.append(renderLatex(segment.getValue(), null, 1.0f, false, null, null, 0, 0, false, templates));
             } else {
                 html.append(escapeHtml(segment.getValue()));
             }
@@ -1946,6 +2088,27 @@ public class GuideSiteHtmlCompiler {
         }
     }
 
+    /**
+     * Parses an optional non-negative integer with a fallback for the absent
+     * case (mirrors {@code FloatingImageCompiler.parseOptionalIntAttr}): absent
+     * attributes yield the fallback (e.g. 0 for x/y), while a present-but-
+     * malformed or negative value yields {@code null} so the caller can report
+     * it. Used for single-parameter FloatingImage x/y crop offsets.
+     */
+    @Nullable
+    private Integer parseOptionalNonNegativeInt(@Nullable String raw, int fallback) {
+        if (raw == null || raw.trim()
+            .isEmpty()) {
+            return fallback;
+        }
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return value >= 0 ? value : null;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     private int readInt(MdxJsxElementFields element, String name, int fallback) {
         String raw = element.getAttributeString(name, null);
         if (raw == null || raw.trim()
@@ -1959,14 +2122,30 @@ public class GuideSiteHtmlCompiler {
         }
     }
 
+    /**
+     * Parses a FloatingImage width/height dimension that is known to be present
+     * in the raw attributes (non-blank). Mirrors {@code FloatingImageCompiler}:
+     * a malformed value appends "{name} must be an integer." to
+     * {@code errorMessage}, while a present-but-non-positive value appends the
+     * non-positive error. Returns the parsed positive value, or {@code null}
+     * with {@code errorMessage} populated on failure.
+     */
     @Nullable
-    private Integer parseAliasedPositiveInt(MdxJsxElementFields element, String primaryName, String aliasName) {
-        String primaryValue = element.getAttributeString(primaryName, null);
-        String aliasValue = element.getAttributeString(aliasName, null);
-        if (primaryValue != null && aliasValue != null) {
+    private Integer parsePresentDimension(String raw, String name, StringBuilder errorMessage) {
+        try {
+            int value = Integer.parseInt(raw.trim());
+            if (value <= 0) {
+                errorMessage
+                    .append("FloatingImage crop values must be non-negative and width/height must be positive.");
+                return null;
+            }
+            return value;
+        } catch (NumberFormatException ex) {
+            errorMessage.append("FloatingImage ")
+                .append(name)
+                .append(" must be an integer.");
             return null;
         }
-        return parsePositiveInt(primaryValue != null ? primaryValue : aliasValue);
     }
 
     @Nullable

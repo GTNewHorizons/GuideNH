@@ -30,7 +30,9 @@ public class LytFlowLink extends LytTooltipSpan {
     private boolean playedCustomClickSound;
 
     public LytFlowLink() {
-        modifyStyle(style -> style.color(ColorUtils.LINK));
+        modifyStyle(
+            style -> style.color(ColorUtils.LINK)
+                .underlined(true));
         modifyHoverStyle(style -> style.underlined(true));
     }
 

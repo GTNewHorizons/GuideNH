@@ -143,7 +143,7 @@ public class NeiDirectCalls {
     }
 
     public static void handleItemTooltip(Object handler, ItemStack stack, List<String> tooltip, int idx) {
-        // Passing null for GuiRecipe is intentional 鈥?we are not inside a live recipe GUI.
+        // Passing null for GuiRecipe is intentional; we are not inside a live recipe GUI.
         List<String> result = h(handler).handleItemTooltip(null, stack, tooltip, idx);
         if (result != null && result != tooltip) {
             tooltip.clear();

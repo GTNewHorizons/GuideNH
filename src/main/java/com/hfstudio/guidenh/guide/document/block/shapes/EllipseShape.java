@@ -2,9 +2,11 @@ package com.hfstudio.guidenh.guide.document.block.shapes;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.mermaid.flowchart.FlowchartLayoutResult.Point;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 
 public class EllipseShape implements ShapeRenderer {
+
+    private static final int SEGMENTS = 32;
 
     @Override
     public boolean isClipped() {
@@ -17,13 +19,27 @@ public class EllipseShape implements ShapeRenderer {
     }
 
     @Override
-    public void render(RenderContext context, LytRect rect, int backgroundColor, int borderColor) {
+    public void emitPrimitives(PrimitiveCollector c, LytRect rect, int backgroundColor, int borderColor) {
         int cx = rect.x() + rect.width() / 2;
         int cy = rect.y() + rect.height() / 2;
         float rx = rect.width() / 2f;
         float ry = rect.height() / 2f;
-        context.fillEllipse(cx, cy, rx, ry, borderColor);
-        context.fillEllipse(cx, cy, Math.max(rx - 1, 0.5f), Math.max(ry - 1, 0.5f), backgroundColor);
+        if (rx <= 0f || ry <= 0f) return;
+
+        float[] borderXs = new float[SEGMENTS];
+        float[] borderYs = new float[SEGMENTS];
+        float[] fillXs = new float[SEGMENTS];
+        float[] fillYs = new float[SEGMENTS];
+        for (int i = 0; i < SEGMENTS; i++) {
+            double a = Math.PI * 2.0 * i / SEGMENTS;
+            borderXs[i] = cx + (float) (Math.cos(a) * rx);
+            borderYs[i] = cy + (float) (Math.sin(a) * ry);
+            fillXs[i] = cx + (float) (Math.cos(a) * Math.max(rx - 1f, 0.5f));
+            fillYs[i] = cy + (float) (Math.sin(a) * Math.max(ry - 1f, 0.5f));
+        }
+
+        ShapeUtils.emitPolygonCentered(c, borderXs, borderYs, borderColor);
+        ShapeUtils.emitPolygonCentered(c, fillXs, fillYs, backgroundColor);
     }
 
     @Override
@@ -40,7 +56,7 @@ public class EllipseShape implements ShapeRenderer {
     }
 
     @Override
-    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY) {
+    public LytRect contentBounds(LytRect nodeRect, int cw, int ch, int padX, int padY, float zoom) {
         int cx = nodeRect.x() + nodeRect.width() / 2;
         int cy = nodeRect.y() + nodeRect.height() / 2;
         int insW = (int) (nodeRect.width() / Math.sqrt(2));

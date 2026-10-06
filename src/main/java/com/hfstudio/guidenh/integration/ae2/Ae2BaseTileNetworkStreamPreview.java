@@ -22,7 +22,8 @@ import cpw.mods.fml.common.Optional;
  * {@code X}). The payload is whatever each subclass concatenates via {@code @TileEvent(NETWORK_WRITE)} handlers.
  * Non-exhaustive examples in AE2: {@code TileDrive}, {@code TileChest}, {@code TileSkyChest}, {@code TileInterface},
  * spatial / quantum / assembler family tiles, crafting monitor; {@link TileCableBus} shares the same base class but
- * uses multipart streams 鈥?guide export uses cable-bus supplement ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID})
+ * uses multipart streams; the guide export uses cable-bus supplement
+ * ({@link Ae2ServerPreviewRegistration#SUPPLEMENT_ID})
  * instead of this blob.
  */
 public class Ae2BaseTileNetworkStreamPreview {

@@ -7,7 +7,9 @@ import net.minecraft.item.ItemStack;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.internal.debug.DebugComponent;
-import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
 
 import lombok.Getter;
@@ -55,13 +57,13 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
     }
 
     @Override
-    protected void renderChart(RenderContext context, LytRect plotRect) {
-        if (slices.isEmpty()) return;
+    protected LytRect renderChart(PrimitiveCollector c, LytRect plotRect) {
+        if (slices.isEmpty()) return plotRect;
         double total = 0d;
         for (PieSlice s : slices) {
             total += Math.max(0d, s.getValue());
         }
-        if (total <= 0d) return;
+        if (total <= 0d) return plotRect;
         totalCache = total;
 
         float cx = plotRect.x() + plotRect.width() / 2f;
@@ -72,7 +74,7 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
         radiusCache = radius;
 
         ResolvedTextStyle labelStyle = textStyle(getLabelColor());
-        int lh = context.getLineHeight(labelStyle);
+        int lh = GuideText.lineHeight(labelStyle);
         double angle = Math.toRadians(startAngleDeg);
         double dir = clockwise ? 1d : -1d;
         for (int i = 0; i < slices.size(); i++) {
@@ -83,7 +85,7 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
             // Hovered slice keeps its apex at (cx, cy); only the outer arc bulges outward by
             // HOVER_OFFSET so the wedge is emphasized without dislocating its centre.
             float drawRadius = hovered ? radius + HOVER_OFFSET : radius;
-            drawSlice(context, cx, cy, drawRadius, angle, sweep, slice.getColor());
+            drawSlice(c, cx, cy, drawRadius, angle, sweep, slice.getColor());
             // Label.
             ChartLabelPosition pos = getLabelPosition();
             if (pos != ChartLabelPosition.NONE) {
@@ -91,21 +93,30 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
                     case OUTSIDE, ABOVE, BELOW -> slice.getLabel() + " " + formatPercent(slice.getValue() / total);
                     default -> formatPercent(slice.getValue() / total);
                 };
-                int tw = context.getStringWidth(text, labelStyle);
+                int tw = GuideText.measureWidth(text, labelStyle);
+                // OUTSIDE labels use labelR = drawRadius + lh + 4f so text is pushed clear of
+                // the pie boundary instead of sitting only 4px out. The clamp is relaxed by tw/2 on
+                // left/right and lh/2 on top/bottom so large-slice labels are not pulled back inside.
                 float labelR = pos == ChartLabelPosition.OUTSIDE || pos == ChartLabelPosition.ABOVE
-                    || pos == ChartLabelPosition.BELOW ? drawRadius + 4f : drawRadius * 0.6f;
+                    || pos == ChartLabelPosition.BELOW ? drawRadius + Math.max(lh + 2f, 8f) : drawRadius * 0.6f;
                 float tx = cx + (float) Math.cos(mid) * labelR - tw / 2f;
                 float ty = cy + (float) Math.sin(mid) * labelR - lh / 2f;
-                // Clamp label inside the plot rectangle so OUTSIDE labels do not overflow the chart frame.
-                int clampedTx = Math.max(plotRect.x(), Math.min(plotRect.right() - tw, (int) tx));
-                int clampedTy = Math.max(plotRect.y(), Math.min(plotRect.bottom() - lh, (int) ty));
-                context.drawText(text, clampedTx, clampedTy, labelStyle);
+                // Clamp label with relaxed bounds so outside labels project beyond the pie without
+                // overflowing the chart frame entirely.
+                int relaxedLeft = plotRect.x() - (pos == ChartLabelPosition.OUTSIDE ? tw / 2 : 0);
+                int relaxedRight = plotRect.right() - tw + (pos == ChartLabelPosition.OUTSIDE ? tw / 2 : 0);
+                int clampedTx = Math.max(relaxedLeft, Math.min(relaxedRight, (int) tx));
+                int clampedTy = Math.max(
+                    plotRect.y() - (pos == ChartLabelPosition.OUTSIDE ? lh / 2 : 0),
+                    Math.min(plotRect.bottom() - lh + (pos == ChartLabelPosition.OUTSIDE ? lh / 2 : 0), (int) ty));
+                GuideText.emitText(c, text, clampedTx, clampedTy, labelStyle);
             }
             angle += sweep;
         }
+        return plotRect;
     }
 
-    private static void drawSlice(RenderContext context, float cx, float cy, float radius, double startAngle,
+    private static void drawSlice(PrimitiveCollector c, float cx, float cy, float radius, double startAngle,
         double sweepAngle, int color) {
         if (Math.abs(sweepAngle) < 1e-6) return;
         int segments = Math.max(2, (int) Math.ceil(CIRCLE_SEGMENTS * Math.abs(sweepAngle) / (Math.PI * 2d)));
@@ -118,7 +129,7 @@ public class LytPieChart extends LytChartBase implements DebugComponent {
             xs[i + 1] = cx + (float) Math.cos(a) * radius;
             ys[i + 1] = cy + (float) Math.sin(a) * radius;
         }
-        context.fillPolygon(xs, ys, color);
+        c.emit(new GuideRenderPrimitive.DrawPolygon(xs, ys, color));
     }
 
     @Override

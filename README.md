@@ -10,183 +10,126 @@
 
 <p align="center">
     <a href="README.md">English</a> |
-    <a href="README_zh.md">简体中文</a>
+    <a href="README_zh-CN.md">简体中文</a>
 </p>
 
-## **Introduction**
+## Introduction
 
-* <span style="color: #ff6600;">GuideNH</span> is an in-game guide framework for Minecraft **1.7.10**
-* It ports and extends GuideME-style Markdown documentation for GTNH-era modpacks.
-* It is designed for authoring rich guide books directly from resource-pack style Markdown files.
-* The [GuideNH online editor](https://www.gtnewhorizons.com/GuideNH) can import, edit, and preview guide folders or ZIP archives in a browser. See the [GTNH contribution guidelines](https://github.com/GTNewHorizons/.github/blob/main/CONTRIBUTING.md) for authoring guidance.
+GuideNH is an in-game guide framework for Minecraft 1.7.10 / Forge 10.13.4.1614. It ports and
+extends the GuideME-style Markdown documentation system, so that mods and modpacks can ship rich
+guide books as resource packs: navigation and search, an item index, Mermaid and LaTeX rendering,
+interactive 3D scenes, and live in-game editing of guide pages.
 
-## Required Dependencies
+The [GuideNH online editor](https://www.gtnewhorizons.com/GuideNH) can import, edit, and preview
+guide folders or ZIP archives in a browser. See the
+[GTNH contribution guidelines](https://github.com/GTNewHorizons/.github/blob/main/CONTRIBUTING.md)
+for authoring guidance.
 
-* [GTNHLib (>= 0.11.16)](https://github.com/GTNewHorizons/GTNHLib)
+## Requirements
 
-## **Features**
+- Required dependency: [GTNHLib (>= 0.11.16)](https://github.com/GTNewHorizons/GTNHLib).
 
-* Markdown pages with YAML frontmatter, navigation metadata, categories, anchors, tables, footnotes, Mermaid, LaTeX, charts, and highlighted text.
-* MDX-style runtime tags such as `<ItemLink>`, `<ItemImage>`, `<Recipe>`, `<GameScene>`, `<ContentTabs>`, `<BlockStats>`, `<Tooltip>`, `<KeyBind>`, and `<PlayerName>`.
-* Interactive 3D GameScene previews with block/entity placement, StructureLib import, Ponder playback, layer sliders, grid controls, annotations, and block statistics.
-* Live guide editing mode with split editor/preview, toolbar actions, debounced saving, external-change handling, and resource-pack page creation.
-* Multi-language guide folders with fallback, item index navigation, search, server integration, and resource reload support.
+- JDK 8, 17, or 21 for the supported runtime matrix. The Gradle build itself runs on a JDK 25
+  toolchain, which the wrapper provisions from the settings in `gradle/gradle-daemon-jvm.properties`.
+- A Rust toolchain installed with [rustup](https://rustup.rs), needed only to build the layout
+  engine native library.
+- No separate Gradle installation: use the bundled wrapper (`gradlew`, `gradlew.bat`).
+- Python 3, invoked as `py -3` on Windows, for the visual test tools.
 
-## **Authors**
-
-- Programmer: `HFstudio`
-- Upstream inspiration: [GuideME](https://github.com/AppliedEnergistics/GuideME)
-
-## **License**
-
-- Code: [LGPL-3.0](LICENSE.txt)
-- Bundled third-party libraries keep their own licenses.
-
-## **Wiki**
-
-* [English Wiki](wiki/Home-en-US.md)
-* [中文 Wiki](wiki/Home-zh-CN.md)
-* [Structure Export](wiki/Structure-Export.md)
-* [Runtime example resource pack](wiki/resourcepack)
-
-## **Quick Start**
+## Build
 
 ```powershell
-.\gradlew.bat spotlessApply
-.\gradlew.bat build
-.\gradlew.bat runClient
+./gradlew build
+```
+
+The guide engine renders through a native library. Build it once before running the game:
+
+```powershell
+./gradlew buildRustNative
+```
+
+Build the library from the crate directory instead:
+
+```powershell
+cd src/rust/layout-engine
+cargo build --release
+```
+
+`buildRustNative` compiles `src/rust/layout-engine` and the Gradle build copies the resulting
+`guide_layout_engine.dll` into `src/main/resources/natives/`. That directory is a generated build
+output and is not tracked, so the copy is what puts the library where the game loads it. When the
+cargo target directory is redirected, the copy follows the resolved directory; let the Gradle task
+do it rather than copying the file by hand.
+
+## Run
+
+```powershell
+./gradlew runClient
+./gradlew runServer
 ```
 
 In game:
 
-* Press `G` to open the guide home page.
-* Hold `G` while hovering an indexed item to jump to its guide entry.
-* Press `F3+T` to reload edited guide resources.
+- Press `G` to open the guide home page.
+- Hold `G` while hovering an indexed item to jump to its guide entry.
+- Press `F3+T` to reload edited guide resources.
 
-## **DefaultGuide**
 
-GuideNH automatically creates `config/guidenh/DefaultGuide/` on the client.
-It also supports `config/guidenh/DefaultGuide.zip` as a standard full resource pack, and the zip is preferred when both exist.
-
-This directory uses a native namespace-root layout:
-
-```text
-config/guidenh/DefaultGuide/
-`-- <modid>/
-    `-- guidenh/
-        |-- assets/
-        |   `-- shared_structure.snbt
-        |-- _en_us/
-        |   `-- index.md
-        `-- _zh_cn/
-            `-- index.md
-```
-
-The directory starts empty. Add your own pages and assets there when you want a client-side default guide source.
-
-If you use `DefaultGuide.zip`, use the normal full resource-pack layout:
-
-```text
-config/guidenh/DefaultGuide.zip
-`-- assets/
-    `-- <modid>/
-        `-- guidenh/
-            |-- assets/
-            |-- _en_us/
-            `-- _zh_cn/
-```
-
-`wiki/resourcepack/` remains the repository example resource pack. It keeps the outer `assets/` directory because it is
-used for documentation and bundled examples.
-
-## **Authoring Example**
-
-```md
----
-navigation:
-  title: Machines
-  parent: index.md
-author: GuideNH
-date: 2026-05-10
----
-
-# Machines
-
-Press <KeyBind action="key.attack" /> to interact.
-
-<GameScene width="220" height="150" interactive={true}>
-  <Block id="minecraft:furnace" />
-  <BlockStats corner="topRight" maxWidth="120" maxHeight="72" />
-</GameScene>
-```
-
-## **Develop**
-
-### **Guide Folder**
-
-```text
-assets/<modid>/guidenh/
-|-- assets/
-|   `-- shared_structure.snbt
-|-- _en_us/
-|   |-- index.md
-|   `-- machines.md
-`-- _zh_cn/
-    |-- index.md
-    `-- machines.md
-```
-
-### **DefaultGuide Folder**
-
-```text
-config/guidenh/DefaultGuide/
-`-- <modid>/
-    `-- guidenh/
-        |-- assets/
-        |   `-- shared_structure.snbt
-        |-- _en_us/
-        |   `-- index.md
-        `-- _zh_cn/
-            `-- index.md
-```
-
-### **DefaultGuide Zip**
-
-```text
-config/guidenh/DefaultGuide.zip
-`-- assets/
-    `-- <modid>/
-        `-- guidenh/
-            |-- assets/
-            |   `-- shared_structure.snbt
-            |-- _en_us/
-            |   `-- index.md
-            `-- _zh_cn/
-                `-- index.md
-```
-
-### **Register A Guide**
-
-```java
-Guide.builder(new ResourceLocation("yourmod", "guidenh")).build();
-```
-
-### **Verification**
+## Test
 
 ```powershell
-.\gradlew.bat spotlessApply
-.\gradlew.bat build --rerun-tasks
+./gradlew compileJava compileTestJava test
 ```
 
-## **Credits**
+```powershell
+cd src/rust/layout-engine
+cargo test
+```
 
-Thanks to persephone for providing the icon textures!
+## Visual Verification
 
-Thanks to the following developers for their contributions to GuideNH:
+Render the visual fixture pack headlessly. Each batch is limited to 40 pages and must be wrapped in
+the render watchdog:
+
+```powershell
+py -3 test/visual/tools/render_watchdog.py --timeout 2400 --log <log> -- cmd /c "gradlew.bat runClient25 -Dguidenh.guide.sources=<repo>/test/visual/resourcepack -Dguidenh.headlessRender=true -Dguidenh.renderpage.guide=guidenh:guidenh -Dguidenh.renderpage.list=<list-file> -Dguidenh.renderpage.out=<shots> -Dguidenh.renderpage.width=900 -Dguidenh.renderpage.scale=2 -Dguidenh.renderpage.bounds=true"
+```
+
+Check the rendered bounds against the assertion ratchet:
+
+```powershell
+py -3 test/visual/tools/assert_bounds.py --shots run/client_new/<shots> --assertions test/visual/ratchet/assertions.json
+```
+
+Render output and client logs are written under `run/client_new/`. See [test/visual/README.md](test/visual/README.md)
+for the fixture corpus, the ratchet, and the available tools.
+
+## Wiki
+
+- [English wiki](wiki/Home-en-US.md)
+- [Chinese wiki](wiki/Home-zh-CN.md)
+- [Getting started](wiki/Getting-Started.md)
+- [Guide page format](wiki/Guide-Page-Format.md)
+- [Structure export](wiki/Structure-Export.md)
+- [Example resource pack](wiki/resourcepack)
+
+## License
+
+- Code: [LGPL-3.0](LICENSE.txt)
+- Bundled third-party libraries keep their own licenses.
+
+## Credits
+
+Thanks to persephone for the icon textures. GuideNH is based on ideas from
+[GuideME](https://github.com/AppliedEnergistics/GuideME), distributed under LGPL-3.0, and uses
+open-source libraries including SnakeYAML, Apache Lucene, Apache Commons Lang, FlatBuffers Java, and
+JLaTeXMath.
 
 <a href="https://github.com/GTNewHorizons/GuideNH/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=GTNewHorizons/GuideNH&max=1000" alt="contributors" />
 </a>
 
-GuideNH is based on ideas from [GuideME](https://github.com/AppliedEnergistics/GuideME), distributed under LGPL-3.0.
-It also uses open-source libraries including SnakeYAML, Apache Lucene, Apache Commons Lang, FlatBuffers Java, and JLaTeXMath.
+## Coding Agents
+
+See [AGENTS.md](AGENTS.md) for the repository layout, the full command reference, and the comment and
+documentation conventions.

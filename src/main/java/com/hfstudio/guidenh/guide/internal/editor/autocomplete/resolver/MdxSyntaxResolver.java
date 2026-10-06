@@ -585,7 +585,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
 
         char atCursor = text.charAt(cursorIndex - 1);
 
-        // Case 1: cursor immediately after '<' — start of a new tag
+        // Case 1: cursor immediately after '<', at the start of a new tag
         if (atCursor == '<') {
             if (cursorIndex < text.length()) {
                 char next = text.charAt(cursorIndex);
@@ -616,7 +616,7 @@ public class MdxSyntaxResolver implements SyntaxContextResolver {
                 return null;
             }
             int tagStart = nameStart - 1;
-            // Closing tag: </Name — don't autocomplete
+            // Closing tag (</Name): do not autocomplete it
             if (nameStart > tagStart + 1 && text.charAt(tagStart + 1) == '/') {
                 return null;
             }

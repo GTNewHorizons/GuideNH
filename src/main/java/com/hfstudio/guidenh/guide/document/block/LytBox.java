@@ -8,7 +8,10 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.GuideRenderPrimitive;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
+import com.hfstudio.guidenh.guide.style.BorderStyle;
 
 import lombok.Setter;
 
@@ -143,5 +146,66 @@ public abstract class LytBox extends LytBlock implements LytBlockContainer {
             borderRenderer
                 .render(context, bounds, getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom());
         }
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        if (backgroundColor != null) {
+            c.emit(
+                new GuideRenderPrimitive.FillRect(
+                    bounds.x(),
+                    bounds.y(),
+                    bounds.width(),
+                    bounds.height(),
+                    resolveBackgroundArgb()));
+        }
+    }
+
+    @Override
+    public void emitDecorations(PrimitiveCollector c) {
+        if (getBorderTop().width() > 0 || getBorderLeft().width() > 0
+            || getBorderRight().width() > 0
+            || getBorderBottom().width() > 0) {
+            c.emit(
+                new GuideRenderPrimitive.DrawBorder(
+                    bounds.x(),
+                    bounds.y(),
+                    bounds.width(),
+                    bounds.height(),
+                    getBorderTop().width(),
+                    getBorderLeft().width(),
+                    getBorderBottom().width(),
+                    getBorderRight().width(),
+                    resolveBorderArgb()));
+        }
+    }
+
+    private int resolveBackgroundArgb() {
+        if (backgroundColor == null) return 0;
+        return backgroundColor.resolve();
+    }
+
+    private int resolveBorderArgb() {
+        // DrawBorder is single-color; use the first side that declares one
+        // (some blocks, e.g. the code toolbar, only set a bottom border).
+        // Only sides with a non-zero width participate: BorderStyle.NONE is
+        // (ConstantColor.TRANSPARENT, 0), so a transparent zero-width side must
+        // not preempt the color of a wider side.
+        BorderStyle[] sides = { getBorderTop(), getBorderLeft(), getBorderRight(), getBorderBottom() };
+        for (BorderStyle side : sides) {
+            if (side.width() <= 0) {
+                continue;
+            }
+            var color = side.color();
+            if (color != null) {
+                return color.resolve();
+            }
+        }
+        return 0xFF000000;
     }
 }

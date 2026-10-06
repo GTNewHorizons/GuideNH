@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -19,7 +20,7 @@ import lombok.Getter;
  * and then repositioned by issuing a second layout pass at the correct horizontal offset.
  *
  * <p>
- * Example — a Recipe box centred in the page:
+ * Example: a Recipe box centred in the page:
  * 
  * <pre>
  * {@code
@@ -89,6 +90,16 @@ public class LytAlignedBlock extends LytBlock {
     @Override
     public LytNode pickNode(int x, int y) {
         return inner.pickNode(x, y);
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        // No-op: inner child is picked up by PrimitiveCollector.collectFrom traversal.
     }
 
     @Override

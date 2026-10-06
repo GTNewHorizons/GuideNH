@@ -1,0 +1,1056 @@
+package com.hfstudio.guidenh.guide.render;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.entity.RenderItem;
+
+import org.lwjgl.opengl.GL11;
+
+import com.hfstudio.guidenh.guide.document.LytRect;
+import com.hfstudio.guidenh.guide.latex.GuideLatexRenderer;
+import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
+import com.hfstudio.guidenh.guide.style.ResolvedTextStyle;
+
+/**
+ * Central render engine that accepts GuideRenderPrimitives and batches them
+ * into optimized Tessellator draw calls.
+ * <p>
+ * Lifecycle: beginFrame() -> execute() -> endFrame() (once per document render).
+ * <p>
+ * Coordinate contract: all primitives use absolute document coordinates.
+ * The engine converts to screen GUI coordinates via its transform stack using
+ * {@code screen = doc * scale + (tx, ty)} -- the same math as
+ * {@link VanillaRenderContext#toScreenRect}. GL pixels are obtained by
+ * multiplying with the display scale factor where needed (glScissor).
+ */
+public class GuideRenderEngine {
+
+    private static final RenderItem ITEM_RENDERER = new RenderItem();
+    /**
+     * Drop-shadow offset in document units (MC drawStringWithShadow x+1/y+1
+     * parity). Applied in document space before the document→screen transform,
+     * so scale=1 → 1px and headless scale=2 → 2 device pixels. For sheared
+     * (italic) runs this is the vertical drop (+1*scale) and the nominal
+     * non-slant horizontal shift; the per-glyph shear transform makes the
+     * actual horizontal drop (1-K)*scale (K = {@link #SHEAR_K}) --
+     * the same geometry as MC's italic shadow.
+     */
+    private static final float SHADOW_OFFSET = 1f;
+    /**
+     * Composite shear coefficient K for the draw-time synthetic italic slant.
+     * The serializer no longer declares it (the {@code LayoutInput.shear_k}
+     * wire field is deprecated with its slot preserved), and the Rust-side
+     * boundary correction hardcodes the same value (layout.rs
+     * {@code SHEAR_K = 0.25}); slanting at draw time is a render-side
+     * responsibility, so K lives only here.
+     */
+    private static final float SHEAR_K = 0.25f;
+
+    private final GuideGlyphAtlas glyphAtlas;
+    private final GuidebookSceneRenderer sceneRenderer;
+
+    private final Deque<Transform> transformStack = new ArrayDeque<>();
+    /** Scissor rects in screen GUI coordinates (not GL pixels). */
+    private final Deque<LytRect> scissorStack = new ArrayDeque<>();
+
+    private LytRect viewport;
+    private int guiScale = 1;
+
+    /** Current batch state for Tessellator session sharing. */
+    private BatchState batchState = BatchState.IDLE;
+    /** Texture ID for the current textured batch (−1 when not textured). */
+    private int batchTexId = -1;
+
+    private enum BatchState {
+        IDLE,
+        /** Accumulating untextured quads (FillRect, GradientFill, DrawBorder, DrawLine). */
+        SHAPE_QUADS,
+        /** Accumulating textured quads (BlitTexture, DrawGlyphRun). */
+        TEXTURED_QUADS
+    }
+
+    public GuideRenderEngine(GuideGlyphAtlas glyphAtlas, GuidebookSceneRenderer sceneRenderer) {
+        this.glyphAtlas = glyphAtlas;
+        this.sceneRenderer = sceneRenderer;
+    }
+
+    /** Begin a new frame. Clears all state stacks and establishes the GL baseline. */
+    public void beginFrame(LytRect viewport, float displayScale) {
+        this.viewport = viewport;
+        this.guiScale = Math.max(1, Math.round(displayScale));
+        resetStacks();
+        applyFrameBaselineGlState();
+    }
+
+    /**
+     * The frame's baseline GL state -- the single state contract the engine
+     * owns. Established at frame start, re-established after every escape
+     * (HostDraw, item/3D rendering) and at frame end, so no primitive and no
+     * escape hatch can leak enables into the stream. Keep in sync with
+     * beginShape/beginTextured scopes.
+     */
+    private void applyFrameBaselineGlState() {
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glColor4f(1f, 1f, 1f, 1f);
+    }
+
+    private void resetStacks() {
+        transformStack.clear();
+        transformStack.push(new Transform(0f, 0f, 1.0f));
+        scissorStack.clear();
+        batchState = BatchState.IDLE;
+        batchTexId = -1;
+    }
+
+    /** Execute a batch of primitives. Flushes the Tessellator before returning so
+     *  subsequent drawing (e.g. legacy scrollbar rendering) does not hit "Already
+     *  tesselating!". */
+    public void execute(List<GuideRenderPrimitive> primitives) {
+        // Safety flush: close any Tessellator batch left open from a prior frame.
+        try { Tessellator.instance.draw(); } catch (IllegalStateException e) { /* not drawing */ }
+        try {
+            for (GuideRenderPrimitive p : primitives) {
+                switch (p) {
+                    case GuideRenderPrimitive.PushTransform t -> pushTransform(t);
+                    case GuideRenderPrimitive.PopTransform __ -> popTransform();
+                    case GuideRenderPrimitive.PushScissor s -> pushScissor(s);
+                    case GuideRenderPrimitive.PopScissor __ -> popScissor();
+                    case GuideRenderPrimitive.PushScreenScissor ss -> pushScreenScissor(ss);
+                    case GuideRenderPrimitive.PopScreenScissor __ -> popScissor();
+                    case GuideRenderPrimitive.FillRect f -> drawFillRect(f);
+                    case GuideRenderPrimitive.GradientFill g -> drawGradientFill(g);
+                    case GuideRenderPrimitive.DrawBorder db -> drawBorder(db);
+                    case GuideRenderPrimitive.BlitTexture bt -> drawBlitTexture(bt);
+                    case GuideRenderPrimitive.DrawGlyphRun dg -> drawGlyphRun(dg);
+                    case GuideRenderPrimitive.DrawDecorationLine dd -> drawDecorationLine(dd);
+                    case GuideRenderPrimitive.DrawLine dl -> drawLine(dl);
+                    case GuideRenderPrimitive.DrawTriangle dt -> drawTriangle(dt);
+                    case GuideRenderPrimitive.DrawCircle dc -> drawCircle(dc);
+                    case GuideRenderPrimitive.DrawCircleOutline dco -> drawCircleOutline(dco);
+                    case GuideRenderPrimitive.DrawPolygon dp -> drawPolygon(dp);
+                    case GuideRenderPrimitive.RenderItem ri -> drawRenderItem(ri);
+                    case GuideRenderPrimitive.DrawText dtxt -> drawText(dtxt);
+                    case GuideRenderPrimitive.RenderScene3D s3 -> drawScene3D(s3);
+                    case GuideRenderPrimitive.HostDraw hd -> drawHostDraw(hd);
+                }
+            }
+        } finally {
+            // Close the current batch even when a drawXxx method throws mid-batch,
+            // so the Tessellator never leaks in DRAWING state after execute() returns.
+            flush();
+            // Reset stacks to frame-initial state. A prior frame that threw mid-execute
+            // can leave the stacks unbalanced; resetting here guarantees every execute()
+            // starts with a clean slate regardless of what happened last frame.
+            resetStacks();
+            // Do not leak GL state to subsequent legacy drawing.
+            restoreGlState();
+        }
+    }
+
+    /** End the frame. Flush any remaining batch. */
+    public void endFrame() {
+        flush();
+    }
+
+    /** Restore the GL state expected by vanilla GUI drawing after execute(). */
+    private void restoreGlState() {
+        OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+        // Mirror the frame baseline exactly: nothing the execute pass
+        // touched may leak into subsequent legacy drawing.
+        applyFrameBaselineGlState();
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+    }
+
+    // Transform stack: push/pop and document-to-screen composition.
+
+    private Transform currentTransform() {
+        Transform t = transformStack.peek();
+        if (t == null) {
+            // Safety fallback: identity transform when no beginFrame() was called.
+            t = new Transform(0f, 0f, 1.0f);
+        }
+        return t;
+    }
+
+    private void pushTransform(GuideRenderPrimitive.PushTransform t) {
+        flush();
+        Transform parent = currentTransform();
+        // screen = doc * (parent.scale * t.scale) + (parent.t + t.t * parent.scale)
+        transformStack.push(
+            new Transform(
+                parent.tx + t.tx() * parent.scale,
+                parent.ty + t.ty() * parent.scale,
+                parent.scale * t.scale()));
+    }
+
+    private void popTransform() {
+        flush();
+        if (transformStack.size() > 1) {
+            transformStack.pop();
+        }
+    }
+
+    // Scissor stack, in screen GUI coordinates.
+
+    /** Intersect {@code screenRect} with the current scissor, push, and apply. */
+    private void pushScissorRect(LytRect screenRect) {
+        flush();
+        LytRect sr = screenRect;
+        if (!scissorStack.isEmpty()) {
+            LytRect parent = scissorStack.peek();
+            int x1 = Math.max(sr.x(), parent.x());
+            int y1 = Math.max(sr.y(), parent.y());
+            int x2 = Math.min(sr.right(), parent.right());
+            int y2 = Math.min(sr.bottom(), parent.bottom());
+            sr = new LytRect(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
+        }
+        scissorStack.push(sr);
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        glScissor(sr);
+    }
+
+    private void pushScissor(GuideRenderPrimitive.PushScissor s) {
+        pushScissorRect(toScreen(s.x(), s.y(), s.w(), s.h()));
+    }
+
+    /**
+     * Screen-space scissor: coordinates are already in screen GUI space, no
+     * transform-stack conversion. Used for the fixed viewport clip.
+     */
+    private void pushScreenScissor(GuideRenderPrimitive.PushScreenScissor ss) {
+        pushScissorRect(new LytRect(ss.x(), ss.y(), ss.w(), ss.h()));
+    }
+
+    private void popScissor() {
+        flush();
+        if (scissorStack.isEmpty()) {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            return;
+        }
+        scissorStack.pop();
+        if (!scissorStack.isEmpty()) {
+            GL11.glEnable(GL11.GL_SCISSOR_TEST);
+            glScissor(scissorStack.peek());
+        } else {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        }
+    }
+
+    /**
+     * Re-apply the current scissor state after external code (HostDraw legacy
+     * rendering, 3D scene) may have changed it.
+     */
+    private void reapplyScissor() {
+        if (!scissorStack.isEmpty()) {
+            GL11.glEnable(GL11.GL_SCISSOR_TEST);
+            glScissor(scissorStack.peek());
+        } else {
+            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        }
+    }
+
+    private void glScissor(LytRect r) {
+        int sx = r.x() * guiScale;
+        int sy = Minecraft.getMinecraft().displayHeight - r.bottom() * guiScale;
+        // Zero-area scissors must stay zero; a min-1 clamp would leak a 1px
+        // strip of content that should be fully clipped.
+        int sw = Math.max(0, r.width() * guiScale);
+        int sh = Math.max(0, r.height() * guiScale);
+        GL11.glScissor(sx, Math.max(0, sy), sw, sh);
+    }
+
+    // Coordinate conversion: document to screen GUI coordinates.
+
+    /** Document -> screen GUI coordinates, integer rect. */
+    private LytRect toScreen(int x, int y, int w, int h) {
+        Transform t = currentTransform();
+        return new LytRect(
+            Math.round(x * t.scale + t.tx),
+            Math.round(y * t.scale + t.ty),
+            Math.max(0, Math.round(w * t.scale)),
+            Math.max(0, Math.round(h * t.scale)));
+    }
+
+    private float sx(float docX) {
+        Transform t = currentTransform();
+        return docX * t.scale + t.tx;
+    }
+
+    private float sy(float docY) {
+        Transform t = currentTransform();
+        return docY * t.scale + t.ty;
+    }
+
+    // Draw helpers shared by the primitive handlers.
+
+    /**
+     * Shape-primitive state scope. The ENGINE owns GL state -- every shape draw
+     * (fills, lines, circles, polygons) runs inside this scope, which fully
+     * controls the state legacy rendering proved necessary
+     * (VanillaRenderContext.beginShapeDraw): TEXTURE_2D off, BLEND on,
+     * ALPHA_TEST / CULL_FACE / DEPTH_TEST off. CULL_FACE matters: shared-state
+     * leakage (item rendering, HostDraw legacy) leaves it enabled, and without
+     * this scope all CW-wound primitives (lines, circles) are culled away.
+     * Individual draw methods must NOT touch GL state themselves.
+     */
+    private void beginShape() {
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+    }
+
+    private void endShape() {
+        GL11.glPopAttrib();
+    }
+
+    /**
+     * Submit the current batched primitives to GL and reset batch state.
+     * Safe to call when no batch is open (no-op in that case).
+     */
+    private void flush() {
+        if (batchState == BatchState.IDLE) return;
+        Tessellator tess = Tessellator.instance;
+        tess.draw();
+        if (batchState == BatchState.SHAPE_QUADS) {
+            endShape();
+        } else if (batchState == BatchState.TEXTURED_QUADS) {
+            endTextured();
+        }
+        batchState = BatchState.IDLE;
+        batchTexId = -1;
+    }
+
+    /**
+     * Start or join a shape-quads batch (FillRect, GradientFill, DrawBorder, DrawLine).
+     * Flushes any incompatible batch first.
+     */
+    private void beginShapeQuads() {
+        if (batchState == BatchState.SHAPE_QUADS) return;
+        flush();
+        beginShape();
+        Tessellator.instance.startDrawingQuads();
+        batchState = BatchState.SHAPE_QUADS;
+    }
+
+    /**
+     * Start or join a textured-quads batch (BlitTexture, DrawGlyphRun).
+     * Flushes any incompatible batch first (different type or different texture).
+     */
+    private void beginTexturedQuads(int texId) {
+        if (batchState == BatchState.TEXTURED_QUADS && batchTexId == texId) return;
+        flush();
+        beginTextured();
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texId);
+        Tessellator.instance.startDrawingQuads();
+        batchState = BatchState.TEXTURED_QUADS;
+        batchTexId = texId;
+    }
+
+    private void color(int argb) {
+        float a = ((argb >> 24) & 0xFF) / 255f;
+        float r = ((argb >> 16) & 0xFF) / 255f;
+        float g = ((argb >> 8) & 0xFF) / 255f;
+        float b = (argb & 0xFF) / 255f;
+        GL11.glColor4f(r, g, b, a);
+    }
+
+    /**
+     * Apply color to the Tessellator's per-vertex color channel. Required in
+     * 1.7.10: once anything has put the shared Tessellator into hasColor state
+     * (vanilla Gui.drawRect, item rendering, ...), it ignores the global GL
+     * color and uses the last per-vertex color instead -- shape primitives drawn
+     * without this come out with a stale (usually dark or transparent) color.
+     * Mirrors VanillaRenderContext.tessColor.
+     */
+    private static void tessColor(Tessellator tess, int argb) {
+        int a = (argb >>> 24) & 0xFF;
+        int r = (argb >>> 16) & 0xFF;
+        int g = (argb >>> 8) & 0xFF;
+        int b = argb & 0xFF;
+        if (a == 0) {
+            a = 0xFF;
+        }
+        tess.setColorRGBA_I((r << 16) | (g << 8) | b, a);
+    }
+
+    /**
+     * MC 1.7.10 drop-shadow tint: alpha preserved (a==0 → opaque), each RGB
+     * channel ×25/100 (integer math; equivalent to MC's
+     * {@code (color & 0xFCFCFC) >> 2}). The atlas is a white single-channel
+     * bitmap, so a dark tint yields a dark shadow with the text's alpha.
+     */
+    private static int shadowArgb(int argb) {
+        int a = (argb >>> 24) & 0xFF;
+        if (a == 0) {
+            a = 0xFF;
+        }
+        int r = ((argb >>> 16) & 0xFF) * 25 / 100;
+        int g = ((argb >>> 8) & 0xFF) * 25 / 100;
+        int b = (argb & 0xFF) * 25 / 100;
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
+    // Draw primitives.
+
+    private void drawFillRect(GuideRenderPrimitive.FillRect f) {
+        LytRect r = toScreen(f.x(), f.y(), f.w(), f.h());
+        beginShapeQuads();
+        color(f.argb());
+        Tessellator tess = Tessellator.instance;
+        tessColor(tess, f.argb());
+        tess.addVertex(r.x(), r.y() + r.height(), 0);
+        tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+        tess.addVertex(r.x() + r.width(), r.y(), 0);
+        tess.addVertex(r.x(), r.y(), 0);
+    }
+
+    /**
+     * Wavy (kind=4) and dotted (kind=5) underline decorations emitted from
+     * Rust span geometry. Both paint as batched shape quads (no per-pixel
+     * Gui.drawRect), mirroring {@link #drawFillRect}'s
+     * beginShapeQuads/color/tessColor/addVertex pattern.
+     * <p>
+     * The brush geometry is rasterized once by {@link DecorationRasterizer}
+     * (the single shared source of wave/dot shape -- no per-call-site hardcoded
+     * copies) into doc-px fragments carrying coverage alpha: the wavy line is a
+     * sub-pixel-sampled sine and the dots are soft-edged circles. Each fragment
+     * is emitted as a quad with per-vertex alpha; the rasterizer merges
+     * adjacent same-alpha columns so a saturated run stays one quad instead of
+     * one quad per doc px.
+     * <p>
+     * Colors are run through {@link #brightenDecorationColor} exactly like the
+     * legacy decorations path so they read against the dark page background.
+     */
+    private void drawDecorationLine(GuideRenderPrimitive.DrawDecorationLine d) {
+        List<DecorationRasterizer.Fragment> fragments = DecorationRasterizer.rasterize(d.x(), d.y(), d.w(), d.kind());
+        if (fragments.isEmpty()) {
+            return;
+        }
+        int argb = brightenDecorationColor(d.argb());
+        beginShapeQuads();
+        Tessellator tess = Tessellator.instance;
+        for (DecorationRasterizer.Fragment f : fragments) {
+            // Composite the coverage with the tint's own alpha byte:
+            // final = round(coverage × tintAlpha / 255). Replacing the alpha
+            // byte (as before) discarded a semi-transparent text color's
+            // opacity; an opaque tint (alpha 255) yields exactly the coverage.
+            int fragArgb = decorationArgb(f.alpha(), argb);
+            color(fragArgb);
+            tessColor(tess, fragArgb);
+            float x0 = sx(f.x());
+            float x1 = sx(f.x() + f.w());
+            float y0 = sy(f.y());
+            float y1 = sy(f.y() + f.h());
+            tess.addVertex(x0, y1, 0);
+            tess.addVertex(x1, y1, 0);
+            tess.addVertex(x1, y0, 0);
+            tess.addVertex(x0, y0, 0);
+        }
+    }
+
+    private void drawGradientFill(GuideRenderPrimitive.GradientFill g) {
+        LytRect r = toScreen(g.x(), g.y(), g.w(), g.h());
+        beginShapeQuads();
+        Tessellator tess = Tessellator.instance;
+        color(g.argbBottom());
+        tessColor(tess, g.argbBottom());
+        tess.addVertex(r.x(), r.y() + r.height(), 0);
+        tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+        color(g.argbTop());
+        tessColor(tess, g.argbTop());
+        tess.addVertex(r.x() + r.width(), r.y(), 0);
+        tess.addVertex(r.x(), r.y(), 0);
+    }
+
+    private void drawBorder(GuideRenderPrimitive.DrawBorder db) {
+        int x = db.x(), y = db.y(), w = db.w(), h = db.h();
+        int argb = db.argb();
+        beginShapeQuads();
+        Tessellator tess = Tessellator.instance;
+        color(argb);
+        tessColor(tess, argb);
+        // Aggregate all four sides into a single begin/end pair. Each side that
+        // is visible adds exactly one quad (4 vertices); at most 4 quads / 16
+        // vertices total.
+        if (db.top() > 0) {
+            LytRect r = toScreen(x, y, w, db.top());
+            tess.addVertex(r.x(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y(), 0);
+            tess.addVertex(r.x(), r.y(), 0);
+        }
+        if (db.bottom() > 0) {
+            LytRect r = toScreen(x, y + h - db.bottom(), w, db.bottom());
+            tess.addVertex(r.x(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y(), 0);
+            tess.addVertex(r.x(), r.y(), 0);
+        }
+        if (db.left() > 0) {
+            LytRect r = toScreen(x, y + db.top(), db.left(), h - db.top() - db.bottom());
+            tess.addVertex(r.x(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y(), 0);
+            tess.addVertex(r.x(), r.y(), 0);
+        }
+        if (db.right() > 0) {
+            LytRect r = toScreen(x + w - db.right(), y + db.top(), db.right(), h - db.top() - db.bottom());
+            tess.addVertex(r.x(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y() + r.height(), 0);
+            tess.addVertex(r.x() + r.width(), r.y(), 0);
+            tess.addVertex(r.x(), r.y(), 0);
+        }
+    }
+
+    /**
+     * Textured-primitive state scope (Blit/GlyphRun). The ENGINE owns GL state:
+     * texture on, blend on, ALPHA_TEST / CULL_FACE / DEPTH_TEST off. Item
+     * rendering and HostDraw legacy can leak any of these into the stream, and
+     * without this scope textured quads get culled or their AA edges cut.
+     */
+    private void beginTextured() {
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glDisable(GL11.GL_ALPHA_TEST);
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+    }
+
+    private void endTextured() {
+        GL11.glPopAttrib();
+    }
+
+    private void drawBlitTexture(GuideRenderPrimitive.BlitTexture bt) {
+        int texId = bt.texId();
+        if (GuideLatexRenderer.INSTANCE.isLatexBlitToken(texId)) {
+            // Deferred latex blit: the block emitted a stable negative token
+            // instead of a texture id. Resolve the real texture now, rasterized
+            // at the current device output scale (transform × guiScale) so the
+            // formula texture maps 1:1 onto device pixels, matching the text
+            // path's font_size × render_scale rasterization (parley_text.rs:834).
+            // The flush is required before texture creation, which binds/unbinds
+            // GL textures underneath an open batch.
+            flush();
+            float rasterScale = deviceRasterScale();
+            int[] resolved = GuideLatexRenderer.INSTANCE.resolveLatexTexture(texId, rasterScale);
+            if (resolved == null) {
+                return;
+            }
+            texId = resolved[0];
+        }
+        LytRect r = toScreen(bt.x(), bt.y(), bt.w(), bt.h());
+        beginTexturedQuads(texId);
+        color(bt.argb());
+        Tessellator tess = Tessellator.instance;
+        tessColor(tess, bt.argb());
+        tess.addVertexWithUV(r.x(), r.y() + r.height(), 0, bt.u(), bt.v2());
+        tess.addVertexWithUV(r.x() + r.width(), r.y() + r.height(), 0, bt.u2(), bt.v2());
+        tess.addVertexWithUV(r.x() + r.width(), r.y(), 0, bt.u2(), bt.v());
+        tess.addVertexWithUV(r.x(), r.y(), 0, bt.u(), bt.v());
+    }
+
+    /**
+     * Device pixel scale applied to the current transform stack: document units
+     * to device pixels. This is the real output scale of the blit quad, the
+     * correct {@code rasterScale} for deferred latex texture rasterization.
+     *
+     * <p>
+     * {@code guiScale} is the display scale the engine was framed with:
+     * in-game {@code DisplayScale.scaleFactor()} (device px per GUI unit, the
+     * same source the text path rasterizes glyphs at, see {@link GuideText});
+     * headless {@code 1.0f}, where the offscreen FBO is a 1:1 pixel canvas.
+     * The transform stack carries the document-to-screen multiplier: in-game
+     * the root zoom, headless the {@code PushTransform(0,0,scale)} wrap applied
+     * by {@code DocumentOffscreenFramebuffer.wrapForTile}. Their product is the
+     * number of device pixels one document pixel occupies -- exactly what the
+     * formula texture must be rasterized at for a 1:1 texel/device mapping.
+     */
+    private float deviceRasterScale() {
+        return guiScale * currentTransform().scale;
+    }
+
+    private void drawGlyphRun(GuideRenderPrimitive.DrawGlyphRun dg) {
+        List<GuideRenderPrimitive.PlacedGlyph> glyphs = dg.glyphs();
+        if (glyphs == null || glyphs.isEmpty()) return;
+        Transform t = currentTransform();
+        boolean shear = dg.shear();
+        int missingAtlas = 0;
+        if (dg.shadow()) {
+            // Drop-shadow pass first (painted below the main text): the run
+            // offset by SHADOW_OFFSET and tinted by shadowArgb. Non-slanted
+            // runs shift +1/+1 document units; sheared runs shift horizontally
+            // by (1-K)*scale (K = SHEAR_K) and vertically
+            // +1*scale -- the shear transform of the vertical drop, same
+            // geometry as MC italic shadow.
+            missingAtlas = emitGlyphQuads(glyphs, t, shear, shadowArgb(dg.argb()), SHADOW_OFFSET, SHADOW_OFFSET);
+        }
+        missingAtlas = Math.max(missingAtlas, emitGlyphQuads(glyphs, t, shear, dg.argb(), 0f, 0f));
+        if (missingAtlas > 0 && GuideDebugLog.isLayoutOverlayEnabled()) {
+            GuideDebugLog.warnAlways(
+                "[TRC] DrawGlyphRun: {} glyphs missing from atlas (run size={})",
+                missingAtlas,
+                glyphs.size());
+        }
+    }
+
+    /**
+     * Emit one glyph pass into the current textured-quads session: every glyph
+     * translated by {@code dx}/{@code dy} document units (before the
+     * document→screen transform) and tinted by {@code argb}. When {@code shear}
+     * is on, the shear baseline is computed from the un-offset glyph geometry
+     * ({@code g.y() + g.h()}, before dx/dy), so both the shadow and main passes
+     * share the same baseline and the offset pass is a rigid translation of the
+     * un-offset run -- the slant angle is preserved independently of the offset
+     * (dx/dy do not change the italic tilt). Returns the number of glyphs whose
+     * atlas bitmap is missing (for the debug warning).
+     * <p>
+     * Glyphs resolve to per-page atlas textures: whenever a glyph belongs to a
+     * different page than the current batch, the batch is flushed and rebound to
+     * that page's texture (multi-texture atlas pagination).
+     */
+    private int emitGlyphQuads(List<GuideRenderPrimitive.PlacedGlyph> glyphs, Transform t, boolean shear, int argb,
+        float dx, float dy) {
+        float shearBaseY = 0f;
+        if (shear) {
+            for (GuideRenderPrimitive.PlacedGlyph g : glyphs) {
+                shearBaseY = Math.max(shearBaseY, g.y() + g.h());
+            }
+            shearBaseY = shearBaseY * t.scale + t.ty;
+        }
+        color(argb);
+        Tessellator tess = Tessellator.instance;
+        int missingAtlas = 0;
+        int batchPage = -1;
+        for (GuideRenderPrimitive.PlacedGlyph g : glyphs) {
+            // Resolve the glyph's page + UV coordinates from the atlas.
+            GuideGlyphAtlas.GlyphSlot slot = glyphAtlas.lookup(g.atlasKey());
+            if (slot == null) {
+                missingAtlas++;
+                continue;
+            }
+            if (slot.pageId() != batchPage) {
+                // Page switch: flush and rebind to the glyph's page texture.
+                beginTexturedQuads(glyphAtlas.getTextureId(slot.pageId()));
+                batchPage = slot.pageId();
+                // Per-vertex color must be set AFTER the batch starts:
+                // Tessellator.startDrawing resets hasColor, so a tessColor set
+                // before beginTexturedQuads would be wiped on the first batch
+                // (verts submitted without color data → invisible).
+                tessColor(tess, argb);
+            }
+            GuideGlyphAtlas.GlyphUV uv = slot.uv();
+            // Keep subpixel precision: vertices are float, only the atlas UV is fixed.
+            float x = (g.x() + dx) * t.scale + t.tx;
+            float y = (g.y() + dy) * t.scale + t.ty;
+            float w = g.w() * t.scale;
+            float h = g.h() * t.scale;
+            float xTop = x;
+            float xBottom = x;
+            if (shear) {
+                // K is the render-only shear coefficient (SHEAR_K = 0.25); the
+                // Rust-side boundary correction hardcodes the same value.
+                xTop = x + SHEAR_K * (shearBaseY - y);
+                xBottom = x + SHEAR_K * (shearBaseY - y - h);
+            }
+            // Atlas rows are written top-to-bottom: uv.v = glyph top row,
+            // uv.v2 = glyph bottom row. Screen Y increases downward, so screen
+            // top pairs with uv.v and screen bottom with uv.v2 -- same convention
+            // as VanillaRenderContext.blitTexture.
+            tess.addVertexWithUV(xBottom, y + h, 0, uv.u(), uv.v2()); // bottom-left → glyph bottom row
+            tess.addVertexWithUV(xBottom + w, y + h, 0, uv.u2(), uv.v2()); // bottom-right → glyph bottom row
+            tess.addVertexWithUV(xTop + w, y, 0, uv.u2(), uv.v()); // top-right → glyph top row
+            tess.addVertexWithUV(xTop, y, 0, uv.u(), uv.v()); // top-left → glyph top row
+        }
+        return missingAtlas;
+    }
+
+    private void drawLine(GuideRenderPrimitive.DrawLine dl) {
+        float x1 = sx(dl.x1()), y1 = sy(dl.y1());
+        float x2 = sx(dl.x2()), y2 = sy(dl.y2());
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float len = (float) Math.sqrt(dx * dx + dy * dy);
+        if (len < 1e-4f) return;
+
+        float half = Math.max(0.5f, dl.thickness() * currentTransform().scale * 0.5f);
+        float nx = -dy / len * half;
+        float ny = dx / len * half;
+
+        beginShapeQuads();
+        color(dl.argb());
+        Tessellator tess = Tessellator.instance;
+        tessColor(tess, dl.argb());
+        tess.addVertex(x1 - nx, y1 - ny, 0);
+        tess.addVertex(x2 - nx, y2 - ny, 0);
+        tess.addVertex(x2 + nx, y2 + ny, 0);
+        tess.addVertex(x1 + nx, y1 + ny, 0);
+    }
+
+    private void drawTriangle(GuideRenderPrimitive.DrawTriangle dt) {
+        flush();
+        beginShape();
+        color(dt.argb());
+        Tessellator tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLES);
+        tessColor(tess, dt.argb());
+        tess.addVertex(sx(dt.x1()), sy(dt.y1()), 0);
+        tess.addVertex(sx(dt.x2()), sy(dt.y2()), 0);
+        tess.addVertex(sx(dt.x3()), sy(dt.y3()), 0);
+        tess.draw();
+        endShape();
+    }
+
+    private static final int CIRCLE_SEGMENTS = 32;
+
+    private void drawCircle(GuideRenderPrimitive.DrawCircle dc) {
+        flush();
+        float cx = sx(dc.cx()), cy = sy(dc.cy());
+        float radius = dc.radius() * currentTransform().scale;
+        beginShape();
+        color(dc.argb());
+        Tessellator tess = Tessellator.instance;
+        if (dc.filled()) {
+            tess.startDrawing(GL11.GL_TRIANGLE_FAN);
+            tessColor(tess, dc.argb());
+            tess.addVertex(cx, cy, 0);
+            for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
+                double a = Math.PI * 2.0 * i / CIRCLE_SEGMENTS;
+                tess.addVertex(cx + (float) (Math.cos(a) * radius), cy + (float) (Math.sin(a) * radius), 0);
+            }
+            tess.draw();
+        } else {
+            tess.startDrawing(GL11.GL_TRIANGLE_STRIP);
+            tessColor(tess, dc.argb());
+            for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
+                double a = Math.PI * 2.0 * i / CIRCLE_SEGMENTS;
+                float cos = (float) Math.cos(a);
+                float sin = (float) Math.sin(a);
+                tess.addVertex(cx + cos * (radius - 1), cy + sin * (radius - 1), 0);
+                tess.addVertex(cx + cos * (radius + 1), cy + sin * (radius + 1), 0);
+            }
+            tess.draw();
+        }
+        endShape();
+    }
+
+    private void drawCircleOutline(GuideRenderPrimitive.DrawCircleOutline dco) {
+        flush();
+        float cx = sx(dco.cx()), cy = sy(dco.cy());
+        float scale = currentTransform().scale;
+        float half = Math.max(0.5f, dco.thickness() * scale * 0.5f);
+        float radius = dco.radius() * scale;
+        float inner = Math.max(0f, radius - half);
+        float outer = radius + half;
+        beginShape();
+        color(dco.argb());
+        Tessellator tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLE_STRIP);
+        tessColor(tess, dco.argb());
+        for (int i = 0; i <= CIRCLE_SEGMENTS; i++) {
+            double a = Math.PI * 2.0 * i / CIRCLE_SEGMENTS;
+            float cos = (float) Math.cos(a);
+            float sin = (float) Math.sin(a);
+            tess.addVertex(cx + cos * inner, cy + sin * inner, 0);
+            tess.addVertex(cx + cos * outer, cy + sin * outer, 0);
+        }
+        tess.draw();
+        endShape();
+    }
+
+    private void drawPolygon(GuideRenderPrimitive.DrawPolygon dp) {
+        flush();
+        float[] xs = dp.xs();
+        float[] ys = dp.ys();
+        if (xs == null || ys == null || xs.length < 3) return;
+        int n = Math.min(xs.length, ys.length);
+        beginShape();
+        color(dp.argb());
+        Tessellator tess = Tessellator.instance;
+        tess.startDrawing(GL11.GL_TRIANGLE_FAN);
+        tessColor(tess, dp.argb());
+        tess.addVertex(sx(xs[0]), sy(ys[0]), 0);
+        for (int i = 1; i < n; i++) {
+            tess.addVertex(sx(xs[i]), sy(ys[i]), 0);
+        }
+        tess.draw();
+        endShape();
+    }
+
+    private void drawRenderItem(GuideRenderPrimitive.RenderItem ri) {
+        flush();
+        if (ri.stack() == null) return;
+        var mc = Minecraft.getMinecraft();
+        FontRenderer fr = mc.fontRenderer;
+        float scale = currentTransform().scale;
+        // Match VanillaRenderContext.renderItemInternal state handling; the item is
+        // drawn at the transformed position with zoom applied via the modelview.
+        GL11.glPushMatrix();
+        GL11.glTranslatef(sx(ri.x()), sy(ri.y()), 0f);
+        GL11.glScalef(scale, scale, 1f);
+        try {
+            GL11.glDisable(GL11.GL_BLEND);
+            GL11.glColor4f(1f, 1f, 1f, 1f);
+
+            RenderHelper.enableGUIStandardItemLighting();
+            GL11.glEnable(GL11.GL_LIGHTING);
+            GL11.glEnable(GL11.GL_NORMALIZE);
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glEnable(GL11.GL_ALPHA_TEST);
+
+            ITEM_RENDERER.zLevel = 100f;
+            ITEM_RENDERER.renderItemAndEffectIntoGUI(fr, mc.getTextureManager(), ri.stack(), 0, 0);
+            ITEM_RENDERER.renderItemOverlayIntoGUI(fr, mc.getTextureManager(), ri.stack(), 0, 0);
+            RenderHelper.disableStandardItemLighting();
+        } finally {
+            ITEM_RENDERER.zLevel = 0f;
+            GL11.glPopMatrix();
+            OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+            // Restore the frame baseline: item rendering, especially a modded
+            // IItemRenderer, may leave CULL_FACE/DEPTH_TEST/ALPHA_TEST enabled,
+            // which would cull or cut every later primitive this frame.
+            RenderHelper.disableStandardItemLighting();
+            applyFrameBaselineGlState();
+        }
+    }
+
+    private void drawText(GuideRenderPrimitive.DrawText dt) {
+        flush();
+        Minecraft mc = Minecraft.getMinecraft();
+        String text = dt.text();
+        if (text == null || text.isEmpty()) return;
+        ResolvedTextStyle style = dt.style();
+        int x = Math.round(sx(dt.x()));
+        int y = Math.round(sy(dt.y()));
+
+        int color = resolveTextColor(style);
+        String drawn = GuideFontCompat.prepareRenderedText(text, style);
+
+        // Combine the style's own font scale with the current zoom so text
+        // scales exactly like it did under the legacy GL-matrix pipeline.
+        float scale = style.fontScale() * currentTransform().scale;
+        boolean scaled = Math.abs(scale - 1f) > 1e-4f;
+        if (scaled) {
+            GL11.glPushMatrix();
+            GL11.glTranslatef(x, y, 0f);
+            GL11.glScalef(scale, scale, 1f);
+            if (style.dropShadow()) {
+                mc.fontRenderer.drawStringWithShadow(drawn, 0, 0, color);
+            } else {
+                mc.fontRenderer.drawString(drawn, 0, 0, color);
+            }
+            GL11.glPopMatrix();
+        } else if (style.dropShadow()) {
+            mc.fontRenderer.drawStringWithShadow(drawn, x, y, color);
+        } else {
+            mc.fontRenderer.drawString(drawn, x, y, color);
+        }
+
+        drawTextDecorations(drawn, x, y, color, style, scale);
+    }
+
+    private int resolveTextColor(ResolvedTextStyle style) {
+        int color = style.color() != null ? style.color()
+            .resolve() : 0xFFFFFFFF;
+        if ((color >>> 24) == 0) {
+            color |= 0xFF000000;
+        }
+        return color;
+    }
+
+    private void drawTextDecorations(String text, int x, int y, int color, ResolvedTextStyle style, float scale) {
+        boolean hasUnderline = style.underlined();
+        boolean hasWavyUnderline = style.wavyUnderline();
+        boolean hasDottedUnderline = style.dottedUnderline();
+        if (!hasUnderline && !hasWavyUnderline && !hasDottedUnderline) return;
+
+        Minecraft mc = Minecraft.getMinecraft();
+        int scaledFontHeight = Math.round(mc.fontRenderer.FONT_HEIGHT * scale);
+        int decorationY = y + scaledFontHeight - 1;
+        int decoratedWidth = GuideFontCompat.getPreparedStringWidth(mc.fontRenderer, text, style);
+
+        if (hasUnderline) {
+            Gui.drawRect(x, decorationY, x + decoratedWidth, decorationY + 1, color);
+        }
+        if (hasWavyUnderline || hasDottedUnderline) {
+            // kind 4/5 fragments carry coverage alpha down to ~16/255 (dot
+            // corners) and below 25 (wave zero crossings). If ALPHA_TEST is
+            // left enabled by a caller (tooltip escape chain), GL_GREATER 0.1
+            // would clip those soft-edge pixels. Scope the draw like beginShape
+            // so the coverage gradient always reaches the framebuffer.
+            GL11.glPushAttrib(GL11.GL_ENABLE_BIT);
+            GL11.glDisable(GL11.GL_ALPHA_TEST);
+            try {
+                if (hasWavyUnderline) {
+                    // The old wavy underline was 1x1px with ±1 amplitude, which
+                    // the dark page background swallowed. Use a ±2px, 2px-thick
+                    // 8-phase sine, tinted lighter than the body gray, rasterized
+                    // by the shared DecorationRasterizer with coverage alpha
+                    // (sub-pixel sampling).
+                    int waveColor = brightenDecorationColor(color);
+                    for (DecorationRasterizer.Fragment f : DecorationRasterizer
+                        .rasterize(x, decorationY, decoratedWidth, 4)) {
+                        Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), waveColor));
+                    }
+                }
+                if (hasDottedUnderline) {
+                    // One 2x2 dot per character was too sparse; draw 3px
+                    // soft-edged circular dots on a fixed 4px cadence via the
+                    // shared DecorationRasterizer, tinted lighter than the body
+                    // gray.
+                    int dotColor = brightenDecorationColor(color);
+                    for (DecorationRasterizer.Fragment f : DecorationRasterizer
+                        .rasterize(x, decorationY, decoratedWidth, 5)) {
+                        Gui.drawRect(f.x(), f.y(), f.x() + f.w(), f.y() + f.h(), decorationArgb(f.alpha(), dotColor));
+                    }
+                }
+            } finally {
+                GL11.glPopAttrib();
+            }
+        }
+    }
+
+    /**
+     * Wavy/dots decorations are thin; a faint tint is swallowed by the page
+     * background. Blend the text color toward white so the decoration reads
+     * against the body gray.
+     */
+    private int brightenDecorationColor(int color) {
+        int a = color & 0xFF000000;
+        int r = (color >>> 16) & 0xFF;
+        int g = (color >>> 8) & 0xFF;
+        int b = color & 0xFF;
+        r = r + (255 - r) * 3 / 4;
+        g = g + (255 - g) * 3 / 4;
+        b = b + (255 - b) * 3 / 4;
+        return a | (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Composite a rasterizer coverage alpha with the decoration tint's own
+     * alpha byte: final = round(coverage × tintAlpha / 255), round-half-up.
+     * Pure coverage would discard a semi-transparent text color's opacity (the
+     * tint's alpha byte was replaced, not multiplied); multiplying keeps the
+     * text color's transparency semantics while the coverage still shapes the
+     * brush edge. With an opaque tint (alpha 255) the result equals the
+     * coverage exactly.
+     */
+    private static int decorationArgb(int coverage, int tintArgb) {
+        int tintAlpha = (tintArgb >>> 24) & 0xFF;
+        int alpha = (coverage * tintAlpha + 127) / 255;
+        return (alpha << 24) | (tintArgb & 0xFFFFFF);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void drawScene3D(GuideRenderPrimitive.RenderScene3D s3) {
+        flush();
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glPushMatrix();
+
+        LytRect clip = toScreen(s3.clipX(), s3.clipY(), s3.clipW(), s3.clipH());
+        if (!scissorStack.isEmpty()) {
+            LytRect parent = scissorStack.peek();
+            int x1 = Math.max(clip.x(), parent.x());
+            int y1 = Math.max(clip.y(), parent.y());
+            int x2 = Math.min(clip.right(), parent.right());
+            int y2 = Math.min(clip.bottom(), parent.bottom());
+            clip = new LytRect(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
+        }
+
+        sceneRenderer.render(
+            s3.level(),
+            s3.camera(),
+            s3.particles(),
+            s3.weatherEffects(),
+            s3.weatherAnimationTick(),
+            s3.lightDarkMode(),
+            clip.x(),
+            clip.y(),
+            clip.width(),
+            clip.height(),
+            viewport.width(),
+            viewport.height());
+
+        GL11.glPopMatrix();
+        GL11.glPopAttrib();
+
+        // Restore scissor after 3D rendering
+        reapplyScissor();
+    }
+
+    /**
+     * Legacy subtree rendering. The GL modelview is set from the current
+     * transform stack so the callback can render in document coordinates
+     * ({@code screen = doc * scale + t}). The callback's RenderContext scissor
+     * stack is seeded with the engine's current scissor so nested legacy
+     * scissors stay inside the viewport, and GL/scissor state is restored
+     * afterwards.
+     */
+    private void drawHostDraw(GuideRenderPrimitive.HostDraw hd) {
+        flush();
+        Transform t = currentTransform();
+        RenderContext ctx = hd.context();
+        if (GuideDebugLog.isLayoutOverlayEnabled()) {
+            GuideDebugLog.warnAlways(
+                "[TRC] HostDraw execute transform=({},{},{}) scissorTop={}",
+                t.tx,
+                t.ty,
+                t.scale,
+                scissorStack.peek());
+        }
+        // Escape-hatch contract: the legacy callback runs with full GL state
+        // saved/restored, so it cannot leak enables (cull face, depth test, ...)
+        // into the primitive stream.
+        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
+        GL11.glPushMatrix();
+        GL11.glTranslatef(t.tx, t.ty, 0f);
+        GL11.glScalef(t.scale, t.scale, 1f);
+        boolean seededScissor = false;
+        if (!scissorStack.isEmpty()) {
+            ctx.pushScissor(scissorStack.peek());
+            seededScissor = true;
+        }
+        try {
+            hd.draw()
+                .run();
+        } finally {
+            if (seededScissor) {
+                ctx.popScissor();
+            }
+            // The legacy path may leave the Tessellator mid-batch.
+            try {
+                Tessellator.instance.draw();
+            } catch (IllegalStateException ignored) {}
+            GL11.glPopMatrix();
+            GL11.glPopAttrib();
+            ctx.restoreExternalRenderState();
+            // restoreExternalRenderState restores the LEGACY context's expected
+            // state (it re-enables ALPHA_TEST among others); the engine must
+            // re-establish its own baseline afterwards, then re-apply the
+            // engine scissor over the context's (now empty) scissor stack.
+            applyFrameBaselineGlState();
+            reapplyScissor();
+        }
+    }
+
+    private record Transform(float tx, float ty, float scale) {}
+}

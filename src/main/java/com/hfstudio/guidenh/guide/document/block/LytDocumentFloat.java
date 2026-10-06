@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.RenderContext;
 
 import lombok.Getter;
@@ -25,7 +26,7 @@ import lombok.Getter;
  * downward into the following paragraphs, exactly like CSS {@code float: left / right}.
  *
  * <p>
- * Example — left-floating GameScene that surrounding text wraps around:
+ * Example: a left-floating GameScene that surrounding text wraps around:
  * 
  * <pre>
  * {@code
@@ -40,7 +41,7 @@ import lombok.Getter;
 @Getter
 public class LytDocumentFloat extends LytBlock {
 
-    private static final int FLOAT_GAP = 5;
+    public static final int FLOAT_GAP = 5;
 
     private LytBlock inner;
     private final boolean floatRight;
@@ -76,16 +77,22 @@ public class LytDocumentFloat extends LytBlock {
 
     @Override
     protected LytRect computeLayout(LayoutContext context, int x, int y, int availableWidth) {
+        // Measure natural width without fullWidth expansion, then relayout at
+        // the measured width so the inner does not stretch to page width.
+        boolean wasFullWidth = inner.isFullWidth();
+        inner.setFullWidth(false);
+        var naturalBounds = inner.layout(context, x, y, availableWidth);
+        inner.setFullWidth(wasFullWidth);
+        int innerWidth = naturalBounds.width();
+
         if (floatRight) {
-            var naturalBounds = inner.layout(context, x, y, availableWidth);
-            int innerWidth = naturalBounds.width();
             int rx = x + availableWidth - innerWidth;
             inner.layout(context, rx, y, innerWidth);
             context.addRightFloat(
                 new LytRect(rx - FLOAT_GAP, y, innerWidth + FLOAT_GAP, naturalBounds.height() + FLOAT_GAP));
         } else {
-            var innerBounds = inner.layout(context, x, y, availableWidth);
-            context.addLeftFloat(new LytRect(x, y, innerBounds.width() + FLOAT_GAP, innerBounds.height() + FLOAT_GAP));
+            inner.layout(context, x, y, innerWidth);
+            context.addLeftFloat(new LytRect(x, y, innerWidth + FLOAT_GAP, naturalBounds.height() + FLOAT_GAP));
         }
         return new LytRect(x, y, 0, 0);
     }
@@ -103,6 +110,16 @@ public class LytDocumentFloat extends LytBlock {
     @Override
     public LytNode pickNode(int x, int y) {
         return inner.pickNode(x, y);
+    }
+
+    @Override
+    public boolean usePrimitives() {
+        return true;
+    }
+
+    @Override
+    public void computePrimitives(PrimitiveCollector c) {
+        // No-op: inner child is picked up by PrimitiveCollector.collectFrom traversal.
     }
 
     @Override

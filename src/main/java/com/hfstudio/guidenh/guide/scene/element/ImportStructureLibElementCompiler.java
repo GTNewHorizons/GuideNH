@@ -27,7 +27,7 @@ import com.hfstudio.guidenh.libs.unist.UnistNode;
 import blockrenderer6343.client.utils.ConstructableData;
 
 /**
- * Compiler for &lt;ImportStructureLib&gt; MDX tags. Pure parse — no world operations.
+ * Compiler for &lt;ImportStructureLib&gt; MDX tags. Pure parse - no world operations.
  * Registers a binding and sets its rebuild recipe; actual block placement
  * happens later in {@link LytGuidebookScene#rebuildStructureLib()}.
  */
@@ -120,6 +120,8 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
             scene.setStructureLibSceneMetadata(structureName, metadata);
         }
     }
+
+    // Helpers for callers that need to repeat the attribute parsing.
 
     @Nullable
     public static StructureLibBuildRequest buildDefaultPreviewRequest(MdxJsxElementFields el) {

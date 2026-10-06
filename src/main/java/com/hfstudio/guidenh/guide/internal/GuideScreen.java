@@ -62,7 +62,6 @@ import com.hfstudio.guidenh.guide.compiler.Frontmatter;
 import com.hfstudio.guidenh.guide.compiler.FrontmatterPageMeta;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
 import com.hfstudio.guidenh.guide.compiler.ParsedGuidePage;
-import com.hfstudio.guidenh.guide.document.DefaultStyles;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytDocument;
 import com.hfstudio.guidenh.guide.document.block.LytHeading;
@@ -126,6 +125,8 @@ import com.hfstudio.guidenh.guide.internal.search.GuideItemLinksPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchResultDocumentBuilder;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchSnippetFormatter;
+import com.hfstudio.guidenh.guide.internal.settings.GuideSettingsDocumentBuilder;
+import com.hfstudio.guidenh.guide.internal.settings.GuideSettingsPage;
 import com.hfstudio.guidenh.guide.internal.structure.GuideStructureData;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipLines;
 import com.hfstudio.guidenh.guide.internal.tooltip.GuideItemTooltipRenderSupport;
@@ -133,8 +134,11 @@ import com.hfstudio.guidenh.guide.internal.util.DisplayScale;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
 import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeContent;
 import com.hfstudio.guidenh.guide.internal.welcome.GuideWelcomeScreen;
+import com.hfstudio.guidenh.guide.layout.FontProvider;
+import com.hfstudio.guidenh.guide.layout.LayoutBridge;
 import com.hfstudio.guidenh.guide.layout.LayoutContext;
-import com.hfstudio.guidenh.guide.layout.MinecraftFontMetrics;
+import com.hfstudio.guidenh.guide.layout.RustFontMetrics;
+import com.hfstudio.guidenh.guide.layout.SystemFontProvider;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiExternalLinkSupport;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiPageIds;
 import com.hfstudio.guidenh.guide.mediawiki.MediaWikiSpecialCatalog;
@@ -145,6 +149,8 @@ import com.hfstudio.guidenh.guide.mediawiki.template.MediaWikiTemplateRepository
 import com.hfstudio.guidenh.guide.navigation.NavigationNode;
 import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.render.GuideFontCompat;
+import com.hfstudio.guidenh.guide.render.GuideText;
+import com.hfstudio.guidenh.guide.render.PrimitiveCollector;
 import com.hfstudio.guidenh.guide.render.VanillaRenderContext;
 import com.hfstudio.guidenh.guide.scene.LytGuidebookScene;
 import com.hfstudio.guidenh.guide.scene.annotation.DiamondAnnotation;
@@ -210,6 +216,19 @@ public class GuideScreen extends GuiContainer
     private float currentVisualScale = 1.0f;
     private int lastLayoutWidth = -1;
     private int lastLayoutVisualScalePermille = -1;
+    /**
+     * Last base font size used for layout; a readerFontSize config change
+     * flips this and auto-triggers a re-layout (mirrors the contentZoom precedent).
+     */
+    private float lastLayoutBaseFontSize = -1f;
+    /**
+     * Last resolved base/code family used for layout; a readerFontFamily or
+     * readerCodeFontFamily config change flips these and auto-triggers a
+     * re-layout (null-safe; the default "system"/"mono" resolve to
+     * null/"monospace", so no extra re-layouts are added).
+     */
+    private String lastLayoutBaseFamily = null;
+    private String lastLayoutCodeFamily = null;
     private long lastPageWheelScrollAtMillis;
     private int lastPanelX = Integer.MIN_VALUE;
     private int lastPanelY = Integer.MIN_VALUE;
@@ -236,10 +255,24 @@ public class GuideScreen extends GuiContainer
     private int dragLastMouseY = 0;
 
     private GuideIconButton btnSearch, btnHomePage, btnBack, btnForward, btnFullWidth, btnClose;
+    private GuideIconButton btnSettings;
     private GuideIconButton btnGuideEditorToggle, btnGuideEditorAutosave, btnGuideEditorSave, btnGuideEditorLayoutSplit,
         btnGuideEditorLayoutEditorOnly, btnGuideEditorLayoutPreviewOnly, btnGuideEditorAdvancedToggle;
     public static final int TOOLBAR_H = 16;
     public static final int TOOLBAR_GAP = 3;
+
+    /**
+     * Toolbar page-title style: fontScale 0.8 → line height round(17×0.8) = 14
+     * &lt; TOOLBAR_H, mirroring {@code GuideNavBar.TITLE_FONT_SCALE}. The laid-out
+     * bounds height is the LytParagraph minimal estimate (10), so the centered
+     * titleY = (16-10)/2 + 2 = 5; glyph ink stays inside the 16px toolbar band.
+     */
+    public static final TextStyle TOOLBAR_TITLE_STYLE = TextStyle.builder()
+        .fontScale(0.8f)
+        .bold(true)
+        .font(null)
+        .color(ColorUtils.MC_WHITE)
+        .build();
     private static final int GUIDE_EDITOR_TOOLBAR_H = 16;
     private static final int GUIDE_EDITOR_MIN_SPLIT_PANE_W = 15;
     private static final int SCROLLBAR_W = SceneEditorMultilineTextArea.SCROLLBAR_SIZE;
@@ -279,7 +312,7 @@ public class GuideScreen extends GuiContainer
     private final GuideScreenHomeHistory homeHistory = GuideScreenHomeHistory.shared();
     private final HomePageDataBuilder homePageDataBuilder = new HomePageDataBuilder();
     private final HomePageController homePageController = new HomePageController();
-    private final MinecraftFontMetrics layoutFontMetrics = new MinecraftFontMetrics();
+    private final RustFontMetrics layoutFontMetrics = new RustFontMetrics();
     private final CodeBlockClipboardService codeBlockClipboardService = new CodeBlockClipboardService();
     private final GuideDebugOverlay debugOverlay = new GuideDebugOverlay();
     private final GuideScreenScrollbarOutline scrollbarOutline = new GuideScreenScrollbarOutline();
@@ -310,6 +343,8 @@ public class GuideScreen extends GuiContainer
     private LytRect specialSearchFieldBounds;
     @Nullable
     private LytDocument searchDocument;
+    @Nullable
+    private LytDocument settingsDocument;
     @Nullable
     private String cachedSearchQuery;
     private long cachedSearchIndexRevision = -1L;
@@ -532,7 +567,7 @@ public class GuideScreen extends GuiContainer
         this.parentScreen = parentScreen;
         applyRoute(route);
         pageTitle = new LytParagraph();
-        pageTitle.setStyle(DefaultStyles.HEADING1);
+        pageTitle.setStyle(TOOLBAR_TITLE_STYLE);
         try {
             this.fullWidth = ModConfig.ui.fullWidth;
         } catch (Throwable ignored) {
@@ -743,7 +778,7 @@ public class GuideScreen extends GuiContainer
             }
         } else {
             guide = null;
-            currentAnchor = currentRoute.isHomeSearch() ? currentRoute.anchor() : null;
+            currentAnchor = currentRoute.isHomeSearch() || currentRoute.isSettings() ? currentRoute.anchor() : null;
             pendingAnchorScroll = false;
         }
     }
@@ -1035,6 +1070,7 @@ public class GuideScreen extends GuiContainer
         return fullWidth && !isHomeRoute()
             && !isSearchPage()
             && !isItemLinksPage()
+            && !isSettingsPage()
             && !isGuideEditorActive()
             && ModConfig.ui.fullWidthNarrowReadingMarginRatio > NARROW_READING_DISABLED_RATIO;
     }
@@ -1091,8 +1127,8 @@ public class GuideScreen extends GuiContainer
     private boolean hasEditableContentRoute() {
         // A special page is generated from the guide's own data and has no source file, so there is nothing to
         // edit: the editor pane stays out of the way rather than offering to change a page that cannot be
-        // written. The same applies to the two built-in synthetic views.
-        return hasContentRoute() && !isSearchPage() && !isItemLinksPage() && !isSpecialPage();
+        // written. The same applies to the two built-in synthetic views and to the virtual settings page.
+        return hasContentRoute() && !isSearchPage() && !isItemLinksPage() && !isSettingsPage() && !isSpecialPage();
     }
 
     private void syncGuideEditorStateFromConfig() {
@@ -2291,6 +2327,12 @@ public class GuideScreen extends GuiContainer
             getRightToolbarButtonX(isSearchPage() ? 2 : 4),
             btnY,
             fullWidth ? GuideIconButton.Role.CLOSE_FULL_WIDTH_VIEW : GuideIconButton.Role.OPEN_FULL_WIDTH_VIEW);
+        btnSettings = reuseToolbarButton(
+            btnSettings,
+            6,
+            getRightToolbarButtonX(isSearchPage() ? -1 : 5),
+            btnY,
+            GuideIconButton.Role.SETTINGS);
         btnClose = reuseToolbarButton(
             btnClose,
             0,
@@ -2303,6 +2345,9 @@ public class GuideScreen extends GuiContainer
         this.buttonList.add(btnBack);
         this.buttonList.add(btnForward);
         this.buttonList.add(btnFullWidth);
+        if (!isSearchPage()) {
+            this.buttonList.add(btnSettings);
+        }
         this.buttonList.add(btnClose);
         updateToolbarButtonState();
     }
@@ -2476,12 +2521,19 @@ public class GuideScreen extends GuiContainer
             ensureLayout();
             clampScroll();
         } else if (btn == btnSearch) {
-            if (isSearchPage()) {} else if (currentRoute != null && currentRoute.isHome()) {
-                restoreViewState(GuideScreenViewState.of(GuideScreenRoute.homeSearch(""), 0));
-                focusSearchField();
+            if (isSearchPage()) {} else
+                if (currentRoute != null && (currentRoute.isHome() || currentRoute.isSettings())) {
+                    restoreViewState(GuideScreenViewState.of(GuideScreenRoute.homeSearch(""), 0));
+                    focusSearchField();
+                } else {
+                    navigateTo(GuideSearchPage.anchorForQuery(""));
+                    focusSearchField();
+                }
+        } else if (btn == btnSettings) {
+            if (isSettingsPage()) {} else if (currentRoute != null && currentRoute.isHome()) {
+                restoreViewState(GuideScreenViewState.of(GuideScreenRoute.settings(), 0));
             } else {
-                navigateTo(GuideSearchPage.anchorForQuery(""));
-                focusSearchField();
+                navigateTo(GuideSettingsPage.anchor());
             }
         } else if (btn == btnHomePage) {
             if (currentRoute != null && currentRoute.isHome()) {
@@ -2629,6 +2681,7 @@ public class GuideScreen extends GuiContainer
             currentPage = null;
             document = null;
             searchDocument = null;
+            settingsDocument = null;
             searchField = null;
             specialSearchField = null;
         } else if (isSearchPage()) {
@@ -2636,6 +2689,13 @@ public class GuideScreen extends GuiContainer
             document = null;
             specialSearchField = null;
             rebuildSearchDocumentIfNeeded(true);
+        } else if (isSettingsPage()) {
+            currentPage = null;
+            document = null;
+            searchField = null;
+            specialSearchField = null;
+            searchDocument = null;
+            settingsDocument = GuideSettingsDocumentBuilder.buildDocument();
         } else if (isItemLinksPage()) {
             currentPage = null;
             searchField = null;
@@ -2779,7 +2839,7 @@ public class GuideScreen extends GuiContainer
         }
 
         if (loadedPage != null) {
-            // Cache hit — mount immediately
+            // Cache hit: mount immediately
             loadedPage.prepareForDisplay();
             LytHost lytHost = ClientProxy.getLytHost();
             if (!pageLoadInProgress || requestId != pendingPageLoadRequestId) return;
@@ -2810,7 +2870,7 @@ public class GuideScreen extends GuiContainer
             return;
         }
 
-        // 3. Not yet compiled — prioritize and show loading
+        // 3. Not yet compiled, so prioritize it and show the loading document
         if (worker != null) {
             worker.prioritize(pageId);
         }
@@ -2819,7 +2879,7 @@ public class GuideScreen extends GuiContainer
         lytHost.setCurrentPageId(pageIdStr);
         lytHost.setCurrentPageCollection(guide);
         lytHost.mountDocument(LOADING_DOCUMENT);
-        // pageLoadInProgress stays true — retry next tick
+        // pageLoadInProgress stays true, so retry on the next tick
     }
 
     /** Register scenes created at MOUNT time into GuidePage.scenes() for tick dispatch. */
@@ -2871,19 +2931,65 @@ public class GuideScreen extends GuiContainer
     }
 
     private void ensureLayout() {
+        // Lazy-init the Rust font system handle with system CJK font
+        if (LayoutBridge.getFontHandle() == 0) {
+            FontProvider fontProvider = new SystemFontProvider();
+            byte[] fontData = fontProvider.getFontData("zh_CN");
+            GuideDebugLog.warnAlways(
+                "GuideScreen: initializing Rust font system from {} ({} bytes)",
+                fontProvider.getFontPath(),
+                fontData.length);
+            long handle = LayoutBridge.init(fontData, "zh_CN");
+            LayoutBridge.setFontHandle(handle);
+            loadFallbackSymbolFont(fontProvider, handle);
+        }
+
         var activeDocument = getActiveDocument();
         if (activeDocument == null) return;
         int layoutWidth = Math.max(1, Math.round(contentW / currentZoom));
         int layoutVisualScalePermille = visualScalePermille(currentVisualScale);
+        // Compare baseFontSize on every frame (mirroring the contentZoom
+        // precedent): a config change triggers a re-layout on the next frame
+        // without any explicit event, and under the default value it is always
+        // BASE_FONT_SIZE, so no extra re-layout is introduced.
+        float layoutBaseFontSize = GuideText.resolveBaseFontSize();
+        // The resolved base/code families join the same per-frame comparison
+        // (null-safe; the default "system"/"mono" resolve to null/"monospace",
+        // so no extra re-layout is introduced).
+        String layoutBaseFamily = GuideText.resolveBaseFontFamily();
+        String layoutCodeFamily = GuideText.resolveCodeFontFamily();
         if (!activeDocument.hasLayout() || layoutDocument != activeDocument
             || lastLayoutWidth != layoutWidth
-            || lastLayoutVisualScalePermille != layoutVisualScalePermille) {
+            || lastLayoutVisualScalePermille != layoutVisualScalePermille
+            || lastLayoutBaseFontSize != layoutBaseFontSize
+            || !Objects.equals(lastLayoutBaseFamily, layoutBaseFamily)
+            || !Objects.equals(lastLayoutCodeFamily, layoutCodeFamily)) {
             clearInteractionState();
             activeDocument.updateLayout(createLayoutContext(contentW, getVisualReferenceContentWidth()), layoutWidth);
             layoutDocument = activeDocument;
             lastLayoutWidth = layoutWidth;
             lastLayoutVisualScalePermille = layoutVisualScalePermille;
+            lastLayoutBaseFontSize = layoutBaseFontSize;
+            lastLayoutBaseFamily = layoutBaseFamily;
+            lastLayoutCodeFamily = layoutCodeFamily;
             invalidateScrollbarOutline();
+        }
+    }
+
+    /**
+     * Best-effort fallback symbol font registration (seguisym.ttf covers the
+     * callout icons ⓘ ✦ ➤ ⚠ ☢ that msyh.ttc lacks). Runs once right after
+     * font init; empty data and stale native libs are skipped/ignored.
+     */
+    private void loadFallbackSymbolFont(FontProvider fontProvider, long handle) {
+        if (handle == 0) return;
+        byte[] fallbackData = fontProvider.getFallbackFontData("zh_CN");
+        if (fallbackData.length == 0) return;
+        try {
+            LayoutBridge.loadFallbackFont(handle, fallbackData);
+        } catch (UnsatisfiedLinkError e) {
+            GuideDebugLog
+                .warnAlways("GuideScreen: loadFallbackFont unavailable (stale native lib?): {}", e.getMessage());
         }
     }
 
@@ -2934,6 +3040,11 @@ public class GuideScreen extends GuiContainer
 
         if (isSearchPage()) {
             currentPageTitle = GuidebookText.Search.text();
+            return;
+        }
+
+        if (isSettingsPage()) {
+            currentPageTitle = GuidebookText.Settings.text();
             return;
         }
 
@@ -3687,26 +3798,17 @@ public class GuideScreen extends GuiContainer
             renderHeight);
         cachedPreviewScissor = cachedRect(cachedPreviewScissor, x, y, renderWidth, renderHeight);
         reusableRenderCtx.setViewport(cachedPreviewViewport);
+        reusableRenderCtx.setScreenViewport(cachedPreviewScissor);
         reusableRenderCtx.setScreenHeight(this.height);
         reusableRenderCtx.setDocumentOrigin(x, y);
         reusableRenderCtx.setScrollOffsetY(guideEditorPreviewScrollY);
         reusableRenderCtx.setZoom(1.0f);
-        reusableRenderCtx.pushScissor(cachedPreviewScissor);
-        GL11.glPushMatrix();
-        GL11.glTranslatef(x, y, 0f);
-        GL11.glTranslatef(0f, -(float) guideEditorPreviewScrollY, 0f);
+        // No GL matrix or context scissor here: the primitive pipeline's render
+        // engine owns the document->screen transform and the viewport clip.
         try {
             previewDocument.render(reusableRenderCtx);
         } catch (Throwable t) {
             GuideDebugLog.warn("Failed to render guide editor preview", t);
-        } finally {
-            GL11.glPopMatrix();
-            reusableRenderCtx.restoreExternalRenderState();
-            reusableRenderCtx.popScissor();
-            reusableRenderCtx.restoreExternalRenderState();
-            GL11.glDisable(GL11.GL_SCISSOR_TEST);
-            GL11.glEnable(GL11.GL_TEXTURE_2D);
-            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
         drawGuideEditorPreviewScrollbar(
             x + renderWidth - SCROLLBAR_W,
@@ -4468,8 +4570,9 @@ public class GuideScreen extends GuiContainer
     }
 
     /**
-     * Builds the bottom-bar string with §o italic formatting around each placeholder value.
-     * §r resets to white; §7 restores dark gray (#AAAAAA) to match the draw color.
+     * Builds the bottom-bar string with the italic format code around each placeholder value.
+     * Each value is followed by the reset code and the dark-gray code (#AAAAAA) that matches
+     * the draw color.
      */
     private static String formatBottomBar(String sourceDisplay, String authorsStr, @Nullable String dateVal,
         @Nullable String updatedVal) {
@@ -4533,6 +4636,12 @@ public class GuideScreen extends GuiContainer
         if (pageTitle.isEmpty()) return;
 
         int reservedRight = (16 + TOOLBAR_GAP) * 5 + PANEL_PADDING + 4;
+        // Ordinary toolbar title (user decision): placed naturally from the
+        // toolbar band's left edge (panelX + PANEL_PADDING), unrelated to the
+        // content column, no longer aligned to contentX. The navbar sits
+        // below the toolbar band (navY = panelY + TOOLBAR_H + 1), so the title
+        // has no navbar conflict and may fill the toolbar band; the reserved
+        // right-side icon area is kept.
         int availableW = Math.max(20, panelW - PANEL_PADDING - reservedRight);
         int titleX = panelX + PANEL_PADDING;
 
@@ -4548,17 +4657,34 @@ public class GuideScreen extends GuiContainer
         int titleY = Math.max(0, (TOOLBAR_H - titleH) / 2) + panelY + 2;
 
         var ctx = reusableContentTooltipCtx;
-        cachedTitleViewport = cachedRect(cachedTitleViewport, 0, 0, availableW, Math.max(titleH, TOOLBAR_H));
+        // Defensive clip for the legacy RenderContext fallback path only: the
+        // atlas-backed glyph runs (DrawGlyphRun) are NOT clipped by this
+        // viewport. The title stays inside the toolbar band because
+        // TOOLBAR_TITLE_STYLE's line height (round(17×0.8) = 14) fits under
+        // TOOLBAR_H; that style, not this clamp, is the actual constraint.
+        cachedTitleViewport = cachedRect(cachedTitleViewport, 0, 0, availableW, Math.min(titleH, TOOLBAR_H));
         ctx.setViewport(cachedTitleViewport);
         ctx.setScreenHeight(this.height);
         ctx.setDocumentOrigin(titleX, titleY);
         ctx.setScrollOffsetY(0);
-        GL11.glPushMatrix();
-        GL11.glTranslatef(titleX, titleY, 0f);
         try {
-            pageTitle.render(ctx);
+            // Use the primitive pipeline instead of the legacy render() call:
+            // pageTitle now renders through computePrimitives() (usePrimitives()
+            // always returns true when content exists), which emits atlas-backed
+            // glyph runs when glyphData is available, or a GuideText fallback
+            // (DrawGlyphRun / DrawText) when glyphData is null/empty. This
+            // eliminates the silent blank from the previous empty render() path.
+            var engine = LytDocument.getRenderEngine();
+            LytRect titleScreenVp = new LytRect(titleX, titleY, availableW, Math.max(titleH, TOOLBAR_H));
+            var pc = new PrimitiveCollector(titleScreenVp, ctx);
+            pc.pushTransform(titleX, titleY, 1.0f);
+            pc.collectFrom(pageTitle);
+            pc.popTransform();
+            var prims = pc.result();
+            if (!prims.isEmpty()) {
+                engine.execute(prims);
+            }
         } finally {
-            GL11.glPopMatrix();
             ctx.restoreExternalRenderState();
             GL11.glDisable(GL11.GL_SCISSOR_TEST);
             GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -5050,27 +5176,19 @@ public class GuideScreen extends GuiContainer
         cachedViewportRect = cachedRect(cachedViewportRect, 0, viewportTopInDocument, contentW, documentH);
         cachedScissorRect = cachedRect(cachedScissorRect, contentX, documentY, contentW, documentH);
         ctx.setViewport(cachedViewportRect);
+        ctx.setScreenViewport(cachedScissorRect);
         ctx.setScreenHeight(this.height);
         int documentRenderY = getDocumentViewportY() + documentRenderOffsetY;
         ctx.setDocumentOrigin(contentX, documentRenderY);
         ctx.setScrollOffsetY(renderedScrollY);
         ctx.setPreciseScrollOffsetY(visualScrollY);
         ctx.setZoom(currentZoom);
-        ctx.pushScissor(cachedScissorRect);
-        GL11.glPushMatrix();
-        GL11.glTranslatef(contentX, documentRenderY, 0f);
-        if (currentZoom != 1.0f) {
-            GL11.glScalef(currentZoom, currentZoom, 1f);
-        }
-        GL11.glTranslatef(0f, -visualScrollY, 0f);
+        // No GL matrix or context scissor here: the primitive pipeline's render
+        // engine owns the document->screen transform and the viewport clip.
         try {
             activeDocument.render(ctx);
         } catch (Throwable t) {
             GuideDebugLog.error("Error rendering guide document {}", currentAnchor.pageId(), t);
-        } finally {
-            GL11.glPopMatrix();
-            ctx.restoreExternalRenderState();
-            ctx.popScissor();
         }
     }
 
@@ -5243,6 +5361,10 @@ public class GuideScreen extends GuiContainer
         if (btnSearch != null) {
             btnSearch.enabled = canSearchCurrentView();
             btnSearch.visible = true;
+        }
+        if (btnSettings != null) {
+            btnSettings.enabled = true;
+            btnSettings.visible = true;
         }
         if (btnGuideEditorAutosave != null) {
             btnGuideEditorAutosave.setActive(GuideScreenEditorState.isAutosaveEnabled());
@@ -6894,6 +7016,10 @@ public class GuideScreen extends GuiContainer
         return GuideSearchPage.isSearchAnchor(currentAnchor);
     }
 
+    private boolean isSettingsPage() {
+        return GuideSettingsPage.isSettingsAnchor(currentAnchor);
+    }
+
     private boolean isSpecialPage() {
         return currentAnchor != null && currentAnchor.pageId() != null
             && MediaWikiPageIds.isSpecialPage(currentAnchor.pageId());
@@ -7064,7 +7190,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private int getRightToolbarButtonCount() {
-        return isSearchPage() ? 4 : 6;
+        return isSearchPage() ? 4 : 7;
     }
 
     private int getRightToolbarButtonX(int index) {
@@ -7091,7 +7217,7 @@ public class GuideScreen extends GuiContainer
 
     @Nullable
     private LytDocument getActiveDocument() {
-        return isSearchPage() ? searchDocument : document;
+        return isSearchPage() ? searchDocument : isSettingsPage() ? settingsDocument : document;
     }
 
     private String queryFromCurrentAnchor() {
@@ -7102,6 +7228,24 @@ public class GuideScreen extends GuiContainer
             return currentAnchor != null && currentAnchor.anchor() != null ? currentAnchor.anchor() : "";
         }
         return "";
+    }
+
+    /**
+     * Rebuilds the settings page document in place (after a reader
+     * config change from the settings UI). Only the document tree is replaced
+     * here; relayout is handled by the {@link #ensureLayout()} invalidation
+     * chain, which compares {@code GuideText.resolveBaseFontSize()}
+     * plus the resolved base/code families every frame, so no explicit
+     * invalidation is introduced.
+     */
+    public void rebuildSettingsDocument() {
+        if (!isSettingsPage()) {
+            return;
+        }
+        clearInteractionState();
+        settingsDocument = GuideSettingsDocumentBuilder.buildDocument();
+        layoutDocument = null;
+        lastLayoutWidth = -1;
     }
 
     private void rebuildSearchDocumentIfNeeded(boolean force) {

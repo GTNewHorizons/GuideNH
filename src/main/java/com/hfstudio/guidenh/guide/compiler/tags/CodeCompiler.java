@@ -20,7 +20,7 @@ public class CodeCompiler extends FlowTagCompiler {
     @Override
     protected void compile(PageCompiler compiler, LytFlowParent parent, MdxJsxElementFields el) {
         var text = new LytFlowText();
-        // Extract text from child — <code> has one MdAstText child from converter
+        // Extract text from child - <code> has one MdAstText child from converter
         String value = "";
         if (!el.children()
             .isEmpty()

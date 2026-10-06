@@ -8,13 +8,15 @@ import org.jetbrains.annotations.Nullable;
 
 import com.hfstudio.guidenh.guide.PageAnchor;
 import com.hfstudio.guidenh.guide.internal.search.GuideSearchPage;
+import com.hfstudio.guidenh.guide.internal.settings.GuideSettingsPage;
 
 public class GuideScreenRoute {
 
     public enum Kind {
         HOME,
         HOME_SEARCH,
-        CONTENT
+        CONTENT,
+        SETTINGS
     }
 
     private static final GuideScreenRoute HOME = new GuideScreenRoute(Kind.HOME, null, null);
@@ -39,6 +41,10 @@ public class GuideScreenRoute {
         return new GuideScreenRoute(Kind.HOME_SEARCH, null, GuideSearchPage.anchorForQuery(query));
     }
 
+    public static GuideScreenRoute settings() {
+        return new GuideScreenRoute(Kind.SETTINGS, null, GuideSettingsPage.anchor());
+    }
+
     public static GuideScreenRoute content(ResourceLocation guideId, PageAnchor anchor) {
         return new GuideScreenRoute(
             Kind.CONTENT,
@@ -52,6 +58,10 @@ public class GuideScreenRoute {
 
     public boolean isHomeSearch() {
         return kind == Kind.HOME_SEARCH;
+    }
+
+    public boolean isSettings() {
+        return kind == Kind.SETTINGS;
     }
 
     public boolean isContent() {
