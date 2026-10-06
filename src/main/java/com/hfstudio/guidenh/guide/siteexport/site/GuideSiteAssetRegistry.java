@@ -73,18 +73,7 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
     public String writeShared(String bucket, String extension, byte[] content) throws Exception {
         checkWriteFailure();
         Path relative = sharedPath(bucket, extension, sha256(content));
-        if (completedPaths.contains(relative)) {
-            return relative.toString()
-                .replace('\\', '/');
-        }
-        Path absolute = outDir.resolve(relative);
-        ensureDirectory(absolute.getParent());
-        synchronized (pathLock(relative)) {
-            if (!completedPaths.contains(relative) && !Files.exists(absolute)) {
-                Files.write(absolute, content);
-            }
-            completedPaths.add(relative);
-        }
+        scheduleWrite(relative, () -> content);
         return relative.toString()
             .replace('\\', '/');
     }
@@ -97,7 +86,7 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
     }
 
     public String writePngAsync(String bucket, BufferedImage image) throws Exception {
-        Path relative = sharedPath(bucket, ".png", sha256Image(image));
+        Path relative = sharedPath(bucket, ".png", imageHash(image));
         scheduleWrite(relative, () -> encodePng(image));
         return relative.toString()
             .replace('\\', '/');
@@ -111,7 +100,7 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
                 .image());
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         for (GuideSiteAnimatedPng.Frame frame : snapshot) {
-            digest.update(sha256Image(frame.image()).getBytes(StandardCharsets.US_ASCII));
+            digest.update(imageHash(frame.image()).getBytes(StandardCharsets.US_ASCII));
             digest.update(
                 ByteBuffer.allocate(Integer.BYTES)
                     .putInt(frame.ticks())
@@ -147,10 +136,6 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
         checkWriteFailure();
         Path absolute = outDir.resolve(relative);
         if (completedPaths.contains(relative) || pendingPaths.contains(relative)) {
-            return;
-        }
-        if (Files.exists(absolute)) {
-            completedPaths.add(relative);
             return;
         }
         pendingWrites.acquire();
@@ -232,7 +217,7 @@ public class GuideSiteAssetRegistry implements AutoCloseable {
         return output.toByteArray();
     }
 
-    private String sha256Image(BufferedImage image) throws Exception {
+    String imageHash(BufferedImage image) throws Exception {
         if (image.getType() != BufferedImage.TYPE_INT_ARGB || !(image.getRaster()
             .getDataBuffer() instanceof DataBufferInt data)) {
             throw new IllegalArgumentException("Site image must use TYPE_INT_ARGB");
