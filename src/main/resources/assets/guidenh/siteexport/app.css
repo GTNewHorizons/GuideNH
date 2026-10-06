@@ -1797,11 +1797,7 @@ p {
 }
 
 .recipe-grid {
-    display: inline-grid;
-    grid-template-rows: auto auto;
-    grid-template-columns: max-content 1fr max-content;
-    row-gap: 10px;
-    column-gap: 10px;
+    display: inline-block;
     align-items: center;
     padding: 2px;
     margin-bottom: 0.8em;
@@ -1849,8 +1845,10 @@ p {
 
 .recipe-grid--nei-positioned .recipe-positioned-slot--phase1-overlay {
     box-sizing: border-box;
-    border: none;
-    background: transparent;
+    border: calc(1px * var(--gui-scale)) solid;
+    border-image-source: url('textures/slot.png');
+    border-image-slice: 1 fill;
+    background-color: rgba(139, 139, 139, 0.35);
     pointer-events: auto;
 }
 
@@ -1889,7 +1887,11 @@ p {
 }
 
 .recipe-main {
-    display: contents;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-width: 0;
 }
 
 .recipe-ingredients {
@@ -1922,9 +1924,11 @@ p {
 .recipe-arrow {
     align-self: center;
     justify-self: center;
-    width: 85px;
-    height: 50px;
+    width: calc(24px * var(--gui-scale));
+    height: calc(17px * var(--gui-scale));
+    background: url('textures/recipe_arrow_light.png') center / 100% 100% no-repeat;
     image-rendering: pixelated;
+    flex: 0 0 auto;
 }
 
 .ingredient-box,

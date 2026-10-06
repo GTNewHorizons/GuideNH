@@ -1,9 +1,11 @@
 package com.hfstudio.guidenh.guide.siteexport.site;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +38,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     private static NeiRecipeLookup.Slot siteRecipeResultSlot(Object handler, int recipeIndex) {
         RecipeSlot slot = GuideNhIntegrationRegistry.global()
             .readRecipeResultSlot(handler, recipeIndex);
-        return slot != null ? new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks()) : null;
+        return slot != null ? new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks(), slot.currentStack()) : null;
     }
 
     private static List<NeiRecipeLookup.Slot> toNeiSlots(List<RecipeSlot> slots) {
@@ -45,7 +47,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         }
         List<NeiRecipeLookup.Slot> converted = new ArrayList<>(slots.size());
         for (RecipeSlot slot : slots) {
-            converted.add(new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks()));
+            converted.add(new NeiRecipeLookup.Slot(slot.x(), slot.y(), slot.stacks(), slot.currentStack()));
         }
         return converted;
     }
@@ -453,13 +455,14 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
         boolean hasRecipeFilter = !request.inputExpr.isEmpty() || !request.outputExpr.isEmpty();
         boolean hasHandlerFilter = request.handlerNameFilter != null || request.handlerIdFilter != null
-            || request.handlerOrder >= 0;
+            || request.handlerOrder >= 0
+            || !request.handlerWhitelist.isEmpty();
 
         RawHandlerRenderResult rawHandlerResult = renderFromRawHandlers(request, targetStack, hasRecipeFilter);
         if (!rawHandlerResult.renderedRecipes.isEmpty()) {
             return exporter.renderRecipeCollection(rawHandlerResult.renderedRecipes, request.multi);
         }
-        if (hasHandlerFilter && !rawHandlerResult.hadHandlersAfterFilter) {
+        if (hasHandlerFilter) {
             return fallbackParagraph(request.fallbackText);
         }
 
@@ -481,9 +484,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         boolean hasRecipeFilter) {
         List<Object> rawHandlers = request.usageQuery ? safeHandlers(rawHandlerFinder.findUsageHandlers(targetStack))
             : safeHandlers(rawHandlerFinder.findCraftingHandlers(targetStack));
-        boolean hasHandlerFilter = request.handlerNameFilter != null || request.handlerIdFilter != null
-            || request.handlerOrder >= 0;
-        if (!request.usageQuery && hasHandlerFilter) {
+        if (!request.usageQuery && (request.handlerIdFilter != null || request.handlerNameFilter != null
+            || !request.handlerWhitelist.isEmpty())) {
             rawHandlers = mergeHandlers(rawHandlers, safeHandlers(rawHandlerFinder.findUsageHandlers(targetStack)));
         }
 
@@ -496,10 +498,12 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             request.handlerWhitelist,
             RecipeCompiler.effectiveHandlerBlacklist(request.handlerBlacklist));
         if (handlers.isEmpty()) {
-            return new RawHandlerRenderResult(List.of(), false);
+            return new RawHandlerRenderResult(List.of());
         }
 
+        IdUtils.ParsedItemRef targetRef = parseTargetRef(request.recipeId, request.defaultNamespace);
         List<String> renderedRecipes = new ArrayList<>();
+        Set<String> recipeFingerprints = new LinkedHashSet<>();
         for (int hi = 0; hi < handlers.size() && renderedRecipes.size() < request.limit; hi++) {
             Object handler = handlers.get(hi);
             int recipeCount = handlerRuntime.recipeCount(handler);
@@ -507,24 +511,26 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             int recipeEnd = request.recipeIndex >= 0 ? Math.min(recipeCount, request.recipeIndex + 1) : recipeCount;
             for (int recipeIndex = recipeStart; recipeIndex < recipeEnd
                 && renderedRecipes.size() < request.limit; recipeIndex++) {
-                if (!request.usageQuery && !resultMatchesTarget(
-                    handlerRuntime.readResultSlot(handler, recipeIndex),
-                    request.recipeId,
-                    request.defaultNamespace)) {
+                NeiRecipeLookup.Entry entry = readRawHandlerEntry(handler, recipeIndex);
+                if (!request.usageQuery && (targetRef == null || !RecipeCompiler.handlerTargetMatches(
+                    entry,
+                    targetRef,
+                    request.handlerIdFilter != null || request.handlerNameFilter != null
+                        || !request.handlerWhitelist.isEmpty()))) {
                     continue;
                 }
-                if (hasRecipeFilter && !RecipeCompiler
-                    .recipeMatches(handler, recipeIndex, request.inputExpr, request.outputExpr, handlerRuntime)) {
+                if (hasRecipeFilter && !RecipeCompiler.recipeMatches(entry, request.inputExpr, request.outputExpr)) {
                     continue;
                 }
+                if (!recipeFingerprints.add(NeiRecipeLookup.recipeFingerprint(handler, entry))) continue;
 
-                String rendered = renderHandlerRecipe(handler, recipeIndex, targetStack);
+                String rendered = renderHandlerRecipe(handler, recipeIndex, targetStack, entry);
                 if (!rendered.isEmpty()) {
                     renderedRecipes.add(rendered);
                 }
             }
         }
-        return new RawHandlerRenderResult(renderedRecipes, true);
+        return new RawHandlerRenderResult(renderedRecipes);
     }
 
     private List<String> renderFromNeiEntries(RenderRequest request, ItemStack targetStack, boolean hasRecipeFilter) {
@@ -537,6 +543,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         }
 
         List<String> renderedRecipes = new ArrayList<>();
+        Set<String> recipeFingerprints = new LinkedHashSet<>();
         for (int i = 0; i < refs.size() && renderedRecipes.size() < request.limit; i++) {
             NeiRecipeLookup.CraftingRecipeRef ref = refs.get(i);
             if (request.recipeIndex >= 0 && (ref == null || ref.recipeIndex != request.recipeIndex)) {
@@ -546,12 +553,13 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             if (entry == null || !neiEntryHasAnySlots(entry)) {
                 continue;
             }
-            if (!resultMatchesTarget(entry.result, request.recipeId, request.defaultNamespace)) {
+            if (!matchesRequestedTarget(request, ref, entry)) {
                 continue;
             }
             if (hasRecipeFilter && !RecipeCompiler.entryMatches(entry, request.inputExpr, request.outputExpr)) {
                 continue;
             }
+            if (!recipeFingerprints.add(NeiRecipeLookup.recipeFingerprint(ref.handler, entry))) continue;
 
             @Nullable
             GuideSiteNeiPhase1BackgroundExporter.Result phase1 = neiPhase1Capture(ref.handler, ref.recipeIndex);
@@ -580,6 +588,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         }
 
         List<String> renderedRecipes = new ArrayList<>();
+        Set<String> recipeFingerprints = new LinkedHashSet<>();
         int entryStart = Math.max(request.recipeIndex, 0);
         int entryEnd = request.recipeIndex >= 0 ? Math.min(entries.size(), request.recipeIndex + 1) : entries.size();
         for (int i = entryStart; i < entryEnd && renderedRecipes.size() < request.limit; i++) {
@@ -590,6 +599,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             if (hasRecipeFilter && !RecipeCompiler.entryMatches(entry, request.inputExpr, request.outputExpr)) {
                 continue;
             }
+            if (!recipeFingerprints.add(NeiRecipeLookup.recipeFingerprint(null, entry))) continue;
 
             String rendered = layoutRegistry.render(
                 SiteRecipeLayoutContext
@@ -609,6 +619,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         }
 
         List<String> renderedRecipes = new ArrayList<>();
+        Set<String> recipeFingerprints = new LinkedHashSet<>();
         int entryStart = Math.max(request.recipeIndex, 0);
         int entryEnd = request.recipeIndex >= 0 ? Math.min(vanillaEntries.size(), request.recipeIndex + 1)
             : vanillaEntries.size();
@@ -620,6 +631,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             if (hasRecipeFilter && !RecipeCompiler.vanillaEntryMatches(entry, request.inputExpr, request.outputExpr)) {
                 continue;
             }
+            if (!recipeFingerprints.add(vanillaFingerprint(entry))) continue;
 
             String rendered = layoutRegistry
                 .render(SiteRecipeLayoutContext.vanilla(entry, targetStack, exporter, itemIconResolver));
@@ -630,26 +642,74 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         return renderedRecipes;
     }
 
-    private String renderHandlerRecipe(Object handler, int recipeIndex, ItemStack targetStack) {
+    private static String vanillaFingerprint(RecipeLookup.Entry entry) {
+        StringBuilder value = new StringBuilder();
+        if (entry == null) return value.toString();
+        if (entry.input3x3 != null) {
+            for (ItemStack stack : entry.input3x3) appendStackFingerprint(value, stack);
+        }
+        appendStackFingerprint(value, entry.result);
+        value.append(entry.shapeless);
+        return value.toString();
+    }
+
+    private static void appendStackFingerprint(StringBuilder value, @Nullable ItemStack stack) {
+        if (stack == null || stack.getItem() == null) {
+            value.append("null;");
+            return;
+        }
+        Object registryName = Item.itemRegistry.getNameForObject(stack.getItem());
+        value.append(
+            registryName != null ? registryName
+                : stack.getItem()
+                    .getClass()
+                    .getName())
+            .append('#')
+            .append(stack.getItemDamage())
+            .append('x')
+            .append(stack.stackSize);
+        if (stack.stackTagCompound != null) value.append('@')
+            .append(stack.stackTagCompound);
+        value.append(';');
+    }
+
+    private NeiRecipeLookup.Entry readRawHandlerEntry(Object handler, int recipeIndex) {
+        List<NeiRecipeLookup.Slot> ingredients = handlerRuntime.readIngredientSlots(handler, recipeIndex);
+        List<NeiRecipeLookup.Slot> supporting = handlerRuntime.readOtherSlots(handler, recipeIndex);
+        NeiRecipeLookup.Slot result = handlerRuntime.readResultSlot(handler, recipeIndex);
+        String name = handlerRuntime.handlerName(handler);
+        return new NeiRecipeLookup.Entry(
+            name == null ? "" : name,
+            name == null ? "" : name,
+            ingredients,
+            supporting,
+            result);
+    }
+
+    private String renderHandlerRecipe(Object handler, int recipeIndex, ItemStack targetStack,
+        NeiRecipeLookup.Entry entry) {
+        List<NeiRecipeLookup.Slot> ingredientSlots = entry.ingredients;
+        List<NeiRecipeLookup.Slot> supportingSlotData = entry.others;
+        NeiRecipeLookup.Slot resultSlot = entry.result;
         List<List<GuideSiteExportedItem>> ingredients = exporter
-            .ingredientItemsFromNeiSlots(handlerRuntime.readIngredientSlots(handler, recipeIndex), itemIconResolver);
+            .ingredientItemsFromNeiSlots(ingredientSlots, itemIconResolver);
         List<List<GuideSiteExportedItem>> supportingSlots = exporter
-            .supportingSlotItemsFromNeiSlots(handlerRuntime.readOtherSlots(handler, recipeIndex), itemIconResolver);
-        GuideSiteExportedItem resultItem = exporter
-            .resultItem(handlerRuntime.readResultSlot(handler, recipeIndex), targetStack, itemIconResolver);
+            .supportingSlotItemsFromNeiSlots(supportingSlotData, itemIconResolver);
+        GuideSiteExportedItem resultItem = exporter.resultItem(resultSlot, targetStack, itemIconResolver);
         if (ingredients.isEmpty() && supportingSlots.isEmpty() && resultItem.isEmpty()) {
             return "";
         }
         @Nullable
         GuideSiteNeiPhase1BackgroundExporter.Result phase1 = neiPhase1Capture(handler, recipeIndex);
         return layoutRegistry.render(
-            SiteRecipeLayoutContext.rawHandler(
+            SiteRecipeLayoutContext.rawHandlerWithEntry(
                 handler,
                 recipeIndex,
                 targetStack,
                 exporter,
                 itemIconResolver,
                 rawHandlerSlotAccess,
+                entry,
                 phase1 != null ? phase1.relativeUrl : null,
                 phase1 != null ? phase1.pixelWidth : null,
                 phase1 != null ? phase1.pixelHeight : null,
@@ -674,13 +734,27 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
         return entry.result != null;
     }
 
-    private static boolean resultMatchesTarget(@Nullable NeiRecipeLookup.Slot result, String recipeId,
-        String defaultNamespace) {
-        try {
-            IdUtils.ParsedItemRef target = IdUtils.parseItemRef(recipeId, defaultNamespace);
-            return target != null && RecipeCompiler.resultSlotContains(result, target);
-        } catch (IllegalArgumentException ignored) {
+    private boolean matchesRequestedTarget(RenderRequest request, @Nullable NeiRecipeLookup.CraftingRecipeRef ref,
+        NeiRecipeLookup.Entry entry) {
+        if (ref == null || entry == null) {
             return false;
+        }
+        IdUtils.ParsedItemRef target = parseTargetRef(request.recipeId, request.defaultNamespace);
+        if (target == null) {
+            return false;
+        }
+        if (request.handlerIdFilter != null || request.handlerNameFilter != null
+            || !request.handlerWhitelist.isEmpty()) {
+            return RecipeCompiler.handlerTargetMatches(ref.handler, ref.recipeIndex, target, handlerRuntime, true);
+        }
+        return RecipeCompiler.resultSlotContains(entry.result, target);
+    }
+
+    private static @Nullable IdUtils.ParsedItemRef parseTargetRef(String recipeId, String defaultNamespace) {
+        try {
+            return IdUtils.parseItemRef(recipeId, defaultNamespace);
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 
@@ -714,12 +788,12 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
         List<Object> merged = new ArrayList<>(craftingHandlers.size() + usageHandlers.size());
         merged.addAll(craftingHandlers);
-        IdentityHashMap<Object, Boolean> seen = new IdentityHashMap<>(merged.size());
+        Set<String> seen = new LinkedHashSet<>();
         for (Object handler : craftingHandlers) {
-            seen.put(handler, Boolean.TRUE);
+            seen.add(NeiRecipeLookup.handlerFingerprint(handler));
         }
         for (Object handler : usageHandlers) {
-            if (seen.put(handler, Boolean.TRUE) == null) {
+            if (seen.add(NeiRecipeLookup.handlerFingerprint(handler))) {
                 merged.add(handler);
             }
         }
@@ -802,11 +876,9 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
     private static class RawHandlerRenderResult {
 
         private final List<String> renderedRecipes;
-        private final boolean hadHandlersAfterFilter;
 
-        private RawHandlerRenderResult(List<String> renderedRecipes, boolean hadHandlersAfterFilter) {
+        private RawHandlerRenderResult(List<String> renderedRecipes) {
             this.renderedRecipes = renderedRecipes;
-            this.hadHandlersAfterFilter = hadHandlersAfterFilter;
         }
     }
 }
