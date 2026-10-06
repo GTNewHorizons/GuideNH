@@ -170,22 +170,33 @@ public class IdUtils {
      */
     @Nullable
     private static ParsedItemRef parseMaterialLibRef(String head, @Nullable NBTTagCompound nbt) {
-        if (!Mods.MaterialLib.isModLoaded()) return null;
-
-        int nameStart = MATERIAL_LIB_PREFIX.length();
-        int shapeSeparator = head.indexOf(':', nameStart);
-        if (shapeSeparator < 0) return null;
-        String materialName = head.substring(nameStart, shapeSeparator);
-        String shapeToken = head.substring(shapeSeparator + 1);
-        if (materialName.isEmpty() || shapeToken.isEmpty() || shapeToken.indexOf(':') >= 0) return null;
-
-        ItemStack stack = MaterialLibItemRefs.getStack(materialName, shapeToken);
+        ItemStack stack = resolveMaterialLibStack(head);
         if (stack == null) return null;
         Object registryName = Item.itemRegistry.getNameForObject(stack.getItem());
         if (registryName == null) return null;
 
         String rawKey = registryName.toString();
         return new ParsedItemRef(new ResourceLocation(rawKey), stack.getItemDamage(), true, nbt, rawKey);
+    }
+
+    /// Whether `ref` is an `ml:<MaterialName>:<shapeToken>` reference.
+    public static boolean isMaterialLibRef(String ref) {
+        return ref.startsWith(MATERIAL_LIB_PREFIX);
+    }
+
+    /// The stack an `ml:<MaterialName>:<shapeToken>` reference names, or null when MaterialLib is absent, the
+    /// reference is malformed, or it names nothing.
+    @Nullable
+    public static ItemStack resolveMaterialLibStack(String ref) {
+        if (!Mods.MaterialLib.isModLoaded() || !isMaterialLibRef(ref)) return null;
+
+        int nameStart = MATERIAL_LIB_PREFIX.length();
+        int shapeSeparator = ref.indexOf(':', nameStart);
+        if (shapeSeparator < 0) return null;
+        String materialName = ref.substring(nameStart, shapeSeparator);
+        String shapeToken = ref.substring(shapeSeparator + 1);
+        if (materialName.isEmpty() || shapeToken.isEmpty() || shapeToken.indexOf(':') >= 0) return null;
+        return MaterialLibItemRefs.getStack(materialName, shapeToken);
     }
 
     public static int parseMeta(String metaStr) {

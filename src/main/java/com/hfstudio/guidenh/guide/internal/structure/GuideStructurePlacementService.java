@@ -4,9 +4,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import net.minecraft.block.Block;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
+
+import com.hfstudio.guidenh.guide.compiler.IdUtils;
 
 public class GuideStructurePlacementService {
 
@@ -46,7 +49,18 @@ public class GuideStructurePlacementService {
             if (state < 0 || state >= palette.length) {
                 continue;
             }
-            Block block = blockResolver.resolve(palette[state]);
+            int meta = blockTag.hasKey("meta") ? blockTag.getInteger("meta") : 0;
+            Block block;
+            if (IdUtils.isMaterialLibRef(palette[state])) {
+                ItemStack stack = IdUtils.resolveMaterialLibStack(palette[state]);
+                if (stack == null) {
+                    continue;
+                }
+                block = Block.getBlockFromItem(stack.getItem());
+                meta = stack.getItemDamage();
+            } else {
+                block = blockResolver.resolve(palette[state]);
+            }
             if (block == null) {
                 continue;
             }
@@ -54,7 +68,6 @@ public class GuideStructurePlacementService {
             if (pos.length < 3) {
                 continue;
             }
-            int meta = blockTag.hasKey("meta") ? blockTag.getInteger("meta") : 0;
             TileEntity tileEntity = null;
             if (blockTag.hasKey("nbt", 10)) {
                 try {

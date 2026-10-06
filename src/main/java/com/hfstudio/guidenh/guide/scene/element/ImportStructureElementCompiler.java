@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import net.minecraft.block.Block;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ResourceLocation;
@@ -157,7 +158,16 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             int state = b.getInteger("state");
             if (state < 0 || state >= palette.length) continue;
             String name = palette[state];
-            Block block = (Block) Block.blockRegistry.getObject(name);
+            int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
+            Block block;
+            if (IdUtils.isMaterialLibRef(name)) {
+                ItemStack stack = IdUtils.resolveMaterialLibStack(name);
+                if (stack == null) continue;
+                block = Block.getBlockFromItem(stack.getItem());
+                meta = stack.getItemDamage();
+            } else {
+                block = (Block) Block.blockRegistry.getObject(name);
+            }
             if (block == null) continue;
 
             int[] pos = b.getIntArray("pos");
@@ -166,7 +176,6 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             int py = level.clampBuildHeight(offsetY + pos[1]);
             int pz = offsetZ + pos[2];
 
-            int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
             NBTTagCompound tileTag = b.hasKey("nbt", 10) ? b.getCompoundTag("nbt") : null;
             GuidebookPreviewBlockPlacer.place(level, px, py, pz, block, meta, tileTag, name, b);
             ScenePreviewFormedState.updateAfterPlacement(level, px, py, pz, formed);
