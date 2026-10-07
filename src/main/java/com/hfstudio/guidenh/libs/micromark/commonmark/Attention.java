@@ -255,7 +255,9 @@ public class Attention {
 
             var open = after == 0 || (after == Constants.characterGroupPunctuation && before != 0)
                 || attentionMarkers.contains(code);
-            var close = before == 0 || (before == Constants.characterGroupPunctuation && after != 0)
+            var close = before == 0
+                || (before == Constants.characterGroupPunctuation
+                    && after != Constants.characterGroupWhitespace)
                 || attentionMarkers.contains(previous);
 
             token._open = marker == Codes.asterisk ? open : open && (before != 0 || !close);
