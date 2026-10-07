@@ -145,7 +145,7 @@ public class GuideNavProjection {
                 .toString() : "");
 
     public ProjectionResult project(@Nullable NavigationTree tree, GuideBookmarkState bookmarkState,
-        Set<ResourceLocation> expandedTreePageIds, boolean bookmarkGroupExpanded) {
+        Set<NavigationNode.Key> expandedTreeNodeKeys, boolean bookmarkGroupExpanded) {
         if (tree == null) {
             return new ProjectionResult(List.of());
         }
@@ -179,7 +179,7 @@ public class GuideNavProjection {
         }
 
         for (var root : tree.getRootNodes()) {
-            addTreeRows(rows, root, 0, expandedTreePageIds, -1);
+            addTreeRows(rows, root, 0, expandedTreeNodeKeys, -1);
         }
         return new ProjectionResult(rows);
     }
@@ -260,7 +260,7 @@ public class GuideNavProjection {
     }
 
     private void addTreeRows(List<ProjectedRow> rows, NavigationNode node, int depth,
-        Set<ResourceLocation> expandedTreePageIds, int parentRowIndex) {
+        Set<NavigationNode.Key> expandedTreeNodeKeys, int parentRowIndex) {
         ProjectedRow row = appendRow(
             rows,
             new DisplayRow(
@@ -274,9 +274,10 @@ public class GuideNavProjection {
                     .isEmpty(),
                 node.hasPage()),
             parentRowIndex);
-        if (node.pageId() != null && expandedTreePageIds.contains(node.pageId())) {
+        NavigationNode.Key nodeKey = node.key();
+        if (nodeKey != null && expandedTreeNodeKeys.contains(nodeKey)) {
             for (var child : node.children()) {
-                addTreeRows(rows, child, depth + 1, expandedTreePageIds, row.rowIndex());
+                addTreeRows(rows, child, depth + 1, expandedTreeNodeKeys, row.rowIndex());
             }
         }
         row.setSubtreeEndRowIndexExclusive(rows.size());
