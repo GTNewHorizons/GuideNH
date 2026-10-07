@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.JsonToNBT;
@@ -197,6 +199,14 @@ public class IdUtils {
         String shapeToken = ref.substring(shapeSeparator + 1);
         if (materialName.isEmpty() || shapeToken.isEmpty() || shapeToken.indexOf(':') >= 0) return null;
         return MaterialLibItemRefs.getStack(materialName, shapeToken);
+    }
+
+    /// The block stack an `ml:<MaterialName>:<shapeToken>` structure palette reference names, or null when it names
+    /// nothing or an item that is not a block.
+    @Nullable
+    public static ItemStack resolveMaterialLibBlockStack(String ref) {
+        ItemStack stack = resolveMaterialLibStack(ref);
+        return stack != null && Block.getBlockFromItem(stack.getItem()) != Blocks.air ? stack : null;
     }
 
     public static int parseMeta(String metaStr) {

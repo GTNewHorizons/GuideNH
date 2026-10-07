@@ -161,7 +161,7 @@ public class ImportStructureElementCompiler implements SceneElementTagCompiler {
             int meta = b.hasKey("meta") ? b.getInteger("meta") : 0;
             Block block;
             if (IdUtils.isMaterialLibRef(name)) {
-                ItemStack stack = IdUtils.resolveMaterialLibStack(name);
+                ItemStack stack = IdUtils.resolveMaterialLibBlockStack(name);
                 if (stack == null) continue;
                 block = Block.getBlockFromItem(stack.getItem());
                 meta = stack.getItemDamage();

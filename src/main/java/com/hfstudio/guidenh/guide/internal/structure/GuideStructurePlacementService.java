@@ -52,7 +52,7 @@ public class GuideStructurePlacementService {
             int meta = blockTag.hasKey("meta") ? blockTag.getInteger("meta") : 0;
             Block block;
             if (IdUtils.isMaterialLibRef(palette[state])) {
-                ItemStack stack = IdUtils.resolveMaterialLibStack(palette[state]);
+                ItemStack stack = IdUtils.resolveMaterialLibBlockStack(palette[state]);
                 if (stack == null) {
                     continue;
                 }
