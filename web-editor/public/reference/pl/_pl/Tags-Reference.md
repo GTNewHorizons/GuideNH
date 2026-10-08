@@ -848,3 +848,22 @@ Przykład:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
+
+### `<Amount>`
+
+`<Amount>` formatuje liczbę. Pominięcie `unit` (lub `unit="none"`) wyświetla tylko liczbę. `unit="item"` również nie dodaje przyrostka. `unit="fluid"` korzysta z preferencji płynów GTNHLib i wyświetla `mB` albo `L`. `format` może mieć wartość `default`, `plain`, `compact` lub `scientific`, a `decimals` ogranicza część ułamkową. Jednostki szybkości, takie jak `L/s`, zapisuj poza tagiem.
+
+| Atrybut | Znaczenie |
+| --- | --- |
+| `value` | wymagana skończona liczba dziesiętna |
+| `unit` | opcjonalne `none`, `item` lub `fluid`; domyślnie `none` |
+| `format` | opcjonalny format liczby; domyślnie `default` |
+| `decimals` | opcjonalna nieujemna maksymalna liczba miejsc dziesiętnych |
+
+Przykład:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

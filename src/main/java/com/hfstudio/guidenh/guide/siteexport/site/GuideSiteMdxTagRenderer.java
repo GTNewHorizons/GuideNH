@@ -95,6 +95,8 @@ import com.hfstudio.guidenh.guide.navigation.NavigationTree;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.guide.sound.GuideSoundSpec;
 import com.hfstudio.guidenh.guide.sound.GuideSoundTrigger;
+import com.hfstudio.guidenh.guide.units.AmountFormatter;
+import com.hfstudio.guidenh.guide.units.AmountUnitRegistry;
 import com.hfstudio.guidenh.integration.Mods;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.betterquesting.BqHelpers;
@@ -239,6 +241,9 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
         }
         if ("Color".equals(name)) {
             return renderColor(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
+        }
+        if ("Amount".equals(name)) {
+            return renderAmount(element);
         }
         if ("mark".equals(name)) {
             return renderMark(element, defaultNamespace, currentPageId, templates, sceneResolver, compiler);
@@ -430,6 +435,39 @@ public class GuideSiteMdxTagRenderer implements GuideSiteHtmlCompiler.MdxTagRend
             + ";\">"
             + compiler.compileFragment(element.children(), templates, defaultNamespace, sceneResolver, currentPageId)
             + "</span>";
+    }
+
+    private String renderAmount(MdxJsxElementFields element) {
+        String value = readOptional(element, "value");
+        if (value == null || value.trim()
+            .isEmpty()) {
+            return renderError("Amount requires a value attribute");
+        }
+        String unit = AmountUnitRegistry.normalize(readOptional(element, "unit"));
+        String format = readOptional(element, "format");
+        Integer decimals = readPositiveOrZeroInt(readOptional(element, "decimals"));
+        try {
+            String rendered = AmountFormatter.format(value, unit, format, decimals);
+            StringBuilder html = new StringBuilder("<span class=\"guide-amount\"");
+            html.append(" data-guide-amount-value=\"")
+                .append(escapeAttribute(value.trim()))
+                .append("\" data-guide-amount-unit=\"")
+                .append(escapeAttribute(unit))
+                .append("\" data-guide-amount-format=\"")
+                .append(escapeAttribute(AmountFormatter.normalizeFormat(format)))
+                .append("\"");
+            if (decimals != null) {
+                html.append(" data-guide-amount-decimals=\"")
+                    .append(decimals)
+                    .append("\"");
+            }
+            return html.append(">")
+                .append(escapeHtml(rendered))
+                .append("</span>")
+                .toString();
+        } catch (IllegalArgumentException exception) {
+            return renderError(exception.getMessage());
+        }
     }
 
     private String renderMark(MdxJsxElementFields element, String defaultNamespace,

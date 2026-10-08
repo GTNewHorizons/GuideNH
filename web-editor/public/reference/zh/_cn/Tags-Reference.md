@@ -842,3 +842,22 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
+
+### `<Amount>`
+
+`<Amount>` 用于格式化数字数量。省略 `unit`（或使用 `unit="none"`）时只显示数字；`unit="item"` 也不会添加后缀。`unit="fluid"` 遵循 GTNHLib 的流体单位偏好，显示 `mB` 或 `L`。`format` 支持 `default`、`plain`、`compact` 和 `scientific`；`decimals` 用于限制小数位数。速率如 `L/s` 请写在标签外。
+
+| 属性 | 含义 |
+| --- | --- |
+| `value` | 必填的有限十进制数值 |
+| `unit` | 可选值 `none`、`item` 或 `fluid`，默认 `none` |
+| `format` | 可选数字格式，默认 `default` |
+| `decimals` | 可选的非负小数位上限 |
+
+示例：
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> 个物品
+````

@@ -848,3 +848,22 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
+
+### `<Amount>`
+
+`<Amount>` は数値の数量を整形します。`unit` を省略するか `unit="none"` にすると数値だけを表示します。`unit="item"` も接尾辞を付けません。`unit="fluid"` は GTNHLib の流体設定に従い、`mB` または `L` を表示します。`format` は `default`、`plain`、`compact`、`scientific`、`decimals` は小数桁の最大値です。`L/s` などの速度単位はタグの外に書きます。
+
+| 属性 | 意味 |
+| --- | --- |
+| `value` | 必須の有限小数値 |
+| `unit` | 任意の `none`、`item`、`fluid`。既定値は `none` |
+| `format` | 任意の数値形式。既定値は `default` |
+| `decimals` | 任意の0以上の最大小数桁数 |
+
+例：
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

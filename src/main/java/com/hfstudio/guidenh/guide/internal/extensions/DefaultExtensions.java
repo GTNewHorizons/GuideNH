@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 
 import com.hfstudio.guidenh.guide.compiler.TagCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.ATagCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.AmountCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockImageCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BlockquoteCompiler;
 import com.hfstudio.guidenh.guide.compiler.tags.BoxFlowDirection;
@@ -129,6 +130,7 @@ public class DefaultExtensions {
                 new DivTagCompiler(),
                 new ATagCompiler(),
                 new KbdTagCompiler(),
+                new AmountCompiler(),
                 new SubscriptTagCompiler(),
                 new SuperscriptTagCompiler(),
                 new ColorTagCompiler(),

@@ -130,3 +130,13 @@ navigation:
 4. [游戏场景](GameScene)
 5. [注解](Annotations)
 6. [配方](Recipes)
+
+### 数量格式化
+
+使用 `<Amount>` 表示数量。`unit` 可省略，默认只显示数字；`fluid` 遵循 GTNHLib 的 `mB`/`L` 偏好。
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> 个物品
+````

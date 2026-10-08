@@ -848,3 +848,22 @@ Exemple:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
+
+### `<Amount>`
+
+`<Amount>` formate une quantité numérique. Sans `unit` (ou avec `unit="none"`), seul le nombre est affiché. `unit="item"` n’ajoute pas non plus de suffixe. `unit="fluid"` suit la préférence des fluides de GTNHLib et affiche `mB` ou `L`. `format` accepte `default`, `plain`, `compact` ou `scientific`; `decimals` limite les décimales. Écrivez les débits comme `L/s` en dehors de la balise.
+
+| Attribut | Signification |
+| --- | --- |
+| `value` | valeur décimale finie obligatoire |
+| `unit` | facultatif : `none`, `item` ou `fluid`; `none` par défaut |
+| `format` | format numérique facultatif; `default` par défaut |
+| `decimals` | nombre maximal facultatif de décimales, non négatif |
+
+Exemple :
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

@@ -848,3 +848,22 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
+
+### `<Amount>`
+
+`<Amount>` форматує числову кількість. Якщо `unit` пропущено (або вказано `unit="none"`), показується лише число. `unit="item"` також не додає суфікса. `unit="fluid"` використовує налаштування рідин GTNHLib і показує `mB` або `L`. `format` може бути `default`, `plain`, `compact` або `scientific`, а `decimals` обмежує кількість десяткових знаків. Швидкість, наприклад `L/s`, записуйте поза тегом.
+
+| Атрибут | Значення |
+| --- | --- |
+| `value` | обов’язкове скінченне десяткове число |
+| `unit` | необов’язкове `none`, `item` або `fluid`; за замовчуванням `none` |
+| `format` | необов’язковий числовий формат; за замовчуванням `default` |
+| `decimals` | необов’язкова невід’ємна максимальна кількість десяткових знаків |
+
+Приклад:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

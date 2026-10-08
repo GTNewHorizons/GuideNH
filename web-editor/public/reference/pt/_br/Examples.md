@@ -131,3 +131,13 @@ O filho tags Defina StructureLib defaults para O cena e são restored quando O c
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)
+
+### Formatação de quantidades
+
+Use `<Amount>` para quantidades. A unidade é opcional e, por padrão, somente o número é exibido; `fluid` segue a preferência `mB`/`L` do GTNHLib.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````
