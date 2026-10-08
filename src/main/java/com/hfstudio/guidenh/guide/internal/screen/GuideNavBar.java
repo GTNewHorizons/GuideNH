@@ -3,7 +3,6 @@ package com.hfstudio.guidenh.guide.internal.screen;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -168,7 +167,7 @@ public class GuideNavBar {
     public record ExpansionChange(@Nullable ResourceLocation guideId, ResourceLocation pageId, boolean expanded) {}
 
     private final List<Row> rows = new ArrayList<>();
-    private final Set<ResourceLocation> expandedPageIds = new HashSet<>();
+    private final Set<NavigationNode.Key> expandedNodeKeys = new HashSet<>();
     private final GuideNavProjection projection = new GuideNavProjection();
     private final StickyStack stickyStack = new StickyStack();
     @Nullable
@@ -270,16 +269,16 @@ public class GuideNavBar {
     }
 
     public GuideNavBarState captureState() {
-        return GuideNavBarState.create(bookmarkGroupExpanded, new LinkedHashSet<>(expandedPageIds), scrollY);
+        return GuideNavBarState
+            .createExpandedNodes(bookmarkGroupExpanded, new LinkedHashSet<>(expandedNodeKeys), scrollY);
     }
 
     public void restoreState(GuideNavBarState state, GuideBookmarkState bookmarkState) {
         releaseScrollbar(0);
         GuideNavBarState effectiveState = state != null ? state : GuideNavBarState.defaultState();
         bookmarkGroupExpanded = effectiveState.bookmarkGroupExpanded();
-        expandedPageIds.clear();
-        expandedPageIds.addAll(
-            effectiveState.expandedPageIds() != null ? effectiveState.expandedPageIds() : Collections.emptySet());
+        expandedNodeKeys.clear();
+        expandedNodeKeys.addAll(resolveExpansionKeys(effectiveState.expandedNodeKeys(), lastTree));
         expandedStateVersion++;
         scrollY = effectiveState.scrollY();
         visualScrollY.snapTo(scrollY);
@@ -290,25 +289,24 @@ public class GuideNavBar {
 
     /**
      * Switch the nav bar to a different guide's expansion state.
-     * Replaces {@code expandedPageIds} with the saved state for the new guide,
+     * Replaces the expanded node keys with the saved state for the new guide,
      * then expands ancestors of {@code currentPageId}.
      * Caller is responsible for saving the old guide's state before calling this.
      */
     public void activateGuide(@Nullable ResourceLocation guideId, GuideNavBarState savedState,
         @Nullable NavigationTree tree, GuideBookmarkState bookmarkState, @Nullable ResourceLocation currentPageId,
-        Set<ResourceLocation> carryOverIds) {
+        Set<NavigationNode.Key> carryOverKeys) {
 
         // 1. Replace with new guide's saved state
-        expandedPageIds.clear();
-        if (savedState.expandedPageIds() != null) {
-            expandedPageIds.addAll(savedState.expandedPageIds());
-        }
+        expandedNodeKeys.clear();
+        expandedNodeKeys.addAll(resolveExpansionKeys(savedState.expandedNodeKeys(), tree));
 
-        // 2. Merge carry-over IDs that exist in the new tree (captured before restoreViewState)
-        if (carryOverIds != null && tree != null) {
-            for (ResourceLocation id : carryOverIds) {
-                if (tree.getNodeById(id) != null) {
-                    expandedPageIds.add(id);
+        // 2. Merge carry-over expansions that exist in the new tree.
+        if (carryOverKeys != null && tree != null) {
+            for (NavigationNode.Key key : carryOverKeys) {
+                NavigationNode node = tree.getNodeById(guideId, key.pageId());
+                if (node != null && node.key() != null) {
+                    expandedNodeKeys.add(node.key());
                 }
             }
         }
@@ -324,12 +322,12 @@ public class GuideNavBar {
 
         // 3. Expand ancestors of current page (inline, single rebuild at end)
         if (currentPageId != null && tree != null) {
-            var path = tree.getPathTo(currentPageId);
+            var path = tree.getPathTo(guideId, currentPageId);
             for (int i = 0; i < path.size() - 1; i++) {
-                ResourceLocation parentId = path.get(i)
-                    .pageId();
-                if (parentId != null) {
-                    expandedPageIds.add(parentId);
+                NavigationNode.Key parentKey = path.get(i)
+                    .key();
+                if (parentKey != null) {
+                    expandedNodeKeys.add(parentKey);
                 }
             }
         }
@@ -341,24 +339,42 @@ public class GuideNavBar {
         }
     }
 
-    /** Snapshot of current expanded page IDs for carry-over before navigation. */
-    public Set<ResourceLocation> getExpandedPageIdsSnapshot() {
-        return new HashSet<>(expandedPageIds);
+    /** Snapshot of current expanded node keys for carry-over before navigation. */
+    public Set<NavigationNode.Key> getExpandedNodeKeysSnapshot() {
+        return new HashSet<>(expandedNodeKeys);
     }
 
-    public void expandParentsTo(@Nullable NavigationTree tree, @Nullable ResourceLocation pageId,
-        GuideBookmarkState bookmarkState) {
+    private Set<NavigationNode.Key> resolveExpansionKeys(Set<NavigationNode.Key> keys, @Nullable NavigationTree tree) {
+        if (keys == null || keys.isEmpty() || tree == null) {
+            return keys == null ? Set.of() : new HashSet<>(keys);
+        }
+        Set<NavigationNode.Key> resolved = new HashSet<>();
+        for (NavigationNode.Key key : keys) {
+            if (key == null) {
+                continue;
+            }
+            NavigationNode node = key.guideId() == null ? tree.getNodeById(key.pageId())
+                : tree.getNodeById(key.guideId(), key.pageId());
+            if (node != null && node.key() != null) {
+                resolved.add(node.key());
+            }
+        }
+        return resolved;
+    }
+
+    public void expandParentsTo(@Nullable NavigationTree tree, @Nullable ResourceLocation guideId,
+        @Nullable ResourceLocation pageId, GuideBookmarkState bookmarkState) {
         if (tree == null || pageId == null) {
             return;
         }
 
-        var path = tree.getPathTo(pageId);
+        var path = tree.getPathTo(guideId, pageId);
         boolean changed = false;
         for (int index = 0; index < path.size() - 1; index++) {
-            ResourceLocation parentPageId = path.get(index)
-                .pageId();
-            if (parentPageId != null) {
-                changed |= expandedPageIds.add(parentPageId);
+            NavigationNode.Key parentKey = path.get(index)
+                .key();
+            if (parentKey != null) {
+                changed |= expandedNodeKeys.add(parentKey);
             }
         }
         if (changed) {
@@ -404,7 +420,7 @@ public class GuideNavBar {
             return;
         }
         GuideNavProjection.ProjectionResult projected = projection
-            .project(tree, bookmarkState, expandedPageIds, bookmarkGroupExpanded);
+            .project(tree, bookmarkState, expandedNodeKeys, bookmarkGroupExpanded);
         projected = projection.withTemplates(projected, templateRows, templateGroupExpanded);
         for (GuideNavProjection.ProjectedRow projectedRow : projected.rows()) {
             rows.add(new Row(projectedRow));
@@ -900,7 +916,8 @@ public class GuideNavBar {
     }
 
     private boolean isExpanded(Row row) {
-        return row.pageId() != null && expandedPageIds.contains(row.pageId());
+        NavigationNode.Key key = row.navigationKey();
+        return key != null && expandedNodeKeys.contains(key);
     }
 
     private void toggleExpand(Row row, GuideBookmarkState bookmarkState) {
@@ -918,11 +935,12 @@ public class GuideNavBar {
         if (lastTree == null || pageId == null) {
             return;
         }
-        NavigationNode node = lastTree.getNodeById(pageId);
+        NavigationNode node = lastTree.getNodeById(row.guideId(), pageId);
         if (node == null) {
             return;
         }
-        updateExpansionState(List.of(node), !expandedPageIds.contains(pageId), bookmarkState);
+        NavigationNode.Key key = node.key();
+        updateExpansionState(List.of(node), key == null || !expandedNodeKeys.contains(key), bookmarkState);
     }
 
     private void toggleExpandedDescendants(Row row, GuideBookmarkState bookmarkState) {
@@ -930,13 +948,16 @@ public class GuideNavBar {
         if (lastTree == null || pageId == null) {
             return;
         }
-        NavigationNode node = lastTree.getNodeById(pageId);
+        NavigationNode node = lastTree.getNodeById(row.guideId(), pageId);
         if (node == null) {
             return;
         }
         List<NavigationNode> nodes = collectExpandableNodes(node);
         boolean allExpanded = !nodes.isEmpty() && nodes.stream()
-            .allMatch(expandableNode -> expandedPageIds.contains(expandableNode.pageId()));
+            .allMatch(expandableNode -> {
+                NavigationNode.Key key = expandableNode.key();
+                return key != null && expandedNodeKeys.contains(key);
+            });
         updateExpansionState(nodes, !allExpanded, bookmarkState);
     }
 
@@ -977,20 +998,20 @@ public class GuideNavBar {
     private void updateExpansionState(List<NavigationNode> nodes, boolean expanded, GuideBookmarkState bookmarkState,
         boolean allCollapsed) {
         List<ExpansionChange> changes = new ArrayList<>();
-        boolean changed = allCollapsed && !expandedPageIds.isEmpty();
+        boolean changed = allCollapsed && !expandedNodeKeys.isEmpty();
         for (NavigationNode node : nodes) {
-            ResourceLocation pageId = node.pageId();
-            if (pageId == null) {
+            NavigationNode.Key key = node.key();
+            if (key == null) {
                 continue;
             }
-            boolean nodeChanged = expanded ? expandedPageIds.add(pageId) : expandedPageIds.remove(pageId);
+            boolean nodeChanged = expanded ? expandedNodeKeys.add(key) : expandedNodeKeys.remove(key);
             changed |= nodeChanged;
             if (nodeChanged) {
-                changes.add(new ExpansionChange(node.guideId(), pageId, expanded));
+                changes.add(new ExpansionChange(key.guideId(), key.pageId(), expanded));
             }
         }
         if (allCollapsed) {
-            expandedPageIds.clear();
+            expandedNodeKeys.clear();
         }
         if (!changed) {
             return;
@@ -1376,6 +1397,11 @@ public class GuideNavBar {
         @Nullable
         public ResourceLocation pageId() {
             return pageId;
+        }
+
+        @Nullable
+        public NavigationNode.Key navigationKey() {
+            return pageId != null ? new NavigationNode.Key(guideId, pageId) : null;
         }
 
         public GuideNavProjection.RowKind kind() {

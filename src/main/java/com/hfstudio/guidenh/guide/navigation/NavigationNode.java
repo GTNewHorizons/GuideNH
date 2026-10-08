@@ -9,4 +9,12 @@ import org.jetbrains.annotations.Nullable;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 
 public record NavigationNode(@Nullable ResourceLocation guideId, @Nullable ResourceLocation pageId, String title,
-    @Nullable GuidePageIcon icon, List<NavigationNode> children, int position, boolean hasPage) {}
+    @Nullable GuidePageIcon icon, List<NavigationNode> children, int position, boolean hasPage) {
+
+    public record Key(@Nullable ResourceLocation guideId, ResourceLocation pageId) {}
+
+    @Nullable
+    public Key key() {
+        return pageId != null ? new Key(guideId, pageId) : null;
+    }
+}

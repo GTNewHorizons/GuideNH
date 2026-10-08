@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedHashMap;
@@ -783,7 +782,9 @@ public class GuideScreen extends GuiContainer
         if (!hasContentRoute()) {
             return;
         }
-        navBar.expandParentsTo(resolveNavigationTree(), currentAnchor.pageId(), bookmarkState);
+        ResourceLocation currentGuideId = currentRoute != null && currentRoute.isContent() ? currentRoute.guideId()
+            : guide != null ? guide.getId() : null;
+        navBar.expandParentsTo(resolveNavigationTree(), currentGuideId, currentAnchor.pageId(), bookmarkState);
     }
 
     private void applyPendingRestoreScroll() {
@@ -818,9 +819,9 @@ public class GuideScreen extends GuiContainer
 
     private void updateSavedExpansionStates(List<ExpansionChange> changes, @Nullable ResourceLocation currentGuideId) {
         Map<ResourceLocation, GuideNavBarState> savedStates = new LinkedHashMap<>();
-        Map<ResourceLocation, LinkedHashSet<ResourceLocation>> expandedPageIdsByGuide = new LinkedHashMap<>();
+        Map<ResourceLocation, LinkedHashSet<NavigationNode.Key>> expandedNodeKeysByGuide = new LinkedHashMap<>();
         for (ExpansionChange change : changes) {
-            ResourceLocation guideId = change.guideId();
+            ResourceLocation guideId = change.guideId() != null ? change.guideId() : currentGuideId;
             if (guideId == null && currentGuideId == null) {
                 continue;
             }
@@ -829,14 +830,14 @@ public class GuideScreen extends GuiContainer
                 ignored -> ClientProxy.getLytHost()
                     .getNavigation()
                     .recallNavigationState(guideId));
-            LinkedHashSet<ResourceLocation> expandedPageIds = expandedPageIdsByGuide.computeIfAbsent(
+            LinkedHashSet<NavigationNode.Key> expandedNodeKeys = expandedNodeKeysByGuide.computeIfAbsent(
                 guideId,
-                ignored -> new LinkedHashSet<>(
-                    saved.expandedPageIds() != null ? saved.expandedPageIds() : Collections.emptySet()));
+                ignored -> new LinkedHashSet<>(saved.expandedNodeKeys() != null ? saved.expandedNodeKeys() : Set.of()));
+            NavigationNode.Key key = new NavigationNode.Key(guideId, change.pageId());
             if (change.expanded()) {
-                expandedPageIds.add(change.pageId());
+                expandedNodeKeys.add(key);
             } else {
-                expandedPageIds.remove(change.pageId());
+                expandedNodeKeys.remove(key);
             }
         }
         for (Map.Entry<ResourceLocation, GuideNavBarState> entry : savedStates.entrySet()) {
@@ -845,9 +846,9 @@ public class GuideScreen extends GuiContainer
                 .getNavigation()
                 .rememberNavBarState(
                     entry.getKey(),
-                    GuideNavBarState.create(
+                    GuideNavBarState.createExpandedNodes(
                         saved.bookmarkGroupExpanded(),
-                        expandedPageIdsByGuide.get(entry.getKey()),
+                        expandedNodeKeysByGuide.get(entry.getKey()),
                         saved.scrollY()));
         }
     }
@@ -2547,7 +2548,7 @@ public class GuideScreen extends GuiContainer
                     .guideId() : null;
                 ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
                 boolean guideChanged = !Objects.equals(oldGuideId, prevGuideId);
-                Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
+                Set<NavigationNode.Key> carryOver = guideChanged ? navBar.getExpandedNodeKeysSnapshot() : null;
                 restoreViewState(prev);
                 if (guideChanged) {
                     navBar.activateGuide(
@@ -2584,7 +2585,7 @@ public class GuideScreen extends GuiContainer
                     .guideId() : null;
                 ResourceLocation oldGuideId = guide != null ? guide.getId() : null;
                 boolean guideChanged = !Objects.equals(oldGuideId, nextGuideId);
-                Set<ResourceLocation> carryOver = guideChanged ? navBar.getExpandedPageIdsSnapshot() : null;
+                Set<NavigationNode.Key> carryOver = guideChanged ? navBar.getExpandedNodeKeysSnapshot() : null;
                 restoreViewState(next);
                 if (guideChanged) {
                     navBar.activateGuide(
@@ -6843,7 +6844,7 @@ public class GuideScreen extends GuiContainer
             suppressGuideEditorTextFocusUntilGuideHotkeyRelease();
             rememberCurrentContentStateIfEligible();
             rememberNavigationState();
-            Set<ResourceLocation> carryOver = navBar.getExpandedPageIdsSnapshot();
+            Set<NavigationNode.Key> carryOver = navBar.getExpandedNodeKeysSnapshot();
             restoreViewState(GuideScreenViewState.of(GuideScreenRoute.content(guideId, anchor), 0));
             navBar.activateGuide(
                 guideId,
