@@ -131,3 +131,13 @@ De kind tags Stel in StructureLib defaults voor De scène en are restored wannee
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)
+
+### Hoeveelheden formatteren
+
+Gebruik `<Amount>` voor hoeveelheden. De eenheid is optioneel en toont standaard alleen het getal; `fluid` volgt de `mB`/`L`-voorkeur van GTNHLib.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

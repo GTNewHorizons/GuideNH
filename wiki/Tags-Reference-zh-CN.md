@@ -791,3 +791,15 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
+
+### `<Amount>`
+
+`<Amount>` 用于格式化数字，不会修改普通文本。省略 `unit` 时只显示数字；`unit="item"` 也不添加后缀。`unit="fluid"` 会转发到 GTNHLib 的流体单位偏好，显示 `mB` 或 `L`。速率请写在标签外：
+
+```md
+消耗 <Amount value="250" unit="fluid" /> L/s
+<Amount value="1000000" unit="fluid" format="plain" /> L/t
+<Amount value="1200000" format="compact" /> 个物品
+```
+
+`format` 支持 `default`、`plain`、`compact` 和 `scientific`。`default` 遵循 GTNHLib 数字格式设置；`plain` 禁用科学计数法；`compact` 使用缩写；`scientific` 启用科学计数法。`decimals` 可选，用于指定小数位数。未知单位或格式会报告为页面错误。

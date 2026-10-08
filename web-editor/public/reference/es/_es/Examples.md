@@ -131,3 +131,13 @@ El hijo etiquetas Establezca StructureLib predeterminados para El escena y son r
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)
+
+### Formato de cantidades
+
+Usa `<Amount>` para cantidades. La unidad es opcional y por defecto solo muestra el número; `fluid` sigue la preferencia `mB`/`L` de GTNHLib.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

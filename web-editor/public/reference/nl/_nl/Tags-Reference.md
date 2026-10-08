@@ -848,3 +848,22 @@ Example:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
+
+### `<Amount>`
+
+`<Amount>` formatteert een numerieke hoeveelheid. Zonder `unit` (of met `unit="none"`) wordt alleen het getal weergegeven. `unit="item"` voegt ook geen achtervoegsel toe. `unit="fluid"` volgt de vloeistofvoorkeur van GTNHLib en toont `mB` of `L`. `format` kan `default`, `plain`, `compact` of `scientific` zijn; `decimals` beperkt het aantal decimalen. Schrijf snelheden zoals `L/s` buiten de tag.
+
+| Attribuut | Betekenis |
+| --- | --- |
+| `value` | verplichte eindige decimale waarde |
+| `unit` | optioneel `none`, `item` of `fluid`; standaard `none` |
+| `format` | optionele getalnotatie; standaard `default` |
+| `decimals` | optioneel niet-negatief maximum aantal decimalen |
+
+Voorbeeld:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

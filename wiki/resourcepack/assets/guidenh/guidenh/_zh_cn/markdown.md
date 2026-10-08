@@ -694,3 +694,12 @@ x/2           | color=#88cc77 domain=-pi..pi
   <Function expr="x" color="#4488ff" label="y = x"/>
   <Function expr="-x + 4" color="#ff6644" label="y = −x + 4"/>
 </FunctionGraph>
+
+## Amount 数字格式化
+
+`<Amount>` 默认只显示数字。注册的单位类型可以添加自己的显示规则；`fluid` 会遵循 GTNHLib 的 `mB`/`L` 偏好。
+
+```md
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" unit="fluid" format="compact" /> L/s
+```

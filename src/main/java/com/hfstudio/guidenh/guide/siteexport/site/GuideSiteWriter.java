@@ -28,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 import com.hfstudio.guidenh.guide.GuidePageIcon;
 import com.hfstudio.guidenh.guide.internal.MutableGuide;
 import com.hfstudio.guidenh.guide.internal.util.LangUtil;
@@ -45,7 +46,10 @@ public class GuideSiteWriter {
     public void writeBootstrapFiles(Path outDir) throws Exception {
         Path siteConfig = outDir.resolve("site-config.json");
         if (Files.notExists(siteConfig)) {
-            Files.writeString(siteConfig, "{\n  \"headerLink\": \"\"\n}\n", StandardCharsets.UTF_8);
+            Files.writeString(
+                siteConfig,
+                "{\n  \"headerLink\": \"\",\n  \"fluidUnit\": \"" + NumberFormatUtil.getFluidUnit() + "\"\n}\n",
+                StandardCharsets.UTF_8);
         }
         writeResource(outDir.resolve("SITE-CONFIG.md"), "/assets/guidenh/siteexport/SITE-CONFIG.md");
         writeResource(outDir.resolve("_site/gtnh-favicon.svg"), "/assets/guidenh/siteexport/gtnh-favicon.svg");

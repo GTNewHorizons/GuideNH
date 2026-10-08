@@ -4,7 +4,7 @@ import { translatedString } from "./language.js";
 
 function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
 
-const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "code", "del", "em", "i", "img", "kbd", "mark", "small", "span", "strong", "sub", "sup", "u", "Color", "Spoiler", "Tooltip", "SoundLink", "PlayerName", "KeyBind", "ItemImage", "ItemIcon", "ItemLink", "CommandLink", "Latex", "QuestLink", "FloatingImage"]);
+const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "code", "del", "em", "i", "img", "kbd", "mark", "small", "span", "strong", "sub", "sup", "u", "Color", "Spoiler", "Tooltip", "SoundLink", "PlayerName", "KeyBind", "ItemImage", "ItemIcon", "ItemLink", "CommandLink", "Latex", "Amount", "QuestLink", "FloatingImage"]);
 const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
 const SAFE_HTML_ATTRIBUTES = new Set(["class", "className", "id", "role", "aria-label", "aria-description", "colspan", "rowspan", "align", "width", "height", "style", "target", "rel", "href", "src", "alt", "poster", "controls", "autoplay", "loop", "muted", "playsinline"]);
 const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote", "details", "div", "dl", "fieldset", "figure", "footer", "header", "main", "nav", "ol", "section", "table", "tbody", "tfoot", "thead", "tr", "ul"]);
@@ -443,6 +443,7 @@ function renderTag(name, attributes, body, selfClosing, context, inline) {
   if (name === "GameScene" || name === "Scene") return renderScenePlaceholder(name, attributes, context);
   if (name === "FloatingImage") return renderFloatingImage(attributes, body, context, inline);
   if (name === "Latex") return renderLatex(String(attr(attributes, "formula") || body || ""), attributes, inline, body && body.trim() ? renderMarkdown(normalizeNestedMarkdown(body), { ...context, suppressFootnotes: true }) : "", true, context);
+  if (name === "Amount") return renderAmount(attributes, context);
   if (name === "Color") return `<span class="guide-color" style="color:${colorValue(attr(attributes, "color", "id"), "var(--accent)")}">${renderInline(body, context)}</span>`;
   if (name === "Spoiler") return `<span class="guide-spoiler" tabindex="0"><span class="guide-spoiler-content">${renderInline(body, context)}</span></span>`;
   if (name === "Tooltip") return renderRichTooltip(attributes, body, context);
@@ -462,12 +463,51 @@ function renderTag(name, attributes, body, selfClosing, context, inline) {
   return `<span class="guide-tag-card unknown guide-inline-unknown"><span class="guide-tag-name">&lt;${escapeHtml(name)}&gt;</span><em>${copy(context, "previewPending")}</em></span>`;
 }
 
+function renderAmount(attributes, context = {}) {
+  const rawValue = String(attr(attributes, "value") ?? "").trim();
+  if (!rawValue || !Number.isFinite(Number(rawValue))) {
+    return `<span class="guide-export-error">Amount requires a finite numeric value</span>`;
+  }
+  const unit = String(attr(attributes, "unit") || "none").trim().toLowerCase();
+  const format = String(attr(attributes, "format") || "default").trim().toLowerCase();
+  const decimalsRaw = attr(attributes, "decimals");
+  const decimalsValue = decimalsRaw === undefined || decimalsRaw === "" ? undefined : Number(decimalsRaw);
+  if (decimalsValue !== undefined && (!Number.isInteger(decimalsValue) || decimalsValue < 0)) {
+    return `<span class="guide-export-error">Amount decimals must be a non-negative integer</span>`;
+  }
+  const decimals = decimalsValue;
+  if (!["none", "item", "fluid"].includes(unit)) {
+    return `<span class="guide-export-error">Unknown amount unit: ${escapeHtml(unit)}</span>`;
+  }
+  if (!["default", "plain", "compact", "scientific"].includes(format)) {
+    return `<span class="guide-export-error">Unknown amount format: ${escapeHtml(format)}</span>`;
+  }
+  const number = Number(rawValue);
+  const options = Number.isFinite(decimals) ? { maximumFractionDigits: decimals, minimumFractionDigits: 0 } : { maximumFractionDigits: 20 };
+  let value;
+  if (format === "compact") value = new Intl.NumberFormat(context.locale || undefined, { ...options, notation: "compact" }).format(number);
+  else if (format === "scientific") value = number.toExponential(Number.isFinite(decimals) ? decimals : 2);
+  else value = new Intl.NumberFormat(context.locale || undefined, options).format(number);
+  const suffix = unit === "fluid" ? ` ${preferredFluidUnit()}` : "";
+  return `<span class="guide-amount" data-guide-amount-value="${escapeHtml(rawValue)}" data-guide-amount-unit="${escapeHtml(unit)}" data-guide-amount-format="${escapeHtml(format)}">${escapeHtml(value + suffix)}</span>`;
+}
+
+function preferredFluidUnit() {
+  try {
+    const value = globalThis.localStorage?.getItem("guidenh.amount.fluidUnit");
+    return value === "L" || value === "mB" ? value : "mB";
+  } catch (_error) {
+    return "mB";
+  }
+}
+
 function renderBlockTag(name, attributes, body, context) {
   if (name === "Comment") return "";
   if (name === "GameScene" || name === "Scene") return applyWrap(renderScenePlaceholder(name, attributes, context), attributes);
   if (name === "Tooltip") return renderRichTooltip(attributes, body, context);
   if (name === "Spoiler") return `<span class="guide-spoiler" tabindex="0"><span class="guide-spoiler-content">${renderInline(body, context)}</span></span>`;
   if (name === "Latex") return renderLatex(String(attr(attributes, "formula") || body || ""), attributes, false, body && body.trim() ? renderMarkdown(normalizeNestedMarkdown(body), { ...context, suppressFootnotes: true }) : "", true, context);
+  if (name === "Amount") return renderAmount(attributes, context);
   if (ITEM_PLACEHOLDER_TAGS.has(name)) return applyWrap(renderItemPlaceholder(name, attributes, context, false, body), attributes);
   if (RUNTIME_TAGS.has(name)) return applyWrap(renderRuntimePlaceholder(name, attributes, false, context, body), attributes);
   if (name === "Row" || name === "Column") {

@@ -845,3 +845,15 @@ Example:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
+
+### `<Amount>`
+
+`<Amount>` formats a numeric quantity without changing ordinary text. With no `unit` attribute it renders only the number. `unit="item"` is also suffix-free. `unit="fluid"` delegates the displayed suffix (`mB` or `L`) to GTNHLib's fluid preference. Keep rates outside the tag:
+
+```md
+Consumes <Amount value="250" unit="fluid" /> L/s
+<Amount value="1000000" unit="fluid" format="plain" /> L/t
+<Amount value="1200000" format="compact" /> items
+```
+
+`format` accepts `default`, `plain`, `compact`, or `scientific`. `default` follows GTNHLib number-format settings; `plain` disables exponential notation; `compact` uses abbreviated notation; `scientific` enables exponential notation. `decimals` optionally sets the number of decimal places. Unknown units and formats are reported as page errors.

@@ -131,3 +131,13 @@ Le enfant balises Définissez StructureLib defaults pour Le scène et sont resto
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)
+
+### Formatage des quantités
+
+Utilisez `<Amount>` pour les quantités. L’unité est facultative et affiche seulement le nombre par défaut ; `fluid` suit la préférence `mB`/`L` de GTNHLib.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````
