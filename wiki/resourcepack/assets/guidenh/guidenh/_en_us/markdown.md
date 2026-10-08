@@ -549,6 +549,9 @@ Footnote ref[^one]
 `<Amount>` defaults to a suffix-free number. Registered unit families can add their own display rules; `fluid` follows GTNHLib's `mB`/`L` preference.
 
 ```md
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" unit="fluid" format="compact" /> L/s
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s
 ```
+
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s

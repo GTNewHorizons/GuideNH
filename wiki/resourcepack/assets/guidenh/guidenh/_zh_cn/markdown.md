@@ -700,6 +700,9 @@ x/2           | color=#88cc77 domain=-pi..pi
 `<Amount>` 默认只显示数字。注册的单位类型可以添加自己的显示规则；`fluid` 会遵循 GTNHLib 的 `mB`/`L` 偏好。
 
 ```md
-<Amount value="250" unit="fluid" /> L/s
-<Amount value="1200000" unit="fluid" format="compact" /> L/s
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s
 ```
+
+<Amount value="250" unit="fluid" />/s
+<Amount value="1200000" unit="fluid" format="compact" />/s
