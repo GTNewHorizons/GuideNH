@@ -411,6 +411,10 @@ importy StructureLib multiblock podgląd by controller id.
 | `rotation` | no | obrót nadpisywać passed do  importer |
 | `flip` | no | flip/mirror nadpisywać passed do  importer |
 | `channel` | no | liczba całkowita channel nadpisywać dla channel-aware struktury |
+| `tier` | nie | początkowa wartość tier dla struktur obsługujących tier |
+| `channelName` | nie | nazwa kanału używana z głównym nadpisaniem `channel` lub `value` |
+| `value` | nie | wartość kanału używana z `channelName` |
+| `locked` | nie | blokuje jawnie podaną wartość tier lub channel |
 | `offsetX` | no | liczba całkowita X offset applied do wszystkie umieszczony bloki (Domyślne `0`) |
 | `offsetY` | no | liczba całkowita Y offset applied do wszystkie umieszczony bloki, clamped do `[0, worldHeight-1]` (Domyślne `0`) |
 | `offsetZ` | no | liczba całkowita Z offset applied do wszystkie umieszczony bloki (Domyślne `0`) |
@@ -431,6 +435,8 @@ Przykład:
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" tier="4" locked={true} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channelName="voltage" value="4" locked={true} />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
@@ -468,7 +474,9 @@ channel sliders.
 | element podrzędny tag | Znaczenie |
 | --- | --- |
 | `<Tier value="1" />` | Master tier wartość. |
+| `<Tier value="4" locked={true} />` | blokuje jawnie podaną wartość tier lub channel. |
 | `<Channel name="channelName" value="1" />` | Named StructureLib channel nadpisywać. Repeat dla wiele kanały. |
+| `<Channel name="channelName" value="1" locked={true} />` | blokuje jawnie podaną wartość tier lub channel. |
 | `<Facing value="north" />` | Domyślne facing. |
 | `<Rotation value="normal" />` | Domyślne obrót. |
 | `<Flip value="none" />` | Domyślne flip/mirror. |
@@ -483,8 +491,8 @@ keeping awaryjny casings by Domyślne.
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />

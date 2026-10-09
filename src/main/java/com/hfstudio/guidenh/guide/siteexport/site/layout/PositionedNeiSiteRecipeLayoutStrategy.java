@@ -48,6 +48,15 @@ public class PositionedNeiSiteRecipeLayoutStrategy implements SiteRecipeLayoutSt
             return out;
         }
         if (ctx.kind() == SiteRecipeSourceKind.RAW_HANDLER) {
+            NeiRecipeLookup.Entry snapshot = ctx.rawHandlerEntry();
+            if (snapshot != null) {
+                addAll(out, snapshot.ingredients);
+                addAll(out, snapshot.others);
+                if (snapshot.result != null) {
+                    out.add(snapshot.result);
+                }
+                return out;
+            }
             Object handler = ctx.rawHandler();
             SiteRecipeRawHandlerAccess access = ctx.rawHandlerAccess();
             if (handler == null || access == null) {

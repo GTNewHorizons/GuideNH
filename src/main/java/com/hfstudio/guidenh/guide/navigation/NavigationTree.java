@@ -53,6 +53,15 @@ public class NavigationTree {
     }
 
     @Nullable
+    public NavigationNode getNodeById(@Nullable ResourceLocation guideId, ResourceLocation pageId) {
+        NavigationNode indexed = nodeIndex.get(pageId);
+        if (indexed != null && Objects.equals(indexed.guideId(), guideId)) {
+            return indexed;
+        }
+        return findNode(rootNodes, guideId, pageId);
+    }
+
+    @Nullable
     public ResourceLocation getParentId(ResourceLocation pageId) {
         return parentIndex.get(pageId);
     }
@@ -70,6 +79,41 @@ public class NavigationTree {
         }
         Collections.reverse(path);
         return path;
+    }
+
+    public List<NavigationNode> getPathTo(@Nullable ResourceLocation guideId, ResourceLocation pageId) {
+        List<NavigationNode> path = new ArrayList<>();
+        return findPath(rootNodes, guideId, pageId, path) ? List.copyOf(path) : List.of();
+    }
+
+    @Nullable
+    private static NavigationNode findNode(List<NavigationNode> nodes, @Nullable ResourceLocation guideId,
+        ResourceLocation pageId) {
+        for (NavigationNode node : nodes) {
+            if (Objects.equals(node.guideId(), guideId) && Objects.equals(node.pageId(), pageId)) {
+                return node;
+            }
+            NavigationNode childMatch = findNode(node.children(), guideId, pageId);
+            if (childMatch != null) {
+                return childMatch;
+            }
+        }
+        return null;
+    }
+
+    private static boolean findPath(List<NavigationNode> nodes, @Nullable ResourceLocation guideId,
+        ResourceLocation pageId, List<NavigationNode> path) {
+        for (NavigationNode node : nodes) {
+            path.add(node);
+            if (Objects.equals(node.guideId(), guideId) && Objects.equals(node.pageId(), pageId)) {
+                return true;
+            }
+            if (findPath(node.children(), guideId, pageId, path)) {
+                return true;
+            }
+            path.remove(path.size() - 1);
+        }
+        return false;
     }
 
     public static NavigationTree build(Collection<ParsedGuidePage> pages) {

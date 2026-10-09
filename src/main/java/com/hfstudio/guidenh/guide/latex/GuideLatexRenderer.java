@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -203,8 +204,10 @@ public class GuideLatexRenderer {
         try {
             GL11.glEnable(GL11.GL_TEXTURE_2D);
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
             GL11.glEnable(GL11.GL_BLEND);
-            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            GL11.glBlendFunc(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
             ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
 
             Tessellator tess = Tessellator.instance;
@@ -227,12 +230,14 @@ public class GuideLatexRenderer {
         int w = icon.getIconWidth();
         int h = icon.getIconHeight();
 
-        BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB_PRE);
         Graphics2D g = image.createGraphics();
         try {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
             g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
             g.setRenderingHint(
                 RenderingHints.KEY_ALPHA_INTERPOLATION,
                 RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
@@ -250,8 +255,8 @@ public class GuideLatexRenderer {
     }
 
     private static int uploadToGL(BufferedImage image, int w, int h) {
-        int[] pixels = new int[w * h];
-        image.getRGB(0, 0, w, h, pixels, 0, w);
+        int[] pixels = ((DataBufferInt) image.getRaster()
+            .getDataBuffer()).getData();
 
         ByteBuffer buffer = ByteBuffer.allocateDirect(w * h * 4);
         for (int pixel : pixels) {

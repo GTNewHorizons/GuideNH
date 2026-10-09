@@ -74,7 +74,7 @@ Inline markdown also supports action links for sound playback:
 | `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` is a `<GameScene>` child tag. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, and `channel` attributes, and also supports StructureLib default child tags:
+`rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, and `locked` attributes, and also supports StructureLib default child tags:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, and `<GregTechPlaceHatches>`.
 
@@ -676,7 +676,7 @@ These tags only work inside `<GameScene>` / `<Scene>`:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | remove already-placed blocks that match a block matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
 
@@ -844,4 +844,23 @@ Example:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
+````
+
+### `<Amount>`
+
+`<Amount>` formats a numeric amount. Omitting `unit` (or using `unit="none"`) displays only the number. `unit="item"` is also suffix-free. `unit="fluid"` follows the GTNHLib fluid preference and displays `mB` or `L`. The optional `format` is `default`, `plain`, `compact`, or `scientific`; `decimals` limits fractional digits. Keep rates such as `L/s` outside the tag.
+
+| Attribute | Meaning |
+| --- | --- |
+| `value` | required finite decimal value |
+| `unit` | optional `none`, `item`, or `fluid`; defaults to `none` |
+| `format` | optional number format; defaults to `default` |
+| `decimals` | optional non-negative maximum fractional digits |
+
+Example:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
 ````

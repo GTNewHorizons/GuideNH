@@ -128,3 +128,13 @@ navigation:
 4. [GameScene](GameScene)
 5. [注釈](Annotations)
 6. [レシピ](Recipes)
+
+### 数量の整形
+
+数量には `<Amount>` を使用します。単位は省略でき、省略時は数値だけを表示します。`fluid` は GTNHLib の `mB`/`L` 設定に従います。
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

@@ -23,8 +23,8 @@ StructureLib 默认值可以写成子标签，点击 reset view 时会恢复这�
 
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="hatch" value="1" />
+    <Tier value="4" locked={true} />
+    <Channel name="hatch" value="1" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />
@@ -47,6 +47,10 @@ StructureLib 默认值可以写成子标签，点击 reset view 时会恢复这�
   <ImportStructureLib controller="gregtech:gt.blockmachines:2741" />
 </GameScene>
 ```
+
+在 `<Tier>` 或 `<Channel>` 子标签上使用 `locked={true}` 可以锁定这个默认值。根标签也可以
+使用同一个属性：配合 `tier`，或配合 `channelName` 与 `channel`/`value`，即可锁定根覆盖值。
+对外语法统一使用 `locked`。
 
 显式展示成型状态的示例：
 

@@ -77,7 +77,7 @@ Inline markdown aussi prend en charge action liens pour sound playback:
 | `<QuestCard>` | bloc-level BetterQuesting quest summary card (compat balise, seulement enregistré lorsque BetterQuesting est chargé) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` est un `<GameScene>` enfant balise. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, et `channel` attributs, et aussi prend en charge StructureLib par défaut enfant balises:
+`rotation`, `flip`, et `tier`, `channel`, `channelName`, `value`, `locked` attributs, et aussi prend en charge StructureLib par défaut enfant balises:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, et `<GregTechPlaceHatches>`.
 
@@ -679,7 +679,7 @@ These balises seulement fonctionnent dans `<GameScene>` / `<Scene>`:
 | balise | Purpose | clé attributs |
 | --- | --- | --- |
 | `<ImportStructure>` | import Un externe SNBT/NBT structure ressource | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import Un StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import Un StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | supprimer déjà-placed blocs que correspondre Un bloc matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp Le même enfant annotations onto chaque correspondant placed bloc | `id` |
 
@@ -847,4 +847,23 @@ Exemple:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
+````
+
+### `<Amount>`
+
+`<Amount>` formate une quantité numérique. Sans `unit` (ou avec `unit="none"`), seul le nombre est affiché. `unit="item"` n’ajoute pas non plus de suffixe. `unit="fluid"` suit la préférence des fluides de GTNHLib et affiche `mB` ou `L`. `format` accepte `default`, `plain`, `compact` ou `scientific`; `decimals` limite les décimales. Écrivez les débits comme `L/s` en dehors de la balise.
+
+| Attribut | Signification |
+| --- | --- |
+| `value` | valeur décimale finie obligatoire |
+| `unit` | facultatif : `none`, `item` ou `fluid`; `none` par défaut |
+| `format` | format numérique facultatif; `default` par défaut |
+| `decimals` | nombre maximal facultatif de décimales, non négatif |
+
+Exemple :
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
 ````

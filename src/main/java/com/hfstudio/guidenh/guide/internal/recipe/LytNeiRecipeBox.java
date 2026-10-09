@@ -16,6 +16,7 @@ import org.lwjgl.opengl.GL11;
 import com.hfstudio.guidenh.guide.color.ColorUtils;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.LytBlock;
+import com.hfstudio.guidenh.guide.document.interaction.DocumentDragTarget;
 import com.hfstudio.guidenh.guide.document.interaction.GuideTooltip;
 import com.hfstudio.guidenh.guide.document.interaction.InteractiveElement;
 import com.hfstudio.guidenh.guide.document.interaction.TextTooltip;
@@ -31,6 +32,8 @@ import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
 import com.hfstudio.guidenh.integration.api.RecipeSlot;
 import com.hfstudio.guidenh.integration.nei.GuideScreenNeiBridge.EditorAccess;
 import com.hfstudio.guidenh.integration.nei.NeiGuideNavigation;
+import com.hfstudio.guidenh.integration.nei.NeiRecipeLookup;
+import com.hfstudio.guidenh.integration.nei.NeiRecipePermutationController;
 import com.hfstudio.guidenh.integration.neicustomdiagram.NeiCustomDiagramBridge;
 
 import lombok.Getter;
@@ -53,7 +56,7 @@ import lombok.Getter;
  * "recipe pool" category; hovering a slot yields an {@link NeiItemTooltip} carrying the extra
  * tooltip lines that NEI's tab normally contributes. The icon itself has no tooltip.
  */
-public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
+public class LytNeiRecipeBox extends LytBlock implements InteractiveElement, DocumentDragTarget {
 
     public static final int FRAME_BORDER = 4;
     public static final int ICON_SIZE = 8;
@@ -96,6 +99,12 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
      */
     private final boolean otherStacksBroken;
     private boolean actionButtonHovered;
+    private long slotCacheRevision = Long.MIN_VALUE;
+    private boolean slotCacheSkippedOthers;
+    private List<RecipeSlot> cachedIngredients = List.of();
+    private List<RecipeSlot> cachedOthers = List.of();
+    private @Nullable RecipeSlot cachedResult;
+    private boolean slotCacheResultAvailable;
 
     public LytNeiRecipeBox(Object handler, int recipeIndex) {
         this(handler, recipeIndex, true);
@@ -210,6 +219,7 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
                 bodyAbs.width(),
                 bodyAbs.height());
         } else {
+            RecipeSlots slots = recipeSlots(GuideNhIntegrationRegistry.global());
             NeiHandlerRenderer.render(
                 handler,
                 recipeIndex,
@@ -221,9 +231,35 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
                 bodyHeight,
                 -1,
                 -1,
-                otherStacksBroken);
+                otherStacksBroken,
+                slots.ingredients,
+                slots.others,
+                slots.result,
+                slotCacheResultAvailable);
         }
     }
+
+    private RecipeSlots recipeSlots(GuideNhIntegrationRegistry registry) {
+        long revision = NeiRecipePermutationController.revision(handler, recipeIndex);
+        if (revision >= 0 && revision == slotCacheRevision && slotCacheSkippedOthers == otherStacksBroken) {
+            return new RecipeSlots(cachedIngredients, cachedOthers, cachedResult);
+        }
+        List<RecipeSlot> ingredients = registry.readRecipeIngredientSlots(handler, recipeIndex);
+        List<RecipeSlot> others = otherStacksBroken ? List.of() : registry.readRecipeOtherSlots(handler, recipeIndex);
+        RecipeSlot result = registry.readRecipeResultSlot(handler, recipeIndex);
+        long updatedRevision = NeiRecipePermutationController.revision(handler, recipeIndex);
+        if (updatedRevision >= 0) {
+            cachedIngredients = ingredients;
+            cachedOthers = others;
+            cachedResult = result;
+            slotCacheResultAvailable = true;
+            slotCacheRevision = updatedRevision;
+            slotCacheSkippedOthers = otherStacksBroken;
+        }
+        return new RecipeSlots(ingredients, others, result);
+    }
+
+    private record RecipeSlots(List<RecipeSlot> ingredients, List<RecipeSlot> others, @Nullable RecipeSlot result) {}
 
     private void warnRecipeRenderFailure(Throwable t) {
         String key = handler.getClass()
@@ -389,12 +425,13 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
             return Optional.of(customDiagramTooltip);
         }
 
-        ItemStack hit = findSlotHit(registry.readRecipeIngredientSlots(handler, recipeIndex), bodyX, bodyY, px, py);
+        RecipeSlots slots = recipeSlots(registry);
+        ItemStack hit = findSlotHit(slots.ingredients, bodyX, bodyY, px, py);
         if (hit == null) {
-            hit = findSlotHit(registry.readRecipeOtherSlots(handler, recipeIndex), bodyX, bodyY, px, py);
+            hit = findSlotHit(slots.others, bodyX, bodyY, px, py);
         }
         if (hit == null) {
-            RecipeSlot result = registry.readRecipeResultSlot(handler, recipeIndex);
+            RecipeSlot result = slots.result;
             if (result != null) {
                 ItemStack shown = pickVisibleStack(result);
                 if (shown != null && isOver(bodyX + result.x(), bodyY + result.y(), SLOT_SIZE, SLOT_SIZE, px, py)) {
@@ -403,7 +440,32 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
             }
         }
         if (hit == null) return Optional.empty();
-        return Optional.of(new NeiItemTooltip(hit, handler, recipeIndex));
+        NeiRecipeLookup.PositionedStackHit positionedStackHit = NeiRecipeLookup
+            .findPositionedStackHit(handler, recipeIndex, px - bodyX, py - bodyY);
+        Object positionedStack = positionedStackHit == null ? null : positionedStackHit.positionedStack;
+        boolean input = positionedStackHit != null && positionedStackHit.ingredient;
+        List<ItemStack> permutations = input && NeiRecipeLookup.showCycledIngredientsTooltip()
+            ? NeiRecipeLookup.filteredPermutations(positionedStack)
+            : List.of();
+        if (permutations.size() <= 1) permutations = List.of();
+        return Optional.of(
+            new NeiItemTooltip(
+                hit,
+                handler,
+                recipeIndex,
+                NeiRecipeLookup.positionedTooltip(handler, positionedStack, input),
+                permutations,
+                NeiRecipeLookup.acceptsLabel(positionedStack)));
+    }
+
+    @Override
+    public boolean scroll(int documentX, int documentY, int wheelDelta) {
+        int bodyX = bounds.x() + FRAME_BORDER + BODY_HORIZONTAL_BLEED;
+        int bodyTop = bounds.y() + FRAME_BORDER + titleHeight + BODY_MARGIN + bodyTopInset;
+        int bodyY = bodyTop + bodyYShift;
+        if (!isOver(bodyX, bodyY, bodyWidth, bodyHeight, documentX, documentY)) return false;
+        return NeiRecipeLookup
+            .scrollPermutation(handler, recipeIndex, documentX - bodyX, documentY - bodyY, wheelDelta);
     }
 
     @Override
@@ -431,6 +493,9 @@ public class LytNeiRecipeBox extends LytBlock implements InteractiveElement {
     }
 
     public static @Nullable ItemStack pickVisibleStack(RecipeSlot s) {
+        if (s != null && s.currentStack() != null && s.currentStack().stackSize > 0) {
+            return s.currentStack();
+        }
         if (s == null || s.stacks()
             .isEmpty()) return null;
         for (int i = 0, n = s.stacks()

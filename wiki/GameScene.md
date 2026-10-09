@@ -407,7 +407,11 @@ Imports a StructureLib multiblock preview by controller id.
 | `facing` | no | facing override passed to the importer |
 | `rotation` | no | rotation override passed to the importer |
 | `flip` | no | flip/mirror override passed to the importer |
+| `tier` | no | initial tier value for tier-aware structures |
 | `channel` | no | integer channel override for channel-aware structures |
+| `channelName` | no | name of the channel used with the root `channel` or `value` override |
+| `value` | no | channel value used with `channelName` |
+| `locked` | no | when `true`, locks the explicitly supplied root tier or channel value during interaction |
 | `offsetX` | no | integer X offset applied to all placed blocks (default `0`) |
 | `offsetY` | no | integer Y offset applied to all placed blocks, clamped to `[0, worldHeight-1]` (default `0`) |
 | `offsetZ` | no | integer Z offset applied to all placed blocks (default `0`) |
@@ -428,6 +432,8 @@ Example:
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" tier="4" locked={true} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channelName="voltage" value="4" locked={true} />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
@@ -465,7 +471,9 @@ channel sliders.
 | Child tag | Meaning |
 | --- | --- |
 | `<Tier value="1" />` | Master tier value. |
+| `<Tier value="4" locked={true} />` | Master tier value that cannot be changed by the user. |
 | `<Channel name="channelName" value="1" />` | Named StructureLib channel override. Repeat for multiple channels. |
+| `<Channel name="channelName" value="1" locked={true} />` | Named channel override that cannot be changed by the user. |
 | `<Facing value="north" />` | Default facing. |
 | `<Rotation value="normal" />` | Default rotation. |
 | `<Flip value="none" />` | Default flip/mirror. |
@@ -480,8 +488,8 @@ keeping fallback casings by default.
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />

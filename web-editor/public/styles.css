@@ -201,7 +201,7 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px
 .guide-page h4, .guide-page h5, .guide-page h6 { margin: 1em 0 .4em; line-height: 1.25; }
 .guide-page h1 { font-size: 28px; color: var(--accent); }
 .guide-page h2 { font-size: 21px; }
-.guide-page h3 { font-size: 16px; }
+.guide-page h3 { font-size: 1.17em; }
 .guide-page p { line-height: 1.7; margin: .75em 0; }
 .guide-page pre { max-width: 100%; white-space: pre-wrap; }
 .guide-page hr { margin: 1.3em 0; border: 0; border-top: 1px solid var(--border); }

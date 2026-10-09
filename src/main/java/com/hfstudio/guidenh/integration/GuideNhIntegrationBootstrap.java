@@ -8,8 +8,6 @@ import com.hfstudio.guidenh.integration.forgemultipart.ForgeMultipartBlockExport
 
 public class GuideNhIntegrationBootstrap {
 
-    private GuideNhIntegrationBootstrap() {}
-
     public static void preInitCommon() {
         registerKnownModDescriptors();
         GuideNhIntegrationRegistry.global()

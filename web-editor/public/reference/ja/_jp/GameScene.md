@@ -411,6 +411,10 @@ Imports StructureLib multiblock プレビュー by controller id.
 | `rotation` | いいえ | 回転 上書き passed へ  importer |
 | `flip` | いいえ | flip/mirror 上書き passed へ  importer |
 | `channel` | いいえ | 整数 channel 上書き 用 channel-aware structures |
+| `tier` | いいえ | tier 対応構造の初期 tier 値 |
+| `channelName` | いいえ | ルートの `channel` または `value` 上書きに使う channel 名 |
+| `value` | いいえ | `channelName` と組み合わせる channel 値 |
+| `locked` | いいえ | 明示した tier または channel の値を固定 |
 | `offsetX` | いいえ | 整数 X offset applied へ すべての placed ブロック (既定値 `0`) |
 | `offsetY` | いいえ | 整数 Y offset applied へ すべての placed ブロック, clamped へ `[0, worldHeight-1]` (既定値 `0`) |
 | `offsetZ` | いいえ | 整数 Z offset applied へ すべての placed ブロック (既定値 `0`) |
@@ -431,6 +435,8 @@ Imports StructureLib multiblock プレビュー by controller id.
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" tier="4" locked={true} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channelName="voltage" value="4" locked={true} />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
@@ -468,7 +474,9 @@ channel sliders.
 | 子 タグ | 意味 |
 | --- | --- |
 | `<Tier value="1" />` | Master tier 値. |
+| `<Tier value="4" locked={true} />` | 明示した tier または channel の値を固定. |
 | `<Channel name="channelName" value="1" />` | Named StructureLib channel 上書き. Repeat 用 複数の channels. |
+| `<Channel name="channelName" value="1" locked={true} />` | 明示した tier または channel の値を固定. |
 | `<Facing value="north" />` | 既定値 facing. |
 | `<Rotation value="normal" />` | 既定値 回転. |
 | `<Flip value="none" />` | 既定値 flip/mirror. |
@@ -483,8 +491,8 @@ keeping フォールバック casings by 既定値.
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />

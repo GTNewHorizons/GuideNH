@@ -91,6 +91,7 @@ public class ImportStructureLibElementCompiler implements SceneElementTagCompile
             selection.getIntegrationOptions());
 
         StructureLibSceneBinding binding = scene.registerStructureLibBinding(structureName);
+        binding.setControlLocks(mergedOptions);
         binding.setRebuildRecipe(request, offsetX, offsetY, offsetZ, formed);
 
         // Build initial metadata from ConstructableData (not a world operation).

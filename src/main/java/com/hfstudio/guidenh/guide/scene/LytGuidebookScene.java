@@ -1572,6 +1572,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
 
     private void setStructureLibCurrentTierInternal(int structureLibCurrentTier, boolean notifyListener) {
         StructureLibSceneMetadata.TierData tierData = getStructureLibTierData();
+        if (tierData != null && tierData.isLocked()) {
+            return;
+        }
         int previousValue = this.structureLibCurrentTier;
         if (tierData == null) {
             this.structureLibCurrentTier = Math.max(1, structureLibCurrentTier);
@@ -1639,6 +1642,9 @@ public class LytGuidebookScene extends LytBlock implements DebugComponent {
         StructureLibSceneMetadata.ChannelData channelData = getStructureLibChannelData(channelId);
         String normalized = StructureLibPreviewSelection.normalizeChannelId(channelId);
         if (normalized == null) {
+            return;
+        }
+        if (channelData != null && channelData.isLocked()) {
             return;
         }
         int previousValue = getStructureLibChannelValue(normalized);

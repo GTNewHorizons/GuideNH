@@ -76,7 +76,7 @@
 | `<QuestCard>` | 块级 BetterQuesting 任务摘要卡片（兼容标签，仅当 BetterQuesting 已加载时注册） | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` 是 `<GameScene>` 的子标签。它支持 `controller`、`piece`、`facing`、
-`rotation`、`flip`、`channel` 属性，也支持用于设置 StructureLib 默认值的子标签：
+`rotation`、`flip`、`tier`、`channel`、`channelName`、`value`、`locked` 属性，也支持用于设置 StructureLib 默认值的子标签：
 `<Tier>`、`<Channel>`、`<Facing>`、`<Rotation>`、`<Flip>`、`<Orientation>`、
 `<GregTechActiveController>`、`<GregTechPlaceHatches>`。
 
@@ -673,7 +673,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | 标签 | 用途 | 关键属性 |
 | --- | --- | --- |
 | `<ImportStructure>` | 导入外部 SNBT/NBT 结构资源 | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | 通过控制器 id 导入 StructureLib 多方块 | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | 通过控制器 id 导入 StructureLib 多方块 | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | 移除已放置且匹配指定方块匹配器的方块 | `id` |
 | `<BlockAnnotationTemplate>` | 把同一组子注解扩展到场景中所有匹配方块上 | `id` |
 
@@ -841,4 +841,23 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
+````
+
+### `<Amount>`
+
+`<Amount>` 用于格式化数字数量。省略 `unit`（或使用 `unit="none"`）时只显示数字；`unit="item"` 也不会添加后缀。`unit="fluid"` 遵循 GTNHLib 的流体单位偏好，显示 `mB` 或 `L`。`format` 支持 `default`、`plain`、`compact` 和 `scientific`；`decimals` 用于限制小数位数。速率如 `L/s` 请写在标签外。
+
+| 属性 | 含义 |
+| --- | --- |
+| `value` | 必填的有限十进制数值 |
+| `unit` | 可选值 `none`、`item` 或 `fluid`，默认 `none` |
+| `format` | 可选数字格式，默认 `default` |
+| `decimals` | 可选的非负小数位上限 |
+
+示例：
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> 个物品
 ````

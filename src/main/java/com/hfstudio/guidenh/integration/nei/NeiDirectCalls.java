@@ -7,15 +7,21 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
 
+import codechicken.nei.NEIClientConfig;
+import codechicken.nei.NEIClientUtils;
+import codechicken.nei.NEIServerUtils;
 import codechicken.nei.PositionedStack;
 import codechicken.nei.drawable.DrawableResource;
+import codechicken.nei.recipe.Badge;
 import codechicken.nei.recipe.GuiCraftingRecipe;
+import codechicken.nei.recipe.GuiRecipe;
 import codechicken.nei.recipe.GuiRecipeTab;
 import codechicken.nei.recipe.GuiUsageRecipe;
 import codechicken.nei.recipe.HandlerInfo;
 import codechicken.nei.recipe.ICraftingHandler;
 import codechicken.nei.recipe.IRecipeHandler;
 import codechicken.nei.recipe.IUsageHandler;
+import codechicken.nei.recipe.StackInfo;
 import codechicken.nei.recipe.TemplateRecipeHandler;
 
 public class NeiDirectCalls {
@@ -54,10 +60,8 @@ public class NeiDirectCalls {
             GuiUsageRecipe.usagehandlers = new ArrayList<>(original);
             try {
                 List<IUsageHandler> result = GuiUsageRecipe.getUsageHandlers("item", target);
-                List<Object> out = new ArrayList<>(result.size());
-                for (IUsageHandler h : result) {
-                    if (h != null) out.add(h);
-                }
+                List<Object> out = copyHandlers(result);
+                addDamageableUsageHandlers(out, target);
                 return out;
             } finally {
                 GuiUsageRecipe.usagehandlers = original;
@@ -143,12 +147,22 @@ public class NeiDirectCalls {
     }
 
     public static void handleItemTooltip(Object handler, ItemStack stack, List<String> tooltip, int idx) {
-        // Passing null for GuiRecipe is intentional 鈥?we are not inside a live recipe GUI.
-        List<String> result = h(handler).handleItemTooltip(null, stack, tooltip, idx);
+        GuiRecipe<?> gui = currentGuiRecipe();
+        List<String> result = h(handler).handleItemTooltip(gui, stack, tooltip, idx);
         if (result != null && result != tooltip) {
             tooltip.clear();
             tooltip.addAll(result);
         }
+    }
+
+    @Nullable
+    private static GuiRecipe<?> currentGuiRecipe() {
+        try {
+            if (NEIClientUtils.getGuiContainer() instanceof GuiRecipe<?>recipe) {
+                return recipe;
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 
     public static int relX(Object ps) {
@@ -165,6 +179,133 @@ public class NeiDirectCalls {
 
     public static @Nullable ItemStack item(Object ps) {
         return ((PositionedStack) ps).item;
+    }
+
+    public static List<ItemStack> filteredPermutations(Object ps) {
+        return ((PositionedStack) ps).getFilteredPermutations();
+    }
+
+    /**
+     * Returns all candidate stacks for a positioned slot, keeping NEI's filtered order first and
+     * adding candidates hidden by the current search or preset filters afterwards. The embedded
+     * guide has no NEI recipe-group filter state, so dropping those candidates would make its
+     * accepts tooltip incomplete.
+     */
+    public static List<ItemStack> allPermutations(Object ps) {
+        PositionedStack positionedStack = (PositionedStack) ps;
+        List<ItemStack> result = new ArrayList<>();
+        try {
+            addUniqueCopies(result, positionedStack.getFilteredPermutations());
+        } catch (Throwable ignored) {
+            // Raw PositionedStack.items remains available when an optional NEI filter is not initialized.
+        }
+        ItemStack[] rawItems = positionedStack.items;
+        if (rawItems != null) {
+            for (ItemStack item : rawItems) {
+                addUniqueCopy(result, item);
+            }
+        }
+        return result;
+    }
+
+    public static void setPermutationToRender(Object ps, ItemStack stack) {
+        ((PositionedStack) ps).setPermutationToRender(stack);
+    }
+
+    public static @Nullable List<String> positionedTooltip(Object ps) {
+        return ((PositionedStack) ps).getTooltip();
+    }
+
+    public static @Nullable List<String> positionedTooltip(Object handler, Object ps, boolean input) {
+        PositionedStack positionedStack = (PositionedStack) ps;
+        HandlerInfo handlerInfo = info(handler);
+        if (handlerInfo == null || !handlerInfo.getShowBadge()) {
+            return positionedStack.getTooltip();
+        }
+        ArrayList<String> tooltip = new ArrayList<>();
+        List<Badge> badges = positionedStack.getBadges();
+        if (badges == null) {
+            badges = defaultBadges(positionedStack, input);
+        }
+        if (badges != null) {
+            for (Badge badge : badges) {
+                if (badge == null || badge.getTooltip() == null) continue;
+                tooltip.addAll(badge.getTooltip());
+            }
+        }
+        List<String> customTooltip = positionedStack.getTooltip();
+        if (customTooltip != null) {
+            tooltip.addAll(customTooltip);
+        }
+        return tooltip.isEmpty() ? null : tooltip;
+    }
+
+    public static @Nullable String acceptsLabel(Object ps) {
+        return ((PositionedStack) ps).getAcceptsLabel();
+    }
+
+    public static boolean showCycledIngredientsTooltip() {
+        return NEIClientConfig.showCycledIngredientsTooltip();
+    }
+
+    private static List<Badge> defaultBadges(PositionedStack positionedStack, boolean input) {
+        ItemStack item = positionedStack.item;
+        if (item == null) return List.of();
+        if (input) {
+            if (StackInfo.getAmount(item) == 0) return List.of(Badge.notConsumed());
+            if (positionedStack.getChance() == 0) return List.of(Badge.notConsumedParallel());
+            if (positionedStack.getChance() != PositionedStack.CHANCE_FULL) {
+                return List.of(Badge.consumeChance(positionedStack.getChance() / (float) PositionedStack.CHANCE_FULL));
+            }
+            return List.of();
+        }
+        if (positionedStack.getChance() != PositionedStack.CHANCE_FULL) {
+            return List.of(Badge.outputChance(positionedStack.getChance() / (float) PositionedStack.CHANCE_FULL));
+        }
+        return List.of();
+    }
+
+    public static boolean contains(Object ps, int x, int y) {
+        return ((PositionedStack) ps).contains(x, y);
+    }
+
+    public static boolean sameTypeWithNbt(ItemStack first, ItemStack second) {
+        return NEIServerUtils.areStacksSameTypeWithNBT(first, second);
+    }
+
+    private static List<Object> copyHandlers(List<? extends IRecipeHandler> handlers) {
+        List<Object> out = new ArrayList<>(handlers == null ? 0 : handlers.size());
+        if (handlers != null) {
+            for (IRecipeHandler handler : handlers) {
+                if (handler != null && !out.contains(handler)) out.add(handler);
+            }
+        }
+        return out;
+    }
+
+    private static void addDamageableUsageHandlers(List<Object> out, @Nullable ItemStack target) {
+        if (target == null || !target.isItemStackDamageable() || target.getItemDamage() > 0) return;
+        int maxDamage = target.getMaxDamage();
+        if (maxDamage <= 0) return;
+        ItemStack damaged = target.copy();
+        damaged.setItemDamage(Math.max(1, maxDamage - 1));
+        List<IUsageHandler> damagedHandlers = GuiUsageRecipe.getUsageHandlers("item", damaged);
+        for (IUsageHandler handler : damagedHandlers) {
+            if (handler != null && !out.contains(handler)) out.add(handler);
+        }
+    }
+
+    private static void addUniqueCopies(List<ItemStack> target, List<ItemStack> values) {
+        if (values == null) return;
+        for (ItemStack value : values) addUniqueCopy(target, value);
+    }
+
+    private static void addUniqueCopy(List<ItemStack> target, @Nullable ItemStack value) {
+        if (value == null) return;
+        for (ItemStack existing : target) {
+            if (sameTypeWithNbt(existing, value)) return;
+        }
+        target.add(value.copy());
     }
 
     // HandlerInfo via GuiRecipeTab.getHandlerInfo (public static method)

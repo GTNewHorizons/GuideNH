@@ -411,6 +411,10 @@ Places a блок до  перегляд світ.
 | `rotation` | no | обертання перевизначати passed до  importer |
 | `flip` | no | flip/mirror перевизначати passed до  importer |
 | `channel` | no | ціле число channel перевизначати для channel-aware структури |
+| `tier` | ні | початкове значення tier для структур із рівнями |
+| `channelName` | ні | назва каналу для кореневого перевизначення `channel` або `value` |
+| `value` | ні | значення каналу разом із `channelName` |
+| `locked` | ні | блокує явно задане значення tier або каналу |
 | `offsetX` | no | ціле число X offset applied до усі розміщений блоки (Типове `0`) |
 | `offsetY` | no | ціле число Y offset applied до усі розміщений блоки, clamped до `[0, worldHeight-1]` (Типове `0`) |
 | `offsetZ` | no | ціле число Z offset applied до усі розміщений блоки (Типове `0`) |
@@ -431,6 +435,8 @@ Places a блок до  перегляд світ.
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" tier="4" locked={true} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channelName="voltage" value="4" locked={true} />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
@@ -468,7 +474,9 @@ channel sliders.
 | дочірній елемент тег | Значення |
 | --- | --- |
 | `<Tier value="1" />` | Master tier значення. |
+| `<Tier value="4" locked={true} />` | блокує явно задане значення tier або каналу. |
 | `<Channel name="channelName" value="1" />` | Named StructureLib channel перевизначати. Repeat для кілька канали. |
+| `<Channel name="channelName" value="1" locked={true} />` | блокує явно задане значення tier або каналу. |
 | `<Facing value="north" />` | Типове facing. |
 | `<Rotation value="normal" />` | Типове обертання. |
 | `<Flip value="none" />` | Типове flip/mirror. |
@@ -483,8 +491,8 @@ keeping резервний варіант casings by Типове.
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />

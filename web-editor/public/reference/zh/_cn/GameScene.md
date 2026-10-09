@@ -382,7 +382,11 @@ GuideNH 当前注册了以下场景子标签：
 | `facing` | 否 | 传给导入器的朝向覆盖值 |
 | `rotation` | 否 | 传给导入器的旋转覆盖值 |
 | `flip` | 否 | 传给导入器的镜像覆盖值 |
+| `tier` | 否 | 支持 tier 的结构的初始 tier 值 |
 | `channel` | 否 | 支持频道结构的频道整数覆盖值 |
+| `channelName` | 否 | 与根标签 `channel` 或 `value` 覆盖值配合使用的频道名称 |
+| `value` | 否 | 与 `channelName` 配合使用的频道值 |
+| `locked` | 否 | 为 `true` 时锁定根标签显式提供的 tier 或频道值，交互时不能修改 |
 | `offsetX` | 否 | 所有放置方块的 X 偏移，整数，默认 `0` |
 | `offsetY` | 否 | 所有放置方块的 Y 偏移，整数，会被限制在 `[0, 世界高度-1]`，默认 `0` |
 | `offsetZ` | 否 | 所有放置方块的 Z 偏移，整数，默认 `0` |
@@ -403,6 +407,8 @@ GuideNH 当前注册了以下场景子标签：
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" tier="4" locked={true} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channelName="voltage" value="4" locked={true} />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
@@ -439,7 +445,9 @@ StructureLib 默认值也可以写成子标签。这些默认值会成为场景�
 | 子标签 | 含义 |
 | --- | --- |
 | `<Tier value="1" />` | 主 tier 值。 |
+| `<Tier value="4" locked={true} />` | 锁定为 4 的主 tier 值，用户不能修改。 |
 | `<Channel name="channelName" value="1" />` | 具名 StructureLib channel 覆盖值；可以重复。 |
+| `<Channel name="channelName" value="1" locked={true} />` | 锁定的具名 channel 覆盖值，用户不能修改。 |
 | `<Facing value="north" />` | 默认朝向。 |
 | `<Rotation value="normal" />` | 默认旋转。 |
 | `<Flip value="none" />` | 默认翻转 / 镜像。 |
@@ -453,8 +461,8 @@ StructureLib 默认值也可以写成子标签。这些默认值会成为场景�
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />

@@ -48,6 +48,7 @@ public class GuideSiteSceneTessellatorCapture {
     private ByteBuffer texturePixelBuffer;
     private final List<CapturedMesh> meshes = new ArrayList<>();
     private final Map<Integer, TextureExport> textures = new LinkedHashMap<>();
+    private final Map<IndexCacheKey, EncodedIndexData> indexDataCache = new HashMap<>();
     private static final int RAW_VERTEX_STRIDE = 8;
     private static final byte[] EMPTY_VERTEX_BYTES = new byte[0];
 
@@ -407,7 +408,14 @@ public class GuideSiteSceneTessellatorCapture {
     }
 
     private EncodedIndexData buildIndexData(int vertexCount) {
-        return encodeIndexData(drawMode, vertexCount);
+        IndexCacheKey key = new IndexCacheKey(drawMode, vertexCount);
+        EncodedIndexData cached = indexDataCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        EncodedIndexData created = encodeIndexData(drawMode, vertexCount);
+        indexDataCache.put(key, created);
+        return created;
     }
 
     private static int mapPrimitiveType(int drawMode) {
@@ -661,6 +669,8 @@ public class GuideSiteSceneTessellatorCapture {
     }
 
     record EncodedIndexData(byte[] indexBuffer, long indexCount, int indexType, int primitiveType) {}
+
+    private record IndexCacheKey(int drawMode, int vertexCount) {}
 
     public static class CapturedMesh {
 

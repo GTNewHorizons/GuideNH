@@ -1,6 +1,7 @@
 package com.hfstudio.guidenh.guide.scene;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -11,6 +12,7 @@ import com.hfstudio.guidenh.integration.structurelib.StructureLibBuildRequest;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibImportResult;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibPreviewSelection;
 import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneMetadata;
+import com.hfstudio.guidenh.integration.structurelib.StructureLibSceneOptions;
 
 import lombok.Getter;
 
@@ -29,6 +31,8 @@ public class StructureLibSceneBinding {
     @Getter
     private int currentTier = StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
     private final LinkedHashMap<String, Integer> channelOverrides = new LinkedHashMap<>();
+    private boolean tierLocked;
+    private final LinkedHashSet<String> lockedChannels = new LinkedHashSet<>();
     @Nullable
     private Consumer<StructureLibPreviewSelection> selectionChangeListener;
 
@@ -65,7 +69,7 @@ public class StructureLibSceneBinding {
         int previousTier = currentTier;
         LinkedHashMap<String, Integer> previousChannels = new LinkedHashMap<>(channelOverrides);
         boolean hadMetadata = this.metadata != null;
-        this.metadata = metadata;
+        this.metadata = metadata != null ? metadata.withControlLocks(tierLocked, lockedChannels) : null;
         if (metadata == null) {
             currentTier = StructureLibPreviewSelection.DEFAULT_MASTER_TIER;
             channelOverrides.clear();
@@ -87,8 +91,20 @@ public class StructureLibSceneBinding {
         }
     }
 
+    public void setControlLocks(@Nullable StructureLibSceneOptions options) {
+        tierLocked = options != null && options.isTierLocked();
+        lockedChannels.clear();
+        if (options != null) {
+            lockedChannels.addAll(options.getLockedChannels());
+        }
+        if (metadata != null) {
+            setMetadata(metadata);
+        }
+    }
+
     public void setCurrentTier(int tier) {
         StructureLibSceneMetadata.TierData td = metadata != null ? metadata.getTierData() : null;
+        if (td != null && td.isLocked()) return;
         this.currentTier = td != null ? StructureLibSceneMetadata.clamp(tier, td.getMinValue(), td.getMaxValue())
             : Math.max(1, tier);
     }
@@ -102,6 +118,7 @@ public class StructureLibSceneBinding {
         String normalized = StructureLibPreviewSelection.normalizeChannelId(channelId);
         if (normalized == null) return;
         StructureLibSceneMetadata.ChannelData cd = metadata != null ? metadata.getChannelData(normalized) : null;
+        if (cd != null && cd.isLocked()) return;
         int next = cd != null ? StructureLibSceneMetadata.clamp(value, cd.getMinValue(), cd.getMaxValue())
             : Math.max(0, value);
         if (next > 0) channelOverrides.put(normalized, next);
@@ -131,7 +148,19 @@ public class StructureLibSceneBinding {
     public void applyPreviewSelection(StructureLibPreviewSelection selection) {
         if (selection == null) return;
         setCurrentTier(selection.getMasterTier());
+        LinkedHashMap<String, Integer> lockedValues = new LinkedHashMap<>();
+        if (metadata != null) {
+            for (StructureLibSceneMetadata.ChannelData channel : metadata.getChannelDataList()) {
+                if (channel != null && channel.isLocked()) {
+                    Integer value = channelOverrides.get(channel.getChannelId());
+                    if (value != null) {
+                        lockedValues.put(channel.getChannelId(), value);
+                    }
+                }
+            }
+        }
         channelOverrides.clear();
+        channelOverrides.putAll(lockedValues);
         for (Map.Entry<String, Integer> entry : selection.getChannelOverrides()
             .entrySet()) {
             setChannelValue(entry.getKey(), entry.getValue());

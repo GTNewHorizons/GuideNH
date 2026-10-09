@@ -2,8 +2,9 @@ package com.hfstudio.guidenh.guide.internal.host.scripts;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -69,7 +70,9 @@ public class RecipeScript implements LytScript {
                 .copy();
         }
 
-        boolean hasHandlerFilter = ph.handlerName != null || ph.handlerId != null || ph.handlerOrder >= 0;
+        boolean hasHandlerFilter = ph.handlerName != null || ph.handlerId != null
+            || ph.handlerOrder >= 0
+            || !ph.handlerWhitelist.isEmpty();
         boolean hasRecipeFilter = !ph.inputExpr.isEmpty() || !ph.outputExpr.isEmpty();
         int limit = ph.limit;
         boolean usageQuery = ph.usageQuery;
@@ -77,7 +80,7 @@ public class RecipeScript implements LytScript {
         // NEI handler path
         List<Object> rawHandlers = usageQuery ? RecipeCache.getUsageHandlers(targetStack)
             : RecipeCache.getCraftingHandlers(targetStack);
-        if (!usageQuery && hasHandlerFilter) {
+        if (!usageQuery && (ph.handlerId != null || ph.handlerName != null || !ph.handlerWhitelist.isEmpty())) {
             List<Object> usage = RecipeCache.getUsageHandlers(targetStack);
             if (!usage.isEmpty()) {
                 if (rawHandlers.isEmpty()) {
@@ -85,9 +88,11 @@ public class RecipeScript implements LytScript {
                 } else {
                     List<Object> merged = new ArrayList<>(rawHandlers.size() + usage.size());
                     merged.addAll(rawHandlers);
-                    IdentityHashMap<Object, Boolean> seen = new IdentityHashMap<>(merged.size());
-                    for (Object h : rawHandlers) seen.put(h, Boolean.TRUE);
-                    for (Object h : usage) if (seen.put(h, Boolean.TRUE) == null) merged.add(h);
+                    Set<String> seen = new LinkedHashSet<>();
+                    for (Object h : rawHandlers) seen.add(NeiRecipeLookup.handlerFingerprint(h));
+                    for (Object h : usage) {
+                        if (seen.add(NeiRecipeLookup.handlerFingerprint(h))) merged.add(h);
+                    }
                     rawHandlers = merged;
                 }
             }
@@ -117,6 +122,11 @@ public class RecipeScript implements LytScript {
             }
 
             @Override
+            public List<NeiRecipeLookup.Slot> readOtherSlots(Object h, int ri) {
+                return NeiRecipeLookup.readOtherSlots(h, ri);
+            }
+
+            @Override
             public @Nullable NeiRecipeLookup.Slot readResultSlot(Object h, int ri) {
                 return NeiRecipeLookup.readResultSlot(h, ri);
             }
@@ -131,6 +141,7 @@ public class RecipeScript implements LytScript {
             RecipeCompiler.effectiveHandlerBlacklist(ph.handlerBlacklist));
         if (!handlers.isEmpty()) {
             List<LytNeiRecipeBox> boxes = new ArrayList<>();
+            Set<String> recipeFingerprints = new LinkedHashSet<>();
             for (int hi = 0; hi < handlers.size() && boxes.size() < limit; hi++) {
                 Object handler = handlers.get(hi);
                 int num = GuideNhIntegrationRegistry.global()
@@ -138,9 +149,20 @@ public class RecipeScript implements LytScript {
                 int recipeStart = Math.max(ph.recipeIndex, 0);
                 int recipeEnd = ph.recipeIndex >= 0 ? Math.min(num, ph.recipeIndex + 1) : num;
                 for (int ri = recipeStart; ri < recipeEnd && boxes.size() < limit; ri++) {
-                    if (hasRecipeFilter
-                        && !RecipeCompiler.recipeMatches(handler, ri, ph.inputExpr, ph.outputExpr, recipeAccess))
+                    NeiRecipeLookup.Entry entry = new NeiRecipeLookup.Entry(
+                        "",
+                        "",
+                        recipeAccess.readIngredientSlots(handler, ri),
+                        recipeAccess.readOtherSlots(handler, ri),
+                        recipeAccess.readResultSlot(handler, ri));
+                    if (!usageQuery && !RecipeCompiler.handlerTargetMatches(
+                        entry,
+                        ph.ref,
+                        ph.handlerId != null || ph.handlerName != null || !ph.handlerWhitelist.isEmpty())) {
                         continue;
+                    }
+                    if (hasRecipeFilter && !RecipeCompiler.recipeMatches(entry, ph.inputExpr, ph.outputExpr)) continue;
+                    if (!recipeFingerprints.add(NeiRecipeLookup.recipeFingerprint(handler, entry))) continue;
                     boxes.add(new LytNeiRecipeBox(handler, ri, !usageQuery));
                 }
             }
@@ -150,6 +172,14 @@ public class RecipeScript implements LytScript {
             }
             if (ph.recipeIndex >= 0) {
                 showFallback(ctx, ph, "Recipe index " + ph.recipeIndex + " not found for " + ph.idStr);
+                return;
+            }
+            if (hasHandlerFilter) {
+                if (ph.fallbackText != null && !ph.fallbackText.isEmpty()) {
+                    showFallback(ctx, ph, "No recipe found for " + ph.idStr + " with the requested handler");
+                } else {
+                    GuideDebugLog.debug("Recipe handler matched but exposed no target recipe for {}", ph.idStr);
+                }
                 return;
             }
         } else if (hasHandlerFilter) {

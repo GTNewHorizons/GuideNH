@@ -131,3 +131,13 @@ navigation:
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)
+
+### Форматування кількості
+
+Використовуйте `<Amount>` для кількості. Одиницю можна не вказувати: за замовчуванням показується лише число; `fluid` дотримується налаштування `mB`/`L` з GTNHLib.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

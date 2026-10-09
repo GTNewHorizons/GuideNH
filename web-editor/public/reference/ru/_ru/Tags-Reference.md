@@ -74,7 +74,7 @@
 | `<QuestCard>` | сводная карточка квеста BetterQuesting на уровне блока (тег совместимости, регистрируется только при загрузке BetterQuesting) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` — это дочерний тег `<GameScene>`. Он принимает `controller`, `piece`, `facing`,
-атрибуты `rotation`, `flip` и `channel`, а также поддерживают дочерние теги StructureLib по умолчанию:
+атрибуты `rotation`, `flip` и `tier`, `channel`, `channelName`, `value`, `locked`, а также поддерживают дочерние теги StructureLib по умолчанию:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>` и `<GregTechPlaceHatches>`.
 
@@ -676,7 +676,7 @@ $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$
 | Тег | Цель | Ключевые атрибуты |
 | --- | --- | --- |
 | `<ImportStructure>` | импорт внешнего актива структуры SNBT/NBT. | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | импортируйте мультиблок StructureLib по идентификатору контроллера. | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | импортируйте мультиблок StructureLib по идентификатору контроллера. | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | удалить уже размещенные блоки, соответствующие сопоставителю блоков. | `id` |
 | `<BlockAnnotationTemplate>` | наносить одни и те же дочерние аннотации на каждый соответствующий размещенный блок. | `id` |
 
@@ -844,4 +844,23 @@ See <QuestLink id="AAAAAAAAAAAAAAAAAAAMug==" text="Compact quest id example" /> 
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
+````
+
+### `<Amount>`
+
+`<Amount>` форматирует числовое количество. Если `unit` не указан (или равен `unit="none"`), отображается только число. `unit="item"` также не добавляет суффикс. `unit="fluid"` использует настройку жидкостей GTNHLib и показывает `mB` или `L`. `format` может быть `default`, `plain`, `compact` или `scientific`, а `decimals` ограничивает число знаков после запятой. Скорость, например `L/s`, указывайте вне тега.
+
+| Атрибут | Значение |
+| --- | --- |
+| `value` | обязательное конечное десятичное число |
+| `unit` | необязательное `none`, `item` или `fluid`; по умолчанию `none` |
+| `format` | необязательный числовой формат; по умолчанию `default` |
+| `decimals` | необязательное неотрицательное максимальное число знаков |
+
+Пример:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
 ````

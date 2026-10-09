@@ -411,6 +411,10 @@ Imports Een StructureLib multiblock voorbeeldweergave by controller id.
 | `rotation` | no | rotatie override passed naar De importer |
 | `flip` | no | flip/mirror override passed naar De importer |
 | `channel` | no | geheel getal channel override voor channel-aware structures |
+| `tier` | nee | initiële tier-waarde voor tier-bewuste structuren |
+| `channelName` | nee | naam van het kanaal voor de root `channel`- of `value`-override |
+| `value` | nee | kanaalwaarde samen met `channelName` |
+| `locked` | nee | vergrendelt de expliciet opgegeven tier- of kanaalwaarde |
 | `offsetX` | no | geheel getal X offset applied naar alle placed blokken (Standaard `0`) |
 | `offsetY` | no | geheel getal Y offset applied naar alle placed blokken, clamped naar `[0, worldHeight-1]` (Standaard `0`) |
 | `offsetZ` | no | geheel getal Z offset applied naar alle placed blokken (Standaard `0`) |
@@ -431,6 +435,8 @@ Example:
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" tier="4" locked={true} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channelName="voltage" value="4" locked={true} />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
@@ -468,7 +474,9 @@ channel sliders.
 | kind tag | Betekenis |
 | --- | --- |
 | `<Tier value="1" />` | Master tier waarde. |
+| `<Tier value="4" locked={true} />` | vergrendelt de expliciet opgegeven tier- of kanaalwaarde. |
 | `<Channel name="channelName" value="1" />` | Named StructureLib channel override. Repeat voor meerdere channels. |
+| `<Channel name="channelName" value="1" locked={true} />` | vergrendelt de expliciet opgegeven tier- of kanaalwaarde. |
 | `<Facing value="north" />` | Standaard facing. |
 | `<Rotation value="normal" />` | Standaard rotatie. |
 | `<Flip value="none" />` | Standaard flip/mirror. |
@@ -483,8 +491,8 @@ keeping fallback casings by Standaard.
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />

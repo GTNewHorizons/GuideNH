@@ -54,8 +54,6 @@ import betterquesting.api2.client.gui.panels.content.PanelTextBox;
 
 public class GuideNhClientIntegrationBootstrap {
 
-    private GuideNhClientIntegrationBootstrap() {}
-
     public static void preInitClient() {
         registerBlockDisplayProviders();
         registerPreviewTileEntityProviders();

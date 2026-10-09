@@ -131,3 +131,13 @@ Die untergeordnetes Element Tags Setzen Sie StructureLib Standards für Die Szen
 4. [GameScene](GameScene)
 5. [Annotations](Annotations)
 6. [Recipes](Recipes)
+
+### Mengen formatieren
+
+Verwende `<Amount>` für Mengen. Die Einheit ist optional und zeigt standardmäßig nur die Zahl; `fluid` folgt der GTNHLib-Einstellung für `mB`/`L`.
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
+````

@@ -96,19 +96,18 @@ public class GuideSiteRecipeExporter {
         html.append("<div class=\"recipe-ingredients\">");
         appendSlotBoxes(html, ingredients);
         html.append("</div>");
+        html.append("<span class=\"recipe-arrow\" aria-hidden=\"true\"></span>");
         if (supportingSlots != null && !supportingSlots.isEmpty()) {
             html.append("<div class=\"recipe-supporting-slots\">");
             appendSlotBoxes(html, supportingSlots);
             html.append("</div>");
         }
-        html.append("</div>");
-        // Wrap the result icon in an `ingredient-box` so the output slot also receives the
-        // slot.png border-image background (previously the result was rendered as a bare
-        // `recipe-result` div with no slot frame, which made the output look unboxed).
+        // Wrap the result icon in an ingredient box so the output slot keeps the same frame as inputs.
         html.append("<div class=\"recipe-result ingredient-box\" data-result-item-id=\"")
             .append(escapeHtml(resultItem.itemId()))
             .append("\">");
         appendTooltipIcon(html, resultItem);
+        html.append("</div>");
         html.append("</div>");
         html.append("</section>");
         return html.toString();
@@ -227,7 +226,8 @@ public class GuideSiteRecipeExporter {
             }
 
             if (usePhase1Canvas) {
-                html.append("<div class=\"recipe-positioned-slot recipe-positioned-slot--phase1-overlay\"");
+                html.append(
+                    "<div class=\"ingredient-box recipe-positioned-slot recipe-positioned-slot--phase1-overlay\"");
             } else {
                 html.append("<div class=\"ingredient-box recipe-positioned-slot\"");
             }
@@ -512,7 +512,7 @@ public class GuideSiteRecipeExporter {
         if (slot == null) {
             return null;
         }
-        return new RecipeSlot(slot.relx, slot.rely, slot.stacks);
+        return new RecipeSlot(slot.relx, slot.rely, slot.stacks, slot.current);
     }
 
     public GuideSiteExportedItem itemInfo(@Nullable ItemStack stack, GuideSiteItemIconResolver itemIconResolver) {

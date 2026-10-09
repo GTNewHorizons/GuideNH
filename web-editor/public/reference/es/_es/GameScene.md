@@ -411,6 +411,10 @@ importaciones Un StructureLib multiblock vista previa by controller id.
 | `rotation` | no | rotación anular passed Un El importer |
 | `flip` | no | flip/mirror anular passed Un El importer |
 | `channel` | no | entero channel anular para channel-aware estructuras |
+| `tier` | no | valor inicial de tier para estructuras compatibles |
+| `channelName` | no | nombre del canal usado con la anulación raíz `channel` o `value` |
+| `value` | no | valor del canal usado con `channelName` |
+| `locked` | no | bloquea el valor de tier o canal indicado explícitamente |
 | `offsetX` | no | entero X offset applied Un todos colocado bloques (predeterminado `0`) |
 | `offsetY` | no | entero Y offset applied Un todos colocado bloques, clamped a `[0, worldHeight-1]` (predeterminado `0`) |
 | `offsetZ` | no | entero Z offset applied Un todos colocado bloques (predeterminado `0`) |
@@ -431,6 +435,8 @@ Ejemplo:
 ````md
 <ImportStructureLib controller="botanichorizons:automatedCraftingPool" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:1000" channel="7" />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" tier="4" locked={true} />
+<ImportStructureLib controller="gregtech:gt.blockmachines:1000" channelName="voltage" value="4" locked={true} />
 <ImportStructureLib name="main" controller="gregtech:gt.blockmachines:15411" />
 <ImportStructureLib controller="gregtech:gt.blockmachines:15411" formed={false} />
 ````
@@ -468,7 +474,9 @@ channel sliders.
 | hijo etiqueta | significado |
 | --- | --- |
 | `<Tier value="1" />` | Master tier valor. |
+| `<Tier value="4" locked={true} />` | bloquea el valor de tier o canal indicado explícitamente. |
 | `<Channel name="channelName" value="1" />` | Named StructureLib channel anular. Repeat para varios canales. |
+| `<Channel name="channelName" value="1" locked={true} />` | bloquea el valor de tier o canal indicado explícitamente. |
 | `<Facing value="north" />` | predeterminado facing. |
 | `<Rotation value="normal" />` | predeterminado rotación. |
 | `<Flip value="none" />` | predeterminado flip/mirror. |
@@ -483,8 +491,8 @@ keeping reserva casings by predeterminado.
 ````md
 <GameScene width="384" height="256" zoom={4} interactive={true}>
   <ImportStructureLib controller="gregtech:gt.blockmachines:1000">
-    <Tier value="4" />
-    <Channel name="voltage" value="4" />
+    <Tier value="4" locked={true} />
+    <Channel name="voltage" value="4" locked={true} />
     <Facing value="north" />
     <Rotation value="normal" />
     <Flip value="none" />

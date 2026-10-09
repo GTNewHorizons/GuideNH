@@ -94,13 +94,18 @@ public class StructureLibSceneMetadata {
     }
 
     public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue) {
+        return withTierData(minValue, maxValue, defaultValue, currentValue, false);
+    }
+
+    public StructureLibSceneMetadata withTierData(int minValue, int maxValue, int defaultValue, int currentValue,
+        boolean locked) {
         return new StructureLibSceneMetadata(
             controller,
             piece,
             facing,
             rotation,
             flip,
-            new TierData(minValue, maxValue, defaultValue, currentValue),
+            new TierData(minValue, maxValue, defaultValue, currentValue, locked),
             channelDataList,
             blockTooltipDataByPos);
     }
@@ -123,8 +128,13 @@ public class StructureLibSceneMetadata {
     }
 
     public StructureLibSceneMetadata withChannelData(String channelId, String label, int maxValue, int currentValue) {
+        return withChannelData(channelId, label, maxValue, currentValue, false);
+    }
+
+    public StructureLibSceneMetadata withChannelData(String channelId, String label, int maxValue, int currentValue,
+        boolean locked) {
         LinkedHashMap<String, ChannelData> updated = new LinkedHashMap<>(channelDataById);
-        ChannelData next = new ChannelData(channelId, label, maxValue, 0, currentValue);
+        ChannelData next = new ChannelData(channelId, label, maxValue, 0, currentValue, locked);
         updated.put(next.getChannelId(), next);
         return new StructureLibSceneMetadata(
             controller,
@@ -134,6 +144,49 @@ public class StructureLibSceneMetadata {
             flip,
             tierData,
             new ArrayList<>(updated.values()),
+            blockTooltipDataByPos);
+    }
+
+    public StructureLibSceneMetadata withControlLocks(boolean tierLocked, @Nullable Set<String> lockedChannels) {
+        TierData lockedTier = tierData;
+        if (tierData != null) {
+            lockedTier = new TierData(
+                tierData.minValue,
+                tierData.maxValue,
+                tierData.defaultValue,
+                tierData.currentValue,
+                tierData.locked || tierLocked);
+        }
+        Set<String> normalizedChannels = new LinkedHashSet<>();
+        if (lockedChannels != null) {
+            for (String channel : lockedChannels) {
+                String normalized = StructureLibPreviewSelection.normalizeChannelId(channel);
+                if (normalized != null) {
+                    normalizedChannels.add(normalized);
+                }
+            }
+        }
+        List<ChannelData> lockedChannelData = new ArrayList<>(channelDataList.size());
+        for (ChannelData channel : channelDataList) {
+            if (channel != null) {
+                lockedChannelData.add(
+                    new ChannelData(
+                        channel.channelId,
+                        channel.label,
+                        channel.maxValue,
+                        channel.defaultValue,
+                        channel.currentValue,
+                        channel.locked || normalizedChannels.contains(channel.channelId)));
+            }
+        }
+        return new StructureLibSceneMetadata(
+            controller,
+            piece,
+            facing,
+            rotation,
+            flip,
+            lockedTier,
+            lockedChannelData,
             blockTooltipDataByPos);
     }
 
@@ -379,18 +432,24 @@ public class StructureLibSceneMetadata {
         private final int maxValue;
         private final int defaultValue;
         private final int currentValue;
+        private final boolean locked;
 
         public TierData(int minValue, int maxValue, int defaultValue, int currentValue) {
+            this(minValue, maxValue, defaultValue, currentValue, false);
+        }
+
+        public TierData(int minValue, int maxValue, int defaultValue, int currentValue, boolean locked) {
             int normalizedMin = Math.max(1, minValue);
             int normalizedMax = Math.max(normalizedMin, maxValue);
             this.minValue = normalizedMin;
             this.maxValue = normalizedMax;
             this.defaultValue = clamp(defaultValue, normalizedMin, normalizedMax);
             this.currentValue = clamp(currentValue, normalizedMin, normalizedMax);
+            this.locked = locked;
         }
 
         public boolean isSelectable() {
-            return maxValue > minValue;
+            return !locked && maxValue > minValue;
         }
     }
 
@@ -402,8 +461,14 @@ public class StructureLibSceneMetadata {
         private final int maxValue;
         private final int defaultValue;
         private final int currentValue;
+        private final boolean locked;
 
         public ChannelData(String channelId, String label, int maxValue, int defaultValue, int currentValue) {
+            this(channelId, label, maxValue, defaultValue, currentValue, false);
+        }
+
+        public ChannelData(String channelId, String label, int maxValue, int defaultValue, int currentValue,
+            boolean locked) {
             String normalizedChannelId = StructureLibPreviewSelection.normalizeChannelId(channelId);
             String normalizedLabel = normalizeOptional(label);
             int normalizedMax = Math.max(0, maxValue);
@@ -412,6 +477,7 @@ public class StructureLibSceneMetadata {
             this.maxValue = normalizedMax;
             this.defaultValue = clamp(defaultValue, 0, normalizedMax);
             this.currentValue = clamp(currentValue, 0, normalizedMax);
+            this.locked = locked;
         }
 
         public int getMinValue() {
@@ -419,7 +485,7 @@ public class StructureLibSceneMetadata {
         }
 
         public boolean isSelectable() {
-            return maxValue > 0;
+            return !locked && maxValue > 0;
         }
     }
 }

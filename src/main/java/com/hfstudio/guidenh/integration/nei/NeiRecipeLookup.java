@@ -1,8 +1,14 @@
 package com.hfstudio.guidenh.integration.nei;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.Nullable;
@@ -12,16 +18,27 @@ import com.hfstudio.guidenh.integration.Mods;
 
 public class NeiRecipeLookup {
 
+    private static final Map<Object, PermutationCache> PERMUTATION_CACHE = Collections
+        .synchronizedMap(new WeakHashMap<>());
+    private static final Map<Object, String> HANDLER_FINGERPRINT_CACHE = Collections
+        .synchronizedMap(new WeakHashMap<>());
+
     public static class Slot {
 
         public final int relx;
         public final int rely;
         public final List<ItemStack> stacks;
+        public final @Nullable ItemStack current;
 
         public Slot(int relx, int rely, List<ItemStack> stacks) {
+            this(relx, rely, stacks, null);
+        }
+
+        public Slot(int relx, int rely, List<ItemStack> stacks, @Nullable ItemStack current) {
             this.relx = relx;
             this.rely = rely;
             this.stacks = stacks;
+            this.current = current;
         }
     }
 
@@ -62,11 +79,16 @@ public class NeiRecipeLookup {
         try {
             List<Object> handlers = NeiDirectCalls.getCraftingHandlers(target);
             List<CraftingRecipeRef> out = new ArrayList<>();
+            Set<String> fingerprints = new LinkedHashSet<>();
             for (Object handler : handlers) {
                 if (handler == null) continue;
                 CraftingRecipeRef[] refs = readHandlerCraftingRecipeRefs(handler);
                 if (refs != null && refs.length > 0) {
-                    out.addAll(List.of(refs));
+                    for (CraftingRecipeRef ref : refs) {
+                        if (ref != null && fingerprints.add(recipeFingerprint(ref.handler, ref.entry))) {
+                            out.add(ref);
+                        }
+                    }
                 }
             }
             return out;
@@ -197,6 +219,273 @@ public class NeiRecipeLookup {
         } catch (Throwable ignored) {}
     }
 
+    /**
+     * Returns a stable identity for a handler across NEI's crafting and usage query instances.
+     * NEI can create separate handler objects for the same recipe pool, so object identity is not
+     * sufficient when a recipe tag combines both query directions.
+     */
+    public static String handlerFingerprint(Object handler) {
+        if (handler == null) return "";
+        String cached = HANDLER_FINGERPRINT_CACHE.get(handler);
+        if (cached != null) return cached;
+        String className = handler.getClass()
+            .getName();
+        String overlayId = lookupOverlayIdentifier(handler);
+        String handlerId = lookupHandlerId(handler);
+        String handlerName = lookupHandlerName(handler);
+        String fingerprint = className + '|'
+            + nullToEmpty(overlayId)
+            + '|'
+            + nullToEmpty(handlerId)
+            + '|'
+            + nullToEmpty(handlerName);
+        HANDLER_FINGERPRINT_CACHE.put(handler, fingerprint);
+        return fingerprint;
+    }
+
+    /**
+     * Returns a structural recipe identity based on the handler metadata, slot coordinates, and
+     * every candidate stack. The recipe index is deliberately excluded because separate NEI
+     * handler instances can expose the same entry at different indices.
+     */
+    public static String recipeFingerprint(Object handler, int recipeIndex) {
+        return recipeFingerprint(
+            handler,
+            new Entry(
+                "",
+                "",
+                readIngredientSlots(handler, recipeIndex),
+                readOtherSlots(handler, recipeIndex),
+                readResultSlot(handler, recipeIndex)));
+    }
+
+    public static String recipeFingerprint(Object handler, @Nullable Entry entry) {
+        StringBuilder out = new StringBuilder(handlerFingerprint(handler));
+        if (entry == null) return out.toString();
+        appendSlots(out, entry.ingredients);
+        appendSlots(out, entry.others);
+        appendSlot(out, entry.result);
+        return out.toString();
+    }
+
+    private static void appendSlots(StringBuilder out, List<Slot> slots) {
+        out.append("[");
+        if (slots != null) {
+            for (Slot slot : slots) appendSlot(out, slot);
+        }
+        out.append("]");
+    }
+
+    private static void appendSlot(StringBuilder out, @Nullable Slot slot) {
+        if (slot == null) {
+            out.append("null;");
+            return;
+        }
+        out.append(slot.relx)
+            .append(',')
+            .append(slot.rely)
+            .append('{');
+        if (slot.stacks != null) {
+            for (ItemStack stack : slot.stacks) appendStack(out, stack);
+        }
+        out.append("};");
+    }
+
+    private static void appendStack(StringBuilder out, @Nullable ItemStack stack) {
+        if (stack == null || stack.getItem() == null) {
+            out.append("null,");
+            return;
+        }
+        Object registryName = Item.itemRegistry.getNameForObject(stack.getItem());
+        out.append(
+            registryName != null ? registryName
+                : stack.getItem()
+                    .getClass()
+                    .getName())
+            .append('#')
+            .append(stack.getItemDamage())
+            .append('x')
+            .append(stack.stackSize);
+        if (stack.stackTagCompound != null) out.append('@')
+            .append(stack.stackTagCompound);
+        out.append(',');
+    }
+
+    private static String nullToEmpty(@Nullable String value) {
+        return value == null ? "" : value;
+    }
+
+    public static class PositionedStackHit {
+
+        public final Object positionedStack;
+        public final boolean ingredient;
+
+        public PositionedStackHit(Object positionedStack, boolean ingredient) {
+            this.positionedStack = positionedStack;
+            this.ingredient = ingredient;
+        }
+    }
+
+    @Nullable
+    public static List<String> positionedTooltip(@Nullable Object positionedStack) {
+        if (positionedStack == null) return null;
+        try {
+            return NeiDirectCalls.positionedTooltip(positionedStack);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
+    public static List<String> positionedTooltip(Object handler, Object positionedStack, boolean input) {
+        if (handler == null || positionedStack == null) return null;
+        try {
+            return NeiDirectCalls.positionedTooltip(handler, positionedStack, input);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
+    public static String acceptsLabel(@Nullable Object positionedStack) {
+        if (positionedStack == null) return null;
+        try {
+            return NeiDirectCalls.acceptsLabel(positionedStack);
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    public static boolean showCycledIngredientsTooltip() {
+        try {
+            return NeiDirectCalls.showCycledIngredientsTooltip();
+        } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    public static List<ItemStack> filteredPermutations(@Nullable Object positionedStack) {
+        if (positionedStack == null) return List.of();
+        ItemStack[] sourceItems;
+        try {
+            sourceItems = NeiDirectCalls.items(positionedStack);
+        } catch (Throwable ignored) {
+            sourceItems = null;
+        }
+        try {
+            List<ItemStack> filtered = NeiDirectCalls.filteredPermutations(positionedStack);
+            PermutationCache cached = PERMUTATION_CACHE.get(positionedStack);
+            if (cached != null && cached.matches(sourceItems, filtered)) return cached.values;
+            List<ItemStack> result = new ArrayList<>();
+            addUniquePermutationCopies(result, filtered);
+            if (sourceItems != null) {
+                for (ItemStack source : sourceItems) {
+                    addUniquePermutationCopy(result, source);
+                }
+            }
+            result = result.isEmpty() ? List.of() : List.copyOf(result);
+            PERMUTATION_CACHE.put(positionedStack, new PermutationCache(sourceItems, result, filtered));
+            return result;
+        } catch (Throwable ignored) {
+            return List.of();
+        }
+    }
+
+    private static void addUniquePermutationCopies(List<ItemStack> target, List<ItemStack> values) {
+        if (values == null) return;
+        for (ItemStack value : values) addUniquePermutationCopy(target, value);
+    }
+
+    private static void addUniquePermutationCopy(List<ItemStack> target, @Nullable ItemStack value) {
+        if (value == null) return;
+        for (ItemStack existing : target) {
+            if (NeiDirectCalls.sameTypeWithNbt(existing, value)) return;
+        }
+        target.add(value.copy());
+    }
+
+    private static class PermutationCache {
+
+        private final ItemStack[] sourceItems;
+        private final List<ItemStack> values;
+        private final List<ItemStack> filtered;
+
+        private PermutationCache(ItemStack[] sourceItems, List<ItemStack> values, List<ItemStack> filtered) {
+            this.sourceItems = sourceItems;
+            this.values = values;
+            this.filtered = filtered;
+        }
+
+        private boolean matches(ItemStack[] currentItems, List<ItemStack> currentFiltered) {
+            if (sourceItems != currentItems && !sameItemArray(sourceItems, currentItems)) return false;
+            return sameItemList(filtered, currentFiltered);
+        }
+
+        private static boolean sameItemArray(ItemStack[] first, ItemStack[] second) {
+            if (first == second) return true;
+            if (first == null || second == null || first.length != second.length) return false;
+            for (int index = 0; index < first.length; index++) {
+                if (first[index] != second[index]) return false;
+            }
+            return true;
+        }
+
+        private static boolean sameItemList(List<ItemStack> first, List<ItemStack> second) {
+            if (first == second) return true;
+            if (first == null || second == null || first.size() != second.size()) return false;
+            for (int index = 0; index < first.size(); index++) {
+                ItemStack left = first.get(index);
+                ItemStack right = second.get(index);
+                if (left == right) continue;
+                if (left == null || right == null || !NeiDirectCalls.sameTypeWithNbt(left, right)) return false;
+            }
+            return true;
+        }
+    }
+
+    @Nullable
+    public static PositionedStackHit findPositionedStackHit(Object handler, int recipeIndex, int localX, int localY) {
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
+        try {
+            Object positionedStack = findPositionedStack(
+                safeList(NeiDirectCalls.ingredientStacks(handler, recipeIndex)),
+                localX,
+                localY);
+            if (positionedStack != null) return new PositionedStackHit(positionedStack, true);
+            positionedStack = findPositionedStack(
+                safeList(NeiDirectCalls.otherStacks(handler, recipeIndex)),
+                localX,
+                localY);
+            if (positionedStack != null) return new PositionedStackHit(positionedStack, false);
+            Object result = NeiDirectCalls.resultStack(handler, recipeIndex);
+            return result != null && NeiDirectCalls.contains(result, localX, localY)
+                ? new PositionedStackHit(result, false)
+                : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
+    public static Object findPositionedStack(Object handler, int recipeIndex, int localX, int localY) {
+        PositionedStackHit hit = findPositionedStackHit(handler, recipeIndex, localX, localY);
+        return hit == null ? null : hit.positionedStack;
+    }
+
+    @Nullable
+    private static Object findPositionedStack(List<Object> stacks, int localX, int localY) {
+        for (Object positionedStack : stacks) {
+            if (positionedStack != null && NeiDirectCalls.contains(positionedStack, localX, localY)) {
+                return positionedStack;
+            }
+        }
+        return null;
+    }
+
+    private static List<Object> safeList(List<Object> values) {
+        return values == null ? List.of() : values;
+    }
+
     public static int lookupRecipeHeight(Object handler, int recipeIndex) {
         if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return 0;
         try {
@@ -209,7 +498,11 @@ public class NeiRecipeLookup {
     public static List<Slot> readIngredientSlots(Object handler, int recipeIndex) {
         if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return List.of();
         try {
-            return readSlotList(NeiDirectCalls.ingredientStacks(handler, recipeIndex));
+            return readSlotList(
+                handler,
+                recipeIndex,
+                "ingredient",
+                NeiDirectCalls.ingredientStacks(handler, recipeIndex));
         } catch (Throwable t) {
             return List.of();
         }
@@ -218,7 +511,7 @@ public class NeiRecipeLookup {
     public static List<Slot> readOtherSlots(Object handler, int recipeIndex) {
         if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return List.of();
         try {
-            return readSlotList(NeiDirectCalls.otherStacks(handler, recipeIndex));
+            return readSlotList(handler, recipeIndex, "other", NeiDirectCalls.otherStacks(handler, recipeIndex));
         } catch (Throwable t) {
             return List.of();
         }
@@ -241,7 +534,7 @@ public class NeiRecipeLookup {
     public static @Nullable Slot readResultSlot(Object handler, int recipeIndex) {
         if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return null;
         try {
-            return readSlot(NeiDirectCalls.resultStack(handler, recipeIndex));
+            return readSlot(handler, recipeIndex, "result", 0, NeiDirectCalls.resultStack(handler, recipeIndex));
         } catch (Throwable t) {
             return null;
         }
@@ -339,9 +632,9 @@ public class NeiRecipeLookup {
                 .getSimpleName();
             CraftingRecipeRef[] out = new CraftingRecipeRef[n];
             for (int i = 0; i < n; i++) {
-                List<Slot> ing = readSlotList(NeiDirectCalls.ingredientStacks(handler, i));
-                List<Slot> oth = readSlotList(NeiDirectCalls.otherStacks(handler, i));
-                Slot res = readSlot(NeiDirectCalls.resultStack(handler, i));
+                List<Slot> ing = readSlotList(handler, i, "ingredient", NeiDirectCalls.ingredientStacks(handler, i));
+                List<Slot> oth = readSlotList(handler, i, "other", NeiDirectCalls.otherStacks(handler, i));
+                Slot res = readSlot(handler, i, "result", 0, NeiDirectCalls.resultStack(handler, i));
                 out[i] = new CraftingRecipeRef(handler, i, new Entry(handlerName, recipeName, ing, oth, res));
             }
             return out;
@@ -364,8 +657,9 @@ public class NeiRecipeLookup {
 
     public static List<Slot> readSlotList(Object obj) {
         if (!(obj instanceof List)) return List.of();
-        List<Slot> out = new ArrayList<>();
-        for (Object ps : (List<?>) obj) {
+        List<?> values = (List<?>) obj;
+        List<Slot> out = new ArrayList<>(values.size());
+        for (Object ps : values) {
             Slot s = readSlot(ps);
             if (s != null) out.add(s);
         }
@@ -373,12 +667,49 @@ public class NeiRecipeLookup {
     }
 
     public static @Nullable Slot readSlot(@Nullable Object ps) {
+        return readSlot(null, 0, "", 0, ps);
+    }
+
+    public static void advancePermutations(Object handler, int recipeIndex) {
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return;
+        try {
+            NeiRecipePermutationController.advance(handler, recipeIndex);
+        } catch (Throwable ignored) {}
+    }
+
+    public static boolean scrollPermutation(Object handler, int recipeIndex, int localX, int localY, int wheelDelta) {
+        if (!Mods.NotEnoughItems.isModLoaded() || handler == null) return false;
+        try {
+            return NeiRecipePermutationController.scroll(handler, recipeIndex, localX, localY, wheelDelta);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private static List<Slot> readSlotList(Object handler, int recipeIndex, String group, List<Object> values) {
+        if (values == null || values.isEmpty()) return List.of();
+        if (handler != null) {
+            NeiRecipePermutationController.applyAll(handler, recipeIndex, group, values);
+        }
+        List<Slot> out = new ArrayList<>(values.size());
+        for (int index = 0; index < values.size(); index++) {
+            Slot slot = readSlot(null, recipeIndex, group, index, values.get(index));
+            if (slot != null) out.add(slot);
+        }
+        return out;
+    }
+
+    private static @Nullable Slot readSlot(@Nullable Object handler, int recipeIndex, String group, int ordinal,
+        @Nullable Object ps) {
         if (ps == null) return null;
         try {
+            if (handler != null) {
+                NeiRecipePermutationController.apply(handler, recipeIndex, group, ordinal, ps);
+            }
             int relx = NeiDirectCalls.relX(ps);
             int rely = NeiDirectCalls.relY(ps);
-            List<ItemStack> stacks = new ArrayList<>();
             ItemStack[] itemsArr = NeiDirectCalls.items(ps);
+            List<ItemStack> stacks = itemsArr == null ? new ArrayList<>(1) : new ArrayList<>(itemsArr.length);
             if (itemsArr != null) {
                 for (ItemStack s : itemsArr) {
                     if (s != null) stacks.add(s);
@@ -389,7 +720,7 @@ public class NeiRecipeLookup {
                 if (single != null) stacks.add(single);
             }
             if (stacks.isEmpty()) return null;
-            return new Slot(relx, rely, stacks);
+            return new Slot(relx, rely, stacks, NeiDirectCalls.item(ps));
         } catch (Throwable t) {
             return null;
         }

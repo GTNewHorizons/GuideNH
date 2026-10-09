@@ -56,6 +56,28 @@ public class NeiHandlerRenderer {
      */
     public static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int clipX,
         int clipY, int clipWidth, int clipHeight, int mouseX, int mouseY, boolean skipForeground) {
+        return render(
+            handler,
+            recipeIndex,
+            screenX,
+            screenY,
+            clipX,
+            clipY,
+            clipWidth,
+            clipHeight,
+            mouseX,
+            mouseY,
+            skipForeground,
+            null,
+            null,
+            null,
+            false);
+    }
+
+    static @Nullable ItemStack render(Object handler, int recipeIndex, int screenX, int screenY, int clipX, int clipY,
+        int clipWidth, int clipHeight, int mouseX, int mouseY, boolean skipForeground,
+        @Nullable List<RecipeSlot> cachedIngredients, @Nullable List<RecipeSlot> cachedOthers,
+        @Nullable RecipeSlot cachedResult, boolean cachedResultAvailable) {
         GuideNhIntegrationRegistry registry = GuideNhIntegrationRegistry.global();
         if (handler == null || !registry.canRenderRecipeHandler(handler)) return null;
 
@@ -89,56 +111,94 @@ public class NeiHandlerRenderer {
         }
 
         // Phase 2: draw every positioned stack on top.
-        ItemStack hovered = null;
-        hovered = drawSlots(
-            registry.readRecipeIngredientSlots(handler, recipeIndex),
-            screenX,
-            screenY,
-            mouseX,
-            mouseY,
-            hovered);
-        if (!skipForeground) {
-            hovered = drawSlots(
-                registry.readRecipeOtherSlots(handler, recipeIndex),
-                screenX,
-                screenY,
-                mouseX,
-                mouseY,
-                hovered);
-        }
+        List<RecipeSlot> ingredients = cachedIngredients != null ? cachedIngredients
+            : registry.readRecipeIngredientSlots(handler, recipeIndex);
+        List<RecipeSlot> others = skipForeground ? List.of()
+            : cachedOthers != null ? cachedOthers : registry.readRecipeOtherSlots(handler, recipeIndex);
+        RecipeSlot result = cachedResultAvailable ? cachedResult : registry.readRecipeResultSlot(handler, recipeIndex);
+        return drawSlotBatch(ingredients, others, result, screenX, screenY, mouseX, mouseY);
+    }
 
-        RecipeSlot result = registry.readRecipeResultSlot(handler, recipeIndex);
-        if (result != null) {
-            ItemStack shown = pickVisibleStack(result);
-            if (shown != null) {
-                drawStackWithCount(shown, screenX + result.x(), screenY + result.y());
-                if (isOver(screenX + result.x(), screenY + result.y(), mouseX, mouseY)) {
-                    hovered = shown;
-                }
+    private static @Nullable ItemStack drawSlotBatch(List<RecipeSlot> ingredients, List<RecipeSlot> others,
+        @Nullable RecipeSlot result, int screenX, int screenY, int mouseX, int mouseY) {
+        GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_CURRENT_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_LIGHTING_BIT);
+        ItemStack hovered = null;
+        Minecraft mc = Minecraft.getMinecraft();
+        try {
+            GL11.glDisable(GL11.GL_BLEND);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
+            RenderHelper.enableGUIStandardItemLighting();
+            OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240f, 240f);
+            OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+            GL11.glEnable(GL11.GL_LIGHTING);
+            GL11.glEnable(GL11.GL_NORMALIZE);
+            GL11.glEnable(GL11.GL_DEPTH_TEST);
+            GL11.glEnable(GL11.GL_ALPHA_TEST);
+            ITEM_RENDERER.zLevel = 100f;
+            hovered = drawSlotBatchGroup(ingredients, screenX, screenY, mouseX, mouseY, mc, hovered);
+            hovered = drawSlotBatchGroup(others, screenX, screenY, mouseX, mouseY, mc, hovered);
+            if (result != null) {
+                hovered = drawSlotBatchSlot(result, screenX, screenY, mouseX, mouseY, mc, hovered);
             }
+        } finally {
+            ITEM_RENDERER.zLevel = 0f;
+            RenderHelper.disableStandardItemLighting();
+            GL11.glPopAttrib();
+            OpenGlHelper.setActiveTexture(OpenGlHelper.defaultTexUnit);
+            GL11.glEnable(GL11.GL_TEXTURE_2D);
+            GL11.glDisable(GL11.GL_LIGHTING);
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glEnable(GL11.GL_BLEND);
+            GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+            ColorUtils.applyGlColor(ColorUtils.WHITE.getColor());
         }
         return hovered;
     }
 
-    private static @Nullable ItemStack drawSlots(List<RecipeSlot> slots, int screenX, int screenY, int mouseX,
-        int mouseY, @Nullable ItemStack currentHovered) {
+    private static @Nullable ItemStack drawSlotBatchGroup(List<RecipeSlot> slots, int screenX, int screenY, int mouseX,
+        int mouseY, Minecraft mc, @Nullable ItemStack currentHovered) {
         ItemStack hovered = currentHovered;
-        for (RecipeSlot s : slots) {
-            ItemStack shown = pickVisibleStack(s);
-            if (shown == null) continue;
-            drawStackWithCount(shown, screenX + s.x(), screenY + s.y());
-            if (isOver(screenX + s.x(), screenY + s.y(), mouseX, mouseY)) {
-                hovered = shown;
-            }
+        for (RecipeSlot slot : slots) {
+            hovered = drawSlotBatchSlot(slot, screenX, screenY, mouseX, mouseY, mc, hovered);
         }
         return hovered;
+    }
+
+    private static @Nullable ItemStack drawSlotBatchSlot(RecipeSlot slot, int screenX, int screenY, int mouseX,
+        int mouseY, Minecraft mc, @Nullable ItemStack currentHovered) {
+        ItemStack shown = pickVisibleStack(slot);
+        if (shown == null) return currentHovered;
+        try {
+            ITEM_RENDERER.renderItemAndEffectIntoGUI(
+                mc.fontRenderer,
+                mc.getTextureManager(),
+                shown,
+                screenX + slot.x(),
+                screenY + slot.y());
+            if (shown.stackSize > 0) {
+                ITEM_RENDERER.renderItemOverlayIntoGUI(
+                    mc.fontRenderer,
+                    mc.getTextureManager(),
+                    shown,
+                    screenX + slot.x(),
+                    screenY + slot.y());
+            }
+        } catch (Throwable t) {
+            GuideDisplayItemStacks.warnRenderFailure("NeiHandlerRenderer", shown, t);
+        }
+        return isOver(screenX + slot.x(), screenY + slot.y(), mouseX, mouseY) ? shown : currentHovered;
     }
 
     public static @Nullable ItemStack pickVisibleStack(RecipeSlot s) {
-        if (s == null || s.stacks() == null
-            || s.stacks()
-                .isEmpty())
+        if (s == null) {
             return null;
+        }
+        ItemStack current = s.currentStack();
+        if (current != null && current.stackSize > 0) {
+            return current;
+        }
+        if (s.stacks() == null || s.stacks()
+            .isEmpty()) return null;
         ItemStack zeroCountFallback = null;
         for (int i = 0, n = s.stacks()
             .size(); i < n; i++) {

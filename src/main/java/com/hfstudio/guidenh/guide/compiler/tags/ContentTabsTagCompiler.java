@@ -83,9 +83,7 @@ public class ContentTabsTagCompiler extends BlockTagCompiler {
             }
             LytVBox body = new LytVBox();
             body.setGap(4);
-            compiler.withBlockTagChildrenSourceContext(
-                element,
-                () -> compiler.compileBlockContext(element.children(), body));
+            compiler.compileBlockTagChildren(element, body);
             tabs.add(new ContentTabsSpec.TabEntry(title.trim(), body, element));
         }
     }

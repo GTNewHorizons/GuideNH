@@ -8,11 +8,11 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Places children into columns as wide as the widest of them, filling the shortest column first.
+ * Places children into the shortest available column while preserving each child's measured width.
  *
  * <p>
- * Column count is based on the widest child and limited by {@link #getMaxColumns()}.
- * Children wider than a column are laid out at their own width, falling back to a vertical stack.
+ * The highest column count whose measured column widths fit the available width is selected, up to
+ * {@link #getMaxColumns()}. If even two columns cannot fit, children are laid out as a vertical stack.
  */
 @Getter
 @Setter
@@ -34,56 +34,62 @@ public class LytBalancedColumns extends LytBox {
             return verticalStack(context, x, y, availableWidth);
         }
 
-        int widest = widestChildWidth(context, x, y, availableWidth);
-        int columns = columnCountFor(availableWidth, widest);
-        if (columns <= 1) {
-            return verticalStack(context, x, y, availableWidth);
+        int[] itemWidths = new int[count];
+        int[] itemHeights = new int[count];
+        for (int i = 0; i < count; i++) {
+            LytBlock child = children.get(i);
+            LytRect measured = child.layout(context, x, y, availableWidth);
+            itemWidths[i] = Math.max(1, measured.width() + child.getMarginLeft() + child.getMarginRight());
+            itemHeights[i] = Math.max(1, measured.height() + child.getMarginTop() + child.getMarginBottom());
         }
 
-        int columnWidth = widest;
+        int columns = Math.min(count, maxColumns);
+        while (columns > 1) {
+            int[] assignments = new int[count];
+            int[] columnWidths = new int[columns];
+            int[] columnBottoms = new int[columns];
+            for (int i = 0; i < count; i++) {
+                int column = shortestColumn(columnBottoms);
+                assignments[i] = column;
+                columnWidths[column] = Math.max(columnWidths[column], itemWidths[i]);
+                columnBottoms[column] += itemHeights[i] + gap;
+            }
+            int requiredWidth = Math.max(0, columns - 1) * gap;
+            for (int width : columnWidths) {
+                requiredWidth += width;
+            }
+            if (requiredWidth <= availableWidth) {
+                return layoutColumns(context, x, y, availableWidth, assignments, columnWidths, columns);
+            }
+            columns--;
+        }
+        return verticalStack(context, x, y, availableWidth);
+    }
+
+    private LytRect layoutColumns(LayoutContext context, int x, int y, int availableWidth, int[] assignments,
+        int[] columnWidths, int columns) {
         int[] columnBottoms = new int[columns];
         LytBlock[] previousBlocks = new LytBlock[columns];
         int contentWidth = 0;
         int contentHeight = 0;
-
-        for (LytBlock child : children) {
-            int blockWidth = Math.max(1, columnWidth - child.getMarginLeft() - child.getMarginRight());
-            int columnIndex = shortestColumn(columnBottoms);
-
-            int columnX = x + columnIndex * (columnWidth + gap) + child.getMarginLeft();
-            int columnY = Layouts.offsetIntoContentArea(
-                LytAxis.VERTICAL,
-                y + columnBottoms[columnIndex],
-                previousBlocks[columnIndex],
-                child);
-            LytRect childBounds = child.layout(context, columnX, columnY, blockWidth);
-
-            columnBottoms[columnIndex] = childBounds.bottom() - y + child.getMarginBottom() + gap;
-            previousBlocks[columnIndex] = child;
+        int[] columnX = new int[columns];
+        for (int i = 1; i < columns; i++) {
+            columnX[i] = columnX[i - 1] + columnWidths[i - 1] + gap;
+        }
+        for (int i = 0; i < children.size(); i++) {
+            LytBlock child = children.get(i);
+            int column = assignments[i];
+            int blockWidth = Math.max(1, columnWidths[column] - child.getMarginLeft() - child.getMarginRight());
+            int childX = x + columnX[column] + child.getMarginLeft();
+            int childY = Layouts
+                .offsetIntoContentArea(LytAxis.VERTICAL, y + columnBottoms[column], previousBlocks[column], child);
+            LytRect childBounds = child.layout(context, childX, childY, blockWidth);
+            columnBottoms[column] = childBounds.bottom() - y + child.getMarginBottom() + gap;
+            previousBlocks[column] = child;
             contentWidth = Math.max(contentWidth, childBounds.right() - x);
             contentHeight = Math.max(contentHeight, childBounds.bottom() - y);
         }
-
-        return new LytRect(x, y, contentWidth, contentHeight);
-    }
-
-    private int widestChildWidth(LayoutContext context, int x, int y, int availableWidth) {
-        int widest = 0;
-        for (LytBlock child : children) {
-            LytRect bounds = child.layout(context, x, y, availableWidth);
-            widest = Math.max(widest, bounds.width() + child.getMarginLeft() + child.getMarginRight());
-        }
-        return widest;
-    }
-
-    private int columnCountFor(int availableWidth, int widest) {
-        int limit = Math.min(children.size(), maxColumns);
-        if (widest <= 0) {
-            return Math.max(1, limit);
-        }
-        // Columns are as wide as the widest child, so n of them need n widths and n-1 gaps.
-        int byWidth = (availableWidth + gap) / (widest + gap);
-        return Math.max(1, Math.min(limit, byWidth));
+        return new LytRect(x, y, Math.min(availableWidth, contentWidth), contentHeight);
     }
 
     private static int shortestColumn(int[] columnBottoms) {

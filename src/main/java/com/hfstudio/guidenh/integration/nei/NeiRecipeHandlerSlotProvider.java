@@ -44,6 +44,6 @@ public class NeiRecipeHandlerSlotProvider implements RecipeHandlerSlotProvider {
         if (slot == null) {
             return null;
         }
-        return new RecipeSlot(slot.relx, slot.rely, slot.stacks);
+        return new RecipeSlot(slot.relx, slot.rely, slot.stacks, slot.current);
     }
 }

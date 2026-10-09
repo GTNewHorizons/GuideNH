@@ -74,7 +74,7 @@ Inline markdown also supports action links for sound playback:
 | `<QuestCard>` | block-level BetterQuesting quest summary card (compat tag, only registered when BetterQuesting is loaded) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` is a `<GameScene>` child tag. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, and `channel` attributes, and also supports StructureLib default child tags:
+`rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, and `locked` attributes, and also supports StructureLib default child tags:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, and `<GregTechPlaceHatches>`.
 
@@ -675,7 +675,7 @@ These tags only work inside `<GameScene>` / `<Scene>`:
 | Tag | Purpose | Key attributes |
 | --- | --- | --- |
 | `<ImportStructure>` | import an external SNBT/NBT structure asset | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import a StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | remove already-placed blocks that match a block matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp the same child annotations onto every matching placed block | `id` |
 
@@ -844,3 +844,15 @@ Example:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
 ````
+
+### `<Amount>`
+
+`<Amount>` formats a numeric quantity without changing ordinary text. With no `unit` attribute it renders only the number. `unit="item"` is also suffix-free. `unit="fluid"` delegates the displayed suffix (`mB` or `L`) to GTNHLib's fluid preference. Keep rates outside the tag:
+
+```md
+Consumes <Amount value="250" unit="fluid" /> L/s
+<Amount value="1000000" unit="fluid" format="plain" /> L/t
+<Amount value="1200000" format="compact" /> items
+```
+
+`format` accepts `default`, `plain`, `compact`, or `scientific`. `default` follows GTNHLib number-format settings; `plain` disables exponential notation; `compact` uses abbreviated notation; `scientific` enables exponential notation. `decimals` optionally sets the number of decimal places. Unknown units and formats are reported as page errors.

@@ -77,7 +77,7 @@ Inline Markdown também suporta action links para sound playback:
 | `<QuestCard>` | bloco-level BetterQuesting quest summary card (compat tag, somente registrado quando BetterQuesting é carregado) | `id`, `show_desc`, `show_tooltip` |
 
 `<ImportStructureLib>` é a `<GameScene>` filho tag. It accepts `controller`, `piece`, `facing`,
-`rotation`, `flip`, e `channel` atributos, e também suporta StructureLib Padrão filho tags:
+`rotation`, `flip`, e `tier`, `channel`, `channelName`, `value`, `locked` atributos, e também suporta StructureLib Padrão filho tags:
 `<Tier>`, `<Channel>`, `<Facing>`, `<Rotation>`, `<Flip>`, `<Orientation>`,
 `<GregTechActiveController>`, e `<GregTechPlaceHatches>`.
 
@@ -679,7 +679,7 @@ Estes tags somente funcionam dentro de `<GameScene>` / `<Scene>`:
 | tag | Purpose | chave atributos |
 | --- | --- | --- |
 | `<ImportStructure>` | import Um externo SNBT/NBT structure recurso | `src`, `x`, `y`, `z`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
-| `<ImportStructureLib>` | import Uma StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `channel`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
+| `<ImportStructureLib>` | import Uma StructureLib multiblock by controller id | `controller`, `name`, `piece`, `facing`, `rotation`, `flip`, `tier`, `channel`, `channelName`, `value`, `locked`, `offsetX`, `offsetY`, `offsetZ`, `formed` |
 | `<RemoveBlocks>` | remover já-placed blocos que corresponder Uma bloco matcher | `id` |
 | `<BlockAnnotationTemplate>` | stamp O mesmo filho Anotações onto cada correspondente placed bloco | `id` |
 
@@ -847,4 +847,23 @@ Exemplo:
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_desc="false" />
 <QuestCard id="01234567-89ab-cdef-0123-456789abcdef" show_tooltip="false" />
 <QuestCard id="AAAAAAAAAAAAAAAAAAAMug==" />
+````
+
+### `<Amount>`
+
+`<Amount>` formata uma quantidade numérica. Sem `unit` (ou com `unit="none"`), somente o número é exibido. `unit="item"` também não adiciona sufixo. `unit="fluid"` segue a preferência de fluidos do GTNHLib e mostra `mB` ou `L`. `format` pode ser `default`, `plain`, `compact` ou `scientific`; `decimals` limita as casas decimais. Escreva taxas como `L/s` fora da tag.
+
+| Atributo | Significado |
+| --- | --- |
+| `value` | valor decimal finito obrigatório |
+| `unit` | opcional: `none`, `item` ou `fluid`; padrão `none` |
+| `format` | formato numérico opcional; padrão `default` |
+| `decimals` | máximo opcional de casas decimais não negativo |
+
+Exemplo:
+
+````md
+<Amount value="250" />
+<Amount value="250" unit="fluid" /> L/s
+<Amount value="1200000" format="compact" /> items
 ````

@@ -2,7 +2,9 @@ package com.hfstudio.guidenh.integration.structurelib;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -24,6 +26,10 @@ public class StructureLibSceneOptions {
     @Getter
     private final Map<String, Integer> channelOverrides;
     @Getter
+    private final boolean tierLocked;
+    @Getter
+    private final Set<String> lockedChannels;
+    @Getter
     private final boolean gregTechActiveController;
     @Getter
     private final boolean gregTechPlaceHatches;
@@ -31,11 +37,28 @@ public class StructureLibSceneOptions {
     public StructureLibSceneOptions(@Nullable String facing, @Nullable String rotation, @Nullable String flip,
         @Nullable Integer tier, @Nullable Map<String, Integer> channelOverrides, boolean gregTechActiveController,
         boolean gregTechPlaceHatches) {
+        this(
+            facing,
+            rotation,
+            flip,
+            tier,
+            channelOverrides,
+            false,
+            Collections.emptySet(),
+            gregTechActiveController,
+            gregTechPlaceHatches);
+    }
+
+    public StructureLibSceneOptions(@Nullable String facing, @Nullable String rotation, @Nullable String flip,
+        @Nullable Integer tier, @Nullable Map<String, Integer> channelOverrides, boolean tierLocked,
+        @Nullable Set<String> lockedChannels, boolean gregTechActiveController, boolean gregTechPlaceHatches) {
         this.facing = normalizeOptional(facing);
         this.rotation = normalizeOptional(rotation);
         this.flip = normalizeOptional(flip);
         this.tier = tier != null && tier > 0 ? tier : null;
         this.channelOverrides = StructureLibPreviewSelection.immutableChannelOverrides(channelOverrides);
+        this.tierLocked = tier != null && tier > 0 && tierLocked;
+        this.lockedChannels = immutableChannelIds(lockedChannels);
         this.gregTechActiveController = gregTechActiveController;
         this.gregTechPlaceHatches = gregTechPlaceHatches;
     }
@@ -73,6 +96,8 @@ public class StructureLibSceneOptions {
             || flip != null
             || tier != null
             || !channelOverrides.isEmpty()
+            || tierLocked
+            || !lockedChannels.isEmpty()
             || gregTechActiveController
             || gregTechPlaceHatches;
     }
@@ -99,6 +124,8 @@ public class StructureLibSceneOptions {
             overrides.flip != null ? overrides.flip : flip,
             overrides.tier != null ? overrides.tier : tier,
             channels,
+            overrides.tier != null ? overrides.tierLocked : tierLocked,
+            mergeLockedChannels(overrides.lockedChannels),
             overrides.gregTechActiveController || gregTechActiveController,
             overrides.gregTechPlaceHatches || gregTechPlaceHatches);
     }
@@ -127,6 +154,29 @@ public class StructureLibSceneOptions {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private static Set<String> immutableChannelIds(@Nullable Set<String> source) {
+        if (source == null || source.isEmpty()) {
+            return Set.of();
+        }
+        LinkedHashSet<String> normalized = new LinkedHashSet<>();
+        for (String value : source) {
+            String channel = StructureLibPreviewSelection.normalizeChannelId(value);
+            if (channel != null) {
+                normalized.add(channel);
+            }
+        }
+        return normalized.isEmpty() ? Set.of() : Set.copyOf(normalized);
+    }
+
+    private Set<String> mergeLockedChannels(Set<String> overrides) {
+        if (overrides == null || overrides.isEmpty()) {
+            return lockedChannels;
+        }
+        LinkedHashSet<String> merged = new LinkedHashSet<>(lockedChannels);
+        merged.addAll(overrides);
+        return merged;
+    }
+
     public static class Builder {
 
         @Nullable
@@ -138,6 +188,8 @@ public class StructureLibSceneOptions {
         @Nullable
         private Integer tier;
         private final Map<String, Integer> channels = new LinkedHashMap<>();
+        private boolean tierLocked;
+        private final Set<String> lockedChannels = new LinkedHashSet<>();
         private boolean gregTechActiveController;
         private boolean gregTechPlaceHatches;
 
@@ -161,10 +213,27 @@ public class StructureLibSceneOptions {
             return this;
         }
 
+        public Builder tierLocked(boolean tierLocked) {
+            this.tierLocked = tierLocked;
+            return this;
+        }
+
         public Builder channel(String name, int value) {
             String normalized = StructureLibPreviewSelection.normalizeChannelId(name);
             if (normalized != null && value > 0) {
                 channels.put(normalized, value);
+            }
+            return this;
+        }
+
+        public Builder channelLocked(String name, boolean locked) {
+            String normalized = StructureLibPreviewSelection.normalizeChannelId(name);
+            if (normalized != null) {
+                if (locked) {
+                    lockedChannels.add(normalized);
+                } else {
+                    lockedChannels.remove(normalized);
+                }
             }
             return this;
         }
@@ -198,6 +267,8 @@ public class StructureLibSceneOptions {
                 flip,
                 tier,
                 channels.isEmpty() ? Collections.emptyMap() : channels,
+                tierLocked,
+                lockedChannels,
                 gregTechActiveController,
                 gregTechPlaceHatches);
         }

@@ -5,6 +5,72 @@ import { rememberSiteLanguage } from "./languagePreference.js";
 import { installGuideItemNavigation } from "./itemNavigation.js";
 import { ensureSiteLanguage, siteText } from "./locale.js";
 
+const AMOUNT_UNIT_STORAGE_KEY = "guidenh.amount.fluidUnit";
+let configuredFluidUnit = "mB";
+
+function validFluidUnit(value) {
+  return value === "L" || value === "mB";
+}
+
+function selectedFluidUnit() {
+  const storedUnit = window.localStorage.getItem(AMOUNT_UNIT_STORAGE_KEY);
+  return validFluidUnit(storedUnit) ? storedUnit : configuredFluidUnit;
+}
+
+function formatAmountValue(value, format, decimals) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return String(value);
+  const hasDecimals = Number.isInteger(decimals) && decimals >= 0;
+  const fractionOptions = hasDecimals
+    ? { maximumFractionDigits: decimals }
+    : { maximumFractionDigits: 20 };
+  if (format === "compact") {
+    return new Intl.NumberFormat(undefined, { notation: "compact", ...fractionOptions }).format(number);
+  }
+  if (format === "scientific") {
+    return number.toExponential(hasDecimals ? decimals : 2).replace(/\.0+(?=e)/, "");
+  }
+  return new Intl.NumberFormat(undefined, { useGrouping: true, ...fractionOptions }).format(number);
+}
+
+async function installAmountUnits(root = document) {
+  if (!window.GuideNHAmounts) {
+    window.GuideNHAmounts = {
+      getUnit: () => selectedFluidUnit(),
+      setFluidUnit(unit) {
+        if (!validFluidUnit(unit)) return;
+        window.localStorage.setItem(AMOUNT_UNIT_STORAGE_KEY, unit);
+        for (const span of document.querySelectorAll("[data-guide-amount-value][data-guide-amount-unit='fluid']")) {
+          const value = span.dataset.guideAmountValue;
+          const format = span.dataset.guideAmountFormat || "default";
+          const decimalsValue = Number(span.dataset.guideAmountDecimals);
+          const decimals = Number.isInteger(decimalsValue) && decimalsValue >= 0 ? decimalsValue : undefined;
+          span.textContent = `${formatAmountValue(value, format, decimals)} ${unit}`;
+        }
+      },
+    };
+  }
+  const spans = Array.from(root.querySelectorAll?.("[data-guide-amount-value]") || []);
+  if (!spans.length) return;
+  try {
+    const response = await fetch(new URL("../site-config.json", import.meta.url), { credentials: "same-origin" });
+    if (response.ok) {
+      const config = await response.json();
+      if (typeof config?.fluidUnit === "string" && validFluidUnit(config.fluidUnit.trim())) configuredFluidUnit = config.fluidUnit.trim();
+    }
+  } catch (_error) {}
+  const fluidUnit = selectedFluidUnit();
+  for (const span of spans) {
+    const value = span.dataset.guideAmountValue;
+    const format = span.dataset.guideAmountFormat || "default";
+    const unit = span.dataset.guideAmountUnit || "none";
+    const decimalsValue = Number(span.dataset.guideAmountDecimals);
+    const decimals = Number.isInteger(decimalsValue) && decimalsValue >= 0 ? decimalsValue : undefined;
+    const suffix = unit === "fluid" ? ` ${fluidUnit}` : "";
+    span.textContent = `${formatAmountValue(value, format, decimals)}${suffix}`;
+  }
+}
+
 async function loadCustomSiteLink() {
   const link = document.querySelector("[data-guide-custom-link]");
   if (!(link instanceof HTMLAnchorElement)) return;
@@ -1187,6 +1253,7 @@ function installSiteRouter() {
       installLanguageMenus(document);
       restoreNavigationState(currentSidebar, state, target);
       installPageBehaviors(currentContent);
+      await installAmountUnits(currentContent);
       const contentScroll = document.querySelector(".guide-content");
       if (contentScroll instanceof HTMLElement) {
         contentScroll.scrollTop = 0;
@@ -1239,6 +1306,7 @@ async function initializeSite() {
   installLanguageMenus(document);
   if (content instanceof HTMLElement) {
     installPageBehaviors(content, false);
+    await installAmountUnits(content);
   }
   if (sidebar instanceof HTMLElement) {
     installSearchUi(sidebar);
