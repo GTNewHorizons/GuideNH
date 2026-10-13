@@ -27,6 +27,8 @@ GuideNH resolves O caminho e carrega O binary recurso de O guia conteúdo raiz.
 
 ## `FloatingImage`
 
+Com `wrap="inline"`, a imagem fica centralizada verticalmente em relação ao texto ao redor, e a linha aumenta de altura para acomodar a imagem inteira. As linhas de texto adjacentes mantêm a altura normal; não há um limite máximo fixo para a altura da linha. Para que uma imagem muito alta ocupe uma linha própria, coloque a tag em um parágrafo separado, com uma linha em branco antes e depois.
+
 `<FloatingImage>` renders Uma cropped bitmap region que pode decimal com texto ou sit truly inline dentro de a
 paragraph. It também accepts explícito `modid:path` texture ids, so it pode reference texture assets de
 outro mods directly.

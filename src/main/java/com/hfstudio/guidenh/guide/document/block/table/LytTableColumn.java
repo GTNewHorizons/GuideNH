@@ -8,8 +8,16 @@ public class LytTableColumn {
     int width;
     @Getter
     int preferredWidth;
+    @Getter
+    int preferredWidthPercent;
 
     public void setPreferredWidth(int preferredWidth) {
         this.preferredWidth = Math.max(0, preferredWidth);
+        this.preferredWidthPercent = 0;
+    }
+
+    public void setPreferredWidthPercent(int preferredWidthPercent) {
+        this.preferredWidthPercent = Math.max(0, Math.min(100, preferredWidthPercent));
+        this.preferredWidth = 0;
     }
 }

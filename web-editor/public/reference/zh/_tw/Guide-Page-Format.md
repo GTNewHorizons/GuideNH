@@ -31,6 +31,7 @@ GuideNH 頁面目前支援範例指南裡常用的這些 Markdown 能力：
 - 圍籬程式碼區塊
 - 縮排程式碼區塊
 - GFM 表格
+- 具有標題、欄分組、列分組和合併儲存格的 HTML 表格
 - 純小寫 HTML 片段，如 `<kbd>`、`<sub>`
 - 頁面正文中的 MDX 註釋
 
@@ -192,6 +193,47 @@ gold,17
 ````
 
 這樣表格本體仍然保持標準 Markdown，只是在 GuideNH 運行時應用列的首選寬度。
+
+多行表頭和合併儲存格請使用 HTML 表格。`<caption>` 會顯示在表格上方。使用 `<colgroup>` 和 `<col>` 設定各欄的像素或百分比首選寬度；`width` 接受像素或百分比值（可選 `px` 後綴），`span` 會將同一寬度重複套用到多個欄。使用 `<thead>`、`<tbody>` 和 `<tfoot>` 對資料列分組。表頭和資料儲存格支援 `colspan`、`rowspan`、`align`、`valign`；`th` 還支援 `scope`、`abbr` 和 `headers`。網站匯出會保留 `width`、`border`、`cellpadding`、`cellspacing`、`frame`、`rules`、`summary`、`bgcolor` 和 `bordercolor` 等常用表格屬性。表格層級的 `widths` 屬性也可以提供以逗號分隔的像素寬度 hint：
+
+````md
+<table widths="150,70,70,150">
+  <caption>燃料消耗速率</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">燃料</th>
+      <th scope="colgroup" colspan="2" align="center">燃燒速率</th>
+      <th scope="col" rowspan="2" align="right">備註</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">木炭</th>
+      <th scope="col" align="right">煤炭</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">固體燃料</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">每刻</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">合計 59</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">總計</th>
+      <td colspan="3" align="right">59 單位</td>
+    </tr>
+  </tfoot>
+</table>
+````
 
 ## 任務清單、提示區塊與註腳
 

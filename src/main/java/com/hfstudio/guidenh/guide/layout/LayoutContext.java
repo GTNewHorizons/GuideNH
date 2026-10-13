@@ -150,6 +150,16 @@ public class LayoutContext implements FontMetrics {
         return fontMetrics.getLineHeight(style);
     }
 
+    @Override
+    public int getAscent(ResolvedTextStyle style) {
+        return fontMetrics.getAscent(style);
+    }
+
+    @Override
+    public int getDescent(ResolvedTextStyle style) {
+        return fontMetrics.getDescent(style);
+    }
+
     /**
      * If there's a float whose bottom edge is below the given y coordinate, return that bottom edge.
      */

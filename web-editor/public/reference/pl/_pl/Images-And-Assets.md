@@ -27,6 +27,8 @@ GuideNH resolves  ścieżka i ładuje  binary zasób z  przewodnik treść katal
 
 ## `FloatingImage`
 
+Przy `wrap="inline"` obraz jest wyśrodkowany w pionie względem otaczającego tekstu, a wysokość wiersza zwiększa się tak, aby zmieścić cały obraz. Sąsiednie wiersze tekstu zachowują zwykłą wysokość; nie ma stałego limitu wysokości wiersza. Jeśli bardzo wysoki obraz ma zajmować osobny wiersz, umieść znacznik w oddzielnym akapicie, z pustym wierszem przed nim i po nim.
+
 `<FloatingImage>` renders cropped bitmap region który może liczba zmiennoprzecinkowa z tekst lub sit truly inline wewnątrz a
 paragraph. It także accepts jawny `modid:path` texture ids, so it może reference texture zasoby z
 other mods directly.

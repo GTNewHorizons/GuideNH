@@ -3481,6 +3481,13 @@ function Tm(s,e,t){
     tc.far=Infinity;
   }
   let n=tc.intersectObjects(t.children,!0),i,r,o=.0625;
+  // Annotations drawn over blocks must also win their hover hit test.
+  for(let a of n){
+    let c=a.object.userData.annotation;
+    if(c?.contentTemplateId&&(c.alwaysOnTop===!0||a.object.material?.depthTest===!1)){
+      return{templateId:c.contentTemplateId,shiftTemplateId:c.shiftContentTemplateId};
+    }
+  }
   for(let a of n){
     let c=a.object.userData.annotation,l=c&&c.contentTemplateId?{templateId:c.contentTemplateId,shiftTemplateId:c.shiftContentTemplateId}:null,h=a.object.userData.hoverRuntimeTarget;
     if(!l&&!h)continue;

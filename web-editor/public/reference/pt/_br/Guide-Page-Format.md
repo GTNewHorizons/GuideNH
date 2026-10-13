@@ -34,6 +34,7 @@ GuideNH pages suporte O comum Markdown features usado em O Exemplo guia:
 - fenced blocos de código
 - indented blocos de código
 - GFM tabelas
+- HTML tables with captions, column groups, row groups, and merged cells
 - footnotes
 - lowercase HTML fragments como `<a>`, `<br>`, `<kbd>`, `<sub>`, `<sup>`, e `<details>`
 - MDX comments em página texto
@@ -194,6 +195,32 @@ Ordinary GFM Markdown tabelas pode também fornecer execução coluna largura hi
 ````
 
 Este keeps O tabela itself padrão Markdown enquanto letting GuideNH apply execução-somente preferido coluna widths.
+
+## HTML Tables
+
+HTML tables support captions, column groups, semantic row groups, merged cells, and alignment. `col` accepts pixel `width`; `span` repeats a width. `th` and `td` support `colspan`, `rowspan`, and `align`; `th` supports `scope`:
+
+````md
+<table widths="150,70,70,150">
+  <caption>Fuel burn rates</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr><th scope="col" rowspan="2" align="left">Fuel</th><th scope="colgroup" colspan="2" align="center">Rate</th><th scope="col" rowspan="2" align="right">Notes</th></tr>
+    <tr><th scope="col" align="right">Charcoal</th><th scope="col" align="right">Coal</th></tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row" rowspan="2" align="left">Solid fuel</th><td align="right">42</td><td align="right">17</td><td rowspan="2" align="left">Per tick</td></tr>
+    <tr><td colspan="2" align="right">59 combined</td></tr>
+  </tbody>
+  <tfoot>
+    <tr><th scope="rowgroup" align="left">Total</th><td colspan="3" align="right">59 units</td></tr>
+  </tfoot>
+</table>
+````
 
 ## Listas de tarefas, alertas e notas de rodapé
 

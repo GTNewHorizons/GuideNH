@@ -189,6 +189,94 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("src", SyntaxValueKind.FILE_PATH),
             AttributeSyntax.of("header", SyntaxValueKind.BOOLEAN),
             AttributeSyntax.of("widths", SyntaxValueKind.STRING));
+        sink.attributes(
+            "table",
+            AttributeSyntax.of("widths", SyntaxValueKind.STRING),
+            AttributeSyntax.of("align", SyntaxValueKind.STRING),
+            AttributeSyntax.of("width", SyntaxValueKind.STRING),
+            AttributeSyntax.of("border", SyntaxValueKind.INT),
+            AttributeSyntax.of("cellpadding", SyntaxValueKind.INT),
+            AttributeSyntax.of("cellspacing", SyntaxValueKind.INT),
+            AttributeSyntax.of("summary", SyntaxValueKind.STRING),
+            AttributeSyntax.of("frame", SyntaxValueKind.STRING),
+            AttributeSyntax.of("rules", SyntaxValueKind.STRING),
+            AttributeSyntax.of("bordercolor", SyntaxValueKind.COLOR),
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+        sink.attributes("caption", AttributeSyntax.of("align", SyntaxValueKind.ENUM, "left", "center", "right"));
+        sink.attributes(
+            "colgroup",
+            AttributeSyntax.of("width", SyntaxValueKind.STRING),
+            AttributeSyntax.of("span", SyntaxValueKind.INT),
+            AttributeSyntax.of("align", SyntaxValueKind.STRING),
+            AttributeSyntax.of("valign", SyntaxValueKind.STRING),
+            AttributeSyntax.of("char", SyntaxValueKind.STRING),
+            AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+        sink.attributes(
+            "col",
+            AttributeSyntax.of("width", SyntaxValueKind.STRING),
+            AttributeSyntax.of("span", SyntaxValueKind.INT),
+            AttributeSyntax.of("align", SyntaxValueKind.STRING),
+            AttributeSyntax.of("valign", SyntaxValueKind.STRING),
+            AttributeSyntax.of("char", SyntaxValueKind.STRING),
+            AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+        sink.attributes(
+            "thead",
+            AttributeSyntax.of("align", SyntaxValueKind.STRING),
+            AttributeSyntax.of("valign", SyntaxValueKind.STRING),
+            AttributeSyntax.of("char", SyntaxValueKind.STRING),
+            AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+        sink.attributes(
+            "tbody",
+            AttributeSyntax.of("align", SyntaxValueKind.STRING),
+            AttributeSyntax.of("valign", SyntaxValueKind.STRING),
+            AttributeSyntax.of("char", SyntaxValueKind.STRING),
+            AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+        sink.attributes(
+            "tfoot",
+            AttributeSyntax.of("align", SyntaxValueKind.STRING),
+            AttributeSyntax.of("valign", SyntaxValueKind.STRING),
+            AttributeSyntax.of("char", SyntaxValueKind.STRING),
+            AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+        sink.attributes(
+            "tr",
+            AttributeSyntax.of("align", SyntaxValueKind.ENUM, "left", "center", "right"),
+            AttributeSyntax.of("valign", SyntaxValueKind.STRING),
+            AttributeSyntax.of("char", SyntaxValueKind.STRING),
+            AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+        sink.attributes(
+            "th",
+            AttributeSyntax.of("colspan", SyntaxValueKind.INT),
+            AttributeSyntax.of("rowspan", SyntaxValueKind.INT),
+            AttributeSyntax.of("align", SyntaxValueKind.ENUM, "left", "center", "right"),
+            AttributeSyntax.of("valign", SyntaxValueKind.ENUM, "top", "middle", "bottom", "baseline"),
+            AttributeSyntax.of("scope", SyntaxValueKind.ENUM, "col", "row", "colgroup", "rowgroup"),
+            AttributeSyntax.of("abbr", SyntaxValueKind.STRING),
+            AttributeSyntax.of("headers", SyntaxValueKind.STRING),
+            AttributeSyntax.of("width", SyntaxValueKind.STRING),
+            AttributeSyntax.of("height", SyntaxValueKind.STRING),
+            AttributeSyntax.of("axis", SyntaxValueKind.STRING),
+            AttributeSyntax.of("char", SyntaxValueKind.STRING),
+            AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+        sink.attributes(
+            "td",
+            AttributeSyntax.of("colspan", SyntaxValueKind.INT),
+            AttributeSyntax.of("rowspan", SyntaxValueKind.INT),
+            AttributeSyntax.of("align", SyntaxValueKind.ENUM, "left", "center", "right"),
+            AttributeSyntax.of("valign", SyntaxValueKind.ENUM, "top", "middle", "bottom", "baseline"),
+            AttributeSyntax.of("headers", SyntaxValueKind.STRING),
+            AttributeSyntax.of("width", SyntaxValueKind.STRING),
+            AttributeSyntax.of("height", SyntaxValueKind.STRING),
+            AttributeSyntax.of("axis", SyntaxValueKind.STRING),
+            AttributeSyntax.of("char", SyntaxValueKind.STRING),
+            AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
         sink.attributes("details", AttributeSyntax.of("open", SyntaxValueKind.BOOLEAN));
         sink.attributes(
             "ContentTabs",
@@ -1186,6 +1274,15 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "Row",
             "Column",
             "div",
+            "table",
+            "caption",
+            "colgroup",
+            "thead",
+            "tbody",
+            "tfoot",
+            "tr",
+            "th",
+            "td",
             "details",
             "summary",
             "ContentTabs",
@@ -1289,6 +1386,12 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.children("PieInset", "Slice");
         sink.children("FunctionGraph", "Plot", "Point", "Function");
         sink.children("ContentTabs", "Tab");
+        sink.children("table", "caption", "colgroup", "thead", "tbody", "tfoot", "tr");
+        sink.children("colgroup", "col");
+        sink.children("thead", "tr");
+        sink.children("tbody", "tr");
+        sink.children("tfoot", "tr");
+        sink.children("tr", "th", "td");
         sink.children(
             "ImportStructureLib",
             "Tier",
@@ -1381,7 +1484,6 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             "li",
             "pre",
             "blockquote",
-            "table",
             "hr",
             "strong",
             "em",

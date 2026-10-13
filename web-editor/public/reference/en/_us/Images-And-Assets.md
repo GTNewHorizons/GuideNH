@@ -24,6 +24,8 @@ GuideNH resolves the path and loads the binary asset from the guide content root
 
 ## `FloatingImage`
 
+With `wrap="inline"`, the image is vertically centered with the surrounding text and its line expands to contain the full image. Adjacent text lines keep their normal height; there is no fixed line-height cap. For a very tall image that should occupy its own line, place the tag in a separate paragraph with blank lines before and after it.
+
 `<FloatingImage>` renders a cropped bitmap region that can float with text or sit truly inline inside a
 paragraph. It also accepts explicit `modid:path` texture ids, so it can reference texture assets from
 other mods directly.

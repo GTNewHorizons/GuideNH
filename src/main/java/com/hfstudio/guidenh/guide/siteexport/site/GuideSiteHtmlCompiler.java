@@ -385,8 +385,12 @@ public class GuideSiteHtmlCompiler {
             return compileTableRowMdx(el, templates, defaultNamespace, currentPageId, sceneResolver);
         }
         if ("td".equals(el.name()) || "th".equals(el.name())) {
-            return "<td>" + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
-                + "</td>";
+            return "<" + el.name()
+                + ">"
+                + compileChildren(el.children(), templates, defaultNamespace, currentPageId, sceneResolver)
+                + "</"
+                + el.name()
+                + ">";
         }
         if ("hr".equals(el.name())) {
             return "<hr>";
@@ -848,23 +852,154 @@ public class GuideSiteHtmlCompiler {
 
     private String compileTableMdx(MdxJsxElementFields el, GuideSiteTemplateRegistry templates, String defaultNamespace,
         @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver, @Nullable String tableMetaContent) {
-        List<Integer> widths = List.of();
+        List<Integer> widths = CsvTableCompiler.parseWidthHints(el.getAttributeString("widths", null));
         if (tableMetaContent != null) {
-            widths = parseTableWidths(tableMetaContent);
+            List<Integer> metadataWidths = parseTableWidths(tableMetaContent);
+            if (!metadataWidths.isEmpty()) {
+                widths = metadataWidths;
+            }
         }
         for (Object child : el.children()) {
             if (child instanceof MdxJsxFlowElement meta && "table-meta".equals(meta.name())) {
-                widths = parseTableWidths(meta.getAttributeString("content", ""));
+                List<Integer> metadataWidths = parseTableWidths(meta.getAttributeString("content", ""));
+                if (!metadataWidths.isEmpty()) {
+                    widths = metadataWidths;
+                }
             }
         }
-        StringBuilder html = new StringBuilder("<table>");
-        if (!widths.isEmpty()) {
-            html.append("<colgroup>");
-            for (Integer width : widths) {
-                if (width != null && width > 0) {
+        List<String> columnWidths = new ArrayList<>();
+        for (Object child : el.children()) {
+            if (child instanceof MdxJsxFlowElement group && "colgroup".equals(group.name())) {
+                int start = columnWidths.size();
+                for (Object member : group.children()) {
+                    if (member instanceof MdxJsxFlowElement column && "col".equals(column.name())) {
+                        appendColumnWidths(columnWidths, column);
+                    }
+                }
+                if (columnWidths.size() == start) {
+                    appendColumnWidths(columnWidths, group);
+                }
+            } else if (child instanceof MdxJsxFlowElement column && "col".equals(column.name())) {
+                appendColumnWidths(columnWidths, column);
+            }
+        }
+        for (int index = 0; index < widths.size() && index < 1024; index++) {
+            while (columnWidths.size() <= index) {
+                columnWidths.add("");
+            }
+            if (widths.get(index) > 0) {
+                columnWidths.set(index, widths.get(index) + "px");
+            }
+        }
+        StringBuilder html = new StringBuilder("<table");
+        appendTableAttribute(html, "class", el.getAttributeString("class", null));
+        appendTableAttribute(html, "id", el.getAttributeString("id", null));
+        appendTableAttribute(html, "role", el.getAttributeString("role", null));
+        appendTableAttribute(html, "aria-label", el.getAttributeString("aria-label", null));
+        appendTableLengthAttribute(html, "width", el.getAttributeString("width", null));
+        appendTableNumericAttribute(html, "border", el.getAttributeString("border", null));
+        appendTableNumericAttribute(html, "cellpadding", el.getAttributeString("cellpadding", null));
+        appendTableNumericAttribute(html, "cellspacing", el.getAttributeString("cellspacing", null));
+        appendTableAttribute(html, "summary", el.getAttributeString("summary", null));
+        appendTableAttribute(html, "frame", el.getAttributeString("frame", null));
+        appendTableAttribute(html, "rules", el.getAttributeString("rules", null));
+        appendTableAttribute(html, "bordercolor", el.getAttributeString("bordercolor", null));
+        appendTableAttribute(html, "bgcolor", el.getAttributeString("bgcolor", null));
+        String tableAlign = el.getAttributeString("align", "")
+            .trim()
+            .toLowerCase(Locale.ROOT);
+        StringBuilder tableStyle = new StringBuilder();
+        String originalTableStyle = sanitizeTableStyle(el.getAttributeString("style", null));
+        if (originalTableStyle != null) {
+            tableStyle.append(originalTableStyle)
+                .append(';');
+        }
+        if (!tableAlign.isEmpty() && !tableAlign.contains(",")) {
+            appendTableAlignment(tableStyle, tableAlign);
+        }
+        String tableWidth = normalizeTableLength(el.getAttributeString("width", null));
+        if (tableWidth != null) {
+            tableStyle.append("width:")
+                .append(tableWidth)
+                .append(";min-width:0;");
+        }
+        String cellPadding = normalizeTableLength(el.getAttributeString("cellpadding", null));
+        if (cellPadding != null) {
+            tableStyle.append("--guide-table-cell-padding:")
+                .append(cellPadding)
+                .append(";");
+        }
+        String cellSpacing = normalizeTableLength(el.getAttributeString("cellspacing", null));
+        if (cellSpacing != null) {
+            tableStyle.append("border-collapse:separate;border-spacing:")
+                .append(cellSpacing)
+                .append(";");
+        }
+        String borderValue = el.getAttributeString("border", "")
+            .trim();
+        if (borderValue.matches("\\d+")) {
+            tableStyle.append("--guide-table-cell-border:")
+                .append("0".equals(borderValue) ? "0" : borderValue + "px solid var(--color-table-border)")
+                .append(';');
+        }
+        if (tableStyle.length() > 0) {
+            html.append(" style=\"")
+                .append(escapeTableAttribute(tableStyle.toString()))
+                .append('"');
+        }
+        html.append('>');
+        for (Object child : el.children()) {
+            if (child instanceof MdxJsxFlowElement caption && "caption".equals(caption.name())) {
+                String captionAlign = caption.getAttributeString("align", "")
+                    .trim()
+                    .toLowerCase(Locale.ROOT);
+                html.append("<caption");
+                appendTableAttribute(html, "class", caption.getAttributeString("class", null));
+                appendTableAttribute(html, "id", caption.getAttributeString("id", null));
+                String captionStyle = sanitizeTableStyle(caption.getAttributeString("style", null));
+                if (captionStyle != null) {
+                    html.append(" style=\"")
+                        .append(escapeTableAttribute(captionStyle))
+                        .append('"');
+                }
+                if ("left".equals(captionAlign) || "center".equals(captionAlign) || "right".equals(captionAlign)) {
+                    if (captionStyle == null) {
+                        html.append(" style=\"text-align:")
+                            .append(captionAlign)
+                            .append('"');
+                    } else {
+                        html.setLength(html.length() - 1);
+                        html.append(';')
+                            .append("text-align:")
+                            .append(captionAlign)
+                            .append(';')
+                            .append('"');
+                    }
+                }
+                html.append('>')
+                    .append(
+                        compileChildren(caption.children(), templates, defaultNamespace, currentPageId, sceneResolver))
+                    .append("</caption>");
+            }
+        }
+        if (!columnWidths.isEmpty()) {
+            html.append("<colgroup");
+            appendTableAttribute(html, "class", findTableChildAttribute(el, "colgroup", "class"));
+            appendTableAttribute(html, "id", findTableChildAttribute(el, "colgroup", "id"));
+            appendTableAttribute(html, "align", findTableChildAttribute(el, "colgroup", "align"));
+            appendTableAttribute(html, "valign", findTableChildAttribute(el, "colgroup", "valign"));
+            String columnGroupStyle = sanitizeTableStyle(findTableChildAttribute(el, "colgroup", "style"));
+            if (columnGroupStyle != null) {
+                html.append(" style=\"")
+                    .append(escapeTableAttribute(columnGroupStyle))
+                    .append('"');
+            }
+            html.append('>');
+            for (String width : columnWidths) {
+                if (width != null && !width.isBlank()) {
                     html.append("<col style=\"width:")
-                        .append(width)
-                        .append("px\">");
+                        .append(escapeTableAttribute(width))
+                        .append("\">");
                 } else {
                     html.append("<col>");
                 }
@@ -872,45 +1007,281 @@ public class GuideSiteHtmlCompiler {
             html.append("</colgroup>");
         }
         String alignStr = el.getAttributeString("align", "");
-        String[] aligns = alignStr.isEmpty() ? new String[0] : alignStr.split(",");
+        String[] aligns = alignStr.contains(",") ? alignStr.split(",") : new String[0];
         boolean firstRow = true;
         for (Object child : el.children()) {
-            if (child instanceof MdxJsxFlowElement tr && "tr".equals(tr.name())) {
-                html.append("<tr>");
-                int cellIdx = 0;
-                for (Object cellChild : tr.children()) {
-                    if (cellChild instanceof MdxJsxFlowElement && "td".equals(((MdxJsxFlowElement) cellChild).name())) {
-                        String tag = firstRow ? "th" : "td";
-                        String align = "";
-                        if (cellIdx < aligns.length) {
-                            String a = aligns[cellIdx].trim();
-                            if ("center".equals(a) || "right".equals(a)) {
-                                align = " style=\"text-align:" + a + "\"";
-                            }
-                        }
-                        html.append("<")
-                            .append(tag)
-                            .append(align)
-                            .append(">");
-                        html.append(
-                            compileChildren(
-                                ((MdxJsxFlowElement) cellChild).children(),
-                                templates,
-                                defaultNamespace,
-                                currentPageId,
-                                sceneResolver));
-                        html.append("</")
-                            .append(tag)
-                            .append(">");
-                        cellIdx++;
+            if (child instanceof MdxJsxFlowElement section
+                && ("thead".equals(section.name()) || "tbody".equals(section.name())
+                    || "tfoot".equals(section.name()))) {
+                html.append('<')
+                    .append(section.name());
+                appendTableAttribute(html, "class", section.getAttributeString("class", null));
+                appendTableAttribute(html, "id", section.getAttributeString("id", null));
+                appendTableAttribute(html, "align", section.getAttributeString("align", null));
+                appendTableAttribute(html, "valign", section.getAttributeString("valign", null));
+                html.append('>');
+                List<MdxJsxFlowElement> rows = new ArrayList<>();
+                for (Object rowChild : section.children()) {
+                    if (rowChild instanceof MdxJsxFlowElement row && "tr".equals(row.name())) {
+                        rows.add(row);
                     }
                 }
-                html.append("</tr>");
-                firstRow = false;
+                firstRow = appendTableRows(
+                    html,
+                    rows,
+                    firstRow,
+                    "thead".equals(section.name()),
+                    aligns,
+                    templates,
+                    defaultNamespace,
+                    currentPageId,
+                    sceneResolver);
+                html.append("</")
+                    .append(section.name())
+                    .append('>');
+            } else if (child instanceof MdxJsxFlowElement row && "tr".equals(row.name())) {
+                firstRow = appendTableRows(
+                    html,
+                    List.of(row),
+                    firstRow,
+                    false,
+                    aligns,
+                    templates,
+                    defaultNamespace,
+                    currentPageId,
+                    sceneResolver);
             }
         }
         html.append("</table>");
         return html.toString();
+    }
+
+    private boolean appendTableRows(StringBuilder html, List<MdxJsxFlowElement> rows, boolean firstRow,
+        boolean headerSection, String[] aligns, GuideSiteTemplateRegistry templates, String defaultNamespace,
+        @Nullable ResourceLocation currentPageId, SceneResolver sceneResolver) {
+        for (MdxJsxFlowElement row : rows) {
+            html.append("<tr");
+            appendTableAttribute(html, "class", row.getAttributeString("class", null));
+            appendTableAttribute(html, "id", row.getAttributeString("id", null));
+            appendTableAttribute(html, "align", row.getAttributeString("align", null));
+            appendTableAttribute(html, "valign", row.getAttributeString("valign", null));
+            appendTableAttribute(html, "bgcolor", row.getAttributeString("bgcolor", null));
+            String rowStyle = sanitizeTableStyle(row.getAttributeString("style", null));
+            if (rowStyle != null) {
+                html.append(" style=\"")
+                    .append(escapeTableAttribute(rowStyle))
+                    .append('"');
+            }
+            html.append('>');
+            int cellIdx = 0;
+            boolean explicitHeader = row.children()
+                .stream()
+                .anyMatch(child -> child instanceof MdxJsxFlowElement header && "th".equals(header.name()));
+            String rowAlign = row.getAttributeString("align", "")
+                .trim();
+            String rowVAlign = row.getAttributeString("valign", "")
+                .trim();
+            for (Object cellChild : row.children()) {
+                if (cellChild instanceof MdxJsxFlowElement cell
+                    && ("td".equals(cell.name()) || "th".equals(cell.name()))) {
+                    String tag = "th".equals(cell.name()) || firstRow && !headerSection && !explicitHeader ? "th"
+                        : "td";
+                    int columnSpan = parseTableSpanValue(cell.getAttributeString("colspan", null));
+                    String cellAlign = cell.getAttributeString("align", "")
+                        .trim();
+                    if (cellAlign.isEmpty() && !rowAlign.isEmpty()) {
+                        cellAlign = rowAlign;
+                    }
+                    if (cellAlign.isEmpty() && cellIdx < aligns.length) {
+                        cellAlign = aligns[cellIdx].trim();
+                    }
+                    String cellVAlign = cell.getAttributeString("valign", "")
+                        .trim();
+                    if (cellVAlign.isEmpty()) {
+                        cellVAlign = rowVAlign;
+                    }
+                    StringBuilder cellStyle = new StringBuilder();
+                    String originalCellStyle = sanitizeTableStyle(cell.getAttributeString("style", null));
+                    if (originalCellStyle != null) {
+                        cellStyle.append(originalCellStyle)
+                            .append(';');
+                    }
+                    if ("left".equals(cellAlign) || "center".equals(cellAlign) || "right".equals(cellAlign)) {
+                        cellStyle.append("text-align:")
+                            .append(cellAlign)
+                            .append(';');
+                    }
+                    html.append("<")
+                        .append(tag);
+                    appendTableSpan(html, "colspan", columnSpan);
+                    appendTableSpan(html, "rowspan", cell.getAttributeString("rowspan", null));
+                    appendTableAttribute(html, "abbr", cell.getAttributeString("abbr", null));
+                    appendTableAttribute(html, "headers", cell.getAttributeString("headers", null));
+                    appendTableAttribute(html, "axis", cell.getAttributeString("axis", null));
+                    appendTableAttribute(html, "width", cell.getAttributeString("width", null));
+                    appendTableAttribute(html, "height", cell.getAttributeString("height", null));
+                    appendTableAttribute(html, "bgcolor", cell.getAttributeString("bgcolor", null));
+                    String valign = cellVAlign.toLowerCase(Locale.ROOT);
+                    if ("top".equals(valign) || "middle".equals(valign)
+                        || "bottom".equals(valign)
+                        || "baseline".equals(valign)) {
+                        cellStyle.append("vertical-align:")
+                            .append(valign)
+                            .append(';');
+                    }
+                    if ("th".equals(tag)) {
+                        String scope = cell.getAttributeString("scope", "");
+                        if ("col".equals(scope) || "row".equals(scope)
+                            || "colgroup".equals(scope)
+                            || "rowgroup".equals(scope)) {
+                            html.append(" scope=\"")
+                                .append(scope)
+                                .append('"');
+                        }
+                    }
+                    if (cellStyle.length() > 0) {
+                        html.append(" style=\"")
+                            .append(cellStyle)
+                            .append('"');
+                    }
+                    html.append(">");
+                    html.append(
+                        compileChildren(cell.children(), templates, defaultNamespace, currentPageId, sceneResolver));
+                    html.append("</")
+                        .append(tag)
+                        .append(">");
+                    cellIdx += columnSpan;
+                }
+            }
+            html.append("</tr>");
+            firstRow = false;
+        }
+        return firstRow;
+    }
+
+    private static void appendColumnWidths(List<String> widths, MdxJsxFlowElement column) {
+        String width = normalizeTableLength(column.getAttributeString("width", ""));
+        int span = parseTableSpanValue(column.getAttributeString("span", null));
+        for (int index = 0; index < span && widths.size() < 1024; index++) {
+            widths.add(width == null ? "" : width);
+        }
+    }
+
+    private static void appendTableAttribute(StringBuilder html, String name, @Nullable String value) {
+        if (value == null || value.isBlank()
+            || value.length() > 4096
+            || value.chars()
+                .anyMatch(character -> character < 0x20 && character != '\t')) {
+            return;
+        }
+        html.append(' ')
+            .append(name)
+            .append("=\"")
+            .append(escapeTableAttribute(value))
+            .append('"');
+    }
+
+    @Nullable
+    private static String sanitizeTableStyle(@Nullable String value) {
+        if (value == null || value.isBlank() || value.length() > 4096) {
+            return null;
+        }
+        String normalized = value.trim();
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        if (lower.contains("javascript:") || lower.contains("expression(")
+            || lower.contains("url(")
+            || normalized.indexOf('<') >= 0
+            || normalized.indexOf('>') >= 0) {
+            return null;
+        }
+        return normalized;
+    }
+
+    private static void appendTableNumericAttribute(StringBuilder html, String name, @Nullable String value) {
+        if (value == null || !value.trim()
+            .matches("\\d+(?:px)?")) {
+            return;
+        }
+        html.append(' ')
+            .append(name)
+            .append("=\"")
+            .append(escapeTableAttribute(value.trim()))
+            .append('"');
+    }
+
+    private static void appendTableLengthAttribute(StringBuilder html, String name, @Nullable String value) {
+        String normalized = normalizeTableLength(value);
+        if (normalized != null) {
+            html.append(' ')
+                .append(name)
+                .append("=\"")
+                .append(escapeTableAttribute(normalized))
+                .append('"');
+        }
+    }
+
+    @Nullable
+    private static String normalizeTableLength(@Nullable String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim();
+        if (!normalized.matches("\\d+(?:\\.\\d+)?(?:px|%|em|rem|vw|vh|pt)?")) {
+            return null;
+        }
+        return normalized;
+    }
+
+    private static void appendTableAlignment(StringBuilder style, String align) {
+        switch (align) {
+            case "center" -> style.append("width:max-content;min-width:0;margin-left:auto;margin-right:auto;");
+            case "right" -> style.append("width:max-content;min-width:0;margin-left:auto;margin-right:0;");
+            case "left" -> style.append("width:max-content;min-width:0;margin-left:0;margin-right:auto;");
+            default -> {}
+        }
+    }
+
+    @Nullable
+    private static String findTableChildAttribute(MdxJsxElementFields table, String childName, String attribute) {
+        for (Object child : table.children()) {
+            if (child instanceof MdxJsxFlowElement element && childName.equalsIgnoreCase(element.name())) {
+                return element.getAttributeString(attribute, null);
+            }
+        }
+        return null;
+    }
+
+    private static String escapeTableAttribute(String value) {
+        return value.replace("&", "&amp;")
+            .replace("\"", "&quot;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;");
+    }
+
+    private static void appendTableSpan(StringBuilder html, String attribute, int span) {
+        if (span > 1) {
+            html.append(' ')
+                .append(attribute)
+                .append("=\"")
+                .append(span)
+                .append('"');
+        }
+    }
+
+    private static void appendTableSpan(StringBuilder html, String attribute, @Nullable String rawValue) {
+        appendTableSpan(html, attribute, parseTableSpanValue(rawValue));
+    }
+
+    private static int parseTableSpanValue(@Nullable String rawValue) {
+        if (rawValue == null) {
+            return 1;
+        }
+        try {
+            int span = Integer.parseInt(rawValue);
+            return Math.max(1, Math.min(1024, span));
+        } catch (NumberFormatException ignored) {
+            return 1;
+        }
     }
 
     private List<Integer> parseTableWidths(String content) {

@@ -96,20 +96,9 @@ public class LytLatexBlock extends LytBlock implements InteractiveElement {
             case CENTER -> (lineHeight - formulaDisplayH) / 2;
             case BOTTOM -> lineHeight - formulaDisplayH;
             case BASELINE -> {
-                // Align the formula's math baseline with the text baseline.
-                //
-                // Both calibrateRefHeight() and measureSize() apply the same Insets value,
-                // so the bottom-inset term B cancels out in the algebra:
-                //
-                // text_baseline = (refH - B) * lineHeight / refH
-                // formula_ascent = (size[1] - B - size[2]) * lineHeight * userScale / refH
-                // alignOffset = text_baseline - formula_ascent
-                // = (lineHeight - displayH) + size[2] * lineHeight * userScale / refH
-                // = (lineHeight - displayH) + depthDisplay
-                //
-                // For depth-zero formulas (size[2]==0) this is identical to BOTTOM.
+                // Use the same text baseline as the surrounding inline layout.
                 int depthDisplay = scaleSourceMetricRound(sourceDepthPx, lineHeight);
-                yield lineHeight - formulaDisplayH + depthDisplay;
+                yield context.getAscent(null) - formulaDisplayH + depthDisplay;
             }
             default -> 0; // TOP
         };

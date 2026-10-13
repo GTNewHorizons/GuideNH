@@ -27,6 +27,8 @@ GuideNH resolves  パス と 読み込みます  binary アセット から  ガ
 
 ## `FloatingImage`
 
+`wrap="inline"` を指定すると、画像は周囲の文字に対して縦方向の中央に配置され、画像全体を収めるためにその行の高さが動的に広がります。前後の文字行は通常の行高を維持し、固定の行高上限は設けません。非常に高い画像を単独の行に表示する場合は、タグを独立した段落に置き、その前後に空行を入れてください。
+
 `<FloatingImage>` 描画 cropped bitmap region that できます 浮動小数点数 とともに テキスト または sit truly inline 内部 a
 paragraph. It も accepts 明示的な `modid:path` texture ids, so it できます reference texture assets から
 他の mods directly.

@@ -263,6 +263,87 @@ Another width-hint sample with three columns:
 | Diamond | 9 | rare |
 {: widths="130,70,150" }
 
+HTML tables can describe captions, column groups, semantic row groups, and merged cells. `<caption>` appears above the table. `<colgroup>` and `<col>` accept pixel or percentage `width` values (with an optional `px` suffix); `span` repeats one width for multiple columns. Use `<thead>`, `<tbody>`, and `<tfoot>` for row groups. `th` and `td` support `colspan`, `rowspan`, `align`, and `valign`; `th` supports `scope`, `abbr`, and `headers`. Table `width`, `border`, `cellpadding`, `cellspacing`, `frame`, `rules`, `summary`, `bgcolor`, and `bordercolor` attributes are preserved by the site exporter. A table-level `widths` attribute can also provide comma-separated pixel hints:
+
+```html
+<table widths="150,70,70,150">
+  <caption>Fuel burn rates</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">Fuel</th>
+      <th scope="colgroup" colspan="2" align="center">Burn rate</th>
+      <th scope="col" rowspan="2" align="right">Notes</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">Charcoal</th>
+      <th scope="col" align="right">Coal</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">Solid fuel</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">Per tick</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">59 combined</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">Total</th>
+      <td colspan="3" align="right">59 units</td>
+    </tr>
+  </tfoot>
+</table>
+
+```
+
+Result:
+
+<table widths="150,70,70,150">
+  <caption>Fuel burn rates</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">Fuel</th>
+      <th scope="colgroup" colspan="2" align="center">Burn rate</th>
+      <th scope="col" rowspan="2" align="right">Notes</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">Charcoal</th>
+      <th scope="col" align="right">Coal</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">Solid fuel</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">Per tick</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">59 combined</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">Total</th>
+      <td colspan="3" align="right">59 units</td>
+    </tr>
+  </tfoot>
+</table>
+
 ## Reference Links And Images
 
 [Guide Ref][doc]
