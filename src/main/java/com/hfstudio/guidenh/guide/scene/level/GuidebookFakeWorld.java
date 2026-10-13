@@ -30,7 +30,6 @@ import com.hfstudio.guidenh.guide.internal.scene.GuidebookFakeRenderEnvironment;
 import com.hfstudio.guidenh.guide.scene.GuidebookLevelRenderer;
 import com.hfstudio.guidenh.guide.scene.support.GuideDebugLog;
 import com.hfstudio.guidenh.integration.api.GuideNhIntegrationRegistry;
-import com.hfstudio.guidenh.integration.gregtech.GregTechHelpers;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -133,11 +132,6 @@ public class GuidebookFakeWorld extends WorldClient implements GuidebookPreviewW
     @Override
     public int getBlockMetadata(int x, int y, int z) {
         if (level == null) return 0;
-        TileEntity tileEntity = level.getTileEntity(x, y, z);
-        Integer bartWorksMeta = GregTechHelpers.resolveBartWorksMetadata(tileEntity);
-        if (bartWorksMeta != null) {
-            return bartWorksMeta;
-        }
         return level.getBlockMetadata(x, y, z);
     }
 
