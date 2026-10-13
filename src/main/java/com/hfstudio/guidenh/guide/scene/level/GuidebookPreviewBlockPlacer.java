@@ -593,6 +593,10 @@ public class GuidebookPreviewBlockPlacer {
         try {
             NBTTagCompound snapshot = new NBTTagCompound();
             tileEntity.writeToNBT(snapshot);
+            int metaTileId = GregTechHelpers.resolveMetaTileId(tileEntity, -1);
+            if (metaTileId > 0 && (!snapshot.hasKey("mID") || snapshot.getInteger("mID") != metaTileId)) {
+                snapshot.setInteger("mID", metaTileId);
+            }
             return snapshot;
         } catch (Throwable ignored) {
             return null;

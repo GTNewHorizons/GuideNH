@@ -268,7 +268,7 @@ function renderMarkdownTable(rows, widths, context) {
   const colgroup = widths.length ? `<colgroup>${Array.from({ length: columns }, (_item, index) => `<col style="width:${Number(widths[index] || 0) || "auto"}px">`).join("")}</colgroup>` : "";
   const head = rows[0] || [];
   const body = rows.slice(2);
-  return `<div class="guide-table-wrap"><table>${colgroup}<thead><tr>${Array.from({ length: columns }, (_item, index) => `<th>${renderInline(head[index] || "", context)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${Array.from({ length: columns }, (_item, index) => `<td>${renderInline(row[index] || "", context)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  return `<div class="guide-table-wrap"><table class="guide-table">${colgroup}<thead><tr>${Array.from({ length: columns }, (_item, index) => `<th>${renderInline(head[index] || "", context)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${Array.from({ length: columns }, (_item, index) => `<td>${renderInline(row[index] || "", context)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 
 function readList(lines, index) {
@@ -581,10 +581,11 @@ function renderSafeHtmlTag(name, attributes, body, context) {
   if (!/^[a-z][a-z0-9-]*$/.test(tag)) return renderInline(body, context);
   const safeAttributes = { ...attributes };
   const tableWidths = tag === "table" ? parseTableWidthAttribute(safeAttributes.widths) : [];
+  const hasExplicitColgroup = tag === "table" && /<colgroup\b/i.test(String(body || ""));
   delete safeAttributes.widths;
   if (tag === "col") {
     const width = parseTableWidthAttribute(safeAttributes.width)[0];
-    if (width > 0) safeAttributes.style = `width:${width}px;${safeAttributes.style || ""}`;
+    if (width && Number.parseFloat(width) > 0) safeAttributes.style = `width:${width};${safeAttributes.style || ""}`;
     delete safeAttributes.width;
     return `<col${renderSafeHtmlAttributes(safeAttributes)}>`;
   }
@@ -593,9 +594,9 @@ function renderSafeHtmlTag(name, attributes, body, context) {
     const tableAlign = String(safeAttributes.align || "").trim().toLowerCase();
     const tableStyle = String(safeAttributes.style || "");
     if (tableAlign && !tableAlign.includes(",")) {
-      const alignmentStyle = tableAlign === "center" ? "width:max-content;min-width:0;margin-left:auto;margin-right:auto;"
-        : tableAlign === "right" ? "width:max-content;min-width:0;margin-left:auto;margin-right:0;"
-          : tableAlign === "left" ? "width:max-content;min-width:0;margin-left:0;margin-right:auto;" : "";
+      const alignmentStyle = tableAlign === "center" ? "width:100%;max-width:100%;margin-left:auto;margin-right:auto;"
+        : tableAlign === "right" ? "width:100%;max-width:100%;margin-left:auto;margin-right:0;"
+          : tableAlign === "left" ? "width:100%;max-width:100%;margin-left:0;margin-right:auto;" : "";
       if (alignmentStyle) safeAttributes.style = `${alignmentStyle}${tableStyle}`;
     }
     const cellPadding = normalizeTableLength(safeAttributes.cellpadding);
@@ -638,10 +639,11 @@ function renderSafeHtmlTag(name, attributes, body, context) {
   const content = ["img", "br", "hr", "input", "source", "meta", "link"].includes(tag)
     ? ""
     : tag === "pre" ? escapeHtml(body) : (HTML_CONTAINER_TAGS.has(tag) ? renderBlocks(body, renderContext) : renderInline(body, renderContext));
-  const colgroup = tableWidths.length
+  const colgroup = tableWidths.length && !hasExplicitColgroup
     ? `<colgroup>${tableWidths.map((width) => width ? `<col style="width:${escapeHtml(width)}">` : "<col>").join("")}</colgroup>`
     : "";
-  return `<${tag}${renderSafeHtmlAttributes(safeAttributes)}>${caption}${colgroup}${content}</${tag}>`;
+  const rendered = `<${tag}${renderSafeHtmlAttributes(safeAttributes)}>${caption}${colgroup}${content}</${tag}>`;
+  return tag === "table" ? `<div class="guide-table-wrap">${rendered}</div>` : rendered;
 }
 
 function parseTableWidthAttribute(value) {

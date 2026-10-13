@@ -23,6 +23,7 @@ public class LytTable extends LytBlock {
     private int preferredWidthPercent;
     private int borderWidth = CELL_BORDER;
     private int cellSpacing;
+    private boolean outerBorder;
     private String horizontalAlignment = "left";
 
     @Getter
@@ -74,7 +75,7 @@ public class LytTable extends LytBlock {
             }
         }
 
-        int currentY = y + borderWidth;
+        int currentY = y + getOuterInset();
         for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
             var row = rows.get(rowIndex);
             int rowTop = currentY;
@@ -87,7 +88,8 @@ public class LytTable extends LytBlock {
             currentY = row.bounds.bottom() + getRowGap();
         }
 
-        return new LytRect(alignedX, y, tableWidth, currentY - y);
+        int tableBottom = rows.isEmpty() ? y + getOuterInset() : rows.getLast().bounds.bottom() + getOuterInset();
+        return new LytRect(alignedX, y, tableWidth, Math.max(0, tableBottom - y));
     }
 
     @Override
@@ -105,7 +107,7 @@ public class LytTable extends LytBlock {
 
     @Override
     public void render(RenderContext context) {
-        if (borderWidth > 0 && !bounds.isEmpty()) {
+        if (outerBorder && borderWidth > 0 && !bounds.isEmpty()) {
             context.fillRect(bounds.x(), bounds.y(), bounds.width(), borderWidth, ColorUtils.TABLE_BORDER);
             context.fillRect(
                 bounds.x(),
@@ -127,8 +129,12 @@ public class LytTable extends LytBlock {
                 if (hasCellCrossingColumnBoundary(rowIndex, columnBoundary)) {
                     continue;
                 }
-                int borderX = columns.get(columnBoundary).x + columns.get(columnBoundary).width;
-                context.fillRect(borderX, row.bounds.y(), borderWidth, row.bounds.height(), ColorUtils.TABLE_BORDER);
+                int borderX = getColumnBoundary(columns.get(columnBoundary));
+                int segmentHeight = row.bounds.height();
+                if (rowIndex + 1 < rows.size() && !hasCellCrossingColumnBoundary(rowIndex + 1, columnBoundary)) {
+                    segmentHeight += cellSpacing;
+                }
+                context.fillRect(borderX, row.bounds.y(), borderWidth, segmentHeight, ColorUtils.TABLE_BORDER);
             }
             if (rowIndex + 1 < rows.size()) {
                 for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
@@ -136,7 +142,12 @@ public class LytTable extends LytBlock {
                         continue;
                     }
                     var column = columns.get(columnIndex);
-                    context.fillRect(column.x, row.bounds.bottom(), column.width, borderWidth, ColorUtils.TABLE_BORDER);
+                    context.fillRect(
+                        column.x,
+                        getRowBoundary(row),
+                        column.width + getCellSpacingOverlap(columnIndex),
+                        borderWidth,
+                        ColorUtils.TABLE_BORDER);
                 }
             }
         }
@@ -187,6 +198,11 @@ public class LytTable extends LytBlock {
         invalidateLayout();
     }
 
+    public void setOuterBorder(boolean outerBorder) {
+        this.outerBorder = outerBorder;
+        invalidateLayout();
+    }
+
     public boolean isOccupied(int rowIndex, int columnIndex, int columnSpan) {
         for (var row : rows) {
             for (var cell : row.getChildren()) {
@@ -221,11 +237,27 @@ public class LytTable extends LytBlock {
     }
 
     private int getColumnGap() {
-        return borderWidth + cellSpacing;
+        return cellSpacing;
     }
 
     private int getRowGap() {
-        return borderWidth + cellSpacing;
+        return cellSpacing;
+    }
+
+    private int getOuterInset() {
+        return outerBorder ? borderWidth : 0;
+    }
+
+    private int getColumnBoundary(LytTableColumn column) {
+        return column.x + column.width + cellSpacing / 2;
+    }
+
+    private int getRowBoundary(LytTableRow row) {
+        return row.bounds.bottom() + cellSpacing / 2;
+    }
+
+    private int getCellSpacingOverlap(int columnIndex) {
+        return columnIndex + 1 < columns.size() ? cellSpacing : 0;
     }
 
     private boolean hasCellCrossingColumnBoundary(int rowIndex, int boundary) {
@@ -267,9 +299,8 @@ public class LytTable extends LytBlock {
     }
 
     private void layoutColumns(int x, int availableWidth) {
-        int innerWidth = Math.max(
-            0,
-            availableWidth - (columns.size() + 1) * borderWidth - Math.max(0, columns.size() - 1) * cellSpacing);
+        int innerWidth = Math
+            .max(0, availableWidth - getOuterInset() * 2 - Math.max(0, columns.size() - 1) * cellSpacing);
         int totalPreferredWidth = 0;
         int totalPreferredPercent = 0;
         int flexibleColumns = 0;
@@ -283,7 +314,7 @@ public class LytTable extends LytBlock {
             }
         }
 
-        int colX = x + borderWidth;
+        int colX = x + getOuterInset();
         if (totalPreferredWidth > 0 || totalPreferredPercent > 0) {
             int preferredWidth = Math.min(totalPreferredWidth, innerWidth);
             int percentWidth = Math.max(0, innerWidth - preferredWidth);
@@ -324,7 +355,7 @@ public class LytTable extends LytBlock {
         }
 
         var lastCol = columns.getLast();
-        lastCol.width = Math.max(0, (x + availableWidth) - lastCol.x - borderWidth);
+        lastCol.width = Math.max(0, (x + availableWidth) - getOuterInset() - lastCol.x);
     }
 
     @Override

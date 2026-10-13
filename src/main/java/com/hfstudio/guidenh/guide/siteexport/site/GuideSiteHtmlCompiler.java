@@ -1053,7 +1053,7 @@ public class GuideSiteHtmlCompiler {
             }
         }
         html.append("</table>");
-        return html.toString();
+        return "<div class=\"guide-table-wrap\">" + html + "</div>";
     }
 
     private boolean appendTableRows(StringBuilder html, List<MdxJsxFlowElement> rows, boolean firstRow,
@@ -1234,9 +1234,9 @@ public class GuideSiteHtmlCompiler {
 
     private static void appendTableAlignment(StringBuilder style, String align) {
         switch (align) {
-            case "center" -> style.append("width:max-content;min-width:0;margin-left:auto;margin-right:auto;");
-            case "right" -> style.append("width:max-content;min-width:0;margin-left:auto;margin-right:0;");
-            case "left" -> style.append("width:max-content;min-width:0;margin-left:0;margin-right:auto;");
+            case "center" -> style.append("width:100%;max-width:100%;margin-left:auto;margin-right:auto;");
+            case "right" -> style.append("width:100%;max-width:100%;margin-left:auto;margin-right:0;");
+            case "left" -> style.append("width:100%;max-width:100%;margin-left:0;margin-right:auto;");
             default -> {}
         }
     }

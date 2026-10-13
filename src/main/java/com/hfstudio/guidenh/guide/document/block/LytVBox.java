@@ -24,6 +24,11 @@ public class LytVBox extends LytAxisBox {
             0,
             0,
             getGap(),
-            getAlignItems());
+            getAlignItems(),
+            allowsContentWidthExpansion());
+    }
+
+    protected boolean allowsContentWidthExpansion() {
+        return true;
     }
 }

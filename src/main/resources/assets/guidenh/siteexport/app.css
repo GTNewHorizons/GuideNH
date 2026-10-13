@@ -166,6 +166,8 @@ hr {
 
 table {
     border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: auto;
 }
 
 .guide-table-wrap,
@@ -178,13 +180,47 @@ table {
 
 .guide-table-wrap > table,
 .guide-csv-table-wrap > table {
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
+    max-width: 100%;
     margin-bottom: 0;
 }
 
 table td, table th {
+    min-width: 0;
+    max-width: 100%;
     padding: var(--guide-table-cell-padding, 6px);
+    border: 0;
+    text-align: left;
+    vertical-align: middle;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+table th {
+    border-bottom: var(--guide-table-inner-border, calc(1px * var(--gui-scale)) solid var(--color-table-border));
+}
+
+table tr + tr td,
+table tr + tr th {
+    border-top: var(--guide-table-inner-border, 1px solid var(--color-table-border));
+}
+
+table td + td,
+table td + th,
+table th + td,
+table th + th {
+    border-left: var(--guide-table-inner-border, 1px solid var(--color-table-border));
+}
+
+table[border]:not([border="0"]) td,
+table[border]:not([border="0"]) th {
+    border: var(--guide-table-cell-border, 1px solid var(--color-table-border));
+}
+
+table[border="0"] td,
+table[border="0"] th {
+    border: 0;
 }
 
 table caption {
@@ -193,18 +229,21 @@ table caption {
     text-align: center;
 }
 
+table caption > p,
+table td > p:first-child,
+table th > p:first-child {
+    margin-top: 0;
+}
+
+table caption > p,
+table td > p:last-child,
+table th > p:last-child {
+    margin-bottom: 0;
+}
+
 th {
     font-weight: bold;
     font-family: var(--minecraft-font);
-    border-bottom: var(--guide-table-cell-border, calc(1px * var(--gui-scale)) solid var(--color-table-border));
-}
-
-tr + tr td {
-    border-top: var(--guide-table-cell-border, 1px solid var(--color-table-border));
-}
-
-td + td, th + th {
-    border-left: var(--guide-table-cell-border, 1px solid var(--color-table-border));
 }
 
 code {

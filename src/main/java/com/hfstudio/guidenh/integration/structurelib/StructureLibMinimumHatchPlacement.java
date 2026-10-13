@@ -19,8 +19,9 @@ public class StructureLibMinimumHatchPlacement {
 
     private StructureLibMinimumHatchPlacement() {}
 
-    public static void register(IStructureElement<?> element, boolean hasMinimumRequirement, int casingIndex) {
-        METADATA.put(element, new PlacementMetadata(hasMinimumRequirement, casingIndex));
+    public static void register(IStructureElement<?> element, boolean hasMinimumRequirement, boolean exclusive,
+        int casingIndex) {
+        METADATA.put(element, new PlacementMetadata(hasMinimumRequirement, exclusive, casingIndex));
     }
 
     public static void setCurrentElement(IStructureElement<?> element) {
@@ -44,6 +45,7 @@ public class StructureLibMinimumHatchPlacement {
         PlacementMetadata metadata = METADATA.get(element);
         return PREVIEW_BUILD.get() == Boolean.TRUE && metadata != null
             && !metadata.hasMinimumRequirement()
+            && !metadata.exclusive()
             && CURRENT_ELEMENT.get() instanceof IStructureElementChain<?>;
     }
 
@@ -52,5 +54,5 @@ public class StructureLibMinimumHatchPlacement {
         return metadata != null ? metadata.casingIndex() : -1;
     }
 
-    private record PlacementMetadata(boolean hasMinimumRequirement, int casingIndex) {}
+    private record PlacementMetadata(boolean hasMinimumRequirement, boolean exclusive, int casingIndex) {}
 }

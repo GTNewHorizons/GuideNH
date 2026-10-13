@@ -531,6 +531,34 @@ public class GregTechHelpers {
         return false;
     }
 
+    public static void ensurePreviewMachineTile(@Nullable World world, int x, int y, int z, @Nullable ItemStack stack) {
+        if (!(world instanceof GuidebookFakeWorld) || !isMachineStack(stack)) {
+            return;
+        }
+        TileEntity tileEntity = world.getTileEntity(x, y, z);
+        if (!isGregTechTileEntity(tileEntity)) {
+            return;
+        }
+        int expectedMetaTileId = stack.getItemDamage();
+        if (expectedMetaTileId <= 0) {
+            return;
+        }
+        int currentMetaTileId = resolveMetaTileId(tileEntity, -1);
+        if (currentMetaTileId == expectedMetaTileId && hasValidMetaTileBinding(tileEntity)) {
+            return;
+        }
+        if (!initializeMachineControllerTile(tileEntity, expectedMetaTileId, stack)) {
+            logInfoOnce(
+                "preview-machine-rebind-failed:" + expectedMetaTileId,
+                "Failed to bind preview GregTech machine at ({}, {}, {}): expectedMetaTileId={}, currentMetaTileId={}",
+                x,
+                y,
+                z,
+                expectedMetaTileId,
+                currentMetaTileId);
+        }
+    }
+
     public static void applyPreviewControllerFacing(@Nullable TileEntity tileEntity) {
         if (tileEntity == null || !Mods.GregTech.isModLoaded()) {
             return;

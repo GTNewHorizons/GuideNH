@@ -29,6 +29,9 @@ public abstract class MixinHatchElementBuilderPreview<T> {
     private Predicate<? super T> mReject;
 
     @Shadow
+    private boolean mExclusive;
+
+    @Shadow
     private BiFunction<? super T, ItemStack, ? extends Predicate<ItemStack>> mHatchItemFilter;
 
     @Inject(method = "atLeast(Ljava/util/Map;)Lgregtech/api/util/HatchElementBuilder;", at = @At("RETURN"))
@@ -44,6 +47,6 @@ public abstract class MixinHatchElementBuilderPreview<T> {
         if (element == null) {
             return;
         }
-        StructureLibMinimumHatchPlacement.register(element, mReject != null, mCasingIndex);
+        StructureLibMinimumHatchPlacement.register(element, mReject != null, mExclusive, mCasingIndex);
     }
 }

@@ -18,9 +18,7 @@ public class LayoutContext implements FontMetrics {
     private final List<LytRect> leftFloats = new ArrayList<>();
     private final List<LytRect> rightFloats = new ArrayList<>();
 
-    /** Cached right edge of the furthest-right left float. {@link Integer#MIN_VALUE} = dirty. */
     private int cachedLeftFloatRightEdge = Integer.MIN_VALUE;
-    /** Cached left edge of the furthest-left right float. {@link Integer#MAX_VALUE} = dirty. */
     private int cachedRightFloatLeftEdge = Integer.MAX_VALUE;
 
     public LayoutContext(FontMetrics fontMetrics) {
@@ -58,10 +56,6 @@ public class LayoutContext implements FontMetrics {
         return OptionalInt.of(getLeftFloatRightEdgeOr(0));
     }
 
-    /**
-     * Returns the right edge of the furthest-right left float, or {@code fallback} if there are none.
-     * Prefer this over {@link #getLeftFloatRightEdge()} in hot paths to avoid {@link OptionalInt} allocation.
-     */
     public int getLeftFloatRightEdgeOr(int fallback) {
         if (leftFloats.isEmpty()) {
             return fallback;
@@ -77,6 +71,19 @@ public class LayoutContext implements FontMetrics {
         return cachedLeftFloatRightEdge;
     }
 
+    public int getLeftFloatRightEdgeOr(int fallback, int regionLeft, int regionRight) {
+        if (regionRight <= regionLeft || leftFloats.isEmpty()) {
+            return fallback;
+        }
+        int edge = fallback;
+        for (var floatBounds : leftFloats) {
+            if (floatBounds.right() > regionLeft && floatBounds.x() < regionRight) {
+                edge = Math.max(edge, floatBounds.right());
+            }
+        }
+        return edge;
+    }
+
     public OptionalInt getRightFloatLeftEdge() {
         if (rightFloats.isEmpty()) {
             return OptionalInt.empty();
@@ -84,10 +91,6 @@ public class LayoutContext implements FontMetrics {
         return OptionalInt.of(getRightFloatLeftEdgeOr(0));
     }
 
-    /**
-     * Returns the left edge of the furthest-left right float, or {@code fallback} if there are none.
-     * Prefer this over {@link #getRightFloatLeftEdge()} in hot paths to avoid {@link OptionalInt} allocation.
-     */
     public int getRightFloatLeftEdgeOr(int fallback) {
         if (rightFloats.isEmpty()) {
             return fallback;
@@ -103,7 +106,19 @@ public class LayoutContext implements FontMetrics {
         return cachedRightFloatLeftEdge;
     }
 
-    /** Clears all pending floats and returns the lowest y level below the cleared floats. */
+    public int getRightFloatLeftEdgeOr(int fallback, int regionLeft, int regionRight) {
+        if (regionRight <= regionLeft || rightFloats.isEmpty()) {
+            return fallback;
+        }
+        int edge = fallback;
+        for (var floatBounds : rightFloats) {
+            if (floatBounds.right() > regionLeft && floatBounds.x() < regionRight) {
+                edge = Math.min(edge, floatBounds.x());
+            }
+        }
+        return edge;
+    }
+
     public OptionalInt clearFloats(boolean left, boolean right) {
         if (left && right) {
             var result = getMaxBottom(leftFloats, rightFloats);
@@ -127,7 +142,6 @@ public class LayoutContext implements FontMetrics {
         }
     }
 
-    /** Removes all floats whose bottom edge is at or above the given y position. */
     public void clearFloatsAbove(int y) {
         boolean leftChanged = leftFloats.removeIf(f -> f.bottom() <= y);
         boolean rightChanged = rightFloats.removeIf(f -> f.bottom() <= y);
@@ -160,9 +174,6 @@ public class LayoutContext implements FontMetrics {
         return fontMetrics.getDescent(style);
     }
 
-    /**
-     * If there's a float whose bottom edge is below the given y coordinate, return that bottom edge.
-     */
     public OptionalInt getNextFloatBottomEdge(int y) {
         int nextBottom = Integer.MAX_VALUE;
         boolean found = false;
@@ -183,6 +194,36 @@ public class LayoutContext implements FontMetrics {
             }
         }
 
+        return found ? OptionalInt.of(nextBottom) : OptionalInt.empty();
+    }
+
+    public OptionalInt getNextFloatBottomEdge(int y, int regionLeft, int regionRight) {
+        if (regionRight <= regionLeft) {
+            return OptionalInt.empty();
+        }
+
+        int nextBottom = Integer.MAX_VALUE;
+        boolean found = false;
+        for (var bounds : leftFloats) {
+            if (bounds.right() <= regionLeft || bounds.x() >= regionRight) {
+                continue;
+            }
+            int bottom = bounds.bottom();
+            if (bottom > y && bottom < nextBottom) {
+                nextBottom = bottom;
+                found = true;
+            }
+        }
+        for (var bounds : rightFloats) {
+            if (bounds.right() <= regionLeft || bounds.x() >= regionRight) {
+                continue;
+            }
+            int bottom = bounds.bottom();
+            if (bottom > y && bottom < nextBottom) {
+                nextBottom = bottom;
+                found = true;
+            }
+        }
         return found ? OptionalInt.of(nextBottom) : OptionalInt.empty();
     }
 

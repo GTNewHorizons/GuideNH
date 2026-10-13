@@ -196,7 +196,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
         // If we *still* don't have enough room, we need to advance down to clear floats
         // as long as any float is still open
-        var nextFloatEdge = context.getNextFloatBottomEdge(lineBoxY);
+        var nextFloatEdge = context.getNextFloatBottomEdge(lineBoxY, lineBoxX, lineBoxX + lineBoxWidth);
         while (nextFloatEdge.isPresent()) {
             lineBoxY = nextFloatEdge.getAsInt();
             context.clearFloatsAbove(lineBoxY);
@@ -204,7 +204,7 @@ public class LineBuilder implements Consumer<LytFlowContent> {
             if (width <= remainingLineWidth) {
                 break; // Finally, we're good!
             }
-            nextFloatEdge = context.getNextFloatBottomEdge(lineBoxY);
+            nextFloatEdge = context.getNextFloatBottomEdge(lineBoxY, lineBoxX, lineBoxX + lineBoxWidth);
         }
     }
 
@@ -365,7 +365,9 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
                 // If the preceding text chunk ended on a whitespace, we can break there if the
                 // current word does not offer us any opportunity to.
-                if (precedingBreakOpportunity > 0 || precedingBreakOpportunity == 0 && canBreakAtStart) {
+                boolean lineBufferHasVisibleGlyph = containsVisibleGlyph(lineBuffer);
+                if (lineBufferHasVisibleGlyph
+                    && (precedingBreakOpportunity > 0 || precedingBreakOpportunity == 0 && canBreakAtStart)) {
                     // Determine width up until the break opportunity.
                     float widthAtBreakOpportunity = lineBufferPrefixWidths[precedingBreakOpportunity];
 
@@ -378,6 +380,19 @@ public class LineBuilder implements Consumer<LytFlowContent> {
                     curLineWidth = rebuildLineBufferWidths(style);
                     bold = resolveTrailingBold(style, lineBuffer);
                     visibleGlyphSeen = containsVisibleGlyph(lineBuffer);
+                } else if (!lineBufferHasVisibleGlyph) {
+                    if (lastCharWasWhitespace) {
+                        continue;
+                    }
+
+                    ensureTextSpaceIsAvailable(advance);
+
+                    // If no wider lane exists (for example, a genuinely narrow table cell), keep
+                    // the glyph in the line rather than emitting an empty line and dropping it.
+                    curLineWidth += advance;
+                    appendCodePointToLineBuffer(codePoint, advance);
+                    visibleGlyphSeen = visibleGlyphSeen || advance > 0f;
+                    continue;
                 } else {
                     // We exceeded the line length, but did not find a break opportunity
                     // this causes a forced break mid-word
@@ -404,6 +419,28 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
         if (!lineBuffer.isEmpty()) {
             consumer.visitRun(lineBuffer, curLineWidth, false);
+        }
+    }
+
+    private void ensureTextSpaceIsAvailable(float requiredWidth) {
+        if (requiredWidth <= remainingLineWidth) {
+            return;
+        }
+
+        if (openLineElement != null) {
+            endLine();
+        }
+
+        var nextFloatBottom = context.getNextFloatBottomEdge(lineBoxY, lineBoxX, lineBoxX + lineBoxWidth);
+        while (requiredWidth > remainingLineWidth && nextFloatBottom.isPresent()) {
+            int nextY = nextFloatBottom.getAsInt();
+            if (nextY <= lineBoxY) {
+                break;
+            }
+            lineBoxY = nextY;
+            context.clearFloatsAbove(lineBoxY);
+            remainingLineWidth = getAvailableHorizontalSpace();
+            nextFloatBottom = context.getNextFloatBottomEdge(lineBoxY, lineBoxX, lineBoxX + lineBoxWidth);
         }
     }
 
@@ -594,12 +631,14 @@ public class LineBuilder implements Consumer<LytFlowContent> {
 
     // Absolute X coord of the beginning of the text area of the current line box
     private int getInnerLeftEdge() {
-        return context.getLeftFloatRightEdgeOr(lineBoxX);
+        return Math.max(lineBoxX, context.getLeftFloatRightEdgeOr(lineBoxX, lineBoxX, lineBoxX + lineBoxWidth));
     }
 
     // Absolute X coord of the end of the text area of the current line box
     private int getInnerRightEdge() {
-        return context.getRightFloatLeftEdgeOr(lineBoxX + lineBoxWidth);
+        return Math.min(
+            lineBoxX + lineBoxWidth,
+            context.getRightFloatLeftEdgeOr(lineBoxX + lineBoxWidth, lineBoxX, lineBoxX + lineBoxWidth));
     }
 
     private void appendToOpenLine(LineElement el) {

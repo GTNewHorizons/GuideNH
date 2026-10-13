@@ -46,7 +46,9 @@ public class TableCompiler extends BlockTagCompiler {
         }
         String border = el.getAttributeString("border", "");
         if (isPixelValue(border)) {
-            table.setBorderWidth(parsePixelWidth(border));
+            int borderWidth = parsePixelWidth(border);
+            table.setBorderWidth(borderWidth);
+            table.setOuterBorder(borderWidth > 0);
         }
         String cellSpacing = el.getAttributeString("cellspacing", "");
         if (isPixelValue(cellSpacing)) {
@@ -126,10 +128,10 @@ public class TableCompiler extends BlockTagCompiler {
         applyColumnWidths(table, columnWidths);
         applyWidths(table, widthHints);
         if (captionedTable == null) {
-            parent.append(table);
+            parent.append(PageCompiler.wrapFloatAwareIfNeeded(table));
         } else {
             captionedTable.append(table);
-            parent.append(captionedTable);
+            parent.append(PageCompiler.wrapFloatAwareIfNeeded(captionedTable));
         }
     }
 

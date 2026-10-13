@@ -2,8 +2,10 @@ package com.hfstudio.guidenh.guide.document.block.table;
 
 import java.util.Locale;
 
+import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.AlignItems;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
+import com.hfstudio.guidenh.guide.render.RenderContext;
 
 /**
  * A cell in a {@link LytTable}s {@link LytTableRow}.
@@ -17,6 +19,26 @@ public class LytTableCell extends LytVBox {
     final int columnSpan;
     final int rowSpan;
     private AlignItems verticalAlignment = AlignItems.START;
+
+    @Override
+    protected boolean allowsContentWidthExpansion() {
+        return false;
+    }
+
+    @Override
+    public void render(RenderContext context) {
+        LytRect contentBounds = new LytRect(
+            bounds.x() + paddingLeft,
+            bounds.y() + paddingTop,
+            Math.max(0, bounds.width() - paddingLeft - paddingRight),
+            Math.max(0, bounds.height() - paddingTop - paddingBottom));
+        context.pushLocalScissor(contentBounds);
+        try {
+            super.render(context);
+        } finally {
+            context.popScissor();
+        }
+    }
 
     public int getColumnIndex() {
         return columnIndex;
