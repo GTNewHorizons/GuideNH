@@ -537,6 +537,19 @@ gold,17
 ```
 ````
 
+### HTML `<table>`
+
+GuideNH 页面支持原生 HTML 表格标签。使用 `<caption>`、`<colgroup>` / `<col>` 以及 `<thead>` / `<tbody>` / `<tfoot>` 描述表格结构。单元格支持 `colspan`、`rowspan`、`align`、`valign`；表头单元格还支持 `scope`、`abbr` 和 `headers`。表格 `align` 包含逗号时（例如 `left,center,right`）表示逐列对齐；单独的 `left`、`center` 或 `right` 会调整整个表格的位置。游戏内渲染和站点导出都支持 `width`、`border`、`cellpadding` 和 `cellspacing`。Markdown 表格仍支持 `{: widths="130,70,150" }` 这类 kramdown 元数据。
+
+````md
+<table width="100%" cellpadding="2">
+  <caption>燃料速率</caption>
+  <colgroup><col width="40%" /><col width="60%" /></colgroup>
+  <thead><tr><th scope="col">燃料</th><th scope="col">速率</th></tr></thead>
+  <tbody><tr><td>煤炭</td><td align="right">42</td></tr></tbody>
+</table>
+````
+
 ### `<Latex>`
 
 使用 jlatexmath 渲染 LaTeX 数学公式。在行内（段落或文本流中）使用时，渲染为自动缩放的字形，并将所在行的行高扩展以适应公式高度。独立成段（块级上下文）使用时，居中渲染为展示式公式块。

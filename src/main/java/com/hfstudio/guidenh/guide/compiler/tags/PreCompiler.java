@@ -72,7 +72,7 @@ public class PreCompiler extends BlockTagCompiler {
         // CSV table
         if (lang != null && "csv".equals(language.id())) {
             LytBlock csvBlock = compileCsvCodeBlock(compiler, codeText, meta);
-            parent.append(csvBlock);
+            parent.append(PageCompiler.wrapFloatAwareIfNeeded(csvBlock));
             return;
         }
 

@@ -47,6 +47,15 @@ public class LytFlowInlineBlock extends LytFlowContent implements InteractiveEle
         return measurePreferredBounds(lineWidth);
     }
 
+    public LytRect getPreferredBounds(LayoutContext context, int lineWidth) {
+        if (block == null) {
+            return LytRect.empty();
+        }
+
+        var layoutContext = new LayoutContext(context).withVisualScale(context.getVisualScale());
+        return block.layout(layoutContext, 0, 0, lineWidth);
+    }
+
     private LytRect measurePreferredBounds(int lineWidth) {
         if (block == null) {
             return LytRect.empty();

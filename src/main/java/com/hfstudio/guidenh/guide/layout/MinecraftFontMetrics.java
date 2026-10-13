@@ -67,4 +67,14 @@ public class MinecraftFontMetrics implements FontMetrics {
         float scale = style.fontScale();
         return scale == 1f ? base : (int) Math.ceil(base * scale);
     }
+
+    @Override
+    public int getAscent(ResolvedTextStyle style) {
+        FontRenderer renderer = font();
+        // Minecraft's eight-pixel glyph cell has its baseline seven pixels below the top.
+        float ascent = Math.max(0, renderer.FONT_HEIGHT - 2) * GuideFontCompat.getGlyphScaleY(renderer)
+            * GuideFontCompat.getYScaleMultiplier();
+        float scale = style != null ? style.fontScale() : 1f;
+        return Math.clamp(Math.round(ascent * scale), 0, getLineHeight(style));
+    }
 }

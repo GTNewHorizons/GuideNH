@@ -12,6 +12,14 @@ public interface FontMetrics {
 
     int getLineHeight(ResolvedTextStyle style);
 
+    default int getAscent(ResolvedTextStyle style) {
+        return getLineHeight(style);
+    }
+
+    default int getDescent(ResolvedTextStyle style) {
+        return Math.max(0, getLineHeight(style) - getAscent(style));
+    }
+
     default int getStringWidth(String text, ResolvedTextStyle style) {
         if (text == null || text.isEmpty()) {
             return 0;

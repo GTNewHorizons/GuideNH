@@ -262,6 +262,87 @@ Markdown：
 | Diamond | 9 | rare |
 {: widths="130,70,150" }
 
+HTML 表格可以表示标题、列分组、语义行分组和合并单元格。`<caption>` 会显示在表格上方。`<colgroup>` 与 `<col>` 接受像素或百分比 `width` 值（可选 `px` 后缀）；`span` 会将同一宽度重复应用到多个列。使用 `<thead>`、`<tbody>` 和 `<tfoot>` 对行分组。`th` 和 `td` 支持 `colspan`、`rowspan`、`align`、`valign`；`th` 还支持 `scope`、`abbr` 和 `headers`。站点导出会保留表格的 `width`、`border`、`cellpadding`、`cellspacing`、`frame`、`rules`、`summary`、`bgcolor` 和 `bordercolor` 属性。表格级别的 `widths` 属性也可以提供以逗号分隔的像素宽度 hint：
+
+```html
+<table widths="150,70,70,150">
+  <caption>燃料消耗速率</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">燃料</th>
+      <th scope="colgroup" colspan="2" align="center">燃烧速率</th>
+      <th scope="col" rowspan="2" align="right">备注</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">木炭</th>
+      <th scope="col" align="right">煤炭</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">固体燃料</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">每刻</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">合计 59</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">总计</th>
+      <td colspan="3" align="right">59 单位</td>
+    </tr>
+  </tfoot>
+</table>
+
+```
+
+效果：
+
+<table widths="150,70,70,150">
+  <caption>燃料消耗速率</caption>
+  <colgroup>
+    <col width="150" />
+    <col width="70" span="2" />
+    <col width="150" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" rowspan="2" align="left">燃料</th>
+      <th scope="colgroup" colspan="2" align="center">燃烧速率</th>
+      <th scope="col" rowspan="2" align="right">备注</th>
+    </tr>
+    <tr>
+      <th scope="col" align="right">木炭</th>
+      <th scope="col" align="right">煤炭</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" rowspan="2" align="left">固体燃料</th>
+      <td align="right">42</td>
+      <td align="right">17</td>
+      <td rowspan="2" align="left">每刻</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="right">合计 59</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th scope="rowgroup" align="left">总计</th>
+      <td colspan="3" align="right">59 单位</td>
+    </tr>
+  </tfoot>
+</table>
+
 ## 引用式链接与图片
 
 [Guide Ref][doc]

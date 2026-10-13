@@ -223,10 +223,46 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px
 .guide-mermaid { border: 1px solid var(--preview-runtime-border); border-radius: 7px; background: var(--accent-soft); }
 .guide-mermaid > span { display: block; padding: 7px 11px; color: var(--accent); border-bottom: 1px solid var(--preview-runtime-border); font: 10px ui-monospace, monospace; text-transform: uppercase; }
 .guide-mermaid pre { margin: 0; border: 0; background: transparent; }
-.guide-table-wrap { overflow: auto; }
-.guide-page table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 13px; }
-.guide-page th, .guide-page td { padding: 8px 10px; border: 1px solid var(--border); text-align: left; }
+.guide-table-wrap { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.guide-page table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: 1em 0;
+  font-size: 13px;
+}
+.guide-page th, .guide-page td {
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--guide-table-cell-padding, 8px 10px);
+  border: 0;
+  text-align: left;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.guide-page table th { border-bottom: var(--guide-table-inner-border, 1px solid var(--border)); }
+.guide-page table tr + tr td,
+.guide-page table tr + tr th { border-top: var(--guide-table-inner-border, 1px solid var(--border)); }
+.guide-page table td + td,
+.guide-page table td + th,
+.guide-page table th + td,
+.guide-page table th + th { border-left: var(--guide-table-inner-border, 1px solid var(--border)); }
+.guide-page table[border]:not([border="0"]) td,
+.guide-page table[border]:not([border="0"]) th {
+  border: var(--guide-table-border, 1px solid var(--border));
+}
 .guide-page th { background: var(--accent-soft); }
+.guide-page caption { padding: 6px 0; font-weight: bold; text-align: center; }
+.guide-page table caption > p,
+.guide-page table td > p:first-child,
+.guide-page table th > p:first-child { margin-top: 0; }
+.guide-page table caption > p,
+.guide-page table td > p:last-child,
+.guide-page table th > p:last-child { margin-bottom: 0; }
 .guide-page img { max-width: 100%; height: auto; }
 .asset-preview-page { display: grid; place-items: center; min-height: 220px; }
 .asset-preview-media { display: block; max-width: 100%; max-height: 70vh; object-fit: contain; }
@@ -298,7 +334,7 @@ input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px
 .guide-floating-image > img { position: absolute; left: calc(-1 * var(--crop-x)); top: calc(-1 * var(--crop-y)); width: auto; height: auto; max-width: none; transform: scale(var(--crop-scale-x), var(--crop-scale-y)); transform-origin: top left; image-rendering: auto; }
 .guide-floating-image-full { width: max-content; height: auto; overflow: visible; }
 .guide-floating-image-full > img { position: static; display: block; width: auto; height: auto; max-width: 100%; transform: none; }
-.guide-floating-image.inline { vertical-align: middle; }
+.guide-floating-image.inline { margin: 0; border: 0; line-height: 0; vertical-align: middle; }
 .guide-image-annotations { position: absolute; inset: 0; pointer-events: none; }
 .guide-image-annotation { position: absolute; display: block; border: 2px solid; border-radius: 2px; pointer-events: auto; cursor: help; }
 .guide-image-annotation-standalone { position: relative; display: inline-block; padding: 5px 8px; border-color: var(--preview-gold); }

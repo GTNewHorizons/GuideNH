@@ -5,12 +5,12 @@ import { translatedString } from "./language.js";
 function copy(context, key) { return escapeHtml(translatedString(context?.locale || "en_us", key)); }
 
 const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "code", "del", "em", "i", "img", "kbd", "mark", "small", "span", "strong", "sub", "sup", "u", "Color", "Spoiler", "Tooltip", "SoundLink", "PlayerName", "KeyBind", "ItemImage", "ItemIcon", "ItemLink", "CommandLink", "Latex", "Amount", "QuestLink", "FloatingImage"]);
-const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
-const SAFE_HTML_ATTRIBUTES = new Set(["class", "className", "id", "role", "aria-label", "aria-description", "colspan", "rowspan", "align", "width", "height", "style", "target", "rel", "href", "src", "alt", "poster", "controls", "autoplay", "loop", "muted", "playsinline"]);
-const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote", "details", "div", "dl", "fieldset", "figure", "footer", "header", "main", "nav", "ol", "section", "table", "tbody", "tfoot", "thead", "tr", "ul"]);
+const BLOCK_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "col", "colgroup", "details", "div", "dl", "dt", "dd", "fieldset", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul", "video", "audio", "Latex", "Tooltip", "Spoiler", "ContentTabs", "Tab", "FileTree", "Row", "Column", "FootnoteList", "ItemGrid", "ItemImage", "ItemIcon", "ItemLink", "Block", "BlockImage", "FloatingImage", "GameScene", "Scene", "Structure", "Mermaid", "CsvTable", "ColumnChart", "BarChart", "LineChart", "PieChart", "ScatterChart", "FunctionGraph", "Function", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "SubPages", "Category", "Special", "ImageAnnotation", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "NodeContent", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches", "Comment"]);
+const SAFE_HTML_ATTRIBUTES = new Set(["class", "className", "id", "role", "title", "lang", "dir", "aria-label", "aria-description", "colspan", "rowspan", "align", "valign", "width", "height", "scope", "span", "abbr", "headers", "axis", "char", "charoff", "summary", "border", "cellpadding", "cellspacing", "frame", "rules", "bordercolor", "bgcolor", "style", "target", "rel", "href", "src", "alt", "poster", "controls", "autoplay", "loop", "muted", "playsinline"]);
+const HTML_CONTAINER_TAGS = new Set(["address", "article", "aside", "blockquote", "caption", "colgroup", "details", "div", "dl", "fieldset", "figure", "footer", "header", "main", "nav", "ol", "section", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul"]);
 const RUNTIME_TAGS = new Set(["Block", "BlockImage", "BlockId", "ItemId", "GameScene", "Scene", "Structure", "Recipe", "RecipeFor", "RecipesFor", "ImportPonder", "Ponder", "QuestCard", "QuestLink", "BlockStats", "BlockStat", "ImportStructure", "ImportStructureLib", "IsometricCamera", "PlaySound", "RemoveBlocks", "RemoveEntity", "ReplaceBlock", "PlaceBlock", "BlockAnnotationTemplate", "Entity", "BoxAnnotation", "LineAnnotation", "DiamondAnnotation", "TextAnnotation", "InputAnnotation", "SoundArea", "Series", "LineSeries", "Slice", "PieInset", "Plot", "Point", "Tier", "Channel", "Facing", "Rotation", "Flip", "Orientation", "GregTechActiveController", "GregTechPlaceHatches"]);
 const ITEM_PLACEHOLDER_TAGS = new Set(["ItemLink", "ItemImage", "ItemIcon", "Block", "BlockId", "ItemId"]);
-const VOID_TAGS = new Set(["area", "br", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+const VOID_TAGS = new Set(["area", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 
 export function parseFrontmatter(source) {
   const normalized = String(source ?? "").replaceAll("\r\n", "\n");
@@ -181,7 +181,7 @@ function renderParagraph(source, context) {
   if (standaloneTag && standaloneTag.nextIndex === trimmed.length && (standaloneTag.name === "Latex" || BLOCK_TAGS.has(standaloneTag.name) || BLOCK_TAGS.has(standaloneTag.name.toLowerCase()))) {
     return renderTag(standaloneTag.name, standaloneTag.attributes, standaloneTag.body, standaloneTag.selfClosing, context, false);
   }
-  const blockNames = [...BLOCK_TAGS].filter((name) => !["ItemImage", "ItemIcon", "ItemLink", "Block"].includes(name));
+  const blockNames = [...BLOCK_TAGS].filter((name) => !["ItemImage", "ItemIcon", "ItemLink", "Block", "FloatingImage"].includes(name));
   if (new RegExp(`<\\/?(?:${blockNames.join("|")})\\b`, "i").test(source)) return renderInline(source, context);
   return `<p>${renderInline(source, context)}</p>`;
 }
@@ -268,7 +268,7 @@ function renderMarkdownTable(rows, widths, context) {
   const colgroup = widths.length ? `<colgroup>${Array.from({ length: columns }, (_item, index) => `<col style="width:${Number(widths[index] || 0) || "auto"}px">`).join("")}</colgroup>` : "";
   const head = rows[0] || [];
   const body = rows.slice(2);
-  return `<div class="guide-table-wrap"><table>${colgroup}<thead><tr>${Array.from({ length: columns }, (_item, index) => `<th>${renderInline(head[index] || "", context)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${Array.from({ length: columns }, (_item, index) => `<td>${renderInline(row[index] || "", context)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  return `<div class="guide-table-wrap"><table class="guide-table">${colgroup}<thead><tr>${Array.from({ length: columns }, (_item, index) => `<th>${renderInline(head[index] || "", context)}</th>`).join("")}</tr></thead><tbody>${body.map((row) => `<tr>${Array.from({ length: columns }, (_item, index) => `<td>${renderInline(row[index] || "", context)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 
 function readList(lines, index) {
@@ -579,10 +579,84 @@ function renderMedia(name, attributes, body, context) {
 function renderSafeHtmlTag(name, attributes, body, context) {
   const tag = String(name || "span").toLowerCase();
   if (!/^[a-z][a-z0-9-]*$/.test(tag)) return renderInline(body, context);
+  const safeAttributes = { ...attributes };
+  const tableWidths = tag === "table" ? parseTableWidthAttribute(safeAttributes.widths) : [];
+  const hasExplicitColgroup = tag === "table" && /<colgroup\b/i.test(String(body || ""));
+  delete safeAttributes.widths;
+  if (tag === "col") {
+    const width = parseTableWidthAttribute(safeAttributes.width)[0];
+    if (width && Number.parseFloat(width) > 0) safeAttributes.style = `width:${width};${safeAttributes.style || ""}`;
+    delete safeAttributes.width;
+    return `<col${renderSafeHtmlAttributes(safeAttributes)}>`;
+  }
+  let renderContext = context;
+  if (tag === "table") {
+    const tableAlign = String(safeAttributes.align || "").trim().toLowerCase();
+    const tableStyle = String(safeAttributes.style || "");
+    if (tableAlign && !tableAlign.includes(",")) {
+      const alignmentStyle = tableAlign === "center" ? "width:100%;max-width:100%;margin-left:auto;margin-right:auto;"
+        : tableAlign === "right" ? "width:100%;max-width:100%;margin-left:auto;margin-right:0;"
+          : tableAlign === "left" ? "width:100%;max-width:100%;margin-left:0;margin-right:auto;" : "";
+      if (alignmentStyle) safeAttributes.style = `${alignmentStyle}${tableStyle}`;
+    }
+    const cellPadding = normalizeTableLength(safeAttributes.cellpadding);
+    if (cellPadding !== null) safeAttributes.style = `--guide-table-cell-padding:${cellPadding};${safeAttributes.style || ""}`;
+    const cellSpacing = normalizeTableLength(safeAttributes.cellspacing);
+    if (cellSpacing !== null) safeAttributes.style = `border-collapse:separate;border-spacing:${cellSpacing};${safeAttributes.style || ""}`;
+    const borderValue = String(safeAttributes.border || "").trim();
+    if (/^\d+$/.test(borderValue)) {
+      safeAttributes.style = `--guide-table-border:${borderValue === "0" ? "0" : `${borderValue}px solid var(--border)`};${safeAttributes.style || ""}`;
+    }
+    const tableWidth = normalizeTableLength(safeAttributes.width);
+    if (tableWidth !== null) safeAttributes.style = `width:${tableWidth};min-width:0;${safeAttributes.style || ""}`;
+    renderContext = { ...context, tableAligns: tableAlign.includes(",") ? tableAlign.split(",") : [], tableColumnIndex: 0,
+      tableCellPadding: cellPadding === null ? undefined : cellPadding };
+    delete safeAttributes.align;
+  } else if (tag === "tr") {
+    renderContext = { ...context, tableColumnIndex: 0,
+      tableRowAlign: String(safeAttributes.align || "").trim().toLowerCase(),
+      tableRowVAlign: String(safeAttributes.valign || "").trim().toLowerCase() };
+  } else if (tag === "td" || tag === "th") {
+    const column = context.tableColumnIndex || 0;
+    const align = String(safeAttributes.align || context.tableRowAlign || context.tableAligns?.[column] || "").trim().toLowerCase();
+    if (["left", "center", "right"].includes(align)) safeAttributes.style = `text-align:${align};${safeAttributes.style || ""}`;
+    const valign = String(safeAttributes.valign || context.tableRowVAlign || "").trim().toLowerCase();
+    if (["top", "middle", "bottom", "baseline"].includes(valign)) safeAttributes.style = `vertical-align:${valign};${safeAttributes.style || ""}`;
+    if (context.tableCellPadding !== undefined) safeAttributes.style = `padding:${context.tableCellPadding};${safeAttributes.style || ""}`;
+    delete safeAttributes.align;
+    delete safeAttributes.valign;
+    context.tableColumnIndex = column + Math.max(1, Number(safeAttributes.colspan) || 1);
+  }
+  let caption = "";
+  if (tag === "table") {
+    const trimmed = String(body || "").trimStart();
+    const opening = readTagAt(trimmed, 0);
+    if (opening?.name.toLowerCase() === "caption") {
+      caption = renderSafeHtmlTag("caption", opening.attributes, opening.body, renderContext);
+      body = trimmed.slice(opening.nextIndex);
+    }
+  }
   const content = ["img", "br", "hr", "input", "source", "meta", "link"].includes(tag)
     ? ""
-    : tag === "pre" ? escapeHtml(body) : (HTML_CONTAINER_TAGS.has(tag) ? renderBlocks(body, context) : renderInline(body, context));
-  return `<${tag}${renderSafeHtmlAttributes(attributes)}>${content}</${tag}>`;
+    : tag === "pre" ? escapeHtml(body) : (HTML_CONTAINER_TAGS.has(tag) ? renderBlocks(body, renderContext) : renderInline(body, renderContext));
+  const colgroup = tableWidths.length && !hasExplicitColgroup
+    ? `<colgroup>${tableWidths.map((width) => width ? `<col style="width:${escapeHtml(width)}">` : "<col>").join("")}</colgroup>`
+    : "";
+  const rendered = `<${tag}${renderSafeHtmlAttributes(safeAttributes)}>${caption}${colgroup}${content}</${tag}>`;
+  return tag === "table" ? `<div class="guide-table-wrap">${rendered}</div>` : rendered;
+}
+
+function parseTableWidthAttribute(value) {
+  if (value === undefined || value === null) return [];
+  return String(value).split(",").map((entry) => normalizeTableLength(entry.trim(), true));
+}
+
+function normalizeTableLength(value, appendPixels = false) {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  if (!/^\d+(?:\.\d+)?(?:px|%|em|rem|vw|vh|pt)?$/i.test(text)) return null;
+  if (appendPixels && /^\d+(?:\.\d+)?$/.test(text)) return `${Math.min(10000, Math.round(Number(text)))}px`;
+  return text;
 }
 
 function renderSafeHtmlAttributes(attributes) {
@@ -704,16 +778,19 @@ function renderFloatingImage(attributes, body, context, inline) {
       ? `${displayWidthValue !== undefined ? `width:${Math.max(1, displayWidth)}px;` : ""}${displayHeightValue !== undefined ? `height:${Math.max(1, displayHeight)}px;` : ""}`
       : "";
     const annotations = renderImageAnnotations(body, context, 1, 1, displayWidth || 1, displayHeight || 1);
-    return `<figure class="${className} guide-floating-image-full"${title ? ` aria-label="${escapeHtml(title)}"` : ""}><img src="${escapeHtml(image)}" alt="${escapeHtml(src)}"${imageStyle ? ` style="${imageStyle}"` : ""}><div class="guide-image-annotations">${annotations}</div></figure>`;
+    return `<span class="${className} guide-floating-image-full"${title ? ` aria-label="${escapeHtml(title)}"` : ""}><img src="${escapeHtml(image)}" alt="${escapeHtml(src)}"${imageStyle ? ` style="${imageStyle}"` : ""}><span class="guide-image-annotations">${annotations}</span></span>`;
   }
   const hasOnlyDisplayWidth = displayWidthValue !== undefined && displayHeightValue === undefined;
   const hasOnlyDisplayHeight = displayHeightValue !== undefined && displayWidthValue === undefined;
   const aspect = cropHeight / cropWidth;
   const finalWidth = hasOnlyDisplayHeight ? displayHeight * (1 / aspect) : displayWidth;
   const finalHeight = hasOnlyDisplayWidth ? displayWidth * aspect : displayHeight;
-  const style = `width:${Math.max(1, finalWidth)}px;height:${Math.max(1, finalHeight)}px;--crop-x:${x * scaleX}px;--crop-y:${y * scaleY}px;--crop-scale-x:${scaleX};--crop-scale-y:${scaleY}`;
+  // Crop offsets and source pixels must use the displayed crop's scale.
+  const effectiveScaleX = finalWidth / cropWidth;
+  const effectiveScaleY = finalHeight / cropHeight;
+  const style = `width:${Math.max(1, finalWidth)}px;height:${Math.max(1, finalHeight)}px;--crop-x:${x * effectiveScaleX}px;--crop-y:${y * effectiveScaleY}px;--crop-scale-x:${effectiveScaleX};--crop-scale-y:${effectiveScaleY}`;
   const annotations = renderImageAnnotations(body, context, cropWidth, cropHeight, finalWidth, finalHeight);
-  return `<figure class="${className}" style="${style}"${title ? ` aria-label="${escapeHtml(title)}"` : ""}><img src="${escapeHtml(image)}" alt="${escapeHtml(src)}"><div class="guide-image-annotations">${annotations}</div></figure>`;
+  return `<span class="${className}" style="${style}"${title ? ` aria-label="${escapeHtml(title)}"` : ""}><img src="${escapeHtml(image)}" alt="${escapeHtml(src)}"><span class="guide-image-annotations">${annotations}</span></span>`;
 }
 
 function renderImageAnnotations(body, context, cropWidth, cropHeight, displayWidth, displayHeight) {

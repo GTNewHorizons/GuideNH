@@ -26,7 +26,7 @@ public enum Mixins implements IMixins {
         "compat.angelica.MixinVanillaModelMeshesSceneExportCapture"),
 
     GREGTECH_HATCH_BUILDER(Side.CLIENT, Phase.LATE, Mods.GregTech, "compat.gregtech.MixinHatchElementBuilderPreview",
-        "compat.gregtech.MixinHatchElementPlacementPreview"),
+        "compat.gregtech.MixinHatchElementPlacementPreview", "compat.gregtech.MixinItemMachinesPreview"),
 
     STRUCTURELIB_MINIMUM_HATCHES(Side.CLIENT, Phase.LATE, Mods.StructureLib,
         "compat.structurelib.MixinSurvivalBuildStructureWalker"),

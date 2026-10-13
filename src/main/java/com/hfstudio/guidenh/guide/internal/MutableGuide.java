@@ -236,6 +236,12 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
     @Override
     public byte[] loadAsset(ResourceLocation id) {
         var language = LangUtil.getCurrentLanguage();
+        boolean externalNamespace = !defaultNamespace.equals(id.getResourceDomain());
+
+        if (externalNamespace) {
+            byte[] result = readGlobalAsset(id);
+            if (result != null) return result;
+        }
 
         // Candidate order: current-language variant, default-language variant, plain path.
         // The first one that resolves wins. Intermediate probes must NOT log — the language
@@ -253,8 +259,34 @@ public class MutableGuide implements Guide, MediaWikiListContextProvider, AutoCl
         result = readAssetPath(id);
         if (result != null) return result;
 
+        if (!externalNamespace) {
+            result = readGlobalAsset(id);
+            if (result != null) return result;
+        }
+
         GuideDebugLog.error("[GuideNH] [MutableGuide] Failed to open guidebook asset {}", id);
         return null;
+    }
+
+    private byte @Nullable [] readGlobalAsset(ResourceLocation id) {
+        String normalizedPath = IdUtils.normalizeAssetPath(id.getResourcePath());
+        if (normalizedPath == null || !IdUtils.isSafeAssetPath(folder, normalizedPath)) {
+            return null;
+        }
+
+        Minecraft minecraft = Minecraft.getMinecraft();
+        if (minecraft == null || minecraft.getResourceManager() == null) {
+            return null;
+        }
+
+        ResourceLocation resourceId = new ResourceLocation(id.getResourceDomain(), normalizedPath);
+        try (var input = minecraft.getResourceManager()
+            .getResource(resourceId)
+            .getInputStream()) {
+            return GuideResourceAccess.readFully(input);
+        } catch (IOException ignored) {
+            return null;
+        }
     }
 
     /**

@@ -14,9 +14,19 @@ public class LytTableRow extends LytNode {
     private final LytTable table;
     private final List<LytTableCell> cells = new ArrayList<>();
     LytRect bounds = LytRect.empty();
+    private int nextColumn;
+    final int rowIndex;
 
     public LytTableRow(LytTable table) {
+        this(
+            table,
+            table.getChildren()
+                .size());
+    }
+
+    public LytTableRow(LytTable table, int rowIndex) {
         this.table = table;
+        this.rowIndex = rowIndex;
         this.parent = table;
     }
 
@@ -26,8 +36,22 @@ public class LytTableRow extends LytNode {
     }
 
     public LytTableCell appendCell() {
-        var cell = new LytTableCell(table, this, table.getOrCreateColumn(cells.size()));
+        return appendCell(1, 1);
+    }
+
+    public LytTableCell appendCell(int columnSpan, int rowSpan) {
+        int safeColumnSpan = Math.max(1, columnSpan);
+        int safeRowSpan = Math.max(1, rowSpan);
+        int columnIndex = nextColumn;
+        while (table.isOccupied(rowIndex, columnIndex, safeColumnSpan)) {
+            columnIndex++;
+        }
+        var cell = new LytTableCell(table, this, rowIndex, columnIndex, safeColumnSpan, safeRowSpan);
         cells.add(cell);
+        nextColumn = columnIndex + safeColumnSpan;
+        for (int index = columnIndex; index < nextColumn; index++) {
+            table.getOrCreateColumn(index);
+        }
         return cell;
     }
 

@@ -1760,16 +1760,20 @@ public class GuideSiteSceneAnnotationSerializer {
             int displayWidth = image.getDisplayWidth();
             int displayHeight = image.getDisplayHeight();
             if (cropped) {
-                if (displayWidth <= 0 && displayHeight > 0) {
-                    displayWidth = Math.max(
-                        1,
-                        (int) Math.round(displayHeight * image.getCropWidth() / (double) image.getCropHeight()));
-                } else if (displayWidth <= 0) {
+                if (displayWidth > 0 || displayHeight > 0) {
+                    if (displayWidth <= 0) {
+                        displayWidth = Math.max(
+                            1,
+                            (int) Math.round(displayHeight * image.getCropWidth() / (double) image.getCropHeight()));
+                    }
+                    if (displayHeight <= 0) {
+                        displayHeight = Math.max(
+                            1,
+                            (int) Math.round(displayWidth * image.getCropHeight() / (double) image.getCropWidth()));
+                    }
+                } else {
                     displayWidth = Math.max(1, (int) Math.round(image.getCropWidth() * image.getScaleX()));
-                }
-                if (displayHeight <= 0) {
-                    displayHeight = Math
-                        .max(1, (int) Math.round(displayWidth * image.getCropHeight() / (double) image.getCropWidth()));
+                    displayHeight = Math.max(1, (int) Math.round(image.getCropHeight() * image.getScaleY()));
                 }
             }
 
