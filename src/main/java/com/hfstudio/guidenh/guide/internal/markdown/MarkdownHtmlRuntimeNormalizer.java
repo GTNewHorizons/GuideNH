@@ -1,15 +1,19 @@
 package com.hfstudio.guidenh.guide.internal.markdown;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttribute;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxAttributeNode;
+import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxElementFields;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxFlowElement;
 import com.hfstudio.guidenh.libs.mdast.mdx.model.MdxJsxTextElement;
 import com.hfstudio.guidenh.libs.mdast.model.MdAstAnyContent;
@@ -31,6 +35,10 @@ public class MarkdownHtmlRuntimeNormalizer {
     private static final Pattern DETAILS_OPEN_PATTERN = Pattern.compile(
         "^<\\s*details\\b([^>]*)>" + "(?:\\s*<\\s*summary\\b[^>]*>(.*?)</\\s*summary\\s*>)?\\s*$",
         Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Set<String> TABLE_FLOW_TAGS = Set
+        .of("table", "caption", "colgroup", "col", "thead", "tbody", "tfoot", "tr", "th", "td");
+    private static final Set<String> HTML_VOID_ELEMENTS = Set
+        .of("area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr");
 
     private MarkdownHtmlRuntimeNormalizer() {}
 
@@ -49,6 +57,9 @@ public class MarkdownHtmlRuntimeNormalizer {
         if (isPhrasingParent(parent)) {
             normalizePhrasingChildren(castPhrasingChildren(parent.children()));
         } else {
+            if (parent instanceof MdxJsxFlowElement flowElement && "table".equals(flowElement.name())) {
+                normalizeEmbeddedHtmlTable(flowElement);
+            }
             normalizeFlowChildren(castAnyChildren(parent.children()));
         }
     }
@@ -110,9 +121,154 @@ public class MarkdownHtmlRuntimeNormalizer {
         }
     }
 
+    /**
+     * CommonMark treats a complete HTML table as one raw HTML block. Convert that
+     * block to the same MDX tree produced by an explicit JSX table so every
+     * renderer can use the shared table compiler.
+     */
+    private static MdxJsxFlowElement parseHtmlTable(String source) {
+        if (source == null || source.isBlank()) {
+            return null;
+        }
+
+        Deque<MdxJsxElementFields> stack = new ArrayDeque<>();
+        MdxJsxFlowElement root = null;
+        int cursor = 0;
+        while (cursor < source.length()) {
+            int tagStart = source.indexOf('<', cursor);
+            if (tagStart < 0) {
+                appendHtmlText(stack.peek(), source.substring(cursor));
+                break;
+            }
+            appendHtmlText(stack.peek(), source.substring(cursor, tagStart));
+
+            if (source.startsWith("<!--", tagStart)) {
+                int commentEnd = source.indexOf("-->", tagStart + 4);
+                if (commentEnd < 0) {
+                    return null;
+                }
+                cursor = commentEnd + 3;
+                continue;
+            }
+
+            int tagEnd = findHtmlTagEnd(source, tagStart + 1);
+            if (tagEnd < 0) {
+                return null;
+            }
+            TagInfo info = parseSimpleTag(source.substring(tagStart, tagEnd + 1));
+            if (info == null) {
+                return null;
+            }
+
+            if (info.closing()) {
+                if (stack.isEmpty() || !info.name()
+                    .equals(
+                        stack.peek()
+                            .name())) {
+                    return null;
+                }
+                stack.pop();
+            } else {
+                MdxJsxElementFields element = createHtmlTableElement(info);
+                if (stack.isEmpty()) {
+                    if (root != null || !"table".equals(info.name())) {
+                        return null;
+                    }
+                    root = (MdxJsxFlowElement) element;
+                } else {
+                    appendHtmlChild(stack.peek(), (MdAstNode) element);
+                }
+                if (!info.selfClosing() && !isHtmlVoidElement(info.name())) {
+                    stack.push(element);
+                }
+            }
+            cursor = tagEnd + 1;
+        }
+
+        return root != null && stack.isEmpty() ? root : null;
+    }
+
+    private static void normalizeEmbeddedHtmlTable(MdxJsxFlowElement table) {
+        List<MdAstAnyContent> children = castAnyChildren(table.children());
+        if (children.size() != 1 || !(children.getFirst() instanceof MdAstHTML html)) {
+            return;
+        }
+        String body = html.value.replaceFirst("(?is)</\\s*table\\s*>\\s*$", "");
+        MdxJsxFlowElement parsed = parseHtmlTable("<table>" + body + "</table>");
+        if (parsed == null) {
+            return;
+        }
+        children.clear();
+        children.addAll(castAnyChildren(parsed.children()));
+    }
+
+    private static MdxJsxElementFields createHtmlTableElement(TagInfo info) {
+        List<MdxJsxAttributeNode> attributes = new ArrayList<>();
+        for (Map.Entry<String, String> entry : info.attributes()
+            .entrySet()) {
+            attributes.add(
+                new MdxJsxAttribute(
+                    entry.getKey()
+                        .toLowerCase(Locale.ROOT),
+                    entry.getValue()));
+        }
+        if (TABLE_FLOW_TAGS.contains(info.name())) {
+            return new MdxJsxFlowElement(info.name(), attributes);
+        }
+        return new MdxJsxTextElement(info.name(), attributes);
+    }
+
+    private static void appendHtmlText(MdxJsxElementFields parent, String value) {
+        if (parent == null || value == null || value.isEmpty()) {
+            return;
+        }
+        String normalized = value.replaceAll("\\s+", " ");
+        if (normalized.isBlank()) {
+            return;
+        }
+        if (value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
+            normalized = normalized.trim();
+        }
+        MdAstText text = new MdAstText();
+        text.value = normalized;
+        appendHtmlChild(parent, text);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static void appendHtmlChild(MdxJsxElementFields parent, MdAstNode child) {
+        ((List) parent.children()).add(child);
+    }
+
+    private static boolean isHtmlVoidElement(String name) {
+        return HTML_VOID_ELEMENTS.contains(name);
+    }
+
+    private static int findHtmlTagEnd(String source, int start) {
+        char quote = 0;
+        for (int index = start; index < source.length(); index++) {
+            char current = source.charAt(index);
+            if (quote != 0) {
+                if (current == quote) {
+                    quote = 0;
+                }
+            } else if (current == '\'' || current == '"') {
+                quote = current;
+            } else if (current == '>') {
+                return index;
+            }
+        }
+        return -1;
+    }
+
     private static void normalizeFlowChildren(List<MdAstAnyContent> children) {
         for (int i = 0; i < children.size(); i++) {
             if (!(children.get(i) instanceof MdAstHTML html)) {
+                continue;
+            }
+
+            MdxJsxFlowElement table = parseHtmlTable(html.value);
+            if (table != null) {
+                children.set(i, table);
                 continue;
             }
 
