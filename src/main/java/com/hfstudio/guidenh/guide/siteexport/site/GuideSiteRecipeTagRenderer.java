@@ -60,7 +60,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
     public interface VanillaRecipeFinder {
 
-        List<RecipeLookup.Entry> findByOutput(ItemStack targetStack);
+        List<RecipeLookup.Entry> findByOutput(@Nullable IdUtils.ParsedItemRef targetRef);
     }
 
     public interface NeiRecipeFinder {
@@ -109,11 +109,11 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
     public GuideSiteRecipeTagRenderer(GuideSiteItemIconResolver itemIconResolver,
         @Nullable GuideSiteNeiPhase1BackgroundExporter neiPhase1BackgroundExporter) {
-        this(new GuideSiteRecipeExporter(), itemIconResolver, IdUtils::resolveItemStack, targetStack -> {
-            if (targetStack == null || targetStack.getItem() == null) {
+        this(new GuideSiteRecipeExporter(), itemIconResolver, IdUtils::resolveItemStack, targetRef -> {
+            if (targetRef == null) {
                 return List.of();
             }
-            return RecipeLookup.findByOutput(targetStack.getItem());
+            return RecipeLookup.findByOutput(targetRef);
         }, new NeiRecipeFinder() {
 
             @Override
@@ -613,7 +613,8 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
 
     private List<String> renderFromVanillaEntries(RenderRequest request, ItemStack targetStack,
         boolean hasRecipeFilter) {
-        List<RecipeLookup.Entry> vanillaEntries = vanillaRecipeFinder.findByOutput(targetStack);
+        List<RecipeLookup.Entry> vanillaEntries = vanillaRecipeFinder
+            .findByOutput(parseTargetRef(request.recipeId, request.defaultNamespace));
         if (vanillaEntries.isEmpty()) {
             return List.of();
         }
@@ -747,7 +748,7 @@ public class GuideSiteRecipeTagRenderer implements GuideSiteHtmlCompiler.RecipeT
             || !request.handlerWhitelist.isEmpty()) {
             return RecipeCompiler.handlerTargetMatches(ref.handler, ref.recipeIndex, target, handlerRuntime, true);
         }
-        return RecipeCompiler.resultSlotContains(entry.result, target);
+        return RecipeCompiler.outputSlotsContain(entry.result, entry.others, target);
     }
 
     private static @Nullable IdUtils.ParsedItemRef parseTargetRef(String recipeId, String defaultNamespace) {
