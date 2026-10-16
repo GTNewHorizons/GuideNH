@@ -211,6 +211,8 @@ Sound поля:
 | `radius` | число з плаваючою комою | сцена short бік * 0.75 | Attenuation radius in екран пікселі. |
 | `minVolume` | число з плаваючою комою | `0.15` | Minimum attenuation factor. |
 
+
+Для офлайн-перевірки в редакторі додайте до кореня JSON `"$schema": "guidenh://schema/ponder.json"`. Вбудована схема зберігається в `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` і не завантажує віддалені URL.
 ---
 
 ## Keyframe Particles
@@ -386,7 +388,7 @@ Regular `<Entity>` теги є вже Підтримувані in `GameScene`. �
 | `yaw`, `pitch` | необов’язковий spawn обертання. типові до `0, 0` unless `nbt` supplies `Rotation`. |
 | `bodyYaw`, `headYaw` | необов’язковий living-сутність body/head yaw overrides. Якщо пропущений поки `yaw` is present, Вони follow `yaw`. |
 | `nbt` | необов’язковий SNBT compound applied коли  сутність is створений. |
-| `name`, `uuid` | необов’язковий перегляд-гравець profile поля коли creating a перегляд гравець сутність. |
+| `name`, `nameKey`, `uuid` | необов’язковий перегляд-гравець profile поля коли creating a перегляд гравець сутність. |
 | `mount` | необов’язковий stable `sceneEntityId` of  vehicle який Цей сутність слід ride після creation або later replay. |
 | `unmount` | необов’язковий логічне значення який clears  сутність's поточний stable mount relation до any later `mount` is applied. |
 
@@ -475,6 +477,8 @@ keyframe зміни, so seeking backwards removes Анімація Ponder-ств
 кожен запис in  `annotations` array requires a `type` поле. Seven types є доступний.
 
 ---
+
+Кожна анотація Ponder підтримує `tooltip` і `tooltipKey`. Ключ розв’язується з активних файлів `lang`, а якщо його немає, використовується початковий текст.
 
 ### `diamond`
 
@@ -658,7 +662,8 @@ Renders speech-бульбашка мітка anchored до a світ позиц
 | поле | Тип | Типове | опис |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | число з плаваючою комою | `0.0` | простір світу якір позиція (ignored in independent режим). |
-| `text` | рядок | - | **Обов’язково.** текст до відображати усередині  бульбашка. |
+| `text` | рядок | — | Резервний текст для бульбашки. |
+| `textKey` | рядок | — | Ключ перекладу тексту бульбашки; після успішного розв’язання замінює `text`. |
 | `color` | рядок | `"0xFFAAAAAA"` | ARGB колір of  бульбашка межа. |
 | `backgroundAlpha` | ціле число | `204` | тло opacity з `0` (прозорий) до `255` (opaque).  RGB колір remains  Типове dark navy. |
 | `maxWidth` | ціле число | `0` | Якщо &gt; 0, wraps текст at Цей ширина in пікселі. Omit або Установіть до `0` для a один-рядок мітка. |

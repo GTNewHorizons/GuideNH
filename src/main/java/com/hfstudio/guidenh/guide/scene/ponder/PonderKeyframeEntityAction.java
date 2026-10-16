@@ -2,6 +2,7 @@ package com.hfstudio.guidenh.guide.scene.ponder;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 
 @Getter
@@ -34,6 +35,12 @@ public class PonderKeyframeEntityAction {
     @Nullable
     private String name;
     @Nullable
+    private String nameKey;
+    @Getter(AccessLevel.NONE)
+    private transient String localizationFallbackName;
+    @Getter(AccessLevel.NONE)
+    private transient boolean localizationFallbackCaptured;
+    @Nullable
     private String uuid;
     @Nullable
     private String sceneEntityId;
@@ -61,5 +68,17 @@ public class PonderKeyframeEntityAction {
     private String rightLegRotation;
     @Nullable
     private String capeRotation;
+
+    private void captureLocalizationFallback() {
+        if (!localizationFallbackCaptured) {
+            localizationFallbackName = name;
+            localizationFallbackCaptured = true;
+        }
+    }
+
+    public void applyLocalizedName(@Nullable String localizedName) {
+        captureLocalizationFallback();
+        this.name = localizedName != null && !localizedName.isEmpty() ? localizedName : localizationFallbackName;
+    }
 
 }

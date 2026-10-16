@@ -40,6 +40,8 @@ sound event id, so `guidenh:sounds/guide/sample_hover.ogg` becomes `guidenh:guid
 
 ## JSON 结构
 
+要在编辑器中离线校验，可在 JSON 根对象加入 `"$schema": "guidenh://schema/ponder.json"`。GuideNH 模组内置 schema 位于 `assets/guidenh/schema/ponder_schema.json`，示例资源包也在 `assets/schema/ponder_schema.json` 提供副本；两者都不会加载远程 URL。
+
 ```json
 {
   "totalTime": 360,
@@ -475,6 +477,7 @@ Ponder 关键帧可以在时间轴向前播放时生成轻量场景粒子。向�
 - `x`、`y`、`z` 可重定位引用实体。
 - `yaw`、`pitch`、`bodyYaw`、`headYaw` 可控制朝向；如果只写了 `yaw`，未写 `bodyYaw` / `headYaw` 时会默认跟随 `yaw`。
 - `mount` 可让当前实体骑乘另一个稳定 `sceneEntityId`；`unmount: true` 会清除当前稳定骑乘关系。
+- `name` 设置预览玩家档案名；`nameKey` 解析翻译后的档案名，缺少翻译时回退到 `name`。
 - `showName`、`showCape`、`baby` 与普通 `<Entity>` 标签中的同名属性语义一致。
 - 预览玩家实体（`id: "player"` 及其他预览玩家别名）还支持 `headRotation`、`leftArmRotation`、`rightArmRotation`、`leftLegRotation`、`rightLegRotation`、`capeRotation`，写法都是 `"x y z"` 角度。
 

@@ -10,9 +10,15 @@
     "reset": "Weergave herstellen",
     "previous": "Vorig sleutelframe",
     "playPause": "Afspelen/Pauzeren",
-    "restart": "Opnieuw starten"
+    "restart": "Opnieuw starten",
+    "ponder": "Ponder",
+    "tick": "Tik"
   },
-  "ponder": { "lmb": "Linkermuisknop", "rmb": "Rechtermuisknop", "scroll": "Muiswiel" },
+  "ponder": {
+    "lmb": "Linkermuisknop",
+    "rmb": "Rechtermuisknop",
+    "scroll": "Muiswiel"
+  },
   "navigation": {
     "open": "Navigatie",
     "close": "Navigatie sluiten",

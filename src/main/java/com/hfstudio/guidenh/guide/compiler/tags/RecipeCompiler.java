@@ -443,6 +443,11 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
+    public static boolean outputSlotsContain(@Nullable NeiRecipeLookup.Slot result,
+        @Nullable List<NeiRecipeLookup.Slot> others, IdUtils.ParsedItemRef ref) {
+        return result != null ? resultSlotContains(result, ref) : slotsContain(others, ref);
+    }
+
     /**
      * Matches a tag target against one handler recipe. Normal recipe tags are output queries. An
      * explicitly named handler may instead expose the requested stack as an ingredient or
@@ -450,7 +455,10 @@ public class RecipeCompiler extends BlockTagCompiler {
      */
     public static boolean handlerTargetMatches(Object handler, int recipeIndex, IdUtils.ParsedItemRef ref,
         HandlerRecipeAccess recipeAccess, boolean includeInputSlots) {
-        if (resultSlotContains(recipeAccess.readResultSlot(handler, recipeIndex), ref)) {
+        if (outputSlotsContain(
+            recipeAccess.readResultSlot(handler, recipeIndex),
+            recipeAccess.readOtherSlots(handler, recipeIndex),
+            ref)) {
             return true;
         }
         if (!includeInputSlots) {
@@ -469,7 +477,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     public static boolean handlerTargetMatches(NeiRecipeLookup.Entry entry, IdUtils.ParsedItemRef ref,
         boolean includeInputSlots) {
         if (entry == null) return false;
-        if (resultSlotContains(entry.result, ref)) return true;
+        if (outputSlotsContain(entry.result, entry.others, ref)) return true;
         if (!includeInputSlots) return false;
         if (slotsContain(entry.ingredients, ref)) return true;
         if (slotsContain(entry.others, ref)) return true;
@@ -591,6 +599,12 @@ public class RecipeCompiler extends BlockTagCompiler {
         return false;
     }
 
+    public static boolean evalOutputSlots(@Nullable NeiRecipeLookup.Slot result,
+        @Nullable List<NeiRecipeLookup.Slot> others, FilterExpr expr) {
+        if (expr.isEmpty()) return true;
+        return result != null ? evalResultSlot(result, expr) : evalSlots(others, expr);
+    }
+
     /** Evaluate a DNF expression against a single concrete stack (vanilla result). */
     public static boolean evalStack(@Nullable ItemStack stack, FilterExpr expr) {
         if (expr.isEmpty()) return true;
@@ -634,7 +648,10 @@ public class RecipeCompiler extends BlockTagCompiler {
     public static boolean recipeMatches(Object handler, int recipeIndex, FilterExpr inputExpr, FilterExpr outputExpr,
         HandlerRecipeAccess recipeAccess) {
         if (!outputExpr.isEmpty()) {
-            if (!evalResultSlot(recipeAccess.readResultSlot(handler, recipeIndex), outputExpr)) return false;
+            if (!evalOutputSlots(
+                recipeAccess.readResultSlot(handler, recipeIndex),
+                recipeAccess.readOtherSlots(handler, recipeIndex),
+                outputExpr)) return false;
         }
         if (!inputExpr.isEmpty()) {
             if (!evalSlots(recipeAccess.readIngredientSlots(handler, recipeIndex), inputExpr)) return false;
@@ -647,7 +664,7 @@ public class RecipeCompiler extends BlockTagCompiler {
     }
 
     public static boolean entryMatches(NeiRecipeLookup.Entry e, FilterExpr inputExpr, FilterExpr outputExpr) {
-        if (!outputExpr.isEmpty() && !evalResultSlot(e.result, outputExpr)) return false;
+        if (!outputExpr.isEmpty() && !evalOutputSlots(e.result, e.others, outputExpr)) return false;
         if (!inputExpr.isEmpty() && !evalSlots(e.ingredients, inputExpr)) return false;
         return true;
     }

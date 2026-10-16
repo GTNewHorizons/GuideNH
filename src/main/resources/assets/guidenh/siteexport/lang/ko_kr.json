@@ -10,9 +10,15 @@
     "reset": "시점 초기화",
     "previous": "이전 키프레임",
     "playPause": "재생 / 일시정지",
-    "restart": "다시 시작"
+    "restart": "다시 시작",
+    "ponder": "Ponder",
+    "tick": "Tick"
   },
-  "ponder": { "lmb": "마우스 왼쪽 버튼", "rmb": "마우스 오른쪽 버튼", "scroll": "스크롤" },
+  "ponder": {
+    "lmb": "마우스 왼쪽 버튼",
+    "rmb": "마우스 오른쪽 버튼",
+    "scroll": "스크롤"
+  },
   "navigation": {
     "open": "탐색 메뉴",
     "close": "탐색 메뉴 닫기",

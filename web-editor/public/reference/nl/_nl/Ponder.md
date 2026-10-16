@@ -211,6 +211,8 @@ Sound fields:
 | `radius` | kommagetal | scène short side * 0.75 | Attenuation radius in scherm pixels. |
 | `minVolume` | kommagetal | `0.15` | Minimum attenuation factor. |
 
+
+Voeg voor offline validatie in de editor `"$schema": "guidenh://schema/ponder.json"` toe aan de JSON-root. Het meegeleverde schema staat in `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` en laadt nooit een externe URL.
 ---
 
 ## Keyframe Particles
@@ -386,7 +388,7 @@ their own entities met `createEntities`, then target those entities by `ref` in 
 | `yaw`, `pitch` | optioneel spawn rotatie. Defaults naar `0, 0` unless `nbt` supplies `Rotation`. |
 | `bodyYaw`, `headYaw` | optioneel living-entity body/head yaw overrides. Als omitted terwijl `yaw` is present, they follow `yaw`. |
 | `nbt` | optioneel SNBT compound applied wanneer De entity is gemaakt. |
-| `name`, `uuid` | optioneel voorbeeldweergave-player profile fields wanneer creating Een voorbeeldweergave player entity. |
+| `name`, `nameKey`, `uuid` | optioneel voorbeeldweergave-player profile fields wanneer creating Een voorbeeldweergave player entity. |
 | `mount` | optioneel stable `sceneEntityId` of De vehicle that Deze entity zou moeten ride na creation of later replay. |
 | `unmount` | optioneel boolean that clears De entity's huidige stable mount relation voor any later `mount` is applied. |
 
@@ -475,6 +477,8 @@ wijzigingen during playback. Seeking of pausing always shows Annotaties at full 
 elke entry in De `annotations` array requires a `type` field. Seven types are available.
 
 ---
+
+Elke Ponder-annotatie ondersteunt `tooltip` en `tooltipKey`. De sleutel wordt uit de actieve `lang`-bestanden gehaald en valt terug op de oorspronkelijke tekst als de sleutel ontbreekt.
 
 ### `diamond`
 
@@ -658,7 +662,8 @@ voor Een vast schermruimte positie that doet niet project van wereld coördinate
 | Field | Type | Standaard | Description |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | kommagetal | `0.0` | wereldruimte anchor positie (ignored in independent modus). |
-| `text` | tekenreeks | - | **Vereist.** tekst naar weergeven binnen De bubble. |
+| `text` | tekenreeks | — | Terugvaltekst voor de bubbel. |
+| `textKey` | tekenreeks | — | Vertalingssleutel voor de tekst in de bubbel; bij een geslaagde vertaling vervangt deze `text`. |
 | `color` | tekenreeks | `"0xFFAAAAAA"` | ARGB kleur of De bubble rand. |
 | `backgroundAlpha` | geheel getal | `204` | achtergrond opacity van `0` (transparent) naar `255` (opaque). De RGB kleur remains De Standaard dark navy. |
 | `maxWidth` | geheel getal | `0` | Als &gt; 0, wraps tekst at Deze breedte in pixels. Omit of Stel in naar `0` voor Een enkele-regel label. |

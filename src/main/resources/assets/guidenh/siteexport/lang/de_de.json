@@ -10,9 +10,15 @@
     "reset": "Ansicht zurücksetzen",
     "previous": "Vorheriges Schlüsselbild",
     "playPause": "Wiedergabe/Pause",
-    "restart": "Neu starten"
+    "restart": "Neu starten",
+    "ponder": "Ponder",
+    "tick": "Tick"
   },
-  "ponder": { "lmb": "Linksklick", "rmb": "Rechtsklick", "scroll": "Mausrad" },
+  "ponder": {
+    "lmb": "Linksklick",
+    "rmb": "Rechtsklick",
+    "scroll": "Mausrad"
+  },
   "navigation": {
     "open": "Navigation",
     "close": "Navigation schließen",

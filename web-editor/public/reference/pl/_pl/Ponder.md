@@ -211,6 +211,8 @@ Sound pola:
 | `radius` | liczba zmiennoprzecinkowa | scena short strona * 0.75 | Attenuation radius in ekran piksele. |
 | `minVolume` | liczba zmiennoprzecinkowa | `0.15` | Minimum attenuation factor. |
 
+
+Aby włączyć walidację offline, dodaj `"$schema": "guidenh://schema/ponder.json"` do korzenia JSON. Dołączony schemat znajduje się w `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` i nie ładuje zdalnych adresów.
 ---
 
 ## Keyframe Particles
@@ -386,7 +388,7 @@ ich własny entities z `createEntities`, następnie cel those entities by `ref` 
 | `yaw`, `pitch` | opcjonalny spawn obrót. domyślne do `0, 0` unless `nbt` supplies `Rotation`. |
 | `bodyYaw`, `headYaw` | opcjonalny living-byt body/head yaw overrides. Jeśli pominięty podczas `yaw` is present, jeden follow `yaw`. |
 | `nbt` | opcjonalny SNBT compound applied gdy  byt is utworzony. |
-| `name`, `uuid` | opcjonalny podgląd-gracz profile pola gdy creating podgląd gracz byt. |
+| `name`, `nameKey`, `uuid` | opcjonalny podgląd-gracz profile pola gdy creating podgląd gracz byt. |
 | `mount` | opcjonalny stable `sceneEntityId` of  vehicle który Ten byt powinien ride po creation lub later replay. |
 | `unmount` | opcjonalny wartość logiczna który clears  byt's bieżący stable mount relation przed any later `mount` is applied. |
 
@@ -475,6 +477,8 @@ zmiany during playback. Seeking lub pausing zawsze shows Adnotacje at full opaci
 każdy wpis in  `annotations` array requires a `type` pole. Seven types są dostępny.
 
 ---
+
+Każda adnotacja Ponder obsługuje `tooltip` i `tooltipKey`. Klucz jest odczytywany z aktywnych plików `lang`, a przy jego braku używany jest oryginalny tekst.
 
 ### `diamond`
 
@@ -658,7 +662,8 @@ dla stały przestrzeń ekranu pozycja który nie project z świat współrzędne
 | pole | Typ | Domyślne | opis |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | liczba zmiennoprzecinkowa | `0.0` | przestrzeń świata kotwica pozycja (ignored in independent tryb). |
-| `text` | ciąg znaków | - | **Wymagane.** tekst do wyświetlać wewnątrz  dymek. |
+| `text` | ciąg znaków | — | Tekst zastępczy wyświetlany w dymku. |
+| `textKey` | ciąg znaków | — | Klucz tłumaczenia tekstu dymka; po rozwiązaniu zastępuje `text`. |
 | `color` | ciąg znaków | `"0xFFAAAAAA"` | ARGB kolor of  dymek obramowanie. |
 | `backgroundAlpha` | liczba całkowita | `204` | tło opacity z `0` (przezroczysty) do `255` (opaque).  RGB kolor remains  Domyślne dark navy. |
 | `maxWidth` | liczba całkowita | `0` | Jeśli &gt; 0, wraps tekst at Ten szerokość in piksele. Omit lub Ustaw do `0` dla pojedynczy-wiersz etykieta. |

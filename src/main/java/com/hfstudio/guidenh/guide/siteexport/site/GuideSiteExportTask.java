@@ -1467,8 +1467,6 @@ public class GuideSiteExportTask {
         controls.put("visibleLayer", visibleLayerControl);
         if (scene.hasPonderData() && !ponderTicks.isEmpty()) {
             LinkedHashMap<String, Object> ponderControl = new LinkedHashMap<>();
-            ponderControl.put("label", "Ponder");
-            ponderControl.put("timeLabel", "Tick");
             ponderControl.put("previousLabel", GuidebookText.PonderPrevKeyframe.text());
             ponderControl.put("playPauseLabel", GuidebookText.PonderPlayPause.text());
             ponderControl.put("restartLabel", GuidebookText.PonderRestart.text());

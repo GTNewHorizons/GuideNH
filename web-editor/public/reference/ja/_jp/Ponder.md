@@ -211,6 +211,8 @@ Sound フィールド:
 | `radius` | 浮動小数点数 | シーン short 側 * 0.75 | Attenuation radius で 画面 pixels. |
 | `minVolume` | 浮動小数点数 | `0.15` | Minimum attenuation factor. |
 
+
+オフラインでエディター検証を行うには、JSON ルートに `"$schema": "guidenh://schema/ponder.json"` を追加します。同梱スキーマは `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` にあり、リモート URL は読み込みません。
 ---
 
 ## キーフレームのパーティクル
@@ -386,7 +388,7 @@ their 独自の entities とともに `createEntities`, then 対象 those entiti
 | `yaw`, `pitch` | 任意の spawn 回転. Defaults へ `0, 0` 場合を除き `nbt` supplies `Rotation`. |
 | `bodyYaw`, `headYaw` | 任意の living-entity 本文/head yaw 上書きします. もし omitted 中 `yaw` です present, これらは follow `yaw`. |
 | `nbt` | 任意の SNBT compound applied 場合  entity です 作成された. |
-| `name`, `uuid` | 任意の プレビュー-player profile フィールド 場合 creating a プレビュー player entity. |
+| `name`, `nameKey`, `uuid` | 任意の プレビュー-player profile フィールド 場合 creating a プレビュー player entity. |
 | `mount` | 任意の stable `sceneEntityId` of  vehicle that この entity する必要があります ride 後 creation または later replay. |
 | `unmount` | 任意の 真偽値 that clears  entity's 現在の stable mount relation 前 任意の later `mount` です applied. |
 
@@ -475,6 +477,8 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 各 エントリ で  `annotations` array requires a `type` フィールド. Seven types です 利用可能.
 
 ---
+
+すべての Ponder アノテーションで `tooltip` と `tooltipKey` を使用できます。キーは有効な `lang` ファイルから解決され、見つからない場合は元のテキストに戻ります。
 
 ### `diamond`
 
@@ -658,7 +662,8 @@ keyframe 変更, so seeking backwards removes Ponder アニメーション-作�
 | フィールド | 型 | 既定値 | 説明 |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | 浮動小数点数 | `0.0` | ワールド空間 anchor 位置 (ignored で independent モード). |
-| `text` | 文字列 | - | **必須.** テキスト へ 表示 内部  bubble. |
+| `text` | 文字列 | — | 吹き出しに表示するフォールバック本文。 |
+| `textKey` | 文字列 | — | 吹き出し本文の翻訳キー。解決できた場合は `text` より優先されます。 |
 | `color` | 文字列 | `"0xFFAAAAAA"` | ARGB 色 of  bubble 境界線. |
 | `backgroundAlpha` | 整数 | `204` | 背景 opacity から `0` (transparent) へ `255` (opaque).  RGB 色 remains  既定値 dark navy. |
 | `maxWidth` | 整数 | `0` | もし &gt; 0, wraps テキスト at この 幅 で pixels. Omit または 設定します へ `0` 用 a 単一の-行 ラベル. |

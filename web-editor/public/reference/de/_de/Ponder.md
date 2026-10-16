@@ -386,7 +386,7 @@ ihre eigene entities mit `createEntities`, dann Ziel those entities by `ref` in 
 | `yaw`, `pitch` | optional spawn Drehung. Standards zu `0, 0` außer `nbt` supplies `Rotation`. |
 | `bodyYaw`, `headYaw` | optional living-entity Inhalt/head yaw überschreibt. Wenn omitted während `yaw` ist present, Sie follow `yaw`. |
 | `nbt` | optional SNBT compound applied wenn Die entity ist erstellt. |
-| `name`, `uuid` | optional Vorschau-player profile Felder wenn creating Eine Vorschau player entity. |
+| `name`, `nameKey`, `uuid` | optional Vorschau-player profile Felder wenn creating Eine Vorschau player entity. |
 | `mount` | optional stable `sceneEntityId` von Die vehicle dass dies entity sollte ride nach creation oder later replay. |
 | `unmount` | optional Boolesch dass clears Die entity's aktuell stable mount relation vor beliebig later `mount` ist applied. |
 
@@ -468,6 +468,8 @@ Hinweise:
 Annotationen smoothly fade in über **5 game ticks** (250 ms) whenever Die active keyframe
 Änderungen during playback. Seeking oder pausing immer zeigt Annotationen at Vollständige opacity.
 
+
+Für die Offline-Validierung im Editor kann das JSON-Wurzelelement `"$schema": "guidenh://schema/ponder.json"` enthalten. Das gebündelte Schema liegt unter `wiki/resourcepack/assets/guidenh/guidenh/assets/schema/ponder_schema.json` und lädt keine entfernte URL.
 ---
 
 ## Annotation-Typn
@@ -475,6 +477,8 @@ Annotationen smoothly fade in über **5 game ticks** (250 ms) whenever Die activ
 jede Eintrag in Die `annotations` array requires ein `type` Feld. Seven Typs sind verfügbar.
 
 ---
+
+Bei allen Ponder-Annotationen können `tooltip` und `tooltipKey` verwendet werden. Der Schlüssel wird aus den aktiven `lang`-Dateien aufgelöst und fällt bei fehlendem Eintrag auf den ursprünglichen Text zurück.
 
 ### `diamond`
 
@@ -658,7 +662,8 @@ für Eine festen Bildschirm-space Position dass tut nicht project von Welt Koord
 | Feld | Typ | Standard | Beschreibung |
 |-------|------|---------|-------------|
 | `x`, `y`, `z` | Gleitkommazahl | `0.0` | Welt-space anchor Position (ignored in independent Modus). |
-| `text` | Zeichenkette | - | **erforderlich.** Text zu anzeigen innerhalb Die bubble. |
+| `text` | Zeichenkette | — | Fallback-Text für die Sprechblase. |
+| `textKey` | Zeichenkette | — | Übersetzungsschlüssel für den Blasentext; bei erfolgreicher Auflösung ersetzt er `text`. |
 | `color` | Zeichenkette | `"0xFFAAAAAA"` | ARGB Farbe von Die bubble Rand. |
 | `backgroundAlpha` | Ganzzahl | `204` | Hintergrund opacity von `0` (transparent) zu `255` (opaque). Die RGB Farbe remains Die Standard dark navy. |
 | `maxWidth` | Ganzzahl | `0` | Wenn &gt; 0, wraps Text at dies Breite in Pixel. Omit oder Setzen Sie zu `0` für Eine einzeln-Linie Beschriftung. |
@@ -685,7 +690,7 @@ drop-shadow.
 > `<ItemLink id="minecraft:iron_ingot" />`, und alle andere inline MDX Tags.
 > einfach Minecraft `§` format codes sind **nicht** unterstützt; verwenden MDX Syntax stattdessen.
 
-> ein `text` Annotation ohne ein `text` Feld (oder Eine leer Zeichenfolge) ist silently ignored.
+> eine `text` Annotation ohne `text` und `textKey` wird stillschweigend ignoriert.
 
 ---
 

@@ -1,4 +1,5 @@
 {
+  "$schema": "guidenh://schema/ponder.json",
   "totalTime": 240,
   "keyframes": [
     {

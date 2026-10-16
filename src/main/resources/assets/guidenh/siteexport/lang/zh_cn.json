@@ -10,9 +10,15 @@
     "reset": "重置视角",
     "previous": "上一个关键帧",
     "playPause": "播放/暂停",
-    "restart": "重新开始"
+    "restart": "重新开始",
+    "ponder": "思索",
+    "tick": "刻"
   },
-  "ponder": { "lmb": "左键", "rmb": "右键", "scroll": "滚轮" },
+  "ponder": {
+    "lmb": "左键",
+    "rmb": "右键",
+    "scroll": "滚轮"
+  },
   "navigation": {
     "open": "导航",
     "close": "关闭导航",
