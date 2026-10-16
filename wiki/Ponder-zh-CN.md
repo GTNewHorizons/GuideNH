@@ -38,10 +38,16 @@ assets/<modid>/guidebooks/
 
 根对象包含两个必填字段：
 
+### 根字段
+
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `totalTime` | 整数 | 是 | 动画总时长（20 刻 = 1 秒），最小为 1。 |
 | `keyframes` | 数组 | 是 | 关键帧对象列表。可为空数组。 |
+
+### JSON Schema 校验
+
+在 JSON 根对象加入 `"$schema": "guidenh://schema/ponder.json"`，即可在 VS Code、IDEA 和其他支持 JSON Schema 的编辑器中启用离线补全与校验。GuideNH 模组内置文件路径为 `assets/guidenh/schema/ponder_schema.json`，Wiki 示例资源包也提供一份副本；两者都不访问远程 URL。
 
 ### 关键帧字段
 
@@ -318,7 +324,7 @@ assets/<modid>/guidebooks/
 | `yaw`, `pitch` | 可选生成旋转。未填写且 `nbt` 没有 `Rotation` 时默认为 `0, 0`。 |
 | `bodyYaw`, `headYaw` | 可选的生物身体 / 头部 yaw 覆盖；若只写 `yaw`，未写这两个字段时会默认跟随 `yaw`。 |
 | `nbt` | 可选，实体创建时应用的 SNBT 复合标签。 |
-| `name`, `uuid` | 可选，创建预览玩家实体时使用的玩家档案字段。 |
+| `name`, `nameKey`, `uuid` | 可选，创建预览玩家实体时使用的玩家档案字段。`nameKey` 解析成功时覆盖 `name`，找不到翻译时回退到 `name`。 |
 | `mount` | 可选，该实体创建后或后续重放时要骑乘的目标载具稳定 `sceneEntityId`。 |
 | `unmount` | 可选，布尔值；在后续新的 `mount` 应用前，先清除该实体当前稳定骑乘关系。 |
 
@@ -398,6 +404,7 @@ assets/<modid>/guidebooks/
 
 ## 注释类型
 
+每个 Ponder 注释都支持 `tooltip` 和 `tooltipKey`。`tooltipKey` 会从当前语言文件中解析；找不到翻译时回退到原始 `tooltip` 文本。
 每个注释条目需要一个 `type` 字段，共支持七种类型。
 
 ---

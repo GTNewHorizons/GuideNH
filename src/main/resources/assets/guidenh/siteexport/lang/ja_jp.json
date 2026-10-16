@@ -10,9 +10,15 @@
     "reset": "視点をリセット",
     "previous": "前のキーフレーム",
     "playPause": "再生/一時停止",
-    "restart": "最初から再生"
+    "restart": "最初から再生",
+    "ponder": "Ponder",
+    "tick": "Tick"
   },
-  "ponder": { "lmb": "左クリック", "rmb": "右クリック", "scroll": "スクロール" },
+  "ponder": {
+    "lmb": "左クリック",
+    "rmb": "右クリック",
+    "scroll": "スクロール"
+  },
   "navigation": {
     "open": "ナビゲーション",
     "close": "ナビゲーションを閉じる",

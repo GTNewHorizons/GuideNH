@@ -10,9 +10,15 @@
     "reset": "Görünümü sıfırla",
     "previous": "Önceki anahtar kare",
     "playPause": "Oynat / Duraklat",
-    "restart": "Yeniden başlat"
+    "restart": "Yeniden başlat",
+    "ponder": "Ponder",
+    "tick": "Tik"
   },
-  "ponder": { "lmb": "Sol tık", "rmb": "Sağ tık", "scroll": "Kaydırma" },
+  "ponder": {
+    "lmb": "Sol tık",
+    "rmb": "Sağ tık",
+    "scroll": "Kaydırma"
+  },
   "navigation": {
     "open": "Gezinme",
     "close": "Gezinmeyi kapat",

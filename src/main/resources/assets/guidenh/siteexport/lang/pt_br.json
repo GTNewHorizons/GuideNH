@@ -10,9 +10,15 @@
     "reset": "Redefinir vista",
     "previous": "Quadro-chave anterior",
     "playPause": "Reproduzir/Pausar",
-    "restart": "Reiniciar"
+    "restart": "Reiniciar",
+    "ponder": "Ponder",
+    "tick": "Tick"
   },
-  "ponder": { "lmb": "Clique esquerdo", "rmb": "Clique direito", "scroll": "Roda do mouse" },
+  "ponder": {
+    "lmb": "Clique esquerdo",
+    "rmb": "Clique direito",
+    "scroll": "Roda do mouse"
+  },
   "navigation": {
     "open": "Navegação",
     "close": "Fechar navegação",

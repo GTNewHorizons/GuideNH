@@ -23,6 +23,7 @@ public class PonderLocalizationResolver {
             }
             keyframe.applyLocalizedLabel(resolveValue(resolvedLanguage, keyframe.getLabelKey()));
             localizeAnnotations(keyframe.getAnnotations(), resolvedLanguage);
+            localizeEntities(keyframe.getCreateEntities(), resolvedLanguage);
         }
     }
 
@@ -33,6 +34,15 @@ public class PonderLocalizationResolver {
             }
             annotation.applyLocalizedText(resolveValue(language, annotation.getTextKey()));
             annotation.applyLocalizedTooltip(resolveValue(language, annotation.getTooltipKey()));
+        }
+    }
+
+    private static void localizeEntities(List<PonderKeyframeEntityAction> actions, String language) {
+        for (PonderKeyframeEntityAction action : actions) {
+            if (action == null) {
+                continue;
+            }
+            action.applyLocalizedName(resolveValue(language, action.getNameKey()));
         }
     }
 
