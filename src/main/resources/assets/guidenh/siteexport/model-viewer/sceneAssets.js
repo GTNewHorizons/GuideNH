@@ -3,6 +3,35 @@ const imageCache = { entries: new Map(), pending: new Map(), bytes: 0, limit: 28
 const siteRoot = new URL("../../", import.meta.url);
 let imageFormats;
 
+/**
+ * Keep scene texture uploads in the same orientation on ImageBitmap and canvas
+ * fallbacks. three.js applies UNPACK_FLIP_Y_WEBGL to canvas uploads, while
+ * browsers commonly ignore it for ImageBitmap uploads.
+ */
+export function prepareSceneTexture(texture) {
+  if (texture && typeof texture === "object") {
+    texture.flipY = false;
+  }
+  return texture;
+}
+
+/** Return the scale three.js uses when an image exceeds maxTextureSize. */
+export function getSceneTextureScale(width, height, maxTextureSize) {
+  const imageWidth = Number(width);
+  const imageHeight = Number(height);
+  const limit = Number(maxTextureSize);
+  if (![imageWidth, imageHeight, limit].every(Number.isFinite)
+      || imageWidth <= 0 || imageHeight <= 0 || limit <= 0) {
+    return 1;
+  }
+  return Math.min(1, limit / Math.max(imageWidth, imageHeight));
+}
+
+/** Match three.js' integer dimensions for resized texture regions. */
+export function scaleSceneTextureCoordinate(value, scale) {
+  return Math.floor(Number(value) * Number(scale));
+}
+
 function loadImageFormats() {
   if (!imageFormats) {
     imageFormats = request(new URL("image-formats.json", import.meta.url).href).then(response => response.json());
