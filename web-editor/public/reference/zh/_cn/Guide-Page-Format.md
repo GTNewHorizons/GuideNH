@@ -182,14 +182,14 @@ gold,17
 
 ## Markdown 表格列宽 Hint
 
-普通 GFM Markdown 表格也可以在表格后面紧跟一行运行时属性，提供列宽 hint：
+普通 GFM Markdown 表格也可以在表格前放置一行运行时属性，提供列宽 hint：
 
 ````md
+{: widths="120,80" }
 | Name | Value |
 | --- | --- |
 | Iron | 42 |
 | Gold | 17 |
-{: widths="120,80" }
 ````
 
 这样表格本体依然保持标准 Markdown，只是在 GuideNH 运行时应用列的首选宽度。
@@ -533,3 +533,32 @@ item_ids:
 - [导航](Navigation)
 - [图片与资源](Images-And-Assets)
 - [标签参考](Tags-Reference)
+
+### Markdown 表格跨行、跨列与单元格属性
+
+GuideNH 在 GFM 表格上提供与 jekyll-spaceship 相同的紧凑合并语法：
+
+- 在单元格后增加一个 `|` 表示多占一列。`||` 表示 `colspan="2"`，`|||` 表示 `colspan="3"`。
+- 单元格以 `^^` 开头时，会继续合并上方同列单元格。内容会用换行追加到原单元格，并增加它的 `rowspan`。
+- 单元格两侧可以使用冒号控制对齐（`: 左对齐`、`右对齐 :`、`: 居中 :`）。
+- 单元格末尾的 IAL（`{: ... }`）可以设置安全属性。支持 `color`、`background`/`bgcolor`、`style`（颜色、背景、粗体、下划线和对齐声明）、`align`、`valign`、`id` 和 `class`。
+- 可以用单独一行的 `{:name: ...}` 定义可复用 IAL，再在单元格 IAL 中引用。危险 CSS 和外部 URL 会被忽略。
+
+```markdown
+{:warning: style="background: #4b2418; color: #ffd8c2; font-weight: bold"}
+| 阶段 | 产物 | 备注 |
+| --- | --- | --- |
+| : 糖酵解 : | 2 ATP ||
+| ^^ A. Peach | 3 ATP | {: warning } |
+| 最终合计 ||| {: style="text-align: right; background: #26364d"}
+```
+
+在不支持扩展的 Markdown 渲染器中，这仍然是普通表格：多出的空单元格不会破坏结构，`^^` 和 IAL 文本会保留。复杂表头以及显式 `rowspan`/`colspan` 仍可使用 HTML 表格。
+### Extended Markdown table syntax
+
+GuideNH also supports the jekyll-spaceship table extensions in every preview:
+
+- End a physical row with `\` to append the next physical row to the same cells; each part is rendered on a new line.
+- Use a delimiter row as the first row (`|--|--|`) for a headerless table. Its rows remain data rows and are not bolded.
+- Cell contents keep normal GuideNH Markdown and MDX inline syntax, including links, images, emphasis, and LaTeX.
+- Use HTML `<thead>`, `<tbody>`, and `<tfoot>` when explicit row groups are needed.

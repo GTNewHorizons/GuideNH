@@ -2,6 +2,9 @@ package com.hfstudio.guidenh.guide.document.block.table;
 
 import java.util.Locale;
 
+import org.jetbrains.annotations.Nullable;
+
+import com.hfstudio.guidenh.guide.color.ColorValue;
 import com.hfstudio.guidenh.guide.document.LytRect;
 import com.hfstudio.guidenh.guide.document.block.AlignItems;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
@@ -19,6 +22,8 @@ public class LytTableCell extends LytVBox {
     final int columnSpan;
     final int rowSpan;
     private AlignItems verticalAlignment = AlignItems.START;
+    @Nullable
+    private ColorValue cellBackground;
 
     @Override
     protected boolean allowsContentWidthExpansion() {
@@ -27,6 +32,14 @@ public class LytTableCell extends LytVBox {
 
     @Override
     public void render(RenderContext context) {
+        if (cellBackground != null && !bounds.isEmpty()) {
+            context.fillRect(
+                bounds.x() + 1,
+                bounds.y() + 1,
+                Math.max(0, bounds.width() - 2),
+                Math.max(0, bounds.height() - 2),
+                cellBackground);
+        }
         LytRect contentBounds = new LytRect(
             bounds.x() + paddingLeft,
             bounds.y() + paddingTop,
@@ -52,6 +65,10 @@ public class LytTableCell extends LytVBox {
             case "bottom", "end" -> AlignItems.END;
             default -> AlignItems.START;
         };
+    }
+
+    public void setCellBackground(@Nullable ColorValue background) {
+        cellBackground = background;
     }
 
     public void alignContentVertically(int allocatedHeight) {

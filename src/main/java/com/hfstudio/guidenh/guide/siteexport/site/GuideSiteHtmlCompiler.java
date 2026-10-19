@@ -1008,7 +1008,7 @@ public class GuideSiteHtmlCompiler {
         }
         String alignStr = el.getAttributeString("align", "");
         String[] aligns = alignStr.contains(",") ? alignStr.split(",") : new String[0];
-        boolean firstRow = true;
+        boolean firstRow = !"false".equalsIgnoreCase(el.getAttributeString("header", "true"));
         for (Object child : el.children()) {
             if (child instanceof MdxJsxFlowElement section
                 && ("thead".equals(section.name()) || "tbody".equals(section.name())
@@ -1106,6 +1106,18 @@ public class GuideSiteHtmlCompiler {
                         cellStyle.append(originalCellStyle)
                             .append(';');
                     }
+                    String cellColor = sanitizeTableStyleValue(cell.getAttributeString("color", null));
+                    if (cellColor != null) {
+                        cellStyle.append("color:")
+                            .append(cellColor)
+                            .append(';');
+                    }
+                    String cellBackground = sanitizeTableStyleValue(cell.getAttributeString("background", null));
+                    if (cellBackground != null) {
+                        cellStyle.append("background:")
+                            .append(cellBackground)
+                            .append(';');
+                    }
                     if ("left".equals(cellAlign) || "center".equals(cellAlign) || "right".equals(cellAlign)) {
                         cellStyle.append("text-align:")
                             .append(cellAlign)
@@ -1188,10 +1200,39 @@ public class GuideSiteHtmlCompiler {
         }
         String normalized = value.trim();
         String lower = normalized.toLowerCase(Locale.ROOT);
-        if (lower.contains("javascript:") || lower.contains("expression(")
-            || lower.contains("url(")
+        String compact = lower.replaceAll("[\\u0000-\\u0020]+", "");
+        if (compact.contains("javascript:") || compact.contains("vbscript:")
+            || compact.contains("data:")
+            || compact.contains("expression(")
+            || compact.contains("url(")
+            || normalized.indexOf('\\') >= 0
             || normalized.indexOf('<') >= 0
-            || normalized.indexOf('>') >= 0) {
+            || normalized.indexOf('>') >= 0
+            || normalized.chars()
+                .anyMatch(character -> character < 0x20 && character != '\t')) {
+            return null;
+        }
+        return normalized;
+    }
+
+    @Nullable
+    private static String sanitizeTableStyleValue(@Nullable String value) {
+        if (value == null || value.isBlank() || value.length() > 512) {
+            return null;
+        }
+        String normalized = value.trim();
+        String compact = normalized.toLowerCase(Locale.ROOT)
+            .replaceAll("[\\u0000-\\u0020]+", "");
+        if (normalized.contains("<") || normalized.contains(">")
+            || normalized.indexOf('\\') >= 0
+            || normalized.contains(";")
+            || compact.contains("url(")
+            || compact.contains("expression(")
+            || compact.contains("javascript:")
+            || compact.contains("vbscript:")
+            || compact.contains("data:")
+            || normalized.chars()
+                .anyMatch(character -> character < 0x20 && character != '\t')) {
             return null;
         }
         return normalized;
@@ -2236,7 +2277,18 @@ public class GuideSiteHtmlCompiler {
     private String resolveImageSource(String rawUrl, @Nullable ResourceLocation currentPageId) {
         String resolved = imageResolver.resolve(rawUrl, currentPageId);
         if (resolved == null || resolved.isEmpty()) {
-            return rawUrl != null ? rawUrl : "";
+            resolved = rawUrl != null ? rawUrl : "";
+        }
+        String compact = resolved.trim()
+            .toLowerCase(Locale.ROOT)
+            .replaceAll("[\\u0000-\\u0020]+", "");
+        if (compact.startsWith("javascript:") || compact.startsWith("vbscript:")
+            || compact.startsWith("file:")
+            || compact.startsWith("data:text:")) {
+            return "";
+        }
+        if (compact.startsWith("data:") && !compact.matches("data:image/(?:png|gif|jpe?g|webp);base64,.*")) {
+            return "";
         }
         return resolved;
     }
