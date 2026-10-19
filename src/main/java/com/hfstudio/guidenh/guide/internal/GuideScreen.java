@@ -595,6 +595,7 @@ public class GuideScreen extends GuiContainer
         if (mc.currentScreen instanceof GuideScreen currentGuideScreen) {
             currentGuideScreen.rememberNavigationState();
         }
+        closeActiveContainerBeforeOpening(mc);
         GuiScreen parent = captureParentScreen(mc.currentScreen);
         var screen = new GuideScreen(initialState.route(), initialState, parent);
         screen.guideEditorSuppressTextFocusUntilGuideHotkeyRelease = openedFromGuideHotkey
@@ -602,6 +603,14 @@ public class GuideScreen extends GuiContainer
         GuideSoundPlayback.stopAll();
         mc.displayGuiScreen(screen);
         showWelcomeIfNeeded(screen);
+    }
+
+    private static void closeActiveContainerBeforeOpening(Minecraft minecraft) {
+        if (minecraft.thePlayer == null || minecraft.thePlayer.openContainer == null
+            || minecraft.thePlayer.openContainer == minecraft.thePlayer.inventoryContainer) {
+            return;
+        }
+        minecraft.thePlayer.closeScreen();
     }
 
     private static void showWelcomeIfNeeded(GuiScreen parent) {
