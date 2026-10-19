@@ -606,8 +606,7 @@ public class GuideScreen extends GuiContainer
     }
 
     private static void closeActiveContainerBeforeOpening(Minecraft minecraft) {
-        if (!(minecraft.currentScreen instanceof GuiContainer) || minecraft.thePlayer == null
-            || minecraft.thePlayer.openContainer == null
+        if (minecraft.thePlayer == null || minecraft.thePlayer.openContainer == null
             || minecraft.thePlayer.openContainer == minecraft.thePlayer.inventoryContainer) {
             return;
         }
