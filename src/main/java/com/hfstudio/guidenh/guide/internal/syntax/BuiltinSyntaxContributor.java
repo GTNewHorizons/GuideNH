@@ -192,6 +192,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
         sink.attributes(
             "table",
             AttributeSyntax.of("widths", SyntaxValueKind.STRING),
+            AttributeSyntax.of("header", SyntaxValueKind.BOOLEAN),
             AttributeSyntax.of("align", SyntaxValueKind.STRING),
             AttributeSyntax.of("width", SyntaxValueKind.STRING),
             AttributeSyntax.of("border", SyntaxValueKind.INT),
@@ -263,7 +264,10 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("axis", SyntaxValueKind.STRING),
             AttributeSyntax.of("char", SyntaxValueKind.STRING),
             AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
-            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR),
+            AttributeSyntax.of("color", SyntaxValueKind.COLOR),
+            AttributeSyntax.of("background", SyntaxValueKind.COLOR),
+            AttributeSyntax.of("style", SyntaxValueKind.STRING));
         sink.attributes(
             "td",
             AttributeSyntax.of("colspan", SyntaxValueKind.INT),
@@ -276,7 +280,10 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("axis", SyntaxValueKind.STRING),
             AttributeSyntax.of("char", SyntaxValueKind.STRING),
             AttributeSyntax.of("charoff", SyntaxValueKind.STRING),
-            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR));
+            AttributeSyntax.of("bgcolor", SyntaxValueKind.COLOR),
+            AttributeSyntax.of("color", SyntaxValueKind.COLOR),
+            AttributeSyntax.of("background", SyntaxValueKind.COLOR),
+            AttributeSyntax.of("style", SyntaxValueKind.STRING));
         sink.attributes("details", AttributeSyntax.of("open", SyntaxValueKind.BOOLEAN));
         sink.attributes(
             "ContentTabs",
@@ -1632,6 +1639,17 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             MarkdownSnippet.block("> [!WARNING]", "Warning alert", "> [!WARNING]\n> ", 15),
             MarkdownSnippet.block("> [!CAUTION]", "Caution alert", "> [!CAUTION]\n> ", 15),
             MarkdownSnippet.block("|", "Table", "| Header | Value |\n| --- | --- |\n|  |  |\n", 2),
+            MarkdownSnippet.block(
+                "||",
+                "Table span row",
+                "| Header || Value |\n| --- | --- |\n| First || Second |\n| ^^ Continued | Third |\n",
+                2),
+            MarkdownSnippet.block("|--", "Headerless table", "|--|--|\n|  |  |\n|  |  |\n", 2),
+            MarkdownSnippet.block(
+                "\\\\",
+                "Multiline table row",
+                "| Header | Value |\n| --- | --- |\n| First | Second \\\n| Next | Line |\n",
+                2),
             MarkdownSnippet.block("```", "Code block", "```\n\n```", 4),
             MarkdownSnippet.block("---", "Thematic break", "---", 3),
             MarkdownSnippet.block("$$", "Math block", "$$\n\n$$", 3),

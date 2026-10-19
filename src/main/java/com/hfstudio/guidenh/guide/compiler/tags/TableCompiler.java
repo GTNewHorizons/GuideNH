@@ -6,7 +6,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import com.hfstudio.guidenh.guide.color.ColorUtils;
+import com.hfstudio.guidenh.guide.color.ConstantColor;
 import com.hfstudio.guidenh.guide.compiler.PageCompiler;
+import com.hfstudio.guidenh.guide.compiler.tags.chart.ChartAttrParser;
 import com.hfstudio.guidenh.guide.document.block.LytBlockContainer;
 import com.hfstudio.guidenh.guide.document.block.LytParagraph;
 import com.hfstudio.guidenh.guide.document.block.LytVBox;
@@ -60,7 +63,7 @@ public class TableCompiler extends BlockTagCompiler {
         List<String> columnWidths = new ArrayList<>();
         LytVBox captionedTable = null;
 
-        boolean firstRow = true;
+        boolean firstRow = !"false".equalsIgnoreCase(el.getAttributeString("header", "true"));
         for (var child : el.children()) {
             if (child instanceof MdxJsxFlowElement meta && tagEquals(meta, "table-meta")) {
                 String content = meta.getAttributeString("content", "");
@@ -178,10 +181,73 @@ public class TableCompiler extends BlockTagCompiler {
                 String cellVAlign = cellElement.getAttributeString("valign", "")
                     .trim();
                 cell.setVerticalAlignment(cellVAlign.isEmpty() ? rowVAlign : cellVAlign);
+                applyCellStyle(cell, cellElement);
                 compiler.compileTableCellContent(cellElement.children(), cell);
             }
         }
         return false;
+    }
+
+    private static void applyCellStyle(LytTableCell cell, MdxJsxElementFields element) {
+        String color = element.getAttributeString("color", null);
+        String background = element.getAttributeString("bgcolor", null);
+        if (background == null) {
+            background = element.getAttributeString("background", null);
+        }
+        String style = element.getAttributeString("style", null);
+        if (style != null && style.length() <= 4096) {
+            for (String declaration : style.split(";")) {
+                int separator = declaration.indexOf(':');
+                if (separator <= 0) {
+                    continue;
+                }
+                String key = declaration.substring(0, separator)
+                    .trim()
+                    .toLowerCase(Locale.ROOT);
+                String value = declaration.substring(separator + 1)
+                    .trim();
+                if (value.length() > 512 || value.indexOf('<') >= 0 || value.indexOf('>') >= 0) {
+                    continue;
+                }
+                switch (key) {
+                    case "color" -> color = value;
+                    case "background", "background-color" -> background = value;
+                    case "font-weight" -> {
+                        if ("bold".equalsIgnoreCase(value) || "700".equals(value)) {
+                            cell.modifyStyle(textStyle -> textStyle.bold(true));
+                        }
+                    }
+                    case "text-decoration" -> {
+                        if (value.toLowerCase(Locale.ROOT)
+                            .contains("underline")) {
+                            cell.modifyStyle(textStyle -> textStyle.underlined(true));
+                        }
+                        if (value.toLowerCase(Locale.ROOT)
+                            .contains("line-through")) {
+                            cell.modifyStyle(textStyle -> textStyle.strikethrough(true));
+                        }
+                    }
+                    case "text-align" -> cell
+                        .modifyStyle(textStyle -> textStyle.alignment(parseAlignment(value, null)));
+                    default -> {}
+                }
+            }
+        }
+        if (color != null) {
+            String resolvedColor = color;
+            cell.modifyStyle(
+                textStyle -> textStyle
+                    .color(new ConstantColor(parseColor(resolvedColor, ColorUtils.WHITE.getColor()))));
+        }
+        if (background != null) {
+            String resolvedBackground = background;
+            cell.setCellBackground(
+                new ConstantColor(parseColor(resolvedBackground, ColorUtils.TRANSPARENT.getColor())));
+        }
+    }
+
+    private static int parseColor(String value, int fallback) {
+        return ChartAttrParser.parseColor(value, fallback);
     }
 
     private static void applyWidths(LytTable table, List<Integer> widths) {
