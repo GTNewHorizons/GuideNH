@@ -291,6 +291,7 @@ public class BuiltinSyntaxContributor implements SyntaxContributor {
             AttributeSyntax.of("default", SyntaxValueKind.STRING),
             AttributeSyntax.of("defaultIndex", SyntaxValueKind.INT),
             AttributeSyntax.of("color", SyntaxValueKind.COLOR),
+            AttributeSyntax.of("background", SyntaxValueKind.COLOR),
             AttributeSyntax.of("icon", SyntaxValueKind.STRING),
             AttributeSyntax.of("iconPng", SyntaxValueKind.FILE_PATH),
             AttributeSyntax.of("icon_png", SyntaxValueKind.FILE_PATH),

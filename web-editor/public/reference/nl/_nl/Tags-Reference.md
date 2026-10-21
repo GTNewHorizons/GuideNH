@@ -49,7 +49,7 @@ Inline Markdown ook ondersteunt action links voor sound playback:
 | tag | Purpose | Key attributen |
 | --- | --- | --- |
 | `<div>` | pass-through blok wrapper | none |
-| `<ContentTabs>` | groups alternative rich inhoud under independent tabs | `title`, `color`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
+| `<ContentTabs>` | groups alternative rich inhoud under independent tabs | `title`, `color`, `background`, `icon`, `iconPng`, `icon_png`, `iconItem`, `icon_item`, `default`, `defaultIndex` |
 | `<Tab>` | one inhoud panel binnen `<ContentTabs>` | `title` |
 | `<details>` | collapsible runtime blok | `open`, `width`, `height`, `wrap`, `align` |
 | `<FileTree>` | directory-style outline met connector regels | `indent`, `gap` |
@@ -155,6 +155,7 @@ Groups alternative rich inhoud under independent tabs. alleen direct `<Tab>` kin
   title="Implementation Options"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -171,6 +172,7 @@ Groups alternative rich inhoud under independent tabs. alleen direct `<Tab>` kin
 - `default` matches De first tab whose `title` matches exactly
 - `defaultIndex` is zero-based en wins over `default` wanneer both are present
 - `color` optionally overrides De left accent regel en geselecteerd-tab markeren met `#RRGGBB` of `#AARRGGBB`
+- background — overschrijft optioneel de achtergrond van de tabcontainer met #RRGGBB, #AARRGGBB of transparent; zonder waarde blijft de standaard grijze achtergrond behouden
 - `title` adds Een optioneel plain-tekst heading above De tab strip
 - `icon`, `iconPng` / `icon_png`, en `iconItem` / `icon_item` gebruiken De zelfde heading icon semantics as Markdown quote-style callouts
 - invalid kinderen of invalid defaults renderen zichtbaar author-facing errors

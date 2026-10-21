@@ -10,7 +10,8 @@ import com.hfstudio.guidenh.guide.internal.markdown.MarkdownRuntimeBlocks.QuoteI
 import com.hfstudio.guidenh.libs.unist.UnistNode;
 
 public record ContentTabsSpec(@Nullable String title, @Nullable QuoteIconSpec icon, @Nullable String defaultTitle,
-    @Nullable Integer defaultIndex, @Nullable ColorValue accentColor, List<TabEntry> tabs,
+    @Nullable Integer defaultIndex, @Nullable ColorValue accentColor, @Nullable ColorValue backgroundColor,
+    List<TabEntry> tabs,
     List<ValidationIssue> issues) {
 
     public boolean hasRenderableTabs() {

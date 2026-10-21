@@ -377,13 +377,14 @@ HTML 表格可以表示标题、列分组、语义行分组和合并单元格。
 
 `<ContentTabs>` 可以把可替代的富内容放进同一组标签页中。每个子节点都必须是直接的
 `<Tab title="...">`。默认选中项可以通过 `default` 或 `defaultIndex` 指定，`color`
-可以覆盖类似引用块的强调线与高亮颜色，容器本身还支持通过 `title` 配合
+可以覆盖类似引用块的强调线与高亮颜色，`background` 可以用 `#RRGGBB`、`#AARRGGBB` 或 `transparent` 覆盖标签容器背景，容器本身还支持通过 `title` 配合
 `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 渲染一个可选的标记式标题行。
 
 <ContentTabs
   title="构建方案"
   iconItem="minecraft:crafting_table"
   color="#4f8cff"
+  background="#20252d"
   default="场景"
 >
   <Tab title="代码">

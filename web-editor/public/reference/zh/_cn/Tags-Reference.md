@@ -48,7 +48,7 @@
 | 标签 | 用途 | 关键属性 |
 | --- | --- | --- |
 | `<div>` | 透传块包装器 | 无 |
-| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `title`、`color`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`、`default`、`defaultIndex` |
+| `<ContentTabs>` | 将可替代的富内容分组到独立标签页中 | `title`、`color`、`background`、`icon`、`iconPng`、`icon_png`、`iconItem`、`icon_item`、`default`、`defaultIndex` |
 | `<Tab>` | `<ContentTabs>` 内的单个内容面板 | `title` |
 | `<details>` | 可折叠运行时块 | `open`、`width`、`height`、`wrap`、`align` |
 | `<FileTree>` | 目录树式大纲（带连接线） | `indent`、`gap` |
@@ -151,6 +151,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
   title="实现方案"
   icon="</>"
   color="#4f8cff"
+  background="#20252d"
   default="Java"
 >
   <Tab title="Java">
@@ -167,6 +168,7 @@ Water is H<sub>2</sub>O and x<sup>2</sup> is a square.
 - `default` 会匹配第一个 `title` 完全相同的标签页
 - `defaultIndex` 使用从 `0` 开始的下标，并且在同时出现时优先级高于 `default`
 - `color` 可选，用 `#RRGGBB` 或 `#AARRGGBB` 覆盖左侧强调线与选中标签的高亮颜色
+- background — 可选，用 #RRGGBB、#AARRGGBB 或 transparent 覆盖标签容器背景；省略时保留默认灰色背景
 - `title` 会在标签栏上方增加一个可选的纯文本标题
 - `icon`、`iconPng` / `icon_png`、`iconItem` / `icon_item` 与 Markdown 标记/引用块标题的图标语义完全一致
 - 非法子节点或非法默认值会渲染为面向作者的可见错误

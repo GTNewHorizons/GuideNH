@@ -44,6 +44,8 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
     private final List<LytNode> children = new ArrayList<>();
     private final ColorValue accentColor;
     @Nullable
+    private final ColorValue backgroundColor;
+    @Nullable
     private final LytParagraph titleParagraph;
     private int selectedIndex;
     private LytRect titleBounds = LytRect.empty();
@@ -83,8 +85,10 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
         false);
 
     public LytContentTabsBlock(@Nullable String title, @Nullable LytFlowContent icon, int selectedIndex,
-        @Nullable ColorValue accentColor, List<ContentTabsSpec.TabEntry> entries) {
+        @Nullable ColorValue accentColor, @Nullable ColorValue backgroundColor,
+        List<ContentTabsSpec.TabEntry> entries) {
         this.accentColor = accentColor != null ? accentColor : DEFAULT_ACCENT;
+        this.backgroundColor = backgroundColor;
         this.selectedIndex = Math.max(0, selectedIndex);
         this.titleParagraph = buildTitleParagraph(title, icon);
         if (titleParagraph != null) {
@@ -190,7 +194,9 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
         }
         int safeSelectedIndex = getSafeSelectedIndex();
         int accentArgb = context.resolveColor(accentColor);
-        context.fillRect(bounds, context.resolveColor(ColorUtils.BLOCKQUOTE_BACKGROUND));
+        context.fillRect(
+            bounds,
+            context.resolveColor(backgroundColor != null ? backgroundColor : ColorUtils.BLOCKQUOTE_BACKGROUND));
         context.fillRect(bounds.x(), bounds.y(), ACCENT_WIDTH, bounds.height(), accentArgb);
         if (titleParagraph != null) {
             titleParagraph.render(context);
@@ -223,6 +229,11 @@ public class LytContentTabsBlock extends LytBlock implements InteractiveElement,
             }
         }
         tabs.get(safeSelectedIndex).body.render(context);
+    }
+
+    @Nullable
+    public ColorValue getBackgroundColor() {
+        return backgroundColor;
     }
 
     @Override
